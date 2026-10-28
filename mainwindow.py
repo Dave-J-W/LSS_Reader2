@@ -2332,6 +2332,7 @@ class MainWindow (QMainWindow):
                     row=np.arange(self.pilatus.NROWS)
                     col=np.arange(ini,fin+1)
                     col,row=np.meshgrid(col,row)
+                    print(ini, fin)
                     data=[]
                     self.uipdburn.plotWidget.canvas.ax.clear()
                     self.uipdburn.plotWidget.canvas.ax.set_xlabel('Time (sec.)')
@@ -2341,7 +2342,7 @@ class MainWindow (QMainWindow):
                         meanleft=np.mean(datai[0:3,1])  #pass a straight line bewteen first and last three points in the selected range, then subtracte it from the data, keep the errorbar unchange
                         meanright=np.mean(datai[-3:,1])
                         slope=(meanright-meanleft)/(datai[-2,0]-datai[1,0])
-                        datai[:,1]=datai[:,1]-slope*(datai[:,0]-datai[1,0])-meanleft
+                        datai[:,1]=datai[:,1]-slope*(datai[:,0]-datai[1,0])-meanleft #subtracte the background
                         #datai[:,2]=np.sqrt(np.abs(datai[:,1]))   #need to recheck the error bar
                         if self.uipdburn.gidComboBox.currentText()=='Intensity':
                             data.append([ctime*i,np.sum(datai[:,1])/self.pilMonc[i],np.sqrt(np.sum(datai[:,1])**2/self.pilMonc[i]**3+np.sum(datai[:,2]**2)/self.pilMonc[i]**2)])
@@ -2356,6 +2357,7 @@ class MainWindow (QMainWindow):
                     x=data[:,0]
                     y=data[:,1]
                     yerr=data[:,2]
+                    print(y)
                     if self.uipdburn.gidComboBox.currentText()=='Location':
                         self.uipdburn.plotWidget.canvas.ax.set_ylabel('Relative Location '+r'$[\AA^{-1}]$')
                         y=4.0*np.pi*np.sin((self.pilSelected_Dth[0]+(data[:,1]-cen)*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]
@@ -2365,7 +2367,7 @@ class MainWindow (QMainWindow):
                         self.uipdburn.plotWidget.canvas.ax.set_ylabel('FWHM '+r'$[\AA^{-1}]$')
                         y=np.sqrt(y)
                         yerr=0.5/y*yerr
-                        y=4.0*np.pi*np.sin((data[:,1]*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]
+                        y=4.0*np.pi*np.sin((y*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]
                         yerr=4.0*np.pi*np.cos((data[:,1]*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]*data[:,2]*0.172/2/self.pilSelected_PDist[0]
                     self.uipdburn.plotWidget.canvas.ax.errorbar(x,y,yerr,fmt='o-')
                     if self.uipdburn.gidComboBox.currentText()=='Intensity':
@@ -2589,7 +2591,7 @@ class MainWindow (QMainWindow):
         #print averagemonc, ckey
         #print np.average(averagemonc[ckey])
         for i in self.selectedPilFramesNums:
-            self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absnum=[self.pil_AbsNum[i]],cen=[self.xcenter[j],self.ycenter[j]], hroi=[self.pilxleft[j], self.pilxright[j]], vroi=[5,486], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]])
+            self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absnum=[self.pil_AbsNum[i]],cen=[self.xcenter[j],self.ycenter[j]], hroi=[self.pilxleft[j], self.pilxright[j]], vroi=[15,486], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]])
             j=j+1
             ckey=self.pilScanNum[i]
             if ckey in areainfo:
