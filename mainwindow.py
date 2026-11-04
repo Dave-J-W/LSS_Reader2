@@ -4389,8 +4389,14 @@ class MainWindow (QMainWindow):
                     self.cutData[i]=self.pilatus.vintData
                 elif self.ui.pilCutDirComboBox.currentIndex()==0:
                     beta=np.arcsin(2*np.sin(self.alpha[j])-np.sin(self.truealpha[j]))  # get the beta value
-                    ini1=int(np.tan(np.arcsin(ini*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))-beta)*self.distance[j]/0.172)+self.ycenter[j]
-                    fin1=int(np.tan(np.arcsin(fin*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))-beta)*self.distance[j]/0.172)+self.ycenter[j]
+                    #ini1=int(np.tan(np.arcsin(ini*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))-beta)*self.distance[j]/0.172)+self.ycenter[j]
+                    #fin1=int(np.tan(np.arcsin(fin*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))-beta)*self.distance[j]/0.172)+self.ycenter[j]
+                    ini1 = int(
+                        np.tan(np.arcsin(ini * self.wavelength[j] / 2.0 / np.pi - np.sin(self.alpha[j])) - beta) *
+                        self.pilSelected_Dist[j] / 0.172) + self.ycenter[j]       # should use standard sample to detector distance for y direction, self.distance could be changed for pinhole setup.
+                    fin1 = int(
+                        np.tan(np.arcsin(fin * self.wavelength[j] / 2.0 / np.pi - np.sin(self.alpha[j])) - beta) *
+                        self.pilSelected_Dist[j] / 0.172) + self.ycenter[j]
                     #ini1=-int((self.distance[j]*np.arcsin(ini*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))+self.pilSelected_Sh[j])/0.172)+self.ycenter[j]
                     #fin1=-int((self.distance[j]*np.arcsin(fin*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))+self.pilSelected_Sh[j])/0.172)+self.ycenter[j]
                     self.pilatus.plotVint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j],cen=[self.xcenter[j],self.ycenter[j]],  hroi=None,  vroi=[max(int(ini1),0), min(int(fin1)+1,self.pilatus.NROWS)], ax_type='Q', wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j], dth=self.dth[j], mon=None)
@@ -4403,7 +4409,7 @@ class MainWindow (QMainWindow):
                     fin1=int((2.0*np.arcsin(fin*self.wavelength[j]/4.0/np.pi)-self.dth[j])*self.distance[j]/0.172)+self.xcenter[j]
                    # ini1=int(2.0*self.distance[j]*np.arcsin(ini*self.wavelength[j]/4.0/np.pi)/0.172)+self.xcenter[j]
                     #fin1=int(2.0*self.distance[j]*np.arcsin(fin*self.wavelength[j]/4.0/np.pi)/0.172)+self.xcenter[j]
-                    self.pilatus.plotHint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j], cen=[self.xcenter[j],self.ycenter[j]], hroi=[max(int(ini1),0), min(int(fin1)+1,self.pilatus.NCOLS)],  vroi=None, ax_type='Q', wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j], truealpha=self.truealpha[j], mon=None)
+                    self.pilatus.plotHint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j], cen=[self.xcenter[j],self.ycenter[j]], hroi=[max(int(ini1),0), min(int(fin1)+1,self.pilatus.NCOLS)],  vroi=None, ax_type='Q', wavelength=self.wavelength[j],s2d_dist=self.pilSelected_Dist[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j], truealpha=self.truealpha[j], mon=None)  #again, use the standard same to detector distance for the y direction
                     self.cutData[i]=self.pilatus.hintData
                 self.cutLabel[i]=str(self.ui.imageListWidget.item(i).text().split('\t')[0])+' '+str(self.ui.imageListWidget.item(i).text().split('\t')[1])
                 j=j+1
