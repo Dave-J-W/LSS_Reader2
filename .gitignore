@@ -3,3 +3,6 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
+
+# private sample data: kept locally, never pushed
+sample_data/bu/
