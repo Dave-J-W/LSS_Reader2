@@ -27,16 +27,61 @@ OUT = os.environ.get('LSS_BENCH_OUT', os.path.join(ROOT, 'docs', 'timings.md'))
 pytestmark = [pytest.mark.gui, pytest.mark.bench]
 
 
+class FileCounter:
+    """Counts data files opened and their sizes, whatever the disk speed.
+
+    On a network drive each open costs a round trip and each megabyte costs
+    transfer time, so these two numbers are what a cache would save.
+    """
+
+    def __init__(self, monkeypatch, root):
+        import builtins
+        from PIL import Image
+        self.files, self.bytes = 0, 0
+        root = os.path.join(root, 'sample_data')
+        real_open, real_image_open = builtins.open, Image.open
+
+        def note(path):
+            try:
+                path = os.fspath(path)
+            except TypeError:
+                return
+            if isinstance(path, str) and os.path.abspath(path).startswith(root):
+                self.files += 1
+                self.bytes += os.path.getsize(path)
+
+        def counting_open(file, *a, **k):
+            note(file)
+            return real_open(file, *a, **k)
+
+        def counting_image_open(fp, *a, **k):
+            if isinstance(fp, (str, os.PathLike)):
+                self.files -= 1          # Image.open calls builtins.open too
+                self.bytes -= os.path.getsize(fp) if os.path.exists(fp) else 0
+                note(fp)
+            return real_image_open(fp, *a, **k)
+
+        monkeypatch.setattr(builtins, 'open', counting_open)
+        monkeypatch.setattr(Image, 'open', counting_image_open)
+
+    def take(self):
+        out = (self.files, self.bytes)
+        self.files, self.bytes = 0, 0
+        return out
+
+
 class Timer:
-    def __init__(self, app):
-        self.app, self.rows = app, []
+    def __init__(self, app, counter):
+        self.app, self.counter, self.rows = app, counter, []
 
     def __call__(self, label, fn, note=''):
+        self.counter.take()
         t0 = time.perf_counter()
         fn()
         self.app.processEvents()
         dt = time.perf_counter() - t0
-        self.rows.append((label, dt, note))
+        files, nbytes = self.counter.take()
+        self.rows.append((label, dt, files, nbytes / 1e6, note))
         return dt
 
 
@@ -80,9 +125,9 @@ def _profiled(app, fn):
 
 
 @pytest.mark.skipif(not os.path.exists(NX), reason='NX_school data not present')
-def test_timings(qapp, recorder, tmp_path):
+def test_timings(qapp, recorder, tmp_path, monkeypatch):
     from mainwindow import MainWindow
-    t = Timer(qapp)
+    t = Timer(qapp, FileCounter(monkeypatch, ROOT))
     sections = []
 
     # ---- reflectivity, Pilatus 100K (NX school) -------------------------
@@ -145,8 +190,10 @@ def test_timings(qapp, recorder, tmp_path):
              % (platform.machine(), platform.python_version()),
              'run-to-run variation of 10-20 %. Production reads from a',
              'network drive, which these numbers do not include.', '',
-             '| Step | Seconds | Note |', '|---|---|---|']
-    lines += ['| %s | %.2f | %s |' % r for r in t.rows]
+             '"Files" and "MB" count data files opened during the step and',
+             'their total size; they do not depend on disk speed.', '',
+             '| Step | Seconds | Files | MB | Note |', '|---|---|---|---|---|']
+    lines += ['| %s | %.2f | %d | %.1f | %s |' % r for r in t.rows]
     for title, total, parts in sections:
         lines += ['', '## ' + title, '',
                   'Own time by where the code lives, from a profiled repeat of',
