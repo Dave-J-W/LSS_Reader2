@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -m 'not sweep'"
+markers = [
+    "gui: needs a (headless) Qt main window",
+    "sweep: clicks every button in several application states",
+]
