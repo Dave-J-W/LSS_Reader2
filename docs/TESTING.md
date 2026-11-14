@@ -10,7 +10,8 @@ No display is needed; the tests run Qt on its `offscreen` platform.
 ## Running
 
     pytest              # fast suite, about 30 s
-    pytest -m sweep     # crash inventory, several minutes
+    pytest -m slow      # real-data regression (sample_data/NX_school), about 2 min
+    pytest -m sweep     # crash inventory, about 25 min
 
 ## What is there
 
@@ -20,6 +21,7 @@ No display is needed; the tests run Qt on its `offscreen` platform.
 | `tests/conftest.py` | Fixtures: `qapp`, `recorder` (captures message boxes, dialogs and exceptions raised in Qt slots; file dialogs return "cancelled"), `window`, `dataset`, `loaded`. |
 | `test_fresnel.py`, `test_twod_detector.py`, `test_parsers.py`, `test_stitching.py`, `test_gid_area.py` | Unit tests of the numerics, including the analytic invariants listed in `physics_notes.md`. |
 | `test_gui_workflows.py` | Reduces the synthetic data set through the real widgets and compares with the curve the data were generated from. |
+| `test_real_nx_school.py`, `reference/` | Reduces the real NX school reflectivity scans and compares with a stored curve produced by this program. |
 | `test_known_defects.py` | Defects from `ASSESSMENT.md`, each as a strict expected failure. |
 | `sweep.py`, `test_gui_sweep.py`, `known_crashes.json` | Crash inventory, see below. |
 

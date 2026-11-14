@@ -115,3 +115,32 @@ counts fall as more data is selected because more of those attributes exist.
 
 Not yet covered: sequences of several controls, file dialogs that return a
 path, controls inside the secondary dialogs, Bruker images.
+
+### 2026-11-14 — Does the program reduce real beamline data?
+
+**Q.** Use the example files (`NX_school`, `bu`) as sample data.
+
+**A.** `NX_school` (2026 school data, DPPC monolayer, 15 scans, 276 Pilatus
+frames) is in `sample_data/NX_school/`. `bu` is not in the repository yet.
+
+Measured by running the program on it (`tests/test_real_nx_school.py`,
+`pytest -m slow`):
+
+- The SPEC file parses; every one of the 15 scans opens and shows its first
+  frame without raising. Scan 12 lists 4 frames although 5 images exist (the
+  scan was stopped early).
+- Scans 6–9 stitch into an 87-point reflectivity curve, Q_z 0.0175–0.45 Å⁻¹,
+  plateau 0.989 at the first point, first minimum at Q_z ≈ 0.25 Å⁻¹. This
+  curve is frozen as `tests/reference/nx_school_ref_scans_6-9.txt`. It is a
+  self-reference (what the program computes today), not an independent
+  check.
+- Stitch factors reported between successive scans: 0.02293, 0.001480,
+  0.0001534.
+- The folder also ships `extracted_data/dppc_ref.txt`, a DPPC curve reduced
+  earlier by the beamline software from a *different* set of scans (Q_z
+  0.016–0.76). Interpolated onto it, our curve agrees within 2 % below
+  0.05 Å⁻¹, is 2–7 % higher up to 0.1 Å⁻¹, and differs by up to 37 % near the
+  minimum. Since these are different measurements this does not show an
+  error, but it is not a confirmation either.
+- The real SPEC header layout (`#P0 names` followed by `#    values`) matches
+  what `tests/synth.py` guessed.

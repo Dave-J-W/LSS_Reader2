@@ -1,0 +1,93 @@
+## Ref Macro for DPPC
+## Keep monc gain to 500 nA/V in the macro
+## Move to new sample spot and do Sample Height scan
+## compiling SURF>qdo do_files/ref_dppc
+## check the macro SURF> prdef ref_dppc
+## execute   SURF>ref_dppc
+
+
+def ref_dppc' {
+
+
+
+ref_slits     #for big trough
+s1v 0.1 0.1
+
+_sleep=3 ; plotselect proi
+
+
+#scan1
+umk 0 0 0.015
+umv mabs 42
+lscan 0.016 0.034 18 2
+
+
+
+#scan2
+umk 0 0 0.025
+umv mabs 33
+lscan 0.03 0.066 18 2
+
+
+#scan3
+umk 0 0 0.05
+umv mabs 26
+lscan 0.055 0.14 17 2
+
+#scan4
+umk 0 0 0.12
+s1v 0.05 0.05
+umv mabs 20
+lscan 0.12 0.22 20 5
+
+#scan5
+umk 0 0 0.17
+umv mabs 17
+lscan 0.185 0.43 25 7
+
+#scan6
+umvr sx -2
+s1v 0.1 0.1
+umk 0 0 0.39
+umv mabs 14
+lscan 0.39 0.53 14 15
+
+#scan7
+umvr sx -2
+umk 0 0 0.47
+umv mabs 10
+lscan 0.48 0.76 14 30 
+cleanup_sh
+#End Reflectivity Scan
+}'
+
+
+def ref_burn ' {
+if ($# != 1) {
+                print "Usage:  ref_burn  abs"
+                exit
+        }
+
+_sleep=0
+ref_slits
+
+umk 0 0 0.5
+s1v 0.1 0.1
+umv mabs $1
+
+lup ih 0 0 40 10 
+
+umv mabs 50
+umvr sx -2
+
+}'
+
+
+
+
+
+
+
+
+
+

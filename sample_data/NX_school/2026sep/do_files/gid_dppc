@@ -1,0 +1,84 @@
+## GID Macro for DPPC
+## Keep monc gain to 500 nA/V in the macro
+## Move to new sample spot and do Sample Height scan
+## compiling SURF>qdo do_files/gid_dppc
+## execute   SURF>gid_dppc
+################### Macro for GID scans 
+
+def gid_dppc' {
+
+######Setup GID Slits
+absclose
+umv mabs 52
+gid_slits_16
+
+###dth scan do not need sleep
+_sleep=0
+
+###Low q###
+#region 1 coarse step - 0.1 step size
+#umi 0.0904 0.0904
+
+umi 0.1018 0.1018
+umv dth 11
+
+umv mabs 12
+ascan dth 11 18.2 36 10 
+
+
+#region 2 coarse step - 0.1 step size
+umvr sx -2
+umv dth 17.4
+ascan dth 17.4 24 33 10
+
+#region 2 fine step - .05 step size
+umvr sx -2
+umv dth 16
+ascan dth 16.2 17.5 26 10
+
+###High q###
+
+#region 1 coarse step - 0.1 step size
+umvr sx -2
+umi 0.1018 6.5
+umv dth 11
+ascan dth 11 18.2 36 10
+
+#region 2 coarse step - 0.1 step size
+umvr sx -2
+umv dth 17.4
+ascan dth 17.4 24 33 10
+
+#Reset abs and slits
+cleanup_sh
+#End gid_dppc
+}'
+
+
+
+def gid_burn' {
+
+if ($# != 2) {
+                print "Usage:  ref_burn  dth abs"
+                exit
+        }
+
+
+######Setup GID Slits
+absclose
+umv mabs 52
+gid_slits_16
+
+###dth scan do not need sleep
+_sleep=0
+
+
+umi 0.1018 0.1018
+umv dth $1
+
+umv mabs $2
+lup ih 0 0 40 10
+
+umv mabs 52
+umvr sx -2
+}'
