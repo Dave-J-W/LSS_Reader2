@@ -150,3 +150,33 @@ References (cited from memory; DOIs not re-checked in this session):
 - Is the 9-ID-C path still needed?
 - Is real sample data (SPEC + Pilatus + MCA) available for regression
   baselines? The repository holds reduced outputs only.
+
+## 7. Addendum after running tests and real data (2026-11-14)
+
+Measured, not read. Details and numbers are in `physics_notes.md`.
+
+- Reproduced by test: defects 1, 2, 4, 5 and 14 of section 4, and the shared
+  default dictionaries in `specread`.
+- New: 368 control/state combinations raise (`tests/known_crashes.json`).
+- New: the stitching scale factor is biased 1.2–1.3 % low when the two scans
+  do not share Q_z points in the overlap.
+- New: `calArea` is not symmetric in ±2θ (2 % at 20°). The symmetry claim in
+  section 2 is therefore an expectation the code does not meet.
+- New: the SpecPlot "FWHM" is the width of a box model, 14 % below the true
+  FWHM for a Gaussian.
+- New: a SPEC file with repeated scan numbers leaves the window without
+  detector paths and selecting a scan raises.
+- New: Pilatus 1M data (`#B5` header, `pilatus1m/` folder) are not read at
+  all by this version.
+- Real NX school data reduce end to end; scans 6–9 give a plausible DPPC
+  reflectivity curve, now frozen as a regression reference.
+
+Correction to section 3: there are 79 bare `except:` blocks, as stated there;
+an earlier verbal estimate of "about 60" was low.
+
+Additional open questions:
+
+- Is there a newer production version of the reader that handles Pilatus 1M
+  (`#B5`, `pilatus1m/`)? If so, the work should start from it.
+- Is 2θ ever negative in practice for GID (relevant to the `calArea`
+  asymmetry)?

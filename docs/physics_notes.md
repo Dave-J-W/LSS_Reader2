@@ -144,3 +144,45 @@ Measured by running the program on it (`tests/test_real_nx_school.py`,
   error, but it is not a confirmation either.
 - The real SPEC header layout (`#P0 names` followed by `#    values`) matches
   what `tests/synth.py` guessed.
+
+### 2026-11-14 — What does the private `bu` sample set show?
+
+**Q.** Use `bu` as further example data (kept local, git-ignored, not pushed).
+
+**A.** `bu` holds eight SPEC files from three runs (253 scans), 595 Pilatus
+100K frames, 366 Pilatus 1M frames and 26 Vortex MCA files. Measured with
+`tests/test_real_bu.py`, which opens every file, selects each scan and its
+first frame:
+
+- Seven of the eight files go through without raising.
+- `2026June/20260615` contains scan numbers 1, 2, 1. The reader flags
+  "identical scan numbers", the window then never sets its image-directory
+  paths, and selecting scan 2 raises `AttributeError: pilfhead`
+  (`mainwindow.py:1487`). Pinned as an expected failure.
+- **Pilatus 1M data are not readable by this version of the program.** The
+  October run records the detector geometry on a `#B5` header line and stores
+  images (981 × 1043 pixels) in `pilatus1m/`. The reader only understands
+  `#B1`/`#B2` and only looks in `pilatus/`, so all 20 such scans are listed
+  as "Pilatus" with zero frames. Nothing raises; the data are silently
+  absent.
+- 41 fluorescence scans report "MCA file(s) of selected scans do not exist";
+  the sample set contains only some of the `vortex/` files, so this is
+  expected here.
+
+Timings on local disk (best of three, this container):
+
+| Operation | Time |
+|---|---|
+| `TwoDDetector.openFile`, Pilatus 100K, no bad-pixel pass | 4 ms |
+| same, one bad-pixel pass | 6 ms |
+| `TwoDDetector.openFile`, Pilatus 1M array, no bad-pixel pass | 37 ms |
+| same, one bad-pixel pass | 64 ms |
+| plain `numpy.asarray(PIL.Image.open(...))`, 1M | 1.8 ms |
+| `mcaread`, 28 spectra × 4096 channels | 0.46 s (16 ms per spectrum) |
+
+So on local disk the file readers are 20× slower than they need to be for
+images, but still tens of milliseconds. The slowness reported in production
+is therefore more likely network reads and what happens after reading
+(per-frame plotting, repeated re-reading on every selection) than decoding.
+That has not been measured yet; it needs timing of the full selection path,
+ideally against a slow file system.
