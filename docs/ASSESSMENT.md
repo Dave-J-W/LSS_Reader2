@@ -180,3 +180,32 @@ Additional open questions:
   (`#B5`, `pilatus1m/`)? If so, the work should start from it.
 - Is 2θ ever negative in practice for GID (relevant to the `calArea`
   asymmetry)?
+
+## 8. Python 2 → 3 audit (2026-11-14)
+
+Static scan of the four modules for the usual migration leftovers, each
+confirmed by reading the surrounding code. Items marked "test" have an
+expected-failure test in `tests/test_known_defects.py`.
+
+| Where | Leftover | Effect | Status |
+|---|---|---|---|
+| `TwoDDetector.py:74-83` | Header of a Bruker frame is read in binary mode and used as text: keys are `bytes`, lookups use `str`, values go through `eval`. | No Bruker (Apex CCD) image can be opened. The whole Apex tab is dead. | test |
+| `TwoDDetector.py:137` | `removeBadPix` now returns `(data, list)`; the Bruker caller was not updated. | Second reason Bruker images cannot be used. | defect 9 |
+| `mainwindow.py:1920-1923` | `col=N/row+...` is a float in Python 3 and is passed to `add_subplot` (Bruker multi-frame plot). The Pilatus copy at 2075 was fixed with `int()`. | Raises once Bruker reading works. | read only |
+| `mainwindow.py:4609`, `4659` | `map(float, ...)` kept as an iterator, later used as an array and indexed. | g_l2 / g_l3 calibration fails when centres are typed in. | defect 7, test |
+| `spec_routines.py:225`, `231` and the rest of `APS_9IDC` | `map(eval, ...)` then `len()` and indexing. | 9-ID-C SPEC files cannot be read. | defect 8 |
+| `spec_routines.py:135-136` | `'... %d',num,'...'` builds a tuple, not a formatted string (a Python 2 `print` statement turned into an assignment). | The stored message is a tuple; harmless until displayed. | read only |
+| `mainwindow.py:5282` | `str(getSaveFileName(...))[0]`: PyQt4 returned a string, PyQt5 returns `(name, filter)`. | Peak-fit save writes to a file named `(`. | defect 6 |
+| `mainwindow.py` (260 lines) | Old-style `SIGNAL(...)` connects left as comments beside the new ones. | None at run time; noise. | cosmetic |
+| `mpl2Dwidget1.py`, comment in `LSS_Reader.py` | PyQt4 imports. | Module cannot be imported; it is unused. | cosmetic |
+| `mainwindow.py` (96 places) | `checkState()!=0` style integer comparisons. | Works in PyQt5; would break under PyQt6, where the state is an enum. | note for later |
+| both parsers | `eval` on every number read from disk. | Slow (16 ms per MCA spectrum) and executes file contents. | defect, F6 |
+
+Not found: dictionary views indexed as lists, `has_key`, `iteritems`,
+`xrange`, `unicode`, integer division used for indexing other than the case
+above (the ROI code already uses `//`).
+
+Library drift, separate from the language migration: `interp2d` removed from
+SciPy (defect 1); `Image.getdata` deprecated in Pillow and assigning to
+`ndarray.shape` deprecated in NumPy (both in `TwoDDetector.openFile`);
+`pylab` used as a NumPy namespace (`pl.where`, `pylab.sin`).

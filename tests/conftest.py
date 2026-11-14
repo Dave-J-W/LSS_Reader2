@@ -42,6 +42,7 @@ class Recorder:
         self.dialogs = []       # QDialog instances whose exec_ was called
         self.exceptions = []    # (type, value, traceback) from Qt slots
         self.open_name = ''     # returned by QFileDialog.getOpenFileName
+        self.open_names = []    # returned by QFileDialog.getOpenFileNames
         self.save_name = ''     # returned by QFileDialog.getSaveFileName
         self.directory = ''     # returned by QFileDialog.getExistingDirectory
         self.question = None    # returned by QMessageBox.question (None = No)
@@ -75,7 +76,7 @@ def recorder(qapp, monkeypatch):
     monkeypatch.setattr(QtWidgets.QFileDialog, 'getOpenFileName',
                         staticmethod(lambda *a, **k: (rec.open_name, '')))
     monkeypatch.setattr(QtWidgets.QFileDialog, 'getOpenFileNames',
-                        staticmethod(lambda *a, **k: ([], '')))
+                        staticmethod(lambda *a, **k: (list(rec.open_names), '')))
     monkeypatch.setattr(QtWidgets.QFileDialog, 'getSaveFileName',
                         staticmethod(lambda *a, **k: (rec.save_name, '')))
     monkeypatch.setattr(QtWidgets.QFileDialog, 'getExistingDirectory',

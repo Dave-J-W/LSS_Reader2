@@ -168,3 +168,26 @@ def make_dataset(root, name='sample'):
     write_mca(os.path.join(root, 'vortex', '%s_3_mca' % name),
               [spectrum, spectrum * 2])
     return spec
+
+
+def write_bruker_sfrm(path, array):
+    """Minimal Bruker .sfrm frame: 96 header lines of 80 bytes, 8-bit data.
+
+    Only the header fields TwoDDetector.openFile reads are meaningful. Pixel
+    values must be 1..254 so that no underflow/overflow tables are needed.
+    """
+    a = np.asarray(array, dtype=np.uint8)
+    fields = {'NROWS': '%d' % a.shape[0], 'NCOLS': '%d' % a.shape[1],
+              'HDRBLKS': '15', 'NCOUNTS': '%d 0' % int(a.sum()),
+              'NPIXELB': '1 1', 'NOVERFL': '0 0 0',
+              'MINIMUM': '%d' % a.min(), 'MAXIMUM': '%d' % a.max(),
+              'NOVER64': '0 0 0'}
+    names = list(fields) + ['FILL%02d' % i for i in range(96 - len(fields))]
+    with open(path, 'wb') as f:
+        for n in names:
+            line = '%-7s:%-72s' % (n, fields.get(n, '0'))
+            assert len(line) == 80
+            f.write(line.encode('ascii'))
+        assert f.tell() == 15 * 512
+        f.write(a.tobytes())
+    return path
