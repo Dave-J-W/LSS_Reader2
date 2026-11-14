@@ -71,3 +71,47 @@ Numerical findings:
   stitching bias above.
 
 Crash findings are in `tests/known_crashes.json`; see the next entry.
+
+### 2026-11-14 — Which controls crash, and in which states?
+
+**Q.** The interface should not crash whichever files are selected and
+whichever buttons are pressed. Where does it crash today?
+
+**A.** Measured by `pytest -m sweep` on the synthetic data set; the full list
+is `tests/known_crashes.json`. 368 control/state combinations raise, from 41
+distinct code sites, across 85 distinct controls.
+
+| State | Controls that raise |
+|---|---|
+| empty | 75 |
+| spec loaded | 75 |
+| motor scan | 62 |
+| pilatus scan no frames | 42 |
+| pilatus one frame | 18 |
+| pilatus two scans all frames | 19 |
+| mca frames | 77 |
+
+Most frequent sites:
+
+| Count | Exception and function |
+|---|---|
+| 73 | `AttributeError in mainwindow.py:update2dPlots` |
+| 49 | `ValueError in mainwindow.py:update2dPlotPlot` |
+| 40 | `IndexError in mainwindow.py:refQzListSelectionChanged` |
+| 36 | `AttributeError in mainwindow.py:updateCutData` |
+| 16 | `AttributeError in mainwindow.py:updateCutPlotData` |
+| 12 | `ValueError in mainwindow.py:mcaPlotSettings` |
+| 10 | `AttributeError in mainwindow.py:refPlotWin` |
+| 7 | `AttributeError in mainwindow.py:saveCutData` |
+| 7 | `AttributeError in mainwindow.py:updateRefDataList` |
+| 7 | `AttributeError in mainwindow.py:update2dIntPolData` |
+| 7 | `AttributeError in mainwindow.py:update2dPlotData` |
+| 7 | `KeyError in mainwindow.py:updateMcaPlotData` |
+
+The pattern is uniform: handlers read attributes that only exist after some
+earlier action (`self.det`, `self.selectedPilFramesNums`, `self.xcenter`,
+an item in the Qz list, …) and nothing checks that the action happened. The
+counts fall as more data is selected because more of those attributes exist.
+
+Not yet covered: sequences of several controls, file dialogs that return a
+path, controls inside the secondary dialogs, Bruker images.
