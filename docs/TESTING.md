@@ -40,19 +40,33 @@ No display is needed; the tests run Qt on its `offscreen` platform.
 ## Crash inventory
 
 The stated goal is that no sequence of selections and button presses raises.
-`tests/sweep.py` puts the main window into each of seven states (nothing
-loaded; SPEC file loaded; a motor scan, a Pilatus scan, one frame, two scans
-with all frames, or MCA frames selected) and then triggers every push button,
-check box, menu action, combo box, line edit and spin box once, re-applying
-the state before each one.
+`tests/sweep.py` measures how far the program is from that, in two ways.
+
+**Single controls** (`test_no_new_crashes`). The main window is put into
+each of seven states (nothing loaded; SPEC file loaded; a motor scan, a
+Pilatus scan, one frame, two scans with all frames, or MCA frames selected).
+Every push button, check box, menu action, combo box, line edit and spin box
+is then triggered once, each in a fresh window. When a control opens a
+dialog, every control of that dialog is triggered as well. Each state is run
+twice: with every file dialog cancelled, and with every file dialog
+returning a usable path (keys ending `+paths`).
 
 `tests/known_crashes.json` records every control that raises, with the
-exception type and the function it came from. `pytest -m sweep` fails if a
-control not in the list raises, and also if a listed control no longer raises,
-so the list can only get shorter. After fixing crashes, regenerate it:
+exception type and the function it came from. The test fails if a control
+not in the list raises, and also if a listed control no longer raises, so
+the list can only get shorter.
+
+**Sequences** (`test_random_walk_raises_only_at_known_sites`). From three of
+the states, 150 randomly chosen controls and list selections are applied one
+after another with nothing reset in between, for three fixed seeds. A walk
+changes whenever behaviour changes, so its steps cannot be pinned; what is
+pinned is the set of places exceptions come from. Sites that only walks
+reach are listed in `tests/known_crash_sites.json`. A site in neither file
+fails the test.
+
+After fixing crashes, regenerate both files:
 
     LSS_UPDATE_CRASHES=1 pytest -m sweep
 
-Limits of the sweep: one control at a time per state (no long random
-sequences yet), file dialogs always cancelled, secondary dialogs opened but
-their own controls not driven, Bruker images not covered.
+Not covered: dialogs opened from dialogs, Bruker images (they cannot be read
+at all at present), real mouse interaction with the plots.

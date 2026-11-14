@@ -182,3 +182,32 @@ def test_gaussian_peak_fit_recovers_parameters(det):
     assert (abs(sx), abs(sy)) == pytest.approx((2.5, 2.5), rel=0.03)
     assert amp == pytest.approx(800.0, rel=0.03)
     assert bg == pytest.approx(3.0, abs=1.0)
+
+
+@pytest.mark.parametrize('direction', ['H', 'V'])
+def test_roi_errors_add_in_quadrature(det, direction):
+    """Invariant I4: each box error is the root-sum-square of its pixels,
+    so the background-subtracted signal S - (L+R)/2 has
+    sigma^2 = sigma_S^2 + (sigma_L^2 + sigma_R^2)/4."""
+    rng = np.random.default_rng(1)
+    det.imageData = rng.uniform(1, 9, size=(200, 150))
+    det.errorData = rng.uniform(0.5, 2, size=(200, 150))
+    slit, cen, bg = [11, 21], [75, 100], 2.0
+    sig, sigerr, b1, b1err, b2, b2err = det.sumROI(slit=slit, cen=cen, bg=bg,
+                                                   dir=direction)
+    half_x, half_y = (slit[0] - 2 + 1) // 2, (slit[1] - 2 + 1) // 2
+    rows = slice(cen[1] - half_y, cen[1] + half_y + 1)
+    cols = slice(cen[0] - half_x, cen[0] + half_x + 1)
+    assert sig == pytest.approx(det.imageData[rows, cols].sum())
+    assert sigerr == pytest.approx(np.sqrt((det.errorData[rows, cols] ** 2).sum()))
+    if direction == 'H':
+        shift = int(bg * (slit[0] - 2))
+        boxes = [(rows, slice(cols.start - shift, cols.stop - shift)),
+                 (rows, slice(cols.start + shift, cols.stop + shift))]
+    else:
+        shift = int(bg * (slit[1] - 2))
+        boxes = [(slice(rows.start + shift, rows.stop + shift), cols),
+                 (slice(rows.start - shift, rows.stop - shift), cols)]
+    for (r, c), val, err in zip(boxes, (b1, b2), (b1err, b2err)):
+        assert val == pytest.approx(det.imageData[r, c].sum())
+        assert err == pytest.approx(np.sqrt((det.errorData[r, c] ** 2).sum()))

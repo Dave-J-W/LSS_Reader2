@@ -83,3 +83,43 @@ def test_reflectivity_scans_6_to_9_match_reference(nx, qapp, recorder):
     window = (got[:, 0] > 0.15) & (got[:, 0] < 0.35)
     qmin = got[window][np.argmin(got[window, 1]), 0]
     assert 0.23 < qmin < 0.26
+
+
+def _gid_patch(nx, qapp, rows):
+    sweep._select_scans(nx, qapp, rows)
+    sweep._select_images(nx, qapp)
+    i = nx.ui.gidComboBox.findText('GID Patch')
+    nx.ui.gidComboBox.setCurrentIndex(i)
+    nx.ui.gidComboBox.activated.emit(i)
+    qapp.processEvents()
+
+
+def test_gid_scan_11_matches_reference(nx, qapp, recorder):
+    """Scan 11 is the low-Qz half of a DPPC GID measurement (41 frames).
+
+    Self-reference, as for the reflectivity test. The shipped
+    extracted_data/dppc_*_gid.txt were made from a low + high Qz pair with
+    more points and cannot be compared directly.
+    """
+    _gid_patch(nx, qapp, [10])
+    assert recorder.exceptions == []
+    assert recorder.messages == []
+    assert nx.pilGIDData.shape == (472, 41)
+    ref_h = np.loadtxt(os.path.join(ROOT, 'tests', 'reference',
+                                    'nx_school_gid_scan_11_qxy.txt'))
+    ref_v = np.loadtxt(os.path.join(ROOT, 'tests', 'reference',
+                                    'nx_school_gid_scan_11_qz.txt'))
+    assert nx.gid_h == pytest.approx(ref_h, rel=1e-6, abs=1e-9)
+    assert nx.gid_v == pytest.approx(ref_v, rel=1e-6, abs=1e-9)
+    # physical sanity: the DPPC chain peak lies in the scanned Qxy range
+    qxy_peak = nx.gid_h[np.argmax(nx.gid_h[:, 1]), 0]
+    assert 1.3 < qxy_peak < 1.55
+
+
+@pytest.mark.xfail(strict=True, reason='defect 1: joining the low and high '
+                   'Qz scans calls scipy interp2d (removed); the error is '
+                   'caught and shown as "not enough points"')
+def test_gid_low_and_high_qz_scans_can_be_patched(nx, qapp, recorder):
+    _gid_patch(nx, qapp, [10, 11])
+    assert recorder.exceptions == []
+    assert not [m for m in recorder.messages if 'patching' in m]

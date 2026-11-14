@@ -15,7 +15,7 @@ exists.
 | I1 | Fresnel reflectivity R_F(q) = 1 for q ≤ q_c | tested: `test_fresnel.py` |
 | I2 | R_F(q) → (q_c / 2q)⁴ for q ≫ q_c, and R_F depends only on q/q_c | tested: `test_fresnel.py` |
 | I3 | Monitor-normalised intensity I/M has σ² = σ_I²/M² + I²/M³; for Poisson I, (σ/R)² = 1/I + 1/M | tested: `test_twod_detector.py` |
-| I4 | Background-subtracted ROI signal S − (L+R)/2 is 0 on a flat image; σ² = σ_S² + (σ_L² + σ_R²)/4 | zero-on-flat tested; error formula read from code only |
+| I4 | Background-subtracted ROI signal S − (L+R)/2 is 0 on a flat image; each box error is the root-sum-square of its pixels, so σ² = σ_S² + (σ_L² + σ_R²)/4 | tested: `test_twod_detector.py` (the final combination is one inline line in `mainwindow.py`, read only) |
 | I5 | Normalised GID footprint area lies in (0, 1], is 1 at small 2θ and falls once clipped | tested: `test_gid_area.py` |
 | I6 | At the direct-beam row with α = α_true, Q_z = 4π sin α / λ; at the direct-beam column with Det_Th = 0, Q_xy = 0 and the axis is antisymmetric | tested: `test_twod_detector.py` |
 | I7 | Stitching two scans of one curve recovers the attenuation factor exactly, and overlap errors fall by √2, when the overlap points coincide | tested: `test_stitching.py` |
@@ -186,3 +186,53 @@ is therefore more likely network reads and what happens after reading
 (per-frame plotting, repeated re-reading on every selection) than decoding.
 That has not been measured yet; it needs timing of the full selection path,
 ideally against a slow file system.
+
+### 2026-11-14 — Where does the time go when selecting data?
+
+**Q.** Some operations are slow (MCA spectra, Pilatus 1M images); production
+reads from a network drive. What is the baseline?
+
+**A.** Measured by `pytest -m bench`; table in [timings.md](timings.md).
+Local disk, so network cost is not included.
+
+- Selecting 96 Pilatus 100K frames in one action takes about 2 s; selecting
+  6 MCA spectra about 0.5 s. In both, roughly three quarters of the time is
+  matplotlib (text layout in `tight_layout`, drawing); reading the files is
+  about a tenth.
+- Selecting frames **one click at a time** is the expensive case: adding 27
+  frames takes 21 s against 0.9 s for the same 27 in one action. Every
+  change of selection re-reads every selected frame from disk and redraws;
+  nothing is kept between selections. Over a network drive this is the
+  cost that a cache (requests F8, F9) removes; the redraw cost is separate
+  and a cache does not touch it.
+- Pilatus 1M and the large per-point MCA files could not be timed through
+  the window because this version cannot load them (see the `bu` entry and
+  below).
+
+### 2026-11-14 — GID on the real data
+
+**Q.** (follow-up to the sample-data question) Does GID reduction work?
+
+**A.** Scan 11 of the NX school set (41 frames, low Q_z) patches into a
+472 × 41 map; its Q_xy and Q_z projections are frozen as
+`tests/reference/nx_school_gid_scan_11_*.txt` (self-reference). The peak in
+the Q_xy projection lies between 1.3 and 1.55 Å⁻¹, where the DPPC chain peak
+is expected.
+
+Adding the high-Q_z scan 12 shows "One or more of selected scans do not have
+enough points for the vertical patching!". Calling the join directly shows
+the real cause: `scipy.interpolate.interp2d` raises because it was removed
+from SciPy, and a bare `except` turns that into the warning. So on current
+SciPy the standard low + high Q_z GID patch cannot be done at all. (Scan 12
+was also stopped after 4 frames, so it could not be a full test case even
+once this is fixed.) Pinned as an expected failure.
+
+### 2026-11-14 — Per-point MCA files in the October `bu` run
+
+Observation while looking for MCA timing cases, recorded because it affects
+scope. In `bu/2026oct`, files such as `vortex/20261019_15_mca` hold one
+spectrum per scan *point* of an ordinary `ascan` (`#S n mca_save_point
+Point:k Scan:15`, detector `XSP3_7Chan`, floating-point counts). The window
+only offers MCA data for scans whose command is `getandsave_mca`, so these
+spectra cannot be reached from the interface, although `mcaread` itself
+parses the file (28 spectra, 0.46 s).
