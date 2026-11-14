@@ -12,20 +12,27 @@ SKIP_ACTION_WORDS = ('quit', 'exit', 'close')
 
 # ---- application states -------------------------------------------------
 
-def _select_scans(w, app, rows):
-    lw = w.ui.scanListWidget
-    lw.clearSelection()
-    for r in rows:
-        lw.item(r).setSelected(True)
-    app.processEvents()
+def _select_rows(lw, app, rows):
+    """Select ``rows`` (None = all) as one user action: one selection signal.
 
-
-def _select_images(w, app, rows=None):
-    lw = w.ui.imageListWidget
+    Selecting items one by one would fire the handler once per item, and the
+    image handler re-reads every selected frame each time.
+    """
+    lw.blockSignals(True)
     lw.clearSelection()
     for r in (range(lw.count()) if rows is None else rows):
         lw.item(r).setSelected(True)
+    lw.blockSignals(False)
+    lw.itemSelectionChanged.emit()
     app.processEvents()
+
+
+def _select_scans(w, app, rows):
+    _select_rows(w.ui.scanListWidget, app, rows)
+
+
+def _select_images(w, app, rows=None):
+    _select_rows(w.ui.imageListWidget, app, rows)
 
 
 def state_empty(w, app, spec):
