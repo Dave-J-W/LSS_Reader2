@@ -43,9 +43,46 @@ modification time so that a file still being written is not served stale;
 the disk cache needs a size cap and a location setting; the RAM cache needs a
 budget derived from available memory with least-recently-used eviction.
 
+### Stability and error handling (stated 2026-11-14)
+
+| # | Request | Notes on the current code |
+|---|---|---|
+| F10 | No crashing, ever; GUI stability is a very high priority. (Restates R3 as a design goal, not only a test target.) | 420 control/state combinations raise today. PyQt5 aborts the whole process on an unhandled exception in a slot unless an exception hook is installed, and none is. |
+| F11 | A failed operation (for example a reduction that does not match the selected data) is reported in a debug log at minimum. Most failures should **not** raise an on-screen dialog; that is too inconvenient. | 82 `messageBox` calls, all modal (`exec_`), many for routine conditions. About 29 `print` calls go to a console the user may not have. 79 bare `except:` blocks hide the real cause. |
+| F12 | A durable error log, written automatically and robust to application crashes, so that later debugging is easy. | No logging of any kind. |
+
+Design points to settle: one central place where every slot's failure is
+caught, logged with traceback and context (SPEC file, selection, control),
+and shown unobtrusively (status bar, log pane) with dialogs kept for the few
+cases that need a decision; the log must be flushed per record so a hard
+crash loses nothing, and should also catch faults below Python
+(`faulthandler`) and Qt's own warnings; log size needs a cap or rotation.
+
+### Per-SPEC-file configuration and log (stated 2026-11-14)
+
+| # | Request | Notes on the current code |
+|---|---|---|
+| F13 | Every SPEC file gets an associated reader config file and log file, saved in the same folder as the SPEC file. | Nothing is persisted between sessions. The reader does already write `temp_ref.txt` into the SPEC folder on every reflectivity plot. |
+| F14 | The reader never writes to the SPEC file. | True today: the file is only opened for reading. Now pinned by `test_reader_never_modifies_the_spec_file`. |
+| F15 | The config records every GUI parameter change, and what data is loaded in the flexible-plotting panels. | Parameters live only in widgets and about 200 window attributes; the Plot and 2D_Plot tabs keep their file lists in memory. |
+| F16 | Results of interactive steps are saved. Example: points dropped during reflectivity patching are kept, drawn in a visually distinct way, can be undone and redone, and persist when the reader is closed and reopened. | `pilRefPatchDrop` deletes the rows from the arrays (`np.delete`); the points are gone, nothing is recorded, and there is no undo. |
+
+Design points to settle: the SPEC folder may be read-only or on a slow
+network drive, so there must be a fallback location and writes must be
+atomic (write a temporary file, then rename) and infrequent; two people may
+open the same SPEC file at once; the config needs a version number and must
+survive a SPEC file that has grown since it was written (F1–F5); dropped
+points should be stored as a mask over raw frames (scan and frame number),
+not as edited arrays, so that reduction can be repeated from raw data and
+undo/redo is a change to the mask; how this file relates to the caches of
+F8–F9.
+
 ## Order
 
-F6–F9 and F1–F5 both need the readers and the reduction to be callable
-without the window, so they come after the physics is extracted from
-`mainwindow.py` (step 4 in `ASSESSMENT.md`). Timing measurements on the
-sample data should be taken first so that speed-ups can be shown.
+F6–F9, F1–F5 and F13–F16 all need the readers and the reduction to be callable
+without the window, with parameters held in one explicit state object
+instead of widgets, so they come after the physics is extracted from
+`mainwindow.py` (step 4 in `ASSESSMENT.md`). F10–F12 do not depend on that
+and can come first: a central exception handler and a log are small,
+self-contained, and make every later step easier to debug. Timing
+measurements are in `timings.md`.

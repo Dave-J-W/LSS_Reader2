@@ -30,12 +30,24 @@ application code until the full list of feature requests has been received
 - [x] Invariant I4 (ROI error propagation) tested directly.
 - [x] Python 2 → 3 audit → `ASSESSMENT.md` section 8; Bruker reading and
       the g_l2 dialog pinned as expected failures.
+- [ ] Tests for the output file formats (`*_ref.txt`, `*_rrf.txt`, GID,
+      cut and `*_flu.txt` files): columns, units, number formats, since
+      xmodfit reads them.
+- [ ] End-to-end "known photons per monitor count in, same number and
+      Poisson error out" check for each reduction path (GID, GISAXS, cuts,
+      MCA sum), as already done for reflectivity.
+- [ ] Regenerate `docs/timings.md` on an idle machine (the committed table
+      predates the file-count columns).
 - [ ] Write the scoping document once the feature list is complete:
       target architecture, order of work, what each request needs.
 
 ## Waiting on the owner
 
-- [ ] Remaining feature requests and complaints.
+- [ ] Remaining feature requests and complaints (received so far: F1–F16
+      in `FEATURE_REQUESTS.md`; the owner called the latest list partial).
+- [ ] Answers to the three questions in `PROJECT_CONTEXT.md` (divide by
+      counting time? which fitting features stay? which output files does
+      xmodfit read?).
 - [ ] Is there a newer production version of the reader that reads
       Pilatus 1M data (`#B5` header, `pilatus1m/` folder) and per-point MCA
       files (`mca_save_point`)? This repository's version reads neither.
@@ -63,4 +75,6 @@ application code until the full list of feature requests has been received
 - [x] Crash inventory baseline, confirmed repeatable.
 - [x] NX school sample data committed; real-data reflectivity regression.
 - [x] `bu` sample data local; robustness run over all eight SPEC files.
-- [x] Feature requests F1–F9 recorded.
+- [x] Feature requests F1–F16 and project context recorded.
+- [x] Never-writes-to-SPEC rule pinned by a test; hard-abort on a raising
+      handler demonstrated and pinned as an expected failure.

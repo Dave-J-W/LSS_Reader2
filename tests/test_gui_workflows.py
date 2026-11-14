@@ -103,3 +103,24 @@ def test_mca_frames_are_normalised(loaded, qapp, dataset, recorder):
     assert e[119] == pytest.approx(
         np.sqrt(counts + counts ** 2 / synth.MONITOR) / synth.MONITOR * live)
     assert loaded.nomMcaData[1][119, 1] == pytest.approx(2 * y[119], rel=0.01)
+
+
+def test_reader_never_modifies_the_spec_file(loaded, qapp, dataset, recorder):
+    """Requirement: the SPEC file belongs to the beamline; the reader must
+    only ever read it."""
+    import hashlib
+
+    def digest():
+        with open(dataset, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest(), os.stat(dataset).st_mtime_ns
+
+    import os
+    before = digest()
+    _patch(loaded, qapp, dataset)
+    loaded.uirefpatch.nextPushButton.click()
+    qapp.processEvents()
+    sweep.state_mca_frames(loaded, qapp, dataset)
+    sweep.state_motor_scan(loaded, qapp, dataset)
+    loaded.readSpecFile()                       # the "refresh" path
+    qapp.processEvents()
+    assert digest() == before

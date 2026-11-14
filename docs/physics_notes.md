@@ -262,3 +262,20 @@ Point:k Scan:15`, detector `XSP3_7Chan`, floating-point counts). The window
 only offers MCA data for scans whose command is `getandsave_mca`, so these
 spectra cannot be reached from the interface, although `mcaread` itself
 parses the file (28 spectra, 0.46 s).
+
+### 2026-11-14 — What happens to the user when a handler raises?
+
+**Q.** "No crashing ever": how bad is a raising handler today?
+
+**A.** Fatal. Run as the real program (no test hooks), pressing "Ref Patch"
+with nothing loaded ends the process with exit code 134 (SIGABRT): PyQt5
+aborts on an unhandled exception in a slot, and the reader installs no
+exception hook. So each of the 420 control/state combinations in
+`tests/known_crashes.json` closes the application and loses whatever was in
+memory. Pinned as an expected failure
+(`test_application_survives_a_raising_handler`).
+
+This also means one small change — a process-wide exception hook that logs
+and carries on — would turn every one of them from "application gone" into
+"operation failed, logged", before any individual handler is repaired. That
+is the natural first step for requests F10–F12 when implementation starts.

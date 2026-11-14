@@ -86,3 +86,29 @@ def test_g_l2_dialog_accepts_typed_centres(loaded, qapp, dataset, recorder):
     loaded.uig_l2.g_l2CenterLineEdit.setText('0.01')
     loaded.g_l2plot()
     assert recorder.exceptions == []
+
+
+@xfail('F10: no exception hook is installed, so PyQt5 aborts the whole '
+       'process (SIGABRT) when any slot raises; every entry in '
+       'known_crashes.json is a hard crash for the user')
+def test_application_survives_a_raising_handler():
+    """Run the real program in a subprocess, with no test hooks, and press
+    "Ref Patch" with nothing loaded."""
+    import os
+    import subprocess
+    import sys
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    code = (
+        "import sys\n"
+        "from PyQt5.QtWidgets import QApplication\n"
+        "app = QApplication(sys.argv)\n"
+        "from mainwindow import MainWindow\n"
+        "w = MainWindow(); w.show(); app.processEvents()\n"
+        "w.ui.pilRefPatchPushButton.click(); app.processEvents()\n"
+        "print('survived')\n")
+    env = dict(os.environ, QT_QPA_PLATFORM='offscreen')
+    out = subprocess.run([sys.executable, '-W', 'ignore', '-c', code],
+                         cwd=root, env=env, capture_output=True, text=True,
+                         timeout=120)
+    assert out.returncode == 0, 'exit code %d' % out.returncode
+    assert 'survived' in out.stdout

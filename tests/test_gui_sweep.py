@@ -58,9 +58,13 @@ def make_window(qapp, tmp_path):
     return make
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def clean_root():
-    """Some save handlers write into the working directory; remove that."""
+    """Some save handlers write into the working directory; remove that.
+
+    Module-scoped: a few of those files appear only after the test that
+    caused them has finished.
+    """
     before = set(os.listdir(ROOT))
     yield
     for name in set(os.listdir(ROOT)) - before:
