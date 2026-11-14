@@ -139,38 +139,60 @@ def _first(recorder):
     return '%s @ %s' % (t.__name__, _where(tb))
 
 
+def dispose(w, app, recorder=None):
+    """Close a window and really free it.
+
+    Hundreds of windows are created in a sweep. Each holds images and
+    several matplotlib canvases, and stays alive while anything refers to
+    it: recorded dialogs, tracebacks of recorded exceptions, Qt's deferred
+    deletion queue, reference cycles.
+    """
+    import gc
+    from PyQt5 import QtCore
+    _close_dialogs(w)
+    if recorder is not None:
+        recorder.dialogs.clear()
+        recorder.exceptions.clear()
+    w.close()
+    w.deleteLater()
+    app.sendPostedEvents(None, QtCore.QEvent.DeferredDelete)
+    app.processEvents()
+    del w
+    gc.collect()
+
+
 class _Driver:
-    """Keeps a window in a given state, rebuilding it when the state breaks."""
+    """Gives every control a fresh window in the requested state.
+
+    Reusing one window would let settings changed by one control (a checked
+    box, the selected beamline) leak into the result for the next.
+    """
 
     def __init__(self, make_window, app, recorder, spec, state):
         self.make_window, self.app, self.recorder = make_window, app, recorder
         self.spec, self.setup = spec, STATES[state]
-        self.w = make_window()
+        self.w = None
         self.broken = None
 
+    def close(self):
+        if self.w is not None:
+            dispose(self.w, self.app, self.recorder)
+            self.w = None
+
     def reset(self):
-        """Re-apply the state; True when the window is ready for a control."""
+        """New window in the state; True when it is ready for a control."""
         rec = self.recorder
-        _close_dialogs(self.w)
+        self.close()
+        self.w = self.make_window()
         rec.exceptions.clear()
         try:
             self.setup(self.w, self.app, self.spec)
-            ok = not rec.exceptions
-        except Exception:
-            ok = False
-        if not ok:
-            rec.exceptions.clear()
-            self.w.close()
-            self.w = self.make_window()
-            try:
-                self.setup(self.w, self.app, self.spec)
-            except Exception as exc:
-                self.broken = '%s @ setup' % type(exc).__name__
-                return False
-            if rec.exceptions:
-                self.broken = _first(rec)
-                return False
-        rec.exceptions.clear()
+        except Exception as exc:
+            self.broken = '%s @ setup' % type(exc).__name__
+            return False
+        if rec.exceptions:
+            self.broken = _first(rec)
+            return False
         return True
 
     def trigger(self, fn):
@@ -188,13 +210,17 @@ class _Driver:
 def run_state(make_window, app, recorder, spec, state):
     """Trigger every control once in ``state``; return {key: 'Type @ where'}.
 
-    The state is re-applied before each control. When a control opens a
+    Every control gets a fresh window in that state. When a control opens a
     dialog, every control of that dialog is triggered too (one level deep),
     reopening the dialog each time; those keys read 'parent > child'.
     """
     drv = _Driver(make_window, app, recorder, spec, state)
     failures = {}
-    for key in list(controls(drv.w)):
+    probe = make_window()
+    keys = list(controls(probe))
+    dispose(probe, app, recorder)
+    del probe
+    for key in keys:
         if not drv.reset():
             failures['<setup>'] = drv.broken
             break
@@ -202,6 +228,7 @@ def run_state(make_window, app, recorder, spec, state):
         if fn is None:
             continue
         err = drv.trigger(fn)
+        del fn
         if err:
             failures[key] = err
             continue
@@ -225,8 +252,7 @@ def run_state(make_window, app, recorder, spec, state):
             err = drv.trigger(child)
             if err:
                 failures['%s > %s' % (key, ck)] = err
-    _close_dialogs(drv.w)
-    drv.w.close()
+    drv.close()
     return failures
 
 
@@ -266,7 +292,5 @@ def run_walk(make_window, app, recorder, spec, state, seed, steps):
             continue
         if recorder.exceptions:
             raised.append((step, key, _first(recorder)))
-    recorder.exceptions.clear()
-    _close_dialogs(w)
-    w.close()
+    dispose(w, app, recorder)
     return raised
