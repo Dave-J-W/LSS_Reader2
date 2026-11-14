@@ -48,9 +48,10 @@ application code until the full list of feature requests has been received
 - [ ] Answers to the three questions in `PROJECT_CONTEXT.md` (divide by
       counting time? which fitting features stay? which output files does
       xmodfit read?).
-- [ ] Is there a newer production version of the reader that reads
-      Pilatus 1M data (`#B5` header, `pilatus1m/` folder) and per-point MCA
-      files (`mca_save_point`)? This repository's version reads neither.
+- [x] Pilatus 1M: another version handles it but is not otherwise better;
+      stay on this code base, 1M support is feature group F17–F19.
+- [ ] Should per-point MCA files (`mca_save_point`) be readable from the
+      window? Open points on the 1M are listed under F17–F19.
 - [ ] Is the Bruker/Apex CCD path still needed? It cannot read any image
       under Python 3.
 - [ ] Turn link-sharing off on `bu.zip` in Drive.

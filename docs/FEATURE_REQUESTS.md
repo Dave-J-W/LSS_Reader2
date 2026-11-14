@@ -77,6 +77,29 @@ not as edited arrays, so that reduction can be repeated from raw data and
 undo/redo is a change to the mask; how this file relates to the caches of
 F8–F9.
 
+### Detector support (stated 2026-11-14)
+
+The owner confirmed that another version of the reader exists which handles
+the Pilatus 1M, but that it is not better in other respects. Work continues
+from this repository, and 1M support is treated as a feature group here
+rather than by switching code base.
+
+| # | Request | Notes on the current code |
+|---|---|---|
+| F17 | Read Pilatus 1M data. | Geometry is on a `#B5` SPEC header line (`#B5 x y distance 0`), which `spec_routines.py` ignores (it knows `#B1`, `#B2`). Images are in `pilatus1m/`; the window only looks in `pilatus/`. Result today: the scans are listed with zero frames and no message. |
+| F18 | Pilatus 1M images go through the same reduction paths as the 100K (display, cuts, reflectivity, GID/GISAXS as applicable). | Image size 981 × 1043 against 487 × 195. Hard-coded 100K assumptions to remove: the `[15, 486]` GID row range, cut-range defaults `0:485` and `0:194`, the left-right flip `NCOLS - X - 1`, ROI and slit defaults. Pixel size is 0.172 mm for both. |
+| F19 | Pilatus 1M processing is fast (see F7). | Reader costs 37 ms per 1M image against 1.8 ms for a plain NumPy read; each image is 4.1 MB, so re-reading on every selection change (see `timings.md`) costs ten times more than for the 100K. |
+
+To settle with the owner: which SPEC counter column is the 1M signal
+(`Pilatus1M` appears in `#L`); whether one scan can have both 100K and 1M
+images; module gaps and masked pixels on the 1M (the 100K has none) and how
+they should enter ROI sums and bad-pixel correction; whether the other
+version's 1M code should be used as the reference for expected numbers.
+
+Related observation, not yet a request: the October run also writes
+per-point MCA files (`#S n mca_save_point Point:k Scan:m`, XSP3 detector)
+for ordinary scans. `mcaread` parses them but the window cannot reach them.
+
 ## Order
 
 F6–F9, F1–F5 and F13–F16 all need the readers and the reduction to be callable

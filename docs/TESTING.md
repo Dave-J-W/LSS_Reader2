@@ -1,41 +1,113 @@
 # Testing
 
+Start with `AGENTS.md` in the repository root for the rules; this file is
+the reference for how the suite is built and how to add to it.
+
 ## Setup
 
     python -m venv .venv
     .venv/bin/pip install -r requirements-dev.txt
 
-No display is needed; the tests run Qt on its `offscreen` platform.
+No display is needed; the tests run Qt on its `offscreen` platform. Verified
+from a fresh clone on 2026-11-14 with Python 3.13, PyQt5 5.15.11,
+NumPy 2.5.4, SciPy 1.18.1, Matplotlib 3.11.2, Pillow 13.0.0, lmfit 1.3.4,
+sympy 1.14.0, pytest 9.2.0. `requirements.txt` is unpinned; if a newer
+library changes a number, record it in `physics_notes.md`.
 
 ## Running
 
-    pytest              # fast suite, about 30 s
-    pytest -m slow      # real-data regression (sample_data/NX_school), about 2 min
-    pytest -m sweep     # crash inventory, about 25 min
+| Command | What | Time |
+|---|---|---|
+| `pytest` | fast suite: unit tests and GUI workflows on synthetic data | ~25 s |
+| `pytest -m slow` | regressions on real data in `sample_data/` | ~15 s, +30 s with `bu` |
+| `pytest -m bench -s` | timing table, rewrites `docs/timings.md` | ~30 s |
+| `pytest -m sweep` | crash inventory (see below) | ~30 min |
+| `LSS_UPDATE_CRASHES=1 pytest -m sweep` | regenerate the crash baselines | ~30 min |
 
-## What is there
+`slow`, `bench` and `sweep` are deselected by default (`pyproject.toml`).
+Tests on `sample_data/bu` skip themselves when that private folder is
+absent, so a fresh clone passes without it.
+
+## Files
 
 | File | Purpose |
 |---|---|
-| `tests/synth.py` | Writes synthetic SPEC, Pilatus TIFF and MCA files. The formats are reverse-engineered from the readers, so they show that the code runs, not that it reads real beamline files correctly. |
-| `tests/conftest.py` | Fixtures: `qapp`, `recorder` (captures message boxes, dialogs and exceptions raised in Qt slots; file dialogs return "cancelled"), `window`, `dataset`, `loaded`. |
-| `test_fresnel.py`, `test_twod_detector.py`, `test_parsers.py`, `test_stitching.py`, `test_gid_area.py` | Unit tests of the numerics, including the analytic invariants listed in `physics_notes.md`. |
-| `test_gui_workflows.py` | Reduces the synthetic data set through the real widgets and compares with the curve the data were generated from. |
-| `test_real_nx_school.py`, `reference/` | Reduces the real NX school reflectivity scans and compares with a stored curve produced by this program. |
-| `test_known_defects.py` | Defects from `ASSESSMENT.md`, each as a strict expected failure. |
-| `sweep.py`, `test_gui_sweep.py`, `known_crashes.json` | Crash inventory, see below. |
+| `conftest.py` | Fixtures (below). Sets offscreen Qt and the working directory. |
+| `synth.py` | Writes synthetic SPEC, Pilatus TIFF, Bruker and MCA files. |
+| `sweep.py` | Drives the window: application states, control enumeration, fresh-window driver, random walks, `dispose`. |
+| `test_fresnel.py`, `test_twod_detector.py`, `test_parsers.py`, `test_stitching.py`, `test_gid_area.py` | Unit tests of the numerics, including the analytic invariants in `physics_notes.md`. |
+| `test_gui_workflows.py`, `test_gui_cuts.py` | Reduce the synthetic data set through the real widgets and compare with the curve it was generated from. |
+| `test_real_nx_school.py`, `reference/` | Real NX school data: SPEC inventory, reflectivity scans 6–9 and GID scan 11 against stored curves produced by this program. |
+| `test_real_bu.py` | Private data: every scan of every SPEC file opens without raising. |
+| `test_known_defects.py` | Defects from `ASSESSMENT.md`, each a strict expected failure. |
+| `test_gui_sweep.py`, `known_crashes.json`, `known_crash_sites.json` | Crash inventory. |
+| `test_bench_selection.py` | Timing and file-read counts per user action. |
+
+## Fixtures (`conftest.py`)
+
+| Fixture | Gives you |
+|---|---|
+| `qapp` | The one `QApplication` (session scope). |
+| `recorder` | Makes modal dialogs return at once and records `messages` (message-box texts), `dialogs`, and `exceptions` raised in Qt slots. Controls what file dialogs return: `open_name`, `open_names`, `save_name`, `directory` (empty means "cancelled"). |
+| `window` | A fresh `MainWindow` (uses `recorder`), output directory set to `tmp_path`. |
+| `dataset` | Path of a synthetic SPEC file with `pilatus/` and `vortex/` beside it: scans 1–2 reflectivity (scan 2 through one absorber), 3 fluorescence, 4 a motor scan. |
+| `loaded` | `window` with `dataset` opened. |
+
+Helpers in `sweep.py`: `STATES` (named application states, each a function
+`(window, app, spec)`), `_select_scans`, `_select_images`, `controls(widget)`
+(every named control as a callable), `dispose`.
 
 ## Three kinds of assertion
 
 - **Invariant**: must hold for the physics to be right (for example R_F = 1
-  below Q_c). These never change.
+  below Q_c). These never change. Each is listed in `physics_notes.md`.
 - **As coded**: freezes what the program computes today so that refactoring
-  cannot change numbers unnoticed. Marked "as coded" or "characterisation" in
-  the test. Changing one is allowed but must be deliberate and recorded in
-  `physics_notes.md`.
+  cannot change numbers unnoticed. Marked "as coded" or "characterisation"
+  in the test. Changing one is allowed but must be deliberate and recorded
+  in `physics_notes.md` with before and after values.
 - **Expected failure** (`xfail(strict=True)`): states the behaviour we want
   and currently do not get. Fixing the defect makes the test pass, which
   pytest reports as a failure until the marker is removed in the same commit.
+
+## Recipes
+
+**A numerical unit test.** Call the function directly with arrays you can
+reason about; see `test_twod_detector.py`. Methods of `MainWindow` that do
+not touch widgets can be called unbound (`MainWindow.fresnel(None, q, qc)`);
+those that do need the `window` fixture (`test_stitching.py`,
+`test_gid_area.py`).
+
+**A GUI workflow test.**
+
+    def test_something(loaded, qapp, dataset, recorder):
+        sweep.state_pilatus_one_frame(loaded, qapp, dataset)   # get into a state
+        loaded.ui.someButton.click()
+        qapp.processEvents()
+        assert recorder.exceptions == []       # nothing raised in a slot
+        assert recorder.messages == []         # no message box, if none is expected
+        assert loaded.someResult == pytest.approx(...)
+
+**A check against known truth.** `synth.make_dataset` builds peaks whose
+height follows `synth.reflectivity`; compare reduced values with that
+(`test_gui_workflows.py`). To test a new reduction path, extend `synth.py`
+so the expected answer is known analytically, rather than freezing output.
+
+**A real-data regression.** Open the SPEC file, set
+`window.directory = str(tmp_path)`, run the workflow, compare with a file in
+`tests/reference/`. State in the docstring that the reference is the
+program's own output (see `test_real_nx_school.py`). Mark it `slow`, and
+`skipif` the data is absent.
+
+**Pinning a defect.** Write the test for the behaviour you want, confirm
+with `pytest --runxfail` that it fails for the reason you think, then add
+`xfail(strict=True, reason=...)` naming the defect number in
+`ASSESSMENT.md`.
+
+**A new application state for the sweep.** Add a `state_<name>` function in
+`sweep.py` and to `STATES`, then regenerate the baselines.
+
+**A new detector or file format.** Add a writer to `synth.py` first, with a
+round-trip test through the real reader, as `write_pilatus_tif` has.
 
 ## Crash inventory
 
