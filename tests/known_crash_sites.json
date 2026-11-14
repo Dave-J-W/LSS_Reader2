@@ -1,0 +1,13 @@
+[
+ "AttributeError @ mainwindow.py:updateRefPilPlotData",
+ "IndexError @ mainwindow.py:fitPeakFit",
+ "IndexError @ mainwindow.py:g_l2plot",
+ "IndexError @ mainwindow.py:imageSelectedScanChanged",
+ "IndexError @ mainwindow.py:pilBurnTest",
+ "KeyError @ mainwindow.py:updatePilPlotData",
+ "TypeError @ mainwindow.py:g_lfunction",
+ "TypeError @ spec_routines.py:APS_9IDC",
+ "UnboundLocalError @ mainwindow.py:updateSpecPlotData",
+ "ValueError @ mainwindow.py:mcaPlotSettings",
+ "ValueError @ mainwindow.py:updateRefPilPlotData"
+]

@@ -157,7 +157,10 @@ Measured, not read. Details and numbers are in `physics_notes.md`.
 
 - Reproduced by test: defects 1, 2, 4, 5 and 14 of section 4, and the shared
   default dictionaries in `specread`.
-- New: 368 control/state combinations raise (`tests/known_crashes.json`).
+- New: 420 control/state combinations raise from a clean state, and sequences
+  of controls reach 11 more crash sites (`tests/known_crashes.json`,
+  `tests/known_crash_sites.json`; an earlier count of 368 came from a less
+  strict sweep).
 - New: the stitching scale factor is biased 1.2–1.3 % low when the two scans
   do not share Q_z points in the overlap.
 - New: `calArea` is not symmetric in ±2θ (2 % at 20°). The symmetry claim in

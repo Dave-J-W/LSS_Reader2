@@ -8,7 +8,7 @@ As stated by the project owner. Status is updated as work lands.
 |---|---|---|---|
 | R1 | Verification tests preserve the physical and mathematical behaviour through debugging and refactoring. | 2026-11-14 | Scaffolding in place; see `TESTING.md`. |
 | R2 | Finish the Python 2 → 3 migration, which is incomplete and has caused problems. | 2026-11-14 | Known leftovers listed in `ASSESSMENT.md` section 4; none fixed yet. |
-| R3 | The interface never crashes, whichever files are selected and whichever controls are used afterwards. | 2026-11-14 | Measured by `pytest -m sweep`; 368 control/state combinations raise today (`tests/known_crashes.json`). |
+| R3 | The interface never crashes, whichever files are selected and whichever controls are used afterwards. | 2026-11-14 | Measured by `pytest -m sweep`: 420 control/state combinations raise from a clean state, plus 11 further crash sites reached only by sequences (see `physics_notes.md`). |
 | R4 | Better GUI organisation. | 2026-11-14 | Not started. |
 
 ## Feature requests

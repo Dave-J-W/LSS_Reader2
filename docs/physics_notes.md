@@ -77,44 +77,70 @@ Crash findings are in `tests/known_crashes.json`; see the next entry.
 **Q.** The interface should not crash whichever files are selected and
 whichever buttons are pressed. Where does it crash today?
 
-**A.** Measured by `pytest -m sweep` on the synthetic data set; the full list
-is `tests/known_crashes.json`. 368 control/state combinations raise, from 41
-distinct code sites, across 85 distinct controls.
+**A.** Measured by `pytest -m sweep` on the synthetic data set; method in
+[TESTING.md](TESTING.md), full list in `tests/known_crashes.json`.
 
-| State | Controls that raise |
-|---|---|
-| empty | 75 |
-| spec loaded | 75 |
-| motor scan | 62 |
-| pilatus scan no frames | 42 |
-| pilatus one frame | 18 |
-| pilatus two scans all frames | 19 |
-| mca frames | 77 |
+*Single controls, each in a fresh window.* 420 control/state combinations
+raise, from 41 distinct code sites, across 79 distinct main-window controls.
+The result is identical whether file dialogs are cancelled or return a path.
+
+| State | Controls that raise | of which inside a dialog |
+|---|---|---|
+| nothing loaded | 78 | 2 |
+| SPEC file loaded | 77 | 2 |
+| motor scan selected | 66 | 4 |
+| Pilatus scan, no frames | 66 | 4 |
+| Pilatus, one frame | 30 | 4 |
+| Pilatus, two scans, all frames | 29 | 2 |
+| MCA frames | 74 | 2 |
 
 Most frequent sites:
 
 | Count | Exception and function |
 |---|---|
-| 73 | `AttributeError in mainwindow.py:update2dPlots` |
+| 90 | `AttributeError in mainwindow.py:update2dPlots` |
+| 56 | `IndexError in mainwindow.py:refQzListSelectionChanged` |
 | 49 | `ValueError in mainwindow.py:update2dPlotPlot` |
-| 40 | `IndexError in mainwindow.py:refQzListSelectionChanged` |
-| 36 | `AttributeError in mainwindow.py:updateCutData` |
-| 16 | `AttributeError in mainwindow.py:updateCutPlotData` |
-| 12 | `ValueError in mainwindow.py:mcaPlotSettings` |
+| 40 | `AttributeError in mainwindow.py:updateCutData` |
+| 20 | `AttributeError in mainwindow.py:updateCutPlotData` |
 | 10 | `AttributeError in mainwindow.py:refPlotWin` |
 | 7 | `AttributeError in mainwindow.py:saveCutData` |
-| 7 | `AttributeError in mainwindow.py:updateRefDataList` |
-| 7 | `AttributeError in mainwindow.py:update2dIntPolData` |
-| 7 | `AttributeError in mainwindow.py:update2dPlotData` |
-| 7 | `KeyError in mainwindow.py:updateMcaPlotData` |
+| 7 | `AttributeError in mainwindow.py:savePeakFit` |
+| 7 | `IndexError in mainwindow.py:savePeakPara` |
+| 7 | `AttributeError in mainwindow.py:removeMcaFiles` |
+
+By type: AttributeError 272, IndexError 70, ValueError 49, TypeError 17, KeyError 12.
 
 The pattern is uniform: handlers read attributes that only exist after some
 earlier action (`self.det`, `self.selectedPilFramesNums`, `self.xcenter`,
 an item in the Qz list, …) and nothing checks that the action happened. The
 counts fall as more data is selected because more of those attributes exist.
 
-Not yet covered: sequences of several controls, file dialogs that return a
-path, controls inside the secondary dialogs, Bruker images.
+*Sequences.* Nine random walks of 150 steps (three seeds from each of three
+states, nothing reset between steps) reach 11 further sites that no single
+control reaches from a clean state (`tests/known_crash_sites.json`):
+
+- `AttributeError in mainwindow.py:updateRefPilPlotData`
+- `IndexError in mainwindow.py:fitPeakFit`
+- `IndexError in mainwindow.py:g_l2plot`
+- `IndexError in mainwindow.py:imageSelectedScanChanged`
+- `IndexError in mainwindow.py:pilBurnTest`
+- `KeyError in mainwindow.py:updatePilPlotData`
+- `TypeError in mainwindow.py:g_lfunction`
+- `TypeError in spec_routines.py:APS_9IDC`
+- `UnboundLocalError in mainwindow.py:updateSpecPlotData`
+- `ValueError in mainwindow.py:mcaPlotSettings`
+- `ValueError in mainwindow.py:updateRefPilPlotData`
+
+Method note. An earlier version of this entry reported 368 combinations.
+That sweep reused one window per state, so a setting changed by one control
+(for example switching the beamline to 9-ID-C) leaked into the results for
+later controls, and it did not look inside dialogs. The numbers above
+replace it.
+
+Not covered: dialogs opened from dialogs, Bruker images (unreadable at
+present), mouse interaction with plots, real data in the sweep (it uses the
+synthetic set).
 
 ### 2026-11-14 — Does the program reduce real beamline data?
 
