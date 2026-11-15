@@ -211,3 +211,26 @@ def test_roi_errors_add_in_quadrature(det, direction):
     for (r, c), val, err in zip(boxes, (b1, b2), (b1err, b2err)):
         assert val == pytest.approx(det.imageData[r, c].sum())
         assert err == pytest.approx(np.sqrt((det.errorData[r, c] ** 2).sum()))
+
+
+def test_roi_error_treats_monitor_noise_as_independent_per_pixel_as_coded(det):
+    """Characterisation, and a question for the owner (physics_notes.md).
+
+    Each pixel gets sigma^2 = I/M^2 + I^2/M^3 and a region of interest adds
+    its pixels in quadrature. All pixels of one frame share one monitor
+    reading, so the monitor part of a sum S = sum(I) should be S^2/M^3, not
+    sum(I^2)/M^3. The coded error is smaller; the gap grows with the number
+    of pixels and with S/M.
+    """
+    det.NROWS, det.NCOLS = 200, 150
+    counts, mon = 400.0, 1.0e5
+    raw = np.full((200, 150), counts)
+    det.sumFiles({0: raw}, {0: np.sqrt(raw)}, absfac=1, absnum=[0], mon=[mon])
+    sig, sigerr = det.sumROI(slit=[11, 21], cen=[75, 100])
+    n = 11 * 21
+    total = n * counts
+    assert sig == pytest.approx(total / mon)
+    coded = np.sqrt(n * (counts / mon ** 2 + counts ** 2 / mon ** 3))
+    shared_monitor = np.sqrt(total / mon ** 2 + total ** 2 / mon ** 3)
+    assert sigerr == pytest.approx(coded)
+    assert shared_monitor / coded == pytest.approx(1.385, abs=1e-3)

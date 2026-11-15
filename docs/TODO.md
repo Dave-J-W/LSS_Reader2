@@ -33,7 +33,13 @@ application code until the full list of feature requests has been received
       the g_l2 dialog pinned as expected failures.
 - [x] Reflectivity export pinned byte for byte (`test_ref_export_golden.py`)
       as the legacy fixtures the hand-off asks for.
-- [ ] Same for the other outputs (GID, cut and `*_flu.txt` files).
+- [x] XFNTR benchmark: synthetic with known line counts, `_flu.txt` bytes,
+      and a hash of the real `bu` export.
+- [ ] Benchmarks still missing (R5): GID export bytes, cut-file bytes,
+      GISAXS, GIOXS, burn tests, MCA peak fit, calibration fits; synthetic
+      GID with known truth.
+- [ ] Run each reduction path on Pilatus 1M frames by calling the code
+      directly, to measure what the module gaps do (D11).
 - [ ] Synthetic K = 3–5 scan generator with known factors and a non-one-hot
       overlap, as hand-off §5 requires, and the acceptance tests 2–4 written
       against the contract as expected failures.
@@ -55,11 +61,19 @@ application code until the full list of feature requests has been received
 - [x] Counting time and fitting questions answered (2026-11-15; D6, D7,
       F20–F22).
 - [x] Hand-off on the xmodfit export received (F24, F25).
-- [ ] `tests/lss_reference.py` and `covariance_core.py` from XModJointFit
-      (or read access to that repository), for hand-off acceptance tests 5
-      and 6.
-- [ ] Decision: should the corrected chain remove the interpolation bias
-      in the stitch factor (see `physics_notes.md`, 2026-11-15)?
+- [ ] **Remind the owner:** `tests/lss_reference.py` and
+      `covariance_core.py` from XModJointFit (unreleased, not public) for
+      hand-off acceptance tests 5 and 6. Until then, work around it with an
+      independent implementation of hand-off §3 written from the text.
+- [x] Stitch-factor interpolation bias: experiments ensure shared Q_z
+      points for now (D13). **Do not forget:** it is to be remedied later
+      in the corrected chain.
+- [ ] Is the 487 × 195 detector in the sample data the "200K", or is 200K
+      data missing from the samples? Where is the `proi` column (none of
+      the sample SPEC files has one)?
+- [ ] Monitor noise: correlated per frame rather than per pixel? Is
+      Poisson on `Monc` right at all? (`physics_notes.md`, 2026-11-15)
+- [ ] Is the MCA "Merge" weighted mean Σ(y²/σ²)/Σ(y/σ²) intended?
 - [ ] Scoping input for F22 (where better fitting is needed, which models)
       and F23 (GID patching: overlaps, methods).
 - [ ] Format of the photons-in estimate in the SPEC file (F21), when the

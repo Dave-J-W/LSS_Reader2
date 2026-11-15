@@ -375,3 +375,80 @@ usually do coincide.
 
 Needed from the xmodfit side to run acceptance tests 5 and 6:
 `tests/lss_reference.py` and `covariance_core.py` from XModJointFit.
+
+### 2026-11-15 — Benchmarks for every reduction type; XFNTR
+
+**Q.** A frozen benchmark is needed for each type of data reduction,
+especially reflectivity and XFNTR.
+
+**A.** Status of benchmarks (the program's own output, stored, compared on
+every run):
+
+| Reduction | Synthetic, known truth | Real data |
+|---|---|---|
+| Reflectivity (patch, normalise, R/R_F, export) | yes, incl. bytes of `_ref.txt`/`_rrf.txt` | NX school scans 6–9, bytes |
+| XFNTR (MCA window sum vs Q_z, export) | yes, incl. bytes of `_flu.txt` (new) | `bu` scans 74–79, SHA-256 only (private data) |
+| GID (single scan) | no | NX school scan 11 |
+| GID (multi-scan patch) | no | cannot run (defect 1) |
+| Line cuts | yes (values, not bytes) | no |
+| GISAXS, GIOXS, burn tests, MCA peak fit, calibration fits | no | no |
+
+XFNTR findings, measured on synthetic spectra with a known number of
+counts in the fluorescence line (`tests/test_xfntr.py`):
+
+- The window sum returns exactly counts / monitor × (real time / live
+  time), and the Q_z dependence of the generating curve.
+- **NumPy 2 leak into output.** Lists of scan numbers are formatted with
+  `str([...])` of NumPy integers, which NumPy 2 prints as `np.int64(1)`.
+  The first line of `_flu.txt` therefore reads
+  `#Flu Sum, scans=[np.int64(1), np.int64(2), …]`, and the same text
+  appears in the command line box and in plot titles (15 places build a
+  scan list this way). Pinned as an expected failure. It also means the
+  bytes of `_flu.txt` depend on the NumPy major version.
+- **A message box on every fluorescence selection.** Selecting a
+  `getandsave_mca` scan always raises "The scan(s) are not regular Spec
+  scan" as a modal dialog; relevant to F11.
+- **"Merge" uses an unusual weighted mean.** Points closer than the given
+  resolution are combined as Σ(y²/σ²) / Σ(y/σ²), not Σ(y/σ²) / Σ(1/σ²).
+  The two agree only when the merged values are equal. Pinned as coded;
+  whether it is intended is a question for the owner.
+- `_flu.txt` is written with full `str(float)` precision, unlike the
+  `%.4e` of the reflectivity files.
+
+### 2026-11-15 — How is monitor noise propagated into sums? (question for the owner)
+
+Not asked by the owner; found while writing the XFNTR and ROI error tests,
+and it bears directly on "each quantity has a Poissonian uncertainty that
+gets propagated".
+
+Each pixel (or MCA channel) is given σ² = I/M² + I²/M³: its own Poisson
+noise plus the monitor's. A region of interest, or an energy window, then
+adds its pixels in quadrature, as if every pixel had an independent monitor
+reading. But all pixels of one frame share one monitor reading, so for a
+sum S = ΣI the monitor part should be S²/M³, not ΣI²/M³. The coded error is
+too small by a factor that grows with the number of pixels and with S/M.
+
+Measured (`test_roi_error_treats_monitor_noise_as_independent_per_pixel_as_coded`,
+`test_error_is_larger_than_pure_poisson_of_the_sum_as_coded`):
+
+- Flat ROI of 231 pixels, 400 counts each, M = 10⁵: correct/coded = 1.39.
+- Synthetic reflected beam at total reflection (2.5×10⁷ counts in the ROI,
+  M = 10⁵): coded relative error 0.049 %, with a shared monitor 0.32 %; a
+  factor 6.5.
+- Real NX school scan 6, first point: 7.9×10⁵ detector counts against
+  Monc = 2.2×10⁵, so S/M ≈ 3.5 and the monitor term dominates. The stored
+  relative error there is 0.14 %; √(1/S + 1/M) would be 0.24 %.
+
+Two separate questions follow, and neither is decided here:
+
+1. Should the monitor term be applied once per frame to the summed signal
+   (correlated), rather than per pixel?
+2. Is Poisson statistics on `Monc` right at all? The SPEC header says
+   `#M Monc Gain 5 uA/V`: the monitor is a current amplifier feeding a
+   counter, so its count is proportional to flux through a gain setting,
+   not a number of detected photons, and 1/√Monc is then not its relative
+   uncertainty.
+
+This interacts with the xmodfit hand-off: `sigma_meas` is defined there as
+the counting-only error, and whatever is decided here changes it (in the
+corrected chain only; the legacy chain must stay as it is).

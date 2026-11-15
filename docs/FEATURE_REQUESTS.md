@@ -120,6 +120,43 @@ Answers to the open design questions, and new requests that came with them.
 | F23 | Improve GID patching, both in flexibility (image overlaps) and in methods. A substantial sub-project that needs its own scoping; the `interp2d` failure (defect 1) is part of it. | new, needs scoping |
 | — | Output files read by xmodfit: hand-off received 2026-11-15, see F24–F25. | done |
 
+### Further answers from the owner (2026-11-15)
+
+| # | Decision or request | Applies to |
+|---|---|---|
+| R5 | A frozen benchmark (the program's own output today) is needed for **each type of data reduction**, especially reflectivity and XFNTR (fluorescence near total reflection). | R1; see `TESTING.md` |
+| D9 | One SPEC file may contain scans from different detectors (100K, 200K, 1M); a single scan never mixes detectors. | F17–F19 |
+| D10 | The SPEC counter for the area detector's region of interest is `proi` ("Pilatus region of interest"): the ROI is set up in EPICS and recorded by SPEC. The reader does not rely on it; it loads the image files and does the reduction itself with more options ("virtual slits"). | context |
+| D11 | Module gaps and bad pixels: avoided by construction for reflectivity. They are a real issue for GID and GISAXS. For now, note the issues carefully; scoping comes later. | F18, F23 |
+| D12 | The Pilatus 200K is the workhorse detector, and its output should be the reference for expected numbers. | see note below |
+| D13 | For now, experiments make sure overlapping reflectivity scans share Q_z points (within resolution). The interpolation bias in the stitch factor is to be remedied later and must not be forgotten. | F24; tracked in `TODO.md` |
+| — | XModJointFit is unreleased and not public. Work around its absence for now; remind the owner to supply `tests/lss_reference.py` and `covariance_core.py`. | F24 acceptance tests 5, 6 |
+
+Note on D10 and D12, from the sample data in hand (measured): none of the
+nine SPEC files has a column named `proi`; the area-detector columns are
+called `Pilatus`, `Pilatus1M` and `Pil300K`. Every image is either
+487 × 195 pixels (871 files, the size of a Pilatus 100K) or 981 × 1043
+(366 files, Pilatus 1M); a Pilatus 200K frame would be 487 × 407. So either
+the sample sets contain no 200K data, or the 487 × 195 frames are what the
+beamline calls the 200K. To be clarified.
+
+Module-gap and bad-pixel issues noted so far (D11), all read from code
+unless marked:
+- `removeBadPix` compares each pixel with the mean of its four neighbours
+  and replaces it when it is both above a threshold multiple of that mean
+  and above a global level. A gap (rows or columns of zero or −1) next to
+  real signal makes the neighbours' mean wrong for every pixel bordering
+  the gap, in both directions.
+- Nothing masks pixels: ROI sums, line cuts, GID/GISAXS maps and the
+  "sum" image include gap pixels as zeros, which lowers sums and averages
+  without any flag. Negative gap values (−1, −2 in Pilatus files) would
+  enter sums and take √ of a negative number in the error.
+- GID patching (`plotHint` over `vroi=[15,486]`) assumes a gap-free strip
+  487 pixels long.
+- Measured: the 1M frames in the sample set are 981 × 1043 and the reader's
+  code path loads them when called directly, but no reduction path has been
+  run on them, so the effect of the gaps is not yet measured.
+
 ### Data export for xmodfit (stated 2026-11-15)
 
 The owner supplied a hand-off written for this work,

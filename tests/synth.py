@@ -169,3 +169,59 @@ def make_dataset(root, name='sample'):
               [spectrum, spectrum * 2])
     return spec
 
+
+
+# ---- fluorescence near total reflection (XFNTR) ----------------------------
+
+XF_QZ = np.round(np.linspace(0.012, 0.036, 9), 4)   # one MCA scan per Qz
+XF_CHANNELS = 512
+XF_CALIB = (0.0, 0.02, 0.0)        # keV = 0 + 0.02 * channel
+XF_PEAK_CHANNEL = 320              # fluorescence line at 6.40 keV
+XF_PEAK_SIGMA = 6.0                # channels
+XF_ELASTIC_CHANNEL = 500           # elastic line at 10.0 keV
+XF_REAL, XF_LIVE = 10.0, 9.0       # seconds
+XF_MONITOR = 2.0e5
+
+
+def xfntr_yield(qz, qc=QC):
+    """Fluorescence counts in the line, per frame: a smooth curve peaking at
+    the critical Qz, enough to tell the frames apart. Not a physical model."""
+    qz = np.asarray(qz, dtype=float)
+    return 4.0e4 * np.where(qz <= qc, (qz / qc) ** 2, (qc / qz) ** 3)
+
+
+def xfntr_spectrum(qz):
+    """Integer counts per channel for one frame, and the line's exact sum."""
+    ch = np.arange(1, XF_CHANNELS + 1)
+    line = np.exp(-(ch - XF_PEAK_CHANNEL) ** 2 / 2.0 / XF_PEAK_SIGMA ** 2)
+    line = np.round(xfntr_yield(qz) * line / line.sum())
+    elastic = np.round(3000.0 * np.exp(-(ch - XF_ELASTIC_CHANNEL) ** 2 / 2.0 / 4.0 ** 2))
+    return line + elastic + 2.0, line
+
+
+def make_xfntr_dataset(root, name='xf'):
+    """SPEC file with one getandsave_mca scan per Qz, and vortex/ beside it.
+
+    Returns (spec path, {scan number: counts in the fluorescence line}).
+    """
+    root = str(root)
+    os.makedirs(os.path.join(root, 'vortex'))
+    scans, truth = [], {}
+    for n, q in enumerate(XF_QZ, start=1):
+        scans.append('#S %d  getandsave_mca %g\n#Q 0 0 %g\n#W x %g\n#A x 0\n\n'
+                     % (n, XF_REAL, q, WAVELENGTH))
+        y, line = xfntr_spectrum(q)
+        truth[n] = line
+        path = os.path.join(root, 'vortex', '%s_%d_mca' % (name, n))
+        with open(path, 'w') as f:
+            f.write('#F %s\n\n#S 1  getandsave_mca %g\n' % (os.path.basename(path), XF_REAL))
+            f.write('#@CTIME %g %g %g\n' % (XF_REAL, XF_REAL, XF_LIVE))
+            f.write('#Monc %g\n#Q 0 0 %g\n' % (XF_MONITOR, q))
+            f.write('#@CALIB %g %g %g\n#Energy 10.0\n' % XF_CALIB)
+            vals = [int(v) for v in y]
+            chunks = [vals[k:k + 16] for k in range(0, len(vals), 16)]
+            for k, c in enumerate(chunks):
+                f.write(('@A ' if k == 0 else '') + ' '.join(map(str, c))
+                        + ('\\\n' if k < len(chunks) - 1 else '\n'))
+            f.write('\n')
+    return write_spec(os.path.join(root, name), scans), truth
