@@ -33,7 +33,7 @@ absent, so a fresh clone passes without it.
 | File | Purpose |
 |---|---|
 | `conftest.py` | Fixtures (below). Sets offscreen Qt and the working directory. |
-| `synth.py` | Writes synthetic SPEC, Pilatus TIFF, Bruker and MCA files. |
+| `synth.py` | Writes synthetic SPEC, Pilatus TIFF and MCA files. |
 | `sweep.py` | Drives the window: application states, control enumeration, fresh-window driver, random walks, `dispose`. |
 | `test_fresnel.py`, `test_twod_detector.py`, `test_parsers.py`, `test_stitching.py`, `test_gid_area.py` | Unit tests of the numerics, including the analytic invariants in `physics_notes.md`. |
 | `test_gui_workflows.py`, `test_gui_cuts.py` | Reduce the synthetic data set through the real widgets and compare with the curve it was generated from. |
@@ -140,5 +140,5 @@ After fixing crashes, regenerate both files:
 
     LSS_UPDATE_CRASHES=1 pytest -m sweep
 
-Not covered: dialogs opened from dialogs, Bruker images (they cannot be read
-at all at present), real mouse interaction with the plots.
+Not covered: dialogs opened from dialogs, real mouse interaction with the
+plots. Bruker images are deliberately not covered: that detector is defunct.

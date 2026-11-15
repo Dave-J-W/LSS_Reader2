@@ -21,7 +21,8 @@ application code until the full list of feature requests has been received
 - [ ] Characterisation tests still missing for: GID multi-scan joining
       (`imagehjoin`, `imagevjoin`), GISAXS, line/area cuts
       through the GUI, burn tests, g_l2/g_l3 and absorber-ratio fits,
-      MCA peak fit / sum / merge, peak-fit dialog, 2D plot tab, Bruker path.
+      MCA peak fit / sum / merge, peak-fit dialog, 2D plot tab. (All fitting
+      features stay, D7, so each needs tests. Bruker is defunct: none.)
 - [x] NX school GID scan 11 frozen as a reference; low + high Q_z patch
       pinned as an expected failure (interp2d). The shipped
       `dppc_*_gid.txt` come from other scans and are not comparable.
@@ -45,15 +46,19 @@ application code until the full list of feature requests has been received
 
 - [ ] Remaining feature requests and complaints (received so far: F1–F16
       in `FEATURE_REQUESTS.md`; the owner called the latest list partial).
-- [ ] Answers to the three questions in `PROJECT_CONTEXT.md` (divide by
-      counting time? which fitting features stay? which output files does
-      xmodfit read?).
+- [x] Counting time and fitting questions answered (2026-11-15; D6, D7,
+      F20–F22).
+- [ ] Hand-off document on the output files xmodfit reads (promised by the
+      owner); output-format tests wait for it.
+- [ ] Scoping input for F22 (where better fitting is needed, which models)
+      and F23 (GID patching: overlaps, methods).
+- [ ] Format of the photons-in estimate in the SPEC file (F21), when the
+      beamline defines it.
 - [x] Pilatus 1M: another version handles it but is not otherwise better;
       stay on this code base, 1M support is feature group F17–F19.
 - [ ] Should per-point MCA files (`mca_save_point`) be readable from the
       window? Open points on the 1M are listed under F17–F19.
-- [ ] Is the Bruker/Apex CCD path still needed? It cannot read any image
-      under Python 3.
+- [x] Bruker/Apex CCD is defunct (D8): no fix; remove the code later.
 - [ ] Turn link-sharing off on `bu.zip` in Drive.
 - [ ] Decide how sample data should be hosted (`bu` is 1.7 GB, local to the
       session only, git-ignored; NX school is committed at 104 MB).
@@ -62,11 +67,17 @@ application code until the full list of feature requests has been received
 
 ## Later phases (not started, by instruction)
 
-1. Bug fixes from `ASSESSMENT.md` section 4, one test each.
-2. Empty the crash inventory (`tests/known_crashes.json`).
+1. Process-wide exception handler and durable log (F10–F12, D4): turns
+   every hard abort into a logged failure. Agreed as the first step.
+2. Bug fixes from `ASSESSMENT.md` section 4, one test each; empty the crash
+   inventory (`tests/known_crashes.json`); remove the Bruker path (D8).
 3. Extract physics and readers into GUI-free modules.
-4. Feature requests in `FEATURE_REQUESTS.md`.
-5. GUI reorganisation.
+4. Feature requests in `FEATURE_REQUESTS.md` (caching and no re-reading on
+   selection change, D5; live refresh; per-SPEC config with read-only
+   second instance, D1–D3; Pilatus 1M; per-second option, F20).
+5. Sub-projects that need their own scoping: GID patching (F23), fitting
+   improvements (F22).
+6. GUI reorganisation.
 
 ## Done
 

@@ -42,18 +42,25 @@ closely paraphrased; the notes are observations from this repository.
   They are already pinned by unit tests; every reduction path (reflectivity,
   GID, GISAXS, cuts, MCA sums) should get an end-to-end check that a known
   number of photons per monitor count comes out with the Poisson error.
-- Because the reader is not for fitting, tests of the fitting helpers need
-  only establish that they do not crash and that alignment aids (peak
-  centre, edge position) are right; they are not physics results.
+- The fitting features inside the reader all stay (owner, 2026-11-15), so
+  they need characterisation tests like any other feature, even though the
+  reader is not the fitting platform.
 - The output file formats need tests of their own (columns, units, number
   formats) because another program reads them.
 
-## Questions for the owner
+## Questions and answers
 
-1. Should image-derived signals be divided by counting time explicitly, or
-   is "per monitor count" the intended meaning of the normalised signal
-   (the monitor already integrates over the counting time)?
-2. Which of the fitting features inside the reader are used and must stay
-   (alignment fits, burn test, MCA peak areas), and which can go now that
-   xmodfit does the fitting?
-3. Which reader output files does xmodfit read, and are their formats fixed?
+1. *Should image-derived signals be divided by counting time explicitly?*
+   **Answered 2026-11-15:** keep the normalisation as it is by default (per
+   monitor count). A per-second option for important quantities would be
+   nice (F20). A photons-in estimate is planned to be stored in the SPEC
+   file by the beamline; the reader should use it when it exists (F21).
+2. *Which fitting features inside the reader must stay?*
+   **Answered 2026-11-15:** everything already in the reader stays. xmodfit
+   is far more sophisticated and remains the fitting platform. Some places
+   in the reader need better fitting and more fit types (F22, to be scoped).
+3. *Which reader output files does xmodfit read, and are their formats
+   fixed?* **Pending:** the owner will provide a hand-off document.
+
+Also decided 2026-11-15: the Bruker/Apex CCD detector is defunct and will
+not be used again.

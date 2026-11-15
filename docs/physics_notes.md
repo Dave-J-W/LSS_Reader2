@@ -279,3 +279,42 @@ This also means one small change — a process-wide exception hook that logs
 and carries on — would turn every one of them from "application gone" into
 "operation failed, logged", before any individual handler is repaired. That
 is the natural first step for requests F10–F12 when implementation starts.
+
+### 2026-11-15 — Owner answers to the open questions
+
+Recorded as given; the decisions are tabulated as D1–D8 and F20–F23 in
+[FEATURE_REQUESTS.md](FEATURE_REQUESTS.md).
+
+**Q.** Should image signals be divided by counting time explicitly?
+**A.** No change to the default: the normalised signal stays counts per
+monitor count. An optional per-second value for important quantities is
+wanted. A photons-in estimate will later be written to the SPEC file by the
+beamline and should then be used.
+
+Invariant consequence: the default reduced quantity and its error (I3, I4)
+must not change when the per-second option or the photons-in estimate are
+added; both are additional outputs, not replacements. A per-second value is
+the same quantity divided by the counting time, which carries no
+uncertainty of its own in the present error model, so its relative error
+equals that of the default quantity.
+
+**Q.** Do two instances ever share a SPEC file? **A.** Yes. The second
+instance is read-only on the config, shown by a small yellow indicator.
+
+**Q.** Dropped points as a mask over raw frames? **A.** Correct.
+
+**Q.** Where do config and log go if the SPEC folder is not writable?
+**A.** A reliable local location, with a warning; at worst nothing is
+written and defaults apply.
+
+**Q.** Which fitting features stay? **A.** All of them; more and better
+fitting is wanted in places (to be scoped).
+
+**Q.** Is the Bruker detector still needed? **A.** No, it is defunct.
+
+**Q.** What does "a single scan reduces and is frozen as a reference" mean?
+**A.** (Asked by the owner about an earlier status line.) It is a
+regression benchmark: the program's own output for NX school GID scan 11
+today, saved in `tests/reference/`, so that any later change to the code
+that alters those numbers is noticed. It shows the output has not changed;
+it does not show the output is right.

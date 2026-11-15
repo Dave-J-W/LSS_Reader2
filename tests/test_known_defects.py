@@ -62,19 +62,6 @@ def test_bad_pixel_factor_controls_replacement():
     assert out[20, 15] == 500.0
 
 
-@xfail('Python 3: the Bruker header is read as bytes, so every header lookup '
-       'by str key fails (and #9: removeBadPix returns a tuple that is '
-       'stored as the image)')
-def test_bruker_frame_can_be_read(tmp_path):
-    img = np.full((16, 16), 40, dtype=np.uint8)
-    img[8, 8] = 200
-    path = synth.write_bruker_sfrm(str(tmp_path / 's_SCAN-1_0000.sfrm'), img)
-    det = TwoDDetector('Bruker')
-    assert det.openFile(path) == 1
-    assert det.imageData.shape == (16, 16)
-    assert det.imageData[8, 8] == 200 - 32      # reader subtracts the offset
-
-
 @pytest.mark.gui
 @xfail('#7: map() used as a list; typed-in centres break the g_l2 fit')
 def test_g_l2_dialog_accepts_typed_centres(loaded, qapp, dataset, recorder):

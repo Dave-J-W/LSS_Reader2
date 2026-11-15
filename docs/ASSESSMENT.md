@@ -212,3 +212,21 @@ Library drift, separate from the language migration: `interp2d` removed from
 SciPy (defect 1); `Image.getdata` deprecated in Pillow and assigning to
 `ndarray.shape` deprecated in NumPy (both in `TwoDDetector.openFile`);
 `pylab` used as a NumPy namespace (`pl.where`, `pylab.sin`).
+
+## 9. Owner decisions that change the assessment (2026-11-15)
+
+- **Bruker/Apex CCD is defunct.** Defect 9, the Bruker rows of the Python 3
+  audit (section 8), the `vmin` display bug (defect 16) and the Bruker
+  branches counted as duplication in section 3 are no longer things to fix;
+  they are code to remove when implementation starts. The expected-failure
+  test for reading a Bruker frame has been deleted for that reason. The
+  `apex` tab and its controls remain in the crash sweep until the code is
+  removed, because users can still press them.
+- **All fitting features stay**, so they are in scope for tests and for the
+  crash-free requirement.
+- **GID patching** (defect 1 and the `imagehjoin`/`imagevjoin` code around
+  it) will be redesigned as its own sub-project (F23) rather than patched
+  in place.
+- **Pilatus 1M** support is feature group F17–F19 on this code base.
+- Questions in section 6: "Is the 9-ID-C path still needed?" and the
+  `S1T + S1T` and geometry questions are still open.

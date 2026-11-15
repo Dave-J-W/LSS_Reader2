@@ -67,15 +67,15 @@ crash loses nothing, and should also catch faults below Python
 | F15 | The config records every GUI parameter change, and what data is loaded in the flexible-plotting panels. | Parameters live only in widgets and about 200 window attributes; the Plot and 2D_Plot tabs keep their file lists in memory. |
 | F16 | Results of interactive steps are saved. Example: points dropped during reflectivity patching are kept, drawn in a visually distinct way, can be undone and redone, and persist when the reader is closed and reopened. | `pilRefPatchDrop` deletes the rows from the arrays (`np.delete`); the points are gone, nothing is recorded, and there is no undo. |
 
-Design points to settle: the SPEC folder may be read-only or on a slow
-network drive, so there must be a fallback location and writes must be
-atomic (write a temporary file, then rename) and infrequent; two people may
-open the same SPEC file at once; the config needs a version number and must
-survive a SPEC file that has grown since it was written (F1–F5); dropped
-points should be stored as a mask over raw frames (scan and frame number),
-not as edited arrays, so that reduction can be repeated from raw data and
-undo/redo is a change to the mask; how this file relates to the caches of
-F8–F9.
+Settled (see D1–D3 below): second instance is read-only with a yellow
+indicator; local fallback with a warning; dropped points as a mask.
+Still to settle: writes must be atomic (write a temporary file, then
+rename) and infrequent on a network drive; how the first instance's lock is
+held and what happens when that instance dies without releasing it; whether
+a read-only instance sees the first instance's changes live; the config
+needs a version number and must
+survive a SPEC file that has grown since it was written (F1–F5); how this
+file relates to the caches of F8–F9.
 
 ### Detector support (stated 2026-11-14)
 
@@ -99,6 +99,26 @@ version's 1M code should be used as the reference for expected numbers.
 Related observation, not yet a request: the October run also writes
 per-point MCA files (`#S n mca_save_point Point:k Scan:m`, XSP3 detector)
 for ordinary scans. `mcaread` parses them but the window cannot reach them.
+
+### Decisions and additions from the owner (2026-11-15)
+
+Answers to the open design questions, and new requests that came with them.
+
+| # | Decision or request | Applies to |
+|---|---|---|
+| D1 | Two people can have the same SPEC file open. The second instance opens the config **read-only**, and a small **yellow indicator light** in the GUI shows that state. | F13, F15, F16 |
+| D2 | Dropped points are stored as a mask over raw frames (scan and frame number), not as edited arrays; reduction can always be repeated from raw data and undo/redo is a change to the mask. Confirmed. | F16 |
+| D3 | If the config or log cannot be written beside the SPEC file (an edge case), store it locally somewhere reliable and warn that this was done. Worst case nothing can be written and the user simply gets the defaults. Never an error. | F12, F13 |
+| D4 | The process abort on a raising handler is to be fixed ("a thorn in our side for ages"). Sequence agreed: first a process-wide handler that logs and carries on, then repair of individual handlers. | F10–F12 |
+| D5 | Re-reading every selected frame on every selection change, and problems like it, are to be fixed. | F6–F9 |
+| D6 | Normalisation stays as it is (per monitor count) by default. | — |
+| F20 | Optional **per-second** value for important quantities. | new |
+| F21 | Use a **photons-in estimate** stored in the SPEC file, once the beamline writes one (planned on the beamline side; format not yet defined). | new, waits on beamline |
+| D7 | Every fitting feature already in the reader stays. xmodfit is far more sophisticated and remains the fitting platform. | scope |
+| F22 | Better fitting and more types of fitting in the places inside the reader where it is needed. Which places and which models: to be scoped. | new, needs scoping |
+| D8 | The Bruker/Apex CCD is defunct and will not be used again. Its code path does not need to work and can be removed when implementation starts. | scope |
+| F23 | Improve GID patching, both in flexibility (image overlaps) and in methods. A substantial sub-project that needs its own scoping; the `interp2d` failure (defect 1) is part of it. | new, needs scoping |
+| — | Output files read by xmodfit: the owner will supply a hand-off document with details. Format tests wait for it. | pending |
 
 ## Order
 
