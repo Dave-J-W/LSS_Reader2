@@ -26,6 +26,7 @@ wins over this paragraph.
 | `docs/TESTING.md` | How the test suite works and how to extend it |
 | `docs/physics_notes.md` | Invariants table and a dated question-and-answer log |
 | `docs/timings.md` | Timing baseline written by `pytest -m bench` |
+| `docs/handoff/` | Specifications handed over by the owner (xmodfit export contract). They are requirements; do not edit them |
 | `tests/` | The suite; `synth.py` (synthetic data), `sweep.py` (GUI driver) |
 | `sample_data/NX_school/` | Real, public data set (committed) |
 | `sample_data/bu/` | Real, private data set: git-ignored, never commit or push it |
@@ -49,22 +50,25 @@ No display is needed. Run from the repository root.
    (never change), "as coded" characterisations (change only deliberately),
    and `xfail(strict=True)` for behaviour we want but do not have. When you
    fix a defect, remove its `xfail` marker in the same commit.
-3. **The crash baselines only shrink.** `tests/known_crashes.json` and
+3. **The legacy export fixtures never change** (`tests/reference/legacy_export/`),
+   except for the one fix the hand-off permits (Qz², trap T8). They are the
+   proof that a refactor did not change the reduction.
+4. **The crash baselines only shrink.** `tests/known_crashes.json` and
    `tests/known_crash_sites.json` are regenerated with
    `LSS_UPDATE_CRASHES=1 pytest -m sweep`, never edited by hand, and a
    regenerated file must not contain entries that were not there before
    unless the commit explains why.
-4. **Record what you learn.** A question from the owner and its answer go in
+5. **Record what you learn.** A question from the owner and its answer go in
    `docs/physics_notes.md` (dated, with how the answer was verified: test,
    run, or reading only). Quantities that must be conserved go in the
    invariants table there, with the test that checks them.
-5. **Say what was measured and what was only read.** The docs keep these
+6. **Say what was measured and what was only read.** The docs keep these
    apart; keep doing so.
-6. **The reader never writes to the SPEC file**, and tests must not write
+7. **The reader never writes to the SPEC file**, and tests must not write
    into `sample_data/`. Set `window.directory = str(tmp_path)` after opening
    a SPEC file (the `window`/`loaded` fixtures and `tests/test_real_*.py`
    show how).
-7. Commit small and push often to `main` of this fork; the owner asked for
+8. Commit small and push often to `main` of this fork; the owner asked for
    that. Do not open pull requests unless asked.
 
 ## Things that will bite you

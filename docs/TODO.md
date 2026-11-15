@@ -31,9 +31,15 @@ application code until the full list of feature requests has been received
 - [x] Invariant I4 (ROI error propagation) tested directly.
 - [x] Python 2 → 3 audit → `ASSESSMENT.md` section 8; Bruker reading and
       the g_l2 dialog pinned as expected failures.
-- [ ] Tests for the output file formats (`*_ref.txt`, `*_rrf.txt`, GID,
-      cut and `*_flu.txt` files): columns, units, number formats, since
-      xmodfit reads them.
+- [x] Reflectivity export pinned byte for byte (`test_ref_export_golden.py`)
+      as the legacy fixtures the hand-off asks for.
+- [ ] Same for the other outputs (GID, cut and `*_flu.txt` files).
+- [ ] Synthetic K = 3–5 scan generator with known factors and a non-one-hot
+      overlap, as hand-off §5 requires, and the acceptance tests 2–4 written
+      against the contract as expected failures.
+- [ ] Measure the stitch-factor interpolation bias on real overlaps.
+- [ ] ORSO export (F25): read the format specification and list the header
+      fields the reader can and cannot fill.
 - [ ] End-to-end "known photons per monitor count in, same number and
       Poisson error out" check for each reduction path (GID, GISAXS, cuts,
       MCA sum), as already done for reflectivity.
@@ -48,8 +54,12 @@ application code until the full list of feature requests has been received
       in `FEATURE_REQUESTS.md`; the owner called the latest list partial).
 - [x] Counting time and fitting questions answered (2026-11-15; D6, D7,
       F20–F22).
-- [ ] Hand-off document on the output files xmodfit reads (promised by the
-      owner); output-format tests wait for it.
+- [x] Hand-off on the xmodfit export received (F24, F25).
+- [ ] `tests/lss_reference.py` and `covariance_core.py` from XModJointFit
+      (or read access to that repository), for hand-off acceptance tests 5
+      and 6.
+- [ ] Decision: should the corrected chain remove the interpolation bias
+      in the stitch factor (see `physics_notes.md`, 2026-11-15)?
 - [ ] Scoping input for F22 (where better fitting is needed, which models)
       and F23 (GID patching: overlaps, methods).
 - [ ] Format of the photons-in estimate in the SPEC file (F21), when the
@@ -74,7 +84,9 @@ application code until the full list of feature requests has been received
 3. Extract physics and readers into GUI-free modules.
 4. Feature requests in `FEATURE_REQUESTS.md` (caching and no re-reading on
    selection change, D5; live refresh; per-SPEC config with read-only
-   second instance, D1–D3; Pilatus 1M; per-second option, F20).
+   second instance, D1–D3; Pilatus 1M; per-second option, F20; covariance
+   export for xmodfit, F24, which needs the merge logic factored out of the
+   dialogs; ORSO export, F25).
 5. Sub-projects that need their own scoping: GID patching (F23), fitting
    improvements (F22).
 6. GUI reorganisation.

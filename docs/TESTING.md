@@ -38,6 +38,7 @@ absent, so a fresh clone passes without it.
 | `test_fresnel.py`, `test_twod_detector.py`, `test_parsers.py`, `test_stitching.py`, `test_gid_area.py` | Unit tests of the numerics, including the analytic invariants in `physics_notes.md`. |
 | `test_gui_workflows.py`, `test_gui_cuts.py` | Reduce the synthetic data set through the real widgets and compare with the curve it was generated from. |
 | `test_real_nx_school.py`, `reference/` | Real NX school data: SPEC inventory, reflectivity scans 6–9 and GID scan 11 against stored curves produced by this program. |
+| `test_ref_export_golden.py`, `reference/legacy_export/` | Today's `_ref.txt` / `_rrf.txt` byte for byte (synthetic and real), the "legacy" fixtures required by the xmodfit hand-off; plus the export format and traps T3, T8. |
 | `test_real_bu.py` | Private data: every scan of every SPEC file opens without raising. |
 | `test_known_defects.py` | Defects from `ASSESSMENT.md`, each a strict expected failure. |
 | `test_gui_sweep.py`, `known_crashes.json`, `known_crash_sites.json` | Crash inventory. |

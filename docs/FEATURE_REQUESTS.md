@@ -118,7 +118,30 @@ Answers to the open design questions, and new requests that came with them.
 | F22 | Better fitting and more types of fitting in the places inside the reader where it is needed. Which places and which models: to be scoped. | new, needs scoping |
 | D8 | The Bruker/Apex CCD is defunct and will not be used again. Its code path does not need to work and can be removed when implementation starts. | scope |
 | F23 | Improve GID patching, both in flexibility (image overlaps) and in methods. A substantial sub-project that needs its own scoping; the `interp2d` failure (defect 1) is part of it. | new, needs scoping |
-| — | Output files read by xmodfit: the owner will supply a hand-off document with details. Format tests wait for it. | pending |
+| — | Output files read by xmodfit: hand-off received 2026-11-15, see F24–F25. | done |
+
+### Data export for xmodfit (stated 2026-11-15)
+
+The owner supplied a hand-off written for this work,
+[handoff/19-lss-reader-covariance-contract.md](handoff/19-lss-reader-covariance-contract.md).
+It is the specification; the rows below only index it.
+
+| # | Request | Notes |
+|---|---|---|
+| F24 | Write the stitching covariance for xmodfit: next to every `_ref.txt` / `_rrf.txt` a `.cov.json` sidecar (schema version 1) carrying the counting-only error `sigma_meas`, per-point scan weights `W` and the covariance `Σ` of the per-scan log scale errors. | Hand-off §2 (contract), §3 (arithmetic). xmodfit already reads the file; nothing writes it yet. |
+| F24a | Two outputs from one run: **corrected** `_ref.txt` / `_rrf.txt` (factor fitted against counting errors with inflate-only χ², error column = √ of the covariance diagonal) and **legacy** `_ref_legacy.txt` / `_rrf_legacy.txt`, byte-identical to today's files. | Hand-off §2.5, §3.2, §3.4. The legacy bytes are now held as fixtures: `tests/test_ref_export_golden.py`, `tests/reference/legacy_export/`. |
+| F24b | Fix the Qz² display option corrupting the saved `_rrf.txt` (q column squared). The only change permitted to the legacy output. | Hand-off trap T8. Reproduced and pinned as an expected failure. |
+| F24c | Optionally a combined data + covariance JSON file (`<name>_ref.json`). | Hand-off §2.6. The xmodfit loader for it is not built yet; text files and sidecars stay. |
+| F25 | **ORSO-compliant export** (via `orsopy`) as an extension or option. Not in the hand-off; added at the owner's request. | Nothing exists. The ORSO text format (`.ort`) has a YAML header (data source, instrument settings, reduction provenance, column definitions with units) followed by columns Qz, R, sR and optionally sQz. See <https://www.reflectometry.org/> and <https://orsopy.readthedocs.io/>. |
+
+Points to settle for F25: which reader quantities map to the ORSO header
+(wavelength or energy, incident-angle range, polarisation, sample name,
+owner, SPEC file and scan numbers as the data source, reduction steps and
+their parameters); whether the resolution column sQz is wanted and how it
+would be computed from the slits; whether the ORSO file carries the
+corrected or the legacy error column (the corrected one, presumably); and
+how the full covariance is referenced, since the ORSO column format has no
+place for it.
 
 ## Order
 

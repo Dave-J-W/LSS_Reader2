@@ -20,6 +20,7 @@ exists.
 | I6 | At the direct-beam row with α = α_true, Q_z = 4π sin α / λ; at the direct-beam column with Det_Th = 0, Q_xy = 0 and the axis is antisymmetric | tested: `test_twod_detector.py` |
 | I7 | Stitching two scans of one curve recovers the attenuation factor exactly, and overlap errors fall by √2, when the overlap points coincide | tested: `test_stitching.py` |
 | I8 | Reduced reflectivity of each scan is proportional to the true curve (R/R_F flat) | tested end to end on synthetic data: `test_gui_workflows.py` |
+| I10 | (to hold once F24 is built) Every row of the scan-weight matrix W sums to 1; Σ is symmetric, positive semi-definite, with zero row and column for the anchor scan; corrected error ≥ counting-only error, equal on the anchor scan's non-overlap points | specified in hand-off §3.3–3.4, §5; no code yet |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -318,3 +319,59 @@ regression benchmark: the program's own output for NX school GID scan 11
 today, saved in `tests/reference/`, so that any later change to the code
 that alters those numbers is noticed. It shows the output has not changed;
 it does not show the output is right.
+
+### 2026-11-15 — The xmodfit hand-off checked against this repository
+
+**Q.** Here is the hand-off describing what xmodfit needs from the reader's
+export. (Also: add ORSO-compliant export if it is not in there.)
+
+**A.** Filed as `docs/handoff/19-lss-reader-covariance-contract.md`; indexed
+as F24 (with F24a–c) and F25 in `FEATURE_REQUESTS.md`. ORSO is not mentioned
+in the hand-off, so it is added as F25.
+
+Checked against the code here (run, unless marked "read"):
+
+- **Code base.** The hand-off's line numbers are for commit `a861d79`. This
+  repository's application code is one commit later (`7d2467f`), which only
+  changed the line-cut function; the reflectivity path is identical, with
+  line numbers shifted by 6.
+- **Legacy fixtures (acceptance test 1) now exist.** Today's `_ref.txt` and
+  `_rrf.txt` are stored byte for byte for six synthetic cases (plain, a
+  dropped point, typed normalisation factor, Q offset, Qz² box, R/RF never
+  checked) and two real ones (NX school scans 6–9, with and without drops).
+  A second run reproduces all of them exactly.
+- **Trap T8 reproduced.** With the Qz² box checked, `_rrf.txt` has q² in its
+  q column (first row 1.0000e-04 instead of 1.0000e-02); `_ref.txt` is not
+  affected. Pinned both as an expected failure (desired behaviour) and as a
+  characterisation (so the legacy fixture is understood).
+- **Trap T3 reproduced.** `oneDjoin(mtype='merge')` scales the new scan's
+  array in place; pinned as coded.
+- **Trap T10, one consequence observed.** If R/RF was never checked, Export
+  writes `_ref.txt` only and prints "No rrf data available!"; no `_rrf.txt`.
+- **Trap T11, extended.** Dropping points until the first pair no longer
+  overlaps shows the warning and closes the dialog; if the merge is then
+  invoked it raises `ValueError: ydata must not be empty` from `curve_fit`.
+  On later joins the dialog stays open (read), so that path is reachable by
+  a user.
+- **Format.** Both files: tab-separated, three columns, `%.4e`, q strictly
+  increasing, no header. `_rrf.txt`'s q column is q + Q-offset. The typed
+  normalisation factor divides value and error on top of the automatic
+  plateau normalisation.
+
+One point for the hand-off's author and the owner. The corrected chain keeps
+today's estimator for the factor: ratios of the existing points to a cubic
+spline of the new scan, in linear intensity. As measured earlier (entry
+"Test scaffolding; what did the first tests find?"), that spline
+overestimates a steeply falling curve between its knots, so when the two
+scans do not share Q_z points in the overlap the factor comes out 1.2–1.3 %
+low in the synthetic case. That is a **bias**, the same sign every time, not
+scatter: Σ describes the random error of the factor and does not contain
+it, and the inflate-only χ² will only partly react to it. With counting
+errors of 0.1 % a 1.3 % bias is thirteen standard deviations. Whether to
+remove it (for example by interpolating log R, or R·Q⁴) is a decision for
+the corrected chain only; the legacy chain must keep it for byte identity.
+Not yet tried: how large the bias is on real overlaps, where Q_z points
+usually do coincide.
+
+Needed from the xmodfit side to run acceptance tests 5 and 6:
+`tests/lss_reference.py` and `covariance_core.py` from XModJointFit.
