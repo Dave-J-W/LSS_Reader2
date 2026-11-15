@@ -21,6 +21,9 @@ exists.
 | I7 | Stitching two scans of one curve recovers the attenuation factor exactly, and overlap errors fall by √2, when the overlap points coincide | tested: `test_stitching.py` |
 | I8 | Reduced reflectivity of each scan is proportional to the true curve (R/R_F flat) | tested end to end on synthetic data: `test_gui_workflows.py` |
 | I10 | (to hold once F24 is built) Every row of the scan-weight matrix W sums to 1; Σ is symmetric, positive semi-definite, with zero row and column for the anchor scan; corrected error ≥ counting-only error, equal on the anchor scan's non-overlap points | specified in hand-off §3.3–3.4, §5; no code yet |
+| I11 | On a specular frame the direct beam lies at Q_z = 0 and the reflected beam at the frame's Q_z, 2α apart on the detector | tested on real data: `test_real_nx_school.py` (NX school scan 7, frame 0; both within 1.5 pixels, separation within 8 %) |
+| I12 | A signal decaying as exp(−t/τ) under the beam is reduced to the same decay and the burn-test fit returns τ | tested on synthetic data: `test_burn.py` (τ within 0.5 %) |
+| I13 | A window sum over an MCA line returns counts / monitor × (real / live time); a Gaussian fit returns the line's position, width and height | tested on synthetic data: `test_xfntr.py` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -452,3 +455,49 @@ Two separate questions follow, and neither is decided here:
 This interacts with the xmodfit hand-off: `sigma_meas` is defined there as
 the counting-only error, and whatever is decided here changes it (in the
 corrected chain only; the legacy chain must stay as it is).
+
+### 2026-11-15 — Benchmarks added for cuts, burn tests and MCA peak fitting
+
+**Q.** (owner) Why no line cuts on real data — can't a few cuts be made on
+the GID single scan? Burn tests and MCA peak fitting are important and need
+benchmarks.
+
+**A.** Done. Updated benchmark table:
+
+| Reduction | Synthetic, known truth | Real data |
+|---|---|---|
+| Reflectivity (patch, normalise, R/R_F, export) | yes, with file bytes | NX school scans 6–9, file bytes |
+| XFNTR window sum and export | yes, with file bytes | `bu` scans 74–79, hash only |
+| MCA peak fit ("Fit", "Accept", "Fit All") | yes: position, width, height recovered | no |
+| Reflectivity burn test | yes: known τ recovered | no (the sample sets have no reflectivity burn scan) |
+| GID burn test (intensity, location, width) | no | NX school scan 14 |
+| GID single scan, projections | no | NX school scan 11 |
+| Line cuts through a GID map | no | NX school scan 11, two cuts |
+| Line cuts on a detector frame | yes | NX school scan 7 frame 0 (exact sums, beam positions) |
+| GID multi-scan patch | no | cannot run: the code fails on current SciPy, and the only pair in the samples has an aborted second scan |
+| GISAXS, GIOXS, calibration fits (g_l2, g_l3, absorber ratio) | no | no |
+
+Findings while building them, all measured:
+
+- **Real-data check of the Q_z axis.** On NX school scan 7, frame 0
+  (Q_z = 0.035) the brightest spot is not the reflected beam but the direct
+  beam, 21 rows below it. The cut's Q axis puts that spot at Q_z = 0.0018
+  (zero within about a pixel) and the reflected beam at 0.035; their
+  separation is 2α within 8 %. This is the first check of the geometry
+  against real data rather than against the code's own formula
+  (invariant I11).
+- **NX school scans 14 and 15 are GID burn tests** (21 frames, 10 s each,
+  detector at 16.5°), not reflectivity burn tests. Over 200 s the
+  integrated chain-peak intensity of scan 14 changes by +1.9 % with a
+  per-frame error of 1.8 %: no burn visible at that level.
+- **The GID burn test already uses the shared-monitor error.** Its
+  intensity error is (ΣI)²/M³ + Σσ²/M², i.e. the monitor term applied once
+  to the summed signal, unlike the ROI and MCA paths (PHYSICS_ISSUES P2).
+  The program is inconsistent with itself on this point.
+- The burn dialog labels its range box "Qz range" but uses it as a Q_xy
+  range. The fitted τ is truncated to an integer number of seconds and
+  shown with two significant digits.
+- MCA "Accept" stores height × σ (the Gaussian area / √(2π)) with an error
+  from the two parameter errors without their covariance (P20). Relative
+  values across frames are unaffected: "Fit All" reproduces the shape of
+  the generating curve within 0.5 %.

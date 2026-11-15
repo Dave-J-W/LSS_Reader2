@@ -225,3 +225,31 @@ def make_xfntr_dataset(root, name='xf'):
                         + ('\\\n' if k < len(chunks) - 1 else '\n'))
             f.write('\n')
     return write_spec(os.path.join(root, name), scans), truth
+
+
+# ---- burn test (same spot measured repeatedly) -----------------------------
+
+BURN_TAU = 400.0        # seconds: reflected intensity decays as exp(-t/tau)
+BURN_CTIME = 10.0       # seconds per frame
+BURN_FRAMES = 21
+
+
+def make_burn_dataset(root, name='burn'):
+    """One reflectivity-geometry scan of BURN_FRAMES frames at fixed Qz whose
+    reflected peak decays exponentially with time constant BURN_TAU."""
+    root = str(root)
+    os.makedirs(os.path.join(root, 'pilatus'))
+    n = BURN_FRAMES
+    z = np.zeros(n)
+    rows = np.column_stack([z, z, z, z + 0.05, z + BURN_CTIME, z + MONITOR,
+                            z + 1000.0])
+    cols = ['In_Ht', 'H', 'K', 'L', 'Seconds', 'Monc', 'Pilatus']
+    scan = spec_scan(1, name, cols, rows,
+                     command='ascan  ih 0 0  %d %g' % (n - 1, BURN_CTIME))
+    spec = write_spec(os.path.join(root, name), [scan])
+    peak = (PIL_H - DB_X - 1, DB_Y)
+    for j in range(n):
+        amp = 2.0e5 * np.exp(-j * BURN_CTIME / BURN_TAU)
+        write_pilatus_tif(os.path.join(root, 'pilatus', '%s_SCAN-1_%04d.tif' % (name, j)),
+                          pilatus_image(peak=peak, amplitude=amp))
+    return spec

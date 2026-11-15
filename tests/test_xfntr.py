@@ -196,3 +196,80 @@ def test_real_xfntr_export_matches_stored_hash(window, qapp, recorder, tmp_path)
             json.dump(stored, f, indent=1, sort_keys=True)
             f.write('\n')
     assert stored.get(key) == digest
+
+
+# ---- peak fitting of the fluorescence line (MCA "Fit") ---------------------
+
+def _fit_one(w, qapp, row, guess=(6.3, 1e-2, 0.1)):
+    sweep._select_images(w, qapp, [row])
+    w.ui.mcaFitPushButton.click()
+    qapp.processEvents()
+    d = w.uipeakfit
+    d.rangeLineEdit.setText(WINDOW)
+    for j, v in enumerate(guess):
+        d.peakTW.item(0, j).setText(str(v))
+    qapp.processEvents()
+    d.fitPushButton.click()
+    qapp.processEvents()
+    return d
+
+
+def test_peak_fit_recovers_the_known_line(xf, qapp, recorder):
+    """One Gaussian plus constant background fitted to one frame."""
+    w, truth = xf
+    recorder.messages.clear()
+    d = _fit_one(w, qapp, 4)
+    assert recorder.exceptions == [] and recorder.messages == []
+    location, height, width = w.fitpeakpara[0]
+    raw, line = synth.xfntr_spectrum(synth.XF_QZ[4])
+    assert location == pytest.approx(0.02 * synth.XF_PEAK_CHANNEL, abs=1e-4)
+    assert width == pytest.approx(0.02 * synth.XF_PEAK_SIGMA, rel=1e-3)
+    assert height == pytest.approx(line.max() / synth.XF_MONITOR * LIVE, rel=1e-3)
+    # flat background of 2 counts per channel
+    assert w.fitbgpara[0] == pytest.approx(2 / synth.XF_MONITOR * LIVE, rel=0.05)
+    assert float(d.chiLineEdit.text()) < 1.0      # noise-free synthetic data
+
+
+def test_accepted_fit_intensity_is_height_times_width_as_coded(xf, qapp,
+                                                              recorder):
+    """Characterisation (PHYSICS_ISSUES P20). "Accept" stores
+    height * sigma, i.e. the Gaussian area divided by sqrt(2 pi), with an
+    error built from the two parameter errors without their covariance."""
+    w, truth = xf
+    _fit_one(w, qapp, 4)
+    w.mcaIntData = []
+    w.ui.mcaAcceptPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    frame, qz, energy, inten, err = w.mcaIntData[0]
+    raw, line = synth.xfntr_spectrum(synth.XF_QZ[4])
+    area = line.sum() / synth.XF_MONITOR * LIVE * 0.02      # keV * normalised
+    assert inten == pytest.approx(area / np.sqrt(2 * np.pi), rel=2e-3)
+    location, height, width = w.fitpeakpara[0]
+    assert err == pytest.approx(np.sqrt(height ** 2 * w.fiterror[2] ** 2
+                                        + width ** 2 * w.fiterror[1] ** 2))
+    # as coded: the frame number and Qz stored are those of the first
+    # selected spectrum
+    assert (frame, qz) == (5, pytest.approx(synth.XF_QZ[4]))
+
+
+def test_fit_all_gives_the_same_curve_shape_as_the_window_sum(xf, qapp,
+                                                              recorder):
+    """"Fit All" fits every selected frame with the parameters of the last
+    fit as the start, and accepts each. Its intensity-vs-Qz curve must have
+    the shape of the window-sum curve once the flat background is removed."""
+    w, truth = xf
+    _fit_one(w, qapp, 4)                       # leaves good starting values
+    w.uipeakfit.close()
+    sweep._select_images(w, qapp, None)
+    w.ui.mcaFitAllPushButton.click()
+    qapp.processEvents()
+    w.uipeakfit.fitPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    fitted = np.array(w.mcaIntData)
+    assert len(fitted) == len(synth.XF_QZ)
+    assert fitted[:, 1] == pytest.approx(synth.XF_QZ)
+    lines = np.array([synth.xfntr_spectrum(q)[1].sum() for q in synth.XF_QZ])
+    assert fitted[:, 3] / fitted[:, 3].max() == pytest.approx(
+        lines / lines.max(), rel=5e-3)

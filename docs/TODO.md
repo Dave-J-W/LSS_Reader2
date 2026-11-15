@@ -35,9 +35,12 @@ application code until the full list of feature requests has been received
       as the legacy fixtures the hand-off asks for.
 - [x] XFNTR benchmark: synthetic with known line counts, `_flu.txt` bytes,
       and a hash of the real `bu` export.
-- [ ] Benchmarks still missing (R5): GID export bytes, cut-file bytes,
-      GISAXS, GIOXS, burn tests, MCA peak fit, calibration fits; synthetic
-      GID with known truth.
+- [x] Benchmarks added (R5, R6): burn tests (synthetic reflectivity with
+      known τ; real GID burn), MCA peak fit, line cuts on real frames and
+      through a real GID map.
+- [ ] Benchmarks still missing (R5): GISAXS, GIOXS, calibration fits
+      (g_l2, g_l3, absorber ratio), GID and cut export bytes, synthetic GID
+      with known truth, a real reflectivity burn scan (none in the samples).
 - [ ] Run each reduction path on Pilatus 1M frames by calling the code
       directly, to measure what the module gaps do (D11).
 - [ ] Synthetic K = 3–5 scan generator with known factors and a non-one-hot
@@ -68,9 +71,9 @@ application code until the full list of feature requests has been received
 - [x] Stitch-factor interpolation bias: experiments ensure shared Q_z
       points for now (D13). **Do not forget:** it is to be remedied later
       in the corrected chain.
-- [ ] Is the 487 × 195 detector in the sample data the "200K", or is 200K
-      data missing from the samples? Where is the `proi` column (none of
-      the sample SPEC files has one)?
+- [ ] **Remind the owner:** 200K sample data (offered); a reflectivity
+      burn scan; a complete low + high Q_z GID pair; the new fluorescence &
+      GID SPEC file (F28); an HDF5/bluesky file (F29); ME7 data notes (F35).
 - [ ] Monitor noise: correlated per frame rather than per pixel? Is
       Poisson on `Monc` right at all? (`physics_notes.md`, 2026-11-15)
 - [ ] Is the MCA "Merge" weighted mean Σ(y²/σ²)/Σ(y/σ²) intended?

@@ -123,3 +123,81 @@ def test_gid_low_and_high_qz_scans_can_be_patched(nx, qapp, recorder):
     _gid_patch(nx, qapp, [10, 11])
     assert recorder.exceptions == []
     assert not [m for m in recorder.messages if 'patching' in m]
+
+
+@pytest.mark.parametrize('index,text,name', [
+    (0, '0.0:0.2', 'qz_0.0-0.2_vs_qxy'),     # Bragg peak profile along Qxy
+    (1, '1.40:1.50', 'qxy_1.40-1.50_vs_qz'),  # Bragg rod along Qz
+])
+def test_gid_line_cuts_match_reference(index, text, name, nx, qapp, recorder):
+    """Line cuts through the patched GID map of scan 11 (self-reference)."""
+    _gid_patch(nx, qapp, [10])
+    nx.ui.pilCutDirComboBox.setCurrentIndex(index)
+    nx.ui.pilIntRangeLineEdit.setText(text)
+    nx.ui.pilLineAreaPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == [] and recorder.messages == []
+    cut = np.array(nx.cutData)
+    path = os.path.join(ROOT, 'tests', 'reference',
+                        'nx_school_gid_scan_11_cut_%s.txt' % name)
+    if os.environ.get('LSS_UPDATE_GOLDEN'):
+        np.savetxt(path, cut)
+    ref = np.loadtxt(path)
+    assert cut == pytest.approx(ref, rel=1e-6, abs=1e-9, nan_ok=True)
+    peak = cut[np.nanargmax(cut[:, 1]), 0]
+    if index == 0:
+        assert 1.44 < peak < 1.49           # DPPC chain peak in Qxy
+    else:
+        assert -0.01 < peak < 0.05          # rod maximum near the horizon
+
+
+def test_gid_map_refuses_pixel_cuts_with_a_message(nx, qapp, recorder):
+    _gid_patch(nx, qapp, [10])
+    nx.ui.pilCutDirComboBox.setCurrentIndex(2)
+    nx.ui.pilLineAreaPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert recorder.messages == ['Please use one of Q cuts for GID data']
+
+
+def test_line_cuts_on_a_real_reflectivity_frame(nx, qapp, recorder):
+    """Scan 7, first frame (Qz = 0.035). Pixel cuts are exact sums of the
+    image. Two beams are on the frame: the reflected beam at the position
+    recorded in the SPEC header, and, 2*alpha below it and much brighter at
+    this reflectivity, the direct beam. The Q axis of the cut must put the
+    reflected beam at the frame's Qz and the direct beam at Qz = 0."""
+    sweep._select_scans(nx, qapp, [6])
+    sweep._select_images(nx, qapp, [0])
+    img = nx.pilData[0]
+    assert img.shape == (487, 195)
+
+    def cut(index, text):
+        nx.ui.pilCutDirComboBox.setCurrentIndex(index)
+        nx.ui.pilIntRangeLineEdit.setText(text)
+        nx.ui.pilLineAreaPushButton.click()
+        qapp.processEvents()
+        assert recorder.exceptions == [] and recorder.messages == []
+        return np.array(nx.cutData[0])
+
+    h = cut(2, '0:485')                      # sum over rows -> profile in x
+    assert h[:, 1] == pytest.approx(img[0:487].sum(axis=0))
+    v = cut(3, '0:193')                      # sum over columns -> profile in y
+    assert v[:, 1] == pytest.approx(img[:, 0:195].sum(axis=1))
+    # SPEC header #B1: beam at y = 53, x = 147 (x is mirrored on reading)
+    col = int(h[np.argmax(h[:, 1]), 0])
+    assert abs(col - (195 - 147 - 1)) <= 2
+    qz_cut = cut(1, '-0.01:0.01')
+    assert len(qz_cut) == 487
+    one_pixel = qz_cut[54, 0] - qz_cut[53, 0]
+    # direct beam: the global maximum, at Qz = 0 within about a pixel
+    direct = np.argmax(qz_cut[:, 1])
+    assert qz_cut[direct, 0] == pytest.approx(0.0, abs=1.5 * one_pixel)
+    # reflected beam: local maximum near the recorded row, at the frame's Qz
+    near = slice(53 - 8, 53 + 9)
+    reflected = near.start + np.argmax(qz_cut[near, 1])
+    assert qz_cut[reflected, 0] == pytest.approx(0.035, abs=1.5 * one_pixel)
+    # their separation is 2*alpha: Qz = (4 pi / lambda) sin(alpha)
+    alpha = np.arcsin(0.035 * 1.23984 / 4 / np.pi)
+    assert (reflected - direct) * 0.172 / 551.0 == pytest.approx(2 * alpha, rel=0.08)
+    qxy_cut = cut(0, '0.03:0.04')
+    assert qxy_cut[np.argmax(qxy_cut[:, 1]), 0] == pytest.approx(0.0, abs=2e-3)
