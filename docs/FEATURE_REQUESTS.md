@@ -180,6 +180,40 @@ corrected or the legacy error column (the corrected one, presumably); and
 how the full covariance is referenced, since the ORSO column format has no
 place for it.
 
+### Feature list, third instalment (2026-11-15; the owner says it is still not complete)
+
+Items the owner repeated are mapped to their existing numbers; new ones get
+new numbers.
+
+| Owner's item | # | Notes |
+|---|---|---|
+| RAM caching | F9 | repeat |
+| Local disk caching | F8 | repeat |
+| Live SPEC file updating | F1–F5 | repeat |
+| More flexible GID patching (different algorithm option?) | F23 | repeat; adds: the algorithm should be selectable |
+| Export ORSO … | F25 | repeat |
+| Pilatus 1M … | F17–F19 | repeat |
+| Open SPEC files gracefully (no meaningless errors) | **F27** | Today: a non-SPEC file raises (defect 4); a file with repeated scan numbers warns, then breaks later selections; selecting a fluorescence scan always shows "not regular Spec scan"; missing detector folders open a directory chooser; scans that were aborted produce "Something wrong with Scan Number". Each needs a defined, quiet behaviour (F11). |
+| Open the new fluorescence & GID SPEC file | **F28** | Needs a sample file and a description of what is new in it. Possibly related to the per-point MCA files seen in the October run (`mca_save_point`, below). |
+| Open HDF5 (bluesky) | **F29** | No HDF5 support exists. Needs a sample file and the layout (bluesky/NeXus conventions, where monitor, motor positions, detector frames and MCA spectra live). Implies a reader interface behind which SPEC and HDF5 are interchangeable. |
+| … and/or HDF5 reduced-data export | **F30** | With F25. Layout to be chosen (NeXus `NXcanSAS`/ORSO's HDF5 variant are candidates to look at). |
+| Reduction entirely scriptable | **F31** | Today every reduction step lives in a window method reading widgets. Needs the GUI-free reduction core (assessment step 4) with a documented Python API; the GUI then calls the same functions. Also the cleanest way to test. |
+| Tool to design a GID-patched scan | **F32** | New. Given detector, distance and slit settings, propose the detector positions (Det_Th, Q_z settings) and overlaps for a patched GID map. Depends on F23's geometry model. |
+| … and Pilatus 200K / 100K options | **F33** | Detector model selectable or recognised per scan (D9): size, gaps, pixel size, orientation. Today everything assumes 487 × 195. |
+| Vortex ME7 and single-element options | **F34** | Today one spectrum per frame is assumed. |
+| Better ME7 data handling (no selecting every 7th row) | **F35** | Measured in the October `bu` run: `vortex/20261019_15_mca` holds 28 spectra for one scan, written as `#S n mca_save_point Point:k …` with detector `XSP3_7Chan` and a `#@CHANNEL` line; the reader lists them as one flat list of frames, so the user must pick out each element by hand. Wanted: spectra grouped by scan point, with per-element and summed views. |
+
+Also decided or requested on 2026-11-15, in reply to findings:
+
+| # | Decision or request | Notes |
+|---|---|---|
+| F26 | **Improve the accuracy and precision of the uncertainty calculations**; this is in scope. Poisson statistics on `Monc` "is really not" right: the monitor is not a photon count, and the true number of incident photons is probably more than ten times the recorded counts. | See `physics_notes.md` (monitor noise), `PHYSICS_ISSUES.md`, and `reports/monitor_noise.md` when it is written. Affects `sigma_meas` in F24 (corrected chain only). |
+| D14 | NumPy 2 scalar formatting (`np.int64(1)` in scan lists) needs **systematic replacement**, not spot fixes. | 15 places build `str([...])` from NumPy integers; one helper for "format a list of scan numbers" should replace them all. |
+| D15 | The "not regular Spec scan" message box is **retired** for fluorescence scans. | Part of F11 / F27. |
+| D16 | The MCA "Merge" weighted mean goes on the list of physics and mathematics issues. | `PHYSICS_ISSUES.md` item P7. |
+| R6 | Burn tests (change over time under the beam, at high flux or not) and MCA peak fitting are **important** and need benchmarks. | R5; `TODO.md`. |
+| — | 200K sample data: the owner can provide some. | wanted |
+
 ## Order
 
 F6–F9, F1–F5 and F13–F16 all need the readers and the reduction to be callable
