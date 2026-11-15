@@ -74,8 +74,12 @@ application code until the full list of feature requests has been received
 - [ ] **Remind the owner:** 200K sample data (offered); a reflectivity
       burn scan; a complete low + high Q_z GID pair; the new fluorescence &
       GID SPEC file (F28); an HDF5/bluesky file (F29); ME7 data notes (F35).
-- [ ] Monitor noise: correlated per frame rather than per pixel? Is
-      Poisson on `Monc` right at all? (`physics_notes.md`, 2026-11-15)
+- [x] Monitor noise investigated (`reports/monitor_noise.md`).
+- [ ] Owner decisions on it: adopt the per-frame monitor term with
+      u_M² = f² + 1/(g·M)? how to measure f (repeated-frame scans)? are NX
+      school scans 1–3 beam-off readings (dark offset of ~100 counts/s)?
+      why does `Monc` fall with Q_z in reflectivity scans while `Monp`
+      stays flat?
 - [ ] Is the MCA "Merge" weighted mean Σ(y²/σ²)/Σ(y/σ²) intended?
 - [ ] Scoping input for F22 (where better fitting is needed, which models)
       and F23 (GID patching: overlaps, methods).

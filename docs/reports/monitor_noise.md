@@ -4,11 +4,9 @@ Date: 2026-11-15. Scope: assessment only; no application code was changed.
 Companion script: `tests/tools/monitor_noise_mc.py` (run from the repository
 root, about 20 s, fixed seed; all numbers in sections 3 and 4 come from it).
 
-Each statement below is labelled by how it was obtained: **derived**
-(algebra in this report), **simulated** (the script, Parts 1 and 2),
-**measured** (the script, Part 3, on the NX school SPEC file), **read**
-(from the code or the SPEC file without running anything), or **from
-memory** (literature I could not check from this session).
+Labels: **derived** (algebra here), **simulated** (script Parts 1–2),
+**measured** (script Part 3, NX school SPEC file), **read** (code or SPEC
+file, nothing run), **from memory** (literature not checked this session).
 
 ## 1. Answers in brief
 
@@ -45,9 +43,8 @@ memory** (literature I could not check from this session).
    legacy export fixtures still reproduce.
 
 The two errors in the current code (correlation ignored; Poisson assumed for
-a monitor that is quieter than Poisson) push in opposite directions and
-largely cancel in the realistic range. That is luck, not design, and it
-does not hold for other ROI shapes or count levels.
+a quieter monitor) push in opposite directions and largely cancel in the
+realistic range. That is luck, and it depends on ROI shape and count level.
 
 ## 2. Derivations
 
@@ -169,11 +166,10 @@ correct, below 1 understates the error.
 - **corr-P**: (1) and (3) but with u_M² = 1/M assumed whatever the truth.
 - **indep**: monitor term applied to S, L, R separately (section 2.2).
 
-Regimes: A = low Qz, S = 7.9e5 over an 11×11 ROI with a Gaussian spot
-(N_eff ≈ 42), L = R = 4e3, M = 2.2e5. A2 = same with L = R = 2e5.
-B = high Qz, S = 50, L = R = 20,
-M = 2e6. C = MCA window of 81 channels, S = 2e4, L = R = 4e3, M = 2.2e5.
-C2 = same window with S = 1e6, L = R = 5e4.
+Regimes: A = low Qz, S = 7.9e5 in an 11×11 ROI, Gaussian spot (N_eff ≈ 42),
+L = R = 4e3, M = 2.2e5. A2 = A with L = R = 2e5. B = high Qz, S = 50,
+L = R = 20, M = 2e6. C = MCA window, 81 channels, S = 2e4, L = R = 4e3,
+M = 2.2e5. C2 = same window, S = 1e6, L = R = 5e4.
 
 ### 3.1 One frame
 
@@ -184,13 +180,10 @@ C2 = same window with S = 1e6, L = R = 5e4.
 | A  | noiseless           | 1.035 | 0.994 | 2.129 | 1.036 | 0.994 | 2.119 | 0.994 |
 | A2 | Poisson             | 0.486 | 0.999 | 0.999 | 0.622 | 0.998 | 0.998 | 1.240 |
 | A2 | g = 10              | 0.893 | 0.999 | 1.835 | 0.954 | 0.998 | 1.533 | 1.060 |
-| A2 | noiseless           | 1.051 | 1.008 | 2.160 | 1.045 | 1.007 | 1.678 | 1.007 |
 | B  | Poisson             | 1.001 | 1.001 | 1.001 | 1.003 | 1.003 | 1.003 | 1.003 |
-| B  | g = 10              | 1.000 | 1.000 | 1.000 | 0.999 | 0.999 | 0.999 | 0.999 |
 | B  | noiseless           | 0.996 | 0.996 | 0.996 | 0.998 | 0.998 | 0.998 | 0.998 |
 | C  | Poisson             | 0.963 | 1.004 | 1.004 | 0.982 | 1.006 | 1.006 | 1.021 |
 | C  | g = 10              | 0.994 | 0.997 | 1.036 | 0.997 | 0.998 | 1.022 | 1.000 |
-| C  | noiseless           | 1.006 | 1.005 | 1.049 | 1.007 | 1.005 | 1.032 | 1.005 |
 | C2 | Poisson             | 0.459 | 1.003 | 1.003 | 0.482 | 1.002 | 1.002 | 1.045 |
 | C2 | g = 10              | 0.894 | 1.001 | 1.954 | 0.910 | 1.001 | 1.892 | 1.016 |
 | C2 | noiseless           | 1.073 | 0.995 | 2.344 | 1.073 | 0.997 | 2.229 | 0.997 |
@@ -199,7 +192,7 @@ C2 = same window with S = 1e6, L = R = 5e4.
 Reading the table:
 
 - The derived formulas match the empirical scatter within Monte Carlo
-  precision in every row.
+  precision in every row, including the rows of the script output not shown.
 - The reader's formula is right only where the monitor term does not matter
   (B, C) or by accident. With a Poisson monitor and S > M it is low by a
   factor of about 2 (0.46–0.49). A flat profile over the same ROI (N_eff =
@@ -223,7 +216,6 @@ propagated σ (formula (4) or (5), ROI level) over the empirical one.
 | equal M = 2e6, 10 counts per frame      | Poisson | +0.05 % | 7.10e-7 | 0.997 | +0.05 % | 7.10e-7 | 0.997 |
 | M = 0.25, 0.5, 1, 2, 4 e6, rate 5e-6    | Poisson | +0.02 % | 1.25e-6 | 0.998 | +0.03 % | 8.03e-7 | 1.000 |
 | M = 0.25…4 e5, rate 3.5                 | Poisson | +0.00 % | 7.00e-3 | 0.998 | −0.00 % | 4.51e-3 | 1.000 |
-| M = 0.25…4 e5, rate 3.5                 | exact   | +0.00 % | 3.30e-3 | 0.997 | −0.00 % | 2.12e-3 | 1.002 |
 | tiny M = 30 each, rate 2                | Poisson | +3.57 % | 0.220   | 1.003 | +0.67 % | 0.204   | 0.998 |
 | tiny M = 10, 20, 40, 80, 160, rate 2    | Poisson | +4.66 % | 0.286   | 1.054 | +0.36 % | 0.141   | 0.998 |
 
@@ -239,10 +231,9 @@ sd = sqrt(mean(Δ²)/2)/mean, which ignores slow drift. "/P" is sd divided by
 the Poisson-on-counts prediction 1/√M. With 21 points each "/P" value is
 good to about ±0.19 (1σ).
 
-What the columns contain (read): `Monb` and `Mond` are 0 throughout the
-file, so only `Monc` and `Monp` are usable. Values are stored to six
-significant digits, so 10 s monitor readings are rounded to 10 counts
-(negligible).
+Read from the file: `Monb` and `Mond` are 0 throughout, so only `Monc` and
+`Monp` are usable. Values are stored to six significant digits, so 10 s
+monitor readings are rounded to 10 counts (negligible).
 
 | Scan | What | T (s) | Monc | sd | /P | Monp | sd | /P | sd of Monc/Monp | /P |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -258,9 +249,8 @@ Findings:
    √counts in nine of the twelve beam-on scans (exceptions: scan 4 has one
    spike, scan 9 reads 0.74, scan 15 has a real excursion of 2 % over the
    first few points). In variance that is an effective gain g of at least 4
-   to 25. Its relative scatter is 4e-4 to 7e-4 at 1, 2, 5, 7 and 10 s
-   alike: it does not fall as 1/√T. A
-   constant fractional floor describes it better than any 1/(g·M) law.
+   to 25. Its relative scatter is 4e-4 to 7e-4 at 1, 2, 5, 7 and 10 s alike,
+   not falling as 1/√T: a constant fractional floor fits better than 1/(g·M).
 2. **Monc in scan 15 scatters at 0.59 ± 0.11 of √counts** (3.3e-4), which
    is significantly below Poisson and sets g ≥ 2.9 for Monc from this scan
    alone. In scan 14 it is 1.36 (7.7e-4), with visible drift and one dip of
@@ -286,11 +276,11 @@ Findings:
 
 How conclusive: it is solid that these V-to-F monitors are not Poisson in
 their counts, and that for 7–10 s frames the frame-to-frame scatter of Monc
-is below 1e-3. It is **not** established what part of Monc's scatter is
-noise and what part is real beam variation at the sample; one file with one
-usable downstream monitor cannot separate them. The practical upper bound
-for u_M(Monc) is 3e-4 to 8e-4 at 7–10 s, and 4e-3 to 6e-3 at 1 s (narrow
-slits, absorber 52), where it may be mostly real.
+is below 1e-3. It is **not** established how much of Monc's scatter is noise
+and how much is real beam variation at the sample; one file with one usable
+downstream monitor cannot separate them. Practical upper bound for
+u_M(Monc): 3e-4 to 8e-4 at 7–10 s; 4e-3 to 6e-3 at 1 s (narrow slits,
+absorber 52), where it may be mostly real.
 
 ## 5. A model for the monitor uncertainty (question 4)
 
@@ -335,18 +325,16 @@ Three kinds of error should be kept apart:
   count term and the (correctly computed) monitor term of that frame belong
   here. Overlap scaling and plateau normalisation do not absorb it.
 - **Per-frame, correlated** — the monitor term seen from inside one frame:
-  common to all pixels, channels and ROIs of that frame. It must be applied
-  once to whatever number is extracted from the frame. For data where many
-  fitted points come from one frame (GID/GISAXS maps and cuts, an MCA
-  spectrum) it is a common scale factor of the frame and should not be in
-  the per-pixel or per-channel error at all.
+  common to all pixels, channels and ROIs, so applied once to whatever
+  number is extracted from the frame. Where many fitted points come from one
+  frame (GID/GISAXS maps and cuts, an MCA spectrum) it is a common scale
+  factor and should not be in the per-pixel or per-channel error at all.
 - **Per-scan scale** — absorber factor (absfac^absnum: relative error
   absnum·σ_absfac/absfac), amplifier gain setting, dark offset, slit
-  changes. These are common to a scan, are largely absorbed by the fitted
-  overlap factors and the plateau normalisation, and should not be folded
-  into point errors. The uncertainty of the fitted overlap factors
-  themselves is a correlated error of the scaled scan that is currently not
-  reported.
+  changes. Largely absorbed by the fitted overlap factors and the plateau
+  normalisation; they do not belong in point errors. The uncertainty of the
+  fitted overlap factors themselves is a correlated error of the scaled scan
+  that is currently not reported.
 
 Options:
 
@@ -354,36 +342,34 @@ Options:
 |---|---|---|---|
 | A | Leave as is; document | No change to outputs or fixtures. Within about −13 % / +7 % of the truth in the bright regimes if g ≥ 10, exact at high Qz (simulated). | Formally wrong; error depends on ROI shape (N_eff); wrong by 2× if a monitor is ever truly a counter. |
 | B | Fix the correlation, keep u_M² = 1/M | Internally consistent Poisson model. | Overstates low-Qz errors by about 1.8–2.3 for the real monitor (simulated). Worse than A in practice. Not recommended. |
-| C | Count-only per-pixel errors; monitor term applied once per frame to the net signal, formula (3), with u_M² = f² + 1/(g·M) set by the user; "legacy" mode keeps today's formula | Correct structure for ROI sums, background subtraction, MCA windows and maps; one place to change when the beamline provides a photons-in estimate (F21). | Touches every reduction path; needs the owner to choose f and g; changes exported σ at low Qz by up to ~10 % unless legacy mode is selected. |
+| C | Count-only per-pixel errors; monitor term applied once per frame to the net signal, formula (3), with u_M² = f² + 1/(g·M) set by the user; "legacy" mode keeps today's formula | Correct structure for ROI sums, background subtraction, MCA windows and maps; one place to change when the beamline provides a photons-in estimate (F21). | Touches every reduction path; needs the owner to choose f and g; changes exported σ at low Qz by up to ~15 % unless legacy mode is selected. |
 | D | Drop the monitor term (u_M = 0) | Simplest; right if g is as large as the gain arithmetic in section 5 suggests and there is no floor. | Claims a perfect monitor: 14 % low at regime A if g = 10, 9 % low with a floor f = 5e-4 (derived). A special case of C. |
 | E | C plus ratio-of-sums when merging frames | Optimal weights for unequal frames, smaller bias. | No measurable gain for equal-time repeats; changes central values slightly, so needs its own fixtures. Low priority. |
 
-Recommendation: **C**, introduced as an opt-in mode with "legacy" as the
-default until the owner has chosen the monitor parameters, because rule 3 of
-`AGENTS.md` freezes the legacy export fixtures. D is an acceptable interim
-default inside C (f = 0, g → ∞) only if the owner is confident the monitor
-is that quiet. This is not urgent: today's numbers are within about 15 % in
-σ at worst (for g ≥ 10), on points whose statistical error is
-already ~0.1 % and almost certainly below their systematic error. For those
-brightest points a fractional floor chosen by the user is more honest than
-either Poisson variant. A regression test for C would be the Monte Carlo
-check of section 3 reduced to one regime, marked `xfail(strict=True)` until
-the change is made.
+Recommendation: **C**, as an opt-in mode with "legacy" as the default until
+the owner has chosen the monitor parameters, because rule 3 of `AGENTS.md`
+freezes the legacy export fixtures. D (f = 0, g → ∞) is an acceptable
+setting inside C only if the owner is confident the monitor is that quiet.
+This is not urgent: today's σ is within about 15 % at worst (for g ≥ 10), on
+points whose statistical error is ~0.1 % and almost certainly below their
+systematic error. For those points a user-chosen fractional floor is more
+honest than either Poisson variant. A regression test for C would be one
+regime of section 3, marked `xfail(strict=True)` until the change is made.
 
 ## 7. Open questions for the owner
 
 1. What is Monc physically (chamber gas and length, position relative to
-   the steering crystal, slits and absorbers), and what is the V-to-F
-   constant in Hz per volt? With these, g follows from the `#M` gain.
-2. Where is Monp, and are Monb and Mond ever connected?
-3. Are scans 1–3 of the NX school file beam-off? If so, should the dark
+   the steering crystal, slits and absorbers), what is the V-to-F constant
+   in Hz per volt (g then follows from the `#M` gain), and where is Monp?
+   Are Monb and Mond ever connected?
+2. Are scans 1–3 of the NX school file beam-off? If so, should the dark
    offset (about 100 counts/s on Monc) be subtracted before normalising?
-4. Do the monitor scaler gate and the Pilatus exposure cover exactly the
+3. Do the monitor scaler gate and the Pilatus exposure cover exactly the
    same time window? A mismatch turns real beam fluctuation into noise.
-5. Is a user-set fractional floor on the monitor (for example 5e-4)
+4. Is a user-set fractional floor on the monitor (for example 5e-4)
    acceptable in exported σ, or does xmodfit expect pure counting errors and
    add its own floor?
-6. Can a dedicated measurement be taken (section 5, items 1–3)? Thirty
+5. Can a dedicated measurement be taken (section 5, items 1–3)? Thirty
    repeated frames at three counting times with a bright stable signal would
    settle f. The private `bu` data set was not examined for this report.
 
@@ -408,9 +394,6 @@ below is from memory and unverified**; check before quoting.
   analysis", *Nucl. Instrum. Methods Phys. Res. B* **269** (2011) 1910–1918,
   doi:10.1016/j.nimb.2011.04.120. Mean of ratios against ratio of sums and
   their bias at low counts.
-- C. D. Coath, R. C. J. Steele and W. F. Lunnon, "Statistical bias in
-  isotope ratios", *J. Anal. At. Spectrom.* **28** (2013) 52–58,
-  doi:10.1039/C2JA10205F. Same subject; less sure of the page numbers.
 
 I know of no paper giving the noise of an ion chamber, current amplifier and
 V-to-F chain in a form that could replace a measurement on this beamline.

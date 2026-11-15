@@ -501,3 +501,72 @@ Findings while building them, all measured:
   from the two parameter errors without their covariance (P20). Relative
   values across frames are unaffected: "Fit All" reproduces the shape of
   the generating curve within 0.5 %.
+
+### 2026-11-15 — Is adding the monitor variance per pixel, in quadrature, right?
+
+**Q.** (owner) "It does? … Is this the right way to do this?" — explored
+with a sub-agent at the owner's suggestion. Full report:
+[reports/monitor_noise.md](reports/monitor_noise.md); script:
+`tests/tools/monitor_noise_mc.py` (17 s, fixed seed; rerun here and it
+reproduces the report's tables).
+
+**A.** No. One monitor reading is shared by every pixel of a frame, so its
+error is fully correlated across them.
+
+Derived (first order), with u_M the monitor's relative uncertainty:
+
+    var(S/M)   = S/M² + (S/M)²·u_M²                    ROI sum S = Σ I_i
+    var(net/M) = [S + (L+R)/4]/M² + (net/M)²·u_M²      net = S − (L+R)/2
+
+The program computes S/M² + ΣI_i²/M³: its count term is right, and its
+monitor term is too small by N_eff = S²/ΣI_i² (the effective number of
+pixels) *if* the monitor were Poisson.
+
+Simulated (predicted σ / observed σ; 1.00 is correct):
+
+| Case | Monitor simulated | Program today | Derived formula | Correlation fixed but Poisson kept |
+|---|---|---|---|---|
+| Low Q_z: S = 7.9×10⁵, M = 2.2×10⁵ | Poisson | 0.49 | 1.00 | 1.00 |
+| same | 10× quieter (variance) | 0.89 | 1.00 | 1.84 |
+| same | noiseless | 1.04 | 0.99 | 2.13 |
+| High Q_z: S = 50, M = 2×10⁶ | any | 1.00 | 1.00 | 1.00 |
+| MCA, 81 channels, S = 10⁶ | Poisson / 10× quieter | 0.46 / 0.89 | 1.00 / 1.00 | 1.00 / 1.95 |
+
+The important consequence: **the two errors partly cancel.** Ignoring the
+correlation makes the error too small; assuming Poisson for a monitor that
+is really much quieter makes it too large. If the monitor is at least ten
+times quieter than Poisson (the owner's estimate), today's error bars are
+within about −13 % / +7 % on the brightest points and exact at high Q_z.
+Fixing only the correlation while keeping Poisson on `Monc` would make
+them 1.8–2.3 times too large at low Q_z. So the two must be changed
+together or not at all.
+
+Measured on the NX school SPEC file (successive-difference scatter):
+
+- `Monb` and `Mond` are zero throughout; only `Monc` and `Monp` are usable.
+- `Monp` scatters at 0.2–0.5 of √counts in 9 of 12 beam-on scans, and its
+  relative scatter (4–7×10⁻⁴) does not depend on counting time: a fractional
+  floor, not a 1/M law.
+- `Monc` in the repeated-point scan 15 scatters at 0.59 of √counts
+  (3.3×10⁻⁴); in scan 14 at 1.36× (with a drift and one dip).
+- `Monc` and `Monp` do not see the same beam (`Monc` falls with Q_z in the
+  reflectivity scans, `Monp` stays flat), so their ratio only bounds the
+  monitor noise from above.
+- Scans 1–3 look like beam-off readings with `Monc` ≈ 100 counts/s and
+  `Monp` ≈ 42 counts/s: a possible unsubtracted dark offset of 0.03–0.12 %.
+- Solid: these monitors are not Poisson in their counts, and `Monc`'s
+  frame-to-frame scatter is below 10⁻³ for 7–10 s frames. Not established:
+  how much of that scatter is noise and how much is real beam variation.
+
+Recommendation in the report (not adopted; the owner decides): keep
+count-only errors per pixel; apply the monitor term once per frame to the
+net signal with a settable model u_M² = f² + 1/(g·M), the fractional floor
+f expected to dominate (3×10⁻⁴ to 10⁻³ fits this file); keep today's
+formula as the legacy mode, since the legacy export fixtures are frozen.
+For GID/GISAXS maps and MCA spectra, where many points come from one
+frame, the monitor term is a common scale and should not be in per-pixel
+errors at all. Not urgent: at most about 15 % on σ, only on the brightest
+points.
+
+Caveat: the report's literature references are cited from memory; the
+sub-agent could not reach DOI resolvers to check them.

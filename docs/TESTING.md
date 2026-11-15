@@ -44,6 +44,7 @@ absent, so a fresh clone passes without it.
 | `test_real_bu.py` | Private data: every scan of every SPEC file opens without raising. |
 | `test_known_defects.py` | Defects from `ASSESSMENT.md`, each a strict expected failure. |
 | `test_gui_sweep.py`, `known_crashes.json`, `known_crash_sites.json` | Crash inventory. |
+| `tools/monitor_noise_mc.py` | Not a test: Monte Carlo behind `docs/reports/monitor_noise.md`. Run with `python3 tests/tools/monitor_noise_mc.py`. |
 | `test_bench_selection.py` | Timing and file-read counts per user action. |
 
 ## Fixtures (`conftest.py`)
