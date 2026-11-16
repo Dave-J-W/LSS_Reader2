@@ -247,6 +247,17 @@ same code raises inside the join because the function it calls
 (`interp2d`) no longer exists, and the program reports that as "not enough
 points".
 
+### Possible extensions (stated 2026-11-16)
+
+Offered by the owner as "a few other possible extensions", so lower
+priority than the lists above.
+
+| # | Request | Notes |
+|---|---|---|
+| F46 | **Compiled Windows and macOS versions** of the reader, so users do not need to know about Python environments. | A PyInstaller recipe for Windows is already in the repository (`LSS_Reader.spec`, with a stale hard-coded path and a committed `build/` folder), so this has been done before for Windows. Needed: `.ui` files, icons and any data loaded relative to the program rather than the working directory (today they are relative to the working directory); a pinned set of library versions; a build per platform (a macOS build must be made on macOS, and unsigned apps are blocked by default there, so signing/notarisation is a decision); a smoke check that the packaged program starts and reduces the sample data. Fits after Stage 2. |
+| F47 | **Fluorescence analysis niceties from Matt Newville's tools**: escape peaks, element identification. | Newville's X-ray libraries are open source: XrayDB (line energies, edges, cross-sections; Python package `xraydb`) and Larch (XRF display with line markers, peak fitting, escape and pile-up handling). See <https://xraypy.github.io/XrayDB/> and <https://xraypy.github.io/xraylarch/>. Natural first pieces: element/line markers on the MCA plot from `xraydb`; an escape-peak marker or correction for the detector material (Si for the Vortex: escape peak 1.74 keV below each line); element lookup from a clicked energy. Belongs with the fluorescence configuration tab (F35) and fitting improvements (F22). Licences to be checked before any code is copied rather than called. |
+| F48 | **A console window showing the API steps being called** as the GUI is used. | Depends on scriptable reduction (F31): each GUI action calls one documented function, and the console prints that call so it can be copied into a script. The reader already has a faint precedent: a "command" line that records text such as `Ref Patch, scans=[…], slits=[…]`. Also a debugging aid and a companion to the log (F12). |
+
 ## Order
 
 F6–F9, F1–F5 and F13–F16 all need the readers and the reduction to be callable

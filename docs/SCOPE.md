@@ -1,7 +1,7 @@
 # Scope and plan
 
 Written 2026-11-16, when the owner supplied "the rest of the feature set".
-It orders everything in `FEATURE_REQUESTS.md` (R1–R6, D1–D16, F1–F45) into
+It orders everything in `FEATURE_REQUESTS.md` (R1–R6, D1–D16, F1–F48) into
 stages. Nothing here has been built. Implementation starts when the owner
 says so; until then the phase rule in `AGENTS.md` and `TODO.md` holds.
 
@@ -67,7 +67,10 @@ Each stage ends with the checks green and something the user can see.
   sized to the host (F9), optional disk cache for network drives (F8),
   keyed by path, size and modification time. Faster image and MCA parsing
   (F6, F7).
-- Reduction callable from a script (F31) with a small documented API.
+- Reduction callable from a script (F31) with a small documented API; a
+  console pane that prints each API call the GUI makes (F48).
+- Packaged Windows and macOS builds once resources load relative to the
+  program (F46).
 - *Shows:* selection is fast; a notebook can reproduce a `_ref.txt`.
   *Check:* timing table improves; legacy bytes unchanged.
 
@@ -108,7 +111,8 @@ Each stage ends with the checks green and something the user can see.
 - GID patching: flexible overlaps, selectable algorithms, pinhole-geometry
   correction from the IDL code, multiple exposures with cosmic-ray
   rejection, a tool to design a patched scan (F23, F32, F40, F45).
-- Fitting improvements inside the reader (F22).
+- Fitting improvements inside the reader (F22); fluorescence line markers,
+  escape peaks and element identification using XrayDB/Larch (F47).
 - Half-cut scans for beam size (F43), when data exists.
 - GUI reorganisation (R4), informed by everything above.
 
