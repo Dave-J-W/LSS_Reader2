@@ -116,13 +116,46 @@ def test_gid_scan_11_matches_reference(nx, qapp, recorder):
     assert 1.3 < qxy_peak < 1.55
 
 
-@pytest.mark.xfail(strict=True, reason='defect 1: joining the low and high '
-                   'Qz scans calls scipy interp2d (removed); the error is '
+def _interp2d_available():
+    try:
+        from scipy.interpolate import interp2d
+        interp2d([0, 1], [0, 1], [[0, 1], [1, 2]])
+        return True
+    except Exception:
+        return False
+
+
+@pytest.mark.xfail(not _interp2d_available(), strict=True,
+                   reason='defect 1: joining the low and high Qz scans calls '
+                   'scipy interp2d, removed in SciPy 1.14; the error is '
                    'caught and shown as "not enough points"')
-def test_gid_low_and_high_qz_scans_can_be_patched(nx, qapp, recorder):
+def test_gid_low_and_high_qz_scans_can_be_patched(nx, qapp, recorder, tmp_path):
+    """Scans 11 (low Qz, 41 frames) and 12 (high Qz, stopped after 4 frames)
+    patched into one map and saved.
+
+    The reference files were written by this program under Python 3.11 with
+    SciPy 1.13.1 and NumPy 1.26.4, where interp2d still exists. Under a
+    current SciPy the test is an expected failure; whatever replaces
+    interp2d must reproduce these files (legacy behaviour) before anything
+    better is offered.
+    """
     _gid_patch(nx, qapp, [10, 11])
     assert recorder.exceptions == []
     assert not [m for m in recorder.messages if 'patching' in m]
+    assert nx.pilGIDData.shape == (833, 41)
+    recorder.save_name = str(tmp_path / 'out')
+    i = nx.ui.gidComboBox.findText('Save GID')
+    nx.ui.gidComboBox.setCurrentIndex(i)
+    nx.ui.gidComboBox.activated.emit(i)
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    for kind in ('qxy', 'qz'):
+        got = np.loadtxt(str(tmp_path / ('out_%s_gid.txt' % kind)))
+        ref = np.loadtxt(os.path.join(
+            ROOT, 'tests', 'reference',
+            'nx_school_gid_scans_11-12_scipy113_%s_gid.txt' % kind))
+        assert got.shape == ref.shape
+        assert got == pytest.approx(ref, rel=2e-4, abs=1e-6, nan_ok=True)
 
 
 @pytest.mark.parametrize('index,text,name', [

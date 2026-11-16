@@ -638,3 +638,58 @@ error budget should describe `Monc`'s *measurement* noise only, which is
 much smaller than its observed scatter. The previous entry's conclusion
 stands and is strengthened: Poisson on `Monc`'s counts overstates it, and
 the per-pixel treatment understates the result; the two partly cancel.
+
+### 2026-11-16 — Why can't the NX school GID data be patched here?
+
+**Q.** (owner) I am told the GID data set from the NX school can be
+patched. I don't understand what is going on with SciPy that you can't.
+
+**A.** It can be patched; it depends only on which SciPy is installed.
+The join of the low and high Q_z scans calls `scipy.interpolate.interp2d`.
+That function was deprecated and then removed in SciPy 1.14 (2024); on any
+newer SciPy the call raises, the reader's bare `except` catches it, and
+the user sees "One or more of selected scans do not have enough points for
+the vertical patching!".
+
+Measured by building a second environment (Python 3.11, SciPy 1.13.1,
+NumPy 1.26.4, Matplotlib 3.8) and running the unchanged program in it:
+
+- Scans 11 + 12 patch into an 833 × 41 map, Q_z −0.044 to 1.251 Å⁻¹,
+  Q_xy 1.235 to 1.568 Å⁻¹, with no message. Its exported `_qxy_gid.txt` and
+  `_qz_gid.txt` are now `tests/reference/nx_school_gid_scans_11-12_scipy113_*`
+  and the patching test compares with them (it is an expected failure only
+  where `interp2d` is missing).
+- **The whole test suite was run in that old environment as well.** 100
+  checks pass there, including every byte-level export fixture and every
+  real-data reference. The only differences from the current environment
+  are the two library effects already known: the patching works, and scan
+  lists print as `1, 2, 3` instead of `np.int64(1), …` (which changes the
+  `_flu.txt` header). So the reduction's numbers do not depend on the
+  library versions across NumPy 1.26 → 2.5 and SciPy 1.13 → 1.18.
+- The files shipped in `extracted_data/` (`dppc_*_gid.txt`, 49 × 853) could
+  not be reproduced from scans 11 + 12 with either patch mode or with the
+  older row range (shapes 39–42 × 833–843), so they come from a different
+  measurement or different settings.
+
+### 2026-11-16 — What is the SPEC `Epoch` column?
+
+**Q.** (owner) We want better timestamps; there is an Epoch column but it
+seems like an arbitrarily reset clock. The scan header has an accurate
+time; for each point we do not know when it occurred.
+
+**A.** Measured with `tests/tools/spec_epoch.py` on the nine sample files.
+`Epoch` is seconds elapsed since a base time. In six files that base is the
+file's `#E` line (its creation time, Unix seconds) and each scan's first
+point follows its `#D` header by 0–15 s. In three files the base is
+something else: a constant 1600 s off for a whole file; drifting by
+780–2780 s within one file; and jumping by 13.9 days from scan 80 onward
+in `bu/2026sep/20260902`. That fits a base that is reset when a SPEC
+session starts, while `#E` is written only when the file is created — so
+the impression of an arbitrarily reset clock is correct.
+
+What can be relied on today: within one scan, `Epoch` differences are
+elapsed seconds (1 s resolution), and the scan's `#D` is accurate wall
+time (local, no zone written). So the time of point i is `#D` + (Epoch_i −
+Epoch_0) + a first-point lag of a few seconds. The image files do not
+help: their TIFF headers hold exposure time and period but no absolute
+time.

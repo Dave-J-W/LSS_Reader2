@@ -28,6 +28,15 @@ library changes a number, record it in `physics_notes.md`.
 Tests on `sample_data/bu` skip themselves when that private folder is
 absent, so a fresh clone passes without it.
 
+## A second, older environment
+
+The suite also runs under Python 3.11 with SciPy 1.13.1 and NumPy 1.26.4
+(`pip install "numpy<2" "scipy<1.14" "matplotlib<3.9" "pillow<11" PyQt5
+lmfit sympy pytest`). There the GID patching test passes for real, and the
+only failures are the two library effects (`interp2d` present, NumPy 1
+integer formatting). Use it to produce "legacy" numbers for anything that
+cannot run on a current SciPy.
+
 ## Files
 
 | File | Purpose |
@@ -45,6 +54,7 @@ absent, so a fresh clone passes without it.
 | `test_known_defects.py` | Defects from `ASSESSMENT.md`, each a strict expected failure. |
 | `test_gui_sweep.py`, `known_crashes.json`, `known_crash_sites.json` | Crash inventory. |
 | `tools/monitor_noise_mc.py` | Not a test: Monte Carlo behind `docs/reports/monitor_noise.md`. Run with `python3 tests/tools/monitor_noise_mc.py`. |
+| `tools/monitor_ratio.py`, `tools/spec_epoch.py` | Not tests: analyses of the sample SPEC files behind entries in `physics_notes.md` (beam variation vs monitor noise; what the Epoch column measures). |
 | `test_bench_selection.py` | Timing and file-read counts per user action. |
 
 ## Fixtures (`conftest.py`)

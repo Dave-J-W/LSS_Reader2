@@ -214,6 +214,39 @@ Also decided or requested on 2026-11-15, in reply to findings:
 | R6 | Burn tests (change over time under the beam, at high flux or not) and MCA peak fitting are **important** and need benchmarks. | R5; `TODO.md`. |
 | — | 200K sample data: the owner can provide some. | wanted |
 
+### Feature list, final instalment (2026-11-16; "the rest of the feature set")
+
+Details added to earlier requests:
+
+| # | Added detail |
+|---|---|
+| F34 | Vortex detectors used: 1, 4 and 7 elements; in future mostly the 1- and 7-element ones. SPEC will be modified (beamline side) to record a detector-differentiator flag in the `#V` header line. Note from the code: `spec_routines.py` currently treats *any* `#V` line as "this scan is a Vortex scan", so the reader must be changed before or together with that SPEC change. |
+| F35 | A **fluorescence detector configuration screen/tab** in the reader, first of all for the multi-element detector. XFNTR has used only the central element (1 of 7); EXAFS uses all 7. Both cases must be handled (choose elements, sum or keep separate). |
+| F23 | Adds F45 (pinhole-geometry correction) and F44 (multiple exposures) below as parts of the GID sub-project. |
+
+New requests:
+
+| # | Request | Notes on the current code and data |
+|---|---|---|
+| F36 | **EXAFS reduction with the 7-element detector** (implied by F35: "for EXAFS we use all 7 elements"). | The `bu` September file has 24 `escan` energy scans; the reader has an "Energy" x-axis option for MCA intensities but no EXAFS-specific handling. To be scoped: what the reader should output for EXAFS. |
+| F37 | **Per-point timestamps.** The header of each scan has an accurate time; individual points do not, and the `Epoch` column looks like an arbitrarily reset clock. Wanted: know when each point was taken; improve what SPEC writes. | Measured on the nine sample files (`tests/tools/spec_epoch.py`): in six files `Epoch` is seconds since the file's `#E` time, and the first point of each scan follows its `#D` header by 0–15 s. In three files it is not: one file is offset by a constant −1600 s, one drifts by thousands of seconds, and in one the base jumps by 13.9 days at scan 80 (a later SPEC session appending to the same file). So `Epoch` is seconds since the *SPEC session's* base, not the file's. A robust reader-side rule exists already: time of point i = scan `#D` + (Epoch_i − Epoch_first) + the first-point lag. The Pilatus TIFF headers carry exposure time and period but no absolute time. Beamline side: add an absolute-time counter column. |
+| F38 | **Remove references to the CCD (Bruker/Apex) detectors throughout the code** — but keep its geometry precedent. The CCD sat on a moving table rather than on the detector arm that carries the 100K/200K, and the Pilatus 1M uses that arrangement too. Two 1M modes: *tracked* (the table follows the beam, which then stays on nearly the same pixels, similar to but not the same as the 200K geometry) and *fixed* (the detector stays put and the beam moves across the image). | Extends D8. In the code the Bruker branch computes the beam position from sample-detector distance, `g_l2`, two-theta and incident angle (`refQzListSelectionChanged`, `updateCcdPlotData`), which is the "beam moves on the image" model; the Pilatus branch assumes the reflected beam stays at the recorded `DBPos`. The 1M needs both, selectable or detected per scan. |
+| F39 | **"Scan i of N" lines in the SPEC header** (beamline side) saying how many motor scans the experiment macro contains, so that multi-scan selections and automatic refresh can be handled competently. A macro aborted early leaves later scans missing; that must be handled gracefully. | Nothing groups scans today; the user selects scans by hand. Ties to F1–F5 (live refresh) and F27 (graceful opening). The exact header syntax is to be agreed before the SPEC change. |
+| F40 | **Multiple exposures at the same conditions for GID**, so that cosmic-ray outliers can be rejected in the image stack before summing. | Today frames at the same position are simply averaged ("Sum"). Needs a per-pixel outlier test across the stack (for example median-based) with Poisson-aware thresholds, and error propagation that knows which pixels were dropped. |
+| F41 | **Reflectivity scans that share an absorber setting share one scale factor.** A macro sometimes ends with a scan at the same absorber as the previous one but a different counting time and/or sample area. Such a pair has the same prefactor and should not be fitted to each other; the later scan takes the scalar already derived for the earlier one. | Today every adjacent pair is fitted in its overlap. Monitor normalisation already accounts for counting time. Interacts with the hand-off (F24): two scans sharing a factor share one column of the covariance, i.e. they are one "region" for W and Σ. To be raised with the hand-off's author. |
+| F42 | **Q_z offset from the reflection's position on the detector.** When the reflection is not at its normal height on the camera, the Q_z offset is calculated. The normal position can be found from the sh-scan (sample-height scan) images that always precede a reflectivity experiment. | Today: a hand-typed Q offset (`refQoffLineEdit`) applied only in the R/R_F display and `_rrf.txt`; and a warning when the found peak is more than 2 pixels from the recorded position. The NX school set has such sh scans (4, 5, 10, 13: `a2scan sh … oh …`, 21 frames each) to develop against. |
+| F43 | **Automatic processing of half-cut scans** to estimate the beam size at the sample: the beam is blocked progressively and the transmitted intensity gives the profile. | No such data yet; the owner says it will exist. The derivative of the cut curve is the beam profile; the SpecPlot edge fit (tanh model) is a starting point. |
+| F45 | **Pinhole-geometry-corrected GID patching.** IDL code exists and can be supplied if needed. | Today a "pinhole" check box only swaps the distance used for the horizontal axis. Part of F23; the IDL code would be the reference for expected numbers. |
+
+Clarification (2026-11-16) on defect 1 and the NX school GID data: the two
+GID scans (11 and 12) **can** be patched by this program — under SciPy
+older than 1.14. Shown by running it under Python 3.11 / SciPy 1.13.1: the
+patch gives an 833 × 41 map with Q_z from −0.04 to 1.25 Å⁻¹. The result is
+stored as the reference for the patching test. Under a current SciPy the
+same code raises inside the join because the function it calls
+(`interp2d`) no longer exists, and the program reports that as "not enough
+points".
+
 ## Order
 
 F6–F9, F1–F5 and F13–F16 all need the readers and the reduction to be callable
