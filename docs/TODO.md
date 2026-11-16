@@ -4,6 +4,11 @@ Current phase: **tests, assessment and scoping only.** No changes to
 application code until the full list of feature requests has been received
 (owner's instruction, 2026-11-14).
 
+The owner supplied "the rest of the feature set" on 2026-11-16, and the plan
+is written (`SCOPE.md`). **Implementation has not been authorised yet**:
+wait for the owner's explicit go-ahead, then start with Stage 0 of
+`SCOPE.md` and change this paragraph and `AGENTS.md` in the same commit.
+
 ## Next up (this phase)
 
 - [x] Time the full selection path on real data → `docs/timings.md`
@@ -26,8 +31,8 @@ application code until the full list of feature requests has been received
 - [x] NX school GID scan 11 frozen as a reference; low + high Q_z patch
       pinned as an expected failure (interp2d). The shipped
       `dppc_*_gid.txt` come from other scans and are not comparable.
-- [ ] Find or make a complete low + high Q_z GID pair to test patching
-      (scan 12 here has only 4 frames).
+- [x] GID low + high Q_z patch run under SciPy 1.13 and stored as the
+      reference (NX school scans 11 + 12; scan 12 has 4 frames).
 - [x] Invariant I4 (ROI error propagation) tested directly.
 - [x] Python 2 → 3 audit → `ASSESSMENT.md` section 8; Bruker reading and
       the g_l2 dialog pinned as expected failures.
@@ -54,7 +59,8 @@ application code until the full list of feature requests has been received
       MCA sum), as already done for reflectivity.
 - [ ] Regenerate `docs/timings.md` on an idle machine (the committed table
       predates the file-count columns).
-- [ ] Write the scoping document once the feature list is complete:
+- [x] Scoping document written: `SCOPE.md`.
+- [ ] (superseded) Write the scoping document once the feature list is complete:
       target architecture, order of work, what each request needs.
 
 ## Waiting on the owner

@@ -22,6 +22,8 @@ wins over this paragraph.
 | `docs/PROJECT_CONTEXT.md` | What the program is for, in the owner's words |
 | `docs/ASSESSMENT.md` | Structure, physics to preserve, numbered defects, Python 3 audit |
 | `docs/FEATURE_REQUESTS.md` | Requirements R1–R4 and requests F1…; add new ones here with the date |
+| `docs/SCOPE.md` | The plan: target structure and stages, with every request placed |
+| `docs/PHYSICS_ISSUES.md` | Numbered list of physics and mathematics issues, with sizes and how each is known |
 | `docs/TODO.md` | What to do next, what is waiting on the owner, what is done |
 | `docs/TESTING.md` | How the test suite works and how to extend it |
 | `docs/physics_notes.md` | Invariants table and a dated question-and-answer log |
