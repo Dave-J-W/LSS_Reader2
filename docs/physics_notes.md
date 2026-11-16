@@ -570,3 +570,71 @@ points.
 
 Caveat: the report's literature references are cited from memory; the
 sub-agent could not reach DOI resolvers to check them.
+
+### 2026-11-16 — Is the monitors' scatter noise, or real beam variation?
+
+**Q.** (owner) Counts below 1000 on those detectors are just beam-off.
+`Monc` falls with Q_z and `Monp` does not because of geometry: the S1
+slits. At low Q_z the ratio of the two should be constant; at higher Q_z it
+will not be. That could help decide whether the scatter is real or beam
+variation — and there *is* beam variation, so the scatter in the monitors
+is not all uncertainty. This must be understood before normalisation
+models are discussed.
+
+**A.** Measured on the NX school SPEC file with
+`tests/tools/monitor_ratio.py` (run it to reproduce; a few seconds).
+
+1. **The two monitors do not share their scatter.** After removing the slow
+   trend along each scan, the correlation between `Monc` and `Monp`
+   residuals is small and of either sign (−0.66 to +0.45 over 11 scans,
+   no consistent positive value). A common beam variation seen by both is
+   at most about 5–9×10⁻⁴ where it shows at all. `Monp`'s scatter is
+   4–7×10⁻⁴ in most scans; `Monc`'s is 2–7×10⁻³ in the reflectivity and
+   1 s alignment scans and 4–8×10⁻⁴ in the 7–10 s GID scans.
+2. **But `Monc`'s extra scatter is real, and the detector proves it.** In
+   reflectivity scans 7 and 8 (the two whose curves are smooth enough to
+   detrend), the detector counts in SPEC's `Pilatus` column fluctuate
+   *with* `Monc` (correlation +0.5 to +0.7), and dividing by `Monc`
+   reduces their relative scatter:
+
+   | Scan | Poisson limit of the detector | raw | ÷ Monc | ÷ Monp | Monc scatter |
+   |---|---|---|---|---|---|
+   | 7 | 7.7×10⁻³ | 9.9×10⁻³ | 7.8×10⁻³ | 9.9×10⁻³ | 5.0×10⁻³ |
+   | 8 | 5.8×10⁻³ | 6.1×10⁻³ | 4.8×10⁻³ | 6.3×10⁻³ | 2.1×10⁻³ |
+
+   (6th-order detrend; 4th order gives the same picture.) After dividing
+   by `Monc` the detector sits at its own Poisson limit. Dividing by `Monp`
+   does nothing. The variance removed in scan 7 is (6×10⁻³)², about all of
+   `Monc`'s own scatter.
+
+Reading, consistent with the owner's explanation: the flux that gets
+through the narrow S1 slit to the sample varies from frame to frame by
+0.2–0.5 %; `Monc`, downstream of S1, tracks it and `Monp`, upstream, does
+not. So in the previous entry's terms, most of `Monc`'s frame-to-frame
+scatter is **signal that normalisation correctly removes**, not monitor
+uncertainty. The earlier statement that "`Monc` scatters at 1.4–9 times
+√counts" in some scans is true but is not a measure of its noise.
+
+What this leaves for `Monc`'s actual noise: the normalised detector signal
+in scans 7 and 8 is at the Poisson limit within the precision of 21–27
+points, so `Monc`'s own noise in a 2 s frame is small against 5–8×10⁻³; a
+rough ceiling is 1–2×10⁻³, consistent with the sub-10⁻³ floor seen in the
+quiet GID scans. A proper measurement needs a bright, steady signal
+(direct beam or total reflection, ≥ 10⁷ detector counts per frame,
+repeated frames).
+
+Limits of this check: it uses SPEC's own detector ROI column, not the
+reader's ROI; the detrending polynomial is an approximation (scans 6 and 9
+could not be judged, their curves are too structured); 21–27 points per
+scan.
+
+Also recorded from the owner: monitor rates below 1000 counts/s mean beam
+off, so NX school scans 1–3 are beam-off and show a dark rate of about
+100 counts/s (`Monc`) and 42 counts/s (`Monp`), which is not subtracted
+anywhere (PHYSICS_ISSUES P21, now confirmed as a dark offset).
+
+Consequence for the normalisation discussion: the monitor term in the
+error budget should describe `Monc`'s *measurement* noise only, which is
+much smaller than its observed scatter. The previous entry's conclusion
+stands and is strengthened: Poisson on `Monc`'s counts overstates it, and
+the per-pixel treatment understates the result; the two partly cancel.

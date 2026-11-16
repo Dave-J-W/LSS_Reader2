@@ -75,11 +75,13 @@ application code until the full list of feature requests has been received
       burn scan; a complete low + high Q_z GID pair; the new fluorescence &
       GID SPEC file (F28); an HDF5/bluesky file (F29); ME7 data notes (F35).
 - [x] Monitor noise investigated (`reports/monitor_noise.md`).
-- [ ] Owner decisions on it: adopt the per-frame monitor term with
-      u_M² = f² + 1/(g·M)? how to measure f (repeated-frame scans)? are NX
-      school scans 1–3 beam-off readings (dark offset of ~100 counts/s)?
-      why does `Monc` fall with Q_z in reflectivity scans while `Monp`
-      stays flat?
+- [x] Beam variation vs monitor noise examined (`physics_notes.md`,
+      2026-11-16): `Monc`'s scatter in reflectivity scans is mostly real
+      flux variation through S1, which the detector also sees.
+- [ ] Before any normalisation model is chosen (owner's condition):
+      measure `Monc`'s own noise with a bright steady signal (repeated
+      direct-beam or total-reflection frames); decide whether to subtract
+      the dark rate (~100 counts/s `Monc`).
 - [ ] Is the MCA "Merge" weighted mean Σ(y²/σ²)/Σ(y/σ²) intended?
 - [ ] Scoping input for F22 (where better fitting is needed, which models)
       and F23 (GID patching: overlaps, methods).

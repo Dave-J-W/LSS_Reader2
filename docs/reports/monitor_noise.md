@@ -397,3 +397,21 @@ below is from memory and unverified**; check before quoting.
 
 I know of no paper giving the noise of an ion chamber, current amplifier and
 V-to-F chain in a form that could replace a measurement on this beamline.
+
+## Addendum, 2026-11-16: real beam variation (after the owner's comments)
+
+Added by the parent session, not by the author of the report above.
+
+The owner pointed out that the beam itself varies, so monitor scatter is
+not all uncertainty, and that `Monc` differs from `Monp` because of the S1
+slits. A follow-up check (`tests/tools/monitor_ratio.py`, results in
+`docs/physics_notes.md`, entry of 2026-11-16) found that in reflectivity
+scans 7 and 8 the detector signal fluctuates with `Monc` (r = +0.5 to
++0.7) and reaches its own Poisson limit only after division by `Monc`.
+`Monc`'s 0.2–0.5 % frame-to-frame scatter there is therefore real
+variation of the flux through S1, correctly removed by normalisation.
+
+This changes how section 5's real-data figures should be read: the "/P"
+ratios for `Monc` above 1 are beam variation, not monitor noise, and
+cannot be used to set u_M. It does not change the derivations, the
+simulations or the recommendation; it lowers the plausible size of u_M.
