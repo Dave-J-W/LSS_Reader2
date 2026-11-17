@@ -18,7 +18,9 @@ from TwoDDetector import TwoDDetector
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NX = os.path.join(ROOT, 'sample_data', 'NX_school', '2026sep', '20260923')
 
-BUDGET = ErrorModel('budget')
+BUDGET = ErrorModel('budget')                 # default monitor model: Gaussian, 0.04 %
+POISSON = ErrorModel('budget', MonitorModel('counting'))
+U0 = 4e-4
 
 
 def _frame(seed=1, peak=5e4, bg=20.0):
@@ -43,16 +45,33 @@ def _box(cx, cy, slit):
 
 # --- the monitor model -------------------------------------------------------
 
-def test_default_monitor_model_is_poisson_on_recorded_counts():
+def test_default_monitor_model_is_gaussian_0p04_percent_at_every_count():
+    # owner, 2026-11-17: sigma 0.04 %, constant across counting level
     m = MonitorModel()
-    assert m.relative(1e4) == pytest.approx(1e-2)
-    assert MonitorModel(g=100).relative(1e4) == pytest.approx(1e-3)
-    assert MonitorModel(f=0.003, g=1e30).relative(1e6) == pytest.approx(0.003)
-    assert MonitorModel(sigma_dark=50, g=1e30).relative(1e4) == pytest.approx(5e-3)
+    assert m.kind == 'gaussian'
+    assert m.relative([1e2, 1e4, 1e7]) == pytest.approx([U0] * 3)
+    assert 'SR570' in m.describe()
 
 
-def test_model_from_script_keyword_round_trips():
-    m = ErrorModel('budget', MonitorModel(f=0.001, sigma_dark=2.0, g=10.0))
+def test_student_t_propagates_its_standard_deviation():
+    t = MonitorModel('student_t', sigma=U0, nu=3.6)
+    assert t.relative(1e5) == pytest.approx(U0 * np.sqrt(3.6 / 1.6))
+    with pytest.raises(ValueError):
+        MonitorModel('student_t', nu=2.0)       # infinite variance
+
+
+def test_counting_monitor_model():
+    m = MonitorModel('counting')
+    assert m.relative(1e4) == pytest.approx(1e-2)          # Poisson on the counts
+    assert MonitorModel('counting', g=100).relative(1e4) == pytest.approx(1e-3)
+    assert MonitorModel('counting', f=0.003, g=1e30).relative(1e6) == pytest.approx(0.003)
+    assert MonitorModel('counting', sigma_dark=50, g=1e30).relative(1e4) == pytest.approx(5e-3)
+
+
+@pytest.mark.parametrize('monitor', [MonitorModel(), MonitorModel('student_t', sigma=3e-4, nu=4.0),
+                                     MonitorModel('counting', f=0.001, sigma_dark=2.0, g=10.0)])
+def test_model_from_script_keyword_round_trips(monitor):
+    m = ErrorModel('budget', monitor)
     kw = script_kw(m)
     assert as_model(eval(kw.split('=', 1)[1])) == m
     assert script_kw(ErrorModel('legacy')) == ''
@@ -70,7 +89,7 @@ def test_box_sum_carries_monitor_term_on_the_whole_sum():
     sig, sigerr = d.sumROI(slit=[11, 11], cen=[cx, cy])
     b = _box(cx, cy, [11, 11])
     S = img[b].sum()
-    u = 1 / np.sqrt(M)
+    u = U0
     assert sig == pytest.approx(S / M)
     # invariant: var(S/M) = sum(sigma_i^2)/M^2 + (S/M)^2 u_M^2
     assert sigerr ** 2 == pytest.approx(S / M ** 2 + (S / M) ** 2 * u ** 2, rel=1e-12)
@@ -79,7 +98,7 @@ def test_box_sum_carries_monitor_term_on_the_whole_sum():
 def test_net_signal_monitor_term_is_on_the_net_not_the_boxes():
     img, err = _frame()
     M = 2e5
-    model = ErrorModel('budget', MonitorModel(f=0.004, g=1e30))
+    model = ErrorModel('budget', MonitorModel(sigma=0.004))
     d = _det(model)
     cx, cy = d.peakLocate(img, err, cen=[240, 100], mon=M)
     d.sumROI(slit=[11, 11], cen=[cx, cy], dir='H', bg=2.0)
@@ -107,7 +126,7 @@ def test_budget_error_matches_monte_carlo_scatter_legacy_does_not():
     rng = np.random.default_rng(7)
     M0, u = 1e4, 0.01
     lam = np.full((195, 487), 1e4)
-    model = ErrorModel('budget', MonitorModel(f=u, g=1e30))
+    model = ErrorModel('budget', MonitorModel(sigma=u))
     values, budget_err, legacy_err = [], [], []
     for _ in range(400):
         img = rng.poisson(lam).astype(float)
@@ -135,7 +154,7 @@ def test_line_profile_points_each_carry_their_monitor_term():
     d = _det(BUDGET)
     d.plotVint({0: img}, {0: err}, absfac=1, absnum=[0], hroi=[200, 280], vroi=[90, 110], mon=[M])
     prof = d.vintData
-    u = 1 / np.sqrt(M)
+    u = U0
     counts = img[90:111, 200:281].sum(axis=0)
     assert prof[:, 1] == pytest.approx(counts / M)
     assert prof[:, 2] ** 2 == pytest.approx(counts / M ** 2 + (counts / M) ** 2 * u ** 2, rel=1e-10)
@@ -146,7 +165,7 @@ def test_mean_of_frames_adds_monitor_terms_in_quadrature_across_frames():
     b, eb = _frame(seed=2, peak=2e4)
     Ma, Mb = 1e5, 4e5
     absfac = 2.5
-    d = _det(BUDGET)
+    d = _det(POISSON)
     d.sumFiles({0: a, 1: b}, {0: ea, 1: eb}, absfac=absfac, absnum=[0, 1], mon=[Ma, Mb])
     box = np.s_[95:106, 235:246]
     v = d.imageData[box].sum()
@@ -182,7 +201,7 @@ def test_normalise_frame_budget_is_counting_only():
     assert e ** 2 == pytest.approx(img * 4 / 1e10)
     assert np.all(e <= le)
     t = normalise.frame_terms('k', v, 1e5, BUDGET)
-    assert t.variance(np.s_[0:5, 0:5]) == pytest.approx((v[0:5, 0:5].sum()) ** 2 / 1e5)
+    assert t.variance(np.s_[0:5, 0:5]) == pytest.approx((v[0:5, 0:5].sum()) ** 2 * U0 ** 2)
 
 
 # --- fluorescence -------------------------------------------------------------
@@ -194,7 +213,7 @@ def test_window_sum_monitor_term_on_the_sum():
     M = 5e4
     tc = 10.0 / 8.0
     spec = fluorescence.normalise_spectrum(counts, par, M, (0.0, 0.01, 0.0), BUDGET)
-    u = 1 / np.sqrt(M)
+    u = float(BUDGET.monitor.relative(M))
     Y, err, lo, hi = fluorescence.window_sum(spec, 2.0, 5.0, u)
     part = (spec[:, 0] >= 2.0) & (spec[:, 0] <= 5.0)
     assert Y == pytest.approx(np.sum(counts[part]) / M * tc)
@@ -217,8 +236,8 @@ def test_nx_reflectivity_budget_changes_only_errors():
         a, b = leg.per_scan[k], bud.per_scan[k]
         assert np.array_equal(a[:, [0, 1, 3, 5, 6]], b[:, [0, 1, 3, 5, 6]])
         monc = np.array([f.monitor for f in exp.frames([k])])
-        # budget: error^2 = counting + (net u)^2 with u^2 = 1/M
-        cnt = b[:, 2] ** 2 - b[:, 1] ** 2 / monc
+        # budget: error^2 = counting + (net u)^2 with u = 0.04 %
+        cnt = b[:, 2] ** 2 - (b[:, 1] * U0) ** 2
         assert np.all(cnt > 0)
         # counting part = (S + (L+R)/4)/M^2 in counts
         S, L, R = b[:, 3] * monc, b[:, 5] * monc, b[:, 6] * monc

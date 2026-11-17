@@ -44,12 +44,16 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       Errors pane; `errors=` in scripts. Legacy stays default.
 - [x] Absorbers consistent (D21): messages when frames of different foil
       counts are combined on the nominal factor.
-- [ ] Ask the owner: are the absorber foils upstream or downstream of
-      `Monc`? (Decides whether a^n double-counts, and the fluorescence path.)
+- [x] `Monc` is upstream of the absorbers (owner): a^n does not double-count.
+- [ ] Ask the owner: are the foils before the sample or after it? (Decides
+      whether the fluorescence path needs a^n.) Confirm that SPEC's `#A`
+      value is total foil thickness in units (read from the data only).
+- [ ] Ask the owner for the Student t's fitted scale (ν = 3.6 given; scale
+      defaults to 0.04 %).
 - [ ] When the corrected/legacy two-file export (hand-off §2.5) is built,
       make Budget the default and carry the counting part as `sigma_meas`.
-- [ ] Set the monitor model's default from the owner's analysis
-      (`handoff_out/01-monitor-noise-analysis.md`).
+- [x] Monitor model default from the owner's analysis: Gaussian 0.04 %
+      (D22); Student t ν = 3.6 offered.
 - [ ] Cuts scriptable.
 - [ ] Stage 3 frame object: normalise once at load; make each reduction's
       normalisation explicit (owner's expectation, 2026-11-17).
@@ -158,9 +162,8 @@ reruns the quick, real-data and export-fixture checks, and commits.
 
 ## Waiting on the owner
 
-- [ ] **Monitor noise analysis** on the owner's larger data, by another
-      agent: request in `handoff_out/01-monitor-noise-analysis.md`. Its
-      answer sets u_M and decides Gaussian / Gaussian + flags / heavy-tailed.
+- [x] **Monitor noise analysis** (hand-off `handoff_out/01-monitor-noise-analysis.md`):
+      answered 2026-11-17, Gaussian σ = 0.04 % (D22).
 
 - [ ] Remaining feature requests and complaints (received so far: F1–F16
       in `FEATURE_REQUESTS.md`; the owner called the latest list partial).

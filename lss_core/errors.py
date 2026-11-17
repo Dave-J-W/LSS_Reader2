@@ -22,16 +22,23 @@ Two models, chosen per reduction (``ErrorModel.mode``):
     So for one frame, var(S/M) = Σσ_i²/M² + (S/M)²·u_M², and for a
     background-subtracted box var = [σ_S² + (σ_L²+σ_R²)/4]/M² + (N/M)²·u_M².
 
-The monitor's relative uncertainty per frame comes from ``MonitorModel``:
+The monitor's relative uncertainty per frame, u_M = σ_M / M, comes from
+``MonitorModel``, of one of three kinds:
 
-    u_M² = f² + (σ_dark / M)² + 1 / (g · M)
-
-f a fractional floor, σ_dark the scatter of the monitor's dark counts in a
-frame (counts), g the number of quanta per recorded count. The default
-(f = 0, σ_dark = 0, g = 1) is Poisson on the recorded counts, the same
-assumption the legacy model makes, so switching model changes only how
-the terms are combined. It is provisional: the owner is measuring u_M
-(``docs/handoff_out/01-monitor-noise-analysis.md``).
+``'gaussian'``  (the default; owner, 2026-11-17)
+    A fixed relative σ, the same at every monitor count: σ = 0.04 %. The
+    owner's value from an analysis of many data sets; it describes the
+    present `Monc` electronics (SR570 current amplifier + V2F converter).
+``'student_t'``
+    A Student t with ν degrees of freedom (default 3.6) and scale s: the
+    heavier tails seen in `Monc`'s scatter. Propagation uses its standard
+    deviation, u_M = s·√(ν/(ν−2)) (finite for ν > 2); the shape is recorded
+    with the model for anything downstream that uses a likelihood. Like the
+    Gaussian value, ν = 3.6 belongs to the SR570 + V2F electronics.
+``'counting'``
+    u_M² = f² + (σ_dark / M)² + 1 / (g · M): a fractional floor f, the
+    scatter σ_dark of the dark counts in a frame, and g quanta per recorded
+    count (g = 1: Poisson on the counts, the legacy assumption).
 
 Method: first-order propagation, JCGM 100:2008 (GUM) §5.2,
 https://www.bipm.org/en/doi/10.59161/JCGM100-2008E.
@@ -48,19 +55,51 @@ import numpy as np
 MODES = ('legacy', 'budget')
 
 
+KINDS = ('gaussian', 'student_t', 'counting')
+ELECTRONICS = 'SR570 current amplifier + V2F converter'
+
+
 @dataclass
 class MonitorModel:
-    f: float = 0.0           # fractional floor
-    sigma_dark: float = 0.0  # dark-count scatter per frame, counts
-    g: float = 1.0           # quanta per recorded monitor count
+    kind: str = 'gaussian'
+    sigma: float = 4e-4      # gaussian: relative σ; student_t: relative scale s
+    nu: float = 3.6          # student_t degrees of freedom
+    f: float = 0.0           # counting: fractional floor
+    sigma_dark: float = 0.0  # counting: dark-count scatter per frame, counts
+    g: float = 1.0           # counting: quanta per recorded monitor count
+
+    def __post_init__(self):
+        if self.kind not in KINDS:
+            raise ValueError('monitor model must be one of %s, not %r' % (KINDS, self.kind))
+        if self.kind == 'student_t' and not self.nu > 2:
+            raise ValueError('a Student t monitor model needs nu > 2 for a finite variance')
+        if self.sigma < 0 or self.f < 0 or self.sigma_dark < 0 or not self.g > 0:
+            raise ValueError('monitor model parameters must be >= 0 (g > 0)')
 
     def relative(self, monitor):
-        """u_M = σ_M / M for monitor reading(s) ``monitor``."""
+        """u_M = σ_M / M (a standard deviation) for monitor reading(s) ``monitor``."""
         m = np.asarray(monitor, dtype=float)
+        if self.kind == 'gaussian':
+            return np.zeros(np.shape(m)) + self.sigma
+        if self.kind == 'student_t':
+            return np.zeros(np.shape(m)) + self.sigma * np.sqrt(self.nu / (self.nu - 2.0))
         return np.sqrt(self.f ** 2 + (self.sigma_dark / m) ** 2 + 1.0 / (self.g * m))
 
     def describe(self):
-        return ('u_M^2 = %g^2 + (%g/M)^2 + 1/(%g M)' % (self.f, self.sigma_dark, self.g))
+        if self.kind == 'gaussian':
+            return 'Monc Gaussian, sigma %.4g %% (%s)' % (100 * self.sigma, ELECTRONICS)
+        if self.kind == 'student_t':
+            return ('Monc Student t, nu %g, scale %.4g %% (SD %.4g %%; %s)'
+                    % (self.nu, 100 * self.sigma,
+                       100 * self.sigma * np.sqrt(self.nu / (self.nu - 2.0)), ELECTRONICS))
+        return 'Monc u_M^2 = %g^2 + (%g/M)^2 + 1/(%g M)' % (self.f, self.sigma_dark, self.g)
+
+    def script(self):
+        """The model as a dict literal for ``errors=``, only the fields its kind uses."""
+        keys = {'gaussian': ('sigma',), 'student_t': ('sigma', 'nu'),
+                'counting': ('f', 'sigma_dark', 'g')}[self.kind]
+        return '{' + ', '.join(["'mode': 'budget'", "'kind': %r" % self.kind]
+                               + ['%r: %r' % (k, getattr(self, k)) for k in keys]) + '}'
 
 
 @dataclass
@@ -89,7 +128,7 @@ LEGACY = ErrorModel('legacy')
 
 def as_model(errors):
     """Accept None, 'legacy', 'budget', an ErrorModel, or a dict such as
-    {'mode': 'budget', 'f': 0.0, 'sigma_dark': 0.0, 'g': 1.0}."""
+    {'mode': 'budget', 'kind': 'gaussian', 'sigma': 0.0004}."""
     if errors is None:
         return LEGACY
     if isinstance(errors, ErrorModel):
@@ -105,8 +144,7 @@ def script_kw(model):
     """The ``errors=`` keyword a script needs for ``model`` ('' for legacy)."""
     if not model.budget:
         return ''
-    m = model.monitor
-    return "errors={'mode': 'budget', 'f': %r, 'sigma_dark': %r, 'g': %r}" % (m.f, m.sigma_dark, m.g)
+    return 'errors=' + model.monitor.script()
 
 
 class MonitorTerms:

@@ -14,8 +14,13 @@ from test_script_console import _export, _run_script, _same_files
 pytestmark = pytest.mark.gui
 
 
+U0 = 4e-4     # default monitor sigma (owner, 2026-11-17)
+
+
 def _budget(w, qapp, g=None):
+    """Budget errors; with ``g``, the counting monitor model with that g."""
     if g is not None:
+        w.monitorKindComboBox.setCurrentIndex(2)
         w.errorFields['g'].setText(repr(g))
     w.errorModeComboBox.setCurrentIndex(1)
     w.setErrorModel()
@@ -25,10 +30,29 @@ def _budget(w, qapp, g=None):
 def test_default_is_legacy_and_the_pane_switches(window, qapp, recorder):
     w = window
     assert w.errorModel.mode == 'legacy' and w.pilatus.errors is w.errorModel
+    assert w.errorFields['sigma'].text() == '0.04'
+    assert w.errorModel.monitor.kind == 'gaussian' and w.errorModel.monitor.sigma == U0
     _budget(w, qapp, g=4.0)
     assert w.errorModel.budget and w.errorModel.monitor.g == 4.0
     assert w.pilatus.errors is w.errorModel
     assert any('Error model: budget' in m[2] for m in w.messages)
+    assert recorder.exceptions == []
+
+
+def test_pane_offers_gaussian_student_t_and_counting(window, qapp, recorder):
+    w = window
+    w.errorModeComboBox.setCurrentIndex(1)
+    w.errorFields['sigma'].setText('0.05')
+    w.errorFields['sigma'].editingFinished.emit()
+    assert w.errorModel.monitor.sigma == pytest.approx(5e-4)
+    w.monitorKindComboBox.setCurrentIndex(1)            # Student t
+    assert w.errorModel.monitor.kind == 'student_t' and w.errorModel.monitor.nu == 3.6
+    assert w.pilatus.errors.monitor.relative(1e5) == pytest.approx(5e-4 * np.sqrt(3.6 / 1.6))
+    assert not w.errorFields['g'].isEnabled() and w.errorFields['nu'].isEnabled()
+    assert 'SR570' in w.errorModelLabel.text()
+    w.errorFields['nu'].setText('1.5')                  # no finite variance: refused
+    w.errorFields['nu'].editingFinished.emit()
+    assert w.errorModel.monitor.nu == 3.6 and w.errorFields['nu'].text() == '3.6'
     assert recorder.exceptions == []
 
 
@@ -66,7 +90,7 @@ def test_budget_summed_cut_adds_frames_in_quadrature(loaded, qapp, recorder, dat
     M = synth.MONITOR
     c0, c1 = (w.pilData[k][90:112].sum(axis=0) for k in (0, 1))
     assert cut[:, 1] == pytest.approx((c0 + c1) / M / 2)
-    expect = (c0 + c1) / M ** 2 / 4 + ((c0 / M / 2) ** 2 + (c1 / M / 2) ** 2) / M
+    expect = (c0 + c1) / M ** 2 / 4 + ((c0 / M / 2) ** 2 + (c1 / M / 2) ** 2) * U0 ** 2
     assert cut[:, 2] ** 2 == pytest.approx(expect, rel=1e-9)
 
 
@@ -94,8 +118,7 @@ def test_budget_mca_sum(window, qapp, recorder, tmp_path):
     live = synth.XF_REAL / synth.XF_LIVE
     Y = rows[:, 3]
     counting = Y * live / M          # sum of counts * live^2 / M^2
-    assert rows[:, 4] ** 2 == pytest.approx(counting + Y ** 2 / M, rel=1e-9)
-    assert np.all(rows[:, 4] > legacy[:, 4])   # the monitor term no longer cancels to Σy²
+    assert rows[:, 4] ** 2 == pytest.approx(counting + Y ** 2 * U0 ** 2, rel=1e-9)
 
 
 def test_budget_ref_patch_script_reproduces_the_export(loaded, qapp, recorder, tmp_path):
@@ -109,7 +132,7 @@ def test_budget_ref_patch_script_reproduces_the_export(loaded, qapp, recorder, t
     gui = str(tmp_path / 'gui')
     _export(w, qapp, recorder, gui)
     text = w.scriptView.toPlainText()
-    assert "errors={'mode': 'budget', 'f': 0.0, 'sigma_dark': 0.0, 'g': 3.0}" in text
+    assert "errors={'mode': 'budget', 'kind': 'counting', 'f': 0.0, 'sigma_dark': 0.0, 'g': 3.0}" in text
     script = str(tmp_path / 'script')
     _run_script(text.replace(repr(gui), repr(script)), tmp_path)
     _same_files(gui, script)
@@ -154,5 +177,5 @@ def test_budget_cut_of_background_subtracted_frame(loaded, qapp, recorder, datas
     p0 = w.pilGIOXSData[0][90:112].sum(axis=0) * M     # counts of frame 0
     p1 = raw1[90:112].sum(axis=0)
     assert cut[:, 1] == pytest.approx(p0 / M - 0.5 * p1 / M)
-    expect = (p0 + 0.25 * p1) / M ** 2 + ((p0 / M) ** 2 + (0.5 * p1 / M) ** 2) / M
+    expect = (p0 + 0.25 * p1) / M ** 2 + ((p0 / M) ** 2 + (0.5 * p1 / M) ** 2) * U0 ** 2
     assert cut[:, 2] ** 2 == pytest.approx(expect, rel=1e-9)

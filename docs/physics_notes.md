@@ -25,7 +25,7 @@ exists.
 | I12 | A signal decaying as exp(−t/τ) under the beam is reduced to the same decay and the burn-test fit returns τ | tested on synthetic data: `test_burn.py` (τ within 0.5 %) |
 | I13 | A window sum over an MCA line returns counts / monitor × (real / live time); a Gaussian fit returns the line's position, width and height | tested on synthetic data: `test_xfntr.py` |
 | I14 | (for F47, when built) A silicon-detector escape peak lies 1.74 keV (Si Kα) below its parent line, with a small fixed fraction of the parent's counts; summing parent and escape conserves the line's counts | cited from memory (standard Si(Li)/SDD behaviour; see XrayDB); no code yet |
-| I15 | (budget error model) The variance of any sum over one frame is its counting variance plus (sum)²·u_M²: box, line-cut point, energy window, and background-subtracted net (monitor term on the net, not on the boxes); averages of frames add each frame's monitor amplitude in quadrature; a frame subtracted from itself has no monitor term | tested: `test_error_budget.py` (formulas, and a Monte Carlo of a bright box with a 1 % monitor: predicted σ within 10 % of the scatter, legacy σ < 1/3 of it), `test_gui_error_budget.py` (cuts, summed cuts, MCA sum, Ref Patch) |
+| I15 | (budget error model; monitor model by default a Gaussian of σ = 0.04 % at every count, owner 2026-11-17) The variance of any sum over one frame is its counting variance plus (sum)²·u_M²: box, line-cut point, energy window, and background-subtracted net (monitor term on the net, not on the boxes); averages of frames add each frame's monitor amplitude in quadrature; a frame subtracted from itself has no monitor term | tested: `test_error_budget.py` (formulas, and a Monte Carlo of a bright box with a 1 % monitor: predicted σ within 10 % of the scatter, legacy σ < 1/3 of it), `test_gui_error_budget.py` (cuts, summed cuts, MCA sum, Ref Patch) |
 | I16 | The error model changes errors only: values are identical in both models up to the patch's scale-factor fit, which is weighted by the errors | tested: `test_error_budget.py` (NX school scans 6–9, per-frame columns identical), `test_gui_error_budget.py` (patched values within 0.5 %) |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
@@ -1048,3 +1048,63 @@ well would double-count; if downstream (between sample and detector, or
 between `Monc` and the sample), a^n is needed wherever frames of different
 foil counts are compared. The fluorescence path applies no factor; whether
 that is right depends on the same answer.
+
+### 2026-11-17 — Monitor uncertainty decided; Monc is upstream of the absorbers
+
+**Q.** (owner) `Monc` is upstream of the absorbers. From an analysis with
+another agent: model the monitor's uncertainty as a Gaussian of σ = 0.04 %,
+constant across counting level; that is the default ("case closed"). Make
+the value accessible in the window. Offer a Student t with ν = 3.6 if
+feasible, noting that it depends on the present SR570 + V2F electronics.
+
+**A.** Built (tests: `test_error_budget.py`, `test_gui_error_budget.py`).
+
+- `lss_core.errors.MonitorModel` has three kinds: `'gaussian'` (default,
+  σ = 0.04 % at every monitor count), `'student_t'` (ν = 3.6, scale s;
+  propagated through its standard deviation s·√(ν/(ν−2)) = 1.5 s, finite
+  for ν > 2), and `'counting'` (f, σ_dark, g, as before). The Gaussian and
+  t values are labelled as belonging to the SR570 current amplifier + V2F
+  converter in the code, the Errors pane's tooltip and description, and
+  every description written to the log.
+- The Errors pane has a "Monitor model" choice and a "Monitor sigma (%)"
+  field (0.04), which becomes the t's scale when Student t is chosen; ν
+  is editable (refused unless > 2). Scripts: `errors={'mode': 'budget'}`
+  uses the default; `errors={'mode': 'budget', 'kind': 'student_t',
+  'sigma': 0.0004, 'nu': 3.6}` the t.
+- Feasibility of the t, stated plainly: a first-order propagation only
+  uses variances, so in the reduction the t acts through its standard
+  deviation; its heavier tails matter to whatever uses a likelihood
+  downstream (a fit), and the model is recorded so that a future export
+  (R7) can carry ν. The owner gave ν only; the t's scale defaults to the
+  Gaussian's 0.04 % (SD 0.06 %) until the fitted scale is supplied.
+- The error model's *mode* stays Legacy by default (byte-identical legacy
+  files) until the corrected/legacy two-file export is built; choosing
+  Budget now uses σ = 0.04 % unless changed.
+
+*Effect on NX school scans 6–9* (budget ÷ legacy, per-frame σ): Gaussian
+0.04 %: 0.86 to 1.03, median 1.00; the monitor is > 10 % of a point's
+variance at 4 of 96 points (at most 11 %, at the brightest low-Q_z
+points). Student t (scale 0.04 %): 0.92 to 1.08; > 10 % at 12 points, at
+most 22 %. Values move by < 5×10⁻⁶ through the patch fit. So with the
+decided monitor uncertainty, error bars are counting-dominated almost
+everywhere and the legacy per-pixel Poisson term had been slightly too
+large at the brightest points.
+
+*Absorbers.* With `Monc` upstream of the foils, the monitor does not see
+the attenuation, so dividing by `Monc` never corrects for it and the
+nominal factor a^n does not double-count where it is applied. Ref Patch
+needs no factor (the scale is measured). The paths that combine frames at
+different absorber settings on the nominal factor say so in the Messages
+pane (now worded with this reason).
+
+*Read from the data, not confirmed:* SPEC's `#A Absorber` value is not a
+count of foils. In NX school it is 41, 31, 24, 18 for reflectivity scans
+6–9 (falling as Q_z rises), 52 for alignment through the direct beam and
+63 (all six bits) with the beam off; the bu files show 8 to 63. It reads
+as the total thickness of binary-weighted foils in units, which is what
+the program's a = absfac^n with absfac = 1.606 per unit assumes
+(1.606⁴¹ ≈ 3×10⁸ at the critical edge). Open for the owner: are the
+foils before the sample (then fluorescence is attenuated too and the
+fluorescence path, which applies no factor, would need a^n whenever
+spectra at different settings are compared; bu 2026-09-02 has energy
+scans on the Vortex at setting 52) or between sample and detector?

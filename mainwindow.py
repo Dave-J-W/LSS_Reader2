@@ -32,7 +32,7 @@ import traceback
 import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
-from lss_core.errors import ErrorModel, MonitorModel, MonitorTerms, script_kw
+from lss_core.errors import ErrorModel, MonitorModel, MonitorTerms, script_kw, ELECTRONICS
 #from TwoD_Integrate import integrate_2d
 
 
@@ -1455,9 +1455,11 @@ class MainWindow (QMainWindow):
         self.scriptDock.hide()   # View it from the dock area's context menu, or it appears with the first line
 
     def initErrorPane(self):
-        """A dock with the error model (lss_core.errors): 'Legacy' gives the
+        """A dock with the error model (lss_core.errors). 'Legacy' gives the
         numbers the program always gave; 'Budget' applies the monitor's
-        uncertainty to whole sums, with u_M^2 = f^2 + (dark/M)^2 + 1/(g M)."""
+        uncertainty once to each whole sum. The monitor model: a Gaussian of
+        fixed relative sigma (default 0.04 %, owner 2026-11-17), a Student t,
+        or the counting form f^2 + (dark/M)^2 + 1/(g M)."""
         self.errorModel=ErrorModel('legacy')
         self.pilatus.errors=self.errorModel
         self.errorDock=QDockWidget('Errors',self)
@@ -1470,18 +1472,37 @@ class MainWindow (QMainWindow):
         self.errorModeComboBox.setToolTip('Legacy: per-pixel monitor term summed in quadrature (as before).\n'
                                           'Budget: the monitor term is applied once to each whole sum.')
         form.addRow('Error model',self.errorModeComboBox)
+        self.monitorKindComboBox=QComboBox(w)
+        self.monitorKindComboBox.setObjectName('monitorKindComboBox')
+        self.monitorKindComboBox.addItems(['Gaussian','Student t','Counting'])
+        self.monitorKindComboBox.setToolTip('Gaussian and Student t values describe the present Monc electronics '
+                                            '('+ELECTRONICS+'); re-measure them if the electronics change.')
+        form.addRow('Monitor model',self.monitorKindComboBox)
+        m=self.errorModel.monitor
         self.errorFields={}
-        for name,label,tip in (('f','Floor f','fractional monitor uncertainty that does not fall with counts'),
-                               ('sigma_dark','Dark sigma','scatter of the monitor dark counts in one frame (counts)'),
-                               ('g','Quanta per count g','true quanta per recorded monitor count (1: Poisson on the counts)')):
-            e=QLineEdit(repr(getattr(self.errorModel.monitor,name)),w)
+        self.errorFieldLabels={}
+        for name,label,value,tip in (
+                ('sigma','Monitor sigma (%)',100*m.sigma,'relative standard deviation of one Monc reading, in percent (Gaussian),\n'
+                                                         'or the scale of the Student t, in percent'),
+                ('nu','Student t nu',m.nu,'degrees of freedom of the Student t (> 2)'),
+                ('f','Floor f',m.f,'fractional monitor uncertainty that does not fall with counts'),
+                ('sigma_dark','Dark sigma',m.sigma_dark,'scatter of the monitor dark counts in one frame (counts)'),
+                ('g','Quanta per count g',m.g,'true quanta per recorded monitor count (1: Poisson on the counts)')):
+            e=QLineEdit(repr(value),w)
             e.setObjectName('errorModel_'+name)
             e.setToolTip(tip)
             e.setValidator(QDoubleValidator(0.0,1e12,12,e))
             e.editingFinished.connect(self.setErrorModel)
             self.errorFields[name]=e
-            form.addRow(label,e)
+            lab=QLabel(label,w)
+            self.errorFieldLabels[name]=lab
+            form.addRow(lab,e)
+        self.errorModelLabel=QLabel(w)
+        self.errorModelLabel.setObjectName('errorModelLabel')
+        self.errorModelLabel.setWordWrap(True)
+        form.addRow(self.errorModelLabel)
         self.errorModeComboBox.currentIndexChanged.connect(self.setErrorModel)
+        self.monitorKindComboBox.currentIndexChanged.connect(self.setErrorModel)
         self.errorDock.setWidget(w)
         self.addDockWidget(Qt.BottomDockWidgetArea,self.errorDock)
         self.tabifyDockWidget(self.messageDock,self.errorDock)
@@ -1490,26 +1511,50 @@ class MainWindow (QMainWindow):
         view.setObjectName('menuView')
         for dock in (self.messageDock,self.scriptDock,self.errorDock):
             view.addAction(dock.toggleViewAction())
+        self.showErrorModel()
+
+    def showErrorModel(self):
+        """Enable the fields the chosen monitor model uses; describe the model."""
+        kind=('gaussian','student_t','counting')[self.monitorKindComboBox.currentIndex()]
+        used={'gaussian':('sigma',),'student_t':('sigma','nu'),'counting':('f','sigma_dark','g')}[kind]
+        for name,e in self.errorFields.items():
+            e.setEnabled(name in used)
+            self.errorFieldLabels[name].setEnabled(name in used)
+        self.errorFieldLabels['sigma'].setText('Student t scale (%)' if kind=='student_t' else 'Monitor sigma (%)')
+        text=self.errorModel.describe()
+        if not self.errorModel.budget:
+            text+='. The monitor model below is used when Budget is chosen.'
+        self.errorModelLabel.setText(text)
 
     def setErrorModel(self):
         """Read the Errors pane into self.errorModel; applies to what is
-        computed from now on."""
+        computed from now on (what is on show is recomputed where cheap)."""
+        defaults=MonitorModel()
         vals={}
         for name,e in self.errorFields.items():
             try:
                 vals[name]=float(e.text())
             except ValueError:
-                vals[name]=getattr(MonitorModel(),name)
+                vals[name]=100*defaults.sigma if name=='sigma' else getattr(defaults,name)
                 e.setText(repr(vals[name]))
+        vals['sigma']=vals['sigma']/100.0
         if vals['g']<=0:
-            vals['g']=1.0
-            self.errorFields['g'].setText('1.0')
+            vals['g']=defaults.g
+            self.errorFields['g'].setText(repr(defaults.g))
+        if vals['nu']<=2:
+            vals['nu']=defaults.nu
+            self.errorFields['nu'].setText(repr(defaults.nu))
+            self.notify('A Student t needs nu > 2 for a finite variance; nu was reset to %g.' % defaults.nu,
+                        title='Errors',level='info')
+        vals['kind']=('gaussian','student_t','counting')[self.monitorKindComboBox.currentIndex()]
         mode='budget' if self.errorModeComboBox.currentIndex()==1 else 'legacy'
         new=ErrorModel(mode,MonitorModel(**vals))
         if new==self.errorModel:
+            self.showErrorModel()
             return
         self.errorModel=new
         self.pilatus.errors=new
+        self.showErrorModel()
         self.notify('Error model: '+new.describe()+'. Spectra and background-subtracted images on show are '
                     'recomputed; other results apply it the next time they are computed.',
                     title='Errors',level='info')
@@ -1520,10 +1565,11 @@ class MainWindow (QMainWindow):
             self.pilSelectedScanChanged()
 
     def noteMixedAbsorbers(self,absnums,what):
-        """Frames taken with different numbers of absorber foils are being
-        combined on the nominal factor absfac**n, which is not measured (Ref
-        Patch measures the scale instead; owner, 2026-11-17). Say so, once
-        per combination."""
+        """Frames taken at different absorber settings are being combined on
+        the nominal factor absfac**n, which is not measured (Ref Patch measures
+        the scale instead; owner, 2026-11-17). Monc is upstream of the
+        absorbers (owner), so it does not see them. Say so, once per
+        combination."""
         n=sorted(set(int(a) for a in absnums))
         if len(n)<2:
             return
@@ -1532,9 +1578,9 @@ class MainWindow (QMainWindow):
         if key in seen:
             return
         seen.add(key)
-        self.notify('%s combines frames taken with %s absorber foils, scaled by the nominal factor %g per foil; '
-                    'that factor is not measured, so the relative scale of these frames is only as good as it.'
-                    % (what,', '.join(map(str,n)),self.absfac),title='Absorbers',level='info')
+        self.notify('%s combines frames taken at absorber settings %s (SPEC #A), scaled by the nominal factor %g '
+                    'per unit; Monc is upstream of the absorbers, so only this unmeasured factor puts them on one '
+                    'scale.' % (what,', '.join(map(str,n)),self.absfac),title='Absorbers',level='info')
 
     def scriptLine(self,text):
         """Append Python to the Script pane and the log."""
