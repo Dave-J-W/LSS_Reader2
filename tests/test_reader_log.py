@@ -31,10 +31,17 @@ START = (
     "w.show(); app.processEvents()\n")
 
 
+PATCH = (
+    "import mainwindow\n"
+    "def pilRefPatchData(self):\n"        # stand-in for a handler with a defect
+    "    self.selectedScanNums\n"         # (the real one is guarded now)
+    "mainwindow.MainWindow.pilRefPatchData = pilRefPatchData\n")
+
+
 def test_application_survives_a_raising_handler(tmp_path):
     """Press "Ref Patch" with nothing loaded. Before Stage 0 this ended the
     process with SIGABRT (exit code 134)."""
-    out = run_program(START + (
+    out = run_program(PATCH + START + (
         "w.ui.pilRefPatchPushButton.click(); app.processEvents()\n"
         "w.ui.refAnalyzePushButton.click(); app.processEvents()\n"
         "print('survived', len(w.messages), w.messageDock.isVisible())\n"
@@ -48,7 +55,7 @@ def test_application_survives_a_raising_handler(tmp_path):
     assert len(logs) == 1
     text = open(logs[0]).read()
     assert 'session started' in text
-    assert text.count('ERROR') == 2
+    assert text.count('ERROR') == 1
     assert 'Traceback (most recent call last)' in text
     assert "has no attribute 'selectedScanNums'" in text
     # the context of the session is recorded with the failure
@@ -57,7 +64,7 @@ def test_application_survives_a_raising_handler(tmp_path):
 
 def test_log_is_on_disk_even_if_the_process_is_killed(tmp_path):
     """A record that was logged must survive a hard kill straight after."""
-    out = run_program(START + (
+    out = run_program(PATCH + START + (
         "import os\n"
         "w.notify('about to be killed')\n"
         "w.ui.pilRefPatchPushButton.click(); app.processEvents()\n"
@@ -77,22 +84,29 @@ def test_hard_fault_is_recorded(tmp_path):
     assert 'Fatal Python error: Aborted' in open(faults[0]).read()
 
 
-def test_every_known_crash_site_is_survivable(tmp_path):
-    """Drive a handful of the controls listed in known_crashes.json, in the
-    real program, one after another; the process must still be alive.
-    (Controls that open a file chooser are left out: a real chooser would
-    wait for a person.)"""
-    out = run_program(START + (
-        "names = ['pilRefPatchPushButton', 'pilLineAreaPushButton', "
-        "'refAcceptPushButton', 'mcaFitPushButton', 'refAnalyzeAllPushButton', "
-        "'pilBurnPushButton', 'backgroundPushButton', 'pilMoviePushButton']\n"
-        "for n in names:\n"
+def test_several_failing_actions_in_a_row_are_survivable(tmp_path):
+    """Three different handlers fail, one after another, with different
+    exception types; the process is still alive and each one is logged.
+    Stand-in handlers are used so that this test does not depend on which
+    real defects are still unfixed (tests/known_crashes.json lists those)."""
+    out = run_program((
+        "import mainwindow\n"
+        "def a(self): self.no_such_attribute\n"
+        "def b(self): [][3]\n"
+        "def c(self): float('not a number')\n"
+        "mainwindow.MainWindow.pilRefPatchData = a\n"
+        "mainwindow.MainWindow.pilBurnTest = b\n"
+        "mainwindow.MainWindow.mcaSumAll = c\n") + START + (
+        "for n in ['pilRefPatchPushButton', 'pilBurnPushButton', "
+        "'mcaSumAllPushButton', 'pilRefPatchPushButton']:\n"
         "    getattr(w.ui, n).click(); app.processEvents()\n"
         "import reader_log\n"
         "print('alive', reader_log.failure_count())\n"), tmp_path)
     assert out.returncode == 0, out.stderr[-2000:]
-    count = int(out.stdout.split('alive')[1].split()[0])
-    assert count >= 6
+    assert 'alive 4' in out.stdout
+    text = open(glob.glob(str(tmp_path / 'logs' / 'session-*[0-9].log'))[0]).read()
+    for name in ('AttributeError', 'IndexError', 'ValueError'):
+        assert 'unhandled ' + name in text
 
 
 # ---- in-process tests of the pieces ----------------------------------------

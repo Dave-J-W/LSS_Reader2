@@ -99,6 +99,9 @@ class MainWindow (QMainWindow):
         self.endScanNum=0
         self.refData=[]
         self.refInfo=[]
+        self.det=None   #set to 'Bruker' or 'Pilatus' once images are loaded
+        self.refQzSelectedItems=[]
+        self.reffnames=[]
         self.mcaIntData=[]
         self.refQc=float(self.ui.refQcLineEdit.text())
         self.absfac=float(self.ui.AbsFacLineEdit.text())
@@ -278,7 +281,7 @@ class MainWindow (QMainWindow):
      #    self.connect(self.ui.refAnalyzePushButton,SIGNAL('clicked()'),self.refAnalyze)
         self.ui.refAnalyzePushButton.clicked.connect(self.refAnalyze)
      #    self.connect(self.ui.refBPCFacLineEdit, SIGNAL('returnPressed()'),self.refAnalyze)
-        self.ui.refBPCFacLineEdit.returnPressed.connect(self.refAnalyze)
+        self.ui.refBPCFacLineEdit.returnPressed.connect(self.refAnalyzeFromField)
      #  #self.connect(self.ui.AbsFacLineEdit, SIGNAL('returnPressed()'),self.refDoBPC)
         #self.ui.AbsFacLineEdit.returnPressed.connect(self.refDoBPC)
      #    self.connect(self.ui.refAcceptPushButton, SIGNAL('clicked()'), self.updateRefDataList)
@@ -300,7 +303,7 @@ class MainWindow (QMainWindow):
      #    self.connect(self.ui.refDelPushButton,SIGNAL('clicked()'),self.delRefDataList)
         self.ui.refDelPushButton.clicked.connect(self.delRefDataList)
      #    self.connect(self.ui.refSeaWinLineEdit, SIGNAL('returnPressed()'),self.refAnalyze)
-        self.ui.refSeaWinLineEdit.returnPressed.connect(self.refAnalyze)
+        self.ui.refSeaWinLineEdit.returnPressed.connect(self.refAnalyzeFromField)
      #    self.connect(self.ui.refExportPushButton,SIGNAL('clicked()'), self.saveRefData)
         self.ui.refExportPushButton.clicked.connect(self.saveRefData)
      #    self.connect(self.ui.refAddFilePushButton, SIGNAL('clicked()'), self.addRefFiles)
@@ -315,7 +318,7 @@ class MainWindow (QMainWindow):
         self.ui.refLegendLocComboBox.currentIndexChanged.connect(self.updateRefPlotData)
      #    #self.connect(self.ui.refCenCheckBox, SIGNAL('stateChanged(int)'),)
      #    self.connect(self.ui.refCenLineEdit, SIGNAL('returnPressed()'), self.refAnalyze)
-        self.ui.refCenLineEdit.returnPressed.connect(self.refAnalyze)
+        self.ui.refCenLineEdit.returnPressed.connect(self.refAnalyzeFromField)
      #    self.connect(self.ui.gixLineAreaPushButton, SIGNAL('clicked()'), self.updateCutData)
         self.ui.gixLineAreaPushButton.clicked.connect(self.updateCutData)
      #    self.connect(self.ui.gixIntRangeLineEdit, SIGNAL('returnPressed()'), self.updateCutData)
@@ -3419,6 +3422,9 @@ class MainWindow (QMainWindow):
 #            self.ui.gixSumCheckBox.setCheckState(2)
 #            self.messageBox('Warning:: Multiple frames selected, summing over all the frames for Reflectivity!!')
 #            self.updateCcdPlotData()
+        if self.det not in ('Bruker','Pilatus') or len(getattr(self,'selectedCcdFramesNums' if self.det=='Bruker' else 'selectedPilFramesNums',[]))==0:
+            self.messageBox('Please load a scan and select its images before opening the reflectivity analysis')
+            return
         self.ui.PlotWidget.setCurrentIndex(3)
         self.ui.refCenCheckBox.setCheckState(0)
         self.ui.refComLineEdit.clear()
@@ -3515,6 +3521,8 @@ class MainWindow (QMainWindow):
         self.ui.refQzListWidget.item(0).setSelected(True)
         
     def refQzListSelectionChanged(self):
+        if len(self.ui.refQzListWidget.selectedItems())==0:
+            return   #nothing selected in the Qz list, nothing to redraw
         self.ui.refADDataPlotWidget.canvas.fig.clf()
         cmap=str(self.ui.pilCMapComboBox.currentText())
         self.refQzSelectedItems=self.ui.refQzListWidget.selectedItems()        
@@ -3626,7 +3634,16 @@ class MainWindow (QMainWindow):
          
         
         
+    def refAnalyzeFromField(self):
+        #Enter pressed in a parameter field: silent when no Qz is selected
+        if len(self.ui.refQzListWidget.selectedItems())==0:
+            return
+        self.refAnalyze()
+
     def refAnalyze(self):
+        if len(self.ui.refQzListWidget.selectedItems())==0:
+            self.messageBox('Please select a Qz in the list first')
+            return
         self.refQzListSelectionChanged()
         cmap=str(self.ui.gixCMapComboBox.currentText())
         if self.det=='Bruker':
@@ -3727,6 +3744,9 @@ class MainWindow (QMainWindow):
         self.ui.refPerRErrLineEdit.setText('%.4f'%self.fsigerrper)
     
     def updateRefDataList(self):
+        if self.refpatchindex==0 and (len(self.ui.refQzListWidget.selectedItems())==0 or getattr(self,'fsig',None) is None): #regular ref
+            self.messageBox('Please select a Qz and analyze it first')
+            return
         if self.refpatchindex==0: #regular ref
             comments=str(self.refQzSelectedItems[0].text()).split('\t')[1:]
             self.refData.append([float(str(self.refQzSelectedItems[0].text()).split()[1]),self.fsig,self.fsigerr])
@@ -3740,6 +3760,9 @@ class MainWindow (QMainWindow):
         self.updateRefPlotData()
         
     def refAnalyzeAll(self):
+        if len(self.ui.refQzListWidget.selectedItems())==0:
+            self.messageBox('Please select a Qz in the list first')
+            return
         self.refAnalyze()
         self.updateRefDataList()
         self.progressDialog=QProgressDialog('Analyzing Images for reflectivity calculations','Abort',1,self.ui.refQzListWidget.count())
@@ -3786,6 +3809,9 @@ class MainWindow (QMainWindow):
         return np.array(fre)
         
     def pilRefPatchData(self):
+        if self.det!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]))==0 or len(getattr(self,'selectedScanNums',[]))==0:
+            self.messageBox('Please load a Pilatus scan and select its images before using Ref Patch')
+            return
         self.refpatchindex=1
         slitx=int(self.ui.refSlitLineEdit.text().split(',')[0]) #get the size of ROI
         slity=int(self.ui.refSlitLineEdit.text().split(',')[1])
@@ -3878,7 +3904,7 @@ class MainWindow (QMainWindow):
         if len(self.pilrefsort)==0:
             self.messageBox('Warning: no frame selected!!!')
         elif len(self.pilrefsort)==1:
-            self.refData=list(self.scanqzframe[self.pilrefsort[0]])
+            self.refData=list(np.atleast_2d(self.scanqzframe[self.pilrefsort[0]]))   #a single frame is a 1-D row
            #print self.refData
             self.ui.PlotWidget.setCurrentIndex(3)
             self.updateRefDataList()
@@ -4293,7 +4319,12 @@ class MainWindow (QMainWindow):
         self.saveTemData()
         
     def saveRefData(self):
+        if self.det not in ('Bruker','Pilatus') or len(self.refData)==0 or getattr(self,'normRefData',None) is None:
+            self.messageBox('There is no reflectivity data to save yet')
+            return
         self.saveFileName=QFileDialog.getSaveFileName(caption='Save Reflectivity',directory=self.directory)[0]
+        if not self.saveFileName:
+            return   #dialog cancelled
         if self.det=='Bruker':
             fid=open(self.saveFileName+'_ref.txt','w')
             for i in range(len(self.refData)):
