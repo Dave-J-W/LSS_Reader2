@@ -147,8 +147,18 @@ def test_timings(qapp, recorder, tmp_path, monkeypatch):
         for r in range(27):
             w.ui.imageListWidget.item(r).setSelected(True)
             qapp.processEvents()
-    t('add the same 27 frames one click at a time', one_by_one,
-      'frames come from the cache; every click redraws all selected frames')
+    t('add the same 27 frames one click at a time, clicks slower than 150 ms',
+      one_by_one, 'frames come from the cache; every click redraws the selection')
+
+    def quick_clicks():
+        os.environ['LSS_READER_SELECTION_DELAY_MS'] = '150'
+        try:
+            one_by_one()
+            w.flushPendingSelection()          # what the 150 ms timer does
+        finally:
+            os.environ['LSS_READER_SELECTION_DELAY_MS'] = '0'
+    t('the same 27 clicks in quick succession', quick_clicks,
+      'merged into one redraw')
     t('select 4 scans (96 frames listed)',
       lambda: sweep._select_scans(w, qapp, [5, 6, 7, 8]))
     t('select all 96 frames', lambda: sweep._select_images(w, qapp))

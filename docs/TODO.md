@@ -17,10 +17,11 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [x] Fast, cached image reading, bit-identical (`lss_core/images.py`,
       `lss_core/cache.py`); no file is re-read on a selection change (D5,
       F7, F9).
-- [ ] Redraw cost on selection changes (each click redraws every selected
-      frame; ~1 s per click with 10 frames shown): options are drawing only
-      what changed, a short delay that merges rapid clicks, and a cheaper
-      layout than `tight_layout`.
+- [x] Rapid image-list selection changes (drag, shift-click, keyboard) are
+      merged into one redraw after 150 ms: 27 quick clicks 24 s -> 1.1 s.
+- [ ] Redraw itself (~1 s for 9-10 frames): build the axes once and update
+      the images in place when only the selection changed; `tight_layout`
+      is ~20 % of it. Belongs with the GUI reorganisation (Stage 6).
 - [x] SPEC and MCA readers without `eval` (`lss_core/numbers.py`): identical
       results on every sample file; MCA 24 → 1.2 ms per spectrum (F6).
 - [x] Disk cache for network drives (F8): `lss_core/diskcache.py`; decoded

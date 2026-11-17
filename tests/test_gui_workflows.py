@@ -166,3 +166,25 @@ def test_cut_export_after_the_selection_changed_asks_for_a_new_cut(
     assert recorder.exceptions == []
     assert len(recorder.messages) == 1 and 'make the cut again' in recorder.messages[0]
     assert [n for n in os.listdir(str(tmp_path)) if n.startswith('cut')] == []
+
+
+def test_rapid_clicks_in_the_image_list_are_drawn_once(loaded, qapp, dataset,
+                                                       recorder, monkeypatch):
+    """With the selection delay on (the program's default is 150 ms), nine
+    quick clicks give one redraw, of the final selection."""
+    from PyQt5.QtTest import QTest
+    monkeypatch.setenv('LSS_READER_SELECTION_DELAY_MS', '100')
+    sweep._select_scans(loaded, qapp, [0])
+    calls = []
+    real = loaded.pilSelectedScanChanged
+    monkeypatch.setattr(loaded, 'pilSelectedScanChanged',
+                        lambda: (calls.append(1), real())[1])
+    lw = loaded.ui.imageListWidget
+    for r in range(9):
+        lw.item(r).setSelected(True)
+        qapp.processEvents()
+    assert calls == []                       # nothing drawn while clicking
+    QTest.qWait(300)
+    assert len(calls) == 1
+    assert list(loaded.selectedPilFramesNums) == list(range(9))
+    assert recorder.exceptions == []

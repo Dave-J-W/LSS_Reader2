@@ -14,6 +14,9 @@ os.environ.setdefault('MPLBACKEND', 'Agg')
 # keep every log the program writes out of the repository and sample data
 import tempfile  # noqa: E402
 os.environ['LSS_READER_LOG_DIR'] = tempfile.mkdtemp(prefix='lss_reader_test_logs_')
+# draw image-list selections at once (the 150 ms merge of rapid clicks is
+# tested on its own in test_lss_core.py)
+os.environ['LSS_READER_SELECTION_DELAY_MS'] = '0'
 # never write to the user's disk cache from the tests
 os.environ['LSS_READER_DISK_CACHE'] = tempfile.mkdtemp(prefix='lss_reader_test_cache_')
 

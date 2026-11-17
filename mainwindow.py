@@ -41,6 +41,15 @@ from lss_core import stitching, reflectivity, fluorescence
 FRAMELISTS=['pilAlpha', 'pilFileNames', 'pilFileQxs', 'pilFileQys', 'pilFileQzs', 'pilFrameNum', 'pilScanNum', 'pilTrueAlpha', 'pilX', 'pilY', 'pil_AbsNum', 'pil_Chi', 'pil_Dist', 'pil_Dth', 'pil_Gl2', 'pil_PDist', 'pil_Phi', 'pil_S1h', 'pil_S1v', 'pil_S4h', 'pil_S5h', 'pil_Sh', 'pil_Tth', 'pil_Wavelength']
 
 
+def selectionDelayMs():
+    """Delay before a change of the image-list selection is drawn
+    ($LSS_READER_SELECTION_DELAY_MS, default 150; 0 draws at once)."""
+    try:
+        return max(0,int(os.environ.get('LSS_READER_SELECTION_DELAY_MS','150')))
+    except ValueError:
+        return 150
+
+
 def listText(values):
     """'1, 2, 3' for a sequence of numbers, whatever their type.
 
@@ -1522,6 +1531,29 @@ class MainWindow (QMainWindow):
 
 
     def imageSelectedScanChanged(self):
+        # Clicks in the image list arrive in quick succession when the user
+        # drags, shift-clicks or scrolls with the keyboard. Each one used to
+        # redraw every selected frame; now a change from the list waits a
+        # moment and only the last one is drawn.
+        delay=selectionDelayMs()
+        if delay>0 and self.sender() is self.ui.imageListWidget:
+            if not hasattr(self,'imageSelectionTimer'):
+                self.imageSelectionTimer=QTimer(self)
+                self.imageSelectionTimer.setSingleShot(True)
+                self.imageSelectionTimer.timeout.connect(self.imageSelectionNow)
+            self.imageSelectionTimer.start(delay)
+            return
+        self.imageSelectionNow()
+
+    def flushPendingSelection(self):
+        """Process a delayed image-list selection now (used by tests and
+        before any action that reads the selection)."""
+        timer=getattr(self,'imageSelectionTimer',None)
+        if timer is not None and timer.isActive():
+            timer.stop()
+            self.imageSelectionNow()
+
+    def imageSelectionNow(self):
         if len(self.selectedScanNums)==0:   # no scan selected: nothing to read
             return
         #self.ui.imageSelectAllCheckBox.setCheckState(0)
