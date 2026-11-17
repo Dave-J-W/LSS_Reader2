@@ -707,7 +707,7 @@ class TwoDDetector:
 
 
 
-    def plotROIImage(self, data,errodata,  det='Pilatus',  slit=[10, 10],  cen=[10, 10],  min=0, max=None, cmap='gray', view='closer', bg=None, dir='h',mon=None,show=1):
+    def plotROIImage(self, data,errordata,  det='Pilatus',  slit=[10, 10],  cen=[10, 10],  min=0, max=None, cmap='gray', view='closer', bg=None, dir='h',mon=None,show=1):
         """Plots the CCD image with given Region of Interest defined by hroi and vroi respectively in pixels with respect to cen"""
         self.setROI(data,errordata,slit=slit,cen=cen,bg=bg,dir=dir,mon=mon)
         if show==1:

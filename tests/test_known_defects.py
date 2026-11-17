@@ -42,7 +42,6 @@ def test_opening_non_spec_file_is_reported_not_raised(window, tmp_path,
     assert window.ui.scanListWidget.count() == 0
 
 
-@xfail('#5: plotROIImage parameter is spelled "errodata"')
 def test_plot_roi_image_runs():
     det = TwoDDetector('Pilatus')
     img = synth.pilatus_image(peak=(97, 100))
