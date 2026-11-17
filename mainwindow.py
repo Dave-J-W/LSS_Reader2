@@ -31,7 +31,7 @@ from functools import partial
 import traceback
 import reader_log
 from lss_core.resources import resource
-from lss_core import stitching
+from lss_core import stitching, reflectivity
 #from TwoD_Integrate import integrate_2d
 
 
@@ -3443,72 +3443,29 @@ class MainWindow (QMainWindow):
         self.pilRefPeakCen=[]
         self.pilBadPixInf = []  # build a list for the detailed info for corrected bad pix in RF signal ROI, which is shown for users
         for i in self.selectedPilFramesNums:
-            pilbadpixloc = []  # build a list for the corrected bad pix in the signal ROI
+            # one point per frame: the same code a script uses (lss_core.reflectivity)
             qkey=self.pilScanNum[i]
-            scenx=self.pilatus.NCOLS-self.pilX[i]-1 #image was flipped left to right
-            sceny=self.pilY[i]
-            if qkey in self.scanqzframe:
-                selData=self.pilData[i]
-                selErrorData=self.pilErrorData[i]
-                cenx,ceny=self.pilatus.peakLocate(selData,selErrorData,cen=[scenx,sceny],mon=self.pilMonc[i])
-                if np.abs(cenx-scenx)>2:
-                    self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'x', np.abs(cenx-scenx)])                    
-                    #self.messageBox('The reflected beam center is off by '+str(np.abs(cenx-scenx))+ ' pixels from the default center \nalong x directions for Scan #'+str(qkey)+' Frame #'+str(self.pilFrameNum[i])+'!')
-                if np.abs(ceny-sceny)>2:
-                    self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'y', np.abs(ceny-sceny)])  
-                    #self.messageBox('The reflected beam center is off by '+str(np.abs(ceny-sceny))+ ' pixels from the default center \nalong y directions for Scan #'+str(qkey)+' Frame #'+str(self.pilFrameNum[i])+'!')
-                if self.dir=='H':
-                    self.bg=bg*self.pil_Dist[i]*np.pi/180/0.172/slitx
-                else:
-                    self.bg=bg*self.pil_Dist[i]*np.pi/180/0.172/slity
-                if self.pilFileQzs[i]<0.03 and self.pilFileQzs[i]> 0.02 and self.ui.pilLowQzCorCheckBox.checkState()!=0:
-                    self.slit=[slitx,5]
-                else:
-                    self.slit=[slitx,slity]
-
-                for j in range(len(self.pilbadpixLoc[i])):  #checking if any bad correction happened in signal ROI
-                    pilbadpixX=self.pilbadpixLoc[i][j][1]
-                    pilbadpixY=self.pilbadpixLoc[i][j][0]
-                    if pilbadpixX < cenx+(self.slit[0]+1)/2 and pilbadpixX > cenx-(self.slit[0]+1)/2 and pilbadpixY < ceny+(self.slit[1]+1)/2 and pilbadpixY > ceny-(self.slit[1]+1)/2:
-                        pilbadpixloc.append([pilbadpixX, pilbadpixY])
-                if len(pilbadpixloc)!=0:
-                    self.pilBadPixInf.append([qkey,self.pilFrameNum[i],pilbadpixloc])
-
-                sig,sigerr,lbg,lbgerr,rbg,rbgerr=self.pilatus.sumROI(slit=self.slit,cen=[cenx,ceny],dir=self.dir,bg=self.bg)
-                #self.scanqzframe[qkey].append(np.vstack((self.pilFileQzs[i],sig-(lbg+rbg)/2.0, np.sqrt(sigerr**2+(lbgerr**2+rbgerr**2)/4))).T)
-                self.scanqzframe[qkey]=np.vstack((self.scanqzframe[qkey],(np.array([self.pilFileQzs[i],sig-(lbg+rbg)/2.0, np.sqrt(sigerr**2+(lbgerr**2+rbgerr**2)/4),sig,sigerr,lbg,rbg]))))
-            else:
-                selData=self.pilData[i]
-                selErrorData=self.pilErrorData[i]
-                cenx,ceny=self.pilatus.peakLocate(selData,selErrorData,cen=[scenx,sceny],mon=self.pilMonc[i])
-                if np.abs(cenx-scenx)>2:
-                    self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'x', np.abs(cenx-scenx)])    
-                   # self.messageBox('The reflected beam center is off by more than 3 pixels from the default centen \nalong x directions for Scan #'+str(qkey)+' Frame #'+str(self.pilFrameNum[i])+'!')
-                if np.abs(ceny-sceny)>2:
-                    self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'y', np.abs(ceny-sceny)])  
-                   # self.messageBox('The reflected beam center is off by more than 3 pixels from the default centen \nalong y directions for Scan #'+str(qkey)+' Frame #'+str(self.pilFrameNum[i])+'!')
-                if self.dir=='H':
-                    self.bg=bg*self.pil_Dist[i]*np.pi/180/0.172/slitx
-                else:
-                    self.bg=bg*self.pil_Dist[i]*np.pi/180/0.172/slity
-                if self.pilFileQzs[i]<0.03 and self.pilFileQzs[i]> 0.02:
-                    self.slit=[slitx,5]
-                else:
-                    self.slit=[slitx,slity]
-
-                for j in range(len(self.pilbadpixLoc[i])):  # checking if any bad correction happened in signal ROI
-                    pilbadpixX = self.pilbadpixLoc[i][j][1]
-                    pilbadpixY = self.pilbadpixLoc[i][j][0]
-                    if pilbadpixX < cenx + (self.slit[0] + 1) / 2 and pilbadpixX > cenx - (
-                            self.slit[0] + 1) / 2 and pilbadpixY < ceny + (
-                            self.slit[1] + 1) / 2 and pilbadpixY > ceny - (self.slit[1] + 1) / 2:
-                        pilbadpixloc.append([pilbadpixX, pilbadpixY])
-                if len(pilbadpixloc) != 0:
-                    self.pilBadPixInf.append([qkey, self.pilFrameNum[i], pilbadpixloc])
-
-                sig,sigerr,lbg,lbgerr,rbg,rbgerr=self.pilatus.sumROI(slit=self.slit,cen=[cenx,ceny],dir=self.dir,bg=self.bg)  
-                #self.scanqzframe[qkey]=[np.vstack((self.pilFileQzs[i],sig-(lbg+rbg)/2.0, np.sqrt(sigerr**2+(lbgerr**2+rbgerr**2)/4))).T]
-                self.scanqzframe[qkey]=np.array([self.pilFileQzs[i],sig-(lbg+rbg)/2.0, np.sqrt(sigerr**2+(lbgerr**2+rbgerr**2)/4),sig,sigerr,lbg,rbg])
+            first=qkey not in self.scanqzframe
+            row,info=reflectivity.frame_row(self.pilatus,self.pilData[i],self.pilErrorData[i],
+                self.pilMonc[i],(self.pilX[i],self.pilY[i]),self.pilFileQzs[i],[slitx,slity],bg,
+                self.dir,self.pil_Dist[i],
+                low_qz_slit=first or self.ui.pilLowQzCorCheckBox.checkState()!=0)   # as coded: always on the first frame (PHYSICS_ISSUES P18)
+            (cenx,ceny),(scenx,sceny)=info['centre'],info['expected']
+            self.slit,self.bg=info['slit'],info['bg']
+            if np.abs(cenx-scenx)>2:
+                self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'x', np.abs(cenx-scenx)])
+            if np.abs(ceny-sceny)>2:
+                self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'y', np.abs(ceny-sceny)])
+            pilbadpixloc=[]   # corrected bad pixels inside the signal box, shown to the user
+            badpix=self.pilbadpixLoc.get(i,[])   # not recorded when a background image is subtracted
+            for j in range(len(badpix)):
+                pilbadpixX=badpix[j][1]
+                pilbadpixY=badpix[j][0]
+                if cenx-(self.slit[0]+1)/2 < pilbadpixX < cenx+(self.slit[0]+1)/2 and ceny-(self.slit[1]+1)/2 < pilbadpixY < ceny+(self.slit[1]+1)/2:
+                    pilbadpixloc.append([pilbadpixX, pilbadpixY])
+            if len(pilbadpixloc)!=0:
+                self.pilBadPixInf.append([qkey,self.pilFrameNum[i],pilbadpixloc])
+            self.scanqzframe[qkey]=row if first else np.vstack((self.scanqzframe[qkey],row))
         try:
             self.pilrefsort=list(self.sortedScans(self.scanqzframe, mtype='qz'))
         except:

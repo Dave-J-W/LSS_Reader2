@@ -105,10 +105,11 @@ class Experiment:
             det.openFile(f.path, bad_pix=bad_pixel_iterations, bad_fac=bad_pixel_factor)
             image, error = det.imageData, det.errorData
             first = f.scan not in per_scan
-            row, off = refl.frame_row(det, image, error, f.monitor, f.beam_xy, f.qz,
+            row, info = refl.frame_row(det, image, error, f.monitor, f.beam_xy, f.qz,
                                       slit, bg_offset, direction, f.distance,
                                       low_qz_slit=(first or low_qz_slit))
             per_scan[f.scan] = row if first else np.vstack((per_scan[f.scan], row))
+            off = info['offset']
             if abs(off[0]) > 2 or abs(off[1]) > 2:
                 offsets.append((f.scan, f.index, off[0], off[1]))
         per_scan = {k: np.atleast_2d(v) for k, v in per_scan.items()}

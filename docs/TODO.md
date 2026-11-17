@@ -28,9 +28,10 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       `reflectivity.py`, `stitching.py`; `docs/SCRIPTING.md`): byte-identical
       to the window's files on synthetic and real data (F31, first part).
       The window uses the shared stitching code.
-- [ ] The window's Ref Patch to call `lss_core.reflectivity` directly (today
-      the two are parallel implementations checked against the same
-      fixtures).
+- [x] The window's Ref Patch computes each point with
+      `lss_core.reflectivity.frame_row` (one implementation; the duplicated
+      per-frame branches are gone). Scan order, drops and finishing in the
+      window still mirror `lss_core` and are checked by the same fixtures.
 - [ ] Same for cuts, GID, GISAXS, fluorescence, burn tests.
 - [ ] Console showing the API call for each GUI action (F48).
 - [x] Resources (`.ui`, icons) loaded relative to the program, not the

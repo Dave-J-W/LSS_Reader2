@@ -29,6 +29,9 @@ def frame_row(detector, image, error, monitor, beam_xy, qz, slit, bg_offset_deg,
               direction, distance, low_qz_slit):
     """One reflectivity point from one frame (see module docstring).
 
+    Returns (row, info); info holds the beam centre found, the expected
+    one, the slit and background offset (pixels) used, and the offset.
+
     ``detector`` is a TwoDDetector('Pilatus'); its peakLocate and sumROI do
     the arithmetic, as in the window. ``beam_xy`` is (X, Y) from the SPEC
     header. ``low_qz_slit``: use a slit height of 5 pixels for
@@ -48,8 +51,9 @@ def frame_row(detector, image, error, monitor, beam_xy, qz, slit, bg_offset_deg,
     row = np.array([qz, sig - (lbg + rbg) / 2.0,
                     np.sqrt(sigerr ** 2 + (lbgerr ** 2 + rbgerr ** 2) / 4),
                     sig, sigerr, lbg, rbg])
-    offset = (cenx - scen[0], ceny - scen[1])
-    return row, offset
+    info = {'centre': (cenx, ceny), 'expected': tuple(scen), 'slit': use, 'bg': bg,
+            'offset': (cenx - scen[0], ceny - scen[1])}
+    return row, info
 
 
 def order_scans(per_scan):
