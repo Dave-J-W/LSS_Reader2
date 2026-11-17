@@ -62,11 +62,38 @@ def test_bad_pixel_factor_controls_replacement():
 
 @pytest.mark.gui
 def test_g_l2_dialog_accepts_typed_centres(loaded, qapp, dataset, recorder):
+    """Defect 7 (fixed): centres typed into the dialog are used for the fit.
+    Two scans at different incident angles with centres generated from a
+    known arm length; the fit must return that length."""
+    import sweep
+    sweep._select_scans(loaded, qapp, [0, 1])       # Qz = 0.01 and 0.04
+    loaded.scanCenter = {1: 0.0, 2: 0.0}
+    loaded.calg_l2()
+    alpha = np.array(loaded.g_l2alpha) * np.pi / 180
+    length, offset = 185.0, 0.02
+    centres = offset - length * np.sin(alpha)
+    loaded.uig_l2.g_l2centercheckBox.setChecked(True)
+    loaded.uig_l2.g_l2CenterLineEdit.setText(','.join('%.9f' % c for c in centres))
+    recorder.messages.clear()
+    loaded.uig_l2.g_l2CalPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == [] and recorder.messages == []
+    text = loaded.uig_l2.g_l2TextBrowser.toPlainText()
+    assert 'new g_l2\t= 185.000' in text
+    assert 'offset\t= 0.020' in text
+
+
+@pytest.mark.gui
+def test_g_l2_dialog_with_one_scan_asks_for_more(loaded, qapp, dataset,
+                                                 recorder):
+    """One scan cannot determine two unknowns; the user is told, nothing
+    raises."""
     import sweep
     sweep.state_motor_scan(loaded, qapp, dataset)
     loaded.scanCenter = {4: 0.0}
     loaded.calg_l2()
-    loaded.uig_l2.g_l2centercheckBox.setChecked(True)
-    loaded.uig_l2.g_l2CenterLineEdit.setText('0.01')
-    loaded.g_l2plot()
+    recorder.messages.clear()
+    loaded.uig_l2.g_l2CalPushButton.click()
+    qapp.processEvents()
     assert recorder.exceptions == []
+    assert len(recorder.messages) == 1 and 'at least two scans' in recorder.messages[0]

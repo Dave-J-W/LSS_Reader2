@@ -4682,6 +4682,9 @@ class MainWindow (QMainWindow):
         
     def g_l2plot(self):
         self.uig_l2.g_l2TextBrowser.clear()
+        if len(self.g_l2alpha)<2:   # two unknowns (offset and length) need at least two scans
+            self.messageBox('Please select at least two scans taken at different incident angles for this calibration.')
+            return
         if self.uig_l2.g_l2centercheckBox.checkState()!=0:
             self.g_l2center=list(map(float, str(self.uig_l2.g_l2CenterLineEdit.text()).split(',')))
         par=[0,self.specPar[self.selectedScanNums[0]]['g_l2']]
@@ -4732,6 +4735,9 @@ class MainWindow (QMainWindow):
         
     def g_l3plot(self):
         self.uig_l3.g_l3TextBrowser.clear()
+        if len(self.g_l3alpha)<2:   # two unknowns (offset and length) need at least two scans
+            self.messageBox('Please select at least two scans taken at different incident angles for this calibration.')
+            return
         if self.uig_l3.g_l3centercheckBox.checkState()!=0:
             self.g_l3center=list(map(float, str(self.uig_l3.g_l3CenterLineEdit.text()).split(',')))
         par=[0,self.specPar[self.selectedScanNums[0]]['g_l2']-self.specPar[self.selectedScanNums[0]]['g_l3']]
