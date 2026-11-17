@@ -897,6 +897,11 @@ class MainWindow (QMainWindow):
         self.saveFileName=QFileDialog.getSaveFileName(caption='Save SPEC scans', directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
+        cols=[str(c.currentText()) for c in (self.ui.spXComboBox,self.ui.spYComboBox,self.ui.spNComboBox)]
+        missing=[i for i in self.selectedScanNums if any(c not in self.specData[i] for c in cols)]
+        if missing:   # e.g. the selection changed since the columns were listed
+            self.messageBox('Scan(s) %s have no column %s; select scans with the same columns.' % (listText(missing),', '.join(c for c in cols if any(c not in self.specData[i] for i in missing))))
+            return
         for i in self.selectedScanNums:
             x=self.specData[i][str(self.ui.spXComboBox.currentText())]
             y=self.specData[i][str(self.ui.spYComboBox.currentText())]

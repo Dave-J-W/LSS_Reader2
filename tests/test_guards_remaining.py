@@ -397,3 +397,20 @@ def test_background_factor_field_reloads_pilatus_frames(loaded, qapp, dataset,
         loaded.ui.bgFacLineEdit.returnPressed.emit()
         qapp.processEvents()
         assert recorder.exceptions == [], state
+
+
+def test_spec_export_when_a_selected_scan_lacks_the_column(loaded, qapp, recorder, tmp_path):
+    """Found by the random walk (2026-11-17): the X column was listed for one
+    scan, then a scan without it was added to the selection; Export raised
+    KeyError. Now it says which scan lacks which column and writes nothing."""
+    w = loaded
+    sweep._select_scans(w, qapp, [0])
+    w.ui.spXComboBox.setCurrentIndex(w.ui.spXComboBox.findText('L'))
+    sweep._select_scans(w, qapp, [0, 3])             # scan 4 is a plain sh scan
+    recorder.save_name = str(tmp_path / 'spec')
+    w.ui.spExportPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert any('Scan(s) 4 have no column L' in m for m in recorder.messages)
+    assert not [f for f in os.listdir(str(tmp_path)) if f.startswith('spec_')]
+
