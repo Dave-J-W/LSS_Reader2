@@ -38,7 +38,11 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       window still mirror `lss_core` and are checked by the same fixtures.
 - [x] Fluorescence (MCA window sum) scriptable and shared with the window;
       byte-identical `_flu.txt`; Script pane line on export.
-- [ ] Same for cuts, GID, GISAXS, burn tests, peak fits.
+- [ ] Cuts scriptable: waits for the owner's answer on PHYSICS_ISSUES P23
+      (cuts are not monitor-normalised).
+- [ ] GID and GISAXS scriptable: part of the GID sub-project (F23), which
+      the owner wants scoped separately.
+- [ ] Burn tests and peak fits scriptable.
 - [x] Script pane (F48, first part): opening a SPEC file and exporting a
       patched reflectivity write the equivalent `lss_core` Python, which
       reproduces the exported files byte for byte (tested), including merges,
