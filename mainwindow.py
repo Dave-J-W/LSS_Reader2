@@ -35,6 +35,16 @@ import reader_log
 
 (Ui_MainWindow, QMainWindow) = uic.loadUiType('mainwindow.ui')
 
+
+def listText(values):
+    """'1, 2, 3' for a sequence of numbers, whatever their type.
+
+    str(list) of NumPy 2 scalars reads 'np.int64(1), np.int64(2)'; this is
+    the one place where scan and frame lists are turned into text for
+    titles, the command line and file headers.
+    """
+    return ', '.join(str(v.item() if hasattr(v, 'item') else v) for v in values)
+
 class DoubleValidator(QDoubleValidator):
     def __init__(self, parent, bottom=0):
         QDoubleValidator.__init__(self, parent, bottom=bottom)
@@ -690,7 +700,7 @@ class MainWindow (QMainWindow):
         self.selectedScans=self.ui.scanListWidget.selectedItems()
         #self.selectedScanNums=[self.ui.scanListWidget.row(items) for items in self.selectedScans]
         self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
-        self.ui.scansLineEdit.setText(str([item for item in self.selectedScanNums])[1:-1])
+        self.ui.scansLineEdit.setText(listText(self.selectedScanNums))
         if self.checkSameScans()==False or self.selectedScanNums==[]:
             self.messageBox('Error:: The scans are not identical or some scans have no data!!')
             # self.disconnect(self.ui.scanListWidget, SIGNAL('itemSelectionChanged()'),self.scanListChanged)
@@ -797,7 +807,7 @@ class MainWindow (QMainWindow):
         self.ui.PlotWidget.setCurrentIndex(0)
         self.specData['YCol']=str(self.ui.spYComboBox.currentText())
         self.specData['NCol']=str(self.ui.spNComboBox.currentText())
-        title='File: '+self.specFileName+' S# '+str([item for item in np.sort(self.selectedScanNums)])[1:-1]
+        title='File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums))
         if self.checkSameScans()==False:
             self.ui.statusBar.showMessage('Error:: The scans are not identical or some scans have no data!!')
         else:
@@ -1166,7 +1176,7 @@ class MainWindow (QMainWindow):
                     string='%.4f'%energy+'\t'+'%.4e'%inten+'\t'+'%.4e'%error
                 self.ui.mcaDataListWidget.addItem(string)
             self.updateMcaIntPlot()
-            self.command='Flu Sum, scans=['+str([item for item in np.sort(self.selectedScanNums)])[1:-1]+'], energy range=['+str(ini)+':'+str(fin)+']'
+            self.command='Flu Sum, scans=['+listText(np.sort(self.selectedScanNums))+'], energy range=['+str(ini)+':'+str(fin)+']'
             self.ui.commandLineEdit.setText(self.command)
         except:
             self.messageBox('Please input the proper sum range in the format of "min:max"!')
@@ -2118,7 +2128,7 @@ class MainWindow (QMainWindow):
                     ax.autoscale(False)
                     ax.plot([pilXCen[i],pilXCen[i]], [pilYMin[i],pilYMax[i]], 'w--', linewidth=2.0)
                     self.ui.pilMplWidget.canvas.fig.colorbar(p)
-                    self.ui.pilMplWidget.canvas.fig.suptitle('File: '+self.specFileName+' S# '+str([item for item in np.sort(self.selectedScanNums)])[1:-1])
+                    self.ui.pilMplWidget.canvas.fig.suptitle('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
                     self.ui.pilMplWidget.canvas.fig.tight_layout()
                     self.ui.pilMplWidget.canvas.fig.subplots_adjust(top=0.9)
                     self.ui.pilMplWidget.canvas.draw()
@@ -2171,7 +2181,7 @@ class MainWindow (QMainWindow):
                         ax[i].format_coord=self.format_pil_coord
                         self.ui.pilMplWidget.canvas.fig.colorbar(p,format="%.1e")
                         num=num+1
-                self.ui.pilMplWidget.canvas.fig.suptitle('File: '+self.specFileName+' S# '+str([item for item in np.sort(self.selectedScanNums)])[1:-1])
+                self.ui.pilMplWidget.canvas.fig.suptitle('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
                 self.ui.pilMplWidget.canvas.fig.tight_layout()
                 self.ui.pilMplWidget.canvas.fig.subplots_adjust(top=0.9)
               # self.ui.pilMplWidget.canvas.fig.subplots_adjust(left=0)
@@ -2287,9 +2297,9 @@ class MainWindow (QMainWindow):
         self.uipdgioxs.plotWidget.canvas.ax.set_yscale('log')
         self.uipdgioxs.plotWidget.canvas.ax.set_xlabel(r'$Q_z$'+' '+r'$[\AA^{-1}]$')
         self.uipdgioxs.plotWidget.canvas.ax.set_ylabel('Intensity')
-        self.uipdgioxs.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+str([item for item in np.sort(self.selectedScanNums)])[1:-1]+'\nbg S# '+str([item for item in np.unique(np.sort(self.selectedBgScanNum))])[1:-1])
+        self.uipdgioxs.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums))+'\nbg S# '+listText(np.unique(np.sort(self.selectedBgScanNum))))
         self.uipdgioxs.plotWidget.canvas.draw()
-        self.command='GIOXS, singal scans=['+str([item for item in np.sort(self.selectedScanNums)])[1:-1]+'], bg scans=['+str([item for item in np.unique(np.sort(self.selectedBgScanNum))])[1:-1]+'], ave_frames='+str(aveframe)+', ave_points='+str(avepoint)
+        self.command='GIOXS, singal scans=['+listText(np.sort(self.selectedScanNums))+'], bg scans=['+listText(np.unique(np.sort(self.selectedBgScanNum)))+'], ave_frames='+str(aveframe)+', ave_points='+str(avepoint)
         self.ui.commandLineEdit.setText(self.command)                
         
     def pilGioxsSub(self, data1, data2): #for Gioxs 1d data substration
@@ -2386,7 +2396,7 @@ class MainWindow (QMainWindow):
                 self.uipdburn.plotWidget.canvas.ax.plot(x,self.expdecay(x,pfit[0],pfit[1]),'r--',label=r'$\tau$'+' = '+str(format(tau,'.1e'))+' ('+str(format(tauerr,'.1e'))+') sec.')
                 self.uipdburn.plotWidget.canvas.ax.legend(loc=1,frameon=False,scatterpoints=0,numpoints=1)
                 self.uipdburn.plotWidget.canvas.ax.set_xlim(x[0],x[-1])
-                self.uipdburn.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+str([item for item in np.sort(self.selectedScanNums)])[1:-1])
+                self.uipdburn.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
                 self.uipdburn.plotWidget.canvas.draw()
                 self.command='REF Burn, scan='+str(self.selectedScanNums)
                 self.ui.commandLineEdit.setText(self.command)
@@ -2459,7 +2469,7 @@ class MainWindow (QMainWindow):
                         self.uipdburn.plotWidget.canvas.ax.plot(x,self.expdecay(x,pfit[0],pfit[1]),'r--',label=r'$\tau$'+' = '+str(format(tau,'.1e'))+' ('+str(format(tauerr,'.1e'))+') sec.')
                         self.uipdburn.plotWidget.canvas.ax.legend(loc=1,frameon=False,scatterpoints=0,numpoints=1)
                     self.uipdburn.plotWidget.canvas.ax.set_xlim(x[0],x[-1])
-                    self.uipdburn.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+str([item for item in np.sort(self.selectedScanNums)])[1:-1])
+                    self.uipdburn.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
                     self.uipdburn.plotWidget.canvas.draw()
                     self.command='GID Burn, scan='+str(self.selectedScanNums)+', Qz range=['+str(self.uipdburn.rangeLineEdit.text())+'], mode='+str(self.uipdburn.gidComboBox.currentText())
                     self.ui.commandLineEdit.setText(self.command)
@@ -3041,7 +3051,7 @@ class MainWindow (QMainWindow):
         #self.gidax_vc.xaxis.set_ticks(np.linspace(float(format(self.gid_vc[0][:,0][0],'.2g')),float(format(self.gid_vc[0][:,0][-1],'.2g')),3))
         #self.gidax_v.locator_params(axis = 'x', nbins = 4)
         self.gidax_vc.locator_params(axis = 'x', nbins = 4)
-        self.ui.pilMplWidget.canvas.fig.suptitle('File: '+self.specFileName+' S# '+str([item for item in np.sort(self.selectedScanNums)])[1:-1])
+        self.ui.pilMplWidget.canvas.fig.suptitle('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
         temp2d=make_axes_locatable(self.gidax)
         cax2d=temp2d.append_axes("right", size="5%",pad=0.05,)
         #cax2d = self.ui.pilMplWidget.canvas.fig.add_axes([0.565, 0.475, 0.008, 0.425]) 
@@ -3050,7 +3060,7 @@ class MainWindow (QMainWindow):
         self.ui.pilMplWidget.canvas.fig.tight_layout()
         self.ui.pilMplWidget.canvas.fig.subplots_adjust(top=0.9)
         self.ui.pilMplWidget.canvas.draw()
-        self.command=str(self.ui.gidComboBox.currentText())+', scans=['+str([item for item in np.sort(self.selectedScanNums)])[1:-1]+'], sli=['+self.ui.pilHSlitLineEdit.text()+'], /'+self.ui.pilAxesComboBox.currentText()
+        self.command=str(self.ui.gidComboBox.currentText())+', scans=['+listText(np.sort(self.selectedScanNums))+'], sli=['+self.ui.pilHSlitLineEdit.text()+'], /'+self.ui.pilAxesComboBox.currentText()
         self.ui.commandLineEdit.setText(self.command)
         
     def saveGIDData(self):
@@ -3778,7 +3788,7 @@ class MainWindow (QMainWindow):
         self.slit=[slitx,slity]        
         self.dir=str(self.ui.refBGDirComboBox.currentText()) #get the background offset direction
         bg=float(self.ui.refBGOffLineEdit.text())  #get the background offset
-        self.command='Ref Patch, scans=['+str([item for item in np.sort(self.selectedScanNums)])[1:-1]+'], slits=['+str([item for item in self.slit])[1:-1]+'], bg_angle='+str(bg)+', bg_direction='+str(self.dir)
+        self.command='Ref Patch, scans=['+listText(np.sort(self.selectedScanNums))+'], slits=['+listText(self.slit)+'], bg_angle='+str(bg)+', bg_direction='+str(self.dir)
         self.ui.commandLineEdit.setText(self.command)         #update the command lineedit
         self.scanqzframe={}  #build a dictionary for all scans with their qz ranges and data for sorting the scans.
         self.pilRefPeakCen=[]
@@ -3944,7 +3954,7 @@ class MainWindow (QMainWindow):
             self.uirefpatchsamescan.close()
             self.pilRefPatch()
         else:
-            self.uirefpatchsamescan.Label.setText('Indentical Reflectivity Scans: '+str([item for item in np.sort(self.pilrefsamescannum[self.pilrefsamescanorder])])[1:-1])
+            self.uirefpatchsamescan.Label.setText('Indentical Reflectivity Scans: '+listText(np.sort(self.pilrefsamescannum[self.pilrefsamescanorder])))
             if self.pilrefsamescanorder==len(self.pilrefsamescannum)-1:
                 self.uirefpatchsamescan.nextPushButton.setText('Finish!') 
             self.uirefpatchsamescan.plotWidget.canvas.ax.clear()
@@ -4272,7 +4282,7 @@ class MainWindow (QMainWindow):
         if self.ui.refLegendCheckBox.checkState()!=0:
             self.ui.refRefDataPlotwidget.canvas.ax.legend(loc=self.ui.refLegendLocComboBox.currentIndex()+1,frameon=False,scatterpoints=0,numpoints=1)
         try:
-            self.ui.refRefDataPlotwidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+str([item for item in np.sort(self.selectedScanNums)])[1:-1])
+            self.ui.refRefDataPlotwidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
         except:
             pass
         self.ui.refRefDataPlotwidget.canvas.draw()
@@ -4572,7 +4582,7 @@ class MainWindow (QMainWindow):
         self.ui.cutPlotMplWidget.canvas.ax.set_yscale('linear')
         self.ui.cutPlotMplWidget.canvas.ax.set_ylabel('Intensity')
         self.ui.cutPlotMplWidget.canvas.ax.grid(visible=False)
-        title='File: '+self.specFileName+' S# '+str([item for item in np.sort(self.selectedScanNums)])[1:-1]
+        title='File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums))
         if self.det=='Pilatus':
             currentcutindex=self.ui.pilCutDirComboBox.currentIndex()
             cutrange=str(self.ui.pilIntRangeLineEdit.text())

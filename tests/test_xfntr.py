@@ -126,10 +126,6 @@ def test_export_against_qz_is_byte_identical(xf, qapp, recorder, tmp_path):
     assert got[:, 1] == pytest.approx(np.array(w.mcaIntData)[:, 3])
 
 
-@pytest.mark.xfail(strict=True, reason='NumPy 2 prints scalars as '
-                   '"np.int64(1)"; scan lists built with str([...]) of NumPy '
-                   'integers now read that way in the export header, the '
-                   'command line and plot titles')
 def test_scan_numbers_are_written_as_plain_integers(xf, qapp, recorder,
                                                     tmp_path):
     w, truth = xf
