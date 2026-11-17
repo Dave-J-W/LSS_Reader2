@@ -122,7 +122,7 @@ class specread:
                         if tmppar[1]=='tif\n':
                             self.Par[num]['Detector']='Pilatus'
                         elif tmppar[1]=='sfrm\n':
-                            self.Par[num]['Detector']='Bruker'
+                            self.Par[num]['Detector']='Unsupported'   # Bruker CCD (.sfrm) images: no longer supported
                     if line[:3]=='#B1':
                         try:
                             tmppar=list(map(eval, line[3:].split()))

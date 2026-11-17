@@ -13,19 +13,12 @@ class TwoDDetector:
         """Area Detector Image Reader using Python"""
         self.path=None
         #pylab.rc('text', usetex=True)
-        #Bruker Detector Constants#
-        #-------------------------#
-        
         if det=='Pilatus':
             self.pix_size=0.172
             #self.hroi=[0,194]
             #self.vroi=[0,486]
-        elif det=='Bruker':
-            self.pix_size=0.060
-            self.hroi=[0,1023]
-            self.vroi=[0,1023]
-            self.bruk_a=0.1 
-            self.bruk_b=200.0
+        else:
+            raise ValueError('unsupported detector '+repr(det))
         self.det=det
 
     def imageDir(self, path):
@@ -58,86 +51,6 @@ class TwoDDetector:
             self.vroi=[0, self.NROWS-1]
            # print self.NCOLS, self.NROWS
            # print self.hroi, self.vroi
-        elif self.det=='Bruker':
-            # Reading Bruker Image File #
-            try:
-                if self.path!=None:
-                    self.fid=open(self.path+'/'+fname, 'rb')
-                else:
-                    self.fid=open(fname, 'rb')
-            except:
-                print  ('The File '+str(fname)+' or Path '+str(self.path)+' doesnot exist!')
-                return -1
-            self.imageHeader={}
-            for i in range(0,96):
-                self.fid.seek(i*80)
-                head=self.fid.read(7).split()
-                self.fid.seek(i*80+8)
-                self.imageHeader[head[0]]=self.fid.read(72).split()
-            self.NROWS=eval(self.imageHeader['NROWS'][0])
-            self.NCOLS=eval(self.imageHeader['NCOLS'][0])
-            self.HDRBLKS=eval(self.imageHeader['HDRBLKS'][0])
-            self.NCOUNTS=eval(self.imageHeader['NCOUNTS'][0])
-            self.fid.seek(self.HDRBLKS*512)
-            self.NPIXELB=np.array([eval(self.imageHeader['NPIXELB'][0]), eval(self.imageHeader['NPIXELB'][1])])
-            self.NOVERFL=np.array([eval(self.imageHeader['NOVERFL'][0]), eval(self.imageHeader['NOVERFL'][1]), eval(self.imageHeader['NOVERFL'][2])])
-            dt=array.array('B')
-            dt.fromfile(self.fid, self.NROWS*self.NCOLS )
-            dt=np.array(dt, dtype=float)
-            self.imageData=np.reshape(dt,(self.NROWS,self.NCOLS))
-            self.uOFData=None
-            self.twoOFData=None
-            self.fourOFData=None
-            self.pointer=self.HDRBLKS*512+self.NROWS*self.NCOLS
-            self.fid.seek(self.pointer)
-            #Correcting with underflow data#
-            #-------------------------------------------------------------#
-            if self.NOVERFL[0]>0:
-                self.uOF=np.nonzero(self.imageData==0)
-                i=16
-                while i<self.NOVERFL[0]:
-                    i=i+16
-                self.uOFData=array.array('b')
-                self.uOFData.fromfile(self.fid, self.NOVERFL[0])
-                self.pointer=self.pointer+i
-                self.fid.seek(self.pointer)
-                for j in range(self.NOVERFL[0]):
-                    self.imageData[self.uOF[0][j], self.uOF[1][j]]=self.uOFData[j]-32
-            #Correcting with two bytes overflow data#
-            #-------------------------------------------------------------#
-            if self.NOVERFL[1]>0:
-                self.twoOF=np.nonzero(self.imageData==2**8-1)
-                i=16
-                while i<self.NOVERFL[1]:
-                   i=i+16
-                self.twoOFData=array.array('H')
-                self.twoOFData.fromfile(self.fid, self.NOVERFL[1])
-                self.pointer=self.pointer+i
-                self.fid.seek(self.pointer)
-                self.twoOFData=np.array(self.twoOFData,  dtype=float)
-                for j in range(self.NOVERFL[1]):
-                    self.imageData[self.twoOF[0][j], self.twoOF[1][j]]=self.twoOFData[j]
-            #Correcting with four bytes overflow data#
-            #------------------------------------------------------------#
-            if self.NOVERFL[2]>0:
-                self.fourOF=np.nonzero(self.imageData==2**16-1)
-                i=16
-                while i<self.NOVERFL[2]:
-                   i=i+16
-                self.fourOFData=array.array('l')
-                self.fourOFData.fromfile(self.fid, self.NOVERFL[2])
-                self.fourOFData=np.array(self.fourOFData,  dtype=float)
-                for j in range(self.NOVERFL[2]):
-                    self.imageData[self.fourOF[0][j], self.fourOF[1][j]]=self.fourOFData[j]
-            if self.NOVERFL[0]>0:
-                self.imageData=self.imageData+32
-            if np.sum(self.imageData)!=self.NCOUNTS:
-                print ('Warning::: '+fname+' is not read properly!!')
-            self.imageData=np.where(self.imageData-32<=0,0,self.imageData-32)
-            self.imageData=self.removeBadPix(self.imageData,iteration=bad_pix)
-            self.errorData=np.sqrt(self.bruk_a*self.imageData*(1 + self.bruk_b + self.imageData/(self.bruk_a*self.bruk_b)))            
-            self.extraImageInfo()
-            return 1
             
     def removeBadPix(self,data,iteration=1,factor=1):
         """
@@ -191,13 +104,6 @@ class TwoDDetector:
             self.errorData=errorData
         
             
-    def extraImageInfo(self):
-        """Keeps the extra info about the CCD images from the header section"""
-        self.NCOUNTS=np.array([eval(self.imageHeader['NCOUNTS'][0]), eval(self.imageHeader['NCOUNTS'][1])])
-        self.MINIMUM=eval(self.imageHeader['MINIMUM'][0])
-        self.MAXIMUM=eval(self.imageHeader['MAXIMUM'][0])
-        self.NOVER64=np.array([eval(self.imageHeader['NOVER64'][0]), eval(self.imageHeader['NOVER64'][1]), eval(self.imageHeader['NOVER64'][2])])
-
     def plotImage(self, data, errordata, absfac=1,absnum=None,  hroi=None,  vroi=None,  cen=None,  alpha=None,  s2d_dist=None, ax_type='pix', wavelength=None, min=0, max=None, cmap='gray',log=0,sh=None,fsize=16,interpolation='nearest',mon=None):
         """Plots the CCD image with give Horizontal and Vertical Region of Interests given by hroi and vroi respectively in pixels"""
         if hroi==None:
@@ -259,12 +165,6 @@ class TwoDDetector:
             elif ax_type=='Q':
                 y1=np.arctan((np.arange(vroi[0]-cen[1], vroi[1]-cen[1]+1)*self.pix_size)/s2d_dist)
                 y=(np.sin(y1+np.arcsin(2*np.sin(alpha)-np.sin(truealpha)))+np.sin(truealpha))*2*pylab.pi/wavelength
-        elif self.det=='Bruker':
-            if ax_type=='Angles':
-                y=(-np.arange(vroi[0]-cen[1], vroi[1]-cen[1]+1)*self.pix_size+sh)*180.0/s2d_dist/np.pi
-            elif ax_type=='Q':
-                y=(-np.arange(vroi[0]-cen[1], vroi[1]-cen[1]+1)*self.pix_size-sh)/s2d_dist
-                y=(pylab.sin(y)+pylab.sin(alpha))*2*pylab.pi/wavelength 
         self.hintData=np.vstack((y, hint, hinterr)).transpose()
 
     def plotVint(self, data, errordata, absfac=1,absnum=None,  hroi=None,  vroi=None, alpha=None,dth=None, sh=None, wavelength=None, pix_size=0.172,cen=None, s2d_dist=None,ax_type='Pixels', mon=None):
@@ -287,12 +187,6 @@ class TwoDDetector:
             elif ax_type=='Q':
                 x=dth+np.arctan(np.arange(hroi[0]-cen[0], hroi[1]-cen[0]+1)*self.pix_size/s2d_dist)
                 x=pylab.sin(x/2)*4*pylab.pi/wavelength
-        elif self.det=='Bruker':
-            if ax_type=='Angles':
-                x=np.arange(hroi[0]-cen[0], hroi[1]-cen[0]+1)*self.pix_size*180.0/s2d_dist/np.pi
-            elif ax_type=='Q':
-                x=np.arange(hroi[0]-cen[0], hroi[1]-cen[0]+1)
-                x=pylab.sin(x*self.pix_size/s2d_dist)*2*pylab.pi/wavelength
         self.vintData=np.vstack((x,vint,vinterr)).transpose()
 
 

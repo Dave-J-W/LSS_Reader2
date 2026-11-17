@@ -126,7 +126,7 @@ def test_control_does_not_raise(qapp, recorder, dataset, tmp_path, state, contro
 
 
 NEEDS_SOMETHING = [
-    'gixRefPushButton', 'pilRefPushButton', 'pilRefPatchPushButton',
+    'pilRefPushButton', 'pilRefPatchPushButton',   # gix* buttons: hidden CCD tab, removed
     'refAnalyzePushButton', 'refAnalyzeAllPushButton', 'refAcceptPushButton',
     'refExportPushButton',
 ]

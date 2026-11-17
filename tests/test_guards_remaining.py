@@ -199,7 +199,7 @@ def _fresh(qapp, tmp_path):
 
 
 EXPLICIT_BUTTONS = [
-    'gixLineAreaPushButton', 'pilLineAreaPushButton', 'cutExportPushButton',
+    'pilLineAreaPushButton', 'cutExportPushButton',   # gix* buttons: hidden CCD tab, removed
     'mcaFitPushButton', 'mcaAcceptPushButton', 'pilBurnPushButton',
     'pilMoviePushButton', 'backgroundPushButton', 'spExportPushButton',
 ]

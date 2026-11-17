@@ -89,11 +89,10 @@ class MainWindow (QMainWindow):
         QMainWindow.__init__(self, parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        self.ui.PlotWidget.setTabVisible(1, False)   # the Apex (CCD) tab: that detector is defunct
         self.pilatus=TwoDDetector('Pilatus')
-        self.bruker=TwoDDetector('Bruker')
         np.seterr(invalid='ignore',divide='ignore')
         self.mcaDirName='vortex'
-        self.ccdDirName='apex'
         self.pilDirName='pilatus'
         self.beamline='APS-15IDC'
         self.specData={}
@@ -102,7 +101,7 @@ class MainWindow (QMainWindow):
         self.endScanNum=0
         self.refData=[]
         self.refInfo=[]
-        self.det=None   #set to 'Bruker' or 'Pilatus' once images are loaded
+        self.det=None   #set to 'Pilatus' once images are loaded
         self.refQzSelectedItems=[]
         self.reffnames=[]
         self.mcaIntData=[]
@@ -226,38 +225,18 @@ class MainWindow (QMainWindow):
         self.ui.mcaRanLineEdit.returnPressed.connect(self.updateMCAPlotVline)
      #    self.connect(self.ui.gixSumCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
         self.ui.gixSumCheckBox.stateChanged.connect(self.update2dPlots)
-     #    self.connect(self.ui.gixBPCfacLineEdit,SIGNAL('returnPressed()'),self.imageSelectedScanChanged)
-        self.ui.gixBPCfacLineEdit.returnPressed.connect(self.imageSelectedScanChanged)
      #   self.connect(self.ui.pilBPCiteSpinBox, SIGNAL('valueChanged(int)'), self.imageSelectedScanChanged)
         self.ui.pilBPCiteSpinBox.valueChanged.connect(self.imageSelectedScanChanged)
      #   self.connect(self.ui.pilBPCfacSpinBox, SIGNAL('valueChanged(int)'), self.imageSelectedScanChanged)
         self.ui.pilBPCfacSpinBox.valueChanged.connect(self.imageSelectedScanChanged)
      #    self.connect(self.ui.pilPinholeCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
         self.ui.pilPinholeCheckBox.stateChanged.connect(self.update2dPlots)
-     #    self.connect(self.ui.gixLogIntCheckBox, SIGNAL('stateChanged(int)'),self.update2dPlots)
-        self.ui.gixLogIntCheckBox.stateChanged.connect(self.update2dPlots)
      #    self.connect(self.ui.pilLogIntCheckBox, SIGNAL('stateChanged(int)'),self.update2dPlots)
         self.ui.pilLogIntCheckBox.stateChanged.connect(self.update2dPlots)
      #    self.connect(self.ui.imageSelectAllCheckBox, SIGNAL('clicked()'),self.selectAllImages)
         self.ui.imageSelectAllCheckBox.clicked.connect(self.selectAllImages)
      #    self.connect(self.ui.imageListWidget, SIGNAL('clicked(QModelIndex)'),self.unSelectedAllImages)
         self.ui.imageListWidget.clicked.connect(self.unSelectedAllImages)
-     #    self.connect(self.ui.gixSpecCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
-        self.ui.gixSpecCheckBox.stateChanged.connect(self.update2dPlots)
-     #    self.connect(self.ui.gixCcd_OffLineEdit,SIGNAL('returnPressed()'),self.update2dPlots)
-        self.ui.gixCcd_OffLineEdit.returnPressed.connect(self.update2dPlots)
-     #    self.connect(self.ui.gixCMapComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
-        self.ui.gixCMapComboBox.currentIndexChanged.connect(self.update2dPlots)
-     #    self.connect(self.ui.gixMinLineEdit, SIGNAL('returnPressed()'),self.update2dPlots)
-        self.ui.gixMinLineEdit.returnPressed.connect(self.update2dPlots)
-     #    self.connect(self.ui.gixMaxLineEdit, SIGNAL('returnPressed()'),self.update2dPlots)
-        self.ui.gixMaxLineEdit.returnPressed.connect(self.update2dPlots)
-     #    self.connect(self.ui.gixAxesComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
-        self.ui.gixAxesComboBox.currentIndexChanged.connect(self.update2dPlots)
-     #    self.connect(self.ui.gixMinHorizontalSlider, SIGNAL('sliderReleased()'),self.updateMinSlider)
-        self.ui.gixMinHorizontalSlider.sliderReleased.connect(self.updateMinSlider)
-     #    self.connect(self.ui.gixMaxHorizontalSlider, SIGNAL('sliderReleased()'),self.updateMaxSlider)
-        self.ui.gixMaxHorizontalSlider.sliderReleased.connect(self.updateMaxSlider)
      #    self.connect(self.ui.pilSpecCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
         self.ui.pilSpecCheckBox.stateChanged.connect(self.update2dPlots)
      #    self.connect(self.ui.pilCMapComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
@@ -272,16 +251,10 @@ class MainWindow (QMainWindow):
         self.ui.pilMinHorizontalSlider.sliderReleased.connect(self.updatePilMinSlider)
      #    self.connect(self.ui.pilMaxHorizontalSlider, SIGNAL('sliderReleased()'),sel.updatePilMaxSlider)
         self.ui.pilMaxHorizontalSlider.sliderReleased.connect(self.updatePilMaxSlider)
-     #    self.connect(self.ui.gixRefPushButton,SIGNAL('clicked()'),self.refPlotWin)
-        self.ui.gixRefPushButton.clicked.connect(self.refPlotWin)
      #    self.connect(self.ui.pilRefPushButton,SIGNAL('clicked()'),self.refPlotWin)
         self.ui.pilRefPushButton.clicked.connect(self.refPlotWin)
      #    self.connect(self.ui.pilRefPatchPushButton,SIGNAL('clicked()'),self.pilRefPatchData)
         self.ui.pilRefPatchPushButton.clicked.connect(self.pilRefPatchData)
-     #    self.connect(self.ui.gixDBPosLineEdit,SIGNAL('returnPressed()'),self.update2dPlots)
-        self.ui.gixDBPosLineEdit.returnPressed.connect(self.update2dPlots)
-     #    self.connect(self.ui.gixSDDistLineEdit,SIGNAL('returnPressed()'),self.update2dPlots)
-        self.ui.gixSDDistLineEdit.returnPressed.connect(self.update2dPlots)
      #    self.connect(self.ui.refSlitLineEdit,SIGNAL('returnPressed()'),self.refQzListSelectionChanged)
         self.ui.refSlitLineEdit.returnPressed.connect(self.refQzListSelectionChanged)
      #    self.connect(self.ui.refBGOffLineEdit,SIGNAL('returnPressed()'),self.refQzListSelectionChanged)
@@ -331,16 +304,10 @@ class MainWindow (QMainWindow):
      #    #self.connect(self.ui.refCenCheckBox, SIGNAL('stateChanged(int)'),)
      #    self.connect(self.ui.refCenLineEdit, SIGNAL('returnPressed()'), self.refAnalyze)
         self.ui.refCenLineEdit.returnPressed.connect(self.refAnalyzeFromField)
-     #    self.connect(self.ui.gixLineAreaPushButton, SIGNAL('clicked()'), self.updateCutData)
-        self.ui.gixLineAreaPushButton.clicked.connect(self.lineAreaCut)
-     #    self.connect(self.ui.gixIntRangeLineEdit, SIGNAL('returnPressed()'), self.updateCutData)
-        self.ui.gixIntRangeLineEdit.returnPressed.connect(self.updateCutData)
      #    self.connect(self.ui.pilLineAreaPushButton, SIGNAL('clicked()'), self.updateCutData)
         self.ui.pilLineAreaPushButton.clicked.connect(self.lineAreaCut)
      #    self.connect(self.ui.pilIntRangeLineEdit, SIGNAL('returnPressed()'), self.updateCutData)
         self.ui.pilIntRangeLineEdit.returnPressed.connect(self.updateCutData)
-     #    #self.connect(self.ui.gixCutDirComboBox, SIGNAL('currentIndexChanged(int)'), self.updateCutData)
-        self.ui.gixCutDirComboBox.currentIndexChanged.connect(self.updateCutData)
      #    self.connect(self.ui.cutLogXCheckBox, SIGNAL('stateChanged(int)'),self.updateCutPlotData)
         self.ui.cutLogXCheckBox.stateChanged.connect(self.updateCutPlotData)
      #    self.connect(self.ui.cutLogYCheckBox, SIGNAL('stateChanged(int)'),self.updateCutPlotData)
@@ -401,7 +368,6 @@ class MainWindow (QMainWindow):
         self.ui.backgroundListWidget.itemSelectionChanged.connect(self.bgSelectionChanged)
      #    self.connect(self.ui.bgSelectAllCheckBox, SIGNAL('stateChanged(int)'),self.bgSelectAll)
         self.ui.bgSelectAllCheckBox.stateChanged.connect(self.bgSelectAll)
-     #    self.connect(self.ui.bgFacLineEdit, SIGNAL('returnPressed()'),self.ccdSelectedScanChanged)
         self.ui.bgFacLineEdit.returnPressed.connect(self.imageSelectedScanChanged)   # re-read with the new factor, whichever detector
      #    self.connect(self.ui.scanListWidget, SIGNAL('doubleClicked(QModelIndex)'),self.displayScanInfo)
         self.ui.scanListWidget.doubleClicked.connect(self.displayScanInfo)
@@ -680,19 +646,6 @@ class MainWindow (QMainWindow):
                 self.mcafhead=str(self.mcaDir)+'/'+self.specFileName.split('/')[-1]+'_'
                 self.mcaftail='_mca' 
                 print("MCA data Found!!")
-            if np.any([self.specPar[i]['Detector']=='Bruker' for i in scannums]):
-                try:
-                    self.ccdfhead=str(self.ccdDir)+'/'+self.specFileName.split('/')[-1]+'_SCAN-'
-                    self.ccdftail='.sfrm'
-                except:
-                    if QDir(self.directory+'/'+self.ccdDirName).exists()==True:
-                        self.ccdDir=self.directory+'/'+self.ccdDirName
-                    else:
-                        self.messageBox('Warning:: The default CCD directory not found, please choose!!')
-                        self.ccdDir=QFileDialog.getExistingDirectory(caption='Open CCD Directory')
-                    self.ccdfhead=str(self.ccdDir)+'/'+self.specFileName.split('/')[-1]+'_SCAN-'
-                    self.ccdftail='.sfrm'
-                print ("Bruker Images Found!!")
             if np.any([self.specPar[i]['Detector']=='Pilatus' for i in scannums]):
                 if QDir(self.directory+'/'+self.pilDirName).exists()==True:
                     self.pilDir=self.directory+'/'+self.pilDirName
@@ -719,7 +672,6 @@ class MainWindow (QMainWindow):
         refer to its rows are no longer valid. (The detector type and the
         reduced reflectivity are kept; they do not refer to list rows.)"""
         self.selectedPilFramesNums=[]
-        self.selectedCcdFramesNums=[]
         self.selectedMcaScanNums=[]
         self.nomMcaData={}
         self.cutData={}
@@ -812,10 +764,8 @@ class MainWindow (QMainWindow):
                 self.updateMcaImageList()
                 self.ui.imagesLabel.setText('Vortex:')
                 self.ui.PlotWidget.setCurrentIndex(0)
-            if self.specPar[self.selectedScanNums[0]]['Detector']=='Bruker':
-                self.updateCcdImageList()
-                self.ui.PlotWidget.setCurrentIndex(0)
-                self.ui.imagesLabel.setText('Bruker:')
+            if self.specPar[self.selectedScanNums[0]]['Detector']=='Unsupported':
+                self.messageBox('Bruker CCD images (.sfrm) are no longer supported by this reader.')
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Pilatus':
                 self.updatePilImageList()
                 self.ui.PlotWidget.setCurrentIndex(0)
@@ -1516,15 +1466,7 @@ class MainWindow (QMainWindow):
             self.unSelectedAllImages()
                 
     def unSelectedAllImages(self):
-        if self.ui.imageSelectAllCheckBox.checkState()!=0 and self.specPar[self.selectedScanNums[0]]['Detector']=='Bruker':
-            # self.disconnect(self.ui.imageListWidget,SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
-            self.ui.imageListWidget.itemSelectionChanged.disconnect(self.imageSelectedScanChanged)
-            for items in self.selectedCcdFrames:
-                items.setSelected(False)
-            # self.connect(self.ui.imageListWidget,SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
-            self.ui.imageListWidget.itemSelectionChanged.connect(self.imageSelectedScanChanged)
-            self.ui.imageSelectAllCheckBox.setCheckState(0)
-        elif self.ui.imageSelectAllCheckBox.checkState()!=0 and self.specPar[self.selectedScanNums[0]]['Detector']=='Pilatus':
+        if self.ui.imageSelectAllCheckBox.checkState()!=0 and self.specPar[self.selectedScanNums[0]]['Detector']=='Pilatus':
             # self.disconnect(self.ui.imageListWidget,SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
             self.ui.imageListWidget.itemSelectionChanged.disconnect(self.imageSelectedScanChanged)
             for items in self.selectedPilFrames:
@@ -1547,75 +1489,12 @@ class MainWindow (QMainWindow):
         if  self.specPar[self.selectedScanNums[0]]['Detector']=='Vortex':
             self.mcaSelectedScanChanged()
             self.ui.statusBar.showMessage('Done')
-        elif self.specPar[self.selectedScanNums[0]]['Detector']=='Bruker':
-            self.det='Bruker'            
-            self.ccdSelectedScanChanged()
-            self.ui.statusBar.showMessage('Done')
         elif self.specPar[self.selectedScanNums[0]]['Detector']=='Pilatus':
             self.det='Pilatus'
             self.pilSelectedScanChanged()
             self.ui.statusBar.showMessage('Done')
  
         
-    def updateCcdImageList(self):
-        # self.disconnect(self.ui.imageListWidget,SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
-        self.ui.imageListWidget.itemSelectionChanged.disconnect(self.imageSelectedScanChanged)
-        self.ui.statusBar.clearMessage()
-        self.numFrames={}
-        self.ccdFileNames=[]
-        self.ccdFileQzs=[]
-        self.ccdMonc=np.array([])
-        self.ccdX=[]
-        self.ccdY=[]
-        self.ccd_Dist=[]
-        self.ccd_PDist=[]
-        self.ccdAlpha=[]
-        self.ccd_Sh=[]
-        self.ccd_Wavelength=[]
-        self.ccd_Tth=[]
-        self.ccd_Chi=[]
-        self.ccd_Gl2=[]
-        self.ccd_AbsNum=[]
-        self.ccd_Phi=[]
-        self.ccdX_off=[]
-        self.ccdY_off=[]
-        for i in self.selectedScanNums:
-            #self.ui.scanListWidget.setItemSelected(self.ui.scanListWidget.item(i),True)
-            try:
-                self.numFrames[i]=len(self.specData[i][self.specData[i]['ScanVar'][0]])
-                self.ccdMonc=np.append(self.ccdMonc, self.specData[i]['Monc'])
-                fname=self.ccdfhead+str(i)+'_'
-                filelist=sorted(glob.glob(str(fname+'*')))
-                for j in range(self.numFrames[i]):
-                    self.ccdFileNames.append(filelist[j])
-                    fnum=filelist[j].split('_')[-1].split('.')[0].lstrip('0')
-                    if fnum=='':
-                        fnum='0'
-                    #self.ccdFileNames=self.ccdFileNames+[self.ccdfhead+str(i)+'_%04d'%(j,)+self.ccdftail]
-                    self.ui.imageListWidget.addItem('S# '+str(i)+'\tF# '+fnum+'\tQz='+'%.4f'%self.specData[i]['L'][j]+'\tQx='+'%.4f'%self.specData[i]['H'][j]+'\tAbs=%d'%self.specPar[i]['Absorber'])
-                    self.ccdFileQzs.append(self.specData[i]['L'][j])
-                    self.ccdAlpha.append(np.arcsin(self.ccdFileQzs[-1]*self.specPar[i]['Wavelength']/4.0/np.pi))
-                    self.ccdX.append(self.specPar[i]['DBPos'][0])
-                    self.ccd_Wavelength.append(self.specPar[i]['Wavelength'])
-                    self.ccdY.append(self.specPar[i]['DBPos'][1])
-                    self.ccdX_off.append(self.specPar[i]['CCD_X'])
-                    self.ccdY_off.append(self.specPar[i]['CCD_Y'])
-                    self.ccd_Dist.append(self.specPar[i]['S2D_Dist'])
-                    self.ccd_PDist.append(self.specPar[i]['S7D_Dist'])
-                    self.ccd_Sh.append(self.specPar[i]['an_Sam_H'])
-                    self.ccd_Tth.append(self.specPar[i]['Two_Thet'])
-                    self.ccd_Chi.append(self.specPar[i]['Chi'])
-                    self.ccd_Gl2.append(self.specPar[i]['g_l2'])
-                    self.ccd_AbsNum.append(self.specPar[i]['Absorber'])
-                    self.ccd_Phi.append(self.specPar[i]['Phi'])
-            except:
-                self.messageBox('Warning:: #S '+str(i+1)+' has been canceled or no data found.')
-        self.ccdData={}
-        self.ccdLogData={}
-        self.ccdErrorData={}
-        self.connect(self.ui.imageListWidget,SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
-        self.ui.imageListWidget.itemSelectionChanged.disconnect(self.imageSelectedScanChanged)
-
     def updatePilImageList(self):
         # self.disconnect(self.ui.imageListWidget,SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
         self.ui.imageListWidget.itemSelectionChanged.disconnect(self.imageSelectedScanChanged)
@@ -1733,89 +1612,6 @@ class MainWindow (QMainWindow):
         # self.connect(self.ui.imageListWidget,SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
         self.ui.imageListWidget.itemSelectionChanged.connect(self.imageSelectedScanChanged)
 
-    def ccdSelectedScanChanged(self):
-        self.ui.statusBar.clearMessage()
-        self.selectedCcdFrames=self.ui.imageListWidget.selectedItems()
-        bad_pix=int(self.ui.gixBPCfacLineEdit.text())
-        self.selectedCcdFramesNums=[self.ui.imageListWidget.row(items) for items in self.selectedCcdFrames]
-        self.ccdSelectedQzs=[self.ccdFileQzs[i] for i in self.selectedCcdFramesNums]
-        self.ccdSelectedMonc=[self.ccdMonc[i] for i in self.selectedCcdFramesNums]
-        self.ccdSelectedX=[self.ccdX[i] for i in self.selectedCcdFramesNums]   #this is the direct beam x pixel
-        self.ccdSelectedY=[self.ccdY[i] for i in self.selectedCcdFramesNums]   # this is the direct beam y pixel
-        self.ccdSelected_Dist=[self.ccd_Dist[i] for i in self.selectedCcdFramesNums]   # this is the distance btw sample and CCD
-        self.ccdSelected_PDist=[self.ccd_PDist[i] for i in self.selectedCcdFramesNums] # this is the distance between the two slits before the detector. Useful only for pinhole kind of setup
-        self.ccdSelected_Sh=[-self.ccd_Gl2[i]*np.tan(self.ccdAlpha[i]) for i in self.selectedCcdFramesNums]#[self.ccd_Sh[i] for i in self.selectedCcdFramesNums]
-        self.ccdSelectedXoff=[self.ccdX_off[i] for i in self.selectedCcdFramesNums]
-        self.ccdSelectedYoff=[self.ccdY_off[i] for i in self.selectedCcdFramesNums]
-        self.ccdSelected_Alpha=[self.ccdAlpha[i] for i in self.selectedCcdFramesNums]
-        self.ccdSelected_Wavelength=[self.ccd_Wavelength[i] for i in self.selectedCcdFramesNums]
-        self.ccdSelected_Tth=[self.ccd_Tth[i] for i in self.selectedCcdFramesNums]
-        self.ccdSelected_Chi=[self.ccd_Chi[i] for i in self.selectedCcdFramesNums]
-        self.ccdSelected_Gl2=[self.ccd_Gl2[i] for i in self.selectedCcdFramesNums]
-        self.ccdSelected_AbsNum=[self.ccd_AbsNum[i] for i in self.selectedCcdFramesNums]
-        self.ccdSelected_Phi=[self.ccd_Phi[i] for i in self.selectedCcdFramesNums]
-        fac=float(self.ui.bgFacLineEdit.text())
-        j=0
-        self.progressDialog=QProgressDialog('Reading CCD Images','Abort',0,100)
-        self.progressDialog.setWindowModality(Qt.WindowModal)
-        self.progressDialog.setWindowTitle('Wait')
-        self.progressDialog.setAutoClose(True)
-        self.progressDialog.setAutoReset(True)
-        self.progressDialog.setMinimum(1)
-        self.progressDialog.setMaximum(len(self.selectedCcdFramesNums))
-        self.progressDialog.show()
-        for i in self.selectedCcdFramesNums:
-            if len(self.ui.backgroundListWidget.selectedItems())==0:
-                self.bruker.openFile(self.ccdFileNames[i],bad_pix=bad_pix,bad_fac=bad_fac)
-                self.ccdData[i]=self.bruker.imageData
-                self.ccdLogData[i]=np.log10(self.ccdData[i]+1)
-                self.ccdErrorData[i]=self.bruker.errorData
-                self.xyzformat='x=%.3f,y=%.3f,z=%d'
-            else:
-                self.bruker.openFile(self.ccdFileNames[i],bad_pix=bad_pix,bad_fac=bad_fac)
-                self.ccdData[i]=self.bruker.imageData
-                self.ccdErrorData[i]=self.bruker.errorData
-                self.bruker.sumFiles({i:self.ccdData[i]},{i:self.ccdErrorData[i]},absfac=self.absfac,absnum=[self.ccdSelected_AbsNum[j]],mon=[self.ccdSelectedMonc[j]]) # For the Normalization Calculation Only!!
-                self.ccdData[i]=self.bruker.imageData-fac*self.bgData
-                if self.ui.bgIgnoreNegCheckBox.checkState()!=0:
-                    self.ccdData[i]=np.where(self.ccdData[i]<0,0,self.ccdData[i])
-                self.ccdLogData[i]=np.log10(np.where(self.ccdData[i]<=0,1e-10,self.ccdData[i]))
-                self.ccdErrorData[i]=np.sqrt(self.bruker.errorData**2+fac**2*self.bgError**2)
-                j=j+1
-                self.xyzformat='x=%.3f,y=%.3f,z=%.2e'
-            self.progressDialog.setLabelText('Reading CCD Frame #'+str(i))     
-            self.updateProgress()
-            if self.progressDialog.wasCanceled()==True:
-                break
-        self.progressDialog.hide()
-        self.ccdFrameNumsWithSameQz={}
-        self.ccdFrameAbsWithSameQz={}
-        for i in self.selectedCcdFramesNums:
-            if float(format(self.ccdFileQzs[i],'.4f')) in self.ccdFrameNumsWithSameQz:                
-                self.ccdFrameNumsWithSameQz[float(format(self.ccdFileQzs[i],'.4f'))].append(i)
-                self.ccdFrameAbsWithSameQz[float(format(self.ccdFileQzs[i],'.4f'))].append(self.ccd_AbsNum[i])
-            else:
-                self.ccdFrameNumsWithSameQz[float(format(self.ccdFileQzs[i],'.4f'))]=[i]
-                self.ccdFrameAbsWithSameQz[float(format(self.ccdFileQzs[i],'.4f'))]=[self.ccd_AbsNum[i]]
-        try:
-            self.imageMax=np.max(self.ccdData[self.selectedCcdFramesNums[0]])
-            #self.imageMin=np.max([1e-10,np.min(self.ccdData[self.selectedCcdFramesNums[0]])])
-            self.imageMin=np.min(self.ccdData[self.selectedCcdFramesNums[0]][np.nonzero(self.ccdData[self.selectedCcdFramesNums[0]])])
-        except:
-            self.imageMax=100
-            self.imageMin=0
-        self.ui.gixMaxLineEdit.setText(str(self.imageMax))
-        self.ui.gixMinLineEdit.setText(str(self.imageMin))
-        self.ui.gixMinHorizontalSlider.setRange(0, 100)
-        self.ui.gixMaxHorizontalSlider.setRange(0, 100)
-        self.ui.gixMinHorizontalSlider.setValue(0)
-        self.ui.gixMaxHorizontalSlider.setValue(100)
-#        try:
-        self.ui.PlotWidget.setCurrentIndex(1)
-        self.updateCcdPlotData()
-#        except:
-#            self.messageBox('Warning:: Some scans maybe missing')
-            
     def pilSelectedScanChanged(self):
         self.pilmovieindex=0
         #        self.disconnect=(self.ui.gidComboBox, SIGNAL('currentIndexChanged(int)'), self.pilGID)
@@ -1833,9 +1629,7 @@ class MainWindow (QMainWindow):
         self.pilSelectedY=[self.pilY[i] for i in self.selectedPilFramesNums]   # this is the direct beam y pixel
         self.pilSelected_Dist=[self.pil_Dist[i] for i in self.selectedPilFramesNums]   # this is the distance btw sample and Pilatus
         self.pilSelected_PDist=[self.pil_PDist[i] for i in self.selectedPilFramesNums] # this is the distance between the two slits before the detector. Useful only for pinhole kind of setup
-        self.pilSelected_Sh=[-self.pil_Gl2[i]*np.tan(self.pilAlpha[i]) for i in self.selectedPilFramesNums]#[self.ccd_Sh[i] for i in self.selectedCcdFramesNums]
-#        self.ccdSelectedXoff=[self.ccdX_off[i] for i in self.selectedCcdFramesNums]
-#        self.ccdSelectedYoff=[self.ccdY_off[i] for i in self.selectedCcdFramesNums]
+        self.pilSelected_Sh=[-self.pil_Gl2[i]*np.tan(self.pilAlpha[i]) for i in self.selectedPilFramesNums]
         self.pilSelected_Alpha=[self.pilAlpha[i] for i in self.selectedPilFramesNums]
         self.pilSelected_TrueAlpha=[self.pilTrueAlpha[i] for i in self.selectedPilFramesNums]
         self.pilSelected_Wavelength=[self.pil_Wavelength[i] for i in self.selectedPilFramesNums]
@@ -1913,19 +1707,10 @@ class MainWindow (QMainWindow):
 #        except:
 #            self.messageBox('Warning:: Some scans maybe missing')
             
-    def updateMaxSlider(self):
-        self.ui.gixMaxLineEdit.setText(str(self.ui.gixMaxHorizontalSlider.value()*(self.imageMax-self.imageMin)/100.0))
-        self.ui.gixMinHorizontalSlider.setMaximum(int(float(self.ui.gixMaxLineEdit.text())*100.0/(self.imageMax-self.imageMin)))
-        self.updateCcdPlotData()
-        
     def updatePilMaxSlider(self):
         self.ui.pilMaxLineEdit.setText(str(self.ui.pilMaxHorizontalSlider.value()*(self.imageMax-self.imageMin)/100.0))
         self.ui.pilMinHorizontalSlider.setMaximum(int(float(self.ui.pilMaxLineEdit.text())*100.0/(self.imageMax-self.imageMin)))
         self.updatePilPlotData()
-        
-    def updateMinSlider(self):
-        self.ui.gixMinLineEdit.setText(str(self.ui.gixMinHorizontalSlider.value()*(self.imageMax-self.imageMin)/100.0))
-        self.updateCcdPlotData()
         
     def updatePilMinSlider(self):
         self.ui.pilMinLineEdit.setText(str(self.ui.pilMinHorizontalSlider.value()*(self.imageMax-self.imageMin)/100.0))
@@ -1938,8 +1723,6 @@ class MainWindow (QMainWindow):
         self.ui.backgroundListWidget.clear()
         for item in self.ui.imageListWidget.selectedItems():
             self.ui.backgroundListWidget.addItem(item.text())
-        self.bgccdData={}
-        self.bgccdErrorData={}
         self.bgpilData={}
         self.bgpilErrorData={}
         self.bgMonc={}
@@ -1950,14 +1733,7 @@ class MainWindow (QMainWindow):
         self.bgAlpha={}
         self.bgTrueAlpha={}
         j=0
-        if self.det=='Bruker':
-            for i in self.selectedCcdFramesNums:
-                self.bgccdData[j]=self.ccdData[i]
-                self.bgccdErrorData[j]=self.ccdErrorData[i]
-                self.bgMonc[j]=self.ccdSelectedMonc[j]
-                self.bgAbsNum[j]=self.ccdSelected_AbsNum[j]
-                j=j+1
-        elif self.det=='Pilatus':
+        if self.det=='Pilatus':
             for i in self.selectedPilFramesNums:
                 self.bgpilData[j]=self.pilData[i]
                 self.bgpilErrorData[j]=self.pilErrorData[i]
@@ -2001,16 +1777,7 @@ class MainWindow (QMainWindow):
         self.selectedBgAlpha=[]
         self.selectedBgTrueAlpha=[]
         
-        if self.det=='Bruker':
-            for i in self.selectedBgFrameNums:
-                self.selectedBgData[i]=self.bgccdData[i]
-                self.selectedBgError[i]=self.bgccdErrorData[i]
-                self.selectedBgMonc.append(self.bgMonc[i])
-                self.selectedBgAbsNum.append(self.bgAbsNum[i])
-                self.bruker.sumFiles(self.selectedBgData,self.selectedBgError,absfac=self.absfac,absnum=self.selectedBgAbsNum,mon=self.selectedBgMonc)
-                self.bgData=self.bruker.imageData
-                self.bgError=self.bruker.errorData
-        elif self.det=='Pilatus':
+        if self.det=='Pilatus':
             for i in self.selectedBgFrameNums:
                 self.selectedBgData[i]=self.bgpilData[i]
                 self.selectedBgError[i]=self.bgpilErrorData[i]
@@ -2043,114 +1810,10 @@ class MainWindow (QMainWindow):
     def update2dPlots(self):
         if getattr(self,'det',None) is None:   # no frames selected yet: nothing to redraw
             return
-        if self.det=='Bruker':
-            self.updateCcdPlotData()
-        elif self.det=='Pilatus':
+        if self.det=='Pilatus':
             self.updatePilPlotData()
 
             
-    def updateCcdPlotData(self):
-        if len(self.selectedCcdFramesNums)!=0:
-            if len(self.selectedCcdFramesNums)>10 and self.ui.gixSumCheckBox.checkState()<1:
-                self.messageBox("The number of selected frames are more than 10. So plotting only first 10 images")
-                N=10
-            else:
-                N=len(self.selectedCcdFramesNums)   
-            self.ui.gixMplWidget.canvas.fig.clf()
-            cmap=str(self.ui.gixCMapComboBox.currentText())
-            self.ui.gixMaxHorizontalSlider.setValue(int(float(self.ui.gixMaxLineEdit.text())*100/(self.imageMax-self.imageMin)))
-            self.ui.gixMinHorizontalSlider.setValue(int(float(self.ui.gixMinLineEdit.text())*100/(self.imageMax-self.imageMin)))
-            vmax=float(self.ui.gixMaxLineEdit.text())
-            vmin=float(self.ui.gixMinLineEdit.text())
-            ccdXMin=np.ones_like(self.selectedCcdFramesNums)
-            ccdYMin=np.ones_like(self.selectedCcdFramesNums)
-            ccdXMax=float(self.bruker.NCOLS)*np.ones_like(self.selectedCcdFramesNums)
-            ccdYMax=float(self.bruker.NROWS)*np.ones_like(self.selectedCcdFramesNums)
-            xlabel='PixX'
-            ylabel='PixY'
-            self.wavelength=self.ccdSelected_Wavelength
-            self.alpha=self.ccdSelected_Alpha
-            if self.ui.gixSpecCheckBox.checkState()!=0:
-                if self.checkSameArrays(self.ccdSelectedX)==False or self.checkSameArrays(self.ccdSelectedY)==False or self.checkSameArrays(self.ccdSelected_Dist)==False:
-                    self.messageBox('Warning:: The seleted frames have different CCD parameters; the parameters of the first frames are used here!!')
-                self.ui.gixSDDistLineEdit.setText(str(self.ccdSelected_Dist[0]))
-                self.ui.gixDBPosLineEdit.setText(str(self.ccdSelectedX[0])+','+str(self.ccdSelectedY[0]))
-                self.ui.gixCcd_OffLineEdit.setText('%0.2f'%self.ccdSelectedXoff[0]+','+'%0.2f'%self.ccdSelectedYoff[0])
-                self.xoff=np.array(map(int, np.array(self.ccdSelectedXoff)/0.06))
-                self.yoff=np.array(map(int, np.array(self.ccdSelectedYoff)/0.06))
-                self.distance=np.array(self.ccdSelected_Dist)
-                self.xcenter=np.array(self.ccdSelectedX)
-                self.ycenter=np.array(self.ccdSelectedY)
-            else:
-                self.xoff=np.array(map(int,float(self.ui.gixCcd_OffLineEdit.text().split(',')[0])*np.ones_like(self.selectedCcdFramesNums)/0.06))
-                self.yoff=np.array(map(int,float(self.ui.gixCcd_OffLineEdit.text().split(',')[-1])*np.ones_like(self.selectedCcdFramesNums)/0.06))
-                self.distance=float(self.ui.gixSDDistLineEdit.text())*np.ones_like(self.selectedCcdFramesNums)
-                self.xcenter=float(self.ui.gixDBPosLineEdit.text().split(',')[0])*np.ones_like(self.selectedCcdFramesNums)
-                self.ycenter=float(self.ui.gixDBPosLineEdit.text().split(',')[-1])*np.ones_like(self.selectedCcdFramesNums)
-                
-            if str(self.ui.gixAxesComboBox.currentText())=='Angles':
-                xlabel='Psi [Degrees]'
-                ylabel='Theta [Degrees]'
-                ccdXMin=(ccdXMin-(self.xcenter-self.xoff))*0.06*180.0/np.pi/self.distance
-                ccdXMax=(ccdXMax-(self.xcenter-self.xoff))*0.06*180.0/np.pi/self.distance
-                ccdYMin=(((self.ycenter-self.yoff)-ccdYMin)*0.06-self.ccdSelected_Sh)*180.0/np.pi/self.distance
-                ccdYMax=(((self.ycenter-self.yoff)-ccdYMax)*0.06-self.ccdSelected_Sh)*180.0/np.pi/self.distance
-            elif str(self.ui.gixAxesComboBox.currentText())=='Q':
-                xlabel='Qxy [1/Angs]'
-                ylabel='Qz [1/Angs]'
-                ccdXMin=4.0*np.pi*np.sin((ccdXMin-(self.xcenter-self.xoff))*0.06/self.distance/2.0)/self.wavelength
-                ccdXMax=4.0*np.pi*np.sin((ccdXMax-(self.xcenter-self.xoff))*0.06/self.distance/2.0)/self.wavelength
-                ccdYMin=2.0*np.pi*(np.sin((((self.ycenter-self.yoff)-ccdYMin)*0.06-self.ccdSelected_Sh)/self.distance)+np.sin(self.alpha))/self.wavelength
-                ccdYMax=2.0*np.pi*(np.sin((((self.ycenter-self.yoff)-ccdYMax)*0.06-self.ccdSelected_Sh)/self.distance)+np.sin(self.alpha))/self.wavelength
-                
-            if self.ui.gixSumCheckBox.checkState()!=0:
-                if self.checkSameQzs(self.ccdSelectedQzs)==True:
-                    self.sumData=self.ccdData[self.selectedCcdFramesNums[0]]
-                    for i in self.selectedCcdFramesNums[1:]:
-                        self.sumData=self.sumData+self.ccdData[i]
-                    self.sumData=self.sumData/float(len(self.selectedCcdFramesNums))
-                    self.logData=np.log10(np.where(self.sumData<=0,1e-10,self.sumData))
-                    ax=self.ui.gixMplWidget.canvas.fig.add_subplot(1,1,1)
-                    ax.set_xlabel(xlabel)
-                    ax.set_ylabel(ylabel)
-                    ax.set_title('Sum'+str(self.selectedCcdFramesNums))
-                    self.extent=[ccdXMin[0],ccdXMax[0],ccdYMax[0],ccdYMin[0]]
-                    if self.ui.gixLogIntCheckBox.checkState()!=0:
-                        p=ax.imshow(self.logData,interpolation='nearest',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect='equal') 
-                        self.Zdata=self.logData
-                    else:
-                        p=ax.imshow(self.sumData,interpolation='nearest',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect='equal')
-                        self.Zdata=self.sumData 
-                    ax.format_coord=self.format_coord
-                    self.ui.gixMplWidget.canvas.fig.colorbar(p)
-                else:
-                    self.messageBox('Error:: The selected frames have different qz values!!')
-            else:
-                row=2
-                while N/row+pl.where(pl.mod(N,row)>0,1,0)>=row:
-                    row=row+1
-                row=row-1
-                col=N/row+pl.where(pl.mod(N,row)>0,1,0)
-                num=1
-                ax={}
-                for i in self.selectedCcdFramesNums[:N]:
-                    ax[i]=self.ui.gixMplWidget.canvas.fig.add_subplot(row,col,num)
-                    ax[i].set_xlabel(xlabel)
-                    ax[i].set_ylabel(ylabel)
-                    ax[i].set_title('F #'+str(i))
-                    self.extent=[ccdXMin[num-1],ccdXMax[num-1],ccdYMax[num-1],ccdYMin[num-1]]
-                    if self.ui.gixLogIntCheckBox.checkState()!=0:
-                        p=ax[i].imshow(self.ccdLogData[i],interpolation='nearest',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect='equal')
-                        self.Zdata=self.ccdLogData[i] 
-                    else:
-                        p=ax[i].imshow(self.ccdData[i],interpolation='nearest',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect='equal')
-                        self.Zdata=self.ccdData[i]
-                    ax[i].format_coord=self.format_coord
-                    self.ui.gixMplWidget.canvas.fig.colorbar(p)
-                    num=num+1
-            self.ui.gixMplWidget.canvas.draw()
-        
-        
     def updatePilPlotData(self):
         aspect=str(self.ui.pilAspectComboBox.currentText())
         if self.pilGIDshow==0 and self.pilGISAXSshow==0 and len(self.selectedPilFramesNums)!=0:
@@ -3545,8 +3208,7 @@ class MainWindow (QMainWindow):
 #        if self.ui.gixSumCheckBox.checkState()==0:
 #            self.ui.gixSumCheckBox.setCheckState(2)
 #            self.messageBox('Warning:: Multiple frames selected, summing over all the frames for Reflectivity!!')
-#            self.updateCcdPlotData()
-        if self.det not in ('Bruker','Pilatus') or len(getattr(self,'selectedCcdFramesNums' if self.det=='Bruker' else 'selectedPilFramesNums',[]))==0:
+        if self.det!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]))==0:
             self.messageBox('Please load a scan and select its images before opening the reflectivity analysis')
             return
         self.ui.PlotWidget.setCurrentIndex(3)
@@ -3557,53 +3219,11 @@ class MainWindow (QMainWindow):
             self.ui.refNormRefListWidget.clear()
             self.refData=[]
         self.refpatchindex=0  #different index for pilatus patch model
-        if self.det=='Bruker':
-            self.updateRefCcdPlotData()
-        elif self.det=='Pilatus':
+        if self.det=='Pilatus':
             self.updateRefPilPlotData()
             
         
        
-    def updateRefCcdPlotData(self):
-        self.ui.refADDataPlotWidget.canvas.fig.clf()
-#        dist=float(self.ui.gixSDDistLineEdit.text())
-#        cmap=str(self.ui.gixCMapComboBox.currentText())
-#         self.disconnect(self.ui.refQzListWidget, SIGNAL('itemSelectionChanged()'),self.refQzListSelectionChanged)
-        self.ui.refQzListWidget.itemSelectionChanged.disconnect(self.refQzListSelectionChanged)
-        self.ui.refQzListWidget.clear()
-        self.scanframe={}
-        self.refSortedFrameNums={}
-        if self.ui.gixMergeSameQzCheckBox.checkState()!=0:
-            j=0
-            for key in sorted(self.ccdFrameNumsWithSameQz.keys()):
-                self.scanframe[key]={}
-                for item in self.ccdFrameNumsWithSameQz[key]:
-                    ekey=int(str(self.ui.imageListWidget.item(item).text()).split('\t')[0].split('#')[1])
-                    if ekey in self.scanframe[key]:
-                        self.scanframe[key][ekey].append(int(str(self.ui.imageListWidget.item(item).text()).split('\t')[1].split('#')[1]))
-                    else:
-                        self.scanframe[key][ekey]=[int(str(self.ui.imageListWidget.item(item).text()).split('\t')[1].split('#')[1])]
-                if all(x==self.ccdFrameAbsWithSameQz[key][0] for x in self.ccdFrameAbsWithSameQz[key]):     #for frames with the same absorber
-                    self.ui.refQzListWidget.addItem('Qz= '+str(key)+'\t {S:F}= '+str(self.scanframe[key])+'\t Abs= '+str([self.ccdFrameAbsWithSameQz[key][0]]))
-                    self.refSortedFrameNums[j]=self.ccdFrameNumsWithSameQz[key]
-                    j=j+1
-                else:
-                    for i in range(len(self.ccdFrameNumsWithSameQz[key])):
-                        sftext=str(self.ui.imageListWidget.item(self.ccdFrameNumsWithSameQz[key][i]).text()).split('\t')
-                        self.ui.refQzListWidget.addItem('Qz= '+str(key)+'\t {S:F}= '+str({int(sftext[0].split('#')[1]):[int(sftext[1].split('#')[1])]})+'\t Abs= '+str([self.ccdFrameAbsWithSameQz[key][i]]))
-                        self.refSortedFrameNums[j]=[self.ccdFrameNumsWithSameQz[key][i]]
-                        j=j+1
-        else:
-            j=0
-            for i in self.selectedCcdFramesNums:
-                sftext=str(self.ui.imageListWidget.item(i).text()).split('\t')
-                self.ui.refQzListWidget.addItem('Qz= '+str(self.ccdFileQzs[i])+'\t {S:F}= '+str({int(sftext[0].split('#')[1]):[int(sftext[1].split('#')[1])]})+'\t Abs='+str(self.ccd_AbsNum[i]))
-                self.refSortedFrameNums[j]=[i]
-                j=j+1
-        # self.connect(self.ui.refQzListWidget, SIGNAL('itemSelectionChanged()'),self.refQzListSelectionChanged)
-        self.ui.refQzListWidget.itemSelectionChanged.connect(self.refQzListSelectionChanged)
-        self.ui.refQzListWidget.setItemSelected(self.ui.refQzListWidget.item(0),True)
-        
     def updateRefPilPlotData(self):
         self.ui.refADDataPlotWidget.canvas.fig.clf()
         dist=float(self.ui.pilSDDistLineEdit.text())
@@ -3653,59 +3273,7 @@ class MainWindow (QMainWindow):
         self.refQzSelected=float(str(self.refQzSelectedItems[0].text()).split()[1])
         self.absfac=float(self.ui.AbsFacLineEdit.text())       
         self.dir=str(self.ui.refBGDirComboBox.currentText())
-        if self.det=='Bruker':
-            slitx=int(self.ui.refSlitLineEdit.text().split(',')[0])
-            slity=int(self.ui.refSlitLineEdit.text().split(',')[1])
-            self.slit=[slitx,slity]
-            self.bg=float(self.ui.refBGOffLineEdit.text())
-            dist=float(self.ui.gixSDDistLineEdit.text())
-            self.selFrameNums=self.refSortedFrameNums[self.ui.refQzListWidget.row(self.refQzSelectedItems[0])]
-            #cenx=self.ccdX[self.selFrameNums[0]]-int((dist+self.ccd_Gl2[self.selFrameNums[0]])*(np.tan(self.ccd_Tth[self.selFrameNums[0]]*np.pi/180)-np.tan(2*self.ccd_Phi[self.selFrameNums[0]]*np.pi/180))/0.06)
-            cenx=self.ccdX[self.selFrameNums[0]]-int((dist+self.ccd_Gl2[self.selFrameNums[0]])*(np.tan(self.ccd_Tth[self.selFrameNums[0]]*np.pi/180)-np.tan(2*np.arcsin(self.wavelength[self.selFrameNums[0]]/np.pi*1.9236/4)))/0.06)
-            ceny=self.ccdY[self.selFrameNums[0]]-int((self.ccdAlpha[self.selFrameNums[0]]*dist+self.ccd_Sh[self.selFrameNums[0]])/0.06)
-            self.mon=[self.ccdMonc[i] for i in self.selFrameNums]
-            self.absnum=[self.ccd_AbsNum[i] for i in self.selFrameNums]
-            self.vmax=float(self.ui.gixMaxLineEdit.text())
-            self.vmin=float(self.ui.gixMinLineEdit.text())
-            self.cen=[cenx,ceny]
-            if self.ui.refCenCheckBox.checkState()==0:
-                self.ui.refCenLineEdit.setText(str(self.cen[0])+','+str(self.cen[1]))
-            else:
-                self.cen=[int(self.ui.refCenLineEdit.text().split(',')[0]),int(self.ui.refCenLineEdit.text().split(',')[1])]  
-            self.selData={}
-            self.selErrorData={}
-            if self.dir=='H':
-                self.bg=self.bg*self.ccd_Dist[self.selFrameNums[0]]*np.pi/180/0.06/slitx
-            else:
-                self.bg=self.bg*self.ccd_Dist[self.selFrameNums[0]]*np.pi/180/0.06/slity   
-            for i in self.selFrameNums:
-                self.selData[i]=self.ccdData[i]
-                self.selErrorData[i]=self.ccdErrorData[i]
-            self.bruker.setROI(self.selData,self.selErrorData,absfac=self.absfac,absnum=self.absnum,slit=self.slit,cen=self.cen,bg=self.bg,dir=self.dir,mon=self.mon)
-            slit=[self.slit[1], self.slit[0]]
-            cen=[self.cen[1], self.cen[0]]
-            self.ax={}
-            if self.dir=='H':
-                self.refextent=[self.bruker.bglcen-slit[1], self.bruker.bgrcen+slit[1]+1, cen[0]+slit[0]+1, cen[0]-slit[0]]
-                self.ax[1]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(2,1,1)
-                self.vmax=np.max(self.bruker.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.bruker.bglcen-slit[1]:self.bruker.bgrcen+slit[1]+1])
-                self.vmin=np.max(self.bruker.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.bruker.bglcen-slit[1]:self.bruker.bgrcen+slit[1]+1])
-                self.refZdata=self.bruker.imageData
-                p=self.ax[1].imshow(self.bruker.imageROI[cen[0]-slit[0]:cen[0]+slit[0]+1, self.bruker.bglcen-slit[1]:self.bruker.bgrcen+slit[1]+1], origin='upper', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[1].set_ylabel('w/o Corr')
-                self.ax[1].format_coord=self.format_coord_ref
-            else:
-                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], self.bruker.bgucen-slit[0], self.bruker.bgdcen+slit[0]+1]
-                self.ax[1]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(1,2,1)            
-                self.vmax=np.max(self.bruker.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.bruker.bglcen-slit[1]:self.bruker.bgrcen+slit[1]+1])
-                self.vmin=np.max(self.bruker.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.bruker.bglcen-slit[1]:self.bruker.bgrcen+slit[1]+1])
-                self.refZdata=self.bruker.imageData
-                p=self.ax[1].imshow(self.bruker.imageROI[self.bruker.bgucen-slit[0]:self.bruker.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='upper', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[1].set_ylabel('w/o Corr')
-                self.ax[1].format_coord=self.format_coord_ref
-            self.ui.refADDataPlotWidget.canvas.fig.colorbar(p)
-            self.ui.refADDataPlotWidget.canvas.draw()
-        elif self.det=='Pilatus': 
+        if self.det=='Pilatus': 
             slitx=int(self.ui.refSlitLineEdit.text().split(',')[0])
             slity=int(self.ui.refSlitLineEdit.text().split(',')[1])
             self.slit=[slitx,slity]
@@ -3770,61 +3338,7 @@ class MainWindow (QMainWindow):
             return
         self.refQzListSelectionChanged()
         cmap=str(self.ui.gixCMapComboBox.currentText())
-        if self.det=='Bruker':
-            self.ui.refBadPixListWidget.clear()
-            fac=float(self.ui.refSeaWinLineEdit.text())
-            self.cenfit=0
-            if self.ui.refCenCheckBox.checkState()!=0:
-                self.cen=[int(self.ui.refCenLineEdit.text().split(',')[0]),int(self.ui.refCenLineEdit.text().split(',')[1])]
-                self.cenfit=1
-            self.par=self.bruker.peakFind(self.selData,self.selErrorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,fac=fac,mon=self.mon,cenfit=self.cenfit)
-            self.cen=[int(np.floor(self.par[1])), int(np.floor(self.par[3]))]
-            slit=[self.slit[1], self.slit[0]]
-            cen=[self.cen[1], self.cen[0]]
-            bfac=float(self.ui.refBPCFacLineEdit.text())
-            try:
-                sig,sigerr,lbg,lbgerr,rbg,rbgerr=self.bruker.badPix_corr(par=self.par,slit=self.slit,cen=self.cen,bad=1,bfac=bfac,dir=self.dir,bg=self.bg,plot=0)
-            except:
-                self.messageBox('Warning:: Please change to different search window by +/- 0.5.')
-            if self.dir=='H':
-                self.ui.refBadPixListWidget.addItem('------Signal------')
-                for items in self.bruker.badSig:
-                    self.ui.refBadPixListWidget.addItem(str(items[0])+'\t'+str(items[1]))
-                self.ui.refBadPixListWidget.addItem('------Left BG------')
-                for items in self.bruker.badLeft:
-                    self.ui.refBadPixListWidget.addItem(str(items[0])+'\t'+str(items[1]))
-                self.ui.refBadPixListWidget.addItem('------Right BG------')
-                for items in self.bruker.badRight:
-                    self.ui.refBadPixListWidget.addItem(str(items[0])+'\t'+str(items[1]))
-            else:
-                self.ui.refBadPixListWidget.addItem('------Signal------')
-                for items in self.bruker.badSig:
-                    self.ui.refBadPixListWidget.addItem(str(items[0])+'\t'+str(items[1]))
-                self.ui.refBadPixListWidget.addItem('------Up BG------')
-                for items in self.bruker.badUp:
-                    self.ui.refBadPixListWidget.addItem(str(items[0])+'\t'+str(items[1]))
-                self.ui.refBadPixListWidget.addItem('-----Down BG------')
-                for items in self.bruker.badDown:
-                    self.ui.refBadPixListWidget.addItem(str(items[0])+'\t'+str(items[1]))
-            self.bruker.setROI(self.bruker.imageData,self.bruker.errorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,bg=self.bg,dir=self.dir,mon=None)  
-            if self.dir=='H':            
-                self.ax[2]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(2,1,2)
-                self.refextent=[ self.bruker.bglcen-slit[1], self.bruker.bgrcen+slit[1]+1, cen[0]+slit[0]+1, cen[0]-slit[0]]
-                self.vmax=np.max(self.bruker.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.bruker.bglcen-slit[1]:self.bruker.bgrcen+slit[1]+1])
-                self.vmin=np.min(self.bruker.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.bruker.bglcen-slit[1]:self.bruker.bgrcen+slit[1]+1])
-                p=self.ax[2].imshow(self.bruker.imageROI[cen[0]-slit[0]:cen[0]+slit[0]+1, self.bruker.bglcen-slit[1]:self.bruker.bgrcen+slit[1]+1], origin='upper', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[2].set_ylabel('w Corr')
-                self.ax[2].format_coord=self.format_coord_ref
-            else:
-                self.ax[2]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(1,2,2)
-                self.ax[2].clear()
-                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], self.bruker.bgucen-slit[0], self.bruker.bgdcen+slit[0]+1]
-                self.vmax=np.max(self.bruker.imageData[self.bruker.bgucen-slit[0]:self.bruker.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1])
-                self.vmin=np.min(self.bruker.imageData[self.bruker.bgucen-slit[0]:self.bruker.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1])
-                p=self.ax[2].imshow(self.bruker.imageROI[self.bruker.bgucen-slit[0]:self.bruker.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='upper', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[2].set_ylabel('w Corr')
-                self.ax[2].format_coord=self.format_coord_ref
-        elif self.det=='Pilatus':
+        if self.det=='Pilatus':
             self.ui.refBadPixListWidget.clear()
             fac=float(self.ui.refSeaWinLineEdit.text())
             self.cenfit=1
@@ -4443,25 +3957,13 @@ class MainWindow (QMainWindow):
         self.saveTemData()
         
     def saveRefData(self):
-        if self.det not in ('Bruker','Pilatus') or len(self.refData)==0 or getattr(self,'normRefData',None) is None:
+        if self.det!='Pilatus' or len(self.refData)==0 or getattr(self,'normRefData',None) is None:
             self.messageBox('There is no reflectivity data to save yet')
             return
         self.saveFileName=QFileDialog.getSaveFileName(caption='Save Reflectivity',directory=self.directory)[0]
         if not self.saveFileName:
             return   #dialog cancelled
-        if self.det=='Bruker':
-            fid=open(self.saveFileName+'_ref.txt','w')
-            for i in range(len(self.refData)):
-                fid.write(str(self.normRefData[i,0])+'\t'+str(self.normRefData[i,1])+'\t'+str(self.normRefData[i,2])+'\t'+self.refInfoNew[i]+'\n')
-            fid.close()
-            try:
-                fid=open(self.saveFileName+'_rrf.txt','w')
-                for i in range(len(self.RrfData)):
-                    fid.write(str(self.RrfData[i,0])+'\t'+str(self.RrfData[i,1])+'\t'+str(self.RrfData[i,2])+'\t'+self.refInfoNew[i]+'\n')
-                fid.close()
-            except:
-                print ('No rrf data available!')
-        elif self.det=='Pilatus':
+        if self.det=='Pilatus':
             reffile=self.saveFileName+'_ref.txt'
             rrffile=self.saveFileName+'_rrf.txt'
             np.savetxt(reffile,self.normRefData,fmt='%.4e\t%.4e\t%.4e')
@@ -4488,9 +3990,7 @@ class MainWindow (QMainWindow):
         self.updateCutData()
 
     def updateCutData(self):
-        if self.det=='Bruker':
-            self.updateCcdCutData()
-        elif self.det=='Pilatus':
+        if self.det=='Pilatus':
             try:
                 if self.pilGIDshow==0 and self.pilGISAXSshow==0:
                     self.updatePilCutData()
@@ -4505,83 +4005,6 @@ class MainWindow (QMainWindow):
                 self.updatePilCutRange()
                 return
 
-
-    def updateCcdCutData(self):        
-        self.selCutCcdData={}
-        self.selCutCcdErrorData={}
-        self.cutData={}
-        self.cutLabel={}
-        ini=float(str(self.ui.gixIntRangeLineEdit.text()).split(':')[0])
-        fin=float(str(self.ui.gixIntRangeLineEdit.text()).split(':')[1])
-        for i in self.selectedCcdFramesNums:
-            self.selCutCcdData[i]=self.ccdData[i]#np.where(self.ccdData[i]<0,0,self.ccdData[i])#*self.absfac**self.ccd_AbsNum[i]/self.ccdMonc[i]
-            self.selCutCcdErrorData[i]=self.ccdErrorData[i]#np.sqrt(self.ccdErrorData[i]**2/self.ccdMonc[i]**2+self.ccdData[i]**2/self.ccdMonc[i]**3)*self.absfac**self.ccd_AbsNum[i]
-        if self.ui.gixSumCheckBox.checkState()!=0:
-            self.selCutCcdData[-1]=self.selCutCcdData[self.selectedCcdFramesNums[0]]
-            self.selCutCcdErrorData[-1]=self.selCutCcdErrorData[self.selectedCcdFramesNums[0]]**2
-            for i in self.selectedCcdFramesNums[1:]:
-                self.selCutCcdData[-1]=self.selCutCcdData[-1]+self.selCutCcdData[i]
-                self.selCutCcdErrorData[-1]=self.selCutCcdErrorData[-1]+self.selCutCcdErrorData[i]**2
-            self.selCutCcdData[-1]=self.selCutCcdData[-1]/len(self.selectedCcdFramesNums)
-            self.selCutCcdErrorData[-1]=np.sqrt(self.selCutCcdErrorData[-1])/len(self.selectedCcdFramesNums)
-            if self.ui.gixCutDirComboBox.currentText()=='H Cut':
-                self.bruker.plotVint(self.selCutCcdData[-1],self.selCutCcdErrorData[-1],absfac=self.absfac,absnum=self.ccdSelected_AbsNum[0],cen=[self.xcenter[0]-self.xoff[0],self.ycenter[0]-self.yoff[0]],  hroi=None,  vroi=[max(int(ini)-1,0), min(int(fin)-1,1024)], ax_type=str(self.ui.gixAxesComboBox.currentText()), wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.ccdSelected_Sh[0],alpha=self.alpha[0], mon=None)
-                self.cutData[-1]=self.bruker.vintData
-            elif self.ui.gixCutDirComboBox.currentText()=='Qz Cut':
-                ini=-int((self.distance[0]*np.arcsin(ini*self.wavelength[0]/2.0/np.pi-np.sin(self.alpha[0]))+self.ccdSelected_Sh[0])/0.06)+self.ycenter[0]-self.yoff[0]
-                fin=-int((self.distance[0]*np.arcsin(fin*self.wavelength[0]/2.0/np.pi-np.sin(self.alpha[0]))+self.ccdSelected_Sh[0])/0.06)+self.ycenter[0]-self.yoff[0]                
-               # print ini, fin
-                self.bruker.plotVint(self.selCutCcdData[-1],self.selCutCcdErrorData[-1],absfac=self.absfac,absnum=self.ccdSelected_AbsNum[0], cen=[self.xcenter[0]-self.xoff[0],self.ycenter[0]-self.yoff[0]],  hroi=None,  vroi=[max(fin-1,0), min(ini-1,1024)], ax_type='Q', wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.ccdSelected_Sh[0],alpha=self.alpha[0], mon=None)
-                self.cutData[-1]=self.bruker.vintData
-            elif self.ui.gixCutDirComboBox.currentText()=='V Cut':
-                self.bruker.plotHint(self.selCutCcdData[-1],self.selCutCcdErrorData[-1],absfac=self.absfac,absnum=self.ccdSelected_AbsNum[0],cen=[self.xcenter[0]-self.xoff[0],self.ycenter[0]],  hroi=[max(int(ini)-1,0), min(int(fin)-1,1024)],  vroi=None, ax_type=str(self.ui.gixAxesComboBox.currentText()), wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.ccdSelected_Sh[0],alpha=self.alpha[0], mon=None)
-                self.cutData[-1]=self.bruker.hintData
-            else:
-                ini=int(2.0*self.distance[0]*np.arcsin(ini*self.wavelength[0]/4.0/np.pi)/0.06)+self.xcenter[0]-self.xoff[0]
-                fin=int(2.0*self.distance[0]*np.arcsin(fin*self.wavelength[0]/4.0/np.pi)/0.06)+self.xcenter[0]-self.xoff[0]
-                self.bruker.plotHint(self.selCutCcdData[-1],self.selCutCcdErrorData[-1],absfac=self.absfac,absnum=self.ccdSelected_AbsNum[0],cen=[self.xcenter[0]-self.xoff[0],self.ycenter[0]-self.yoff[0]],  hroi=[max(int(ini)-1,0), min(int(fin)-1,1024)],  vroi=None, ax_type='Q', wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.ccdSelected_Sh[0],alpha=self.alpha[0], mon=None)
-                self.cutData[-1]=self.bruker.hintData
-            self.cutLabel[-1]='summed cuts'
-        else:
-            j=0
-            for i in self.selectedCcdFramesNums:
-                if self.ui.gixCutDirComboBox.currentText()=='H Cut':
-                    self.bruker.plotVint(self.selCutCcdData[i],self.selCutCcdErrorData[i],absfac=self.absfac,absnum=self.ccdSelected_AbsNum[j], cen=[self.xcenter[j]-self.xoff[j],self.ycenter[j]-self.yoff[j]], hroi=None, vroi=[int(ini)-1, int(fin)-1], ax_type=str(self.ui.gixAxesComboBox.currentText()), wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.ccdSelected_Sh[j],alpha=self.alpha[j], mon=None)
-                    self.cutData[i]=self.bruker.vintData
-                elif self.ui.gixCutDirComboBox.currentText()=='Qz Cut':
-                    ini1=-int((self.distance[j]*np.arcsin(ini*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))+self.ccdSelected_Sh[j])/0.06)+self.ycenter[j]
-                    fin1=-int((self.distance[j]*np.arcsin(fin*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))+self.ccdSelected_Sh[j])/0.06)+self.ycenter[j]                
-                    self.bruker.plotVint(self.selCutCcdData[i],self.selCutCcdErrorData[i],absfac=self.absfac,absnum=self.ccdSelected_AbsNum[j],cen=[self.xcenter[j]-self.xoff[j],self.ycenter[j]-self.yoff[j]],  hroi=None,  vroi=[fin1-1, ini1-1], ax_type='Q', wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.ccdSelected_Sh[j],alpha=self.alpha[j], mon=None)
-                    self.cutData[i]=self.bruker.vintData    
-                elif self.ui.gixCutDirComboBox.currentText()=='V Cut':
-                    self.bruker.plotHint(self.selCutCcdData[i],self.selCutCcdErrorData[i],absfac=self.absfac,absnum=self.ccdSelected_AbsNum[j],cen=[self.xcenter[j]-self.xoff[j],self.ycenter[j]-self.yoff[j]], hroi=[int(ini)-1, int(fin)-1],  vroi=None, ax_type=str(self.ui.gixAxesComboBox.currentText()), wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.ccdSelected_Sh[j],alpha=self.alpha[j], mon=None)
-                    self.cutData[i]=self.bruker.hintData
-                else:
-                    ini1=int(2.0*self.distance[j]*np.arcsin(ini*self.wavelength[j]/4.0/np.pi)/0.06)+self.xcenter[j]
-                    fin1=int(2.0*self.distance[j]*np.arcsin(fin*self.wavelength[j]/4.0/np.pi)/0.06)+self.xcenter[j]
-                    self.bruker.plotHint(self.selCutCcdData[i],self.selCutCcdErrorData[i],absfac=self.absfac,absnum=self.ccdSelected_AbsNum[j], cen=[self.xcenter[j]-self.xoff[j],self.ycenter[j]-self.yoff[j]], hroi=[ini1-1, fin1-1],  vroi=None, ax_type='Q', wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.ccdSelected_Sh[j],alpha=self.alpha[j], mon=None)
-                    self.cutData[i]=self.bruker.hintData
-                self.cutLabel[i]=str(self.ui.imageListWidget.item(i).text().split('\t')[0])+' '+str(self.ui.imageListWidget.item(i).text().split('\t')[1])
-                j=j+1
-        if self.ui.gixSumCheckBox.checkState()!=0:
-            if self.ui.cutErrorbarCheckBox.checkState()!=0:
-                self.ui.cutPlotMplWidget.canvas.ax.errorbar(self.cutData[-1][:,0],self.cutData[-1][:,1],self.cutData[-1][:,2],fmt='o-',label=self.cutLabel[-1])
-            else:
-                self.ui.cutPlotMplWidget.canvas.ax.plot(self.cutData[-1][:,0],self.cutData[-1][:,1],'o',label=self.cutLabel[-1])
-                
-        else:
-            fact=1
-            if self.ui.cutErrorbarCheckBox.checkState()!=0:
-                for i in self.selectedCcdFramesNums:
-                    self.ui.cutPlotMplWidget.canvas.ax.errorbar(self.cutData[i][:,0],fact*self.cutData[i][:,1],fact*self.cutData[i][:,2],fmt='o-',label=self.cutLabel[i])
-                    if self.ui.cutOffsetCheckBox.checkState()!=0:
-                        fact=fact*float(self.ui.cutOffsetLineEdit.text())
-            else:      
-                for i in self.selectedCcdFramesNums:
-                    self.ui.cutPlotMplWidget.canvas.ax.plot(self.cutData[i][:,0],fact*self.cutData[i][:,1],'o',label=self.cutLabel[i])
-                    if self.ui.cutOffsetCheckBox.checkState()!=0:
-                        fact=fact*float(self.ui.cutOffsetLineEdit.text())
-        self.updateCutPlotData()
 
     def updatePilCutRange(self):
         if self.ui.pilCutDirComboBox.currentIndex()==0:
@@ -4739,7 +4162,7 @@ class MainWindow (QMainWindow):
         self.updateCutPlotData()
     
     def updateCutPlotData(self):
-        if self.det not in ('Pilatus','Bruker'):   # no cut plotted: display options do nothing
+        if self.det!='Pilatus':   # no cut plotted: display options do nothing
             return
         self.ui.PlotWidget.setCurrentIndex(4) 
         self.cutLogX=self.ui.cutLogXCheckBox.checkState()
@@ -4753,9 +4176,6 @@ class MainWindow (QMainWindow):
         if self.det=='Pilatus':
             currentcutindex=self.ui.pilCutDirComboBox.currentIndex()
             cutrange=str(self.ui.pilIntRangeLineEdit.text())
-        elif self.det=='Bruker':
-            currentcutindex=self.ui.gixCutDirComboBox.currentText()
-            cutrange=str(self.ui.gixIntRangeLineEdit.text())
         if currentcutindex==2:
             self.ui.cutPlotMplWidget.canvas.ax.set_title(title+'\n'+'H Cut     Vint Range['+cutrange+']', fontsize=16)
             self.ui.cutPlotMplWidget.canvas.ax.set_xlabel('Pixels', fontsize=16)
@@ -4779,27 +4199,19 @@ class MainWindow (QMainWindow):
         self.ui.cutPlotMplWidget.canvas.draw()
         
     def saveCutData(self):
-        if self.det not in ('Pilatus','Bruker') or len(self.cutData)==0:
+        if self.det!='Pilatus' or len(self.cutData)==0:
             self.messageBox('There is no cut to save yet, please make a cut first!')
             return
         if isinstance(self.cutData,dict):   # per-frame or summed cuts: they must match the present selection
             summed=self.ui.gixSumCheckBox.checkState()!=0
-            frames=self.selectedCcdFramesNums if self.det=='Bruker' else self.selectedPilFramesNums
+            frames=self.selectedPilFramesNums
             if (summed and -1 not in self.cutData) or (not summed and any(i not in self.cutData for i in frames)) or (not summed and len(frames)==0):
                 self.messageBox('The frame selection or the "Sum" option changed after the cut was made. Please make the cut again before saving.')
                 return
         self.saveFileName=QFileDialog.getSaveFileName(caption='Save Cuts', directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
-        if self.det=='Bruker':            
-            if self.ui.gixSumCheckBox.checkState()!=0:
-                self.fname=self.saveFileName+str(self.ui.imageListWidget.item(0).text().split('\t')[0])+'_sumcut.txt'
-                np.savetxt(self.fname,self.cutData[-1],fmt='%.4f\t%.4e\t%.4e')
-            else:
-                for i in self.selectedCcdFramesNums:
-                    self.fname=self.saveFileName+str(self.ui.imageListWidget.item(i).text().split('\t')[0])+'_'+str(self.ui.imageListWidget.item(i).text().split('\t')[1])+'_cut.txt'
-                    np.savetxt(self.fname,self.cutData[i],fmt='%.4f\t%.4e\t%.4e')
-        elif self.det=='Pilatus':
+        if self.det=='Pilatus':
             if self.pilGIDshow==0 and self.pilGISAXSshow==0:
                 if self.ui.gixSumCheckBox.checkState()!=0:
                     self.fname=self.saveFileName+str(self.ui.imageListWidget.item(0).text().split('\t')[0])+'_sumcut.txt'
@@ -4842,8 +4254,6 @@ class MainWindow (QMainWindow):
                 impsnumtit=impsnumtit+'['+str(format(self.specPar[i]['S2L']+self.specPar[i]['S2R'],'.1f'))+', '+str(format(self.specPar[i]['S2T']+self.specPar[i]['S2B'],'.1f'))+']\t'+'['+str(format(self.specPar[i]['S3L']+self.specPar[i]['S3R'],'.1f'))+', '+str(format(self.specPar[i]['S3T']+self.specPar[i]['S3B'],'.1f'))+']\t'+'['+str(format(self.specPar[i]['S7L']+self.specPar[i]['S7R'],'.1f')+', '+str(format(self.specPar[i]['S7T']+self.specPar[i]['S7B'],'.1f')))+']\n\n'
                 if self.specPar[i]['Detector']=='Pilatus':
                     impsnumtit=impsnumtit+'pd[x, y]:\t['+str(self.specPar[i]['DBPos'][0])+', '+str(self.specPar[i]['DBPos'][1])+']\n'
-                elif self.specPar[i]['Detector']=='Bruker':
-                    impsnumtit=impsnumtit+'ad[x, y]:\t['+str(self.specPar[i]['DBPos'][0])+', '+str(self.specPar[i]['DBPos'][1])+']\n'
                 impsnumtit=impsnumtit+'-----------------------------------------------\n'
             except:
                 impsnumtit='No detailed info found in SPEC file!!!'
