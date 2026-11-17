@@ -264,6 +264,15 @@ priority than the lists above.
 |---|---|---|
 | D17 | APS 9-ID-C is not needed. Its readers (never ported from Python 2) are removed and the menu entry is hidden. | defect 8 |
 
+### Decisions and requirements (2026-11-17, continued)
+
+| # | Decision or requirement | Applies to |
+|---|---|---|
+| D18 | Local disk cache default raised to 5 GB. | F8 |
+| D19 | Line/area cuts are made of monitor-normalised frames, like every other reduction. | P23 |
+| R7 | Output files in the newer formats (ORSO, HDF5, combined JSON) record the reduction steps and their parameters, so a file can be traced back to how it was made. The legacy text files stay byte-identical. | F24c, F25, F30 |
+| — | Owner's expectation: images are normalised first, then reduced. Today they are not (see `physics_notes.md`, 2026-11-17); the frame object of Stage 3 should hold the normalised frame once. | target design |
+
 ### Status of built items
 
 | # | Built | Where | Checked by |

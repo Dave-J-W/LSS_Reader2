@@ -26,7 +26,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       results on every sample file; MCA 24 → 1.2 ms per spectrum (F6).
 - [x] Disk cache for network drives (F8): `lss_core/diskcache.py`; decoded
       frames as `.npy` in `~/.lss_reader/cache`, only for files on another
-      file system by default, 2 GB limit, LRU; settings by environment
+      file system by default, 5 GB limit (D18), LRU; settings by environment
       variable (a settings dialog comes with the per-SPEC config, Stage 3).
 - [x] Reflectivity reduction scriptable without Qt (`lss_core/experiment.py`,
       `reflectivity.py`, `stitching.py`; `docs/SCRIPTING.md`): byte-identical
@@ -38,8 +38,11 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       window still mirror `lss_core` and are checked by the same fixtures.
 - [x] Fluorescence (MCA window sum) scriptable and shared with the window;
       byte-identical `_flu.txt`; Script pane line on export.
-- [ ] Cuts scriptable: waits for the owner's answer on PHYSICS_ISSUES P23
-      (cuts are not monitor-normalised).
+- [x] Cuts normalised by monitor and absorber (D19, P23 fixed).
+- [ ] Cuts scriptable.
+- [ ] Stage 3 frame object: normalise once at load; make each reduction's
+      normalisation explicit (owner's expectation, 2026-11-17).
+- [ ] New output formats record reduction steps and parameters (R7).
 - [ ] GID and GISAXS scriptable: part of the GID sub-project (F23), which
       the owner wants scoped separately.
 - [ ] Burn tests and peak fits scriptable.

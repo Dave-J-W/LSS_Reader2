@@ -187,7 +187,9 @@ def test_line_cuts_on_a_real_reflectivity_frame(nx, qapp, recorder):
     reflected beam at the frame's Qz and the direct beam at Qz = 0."""
     sweep._select_scans(nx, qapp, [6])
     sweep._select_images(nx, qapp, [0])
-    img = nx.pilData[0]
+    from lss_core.normalise import normalise_frame
+    img, _ = normalise_frame(nx.pilData[0], nx.pilErrorData[0], nx.pilMonc[0],
+                             nx.absfac, nx.pil_AbsNum[0])
     assert img.shape == (487, 195)
 
     def cut(index, text):

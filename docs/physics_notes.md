@@ -880,3 +880,35 @@ MCA file (26) in the sample sets the results are identical to the old
 readers, value and type (an integer stays an integer); the old readers are
 kept as oracles in `tests/legacy/`. Reading the largest MCA file: 24 →
 1.2 ms per spectrum. File contents are no longer executed as code.
+
+### 2026-11-17 — Are the images normalised before they are reduced?
+
+**Q.** (owner) Cuts should be normalised — but aren't the images
+themselves normalised first? That seems the logical reduction flow.
+
+**A.** Not in this program, read from the code and confirmed by the cut
+tests: the frames the window loads and shows are counts (after optional
+bad-pixel correction). Each reduction then normalises, or not, on its own:
+
+| Reduction | Normalised by monitor | by absorber factor |
+|---|---|---|
+| Reflectivity (Ref Patch) | yes, per frame | no — the stitch factors absorb it |
+| GID patch | yes, then rescaled by the scan's average monitor | yes |
+| Burn tests | yes | no |
+| Fluorescence | yes (and real/live time) | no |
+| Line/area cuts | **no, until today** | no, until today |
+| Image display | no | no |
+| Frames with a background image subtracted | yes, before the subtraction | yes |
+
+Changed today (deliberate, D19): cuts are now made of normalised frames,
+R = I·a/M with a = absfac^n, σ² = (σ_I²/M² + I²/M³)·a², the same arithmetic
+as the background path (`lss_core/normalise.py`, bit-identical to
+`TwoDDetector.sumFiles`). Before/after on the synthetic frame (monitor
+10⁵, no absorber): a column of the horizontal cut went from 44 counts to
+4.4×10⁻⁴; "Sum" of two frames now averages normalised frames (the test
+uses scan 2, one absorber). No other output changed.
+
+Making "normalise once, at load" the rule for everything (display
+included) is a design change across all reductions; it belongs with the
+frame object planned for Stage 3, where each reduction's choice above
+becomes explicit.

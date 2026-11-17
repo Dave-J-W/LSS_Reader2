@@ -1,5 +1,8 @@
 """Line cuts through the Line/Area Cuts tab, on the synthetic data set.
 
+Cuts are made of frames divided by their monitor count (and absorber
+transmission), like every other reduction (owner, 2026-11-17; P23).
+
 One frame is selected: scan 1, frame 0 (Qz = 0.01), whose reflected peak sits
 at column PIL_H - DB_X - 1 and row DB_Y of the image.
 """
@@ -26,7 +29,7 @@ def _cut(w, qapp, index, text):
     w.ui.pilIntRangeLineEdit.setText(text)
     w.ui.pilLineAreaPushButton.click()
     qapp.processEvents()
-    return w.cutData[0]
+    return w.cutData[min(w.cutData)]
 
 
 def test_cut_types_offered(frame):
@@ -39,18 +42,20 @@ def test_pixel_horizontal_cut_sums_rows(frame, qapp, recorder):
     cut = _cut(frame, qapp, 2, '90:110')
     assert recorder.exceptions == [] and recorder.messages == []
     assert frame.ui.PlotWidget.currentIndex() == 4
-    img = frame.pilData[0]
+    # cuts are of monitor-normalised frames (since 2026-11-17, P23)
+    img = frame.pilData[0] / synth.MONITOR
+    var = frame.pilData[0] / synth.MONITOR ** 2 + frame.pilData[0] ** 2 / synth.MONITOR ** 3
     assert cut[:, 0] == pytest.approx(np.arange(synth.PIL_H))
     # as coded the upper limit is inclusive and one further row is added
     assert cut[:, 1] == pytest.approx(img[90:112].sum(axis=0))
-    assert cut[:, 2] == pytest.approx(np.sqrt(img[90:112].sum(axis=0)))
+    assert cut[:, 2] == pytest.approx(np.sqrt(var[90:112].sum(axis=0)))
     assert cut[np.argmax(cut[:, 1]), 0] == COL
 
 
 def test_pixel_vertical_cut_sums_columns(frame, qapp, recorder):
     cut = _cut(frame, qapp, 3, '90:104')
     assert recorder.exceptions == [] and recorder.messages == []
-    img = frame.pilData[0]
+    img = frame.pilData[0] / synth.MONITOR
     assert cut[:, 0] == pytest.approx(np.arange(synth.PIL_W))
     assert cut[:, 1] == pytest.approx(img[:, 90:106].sum(axis=1))
     assert cut[np.argmax(cut[:, 1]), 0] == ROW
@@ -109,3 +114,22 @@ def test_malformed_range_gives_a_message(frame, qapp, recorder):
     qapp.processEvents()
     assert recorder.exceptions == []
     assert recorder.messages            # user is told, nothing raises
+
+
+def test_summed_cut_averages_normalised_frames(loaded, qapp, dataset, recorder):
+    """Two frames of scan 2 (one absorber, factor ABSFAC set in the window)
+    and different peak heights: "Sum" is the mean of the normalised frames,
+    not of their raw counts."""
+    from lss_core.normalise import normalise_frame
+    w = loaded
+    sweep._select_scans(w, qapp, [1])
+    sweep._select_images(w, qapp, [0, 1])
+    w.ui.gixSumCheckBox.setChecked(True)
+    qapp.processEvents()
+    cut = _cut(w, qapp, 3, '90:104')
+    assert recorder.exceptions == []
+    frames = [normalise_frame(w.pilData[i], w.pilErrorData[i], w.pilMonc[i],
+                              w.absfac, w.pil_AbsNum[i]) for i in (0, 1)]
+    mean = (frames[0][0] + frames[1][0]) / 2
+    assert w.pil_AbsNum[0] == 1
+    assert cut[:, 1] == pytest.approx(mean[:, 90:106].sum(axis=1))

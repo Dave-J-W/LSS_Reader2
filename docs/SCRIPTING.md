@@ -74,6 +74,7 @@ the same files. It is also written to the log.
 | `lss_core.experiment` | `Experiment`: scans, frames, reflectivity |
 | `lss_core.reflectivity` | per-frame signal, scan ordering, merging repeats, drops, patching, normalisation, saving |
 | `lss_core.fluorescence` | spectrum normalisation, window sum, `_flu.txt` |
+| `lss_core.normalise` | monitor and absorber normalisation of a frame |
 | `lss_core.stitching` | joining two curves (`join`), Fresnel reflectivity |
 | `lss_core.images` | `read_pilatus`: fast, cached, bit-identical image reading |
 | `lss_core.cache` | the memory cache (budget from `LSS_READER_RAM_CACHE_MB`) |

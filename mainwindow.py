@@ -31,7 +31,7 @@ from functools import partial
 import traceback
 import reader_log
 from lss_core.resources import resource
-from lss_core import stitching, reflectivity, fluorescence
+from lss_core import stitching, reflectivity, fluorescence, normalise
 #from TwoD_Integrate import integrate_2d
 
 
@@ -4043,8 +4043,14 @@ class MainWindow (QMainWindow):
             self.updatePilCutRange()
             return
         for i in self.selectedPilFramesNums:
-            self.selCutPilData[i]=self.pilData[i]#np.where(self.ccdData[i]<0,0,self.ccdData[i])#*self.absfac**self.ccd_AbsNum[i]/self.ccdMonc[i]
-            self.selCutPilErrorData[i]=self.pilErrorData[i]#np.sqrt(self.ccdErrorData[i]**2/self.ccdMonc[i]**2+self.ccdData[i]**2/self.ccdMonc[i]**3)*self.absfac**self.ccd_AbsNum[i]
+            if len(self.ui.backgroundListWidget.selectedItems())==0:
+                # frames are counts: normalise by monitor and absorber first, like
+                # every other reduction (PHYSICS_ISSUES P23; owner, 2026-11-17)
+                self.selCutPilData[i],self.selCutPilErrorData[i]=normalise.normalise_frame(
+                    self.pilData[i],self.pilErrorData[i],self.pilMonc[i],self.absfac,self.pil_AbsNum[i])
+            else:   # background-subtracted frames are already normalised
+                self.selCutPilData[i]=self.pilData[i]
+                self.selCutPilErrorData[i]=self.pilErrorData[i]
         if self.ui.gixSumCheckBox.checkState()!=0:
             self.selCutPilData[-1]=self.selCutPilData[self.selectedPilFramesNums[0]]
             self.selCutPilErrorData[-1]=self.selCutPilErrorData[self.selectedPilFramesNums[0]]**2
