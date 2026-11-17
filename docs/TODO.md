@@ -6,8 +6,8 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | Stage | Status |
 |---|---|
 | 0 Safety net (error handler, durable log, messages pane) | **done** 2026-11-17 |
-| 1 Repair what is plainly broken | **next** |
-| 2 Readers and reduction out of the window; caching; scripting | not started |
+| 1 Repair what is plainly broken | **done** 2026-11-17 |
+| 2 Readers and reduction out of the window; caching; scripting | **next** |
 | 3 Saved state per SPEC file; live refresh | not started |
 | 4 Detectors and inputs | not started |
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
@@ -39,7 +39,8 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       missing image folders with the chooser cancelled.
 - [x] Bruker/CCD code removed (D8, F38); geometry kept in
       `ccd_geometry_precedent.md`; Apex tab hidden pending the GUI work.
-- [ ] Final sweep of Stage 1 on the current code (running).
+- [x] Final sweep of Stage 1 (2026-11-17): 0 single-control failures in 14
+      runs, 0 crash sites in 24 random sequences of 150 actions.
 - [ ] Remaining read-only defects of `ASSESSMENT.md` §4 (8: 9-ID-C reader —
       removed, not needed, D17; 10–13, 15:
       physics, tracked in `PHYSICS_ISSUES.md` and not to be changed without

@@ -804,3 +804,20 @@ image 1, monitors 10⁵ and 3×10⁵) scan 2's first frame was normalised with
 Complete data sets were never affected, so no benchmark or export fixture
 changed. Data reduced earlier from scans with a missing image could be
 affected; the Messages pane now says when frames have no image.
+
+### 2026-11-17 — Stage 1 done: final sweep
+
+Measured by `pytest -m sweep` on the code at commit `cb518dc` (after the CCD
+removal; the 9-ID-C removal followed and only hides a menu entry):
+
+| | Before Stage 0 | Now |
+|---|---|---|
+| Single controls that raise (7 states × file dialogs cancelled / returning paths, fresh window per control, dialogs one level deep) | 420 per pass (840 rows) | **0** |
+| Crash sites reached by random sequences (24 sequences of 150 actions from 4 states) | 11 (from 9 shorter sequences) | **0** |
+
+`known_crashes.json` and `known_crash_sites.json` are now empty: from here
+on any control or sequence that raises fails the sweep outright.
+
+Limits, unchanged: dialogs opened from dialogs are not driven; mouse
+interaction with plots is not exercised; the sweep runs on synthetic data;
+Pilatus 1M and per-point MCA data are not readable yet and so not covered.

@@ -1,12 +1,1 @@
-[
- "AttributeError @ TwoDDetector.py:sumFiles",
- "AttributeError @ mainwindow.py:saveCutData",
- "AttributeError @ mainwindow.py:saveMcaData",
- "AttributeError @ mainwindow.py:updateRefPilPlotData",
- "KeyError @ mainwindow.py:pilRefPatchData",
- "KeyError @ mainwindow.py:updatePilPlotData",
- "KeyError @ spec_routines.py:APS_9IDC",
- "TypeError @ mainwindow.py:clearAll",
- "TypeError @ spec_routines.py:APS_9IDC",
- "ValueError @ mainwindow.py:mcaPlotSettings"
-]
+[]

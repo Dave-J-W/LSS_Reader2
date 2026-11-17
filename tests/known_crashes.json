@@ -1,28 +1,16 @@
 {
  "empty": {},
  "empty+paths": {},
- "mca_frames": {
-  "enter:bgFacLineEdit": "AttributeError @ mainwindow.py:ccdSelectedScanChanged"
- },
- "mca_frames+paths": {
-  "enter:bgFacLineEdit": "AttributeError @ mainwindow.py:ccdSelectedScanChanged"
- },
+ "mca_frames": {},
+ "mca_frames+paths": {},
  "motor_scan": {},
  "motor_scan+paths": {},
- "pilatus_one_frame": {
-  "enter:bgFacLineEdit": "AttributeError @ mainwindow.py:ccdSelectedScanChanged"
- },
- "pilatus_one_frame+paths": {
-  "enter:bgFacLineEdit": "AttributeError @ mainwindow.py:ccdSelectedScanChanged"
- },
+ "pilatus_one_frame": {},
+ "pilatus_one_frame+paths": {},
  "pilatus_scan_no_frames": {},
  "pilatus_scan_no_frames+paths": {},
- "pilatus_two_scans_all_frames": {
-  "enter:bgFacLineEdit": "AttributeError @ mainwindow.py:ccdSelectedScanChanged"
- },
- "pilatus_two_scans_all_frames+paths": {
-  "enter:bgFacLineEdit": "AttributeError @ mainwindow.py:ccdSelectedScanChanged"
- },
+ "pilatus_two_scans_all_frames": {},
+ "pilatus_two_scans_all_frames+paths": {},
  "spec_loaded": {},
  "spec_loaded+paths": {}
 }
