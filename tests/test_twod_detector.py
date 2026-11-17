@@ -234,3 +234,20 @@ def test_roi_error_treats_monitor_noise_as_independent_per_pixel_as_coded(det):
     shared_monitor = np.sqrt(total / mon ** 2 + total ** 2 / mon ** 3)
     assert sigerr == pytest.approx(coded)
     assert shared_monitor / coded == pytest.approx(1.385, abs=1e-3)
+
+
+def test_bad_pixel_factor_reaches_the_reader(det, tmp_path):
+    """Defect 14 (fixed): the factor set in the window is passed to the
+    reader. A pixel 5 times its neighbours is replaced at factor 1 (the
+    threshold is 4 times the neighbour mean) and kept at factor 2."""
+    img = np.full((synth.PIL_W, synth.PIL_H), 100)
+    img[200, 80] = 500
+    path = synth.write_pilatus_tif(str(tmp_path / 'hot.tif'), img)
+    det.openFile(path, bad_pix=1, bad_fac=1)
+    assert det.imageData[200, 80] == 100
+    assert [list(b) for b in det.imbadPix] == [[200, 80]]
+    det.openFile(path, bad_pix=1, bad_fac=2)
+    assert det.imageData[200, 80] == 500
+    assert len(det.imbadPix) == 0
+    det.openFile(path, bad_pix=0)                  # the default: no correction
+    assert det.imageData[200, 80] == 500

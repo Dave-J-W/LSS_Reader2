@@ -165,8 +165,9 @@ class TwoDDetector:
             dataAv=np.delete(dataAv,-1,axis=1)
             dataAv=np.delete(dataAv,0,axis=0)
             dataAv=np.delete(dataAv,-1,axis=0) #trim the most out col/row
-            bad_pix_loc = list(np.argwhere(np.logical_and(data > tre * dataAv * factor, data > avg)))
-            data=np.where(np.logical_and(data>tre*dataAv,data>avg),dataAv,data)
+            bad=np.logical_and(data > tre * dataAv * factor, data > avg)
+            bad_pix_loc = list(np.argwhere(bad))
+            data=np.where(bad,dataAv,data)   # replace exactly the pixels reported as bad
             #print "Doing bad pixel corrections",i    
         try:
             return data, bad_pix_loc

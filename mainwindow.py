@@ -1748,14 +1748,14 @@ class MainWindow (QMainWindow):
         self.pilbadpixLoc = {}
         for i in self.selectedPilFramesNums:
             if len(self.ui.backgroundListWidget.selectedItems())==0:
-                self.pilatus.openFile(self.pilFileNames[i],bad_pix=bad_pix)
+                self.pilatus.openFile(self.pilFileNames[i],bad_pix=bad_pix,bad_fac=bad_fac)
                 self.pilData[i]=self.pilatus.imageData
                 self.pilLogData[i]=np.log10(self.pilData[i]+1)
                 self.pilErrorData[i]=self.pilatus.errorData
                 self.xyzformat='x=%.3f,y=%.3f,z=%.2e'
                 self.pilbadpixLoc[i] = self.pilatus.imbadPix
             else:
-                self.pilatus.openFile(self.pilFileNames[i],bad_pix=bad_pix)
+                self.pilatus.openFile(self.pilFileNames[i],bad_pix=bad_pix,bad_fac=bad_fac)
                 self.pilData[i]=self.pilatus.imageData
                 self.pilErrorData[i]=self.pilatus.errorData
                 self.pilatus.sumFiles({i:self.pilData[i]},{i:self.pilErrorData[i]},absfac=self.absfac,absnum=[self.pilSelected_AbsNum[j]],mon=[self.pilSelectedMonc[j]]) # For the Normalization Calculation Only!!

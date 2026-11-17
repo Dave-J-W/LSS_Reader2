@@ -67,7 +67,6 @@ def test_plot_roi_image_runs():
     det.plotROIImage(img, np.sqrt(img), slit=[11, 21], cen=[97, 100], show=0)
 
 
-@xfail('#14: removeBadPix detects with "factor" but replaces without it')
 def test_bad_pixel_factor_controls_replacement():
     det = TwoDDetector('Pilatus')
     img = np.full((40, 30), 100.0)
