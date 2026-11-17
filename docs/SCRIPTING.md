@@ -1,0 +1,55 @@
+# Scripting the reduction
+
+The `lss_core` package reads SPEC files and images and reduces them
+without the window and without Qt. It is the same code the window uses,
+so a script gives the same numbers as the GUI. For reflectivity this is
+checked byte for byte against files saved by the window
+(`tests/test_api.py`).
+
+Run scripts from the repository folder, or put that folder on `sys.path`.
+
+## Reflectivity
+
+```python
+from lss_core.experiment import Experiment
+
+exp = Experiment('sample_data/NX_school/2026sep/20260923')
+result = exp.reflectivity([6, 7, 8, 9])
+result.save('dppc')                     # dppc_ref.txt and dppc_rrf.txt
+```
+
+Options, with the window's defaults for Pilatus data:
+
+| Option | Default | Window control |
+|---|---|---|
+| `slit=(21, 11)` | 21 × 11 pixels | Slit |
+| `bg_offset=0.5` | degrees | BG offset |
+| `direction='H'` | `'H'` or `'V'` | BG direction |
+| `qc=0.0217` | Å⁻¹ | Qc |
+| `qoff=0.0` | Å⁻¹, R/R_F only | Qoff |
+| `norm_factor=None` | extra division | Norm. factor box |
+| `rrf=True` | also compute R/R_F | R/RF box |
+| `drops={0: [-1], 2: [0, -1]}` | none | "Drop" in the patch dialog, per join |
+| `merge_repeats=False` | | "Merge" in the identical-scans dialog |
+| `low_qz_slit=False` | | Low Qz Corr. |
+| `bad_pixel_iterations=0`, `bad_pixel_factor=1` | | BPC iterations, factor |
+
+`result` holds the per-scan points (`per_scan`, columns Qz, net signal,
+error, signal, signal error, background 1, background 2), the scan order,
+the patched curve before normalisation, `ref`, `rrf`, and the frames whose
+beam was more than 2 pixels from its recorded position (`beam_offsets`).
+
+Not yet available from scripts: background images, single-scan export,
+GID, GISAXS, cuts, fluorescence. They follow in Stage 2.
+
+## Lower-level pieces
+
+| Module | What |
+|---|---|
+| `lss_core.experiment` | `Experiment`: scans, frames, reflectivity |
+| `lss_core.reflectivity` | per-frame signal, scan ordering, merging repeats, drops, patching, normalisation, saving |
+| `lss_core.stitching` | joining two curves (`join`), Fresnel reflectivity |
+| `lss_core.images` | `read_pilatus`: fast, cached, bit-identical image reading |
+| `lss_core.cache` | the memory cache (budget from `LSS_READER_RAM_CACHE_MB`) |
+| `lss_core.numbers` | number parsing for SPEC/MCA text, without `eval` |
+| `spec_routines.specread` | the SPEC reader (no Qt needed) |

@@ -24,11 +24,15 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [x] SPEC and MCA readers without `eval` (`lss_core/numbers.py`): identical
       results on every sample file; MCA 24 → 1.2 ms per spectrum (F6).
 - [ ] Disk cache for network drives (F8).
-- [ ] Reduction functions out of the window into `lss_core` (normalise,
-      ROI sums, reflectivity per frame, stitching, cuts, GID), behind the
-      existing tests; the window calls them.
-- [ ] Scripting API (F31) and a console showing the API call for each GUI
-      action (F48).
+- [x] Reflectivity reduction scriptable without Qt (`lss_core/experiment.py`,
+      `reflectivity.py`, `stitching.py`; `docs/SCRIPTING.md`): byte-identical
+      to the window's files on synthetic and real data (F31, first part).
+      The window uses the shared stitching code.
+- [ ] The window's Ref Patch to call `lss_core.reflectivity` directly (today
+      the two are parallel implementations checked against the same
+      fixtures).
+- [ ] Same for cuts, GID, GISAXS, fluorescence, burn tests.
+- [ ] Console showing the API call for each GUI action (F48).
 - [x] Resources (`.ui`, icons) loaded relative to the program, not the
       working directory (`lss_core/resources.py`; prerequisite for F46).
 

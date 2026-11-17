@@ -3,8 +3,6 @@ import sys
 import os
 import numpy as np
 from lss_core.numbers import spec_number, spec_numbers
-from PyQt5.QtWidgets import QProgressDialog
-from PyQt5.QtCore import Qt
 
 def is_spec_file(path):
     """True if ``path`` can be read and starts like a SPEC data file (#F)."""
@@ -15,8 +13,25 @@ def is_spec_file(path):
         return False
 
 
+class _NoProgress:
+    """Stands in for a progress dialog when reading from a script."""
+    def __init__(self):
+        self._value = 0
+    def value(self):
+        return self._value
+    def setValue(self, v):
+        self._value = v
+    def wasCanceled(self):
+        return False
+    def __getattr__(self, name):          # setMaximum, setLabelText, show, hide, ...
+        return lambda *a, **k: None
+
+
 class specread:
-    def __init__(self, specfile, startLineNum=0, endScanNum=0, beamline='APS-15IDC',det='CCD',data=None,par=None):
+    def __init__(self, specfile, startLineNum=0, endScanNum=0, beamline='APS-15IDC',det='CCD',data=None,par=None,progress=None):
+        # progress: an object with the QProgressDialog methods used below (the
+        # window passes one); None reads silently, so no Qt is needed
+        self.progressDialog=progress if progress is not None else _NoProgress()
         # fresh dictionaries per reader unless the caller passes its own (refresh)
         self.Data={} if data is None else data
         self.Par={} if par is None else par
@@ -35,12 +50,6 @@ class specread:
         """
         Function to read a complete spec File collected at APS 15IDC 
         """
-        self.progressDialog=QProgressDialog('Reading scans form SPEC File:','Abort',0,100)
-        self.progressDialog.setWindowModality(Qt.WindowModal)
-        self.progressDialog.setWindowTitle('Wait')
-        self.progressDialog.setAutoClose(True)
-        self.progressDialog.setAutoReset(True)
-        self.progressDialog.setMinimum(1)
         self.Data['YCol']='Apex2'
         self.Data['NCol']='Monc'
         fid=open(self.specfile)
