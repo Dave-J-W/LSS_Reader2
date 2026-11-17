@@ -9,6 +9,7 @@ import pytest
 
 import sweep
 import synth
+from lss_core.absorbers import ABSFAC_10KEV
 from test_script_console import _export, _run_script, _same_files
 
 pytestmark = pytest.mark.gui
@@ -29,7 +30,8 @@ def _budget(w, qapp, g=None):
 
 def test_default_is_legacy_and_the_pane_switches(window, qapp, recorder):
     w = window
-    assert w.absfac == 1.414      # per absorber unit, 10 keV by design (owner, 2026-11-17)
+    assert w.absfac == ABSFAC_10KEV == 1.4247    # 50 um Al at 10 keV (owner, 2026-11-17)
+    assert w.ui.AbsFacLineEdit.text() == '1.4247'
     assert w.errorModel.mode == 'legacy' and w.pilatus.errors is w.errorModel
     assert w.errorFields['sigma'].text() == '0.04'
     assert w.errorModel.monitor.kind == 'gaussian' and w.errorModel.monitor.sigma == U0
@@ -189,14 +191,17 @@ def test_budget_cut_of_background_subtracted_frame(loaded, qapp, recorder, datas
 
 
 def test_absorber_factor_in_use_is_the_one_the_field_shows(loaded, qapp, recorder):
-    """Opening a SPEC file with Pilatus images presets the field to 1.42
-    ("Al 50 um at 10 keV"); the cuts used the value from start-up instead
-    (1.606 before 2026-11-17, then 1.414) until a reflectivity action
-    re-read the field."""
+    """Defect fixed 2026-11-17: opening a SPEC file with Pilatus images set
+    the field to 1.42 ("Al 50 um at 10 keV"), but cuts, background images
+    and frame averages kept using the start-up value of the field (1.606 in
+    the original program) until a reflectivity action re-read it. Now the
+    value in use follows the field, and both start at 50 um Al."""
     w = loaded
-    assert w.ui.AbsFacLineEdit.text() == '1.42' and w.absfac == 1.42
+    assert w.ui.AbsFacLineEdit.text() == str(ABSFAC_10KEV) and w.absfac == ABSFAC_10KEV
     w.ui.AbsFacLineEdit.setText('1.5')
     assert w.absfac == 1.5
     w.ui.AbsFacLineEdit.setText('')                 # being typed: keep the last value
     assert w.absfac == 1.5
+    w.ui.AbsFacLineEdit.setText('1.606')
+    assert w.absfac == 1.606
     assert recorder.exceptions == []

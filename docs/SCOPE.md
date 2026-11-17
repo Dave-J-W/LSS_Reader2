@@ -91,6 +91,9 @@ Each stage ends with the checks green and something the user can see.
   spectra per point; element selection for XFNTR and EXAFS (F34–F36); the
   `#V` flag once SPEC writes it.
 - New fluorescence & GID SPEC file (F28); HDF5/bluesky input (F29).
+- Simultaneous Pilatus and fluorescence on the same scans (F53): a scan
+  holds both detectors; Pilatus and Vortex selected and reduced side by
+  side (tabs "Pilatus" and "Vortex"). Needs a sample file with both.
 - *Needs from the owner:* 200K data, a new-format SPEC file, an HDF5 file,
   ME7 examples, the 1M geometry conventions.
 

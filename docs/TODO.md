@@ -52,8 +52,14 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] F52: normalise by `Monc` × its recorded gain (`#M Monc Gain`), which
       changes within files by up to 50× (owner to approve).
 - [x] Student t: σ_scan · w · t₄, w ≈ 0.94, σ_scan 0.039 % if unknown (D22).
-- [ ] Confirm "width" is the t's scale, and get the σ_scan estimator (F51).
-- [ ] F49: absorber factor from the beam energy (needs foil material).
+- [x] "width" is the t's scale (owner); σ_scan per scan declined: fixed t (D26).
+- [x] Absorber factor default: 50 µm Al at 10 keV, 1.4247 (D25).
+- [x] **P24 fixed**: the factor in use is the one shown (it was 1.606 from
+      start-up until a GID/Ref action re-read the field). Old background-
+      subtracted reductions at non-zero absorber settings should be redone.
+- [ ] F53: Pilatus and Vortex from the same scans (tabs); needs a sample file.
+- [ ] F49: absorber factor at other energies: which foils are used there?
+      (10 keV: 50 µm Al per unit, D25.)
 - [ ] When the corrected/legacy two-file export (hand-off §2.5) is built,
       make Budget the default and carry the counting part as `sigma_meas`.
 - [x] Monitor model default from the owner's analysis: Gaussian 0.04 %
@@ -235,3 +241,18 @@ reruns the quick, real-data and export-fixture checks, and commits.
 - [x] Feature requests F1–F16 and project context recorded.
 - [x] Never-writes-to-SPEC rule pinned by a test; hard-abort on a raising
       handler demonstrated and pinned as an expected failure.
+
+## Beamline to-do (SPEC macros at 15-ID-C)
+
+Things the data files should record and do not. The reader works around
+them; the fix belongs in the macros.
+
+- [ ] **`getandsave_mca` writes no absorber setting** (`#A`): checked on
+      every sample file; the MCA file header has none either. The reader
+      takes the last `#A` above the scan (D24), which cannot see a change
+      made between scans by a command that is not a scan. (owner, 2026-11-17)
+- [ ] **`getandsave_mca` writes no monitor gain** (`#M Monc Gain`), and the
+      gain changes within files (P26, F52).
+- [ ] A scan with both Pilatus and Vortex data should say so in its header
+      in a way that does not let one line override the other (F53).
+

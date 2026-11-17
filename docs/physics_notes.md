@@ -1186,7 +1186,14 @@ Absorbers don't change in the middle of scans.
   that is not a scan leaves no trace in the file, so the inference cannot
   see it; the Messages pane names the source scan for that reason.
 
-### 2026-11-17 — The absorber factor in use was not always the one shown
+### 2026-11-17 — ⚠ The absorber factor in use was not always the one shown (P24)
+
+**Important (owner asked for a strong note).** In the original program
+this made absorber-normalised images and background subtraction depend on
+the order of actions in a session, by up to (1.606/1.42)ⁿ = ×600 at
+n = 52. Background-subtracted images, GIXOS and their cuts reduced with
+the original program at non-zero absorber settings should be re-reduced.
+Details in `PHYSICS_ISSUES.md` P24; how it arose below.
 
 Found while building F50 (measured: test and run). Opening a SPEC file with
 Pilatus images presets the "Absorber factor" field to 1.42 (code comment:
@@ -1204,7 +1211,8 @@ This corrects the earlier entry "Absorber units; the Student t refined",
 which gave (1.414/1.606)ⁿ for those paths: right for the start-up value,
 but on files with Pilatus images the field had shown 1.42 all along.
 
-Open (owner): which value should be preset on opening such a file, 1.42
+Answered (owner, same day): use the real value for 50 µm Al, which is
+what is used for 10 keV; see the next entry. Asked then: which value should be preset on opening such a file, 1.42
 (Al 50 µm at 10 keV) or 1.414 (the design value)? From tabulated
 attenuation, Al at 10 keV has μ/ρ = 26.2 cm²/g and ρ = 2.70 g/cm³
 (NIST XCOM, <https://physics.nist.gov/PhysRefData/Xcom/html/xcom1.html>;
@@ -1284,4 +1292,49 @@ recorded in the file.
 
 Tests: `test_fluorescence_absorber.py` (I17; the inferred setting applied
 in the window and in scripts, script reproduces the export).
+
+### 2026-11-17 — 50 µm Al; fixed Student t; simultaneous Pilatus and Vortex
+
+**Q.** (owner) Use the real value for 50 µm aluminium, which is what is
+used for the 10 keV absorbers; each absorber unit is 50 µm more Al. Make a
+strong note on the 1.606 defect. "Width" is the t's scale parameter, not
+its standard deviation; σ_scan is a robust standard deviation of the
+point-to-point changes, computed per scan, but a fixed Student t is
+preferred. New request: simultaneous Pilatus and fluorescence experiments,
+with tabs "Vortex" and "Pilatus". Put the macros that do not save the
+absorber on the beamline to-do list.
+
+**A.**
+
+- Absorber factor (D25; `lss_core/absorbers.py`): Beer–Lambert,
+  absfac = exp(μ/ρ · ρ · t) with the total μ/ρ (coherent scattering
+  included, since a scattered photon leaves the beam). Al at 10 keV:
+  μ/ρ = 26.23 cm²/g, ρ = 2.699 g/cm³ (Hubbell & Seltzer, NIST SRD 126,
+  <https://physics.nist.gov/PhysRefData/XrayMassCoef/ElemTab/z13.html>);
+  t = 50 µm gives μt = 0.35397 and absfac = **1.4247**. **Cited from
+  memory**: physics.nist.gov could not be reached from this session (the
+  network blocks it), and installing a tabulation package was not
+  permitted, so the number was not checked against the table today. The
+  value is nominal: a foil-thickness tolerance of a few % compounds over n
+  units (2 % in t is 0.7 % per unit, a factor 1.44 at n = 52).
+  Now the default in the window (start-up and on opening a file with
+  Pilatus images, which preset 1.42 before) and in `Experiment.fluorescence`.
+  Deliberate change: the real-data XFNTR check (bu/2026sep/20260902 scans
+  74–79, n = 52) changed hash `e23206a9…` → `1cfab3ab…`; values ×
+  (1.4247/1.42)⁵² = 1.187 relative to the previous commit, 1.4247⁵² =
+  9.85×10⁷ relative to no factor. Cuts and background images on files
+  with Pilatus images change by (1.4247/1.42)ⁿ.
+- The 1.606 defect is now P24 in `PHYSICS_ISSUES.md`, marked ⚠, with its
+  size and the advice to re-reduce affected results; the entry above has
+  the strong note.
+- Student t (D26): fixed, ν = 4, scale 0.94 × 0.039 % = 0.0367 % (SD
+  0.0519 %). "Width" confirmed as the scale. F51 (per-scan σ_scan) declined;
+  the estimator is recorded in `lss_core/errors.py` and F51.
+- Simultaneous Pilatus and Vortex: F53, placed in Stage 4 (a scan holding
+  both detectors, per-detector selection) and the GUI work. Read in the
+  code: today a scan has one `Detector`, decided by whichever of `#V` and
+  `#B0` comes later in its header, and both data types share the one image
+  list, so a scan with both would show only one. A sample file is needed.
+- Beamline to-do: a new section at the end of `TODO.md` (getandsave_mca
+  writes no `#A` and no `#M`).
 

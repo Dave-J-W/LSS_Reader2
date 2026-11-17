@@ -19,6 +19,7 @@ import numpy as np
 from . import fluorescence as fluo
 from . import reflectivity as refl
 from .errors import as_model
+from .absorbers import ABSFAC_10KEV
 
 
 @dataclass
@@ -157,14 +158,14 @@ class Experiment:
         return out
 
     def fluorescence(self, scans, window=(1, 1000), monitor='Monc',
-                     calibration=None, errors=None, absfac=1.414):
+                     calibration=None, errors=None, absfac=ABSFAC_10KEV):
         """Fluorescence intensity per spectrum, as the window's "Sum All".
 
         ``window``: energy range (keV with the file's calibration);
         ``monitor``: 'Monc', 'Monb', 'Mond' or None; ``calibration``:
         (constant, linear, quadratic) to override the file's; ``errors``:
         error model as for ``reflectivity``; ``absfac``: transmission factor
-        per absorber unit; normalised spectra are multiplied by absfac**n,
+        per absorber unit (default 50 µm Al at 10 keV, lss_core.absorbers); normalised spectra are multiplied by absfac**n,
         n the scan's absorber setting (``Scan.parameters['Absorber']``; for
         getandsave_mca scans the last #A above them).
         """

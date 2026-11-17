@@ -55,7 +55,7 @@ flu.save('zinc', x='qz')               # zinc_flu.txt, as "Export" in the MCA ta
 `window` is the "Sum" range (energy with the file's calibration);
 `monitor` is `'Monc'` (default), `'Monb'`, `'Mond'` or `None`;
 `calibration=(c0, c1, c2)` overrides the file's; `absfac` (default
-1.414) is the transmission factor per absorber unit: normalised spectra
+1.4247, 50 µm Al at 10 keV, `lss_core.absorbers`) is the transmission factor per absorber unit: normalised spectra
 are multiplied by absfac**n, n the scan's absorber setting, which for
 `getandsave_mca` scans is the last `#A` above them in the SPEC file
 (`exp.scans[n].parameters['AbsorberFrom']` names that scan; no `#A` above:

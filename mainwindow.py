@@ -32,6 +32,7 @@ import traceback
 import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
+from lss_core.absorbers import ABSFAC_10KEV
 from lss_core.errors import ErrorModel, MonitorModel, MonitorTerms, script_kw, ELECTRONICS
 #from TwoD_Integrate import integrate_2d
 
@@ -119,7 +120,9 @@ class MainWindow (QMainWindow):
         self.mcaIntData=[]
         self.refQc=float(self.ui.refQcLineEdit.text())
         self.ui.AbsFacLineEdit.setToolTip('Transmission factor per absorber unit. SPEC #A gives the absorber in these units '
-                                          '(0: no absorbers). About 1.414 at 10 keV by design; it depends on the energy.')
+                                          '(0: no absorbers). Default: 50 um of Al at 10 keV, exp(mu/rho rho t) = %s '
+                                          '(lss_core/absorbers.py); it depends on the energy.' % ABSFAC_10KEV)
+        self.ui.AbsFacLineEdit.setText(str(ABSFAC_10KEV))
         self.absfac=float(self.ui.AbsFacLineEdit.text())
         # the factor in use is the one the field shows, however it was set
         # (typed, or preset when a SPEC file with Pilatus images is opened)
@@ -679,7 +682,7 @@ class MainWindow (QMainWindow):
                     self.ui.refBGOffLineEdit.setText('0.5')   #preset the background    
                     self.ui.refSlitLineEdit.setText('21,11')  #preset the size of ROI
                     self.ui.refQcLineEdit.setText('0.0217') #preset the critical q
-                    self.ui.AbsFacLineEdit.setText('1.42') #for Al 50um at 10keV
+                    self.ui.AbsFacLineEdit.setText(str(ABSFAC_10KEV)) # 50 um Al at 10 keV (was '1.42')
         self.ui.statusBar.showMessage('Done')
         self.scanCenter={}
 
@@ -1463,7 +1466,7 @@ class MainWindow (QMainWindow):
             kw.append('calibration=(%r, %r, %r)' % (float(self.ui.mcaCalibConLineEdit.text()),float(self.ui.mcaCalibLinLineEdit.text()),float(self.ui.mcaCalibQuaLineEdit.text())))
         if script_kw(self.errorModel):
             kw.append(script_kw(self.errorModel))
-        if mon!='None' and getattr(self,'mcaAbsfacUsed',1.414)!=1.414 and any(
+        if mon!='None' and getattr(self,'mcaAbsfacUsed',ABSFAC_10KEV)!=ABSFAC_10KEV and any(
                 self.mcaAbsorber.get(i) for i in self.selectedMcaScanNums):
             kw.append('absfac=%r' % self.mcaAbsfacUsed)
         x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]

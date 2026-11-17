@@ -39,8 +39,10 @@ The monitor's relative uncertainty per frame, u_M = σ_M / M, comes from
     u_M = s·√(ν/(ν−2)) (finite for ν > 2; √2·s for ν = 4); the shape is kept
     with the model for anything downstream that uses a likelihood. Like the
     Gaussian value, it belongs to the SR570 + V2F electronics.
-    Reading taken here: "width" is the t's scale, not its standard
-    deviation (to be confirmed).
+    "width" is the t's scale parameter, not its standard deviation (owner,
+    2026-11-17). The separate analysis estimated σ_scan as a robust standard
+    deviation of the point-to-point changes of each scan; the owner prefers
+    a fixed t, so σ_scan is a fixed value (0.039 %), not estimated per scan.
 ``'counting'``
     u_M² = f² + (σ_dark / M)² + 1 / (g · M): a fractional floor f, the
     scatter σ_dark of the dark counts in a frame, and g quanta per recorded
