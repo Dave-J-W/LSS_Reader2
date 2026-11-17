@@ -34,12 +34,12 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [x] All save handlers write nothing when the file chooser is cancelled.
 - [x] Graceful opening: non-SPEC files (defect 4) and repeated scan
       numbers (F27).
-- [ ] Graceful opening, still to do (F27): aborted scans (message wording),
-      missing detector folders (today a folder chooser opens), SPEC files
-      whose scan numbers do not start at 1 or have gaps (several places
-      still use "number - 1" as a list position).
-- [ ] Final sweep of Stage 1 with the wider sequences (6 seeds, 4 states).
-- [ ] Remove the Bruker/CCD paths and controls (D8, F38).
+- [x] Graceful opening (F27): missing images (also fixed a normalisation
+      misalignment, PHYSICS_ISSUES P22), scan numbers not starting at 1,
+      missing image folders with the chooser cancelled.
+- [x] Bruker/CCD code removed (D8, F38); geometry kept in
+      `ccd_geometry_precedent.md`; Apex tab hidden pending the GUI work.
+- [ ] Final sweep of Stage 1 on the current code (running).
 - [ ] Remaining read-only defects of `ASSESSMENT.md` §4 (8: 9-ID-C reader,
       pending the owner's answer on whether 9-ID-C is needed; 10–13, 15:
       physics, tracked in `PHYSICS_ISSUES.md` and not to be changed without
