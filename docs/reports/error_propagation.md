@@ -11,8 +11,11 @@ subtraction, and several frames at the same point.
 
 How things are known: the **present** formulas are read from the code
 (function named) and agree with the existing tests
-(`test_twod_detector.py`, `test_xfntr.py`); the **proposal** is derived
-here and is not built. No form of noise is assumed: every variance is a
+(`test_twod_detector.py`, `test_xfntr.py`); the **proposal** (§9) was
+accepted by the owner and is **built** as the "budget" error model
+(`lss_core/errors.py`, 2026-11-17; tests `test_error_budget.py`,
+`test_gui_error_budget.py`). "Now" below describes the legacy model, which
+remains the default. No form of noise is assumed: every variance is a
 symbol that a measured model fills in.
 
 Method: first-order propagation of variances and covariances. For a

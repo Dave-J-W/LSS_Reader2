@@ -39,6 +39,17 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [x] Fluorescence (MCA window sum) scriptable and shared with the window;
       byte-identical `_flu.txt`; Script pane line on export.
 - [x] Cuts normalised by monitor and absorber (D19, P23 fixed).
+- [x] Error budget (D20): "Budget" error model, monitor term on whole sums,
+      in every non-patched path and in Ref Patch's per-frame points;
+      Errors pane; `errors=` in scripts. Legacy stays default.
+- [x] Absorbers consistent (D21): messages when frames of different foil
+      counts are combined on the nominal factor.
+- [ ] Ask the owner: are the absorber foils upstream or downstream of
+      `Monc`? (Decides whether a^n double-counts, and the fluorescence path.)
+- [ ] When the corrected/legacy two-file export (hand-off §2.5) is built,
+      make Budget the default and carry the counting part as `sigma_meas`.
+- [ ] Set the monitor model's default from the owner's analysis
+      (`handoff_out/01-monitor-noise-analysis.md`).
 - [ ] Cuts scriptable.
 - [ ] Stage 3 frame object: normalise once at load; make each reduction's
       normalisation explicit (owner's expectation, 2026-11-17).

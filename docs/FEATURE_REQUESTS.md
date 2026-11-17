@@ -270,6 +270,8 @@ priority than the lists above.
 |---|---|---|
 | D18 | Local disk cache default raised to 5 GB. | F8 |
 | D19 | Line/area cuts are made of monitor-normalised frames, like every other reduction. | P23 |
+| D20 | Error budget accepted: the monitor's uncertainty is applied to the whole sum of a frame (box, line, window, net), not per pixel in quadrature; frames' monitor errors are independent. Built as the "Budget" error model (Errors pane, `errors=` in scripts); "Legacy" stays the default until the corrected/legacy two-file export exists. | P2, P3, P8, F26 |
+| D21 | Absorbers: no nominal factor where the scale is measured (Ref Patch); where a nominal factor is used it scales all error parts and has no uncertainty, and combining frames of different foil counts on it is reported in the Messages pane. | P2, F41 |
 | R7 | Output files in the newer formats (ORSO, HDF5, combined JSON) record the reduction steps and their parameters, so a file can be traced back to how it was made. The legacy text files stay byte-identical. | F24c, F25, F30 |
 | — | Owner's expectation: images are normalised first, then reduced. Today they are not (see `physics_notes.md`, 2026-11-17); the frame object of Stage 3 should hold the normalised frame once. | target design |
 

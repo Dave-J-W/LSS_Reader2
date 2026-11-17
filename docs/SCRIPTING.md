@@ -59,6 +59,23 @@ normalised spectra, `flu.rows` the [frame, Qz, energy, intensity, error]
 rows. Checked byte for byte against the window's `_flu.txt` on synthetic
 and real data.
 
+## Error model
+
+Both `reflectivity` and `fluorescence` take `errors=`: `'legacy'` (the
+default, the window's numbers byte for byte) or `'budget'`, or a dict with
+the monitor model:
+
+```python
+ref = exp.reflectivity([6, 7, 8, 9],
+                       errors={'mode': 'budget', 'f': 0.0, 'sigma_dark': 0.0, 'g': 10.0})
+```
+
+Budget applies the monitor's relative uncertainty
+u_M² = f² + (σ_dark/M)² + 1/(g·M) once to each whole sum of a frame
+(`lss_core/errors.py`, `docs/reports/error_propagation.md`). The window's
+Errors pane sets the same model, and the Script pane writes the matching
+`errors=`.
+
 ## The Script pane
 
 The window has a "Script" pane (bottom, next to Messages). Opening a

@@ -16,7 +16,10 @@ Per frame (the window's ``pilRefPatchData``):
    background boxes of the same size, offset by ``bg_offset`` degrees
    converted to pixels at the sample–detector distance, either side
    (direction 'H') or above and below ('V');
-4. the row is [Qz, S − (B1 + B2)/2, √(σ_S² + (σ_B1² + σ_B2²)/4), S, σ_S, B1, B2].
+4. the row is [Qz, S − (B1 + B2)/2, σ, S, σ_S, B1, B2], with
+   σ = √(σ_S² + (σ_B1² + σ_B2²)/4) in the legacy error model; in the budget
+   model (``detector.errors``, lss_core.errors) σ² = counting part
+   + (net · u_M)², the monitor term applied once to the net signal.
 """
 import numpy as np
 
@@ -48,9 +51,8 @@ def frame_row(detector, image, error, monitor, beam_xy, qz, slit, bg_offset_deg,
     use = [slitx, 5] if (low_qz_slit and 0.02 < qz < 0.03) else [slitx, slity]
     sig, sigerr, lbg, lbgerr, rbg, rbgerr = detector.sumROI(slit=use, cen=[cenx, ceny],
                                                            dir=direction, bg=bg)
-    row = np.array([qz, sig - (lbg + rbg) / 2.0,
-                    np.sqrt(sigerr ** 2 + (lbgerr ** 2 + rbgerr ** 2) / 4),
-                    sig, sigerr, lbg, rbg])
+    net, neterr = detector.netROI()     # legacy: sqrt(sigerr² + (lbgerr² + rbgerr²)/4)
+    row = np.array([qz, net, neterr, sig, sigerr, lbg, rbg])
     info = {'centre': (cenx, ceny), 'expected': tuple(scen), 'slit': use, 'bg': bg,
             'offset': (cenx - scen[0], ceny - scen[1])}
     return row, info

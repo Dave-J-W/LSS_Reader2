@@ -18,6 +18,7 @@ import numpy as np
 
 from . import fluorescence as fluo
 from . import reflectivity as refl
+from .errors import as_model
 
 
 @dataclass
@@ -105,15 +106,18 @@ class Experiment:
     def reflectivity(self, scans, slit=(21, 11), bg_offset=0.5, direction='H',
                      qc=0.0217, qoff=0.0, norm_factor=None, rrf=True,
                      drops=None, merge_repeats=False, merge=None, low_qz_slit=False, points=None,
-                     bad_pixel_iterations=0, bad_pixel_factor=1):
+                     bad_pixel_iterations=0, bad_pixel_factor=1, errors=None):
         """Specular reflectivity of ``scans``, as the window's Ref Patch with
         the same settings (defaults are the window's defaults for Pilatus
         data). ``drops``: {join number: [indices]} as typed into the patch
         dialog (several presses: a list of lists). ``merge_repeats``: average
         all repeated scans first; ``merge``: average only these groups. ``points``: {scan: [point numbers]} to use only
-        some points of a scan (as when only some frames are selected)."""
+        some points of a scan (as when only some frames are selected).
+        ``errors``: error model, 'legacy' (default: the window's numbers) or
+        'budget' or an lss_core.errors.ErrorModel."""
         from TwoDDetector import TwoDDetector
         det = TwoDDetector('Pilatus')
+        det.errors = as_model(errors)
         per_scan, offsets = {}, []
         for f in self.frames(scans):
             if points is not None and f.scan in points and f.index not in points[f.scan]:
@@ -153,19 +157,22 @@ class Experiment:
         return out
 
     def fluorescence(self, scans, window=(1, 1000), monitor='Monc',
-                     calibration=None):
+                     calibration=None, errors=None):
         """Fluorescence intensity per spectrum, as the window's "Sum All".
 
         ``window``: energy range (keV with the file's calibration);
         ``monitor``: 'Monc', 'Monb', 'Mond' or None; ``calibration``:
-        (constant, linear, quadratic) to override the file's.
+        (constant, linear, quadratic) to override the file's; ``errors``:
+        error model as for ``reflectivity``.
         """
+        model = as_model(errors)
         spectra, rows = [], []
         for k, (scan, num, data, par) in enumerate(self.spectra(scans)):
             cal = calibration if calibration is not None else par['Calib']
             mon = None if monitor is None else data[monitor]
-            s = fluo.normalise_spectrum(data['Vortex'], par, mon, cal)
-            inten, err, ini, fin = fluo.window_sum(s, window[0], window[1])
+            s = fluo.normalise_spectrum(data['Vortex'], par, mon, cal, model)
+            u = float(model.monitor.relative(mon)) if (model.budget and mon is not None) else None
+            inten, err, ini, fin = fluo.window_sum(s, window[0], window[1], u)
             energy = par.get('Energy', 10.0)
             spectra.append(s)
             rows.append([k + 1, par['Q'][2], energy, inten, err])

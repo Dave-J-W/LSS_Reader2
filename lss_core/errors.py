@@ -1,0 +1,159 @@
+"""Error models: how the uncertainty of a reduced value is put together.
+
+Two models, chosen per reduction (``ErrorModel.mode``):
+
+``'legacy'``
+    What the program has always done, kept byte for byte so that the
+    legacy export files do not change: every pixel (or MCA channel) gets
+    σ² = I/M² + I²/M³ after division by the monitor, and sums add these in
+    quadrature. The monitor term is then Σ r_i²·(1/M) instead of (Σ r_i)²·u_M²
+    (``docs/reports/error_propagation.md`` §4).
+
+``'budget'``  (accepted by the owner, 2026-11-17)
+    The variance of a reduced value is carried in two parts:
+
+    * counting: the detector's variance, Σ σ_i² / M² (σ_i² = I_i, Poisson,
+      unless a detector model says otherwise), adding in quadrature;
+    * monitor: one amplitude per frame, value_k · u_M,k, where value_k is
+      what that frame contributes to the result. Amplitudes of the same
+      frame add **linearly** (its monitor error moves every pixel of the
+      frame together); amplitudes of different frames add in quadrature.
+
+    So for one frame, var(S/M) = Σσ_i²/M² + (S/M)²·u_M², and for a
+    background-subtracted box var = [σ_S² + (σ_L²+σ_R²)/4]/M² + (N/M)²·u_M².
+
+The monitor's relative uncertainty per frame comes from ``MonitorModel``:
+
+    u_M² = f² + (σ_dark / M)² + 1 / (g · M)
+
+f a fractional floor, σ_dark the scatter of the monitor's dark counts in a
+frame (counts), g the number of quanta per recorded count. The default
+(f = 0, σ_dark = 0, g = 1) is Poisson on the recorded counts, the same
+assumption the legacy model makes, so switching model changes only how
+the terms are combined. It is provisional: the owner is measuring u_M
+(``docs/handoff_out/01-monitor-noise-analysis.md``).
+
+Method: first-order propagation, JCGM 100:2008 (GUM) §5.2,
+https://www.bipm.org/en/doi/10.59161/JCGM100-2008E.
+
+Absorbers: a nominal absorber factor a = absfac**n, where the window
+applies one, multiplies value, counting and monitor parts alike; it
+carries no uncertainty of its own (the scale between scans is measured in
+patching; owner, 2026-11-17).
+"""
+from dataclasses import dataclass
+
+import numpy as np
+
+MODES = ('legacy', 'budget')
+
+
+@dataclass
+class MonitorModel:
+    f: float = 0.0           # fractional floor
+    sigma_dark: float = 0.0  # dark-count scatter per frame, counts
+    g: float = 1.0           # quanta per recorded monitor count
+
+    def relative(self, monitor):
+        """u_M = σ_M / M for monitor reading(s) ``monitor``."""
+        m = np.asarray(monitor, dtype=float)
+        return np.sqrt(self.f ** 2 + (self.sigma_dark / m) ** 2 + 1.0 / (self.g * m))
+
+    def describe(self):
+        return ('u_M^2 = %g^2 + (%g/M)^2 + 1/(%g M)' % (self.f, self.sigma_dark, self.g))
+
+
+@dataclass
+class ErrorModel:
+    mode: str = 'legacy'
+    monitor: MonitorModel = None
+
+    def __post_init__(self):
+        if self.mode not in MODES:
+            raise ValueError('error model must be one of %s, not %r' % (MODES, self.mode))
+        if self.monitor is None:
+            self.monitor = MonitorModel()
+
+    @property
+    def budget(self):
+        return self.mode == 'budget'
+
+    def describe(self):
+        if not self.budget:
+            return 'legacy (per-pixel I/M^2 + I^2/M^3, summed in quadrature)'
+        return 'budget (monitor on whole sums; %s)' % self.monitor.describe()
+
+
+LEGACY = ErrorModel('legacy')
+
+
+def as_model(errors):
+    """Accept None, 'legacy', 'budget', an ErrorModel, or a dict such as
+    {'mode': 'budget', 'f': 0.0, 'sigma_dark': 0.0, 'g': 1.0}."""
+    if errors is None:
+        return LEGACY
+    if isinstance(errors, ErrorModel):
+        return errors
+    if isinstance(errors, dict):
+        d = dict(errors)
+        mode = d.pop('mode', 'budget')
+        return ErrorModel(mode, MonitorModel(**d))
+    return ErrorModel(str(errors))
+
+
+def script_kw(model):
+    """The ``errors=`` keyword a script needs for ``model`` ('' for legacy)."""
+    if not model.budget:
+        return ''
+    m = model.monitor
+    return "errors={'mode': 'budget', 'f': %r, 'sigma_dark': %r, 'g': %r}" % (m.f, m.sigma_dark, m.g)
+
+
+class MonitorTerms:
+    """The monitor parts of a value built linearly from raw frames.
+
+    Each term is (key, counts, coefficient): the value contains
+    coefficient · counts, and the monitor amplitude of frame ``key`` over a
+    region is coefficient · u_M,key · Σ_region counts. ``coefficient``
+    already holds 1/M, the absorber factor and any averaging weight; its
+    sign follows the value (negative for a subtracted background).
+    """
+
+    def __init__(self):
+        self.terms = []          # (key, counts array, coefficient · u_M)
+
+    def add(self, key, counts, coefficient, u):
+        self.terms.append((key, counts, coefficient * u))
+
+    def extend(self, other, scale=1.0):
+        for key, counts, cu in other.terms:
+            self.terms.append((key, counts, cu * scale))
+
+    def __len__(self):
+        return len(self.terms)
+
+    def amplitudes(self, region=np.s_[...], axis=None):
+        """{key: amplitude}, the amplitude of each frame for the sum of the
+        value over ``region`` (along ``axis`` if given, giving profiles)."""
+        out = {}
+        for key, counts, cu in self.terms:
+            a = cu * np.sum(counts[region], axis=axis)
+            out[key] = out[key] + a if key in out else a
+        return out
+
+    def variance(self, region=np.s_[...], axis=None):
+        """Monitor variance of the sum over ``region`` (profile if ``axis``)."""
+        amps = self.amplitudes(region, axis)
+        if not amps:
+            return 0.0
+        return np.sum([np.square(a) for a in amps.values()], axis=0)
+
+
+def combine_amplitudes(parts):
+    """Monitor variance of a linear combination. ``parts``: list of
+    (weight, {key: amplitude}). Same keys add linearly, then square."""
+    total = {}
+    for w, amps in parts:
+        for key, a in amps.items():
+            total[key] = total.get(key, 0.0) + w * a
+    return float(np.sum([a * a for a in total.values()])) if total else 0.0

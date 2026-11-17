@@ -25,6 +25,8 @@ exists.
 | I12 | A signal decaying as exp(−t/τ) under the beam is reduced to the same decay and the burn-test fit returns τ | tested on synthetic data: `test_burn.py` (τ within 0.5 %) |
 | I13 | A window sum over an MCA line returns counts / monitor × (real / live time); a Gaussian fit returns the line's position, width and height | tested on synthetic data: `test_xfntr.py` |
 | I14 | (for F47, when built) A silicon-detector escape peak lies 1.74 keV (Si Kα) below its parent line, with a small fixed fraction of the parent's counts; summing parent and escape conserves the line's counts | cited from memory (standard Si(Li)/SDD behaviour; see XrayDB); no code yet |
+| I15 | (budget error model) The variance of any sum over one frame is its counting variance plus (sum)²·u_M²: box, line-cut point, energy window, and background-subtracted net (monitor term on the net, not on the boxes); averages of frames add each frame's monitor amplitude in quadrature; a frame subtracted from itself has no monitor term | tested: `test_error_budget.py` (formulas, and a Monte Carlo of a bright box with a 1 % monitor: predicted σ within 10 % of the scatter, legacy σ < 1/3 of it), `test_gui_error_budget.py` (cuts, summed cuts, MCA sum, Ref Patch) |
+| I16 | The error model changes errors only: values are identical in both models up to the patch's scale-factor fit, which is weighted by the errors | tested: `test_error_budget.py` (NX school scans 6–9, per-frame columns identical), `test_gui_error_budget.py` (patched values within 0.5 %) |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -984,3 +986,65 @@ noise, which is smaller than its scatter and, from the width-vs-M scaling,
 probably counting-like; a Gaussian whose width depends on M (and a flag
 for rare jumps) is the likely outcome, but that is to be decided on the
 owner's data. Until then the reader carries u_M as a parameter.
+
+### 2026-11-17 — The error budget, built; absorbers made consistent
+
+**Q.** (owner) Go ahead with the error-budget implementation (monitor error
+applied to whole ROI sums, not per pixel in quadrature); make absorber
+handling consistent and note what changed.
+
+**A.** Built; how it is known: tests (`test_error_budget.py`,
+`test_gui_error_budget.py`; invariants I15, I16) and a run on NX school
+scans 6–9 (numbers below).
+
+*What exists now.* `lss_core/errors.py` holds the error model, chosen in
+the window's new **Errors** pane (menu View → Errors) or with
+`errors=` in a script:
+
+- **Legacy** (the default): the numbers the program always gave. Every
+  legacy export fixture is unchanged (quick, slow and golden tests pass).
+- **Budget**: each value carries a counting part (σ_I²/M², added in
+  quadrature) and one monitor amplitude per frame (value·u_M, added
+  linearly within a frame, in quadrature across frames). Built into box
+  sums and the background-subtracted net (`TwoDDetector.sumROI`/`netROI`,
+  hence Ref Patch, Ref burn, Ref analyse), line cuts and their "Sum",
+  background-subtracted images (the background's frames enter with the
+  opposite sign), frame averages (`sumFiles`), the GID burn intensity,
+  GID patch profiles, MCA spectra and window sums.
+- Monitor model u_M² = f² + (σ_dark/M)² + 1/(g·M), default f = 0,
+  σ_dark = 0, g = 1: Poisson on the recorded counts, i.e. the same
+  assumption legacy makes, so that switching models changes only how the
+  terms combine. Provisional until the owner's measurement
+  (`handoff_out/01-monitor-noise-analysis.md`).
+- Legacy stays the default until the two-output export of the hand-off
+  (§2.5: corrected `_ref.txt` plus byte-identical `_ref_legacy.txt`) is
+  built; then budget becomes the default and legacy files are always
+  written alongside.
+
+*Before/after on real data* (NX school scans 6–9, per-frame σ, budget ÷
+legacy): with g = 1, median 1.03, maximum 1.74 at Q_z = 0.0187 (the
+brightest points, where the per-pixel sum understated the monitor
+term); in the final `_ref` curve median 1.01, maximum 1.74; values move by
+at most 4×10⁻⁵ (through the error-weighted scale-factor fit). With g = 10,
+σ ratio 0.94 to 1.00: the two defects of the legacy formula (correlation
+dropped, Poisson monitor) roughly cancel, as simulated before
+(`reports/monitor_noise.md`).
+
+*Absorbers.* Where a nominal factor a = absfac^n is applied, it now
+multiplies the counting and monitor parts alike and carries no
+uncertainty (the scale between scans is measured in patching). Per path:
+
+| Path | Nominal absorber factor | Changed today |
+|---|---|---|
+| Ref Patch | no: the scale is measured in each patch | no |
+| Ref and GID burn tests | no: one scan, one absorber setting; τ does not depend on it | no |
+| Fluorescence | no | no (open question below) |
+| Cuts (since D19), background images, frame averages, Ref analyse at one Q_z, GID patch | yes | **a message** in the Messages pane when frames with different absorber counts are combined this way, once per combination: the relative scale then rests on the unmeasured nominal factor |
+
+Open question for the owner: are the absorber foils upstream or downstream
+of the `Monc` ion chamber? If upstream, `Monc` already sees the
+attenuation and dividing by it corrects for the foils, so applying a^n as
+well would double-count; if downstream (between sample and detector, or
+between `Monc` and the sample), a^n is needed wherever frames of different
+foil counts are compared. The fluorescence path applies no factor; whether
+that is right depends on the same answer.

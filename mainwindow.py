@@ -32,6 +32,7 @@ import traceback
 import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
+from lss_core.errors import ErrorModel, MonitorModel, MonitorTerms, script_kw
 #from TwoD_Integrate import integrate_2d
 
 
@@ -163,6 +164,7 @@ class MainWindow (QMainWindow):
         self.log=reader_log.get_logger()
         self.initMessagePane()
         self.initScriptPane()
+        self.initErrorPane()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
         self.initValidator()
@@ -1078,7 +1080,7 @@ class MainWindow (QMainWindow):
                     monitor=str(self.ui.mcaNormComboBox.currentText())
                     n=self.mcaData[i][monitor]
                     tc=self.mcaPar[i]['Time'][1]/self.mcaPar[i]['Time'][2]  #real count time correction
-                    self.nomMcaData[i]=fluorescence.normalise_spectrum(self.mcaData[i]['Vortex'],self.mcaPar[i],n,(con,lin,qua))
+                    self.nomMcaData[i]=fluorescence.normalise_spectrum(self.mcaData[i]['Vortex'],self.mcaPar[i],n,(con,lin,qua),self.errorModel)
                 else:
                     n=1
                     tc=1
@@ -1098,7 +1100,10 @@ class MainWindow (QMainWindow):
             self.ui.statusBar.showMessage('Done')
         
     def mcaPlot(self,x,y,n,tc,fact):
-        if str(self.ui.mcaNormComboBox.currentText())!='None':
+        if str(self.ui.mcaNormComboBox.currentText())!='None' and self.errorModel.budget:
+            u=self.errorModel.monitor.relative(n)
+            yerr=pl.sqrt(y/n**2*tc**2+(y/n*tc)**2*u**2)
+        elif str(self.ui.mcaNormComboBox.currentText())!='None':
             yerr=pl.sqrt(y+y**2/n)/n*tc
         else:
             yerr=pl.sqrt(y)
@@ -1193,7 +1198,11 @@ class MainWindow (QMainWindow):
         try:
             for i in range(len(self.selectedMcaScanNums)):
                 data=self.nomMcaData[self.selectedMcaScanNums[i]]
-                inten,error,ini,fin=fluorescence.window_sum(data,float(str(self.ui.mcaRanLineEdit.text()).split(':')[0]),float(str(self.ui.mcaRanLineEdit.text()).split(':')[1]))
+                u=None
+                mon=str(self.ui.mcaNormComboBox.currentText())
+                if self.errorModel.budget and mon!='None':
+                    u=float(self.errorModel.monitor.relative(self.mcaData[self.selectedMcaScanNums[i]][mon]))
+                inten,error,ini,fin=fluorescence.window_sum(data,float(str(self.ui.mcaRanLineEdit.text()).split(':')[0]),float(str(self.ui.mcaRanLineEdit.text()).split(':')[1]),u)
                 frame=self.selectedMcaScanNums[i]+1
                 qz=self.mcaPar[self.selectedMcaScanNums[i]]['Q'][2]
                 try:
@@ -1380,6 +1389,8 @@ class MainWindow (QMainWindow):
             kw.append('monitor=%r' % (None if mon=='None' else mon))
         if self.ui.mcaCalibCheckBox.checkState()==0:
             kw.append('calibration=(%r, %r, %r)' % (float(self.ui.mcaCalibConLineEdit.text()),float(self.ui.mcaCalibLinLineEdit.text()),float(self.ui.mcaCalibQuaLineEdit.text())))
+        if script_kw(self.errorModel):
+            kw.append(script_kw(self.errorModel))
         x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
         return 'flu = exp.fluorescence(%r, %s)\nflu.save(%r, x=%r)' % (scans,', '.join(kw),name,x)
 
@@ -1442,6 +1453,88 @@ class MainWindow (QMainWindow):
         self.addDockWidget(Qt.BottomDockWidgetArea,self.scriptDock)
         self.tabifyDockWidget(self.messageDock,self.scriptDock)
         self.scriptDock.hide()   # View it from the dock area's context menu, or it appears with the first line
+
+    def initErrorPane(self):
+        """A dock with the error model (lss_core.errors): 'Legacy' gives the
+        numbers the program always gave; 'Budget' applies the monitor's
+        uncertainty to whole sums, with u_M^2 = f^2 + (dark/M)^2 + 1/(g M)."""
+        self.errorModel=ErrorModel('legacy')
+        self.pilatus.errors=self.errorModel
+        self.errorDock=QDockWidget('Errors',self)
+        self.errorDock.setObjectName('errorDock')
+        w=QWidget(self.errorDock)
+        form=QFormLayout(w)
+        self.errorModeComboBox=QComboBox(w)
+        self.errorModeComboBox.setObjectName('errorModeComboBox')
+        self.errorModeComboBox.addItems(['Legacy','Budget'])
+        self.errorModeComboBox.setToolTip('Legacy: per-pixel monitor term summed in quadrature (as before).\n'
+                                          'Budget: the monitor term is applied once to each whole sum.')
+        form.addRow('Error model',self.errorModeComboBox)
+        self.errorFields={}
+        for name,label,tip in (('f','Floor f','fractional monitor uncertainty that does not fall with counts'),
+                               ('sigma_dark','Dark sigma','scatter of the monitor dark counts in one frame (counts)'),
+                               ('g','Quanta per count g','true quanta per recorded monitor count (1: Poisson on the counts)')):
+            e=QLineEdit(repr(getattr(self.errorModel.monitor,name)),w)
+            e.setObjectName('errorModel_'+name)
+            e.setToolTip(tip)
+            e.setValidator(QDoubleValidator(0.0,1e12,12,e))
+            e.editingFinished.connect(self.setErrorModel)
+            self.errorFields[name]=e
+            form.addRow(label,e)
+        self.errorModeComboBox.currentIndexChanged.connect(self.setErrorModel)
+        self.errorDock.setWidget(w)
+        self.addDockWidget(Qt.BottomDockWidgetArea,self.errorDock)
+        self.tabifyDockWidget(self.messageDock,self.errorDock)
+        self.errorDock.hide()
+        view=self.ui.menuBar.addMenu('View')
+        view.setObjectName('menuView')
+        for dock in (self.messageDock,self.scriptDock,self.errorDock):
+            view.addAction(dock.toggleViewAction())
+
+    def setErrorModel(self):
+        """Read the Errors pane into self.errorModel; applies to what is
+        computed from now on."""
+        vals={}
+        for name,e in self.errorFields.items():
+            try:
+                vals[name]=float(e.text())
+            except ValueError:
+                vals[name]=getattr(MonitorModel(),name)
+                e.setText(repr(vals[name]))
+        if vals['g']<=0:
+            vals['g']=1.0
+            self.errorFields['g'].setText('1.0')
+        mode='budget' if self.errorModeComboBox.currentIndex()==1 else 'legacy'
+        new=ErrorModel(mode,MonitorModel(**vals))
+        if new==self.errorModel:
+            return
+        self.errorModel=new
+        self.pilatus.errors=new
+        self.notify('Error model: '+new.describe()+'. Spectra and background-subtracted images on show are '
+                    'recomputed; other results apply it the next time they are computed.',
+                    title='Errors',level='info')
+        # what is on show was normalised under the old model: redo it
+        if len(self.selectedMcaScanNums)>0 and getattr(self,'mcaData',None):
+            self.updateMcaPlotData()
+        if self.det=='Pilatus' and len(self.selectedPilFramesNums)>0 and len(self.ui.backgroundListWidget.selectedItems())>0:
+            self.pilSelectedScanChanged()
+
+    def noteMixedAbsorbers(self,absnums,what):
+        """Frames taken with different numbers of absorber foils are being
+        combined on the nominal factor absfac**n, which is not measured (Ref
+        Patch measures the scale instead; owner, 2026-11-17). Say so, once
+        per combination."""
+        n=sorted(set(int(a) for a in absnums))
+        if len(n)<2:
+            return
+        key=(what,tuple(n),float(self.absfac))
+        seen=self.__dict__.setdefault('_absorberNotes',set())
+        if key in seen:
+            return
+        seen.add(key)
+        self.notify('%s combines frames taken with %s absorber foils, scaled by the nominal factor %g per foil; '
+                    'that factor is not measured, so the relative scale of these frames is only as good as it.'
+                    % (what,', '.join(map(str,n)),self.absfac),title='Absorbers',level='info')
 
     def scriptLine(self,text):
         """Append Python to the Script pane and the log."""
@@ -1724,6 +1817,7 @@ class MainWindow (QMainWindow):
         self.progressDialog.setMaximum(len(self.selectedPilFramesNums))
         self.progressDialog.show()
         self.pilbadpixLoc = {}
+        self.pilMonitorTerms = {}   # budget error model: monitor parts of background-subtracted frames
         for i in self.selectedPilFramesNums:
             if len(self.ui.backgroundListWidget.selectedItems())==0:
                 self.pilatus.openFile(self.pilFileNames[i],bad_pix=bad_pix,bad_fac=bad_fac)
@@ -1739,6 +1833,11 @@ class MainWindow (QMainWindow):
                 self.pilatus.sumFiles({i:self.pilData[i]},{i:self.pilErrorData[i]},absfac=self.absfac,absnum=[self.pilSelected_AbsNum[j]],mon=[self.pilSelectedMonc[j]]) # For the Normalization Calculation Only!!
                 self.pilGIOXSData[i]=self.pilatus.imageData   #for GIOXS data, bg substraction has to be done in 1D format. So keep it without bg image substraction
                 self.pilGIOXSErrorData[i]=self.pilatus.errorData
+                if self.errorModel.budget:
+                    terms=MonitorTerms()
+                    terms.extend(self.pilatus.monitorTerms)
+                    terms.extend(getattr(self,'bgMonitorTerms',MonitorTerms()),-fac)
+                    self.pilMonitorTerms[i]=terms
                 self.pilData[i]=self.pilatus.imageData-fac*self.bgData
                 if self.ui.bgIgnoreNegCheckBox.checkState()!=0:
                     self.pilData[i]=np.where(self.pilData[i]<0,0,self.pilData[i])
@@ -1863,9 +1962,11 @@ class MainWindow (QMainWindow):
                 self.selectedBgAbsNum.append(self.bgAbsNum[i])
                 self.selectedBgScanNum.append(self.bgScanNum[i])
             if len(self.selectedBgFrameNums)>0:   # nothing selected: no background to form
-                self.pilatus.sumFiles(self.selectedBgData,self.selectedBgError,absfac=self.absfac,absnum=self.selectedBgAbsNum,mon=self.selectedBgMonc)
+                self.noteMixedAbsorbers(self.selectedBgAbsNum,'The background image')
+                self.pilatus.sumFiles(self.selectedBgData,self.selectedBgError,absfac=self.absfac,absnum=self.selectedBgAbsNum,mon=self.selectedBgMonc,tag='bg')
                 self.bgData=self.pilatus.imageData
                 self.bgError=self.pilatus.errorData
+                self.bgMonitorTerms=self.pilatus.monitorTerms
         if self.det=='Pilatus' and len(self.selectedPilFramesNums)>0:
             self.pilSelectedScanChanged()
 #        if len(self.ui.backgroundListWidget.selectedItems())>0:
@@ -2246,8 +2347,9 @@ class MainWindow (QMainWindow):
                     self.bg=bg*self.pil_Dist[i]*np.pi/180/0.172/slitx
                 else:
                     self.bg=bg*self.pil_Dist[i]*np.pi/180/0.172/slity
-                sig,sigerr,lbg,lbgerr,rbg,rbgerr=self.pilatus.sumROI(slit=self.slit,cen=[cenx,ceny],dir=self.dir,bg=self.bg)
-                data.append([ctime*i,sig-(lbg+rbg)/2.0, np.sqrt(sigerr**2+(lbgerr**2+rbgerr**2)/4)])
+                self.pilatus.sumROI(slit=self.slit,cen=[cenx,ceny],dir=self.dir,bg=self.bg)
+                net,neterr=self.pilatus.netROI()
+                data.append([ctime*i,net,neterr])
             data=np.array(data)
             x=data[:,0]
             y=data[:,1]
@@ -2300,7 +2402,11 @@ class MainWindow (QMainWindow):
                         datai[:,1]=datai[:,1]-slope*(datai[:,0]-datai[1,0])-meanleft #subtracte the background
                         #datai[:,2]=np.sqrt(np.abs(datai[:,1]))   #need to recheck the error bar
                         if self.uipdburn.gidComboBox.currentText()=='Intensity':
-                            data.append([ctime*i,np.sum(datai[:,1])/self.pilMonc[i],np.sqrt(np.sum(datai[:,1])**2/self.pilMonc[i]**3+np.sum(datai[:,2]**2)/self.pilMonc[i]**2)])
+                            if self.errorModel.budget:   # monitor term on the whole sum, u_M from the model
+                                u=float(self.errorModel.monitor.relative(self.pilMonc[i]))
+                                data.append([ctime*i,np.sum(datai[:,1])/self.pilMonc[i],np.sqrt((np.sum(datai[:,1])/self.pilMonc[i])**2*u**2+np.sum(datai[:,2]**2)/self.pilMonc[i]**2)])
+                            else:
+                                data.append([ctime*i,np.sum(datai[:,1])/self.pilMonc[i],np.sqrt(np.sum(datai[:,1])**2/self.pilMonc[i]**3+np.sum(datai[:,2]**2)/self.pilMonc[i]**2)])
                             self.uipdburn.plotWidget.canvas.ax.set_ylabel('Intensity')
                         elif self.uipdburn.gidComboBox.currentText()=='Location':
                             data.append([ctime*i,np.sum(datai[:,1]*datai[:,0])/np.sum(datai[:,1]),np.sqrt(np.sum(datai[:,0]**2*datai[:,2]**2)/np.sum(datai[:,1])**2+np.sum(datai[:,1]*datai[:,0])**2*np.sum(datai[:,2]**2)/np.sum(datai[:,1])**4)])
@@ -3154,6 +3260,7 @@ class MainWindow (QMainWindow):
         self.pilxleft=self.xcenter-(float(self.ui.pilHSlitLineEdit.text())-1)/2
         self.pilxright=self.xcenter+(float(self.ui.pilHSlitLineEdit.text())-1)/2
         self.pilhintDatadic={}
+        self.noteMixedAbsorbers([self.pil_AbsNum[i] for i in self.selectedPilFramesNums],'GID patching')
         cmap=str(self.ui.pilCMapComboBox.currentText())
         self.absfac=float(self.ui.AbsFacLineEdit.text())
         #sortedFrameNums=np.array(self.selectedPilFramesNums)[np.argsort(np.array(self.pil_Dth))]
@@ -3345,6 +3452,7 @@ class MainWindow (QMainWindow):
             ceny=self.pilY[self.selFrameNums[0]]
             self.mon=[self.pilMonc[i] for i in self.selFrameNums]
             self.absnum=[self.pil_AbsNum[i] for i in self.selFrameNums]
+            self.noteMixedAbsorbers(self.absnum,'The frames at this Qz')
             self.vmax=float(self.ui.pilMaxLineEdit.text())
             self.vmin=float(self.ui.pilMinLineEdit.text())
             self.cen=[cenx,ceny]
@@ -3413,7 +3521,7 @@ class MainWindow (QMainWindow):
             cen=[self.cen[1], self.cen[0]]
             bfac=float(self.ui.refBPCFacLineEdit.text())
             sig,sigerr,lbg,lbgerr,rbg,rbgerr=self.pilatus.sumROI(slit=self.slit,cen=self.cen,dir=self.dir,bg=self.bg)
-            #print sig,sigerr,lbg,lbgerr,rbg,rbgerr
+            net,neterr=self.pilatus.netROI()
             self.pilatus.setROI(self.pilatus.imageData,self.pilatus.errorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,bg=self.bg,dir=self.dir,mon=None)  
             if self.dir=='H':
                 self.refextent=[max(0,self.pilatus.bglcen-slit[1]), self.pilatus.bgrcen+slit[1]+1, cen[0]-slit[0], cen[0]+slit[0]+1]
@@ -3435,8 +3543,8 @@ class MainWindow (QMainWindow):
                 self.ax[2].format_coord=self.format_coord_ref
         self.ui.refADDataPlotWidget.canvas.fig.colorbar(p)
         self.ui.refADDataPlotWidget.canvas.draw()
-        self.fsig=sig-(lbg+rbg)/2.0
-        self.fsigerr=np.sqrt(sigerr**2+(lbgerr**2+rbgerr**2)/4)
+        self.fsig=net
+        self.fsigerr=neterr
         self.fsigerrper=self.fsigerr/self.fsig*100.0
         self.ui.refQLineEdit.setText('%.4f'%float(str(self.refQzSelectedItems[0].text()).split()[1]))
         self.ui.refRLineEdit.setText('%.4e'%self.fsig)
@@ -3527,6 +3635,7 @@ class MainWindow (QMainWindow):
         self.scanqzframe={}  #build a dictionary for all scans with their qz ranges and data for sorting the scans.
         self.pilRefPeakCen=[]
         self.pilBadPixInf = []  # build a list for the detailed info for corrected bad pix in RF signal ROI, which is shown for users
+        self.refErrorModel=self.errorModel   # recorded for the Script pane
         for i in self.selectedPilFramesNums:
             # one point per frame: the same code a script uses (lss_core.reflectivity)
             qkey=self.pilScanNum[i]
@@ -3980,6 +4089,8 @@ class MainWindow (QMainWindow):
             kw.append('points=%r' % self.refPoints)
         if int(self.ui.pilBPCiteSpinBox.value())!=0:
             kw.append('bad_pixel_iterations=%d, bad_pixel_factor=%d' % (int(self.ui.pilBPCiteSpinBox.value()),int(self.ui.pilBPCfacSpinBox.value())))
+        if script_kw(getattr(self,'refErrorModel',self.errorModel)):
+            kw.append(script_kw(getattr(self,'refErrorModel',self.errorModel)))
         lines=['ref = exp.reflectivity(%r, %s)' % (scans,', '.join(kw)),'ref.save(%r)' % name]
         if len(self.ui.backgroundListWidget.selectedItems())>0:
             lines.insert(0,'# note: background images were subtracted in the window; scripts cannot do that yet')
@@ -4042,15 +4153,28 @@ class MainWindow (QMainWindow):
             self.messageBox('Please enter the range with the format "min:max"')
             self.updatePilCutRange()
             return
+        budget=self.errorModel.budget
+        self.selCutTerms={}   # budget error model: monitor parts, applied to each cut point's whole sum
         for i in self.selectedPilFramesNums:
             if len(self.ui.backgroundListWidget.selectedItems())==0:
                 # frames are counts: normalise by monitor and absorber first, like
                 # every other reduction (PHYSICS_ISSUES P23; owner, 2026-11-17)
                 self.selCutPilData[i],self.selCutPilErrorData[i]=normalise.normalise_frame(
-                    self.pilData[i],self.pilErrorData[i],self.pilMonc[i],self.absfac,self.pil_AbsNum[i])
+                    self.pilData[i],self.pilErrorData[i],self.pilMonc[i],self.absfac,self.pil_AbsNum[i],model=self.errorModel)
+                if budget:
+                    self.selCutTerms[i]=normalise.frame_terms(('',i),self.selCutPilData[i],self.pilMonc[i],self.errorModel)
             else:   # background-subtracted frames are already normalised
                 self.selCutPilData[i]=self.pilData[i]
                 self.selCutPilErrorData[i]=self.pilErrorData[i]
+                if budget:
+                    self.selCutTerms[i]=getattr(self,'pilMonitorTerms',{}).get(i)
+        if self.ui.gixSumCheckBox.checkState()!=0 and len(self.ui.backgroundListWidget.selectedItems())==0:
+            self.noteMixedAbsorbers([self.pil_AbsNum[i] for i in self.selectedPilFramesNums],'The summed cut')
+        if budget and self.ui.gixSumCheckBox.checkState()!=0:
+            self.selCutTerms[-1]=MonitorTerms()
+            for i in self.selectedPilFramesNums:
+                if self.selCutTerms.get(i) is not None:
+                    self.selCutTerms[-1].extend(self.selCutTerms[i],1.0/len(self.selectedPilFramesNums))
         if self.ui.gixSumCheckBox.checkState()!=0:
             self.selCutPilData[-1]=self.selCutPilData[self.selectedPilFramesNums[0]]
             self.selCutPilErrorData[-1]=self.selCutPilErrorData[self.selectedPilFramesNums[0]]**2
@@ -4060,7 +4184,7 @@ class MainWindow (QMainWindow):
             self.selCutPilData[-1]=self.selCutPilData[-1]/len(self.selectedPilFramesNums)
             self.selCutPilErrorData[-1]=np.sqrt(self.selCutPilErrorData[-1])/len(self.selectedPilFramesNums)
             if self.ui.pilCutDirComboBox.currentIndex()==2:  #vertical integration; provide PixY
-                self.pilatus.plotVint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0],cen=[self.xcenter[0],self.ycenter[0]],  hroi=None,  vroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NROWS)], ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0], dth=self.dth[0],mon=None)
+                self.pilatus.plotVint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0],cen=[self.xcenter[0],self.ycenter[0]],  hroi=None,  vroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NROWS)], ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0], dth=self.dth[0],mon=None,terms=self.selCutTerms.get(-1))
                 self.cutData[-1]=self.pilatus.vintData
             elif self.ui.pilCutDirComboBox.currentIndex()==0:
                 beta=np.arcsin(2*np.sin(self.alpha[0])-np.sin(self.truealpha[0]))  # get the beta value
@@ -4068,22 +4192,22 @@ class MainWindow (QMainWindow):
                 fin=int(np.tan(np.arcsin(fin*self.wavelength[0]/2.0/np.pi-np.sin(self.alpha[0]))-beta)*self.pilSelected_Dist[0]/0.172)+self.ycenter[0]
                 #ini=-int((self.distance[0]*np.arcsin(ini*self.wavelength[0]/2.0/np.pi-np.sin(self.alpha[0]))+self.pilSelected_Sh[0])/0.172)+self.ycenter[0]
                 #fin=-int((self.distance[0]*np.arcsin(fin*self.wavelength[0]/2.0/np.pi-np.sin(self.alpha[0]))+self.pilSelected_Sh[0])/0.172)+self.ycenter[0]
-                self.pilatus.plotVint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0], cen=[self.xcenter[0],self.ycenter[0]],  hroi=None,  vroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NROWS)], ax_type='Q', wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0], dth=self.dth[0], mon=None)
+                self.pilatus.plotVint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0], cen=[self.xcenter[0],self.ycenter[0]],  hroi=None,  vroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NROWS)], ax_type='Q', wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0], dth=self.dth[0], mon=None,terms=self.selCutTerms.get(-1))
                 self.cutData[-1]=self.pilatus.vintData
             elif self.ui.pilCutDirComboBox.currentIndex()==3:
-                self.pilatus.plotHint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0],cen=[self.xcenter[0],self.ycenter[0]],  hroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NCOLS)],  vroi=None, ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0], truealpha=self.truealpha[0], mon=None)
+                self.pilatus.plotHint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0],cen=[self.xcenter[0],self.ycenter[0]],  hroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NCOLS)],  vroi=None, ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0], truealpha=self.truealpha[0], mon=None,terms=self.selCutTerms.get(-1))
                 self.cutData[-1]=self.pilatus.hintData
             else:
                 ini=int((2.0*np.arcsin(ini*self.wavelength[0]/4.0/np.pi)-self.dth[0])*self.distance[0]/0.172)+self.xcenter[0]
                 fin=int((2.0*np.arcsin(fin*self.wavelength[0]/4.0/np.pi)-self.dth[0])*self.distance[0]/0.172)+self.xcenter[0]
-                self.pilatus.plotHint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0],cen=[self.xcenter[0],self.ycenter[0]],  hroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NCOLS)],  vroi=None, ax_type='Q', wavelength=self.wavelength[0],s2d_dist=self.pilSelected_Dist[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0],truealpha=self.truealpha[0], mon=None)
+                self.pilatus.plotHint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0],cen=[self.xcenter[0],self.ycenter[0]],  hroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NCOLS)],  vroi=None, ax_type='Q', wavelength=self.wavelength[0],s2d_dist=self.pilSelected_Dist[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0],truealpha=self.truealpha[0], mon=None,terms=self.selCutTerms.get(-1))
                 self.cutData[-1]=self.pilatus.hintData
             self.cutLabel[-1]='summed cuts'
         else:
             j=0
             for i in self.selectedPilFramesNums:
                 if self.ui.pilCutDirComboBox.currentIndex()==2:
-                    self.pilatus.plotVint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j], cen=[self.xcenter[j],self.ycenter[j]], hroi=None, vroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NROWS)], ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j],dth=self.dth[j], mon=None)
+                    self.pilatus.plotVint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j], cen=[self.xcenter[j],self.ycenter[j]], hroi=None, vroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NROWS)], ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j],dth=self.dth[j], mon=None,terms=self.selCutTerms.get(i))
                     self.cutData[i]=self.pilatus.vintData
                 elif self.ui.pilCutDirComboBox.currentIndex()==0:
                     beta=np.arcsin(2*np.sin(self.alpha[j])-np.sin(self.truealpha[j]))  # get the beta value
@@ -4097,17 +4221,17 @@ class MainWindow (QMainWindow):
                         self.pilSelected_Dist[j] / 0.172) + self.ycenter[j]
                     #ini1=-int((self.distance[j]*np.arcsin(ini*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))+self.pilSelected_Sh[j])/0.172)+self.ycenter[j]
                     #fin1=-int((self.distance[j]*np.arcsin(fin*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))+self.pilSelected_Sh[j])/0.172)+self.ycenter[j]
-                    self.pilatus.plotVint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j],cen=[self.xcenter[j],self.ycenter[j]],  hroi=None,  vroi=[max(int(ini1),0), min(int(fin1)+1,self.pilatus.NROWS)], ax_type='Q', wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j], dth=self.dth[j], mon=None)
+                    self.pilatus.plotVint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j],cen=[self.xcenter[j],self.ycenter[j]],  hroi=None,  vroi=[max(int(ini1),0), min(int(fin1)+1,self.pilatus.NROWS)], ax_type='Q', wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j], dth=self.dth[j], mon=None,terms=self.selCutTerms.get(i))
                     self.cutData[i]=self.pilatus.vintData
                 elif self.ui.pilCutDirComboBox.currentIndex()==3:
-                    self.pilatus.plotHint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j],cen=[self.xcenter[j],self.ycenter[j]], hroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NCOLS)],  vroi=None, ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j],truealpha=self.truealpha[j], mon=None)
+                    self.pilatus.plotHint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j],cen=[self.xcenter[j],self.ycenter[j]], hroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NCOLS)],  vroi=None, ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j],truealpha=self.truealpha[j], mon=None,terms=self.selCutTerms.get(i))
                     self.cutData[i]=self.pilatus.hintData
                 else:
                     ini1=int((2.0*np.arcsin(ini*self.wavelength[j]/4.0/np.pi)-self.dth[j])*self.distance[j]/0.172)+self.xcenter[j]
                     fin1=int((2.0*np.arcsin(fin*self.wavelength[j]/4.0/np.pi)-self.dth[j])*self.distance[j]/0.172)+self.xcenter[j]
                    # ini1=int(2.0*self.distance[j]*np.arcsin(ini*self.wavelength[j]/4.0/np.pi)/0.172)+self.xcenter[j]
                     #fin1=int(2.0*self.distance[j]*np.arcsin(fin*self.wavelength[j]/4.0/np.pi)/0.172)+self.xcenter[j]
-                    self.pilatus.plotHint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j], cen=[self.xcenter[j],self.ycenter[j]], hroi=[max(int(ini1),0), min(int(fin1)+1,self.pilatus.NCOLS)],  vroi=None, ax_type='Q', wavelength=self.wavelength[j],s2d_dist=self.pilSelected_Dist[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j], truealpha=self.truealpha[j], mon=None)  #again, use the standard same to detector distance for the y direction
+                    self.pilatus.plotHint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j], cen=[self.xcenter[j],self.ycenter[j]], hroi=[max(int(ini1),0), min(int(fin1)+1,self.pilatus.NCOLS)],  vroi=None, ax_type='Q', wavelength=self.wavelength[j],s2d_dist=self.pilSelected_Dist[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j], truealpha=self.truealpha[j], mon=None,terms=self.selCutTerms.get(i))  #again, use the standard same to detector distance for the y direction
                     self.cutData[i]=self.pilatus.hintData
                 self.cutLabel[i]=str(self.ui.imageListWidget.item(i).text().split('\t')[0])+' '+str(self.ui.imageListWidget.item(i).text().split('\t')[1])
                 j=j+1

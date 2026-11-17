@@ -9,14 +9,33 @@ monitor count and multiplied by the absorber transmission factor
 Bit for bit what ``TwoDDetector.sumFiles`` does for one frame. (How the
 monitor's uncertainty should really be treated is open:
 PHYSICS_ISSUES P2/P3.)
+
+In the budget error model (lss_core.errors) σ_R is the counting part only,
+σ_I·a/M, and the monitor part is returned separately as MonitorTerms, to
+be applied to whole sums (``frame_terms``).
 """
 import numpy as np
 
+from .errors import as_model, MonitorTerms
 
-def normalise_frame(counts, errors, monitor, absfac=1.0, absnum=0):
+
+def normalise_frame(counts, errors, monitor, absfac=1.0, absnum=0, model=None):
     """(R, sigma_R) for one frame; same operations, in the same order, as
-    TwoDDetector.sumFiles with a single frame."""
+    TwoDDetector.sumFiles with a single frame. ``model``: error model;
+    in budget mode sigma_R is the counting part only."""
     value = np.array(np.zeros(np.shape(counts)) + counts * absfac ** absnum / monitor) / 1
+    if as_model(model).budget:
+        error = np.sqrt(np.zeros(np.shape(counts)) + errors ** 2 / monitor ** 2
+                        * absfac ** (2.0 * absnum)) / 1
+        return value, error
     error = np.sqrt(np.zeros(np.shape(counts)) + (errors ** 2 / monitor ** 2 + counts ** 2 / monitor ** 3)
                     * absfac ** (2.0 * absnum)) / 1
     return value, error
+
+
+def frame_terms(key, normalised, monitor, model, scale=1.0):
+    """MonitorTerms of one normalised frame (budget mode): every sum over
+    it carries the amplitude scale · Σ normalised · u_M(monitor)."""
+    t = MonitorTerms()
+    t.add(key, normalised, scale, float(as_model(model).monitor.relative(monitor)))
+    return t

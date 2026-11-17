@@ -7,6 +7,7 @@ import pylab
 from scipy.optimize import leastsq
 import traceback
 from lss_core.images import read_pilatus
+from lss_core.errors import LEGACY, MonitorTerms
   
 
 class TwoDDetector:
@@ -21,6 +22,15 @@ class TwoDDetector:
         else:
             raise ValueError('unsupported detector '+repr(det))
         self.det=det
+        # How errors are combined (lss_core.errors): 'legacy' reproduces the
+        # old numbers; 'budget' keeps the monitor part per frame and applies
+        # it to whole sums. Set by the window or by lss_core.
+        self.errors=LEGACY
+        self.monitorTerms=MonitorTerms()
+        self.roiParts=None
+
+    def _setTerms(self, terms):
+        self.monitorTerms=terms if terms is not None else MonitorTerms()
 
     def imageDir(self, path):
         """Sets the directory for the Apex2 images"""
@@ -83,21 +93,39 @@ class TwoDDetector:
         except:
             return data, []
         
-    def sumFiles(self, data, errorData,absfac=1,absnum=None,mon=None):
+    def sumFiles(self, data, errorData,absfac=1,absnum=None,mon=None,terms=None,tag=''):
+        """Mean of the frames in ``data`` after dividing each by its monitor
+        and multiplying by absfac**absnum. With ``mon`` None the data are
+        taken as already normalised; ``terms`` then gives their monitor parts
+        (budget mode). ``tag`` keeps the frame keys of different sets apart."""
         if mon!=None:
+            budget=self.errors.budget
             sumData=np.zeros((self.NROWS,self.NCOLS))
             sumErrorData=np.zeros((self.NROWS,self.NCOLS))
             count=0
-            for i in data.keys():
+            keys=list(data.keys())
+            for i in keys:
                 sumData=sumData+data[i]*absfac**absnum[count]/mon[count]
-                sumErrorData=sumErrorData+(errorData[i]**2/mon[count]**2+data[i]**2/mon[count]**3)*absfac**(2.0*absnum[count])
+                if budget:   # counting part only; the monitor part is kept per frame
+                    sumErrorData=sumErrorData+errorData[i]**2/mon[count]**2*absfac**(2.0*absnum[count])
+                else:
+                    sumErrorData=sumErrorData+(errorData[i]**2/mon[count]**2+data[i]**2/mon[count]**3)*absfac**(2.0*absnum[count])
                 count=count+1
             self.imageData=np.array(sumData/count)
             self.errorData=np.sqrt(sumErrorData)/count
+            terms_out=MonitorTerms()
+            if budget:
+                if count==1:   # follow the image itself (bad-pixel corrections included)
+                    terms_out.add((tag,keys[0]),self.imageData,1.0,float(self.errors.monitor.relative(mon[0])))
+                else:
+                    for k,i in enumerate(keys):
+                        terms_out.add((tag,i),data[i],absfac**absnum[k]/mon[k]/count,float(self.errors.monitor.relative(mon[k])))
+            self.monitorTerms=terms_out
         else:
             #print 'Error:: No Monitor Counts Provided!!'
             self.imageData=data
             self.errorData=errorData
+            self._setTerms(terms)
         
             
     def plotImage(self, data, errordata, absfac=1,absnum=None,  hroi=None,  vroi=None,  cen=None,  alpha=None,  s2d_dist=None, ax_type='pix', wavelength=None, min=0, max=None, cmap='gray',log=0,sh=None,fsize=16,interpolation='nearest',mon=None):
@@ -143,18 +171,21 @@ class TwoDDetector:
         pylab.show()
 
 
-    def plotHint(self, data,errordata,absfac=1,absnum=None,  hroi=None,  vroi=None, cen=None, ax_type='Pixels', wavelength=None,s2d_dist=None,sh=None,alpha=None, truealpha=None, mon=None):
+    def plotHint(self, data,errordata,absfac=1,absnum=None,  hroi=None,  vroi=None, cen=None, ax_type='Pixels', wavelength=None,s2d_dist=None,sh=None,alpha=None, truealpha=None, mon=None, terms=None):
         """plots the Integrated Intensity along horizontal direction as a function of pixels along vertical direction"""
         if hroi==None:
             hroi=self.hroi
         if vroi==None:
             vroi=self.vroi
-        self.sumFiles(data,errordata, absfac=absfac,absnum=absnum,mon=mon)
+        self.sumFiles(data,errordata, absfac=absfac,absnum=absnum,mon=mon,terms=terms)
         hroi=list(map(int,hroi))
         vroi=list(map(int,vroi))
         y=np.arange(vroi[0], vroi[1]+1)  #create a array from x-axis
         hint=np.sum(self.imageData[vroi[0]:vroi[1]+1, hroi[0]:hroi[1]+1], axis=1)
         hinterr=np.sqrt(np.sum(self.errorData[vroi[0]:vroi[1]+1, hroi[0]:hroi[1]+1]**2, axis=1))
+        self.hintMonitor=self._profileMonitor(np.s_[vroi[0]:vroi[1]+1, hroi[0]:hroi[1]+1], 1)
+        if self.hintMonitor:
+            hinterr=np.sqrt(hinterr**2+self._squares(self.hintMonitor))
         if self.det=='Pilatus':
             if ax_type=='Angles':
                 y=(np.arctan((np.arange(vroi[0]-cen[1], vroi[1]-cen[1]+1)*self.pix_size)/s2d_dist)+np.arcsin(2*np.sin(alpha)-np.sin(truealpha)))*180/np.pi
@@ -163,13 +194,13 @@ class TwoDDetector:
                 y=(np.sin(y1+np.arcsin(2*np.sin(alpha)-np.sin(truealpha)))+np.sin(truealpha))*2*pylab.pi/wavelength
         self.hintData=np.vstack((y, hint, hinterr)).transpose()
 
-    def plotVint(self, data, errordata, absfac=1,absnum=None,  hroi=None,  vroi=None, alpha=None,dth=None, sh=None, wavelength=None, pix_size=0.172,cen=None, s2d_dist=None,ax_type='Pixels', mon=None):
+    def plotVint(self, data, errordata, absfac=1,absnum=None,  hroi=None,  vroi=None, alpha=None,dth=None, sh=None, wavelength=None, pix_size=0.172,cen=None, s2d_dist=None,ax_type='Pixels', mon=None, terms=None):
         """Plots the Integrated intensity along vertical direction as a function of pixels along horizontal direction"""
         if hroi==None:
             hroi=self.hroi
         if vroi==None:
             vroi=self.vroi
-        self.sumFiles(data,errordata, absfac=absfac,absnum=absnum,mon=mon)
+        self.sumFiles(data,errordata, absfac=absfac,absnum=absnum,mon=mon,terms=terms)
         #if np.abs(alpha)<0.001:
         #    sh=0
         hroi=list(map(int,hroi))
@@ -177,6 +208,9 @@ class TwoDDetector:
         x=np.arange(hroi[0], hroi[1]+1)
         vint=np.sum(self.imageData[vroi[0]:vroi[1]+1, hroi[0]:hroi[1]+1], axis=0)
         vinterr=np.sqrt(np.sum(self.errorData[vroi[0]:vroi[1]+1, hroi[0]:hroi[1]+1]**2, axis=0))
+        self.vintMonitor=self._profileMonitor(np.s_[vroi[0]:vroi[1]+1, hroi[0]:hroi[1]+1], 0)
+        if self.vintMonitor:
+            vinterr=np.sqrt(vinterr**2+self._squares(self.vintMonitor))
         if self.det=='Pilatus':
             if ax_type=='Angles':
                 x=(dth+np.arctan(np.arange(hroi[0]-cen[0], hroi[1]-cen[0]+1)*self.pix_size/s2d_dist))*180/np.pi
@@ -185,6 +219,35 @@ class TwoDDetector:
                 x=pylab.sin(x/2)*4*pylab.pi/wavelength
         self.vintData=np.vstack((x,vint,vinterr)).transpose()
 
+
+    def _profileMonitor(self, region, axis):
+        """{frame key: monitor amplitude per profile point} (budget mode)."""
+        if not self.errors.budget or len(self.monitorTerms)==0:
+            return {}
+        return self.monitorTerms.amplitudes(region, axis=axis)
+
+    @staticmethod
+    def _squares(amps):
+        return np.sum([np.square(a) for a in amps.values()], axis=0)
+
+    def netROI(self):
+        """(net, error) of the boxes of the last sumROI: S - (B1 + B2)/2.
+        Legacy: sqrt(sigerr^2 + (b1err^2 + b2err^2)/4), each box error with
+        its own monitor term. Budget: counting parts in quadrature, then the
+        monitor amplitude of each frame on the net signal."""
+        p=self.roiParts
+        sig,sigerr,lbg,lbgerr,rbg,rbgerr=p['values']
+        net=sig-(lbg+rbg)/2.0
+        if not p['budget']:
+            return net, np.sqrt(sigerr**2+(lbgerr**2+rbgerr**2)/4)
+        cS,cL,cR=p['counting']
+        amps=dict(p['monitor'][0])
+        for key,a in p['monitor'][1].items():
+            amps[key]=amps.get(key,0.0)-a/2.0
+        for key,a in p['monitor'][2].items():
+            amps[key]=amps.get(key,0.0)-a/2.0
+        mon=float(np.sum([a*a for a in amps.values()])) if amps else 0.0
+        return net, np.sqrt(cS**2+(cL**2+cR**2)/4+mon)
 
     def setROI(self, data,errordata, absfac=1,absnum=None, slit=[11, 11], cen=[10, 10], bg=None,dir='h',mon=None):
         """Sets the ROI of the image file using slit size and center of the ROI and calculates the total counts in the ROI"""
@@ -266,7 +329,13 @@ class TwoDDetector:
 
     def peakLocate(self,data, errordata, cen=[10,10],mon=None):  #for pilatus patch
         self.imageData=data/mon
-        self.errorData=np.sqrt(errordata**2/mon**2+data**2/mon**3)
+        if self.errors.budget:
+            self.errorData=np.sqrt(errordata**2/mon**2)
+            self.monitorTerms=MonitorTerms()
+            self.monitorTerms.add(('',0),self.imageData,1.0,float(self.errors.monitor.relative(mon)))
+        else:
+            self.errorData=np.sqrt(errordata**2/mon**2+data**2/mon**3)
+            self.monitorTerms=MonitorTerms()
         maxserwin=3
         locwin=2
         maxserdata=self.imageData[cen[1]-maxserwin:cen[1]+maxserwin+1,cen[0]-maxserwin:cen[0]+maxserwin+1]
@@ -562,41 +631,43 @@ class TwoDDetector:
             
             
     def sumROI(self, slit=[10, 10], cen=[10, 10], bg=None, cmap='gray', dir='h'):
+        """Sums of the signal box and, with ``bg``, the two background boxes
+        (left/right for dir 'H', up/down otherwise) of self.imageData, with
+        their errors. In budget mode each box's error holds its own monitor
+        term; use netROI() for the background-subtracted signal."""
         slit=[slit[1]-2, slit[0]-2]
         cen=[cen[1], cen[0]]
-        z=np.array(self.imageData[cen[0]-(slit[0]+1)//2:cen[0]+(slit[0]+1)//2+1, cen[1]-(slit[1]+1)//2: cen[1]+(slit[1]+1)//2+1])
-        x=range(cen[1]-(slit[1]+1)//2, cen[1]+(slit[1]+1)//2+1)
-        y=range(cen[0]-(slit[0]+1)//2, cen[0]+(slit[0]+1)//2+1)
-        #print x,y,len(x),len(y)
-        if bg==None:
-            return np.sum(self.imageData[y[0]:y[-1]+1, x[0]:x[-1]+1]),np.sqrt(np.sum(self.errorData[y[0]:y[-1]+1, x[0]:x[-1]+1]**2))
-        else:
+        def box(c0, c1):
+            x=range(c1-(slit[1]+1)//2, c1+(slit[1]+1)//2+1)
+            y=range(c0-(slit[0]+1)//2, c0+(slit[0]+1)//2+1)
+            return np.s_[y[0]:y[-1]+1, x[0]:x[-1]+1]
+        boxes=[box(cen[0], cen[1])]
+        if bg!=None:
             if dir=='H':
-                cenl=[cen[0], cen[1]-bg*slit[1]]
-                cenl=list(map(int,  cenl))
-                zleft=np.array(self.imageData[cenl[0]-(slit[0]+1)//2:cenl[0]+(slit[0]+1)//2+1, cenl[1]-(slit[1]+1)//2: cenl[1]+(slit[1]+1)//2+1])
-                xleft=range(cenl[1]-(slit[1]+1)//2, cenl[1]+(slit[1]+1)//2+1)
-                yleft=range(cenl[0]-(slit[0]+1)//2, cenl[0]+(slit[0]+1)//2+1)
-                cenr=[cen[0], cen[1]+bg*slit[1]]
-                cenr=list(map(int,  cenr))
-                zright=np.array(self.imageData[cenr[0]-(slit[0]+1)//2:cenr[0]+(slit[0]+1)//2+1, cenr[1]-(slit[1]+1)//2: cenr[1]+(slit[1]+1)//2+1])
-                xright=range(cenr[1]-(slit[1]+1)//2, cenr[1]+(slit[1]+1)//2+1)
-                yright=range(cenr[0]-(slit[0]+1)//2, cenr[0]+(slit[0]+1)//2+1)
-                return np.sum(self.imageData[y[0]:y[-1]+1, x[0]:x[-1]+1]),np.sqrt(np.sum(self.errorData[y[0]:y[-1]+1, x[0]:x[-1]+1]**2)), np.sum(self.imageData[yleft[0]:yleft[-1]+1, xleft[0]:xleft[-1]+1]),np.sqrt(np.sum(self.errorData[yleft[0]:yleft[-1]+1, xleft[0]:xleft[-1]+1]**2)),np.sum(self.imageData[yright[0]:yright[-1]+1, xright[0]:xright[-1]+1]),np.sqrt(np.sum(self.errorData[yright[0]:yright[-1]+1, xright[0]:xright[-1]+1]**2))
+                cenl=list(map(int, [cen[0], cen[1]-bg*slit[1]]))
+                cenr=list(map(int, [cen[0], cen[1]+bg*slit[1]]))
+                boxes+= [box(*cenl), box(*cenr)]
             else:
-                cenu=[cen[0]+bg*slit[0], cen[1]]
-                cenu=list(map(int,  cenu))
-                zup=self.imageData[cenu[0]-(slit[0]+1)//2:cenu[0]+(slit[0]+1)//2+1, cenu[1]-(slit[1]+1)//2: cenu[1]+(slit[1]+1)//2+1]
-                xup=range(cenu[1]-(slit[1]+1)//2, cenu[1]+(slit[1]+1)//2+1)
-                yup=range(cenu[0]-(slit[0]+1)//2, cenu[0]+(slit[0]+1)//2+1)
-                cend=[cen[0]-bg*slit[0], cen[1]]
-                cend=list(map(int,  cend))
-                zdown=self.imageData[cend[0]-(slit[0]+1)//2:cend[0]+(slit[0]+1)//2+1, cend[1]-(slit[1]+1)//2: cend[1]+(slit[1]+1)//2+1]
-                xdown=range(cend[1]-(slit[1]+1)//2, cend[1]+(slit[1]+1)//2+1)
-                ydown=range(cend[0]-(slit[0]+1)//2, cend[0]+(slit[0]+1)//2+1)
-                return np.sum(self.imageData[y[0]:y[-1]+1, x[0]:x[-1]+1]),np.sqrt(np.sum(self.errorData[y[0]:y[-1]+1, x[0]:x[-1]+1]**2)),np.sum(self.imageData[yup[0]:yup[-1]+1, xup[0]:xup[-1]+1]),np.sqrt(np.sum(self.errorData[yup[0]:yup[-1]+1, xup[0]:xup[-1]+1]**2)), np.sum(self.imageData[ydown[0]:ydown[-1]+1, xdown[0]:xdown[-1]+1]),np.sqrt(np.sum(self.errorData[ydown[0]:ydown[-1]+1, xdown[0]:xdown[-1]+1]**2)) 
-
-
+                cenu=list(map(int, [cen[0]+bg*slit[0], cen[1]]))
+                cend=list(map(int, [cen[0]-bg*slit[0], cen[1]]))
+                boxes+= [box(*cenu), box(*cend)]
+        values=[]
+        counting=[]
+        monitor=[]
+        budget=self.errors.budget and len(self.monitorTerms)>0
+        for b in boxes:
+            v=np.sum(self.imageData[b])
+            e=np.sqrt(np.sum(self.errorData[b]**2))
+            counting.append(e)
+            if budget:
+                amps=self.monitorTerms.amplitudes(b)
+                monitor.append(amps)
+                e=np.sqrt(e**2+float(np.sum([x*x for x in amps.values()])))
+            values+= [v, e]
+        self.roiParts={'values': values if len(values)==6 else values+[0.0, 0.0, 0.0, 0.0],
+                       'counting': counting+[0.0]*(3-len(counting)),
+                       'monitor': monitor+[{}]*(3-len(monitor)), 'budget': budget}
+        return tuple(values)
 
     def plotROIImage(self, data,errordata,  det='Pilatus',  slit=[10, 10],  cen=[10, 10],  min=0, max=None, cmap='gray', view='closer', bg=None, dir='h',mon=None,show=1):
         """Plots the CCD image with given Region of Interest defined by hroi and vroi respectively in pixels with respect to cen"""
