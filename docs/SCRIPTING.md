@@ -32,6 +32,8 @@ Options, with the window's defaults for Pilatus data:
 | `drops={0: [-1], 2: [0, -1]}` | none | "Drop" in the patch dialog, per join |
 | `merge_repeats=False` | | "Merge" in the identical-scans dialog |
 | `low_qz_slit=False` | | Low Qz Corr. |
+| `merge=[[2, 3]]` | | groups merged in the identical-scans dialog |
+| `points={7: [0, 1, 3]}` | all points | frames selected in the image list |
 | `bad_pixel_iterations=0`, `bad_pixel_factor=1` | | BPC iterations, factor |
 
 `result` holds the per-scan points (`per_scan`, columns Qz, net signal,
@@ -41,6 +43,13 @@ beam was more than 2 pixels from its recorded position (`beam_offsets`).
 
 Not yet available from scripts: background images, single-scan export,
 GID, GISAXS, cuts, fluorescence. They follow in Stage 2.
+
+## The Script pane
+
+The window has a "Script" pane (bottom, next to Messages). Opening a
+SPEC file and exporting a patched reflectivity add the equivalent Python
+there, with every setting, merge and drop the user made; running it writes
+the same files. It is also written to the log.
 
 ## Lower-level pieces
 

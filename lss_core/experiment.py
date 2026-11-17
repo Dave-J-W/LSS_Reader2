@@ -92,16 +92,20 @@ class Experiment:
 
     def reflectivity(self, scans, slit=(21, 11), bg_offset=0.5, direction='H',
                      qc=0.0217, qoff=0.0, norm_factor=None, rrf=True,
-                     drops=None, merge_repeats=False, low_qz_slit=False,
+                     drops=None, merge_repeats=False, merge=None, low_qz_slit=False, points=None,
                      bad_pixel_iterations=0, bad_pixel_factor=1):
         """Specular reflectivity of ``scans``, as the window's Ref Patch with
         the same settings (defaults are the window's defaults for Pilatus
         data). ``drops``: {join number: [indices]} as typed into the patch
-        dialog. ``merge_repeats``: average repeated scans first."""
+        dialog (several presses: a list of lists). ``merge_repeats``: average
+        all repeated scans first; ``merge``: average only these groups. ``points``: {scan: [point numbers]} to use only
+        some points of a scan (as when only some frames are selected)."""
         from TwoDDetector import TwoDDetector
         det = TwoDDetector('Pilatus')
         per_scan, offsets = {}, []
         for f in self.frames(scans):
+            if points is not None and f.scan in points and f.index not in points[f.scan]:
+                continue
             det.openFile(f.path, bad_pix=bad_pixel_iterations, bad_fac=bad_pixel_factor)
             image, error = det.imageData, det.errorData
             first = f.scan not in per_scan
@@ -116,6 +120,8 @@ class Experiment:
         if merge_repeats:
             for group in refl.identical_groups(per_scan):
                 refl.merge_identical(per_scan, group)
+        for group in merge or []:          # groups merged by hand, as in the window
+            refl.merge_identical(per_scan, list(group))
         order = refl.order_scans(per_scan)
         patched = refl.patch(per_scan, order, drops)
         ref, out_rrf = refl.finish(patched[:, :3] if patched.shape[1] > 3 else patched,

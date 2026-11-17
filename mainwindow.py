@@ -153,6 +153,7 @@ class MainWindow (QMainWindow):
         self.init_signals()
         self.log=reader_log.get_logger()
         self.initMessagePane()
+        self.initScriptPane()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
         self.initValidator()
@@ -535,6 +536,7 @@ class MainWindow (QMainWindow):
         self.endScanNum=0
         self.readSpecFile()
         self.ui.specFileLabel.setText('SpecFile: '+str(self.specFileName.split('/')[-1]))
+        self.scriptLine('exp = Experiment(%r)' % os.path.abspath(self.specFileName))
         # except:
         #     self.specData=specData_old
         #     self.specPar=specPar_old
@@ -1399,6 +1401,29 @@ class MainWindow (QMainWindow):
         self.messageDock.setWidget(self.messageView)
         self.addDockWidget(Qt.BottomDockWidgetArea,self.messageDock)
         self.messageDock.hide()   # appears with the first message
+
+    def initScriptPane(self):
+        """A dock showing, for actions that have one, the Python that does the
+        same thing with lss_core (docs/SCRIPTING.md), ready to copy (F48)."""
+        self.scriptDock=QDockWidget('Script',self)
+        self.scriptDock.setObjectName('scriptDock')
+        self.scriptView=QPlainTextEdit(self.scriptDock)
+        self.scriptView.setObjectName('scriptView')
+        self.scriptView.setReadOnly(True)
+        self.scriptView.setPlainText('from lss_core.experiment import Experiment\n')
+        self.scriptDock.setWidget(self.scriptView)
+        self.addDockWidget(Qt.BottomDockWidgetArea,self.scriptDock)
+        self.tabifyDockWidget(self.messageDock,self.scriptDock)
+        self.scriptDock.hide()   # View it from the dock area's context menu, or it appears with the first line
+
+    def scriptLine(self,text):
+        """Append Python to the Script pane and the log."""
+        self.log.info('script: %s',text.replace('\n',' | '))
+        try:
+            self.scriptView.appendPlainText(text)
+            self.scriptDock.show()
+        except RuntimeError:
+            pass
 
     def notify(self,text,title='Warning',level='warning'):
         """Tell the user something without stopping them, and log it."""
@@ -3432,6 +3457,16 @@ class MainWindow (QMainWindow):
             self.messageBox('Please load a Pilatus scan and select its images before using Ref Patch')
             return
         self.refpatchindex=1
+        self.refDrops={}       # join number -> list of drop actions, for the script console
+        self.refMerged=[]      # groups merged in the identical-scans dialog
+        self.refDroppedScans=[]   # scans dropped in the identical-scans dialog
+        self.refScanList=sorted(set(int(self.pilScanNum[i]) for i in self.selectedPilFramesNums))
+        self.refPoints={}      # scans of which only some frames are selected
+        for n in self.refScanList:
+            chosen=[int(self.pilFrameNum[i]) for i in self.selectedPilFramesNums if self.pilScanNum[i]==n]
+            listed=[int(self.pilFrameNum[i]) for i in range(len(self.pilScanNum)) if self.pilScanNum[i]==n]
+            if chosen!=listed:
+                self.refPoints[n]=chosen
         slitx=int(self.ui.refSlitLineEdit.text().split(',')[0]) #get the size of ROI
         slity=int(self.ui.refSlitLineEdit.text().split(',')[1])
         self.slit=[slitx,slity]        
@@ -3592,6 +3627,7 @@ class MainWindow (QMainWindow):
         for n in dropnumbers:
             self.scanqzframe.pop(n,None)
             group.remove(n)
+            self.refDroppedScans.append(n)
         self.pilRefSameScanPlot()
 
     def pilRefSSMerge(self):
@@ -3608,6 +3644,7 @@ class MainWindow (QMainWindow):
         datay=datay/len(self.pilrefsamescannum[self.pilrefsamescanorder])
         datayerr=np.sqrt(datayerr)/len(self.pilrefsamescannum[self.pilrefsamescanorder])
         data=np.vstack((datax,datay,datayerr)).T
+        self.refMerged.append(list(self.pilrefsamescannum[self.pilrefsamescanorder]))
         self.scanqzframe[self.pilrefsamescannum[self.pilrefsamescanorder][0]]=data
         self.pilrefsamescannum[self.pilrefsamescanorder]=[self.pilrefsamescannum[self.pilrefsamescanorder][0]]
         #print data
@@ -3691,27 +3728,33 @@ class MainWindow (QMainWindow):
     
     def pilRefPatchDrop(self):
         try:
-            dropnumbers=str(self.uirefpatch.dropLineEdit.text()).split(',')
-            dropnumbers=list(map(int,dropnumbers))
-            dropnumbers.sort(key=abs,reverse=True) #sort the dropnumbers to make sure starting dropping the points away from the end.
-            for i in range(len(dropnumbers)):
-                if dropnumbers[i]>=0:
-                    self.scanqzframe[self.pilrefsort[self.pilreforder+1]]=np.delete(self.scanqzframe[self.pilrefsort[self.pilreforder+1]],dropnumbers[i],axis=0)
-                else:
-                    if self.pilreforder==0:
-                        self.scanqzframe[self.pilrefsort[0]]=np.delete(self.scanqzframe[self.pilrefsort[0]],dropnumbers[i],axis=0)
-                    else:
-                        self.pilrefdata=np.delete(self.pilrefdata,dropnumbers[i],axis=0)
-
-          #  print self.pilrefdata
-            self.pilRefPatchPlot()
-        except:
+            dropnumbers=[int(t) for t in str(self.uirefpatch.dropLineEdit.text()).split(',')]
+        except ValueError:
             self.messageBox('Please input the number of points which you like to drop in the format of "-1, 0 "!')
             return
+        new=self.scanqzframe[self.pilrefsort[self.pilreforder+1]]
+        old=self.scanqzframe[self.pilrefsort[0]] if self.pilreforder==0 else self.pilrefdata
+        try:   # all or nothing: an index out of range drops nothing
+            old2,new2=reflectivity.apply_drops(old,new,dropnumbers)
+        except IndexError:
+            self.messageBox('Point '+listText([d for d in dropnumbers if not -len(old)<=d<len(new)] or dropnumbers)+' does not exist; nothing was dropped.')
+            return
+        self.scanqzframe[self.pilrefsort[self.pilreforder+1]]=new2
+        if self.pilreforder==0:
+            self.scanqzframe[self.pilrefsort[0]]=old2
+        else:
+            self.pilrefdata=old2
+        self.refDrops.setdefault(self.pilreforder,[]).append(dropnumbers)
+        self.pilRefPatchPlot()
 
-        
-        
     def pilRefPatchNext(self):
+        if self.pilreforder>=len(self.pilrefsort)-1:
+            return
+        old=self.scanqzframe[self.pilrefsort[0]] if self.pilreforder==0 else self.pilrefdata
+        new=self.scanqzframe[self.pilrefsort[self.pilreforder+1]]
+        if np.atleast_2d(old)[-1][0]<np.atleast_2d(new)[0][0]:   # hand-off trap T11
+            self.messageBox('Scans '+str(self.pilrefsort[self.pilreforder])+' and '+str(self.pilrefsort[self.pilreforder+1])+' do not overlap in Qz; they cannot be patched. Select frames that overlap.')
+            return
         if self.pilreforder==0:
             self.pilrefdata=self.oneDjoin(self.scanqzframe[self.pilrefsort[self.pilreforder]],self.scanqzframe[self.pilrefsort[self.pilreforder+1]],mtype='merge')
         else:
@@ -3860,7 +3903,38 @@ class MainWindow (QMainWindow):
                 np.savetxt(rrffile,self.RrfData,fmt='%.4e\t%.4e\t%.4e')
             except:
                 print ('No rrf data available!')
+            self.scriptLine(self.reflectivityScript(self.saveFileName))
     
+    def reflectivityScript(self,name):
+        """The lss_core call that reproduces the last patched reflectivity."""
+        if self.refpatchindex==0 or not hasattr(self,'refScanList'):
+            return '# this reflectivity was made with "Analyze"; that path is not scriptable yet'
+        scans=[n for n in self.refScanList if n not in self.refDroppedScans]
+        kw=['slit=(%s)' % self.ui.refSlitLineEdit.text().strip(),
+            'bg_offset=%r' % float(self.ui.refBGOffLineEdit.text()),
+            'direction=%r' % str(self.ui.refBGDirComboBox.currentText()),
+            'qc=%r' % float(self.ui.refQcLineEdit.text())]
+        if float(self.ui.refQoffLineEdit.text())!=0:
+            kw.append('qoff=%r' % float(self.ui.refQoffLineEdit.text()))
+        if self.ui.refNormFacCheckBox.checkState()!=0:
+            kw.append('norm_factor=%r' % float(self.ui.refNormLineEdit.text()))
+        if self.ui.refRRFCheckBox.checkState()==0:
+            kw.append('rrf=False')
+        if self.refDrops:
+            kw.append('drops=%r' % {k:v for k,v in sorted(self.refDrops.items())})
+        if self.refMerged:
+            kw.append('merge=%r' % self.refMerged)
+        if self.ui.pilLowQzCorCheckBox.checkState()!=0:
+            kw.append('low_qz_slit=True')
+        if self.refPoints:
+            kw.append('points=%r' % self.refPoints)
+        if int(self.ui.pilBPCiteSpinBox.value())!=0:
+            kw.append('bad_pixel_iterations=%d, bad_pixel_factor=%d' % (int(self.ui.pilBPCiteSpinBox.value()),int(self.ui.pilBPCfacSpinBox.value())))
+        lines=['ref = exp.reflectivity(%r, %s)' % (scans,', '.join(kw)),'ref.save(%r)' % name]
+        if len(self.ui.backgroundListWidget.selectedItems())>0:
+            lines.insert(0,'# note: background images were subtracted in the window; scripts cannot do that yet')
+        return '\n'.join(lines)
+
     def saveTemData(self):
         fid=open(self.directory+'/temp_ref.txt','w')
         for i in range(len(self.refData)):

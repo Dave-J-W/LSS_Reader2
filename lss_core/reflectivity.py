@@ -101,13 +101,18 @@ def apply_drops(data1, data2, drops):
 
 def patch(per_scan, order, drops=None):
     """Join the scans in ``order`` (legacy chain). ``drops`` maps the join
-    number (0 for the first pair) to a list of drop indices."""
+    number (0 for the first pair) to a list of drop indices, or to a list
+    of such lists for several successive "Drop" presses."""
     drops = drops or {}
     data = np.array(per_scan[order[0]], dtype=float)
     for j, key in enumerate(order[1:]):
         new = np.array(per_scan[key], dtype=float)
         if j in drops:
-            data, new = apply_drops(data, new, drops[j])
+            actions = drops[j]
+            if actions and not isinstance(actions[0], (list, tuple)):
+                actions = [actions]
+            for action in actions:
+                data, new = apply_drops(data, new, action)
         data = stitching.join(data, new, mtype='merge')
     return data
 
