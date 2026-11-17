@@ -309,3 +309,26 @@ def test_saving_before_fitting_or_cancelling_writes_nothing(xf, qapp, recorder,
     assert recorder.exceptions == []
     assert [n for n in os.listdir(str(tmp_path)) if n.endswith('_fit.txt')
             or n.endswith('_par.txt')] == []
+
+
+def test_cancelled_exports_write_nothing(xf, qapp, recorder, tmp_path):
+    """With data present and the file chooser cancelled, neither MCA export
+    writes a file (they used to write "_flu.txt" and per-frame files into
+    the working directory)."""
+    w, truth = xf
+    _sum(w, qapp)
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    before = (set(os.listdir(root)), set(os.listdir(str(tmp_path))))
+    recorder.save_name = ''
+    w.ui.mcaExportIntPushButton.click()
+    w.ui.mcaExportPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert (set(os.listdir(root)), set(os.listdir(str(tmp_path)))) == before
+    # and with a name, the per-frame export writes one file per selected frame
+    recorder.save_name = str(tmp_path / 'frames')
+    w.ui.mcaExportPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    written = [n for n in os.listdir(str(tmp_path)) if n.startswith('frames')]
+    assert len(written) == len(synth.XF_QZ)

@@ -220,3 +220,15 @@ def test_line_cuts_on_a_real_reflectivity_frame(nx, qapp, recorder):
     assert (reflected - direct) * 0.172 / 551.0 == pytest.approx(2 * alpha, rel=0.08)
     qxy_cut = cut(0, '0.03:0.04')
     assert qxy_cut[np.argmax(qxy_cut[:, 1]), 0] == pytest.approx(0.0, abs=2e-3)
+
+
+def test_gid_save_cancelled_writes_nothing(nx, qapp, recorder, tmp_path):
+    _gid_patch(nx, qapp, [10])
+    before = (set(os.listdir(ROOT)), set(os.listdir(str(tmp_path))))
+    recorder.save_name = ''
+    i = nx.ui.gidComboBox.findText('Save GID')
+    nx.ui.gidComboBox.setCurrentIndex(i)
+    nx.ui.gidComboBox.activated.emit(i)
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert (set(os.listdir(ROOT)), set(os.listdir(str(tmp_path)))) == before

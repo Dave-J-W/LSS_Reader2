@@ -1154,6 +1154,8 @@ class MainWindow (QMainWindow):
             
     def saveMcaData(self):
         self.saveMcaFileName=QFileDialog.getSaveFileName(caption='Save Mca data',directory=self.directory)[0]
+        if self.saveMcaFileName=='':   # dialog cancelled: write nothing
+            return
         for i in self.selectedMcaScanNums:
             self.fmcaName=self.saveMcaFileName+str(self.ui.imageListWidget.item(i).text().split('\t')[0])+'_'+str(self.ui.imageListWidget.item(i).text().split('\t')[1])+'_''%.4f'%self.mcaPar[i]['Q'][2]+'_mca.txt'
             np.savetxt(self.fmcaName,self.nomMcaData[i],fmt='%.4f\t%.4e\t%.4e')
@@ -1338,6 +1340,8 @@ class MainWindow (QMainWindow):
     def mcaSaveIntData(self):
         try:
             self.saveFileName=QFileDialog.getSaveFileName(caption='Save Fluorescence Integral Data',directory=self.directory)[0]
+            if self.saveFileName=='':   # dialog cancelled: write nothing
+                return
             fid=open(self.saveFileName+'_flu.txt','w')
             try:
                 fid.write('#'+str(self.command)+'\n')
@@ -2274,6 +2278,8 @@ class MainWindow (QMainWindow):
         
     def pilGioxsSave(self):
         self.saveFileName=QFileDialog.getSaveFileName(caption='Save gioxs data',directory=self.directory)[0]
+        if self.saveFileName=='':   # dialog cancelled: write nothing
+            return
         for i in range(len(self.gioxsdata)):
             fname=self.saveFileName+self.gioxsname[i]
             np.savetxt(fname,self.gioxsdata[i],fmt='%.4f\t%.4e\t%.4e')
@@ -2615,6 +2621,8 @@ class MainWindow (QMainWindow):
     def savePilGISAXS(self):
         try:
             self.saveFileName = QFileDialog.getSaveFileName(caption='Save gioxs data', directory=self.directory)[0]
+            if self.saveFileName=='':   # dialog cancelled: write nothing
+                return
             data2d = []
             fname_2d = self.saveFileName + '_gisaxs.txt'
             for i in range(len(self.pilDataBin)):
@@ -3117,6 +3125,8 @@ class MainWindow (QMainWindow):
 #        print self.pilGIDYAxs_Q[:,0]
 #        print len(self.pilGIDData_Q), len(self.pilGIDData_Q[0]),  len(self.pilGIDXAxs_Q[0]), len(self.pilGIDYAxs_Q[:,0])
         self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save gioxs data', directory=self.directory)[0])
+        if self.saveFileName=='':   # dialog cancelled: write nothing
+            return
         data2d=[]
         if str(self.ui.pilAxesComboBox.currentText())=='Q':
             fname_h=self.saveFileName+'_qxy_gid.txt'
@@ -5057,6 +5067,8 @@ class MainWindow (QMainWindow):
     def saveGraPlotData(self): #save the derivative data
         try:
             self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Derivative Data',directory=self.directory)[0])
+            if self.saveFileName=='':   # dialog cancelled: write nothing
+                return
             fitfile=self.saveFileName+'_der.txt'
             np.savetxt(fitfile,self.gradata,fmt='%.4e\t%.4e')
         except:
