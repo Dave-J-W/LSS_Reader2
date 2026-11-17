@@ -58,8 +58,6 @@ def test_not_a_spec_file(qapp, tmp_path):
     assert 'not a valid specfile' in s.Data['Message']
 
 
-@pytest.mark.xfail(strict=True, reason='specread(data={}, par={}) shares its '
-                   'default dicts between calls')
 def test_default_dicts_are_not_shared_between_readers(qapp, dataset):
     from spec_routines import specread
     a = specread(dataset)

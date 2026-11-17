@@ -6,9 +6,10 @@ from PyQt5.QtWidgets import QProgressDialog
 from PyQt5.QtCore import Qt
 
 class specread:
-    def __init__(self, specfile, startLineNum=0, endScanNum=0, beamline='APS-15IDC',det='CCD',data={},par={}):
-        self.Data=data
-        self.Par=par
+    def __init__(self, specfile, startLineNum=0, endScanNum=0, beamline='APS-15IDC',det='CCD',data=None,par=None):
+        # fresh dictionaries per reader unless the caller passes its own (refresh)
+        self.Data={} if data is None else data
+        self.Par={} if par is None else par
         self.specfile=specfile
         if beamline=='APS-15IDC':
             self.APS_15IDC(startLineNum=startLineNum, endScanNum=endScanNum, det=det)
