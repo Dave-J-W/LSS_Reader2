@@ -912,3 +912,20 @@ Making "normalise once, at load" the rule for everything (display
 included) is a design change across all reductions; it belongs with the
 frame object planned for Stage 3, where each reduction's choice above
 becomes explicit.
+
+### 2026-11-17 — The error terms, explicit and without assuming Poisson
+
+**Q.** (owner) Explain the monitor-correlation point more fully; make the
+error terms explicit and granular without assuming their form (no
+Poisson assumption); show how it is done now and how it should be done.
+
+**A.** Written up in [reports/error_propagation.md](reports/error_propagation.md)
+(derivation; the present formulas are read from the code and match the
+existing tests; the proposal is not built). In one line: for one frame,
+cov(r_i, r_j) = (a/M)²·c_ij + r_i·r_j·(u_M² + u_a²), so every sum over
+pixels or channels of one frame carries the monitor and absorber terms
+as (Σr)²·u², not Σr²·u²; the program keeps only the diagonal and sets
+u_M² = 1/M. Proposed: carry an error budget per value (counting,
+monitor per frame, absorber per foil count, live time) that combines
+correctly under sums, with a measured monitor model and a legacy mode
+that keeps today's numbers.
