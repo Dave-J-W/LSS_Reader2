@@ -42,12 +42,28 @@ the patched curve before normalisation, `ref`, `rrf`, and the frames whose
 beam was more than 2 pixels from its recorded position (`beam_offsets`).
 
 Not yet available from scripts: background images, single-scan export,
-GID, GISAXS, cuts, fluorescence. They follow in Stage 2.
+GID, GISAXS, cuts, burn tests, peak fits. They follow in Stage 2.
+
+## Fluorescence (XFNTR)
+
+```python
+exp = Experiment('sample_data/bu/2026sep/20260902')
+flu = exp.fluorescence([74, 75, 76, 77, 78, 79], window=(1, 1000))
+flu.save('zinc', x='qz')               # zinc_flu.txt, as "Export" in the MCA tab
+```
+
+`window` is the "Sum" range (energy with the file's calibration);
+`monitor` is `'Monc'` (default), `'Monb'`, `'Mond'` or `None`;
+`calibration=(c0, c1, c2)` overrides the file's. `flu.spectra` holds the
+normalised spectra, `flu.rows` the [frame, Qz, energy, intensity, error]
+rows. Checked byte for byte against the window's `_flu.txt` on synthetic
+and real data.
 
 ## The Script pane
 
 The window has a "Script" pane (bottom, next to Messages). Opening a
-SPEC file and exporting a patched reflectivity add the equivalent Python
+SPEC file, exporting a patched reflectivity and exporting fluorescence
+intensities add the equivalent Python
 there, with every setting, merge and drop the user made; running it writes
 the same files. It is also written to the log.
 
@@ -57,6 +73,7 @@ the same files. It is also written to the log.
 |---|---|
 | `lss_core.experiment` | `Experiment`: scans, frames, reflectivity |
 | `lss_core.reflectivity` | per-frame signal, scan ordering, merging repeats, drops, patching, normalisation, saving |
+| `lss_core.fluorescence` | spectrum normalisation, window sum, `_flu.txt` |
 | `lss_core.stitching` | joining two curves (`join`), Fresnel reflectivity |
 | `lss_core.images` | `read_pilatus`: fast, cached, bit-identical image reading |
 | `lss_core.cache` | the memory cache (budget from `LSS_READER_RAM_CACHE_MB`) |

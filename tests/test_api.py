@@ -80,3 +80,30 @@ def test_core_does_not_need_qt(dataset):
                          env=env, capture_output=True, text=True, timeout=120)
     assert out.returncode == 0, out.stderr[-2000:]
     assert out.stdout.split() == ['14', 'False']
+
+
+# ---- fluorescence ------------------------------------------------------------
+
+def test_script_reproduces_window_flu_file_synthetic(tmp_path):
+    import synth
+    spec, truth = synth.make_xfntr_dataset(tmp_path / 'xf')
+    r = Experiment(spec).fluorescence(range(1, 10), window=(5.6, 7.2))
+    r.save(str(tmp_path / 'out'), x='qz')
+    with open(os.path.join(GOLDEN, 'xfntr_flu.txt'), 'rb') as a, \
+            open(str(tmp_path / 'out_flu.txt'), 'rb') as b:
+        assert a.read() == b.read()
+
+
+BU = os.path.join(ROOT, 'sample_data', 'bu', '2026sep', '20260902')
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not os.path.exists(BU), reason='private bu data not present')
+def test_script_reproduces_window_flu_file_real(tmp_path):
+    import hashlib
+    import json
+    r = Experiment(BU).fluorescence([74, 75, 76, 77, 78, 79], window=(1, 1000))
+    r.save(str(tmp_path / 'out'), x='qz')
+    digest = hashlib.sha256(open(str(tmp_path / 'out_flu.txt'), 'rb').read()).hexdigest()
+    stored = json.load(open(os.path.join(ROOT, 'tests', 'reference', 'private_hashes.json')))
+    assert digest == stored['bu/2026sep/20260902 scans 74-79 _flu.txt (sum 1:1000, x = Qz)']

@@ -31,7 +31,7 @@ from functools import partial
 import traceback
 import reader_log
 from lss_core.resources import resource
-from lss_core import stitching, reflectivity
+from lss_core import stitching, reflectivity, fluorescence
 #from TwoD_Integrate import integrate_2d
 
 
@@ -1069,11 +1069,11 @@ class MainWindow (QMainWindow):
                     monitor=str(self.ui.mcaNormComboBox.currentText())
                     n=self.mcaData[i][monitor]
                     tc=self.mcaPar[i]['Time'][1]/self.mcaPar[i]['Time'][2]  #real count time correction
-                    self.nomMcaData[i]=np.vstack((x,y/n*tc,pl.sqrt(y+y**2/n)/n*tc)).transpose()
+                    self.nomMcaData[i]=fluorescence.normalise_spectrum(self.mcaData[i]['Vortex'],self.mcaPar[i],n,(con,lin,qua))
                 else:
                     n=1
                     tc=1
-                    self.nomMcaData[i]=np.vstack((x,y,pl.sqrt(y))).transpose()
+                    self.nomMcaData[i]=fluorescence.normalise_spectrum(self.mcaData[i]['Vortex'],self.mcaPar[i],None,(con,lin,qua))
                 self.mcaLabel=str(i+1)+' Qz='+'%.4f'%self.mcaPar[i]['Q'][2]
                 if self.ui.mcaOffsetCheckBox.checkState()!=0:
                     fact=fact*float(self.ui.mcaOffsetLineEdit.text())
@@ -1184,18 +1184,13 @@ class MainWindow (QMainWindow):
         try:
             for i in range(len(self.selectedMcaScanNums)):
                 data=self.nomMcaData[self.selectedMcaScanNums[i]]
-                ini=max(float(str(self.ui.mcaRanLineEdit.text()).split(':')[0]),data[0][0])
-                fin=min(float(str(self.ui.mcaRanLineEdit.text()).split(':')[1]),data[-1][0])
-                dataran=np.where((np.logical_and(data[:,0]<=fin,data[:,0]>=ini)))
-                newdata=data[dataran[0][0]:dataran[0][-1]+1]
+                inten,error,ini,fin=fluorescence.window_sum(data,float(str(self.ui.mcaRanLineEdit.text()).split(':')[0]),float(str(self.ui.mcaRanLineEdit.text()).split(':')[1]))
                 frame=self.selectedMcaScanNums[i]+1
                 qz=self.mcaPar[self.selectedMcaScanNums[i]]['Q'][2]
                 try:
                     energy=self.mcaPar[self.selectedMcaScanNums[i]]['Energy']
                 except:
                     energy=10.0
-                inten=np.sum(newdata[:,1])
-                error=np.sqrt(np.sum(newdata[:,2]**2))
                 #print newdata, inten, error
                 self.mcaIntData.append([frame, qz, energy, inten, error])
                 if self.ui.mcaXAxisComboBox.currentIndex()==0:
@@ -1206,6 +1201,9 @@ class MainWindow (QMainWindow):
                     string='%.4f'%energy+'\t'+'%.4e'%inten+'\t'+'%.4e'%error
                 self.ui.mcaDataListWidget.addItem(string)
             self.updateMcaIntPlot()
+            rng=str(self.ui.mcaRanLineEdit.text()).split(':')
+            self.mcaSumScript=(sorted(int(n) for n in self.selectedScanNums),float(rng[0]),float(rng[1]),
+                               len(self.selectedMcaScanNums)==self.ui.imageListWidget.count())
             self.command='Flu Sum, scans=['+listText(np.sort(self.selectedScanNums))+'], energy range=['+str(ini)+':'+str(fin)+']'
             self.ui.commandLineEdit.setText(self.command)
         except:
@@ -1214,6 +1212,7 @@ class MainWindow (QMainWindow):
             return
     
     def mcaAcceptPeak(self,num=0): #accecpt the fitting result, save the data, and update the mca integral plot 
+        self.mcaSumScript=None   # the intensities no longer come from one Sum All
         if num>=len(self.selectedMcaScanNums) or not hasattr(self,'fitpeakpara') or not hasattr(self,'fiterror'):
             self.messageBox('Please select an MCA frame and fit its peak first!')
             return
@@ -1293,6 +1292,7 @@ class MainWindow (QMainWindow):
         
     
     def mcaIntMerge(self):
+        self.mcaSumScript=None   # the intensities no longer come from one Sum All
         resolution=float(self.uimcamerge.resLineEdit.text())
         try:
             if self.ui.mcaXAxisComboBox.currentIndex()==0:
@@ -1328,6 +1328,7 @@ class MainWindow (QMainWindow):
     
      
     def mcaDelIntData(self):
+        self.mcaSumScript=None   # the intensities no longer come from one Sum All
         items=self.ui.mcaDataListWidget.selectedItems()
         self.mcaIntData=list(self.mcaIntData)
         for item in items:
@@ -1353,9 +1354,26 @@ class MainWindow (QMainWindow):
                 else:
                     fid.write(str(self.mcaIntData[i][2])+'\t'+str(self.mcaIntData[i][3])+'\t'+str(self.mcaIntData[i][4])+'\n')
             fid.close()
+            self.scriptLine(self.fluorescenceScript(self.saveFileName))
         except:
             print ('no mca integral data to save.')
                 
+    def fluorescenceScript(self,name):
+        """The lss_core call for the last fluorescence export, when there is one."""
+        if not getattr(self,'mcaSumScript',None):
+            return '# these intensities came from peak fits or were edited; not scriptable yet'
+        scans,lo,hi,complete=self.mcaSumScript
+        if not complete:
+            return '# only some spectra were selected; not scriptable yet'
+        kw=['window=(%r, %r)' % (lo,hi)]
+        mon=str(self.ui.mcaNormComboBox.currentText())
+        if mon!='Monc':
+            kw.append('monitor=%r' % (None if mon=='None' else mon))
+        if self.ui.mcaCalibCheckBox.checkState()==0:
+            kw.append('calibration=(%r, %r, %r)' % (float(self.ui.mcaCalibConLineEdit.text()),float(self.ui.mcaCalibLinLineEdit.text()),float(self.ui.mcaCalibQuaLineEdit.text())))
+        x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
+        return 'flu = exp.fluorescence(%r, %s)\nflu.save(%r, x=%r)' % (scans,', '.join(kw),name,x)
+
     def addMcaFiles(self): #add mca files with integral intensity in the list
         f=QFileDialog.getOpenFileNames(caption='Select Multiple Files to import', directory=self.directory)[0]
         self.mcafiles=self.mcafiles+list(map(str, f))

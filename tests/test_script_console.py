@@ -93,3 +93,27 @@ def test_next_without_overlap_is_refused(loaded, qapp, recorder):
     qapp.processEvents()
     assert recorder.exceptions == []
     assert any('do not overlap' in m for m in recorder.messages)
+
+
+def test_script_reproduces_fluorescence_export(window, qapp, recorder, tmp_path):
+    from test_xfntr import _sum
+    spec, truth = synth.make_xfntr_dataset(tmp_path / 'xf')
+    w = window
+    w.openSpecFile(fname=spec)
+    w.directory = str(tmp_path)
+    sweep._select_scans(w, qapp, None)
+    sweep._select_images(w, qapp, None)
+    _sum(w, qapp, '5.6:7.2')
+    w.ui.mcaXAxisComboBox.setCurrentIndex(2)          # energy on x
+    qapp.processEvents()
+    gui = str(tmp_path / 'gui')
+    recorder.save_name = gui
+    w.ui.mcaExportIntPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    text = w.scriptView.toPlainText()
+    assert "flu = exp.fluorescence(" in text and "x='energy'" in text
+    script = str(tmp_path / 'script')
+    _run_script(text.replace(repr(gui), repr(script)), tmp_path)
+    with open(gui + '_flu.txt', 'rb') as a, open(script + '_flu.txt', 'rb') as b:
+        assert a.read() == b.read()

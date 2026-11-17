@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from . import fluorescence as fluo
 from . import reflectivity as refl
 
 
@@ -53,11 +54,22 @@ class ReflectivityResult:
         refl.save(name, self.ref, self.rrf)
 
 
+@dataclass
+class FluorescenceResult:
+    spectra: list         # (N, 3) energy, normalised counts, error, per spectrum
+    rows: list            # [frame, qz, energy, intensity, error] per spectrum
+    command: str
+
+    def save(self, name, x='qz'):
+        fluo.save_flu(name, self.rows, self.command, x=x)
+
+
 class Experiment:
-    def __init__(self, specfile, image_folder='pilatus'):
+    def __init__(self, specfile, image_folder='pilatus', mca_folder='vortex'):
         from spec_routines import specread          # no Qt is needed
         self.specfile = os.path.abspath(specfile)
         self.folder = os.path.join(os.path.dirname(self.specfile), image_folder)
+        self.mca_folder = os.path.join(os.path.dirname(self.specfile), mca_folder)
         r = specread(self.specfile)
         self._data, self._par = r.Data, r.Par
         self.scans = {}
@@ -127,3 +139,36 @@ class Experiment:
         ref, out_rrf = refl.finish(patched[:, :3] if patched.shape[1] > 3 else patched,
                                    qc, qoff, norm_factor, rrf)
         return ReflectivityResult(per_scan, order, patched, ref, out_rrf, offsets)
+
+    def spectra(self, scans):
+        """(scan, spectrum number, Data, Par) for every MCA spectrum of the
+        fluorescence scans ``scans``, in the window's list order."""
+        from mca_routines import mcaread
+        out = []
+        name = os.path.basename(self.specfile)
+        for n in scans:
+            m = mcaread(os.path.join(self.mca_folder, '%s_%d_mca' % (name, n)))
+            for j in range(m.Data['NumOfScans']):
+                out.append((n, j + 1, m.Data[j], m.Par[j]))
+        return out
+
+    def fluorescence(self, scans, window=(1, 1000), monitor='Monc',
+                     calibration=None):
+        """Fluorescence intensity per spectrum, as the window's "Sum All".
+
+        ``window``: energy range (keV with the file's calibration);
+        ``monitor``: 'Monc', 'Monb', 'Mond' or None; ``calibration``:
+        (constant, linear, quadratic) to override the file's.
+        """
+        spectra, rows = [], []
+        for k, (scan, num, data, par) in enumerate(self.spectra(scans)):
+            cal = calibration if calibration is not None else par['Calib']
+            mon = None if monitor is None else data[monitor]
+            s = fluo.normalise_spectrum(data['Vortex'], par, mon, cal)
+            inten, err, ini, fin = fluo.window_sum(s, window[0], window[1])
+            energy = par.get('Energy', 10.0)
+            spectra.append(s)
+            rows.append([k + 1, par['Q'][2], energy, inten, err])
+        command = ('Flu Sum, scans=[' + ', '.join(str(n) for n in sorted(scans))
+                   + '], energy range=[' + str(ini) + ':' + str(fin) + ']')
+        return FluorescenceResult(spectra, rows, command)

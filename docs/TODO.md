@@ -32,7 +32,9 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       `lss_core.reflectivity.frame_row` (one implementation; the duplicated
       per-frame branches are gone). Scan order, drops and finishing in the
       window still mirror `lss_core` and are checked by the same fixtures.
-- [ ] Same for cuts, GID, GISAXS, fluorescence, burn tests.
+- [x] Fluorescence (MCA window sum) scriptable and shared with the window;
+      byte-identical `_flu.txt`; Script pane line on export.
+- [ ] Same for cuts, GID, GISAXS, burn tests, peak fits.
 - [x] Script pane (F48, first part): opening a SPEC file and exporting a
       patched reflectivity write the equivalent `lss_core` Python, which
       reproduces the exported files byte for byte (tested), including merges,
