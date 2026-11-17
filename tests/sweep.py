@@ -74,10 +74,31 @@ def state_mca_frames(w, app, spec):
     _select_images(w, app)
 
 
+def _budget(w, app):
+    w.errorModeComboBox.setCurrentIndex(1)     # the Errors pane: budget model
+    w.setErrorModel()
+    app.processEvents()
+
+
+def state_pilatus_two_scans_budget(w, app, spec):
+    state_spec_loaded(w, app, spec)
+    _budget(w, app)
+    _select_scans(w, app, [0, 1])
+    _select_images(w, app)
+
+
+def state_mca_frames_budget(w, app, spec):
+    state_spec_loaded(w, app, spec)
+    _budget(w, app)
+    _select_scans(w, app, [2])
+    _select_images(w, app)
+
+
 STATES = {f.__name__[6:]: f for f in (
     state_empty, state_spec_loaded, state_motor_scan,
     state_pilatus_scan_no_frames, state_pilatus_one_frame,
-    state_pilatus_two_scans_all_frames, state_mca_frames)}
+    state_pilatus_two_scans_all_frames, state_mca_frames,
+    state_pilatus_two_scans_budget, state_mca_frames_budget)}
 
 
 # ---- controls -----------------------------------------------------------

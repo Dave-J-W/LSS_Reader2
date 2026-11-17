@@ -69,7 +69,9 @@ cannot run on a current SciPy.
 
 Helpers in `sweep.py`: `STATES` (named application states, each a function
 `(window, app, spec)`), `_select_scans`, `_select_images`, `controls(widget)`
-(every named control as a callable), `dispose`.
+(every named control as a callable), `dispose`. Two states,
+`pilatus_two_scans_budget` and `mca_frames_budget`, switch the Errors pane to
+the budget error model first, so the sweep covers both error models.
 
 ## Three kinds of assertion
 
