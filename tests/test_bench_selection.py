@@ -138,7 +138,7 @@ def test_timings(qapp, recorder, tmp_path, monkeypatch):
     t('select one scan (27 frames listed)', lambda: sweep._select_scans(w, qapp, [6]))
     t('select 1 frame (read + show)', lambda: sweep._select_images(w, qapp, [0]))
     t('select the same frame again', lambda: sweep._select_images(w, qapp, [0]),
-      'nothing is cached')
+      'served from the memory cache')
     t('select all 27 frames of the scan', lambda: sweep._select_images(w, qapp),
       'only the first 10 are drawn')
 
@@ -148,7 +148,7 @@ def test_timings(qapp, recorder, tmp_path, monkeypatch):
             w.ui.imageListWidget.item(r).setSelected(True)
             qapp.processEvents()
     t('add the same 27 frames one click at a time', one_by_one,
-      'every click re-reads all selected frames')
+      'frames come from the cache; every click redraws all selected frames')
     t('select 4 scans (96 frames listed)',
       lambda: sweep._select_scans(w, qapp, [5, 6, 7, 8]))
     t('select all 96 frames', lambda: sweep._select_images(w, qapp))

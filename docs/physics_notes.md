@@ -843,3 +843,31 @@ Scripted checks added: merging two identical scans gives their mean with
 errors √(σ₁²+σ₂²)/2; dropping a point removes exactly that Q_z; a beam more
 than 2 pixels from its recorded row opens the information dialog that
 lists it; the form-factor radii are taken from the dialog only when valid.
+
+### 2026-11-17 — Stage 2, first step: images are read once
+
+**Q.** (owner, D5) Stop re-reading every selected frame on every selection
+change.
+
+**A.** Images now go through `lss_core.images.read_pilatus`: a direct NumPy
+read instead of PIL's per-pixel `getdata()`, and a memory cache keyed by
+path, size and modification time (a rewritten file is read again), sized
+to a quarter of the machine's memory (at most 4 GB; `LSS_READER_RAM_CACHE_MB`
+overrides, 0 disables).
+
+Measured:
+
+- The fast read is **bit-identical** to the old one (same values, shape
+  and dtype) on a spread of real images from every sample set, Pilatus
+  100K and 1M, integer and floating point (`tests/test_lss_core.py`).
+  All export fixtures and benchmarks are unchanged.
+- Reading one frame: 5.5 → 0.7 ms (100K), 57 → 6.5 ms (1M), before caching.
+- Files opened when adding 27 frames one click at a time: **378 → 0**
+  (the frames were already in the cache from the previous step); selecting
+  the same frame again: 1 → 0. See `timings.md`.
+
+Not yet improved: the time those clicks take is still dominated by
+redrawing every selected frame on every click (matplotlib text layout).
+On a network drive the file reads were the expensive part and are gone;
+locally the redraw remains. Options for the redraw are noted in
+`TODO.md`.

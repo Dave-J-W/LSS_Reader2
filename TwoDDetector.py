@@ -6,6 +6,7 @@ import array
 import pylab
 from scipy.optimize import leastsq
 import traceback
+from lss_core.images import read_pilatus
   
 
 class TwoDDetector:
@@ -30,23 +31,18 @@ class TwoDDetector:
         if self.det=='Pilatus':
             # Reading Pilatus Image File#
             #-------------------------------------------#
+            path=self.path+'/'+fname if self.path!=None else str(fname)
             try:
-                if self.path!=None:
-                    im= Image.open(self.path+'/'+fname)
-                else:
-                    im=Image.open(str(fname))
-            except:
+                # fast, cached, bit-identical to the former PIL getdata() read
+                frame=read_pilatus(path)
+            except (OSError,ValueError):
                 print  ('The File '+str(fname)+' or Path '+str(self.path)+' doesnot Exist!')
                 return -1
-            #self.imageData=np.array(im.rotate(270).transpose(Image.FLIP_LEFT_RIGHT).getdata())
-            self.imageData=np.array(im.transpose(Image.ROTATE_270).getdata())
-            #self.imageData=np.array(im.rotate(270).getdata())
-            self.imageData.shape=(im.size[0], im.size[1])
+            self.imageData=np.array(frame)   # a private, writable copy
             self.imageData, self.imbadPix=self.removeBadPix(self.imageData,iteration=bad_pix, factor=bad_fac)
             #self.imageData=np.fliplr(self.imageData)
             self.errorData=np.sqrt(self.imageData)
-            self.NROWS=im.size[0]
-            self.NCOLS=im.size[1]
+            self.NROWS,self.NCOLS=self.imageData.shape
             self.hroi=[0, self.NCOLS-1]
             self.vroi=[0, self.NROWS-1]
            # print self.NCOLS, self.NROWS

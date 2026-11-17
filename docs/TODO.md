@@ -13,6 +13,24 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
 | 6 Sub-projects (GID patching, fitting, beam size, GUI) | not started |
 
+### Stage 2 work list
+- [x] Fast, cached image reading, bit-identical (`lss_core/images.py`,
+      `lss_core/cache.py`); no file is re-read on a selection change (D5,
+      F7, F9).
+- [ ] Redraw cost on selection changes (each click redraws every selected
+      frame; ~1 s per click with 10 frames shown): options are drawing only
+      what changed, a short delay that merges rapid clicks, and a cheaper
+      layout than `tight_layout`.
+- [ ] Fast MCA parser without `eval`, identical results (F6).
+- [ ] Disk cache for network drives (F8).
+- [ ] Reduction functions out of the window into `lss_core` (normalise,
+      ROI sums, reflectivity per frame, stitching, cuts, GID), behind the
+      existing tests; the window calls them.
+- [ ] Scripting API (F31) and a console showing the API call for each GUI
+      action (F48).
+- [ ] Resources (`.ui`, icons) loaded relative to the program, not the
+      working directory (prerequisite for F46).
+
 ### Stage 1 work list
 - [x] Typos and leftovers: defects 2, 3, 4, 5, 6, 7, 14 and the shared
       default dictionaries; NumPy 2 scan-list formatting with one helper
