@@ -720,3 +720,32 @@ before (quick checks 88 pass; real-data checks 21 pass).
 What Stage 0 does not do: it does not repair the 420 failing
 control/state combinations; each still fails, but as a logged message
 instead of a closed program. That is Stage 1.
+
+### 2026-11-17 — Stage 1 progress: what changed, and did any number move?
+
+**Q.** (owner) Continue; use Sonnet sub-agents on well-scoped tasks.
+
+**A.** Fixes so far, each with its own check, all on `main`:
+
+| Fix | Effect on numbers |
+|---|---|
+| Defects 2, 3, 5, 6, 7: typos, wrong file name on saving fits, typed centres in the g_l2/g_l3 dialogs | none |
+| g_l2/g_l3 calibration: asks for two scans instead of raising | none; new known-answer test: a 185.000 mm arm and 0.020 mm offset are recovered from generated centres |
+| Defect 4: non-SPEC files (text, empty, binary, missing) refused with a message; what is loaded is kept | none |
+| Shared default dictionaries in the SPEC reader | none |
+| D14: one helper formats scan lists | **output text changed**: `_flu.txt` header and titles read `1, 2, 3` again instead of `np.int64(1), …`. Data lines byte-identical. Verified under NumPy 1.26 and 2.5 |
+| F24b: Qz² display option no longer squares q in saved `_rrf.txt` | **output changed, as the hand-off permits**: the `qz2` export fixture is now byte-identical to the plain one |
+| Defect 14: bad-pixel factor used for replacement and passed from the window | none at default settings (0 iterations, factor 1) |
+| Defect 1: GID patching on current SciPy | none: reproduces the SciPy 1.13 output of scans 11 + 12 to 2×10⁻⁴; the replacement matches the removed function to 10⁻¹² on random grids |
+| Crash guards, image display and 2D plot (153 control/state pairs) | none |
+| Crash guards, reflectivity (93 pairs); Ref Patch with a single frame no longer raises | none; export fixtures byte-identical |
+
+Every byte-level export fixture other than the two named above, every
+real-data benchmark and every invariant test gives the same result as
+before Stage 1.
+
+How the sub-agents did: two groups so far. Both produced small, readable
+guards and no numerical changes; both needed one adjustment on review (a
+153-case test moved out of the quick checks; a survival test that had been
+loosened to "at least one failure" replaced by one using stand-in failing
+handlers).

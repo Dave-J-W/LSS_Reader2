@@ -14,16 +14,31 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 6 Sub-projects (GID patching, fitting, beam size, GUI) | not started |
 
 ### Stage 1 work list
-- [ ] Crash inventory: guard handlers against "nothing loaded / nothing
-      selected" until `known_crashes.json` is empty (420 entries, 41 sites;
-      start with the five sites that account for 510 of the 840 rows).
-- [ ] Typos and leftovers: defects 2, 3, 4, 5, 6, 7 and the shared default
-      dictionaries; NumPy 2 scan-list formatting with one helper (D14).
-- [ ] Graceful opening: non-SPEC file, repeated scan numbers, aborted
-      scans, missing detector folders (F27).
-- [ ] `interp2d` replacement reproducing the SciPy 1.13 reference.
-- [ ] Qz² export fix (F24b).
+- [x] Typos and leftovers: defects 2, 3, 4, 5, 6, 7, 14 and the shared
+      default dictionaries; NumPy 2 scan-list formatting with one helper
+      (D14).
+- [x] `interp2d` replaced (`interp_compat.py`); GID low + high Q_z patching
+      works on current SciPy and reproduces the SciPy 1.13 reference
+      (defect 1).
+- [x] Qz² export fix (F24b).
+- [x] Crash inventory, image-display and 2D-plot handlers (153 pairs).
+- [x] Crash inventory, reflectivity handlers (93 pairs).
+- [ ] Crash inventory, everything else (cuts, MCA, SpecPlot, images and
+      background, calibration actions): in progress.
+- [ ] Regenerate the crash baselines (`LSS_UPDATE_CRASHES=1 pytest -m
+      sweep`); they must only shrink. Then look at the 11 sites reached
+      only by sequences (`known_crash_sites.json`).
+- [ ] Graceful opening: repeated scan numbers, aborted scans, missing
+      detector folders (F27). Non-SPEC files are done (defect 4).
 - [ ] Remove the Bruker/CCD paths and controls (D8, F38).
+- [ ] Remaining read-only defects of `ASSESSMENT.md` §4 (8: 9-ID-C reader,
+      pending the owner's answer on whether 9-ID-C is needed; 10–13, 15:
+      physics, tracked in `PHYSICS_ISSUES.md` and not to be changed without
+      the owner).
+
+Working method for the crash inventory: Sonnet sub-agents, one at a time,
+each given one group of handlers; the main session reviews the diff,
+reruns the quick, real-data and export-fixture checks, and commits.
 
 ## Carried over from the tests-and-scoping phase
 
