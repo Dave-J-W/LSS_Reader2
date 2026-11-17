@@ -199,17 +199,29 @@ def xfntr_spectrum(qz):
     return line + elastic + 2.0, line
 
 
-def make_xfntr_dataset(root, name='xf'):
+def make_xfntr_dataset(root, name='xf', absorber=0, lead_absorber=None):
     """SPEC file with one getandsave_mca scan per Qz, and vortex/ beside it.
 
+    ``absorber``: the #A value written in each MCA scan; None writes none,
+    as the real getandsave_mca does. ``lead_absorber``: if given, scan 1 is
+    a plain motor scan with that #A, and the MCA scans follow it.
     Returns (spec path, {scan number: counts in the fluorescence line}).
     """
     root = str(root)
     os.makedirs(os.path.join(root, 'vortex'))
     scans, truth = [], {}
-    for n, q in enumerate(XF_QZ, start=1):
-        scans.append('#S %d  getandsave_mca %g\n#Q 0 0 %g\n#W x %g\n#A x 0\n\n'
-                     % (n, XF_REAL, q, WAVELENGTH))
+    first = 1
+    if lead_absorber is not None:
+        x = np.linspace(-1, 1, 5)
+        scans.append(spec_scan(1, name, ['sh', 'Seconds', 'Monc', 'Apex2'],
+                               np.column_stack([x, x * 0 + 1, x * 0 + 1e5, x * 0 + 10]),
+                               command='ascan sh -1 1 4 1', image=False,
+                               absorber=lead_absorber))
+        first = 2
+    tag = '' if absorber is None else '#A x %d\n' % absorber
+    for n, q in enumerate(XF_QZ, start=first):
+        scans.append('#S %d  getandsave_mca %g\n#Q 0 0 %g\n#W x %g\n%s\n'
+                     % (n, XF_REAL, q, WAVELENGTH, tag))
         y, line = xfntr_spectrum(q)
         truth[n] = line
         path = os.path.join(root, 'vortex', '%s_%d_mca' % (name, n))

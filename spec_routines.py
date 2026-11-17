@@ -88,6 +88,9 @@ class specread:
                 self.Data['Message']='There are identical scans in the file'
             else:
                 self.Data['Error']=False
+            # (value, scan) of the last #A read; kept in Data between
+            # incremental reads so that a refresh continues from it
+            self.lastAbsorber=self.Data.get('LastAbsorber') if startLineNum>0 else None
             for i in range(numOfScans): 
                 start=startScanLineNums[i]+1
                 line=fdata[start]
@@ -168,6 +171,14 @@ class specread:
                             self.Data[num][scanVar[j]]=None
                 if len(self.Par[num])==1:
                     self.Par[num]['Message']='No parameters!!'
+                if 'Absorber' in self.Par[num]:
+                    self.lastAbsorber=(self.Par[num]['Absorber'],num)
+                elif self.lastAbsorber is not None:
+                    # no #A in this scan (getandsave_mca writes none): the
+                    # absorbers do not change during a scan, so the setting is
+                    # the last #A above it in the file (owner, 2026-11-17, F50)
+                    self.Par[num]['Absorber']=self.lastAbsorber[0]
+                    self.Par[num]['AbsorberFrom']=self.lastAbsorber[1]
                 self.progressDialog.setLabelText('Reading Scan #'+str(num))         
                 self.updateProgress()
                 self.Data['NumOfScans']=num
@@ -176,6 +187,7 @@ class specread:
                 self.Data[num]['StartScanLineNum']=startScanLineNums[i-tmp]
                 self.endLineNum=startScanLineNums[i-tmp]
                 self.Data['ScanNums'].append(num)
+                self.Data['LastAbsorber']=self.lastAbsorber
                 if self.progressDialog.wasCanceled()==True:
                     break
         self.progressDialog.hide()
