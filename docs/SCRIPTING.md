@@ -68,7 +68,8 @@ the monitor model:
 ```python
 ref = exp.reflectivity([6, 7, 8, 9], errors='budget')    # monitor: Gaussian, 0.04 %
 ref = exp.reflectivity([6, 7, 8, 9],
-                       errors={'mode': 'budget', 'kind': 'student_t', 'sigma': 0.0004, 'nu': 3.6})
+                       errors={'mode': 'budget', 'kind': 'student_t',
+                               'sigma_scan': 0.00039, 'width': 0.94, 'nu': 4.0})
 ref = exp.reflectivity([6, 7, 8, 9],
                        errors={'mode': 'budget', 'kind': 'counting', 'f': 0.0, 'sigma_dark': 0.0, 'g': 10.0})
 ```
@@ -76,7 +77,8 @@ ref = exp.reflectivity([6, 7, 8, 9],
 Budget applies the monitor's relative uncertainty once to each whole sum
 of a frame (`lss_core/errors.py`, `docs/reports/error_propagation.md`).
 The default, a Gaussian of 0.04 % at every count, and the Student t
-(ν = 3.6) describe the present `Monc` electronics (SR570 + V2F). The window's
+(scale width × σ_scan, ν = 4) describe the present `Monc` electronics
+(SR570 + V2F). The window's
 Errors pane sets the same model, and the Script pane writes the matching
 `errors=`.
 

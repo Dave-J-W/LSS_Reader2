@@ -1,8 +1,10 @@
 # Hand-off: how noisy is the monitor `Monc`, and what shape is its noise?
 
 **Answered 2026-11-17 (owner):** Gaussian, σ = 0.04 % constant across
-counting level, is the default; Student t with ν = 3.6 as an option; both
-for the present SR570 + V2F electronics. Built: `lss_core/errors.py`.
+counting level, is the default. Option: σ_scan · w · t₄ with w ≈ 0.94
+(0.86–1.01) and σ_scan the scan's own scatter (0.039 % if unknown), an
+upper bound. Both for the present SR570 + V2F electronics. Built:
+`lss_core/errors.py`.
 
 Written 2026-11-17 by the LSS_Reader2 agent, for an agent analysing the
 owner's real data. Self-contained: you do not need the LSS_Reader2

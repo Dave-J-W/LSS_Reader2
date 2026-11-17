@@ -29,12 +29,18 @@ The monitor's relative uncertainty per frame, u_M = σ_M / M, comes from
     A fixed relative σ, the same at every monitor count: σ = 0.04 %. The
     owner's value from an analysis of many data sets; it describes the
     present `Monc` electronics (SR570 current amplifier + V2F converter).
-``'student_t'``
-    A Student t with ν degrees of freedom (default 3.6) and scale s: the
-    heavier tails seen in `Monc`'s scatter. Propagation uses its standard
-    deviation, u_M = s·√(ν/(ν−2)) (finite for ν > 2); the shape is recorded
+``'student_t'``  (owner and a separate analysis, 2026-11-17)
+    A frame's monitor error is σ_scan · w · t_ν: a Student t with ν = 4
+    degrees of freedom and scale s = w·σ_scan, where σ_scan is the scan's
+    own `Monc` scatter (0.039 % when unknown) and the width w is about 0.94
+    (0.86 to 1.01 across data sets), so s ≈ 0.037 % per frame. An upper
+    bound: the analysis compared with `Monp`, which carries source
+    fluctuations of its own. Propagation uses the t's standard deviation,
+    u_M = s·√(ν/(ν−2)) (finite for ν > 2; √2·s for ν = 4); the shape is kept
     with the model for anything downstream that uses a likelihood. Like the
-    Gaussian value, ν = 3.6 belongs to the SR570 + V2F electronics.
+    Gaussian value, it belongs to the SR570 + V2F electronics.
+    Reading taken here: "width" is the t's scale, not its standard
+    deviation (to be confirmed).
 ``'counting'``
     u_M² = f² + (σ_dark / M)² + 1 / (g · M): a fractional floor f, the
     scatter σ_dark of the dark counts in a frame, and g quanta per recorded
@@ -62,8 +68,10 @@ ELECTRONICS = 'SR570 current amplifier + V2F converter'
 @dataclass
 class MonitorModel:
     kind: str = 'gaussian'
-    sigma: float = 4e-4      # gaussian: relative σ; student_t: relative scale s
-    nu: float = 3.6          # student_t degrees of freedom
+    sigma: float = 4e-4      # gaussian: relative σ
+    sigma_scan: float = 3.9e-4   # student_t: the scan's own relative Monc scatter
+    width: float = 0.94      # student_t: scale = width · sigma_scan
+    nu: float = 4.0          # student_t degrees of freedom
     f: float = 0.0           # counting: fractional floor
     sigma_dark: float = 0.0  # counting: dark-count scatter per frame, counts
     g: float = 1.0           # counting: quanta per recorded monitor count
@@ -73,7 +81,7 @@ class MonitorModel:
             raise ValueError('monitor model must be one of %s, not %r' % (KINDS, self.kind))
         if self.kind == 'student_t' and not self.nu > 2:
             raise ValueError('a Student t monitor model needs nu > 2 for a finite variance')
-        if self.sigma < 0 or self.f < 0 or self.sigma_dark < 0 or not self.g > 0:
+        if min(self.sigma, self.sigma_scan, self.width, self.f, self.sigma_dark) < 0 or not self.g > 0:
             raise ValueError('monitor model parameters must be >= 0 (g > 0)')
 
     def relative(self, monitor):
@@ -82,21 +90,26 @@ class MonitorModel:
         if self.kind == 'gaussian':
             return np.zeros(np.shape(m)) + self.sigma
         if self.kind == 'student_t':
-            return np.zeros(np.shape(m)) + self.sigma * np.sqrt(self.nu / (self.nu - 2.0))
+            return np.zeros(np.shape(m)) + self.scale * np.sqrt(self.nu / (self.nu - 2.0))
         return np.sqrt(self.f ** 2 + (self.sigma_dark / m) ** 2 + 1.0 / (self.g * m))
+
+    @property
+    def scale(self):
+        """Scale of the Student t: width · sigma_scan."""
+        return self.width * self.sigma_scan
 
     def describe(self):
         if self.kind == 'gaussian':
             return 'Monc Gaussian, sigma %.4g %% (%s)' % (100 * self.sigma, ELECTRONICS)
         if self.kind == 'student_t':
-            return ('Monc Student t, nu %g, scale %.4g %% (SD %.4g %%; %s)'
-                    % (self.nu, 100 * self.sigma,
-                       100 * self.sigma * np.sqrt(self.nu / (self.nu - 2.0)), ELECTRONICS))
+            return ('Monc Student t, nu %g, scale %g x %.4g %% = %.4g %% (SD %.4g %%; %s; an upper bound)'
+                    % (self.nu, self.width, 100 * self.sigma_scan, 100 * self.scale,
+                       100 * self.scale * np.sqrt(self.nu / (self.nu - 2.0)), ELECTRONICS))
         return 'Monc u_M^2 = %g^2 + (%g/M)^2 + 1/(%g M)' % (self.f, self.sigma_dark, self.g)
 
     def script(self):
         """The model as a dict literal for ``errors=``, only the fields its kind uses."""
-        keys = {'gaussian': ('sigma',), 'student_t': ('sigma', 'nu'),
+        keys = {'gaussian': ('sigma',), 'student_t': ('sigma_scan', 'width', 'nu'),
                 'counting': ('f', 'sigma_dark', 'g')}[self.kind]
         return '{' + ', '.join(["'mode': 'budget'", "'kind': %r" % self.kind]
                                + ['%r: %r' % (k, getattr(self, k)) for k in keys]) + '}'

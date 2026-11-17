@@ -29,6 +29,7 @@ def _budget(w, qapp, g=None):
 
 def test_default_is_legacy_and_the_pane_switches(window, qapp, recorder):
     w = window
+    assert w.absfac == 1.414      # per absorber unit, 10 keV by design (owner, 2026-11-17)
     assert w.errorModel.mode == 'legacy' and w.pilatus.errors is w.errorModel
     assert w.errorFields['sigma'].text() == '0.04'
     assert w.errorModel.monitor.kind == 'gaussian' and w.errorModel.monitor.sigma == U0
@@ -46,13 +47,19 @@ def test_pane_offers_gaussian_student_t_and_counting(window, qapp, recorder):
     w.errorFields['sigma'].editingFinished.emit()
     assert w.errorModel.monitor.sigma == pytest.approx(5e-4)
     w.monitorKindComboBox.setCurrentIndex(1)            # Student t
-    assert w.errorModel.monitor.kind == 'student_t' and w.errorModel.monitor.nu == 3.6
-    assert w.pilatus.errors.monitor.relative(1e5) == pytest.approx(5e-4 * np.sqrt(3.6 / 1.6))
-    assert not w.errorFields['g'].isEnabled() and w.errorFields['nu'].isEnabled()
+    m = w.errorModel.monitor
+    assert m.kind == 'student_t' and (m.nu, m.width) == (4.0, 0.94)
+    assert m.sigma_scan == pytest.approx(3.9e-4)
+    w.errorFields['sigma_scan'].setText('0.05')
+    w.errorFields['width'].setText('0.86')
+    w.errorFields['width'].editingFinished.emit()
+    assert w.pilatus.errors.monitor.relative(1e5) == pytest.approx(0.86 * 5e-4 * np.sqrt(2.0))
+    assert not w.errorFields['g'].isEnabled() and not w.errorFields['sigma'].isEnabled()
+    assert w.errorFields['nu'].isEnabled() and w.errorFields['width'].isEnabled()
     assert 'SR570' in w.errorModelLabel.text()
     w.errorFields['nu'].setText('1.5')                  # no finite variance: refused
     w.errorFields['nu'].editingFinished.emit()
-    assert w.errorModel.monitor.nu == 3.6 and w.errorFields['nu'].text() == '3.6'
+    assert w.errorModel.monitor.nu == 4.0 and w.errorFields['nu'].text() == '4.0'
     assert recorder.exceptions == []
 
 

@@ -53,9 +53,14 @@ def test_default_monitor_model_is_gaussian_0p04_percent_at_every_count():
     assert 'SR570' in m.describe()
 
 
-def test_student_t_propagates_its_standard_deviation():
-    t = MonitorModel('student_t', sigma=U0, nu=3.6)
-    assert t.relative(1e5) == pytest.approx(U0 * np.sqrt(3.6 / 1.6))
+def test_student_t_is_width_times_scan_scatter_and_propagates_its_sd():
+    # owner, 2026-11-17: sigma_scan * t_4, width ~0.94 (0.86-1.01), sigma_scan 0.039 % if unknown
+    t = MonitorModel('student_t')
+    assert (t.nu, t.width, t.sigma_scan) == (4.0, 0.94, 3.9e-4)
+    assert t.scale == pytest.approx(3.666e-4)
+    assert t.relative(1e5) == pytest.approx(t.scale * np.sqrt(2.0))      # SD of t_4 = sqrt(2) scale
+    t2 = MonitorModel('student_t', sigma_scan=1e-3, width=0.86, nu=3.6)
+    assert t2.relative(1.0) == pytest.approx(0.86e-3 * np.sqrt(3.6 / 1.6))
     with pytest.raises(ValueError):
         MonitorModel('student_t', nu=2.0)       # infinite variance
 
@@ -68,7 +73,7 @@ def test_counting_monitor_model():
     assert MonitorModel('counting', sigma_dark=50, g=1e30).relative(1e4) == pytest.approx(5e-3)
 
 
-@pytest.mark.parametrize('monitor', [MonitorModel(), MonitorModel('student_t', sigma=3e-4, nu=4.0),
+@pytest.mark.parametrize('monitor', [MonitorModel(), MonitorModel('student_t', sigma_scan=3e-4, width=0.9, nu=4.0),
                                      MonitorModel('counting', f=0.001, sigma_dark=2.0, g=10.0)])
 def test_model_from_script_keyword_round_trips(monitor):
     m = ErrorModel('budget', monitor)

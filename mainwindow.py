@@ -118,6 +118,8 @@ class MainWindow (QMainWindow):
         self.reffnames=[]
         self.mcaIntData=[]
         self.refQc=float(self.ui.refQcLineEdit.text())
+        self.ui.AbsFacLineEdit.setToolTip('Transmission factor per absorber unit. SPEC #A gives the absorber in these units '
+                                          '(0: no absorbers). About 1.414 at 10 keV by design; it depends on the energy.')
         self.absfac=float(self.ui.AbsFacLineEdit.text())
         self.reffiles=[]
         self.selectedBgFrameNums=[]
@@ -1482,9 +1484,12 @@ class MainWindow (QMainWindow):
         self.errorFields={}
         self.errorFieldLabels={}
         for name,label,value,tip in (
-                ('sigma','Monitor sigma (%)',100*m.sigma,'relative standard deviation of one Monc reading, in percent (Gaussian),\n'
-                                                         'or the scale of the Student t, in percent'),
-                ('nu','Student t nu',m.nu,'degrees of freedom of the Student t (> 2)'),
+                ('sigma','Monitor sigma (%)',100*m.sigma,'relative standard deviation of one Monc reading, in percent'),
+                ('sigma_scan','Scan scatter (%)',100*m.sigma_scan,"the scan's own relative Monc scatter, in percent\n"
+                                                                  '(0.039 when unknown)'),
+                ('width','t width',m.width,'scale of the Student t = width x scan scatter\n'
+                                           '(about 0.94; 0.86 to 1.01 across data sets)'),
+                ('nu','t nu',m.nu,'degrees of freedom of the Student t (> 2; about 4)'),
                 ('f','Floor f',m.f,'fractional monitor uncertainty that does not fall with counts'),
                 ('sigma_dark','Dark sigma',m.sigma_dark,'scatter of the monitor dark counts in one frame (counts)'),
                 ('g','Quanta per count g',m.g,'true quanta per recorded monitor count (1: Poisson on the counts)')):
@@ -1516,11 +1521,10 @@ class MainWindow (QMainWindow):
     def showErrorModel(self):
         """Enable the fields the chosen monitor model uses; describe the model."""
         kind=('gaussian','student_t','counting')[self.monitorKindComboBox.currentIndex()]
-        used={'gaussian':('sigma',),'student_t':('sigma','nu'),'counting':('f','sigma_dark','g')}[kind]
+        used={'gaussian':('sigma',),'student_t':('sigma_scan','width','nu'),'counting':('f','sigma_dark','g')}[kind]
         for name,e in self.errorFields.items():
             e.setEnabled(name in used)
             self.errorFieldLabels[name].setEnabled(name in used)
-        self.errorFieldLabels['sigma'].setText('Student t scale (%)' if kind=='student_t' else 'Monitor sigma (%)')
         text=self.errorModel.describe()
         if not self.errorModel.budget:
             text+='. The monitor model below is used when Budget is chosen.'
@@ -1535,9 +1539,10 @@ class MainWindow (QMainWindow):
             try:
                 vals[name]=float(e.text())
             except ValueError:
-                vals[name]=100*defaults.sigma if name=='sigma' else getattr(defaults,name)
+                vals[name]=getattr(defaults,name)*(100 if name in ('sigma','sigma_scan') else 1)
                 e.setText(repr(vals[name]))
         vals['sigma']=vals['sigma']/100.0
+        vals['sigma_scan']=vals['sigma_scan']/100.0
         if vals['g']<=0:
             vals['g']=defaults.g
             self.errorFields['g'].setText(repr(defaults.g))

@@ -1060,7 +1060,8 @@ feasible, noting that it depends on the present SR570 + V2F electronics.
 **A.** Built (tests: `test_error_budget.py`, `test_gui_error_budget.py`).
 
 - `lss_core.errors.MonitorModel` has three kinds: `'gaussian'` (default,
-  σ = 0.04 % at every monitor count), `'student_t'` (ν = 3.6, scale s;
+  σ = 0.04 % at every monitor count), `'student_t'` (ν = 3.6, scale s,
+  refined in the next entry to ν = 4, s = 0.94·σ_scan;
   propagated through its standard deviation s·√(ν/(ν−2)) = 1.5 s, finite
   for ν > 2), and `'counting'` (f, σ_dark, g, as before). The Gaussian and
   t values are labelled as belonging to the SR570 current amplifier + V2F
@@ -1108,3 +1109,38 @@ foils before the sample (then fluorescence is attenuated too and the
 fluorescence path, which applies no factor, would need a^n whenever
 spectra at different settings are compared; bu 2026-09-02 has energy
 scans on the Vortex at setting 52) or between sample and detector?
+
+### 2026-11-17 — Absorber units; the Student t refined
+
+**Q.** (owner) Absorbers are in units of the absorber factor, ≈ 1.414 at
+10 keV by design; 0 is no absorber (direct beam). The foils are before the
+sample. From the separate analysis: "a frame's monitor error can be
+modelled as σ_scan × t₄ with a width of about 0.94 σ_scan. σ_scan is the
+scan's own scatter, or about 0.039 % if unknown, and the width works out to
+about 0.037 % per frame. That is still an upper bound, because `Monp` also
+carries source fluctuations." ν is essentially 4 and the width 0.86–1.01.
+
+**A.** Built (tests: `test_error_budget.py`, `test_gui_error_budget.py`).
+
+- Student t: scale s = w·σ_scan with ν = 4, w = 0.94, σ_scan = 0.039 %
+  (s = 0.0367 %); propagated through its standard deviation √2·s =
+  0.052 %. The Errors pane has fields for σ_scan (%), the width and ν.
+  The Gaussian default (0.04 %) is unchanged. Reading taken: "width" is
+  the t's scale, not its standard deviation; consistent with σ_scan being
+  a robust (median-based) scatter, since a t₄ of scale s has a robust σ
+  of 1.10 s, i.e. s ≈ 0.91 σ_scan. To be confirmed, with the estimator of
+  σ_scan, before it is computed per scan (F51).
+- Absorber factor default changed from 1.606 to **1.414** (deliberate;
+  tooltip says it depends on energy). No legacy fixture uses it
+  (reflectivity and fluorescence apply no factor). What changes: cuts,
+  background images, frame averages, Ref analyse and GID patching at a
+  non-zero setting n are scaled by (1.414/1.606)ⁿ, e.g. ×0.0054 at n = 41
+  (NX scan 6), ×0.33 at n = 9. Sample data are mostly at 10 keV, but also
+  6.2, 7.5, 10.5 and 30 keV, where 1.414 is wrong; F49 asks for the factor
+  from the energy.
+- Foils before the sample: the fluorescence path would need a^n to compare
+  spectra at different settings, but the XFNTR scans record no absorber
+  setting (checked on every sample file: `getandsave_mca` scans have no
+  `#A`, MCA headers none). Not changed; F50 gives the two ways out.
+- The earlier entry's reading of `#A` as total foil thickness in units is
+  confirmed in substance: it is the absorber in units of the factor.

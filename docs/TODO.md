@@ -45,11 +45,11 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [x] Absorbers consistent (D21): messages when frames of different foil
       counts are combined on the nominal factor.
 - [x] `Monc` is upstream of the absorbers (owner): a^n does not double-count.
-- [ ] Ask the owner: are the foils before the sample or after it? (Decides
-      whether the fluorescence path needs a^n.) Confirm that SPEC's `#A`
-      value is total foil thickness in units (read from the data only).
-- [ ] Ask the owner for the Student t's fitted scale (ν = 3.6 given; scale
-      defaults to 0.04 %).
+- [x] Foils are before the sample; `#A` is in units of the absorber factor
+      (≈ 1.414 at 10 keV, now the default). Fluorescence: F50 (owner to choose).
+- [x] Student t: σ_scan · w · t₄, w ≈ 0.94, σ_scan 0.039 % if unknown (D22).
+- [ ] Confirm "width" is the t's scale, and get the σ_scan estimator (F51).
+- [ ] F49: absorber factor from the beam energy (needs foil material).
 - [ ] When the corrected/legacy two-file export (hand-off §2.5) is built,
       make Budget the default and carry the counting part as `sigma_meas`.
 - [x] Monitor model default from the owner's analysis: Gaussian 0.04 %
