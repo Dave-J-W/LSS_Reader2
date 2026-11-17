@@ -267,6 +267,11 @@ priority than the lists above.
 | F12 | Durable log: every record flushed and synced; hard faults recorded; session log in `~/.lss_reader/logs` (or `$LSS_READER_LOG_DIR`). | `reader_log.py` | kill and abort tests in `tests/test_reader_log.py` |
 | F13 (log half), D3 | A log per SPEC file, `<spec file>.reader.log` beside it, with a local fallback and a message when the folder cannot be written. | `reader_log.attach_spec_log` | `tests/test_reader_log.py` |
 | D15 | No message when a fluorescence scan is selected. | `scanListChanged` | `tests/test_xfntr.py` |
+| F10 (second half) | Handlers no longer raise when used before data is loaded or after the selection changed. | guards throughout `mainwindow.py`; `forgetImageSelection` | `pytest -m sweep`; `tests/test_guards_*.py` |
+| D14 | Scan lists formatted by one helper. | `listText` | `tests/test_xfntr.py` |
+| F24b | Qz² display option no longer changes the saved `_rrf.txt`. | `updateRefPlotData` | `tests/test_ref_export_golden.py` |
+| F27 (part) | Non-SPEC files and repeated scan numbers handled quietly. | `openSpecFile`, `readSpecFile`, `spec_routines.is_spec_file` | `tests/test_known_defects.py`, `tests/test_parsers.py`, `tests/test_real_bu.py` |
+| Defect 1 (start of F23) | GID patching runs on current SciPy with unchanged results. | `interp_compat.py` | `tests/test_interp_compat.py`, `tests/test_real_nx_school.py` |
 
 ## Order
 

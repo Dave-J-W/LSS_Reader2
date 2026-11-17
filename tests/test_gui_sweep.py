@@ -109,14 +109,15 @@ def test_no_new_crashes(state, dialogs, qapp, recorder, dataset, tmp_path,
 
 
 WALK_STEPS = 150
-WALK_SEEDS = (1, 2, 3)
+WALK_SEEDS = (1, 2, 3, 4, 5, 6)
 
 
 @pytest.mark.gui
 @pytest.mark.sweep
 @pytest.mark.parametrize('seed', WALK_SEEDS)
 @pytest.mark.parametrize('state', ['spec_loaded', 'pilatus_one_frame',
-                                   'mca_frames'])
+                                   'mca_frames',
+                                   'pilatus_two_scans_all_frames'])
 def test_random_walk_raises_only_at_known_sites(state, seed, qapp, recorder,
                                                 dataset, tmp_path,
                                                 make_window, clean_root):

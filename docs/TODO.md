@@ -23,13 +23,22 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [x] Qz² export fix (F24b).
 - [x] Crash inventory, image-display and 2D-plot handlers (153 pairs).
 - [x] Crash inventory, reflectivity handlers (93 pairs).
-- [ ] Crash inventory, everything else (cuts, MCA, SpecPlot, images and
-      background, calibration actions): in progress.
-- [ ] Regenerate the crash baselines (`LSS_UPDATE_CRASHES=1 pytest -m
-      sweep`); they must only shrink. Then look at the 11 sites reached
-      only by sequences (`known_crash_sites.json`).
-- [ ] Graceful opening: repeated scan numbers, aborted scans, missing
-      detector folders (F27). Non-SPEC files are done (defect 4).
+- [x] Crash inventory, everything else: cuts, MCA, SpecPlot, images and
+      background, calibration actions (151 pairs).
+- [x] Baselines regenerated: 420 single-control combinations -> 3, then 0
+      after the background-factor field was rewired.
+- [x] Failures reached only by sequences: stale selections forgotten when
+      the scan selection changes; movie frame indexing; cut export and fit
+      button check their data; background sum with nothing selected; MCA
+      log axes; 9-ID-C says it is unsupported.
+- [x] All save handlers write nothing when the file chooser is cancelled.
+- [x] Graceful opening: non-SPEC files (defect 4) and repeated scan
+      numbers (F27).
+- [ ] Graceful opening, still to do (F27): aborted scans (message wording),
+      missing detector folders (today a folder chooser opens), SPEC files
+      whose scan numbers do not start at 1 or have gaps (several places
+      still use "number - 1" as a list position).
+- [ ] Final sweep of Stage 1 with the wider sequences (6 seeds, 4 states).
 - [ ] Remove the Bruker/CCD paths and controls (D8, F38).
 - [ ] Remaining read-only defects of `ASSESSMENT.md` §4 (8: 9-ID-C reader,
       pending the owner's answer on whether 9-ID-C is needed; 10–13, 15:

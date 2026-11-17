@@ -749,3 +749,41 @@ guards and no numerical changes; both needed one adjustment on review (a
 153-case test moved out of the quick checks; a survival test that had been
 loosened to "at least one failure" replaced by one using stand-in failing
 handlers).
+
+### 2026-11-17 — Stage 1: is the interface crash-free now?
+
+**Q.** (owner's requirement R3/F10) No crashing ever, whichever files are
+selected and whichever controls are used afterwards.
+
+**A.** Measured with the sweep (`TESTING.md`, "Crash inventory"):
+
+| | Before Stage 1 | Now |
+|---|---|---|
+| Single controls that raise, over 7 states (each control in a fresh window) | 420 | 0 expected (3 at the last full sweep, since fixed; final sweep running) |
+| Distinct places in the code they came from | 41 | 0 expected |
+| Sequences of 150 random actions that hit a failure | most | 3 failures found in 24 sequences after the guards, all three since fixed |
+
+and, independently of all of the above, a failure no longer closes the
+program (Stage 0).
+
+Two of the sequence failures were real bugs rather than missing guards:
+
+- **Movie axes.** The movie loop looked up each frame's axis limits by
+  frame number in arrays that hold one entry per *selected* frame. For a
+  selection not starting at frame 0 this either raised or drew a frame
+  against another frame's Q axes. Fixed and pinned by a test that plays
+  frames 5 and 7 and checks that the last frame's Q_z axis is centred on
+  frame 7's own Q_z.
+- **Stale selections.** After the scan selection changed, the program kept
+  the previous frame selection, cuts and normalised spectra, which point at
+  rows of a list that no longer exists. They are now forgotten whenever the
+  image list is rebuilt. The reduced reflectivity is deliberately kept.
+
+Decision taken without the owner, to be confirmed: choosing **APS 9-ID-C**
+now gives a message that such files cannot be read, and the beamline stays
+at 15-ID-C. The 9-ID-C reader was never ported from Python 2 and could not
+read any file; nothing that worked was removed. If 9-ID-C data matter, the
+reader needs porting against a sample file.
+
+No reduction number changed in any of this: every export fixture,
+real-data benchmark and invariant check passes unchanged.
