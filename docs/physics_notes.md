@@ -27,6 +27,7 @@ exists.
 | I14 | (for F47, when built) A silicon-detector escape peak lies 1.74 keV (Si Kα) below its parent line, with a small fixed fraction of the parent's counts; summing parent and escape conserves the line's counts | cited from memory (standard Si(Li)/SDD behaviour; see XrayDB); no code yet |
 | I15 | (budget error model; monitor model by default a Gaussian of σ = 0.04 % at every count, owner 2026-11-17) The variance of any sum over one frame is its counting variance plus (sum)²·u_M²: box, line-cut point, energy window, and background-subtracted net (monitor term on the net, not on the boxes); averages of frames add each frame's monitor amplitude in quadrature; a frame subtracted from itself has no monitor term | tested: `test_error_budget.py` (formulas, and a Monte Carlo of a bright box with a 1 % monitor: predicted σ within 10 % of the scatter, legacy σ < 1/3 of it), `test_gui_error_budget.py` (cuts, summed cuts, MCA sum, Ref Patch) |
 | I16 | The error model changes errors only: values are identical in both models up to the patch's scale-factor fit, which is weighted by the errors | tested: `test_error_budget.py` (NX school scans 6–9, per-frame columns identical), `test_gui_error_budget.py` (patched values within 0.5 %) |
+| I17 | Normalised fluorescence does not depend on the absorber setting: counts measured at setting n (attenuated by absfac⁻ⁿ; monitor upstream of the foils, unchanged), multiplied by absfac**n, equal those at n = 0 (exact for expected counts, within Poisson scatter for drawn ones). Holds only if absfac is right for the energy and the setting is right (for MCA scans, inferred from the last `#A`) | tested on synthetic data: `test_fluorescence_absorber.py` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -1211,4 +1212,76 @@ cited from memory, not checked against the table today), so 50 µm gives
 exp(0.354) = 1.425 and 1.414 = √2 corresponds to 49 µm. That is also the
 information F49 needs: if every unit is Al of about 49–50 µm, the factor at
 energy E is exp(μ(E)·t).
+
+### 2026-11-17 — Was XFNTR scaled by absorbers before? What is the normalised fluorescence?
+
+**Q.** (owner) Was XFNTR being scaled by absorbers before? Comparing XFNTR
+scans taken with different parameters in the plot panes is often a
+problem. Is the absorber factor meant to give fluorescence per input
+photon, so different scans can share an axis?
+
+**A.** (read in the code, and the original repository; measured on the
+sample files where stated.)
+
+*Before 2026-11-17: no.* The original program (`41f451b`,
+`MainWindow.mcaPlot` and `updateMcaPlotData`) computed, per spectrum and
+channel,
+
+    y = N · (t_real / t_live) / M,   σ = √(N + N²/M) · (t_real / t_live) / M
+
+with N the MCA counts, M the chosen monitor (`Monc` by default) for that
+spectrum, and t_real/t_live the MCA dead-time correction. No absorber
+factor and no monitor gain entered anywhere in the MCA tab; "Sum All"
+added y over the energy window. The window could not have applied the
+absorber: the `getandsave_mca` scans record no `#A`.
+
+*Since today (D24, commit `e6f16e8`):* with a monitor chosen,
+
+    y = N · (t_real / t_live) · absfac**n / M
+
+with n the scan's absorber setting (the last `#A` above the scan) and
+absfac the "Absorber factor" field. Without a monitor ("None") spectra stay
+raw counts.
+
+*What y is.* Yes: the aim is a quantity proportional to fluorescence per
+photon reaching the sample, so that spectra taken under different
+conditions share one axis. Step by step:
+
+- dividing by M (counts of `Monc` during the spectrum) removes the count
+  time and the flux changes upstream of `Monc` (ring current, optics, S1);
+- t_real/t_live corrects the MCA's dead time;
+- absfac**n puts back what the foils removed. The foils are between `Monc`
+  and the sample (owner), so M does not see them and the factor is needed,
+  and it does not double-count (invariant I17).
+
+So y ∝ (fluorescence counts) / (photons on the sample), **up to a constant
+that is the same only while these stay the same**:
+
+1. **The `Monc` amplifier gain** (not corrected; F52). `Monc` is an SR570
+   current amplifier followed by a V2F converter; the SR570 sensitivity S
+   (A/V) sets volts per amp, so counts per photon ∝ 1/S
+   ([SR570 manual](https://www.thinksrs.com/downloads/pdfs/manuals/SR570m.pdf)),
+   and photons ∝ M·S. SPEC records it as `#M Monc Gain …`, but the reader
+   does not read it. Measured: it changes within files, by up to 50×
+   (bu/2026sep/20260902: 200 nA/V from scan 1, 10 µA/V from 12, 5 µA/V
+   from 130; bu/2026June/20260616: 10 µA/V, then 5 µA/V from 45). Spectra
+   on either side of a change are off by S₁/S₂. This is a likely cause of
+   the comparison problems; MCA scans have no `#M` either, so it would be
+   taken from the last `#M` above them, like `#A`.
+2. **The absorber factor per unit** depends on energy (F49), and 1.42 or
+   1.414 per unit compounds over n (×1.25 between them at n = 52).
+3. **Photon energy.** `Monc`'s current per photon grows with energy (and
+   its absorption efficiency changes); the fluorescence cross-section and
+   the MCA's efficiency change too. Spectra at different energies are not
+   comparable through y alone.
+4. **Geometry after `Monc`:** slits between `Monc` and the sample, the
+   footprint on the surface (which XFNTR models as part of the physics),
+   and the MCA's solid angle and distance.
+
+What y is not: an absolute photon number. M·S gives photons only through
+the monitor's efficiency and the V2F scale (counts per volt), neither
+recorded in the file.
+
+Tests: `test_fluorescence_absorber.py` (I17; the inferred setting applied
+in the window and in scripts, script reproduces the export).
 

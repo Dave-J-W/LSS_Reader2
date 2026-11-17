@@ -49,6 +49,8 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       (≈ 1.414 at 10 keV, now the default).
 - [x] F50 (D24): MCA scans take the absorber of the last `#A` above them;
       normalised spectra × absfac**n; the window says where each came from.
+- [ ] F52: normalise by `Monc` × its recorded gain (`#M Monc Gain`), which
+      changes within files by up to 50× (owner to approve).
 - [x] Student t: σ_scan · w · t₄, w ≈ 0.94, σ_scan 0.039 % if unknown (D22).
 - [ ] Confirm "width" is the t's scale, and get the σ_scan estimator (F51).
 - [ ] F49: absorber factor from the beam energy (needs foil material).

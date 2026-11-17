@@ -59,7 +59,11 @@ flu.save('zinc', x='qz')               # zinc_flu.txt, as "Export" in the MCA ta
 are multiplied by absfac**n, n the scan's absorber setting, which for
 `getandsave_mca` scans is the last `#A` above them in the SPEC file
 (`exp.scans[n].parameters['AbsorberFrom']` names that scan; no `#A` above:
-no factor). `flu.spectra` holds the
+no factor).
+The normalised value is N · (t_real/t_live) · absfac**n / M per channel:
+proportional to fluorescence per photon on the sample while the monitor
+gain, energy and geometry stay the same (`physics_notes.md`, 2026-11-17;
+the monitor gain is not yet included, F52). `flu.spectra` holds the
 normalised spectra, `flu.rows` the [frame, Qz, energy, intensity, error]
 rows. Checked byte for byte against the window's `_flu.txt` on synthetic
 and real data.

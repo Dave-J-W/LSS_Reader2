@@ -271,6 +271,7 @@ priority than the lists above.
 | F49 | **Absorber factor from the beam energy.** The factor per unit is ≈ 1.414 at 10 keV by design and changes with energy (sample data run at 6.2, 7.5, 10, 10.5 and 30 keV). Offer the factor for the scan's energy from the foil material and unit thickness, with the user's value as an override. | needs the foil material and unit thickness |
 | F50 | **Fluorescence with absorbers.** The foils are before the sample, so fluorescence is attenuated like the reflected beam; spectra at different absorber settings need a^n to be compared. The XFNTR scans (`getandsave_mca`) record no absorber setting (no `#A` in the SPEC scan, none in the MCA header). | **built** (D24): the reader takes the last `#A` above the scan and says so |
 | F51 | **Per-scan monitor scatter σ_scan** for the Student t model, estimated from each scan rather than typed in. | needs the separate analysis's exact estimator (which quantity, which detrending, robust or not) |
+| F52 | **Monitor gain in the normalisation.** SPEC records `#M Monc Gain <S> <unit>` (SR570 sensitivity, A/V); counts per photon ∝ 1/S, so normalise by M·S, not M, wherever scans with different gains are compared (fluorescence first; cuts and GID; reflectivity patching measures the scale and does not need it). Measured: S changes within files by up to 50×; MCA scans record no `#M` (take the last above, as for `#A`). | proposed 2026-11-17; needs the owner's go-ahead and the exact SR570/V2F chain (any other gain stage) |
 
 ### Decisions and requirements (2026-11-17, continued)
 

@@ -98,3 +98,25 @@ def test_window_lists_says_and_applies_the_inferred_setting(window, qapp, record
     _run_script(text.replace(repr(gui), repr(script)), tmp_path)
     with open(gui + '_flu.txt', 'rb') as f1, open(script + '_flu.txt', 'rb') as f2:
         assert f1.read() == f2.read()
+
+
+def test_normalised_fluorescence_does_not_depend_on_the_absorber_setting():
+    """Invariant I17: the same surface measured at absorber settings 0 and n
+    (counts attenuated by absfac**-n, the monitor upstream of the foils and
+    so unchanged) gives the same normalised spectrum once multiplied by
+    absfac**n. Exact for expected counts; within Poisson scatter for drawn
+    counts."""
+    from lss_core.fluorescence import normalise_spectrum, window_sum
+    expected, _ = synth.xfntr_spectrum(0.02)
+    expected = expected * 1e3                     # bright, so the test is sharp
+    par = {'Time': (1, synth.XF_REAL, synth.XF_LIVE)}
+    cal, M, n, absfac = synth.XF_CALIB, synth.XF_MONITOR, 9, 1.414
+    a = absorber_factor(absfac, n)
+    s0 = normalise_spectrum(expected, par, M, cal)
+    sn = normalise_spectrum(expected / a, par, M, cal, absorber=a)
+    assert sn[:, 1] == pytest.approx(s0[:, 1], rel=1e-12)
+    rng = np.random.default_rng(17)
+    i0, e0, _, _ = window_sum(normalise_spectrum(rng.poisson(expected), par, M, cal), 5.6, 7.2)
+    i_n, e_n, _, _ = window_sum(normalise_spectrum(rng.poisson(expected / a), par, M, cal, absorber=a), 5.6, 7.2)
+    assert abs(i_n - i0) < 3 * np.hypot(e0, e_n)
+    assert e_n > e0               # fewer counts at setting n: larger relative error
