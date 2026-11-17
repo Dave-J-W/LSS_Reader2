@@ -14,6 +14,8 @@ os.environ.setdefault('MPLBACKEND', 'Agg')
 # keep every log the program writes out of the repository and sample data
 import tempfile  # noqa: E402
 os.environ['LSS_READER_LOG_DIR'] = tempfile.mkdtemp(prefix='lss_reader_test_logs_')
+# never write to the user's disk cache from the tests
+os.environ['LSS_READER_DISK_CACHE'] = tempfile.mkdtemp(prefix='lss_reader_test_cache_')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)

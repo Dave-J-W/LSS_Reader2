@@ -11,7 +11,8 @@ memory so that selecting a frame again does not read the file again.
 import numpy as np
 from PIL import Image
 
-from .cache import MemoryCache
+from . import diskcache
+from .cache import MemoryCache, file_key
 
 CACHE = MemoryCache()
 
@@ -32,4 +33,6 @@ def read_pilatus(path, cache=True):
     """
     if not cache:
         return _read(path)
-    return CACHE.get_or_load(path, _read, lambda a: a.nbytes)
+    # memory first, then the local disk cache (for network drives), then the file
+    return CACHE.get_or_load(path, lambda p: diskcache.load(file_key(p), _read),
+                             lambda a: a.nbytes)

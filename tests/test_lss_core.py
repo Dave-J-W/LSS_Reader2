@@ -188,3 +188,54 @@ def test_mca_reader_is_fast():
     m = mca_routines.mcaread(files[-1])
     per_spectrum = (time.perf_counter() - t) / m.Data['NumOfScans']
     assert per_spectrum < 5e-3          # was ~16 ms with eval
+
+
+# ---- disk cache (F8) ---------------------------------------------------------
+
+def test_disk_cache_serves_frames_after_a_restart(tmp_path, monkeypatch):
+    import lss_core.images as images
+    from lss_core import diskcache
+    monkeypatch.setenv('LSS_READER_DISK_CACHE', str(tmp_path / 'cache'))
+    monkeypatch.setenv('LSS_READER_DISK_CACHE_ALL', '1')
+    path = synth.write_pilatus_tif(str(tmp_path / 'a.tif'), synth.pilatus_image(peak=(9, 9)))
+    monkeypatch.setattr(images, 'CACHE', cachemod.MemoryCache(budget_bytes=10 ** 8))
+    first = read_pilatus(path)
+    assert len(glob.glob(str(tmp_path / 'cache' / '*' / '*.npy'))) == 1
+    # "restart": empty memory cache; the TIFF must not be opened again
+    monkeypatch.setattr(images, 'CACHE', cachemod.MemoryCache(budget_bytes=10 ** 8))
+    monkeypatch.setattr(Image, 'open', lambda *a, **k: (_ for _ in ()).throw(AssertionError('opened')))
+    again = read_pilatus(path)
+    assert again.dtype == first.dtype and np.array_equal(again, first)
+
+
+def test_disk_cache_rereads_changed_files_and_survives_damage(tmp_path, monkeypatch):
+    import lss_core.images as images
+    monkeypatch.setenv('LSS_READER_DISK_CACHE', str(tmp_path / 'cache'))
+    monkeypatch.setenv('LSS_READER_DISK_CACHE_ALL', '1')
+    monkeypatch.setattr(images, 'CACHE', cachemod.MemoryCache(budget_bytes=0))
+    path = str(tmp_path / 'a.tif')
+    synth.write_pilatus_tif(path, synth.pilatus_image(background=1))
+    assert read_pilatus(path)[0, 0] == 1
+    os.utime(path, ns=(1, 1))
+    synth.write_pilatus_tif(path, synth.pilatus_image(background=7))
+    assert read_pilatus(path)[0, 0] == 7
+    for entry in glob.glob(str(tmp_path / 'cache' / '*' / '*.npy')):
+        open(entry, 'wb').write(b'damaged')
+    assert read_pilatus(path)[0, 0] == 7            # falls back to the file
+
+
+def test_disk_cache_size_limit_and_local_files(tmp_path, monkeypatch):
+    import lss_core.images as images
+    monkeypatch.setenv('LSS_READER_DISK_CACHE', str(tmp_path / 'cache'))
+    monkeypatch.setattr(images, 'CACHE', cachemod.MemoryCache(budget_bytes=0))
+    path = synth.write_pilatus_tif(str(tmp_path / 'a.tif'), synth.pilatus_image())
+    read_pilatus(path)                               # same file system: not cached
+    assert glob.glob(str(tmp_path / 'cache' / '*' / '*.npy')) == []
+    monkeypatch.setenv('LSS_READER_DISK_CACHE_ALL', '1')
+    monkeypatch.setenv('LSS_READER_DISK_CACHE_MB', '1')       # one 100K frame is ~0.76 MB
+    for i in range(3):
+        p = synth.write_pilatus_tif(str(tmp_path / ('f%d.tif' % i)), synth.pilatus_image(background=i))
+        read_pilatus(p)
+    assert len(glob.glob(str(tmp_path / 'cache' / '*' / '*.npy'))) == 1
+    monkeypatch.setenv('LSS_READER_DISK_CACHE', 'off')
+    assert read_pilatus(p)[0, 0] == 2

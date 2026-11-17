@@ -23,7 +23,10 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       layout than `tight_layout`.
 - [x] SPEC and MCA readers without `eval` (`lss_core/numbers.py`): identical
       results on every sample file; MCA 24 → 1.2 ms per spectrum (F6).
-- [ ] Disk cache for network drives (F8).
+- [x] Disk cache for network drives (F8): `lss_core/diskcache.py`; decoded
+      frames as `.npy` in `~/.lss_reader/cache`, only for files on another
+      file system by default, 2 GB limit, LRU; settings by environment
+      variable (a settings dialog comes with the per-SPEC config, Stage 3).
 - [x] Reflectivity reduction scriptable without Qt (`lss_core/experiment.py`,
       `reflectivity.py`, `stitching.py`; `docs/SCRIPTING.md`): byte-identical
       to the window's files on synthetic and real data (F31, first part).
