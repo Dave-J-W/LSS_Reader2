@@ -436,3 +436,29 @@ def test_burn_dialog_after_the_frames_are_deselected(window, qapp, recorder, tmp
     qapp.processEvents()
     assert recorder.exceptions == []
     assert sum('burn test scan first' in m for m in recorder.messages) == 2
+
+
+def test_spec_export_second_y_column_has_its_own_errors(window, qapp, recorder, tmp_path):
+    """Read 2026-11-17: the Y2 file was written with the Y column's errors
+    (and, unnormalised, a typo left Y2's own errors unused)."""
+    import numpy as np
+    import synth
+    x = np.linspace(-1, 1, 5)
+    rows = np.column_stack([x, x * 0 + 1, x * 0 + 1e5, x * 0 + 400, x * 0 + 9])
+    spec = synth.write_spec(str(tmp_path / 'm'), [synth.spec_scan(
+        1, 'm', ['sh', 'Seconds', 'Monc', 'Apex2', 'YAP'], rows, command='ascan sh -1 1 4 1', image=False)])
+    w = window
+    w.openSpecFile(fname=spec)
+    w.directory = str(tmp_path)
+    sweep._select_scans(w, qapp, [0])
+    for box, col in ((w.ui.spXComboBox, 'sh'), (w.ui.spYComboBox, 'Apex2'),
+                     (w.ui.spY2ComboBox, 'YAP'), (w.ui.spNComboBox, 'Monc')):
+        box.setCurrentIndex(box.findText(col))
+    for normalised, suffix, err in ((False, '', 3.0), (True, '_Monc', np.sqrt(9 / 1e10 + 81 / 1e15))):
+        w.ui.spNCheckBox.setChecked(normalised)
+        recorder.save_name = str(tmp_path / ('out%d' % normalised))
+        w.ui.spExportPushButton.click()
+        qapp.processEvents()
+        d = np.loadtxt(str(tmp_path / ('out%d_1_sh_YAP%s.txt' % (normalised, suffix))))
+        assert d[:, 2] == pytest.approx(err, rel=1e-3)
+    assert recorder.exceptions == []

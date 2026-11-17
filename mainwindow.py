@@ -926,13 +926,13 @@ class MainWindow (QMainWindow):
             np.savetxt(self.fname,specscandata,fmt='%.4f\t%.4e\t%.4e')
             if str(self.ui.spY2ComboBox.currentText())!='None':
                 y2=self.specData[i][str(self.ui.spY2ComboBox.currentText())]
-                yer2r=pl.sqrt(y2)
+                yerr2=pl.sqrt(y2)
                 self.fname=self.saveFileName+'_'+str(i)+'_'+str(self.ui.spXComboBox.currentText())+'_'+str(self.ui.spY2ComboBox.currentText())+'.txt'
                 if self.ui.spNCheckBox.checkState()!=0:
                     yerr2=pl.sqrt(y2/n**2+y2**2/n**3)*g
                     y2=y2/n*g
                     self.fname=self.saveFileName+'_'+str(i)+'_'+str(self.ui.spXComboBox.currentText())+'_'+str(self.ui.spY2ComboBox.currentText())+'_'+str(self.ui.spNComboBox.currentText())+'.txt'
-                specscandata=[[x[j],y2[j],yerr[j]] for j in range(len(x))]
+                specscandata=[[x[j],y2[j],yerr2[j]] for j in range(len(x))]   # was yerr: the Y column's errors
                 np.savetxt(self.fname,specscandata,fmt='%.4f\t%.4e\t%.4e')
             
             
