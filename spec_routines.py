@@ -5,6 +5,15 @@ import numpy as np
 from PyQt5.QtWidgets import QProgressDialog
 from PyQt5.QtCore import Qt
 
+def is_spec_file(path):
+    """True if ``path`` can be read and starts like a SPEC data file (#F)."""
+    try:
+        with open(path, 'rb') as fid:
+            return fid.read(2) == b'#F'
+    except OSError:
+        return False
+
+
 class specread:
     def __init__(self, specfile, startLineNum=0, endScanNum=0, beamline='APS-15IDC',det='CCD',data=None,par=None):
         # fresh dictionaries per reader unless the caller passes its own (refresh)
@@ -37,7 +46,8 @@ class specread:
         fdata=fid.readlines()
         self.SpecFileFull=fdata
         fid.close()
-        if fdata[0][:2]!='#F':
+        if len(fdata)==0 or fdata[0][:2]!='#F':
+            self.endLineNum=0
             self.Data['NumOfScans']=0
             self.Data['Message']='The file is not a valid specfile!!'
             print ('Error:: The file is not a valid specfile!!')
@@ -178,7 +188,8 @@ class specread:
         fdata=fid.readlines()
         self.SpecFileFull=fdata
         fid.close()
-        if fdata[0][:2]!='#F':
+        if len(fdata)==0 or fdata[0][:2]!='#F':
+            self.endLineNum=0
             self.Data['NumOfScans']=0
             self.Data['Message']='The file is not a valid specfile!!'
             print ('Error:: The file is not a valid specfile!!')

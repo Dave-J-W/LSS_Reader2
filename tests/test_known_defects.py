@@ -33,13 +33,31 @@ def test_malformed_cut_range_is_reported_not_raised(loaded, qapp, dataset,
 
 
 @pytest.mark.gui
-@xfail('#4: opening a file that is not a SPEC file raises')
-def test_opening_non_spec_file_is_reported_not_raised(window, tmp_path,
+@pytest.mark.parametrize('content', [b'hello\n', b'', b'\x00\x01\xff\xfe' * 50])
+def test_opening_non_spec_file_is_reported_not_raised(content, window, tmp_path,
                                                       recorder):
+    """Defect 4 (fixed): text, empty and binary files are refused quietly."""
+    junk = tmp_path / 'notes.txt'
+    junk.write_bytes(content)
+    window.openSpecFile(fname=str(junk))
+    assert recorder.exceptions == []
+    assert window.ui.scanListWidget.count() == 0
+    assert window.specFileName is None
+    assert len(recorder.messages) == 1 and 'is not a SPEC file' in recorder.messages[0]
+
+
+@pytest.mark.gui
+def test_opening_non_spec_file_keeps_what_is_loaded(loaded, dataset, tmp_path,
+                                                    recorder, qapp):
     junk = tmp_path / 'notes.txt'
     junk.write_text('hello\n')
-    window.openSpecFile(fname=str(junk))
-    assert window.ui.scanListWidget.count() == 0
+    loaded.openSpecFile(fname=str(junk))
+    loaded.openSpecFile(fname=str(tmp_path / 'does_not_exist'))
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert loaded.specFileName == dataset
+    assert loaded.ui.scanListWidget.count() == 4
+    assert len(recorder.messages) == 2
 
 
 def test_plot_roi_image_runs():

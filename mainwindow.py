@@ -4,7 +4,7 @@ from PyQt5 import uic, Qt#, QtGui, QtCore
 from PyQt5.QtGui import QIcon, QIntValidator, QDoubleValidator
 from PyQt5.QtWidgets import QFileDialog, QProgressDialog, QMessageBox
 from PyQt5.Qt import *
-from spec_routines import specread
+from spec_routines import specread, is_spec_file
 from mca_routines import mcaread
 from mplwidget import MplWidget
 from matplotlib.widgets import MultiCursor
@@ -514,10 +514,14 @@ class MainWindow (QMainWindow):
         self.ui.imagesLabel.setText('Detector:')
         if fname is None:
             fname=QFileDialog.getOpenFileName(caption='Open Spec File')[0]
-        if fname!='':
-            self.specFileName=fname
-        else:
+        if fname=='':
             return
+        if not is_spec_file(fname):
+            # leave whatever is loaded untouched
+            self.notify('"'+str(fname)+'" is not a SPEC file (it does not start with #F), or it cannot be read. Nothing was changed.')
+            self.ui.statusBar.showMessage('Not a SPEC file')
+            return
+        self.specFileName=fname
         if self.specFileName!='':
             self.clearAll()
             self.directory=str(QFileInfo(self.specFileName).absolutePath())
@@ -625,7 +629,7 @@ class MainWindow (QMainWindow):
         self.endScanNum=self.specData['NumOfScans']
        # print self.endScanNum
         if self.specData['NumOfScans']==0:
-            self.ui.statusBar.showMessage(self.SpecData['Message'])
+            self.ui.statusBar.showMessage(self.specData['Message'])
         else:
             if self.specData['Error']:
                 self.messageBox('Warning:: The spec file has identical scan numbers!!')
