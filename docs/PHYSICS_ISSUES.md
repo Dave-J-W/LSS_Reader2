@@ -35,6 +35,7 @@ only (see `handoff/19-lss-reader-covariance-contract.md`).
 | P20 | **Peak-fit area for MCA** is intensity × width with error from those two only (no covariance, no √(2π) factor). | Area is in units of height × σ; relative values across frames are unaffected. | measured | `test_xfntr.py` | Open; benchmarked. |
 
 | P21 | **Possible unsubtracted monitor dark offset.** Beam-off scans show `Monc` ≈ 100 counts/s and `Monp` ≈ 42 counts/s. | 0.03–0.12 % of typical monitor counts. | measured (NX school scans 1–3); owner confirms that rates below 1000 counts/s are beam-off | — | Open: subtract a dark rate? |
+| P22 | **A missing image shifted the normalisation of every later frame** (fixed 2026-11-17). The monitor list held one value per SPEC point while the image list skipped missing images; and the j-th image file found was paired with point j. | Measured on synthetic data: with image 1 of scan 1 missing, scan 2's first frame was normalised with scan 1's monitor (a factor 3 in the test) and scan 1's image 2 was given point 1's Q_z. | measured | `tests/test_graceful_opening.py` | Fixed: frames matched to files by the number in the file name; per-frame lists kept aligned. No change for complete data sets (all benchmarks unchanged). |
 
 Related but not physics: NumPy 2 formatting in outputs (D14), library drift
 (`interp2d`), listed in `ASSESSMENT.md`.

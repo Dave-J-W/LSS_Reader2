@@ -35,6 +35,9 @@ import reader_log
 
 (Ui_MainWindow, QMainWindow) = uic.loadUiType('mainwindow.ui')
 
+# per-frame lists built by updatePilImageList, one entry per row of the image list
+FRAMELISTS=['pilAlpha', 'pilFileNames', 'pilFileQxs', 'pilFileQys', 'pilFileQzs', 'pilFrameNum', 'pilScanNum', 'pilTrueAlpha', 'pilX', 'pilY', 'pil_AbsNum', 'pil_Chi', 'pil_Dist', 'pil_Dth', 'pil_Gl2', 'pil_PDist', 'pil_Phi', 'pil_S1h', 'pil_S1v', 'pil_S4h', 'pil_S5h', 'pil_Sh', 'pil_Tth', 'pil_Wavelength']
+
 
 def listText(values):
     """'1, 2, 3' for a sequence of numbers, whatever their type.
@@ -669,8 +672,11 @@ class MainWindow (QMainWindow):
                 if QDir(self.directory+'/'+self.mcaDirName).exists()==True:
                     self.mcaDir=self.directory+'/'+self.mcaDirName
                 else:
-                    self.messageBox('Warning:: The default MCA directory not found, please choose!!')
+                    self.messageBox('The folder "'+self.mcaDirName+'" was not found beside the SPEC file; please choose the folder with the MCA files.')
                     self.mcaDir=QFileDialog.getExistingDirectory(caption='Open MCA Directory')
+                    if self.mcaDir=='':
+                        self.mcaDir=self.directory+'/'+self.mcaDirName
+                        self.messageBox('No MCA folder chosen: spectra of the fluorescence scans cannot be shown.')
                 self.mcafhead=str(self.mcaDir)+'/'+self.specFileName.split('/')[-1]+'_'
                 self.mcaftail='_mca' 
                 print("MCA data Found!!")
@@ -691,8 +697,11 @@ class MainWindow (QMainWindow):
                 if QDir(self.directory+'/'+self.pilDirName).exists()==True:
                     self.pilDir=self.directory+'/'+self.pilDirName
                 else:
-                    self.messageBox('Warning:: The default Piltus directory not found, please choose!!')
+                    self.messageBox('The folder "'+self.pilDirName+'" was not found beside the SPEC file; please choose the folder with the Pilatus images.')
                     self.pilDir=QFileDialog.getExistingDirectory(caption='Open Pilatus Directory')
+                    if self.pilDir=='':
+                        self.pilDir=self.directory+'/'+self.pilDirName
+                        self.messageBox('No Pilatus folder chosen: images of the Pilatus scans cannot be shown.')
                 self.pilfhead=str(self.pilDir)+'/'+self.specFileName.split('/')[-1]+'_SCAN-'
                 self.pilftail='.tif'
                 print ("Pilatus Images Found!!")
@@ -718,6 +727,20 @@ class MainWindow (QMainWindow):
         self.pilErrorData={}
         self.pilGIDshow=0
         self.pilGISAXSshow=0
+
+    def scanRow(self,scannum):
+        """Row of scan number ``scannum`` in the scan list, or None.
+
+        Scan numbers need not start at 1 or be consecutive (SPEC restarted,
+        scans deleted), so the row is looked up, never computed as number-1.
+        """
+        for row,line in enumerate(self.scanlines):
+            try:
+                if int(line.split()[1])==int(scannum):
+                    return row
+            except (IndexError,ValueError):
+                pass
+        return None
 
     def scanListChanged(self):
         self.forgetImageSelection()
@@ -809,8 +832,8 @@ class MainWindow (QMainWindow):
             self.selectedScans=self.ui.scanListWidget.selectedItems()
             self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
             try:    # deselect the currently selected numbers
-                for i in self.selectedScanNums:
-                    self.ui.scanListWidget.item(i-1).setSelected(False)#.setItemSelected(self.ui.scanListWidget.item(i-1),False)
+                for item in self.selectedScans:
+                    item.setSelected(False)
                 self.selectedScanNums=[]
             except:
                 self.selectedScanNums=[]
@@ -827,7 +850,7 @@ class MainWindow (QMainWindow):
             for i in self.selectedScanNums:
                 # self.ui.scanListWidget.setItemSelected(self.ui.scanListWidget.item(snum.index(i)),True)
                 self.ui.scanListWidget.item(snum.index(i)).setSelected(True)
-            self.ui.scanListWidget.setCurrentRow(self.selectedScanNums[-1]-1)
+            self.ui.scanListWidget.setCurrentRow(snum.index(self.selectedScanNums[-1]))
             self.ui.scanListWidget.itemSelectionChanged.connect(self.scanListChanged)
             self.scanListChanged()
             self.ui.statusBar.showMessage('Done')
@@ -1016,8 +1039,12 @@ class MainWindow (QMainWindow):
         # self.disconnect(self.ui.imageListWidget,SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
         self.ui.imageListWidget.itemSelectionChanged.disconnect(self.imageSelectedScanChanged)
         self.ui.statusBar.clearMessage()
+        self.ui.scanListWidget.blockSignals(True)
         for i in self.selectedScanNums:
-            self.ui.scanListWidget.item(i-1).setSelected(True)#(self.ui.scanListWidget.item(i-1),True)
+            row=self.scanRow(i)
+            if row is not None:
+                self.ui.scanListWidget.item(row).setSelected(True)
+        self.ui.scanListWidget.blockSignals(False)
         self.mcaFileNames=[self.mcafhead+str(i)+self.mcaftail for i in self.selectedScanNums]
         self.mcaData={}
         self.mcaPar={}
@@ -1631,19 +1658,33 @@ class MainWindow (QMainWindow):
                 self.messageBox('Warning: scan ' + str(i)+ ' has no data!')
                 break
             try:
-                self.pilMonc=np.append(self.pilMonc, self.specData[i]['Monc'])
-            except:
-                self.pilMonc=np.append(self.pilMonc, self.specData[i]['monc'])
+                scanmonc=self.specData[i]['Monc']
+            except KeyError:
+                scanmonc=self.specData[i]['monc']
             fname=self.pilfhead+str(i)+'_'
-            filelist=sorted(glob.glob(str(fname+'*')))
+            # frame number -> image file, read from the file name, so that a
+            # missing image cannot shift every later frame onto the wrong file
+            files={}
+            for path in glob.glob(str(fname+'*')):
+                try:
+                    files[int(path.split('_')[-1].split('.')[0])]=path
+                except ValueError:
+                    pass
+            missing=[]
             for j in range(self.numFrames[i]):
-                #self.pilFileNames=self.pilFileNames+[self.pilfhead+str(i)+('_%0'+str(self.specPar[i]['ImageNumber'])+'d')%(j,)+self.pilftail]
+                if j not in files:
+                    missing.append(j)
+                    continue
+                filelist={j:files[j]}
+                before={name:len(getattr(self,name)) for name in FRAMELISTS}
+                rows=self.ui.imageListWidget.count()
                 try:
                     self.pilFileNames.append(filelist[j])
                     fnum=filelist[j].split('_')[-1].split('.')[0].lstrip('0')
                     if fnum=='':
                         fnum='0'
                     self.ui.imageListWidget.addItem('S# '+str(i)+'\tF# '+fnum+'\tQz='+'%.4f'%self.specData[i]['L'][j]+'\tQx='+'%.4f'%self.specData[i]['H'][j]+'\tAbs=%d'%self.specPar[i]['Absorber'])
+                    self.pilMonc=np.append(self.pilMonc, scanmonc[j])
                     self.pilScanNum.append(i)  
                     self.pilFrameNum.append(j)
                     self.pilFileQzs.append(self.specData[i]['L'][j])
@@ -1670,8 +1711,18 @@ class MainWindow (QMainWindow):
                     self.pil_Gl2.append(self.specPar[i]['g_l2'])
                     self.pil_AbsNum.append(self.specPar[i]['Absorber'])
                     self.pil_Phi.append(self.specPar[i]['Phi'])
-                except:
-                    print ('Warning:: Frame '+str(j)+' doesnot exist!!')
+                except Exception:
+                    # a frame whose header values cannot be read is left out
+                    # entirely, so every per-frame list stays aligned with the image list
+                    for name,n in before.items():
+                        del getattr(self,name)[n:]
+                    self.pilMonc=self.pilMonc[:before['pilFileNames']]
+                    while self.ui.imageListWidget.count()>rows:
+                        self.ui.imageListWidget.takeItem(self.ui.imageListWidget.count()-1)
+                    self.log.exception('scan %s frame %d could not be listed',i,j)
+                    missing.append(j)
+            if len(missing)>0:
+                self.messageBox('Scan '+str(i)+': '+str(len(missing))+' of '+str(self.numFrames[i])+' frames have no readable image ('+listText(missing[:10])+('...' if len(missing)>10 else '')+').')
 #            except:
 #                self.messageBox('Warning:: #S '+str(i+1)+' has been canceled or no data found.')
         self.pilData={}
@@ -2441,8 +2492,8 @@ class MainWindow (QMainWindow):
             self.uipdburn.plotWidget.canvas.ax.clear()
             self.uipdburn.plotWidget.canvas.ax.set_xlabel('Time (sec.)')
             self.uipdburn.plotWidget.canvas.ax.set_ylabel('Intensity')
-            ctime=float(self.scanlines[self.selectedScanNums[0]-1].split(' ')[-1])  #get the counting time
-            scan=self.scanlines[self.selectedScanNums[0]-1].split(' ')[1] #get scan number
+            ctime=float(self.scanlines[self.scanRow(self.selectedScanNums[0])].split(' ')[-1])  #get the counting time
+            scan=self.scanlines[self.scanRow(self.selectedScanNums[0])].split(' ')[1] #get scan number
             self.uipdburn.Label.setText('Burn test for Scan #'+scan)
             slitx=int(self.ui.refSlitLineEdit.text().split(',')[0]) #get the size of ROI
             slity=int(self.ui.refSlitLineEdit.text().split(',')[1])
@@ -2488,8 +2539,8 @@ class MainWindow (QMainWindow):
                 self.messageBox('Warning: It is not a GID burn test. Please click REF burn test button!')
             else:
                 try:
-                    ctime=float(self.scanlines[self.selectedScanNums[0]-1].split(' ')[-1])  #get the counting time
-                    scan=self.scanlines[self.selectedScanNums[0]-1].split(' ')[1] #get scan number
+                    ctime=float(self.scanlines[self.scanRow(self.selectedScanNums[0])].split(' ')[-1])  #get the counting time
+                    scan=self.scanlines[self.scanRow(self.selectedScanNums[0])].split(' ')[1] #get scan number
                     self.uipdburn.Label.setText('Burn test for Scan #'+scan)
                     ini=float(self.uipdburn.rangeLineEdit.text().split(':')[0]) #get the  ini qz value from lineedit
                     fin=float(self.uipdburn.rangeLineEdit.text().split(':')[1]) #get the final qz value from lineedit

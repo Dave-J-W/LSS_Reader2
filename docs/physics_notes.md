@@ -787,3 +787,20 @@ reader needs porting against a sample file.
 
 No reduction number changed in any of this: every export fixture,
 real-data benchmark and invariant check passes unchanged.
+
+### 2026-11-17 — A missing image file shifted the normalisation of later frames
+
+Found while making SPEC opening graceful (F27); measured, now fixed.
+
+When an image named in a SPEC scan was missing from the folder, the reader
+(a) paired the j-th image file it found with point j, so every later image
+of that scan got the Q_z of the point before it, and (b) kept one monitor
+value per SPEC point while the image list skipped the missing image, so
+from then on every frame — including all frames of later scans — was
+divided by its neighbour's monitor count. In the test case (scan 1 missing
+image 1, monitors 10⁵ and 3×10⁵) scan 2's first frame was normalised with
+10⁵: a factor 3.
+
+Complete data sets were never affected, so no benchmark or export fixture
+changed. Data reduced earlier from scans with a missing image could be
+affected; the Messages pane now says when frames have no image.
