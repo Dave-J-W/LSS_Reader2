@@ -186,3 +186,17 @@ def test_budget_cut_of_background_subtracted_frame(loaded, qapp, recorder, datas
     assert cut[:, 1] == pytest.approx(p0 / M - 0.5 * p1 / M)
     expect = (p0 + 0.25 * p1) / M ** 2 + ((p0 / M) ** 2 + (0.5 * p1 / M) ** 2) * U0 ** 2
     assert cut[:, 2] ** 2 == pytest.approx(expect, rel=1e-9)
+
+
+def test_absorber_factor_in_use_is_the_one_the_field_shows(loaded, qapp, recorder):
+    """Opening a SPEC file with Pilatus images presets the field to 1.42
+    ("Al 50 um at 10 keV"); the cuts used the value from start-up instead
+    (1.606 before 2026-11-17, then 1.414) until a reflectivity action
+    re-read the field."""
+    w = loaded
+    assert w.ui.AbsFacLineEdit.text() == '1.42' and w.absfac == 1.42
+    w.ui.AbsFacLineEdit.setText('1.5')
+    assert w.absfac == 1.5
+    w.ui.AbsFacLineEdit.setText('')                 # being typed: keep the last value
+    assert w.absfac == 1.5
+    assert recorder.exceptions == []

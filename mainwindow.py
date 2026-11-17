@@ -121,6 +121,9 @@ class MainWindow (QMainWindow):
         self.ui.AbsFacLineEdit.setToolTip('Transmission factor per absorber unit. SPEC #A gives the absorber in these units '
                                           '(0: no absorbers). About 1.414 at 10 keV by design; it depends on the energy.')
         self.absfac=float(self.ui.AbsFacLineEdit.text())
+        # the factor in use is the one the field shows, however it was set
+        # (typed, or preset when a SPEC file with Pilatus images is opened)
+        self.ui.AbsFacLineEdit.textChanged.connect(self.absFacChanged)
         self.reffiles=[]
         self.selectedBgFrameNums=[]
         self.selectedreffiles_rows=[]
@@ -1039,6 +1042,14 @@ class MainWindow (QMainWindow):
         # self.connect(self.ui.imageListWidget,SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
         self.ui.imageListWidget.itemSelectionChanged.connect(self.imageSelectedScanChanged)
         
+    def absFacChanged(self,text):
+        try:
+            value=float(text)
+        except ValueError:
+            return          # partly typed; the last valid value stays in use
+        if value>0:
+            self.absfac=value
+
     def noteMcaAbsorbers(self):
         """Say where the absorber setting of the listed MCA scans came from:
         getandsave_mca writes no #A, so it is the last #A above the scan

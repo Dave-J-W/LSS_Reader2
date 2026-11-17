@@ -1184,3 +1184,31 @@ Absorbers don't change in the middle of scans.
   last scan that recorded it. A change made between scans by a command
   that is not a scan leaves no trace in the file, so the inference cannot
   see it; the Messages pane names the source scan for that reason.
+
+### 2026-11-17 — The absorber factor in use was not always the one shown
+
+Found while building F50 (measured: test and run). Opening a SPEC file with
+Pilatus images presets the "Absorber factor" field to 1.42 (code comment:
+"for Al 50um at 10keV"), but the value the program used was read from the
+field only at start-up and in three reflectivity actions (Ref analyse, GID
+patching, frames at one Qz). Cuts, summed cuts, background images and the
+MCA factor used the start-up value: 1.606 until today, 1.414 since the
+default changed. Fixed: the value in use follows the field whenever it
+holds a positive number (`test_gui_error_budget.py`). Deliberate change on
+files with Pilatus images: those paths at setting n change by
+(1.42/1.414)ⁿ from this morning's code (×1.25 at n = 52) and by
+(1.42/1.606)ⁿ from the original program (×0.0064 at n = 41).
+
+This corrects the earlier entry "Absorber units; the Student t refined",
+which gave (1.414/1.606)ⁿ for those paths: right for the start-up value,
+but on files with Pilatus images the field had shown 1.42 all along.
+
+Open (owner): which value should be preset on opening such a file, 1.42
+(Al 50 µm at 10 keV) or 1.414 (the design value)? From tabulated
+attenuation, Al at 10 keV has μ/ρ = 26.2 cm²/g and ρ = 2.70 g/cm³
+(NIST XCOM, <https://physics.nist.gov/PhysRefData/Xcom/html/xcom1.html>;
+cited from memory, not checked against the table today), so 50 µm gives
+exp(0.354) = 1.425 and 1.414 = √2 corresponds to 49 µm. That is also the
+information F49 needs: if every unit is Al of about 49–50 µm, the factor at
+energy E is exp(μ(E)·t).
+
