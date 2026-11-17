@@ -943,3 +943,44 @@ absorber term is removed and the patching uncertainty is left to the
 hand-off. Open point raised with the owner: the window still multiplies
 by a nominal factor A^n (`absfac`) in some non-patched paths — the
 background-image path, GID patching, and since today line/area cuts.
+
+### 2026-11-17 — Should the monitor's error be modelled as a Gaussian?
+
+**Q.** (owner) The normalisation proposal is accepted: the monitor error
+applies to the whole ROI sum of a frame, not pixel by pixel. Analyse the
+contributions of the uncertainties to decide whether the `Monc` error
+should be Gaussian or something more accurate. A Gaussian of σ = 0.136 %
+holds 99 % of `Monc`'s scatter but overstates a typical point's
+uncertainty about 3×.
+
+**A.** (measured on the sample data with `tests/tools/monitor_distribution.py`
+and `tests/tools/monitor_witness.py`; the owner has far more data, so the
+decisive analysis is handed off: `handoff_out/01-monitor-noise-analysis.md`.)
+
+1. Raw `Monc` scatter about a smooth trend (1124 frames, 54 steady beam-on
+   scans): sd 8.1×10⁻³, robust σ 2.7×10⁻³, excess kurtosis 9.2; Student t
+   (ν ≈ 1.9) fits best by AIC, Laplace next, Gaussian worst. The owner's
+   "σ for 99 % is 3× the typical" is the same heavy-tail signature; for a
+   Gaussian the two would be equal.
+2. Much of the tail is mixing: a scan's width falls with its monitor count
+   (σ ∝ M^−0.52, counting-like). Standardised scan by scan, kurtosis drops
+   to 2.3, but 0.44 % of frames are still beyond 4σ (Gaussian: 0.006 %).
+   Frame-to-frame deviations are independent (lag-1 autocorrelation 0.08).
+3. Scatter is not noise (entry of 2026-11-16): where the detector can act
+   as a witness, it follows `Monc`, and normalisation removes that part.
+   Whether the *tails* are shared with the detector could not be settled
+   here: only 7 scans have enough detector counts, and their reflectivity
+   curves have too much structure for the second-difference test (scan 7:
+   slope 0.87, i.e. the detector follows; the others are dominated by the
+   curve's shape).
+4. Contribution to reduced points (NX scans 6–9, 96 points): at
+   u_M = 0.136 % the monitor term exceeds the counting term at 6 points and
+   is more than 10 % of the variance at 33; at 0.27 % at 21 and 65. These
+   are the brightest points: lowest Q_z and the first points of each scan,
+   which lie in the overlaps that patching uses.
+
+Provisional reading: the noise that matters is the monitor's measurement
+noise, which is smaller than its scatter and, from the width-vs-M scaling,
+probably counting-like; a Gaussian whose width depends on M (and a flag
+for rare jumps) is the likely outcome, but that is to be decided on the
+owner's data. Until then the reader carries u_M as a parameter.

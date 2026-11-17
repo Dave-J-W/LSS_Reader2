@@ -147,6 +147,10 @@ reruns the quick, real-data and export-fixture checks, and commits.
 
 ## Waiting on the owner
 
+- [ ] **Monitor noise analysis** on the owner's larger data, by another
+      agent: request in `handoff_out/01-monitor-noise-analysis.md`. Its
+      answer sets u_M and decides Gaussian / Gaussian + flags / heavy-tailed.
+
 - [ ] Remaining feature requests and complaints (received so far: F1–F16
       in `FEATURE_REQUESTS.md`; the owner called the latest list partial).
 - [x] Counting time and fitting questions answered (2026-11-15; D6, D7,

@@ -33,6 +33,7 @@ Application code may now be changed, under these conditions:
 | `docs/physics_notes.md` | Invariants table and a dated question-and-answer log |
 | `docs/timings.md` | Timing baseline written by `pytest -m bench` |
 | `docs/handoff/` | Specifications handed over by the owner (xmodfit export contract). They are requirements; do not edit them |
+| `docs/handoff_out/` | Requests written by this project for analyses done elsewhere (e.g. monitor noise from the owner's larger data) |
 | `lss_core/` | GUI-free core: readers, cache, reduction, scripting API (`docs/SCRIPTING.md`) |
 | `reader_log.py` | Durable log, per-SPEC log, process-wide exception handler (no Qt needed) |
 | `tests/` | The suite; `synth.py` (synthetic data), `sweep.py` (GUI driver) |
