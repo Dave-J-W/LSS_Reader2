@@ -29,8 +29,8 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       existing tests; the window calls them.
 - [ ] Scripting API (F31) and a console showing the API call for each GUI
       action (F48).
-- [ ] Resources (`.ui`, icons) loaded relative to the program, not the
-      working directory (prerequisite for F46).
+- [x] Resources (`.ui`, icons) loaded relative to the program, not the
+      working directory (`lss_core/resources.py`; prerequisite for F46).
 
 ### Stage 1 work list
 - [x] Typos and leftovers: defects 2, 3, 4, 5, 6, 7, 14 and the shared

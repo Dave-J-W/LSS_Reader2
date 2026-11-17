@@ -200,3 +200,18 @@ def test_exception_hook_logs_context_and_reports(tmp_path, monkeypatch):
     assert 'unhandled ValueError' in text and 'SPEC file: abc' in text
     assert 'bad range' in text
     assert told and told[0].startswith('Operation failed: ValueError: bad range')
+
+
+def test_program_starts_from_another_working_directory(tmp_path):
+    """Layouts and icons are found next to the program (F46 prerequisite)."""
+    code = ("import sys; sys.path.insert(0, %r)\n" % ROOT) + START + (
+        "w.ui.pilBurnPushButton.click(); app.processEvents()\n"
+        "from mainwindow import MainWindow\n"
+        "print('started', w.ui.PlotWidget.count())\n")
+    env = dict(os.environ, QT_QPA_PLATFORM='offscreen',
+               LSS_READER_LOG_DIR=str(tmp_path / 'logs'))
+    out = subprocess.run([sys.executable, '-W', 'ignore', '-c', code],
+                         cwd=str(tmp_path), env=env, capture_output=True,
+                         text=True, timeout=180)
+    assert out.returncode == 0, out.stderr[-2000:]
+    assert 'started 8' in out.stdout

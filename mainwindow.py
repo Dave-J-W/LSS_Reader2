@@ -30,10 +30,11 @@ from lmfit import minimize, Parameters, Parameter, report_fit, fit_report
 from functools import partial
 import traceback
 import reader_log
+from lss_core.resources import resource
 #from TwoD_Integrate import integrate_2d
 
 
-(Ui_MainWindow, QMainWindow) = uic.loadUiType('mainwindow.ui')
+(Ui_MainWindow, QMainWindow) = uic.loadUiType(resource('mainwindow.ui'))
 
 # per-frame lists built by updatePilImageList, one entry per row of the image list
 FRAMELISTS=['pilAlpha', 'pilFileNames', 'pilFileQxs', 'pilFileQys', 'pilFileQzs', 'pilFrameNum', 'pilScanNum', 'pilTrueAlpha', 'pilX', 'pilY', 'pil_AbsNum', 'pil_Chi', 'pil_Dist', 'pil_Dth', 'pil_Gl2', 'pil_PDist', 'pil_Phi', 'pil_S1h', 'pil_S1v', 'pil_S4h', 'pil_S5h', 'pil_Sh', 'pil_Tth', 'pil_Wavelength']
@@ -146,8 +147,8 @@ class MainWindow (QMainWindow):
         self.halftab='      '
         self.xyzformat='x=%.3f,y=%.3f,z=%.2e'
         # mpl.rc('axes',color_cycle=['b','r','g','c','m','y','k'])
-        self.ui.plotMoveUpPushButton.setIcon(QIcon('arrow_up.png'))
-        self.ui.plotMoveDownPushButton.setIcon(QIcon('arrow_down.png'))
+        self.ui.plotMoveUpPushButton.setIcon(QIcon(resource('arrow_up.png')))
+        self.ui.plotMoveDownPushButton.setIcon(QIcon(resource('arrow_down.png')))
         self.init_signals()
         self.log=reader_log.get_logger()
         self.initMessagePane()
@@ -490,7 +491,7 @@ class MainWindow (QMainWindow):
         self.ui.statusBar.showMessage('APS-15IDC Selected')
         
     def showAbout(self):
-        cwd=os.getcwd()
+        cwd=os.path.dirname(resource('mainwindow.py'))
         files=['mainwindow.py','mainwindow.ui','LSS_Reader.py','mca_routines.py','mpl2dwidget.py','mplwidget.py','spec_routines.py','TwoDDetector.py','logo.png']
         fname=[cwd+'/'+fname for fname in files]
         updateTime=max([os.path.getmtime(fn) for fn in fname])
@@ -1270,7 +1271,7 @@ class MainWindow (QMainWindow):
                 
     def mcaIntMergeDia(self):
         Dialog=QDialog(self)
-        self.uimcamerge=uic.loadUi('mcamerge.ui', Dialog)
+        self.uimcamerge=uic.loadUi(resource('mcamerge.ui'), Dialog)
         self.uimcamerge.label.setText('Please provide the resolution of x')
         self.uimcamerge.show()
         # self.connect(self.uimcamerge.cancelPushButton, SIGNAL('clicked()'), self.mcaMergeDiaClose)
@@ -1989,7 +1990,7 @@ class MainWindow (QMainWindow):
             self.messageBox('Warning: No GIOXS data or background selected!!')
         else:
             Dialog=QDialog(self)
-            self.uipdgioxs=uic.loadUi('pdgioxs.ui', Dialog)
+            self.uipdgioxs=uic.loadUi(resource('pdgioxs.ui'), Dialog)
             self.uipdgioxs.frameLineEdit.setText(str(len(self.selectedPilFramesNums)))
             self.uipdgioxs.show()
             # self.connect(self.uipdgioxs.closePushButton, SIGNAL('clicked()'), self.pilGioxsClose)
@@ -2122,7 +2123,7 @@ class MainWindow (QMainWindow):
             self.messageBox('Warning: It is not a burn test scan or multiple scans are selected!')
         else:
             Dialog=QDialog(self)                
-            self.uipdburn=uic.loadUi('pdburn.ui', Dialog)
+            self.uipdburn=uic.loadUi(resource('pdburn.ui'), Dialog)
             self.uipdburn.show()
             # self.connect(self.uipdburn.gidComboBox, SIGNAL('activated(int)'),self.pilGidBurn)  #do GID burn analysis
             self.uipdburn.gidComboBox.activated.connect(self.pilGidBurn)
@@ -2373,7 +2374,7 @@ class MainWindow (QMainWindow):
             
     def setGIDFormFactor(self):
         Dialog=QDialog(self)                
-        self.uipdformfac=uic.loadUi('pdformfac.ui', Dialog)
+        self.uipdformfac=uic.loadUi(resource('pdformfac.ui'), Dialog)
         self.uipdformfac.show()
         # self.connect(self.uipdformfac.updatePushButton, SIGNAL('clicked()'),self.updateFormFactor)  #update gid plot with formfactor
         self.uipdformfac.updatePushButton.clicked.connect(self.updateFormFactor)
@@ -3547,7 +3548,7 @@ class MainWindow (QMainWindow):
                 
     def pilRefPeakCenDis(self):
         Dialog=QDialog(self)
-        ui=uic.loadUi('pilPeakCenDialog.ui',Dialog)
+        ui=uic.loadUi(resource('pilPeakCenDialog.ui'),Dialog)
         ui.show()
         line='Scan\tFrame\tAxis\t# of Pixels off\n'
         for i in range(len(self.pilRefPeakCen)):
@@ -3558,8 +3559,8 @@ class MainWindow (QMainWindow):
 
     def pilBadPixInfDis(self):
         Dialog = QDialog(self)
-        ui = uic.loadUi('pilBadPixDialog.ui', Dialog)
-        ui.pushButton.setIcon(QIcon('stop.png'))
+        ui = uic.loadUi(resource('pilBadPixDialog.ui'), Dialog)
+        ui.pushButton.setIcon(QIcon(resource('stop.png')))
         ui.pushButton.setIconSize(QSize(100, 100))
         ui.show()
         line = 'Scan\tFrame\tPixel(s)\n'
@@ -3573,7 +3574,7 @@ class MainWindow (QMainWindow):
                 
     def pilRefPatch(self):            
         Dialog=QDialog(self)                
-        self.uirefpatch=uic.loadUi('refpatch.ui', Dialog)
+        self.uirefpatch=uic.loadUi(resource('refpatch.ui'), Dialog)
         self.uirefpatch.show()
         self.pilreforder=0
         # self.connect(self.uirefpatch.dropPushButton, SIGNAL('clicked()'),self.pilRefPatchDrop)  #drop the data
@@ -3584,7 +3585,7 @@ class MainWindow (QMainWindow):
         
     def pilRefSameScan(self):
         Dialog=QDialog(self)
-        self.uirefpatchsamescan=uic.loadUi('refpatchsamescan.ui', Dialog)
+        self.uirefpatchsamescan=uic.loadUi(resource('refpatchsamescan.ui'), Dialog)
         self.uirefpatchsamescan.show()
         self.pilrefsamescanorder=0
         # self.connect(self.uirefpatchsamescan.dropPushButton, SIGNAL('clicked()'),self.pilRefSSDrop) #drop scans
@@ -4219,7 +4220,7 @@ class MainWindow (QMainWindow):
             
     def displayScanInfo(self):
         Dialog=QDialog(self)
-        ui=uic.loadUi('scanInfoDialog.ui',Dialog)
+        ui=uic.loadUi(resource('scanInfoDialog.ui'),Dialog)
         ui.show()
         snumtit=''
         impsnumtit=''
@@ -4262,7 +4263,7 @@ class MainWindow (QMainWindow):
         if not self.calScansReady():
             return
         Dialog=QDialog(self)
-        self.uig_l2=uic.loadUi('g_l2Dialog.ui', Dialog)
+        self.uig_l2=uic.loadUi(resource('g_l2Dialog.ui'), Dialog)
         self.uig_l2.show()
         scannum=[item+1 for item in self.selectedScanNums]
        # self.g_l2alpha=[self.specPar[i]['In_Rot'] for i in self.selectedScanNums]
@@ -4316,7 +4317,7 @@ class MainWindow (QMainWindow):
         if not self.calScansReady():
             return
         Dialog=QDialog(self)
-        self.uig_l3=uic.loadUi('g_l3Dialog.ui', Dialog)
+        self.uig_l3=uic.loadUi(resource('g_l3Dialog.ui'), Dialog)
         self.uig_l3.show()
         scannum=[item+1 for item in self.selectedScanNums]
         #self.g_l3alpha=[self.specPar[i]['In_Rot'] for i in self.selectedScanNums]
@@ -4389,7 +4390,7 @@ class MainWindow (QMainWindow):
             self.messageBox('Error:: This scan is NOT an absorber scan!!')
         else:
             Dialog=QDialog(self)
-            uiabs=uic.loadUi('absratioDialog.ui', Dialog)
+            uiabs=uic.loadUi(resource('absratioDialog.ui'), Dialog)
             uiabs.show()
             x=self.specData[scannum]['Absorber']
             z=self.specData[scannum]['Monc']
@@ -4560,7 +4561,7 @@ class MainWindow (QMainWindow):
         else:
             row=len(self.selectedplotfiles_rows)
             Dialog=QDialog(self)
-            self.uiplotscale=uic.loadUi('plotscale.ui', Dialog)
+            self.uiplotscale=uic.loadUi(resource('plotscale.ui'), Dialog)
             self.uiplotscale.scaleTW.setRowCount(row) #set the table size; 4 column is fixed
             self.uiplotscale.show()
             self.uiplotscale.scaleLabel.setText('Plot Scale Setup: X=X*Factor+Offset')
@@ -4598,7 +4599,7 @@ class MainWindow (QMainWindow):
             self.messageBox('Warning:: Please select only one mca frame')
         else:
             Dialog=QDialog(self)
-            self.uipeakfit=uic.loadUi('peakfit.ui', Dialog)
+            self.uipeakfit=uic.loadUi(resource('peakfit.ui'), Dialog)
             self.uipeakfit.show()
             try:
                 self.uipeakfit.rangeLineEdit.setText(str(self.peakfitranini)+':'+str(self.peakfitranfin))
@@ -4712,7 +4713,7 @@ class MainWindow (QMainWindow):
         
     def setupPeakPara(self, index):
         Dialog=QDialog(self)
-        self.uipara=uic.loadUi('peakpara.ui', Dialog)
+        self.uipara=uic.loadUi(resource('peakpara.ui'), Dialog)
         if index=='peak':
             selrow=self.uipeakfit.peakTW.currentRow()
             selcol=self.uipeakfit.peakTW.currentColumn()

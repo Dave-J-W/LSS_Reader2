@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QIcon
 
 import reader_log
+from lss_core.resources import resource
 
 
 def create_app(argv=None):
@@ -16,7 +17,7 @@ def create_app(argv=None):
     from mainwindow import MainWindow        # needs the QApplication
     w = MainWindow()
     w.setWindowTitle('LSS-Reader')
-    w.setWindowIcon(QIcon('logo.png'))
+    w.setWindowIcon(QIcon(resource('logo.png')))
     # From here on an exception in any button handler is logged and shown
     # in the Messages pane; the program keeps running.
     reader_log.install_excepthook(context=w.sessionContext, report=w.reportFailure)
