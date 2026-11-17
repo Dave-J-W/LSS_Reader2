@@ -694,3 +694,29 @@ time (local, no zone written). So the time of point i is `#D` + (Epoch_i −
 Epoch_0) + a first-point lag of a few seconds. The image files do not
 help: their TIFF headers hold exposure time and period but no absolute
 time.
+
+### 2026-11-17 — Stage 0 built: what happens now when an action fails?
+
+**Q.** (owner) Begin the implementation plan.
+
+**A.** Stage 0 of `SCOPE.md` is in. Measured by running the real program in
+a subprocess (`tests/test_reader_log.py`):
+
+- Pressing "Ref Patch" and then "Analyze" with nothing loaded used to end
+  the process (exit code 134). Now the process exits normally afterwards,
+  the Messages pane shows two "Operation failed: AttributeError … in
+  pilRefPatchData" lines, and the session log holds both tracebacks with
+  the session context (SPEC file, tab, selection).
+- Eight different crashing controls pressed in a row: still alive.
+- A record that was logged is on disk even when the process is killed with
+  no cleanup in the next instruction.
+- A deliberate hard abort leaves "Fatal Python error: Aborted" and the
+  Python stack in the session's fault log.
+
+No reduction code was touched: every numerical check, every byte-level
+export fixture and every real-data benchmark gives the same result as
+before (quick checks 88 pass; real-data checks 21 pass).
+
+What Stage 0 does not do: it does not repair the 420 failing
+control/state combinations; each still fails, but as a logged message
+instead of a closed program. That is Stage 1.

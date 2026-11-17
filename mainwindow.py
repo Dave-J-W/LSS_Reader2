@@ -29,6 +29,7 @@ import matplotlib as mpl
 from lmfit import minimize, Parameters, Parameter, report_fit, fit_report
 from functools import partial
 import traceback
+import reader_log
 #from TwoD_Integrate import integrate_2d
 
 
@@ -122,6 +123,8 @@ class MainWindow (QMainWindow):
         self.ui.plotMoveUpPushButton.setIcon(QIcon('arrow_up.png'))
         self.ui.plotMoveDownPushButton.setIcon(QIcon('arrow_down.png'))
         self.init_signals()
+        self.log=reader_log.get_logger()
+        self.initMessagePane()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
         self.initValidator()
@@ -519,6 +522,11 @@ class MainWindow (QMainWindow):
             self.clearAll()
             self.directory=str(QFileInfo(self.specFileName).absolutePath())
             self.directory_old=self.directory
+            logpath,fallback=reader_log.attach_spec_log(self.specFileName)
+            if fallback and logpath is not None:
+                self.notify('The folder of the SPEC file cannot be written to. The log for this file is kept at '+logpath,title='Log')
+            elif logpath is None:
+                self.notify('No log file could be opened for this SPEC file.',title='Log')
         else:
             try:
                 self.directory=self.directory_old
@@ -718,10 +726,16 @@ class MainWindow (QMainWindow):
             self.ui.spYComboBox.currentIndexChanged.connect(self.updateSpecPlotData)
             self.ui.spY2ComboBox.currentIndexChanged.connect(self.updateSpecPlotData)
             self.ui.spNComboBox.currentIndexChanged.connect(self.updateSpecPlotData)
-            try:
-                self.updateSpecPlotData()
-            except:
-                self.messageBox('Warning:: The scan(s) are not regular Spec scan')
+            if self.specPar[self.selectedScanNums[0]]['Detector']=='Vortex' and self.specData[self.selectedScanNums[0]]['ScanVar']=='Empty':
+                # a fluorescence scan has no columns to plot; that is normal, not a warning
+                self.ui.specPlotMplWidget.canvas.ax.clear()
+                self.ui.specPlotMplWidget.canvas.draw()
+            else:
+                try:
+                    self.updateSpecPlotData()
+                except Exception:
+                    self.log.exception('could not plot scan(s) %s',self.selectedScanNums)
+                    self.messageBox('Warning:: The scan(s) are not regular Spec scan')
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Vortex':
                 self.updateMcaImageList()
                 self.ui.imagesLabel.setText('Vortex:')
@@ -1319,11 +1333,74 @@ class MainWindow (QMainWindow):
             self.selectedmcafiles_rows.append(self.ui.mcaFileListWidget.row(item))
         self.updateMcaIntPlot()
 
+    def initMessagePane(self):
+        """A dock at the bottom of the window that collects messages.
+
+        Messages used to be modal dialogs that had to be clicked away. They
+        are now appended here, written to the log, and the pane is raised;
+        nothing blocks.
+        """
+        self.messages=[]   # (time string, title, text) of everything shown
+        self.messageDock=QDockWidget('Messages',self)
+        self.messageDock.setObjectName('messageDock')
+        self.messageDock.setAllowedAreas(Qt.BottomDockWidgetArea|Qt.TopDockWidgetArea)
+        self.messageView=QPlainTextEdit(self.messageDock)
+        self.messageView.setObjectName('messageView')
+        self.messageView.setReadOnly(True)
+        self.messageView.setMaximumBlockCount(2000)
+        self.messageView.setMinimumHeight(60)
+        self.messageDock.setWidget(self.messageView)
+        self.addDockWidget(Qt.BottomDockWidgetArea,self.messageDock)
+        self.messageDock.hide()   # appears with the first message
+
+    def notify(self,text,title='Warning',level='warning'):
+        """Tell the user something without stopping them, and log it."""
+        text=str(text)
+        stamp=time.strftime('%H:%M:%S')
+        self.messages.append((stamp,title,text))
+        getattr(self.log,level,self.log.warning)('%s: %s',title,text.replace('\n',' | '))
+        try:
+            self.messageView.appendPlainText(stamp+'  '+text.replace('\n','\n          '))
+            self.messageDock.show()
+        except RuntimeError:   # window already being destroyed
+            pass
+
+    def reportFailure(self,text):
+        """Called by the process-wide exception handler (reader_log)."""
+        self.notify(text,title='Error',level='info')   # the traceback is logged separately
+        try:
+            self.ui.statusBar.showMessage(text.split('. Details')[0])
+        except RuntimeError:
+            pass
+
+    def sessionContext(self):
+        """What was loaded and selected; added to every logged exception."""
+        def short(name):
+            value=getattr(self,name,None)
+            if value is None:
+                return None
+            try:
+                value=[int(v) for v in value]
+            except (TypeError,ValueError):
+                pass
+            text=str(value)
+            return text if len(text)<200 else text[:200]+'...'
+        return {'SPEC file':self.specFileName,
+                'beamline':getattr(self,'beamline',None),
+                'detector':getattr(self,'det',None),
+                'tab':self.ui.PlotWidget.tabText(self.ui.PlotWidget.currentIndex()),
+                'selected scans':short('selectedScanNums'),
+                'selected frames':short('selectedPilFramesNums'),
+                'selected spectra':short('selectedMcaScanNums')}
+
     def messageBox(self,text,title='Warning'):
-        mesgbox=QMessageBox()
-        mesgbox.setText(text)
-        mesgbox.setWindowTitle(title)
-        mesgbox.exec_()
+        if title=='About':   # the one message that is a deliberate dialog
+            mesgbox=QMessageBox(self)
+            mesgbox.setText(text)
+            mesgbox.setWindowTitle(title)
+            mesgbox.exec_()
+            return
+        self.notify(text,title)
     
     def updateProgress(self):
         self.progressDialog.setValue(self.progressDialog.value()+1)

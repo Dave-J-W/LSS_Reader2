@@ -8,7 +8,7 @@ As stated by the project owner. Status is updated as work lands.
 |---|---|---|---|
 | R1 | Verification tests preserve the physical and mathematical behaviour through debugging and refactoring. | 2026-11-14 | Scaffolding in place; see `TESTING.md`. |
 | R2 | Finish the Python 2 → 3 migration, which is incomplete and has caused problems. | 2026-11-14 | Known leftovers listed in `ASSESSMENT.md` section 4; none fixed yet. |
-| R3 | The interface never crashes, whichever files are selected and whichever controls are used afterwards. | 2026-11-14 | Measured by `pytest -m sweep`: 420 control/state combinations raise from a clean state, plus 11 further crash sites reached only by sequences (see `physics_notes.md`). |
+| R3 | The interface never crashes, whichever files are selected and whichever controls are used afterwards. *(Stage 0 done 2026-11-17: a failing action no longer closes the program; the individual failures remain to be repaired.)* | 2026-11-14 | Measured by `pytest -m sweep`: 420 control/state combinations raise from a clean state, plus 11 further crash sites reached only by sequences (see `physics_notes.md`). |
 | R4 | Better GUI organisation. | 2026-11-14 | Not started. |
 
 ## Feature requests
@@ -257,6 +257,16 @@ priority than the lists above.
 | F46 | **Compiled Windows and macOS versions** of the reader, so users do not need to know about Python environments. | A PyInstaller recipe for Windows is already in the repository (`LSS_Reader.spec`, with a stale hard-coded path and a committed `build/` folder), so this has been done before for Windows. Needed: `.ui` files, icons and any data loaded relative to the program rather than the working directory (today they are relative to the working directory); a pinned set of library versions; a build per platform (a macOS build must be made on macOS, and unsigned apps are blocked by default there, so signing/notarisation is a decision); a smoke check that the packaged program starts and reduces the sample data. Fits after Stage 2. |
 | F47 | **Fluorescence analysis niceties from Matt Newville's tools**: escape peaks, element identification. | Newville's X-ray libraries are open source: XrayDB (line energies, edges, cross-sections; Python package `xraydb`) and Larch (XRF display with line markers, peak fitting, escape and pile-up handling). See <https://xraypy.github.io/XrayDB/> and <https://xraypy.github.io/xraylarch/>. Natural first pieces: element/line markers on the MCA plot from `xraydb`; an escape-peak marker or correction for the detector material (Si for the Vortex: escape peak 1.74 keV below each line); element lookup from a clicked energy. Belongs with the fluorescence configuration tab (F35) and fitting improvements (F22). Licences to be checked before any code is copied rather than called. |
 | F48 | **A console window showing the API steps being called** as the GUI is used. | Depends on scriptable reduction (F31): each GUI action calls one documented function, and the console prints that call so it can be copied into a script. The reader already has a faint precedent: a "command" line that records text such as `Ref Patch, scans=[…], slits=[…]`. Also a debugging aid and a companion to the log (F12). |
+
+### Status of built items
+
+| # | Built | Where | Checked by |
+|---|---|---|---|
+| F10 (first half) | A failing action is logged and reported; the program stays open. | `reader_log.install_excepthook`, `LSS_Reader.create_app` | `tests/test_reader_log.py` (real program in a subprocess) |
+| F11 | Messages no longer open blocking dialogs; they go to a Messages pane at the bottom of the window and to the log. "About" is the one remaining message dialog. | `MainWindow.notify`, `initMessagePane` | `tests/test_reader_log.py` |
+| F12 | Durable log: every record flushed and synced; hard faults recorded; session log in `~/.lss_reader/logs` (or `$LSS_READER_LOG_DIR`). | `reader_log.py` | kill and abort tests in `tests/test_reader_log.py` |
+| F13 (log half), D3 | A log per SPEC file, `<spec file>.reader.log` beside it, with a local fallback and a message when the folder cannot be written. | `reader_log.attach_spec_log` | `tests/test_reader_log.py` |
+| D15 | No message when a fluorescence scan is selected. | `scanListChanged` | `tests/test_xfntr.py` |
 
 ## Order
 

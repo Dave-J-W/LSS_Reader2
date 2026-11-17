@@ -1,15 +1,31 @@
 # To do
 
-Current phase: **tests, assessment and scoping only.** No changes to
-application code until the full list of feature requests has been received
-(owner's instruction, 2026-11-14).
+Current phase: **implementation**, following `SCOPE.md`. The owner gave the
+go-ahead on 2026-11-17 ("begin the implementation plan").
 
-The owner supplied "the rest of the feature set" on 2026-11-16, and the plan
-is written (`SCOPE.md`). **Implementation has not been authorised yet**:
-wait for the owner's explicit go-ahead, then start with Stage 0 of
-`SCOPE.md` and change this paragraph and `AGENTS.md` in the same commit.
+| Stage | Status |
+|---|---|
+| 0 Safety net (error handler, durable log, messages pane) | **done** 2026-11-17 |
+| 1 Repair what is plainly broken | **next** |
+| 2 Readers and reduction out of the window; caching; scripting | not started |
+| 3 Saved state per SPEC file; live refresh | not started |
+| 4 Detectors and inputs | not started |
+| 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
+| 6 Sub-projects (GID patching, fitting, beam size, GUI) | not started |
 
-## Next up (this phase)
+### Stage 1 work list
+- [ ] Crash inventory: guard handlers against "nothing loaded / nothing
+      selected" until `known_crashes.json` is empty (420 entries, 41 sites;
+      start with the five sites that account for 510 of the 840 rows).
+- [ ] Typos and leftovers: defects 2, 3, 4, 5, 6, 7 and the shared default
+      dictionaries; NumPy 2 scan-list formatting with one helper (D14).
+- [ ] Graceful opening: non-SPEC file, repeated scan numbers, aborted
+      scans, missing detector folders (F27).
+- [ ] `interp2d` replacement reproducing the SciPy 1.13 reference.
+- [ ] Qz² export fix (F24b).
+- [ ] Remove the Bruker/CCD paths and controls (D8, F38).
+
+## Carried over from the tests-and-scoping phase
 
 - [x] Time the full selection path on real data → `docs/timings.md`
       (`pytest -m bench`). Pilatus 1M and per-point MCA could not be timed

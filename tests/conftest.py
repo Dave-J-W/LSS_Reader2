@@ -11,6 +11,9 @@ import sys
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 os.environ.setdefault('MPLBACKEND', 'Agg')
+# keep every log the program writes out of the repository and sample data
+import tempfile  # noqa: E402
+os.environ['LSS_READER_LOG_DIR'] = tempfile.mkdtemp(prefix='lss_reader_test_logs_')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -38,7 +41,8 @@ class Recorder:
     """What the application tried to show or raise during a test."""
 
     def __init__(self):
-        self.messages = []      # text of every message box
+        self.messages = []      # text of every message shown to the user
+        self.failures = []      # 'Operation failed' reports (real program only)
         self.dialogs = []       # QDialog instances whose exec_ was called
         self.exceptions = []    # (type, value, traceback) from Qt slots
         self.open_name = ''     # returned by QFileDialog.getOpenFileName
@@ -67,6 +71,20 @@ def recorder(qapp, monkeypatch):
             return rec.question
         return QtWidgets.QMessageBox.No
 
+    # Messages no longer open dialogs: MainWindow.notify appends them to the
+    # Messages pane and the log. Record them here too, so tests can assert
+    # what the user was told.
+    import mainwindow
+    real_notify = mainwindow.MainWindow.notify
+
+    def notify(self, text, title='Warning', level='warning'):
+        if title != 'Error':            # 'Error' = an exception, see .failures
+            rec.messages.append(str(text))
+        else:
+            rec.failures.append(str(text))
+        return real_notify(self, text, title, level)
+
+    monkeypatch.setattr(mainwindow.MainWindow, 'notify', notify)
     monkeypatch.setattr(QtWidgets.QMessageBox, 'exec_', box_exec)
     monkeypatch.setattr(QtWidgets.QMessageBox, 'exec', box_exec)
     for name in ('question', 'information', 'warning', 'critical', 'about'):

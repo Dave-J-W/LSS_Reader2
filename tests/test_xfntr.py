@@ -64,9 +64,8 @@ def test_window_sum_recovers_known_line_counts(xf, qapp, recorder):
     w, truth = xf
     data = _sum(w, qapp)
     assert recorder.exceptions == []
-    # as coded, selecting fluorescence scans always raises this message box
-    assert set(recorder.messages) <= {
-        'Warning:: The scan(s) are not regular Spec scan'}
+    # selecting fluorescence scans is routine and must not produce a message
+    assert recorder.messages == []
     frame, qz, energy, inten, err = data.T
     assert frame == pytest.approx(np.arange(1, len(synth.XF_QZ) + 1))
     assert qz == pytest.approx(synth.XF_QZ)

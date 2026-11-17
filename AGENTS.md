@@ -8,12 +8,16 @@ scattering at ChemMatCARS. It is not a fitting program. Read
 
 ## Current phase — read before changing anything
 
-**Tests, assessment and scoping only.** The owner has asked that application
-code (`mainwindow.py`, `TwoDDetector.py`, `spec_routines.py`,
-`mca_routines.py`, `*.ui`, `LSS_Reader.py`) is **not changed** until the full
-feature list has been received. Work goes into `tests/` and `docs/`. Check
-the top of `docs/TODO.md`; if the phase line there has changed, that file
-wins over this paragraph.
+**Implementation, following `docs/SCOPE.md` stage by stage** (authorised by
+the owner on 2026-11-17). Stage 0 (no more closing on errors; durable log;
+messages pane) is done. The top of `docs/TODO.md` says which stage is in
+progress; if it disagrees with this paragraph, that file wins.
+
+Application code may now be changed, under these conditions:
+- one defect or one feature per commit, with its test in the same commit;
+- the quick checks pass before every commit; the real-data checks and the
+  crash sweep pass before a stage is called done;
+- the legacy export fixtures stay byte-identical (rule 3 below).
 
 ## Where things are
 
@@ -29,6 +33,7 @@ wins over this paragraph.
 | `docs/physics_notes.md` | Invariants table and a dated question-and-answer log |
 | `docs/timings.md` | Timing baseline written by `pytest -m bench` |
 | `docs/handoff/` | Specifications handed over by the owner (xmodfit export contract). They are requirements; do not edit them |
+| `reader_log.py` | Durable log, per-SPEC log, process-wide exception handler (no Qt needed) |
 | `tests/` | The suite; `synth.py` (synthetic data), `sweep.py` (GUI driver) |
 | `sample_data/NX_school/` | Real, public data set (committed) |
 | `sample_data/bu/` | Real, private data set: git-ignored, never commit or push it |
@@ -79,11 +84,17 @@ No display is needed. Run from the repository root.
   directory. `tests/conftest.py` changes to the repository root; anything
   run outside pytest must do the same.
 - PyQt5 **aborts the process** when a slot raises, unless `sys.excepthook`
-  is replaced. The `recorder` fixture replaces it and collects the
-  exceptions; always assert `recorder.exceptions == []` in GUI tests.
-- Message boxes and dialogs are modal. The `recorder` fixture makes them
-  return at once and records them; never create a `MainWindow` in a test
-  without it.
+  is replaced. The real program replaces it in `LSS_Reader.create_app`
+  (log and carry on). In tests the `recorder` fixture replaces it and
+  collects the exceptions; always assert `recorder.exceptions == []` in
+  GUI tests, because a logged-and-survived exception is still a bug.
+- Messages to the user go through `MainWindow.notify` (Messages pane and
+  log, never a blocking dialog); `recorder.messages` records them. The
+  remaining dialogs (file choosers, secondary windows) are modal; the
+  `recorder` fixture makes them return at once. Never create a
+  `MainWindow` in a test without it.
+- Logs: the tests set `LSS_READER_LOG_DIR` to a temporary folder so that
+  nothing is written beside sample SPEC files. Do not unset it globally.
 - Selecting list rows one at a time fires the selection handler once per
   row, and the image handler re-reads every selected frame each time. Use
   `sweep._select_scans` / `sweep._select_images`, which select as one action.
