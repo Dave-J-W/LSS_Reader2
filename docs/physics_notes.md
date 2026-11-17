@@ -929,3 +929,17 @@ u_M² = 1/M. Proposed: carry an error budget per value (counting,
 monitor per frame, absorber per foil count, live time) that combines
 correctly under sums, with a measured monitor model and a legacy mode
 that keeps today's numbers.
+
+### 2026-11-17 — Correction: no absorber error; patching uncertainty instead
+
+**Q.** (owner) There is no "absorber error": absorber ratios are not used;
+the scale between scans is measured in each patch, and that is a patching
+uncertainty. Explain the non-patched data first, starting with one frame.
+
+**A.** `reports/error_propagation.md` rewritten accordingly: one frame
+(inputs, one pixel, two pixels), sums within a frame, background
+subtraction, several frames at one point, fluorescence spectra; the
+absorber term is removed and the patching uncertainty is left to the
+hand-off. Open point raised with the owner: the window still multiplies
+by a nominal factor A^n (`absfac`) in some non-patched paths — the
+background-image path, GID patching, and since today line/area cuts.
