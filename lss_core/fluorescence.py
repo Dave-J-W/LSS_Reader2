@@ -9,6 +9,9 @@ normalised counts over an energy window and the errors in quadrature
 With an error model in 'budget' mode (lss_core.errors) the channel error is
 √(τ²N/M² + y²·u_M²) and a window sum gets the monitor term once, on the
 sum: var = Σ τ²N_c/M² + (Σ y_c)²·u_M².
+Normalised spectra are multiplied by the nominal absorber factor
+absfac**n of their scan (n from SPEC ``#A``, or from the last ``#A`` above
+a scan that records none; owner, 2026-11-17, F50).
 ``save_flu`` writes the window's ``_flu.txt`` byte for byte.
 """
 import numpy as np
@@ -16,9 +19,12 @@ import numpy as np
 from .errors import as_model
 
 
-def normalise_spectrum(counts, par, monitor_value, calibration, errors=None):
+def normalise_spectrum(counts, par, monitor_value, calibration, errors=None, absorber=1.0):
     """(N, 3) energy, normalised counts, error, as ``updateMcaPlotData``.
-    ``errors``: error model (None or 'legacy': as the window always did)."""
+    ``errors``: error model (None or 'legacy': as the window always did).
+    ``absorber``: the nominal absorber factor absfac**n of the scan, applied
+    to normalised spectra (value and error); the foils are before the sample
+    and the monitor upstream of them (owner, 2026-11-17)."""
     y = np.array(counts, dtype='float')
     x = np.arange(1, len(y) + 1)
     con, lin, qua = calibration
@@ -30,8 +36,17 @@ def normalise_spectrum(counts, par, monitor_value, calibration, errors=None):
     model = as_model(errors)
     if model.budget:
         u = model.monitor.relative(n)
-        return np.vstack((x, y / n * tc, np.sqrt(y / n ** 2 * tc ** 2 + (y / n * tc) ** 2 * u ** 2))).transpose()
-    return np.vstack((x, y / n * tc, np.sqrt(y + y ** 2 / n) / n * tc)).transpose()
+        out = np.vstack((x, y / n * tc, np.sqrt(y / n ** 2 * tc ** 2 + (y / n * tc) ** 2 * u ** 2))).transpose()
+    else:
+        out = np.vstack((x, y / n * tc, np.sqrt(y + y ** 2 / n) / n * tc)).transpose()
+    if absorber != 1.0:          # 1.0 leaves the numbers untouched (legacy files)
+        out[:, 1:] *= absorber
+    return out
+
+
+def absorber_factor(absfac, absorber):
+    """absfac**n for a scan's absorber setting n (None: unknown, no factor)."""
+    return 1.0 if absorber is None else float(absfac) ** absorber
 
 
 def window_sum(data, lo, hi, u=None):

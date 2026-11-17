@@ -1017,22 +1017,59 @@ class MainWindow (QMainWindow):
         self.mcaFileNames=[self.mcafhead+str(i)+self.mcaftail for i in self.selectedScanNums]
         self.mcaData={}
         self.mcaPar={}
+        self.mcaAbsorber={}     # absorber setting n of each spectrum's scan (None: unknown)
         start=0
         try:
             for i in range(len(self.mcaFileNames)):
                 self.mcaread=mcaread(self.mcaFileNames[i],beamline=self.beamline)
                 data=self.mcaread.Data
                 par=self.mcaread.Par
+                spar=self.specPar.get(self.selectedScanNums[i],{})
+                n=spar.get('Absorber')
+                abstext='' if n is None else '\tAbs=%g' % n + ('' if 'AbsorberFrom' not in spar else ' (#A of S%d)' % spar['AbsorberFrom'])
                 for j in range(data['NumOfScans']):
                     self.mcaData[start]=data[j]
                     self.mcaPar[start]=par[j]
-                    self.ui.imageListWidget.addItem('S# '+str(self.selectedScanNums[i])+'\tmS# '+str(j+1)+'\tQz='+str(self.mcaPar[start]['Q'][2]))
+                    self.mcaAbsorber[start]=n
+                    self.ui.imageListWidget.addItem('S# '+str(self.selectedScanNums[i])+'\tmS# '+str(j+1)+'\tQz='+str(self.mcaPar[start]['Q'][2])+abstext)
                     start=start+1
         except:
             self.messageBox('MCA file(s) of selected scans do not exit!')
+        self.noteMcaAbsorbers()
         # self.connect(self.ui.imageListWidget,SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
         self.ui.imageListWidget.itemSelectionChanged.connect(self.imageSelectedScanChanged)
         
+    def noteMcaAbsorbers(self):
+        """Say where the absorber setting of the listed MCA scans came from:
+        getandsave_mca writes no #A, so it is the last #A above the scan
+        (owner, 2026-11-17, F50), or unknown when there is none."""
+        seen=getattr(self,'mcaAbsorberNoted',set())
+        inferred,unknown={},[]
+        for i in self.selectedScanNums:
+            spar=self.specPar.get(i,{})
+            if (self.specFileName,i) in seen or spar.get('Detector')!='Vortex':
+                continue
+            seen.add((self.specFileName,i))
+            if 'Absorber' not in spar:
+                unknown.append(i)
+            elif 'AbsorberFrom' in spar:
+                inferred.setdefault((spar['Absorber'],spar['AbsorberFrom']),[]).append(i)
+        self.mcaAbsorberNoted=seen
+        if inferred:
+            self.notify('MCA scans record no absorber setting; it is taken from the last #A above each scan '
+                        '(absorbers do not change during a scan), and normalised spectra are multiplied by '
+                        'absfac^n with absfac %s (the Absorber factor field): ' % self.ui.AbsFacLineEdit.text()
+                        +'; '.join('scan(s) %s: n = %g from the #A of scan %d' % (listText(v),k[0],k[1])
+                                   for k,v in sorted(inferred.items(),key=lambda kv:kv[1][0]))+'.',
+                        title='Absorbers',level='info')
+        if unknown:
+            self.notify('MCA scan(s) %s: no #A above them in the file, so the absorber setting is unknown; '
+                        'no absorber factor is applied.' % listText(unknown),title='Absorbers',level='info')
+
+    def mcaAbsorberFactor(self,i):
+        """absfac**n for MCA spectrum ``i`` (1 when its setting is unknown)."""
+        return fluorescence.absorber_factor(self.absfac,getattr(self,'mcaAbsorber',{}).get(i))
+
     def mcaSelectedScanChanged(self):
         self.ui.statusBar.clearMessage()
         self.selectedMcaScans=self.ui.imageListWidget.selectedItems()
@@ -1071,6 +1108,14 @@ class MainWindow (QMainWindow):
                 self.progressDialog.show()
 
             self.mcaMax=0
+            try:
+                self.absfac=float(self.ui.AbsFacLineEdit.text())
+            except ValueError:
+                pass
+            self.mcaAbsfacUsed=self.absfac
+            if str(self.ui.mcaNormComboBox.currentText())!='None':
+                self.noteMixedAbsorbers([self.mcaAbsorber[i] for i in self.selectedMcaScanNums
+                                         if getattr(self,'mcaAbsorber',{}).get(i) is not None],'The selected MCA spectra')
 
             for i in self.selectedMcaScanNums:
                 y=pl.array(self.mcaData[i]['Vortex'],dtype='float')
@@ -1087,15 +1132,17 @@ class MainWindow (QMainWindow):
                     monitor=str(self.ui.mcaNormComboBox.currentText())
                     n=self.mcaData[i][monitor]
                     tc=self.mcaPar[i]['Time'][1]/self.mcaPar[i]['Time'][2]  #real count time correction
-                    self.nomMcaData[i]=fluorescence.normalise_spectrum(self.mcaData[i]['Vortex'],self.mcaPar[i],n,(con,lin,qua),self.errorModel)
+                    a=self.mcaAbsorberFactor(i)
+                    self.nomMcaData[i]=fluorescence.normalise_spectrum(self.mcaData[i]['Vortex'],self.mcaPar[i],n,(con,lin,qua),self.errorModel,a)
                 else:
                     n=1
                     tc=1
+                    a=1.0       # raw counts: no absorber factor
                     self.nomMcaData[i]=fluorescence.normalise_spectrum(self.mcaData[i]['Vortex'],self.mcaPar[i],None,(con,lin,qua))
                 self.mcaLabel=str(i+1)+' Qz='+'%.4f'%self.mcaPar[i]['Q'][2]
                 if self.ui.mcaOffsetCheckBox.checkState()!=0:
                     fact=fact*float(self.ui.mcaOffsetLineEdit.text())
-                self.mcaPlot(x,y,n,tc,fact)
+                self.mcaPlot(x,y,n,tc,fact,a)
                 if len(self.selectedMcaScanNums) > 10:
                     self.progressDialog.setLabelText('Reading MCA Frame #' + str(i))
                     self.updateProgress()
@@ -1106,7 +1153,7 @@ class MainWindow (QMainWindow):
             self.mcaPlotSettings()
             self.ui.statusBar.showMessage('Done')
         
-    def mcaPlot(self,x,y,n,tc,fact):
+    def mcaPlot(self,x,y,n,tc,fact,a=1.0):
         if str(self.ui.mcaNormComboBox.currentText())!='None' and self.errorModel.budget:
             u=self.errorModel.monitor.relative(n)
             yerr=pl.sqrt(y/n**2*tc**2+(y/n*tc)**2*u**2)
@@ -1115,6 +1162,8 @@ class MainWindow (QMainWindow):
         else:
             yerr=pl.sqrt(y)
         y=y/n*tc
+        if a!=1.0:      # absorber factor absfac**n
+            y,yerr=y*a,yerr*a
         self.mcaMax=max(self.mcaMax,max(y+yerr))
         self.ui.mcaPlotMplWidget.canvas.ax.errorbar(x,fact*y,fact*yerr,label=self.mcaLabel,fmt='o-')
 
@@ -1200,6 +1249,11 @@ class MainWindow (QMainWindow):
     #     print np.sum(newdata[:,1]), np.sqrt(np.sum(newdata[:,2]**2))
     
     def mcaSumAll(self):  #sum all selected spectrum with given range
+        try:
+            if float(self.ui.AbsFacLineEdit.text())!=getattr(self,'mcaAbsfacUsed',None) and self.selectedMcaScanNums:
+                self.updateMcaPlotData()        # the absorber factor was edited since
+        except ValueError:
+            pass
         self.mcaIntData=[]
         self.ui.mcaDataListWidget.clear()
         try:
@@ -1398,6 +1452,9 @@ class MainWindow (QMainWindow):
             kw.append('calibration=(%r, %r, %r)' % (float(self.ui.mcaCalibConLineEdit.text()),float(self.ui.mcaCalibLinLineEdit.text()),float(self.ui.mcaCalibQuaLineEdit.text())))
         if script_kw(self.errorModel):
             kw.append(script_kw(self.errorModel))
+        if mon!='None' and getattr(self,'mcaAbsfacUsed',1.414)!=1.414 and any(
+                self.mcaAbsorber.get(i) for i in self.selectedMcaScanNums):
+            kw.append('absfac=%r' % self.mcaAbsfacUsed)
         x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
         return 'flu = exp.fluorescence(%r, %s)\nflu.save(%r, x=%r)' % (scans,', '.join(kw),name,x)
 

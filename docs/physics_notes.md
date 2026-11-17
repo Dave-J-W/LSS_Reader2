@@ -1144,3 +1144,43 @@ carries source fluctuations." ν is essentially 4 and the width 0.86–1.01.
   `#A`, MCA headers none). Not changed; F50 gives the two ways out.
 - The earlier entry's reading of `#A` as total foil thickness in units is
   confirmed in substance: it is the absorber in units of the factor.
+
+### 2026-11-17 — Absorber setting of the MCA scans (F50)
+
+**Q.** (owner) Have the reader take the last `#A` before each scan.
+Absorbers don't change in the middle of scans.
+
+**A.** Built (D24; tests: `test_spec_absorber.py`,
+`test_fluorescence_absorber.py`).
+
+- The SPEC reader gives a scan without `#A` the value of the last `#A`
+  above it in the file and records the source scan (`AbsorberFrom`); a
+  refresh of a growing file continues from the last `#A` read. With no
+  `#A` above, the setting stays unknown and no factor is applied.
+- Normalised MCA spectra (window and `Experiment.fluorescence`) are
+  multiplied by absfac**n, value and error, as the Pilatus paths are.
+  Raw spectra (monitor "None") are not. The image list shows
+  `Abs=n (#A of S…)`, and the Messages pane says which scans were given
+  which setting and the factor in use. Editing the factor takes effect at
+  the next Sum All; the Script pane passes `absfac=` when it is not 1.414.
+- Measured on the sample files (`getandsave_mca` scans only):
+
+  | File | MCA scans | Setting taken |
+  |---|---|---|
+  | bu/2026sep/20260902 | 74–79 | 52, from scan 73 (an `escan`, 14 Sep 14:06; scans 74–77 are 3 h later, 78 and 79 one and two days later) |
+  | bu/2026sep/20261013 | 2 | 63, from scan 1 |
+  | bu/2026June/20260615 | the `getandsave_mca` scan | 63, from the scan above |
+  | bu/2026June/20260616 | 1–12 | none above: unknown, no factor |
+
+- Deliberate change (rule 1): the real-data XFNTR check (`test_xfntr.py`,
+  bu/2026sep/20260902 scans 74–79, private, hash only) changed hash
+  `77be46ea…` → `e23206a9…`. Every intensity and error is multiplied by
+  1.42⁵² = 8.30×10⁷ (ratio measured, identical for all six rows to 1e-15).
+  The window uses 1.42 here because opening a SPEC file with Pilatus images
+  presets the factor field to 1.42 ("Al 50 µm at 10 keV", code comment in
+  `readSpecFile`); with 1.414 it would be 1.414⁵² = 6.66×10⁷. The legacy
+  `xfntr_flu.txt` fixture is unchanged: its synthetic scans carry `#A 0`.
+- Caution, read only: the inferred setting is the one at the start of the
+  last scan that recorded it. A change made between scans by a command
+  that is not a scan leaves no trace in the file, so the inference cannot
+  see it; the Messages pane names the source scan for that reason.

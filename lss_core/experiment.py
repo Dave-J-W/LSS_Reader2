@@ -157,20 +157,24 @@ class Experiment:
         return out
 
     def fluorescence(self, scans, window=(1, 1000), monitor='Monc',
-                     calibration=None, errors=None):
+                     calibration=None, errors=None, absfac=1.414):
         """Fluorescence intensity per spectrum, as the window's "Sum All".
 
         ``window``: energy range (keV with the file's calibration);
         ``monitor``: 'Monc', 'Monb', 'Mond' or None; ``calibration``:
         (constant, linear, quadratic) to override the file's; ``errors``:
-        error model as for ``reflectivity``.
+        error model as for ``reflectivity``; ``absfac``: transmission factor
+        per absorber unit; normalised spectra are multiplied by absfac**n,
+        n the scan's absorber setting (``Scan.parameters['Absorber']``; for
+        getandsave_mca scans the last #A above them).
         """
         model = as_model(errors)
         spectra, rows = [], []
         for k, (scan, num, data, par) in enumerate(self.spectra(scans)):
             cal = calibration if calibration is not None else par['Calib']
             mon = None if monitor is None else data[monitor]
-            s = fluo.normalise_spectrum(data['Vortex'], par, mon, cal, model)
+            a = fluo.absorber_factor(absfac, self.scans[scan].parameters.get('Absorber'))
+            s = fluo.normalise_spectrum(data['Vortex'], par, mon, cal, model, a)
             u = float(model.monitor.relative(mon)) if (model.budget and mon is not None) else None
             inten, err, ini, fin = fluo.window_sum(s, window[0], window[1], u)
             energy = par.get('Energy', 10.0)
