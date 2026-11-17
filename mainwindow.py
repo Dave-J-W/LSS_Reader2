@@ -1082,9 +1082,13 @@ class MainWindow (QMainWindow):
             return
         self.monitorGain=on
         self.notify('Monitor normalisation: '+('Monc current, M x S/(1 uA/V), S from "#M Monc Gain"' if on else 'Monc counts M (gain not used)')
-                    +'. Spectra and SPEC plots on show are recomputed.',title='Monitor',level='info')
+                    +'. Spectra, SPEC plots and background-subtracted images on show are recomputed; cuts, GID and '
+                    'frames at one Qz use it the next time they are computed. Ref Patch does not use it (it measures '
+                    'the scale between scans).',title='Monitor',level='info')
         if self.selectedMcaScanNums is not None and len(self.selectedMcaScanNums)>0 and getattr(self,'mcaData',None):
             self.updateMcaPlotData()
+        if self.det=='Pilatus' and len(self.ui.backgroundListWidget.selectedItems())>0:
+            self.bgSelectionChanged()       # background and background-subtracted frames
         self.updateSpecPlotData()
 
     def monitorGainFactor(self,scannum,column):
@@ -1103,6 +1107,14 @@ class MainWindow (QMainWindow):
                             title='Monitor',level='warning')
             return 1.0
         return gain_factor(spar['MoncGain'])
+
+    def pilGains(self,scans):
+        """Monitor-gain factors for Pilatus frames of ``scans`` (Pilatus
+        frames are always normalised by Monc); None when the option is off,
+        which keeps the legacy arithmetic."""
+        if not self.monitorGain:
+            return None
+        return [self.monitorGainFactor(int(sc),'Monc') for sc in scans]
 
     def absFacChanged(self,text):
         try:
@@ -2024,7 +2036,7 @@ class MainWindow (QMainWindow):
                 self.pilatus.openFile(self.pilFileNames[i],bad_pix=bad_pix,bad_fac=bad_fac)
                 self.pilData[i]=self.pilatus.imageData
                 self.pilErrorData[i]=self.pilatus.errorData
-                self.pilatus.sumFiles({i:self.pilData[i]},{i:self.pilErrorData[i]},absfac=self.absfac,absnum=[self.pilSelected_AbsNum[j]],mon=[self.pilSelectedMonc[j]]) # For the Normalization Calculation Only!!
+                self.pilatus.sumFiles({i:self.pilData[i]},{i:self.pilErrorData[i]},absfac=self.absfac,absnum=[self.pilSelected_AbsNum[j]],mon=[self.pilSelectedMonc[j]],gain=self.pilGains([self.pilSelectedScanNum[j]])) # For the Normalization Calculation Only!!
                 self.pilGIOXSData[i]=self.pilatus.imageData   #for GIOXS data, bg substraction has to be done in 1D format. So keep it without bg image substraction
                 self.pilGIOXSErrorData[i]=self.pilatus.errorData
                 if self.errorModel.budget:
@@ -2157,7 +2169,7 @@ class MainWindow (QMainWindow):
                 self.selectedBgScanNum.append(self.bgScanNum[i])
             if len(self.selectedBgFrameNums)>0:   # nothing selected: no background to form
                 self.noteMixedAbsorbers(self.selectedBgAbsNum,'The background image')
-                self.pilatus.sumFiles(self.selectedBgData,self.selectedBgError,absfac=self.absfac,absnum=self.selectedBgAbsNum,mon=self.selectedBgMonc,tag='bg')
+                self.pilatus.sumFiles(self.selectedBgData,self.selectedBgError,absfac=self.absfac,absnum=self.selectedBgAbsNum,mon=self.selectedBgMonc,tag='bg',gain=self.pilGains(self.selectedBgScanNum))
                 self.bgData=self.pilatus.imageData
                 self.bgError=self.pilatus.errorData
                 self.bgMonitorTerms=self.pilatus.monitorTerms
@@ -3472,7 +3484,7 @@ class MainWindow (QMainWindow):
         #sortedFrameNums=np.array(self.selectedPilFramesNums)[np.argsort(np.array(self.pil_Dth))]
         j=0   #for xcenter and ycenter, which are already defined in self.selectedPilFramesNums
         for i in self.selectedPilFramesNums:
-            self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absfac=self.absfac,absnum=[self.pil_AbsNum[i]],cen=[self.pilX[i],self.pilY[i]], hroi=[self.pilxleft[j]-1, self.pilxright[j]-1], vroi=[5,486], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]])
+            self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absfac=self.absfac,absnum=[self.pil_AbsNum[i]],cen=[self.pilX[i],self.pilY[i]], hroi=[self.pilxleft[j]-1, self.pilxright[j]-1], vroi=[5,486], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]], gain=self.pilGains([self.pilScanNum[i]]))
             #ang=((self.pilatus.hintData[:,0]-self.ycenter[j])*0.172/self.distance[0]+np.arcsin(2.0*np.sin(self.pilAlpha[i])-np.sin(self.pilTrueAlpha[i])))*180/np.pi #convert pixle to beta
             #print self.pilatus.hintData[0][0]             
             j=j+1
@@ -3675,7 +3687,7 @@ class MainWindow (QMainWindow):
             for i in self.selFrameNums:
                 self.selData[i]=self.pilData[i]
                 self.selErrorData[i]=self.pilErrorData[i]
-            self.pilatus.setROI(self.selData,self.selErrorData,absfac=self.absfac,absnum=self.absnum,slit=self.slit,cen=self.cen,bg=self.bg,dir=self.dir,mon=self.mon)
+            self.pilatus.setROI(self.selData,self.selErrorData,absfac=self.absfac,absnum=self.absnum,slit=self.slit,cen=self.cen,bg=self.bg,dir=self.dir,mon=self.mon,gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
             slit=[self.slit[1], self.slit[0]]
             cen=[self.cen[1], self.cen[0]]
             self.ax={}
@@ -3721,7 +3733,7 @@ class MainWindow (QMainWindow):
             #Peak searching is dummy it is not doing anything#
             if self.ui.refCenCheckBox.checkState()!=0:
                 self.cen=[int(self.ui.refCenLineEdit.text().split(',')[0]),int(self.ui.refCenLineEdit.text().split(',')[1])]
-            self.par=self.pilatus.peakFind(self.selData,self.selErrorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,fac=fac,mon=self.mon,cenfit=self.cenfit)
+            self.par=self.pilatus.peakFind(self.selData,self.selErrorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,fac=fac,mon=self.mon,cenfit=self.cenfit,gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
             self.cen=[int(np.floor(self.par[1])), int(np.floor(self.par[3]))]
             slit=[self.slit[1], self.slit[0]]
             cen=[self.cen[1], self.cen[0]]
@@ -4365,8 +4377,10 @@ class MainWindow (QMainWindow):
             if len(self.ui.backgroundListWidget.selectedItems())==0:
                 # frames are counts: normalise by monitor and absorber first, like
                 # every other reduction (PHYSICS_ISSUES P23; owner, 2026-11-17)
+                g=self.pilGains([self.pilScanNum[i]])
                 self.selCutPilData[i],self.selCutPilErrorData[i]=normalise.normalise_frame(
-                    self.pilData[i],self.pilErrorData[i],self.pilMonc[i],self.absfac,self.pil_AbsNum[i],model=self.errorModel)
+                    self.pilData[i],self.pilErrorData[i],self.pilMonc[i],self.absfac,self.pil_AbsNum[i],model=self.errorModel,
+                    gain=1.0 if g is None else g[0])
                 if budget:
                     self.selCutTerms[i]=normalise.frame_terms(('',i),self.selCutPilData[i],self.pilMonc[i],self.errorModel)
             else:   # background-subtracted frames are already normalised

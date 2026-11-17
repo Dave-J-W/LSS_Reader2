@@ -167,3 +167,89 @@ def test_window_option_specplot_export(window, qapp, recorder, tmp_path):
     for scan, g in ((1, 5.0), (2, 0.1)):
         d = np.loadtxt(str(tmp_path / ('out_%d_sh_Apex2_Monc.txt' % scan)))
         assert d[:, 1] == pytest.approx(1000 / 1e5 * g, rel=1e-4)
+
+
+# ---- Pilatus paths (owner, 2026-11-17: extend the option to them) ---------
+
+def test_detector_sum_with_and_without_gain():
+    """gain=None is the legacy arithmetic exactly; with gains each frame's
+    value and error are multiplied by its own factor."""
+    from TwoDDetector import TwoDDetector
+    det = TwoDDetector('Pilatus')
+    det.NROWS, det.NCOLS = 20, 15
+    rng = np.random.default_rng(3)
+    data = {0: rng.poisson(100, (det.NROWS, det.NCOLS)).astype(float),
+            1: rng.poisson(400, (det.NROWS, det.NCOLS)).astype(float)}
+    err = {k: np.sqrt(v) for k, v in data.items()}
+    kw = dict(absfac=1.4247, absnum=[0, 2], mon=[1e5, 2e5])
+    det.sumFiles(data, err, **kw)
+    legacy = det.imageData.copy(), det.errorData.copy()
+    det.sumFiles(data, err, gain=[1.0, 1.0], **kw)
+    assert np.array_equal(det.imageData, legacy[0]) and np.array_equal(det.errorData, legacy[1])
+    det.sumFiles(data, err, gain=[5.0, 0.1], **kw)
+    a = [1.0, 1.4247 ** 2]
+    expect = (data[0] * a[0] / 1e5 * 5 + data[1] * a[1] / 2e5 * 0.1) / 2
+    var = ((err[0] ** 2 / 1e10 + data[0] ** 2 / 1e15) * a[0] ** 2 * 25
+           + (err[1] ** 2 / 4e10 + data[1] ** 2 / 8e15) * a[1] ** 2 * 0.01)
+    assert det.imageData == pytest.approx(expect, rel=1e-12)
+    assert det.errorData == pytest.approx(np.sqrt(var) / 2, rel=1e-12)
+
+
+@pytest.fixture
+def pil(tmp_path):
+    """Synthetic Pilatus scans 1 and 2 at 200 nA/V and 10 uA/V."""
+    return _with_gains(synth.make_dataset(tmp_path / 'p'), {1: '200 nA/V', 2: '10 uA/V'})
+
+
+def _cut(w, qapp):
+    w.ui.pilCutDirComboBox.setCurrentIndex(2)
+    w.ui.pilIntRangeLineEdit.setText('90:110')
+    w.ui.pilLineAreaPushButton.click()
+    qapp.processEvents()
+    return {k: np.array(v) for k, v in w.cutData.items()}
+
+
+@pytest.mark.gui
+def test_cuts_follow_the_gain_option(window, qapp, recorder, pil, tmp_path):
+    w = window
+    w.openSpecFile(fname=pil)
+    w.directory = str(tmp_path)
+    sweep._select_scans(w, qapp, [0, 1])
+    rows = [0, w.pilScanNum.index(2)]                 # first frame of each scan
+    sweep._select_images(w, qapp, rows)
+    off = _cut(w, qapp)
+    w.mcaGainCheckBox.setChecked(True)
+    qapp.processEvents()
+    on = _cut(w, qapp)
+    keys = sorted(k for k in off if k >= 0)
+    assert len(keys) == 2
+    for k, g in zip(keys, (5.0, 0.1)):
+        assert np.array_equal(on[k][:, 0], off[k][:, 0])
+        assert on[k][:, 1] == pytest.approx(off[k][:, 1] * g, rel=1e-12)
+        assert on[k][:, 2] == pytest.approx(off[k][:, 2] * g, rel=1e-12)
+    assert recorder.exceptions == []
+
+
+@pytest.mark.gui
+def test_background_subtraction_follows_the_gain_option(window, qapp, recorder, pil, tmp_path):
+    """Frame 0 of scan 1 (x5) minus half of frame 0 of scan 2 (x0.1)."""
+    w = window
+    w.openSpecFile(fname=pil)
+    w.directory = str(tmp_path)
+    sweep._select_scans(w, qapp, [0, 1])
+    b = w.pilScanNum.index(2)
+    sweep._select_images(w, qapp, [b])
+    w.addBGImagestoList()
+    w.ui.bgFacLineEdit.setText('0.5')
+    w.ui.backgroundListWidget.item(0).setSelected(True)
+    qapp.processEvents()
+    sweep._select_images(w, qapp, [0])
+    off = np.array(w.pilData[0])
+    sample, bg = np.array(w.pilGIOXSData[0]), np.array(w.bgData)
+    w.mcaGainCheckBox.setChecked(True)               # recomputes the frames on show
+    qapp.processEvents()
+    assert np.array(w.pilGIOXSData[0]) == pytest.approx(sample * 5.0, rel=1e-12)
+    assert np.array(w.bgData) == pytest.approx(bg * 0.1, rel=1e-12)
+    assert np.array(w.pilData[0]) == pytest.approx(sample * 5.0 - 0.5 * bg * 0.1, rel=1e-9, abs=1e-15)
+    assert not np.allclose(off, w.pilData[0])
+    assert recorder.exceptions == []

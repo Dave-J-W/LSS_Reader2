@@ -19,10 +19,18 @@ import numpy as np
 from .errors import as_model, MonitorTerms
 
 
-def normalise_frame(counts, errors, monitor, absfac=1.0, absnum=0, model=None):
+def normalise_frame(counts, errors, monitor, absfac=1.0, absnum=0, model=None, gain=1.0):
     """(R, sigma_R) for one frame; same operations, in the same order, as
     TwoDDetector.sumFiles with a single frame. ``model``: error model;
-    in budget mode sigma_R is the counting part only."""
+    in budget mode sigma_R is the counting part only. ``gain``: monitor-gain
+    factor S_ref/S (lss_core.monitor), on value and error."""
+    value, error = _normalise_frame(counts, errors, monitor, absfac, absnum, model)
+    if gain != 1.0:
+        value, error = value * gain, error * gain
+    return value, error
+
+
+def _normalise_frame(counts, errors, monitor, absfac, absnum, model):
     value = np.array(np.zeros(np.shape(counts)) + counts * absfac ** absnum / monitor) / 1
     if as_model(model).budget:
         error = np.sqrt(np.zeros(np.shape(counts)) + errors ** 2 / monitor ** 2

@@ -93,9 +93,11 @@ class TwoDDetector:
         except:
             return data, []
         
-    def sumFiles(self, data, errorData,absfac=1,absnum=None,mon=None,terms=None,tag=''):
+    def sumFiles(self, data, errorData,absfac=1,absnum=None,mon=None,terms=None,tag='',gain=None):
         """Mean of the frames in ``data`` after dividing each by its monitor
-        and multiplying by absfac**absnum. With ``mon`` None the data are
+        and multiplying by absfac**absnum (and by ``gain``, the monitor-gain
+        factor S_ref/S of each frame, when that option is on; None: no
+        factor, the legacy arithmetic exactly). With ``mon`` None the data are
         taken as already normalised; ``terms`` then gives their monitor parts
         (budget mode). ``tag`` keeps the frame keys of different sets apart."""
         if mon!=None:
@@ -105,11 +107,19 @@ class TwoDDetector:
             count=0
             keys=list(data.keys())
             for i in keys:
-                sumData=sumData+data[i]*absfac**absnum[count]/mon[count]
-                if budget:   # counting part only; the monitor part is kept per frame
-                    sumErrorData=sumErrorData+errorData[i]**2/mon[count]**2*absfac**(2.0*absnum[count])
+                if gain is None:
+                    sumData=sumData+data[i]*absfac**absnum[count]/mon[count]
+                    if budget:   # counting part only; the monitor part is kept per frame
+                        sumErrorData=sumErrorData+errorData[i]**2/mon[count]**2*absfac**(2.0*absnum[count])
+                    else:
+                        sumErrorData=sumErrorData+(errorData[i]**2/mon[count]**2+data[i]**2/mon[count]**3)*absfac**(2.0*absnum[count])
                 else:
-                    sumErrorData=sumErrorData+(errorData[i]**2/mon[count]**2+data[i]**2/mon[count]**3)*absfac**(2.0*absnum[count])
+                    g=gain[count]
+                    sumData=sumData+data[i]*absfac**absnum[count]/mon[count]*g
+                    if budget:
+                        sumErrorData=sumErrorData+errorData[i]**2/mon[count]**2*absfac**(2.0*absnum[count])*g**2
+                    else:
+                        sumErrorData=sumErrorData+(errorData[i]**2/mon[count]**2+data[i]**2/mon[count]**3)*absfac**(2.0*absnum[count])*g**2
                 count=count+1
             self.imageData=np.array(sumData/count)
             self.errorData=np.sqrt(sumErrorData)/count
@@ -119,7 +129,7 @@ class TwoDDetector:
                     terms_out.add((tag,keys[0]),self.imageData,1.0,float(self.errors.monitor.relative(mon[0])))
                 else:
                     for k,i in enumerate(keys):
-                        terms_out.add((tag,i),data[i],absfac**absnum[k]/mon[k]/count,float(self.errors.monitor.relative(mon[k])))
+                        terms_out.add((tag,i),data[i],absfac**absnum[k]/mon[k]/count*(1.0 if gain is None else gain[k]),float(self.errors.monitor.relative(mon[k])))
             self.monitorTerms=terms_out
         else:
             #print 'Error:: No Monitor Counts Provided!!'
@@ -171,13 +181,13 @@ class TwoDDetector:
         pylab.show()
 
 
-    def plotHint(self, data,errordata,absfac=1,absnum=None,  hroi=None,  vroi=None, cen=None, ax_type='Pixels', wavelength=None,s2d_dist=None,sh=None,alpha=None, truealpha=None, mon=None, terms=None):
+    def plotHint(self, data,errordata,absfac=1,absnum=None,  hroi=None,  vroi=None, cen=None, ax_type='Pixels', wavelength=None,s2d_dist=None,sh=None,alpha=None, truealpha=None, mon=None, terms=None, gain=None):
         """plots the Integrated Intensity along horizontal direction as a function of pixels along vertical direction"""
         if hroi==None:
             hroi=self.hroi
         if vroi==None:
             vroi=self.vroi
-        self.sumFiles(data,errordata, absfac=absfac,absnum=absnum,mon=mon,terms=terms)
+        self.sumFiles(data,errordata, absfac=absfac,absnum=absnum,mon=mon,terms=terms,gain=gain)
         hroi=list(map(int,hroi))
         vroi=list(map(int,vroi))
         y=np.arange(vroi[0], vroi[1]+1)  #create a array from x-axis
@@ -194,13 +204,13 @@ class TwoDDetector:
                 y=(np.sin(y1+np.arcsin(2*np.sin(alpha)-np.sin(truealpha)))+np.sin(truealpha))*2*pylab.pi/wavelength
         self.hintData=np.vstack((y, hint, hinterr)).transpose()
 
-    def plotVint(self, data, errordata, absfac=1,absnum=None,  hroi=None,  vroi=None, alpha=None,dth=None, sh=None, wavelength=None, pix_size=0.172,cen=None, s2d_dist=None,ax_type='Pixels', mon=None, terms=None):
+    def plotVint(self, data, errordata, absfac=1,absnum=None,  hroi=None,  vroi=None, alpha=None,dth=None, sh=None, wavelength=None, pix_size=0.172,cen=None, s2d_dist=None,ax_type='Pixels', mon=None, terms=None, gain=None):
         """Plots the Integrated intensity along vertical direction as a function of pixels along horizontal direction"""
         if hroi==None:
             hroi=self.hroi
         if vroi==None:
             vroi=self.vroi
-        self.sumFiles(data,errordata, absfac=absfac,absnum=absnum,mon=mon,terms=terms)
+        self.sumFiles(data,errordata, absfac=absfac,absnum=absnum,mon=mon,terms=terms,gain=gain)
         #if np.abs(alpha)<0.001:
         #    sh=0
         hroi=list(map(int,hroi))
@@ -249,10 +259,10 @@ class TwoDDetector:
         mon=float(np.sum([a*a for a in amps.values()])) if amps else 0.0
         return net, np.sqrt(cS**2+(cL**2+cR**2)/4+mon)
 
-    def setROI(self, data,errordata, absfac=1,absnum=None, slit=[11, 11], cen=[10, 10], bg=None,dir='h',mon=None):
+    def setROI(self, data,errordata, absfac=1,absnum=None, slit=[11, 11], cen=[10, 10], bg=None,dir='h',mon=None,gain=None):
         """Sets the ROI of the image file using slit size and center of the ROI and calculates the total counts in the ROI"""
         if mon!=None:
-            self.sumFiles(data,errordata,absfac=absfac,absnum=absnum,mon=mon)
+            self.sumFiles(data,errordata,absfac=absfac,absnum=absnum,mon=mon,gain=gain)
         else:
             self.imageData=data
         self.imageROI=np.array(list(self.imageData))
@@ -350,8 +360,8 @@ class TwoDDetector:
         locy=np.sum(locdata*row)/np.sum(locdata)
         return int(round(locx,0)), int(round(locy,0))
 
-    def peakFind(self, data, errordata, absfac=1,absnum=None,  slit=[10, 10],  cen=[10, 10], fac=1, min=0, max=1000, bg=None, cmap='gray', dir='h',mon=None,cenfit=0):
-        self.sumFiles(data, errordata, absfac=absfac,absnum=absnum,mon=mon)
+    def peakFind(self, data, errordata, absfac=1,absnum=None,  slit=[10, 10],  cen=[10, 10], fac=1, min=0, max=1000, bg=None, cmap='gray', dir='h',mon=None,cenfit=0,gain=None):
+        self.sumFiles(data, errordata, absfac=absfac,absnum=absnum,mon=mon,gain=gain)
         slit=[slit[1], slit[0]]
         self.cen=[cen[1], cen[0]]
         fac=fac*0.5

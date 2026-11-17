@@ -51,7 +51,10 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       normalised spectra × absfac**n; the window says where each came from.
 - [x] F52 option: normalise by `Monc` × its recorded gain (MCA, SpecPlot,
       scripts). Off by default.
-- [ ] F52 in the Pilatus paths (cuts, background images, GID), if wanted.
+- [x] F52 in the Pilatus paths (cuts, background images, GID data, frames
+      at one Q_z).
+- [ ] Sort out the gains the reader cannot interpret (owner, later):
+      `reports/monitor_gains.md`.
 - [ ] F54: photons/s from the monitor, when the owner's scalar arrives.
 - [x] Student t: σ_scan · w · t₄, w ≈ 0.94, σ_scan 0.039 % if unknown (D22).
 - [x] "width" is the t's scale (owner); σ_scan per scan declined: fixed t (D26).
@@ -60,8 +63,9 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       start-up until a GID/Ref action re-read the field). Old background-
       subtracted reductions at non-zero absorber settings should be redone.
 - [ ] F53: Pilatus and Vortex from the same scans (tabs); needs a sample file.
-- [ ] F49: absorber factor at other energies. Al at ≤ 10 keV, Cu at 30 keV
-      (D28); need unit thicknesses and μ/ρ tables.
+- [ ] F49: absorber factor at other energies. 50 µm Al at every energy
+      ≤ 10 keV (D30), Cu at 30 keV (D28); need the NIST Al table (download
+      refused by this session's permission check) and the Cu thickness.
 - [ ] When the corrected/legacy two-file export (hand-off §2.5) is built,
       make Budget the default and carry the counting part as `sigma_meas`.
 - [x] Monitor model default from the owner's analysis: Gaussian 0.04 %
@@ -257,6 +261,7 @@ them; the fix belongs in the macros.
       gain changes within files (P26, F52).
 - [ ] Some `#M Monc Gain` lines have no unit ("200") or no value
       (bu/2026oct/20261019, 20261022); the reader treats them as unknown.
+      Full list: `reports/monitor_gains.md`.
 - [ ] A scan with both Pilatus and Vortex data should say so in its header
       in a way that does not let one line override the other (F53).
 
