@@ -110,8 +110,17 @@ class MainWindow (QMainWindow):
         self.selectedreffiles_rows=[]
         self.mcafitplotstatus = 0
         self.mcafiles=[]
+        self.mcafnames=[]
         self.selectedMcaScanNums=[]
+        self.nomMcaData={}            # normalised MCA frames of the last plot
         self.selectedmcafiles_rows=[]
+        self.selectedScans=[]         # scan list items / numbers selected in the Scan list
+        self.selectedScanNums=[]
+        self.scanlines=[]
+        self.scanCenter={}
+        self.cutData={}               # filled by the Line/Area cut
+        self.selectedPilFramesNums=[]
+        self.pilScanNum=[]
         self.selectedplotfiles_rows=[]
         self.ui.PlotWidget.setCurrentIndex(0)
         self.directory=os.getcwd()
@@ -320,11 +329,11 @@ class MainWindow (QMainWindow):
      #    self.connect(self.ui.refCenLineEdit, SIGNAL('returnPressed()'), self.refAnalyze)
         self.ui.refCenLineEdit.returnPressed.connect(self.refAnalyzeFromField)
      #    self.connect(self.ui.gixLineAreaPushButton, SIGNAL('clicked()'), self.updateCutData)
-        self.ui.gixLineAreaPushButton.clicked.connect(self.updateCutData)
+        self.ui.gixLineAreaPushButton.clicked.connect(self.lineAreaCut)
      #    self.connect(self.ui.gixIntRangeLineEdit, SIGNAL('returnPressed()'), self.updateCutData)
         self.ui.gixIntRangeLineEdit.returnPressed.connect(self.updateCutData)
      #    self.connect(self.ui.pilLineAreaPushButton, SIGNAL('clicked()'), self.updateCutData)
-        self.ui.pilLineAreaPushButton.clicked.connect(self.updateCutData)
+        self.ui.pilLineAreaPushButton.clicked.connect(self.lineAreaCut)
      #    self.connect(self.ui.pilIntRangeLineEdit, SIGNAL('returnPressed()'), self.updateCutData)
         self.ui.pilIntRangeLineEdit.returnPressed.connect(self.updateCutData)
      #    #self.connect(self.ui.gixCutDirComboBox, SIGNAL('currentIndexChanged(int)'), self.updateCutData)
@@ -770,6 +779,9 @@ class MainWindow (QMainWindow):
         self.ui.statusBar.showMessage('Done')
             
     def scanListInputChanged(self):
+        if len(self.scanlines)==0:   # no scans listed: nothing to select
+            self.messageBox('Please open a SPEC file first!')
+            return
         # self.disconnect(self.ui.scanListWidget, SIGNAL('itemSelectionChanged()'),self.scanListChanged)
         self.ui.scanListWidget.itemSelectionChanged.disconnect(self.scanListChanged)
         try:
@@ -807,6 +819,9 @@ class MainWindow (QMainWindow):
         
 
     def updateSpecPlotData(self):
+        if (self.specFileName is None or len(self.selectedScanNums)==0
+                or str(self.ui.spXComboBox.currentText())==''):   # nothing plotted yet: display options do nothing
+            return
         self.ui.statusBar.clearMessage()
         self.ui.specPlotMplWidget.canvas.ax.clear()
         self.ui.PlotWidget.setCurrentIndex(0)
@@ -868,7 +883,12 @@ class MainWindow (QMainWindow):
         self.ui.statusBar.showMessage('Done')
         
     def specSaveData(self):
+        if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
+            self.messageBox('Please select a scan with data to save first!')
+            return
         self.saveFileName=QFileDialog.getSaveFileName(caption='Save SPEC scans', directory=self.directory)[0]
+        if self.saveFileName=='':   # dialog cancelled
+            return
         for i in self.selectedScanNums:
             x=self.specData[i][str(self.ui.spXComboBox.currentText())]
             y=self.specData[i][str(self.ui.spYComboBox.currentText())]
@@ -1012,7 +1032,10 @@ class MainWindow (QMainWindow):
     def updateMcaPlotData(self):
         if len(self.selectedMcaScanNums)==0:
             pass
-
+        elif (str(self.ui.mcaNormComboBox.currentText())!='None' and
+              any(i in self.mcaData and str(self.ui.mcaNormComboBox.currentText()) not in self.mcaData[i]
+                  for i in self.selectedMcaScanNums)):
+            self.messageBox('The monitor '+str(self.ui.mcaNormComboBox.currentText())+' is not in the MCA data, please choose another one.')
         else:
 
             self.ui.statusBar.clearMessage()
@@ -1189,6 +1212,9 @@ class MainWindow (QMainWindow):
             return
     
     def mcaAcceptPeak(self,num=0): #accecpt the fitting result, save the data, and update the mca integral plot 
+        if num>=len(self.selectedMcaScanNums) or not hasattr(self,'fitpeakpara') or not hasattr(self,'fiterror'):
+            self.messageBox('Please select an MCA frame and fit its peak first!')
+            return
         frame=self.selectedMcaScanNums[num]+1
         qz=self.mcaPar[self.selectedMcaScanNums[num]]['Q'][2]
         try:
@@ -1459,6 +1485,8 @@ class MainWindow (QMainWindow):
 
 
     def imageSelectedScanChanged(self):
+        if len(self.selectedScanNums)==0:   # no scan selected: nothing to read
+            return
         #self.ui.imageSelectAllCheckBox.setCheckState(0)
         self.pilGIDshow=0
         self.pilGISAXSshow=0
@@ -1826,7 +1854,10 @@ class MainWindow (QMainWindow):
         self.ui.pilMinLineEdit.setText(str(self.ui.pilMinHorizontalSlider.value()*(self.imageMax-self.imageMin)/100.0))
         self.updatePilPlotData()
         
-    def addBGImagestoList(self):        
+    def addBGImagestoList(self):
+        if self.det is None or len(self.ui.imageListWidget.selectedItems())==0:
+            self.messageBox('Please select the background images in the image list first!')
+            return
         self.ui.backgroundListWidget.clear()
         for item in self.ui.imageListWidget.selectedItems():
             self.ui.backgroundListWidget.addItem(item.text())
@@ -1879,6 +1910,8 @@ class MainWindow (QMainWindow):
         
             
     def bgSelectionChanged(self):
+        if self.det is None:   # no images loaded: nothing to select from
+            return
         self.selectedBgFrameNums=[self.ui.backgroundListWidget.row(item) for item in self.ui.backgroundListWidget.selectedItems()]
         #print self.selectedBgFrameNums
         self.selectedBgData={}
@@ -2200,6 +2233,9 @@ class MainWindow (QMainWindow):
             self.showPilGISAXS()
             
     def pilMovieShow(self):
+        if self.det!='Pilatus' or len(self.selectedPilFramesNums)==0:
+            self.messageBox('Please select Pilatus images first!')
+            return
         #self.disconnect(self.ui.pilAxesComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
         self.ui.pilAxesComboBox.currentIndexChanged.disconnect(self.update2dPlots)
         self.ui.pilAxesComboBox.setCurrentIndex(2)
@@ -2343,6 +2379,9 @@ class MainWindow (QMainWindow):
             return newdata[1:]
     
     def pilBurnTest(self):
+        if self.det!='Pilatus' or len(self.selectedPilFramesNums)==0:
+            self.messageBox('Please select the Pilatus images of a burn test scan first!')
+            return
         self.pilSelectedQxs=[self.pilFileQxs[i] for i in self.selectedPilFramesNums]
         if  self.pilSelectedQxs.count(self.pilSelectedQxs[0])!=len(self.pilSelectedQxs) or self.pilSelectedQzs.count(self.pilSelectedQzs[0])!=len(self.pilSelectedQzs) or self.pilSelectedScanNum.count(self.pilSelectedScanNum[0])!=len(self.pilSelectedScanNum):
             self.messageBox('Warning: It is not a burn test scan or multiple scans are selected!')
@@ -4357,6 +4396,12 @@ class MainWindow (QMainWindow):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
         self.ui.cutPlotMplWidget.canvas.draw()
         
+    def lineAreaCut(self):   # the Line/Area cut buttons
+        if self.det is None:
+            self.messageBox('Please select scan images before making a cut!')
+            return
+        self.updateCutData()
+
     def updateCutData(self):
         if self.det=='Bruker':
             self.updateCcdCutData()
@@ -4609,6 +4654,8 @@ class MainWindow (QMainWindow):
         self.updateCutPlotData()
     
     def updateCutPlotData(self):
+        if self.det not in ('Pilatus','Bruker'):   # no cut plotted: display options do nothing
+            return
         self.ui.PlotWidget.setCurrentIndex(4) 
         self.cutLogX=self.ui.cutLogXCheckBox.checkState()
         self.cutLogY=self.ui.cutLogYCheckBox.checkState()
@@ -4647,7 +4694,12 @@ class MainWindow (QMainWindow):
         self.ui.cutPlotMplWidget.canvas.draw()
         
     def saveCutData(self):
+        if self.det not in ('Pilatus','Bruker') or len(self.cutData)==0:
+            self.messageBox('There is no cut to save yet, please make a cut first!')
+            return
         self.saveFileName=QFileDialog.getSaveFileName(caption='Save Cuts', directory=self.directory)[0]
+        if self.saveFileName=='':   # dialog cancelled
+            return
         if self.det=='Bruker':            
             if self.ui.gixSumCheckBox.checkState()!=0:
                 self.fname=self.saveFileName+str(self.ui.imageListWidget.item(0).text().split('\t')[0])+'_sumcut.txt'
@@ -4715,6 +4767,8 @@ class MainWindow (QMainWindow):
         return y-par[0]+par[1]*np.sin(x*np.pi/180)
         
     def calg_l2(self):
+        if not self.calScansReady():
+            return
         Dialog=QDialog(self)
         self.uig_l2=uic.loadUi('g_l2Dialog.ui', Dialog)
         self.uig_l2.show()
@@ -4767,6 +4821,8 @@ class MainWindow (QMainWindow):
         self.uig_l2.g_l2TextBrowser.append('offset\t= %.3f'%fp[0])
         
     def calg_l3(self):
+        if not self.calScansReady():
+            return
         Dialog=QDialog(self)
         self.uig_l3=uic.loadUi('g_l3Dialog.ui', Dialog)
         self.uig_l3.show()
@@ -4823,7 +4879,19 @@ class MainWindow (QMainWindow):
         return y-np.log(par[0])+x*np.log(par[1])+par[2]*par[0]/par[1]**x
         #return y-par[0]/np.power(par[1],x)
         
+    def calScansReady(self):   # the g_l calibrations need plotted scans with a fitted centre
+        if len(self.selectedScanNums)==0:
+            self.messageBox('Please select the scans first!')
+            return False
+        if any(i not in self.scanCenter for i in self.selectedScanNums):
+            self.messageBox('Please plot the selected scans first, the scan centers come from the peak fit!')
+            return False
+        return True
+
     def calabsrat(self):
+        if len(self.selectedScanNums)==0:
+            self.messageBox('Please select an absorber scan first!')
+            return
         scannum=self.selectedScanNums[0]
         if self.specData[scannum]['ScanVar'][0]!='Absorber':
             self.messageBox('Error:: This scan is NOT an absorber scan!!')

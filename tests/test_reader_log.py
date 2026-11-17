@@ -34,7 +34,7 @@ START = (
 PATCH = (
     "import mainwindow\n"
     "def pilRefPatchData(self):\n"        # stand-in for a handler with a defect
-    "    self.selectedScanNums\n"         # (the real one is guarded now)
+    "    self.no_such_attribute\n"       # (the real one is guarded now)
     "mainwindow.MainWindow.pilRefPatchData = pilRefPatchData\n")
 
 
@@ -57,7 +57,7 @@ def test_application_survives_a_raising_handler(tmp_path):
     assert 'session started' in text
     assert text.count('ERROR') == 1
     assert 'Traceback (most recent call last)' in text
-    assert "has no attribute 'selectedScanNums'" in text
+    assert "has no attribute 'no_such_attribute'" in text
     # the context of the session is recorded with the failure
     assert 'SPEC file: None' in text and 'tab: SpecPlot' in text
 
@@ -72,7 +72,7 @@ def test_log_is_on_disk_even_if_the_process_is_killed(tmp_path):
     assert out.returncode == 7
     text = open(glob.glob(str(tmp_path / 'logs' / 'session-*[0-9].log'))[0]).read()
     assert 'about to be killed' in text
-    assert "has no attribute 'selectedScanNums'" in text
+    assert "has no attribute 'no_such_attribute'" in text
 
 
 def test_hard_fault_is_recorded(tmp_path):
