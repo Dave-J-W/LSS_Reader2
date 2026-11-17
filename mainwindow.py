@@ -399,7 +399,7 @@ class MainWindow (QMainWindow):
      #    self.connect(self.ui.bgSelectAllCheckBox, SIGNAL('stateChanged(int)'),self.bgSelectAll)
         self.ui.bgSelectAllCheckBox.stateChanged.connect(self.bgSelectAll)
      #    self.connect(self.ui.bgFacLineEdit, SIGNAL('returnPressed()'),self.ccdSelectedScanChanged)
-        self.ui.bgFacLineEdit.returnPressed.connect(self.ccdSelectedScanChanged)
+        self.ui.bgFacLineEdit.returnPressed.connect(self.imageSelectedScanChanged)   # re-read with the new factor, whichever detector
      #    self.connect(self.ui.scanListWidget, SIGNAL('doubleClicked(QModelIndex)'),self.displayScanInfo)
         self.ui.scanListWidget.doubleClicked.connect(self.displayScanInfo)
      #   # self.connect(self.ui.pilGIDPushButton, SIGNAL('clicked()'),self.pilGIDData)

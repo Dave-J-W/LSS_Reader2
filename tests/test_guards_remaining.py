@@ -384,3 +384,16 @@ def test_spec_export_with_name_still_writes(qapp, recorder, dataset, tmp_path):
         assert written and all(os.path.getsize(str(tmp_path / f)) > 0 for f in written)
     finally:
         sweep.dispose(w, qapp, recorder)
+
+
+def test_background_factor_field_reloads_pilatus_frames(loaded, qapp, dataset,
+                                                         recorder):
+    """Enter in the background-factor field used to call the Bruker handler
+    whatever the detector, which raised for Pilatus and MCA data."""
+    for state in ('pilatus_one_frame', 'pilatus_two_scans_all_frames',
+                  'mca_frames', 'motor_scan'):
+        sweep.STATES[state](loaded, qapp, dataset)
+        loaded.ui.bgFacLineEdit.setText('2.0')
+        loaded.ui.bgFacLineEdit.returnPressed.emit()
+        qapp.processEvents()
+        assert recorder.exceptions == [], state
