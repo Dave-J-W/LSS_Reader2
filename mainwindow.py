@@ -127,6 +127,8 @@ class MainWindow (QMainWindow):
         self.ui.pilCutDirComboBox.addItems(self.cutDirItems)
         self.plotfiles=[]
         self.twodplotfiles=[]
+        self.selected2dplotfiles_rows=[]   # rows selected in the 2D_Plot file list
+        self.plot2dindex=None               # None until a 2d data file has been plotted
         self.halftab='      '
         self.xyzformat='x=%.3f,y=%.3f,z=%.2e'
         # mpl.rc('axes',color_cycle=['b','r','g','c','m','y','k'])
@@ -1924,6 +1926,8 @@ class MainWindow (QMainWindow):
         self.ui.bgSelectAllCheckBox.setCheckState(0)
         
     def update2dPlots(self):
+        if getattr(self,'det',None) is None:   # no frames selected yet: nothing to redraw
+            return
         if self.det=='Bruker':
             self.updateCcdPlotData()
         elif self.det=='Pilatus':
@@ -5446,6 +5450,8 @@ class MainWindow (QMainWindow):
         self.update2dPlotFile()        
      
     def update2dPlotData(self):
+        if len(self.selected2dplotfiles_rows)==0:   # no 2d file selected: nothing to redraw
+            return
         data=np.loadtxt(str(self.twodplotfiles[self.selected2dplotfiles_rows[0]]), comments='#')
         x=np.unique(data[:,0])
         y=np.unique(data[:,1])
@@ -5477,7 +5483,7 @@ class MainWindow (QMainWindow):
         
     def update2dIntPolData(self):
         if len(self.selected2dplotfiles_rows)==0:
-            self.messageBox('Please select one 2d data file first!')
+            self.messageBox('Please add and select a 2d data file first!')
         else:
             self.plot2dindex=1            
             pointden=self.ui.twodDenFacSpinBox.value()
@@ -5489,6 +5495,8 @@ class MainWindow (QMainWindow):
             self.update2dPlotPlot()
     
     def update2dPlotPlot(self):
+        if self.plot2dindex is None:   # nothing plotted yet: display options do nothing
+            return
         self.ui.twodPlotMplWidget.canvas.fig.clf()
         cmap=str(self.ui.twodCMapComboBox.currentText())
         vmax=float(self.ui.twodMaxLineEdit.text())
