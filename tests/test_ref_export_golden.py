@@ -6,7 +6,8 @@ written by the unmodified reduction code. After the covariance work, the
 program must still be able to write these bytes, as ``_ref_legacy.txt`` /
 ``_rrf_legacy.txt``; set LEGACY_SUFFIX below to ``'_legacy'`` at that point.
 The only change the hand-off permits is the Qz-squared aliasing fix (trap
-T8), which affects the ``qz2`` case alone.
+T8), which affects the ``qz2`` case alone; it was made on 2026-11-17 and the
+``qz2`` fixture was regenerated then (it is now identical to ``plain``).
 
 Regenerate (only for a deliberate, recorded change):
 
@@ -178,23 +179,12 @@ def test_norm_factor_divides_both_columns(loaded, qapp, recorder, tmp_path):
     assert scaled[:, 2] == pytest.approx(plain[:, 2] / 2.5, rel=2e-4)
 
 
-@pytest.mark.xfail(strict=True, reason='hand-off trap T8: with the Qz^2 box '
-                   'checked the saved _rrf.txt holds q squared in its q column')
 def test_qz2_display_option_does_not_change_saved_q(loaded, qapp, recorder,
                                                     tmp_path):
     ref, rrf = reduce_and_save(loaded, qapp, recorder, str(tmp_path / 'out'),
                                [0, 1], qz2=True)
     a, b = np.loadtxt(ref), np.loadtxt(rrf)
     assert b[:, 0] == pytest.approx(a[:, 0], rel=2e-4)
-
-
-def test_qz2_corruption_as_coded(loaded, qapp, recorder, tmp_path):
-    """Characterisation of trap T8 so the legacy fixture is understood:
-    _ref.txt keeps q, _rrf.txt gets q squared."""
-    ref, rrf = reduce_and_save(loaded, qapp, recorder, str(tmp_path / 'out'),
-                               [0, 1], qz2=True)
-    a, b = np.loadtxt(ref), np.loadtxt(rrf)
-    assert b[:, 0] == pytest.approx(a[:, 0] ** 2, rel=3e-4)
 
 
 def test_merge_scales_the_new_scan_in_place_as_coded(window):

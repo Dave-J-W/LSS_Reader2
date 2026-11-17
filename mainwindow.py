@@ -4248,7 +4248,7 @@ class MainWindow (QMainWindow):
                 data[:,0]=data[:,0]+self.refQoff
                 data[:,1]=data[:,1]/self.fresnel(data[:,0],self.refQc)
                 data[:,2]=data[:,2]/self.fresnel(data[:,0],self.refQc)
-                self.RrfData=data
+                self.RrfData=data.copy()   # the Qz^2 option below must only change what is plotted
             if self.ui.refQzSqrCheckBox.checkState()!=0:
                 self.ui.refRefDataPlotwidget.canvas.ax.set_xlabel('Qz^2')
                 data[:,0]=data[:,0]**2
