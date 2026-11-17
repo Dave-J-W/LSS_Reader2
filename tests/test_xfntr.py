@@ -268,3 +268,44 @@ def test_fit_all_gives_the_same_curve_shape_as_the_window_sum(xf, qapp,
     lines = np.array([synth.xfntr_spectrum(q)[1].sum() for q in synth.XF_QZ])
     assert fitted[:, 3] / fitted[:, 3].max() == pytest.approx(
         lines / lines.max(), rel=5e-3)
+
+
+def test_fit_curve_can_be_saved(xf, qapp, recorder, tmp_path):
+    """Defect 6 (fixed): "Export Fit" writes <name>_fit.txt with the fitted
+    curve; it used to write to a file called "(_fit.txt"."""
+    w, truth = xf
+    d = _fit_one(w, qapp, 4)
+    recorder.save_name = str(tmp_path / 'line')
+    d.exportFitPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    saved = np.loadtxt(str(tmp_path / 'line_fit.txt'))
+    assert saved.shape[1] == 2
+    # the curve is the fitted Gaussian plus background on the fit range
+    assert 5.6 <= saved[0, 0] and saved[-1, 0] <= 7.2
+    peak = saved[np.argmax(saved[:, 1])]
+    assert peak[0] == pytest.approx(6.40, abs=0.02)
+    assert peak[1] == pytest.approx(w.fitpeakpara[0][1] + w.fitbgpara[0], rel=1e-2)
+
+
+def test_saving_before_fitting_or_cancelling_writes_nothing(xf, qapp, recorder,
+                                                           tmp_path):
+    w, truth = xf
+    sweep._select_images(w, qapp, [4])
+    w.ui.mcaFitPushButton.click()
+    qapp.processEvents()
+    d = w.uipeakfit
+    recorder.messages.clear()
+    recorder.save_name = str(tmp_path / 'early')
+    d.exportFitPushButton.click()          # nothing fitted yet
+    d.exportParaPushButton.click()         # MCA fits have no parameter report
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert len(recorder.messages) == 2
+    d = _fit_one(w, qapp, 4)
+    recorder.save_name = ''                # user cancels the file chooser
+    d.exportFitPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert [n for n in os.listdir(str(tmp_path)) if n.endswith('_fit.txt')
+            or n.endswith('_par.txt')] == []

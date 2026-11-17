@@ -2246,7 +2246,7 @@ class MainWindow (QMainWindow):
         avepoint=int(self.uipdgioxs.pointLineEdit.text())
         if avepoint<1:
             avepoint=max(np.abs(avepoint),1)
-            self.messageBox('Warning: Average points should be a positive interger!\n'+str(avepoints)+' is used as ave points in the calculation')
+            self.messageBox('Warning: Average points should be a positive interger!\n'+str(avepoint)+' is used as ave points in the calculation')
         ini=self.xcenter[0]-4
         fin=self.xcenter[0]+4
         cen=[self.xcenter[0], self.ycenter[0]]
@@ -5376,18 +5376,29 @@ class MainWindow (QMainWindow):
         return (y-sum)/yerr
     
     def savePeakFit(self): # save fit data
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Fit Data',directory=self.directory))[0]
+        if not hasattr(self,'peakfitdata'):
+            self.messageBox('There is no fit to save yet; press "Fit" first.')
+            return
+        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Fit Data',directory=self.directory)[0])
+        if self.saveFileName=='':
+            return
         fitfile=self.saveFileName+'_fit.txt'
        # print self.peakfitdata
         np.savetxt(fitfile,self.peakfitdata,fmt='%.4e\t%.4e')
 
     def savePeakPara(self): # save fit parameters
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Fit Paremeters',directory=self.directory))[0]
+        if not hasattr(self,'peakresult'):
+            # MCA fits use a different fitter that keeps no parameter report
+            self.messageBox('Fit parameters can be saved after fitting a file in the "Plot" tab. For fluorescence fits use "Accept" and export the intensities.')
+            return
+        if len(self.selectedplotfiles_rows)==0:
+            self.messageBox('Please select the fitted file in the "Plot" tab first.')
+            return
+        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Fit Paremeters',directory=self.directory)[0])
+        if self.saveFileName=='':
+            return
         fid=open(self.saveFileName+'_par.txt','w')
-        try:  #for pc
-            fid.write('Data File:\t'+str(self.plotfiles[self.selectedplotfiles_rows[0]].split('\\')[-1])+'\n')
-        except:  #for mac and linux
-            fid.write('Data File:\t'+str(self.plotfiles[self.selectedplotfiles_rows[0]].split('/')[-1])+'\n')
+        fid.write('Data File:\t'+os.path.basename(str(self.plotfiles[self.selectedplotfiles_rows[0]]))+'\n')
         fid.write('Peak Type:\t'+str(self.uipeakfit.peakTypeComboBox.currentText())+'\n')
         fid.write('# of Peaks:\t'+str(int(len(self.peakparaname)/3))+'\n')
         fid.write('BG Order:\t'+str(len(self.peakbgparaname)-1)+'\n')       
