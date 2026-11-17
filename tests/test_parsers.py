@@ -80,3 +80,34 @@ def test_mca_reader(tmp_path):
     assert m.Par[0]['Calib'] == [0.0, 0.01, 0.0]
     assert m.Par[0]['Time'] == [1.0, 1.0, 0.9]
     assert m.Par[0]['Energy'] == 12.0
+
+
+@pytest.mark.gui
+def test_repeated_scan_numbers_open_gracefully(window, qapp, recorder, tmp_path):
+    """F27: a SPEC file in which a scan number occurs twice (SPEC was
+    restarted and numbering began again) opens, says so once, lists each
+    number once, and its image scans can still be selected."""
+    import os
+    import sweep
+    root = tmp_path / 'dup'
+    os.makedirs(str(root / 'pilatus'))
+    rows = synth.ref_rows([0.02, 0.03])
+    scans = [synth.spec_scan(1, 'dup', synth.REF_COLUMNS, rows),
+             synth.spec_scan(2, 'dup', synth.REF_COLUMNS, rows),
+             '#S 1  getandsave_mca 1\n#Q 0 0 0.02\n#W x 1.24\n#A x 0\n\n']
+    spec = synth.write_spec(str(root / 'dup'), scans)
+    for j in range(2):
+        synth.write_pilatus_tif(str(root / 'pilatus' / ('dup_SCAN-2_%04d.tif' % j)),
+                                synth.pilatus_image(peak=(97, 100)))
+    window.openSpecFile(fname=spec)
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert [m for m in recorder.messages if 'more than once' in m] == [
+        'Scan number(s) 1 appear more than once in this SPEC file. '
+        'The last scan with each number is shown.']
+    assert window.ui.scanListWidget.count() == 2
+    sweep._select_scans(window, qapp, [1])            # scan 2, a Pilatus scan
+    sweep._select_images(window, qapp, [0])
+    assert recorder.exceptions == []
+    assert window.ui.imageListWidget.count() == 2
+    assert 0 in window.pilData

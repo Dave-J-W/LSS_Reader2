@@ -34,20 +34,7 @@ pytestmark = [pytest.mark.gui, pytest.mark.slow,
                                  reason='private bu sample data not present')]
 
 
-KNOWN = {
-    '2026June/20260615': 'duplicate scan numbers in the file: the detector '
-                         'paths are never set and selecting the scan raises',
-}
-
-
-def _params():
-    return [pytest.param(rel, marks=pytest.mark.xfail(
-                strict=True, reason=KNOWN[rel.replace(os.sep, '/')]))
-            if rel.replace(os.sep, '/') in KNOWN else rel
-            for rel in _spec_files()]
-
-
-@pytest.mark.parametrize('rel', _params())
+@pytest.mark.parametrize('rel', _spec_files())
 def test_every_scan_opens_without_raising(rel, window, qapp, recorder,
                                           tmp_path):
     t0 = time.time()

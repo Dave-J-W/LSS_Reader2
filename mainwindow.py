@@ -655,11 +655,13 @@ class MainWindow (QMainWindow):
         if self.specData['NumOfScans']==0:
             self.ui.statusBar.showMessage(self.specData['Message'])
         else:
-            if self.specData['Error']:
-                self.messageBox('Warning:: The spec file has identical scan numbers!!')
-            self.scanlines=[self.specData[i]['ScanLine'] for i in list(set(self.specData['ScanNums']))]
+            scannums=sorted(set(self.specData['ScanNums']))   # the scans that exist, whatever their numbering
+            repeated=sorted(set(n for n in self.specData['ScanNums'] if self.specData['ScanNums'].count(n)>1))
+            if len(repeated)>0:
+                self.messageBox('Scan number(s) '+listText(repeated)+' appear more than once in this SPEC file. The last scan with each number is shown.')
+            self.scanlines=[self.specData[i]['ScanLine'] for i in scannums]
             self.ui.scanListWidget.addItems(self.scanlines)
-            if np.any([self.specPar[i]['Detector']=='Vortex' for i in range(1,self.specData['NumOfScans']+1)]):
+            if np.any([self.specPar[i]['Detector']=='Vortex' for i in scannums]):
                 if QDir(self.directory+'/'+self.mcaDirName).exists()==True:
                     self.mcaDir=self.directory+'/'+self.mcaDirName
                 else:
@@ -668,7 +670,7 @@ class MainWindow (QMainWindow):
                 self.mcafhead=str(self.mcaDir)+'/'+self.specFileName.split('/')[-1]+'_'
                 self.mcaftail='_mca' 
                 print("MCA data Found!!")
-            if np.any([self.specPar[i]['Detector']=='Bruker' for i in range(1,self.specData['NumOfScans']+1)]):
+            if np.any([self.specPar[i]['Detector']=='Bruker' for i in scannums]):
                 try:
                     self.ccdfhead=str(self.ccdDir)+'/'+self.specFileName.split('/')[-1]+'_SCAN-'
                     self.ccdftail='.sfrm'
@@ -681,7 +683,7 @@ class MainWindow (QMainWindow):
                     self.ccdfhead=str(self.ccdDir)+'/'+self.specFileName.split('/')[-1]+'_SCAN-'
                     self.ccdftail='.sfrm'
                 print ("Bruker Images Found!!")
-            if np.any([self.specPar[i]['Detector']=='Pilatus' for i in range(1,self.specData['NumOfScans']+1)]):
+            if np.any([self.specPar[i]['Detector']=='Pilatus' for i in scannums]):
                 if QDir(self.directory+'/'+self.pilDirName).exists()==True:
                     self.pilDir=self.directory+'/'+self.pilDirName
                 else:
