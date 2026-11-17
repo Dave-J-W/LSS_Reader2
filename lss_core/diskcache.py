@@ -8,7 +8,7 @@ Settings (environment variables):
 
 ``LSS_READER_DISK_CACHE``     folder (default ``~/.lss_reader/cache``);
                               ``off`` disables the disk cache
-``LSS_READER_DISK_CACHE_MB``  size limit (default 2048); oldest-used files
+``LSS_READER_DISK_CACHE_MB``  size limit (default 5120, i.e. 5 GB); oldest-used files
                               are removed first
 ``LSS_READER_DISK_CACHE_ALL`` ``1``: cache every file. Otherwise only files
                               on a different file system from the cache
@@ -37,9 +37,9 @@ def cache_dir():
 
 def limit_bytes():
     try:
-        return int(float(os.environ.get('LSS_READER_DISK_CACHE_MB', '2048')) * _MB)
+        return int(float(os.environ.get('LSS_READER_DISK_CACHE_MB', '5120')) * _MB)
     except ValueError:
-        return 2048 * _MB
+        return 5120 * _MB
 
 
 def _wanted(path, folder):
