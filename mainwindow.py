@@ -521,10 +521,13 @@ class MainWindow (QMainWindow):
         self.ui.statusBar.showMessage('APS-15IDC Selected')
     
     def selectAPS_9IDC(self):
+        # The 9-ID-C SPEC reader was never ported from Python 2 and cannot read a
+        # file (ASSESSMENT.md, defect 8). Say so instead of failing on the next open.
         self.ui.statusBar.clearMessage()
-        self.beamline='APS-9IDC'
-        self.ui.actionAPS_15IDC.setChecked(False)
-        self.ui.statusBar.showMessage('APS-9IDC Selected')
+        self.ui.actionAPS_9IDC.setChecked(False)
+        self.ui.actionAPS_15IDC.setChecked(True)
+        self.beamline='APS-15IDC'
+        self.messageBox('APS 9-ID-C files cannot be read by this version of the reader. The beamline stays set to APS 15-ID-C.')
         
     def showAbout(self):
         cwd=os.getcwd()
@@ -578,6 +581,7 @@ class MainWindow (QMainWindow):
 
         
     def clearAll(self):
+        self.forgetImageSelection()
         # self.disconnect(self.ui.scanListWidget, SIGNAL('itemSelectionChanged()'),self.scanListChanged)
         self.ui.scanListWidget.itemSelectionChanged.disconnect(self.scanListChanged)
         # self.disconnect(self.ui.imageListWidget, SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
@@ -701,7 +705,22 @@ class MainWindow (QMainWindow):
         self.scanCenter={}
 
 
+    def forgetImageSelection(self):
+        """The image list is about to be rebuilt: selections and results that
+        refer to its rows are no longer valid. (The detector type and the
+        reduced reflectivity are kept; they do not refer to list rows.)"""
+        self.selectedPilFramesNums=[]
+        self.selectedCcdFramesNums=[]
+        self.selectedMcaScanNums=[]
+        self.nomMcaData={}
+        self.cutData={}
+        self.pilData={}
+        self.pilErrorData={}
+        self.pilGIDshow=0
+        self.pilGISAXSshow=0
+
     def scanListChanged(self):
+        self.forgetImageSelection()
         self.ui.statusBar.clearMessage()
         self.ui.imageSelectAllCheckBox.setCheckState(0)
         self.ui.imageListWidget.clear()
@@ -1132,9 +1151,10 @@ class MainWindow (QMainWindow):
 
 
         self.ui.mcaPlotMplWidget.canvas.ax.grid(visible=False)
-        if self.mcaLogX!=0:
+        mcalines=self.ui.mcaPlotMplWidget.canvas.ax.lines   # a log axis needs something positive to show
+        if self.mcaLogX!=0 and any(np.any(np.asarray(l.get_xdata(),dtype=float)>0) for l in mcalines):
             self.ui.mcaPlotMplWidget.canvas.ax.set_xscale('log')
-        if self.mcaLogY!=0:
+        if self.mcaLogY!=0 and any(np.any(np.asarray(l.get_ydata(),dtype=float)>0) for l in mcalines):
             self.ui.mcaPlotMplWidget.canvas.ax.set_yscale('log')
         if self.mcaGrid!=0:
             self.ui.mcaPlotMplWidget.canvas.ax.grid(visible=True,color='r',linestyle='--')
@@ -1950,10 +1970,12 @@ class MainWindow (QMainWindow):
                 self.selectedBgTrueAlpha.append(self.bgTrueAlpha[i])
                 self.selectedBgAbsNum.append(self.bgAbsNum[i])
                 self.selectedBgScanNum.append(self.bgScanNum[i])
-            self.pilatus.sumFiles(self.selectedBgData,self.selectedBgError,absfac=self.absfac,absnum=self.selectedBgAbsNum,mon=self.selectedBgMonc)
-            self.bgData=self.pilatus.imageData
-            self.bgError=self.pilatus.errorData
-        self.pilSelectedScanChanged()
+            if len(self.selectedBgFrameNums)>0:   # nothing selected: no background to form
+                self.pilatus.sumFiles(self.selectedBgData,self.selectedBgError,absfac=self.absfac,absnum=self.selectedBgAbsNum,mon=self.selectedBgMonc)
+                self.bgData=self.pilatus.imageData
+                self.bgError=self.pilatus.errorData
+        if self.det=='Pilatus' and len(self.selectedPilFramesNums)>0:
+            self.pilSelectedScanChanged()
 #        if len(self.ui.backgroundListWidget.selectedItems())>0:
 #            self.ui.gixSumCheckBox.setCheckState(2)
         
@@ -2157,13 +2179,13 @@ class MainWindow (QMainWindow):
                 pilXCen=4.0*np.pi*np.sin(self.dth/2.0)/self.wavelength
                 
             if self.pilmovieindex==1:
-                for i in self.selectedPilFramesNums:
+                for j,i in enumerate(self.selectedPilFramesNums):   # j: position in the selection, i: frame number
                     self.ui.pilMplWidget.canvas.fig.clf()
                     ax=self.ui.pilMplWidget.canvas.fig.add_subplot(1,1,1)
                     ax.set_xlabel(xlabel)
                     ax.set_ylabel(ylabel) 
                     ax.set_title('F #'+str(i),fontsize=16)
-                    self.extent=[pilXMin[i],pilXMax[i],pilYMin[i],pilYMax[i]]
+                    self.extent=[pilXMin[j],pilXMax[j],pilYMin[j],pilYMax[j]]
                     if self.ui.pilLogIntCheckBox.checkState()!=0:
                         p=ax.imshow(self.pilLogData[i],interpolation='bicubic',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect=aspect,origin='lower')
                         self.Zdata=self.pilLogData[i] 
@@ -2172,7 +2194,7 @@ class MainWindow (QMainWindow):
                         self.Zdata=self.pilData[i]
                     ax.format_coord=self.format_pil_coord
                     ax.autoscale(False)
-                    ax.plot([pilXCen[i],pilXCen[i]], [pilYMin[i],pilYMax[i]], 'w--', linewidth=2.0)
+                    ax.plot([pilXCen[j],pilXCen[j]], [pilYMin[j],pilYMax[j]], 'w--', linewidth=2.0)
                     self.ui.pilMplWidget.canvas.fig.colorbar(p)
                     self.ui.pilMplWidget.canvas.fig.suptitle('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
                     self.ui.pilMplWidget.canvas.fig.tight_layout()
@@ -4709,6 +4731,12 @@ class MainWindow (QMainWindow):
         if self.det not in ('Pilatus','Bruker') or len(self.cutData)==0:
             self.messageBox('There is no cut to save yet, please make a cut first!')
             return
+        if isinstance(self.cutData,dict):   # per-frame or summed cuts: they must match the present selection
+            summed=self.ui.gixSumCheckBox.checkState()!=0
+            frames=self.selectedCcdFramesNums if self.det=='Bruker' else self.selectedPilFramesNums
+            if (summed and -1 not in self.cutData) or (not summed and any(i not in self.cutData for i in frames)) or (not summed and len(frames)==0):
+                self.messageBox('The frame selection or the "Sum" option changed after the cut was made. Please make the cut again before saving.')
+                return
         self.saveFileName=QFileDialog.getSaveFileName(caption='Save Cuts', directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
@@ -5287,6 +5315,12 @@ class MainWindow (QMainWindow):
             self.uipara.close()
         
     def fitPeakFit(self):
+        if (self.mcafitallstatus!=0 or self.mcafitstatus!=0) and (len(self.selectedMcaScanNums)==0 or any(i not in self.nomMcaData for i in self.selectedMcaScanNums)):
+            self.messageBox('The MCA frames this fit was opened for are no longer selected. Please select them again.')
+            return
+        if self.mcafitallstatus==0 and self.mcafitstatus==0 and len(self.selectedplotfiles_rows)!=1:
+            self.messageBox('Please select one file in the "Plot" tab to fit.')
+            return
         if self.mcafitallstatus==0:
             if self.mcafitstatus==0:
                 data=np.loadtxt(str(self.plotfiles[self.selectedplotfiles_rows[0]]), comments='#')

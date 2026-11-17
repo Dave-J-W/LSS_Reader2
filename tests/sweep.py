@@ -260,7 +260,7 @@ def run_walk(make_window, app, recorder, spec, state, seed, steps):
     """Random sequence of ``steps`` controls starting from ``state``.
 
     Nothing is reset between steps. Returns the list of
-    (step, key, 'Type @ where') for the steps that raised.
+    (step, key, 'Type @ where', end of traceback) for the steps that raised.
     """
     import random
     rng = random.Random(seed)
@@ -288,9 +288,11 @@ def run_walk(make_window, app, recorder, spec, state, seed, steps):
             pool[key]()
             app.processEvents()
         except Exception as exc:
-            raised.append((step, key, '%s @ direct' % type(exc).__name__))
+            raised.append((step, key, '%s @ direct' % type(exc).__name__, ''))
             continue
         if recorder.exceptions:
-            raised.append((step, key, _first(recorder)))
+            t, v, tb = recorder.exceptions[0]
+            raised.append((step, key, _first(recorder),
+                           ''.join(traceback.format_exception(t, v, tb)[-4:])))
     dispose(w, app, recorder)
     return raised

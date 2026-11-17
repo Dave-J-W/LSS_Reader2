@@ -1,4 +1,6 @@
 """End-to-end reduction of the synthetic data set through the real widgets."""
+import os
+
 import numpy as np
 import pytest
 
@@ -124,3 +126,43 @@ def test_reader_never_modifies_the_spec_file(loaded, qapp, dataset, recorder):
     loaded.readSpecFile()                       # the "refresh" path
     qapp.processEvents()
     assert digest() == before
+
+
+def test_movie_of_a_sub_selection_uses_each_frames_own_axes(loaded, qapp,
+                                                            dataset, recorder):
+    """The movie loop indexed the per-selection axis limits with the frame
+    number. Selecting frames that do not start at 0 raised, or silently
+    showed a frame against another frame's axes."""
+    sweep._select_scans(loaded, qapp, [0])
+    sweep._select_images(loaded, qapp, [5, 7])
+    loaded.ui.pilAxesComboBox.setCurrentIndex(loaded.ui.pilAxesComboBox.findText('Q'))
+    qapp.processEvents()
+    loaded.ui.pilMoviePushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    # the last frame shown is frame 7; its Qz axis must be centred on its own Qz
+    ax = loaded.ui.pilMplWidget.canvas.fig.axes[0]
+    assert ax.get_title() == 'F #7'
+    lo, hi = ax.get_ylim()
+    qz7 = loaded.pilFileQzs[7]
+    row = synth.DB_Y / (synth.PIL_W - 1.0)          # beam row as a fraction
+    assert lo + row * (hi - lo) == pytest.approx(qz7, abs=2e-3)
+
+
+def test_cut_export_after_the_selection_changed_asks_for_a_new_cut(
+        loaded, qapp, dataset, recorder, tmp_path):
+    sweep.state_pilatus_two_scans_all_frames(loaded, qapp, dataset)
+    loaded.ui.pilCutDirComboBox.setCurrentIndex(2)
+    loaded.ui.pilIntRangeLineEdit.setText('90:110')
+    loaded.ui.pilLineAreaPushButton.click()
+    qapp.processEvents()
+    loaded.ui.gixSumCheckBox.setChecked(True)       # cut was per frame; now "Sum"
+    qapp.processEvents()
+    recorder.messages.clear()
+    recorder.save_name = str(tmp_path / 'cut')
+    loaded.cutData = {k: v for k, v in loaded.cutData.items() if k != -1}
+    loaded.ui.cutExportPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert len(recorder.messages) == 1 and 'make the cut again' in recorder.messages[0]
+    assert [n for n in os.listdir(str(tmp_path)) if n.startswith('cut')] == []
