@@ -175,7 +175,22 @@ def test_spec_reader_identical_to_eval_version(path, qapp):
     import spec_routines
     old = _legacy('spec_routines_eval').specread(path, data={}, par={})
     new = spec_routines.specread(path)
-    assert _same(old.Data, new.Data) and _same(old.Par, new.Par)
+    # the one deliberate addition since the eval version (F50/D24, 2026-11-17):
+    # a scan without #A gets the last #A above it, marked by 'AbsorberFrom',
+    # and Data keeps that last #A for refreshes. Only those, and only on
+    # scans the old reader left without an absorber.
+    data = dict(new.Data)
+    assert 'LastAbsorber' in data
+    data.pop('LastAbsorber')
+    par = {}
+    for num, p in new.Par.items():
+        p = dict(p)
+        if 'AbsorberFrom' in p:
+            assert 'Absorber' not in old.Par[num]
+            assert p['Absorber'] == new.Par[p['AbsorberFrom']]['Absorber']
+            del p['Absorber'], p['AbsorberFrom']
+        par[num] = p
+    assert _same(old.Data, data) and _same(old.Par, par)
 
 
 def test_mca_reader_is_fast():
