@@ -158,5 +158,12 @@ After fixing crashes, regenerate both files:
 
     LSS_UPDATE_CRASHES=1 pytest -m sweep
 
-Not covered: dialogs opened from dialogs, real mouse interaction with the
-plots. Bruker images are deliberately not covered: that detector is defunct.
+**Inside dialogs** (`tests/test_dialog_workflows.py`). The dialogs behind
+"Ref Patch" (identical-scans dialog, patch dialog, beam-position and
+bad-pixel information dialogs), "Burn test" and the GID actions (patch,
+form-factor dialog, save, GISAXS, cuts) have scripted tests and random
+walks: every control of whatever dialogs are open is pressed, typed into
+(from a bank of good and bad inputs) or chosen from, 40–60 times in a row,
+reopening the dialog when it closes. The walks are marked `sweep`.
+
+Not covered: real mouse interaction with the plots. Bruker images are deliberately not covered: that detector is defunct.

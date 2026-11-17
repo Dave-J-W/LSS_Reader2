@@ -296,3 +296,87 @@ def run_walk(make_window, app, recorder, spec, state, seed, steps):
                            ''.join(traceback.format_exception(t, v, tb)[-4:])))
     dispose(w, app, recorder)
     return raised
+
+
+# ---- walks inside dialogs ---------------------------------------------------
+
+TEXT_BANK = ('', '0', '1', '-1', '0,-1', '-1,0', '2,3', '99', '-99', 'abc',
+             '1:2', '0:0.2', '1.40:1.52', '5', '-0.5', '0.5', '1e9', ',', '0,0')
+
+
+def dialog_controls(dialog, rng):
+    """Every control of an open dialog as {key: callable}; line edits get a
+    text from TEXT_BANK and Enter, combo boxes a random entry."""
+    out = {}
+    for b in dialog.findChildren(QtWidgets.QAbstractButton):
+        name = b.objectName()
+        if not name or name.startswith('qt_') or not b.isEnabled():
+            continue
+        if isinstance(b, (QtWidgets.QCheckBox, QtWidgets.QRadioButton)):
+            out['toggle:' + name] = b.toggle
+        else:
+            out['click:' + name] = b.click
+    for c in dialog.findChildren(QtWidgets.QComboBox):
+        if c.objectName() and c.count():
+            def pick(c=c):
+                i = rng.randrange(c.count())
+                c.setCurrentIndex(i)
+                c.activated.emit(i)
+            out['combo:' + c.objectName()] = pick
+    for e in dialog.findChildren(QtWidgets.QLineEdit):
+        if e.objectName() and not e.objectName().startswith('qt_') and not e.isReadOnly():
+            def type_(e=e):
+                e.setText(rng.choice(TEXT_BANK))
+                e.returnPressed.emit()
+                e.editingFinished.emit()
+            out['type:' + e.objectName()] = type_
+    for bb in dialog.findChildren(QtWidgets.QDialogButtonBox):
+        for b in bb.buttons():
+            out['box:' + b.text()] = b.click
+    return out
+
+
+def run_dialog_walk(w, app, recorder, open_dialog, seed, steps, reopen=True):
+    """Open a dialog with ``open_dialog()`` and apply ``steps`` random actions
+    to whatever dialogs are open (including dialogs opened by dialogs).
+    When all dialogs have closed, ``open_dialog`` is called again if
+    ``reopen``. Returns [(step, key, 'Type @ where', traceback tail)]."""
+    import random
+    rng = random.Random(seed)
+    raised = []
+
+    def record(step, key):
+        if recorder.exceptions:
+            t, v, tb = recorder.exceptions[0]
+            raised.append((step, key, _first(recorder),
+                           ''.join(traceback.format_exception(t, v, tb)[-4:])))
+            recorder.exceptions.clear()
+
+    recorder.exceptions.clear()
+    open_dialog()
+    app.processEvents()
+    record(-1, 'open')
+    for step in range(steps):
+        dialogs = [d for d in QtWidgets.QApplication.topLevelWidgets()
+                   if isinstance(d, QtWidgets.QDialog) and d.isVisible()]
+        pool = {}
+        for d in dialogs:
+            pool.update(('%s/%s' % (d.objectName() or 'dialog', k), f)
+                        for k, f in dialog_controls(d, rng).items())
+        if not pool:
+            if not reopen:
+                break
+            open_dialog()
+            app.processEvents()
+            record(step, 'reopen')
+            continue
+        key = rng.choice(sorted(pool))
+        try:
+            pool[key]()
+            app.processEvents()
+        except Exception as exc:
+            raised.append((step, key, '%s @ direct' % type(exc).__name__, ''))
+            continue
+        record(step, key)
+    _close_dialogs(w)
+    return raised

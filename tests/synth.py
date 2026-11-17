@@ -253,3 +253,25 @@ def make_burn_dataset(root, name='burn'):
         write_pilatus_tif(os.path.join(root, 'pilatus', '%s_SCAN-1_%04d.tif' % (name, j)),
                           pilatus_image(peak=peak, amplitude=amp))
     return spec
+
+
+def make_identical_scans_dataset(root, name='same'):
+    """Reflectivity scans 1-2 as in make_dataset, plus scan 3 measured with
+    the same Qz points and absorber as scan 2 (a repeat), so that "Ref
+    Patch" first opens the identical-scans dialog."""
+    root = str(root)
+    os.makedirs(os.path.join(root, 'pilatus'))
+    qz1 = np.linspace(0.01, 0.05, 9)
+    qz2 = np.linspace(0.04, 0.10, 7)
+    scans = [spec_scan(1, name, REF_COLUMNS, ref_rows(qz1)),
+             spec_scan(2, name, REF_COLUMNS, ref_rows(qz2), absorber=1),
+             spec_scan(3, name, REF_COLUMNS, ref_rows(qz2), absorber=1)]
+    spec = write_spec(os.path.join(root, name), scans)
+    peak = (PIL_H - DB_X - 1, DB_Y)
+    for num, qzs, att in ((1, qz1, 1.0), (2, qz2, ABSFAC), (3, qz2, ABSFAC)):
+        for j, q in enumerate(qzs):
+            amp = PEAK_AMPLITUDE * reflectivity(q) / att * (1.02 if num == 3 else 1.0)
+            write_pilatus_tif(
+                os.path.join(root, 'pilatus', '%s_SCAN-%d_%04d.tif' % (name, num, j)),
+                pilatus_image(peak=peak, amplitude=amp))
+    return spec

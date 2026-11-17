@@ -821,3 +821,25 @@ on any control or sequence that raises fails the sweep outright.
 Limits, unchanged: dialogs opened from dialogs are not driven; mouse
 interaction with plots is not exercised; the sweep runs on synthetic data;
 Pilatus 1M and per-point MCA data are not readable yet and so not covered.
+
+### 2026-11-17 — Ref Patch, Burn test and GID dialogs, drilled into
+
+**Q.** (owner) Ref patch, burn test and GID patch are very important and
+may have sub-dialogs; add those to the tests.
+
+**A.** Done (`tests/test_dialog_workflows.py`). Measured: 25 random walks of
+40–60 actions inside the dialogs (with a synthetic data set that contains a
+repeated scan, the synthetic burn set, and the real NX school GID scans)
+found three failures, all fixed:
+
+- identical-scans dialog: "Drop" with empty or non-numeric text raised;
+- identical-scans dialog: "Merge" after both scans were dropped raised; and
+  dropping down to one scan then finishing would have failed later (now the
+  remaining scan is used as the reflectivity directly);
+- form-factor dialog: a non-numeric radius raised on "OK", and on "Update"
+  was reported as "GID patch data does not exist".
+
+Scripted checks added: merging two identical scans gives their mean with
+errors √(σ₁²+σ₂²)/2; dropping a point removes exactly that Q_z; a beam more
+than 2 pixels from its recorded row opens the information dialog that
+lists it; the form-factor radii are taken from the dialog only when valid.

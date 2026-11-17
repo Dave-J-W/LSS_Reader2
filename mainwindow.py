@@ -2380,61 +2380,49 @@ class MainWindow (QMainWindow):
         # self.connect(self.uipdformfac.okPushButton, SIGNAL('clicked()'),self.presetFormFactor) #preset formfactor
         self.uipdformfac.okPushButton.clicked.connect(self.presetFormFactor)
         
-    def presetFormFactor(self):
-        if self.uipdformfac.sphCheckBox.checkState()!=0 and self.uipdformfac.ellCheckBox.checkState()!=0:
-            self.messageBox('Warning: Both "Sphere" and "Ellipsoid" are selected.\n Please uncheck one of them at least.')
-        elif self.uipdformfac.sphCheckBox.checkState()!=0:
-            self.formfactor_rxy=0
-            self.formfactor_rz=0
-            self.formfactor_r=float(self.uipdformfac.sphLineEdit.text())
-            if self.formfactor_r<=0:
-                self.messageBox('Warning: The radius of the sphere should be positive!')
-            else:
-                self.uipdformfac.close()
-        elif self.uipdformfac.ellCheckBox.checkState()!=0:
-            self.formfactor_r=0
-            self.formfactor_rxy=float(self.uipdformfac.ellXYLineEdit.text())
-            self.formfactor_rz=float(self.uipdformfac.ellZLineEdit.text())
-            if self.formfactor_rxy<=0 or self.formfactor_rz<=0:
-                self.messageBox('Warning: The radius of the ellipsoid should be positive!')
-            else:
-                self.uipdformfac.close()
-        else:
-            self.formfactor_r=0
-            self.formfactor_rxy=0
-            self.formfactor_rz=0
-            self.uipdformfac.close()
-            
-    def updateFormFactor(self):
+    def readFormFactor(self):
+        """(r, rxy, rz) from the form-factor dialog, or None after telling the
+        user what is wrong. Zero means "not used"."""
+        ui=self.uipdformfac
+        sph=ui.sphCheckBox.checkState()!=0
+        ell=ui.ellCheckBox.checkState()!=0
+        if sph and ell:
+            self.messageBox('Both "Sphere" and "Ellipsoid" are selected; please uncheck one of them.')
+            return None
         try:
-            temp=len(self.pilGIDData)
-            if self.uipdformfac.sphCheckBox.checkState()!=0 and self.uipdformfac.ellCheckBox.checkState()!=0:
-                self.messageBox('Warning: Both "Sphere" and "Ellipsoid" are selected.\n Please uncheck one of them at least.')
-            elif self.uipdformfac.sphCheckBox.checkState()!=0:
-                self.formfactor_rxy=0
-                self.formfactor_rz=0
-                self.formfactor_r=float(self.uipdformfac.sphLineEdit.text())
-                if self.formfactor_r<=0:
-                    self.messageBox('Warning: The radius of the sphere should be positive!')
-                else:
-                    self.pilGIDPlot()
-            elif self.uipdformfac.ellCheckBox.checkState()!=0:
-                self.formfactor_r=0
-                self.formfactor_rxy=float(self.uipdformfac.ellXYLineEdit.text())
-                self.formfactor_rz=float(self.uipdformfac.ellZLineEdit.text())
-                if self.formfactor_rxy<=0 or self.formfactor_rz<=0:
-                    self.messageBox('Warning: The radius of the ellipsoid should be positive!')
-                else:
-                    self.pilGIDPlot()
-            else:
-                self.formfactor_r=0
-                self.formfactor_rxy=0
-                self.formfactor_rz=0
-                self.pilGIDPlot()
-        except:
-            self.messageBox('Waning: GID patch data does not exist!\n Please do the GID patch first')
-            
-    
+            if sph:
+                r=float(ui.sphLineEdit.text())
+                if not r>0:
+                    raise ValueError
+                return (r,0,0)
+            if ell:
+                rxy=float(ui.ellXYLineEdit.text())
+                rz=float(ui.ellZLineEdit.text())
+                if not (rxy>0 and rz>0):
+                    raise ValueError
+                return (0,rxy,rz)
+        except ValueError:
+            self.messageBox('The radius of the '+('sphere' if sph else 'ellipsoid')+' must be a positive number.')
+            return None
+        return (0,0,0)
+
+    def presetFormFactor(self):
+        radii=self.readFormFactor()
+        if radii is None:
+            return
+        self.formfactor_r,self.formfactor_rxy,self.formfactor_rz=radii
+        self.uipdformfac.close()
+
+    def updateFormFactor(self):
+        if getattr(self,'pilGIDData',None) is None or self.pilGIDshow==0:
+            self.messageBox('There is no GID map yet; please do the GID patch first.')
+            return
+        radii=self.readFormFactor()
+        if radii is None:
+            return
+        self.formfactor_r,self.formfactor_rxy,self.formfactor_rz=radii
+        self.pilGIDPlot()
+
     def pilGIDpatchData(self):
         if self.pilGIDshow==0:
             # self.disconnect(self.ui.pilAxesComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
@@ -3609,9 +3597,16 @@ class MainWindow (QMainWindow):
     
     def pilRefSameScanPlot(self):  
         if self.pilrefsamescanorder==len(self.pilrefsamescannum):
-            self.pilrefsort=self.sortedScans(self.scanqzframe, mtype='qz')
+            self.pilrefsort=list(self.sortedScans(self.scanqzframe, mtype='qz'))
             self.uirefpatchsamescan.close()
-            self.pilRefPatch()
+            if len(self.pilrefsort)==0:
+                self.messageBox('All scans were dropped; there is no reflectivity to patch.')
+            elif len(self.pilrefsort)==1:   # one scan left: nothing to patch, use it as it is
+                self.refData=list(np.atleast_2d(self.scanqzframe[self.pilrefsort[0]]))
+                self.ui.PlotWidget.setCurrentIndex(3)
+                self.updateRefDataList()
+            else:
+                self.pilRefPatch()
         else:
             self.uirefpatchsamescan.Label.setText('Indentical Reflectivity Scans: '+listText(np.sort(self.pilrefsamescannum[self.pilrefsamescanorder])))
             if self.pilrefsamescanorder==len(self.pilrefsamescannum)-1:
@@ -3625,20 +3620,25 @@ class MainWindow (QMainWindow):
             self.uirefpatchsamescan.plotWidget.canvas.draw()
 
     def pilRefSSDrop(self):
-        dropnumbers=str(self.uirefpatchsamescan.dropLineEdit.text()).split(',')
-        dropnumbers=list(map(int,dropnumbers))
-        for i in range(len(dropnumbers)):
-            try:
-                self.scanqzframe.pop(dropnumbers[i])
-                self.pilrefsamescannum[self.pilrefsamescanorder].remove(dropnumbers[i])
-            except:
-                pass
-        self.pilRefSameScanPlot()            
-        #print  self.scanqzframe
-        #print  self.pilrefsamescannum
-        
-    
+        group=self.pilrefsamescannum[self.pilrefsamescanorder]
+        try:
+            dropnumbers=[int(t) for t in str(self.uirefpatchsamescan.dropLineEdit.text()).split(',')]
+        except ValueError:
+            self.messageBox('Please enter the scan numbers to drop, separated by commas, e.g. "12,14".')
+            return
+        unknown=[n for n in dropnumbers if n not in group]
+        if unknown:
+            self.messageBox('Scan(s) '+listText(unknown)+' are not in this group of identical scans ('+listText(group)+').')
+            return
+        for n in dropnumbers:
+            self.scanqzframe.pop(n,None)
+            group.remove(n)
+        self.pilRefSameScanPlot()
+
     def pilRefSSMerge(self):
+        if len(self.pilrefsamescannum[self.pilrefsamescanorder])<2:
+            self.messageBox('There is nothing to merge: fewer than two scans are left in this group.')
+            return
         datax=self.scanqzframe[self.pilrefsamescannum[self.pilrefsamescanorder][0]][:,0]
         datay=self.scanqzframe[self.pilrefsamescannum[self.pilrefsamescanorder][0]][:,1]
         datayerr=self.scanqzframe[self.pilrefsamescannum[self.pilrefsamescanorder][0]][:,2]**2
