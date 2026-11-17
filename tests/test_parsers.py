@@ -111,3 +111,21 @@ def test_repeated_scan_numbers_open_gracefully(window, qapp, recorder, tmp_path)
     assert recorder.exceptions == []
     assert window.ui.imageListWidget.count() == 2
     assert 0 in window.pilData
+
+
+def test_only_15idc_files_are_read(qapp, dataset, tmp_path):
+    """9-ID-C support was removed (owner, 2026-11-17)."""
+    from spec_routines import specread
+    from mca_routines import mcaread
+    with pytest.raises(ValueError, match='only APS-15IDC'):
+        specread(dataset, beamline='APS-9IDC')
+    path = synth.write_mca(str(tmp_path / 's_1_mca'), [np.arange(40)])
+    with pytest.raises(ValueError, match='only APS-15IDC'):
+        mcaread(path, beamline='APS-9IDC')
+
+
+@pytest.mark.gui
+def test_9idc_menu_entry_is_hidden(window):
+    assert not window.ui.actionAPS_9IDC.isVisible()
+    assert window.ui.actionAPS_15IDC.isChecked()
+    assert window.beamline == 'APS-15IDC'

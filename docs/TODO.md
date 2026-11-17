@@ -40,8 +40,8 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [x] Bruker/CCD code removed (D8, F38); geometry kept in
       `ccd_geometry_precedent.md`; Apex tab hidden pending the GUI work.
 - [ ] Final sweep of Stage 1 on the current code (running).
-- [ ] Remaining read-only defects of `ASSESSMENT.md` §4 (8: 9-ID-C reader,
-      pending the owner's answer on whether 9-ID-C is needed; 10–13, 15:
+- [ ] Remaining read-only defects of `ASSESSMENT.md` §4 (8: 9-ID-C reader —
+      removed, not needed, D17; 10–13, 15:
       physics, tracked in `PHYSICS_ISSUES.md` and not to be changed without
       the owner).
 

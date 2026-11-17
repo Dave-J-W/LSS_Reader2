@@ -22,8 +22,8 @@ class specread:
         self.specfile=specfile
         if beamline=='APS-15IDC':
             self.APS_15IDC(startLineNum=startLineNum, endScanNum=endScanNum, det=det)
-        if beamline=='APS-9IDC':
-            self.APS_9IDC(startLineNum=startLineNum,endScanNum=endScanNum, det=det)
+        if beamline!='APS-15IDC':
+            raise ValueError('unsupported beamline %r: only APS-15IDC files can be read' % (beamline,))
         
     def updateProgress(self):
         self.progressDialog.setValue(self.progressDialog.value()+1)
@@ -169,99 +169,3 @@ class specread:
                 if self.progressDialog.wasCanceled()==True:
                     break
         self.progressDialog.hide()
-            
-                  
-    
-    def APS_9IDC(self,startLineNum=0,endScanNum=0, det='CCD'):
-        """
-        Function to read a complete spec File collected at APS 9IDC 
-        """
-        self.progressDialog=QProgressDialog('Reading scans form SPEC File:','Abort',0,100)
-        self.progressDialog.setWindowModality(Qt.WindowModal)
-        self.progressDialog.setWindowTitle('Wait')
-        self.progressDialog.setAutoClose(True)
-        self.progressDialog.setAutoReset(True)
-        self.progressDialog.setMinimum(1)
-        self.Data['YCol']='Bicron1'
-        self.Data['NCol']='i2'
-        fid=open(self.specfile)
-        fdata=fid.readlines()
-        self.SpecFileFull=fdata
-        fid.close()
-        if len(fdata)==0 or fdata[0][:2]!='#F':
-            self.endLineNum=0
-            self.Data['NumOfScans']=0
-            self.Data['Message']='The file is not a valid specfile!!'
-            print ('Error:: The file is not a valid specfile!!')
-        else:
-            startScanLineNums=[i for i in range(startLineNum, len(fdata)) if fdata[i][:2]=='#S']
-            self.progressDialog.setMaximum(len(startScanLineNums))
-            self.progressDialog.show()
-            self.endLineNum=startScanLineNums[-1]
-            if startLineNum>0:
-                startScanLineNums=sorted(startScanLineNums)
-            self.Data['StartScanLineNums']=startScanLineNums
-            numOfScans=len(self.Data['StartScanLineNums'])
-            scanLines=[fdata[i] for i in startScanLineNums]
-            if startLineNum==0:
-                tmp=0
-                self.Data['NumOfScans']=0#numOfScans
-                self.Data['ScanLines']=[]#scanLines
-                self.Data['StartScanLineNums']=[]#startScanLineNums
-                self.Par['ParName']=[]
-                for i in range(startScanLineNums[0]):
-                    line=fdata[i].split()
-                    if fdata[i][:2]=='#O':
-                        self.Par['ParName']=self.Par['ParName']+line[1:]
-            else:
-                tmp=self.Data['NumOfScans']
-                self.Data['NumOfScans']=self.Data['NumOfScans']-1#+numOfScans
-                self.Data['ScanLines']=self.Data['ScanLines'][:-1]#+scanLines[1:]
-                self.Data['StartScanLineNums']=self.Data['StartScanLineNums'][:-1]#+startScanLineNums
-            for i in range(numOfScans):
-                start=startScanLineNums[i]+1
-                line=fdata[start]
-                i=i+tmp
-                self.Data[i]={}
-                self.Par[i]={}
-                if fdata[start-1].split()[2]=='getandsave_mca' or fdata[start-1].split()[2]=='MCAscanpt':
-                    self.Par[i]['Mca']=1
-                    self.Data[i]['ScanVar']='Empty'
-                else:
-                    self.Par[i]['Mca']=0
-                self.Par[i]['CCD']=0
-                tmpdata=[]
-                pstart=0
-                while line[:2]!='\n' and line[:2]!='#C':
-                    if line[:2]=='#P':
-                        parValue=map(eval,fdata[start].split()[1:])
-                        for j in range(len(parValue)):
-                            self.Par[i][self.Par['ParName'][pstart]]=parValue[j]
-                            pstart=pstart+1
-                    if line[:2]=='#Q':
-                        tmppar=line[2:].split()
-                        self.Par[i]['Q']=map(eval, tmppar)
-                    if line[:2]=='#L':
-                        scanVar=line[3:-1].split()
-                        self.Data[i]['ScanVar']=scanVar
-                    if line[0]!='#':
-                        tmpdata.append(map(eval, line.split(  )))
-                    start=start+1
-                    line=fdata[start]
-                for j in range(len(scanVar)):
-                    try:
-                        self.Data[i][scanVar[j]]=np.array(tmpdata)[:,j]
-                    except:
-                        self.Data[i][scanVar[j]]=None
-                if len(self.Par[i])==1:
-                    self.Par[i]['Message']='No parameters!!'
-                self.progressDialog.setLabelText('Reading scans form SPEC File: '+str(i+1)) 
-                self.updateProgress()
-                self.Data['NumOfScans']=i
-                self.Data['ScanLines']=self.Data['ScanLines']+[scanLines[i-tmp]]
-                self.Data['StartScanLineNums']=self.Data['StartScanLineNums']+[startScanLineNums[i-tmp]]
-                self.endLineNum=startScanLineNums[i-tmp]
-                if self.progressDialog.wasCanceled()==True:
-                    break
-        self.progressDialog.hide()
-                    

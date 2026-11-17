@@ -165,8 +165,7 @@ class MainWindow (QMainWindow):
         self.ui.speUpSpeFilePushButton.clicked.connect(self.readSpecFile)
         # self.connect(self.ui.actionAPS_15IDC, SIGNAL('triggered()'),self.selectAPS_15IDC)
         self.ui.actionAPS_15IDC.triggered.connect(self.selectAPS_15IDC)
-        # self.connect(self.ui.actionAPS_9IDC, SIGNAL('triggered()'),self.selectAPS_9IDC)
-        self.ui.actionAPS_9IDC.triggered.connect(self.selectAPS_9IDC)
+        self.ui.actionAPS_9IDC.setVisible(False)   # 9-ID-C is not supported (owner, 2026-11-17)
         # self.connect(self.ui.actionG_l2, SIGNAL('triggered()'), self.calg_l2)
         self.ui.actionG_l2.triggered.connect(self.calg_l2)
         # self.connect(self.ui.actionG_l3, SIGNAL('triggered()'), self.calg_l3)
@@ -484,19 +483,11 @@ class MainWindow (QMainWindow):
 
 
     def selectAPS_15IDC(self):
+        # 15-ID-C is the only beamline; the menu entry stays checked
         self.ui.statusBar.clearMessage()
         self.beamline='APS-15IDC'
-        self.ui.actionAPS_9IDC.setChecked(False)
-        self.ui.statusBar.showMessage('APS-15IDC Selected')
-    
-    def selectAPS_9IDC(self):
-        # The 9-ID-C SPEC reader was never ported from Python 2 and cannot read a
-        # file (ASSESSMENT.md, defect 8). Say so instead of failing on the next open.
-        self.ui.statusBar.clearMessage()
-        self.ui.actionAPS_9IDC.setChecked(False)
         self.ui.actionAPS_15IDC.setChecked(True)
-        self.beamline='APS-15IDC'
-        self.messageBox('APS 9-ID-C files cannot be read by this version of the reader. The beamline stays set to APS 15-ID-C.')
+        self.ui.statusBar.showMessage('APS-15IDC Selected')
         
     def showAbout(self):
         cwd=os.getcwd()
