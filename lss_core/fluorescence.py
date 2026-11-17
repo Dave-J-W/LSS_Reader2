@@ -19,12 +19,13 @@ import numpy as np
 from .errors import as_model
 
 
-def normalise_spectrum(counts, par, monitor_value, calibration, errors=None, absorber=1.0):
+def normalise_spectrum(counts, par, monitor_value, calibration, errors=None, absorber=1.0, gain=1.0):
     """(N, 3) energy, normalised counts, error, as ``updateMcaPlotData``.
     ``errors``: error model (None or 'legacy': as the window always did).
     ``absorber``: the nominal absorber factor absfac**n of the scan, applied
     to normalised spectra (value and error); the foils are before the sample
-    and the monitor upstream of them (owner, 2026-11-17)."""
+    and the monitor upstream of them (owner, 2026-11-17). ``gain``: the
+    monitor-gain factor S_ref/S (lss_core.monitor), when that option is on."""
     y = np.array(counts, dtype='float')
     x = np.arange(1, len(y) + 1)
     con, lin, qua = calibration
@@ -39,8 +40,8 @@ def normalise_spectrum(counts, par, monitor_value, calibration, errors=None, abs
         out = np.vstack((x, y / n * tc, np.sqrt(y / n ** 2 * tc ** 2 + (y / n * tc) ** 2 * u ** 2))).transpose()
     else:
         out = np.vstack((x, y / n * tc, np.sqrt(y + y ** 2 / n) / n * tc)).transpose()
-    if absorber != 1.0:          # 1.0 leaves the numbers untouched (legacy files)
-        out[:, 1:] *= absorber
+    if absorber * gain != 1.0:   # 1.0 leaves the numbers untouched (legacy files)
+        out[:, 1:] *= absorber * gain
     return out
 
 

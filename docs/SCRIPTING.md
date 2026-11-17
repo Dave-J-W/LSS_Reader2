@@ -63,7 +63,10 @@ no factor).
 The normalised value is N · (t_real/t_live) · absfac**n / M per channel:
 proportional to fluorescence per photon on the sample while the monitor
 gain, energy and geometry stay the same (`physics_notes.md`, 2026-11-17;
-the monitor gain is not yet included, F52). `flu.spectra` holds the
+`monitor_gain=True` also divides by the
+`Monc` gain, i.e. by M·S/(1 µA/V), S from `#M Monc Gain` (the last one
+above an MCA scan); scans whose gain is unknown get no factor and are
+listed in `flu.unknown_gain`). `flu.spectra` holds the
 normalised spectra, `flu.rows` the [frame, Qz, energy, intensity, error]
 rows. Checked byte for byte against the window's `_flu.txt` on synthetic
 and real data.

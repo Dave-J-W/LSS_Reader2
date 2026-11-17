@@ -33,6 +33,7 @@ import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
 from lss_core.absorbers import ABSFAC_10KEV
+from lss_core.monitor import gain_factor
 from lss_core.errors import ErrorModel, MonitorModel, MonitorTerms, script_kw, ELECTRONICS
 #from TwoD_Integrate import integrate_2d
 
@@ -173,6 +174,7 @@ class MainWindow (QMainWindow):
         self.initMessagePane()
         self.initScriptPane()
         self.initErrorPane()
+        self.initMonitorGainOption()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
         self.initValidator()
@@ -853,19 +855,20 @@ class MainWindow (QMainWindow):
                 x=tempx
                 y=tempy
                 n=self.specData[i][str(self.ui.spNComboBox.currentText())]
+                g=self.monitorGainFactor(i,self.ui.spNComboBox.currentText()) if self.ui.spNCheckBox.checkState()!=0 else 1.0
                 if str(self.ui.spY2ComboBox.currentText())=='None':
                     self.label='S '+str(i)
-                    self.specPlot(x,y,n)
+                    self.specPlot(x,y,n,g)
                 else: 
                     self.label='S '+str(i)+str(self.ui.spYComboBox.currentText())
-                    self.specPlot(x,y,n)
+                    self.specPlot(x,y,n,g)
                     y2=self.specData[i][str(self.ui.spY2ComboBox.currentText())]
                     self.label='S '+str(i)+str(self.ui.spY2ComboBox.currentText())
-                    self.specPlot(x,y2,n)
+                    self.specPlot(x,y2,n,g)
                 yerr=pl.sqrt(np.abs(y))
                 if self.ui.spNCheckBox.checkState()!=0:
-                    yerr=pl.sqrt(y/n**2+y**2/n**3)
-                    y=y/n
+                    yerr=pl.sqrt(y/n**2+y**2/n**3)*g
+                    y=y/n*g
             try:
                 self.specPeakFit(x,y,yerr)
                 self.peakPos='%.4f'%x[np.argmax(y)]
@@ -912,11 +915,12 @@ class MainWindow (QMainWindow):
             x=self.specData[i][str(self.ui.spXComboBox.currentText())]
             y=self.specData[i][str(self.ui.spYComboBox.currentText())]
             n=self.specData[i][str(self.ui.spNComboBox.currentText())]
+            g=self.monitorGainFactor(i,self.ui.spNComboBox.currentText()) if self.ui.spNCheckBox.checkState()!=0 else 1.0
             yerr=pl.sqrt(y)
             self.fname=self.saveFileName+'_'+str(i)+'_'+str(self.ui.spXComboBox.currentText())+'_'+str(self.ui.spYComboBox.currentText())+'.txt'
             if self.ui.spNCheckBox.checkState()!=0:
-                yerr=pl.sqrt(y/n**2+y**2/n**3)
-                y=y/n
+                yerr=pl.sqrt(y/n**2+y**2/n**3)*g
+                y=y/n*g
                 self.fname=self.saveFileName+'_'+str(i)+'_'+str(self.ui.spXComboBox.currentText())+'_'+str(self.ui.spYComboBox.currentText())+'_'+str(self.ui.spNComboBox.currentText())+'.txt'
             specscandata=[[x[j],y[j],yerr[j]] for j in range(len(x))]
             np.savetxt(self.fname,specscandata,fmt='%.4f\t%.4e\t%.4e')
@@ -925,8 +929,8 @@ class MainWindow (QMainWindow):
                 yer2r=pl.sqrt(y2)
                 self.fname=self.saveFileName+'_'+str(i)+'_'+str(self.ui.spXComboBox.currentText())+'_'+str(self.ui.spY2ComboBox.currentText())+'.txt'
                 if self.ui.spNCheckBox.checkState()!=0:
-                    yerr2=pl.sqrt(y2/n**2+y2**2/n**3)
-                    y2=y2/n
+                    yerr2=pl.sqrt(y2/n**2+y2**2/n**3)*g
+                    y2=y2/n*g
                     self.fname=self.saveFileName+'_'+str(i)+'_'+str(self.ui.spXComboBox.currentText())+'_'+str(self.ui.spY2ComboBox.currentText())+'_'+str(self.ui.spNComboBox.currentText())+'.txt'
                 specscandata=[[x[j],y2[j],yerr[j]] for j in range(len(x))]
                 np.savetxt(self.fname,specscandata,fmt='%.4f\t%.4e\t%.4e')
@@ -956,11 +960,11 @@ class MainWindow (QMainWindow):
         self.ui.specPlotMplWidget.canvas.draw()
             
         
-    def specPlot(self,x,y,n):
+    def specPlot(self,x,y,n,g=1.0):
         yerr=pl.sqrt(y)
         if self.ui.spNCheckBox.checkState()!=0:
-            yerr=pl.sqrt(y/n**2+y**2/n**3)
-            y=y/n
+            yerr=pl.sqrt(y/n**2+y**2/n**3)*g
+            y=y/n*g
         self.ui.specPlotMplWidget.canvas.ax.errorbar(x,y,yerr,label=self.label,fmt='o-')
         for i in range(len(x)):
             self.ui.specPlotMplWidget.canvas.ax.text(x[i],y[i],str(i),color='r',fontsize=16)
@@ -1024,6 +1028,7 @@ class MainWindow (QMainWindow):
         self.mcaData={}
         self.mcaPar={}
         self.mcaAbsorber={}     # absorber setting n of each spectrum's scan (None: unknown)
+        self.mcaScanOf={}       # SPEC scan number of each spectrum
         start=0
         try:
             for i in range(len(self.mcaFileNames)):
@@ -1037,6 +1042,7 @@ class MainWindow (QMainWindow):
                     self.mcaData[start]=data[j]
                     self.mcaPar[start]=par[j]
                     self.mcaAbsorber[start]=n
+                    self.mcaScanOf[start]=self.selectedScanNums[i]
                     self.ui.imageListWidget.addItem('S# '+str(self.selectedScanNums[i])+'\tmS# '+str(j+1)+'\tQz='+str(self.mcaPar[start]['Q'][2])+abstext)
                     start=start+1
         except:
@@ -1045,6 +1051,59 @@ class MainWindow (QMainWindow):
         # self.connect(self.ui.imageListWidget,SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
         self.ui.imageListWidget.itemSelectionChanged.connect(self.imageSelectedScanChanged)
         
+    def initMonitorGainOption(self):
+        """Option (F52): divide by the Monc current, M x S/S_ref, instead of
+        the counts M, using the SR570 sensitivity S recorded as '#M Monc
+        Gain' (lss_core/monitor.py). One setting, shown beside the monitor
+        choice in the MCA tab and in SpecPlot."""
+        from PyQt5.QtWidgets import QCheckBox
+        self.monitorGain=False
+        tip=('Also divide by the Monc gain: normalise by M x S / (1 uA/V) instead of M, with S the SR570 '
+             'sensitivity from "#M Monc Gain" (last one above the scan if it has none). Puts scans taken at '
+             'different gains on one scale. Only for the Monc monitor; unknown gains get no factor.')
+        self.monitorGainBoxes=[]
+        for after,layout in ((self.ui.mcaNormComboBox,self.ui.horizontalLayout_12),
+                             (self.ui.spNComboBox,self.ui.horizontalLayout_10)):
+            box=QCheckBox('/ gain')
+            box.setObjectName(('mca' if after is self.ui.mcaNormComboBox else 'sp')+'GainCheckBox')
+            box.setToolTip(tip)
+            layout.insertWidget(layout.indexOf(after)+1,box)
+            box.stateChanged.connect(self.setMonitorGain)
+            self.monitorGainBoxes.append(box)
+        self.mcaGainCheckBox,self.spGainCheckBox=self.monitorGainBoxes
+
+    def setMonitorGain(self,state=None):
+        on=bool(self.sender().isChecked()) if self.sender() in self.monitorGainBoxes else bool(state)
+        for box in self.monitorGainBoxes:
+            box.blockSignals(True)
+            box.setChecked(on)
+            box.blockSignals(False)
+        if on==self.monitorGain:
+            return
+        self.monitorGain=on
+        self.notify('Monitor normalisation: '+('Monc current, M x S/(1 uA/V), S from "#M Monc Gain"' if on else 'Monc counts M (gain not used)')
+                    +'. Spectra and SPEC plots on show are recomputed.',title='Monitor',level='info')
+        if self.selectedMcaScanNums is not None and len(self.selectedMcaScanNums)>0 and getattr(self,'mcaData',None):
+            self.updateMcaPlotData()
+        self.updateSpecPlotData()
+
+    def monitorGainFactor(self,scannum,column):
+        """S_ref/S for scan ``scannum`` when the option is on and ``column``
+        is Monc; 1 otherwise (and when the gain is unknown, said once)."""
+        if not self.monitorGain or str(column).lower()!='monc' or scannum is None:
+            return 1.0
+        spar=self.specPar.get(scannum,{})
+        if spar.get('MoncGain') is None:
+            seen=getattr(self,'gainUnknownNoted',set())
+            if (self.specFileName,scannum) not in seen:
+                seen.add((self.specFileName,scannum))
+                self.gainUnknownNoted=seen
+                self.notify('Scan %d: Monc gain unknown (%s); no gain factor applied to it.'
+                            % (scannum,'"#M Monc Gain %s"' % spar['MoncGainText'] if 'MoncGainText' in spar else 'no #M above it'),
+                            title='Monitor',level='warning')
+            return 1.0
+        return gain_factor(spar['MoncGain'])
+
     def absFacChanged(self,text):
         try:
             value=float(text)
@@ -1127,6 +1186,7 @@ class MainWindow (QMainWindow):
             except ValueError:
                 pass
             self.mcaAbsfacUsed=self.absfac
+            self.mcaGainUsed=self.monitorGain and str(self.ui.mcaNormComboBox.currentText())=='Monc'
             if str(self.ui.mcaNormComboBox.currentText())!='None':
                 self.noteMixedAbsorbers([self.mcaAbsorber[i] for i in self.selectedMcaScanNums
                                          if getattr(self,'mcaAbsorber',{}).get(i) is not None],'The selected MCA spectra')
@@ -1147,7 +1207,9 @@ class MainWindow (QMainWindow):
                     n=self.mcaData[i][monitor]
                     tc=self.mcaPar[i]['Time'][1]/self.mcaPar[i]['Time'][2]  #real count time correction
                     a=self.mcaAbsorberFactor(i)
-                    self.nomMcaData[i]=fluorescence.normalise_spectrum(self.mcaData[i]['Vortex'],self.mcaPar[i],n,(con,lin,qua),self.errorModel,a)
+                    g=self.monitorGainFactor(self.mcaScanOf.get(i),monitor)
+                    self.nomMcaData[i]=fluorescence.normalise_spectrum(self.mcaData[i]['Vortex'],self.mcaPar[i],n,(con,lin,qua),self.errorModel,a,g)
+                    a=a*g      # both factors on the plotted spectrum
                 else:
                     n=1
                     tc=1
@@ -1264,8 +1326,11 @@ class MainWindow (QMainWindow):
     
     def mcaSumAll(self):  #sum all selected spectrum with given range
         try:
-            if float(self.ui.AbsFacLineEdit.text())!=getattr(self,'mcaAbsfacUsed',None) and self.selectedMcaScanNums:
-                self.updateMcaPlotData()        # the absorber factor was edited since
+            gain=self.monitorGain and str(self.ui.mcaNormComboBox.currentText())=='Monc'
+            if self.selectedMcaScanNums is not None and len(self.selectedMcaScanNums)>0 and (
+                    float(self.ui.AbsFacLineEdit.text())!=getattr(self,'mcaAbsfacUsed',None)
+                    or gain!=getattr(self,'mcaGainUsed',False)):
+                self.updateMcaPlotData()        # the absorber factor or the gain option changed since
         except ValueError:
             pass
         self.mcaIntData=[]
@@ -1469,6 +1534,8 @@ class MainWindow (QMainWindow):
         if mon!='None' and getattr(self,'mcaAbsfacUsed',ABSFAC_10KEV)!=ABSFAC_10KEV and any(
                 self.mcaAbsorber.get(i) for i in self.selectedMcaScanNums):
             kw.append('absfac=%r' % self.mcaAbsfacUsed)
+        if getattr(self,'mcaGainUsed',False):
+            kw.append('monitor_gain=True')
         x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
         return 'flu = exp.fluorescence(%r, %s)\nflu.save(%r, x=%r)' % (scans,', '.join(kw),name,x)
 

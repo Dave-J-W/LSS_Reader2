@@ -3,6 +3,7 @@ import sys
 import os
 import numpy as np
 from lss_core.numbers import spec_number, spec_numbers
+from lss_core.monitor import parse_gain
 
 def is_spec_file(path):
     """True if ``path`` can be read and starts like a SPEC data file (#F)."""
@@ -91,6 +92,7 @@ class specread:
             # (value, scan) of the last #A read; kept in Data between
             # incremental reads so that a refresh continues from it
             self.lastAbsorber=self.Data.get('LastAbsorber') if startLineNum>0 else None
+            self.lastMoncGain=self.Data.get('LastMoncGain') if startLineNum>0 else None
             for i in range(numOfScans): 
                 start=startScanLineNums[i]+1
                 line=fdata[start]
@@ -118,6 +120,10 @@ class specread:
                         self.Par[num]['g_l1']=float(line[4:].split()[5])
                         self.Par[num]['g_l2']=float(line[4:].split()[6])
                         self.Par[num]['g_l3']=float(line[4:].split()[7])
+                    if line[:2]=='#M' and line[2:].split()[:2]==['Monc','Gain']:
+                        # SR570 sensitivity (lss_core.monitor); None: unknown
+                        self.Par[num]['MoncGainText']=' '.join(line[2:].split()[2:])
+                        self.Par[num]['MoncGain']=parse_gain(line[2:].split()[2:])
                     if line[:2]=='#A':
                         try:
                             tmppar=line[2:].split()
@@ -179,6 +185,11 @@ class specread:
                     # the last #A above it in the file (owner, 2026-11-17, F50)
                     self.Par[num]['Absorber']=self.lastAbsorber[0]
                     self.Par[num]['AbsorberFrom']=self.lastAbsorber[1]
+                if 'MoncGainText' in self.Par[num]:
+                    self.lastMoncGain=(self.Par[num]['MoncGain'],self.Par[num]['MoncGainText'],num)
+                elif self.lastMoncGain is not None:
+                    # no #M in this scan (getandsave_mca): the last one above it
+                    self.Par[num]['MoncGain'],self.Par[num]['MoncGainText'],self.Par[num]['MoncGainFrom']=self.lastMoncGain
                 self.progressDialog.setLabelText('Reading Scan #'+str(num))         
                 self.updateProgress()
                 self.Data['NumOfScans']=num
@@ -188,6 +199,7 @@ class specread:
                 self.endLineNum=startScanLineNums[i-tmp]
                 self.Data['ScanNums'].append(num)
                 self.Data['LastAbsorber']=self.lastAbsorber
+                self.Data['LastMoncGain']=self.lastMoncGain
                 if self.progressDialog.wasCanceled()==True:
                     break
         self.progressDialog.hide()

@@ -28,6 +28,7 @@ exists.
 | I15 | (budget error model; monitor model by default a Gaussian of σ = 0.04 % at every count, owner 2026-11-17) The variance of any sum over one frame is its counting variance plus (sum)²·u_M²: box, line-cut point, energy window, and background-subtracted net (monitor term on the net, not on the boxes); averages of frames add each frame's monitor amplitude in quadrature; a frame subtracted from itself has no monitor term | tested: `test_error_budget.py` (formulas, and a Monte Carlo of a bright box with a 1 % monitor: predicted σ within 10 % of the scatter, legacy σ < 1/3 of it), `test_gui_error_budget.py` (cuts, summed cuts, MCA sum, Ref Patch) |
 | I16 | The error model changes errors only: values are identical in both models up to the patch's scale-factor fit, which is weighted by the errors | tested: `test_error_budget.py` (NX school scans 6–9, per-frame columns identical), `test_gui_error_budget.py` (patched values within 0.5 %) |
 | I17 | Normalised fluorescence does not depend on the absorber setting: counts measured at setting n (attenuated by absfac⁻ⁿ; monitor upstream of the foils, unchanged), multiplied by absfac**n, equal those at n = 0 (exact for expected counts, within Poisson scatter for drawn ones). Holds only if absfac is right for the energy and the setting is right (for MCA scans, inferred from the last `#A`) | tested on synthetic data: `test_fluorescence_absorber.py` |
+| I18 | With the monitor-gain option, one flux measured at two SR570 sensitivities gives one normalised value: M ∝ 1/S, and the value is multiplied by S_ref/S (exact for expected counts). Requires the recorded gain to be the gain in use | tested on synthetic data: `test_monitor_gain.py` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -1337,4 +1338,42 @@ absorber on the beamline to-do list.
   list, so a scan with both would show only one. A sample file is needed.
 - Beamline to-do: a new section at the end of `TODO.md` (getandsave_mca
   writes no `#A` and no `#M`).
+
+### 2026-11-17 — Foils at other energies; monitor gain as an option
+
+**Q.** (owner) Aluminium for 10 keV and lower energies, copper for 30 keV.
+Build the `Monc` gain normalisation as an option. Later a scalar will be
+provided to convert the monitor current into photons per second
+(estimated).
+
+**A.**
+
+- Foils recorded (D28). F49 (factor from the energy) still needs the unit
+  thickness below 10 keV and at 30 keV, and μ/ρ tables for Al and Cu
+  (physics.nist.gov is not reachable from this session). Not built; the
+  window's value applies at every energy until then.
+- Monitor gain option (F52, D29; tests `test_monitor_gain.py`). Built:
+  - `#M Monc Gain <value> <unit>` is read into `MoncGain` (A/V); a scan
+    without `#M` takes the last one above it (`MoncGainFrom`), like `#A`.
+    Lines without a unit ("200") or value are unknown: not guessed.
+  - With the option on, a value normalised by M is multiplied by S_ref/S
+    with S_ref = 1 µA/V: 200 nA/V → ×5, 1 µA/V → ×1, 5 µA/V → ×0.2,
+    10 µA/V → ×0.1. Values then read "per monitor count at 1 µA/V".
+    Derivation (`lss_core/monitor.py`): SR570 output V = I/S, V2F counts
+    M = G·V·t, so I·t = M·S/G; G is common to all scans.
+  - Errors scale by the same factor (S has no uncertainty here). With the
+    counting monitor model, u_M still uses the recorded counts M.
+  - Applies only when the monitor is `Monc`. Where: MCA tab (spectra, Sum
+    All, Script pane `monitor_gain=True`) and SpecPlot (plot, fit, export);
+    one setting, a "/ gain" box beside each monitor choice. Scans with an
+    unknown gain get no factor, with a warning in the Messages pane.
+  - Not yet in the Pilatus paths (cuts, background images, GID). Ref Patch
+    does not need it (it measures the scale between scans).
+  - Measured effect, bu/2026sep/20260902: scans 1–11 (200 nA/V) get ×5
+    and scans 12–129 (10 µA/V) ×0.1, so their relative scale changes by 50;
+    XFNTR scans 74–79 all inherit 10 µA/V (×0.1, the same for all six).
+- Photons per second (F54): photons/s = C·I with I = M·S/(G·t). The scalar
+  should say whether it includes the V2F scale G and the monitor's
+  efficiency, and at which energy it holds (an ion chamber's or diode's
+  current per photon changes with energy).
 

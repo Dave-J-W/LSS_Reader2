@@ -20,6 +20,7 @@ from . import fluorescence as fluo
 from . import reflectivity as refl
 from .errors import as_model
 from .absorbers import ABSFAC_10KEV
+from .monitor import gain_factor
 
 
 @dataclass
@@ -61,6 +62,7 @@ class FluorescenceResult:
     spectra: list         # (N, 3) energy, normalised counts, error, per spectrum
     rows: list            # [frame, qz, energy, intensity, error] per spectrum
     command: str
+    unknown_gain: list = field(default_factory=list)   # scans with no known Monc gain
 
     def save(self, name, x='qz'):
         fluo.save_flu(name, self.rows, self.command, x=x)
@@ -158,7 +160,7 @@ class Experiment:
         return out
 
     def fluorescence(self, scans, window=(1, 1000), monitor='Monc',
-                     calibration=None, errors=None, absfac=ABSFAC_10KEV):
+                     calibration=None, errors=None, absfac=ABSFAC_10KEV, monitor_gain=False):
         """Fluorescence intensity per spectrum, as the window's "Sum All".
 
         ``window``: energy range (keV with the file's calibration);
@@ -167,15 +169,24 @@ class Experiment:
         error model as for ``reflectivity``; ``absfac``: transmission factor
         per absorber unit (default 50 µm Al at 10 keV, lss_core.absorbers); normalised spectra are multiplied by absfac**n,
         n the scan's absorber setting (``Scan.parameters['Absorber']``; for
-        getandsave_mca scans the last #A above them).
+        getandsave_mca scans the last #A above them). ``monitor_gain``: also
+        divide by the `Monc` gain, i.e. by M·S/S_ref instead of M
+        (lss_core.monitor; only with monitor='Monc'); scans whose gain is
+        unknown get no factor and are listed in ``result.unknown_gain``.
         """
         model = as_model(errors)
-        spectra, rows = [], []
+        spectra, rows, unknown = [], [], []
         for k, (scan, num, data, par) in enumerate(self.spectra(scans)):
             cal = calibration if calibration is not None else par['Calib']
             mon = None if monitor is None else data[monitor]
-            a = fluo.absorber_factor(absfac, self.scans[scan].parameters.get('Absorber'))
-            s = fluo.normalise_spectrum(data['Vortex'], par, mon, cal, model, a)
+            p = self.scans[scan].parameters
+            a = fluo.absorber_factor(absfac, p.get('Absorber'))
+            g = 1.0
+            if monitor_gain and monitor == 'Monc':
+                g = gain_factor(p.get('MoncGain'))
+                if p.get('MoncGain') is None and scan not in unknown:
+                    unknown.append(scan)
+            s = fluo.normalise_spectrum(data['Vortex'], par, mon, cal, model, a, g)
             u = float(model.monitor.relative(mon)) if (model.budget and mon is not None) else None
             inten, err, ini, fin = fluo.window_sum(s, window[0], window[1], u)
             energy = par.get('Energy', 10.0)
@@ -183,4 +194,4 @@ class Experiment:
             rows.append([k + 1, par['Q'][2], energy, inten, err])
         command = ('Flu Sum, scans=[' + ', '.join(str(n) for n in sorted(scans))
                    + '], energy range=[' + str(ini) + ':' + str(fin) + ']')
-        return FluorescenceResult(spectra, rows, command)
+        return FluorescenceResult(spectra, rows, command, unknown)

@@ -179,9 +179,12 @@ def test_spec_reader_identical_to_eval_version(path, qapp):
     # a scan without #A gets the last #A above it, marked by 'AbsorberFrom',
     # and Data keeps that last #A for refreshes. Only those, and only on
     # scans the old reader left without an absorber.
+    # Also (F52): the Monc gain from '#M Monc Gain', read or inherited the
+    # same way; the old reader did not read #M at all.
     data = dict(new.Data)
-    assert 'LastAbsorber' in data
+    assert 'LastAbsorber' in data and 'LastMoncGain' in data
     data.pop('LastAbsorber')
+    data.pop('LastMoncGain')
     par = {}
     for num, p in new.Par.items():
         p = dict(p)
@@ -189,6 +192,12 @@ def test_spec_reader_identical_to_eval_version(path, qapp):
             assert 'Absorber' not in old.Par[num]
             assert p['Absorber'] == new.Par[p['AbsorberFrom']]['Absorber']
             del p['Absorber'], p['AbsorberFrom']
+        if 'MoncGainFrom' in p:
+            assert p['MoncGainText'] == new.Par[p['MoncGainFrom']]['MoncGainText']
+            del p['MoncGainFrom']
+        for k in ('MoncGain', 'MoncGainText'):
+            assert k not in old.Par[num]
+            p.pop(k, None)
         par[num] = p
     assert _same(old.Data, data) and _same(old.Par, par)
 
