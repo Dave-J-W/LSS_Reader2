@@ -61,7 +61,6 @@ def test_bad_pixel_factor_controls_replacement():
 
 
 @pytest.mark.gui
-@xfail('#7: map() used as a list; typed-in centres break the g_l2 fit')
 def test_g_l2_dialog_accepts_typed_centres(loaded, qapp, dataset, recorder):
     import sweep
     sweep.state_motor_scan(loaded, qapp, dataset)

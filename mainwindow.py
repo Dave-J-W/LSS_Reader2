@@ -4683,7 +4683,7 @@ class MainWindow (QMainWindow):
     def g_l2plot(self):
         self.uig_l2.g_l2TextBrowser.clear()
         if self.uig_l2.g_l2centercheckBox.checkState()!=0:
-            self.g_l2center=map(float, str(self.uig_l2.g_l2CenterLineEdit.text()).split(','))
+            self.g_l2center=list(map(float, str(self.uig_l2.g_l2CenterLineEdit.text()).split(',')))
         par=[0,self.specPar[self.selectedScanNums[0]]['g_l2']]
         p=leastsq(self.g_lfunction,par,args=(np.array(self.g_l2alpha),np.array(self.g_l2center)),maxfev=5000)
         fp=p[0]
@@ -4733,7 +4733,7 @@ class MainWindow (QMainWindow):
     def g_l3plot(self):
         self.uig_l3.g_l3TextBrowser.clear()
         if self.uig_l3.g_l3centercheckBox.checkState()!=0:
-            self.g_l3center=map(float, str(self.uig_l3.g_l3CenterLineEdit.text()).split(','))
+            self.g_l3center=list(map(float, str(self.uig_l3.g_l3CenterLineEdit.text()).split(',')))
         par=[0,self.specPar[self.selectedScanNums[0]]['g_l2']-self.specPar[self.selectedScanNums[0]]['g_l3']]
         p=leastsq(self.g_lfunction,par,args=(np.array(self.g_l3alpha),np.array(self.g_l3center)),maxfev=5000)
         fp=p[0]
