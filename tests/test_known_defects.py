@@ -15,11 +15,14 @@ def xfail(reason):
     return pytest.mark.xfail(strict=True, reason=reason)
 
 
-@xfail('#1: scipy.interpolate.interp2d was removed in SciPy 1.14; '
-       'imagehjoin/imagevjoin (GID patching) call it')
-def test_interp2d_dependency_is_usable():
-    from scipy.interpolate import interp2d
-    interp2d([0, 1], [0, 1], [[0, 1], [1, 2]], kind='linear')
+def test_program_does_not_import_the_removed_interp2d():
+    """Defect 1 (fixed): nothing in the program imports scipy's interp2d."""
+    import os
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for name in ('mainwindow.py', 'TwoDDetector.py', 'spec_routines.py',
+                 'mca_routines.py', 'interp_compat.py'):
+        with open(os.path.join(root, name)) as f:
+            assert 'scipy.interpolate import interp2d' not in f.read(), name
 
 
 @pytest.mark.gui

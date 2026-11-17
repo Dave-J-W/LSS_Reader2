@@ -14,7 +14,7 @@ from TwoDDetector import TwoDDetector
 from scipy.optimize import leastsq
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
-from scipy.interpolate import interp2d
+from interp_compat import interp2d_linear   # scipy's interp2d was removed in SciPy 1.14
 from scipy.interpolate import griddata
 from sympy.solvers import solve 
 from sympy import Symbol
@@ -3141,8 +3141,8 @@ class MainWindow (QMainWindow):
                 data2zoverlap=np.array([np.hstack(data2[i][:,2].T) for i in overlap2[0]]).T
                 data2zerroverlap=np.array([np.hstack(data2[i][:,3].T) for i in overlap2[0]]).T
                # print data2zoverlap,  data2zerroverlap, data2x[overlap2]
-                f2d=interp2d(data2x[overlap2],data2[0][:,1],data2zoverlap, kind='linear')  #interpolate the data2 in the overlap2
-                f2derr=interp2d(data2x[overlap2],data2[0][:,1],data2zerroverlap, kind='linear')
+                f2d=interp2d_linear(data2x[overlap2],data2[0][:,1],data2zoverlap)  #interpolate the data2 in the overlap2
+                f2derr=interp2d_linear(data2x[overlap2],data2[0][:,1],data2zerroverlap)
                 data3=f2d(data1x[overlap1],data2[0][:,1])  #get data2 data at data1 x-axis from the interpolation 
                 data3err=f2derr(data1x[overlap1],data2[0][:,1]) 
                 for i in range(overlap1[0][0],overlap1[0][-1]+1):
@@ -3157,8 +3157,8 @@ class MainWindow (QMainWindow):
                 data1zoverlap=np.array([np.hstack(data1[i][:,2].T) for i in overlap1[0]]).T
                 data1zerroverlap=np.array([np.hstack(data1[i][:,3].T) for i in overlap1[0]]).T
                # print data2zoverlap,  data2zerroverlap, data2x[overlap2]
-                f2d=interp2d(data1x[overlap1],data1[0][:,1],data1zoverlap, kind='linear')  #interpolate the data1 in the overlap1
-                f2derr=interp2d(data1x[overlap1],data1[0][:,1],data1zerroverlap, kind='linear')
+                f2d=interp2d_linear(data1x[overlap1],data1[0][:,1],data1zoverlap)  #interpolate the data1 in the overlap1
+                f2derr=interp2d_linear(data1x[overlap1],data1[0][:,1],data1zerroverlap)
                 data3=f2d(data2x[overlap2],data1[0][:,1])  #get data1 data at data2 x-axis from the interpolation 
                 data3err=f2derr(data2x[overlap2],data1[0][:,1]) 
                 for i in range(overlap2[0][0],overlap2[0][-1]+1):
@@ -3189,8 +3189,8 @@ class MainWindow (QMainWindow):
             data2x=np.array([data2[i][0][0] for i in range(len(data2))]) #get dth/x range for data2
             data2z=np.array([np.hstack(data2[i][:,2]) for i in range(len(data2))]).T  #get z for data2
             data2zerr=np.array([np.hstack(data2[i][:,3]) for i in range(len(data2))]).T #get zerr for data2
-            fdata2=interp2d(data2x,data2y,data2z, kind='linear')  #interpolate data2 to match data1 x-axis
-            fdata2err=interp2d(data2x,data2y,data2zerr,kind='linear')
+            fdata2=interp2d_linear(data2x,data2y,data2z)  #interpolate data2 to match data1 x-axis
+            fdata2err=interp2d_linear(data2x,data2y,data2zerr)
             data2znew=fdata2(data1x,data2y)
             data2zerrnew=fdata2err(data1x,data2y)
             data2new=[np.vstack((data1x[0]*np.ones_like(data2y),data2y,data2znew[:,0],data2zerrnew[:,0])).transpose()]
@@ -3228,8 +3228,8 @@ class MainWindow (QMainWindow):
             #print data2[0][:,2][:overlap2[0][-1]+1]
             data2zoverlap=np.array([np.hstack(data2[i][:,2][:overlap2[0][-1]+1].T) for i in range(len(data2))]).T
             data2zerroverlap=np.array([np.hstack(data2[i][:,3][:overlap2[0][-1]+1].T) for i in range(len(data2))]).T
-            f2d=interp2d(data1x,data2y[overlap2],data2zoverlap, kind='linear')  #interpolate the data2 in the overlap2
-            f2derr=interp2d(data1x,data2y[overlap2],data2zerroverlap, kind='linear')
+            f2d=interp2d_linear(data1x,data2y[overlap2],data2zoverlap)  #interpolate the data2 in the overlap2
+            f2derr=interp2d_linear(data1x,data2y[overlap2],data2zerroverlap)
             data3=f2d(data1x,data1y[overlap1][:-1])  #get data2 data at data1 y-axis from the interpolation 
             data3err=f2derr(data1x,data1y[overlap1][:-1]) #get data2 error bars at data1 y-axis from the interpolation 
             #print  data3[:,:10]
