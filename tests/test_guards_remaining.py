@@ -414,3 +414,25 @@ def test_spec_export_when_a_selected_scan_lacks_the_column(loaded, qapp, recorde
     assert any('Scan(s) 4 have no column L' in m for m in recorder.messages)
     assert not [f for f in os.listdir(str(tmp_path)) if f.startswith('spec_')]
 
+
+def test_burn_dialog_after_the_frames_are_deselected(window, qapp, recorder, tmp_path):
+    """Found by the random walk (2026-11-17): the burn-test dialog stays open
+    while the selection changes; its buttons raised IndexError with no
+    frames selected. Now they ask for frames."""
+    import synth
+    w = window
+    w.openSpecFile(fname=synth.make_burn_dataset(tmp_path / 'b'))
+    w.directory = str(tmp_path)
+    sweep._select_scans(w, qapp, [0])
+    sweep._select_images(w, qapp)
+    w.ui.pilBurnPushButton.click()
+    qapp.processEvents()
+    w.ui.imageListWidget.clearSelection()
+    qapp.processEvents()
+    assert len(w.selectedPilFramesNums) == 0
+    w.uipdburn.refPushButton.click()
+    w.uipdburn.gidComboBox.setCurrentIndex(1)
+    w.uipdburn.gidComboBox.activated.emit(1)
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert sum('burn test scan first' in m for m in recorder.messages) == 2

@@ -2379,7 +2379,17 @@ class MainWindow (QMainWindow):
         return a*np.exp(-x/b)
         
         
+    def burnFramesGone(self):
+        """The burn-test dialog stays open while the selection changes: True
+        (and a message) when no frames are selected any more."""
+        if self.det!='Pilatus' or len(self.selectedPilFramesNums)==0 or len(getattr(self,'pilSelected_Dth',[]))==0:
+            self.messageBox('Please select the Pilatus images of a burn test scan first!')
+            return True
+        return False
+
     def pilRefBurn(self):
+        if self.burnFramesGone():
+            return
         if self.pilSelected_Dth[0] > 0.001:
             self.messageBox('Warning: It it not a REF burn test. Please use GID burn test button!')
         else:
@@ -2428,6 +2438,8 @@ class MainWindow (QMainWindow):
             
     def pilGidBurn(self):
         if self.uipdburn.gidComboBox.currentIndex()==0:
+            return
+        elif self.burnFramesGone():
             return
         else:
             if self.pilSelected_Dth[0]==0:
