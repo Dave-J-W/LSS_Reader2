@@ -2,6 +2,7 @@
 import sys
 import os
 import numpy as np
+from lss_core.numbers import spec_number, spec_numbers
 from PyQt5.QtWidgets import QProgressDialog
 from PyQt5.QtCore import Qt
 
@@ -95,12 +96,12 @@ class specread:
                     if line[:2]=='#P':
                         parName=line[4:].split()
                         start=start+1
-                        parValue=list(map(eval,fdata[start][1:].split()))
+                        parValue=spec_numbers(fdata[start][1:].split())
                         for j in range(len(parName)):
                             self.Par[num][parName[j]]=parValue[j]
                     if line[:2]=='#W':
                         tmppar=line[2:].split()
-                        self.Par[num]['Wavelength']=eval(tmppar[1])
+                        self.Par[num]['Wavelength']=spec_number(tmppar[1])
                     if line[:3]=='#G0':
                         self.Par[num]['g_l1']=float(line[4:].split()[5])
                         self.Par[num]['g_l2']=float(line[4:].split()[6])
@@ -108,12 +109,12 @@ class specread:
                     if line[:2]=='#A':
                         try:
                             tmppar=line[2:].split()
-                            self.Par[num]['Absorber']=eval(tmppar[1])
+                            self.Par[num]['Absorber']=spec_number(tmppar[1])
                         except:
                             self.Par[num]['Absorber'] = 63
                     if line[:2]=='#Q':
                         tmppar=line[2:].split()
-                        self.Par[num]['Q']=list(map(eval, tmppar))
+                        self.Par[num]['Q']=spec_numbers(tmppar)
                     if line[:2]=='#V':
                         self.Par[num]['Detector']='Vortex'
                     if line[:3]=='#B0':
@@ -125,14 +126,14 @@ class specread:
                             self.Par[num]['Detector']='Unsupported'   # Bruker CCD (.sfrm) images: no longer supported
                     if line[:3]=='#B1':
                         try:
-                            tmppar=list(map(eval, line[3:].split()))
+                            tmppar=spec_numbers(line[3:].split())
                         except:
-                            tmppar=list(map(eval, line[3:].split()[:-1]))
+                            tmppar=spec_numbers(line[3:].split()[:-1])
                         self.Par[num]['DBPos']=tmppar[:2]
                         self.Par[num]['S2D_Dist']=tmppar[2]
                         self.Par[num]['S7D_Dist']=tmppar[3]
                     if line[:3]=='#B2':
-                        tmppar=list(map(eval, line[3:].split()))
+                        tmppar=spec_numbers(line[3:].split())
                         self.Par[num]['DBPos']=tmppar[:2]
                         self.Par[num]['S2D_Dist']=tmppar[2]
                         self.Par[num]['S7D_Dist']=tmppar[3]
@@ -141,7 +142,7 @@ class specread:
                         self.Data[num]['ScanVar']=scanVar
                     if line[0]!='#':
                         try:
-                            tmpdata.append(list(map(eval, line.split(  ))))
+                            tmpdata.append(spec_numbers(line.split(  )))
                         except:
                             self.Data[num]['Message']='Something wrong with Scan Number %d',num,'.Please check the the scan in the specfile.'
                             print ('Something wrong with Scan Number %d',num)

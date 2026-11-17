@@ -106,3 +106,85 @@ def test_budget_from_environment(monkeypatch):
     monkeypatch.delenv(cachemod.ENV_BUDGET)
     b = cachemod.MemoryCache().budget
     assert 256 * 1024 * 1024 <= b <= 4096 * 1024 * 1024
+
+
+# ---- SPEC and MCA readers without eval: identical results -------------------
+
+import importlib.util  # noqa: E402
+
+from lss_core.numbers import spec_number  # noqa: E402
+
+
+def _legacy(name):
+    spec = importlib.util.spec_from_file_location(
+        name, os.path.join(ROOT, 'tests', 'legacy', name + '.py'))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.mark.parametrize('token', ['0', '-3', '+7', '12.5', '-0.5', '.5', '5.',
+                                   '1e3', '1.2E-05', '-4.5e+2', '2.84495e-15'])
+def test_spec_number_matches_eval(token):
+    a, b = spec_number(token), eval(token)
+    assert type(a) is type(b) and a == b
+
+
+@pytest.mark.parametrize('token', ['abc', 'nan', 'inf', '1,2', '', '__import__("os")', '1-2'])
+def test_spec_number_refuses_non_numbers(token):
+    with pytest.raises(ValueError):
+        spec_number(token)
+
+
+def _same(a, b):
+    """Deep equality with types (an int must stay an int)."""
+    if isinstance(a, dict):
+        return isinstance(b, dict) and a.keys() == b.keys() and all(_same(a[k], b[k]) for k in a)
+    if isinstance(a, (list, tuple)):
+        return type(a) is type(b) and len(a) == len(b) and all(_same(x, y) for x, y in zip(a, b))
+    if isinstance(a, np.ndarray):
+        return isinstance(b, np.ndarray) and a.dtype == b.dtype and np.array_equal(a, b, equal_nan=True)
+    return type(a) is type(b) and (a == b or (a != a and b != b))
+
+
+def _mca_files():
+    return sorted(glob.glob(os.path.join(ROOT, 'sample_data', '*', '*', 'vortex', '*_mca')))
+
+
+def _spec_files():
+    out = []
+    for path in sorted(glob.glob(os.path.join(ROOT, 'sample_data', '*', '*', '*'))):
+        if os.path.isfile(path):
+            with open(path, 'rb') as f:
+                if f.read(2) == b'#F':
+                    out.append(path)
+    return out
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize('path', _mca_files(), ids=os.path.basename)
+def test_mca_reader_identical_to_eval_version(path):
+    import mca_routines
+    old, new = _legacy('mca_routines_eval').mcaread(path), mca_routines.mcaread(path)
+    assert _same(old.Data, new.Data) and _same(old.Par, new.Par)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize('path', _spec_files(), ids=lambda p: os.path.relpath(p, ROOT))
+def test_spec_reader_identical_to_eval_version(path, qapp):
+    import spec_routines
+    old = _legacy('spec_routines_eval').specread(path, data={}, par={})
+    new = spec_routines.specread(path)
+    assert _same(old.Data, new.Data) and _same(old.Par, new.Par)
+
+
+def test_mca_reader_is_fast():
+    import time
+    import mca_routines
+    files = sorted(_mca_files(), key=os.path.getsize)
+    if not files:
+        pytest.skip('no MCA sample files')
+    t = time.perf_counter()
+    m = mca_routines.mcaread(files[-1])
+    per_spectrum = (time.perf_counter() - t) / m.Data['NumOfScans']
+    assert per_spectrum < 5e-3          # was ~16 ms with eval

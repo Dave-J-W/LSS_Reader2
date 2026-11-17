@@ -2,6 +2,7 @@
 import sys
 import os
 import numpy as np
+from lss_core.numbers import spec_number, spec_numbers
 
 class mcaread:
     def __init__(self, mcafile, beamline='APS-15IDC'):
@@ -41,34 +42,34 @@ class mcaread:
                 while line[:2]!='@A':
                     if line[:7]=='#@CTIME':
                         tmppar=line[7:].split()
-                        self.Par[i]['Time']=list(map(eval, tmppar))
+                        self.Par[i]['Time']=spec_numbers(tmppar)
                     if line[:5]=='#Monc':
                         tmppar=line[5:].split()
-                        self.Data[i]['Monc']=eval(tmppar[0])
+                        self.Data[i]['Monc']=spec_number(tmppar[0])
                         try: # When running for Hutch B and D
-                            self.Data[i]['Monb']=eval(tmppar[1])
-                            self.Data[i]['Mond']=eval(tmppar[2])
+                            self.Data[i]['Monb']=spec_number(tmppar[1])
+                            self.Data[i]['Mond']=spec_number(tmppar[2])
                         except:
                             pass
                     if line[:2]=='#Q':
                         tmppar=line[2:].split()
-                        self.Par[i]['Q']=list(map(eval, tmppar))
+                        self.Par[i]['Q']=spec_numbers(tmppar)
                     if line[:7]=='#@CALIB':
                         tmppar=line[7:].split()
-                        self.Par[i]['Calib']=list(map(eval, tmppar))
+                        self.Par[i]['Calib']=spec_numbers(tmppar)
                     if line[:7]=='#Energy':
                         tempar=line[7:].split()
-                        self.Par[i]['Energy']=eval(tempar[0])
+                        self.Par[i]['Energy']=spec_number(tempar[0])
                     start=start+1
                     line=fdata[start]
-                self.Data[i]['Vortex']=list(map(eval, line[2:-2].split()))
+                self.Data[i]['Vortex']=spec_numbers(line[2:-2].split())
                 start=start+1
                 line=fdata[start]
                 while line!='\n':
                     if line[-2]=='\\':
-                        self.Data[i]['Vortex']=self.Data[i]['Vortex']+list(map(eval, line[:-2].split()))
+                        self.Data[i]['Vortex'].extend(spec_numbers(line[:-2].split()))
                     else:
-                        self.Data[i]['Vortex']=self.Data[i]['Vortex']+list(map(eval, line[:-1].split()))
+                        self.Data[i]['Vortex'].extend(spec_numbers(line[:-1].split()))
                     start=start+1
                     line=fdata[start]
                 if len(self.Par[i])==0:

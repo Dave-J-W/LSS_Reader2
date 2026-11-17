@@ -871,3 +871,12 @@ redrawing every selected frame on every click (matplotlib text layout).
 On a network drive the file reads were the expensive part and are gone;
 locally the redraw remains. Options for the redraw are noted in
 `TODO.md`.
+
+### 2026-11-17 — Stage 2: SPEC and MCA files read without `eval`
+
+Measured: the SPEC and MCA readers now parse numbers with a strict parser
+(`lss_core/numbers.py`) instead of `eval`. On every SPEC file (9) and every
+MCA file (26) in the sample sets the results are identical to the old
+readers, value and type (an integer stays an integer); the old readers are
+kept as oracles in `tests/legacy/`. Reading the largest MCA file: 24 →
+1.2 ms per spectrum. File contents are no longer executed as code.
