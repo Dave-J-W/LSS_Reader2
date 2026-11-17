@@ -4425,7 +4425,7 @@ class MainWindow (QMainWindow):
             fin=float(str(self.ui.pilIntRangeLineEdit.text()).split(':')[1])
         except:
             self.messageBox('Please enter the range with the format "min:max"')
-            sself.updatePilCutRange()
+            self.updatePilCutRange()
             return
         for i in self.selectedPilFramesNums:
             self.selCutPilData[i]=self.pilData[i]#np.where(self.ccdData[i]<0,0,self.ccdData[i])#*self.absfac**self.ccd_AbsNum[i]/self.ccdMonc[i]

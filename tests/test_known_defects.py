@@ -23,7 +23,6 @@ def test_interp2d_dependency_is_usable():
 
 
 @pytest.mark.gui
-@xfail('#2: "sself" typo in updatePilCutData')
 def test_malformed_cut_range_is_reported_not_raised(loaded, qapp, dataset,
                                                     recorder):
     import sweep
