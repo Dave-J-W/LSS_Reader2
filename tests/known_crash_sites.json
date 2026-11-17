@@ -1,13 +1,12 @@
 [
+ "AttributeError @ TwoDDetector.py:sumFiles",
+ "AttributeError @ mainwindow.py:saveCutData",
+ "AttributeError @ mainwindow.py:saveMcaData",
  "AttributeError @ mainwindow.py:updateRefPilPlotData",
- "IndexError @ mainwindow.py:fitPeakFit",
- "IndexError @ mainwindow.py:g_l2plot",
- "IndexError @ mainwindow.py:imageSelectedScanChanged",
- "IndexError @ mainwindow.py:pilBurnTest",
+ "KeyError @ mainwindow.py:pilRefPatchData",
  "KeyError @ mainwindow.py:updatePilPlotData",
- "TypeError @ mainwindow.py:g_lfunction",
+ "KeyError @ spec_routines.py:APS_9IDC",
+ "TypeError @ mainwindow.py:clearAll",
  "TypeError @ spec_routines.py:APS_9IDC",
- "UnboundLocalError @ mainwindow.py:updateSpecPlotData",
- "ValueError @ mainwindow.py:mcaPlotSettings",
- "ValueError @ mainwindow.py:updateRefPilPlotData"
+ "ValueError @ mainwindow.py:mcaPlotSettings"
 ]
