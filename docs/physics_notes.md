@@ -1888,3 +1888,31 @@ identical to the originals. Without the SPEC file (Det_Th per frame,
 In_Rot, Out_Rot, direct beam, slits, G_L, monitors) the reader cannot
 place them in angle or Q yet.
 
+### 2026-11-18 — What the `#B1` and `#G0` numbers are
+
+**Owner:** `#B1 53 147 551 271` should work for the example data; asked
+whether `#B1` or `#G0` (`0 1 1 1 90 560 1238 556 1.92359 0 1 0 …`) wins,
+and for a table. (Parsing read from `spec_routines.py:119-157`; meanings
+from the owner, measurement, or marked as a guess.)
+
+| Line, # | Value | Reader | Meaning | Used for | How known |
+|---|---|---|---|---|---|
+| #B1, 1 | 53 | `DBPos[0]` | direct-beam row (pixels) | β = 0 row | read |
+| #B1, 2 | 147 | `DBPos[1]` | direct-beam column, raw orientation; reader column 194 − 147 = 47 | 2θ = Det_Th column | read; specular spot at 47 (IDL review) |
+| #B1, 3 | 551 | `S2D_Dist` | sample → detector (mm), IDL `PDIST` | pixel → angle | owner ("should work") |
+| #B1, 4 | 271 | `S7D_Dist` | S4 (pinhole) → detector (mm), IDL `PDSDIST` | 2θ per column, pinhole | measured 267 ± 2 mm (NX scan 11) |
+| #G0, 1–4 | 0 1 1 1 | — | unknown (mode switches?) | — | unknown |
+| #G0, 5 | 90 | — | unknown; IDL `G_L[0]`? | — | unknown |
+| #G0, 6 | 560 | `g_l1` | crystal → S1, horizontal (mm); IDL `G_L[1]` | IDL footprint: S1 → sample = g_l2 − g_l1 | owner |
+| #G0, 7 | 1238 | `g_l2` | crystal → sample, horizontal (mm); IDL `G_L[2]` | reader: sh = −g_l2 tan α; g_l2 calibration | owner |
+| #G0, 8 | 556 | `g_l3` | sample → detector, horizontal (mm); IDL `G_L[3]` | IDL: path length when the arm is raised, + g_l3(1/cos β − 1); unused by the reader | owner; read |
+| #G0, 9 | 1.92359 | — | unknown (a crystal d-spacing in Å? Si(220) is 1.920) | — | guess |
+| #G0, 10–18 | 0 1 0 … | — | unknown | — | unknown |
+
+**No conflict (reasoning):** #B1's 551 is the distance for pixel → angle;
+g_l3 enters only the arm-lift term, where 556 against 551 changes 0.03 mm
+at β = 6.5°. **Open:** the owner said the header gives the sample → slit
+distance; 271 as sample → S4 would make the pinhole 280 mm from the
+detector, excluded by the measured 267 ± 2 mm, so 271 is read as S4 →
+detector unless the sample → slit distance is elsewhere in the header.
+
