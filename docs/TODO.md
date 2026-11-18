@@ -7,8 +7,8 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 |---|---|
 | 0 Safety net (error handler, durable log, messages pane) | **done** 2026-11-17 |
 | 1 Repair what is plainly broken | **done** 2026-11-17 |
-| 2 Readers and reduction out of the window; caching; scripting | **next** |
-| 3 Saved state per SPEC file; live refresh | not started |
+| 2 Readers and reduction out of the window; caching; scripting | **done** 2026-11-18 (quick 337, slow 542, sweep 67 passed) |
+| 3 Saved state per SPEC file; live refresh | **next** (needs the "Scan i of N" header syntax) |
 | 4 Detectors and inputs | not started |
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
 | 6 Sub-projects (GID patching, fitting, beam size, GUI) | not started |

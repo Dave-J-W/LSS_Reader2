@@ -9,8 +9,8 @@ scattering at ChemMatCARS. It is not a fitting program. Read
 ## Current phase — read before changing anything
 
 **Implementation, following `docs/SCOPE.md` stage by stage** (authorised by
-the owner on 2026-11-17). Stage 0 (no more closing on errors; durable log;
-messages pane) is done. The top of `docs/TODO.md` says which stage is in
+the owner on 2026-11-17). Stages 0–2 are done (2026-11-18); GID work
+(Stage 6, D36) has started at the owner's request. The top of `docs/TODO.md` says which stage is in
 progress; if it disagrees with this paragraph, that file wins.
 
 Application code may now be changed, under these conditions:
