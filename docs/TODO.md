@@ -79,6 +79,9 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       reflectivity sets with overlapping joins from several days, to test
       day-to-day variation and calibrate per foil (`tests/tools/absorber_steps.py`);
       foil tolerance (flat µm or %) and alloy, if known.
+      Hand-off for that analysis written 2026-11-18:
+      `docs/handoff_out/02-absorber-patch-check.md` (+ `02-absorber_steps.py`);
+      waiting for its deliverables (§8).
 - [ ] Owner: gain reference S_ref = 1 µA/V or 5 µA/V (the usual gain, D32)?
 - [ ] When the corrected/legacy two-file export (hand-off §2.5) is built,
       make Budget the default and carry the counting part as `sigma_meas`.

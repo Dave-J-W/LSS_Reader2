@@ -1548,3 +1548,37 @@ are not expected to be perfectly homogeneous.
   a real setting, not a stale value. Whether `getandsave_mca` scans
   that inherit 52 were really taken at 52 stays open.
 
+### 2026-11-18 — Hand-off: patch checking of the absorber steps on the owner's data
+
+**Question (owner):** write a hand-off telling another agent, who has SPEC
+files with `proi` and absorbers, how to do the patch checking to look at
+the systematic absorber offsets and the tolerance, including how to patch.
+
+**Answer:** `docs/handoff_out/02-absorber-patch-check.md` with the
+self-contained script `docs/handoff_out/02-absorber_steps.py` (SPEC
+columns only, numpy). New things learnt while writing it, on NX school
+20260923 scans 6–9:
+
+- *SPEC columns are enough* (measured, `tests/test_handoff_absorber_steps.py`):
+  ROI counter / Monc at shared L gives step/nominal 0.789, 0.762, 0.870,
+  the same as the image reduction with background subtraction (0.788,
+  0.762, 0.870).
+- *Neither simple foil model fits* (measured): one common fraction for
+  every foil (alloy, density, relative tolerance) gives f = +0.0743 ±
+  0.0013 with χ² = 169 for 2 dof; six foils with a ±2 µm prior need
+  20–30 µm deviations (prior χ² 399 for 6 terms). Three joins, rank 3 of 6.
+- *The slits changed at two joins* (measured): Monc/Monp is continuous
+  across S6→S7 (0.465–0.478 → 0.469–0.484), jumps ×4.5 across S7→S8 and
+  ×1.4 across S8→S9; Monp is constant (2.15×10⁵ /s). So S6→S7 is a clean
+  absorber join and the other two also contain a slit change. Monc does not
+  change with n, so the absorbers are downstream of Monc. The file records
+  no motor positions (`#P` lines repeat the names).
+- *Count rate* (measured, weak): peak pixel ≤ 1.1×10⁵ counts/s in the
+  brighter scan; it changes 2–4× across a join's three overlap points
+  while the ratio stays constant (χ²/dof 1.2–1.9). Image header: `Tau = 0
+  s`, `Retrigger_mode: 1`, rate-correction LUT `ContinuousStandard_v1.1`.
+  Correction to the earlier entry (reasoning): uncorrected dead time pushes
+  the step toward nominal, but a rate correction that over-corrects would
+  push it away; the hand-off asks for the rate test rather than assuming
+  the sign.
+
