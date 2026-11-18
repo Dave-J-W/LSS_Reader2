@@ -19,6 +19,12 @@ the GID worksheet (F61). Where each one acts:
 - ``polarisation``: divide by 1 − (sin 2θ cos β)².
 - ``vjoin_kind``: interpolation of the β-integrated profiles in the
   vertical join (Qz levels); the horizontal join is linear.
+- ``pinhole``: patch in pinhole geometry instead (lss_core.pinhole, F45):
+  every usable column at its own 2θ; off by default, so the patch above is
+  unchanged. ``pinhole_distance_mm``: S4 → detector, 0 for the header
+  value; ``response``: 'fit' or 'none' (column response);
+  ``arm_correction``: the g_l3 term in the vertical distance;
+  ``min_frames``: 2θ bins seen by fewer frames are left out (map edges).
 """
 from dataclasses import dataclass, fields
 
@@ -34,6 +40,11 @@ class GIDParams:
     hard_slit_offset_mm: float = 32.0
     polarisation: bool = True
     vjoin_kind: str = 'cubic'
+    pinhole: bool = False
+    pinhole_distance_mm: float = 0.0
+    response: str = 'fit'
+    arm_correction: bool = True
+    min_frames: int = 2
 
     def changed(self):
         """Names of the settings that differ from the defaults."""

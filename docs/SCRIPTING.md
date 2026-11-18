@@ -143,3 +143,15 @@ the monitor and multiplied by `absfac` (a number or
 settings work as in the window. Background-subtracted cuts are not
 scriptable yet. Exporting a cut in the window writes this call.
 
+## Pinhole GID (2026-11-18)
+
+    import sys; sys.path.insert(0, 'tests/tools')
+    from pinhole_frames import frames_for          # frames from a SPEC file, as the window reads them
+    from lss_core import pinhole
+    frames = frames_for('sample_data/NX_school/2026sep/20260923', [11])
+    two_theta, beta, I, sigma, info = pinhole.level_map(frames, 15, 486)
+
+`level_map` bins every usable column at its own 2θ (one Qz level);
+`info` holds the column response, the scan factors, counts used and frames
+per bin. Not yet an `Experiment` method.
+

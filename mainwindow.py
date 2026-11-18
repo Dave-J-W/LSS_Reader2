@@ -34,6 +34,7 @@ from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
 from lss_core import cuts
 from lss_core import gid as gidmod
+from lss_core import pinhole
 from lss_core import absorbers
 from lss_core import preferences as prefs_store
 from lss_core.absorbers import ABSFAC_10KEV
@@ -3099,6 +3100,44 @@ class MainWindow (QMainWindow):
         form.addRow('Vertical join',kind)
         form.addRow('Distance for angles',dist)
         form.addRow('Absorber factor',absl)
+        pin=QCheckBox('Pinhole: angle per column',g)
+        pin.setObjectName('gidPinholeCheckBox')
+        pin.setChecked(gp.pinhole)
+        pin.setToolTip('Give every column its own 2theta through the pinhole (S4) and use all columns the S5 slits and '
+                       'the footprint allow, binned as counts over normalisation (F45; lss_core/pinhole.py). Off: '
+                       'the patch above, columns summed at the frame angle. The settings above that apply: rows, '
+                       'Qz grouping, area correction, polarisation.')
+        pdist=spin('gidPinholeDistSpinBox',0,2000,gp.pinhole_distance_mm,'S4 (pinhole) to detector distance, mm. '
+                   '0: the header value (#B1 4th number, 271 on NX). "Fit" estimates it from a peak\'s drift; the fit '
+                   'depends on the columns used by several mm (column response), so the header value is the default.',dbl=True)
+        resp=QComboBox(g)
+        resp.setObjectName('gidResponseComboBox')
+        resp.addItems(['fit','none'])
+        resp.setCurrentText(gp.response)
+        resp.setToolTip('Column response: "fit" estimates each column\'s relative sensitivity from the data (the '
+                        'same 2theta is seen by many columns in different frames); "none" takes it as flat.')
+        minf=spin('gidMinFramesSpinBox',1,50,gp.min_frames,'2theta bins seen by fewer frames than this are left out: '
+                  'at the map edges a bin is seen only through the weakest columns of one or two frames.')
+        arm=QCheckBox('Arm correction',g)
+        arm.setObjectName('gidArmCheckBox')
+        arm.setChecked(gp.arm_correction)
+        arm.setToolTip('Vertical distance = sample-detector + g_l3 (1/cos beta0 - 1): the horizontal arm distance as '
+                       'a path when the arm is raised (IDL). Pinhole mode only.')
+        fit=QPushButton('Fit',g)
+        fit.setObjectName('gidFitDistancePushButton')
+        fit.setToolTip('Estimate the S4-detector distance from the drift of the strongest feature across the frames; '
+                       'shown, not applied')
+        fitl=QLabel('',g)
+        fitl.setObjectName('gidFitLabel')
+        prow=QHBoxLayout()
+        prow.addWidget(pdist)
+        prow.addWidget(fit)
+        prow.addWidget(fitl)
+        form.addRow(pin)
+        form.addRow('S4-detector (mm)',prow)
+        form.addRow('Column response',resp)
+        form.addRow('Frames per bin, at least',minf)
+        form.addRow(arm)
         lay.addWidget(g)
         levels=QLabel('',d)
         levels.setObjectName('gidLevelsLabel')
@@ -3134,8 +3173,14 @@ class MainWindow (QMainWindow):
             self.gidParams=gidmod.GIDParams(columns=cols.value(),row_min=rmin.value(),row_max=rmax.value(),
                                             qz_decimals=qzd.value(),dth_decimals=dthd.value(),
                                             area_correction=area.isChecked(),hard_slit_offset_mm=hard.value(),
-                                            polarisation=pol.isChecked(),vjoin_kind=kind.currentText())
+                                            polarisation=pol.isChecked(),vjoin_kind=kind.currentText(),
+                                            pinhole=pin.isChecked(),pinhole_distance_mm=pdist.value(),
+                                            response=resp.currentText(),arm_correction=arm.isChecked(),
+                                            min_frames=minf.value())
             hard.setEnabled(area.isChecked())
+            for w in (pdist,resp,arm,fit,minf):
+                w.setEnabled(pin.isChecked())
+            cols.setEnabled(not pin.isChecked())
 
         def defaults():
             dflt=gidmod.GIDParams()
@@ -3145,12 +3190,32 @@ class MainWindow (QMainWindow):
             area.setChecked(dflt.area_correction)
             pol.setChecked(dflt.polarisation)
             kind.setCurrentText(dflt.vjoin_kind)
+            pin.setChecked(dflt.pinhole)
+            pdist.setValue(dflt.pinhole_distance_mm)
+            resp.setCurrentText(dflt.response)
+            arm.setChecked(dflt.arm_correction)
+            minf.setValue(dflt.min_frames)
             apply()
+
+        def fitdist():
+            r=self.gidFitPinholeDistance()
+            if r:
+                fitl.setText('%.0f +/- %.0f' % (r['distance'],r['error']))
+                fitl.setToolTip('Fitted from %d frames, feature at 2theta %.3f deg, columns %d-%d; header value %.0f mm. '
+                                'The statistical error leaves out the column-response bias (several mm).'
+                                % (r['frames'],r['peak'],r['columns'][0],r['columns'][1],r['header']))
         for w in (cols,rmin,rmax,qzd,dthd,hard):
             w.valueChanged.connect(apply)
         area.toggled.connect(apply)
         pol.toggled.connect(apply)
         kind.currentIndexChanged.connect(apply)
+        pdist.valueChanged.connect(apply)
+        minf.valueChanged.connect(apply)
+        pin.toggled.connect(apply)
+        arm.toggled.connect(apply)
+        resp.currentIndexChanged.connect(apply)
+        fit.clicked.connect(fitdist)
+        apply()
         again.clicked.connect(self.gidWorksheetPatch)
         reset.clicked.connect(defaults)
         close.clicked.connect(d.close)
@@ -3158,6 +3223,8 @@ class MainWindow (QMainWindow):
         d.gidQzDecimalsSpinBox,d.gidDthDecimalsSpinBox,d.gidAreaCheckBox=qzd,dthd,area
         d.gidHardSlitSpinBox,d.gidPolCheckBox,d.gidVJoinKindComboBox=hard,pol,kind
         d.gidLevelsLabel,d.gidJoinTable=levels,t
+        d.gidPinholeCheckBox,d.gidPinholeDistSpinBox,d.gidResponseComboBox,d.gidArmCheckBox=pin,pdist,resp,arm
+        d.gidFitDistancePushButton,d.gidFitLabel=fit,fitl
         return d
 
     def gidWorksheetPatch(self):
@@ -3253,6 +3320,9 @@ class MainWindow (QMainWindow):
         gp=self.gidParams
         self.gidJoinLog=[]
         self.gidLevels=[]
+        if gp.pinhole:
+            self.gidPinholePatch()
+            return
         self.pilxleft=self.xcenter-(float(self.ui.pilHSlitLineEdit.text())-1)/2
         self.pilxright=self.xcenter+(float(self.ui.pilHSlitLineEdit.text())-1)/2
         self.pilhintLQDatadic={}  #create the dictionary for low qz 
@@ -3367,6 +3437,11 @@ class MainWindow (QMainWindow):
                 return
 
         
+        self.gidFinishMap()
+
+    def gidFinishMap(self):
+        """Map arrays, colour limits and the plot from self.pilPatchData
+        (the end of the GID patch, shared by the pinhole patch)."""
         pilGIDXAxis=[self.pilPatchData[i][0][0] for i in range(len(self.pilPatchData))]  #get x-axis
         pilGIDYAxis=list(self.pilPatchData[0][:,1])  #get y-axis
         self.pilGIDXAxs, self.pilGIDYAxs=np.meshgrid(pilGIDXAxis,pilGIDYAxis) # mesh the x-y corrdinates
@@ -3382,6 +3457,81 @@ class MainWindow (QMainWindow):
         self.pilGIDPlot()   # go to plot function
         if self.gidWorksheet is not None and self.gidWorksheet.isVisible():
             self.gidWorksheetResults()
+
+    def gidPinholePatch(self):
+        """GID patch in pinhole geometry (F45; lss_core.pinhole): every
+        usable column at its own 2θ, binned as ΣN/ΣW per Qz level; levels
+        joined vertically as in the legacy patch."""
+        gp=self.gidParams
+        qzfmt='.%df' % gp.qz_decimals
+        levels={}
+        for j,i in enumerate(self.selectedPilFramesNums):
+            levels.setdefault(float(format(self.pilFileQzs[i],qzfmt)),[]).append((j,i))
+        names=['low Qz','middle Qz','high Qz']+['Qz level %d' % k for k in range(4,20)]
+        maps=[]
+        self.gidPinholeInfo=[]
+        for k,qz in enumerate(sorted(levels)):
+            frames=[]
+            for j,i in levels[qz]:
+                scan=self.pilScanNum[i]
+                p=self.specPar[scan]
+                dp=gp.pinhole_distance_mm or float(self.pil_PDist[i])
+                g=pinhole.FrameGeometry(dth=float(self.pil_Dth[i]),alpha=float(self.pilTrueAlpha[i]),
+                                        beta0=float(np.arcsin(2*np.sin(self.pilAlpha[i])-np.sin(self.pilTrueAlpha[i]))),
+                                        c0=float(self.xcenter[j]),r0=float(self.ycenter[j]),d_sample=float(self.pil_Dist[i]),
+                                        d_pinhole=dp,g_l3=float(p.get('g_l3',0.0)) if gp.arm_correction else 0.0,
+                                        wavelength=float(self.pil_Wavelength[i]))
+                areainfo=(p['S1L']+p['S1R'],p['S1T']+p['S1B'],p['S4L']+p['S4R'],float(self.pilTrueAlpha[i]),
+                          float(self.pil_Dist[i]),dp)
+                frames.append(pinhole.PinholeFrame(np.asarray(self.pilData[i],float),float(self.pilMonc[i]),g,areainfo,
+                                                   (p['S5L'],p['S5R']),p.get('g_l2',0.0)-p.get('g_l1',0.0),int(scan)))
+            self.gidJoinLabel=names[k]
+            tt,beta,I,S,info=pinhole.level_map(frames,gp.row_min,gp.row_max,response=gp.response,
+                                               area=gp.area_correction,pol=gp.polarisation,log=self.gidJoinLog,
+                                               min_frames=gp.min_frames)
+            for e in self.gidJoinLog:
+                e.setdefault('label',names[k])
+            self.gidPinholeInfo.append(dict(level=names[k],**info))
+            maps.append([np.vstack((np.full(len(beta),t),beta,I[b],S[b])).T for b,t in enumerate(tt)])
+            keys=sorted(set(f.scan for f in frames))
+            self.gidLevels.append((names[k],keys,len(frames),float(tt.min()),float(tt.max())))
+        self.pilPatchData=maps[0]
+        for k,m in enumerate(maps[1:]):
+            self.gidJoinLabel=names[0]+' + '+names[k+1]
+            try:
+                self.pilPatchData=self.imagevjoin(self.pilPatchData,m)
+            except Exception:
+                self.messageBox('Warning: the Qz levels could not be joined vertically (no common range).')
+                return
+        self.gidFinishMap()
+
+    def gidFitPinholeDistance(self):
+        """S4 → detector distance from the drift of the strongest feature of
+        the first Qz level (a diagnostic; the value is not changed)."""
+        if self.det!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]))<6:
+            self.messageBox('Select the frames of a GID scan (at least 6) first.')
+            return None
+        gp=self.gidParams
+        frames=list(self.selectedPilFramesNums)
+        prof=np.array([np.clip(np.asarray(self.pilData[i],float)[gp.row_min:gp.row_max+1],0,None).sum(0) for i in frames])
+        dth=np.degrees([self.pil_Dth[i] for i in frames])
+        p=self.specPar[self.pilScanNum[frames[0]]]
+        dp=gp.pinhole_distance_mm or float(self.pil_PDist[frames[0]])
+        g=pinhole.FrameGeometry(dth=float(np.radians(np.median(dth))),alpha=float(self.pilTrueAlpha[frames[0]]),beta0=0.0,
+                                c0=float(self.xcenter[0]),r0=float(self.ycenter[0]),d_sample=float(self.pil_Dist[frames[0]]),
+                                d_pinhole=dp,wavelength=float(self.pil_Wavelength[frames[0]]))
+        win=pinhole.usable_columns(g,prof.shape[1],p['S5L'],p['S5R'],p['S1T']+p['S1B'],p.get('g_l2',0.0)-p.get('g_l1',0.0))
+        tt=float(np.median(dth))+np.degrees(np.arctan((np.arange(prof.shape[1])-g.c0)*pinhole.PIXEL_MM/dp))
+        ex=prof-np.median(prof,axis=0)
+        f=int(np.argmax(ex[:,win].max(axis=1)))          # the frame with the strongest feature
+        c=int(win[0]+np.argmax(ex[f,win]))
+        peak=float(dth[f]+np.degrees(np.arctan((c-g.c0)*pinhole.PIXEL_MM/dp)))
+        try:
+            d,err,slope,n=pinhole.fit_pinhole_distance(prof,dth,g.c0,peak,dp,(int(win[0]),int(win[-1])))
+        except Exception as e:
+            self.messageBox('No distance fit: %s.' % e)
+            return None
+        return dict(distance=d,error=err,frames=n,peak=peak,columns=(int(win[0]),int(win[-1])),header=dp)
 
     def gidCorrect(self,dic,keys,areainfo):
         """Area and polarisation corrections of the profiles in ``dic``,

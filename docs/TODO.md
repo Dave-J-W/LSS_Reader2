@@ -115,9 +115,11 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       F60 contextual/automatic reduction. Not to be built yet.
 - [x] F61 GID worksheet (2026-11-18): the patch's settings editable, joins
       tabulated; defaults reproduce the patch exactly.
-- [ ] GID sub-project (D36): F45 pinhole correction before patching (IDL
-      code received, `docs/reference_code/idl/`; review: hand-off 04), then
-      F62 flexible overlaps. P31 found while reading.
+- [x] F45 pinhole correction, first version (2026-11-18): worksheet switch,
+      off by default; physics_notes 2026-11-18.
+- [ ] GID next: F62 flexible overlaps between Qz levels (common range,
+      count-over-weight overlap); P34 and P32 fixes; then decide with the
+      owner whether pinhole mode becomes the default for Det_Th > 1°.
 - [x] Distances settled (owner, 2026-11-18): 551 sample→detector, 271
       S4→detector, 556 = g_l3 (sample → output-arm rotation centre).
 - [ ] Owner (IDL review §8): the missing routines `SCAN_PD_READ`,

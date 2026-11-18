@@ -1925,3 +1925,48 @@ there. So: pixel → angle uses 551 vertically and in GID, 271 (or a value
 fitted from the data) per column in pinhole geometry; g_l3 only enters the
 arm geometry.
 
+### 2026-11-18 — Pinhole-geometry GID built (F45), first version
+
+**Owner:** sent the SPEC file for the private GID frames (dates removed
+here, kept in `sample_data/private/`, never pushed); "proceed carefully
+with your suggested workflow".
+
+**Built** (`lss_core/pinhole.py`; GID worksheet "Pinhole: angle per
+column", **off by default**, so the legacy patch and its references are
+unchanged): 2θ per column through the pinhole with D_p = `#B1` 4th number
+(271 mm, owner) unless typed; β per row with the IDL arm term; usable
+columns = asymmetric S5 projection ∩ footprint range (`PD_PIN_RANGE`);
+weight W = M · A · P · R with A the footprint fraction (calArea's
+arithmetic for a one-pixel band at the column's angle, equal to calArea to
+1e-12), P the polarisation, R the column response fitted from the data;
+binning I = ΣN/ΣW on one-column bins (p/D_p); scans of a level joined by
+one factor; Qz levels joined by the legacy vertical join for now (F62
+next); bins seen by fewer than 2 frames left out.
+
+**Measured on NX scan 11 (public):** S5 window 27.2–139.3 (lit columns
+29–137); columns used 28–90 at Det_Th 14° to 28–102 at 18°; 17× the counts
+of the 3-column patch; DPPC peak at 2θ 16.655°; the column response spans
+0.25–1.42 over the used columns. **Distance fit — correction to the IDL
+review:** the fitted D_p depends on the columns used, 258–280 mm (columns
+40–70: 258; 30–60: 264; 35–80: 269; 30–100: 271; 27–139: 280), each with a
+statistical error of ±2–3 mm. The column response and the peak shape bias
+the centroids by several mm, so "267 ± 2" and "280 excluded at 6σ" in the
+review were too strong; 271 (header, owner) is within the spread and is
+the default. The worksheet's Fit button shows a fit; it does not apply it.
+
+**Synthetic checks** (`tests/test_pinhole.py`): a line at fixed 2θ lands
+in one bin from ~70 columns per frame; mapping with a near-sample distance
+smears it over > 5 bins; counts are conserved; at 0.4 counts per pixel the
+estimate is unbiased (1.00 ± 0.01) with pulls of width 1 ± 0.05; a known
+hump-shaped column response is recovered to < 1 %; a synthetic drift gives
+the true D_p within 2 mm.
+
+**Private scans (owner's):** checked locally; results reported to the
+owner, not recorded here.
+
+**Not yet:** F62 flexible overlaps between Qz levels (the vertical join is
+still the legacy one, with its edge copies, P33); the footprint fraction
+uses the band through the pinhole centre (offset e = 0; the response
+absorbs the rest); split-pixel binning; P34 (Pix V cut β) and P32
+(automatic pinhole switch for display and cuts) are separate fixes.
+
