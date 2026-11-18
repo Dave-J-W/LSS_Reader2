@@ -110,7 +110,9 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] New output formats record reduction steps and parameters (R7).
 - [ ] GID and GISAXS scriptable: part of the GID sub-project (F23), which
       the owner wants scoped separately.
-- [ ] Burn tests and peak fits scriptable.
+- [ ] → Stage 6: burn tests and peak fits scriptable, with the fitting
+      sub-project (analysis tools, not reduction); P30 (burn test not
+      monitor-normalised) to be fixed then.
 - [x] Script pane (F48, first part): opening a SPEC file and exporting a
       patched reflectivity write the equivalent `lss_core` Python, which
       reproduces the exported files byte for byte (tested), including merges,
