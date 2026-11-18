@@ -118,6 +118,8 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] GID sub-project (D36): F45 pinhole correction before patching (IDL
       code received, `docs/reference_code/idl/`; review: hand-off 04), then
       F62 flexible overlaps. P31 found while reading.
+- [x] Distances settled (owner, 2026-11-18): 551 sample→detector, 271
+      S4→detector, 556 = g_l3 (sample → output-arm rotation centre).
 - [ ] Owner (IDL review §8): the missing routines `SCAN_PD_READ`,
       `SCAN_PD_LCOO`, `IMG_JOIN`, `PD_GID_READ`, `PD_PIN_RANGE` (+ FILDAT
       definitions) and IDL output for NX scans 11+12; is `S7D_Dist` the

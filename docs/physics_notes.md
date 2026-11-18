@@ -1916,3 +1916,12 @@ distance; 271 as sample → S4 would make the pinhole 280 mm from the
 detector, excluded by the measured 267 ± 2 mm, so 271 is read as S4 →
 detector unless the sample → slit distance is elsewhere in the header.
 
+**Owner, 2026-11-18 (settles the table above):** 271 is the S4 → detector
+distance ("perhaps your measurement is more up to date": 267 ± 2 mm
+measured on NX scan 11); 551 is the sample → detector distance; 556 is
+g_l3, the horizontal distance from the sample to the rotation centre of
+the output (detector) arm; the detector is close to it but not exactly
+there. So: pixel → angle uses 551 vertically and in GID, 271 (or a value
+fitted from the data) per column in pinhole geometry; g_l3 only enters the
+arm geometry.
+
