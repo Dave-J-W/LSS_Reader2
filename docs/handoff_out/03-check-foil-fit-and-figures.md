@@ -3,7 +3,7 @@
 **Answered 2026-11-18:** `03-answer/` holds the answer as received: the
 review, the figures and their data, the revised report, `joins.csv`, and a
 later note on how far the ratios can be trusted (`ABSORBER_RATIOS.md`).
-That note's own figures (`absorber_trust_*.png`) were not received. The
+Its figures (`absorber_trust_1.png` to `_5.png`) arrived later and are in `figures/`. The
 owner cleared committing all of it, dates included.
 
 Written 2026-11-18 by the LSS_Reader2 agent, for the agent that wrote the
