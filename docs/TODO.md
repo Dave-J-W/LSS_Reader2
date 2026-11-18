@@ -84,10 +84,9 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       Answered 2026-11-18 (`handoff_out/02-answer-report.md`), reviewed
       in physics_notes: foils calibrated at 10 keV, stable over the year;
       the jumps are the monitor (P29).
-- [ ] Owner: use the calibrated foil table (54.7 … 1725.1 µm Al-eq at
-      10 keV, physics_notes 2026-11-18) in the paths that use the nominal
-      absorber factor (cuts, background images, frame averages, GID,
-      fluorescence)? Off-10-keV energies would need the composition (P28).
+- [x] Calibrated foil table in the reader (F56), Preferences (F57), known
+      ratio in Ref Patch (F58), 2026-11-18. Off 9.70–10.30 keV the
+      composition is needed (P28).
 - [ ] Owner (P29): `Monc` missed ≈ 1/3 of a slit opening in some series
       (R05; 2026-09-26 to 2026-10-16). Which scan of the pair, which
       configuration, and is `Monc`'s acceptance smaller than S1 opened?

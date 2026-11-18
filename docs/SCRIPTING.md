@@ -117,3 +117,15 @@ the same files. It is also written to the log.
 | `lss_core.cache` | the memory cache (budget from `LSS_READER_RAM_CACHE_MB`) |
 | `lss_core.numbers` | number parsing for SPEC/MCA text, without `eval` |
 | `spec_routines.specread` | the SPEC reader (no Qt needed) |
+
+## Absorbers and the known ratio (2026-11-18)
+
+- `absorbers.calibrated(E_keV)`: the calibrated foils (9.70–10.30 keV),
+  or None. Pass it as `absfac=` wherever a number was accepted
+  (`exp.fluorescence(..., absfac=absorbers.calibrated(10.0))`); the
+  factor at setting n is then `foils.factor(n)`.
+- `foils.step(n_a, n_b)`: (ratio, relative error) between two settings.
+- `exp.reflectivity(..., factors={join: (factor, error)})`: use these
+  instead of the fitted patch factor at those joins (join 0 is the first
+  pair). The window writes this when it used the known ratio.
+

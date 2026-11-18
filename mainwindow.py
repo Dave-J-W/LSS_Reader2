@@ -33,6 +33,7 @@ import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
 from lss_core import absorbers
+from lss_core import preferences as prefs_store
 from lss_core.absorbers import ABSFAC_10KEV
 from lss_core.monitor import gain_factor
 from lss_core.errors import ErrorModel, MonitorModel, MonitorTerms, script_kw, ELECTRONICS
@@ -123,7 +124,8 @@ class MainWindow (QMainWindow):
         self.refQc=float(self.ui.refQcLineEdit.text())
         self.ui.AbsFacLineEdit.setToolTip('Transmission factor per absorber unit. SPEC #A gives the absorber in these units '
                                           '(0: no absorbers). Default: 50 um of Al at 10 keV, exp(mu/rho rho t) = %s '
-                                          '(lss_core/absorbers.py); it depends on the energy.' % ABSFAC_10KEV)
+                                          '(lss_core/absorbers.py); it depends on the energy. "cal": the calibrated '
+                                          'foils are in use (File > Preferences).' % ABSFAC_10KEV)
         self.ui.AbsFacLineEdit.setText(str(ABSFAC_10KEV))
         self.absfac=float(self.ui.AbsFacLineEdit.text())
         # the factor in use is the one the field shows, however it was set
@@ -176,7 +178,9 @@ class MainWindow (QMainWindow):
         self.initScriptPane()
         self.initErrorPane()
         self.initMonitorGainOption()
+        self.prefs=prefs_store.load()
         self.initAbsFacFromEnergy()
+        self.initPreferences()
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
@@ -1109,7 +1113,8 @@ class MainWindow (QMainWindow):
         from PyQt5.QtWidgets import QCheckBox
         box=QCheckBox('from E')
         box.setObjectName('absFacEnergyCheckBox')
-        box.setToolTip('Set the absorber factor from the energy of the selected scans (SPEC #W): 50 um Al per '
+        box.setToolTip('Set the absorber factor from the energy of the selected scans (SPEC #W): the calibrated '
+                       'foils at 9.70-10.30 keV (field shows "cal"; File > Preferences), elsewhere 50 um Al per '
                        'unit at <= 10 keV, exp(mu/rho rho t) with mu/rho from NIST SRD 126. Untick to type a '
                        'value. Energy scans use the energy in their header.')
         box.setChecked(True)
@@ -1123,6 +1128,8 @@ class MainWindow (QMainWindow):
     def setAbsFacFromEnergy(self,state=None):
         on=self.absFacEnergyCheckBox.isChecked()
         self.ui.AbsFacLineEdit.setReadOnly(on)
+        if not on and isinstance(self.absfac,absorbers.Foils):   # a typed value replaces the foils
+            self.ui.AbsFacLineEdit.setText(str(absorbers.factor_at(self.absfac.energy_kev)[0]))
         self.notify('Absorber factor: '+('from the energy of the selected scans' if on else 'typed value'),
                     title='Absorbers',level='info')
         if on:
@@ -1138,7 +1145,8 @@ class MainWindow (QMainWindow):
         for i in getattr(self,'selectedScanNums',[]):
             wl=self.specPar.get(i,{}).get('Wavelength')
             e=absorbers.energy_kev(wl) if isinstance(wl,(int,float)) and wl>0 else None
-            a,why=absorbers.factor_at(e)
+            cal=absorbers.calibrated(e) if self.prefs['calibrated_foils'] else None
+            a,why=(cal,'calibrated foils at %.2f keV' % cal.energy_kev) if cal is not None else absorbers.factor_at(e)
             (known.setdefault((a,why),[]) if a is not None else unknown.setdefault(why,[])).append(i)
         for why,scans in unknown.items():
             key=(self.specFileName,why)
@@ -1151,12 +1159,146 @@ class MainWindow (QMainWindow):
         first=min(known,key=lambda k:known[k][0])     # the factor of the first selected scan
         if len(known)>1:
             self.notify('The selected scans are at energies with different absorber factors: '
-                        +'; '.join('scan(s) %s: %s, %s' % (listText(v),k[0],k[1]) for k,v in sorted(known.items(),key=lambda kv:kv[1][0]))
-                        +'. One factor is applied to all: %s. Reduce them separately.' % first[0],title='Absorbers')
-        if self.ui.AbsFacLineEdit.text()!=str(first[0]):
+                        +'; '.join('scan(s) %s: %s' % (listText(v),k[1] if isinstance(k[0],absorbers.Foils) else '%s, %s' % k)
+                                   for k,v in sorted(known.items(),key=lambda kv:kv[1][0]))
+                        +'. One is applied to all: %s. Reduce them separately.' % first[1],title='Absorbers')
+        if isinstance(first[0],absorbers.Foils):
+            if self.absfac!=first[0] or self.ui.AbsFacLineEdit.text()!='cal':
+                self.ui.AbsFacLineEdit.setText('cal')
+                self.absfac=first[0]
+            self.ui.AbsFacLineEdit.setToolTip('cal: %s, measured (File > Preferences shows the foils). '
+                                              'Untick "from E" to type a factor per unit instead.' % first[1])
+        elif self.ui.AbsFacLineEdit.text()!=str(first[0]):
             self.ui.AbsFacLineEdit.setText(str(first[0]))
             self.notify('Absorber factor %s per unit: %s.' % first,title='Absorbers',level='info')
         return first[0]
+
+    def absorberModel(self):
+        """The absorber factor in use: the calibrated foils
+        (lss_core.absorbers.Foils) or the number in the field."""
+        if isinstance(self.absfac,absorbers.Foils):
+            return self.absfac
+        try:
+            value=float(self.ui.AbsFacLineEdit.text())
+        except ValueError:
+            return self.absfac
+        return value if value>0 else self.absfac
+
+    def absorberText(self):
+        a=self.absorberModel()
+        return ('the calibrated foils (File > Preferences)' if isinstance(a,absorbers.Foils)
+                else 'absfac^n with absfac %s (the Absorber factor field)' % a)
+
+    # ---- preferences (File > Preferences) ---------------------------------
+
+    def initPreferences(self):
+        from PyQt5.QtWidgets import QAction
+        act=QAction('Preferences...',self)
+        act.setObjectName('actionPreferences')
+        act.setToolTip('Absorber foils and Ref Patch settings, kept between sessions')
+        self.ui.menuFile.insertAction(self.ui.actionQuit,act)
+        act.triggered.connect(self.showPreferences)
+        self.ui.actionPreferences=act
+        self.preferencesDialog=None
+
+    def showPreferences(self):
+        if self.preferencesDialog is None:
+            self.preferencesDialog=self.buildPreferences()
+        self.preferencesDialog.show()
+        self.preferencesDialog.raise_()
+
+    def buildPreferences(self):
+        """Short labels; the explanations are in the tooltips."""
+        from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLabel,
+                                     QTableWidget, QTableWidgetItem, QDoubleSpinBox, QPushButton, QAbstractItemView)
+        from PyQt5.QtCore import Qt as QtC
+        d=QDialog(self)
+        d.setObjectName('preferencesDialog')
+        d.setWindowTitle('Preferences')
+        lay=QVBoxLayout(d)
+        g=QGroupBox('Absorber foils',d)
+        gl=QVBoxLayout(g)
+        cal=QCheckBox('Calibrated foils',g)
+        cal.setObjectName('prefCalibratedCheckBox')
+        cal.setChecked(self.prefs['calibrated_foils'])
+        cal.setToolTip('Use the measured foil thicknesses below instead of 50 um Al per unit, at %.2f-%.2f keV, '
+                       'when "from E" is ticked. Measured: %s. Elsewhere, or unticked: 50 um Al per unit '
+                       '(NIST SRD 126).' % (absorbers.CAL_RANGE_KEV+(absorbers.CAL_PROVENANCE,)))
+        gl.addWidget(cal)
+        t=QTableWidget(len(absorbers.CAL_FOILS_UM),3,g)
+        t.setObjectName('prefFoilTable')
+        t.setHorizontalHeaderLabels(['units','nominal um','calibrated um'])
+        t.setVerticalHeaderLabels(['foil %d' % k for k in range(len(absorbers.CAL_FOILS_UM))])
+        tips=['Absorber units of this foil: SPEC #A is the sum of the foils in (binary)',
+              '50 um of Al per unit (beamline)',
+              'Al-equivalent thickness at 10 keV, fitted to measured joins. Hover a value for its error']
+        for c,tip in enumerate(tips):
+            t.horizontalHeaderItem(c).setToolTip(tip)
+        for k,(tk,ek) in enumerate(zip(absorbers.CAL_FOILS_UM,absorbers.CAL_FOILS_FIT_ERR_UM)):
+            for c,val in enumerate(('%d' % 2**k,'%g' % (absorbers.UNIT_THICKNESS_UM*2**k),'%.1f' % tk)):
+                it=QTableWidgetItem(val)
+                it.setFlags(it.flags() & ~QtC.ItemIsEditable)
+                it.setTextAlignment(int(QtC.AlignRight | QtC.AlignVCenter))
+                if c==2:
+                    it.setToolTip('%.1f +/- %.1f um (fit); +/- %.1f um per foil assumed in absorber ratios '
+                                  '(run-to-run spread of the measurements)' % (tk,ek,absorbers.CAL_FOIL_SIGMA_UM))
+                t.setItem(k,c,it)
+        t.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        t.setToolTip(absorbers.CAL_PROVENANCE)
+        t.resizeColumnsToContents()
+        t.setMinimumHeight(t.verticalHeader().length()+t.horizontalHeader().height()+6)
+        gl.addWidget(t)
+        rng=QLabel('%.2f-%.2f keV' % absorbers.CAL_RANGE_KEV,g)
+        rng.setObjectName('prefFoilRangeLabel')
+        rng.setToolTip('Energies where the calibration is used, with the mu/rho of Al at the energy: no K edge of '
+                       'the usual Al impurities lies in this range. Measured at 10 keV.')
+        gl.addWidget(rng)
+        lay.addWidget(g)
+        g2=QGroupBox('Ref Patch',d)
+        hl=QHBoxLayout(g2)
+        auto=QCheckBox('Known ratio when fit error >',g2)
+        auto.setObjectName('prefPatchAutoCheckBox')
+        auto.setChecked(self.prefs['patch_auto_known_ratio'])
+        auto.setToolTip('At a join, use the absorber ratio of the calibrated foils instead of the fitted patch '
+                        'factor when the fit error is above this, the ratio is at least twice as precise, '
+                        'Monc/Monp shows no slit change across the join, and the two agree within 3 sigma. '
+                        'The patch window shows the choice and can undo it.')
+        spin=QDoubleSpinBox(g2)
+        spin.setObjectName('prefPatchThresholdSpinBox')
+        spin.setRange(0.1,100.0)
+        spin.setSingleStep(0.5)
+        spin.setDecimals(1)
+        spin.setSuffix(' %')
+        spin.setValue(self.prefs['patch_threshold_percent'])
+        spin.setEnabled(auto.isChecked())
+        spin.setToolTip('Relative error of the fitted patch factor above which the known ratio is used')
+        hl.addWidget(auto)
+        hl.addWidget(spin)
+        lay.addWidget(g2)
+        close=QPushButton('Close',d)
+        close.setObjectName('prefClosePushButton')
+        close.clicked.connect(d.close)
+        lay.addWidget(close)
+        cal.toggled.connect(lambda on:self.setPreference('calibrated_foils',bool(on)))
+        auto.toggled.connect(lambda on:(spin.setEnabled(on),self.setPreference('patch_auto_known_ratio',bool(on))))
+        spin.valueChanged.connect(lambda v:self.setPreference('patch_threshold_percent',float(v)))
+        d.prefCalibratedCheckBox,d.prefFoilTable,d.prefPatchAutoCheckBox,d.prefPatchThresholdSpinBox=cal,t,auto,spin
+        return d
+
+    def setPreference(self,key,value):
+        if self.prefs.get(key)==value:
+            return
+        self.prefs[key]=value
+        err=prefs_store.save(self.prefs)
+        if err and not getattr(self,'prefsSaveNoted',False):
+            self.prefsSaveNoted=True
+            self.notify('Preferences could not be saved (%s); they hold for this session.' % err,title='Preferences')
+        if key=='calibrated_foils':
+            if not value and isinstance(self.absfac,absorbers.Foils):
+                self.ui.AbsFacLineEdit.setText(str(absorbers.factor_at(self.absfac.energy_kev)[0]))
+            self.notify('Absorbers: '+('calibrated foils where they apply' if value else '50 um Al per unit'),
+                        title='Absorbers',level='info')
+            self.absFacFromEnergy()
 
     def setMonitorGain(self,state=None):
         on=bool(self.sender().isChecked()) if self.sender() in self.monitorGainBoxes else bool(state)
@@ -1229,7 +1371,7 @@ class MainWindow (QMainWindow):
         if inferred:
             self.notify('MCA scans record no absorber setting; it is taken from the last #A above each scan '
                         '(absorbers do not change during a scan), and normalised spectra are multiplied by '
-                        'absfac^n with absfac %s (the Absorber factor field): ' % self.ui.AbsFacLineEdit.text()
+                        '%s: ' % self.absorberText()
                         +'; '.join('scan(s) %s: n = %g from the #A of scan %d' % (listText(v),k[0],k[1])
                                    for k,v in sorted(inferred.items(),key=lambda kv:kv[1][0]))+'.',
                         title='Absorbers',level='info')
@@ -1279,10 +1421,7 @@ class MainWindow (QMainWindow):
                 self.progressDialog.show()
 
             self.mcaMax=0
-            try:
-                self.absfac=float(self.ui.AbsFacLineEdit.text())
-            except ValueError:
-                pass
+            self.absfac=self.absorberModel()
             self.mcaAbsfacUsed=self.absfac
             self.mcaGainUsed=self.monitorGain and str(self.ui.mcaNormComboBox.currentText())=='Monc'
             if str(self.ui.mcaNormComboBox.currentText())!='None':
@@ -1426,7 +1565,7 @@ class MainWindow (QMainWindow):
         try:
             gain=self.monitorGain and str(self.ui.mcaNormComboBox.currentText())=='Monc'
             if self.selectedMcaScanNums is not None and len(self.selectedMcaScanNums)>0 and (
-                    float(self.ui.AbsFacLineEdit.text())!=getattr(self,'mcaAbsfacUsed',None)
+                    self.absorberModel()!=getattr(self,'mcaAbsfacUsed',None)
                     or gain!=getattr(self,'mcaGainUsed',False)):
                 self.updateMcaPlotData()        # the absorber factor or the gain option changed since
         except ValueError:
@@ -1635,7 +1774,8 @@ class MainWindow (QMainWindow):
         if getattr(self,'mcaGainUsed',False):
             kw.append('monitor_gain=True')
         x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
-        return 'flu = exp.fluorescence(%r, %s)\nflu.save(%r, x=%r)' % (scans,', '.join(kw),name,x)
+        head='from lss_core import absorbers\n' if isinstance(getattr(self,'mcaAbsfacUsed',None),absorbers.Foils) else ''
+        return head+'flu = exp.fluorescence(%r, %s)\nflu.save(%r, x=%r)' % (scans,', '.join(kw),name,x)
 
     def addMcaFiles(self): #add mca files with integral intensity in the list
         f=QFileDialog.getOpenFileNames(caption='Select Multiple Files to import', directory=self.directory)[0]
@@ -1819,11 +1959,15 @@ class MainWindow (QMainWindow):
         n=sorted(set(int(a) for a in absnums))
         if len(n)<2:
             return
-        key=(what,tuple(n),float(self.absfac))
+        key=(what,tuple(n),repr(self.absfac))
         seen=self.__dict__.setdefault('_absorberNotes',set())
         if key in seen:
             return
         seen.add(key)
+        if isinstance(self.absfac,absorbers.Foils):
+            self.notify('%s combines frames taken at absorber settings %s (SPEC #A), scaled by the calibrated foils '
+                        '(File > Preferences).' % (what,', '.join(map(str,n))),title='Absorbers',level='info')
+            return
         self.notify('%s combines frames taken at absorber settings %s (SPEC #A), scaled by the nominal factor %g '
                     'per unit; Monc is upstream of the absorbers, so only this unmeasured factor puts them on one '
                     'scale.' % (what,', '.join(map(str,n)),self.absfac),title='Absorbers',level='info')
@@ -2935,7 +3079,7 @@ class MainWindow (QMainWindow):
         areainfo={}  # create a dictinary for area cal info which are contants for each scan
         averagemonc={} #create the dicionary for average monc for each scan
         qz=np.sort(list(set([float(format(self.pilSelectedQzs[i], '.3f')) for i in range(len(self.pilSelectedQzs))]))) # get and sort the qz in the selected frames
-        self.absfac=float(self.ui.AbsFacLineEdit.text())
+        self.absfac=self.absorberModel()
         j=0   #for xcenter and ycenter, which are already defined in self.selectedPilFramesNums
         for i in self.selectedPilFramesNums:  # get average monc for each scan
             ckey=self.pilScanNum[i]
@@ -3566,7 +3710,7 @@ class MainWindow (QMainWindow):
         self.pilhintDatadic={}
         self.noteMixedAbsorbers([self.pil_AbsNum[i] for i in self.selectedPilFramesNums],'GID patching')
         cmap=str(self.ui.pilCMapComboBox.currentText())
-        self.absfac=float(self.ui.AbsFacLineEdit.text())
+        self.absfac=self.absorberModel()
         #sortedFrameNums=np.array(self.selectedPilFramesNums)[np.argsort(np.array(self.pil_Dth))]
         j=0   #for xcenter and ycenter, which are already defined in self.selectedPilFramesNums
         for i in self.selectedPilFramesNums:
@@ -3744,7 +3888,7 @@ class MainWindow (QMainWindow):
         cmap=str(self.ui.pilCMapComboBox.currentText())
         self.refQzSelectedItems=self.ui.refQzListWidget.selectedItems()        
         self.refQzSelected=float(str(self.refQzSelectedItems[0].text()).split()[1])
-        self.absfac=float(self.ui.AbsFacLineEdit.text())       
+        self.absfac=self.absorberModel()       
         self.dir=str(self.ui.refBGDirComboBox.currentText())
         if self.det=='Pilatus': 
             slitx=int(self.ui.refSlitLineEdit.text().split(',')[0])
@@ -3920,6 +4064,8 @@ class MainWindow (QMainWindow):
             return
         self.refpatchindex=1
         self.refDrops={}       # join number -> list of drop actions, for the script console
+        self.refFactors={}     # join number -> (factor, error) used instead of the fitted one
+        self.refKnownOverride={}   # join number -> the user's choice in the patch window
         self.refMerged=[]      # groups merged in the identical-scans dialog
         self.refDroppedScans=[]   # scans dropped in the identical-scans dialog
         self.refScanList=sorted(set(int(self.pilScanNum[i]) for i in self.selectedPilFramesNums))
@@ -4037,6 +4183,83 @@ class MainWindow (QMainWindow):
         self.uirefpatch.dropPushButton.clicked.connect(self.pilRefPatchDrop)
         # self.connect(self.uirefpatch.nextPushButton,SIGNAL('clicked()'),self.pilRefPatchNext) #go to the next overlap
         self.uirefpatch.nextPushButton.clicked.connect(self.pilRefPatchNext)
+        from PyQt5.QtWidgets import QCheckBox, QLabel
+        box=QCheckBox('Known ratio',Dialog)
+        box.setObjectName('knownRatioCheckBox')
+        lab=QLabel('',Dialog)
+        lab.setObjectName('knownRatioLabel')
+        lay=self.uirefpatch.horizontalLayout
+        lay.insertWidget(lay.indexOf(self.uirefpatch.nextPushButton),lab)
+        lay.insertWidget(lay.indexOf(self.uirefpatch.nextPushButton),box)
+        self.uirefpatch.knownRatioCheckBox,self.uirefpatch.knownRatioLabel=box,lab
+        box.toggled.connect(self.pilRefPatchKnownToggled)
+        self.refScale={self.pilrefsort[0]:1.0}   # scale already applied to each scan's data
+        self.refInfoShown=None
+        self.pilRefPatchPlot()
+
+    def refMonitorChange(self,a,b):
+        """Monc/Monp of scan b over scan a at their overlap (P29), or None."""
+        try:
+            da,db=self.specData[a],self.specData[b]
+            return reflectivity.monitor_change(da['L'],da['Monc'],da['Monp'],db['L'],db['Monc'],db['Monp'])
+        except (KeyError,TypeError,IndexError):
+            return None
+
+    def refJoinInfo(self):
+        """Fitted factor, known absorber ratio and the choice for the join on show."""
+        j=self.pilreforder
+        a,b=self.pilrefsort[j],self.pilrefsort[j+1]
+        old=self.scanqzframe[a] if j==0 else self.pilrefdata
+        try:
+            patch=stitching.fitted_factor(old,self.scanqzframe[b])
+        except Exception:
+            patch=None
+        known=None
+        pa,pb=self.specPar.get(a,{}),self.specPar.get(b,{})
+        wl=pb.get('Wavelength')
+        if (self.prefs['calibrated_foils'] and isinstance(wl,(int,float)) and wl>0 and pa.get('Wavelength')==wl
+                and isinstance(pa.get('Absorber'),(int,float)) and isinstance(pb.get('Absorber'),(int,float))):
+            foils=absorbers.calibrated(absorbers.energy_kev(wl))
+            if foils is not None:
+                try:
+                    r,rel=foils.step(pa['Absorber'],pb['Absorber'])
+                    known=(self.refScale.get(a,1.0)*r,rel)
+                except ValueError:
+                    known=None
+        mon=self.refMonitorChange(a,b)
+        choice=None if patch is None else reflectivity.patch_choice(
+            patch,known,mon,auto=self.prefs['patch_auto_known_ratio'],
+            threshold=self.prefs['patch_threshold_percent']/100.0)
+        return dict(join=j,a=a,b=b,patch=patch,known=known,monitor=mon,choice=choice)
+
+    def refShowKnown(self):
+        """Set the patch window's known-ratio box for the join on show;
+        returns the factor to preview with (None: the fitted one)."""
+        info=self.refJoinInfo()
+        self.refInfoShown=info
+        box,lab=self.uirefpatch.knownRatioCheckBox,self.uirefpatch.knownRatioLabel
+        c=info['choice']
+        use=False
+        if c is None or info['known'] is None:
+            box.setEnabled(False)
+            lab.setText('')
+            box.setToolTip('Known absorber ratio: '+(c['why'] if c else 'no fitted factor here')+'.')
+        else:
+            box.setEnabled(True)
+            use=self.refKnownOverride.get(info['join'],c['use'])
+            fit,kn=100*c['patch_rel'],100*c['known_rel']
+            lab.setText(('fit +/-%.1f%%, foils +/-%.1f%%' % (fit,kn))+(' - try known ratio' if c['suggest'] and not use else ''))
+            lab.setToolTip('Relative error of the fitted patch factor and of the ratio of the calibrated foils '
+                           '(%.4g) for this join' % info['known'][0])
+            box.setToolTip('Use the absorber ratio of the calibrated foils instead of the fitted factor. '
+                           +('Chosen automatically (File > Preferences). ' if c['use'] else '')+c['why']+'.')
+        box.blockSignals(True)
+        box.setChecked(bool(use))
+        box.blockSignals(False)
+        return info['known'][0] if use else None
+
+    def pilRefPatchKnownToggled(self,on):
+        self.refKnownOverride[self.pilreforder]=bool(on)
         self.pilRefPatchPlot()
         
     def pilRefSameScan(self):
@@ -4143,6 +4366,10 @@ class MainWindow (QMainWindow):
                     return
 
                 #print self.scanqzframe[self.pilrefsort[self.pilreforder]],self.scanqzframe[self.pilrefsort[self.pilreforder+1]]                
+                kfac=self.refShowKnown()
+                if kfac is not None and fac:     # preview with the known ratio
+                    ymin,ymax=min(ymin,ymin*kfac/fac),max(ymax,ymax*kfac/fac)
+                    fac=kfac
                 self.uirefpatch.plotWidget.canvas.ax.clear()
                 self.uirefpatch.plotWidget.canvas.ax.set_xlabel(r'$Q_z$'+' '+r'$[\AA^{-1}]$')
                 self.uirefpatch.plotWidget.canvas.ax.set_ylabel('Reflectivity')
@@ -4172,6 +4399,10 @@ class MainWindow (QMainWindow):
                     self.messageBox('Warning: Scan ' + str(self.pilrefsort[self.pilreforder]) + ' or ' + str(self.pilrefsort[self.pilreforder+1]) + ' does not have enough points for patching!')
                     self.uirefpatch.close()
                     return
+                kfac=self.refShowKnown()
+                if kfac is not None and fac:     # preview with the known ratio
+                    ymin,ymax=min(ymin,ymin*kfac/fac),max(ymax,ymax*kfac/fac)
+                    fac=kfac
                 self.uirefpatch.plotWidget.canvas.ax.clear()
                 self.uirefpatch.plotWidget.canvas.ax.set_xlabel(r'$Q_z$'+' '+r'$[\AA^{-1}]$')
                 self.uirefpatch.plotWidget.canvas.ax.set_ylabel('Reflectivity')
@@ -4218,10 +4449,29 @@ class MainWindow (QMainWindow):
         if np.atleast_2d(old)[-1][0]<np.atleast_2d(new)[0][0]:   # hand-off trap T11
             self.messageBox('Scans '+str(self.pilrefsort[self.pilreforder])+' and '+str(self.pilrefsort[self.pilreforder+1])+' do not overlap in Qz; they cannot be patched. Select frames that overlap.')
             return
-        if self.pilreforder==0:
+        info=self.refInfoShown
+        if info is None or info['join']!=self.pilreforder:
+            info=self.refJoinInfo()
+        a,b=self.pilrefsort[self.pilreforder],self.pilrefsort[self.pilreforder+1]
+        factor=None
+        if info['known'] is not None and self.uirefpatch.knownRatioCheckBox.isChecked():
+            k,rel=info['known']
+            factor=(k,k*rel)
+            self.refFactors[self.pilreforder]=factor
+            fit=info['patch']
+            self.notify('Scans %d and %d: known absorber ratio %.4g +/- %.1f%% used instead of the fitted %s.'
+                        % (a,b,k,100*rel,'%.4g +/- %.1f%%' % (fit[0],100*abs(fit[1]/fit[0])) if fit else 'factor'),
+                        title='Ref Patch',level='info')
+        else:
+            self.refFactors.pop(self.pilreforder,None)
+        if factor is not None:
+            self.pilrefdata=stitching.join(old,new,mtype='merge',factor=factor)
+        elif self.pilreforder==0:
             self.pilrefdata=self.oneDjoin(self.scanqzframe[self.pilrefsort[self.pilreforder]],self.scanqzframe[self.pilrefsort[self.pilreforder+1]],mtype='merge')
         else:
             self.pilrefdata=self.oneDjoin(self.pilrefdata,self.scanqzframe[self.pilrefsort[self.pilreforder+1]],mtype='merge')
+        used=factor[0] if factor is not None else (info['patch'][0] if info['patch'] else 1.0)
+        self.refScale[b]=self.refScale.get(a,1.0)*used
         self.pilreforder=self.pilreforder+1
         self.pilRefPatchPlot()
         
@@ -4385,6 +4635,8 @@ class MainWindow (QMainWindow):
             kw.append('rrf=False')
         if self.refDrops:
             kw.append('drops=%r' % {k:v for k,v in sorted(self.refDrops.items())})
+        if getattr(self,'refFactors',None):
+            kw.append('factors=%r' % {k:(float(v[0]),float(v[1])) for k,v in sorted(self.refFactors.items())})
         if self.refMerged:
             kw.append('merge=%r' % self.refMerged)
         if self.ui.pilLowQzCorCheckBox.checkState()!=0:

@@ -11,7 +11,7 @@ import pytest
 import sweep
 import synth
 from lss_core.experiment import Experiment
-from lss_core.absorbers import ABSFAC_10KEV
+from lss_core.absorbers import ABSFAC_10KEV, calibrated
 from lss_core.fluorescence import absorber_factor
 from test_script_console import _run_script
 
@@ -79,11 +79,13 @@ def test_window_lists_says_and_applies_the_inferred_setting(window, qapp, record
     _load(w, qapp, real, tmp_path, list(range(1, 1 + len(synth.XF_QZ))))
     assert recorder.exceptions == []
     assert w.ui.imageListWidget.item(0).text().endswith('\tAbs=3 (#A of S1)')
-    assert any('scan(s) 2, 3, 4, 5, 6, 7, 8, 9, 10: n = 3 from the #A of scan 1' in m and 'absfac 1.4247' in m
+    # 10 keV: the calibrated foils (deliberate change 2026-11-18; was 1.4247**n)
+    assert any('scan(s) 2, 3, 4, 5, 6, 7, 8, 9, 10: n = 3 from the #A of scan 1' in m and 'the calibrated foils' in m
                for m in recorder.messages)
     b = _sum(w, qapp)
-    assert b[:, 3] == pytest.approx(a[:, 3] * ABSFAC_10KEV ** LEAD, rel=1e-12)
-    assert b[:, 4] == pytest.approx(a[:, 4] * ABSFAC_10KEV ** LEAD, rel=1e-12)
+    foils = calibrated(10.0)
+    assert b[:, 3] == pytest.approx(a[:, 3] * foils.factor(LEAD), rel=1e-12)
+    assert b[:, 4] == pytest.approx(a[:, 4] * foils.factor(LEAD), rel=1e-12)
     # an edited factor is used at the next Sum All, and the script follows it
     w.ui.AbsFacLineEdit.setText('1.5')
     b = _sum(w, qapp)

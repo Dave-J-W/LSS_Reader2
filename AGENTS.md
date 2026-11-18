@@ -36,6 +36,7 @@ Application code may now be changed, under these conditions:
 | `docs/handoff_out/` | Requests written by this project for analyses done elsewhere (e.g. monitor noise from the owner's larger data) |
 | `lss_core/` | GUI-free core: readers, cache, reduction, scripting API (`docs/SCRIPTING.md`) |
 | `reader_log.py` | Durable log, per-SPEC log, process-wide exception handler (no Qt needed) |
+| `lss_core/preferences.py` | Preferences kept between sessions (`$LSS_READER_PREFS`; the tests use a temporary file) |
 | `tests/` | The suite; `synth.py` (synthetic data), `sweep.py` (GUI driver) |
 | `sample_data/NX_school/` | Real, public data set (committed) |
 | `sample_data/bu/` | Real, private data set: git-ignored, never commit or push it |
@@ -79,6 +80,13 @@ No display is needed. Run from the repository root.
    show how).
 8. Commit small and push often to `main` of this fork; the owner asked for
    that. Do not open pull requests unless asked.
+9. **Explain in tooltips, not on screen** (owner, 2026-11-18). Labels,
+   group titles and messages in the window stay short; the why, the
+   provenance of numbers and the caveats go in tooltips. Prefer this to
+   wordy displays.
+10. **Work in larger tranches, then test** (owner, 2026-11-18): write a
+   whole feature (code, tests, docs) before running the suite, rather than
+   running tests after each small edit.
 
 ## Things that will bite you
 

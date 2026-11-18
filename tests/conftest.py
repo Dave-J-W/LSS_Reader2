@@ -17,6 +17,8 @@ os.environ['LSS_READER_LOG_DIR'] = tempfile.mkdtemp(prefix='lss_reader_test_logs
 # draw image-list selections at once (the 150 ms merge of rapid clicks is
 # tested on its own in test_lss_core.py)
 os.environ['LSS_READER_SELECTION_DELAY_MS'] = '0'
+# preferences go to a temporary file, never to ~/.lss_reader
+os.environ['LSS_READER_PREFS'] = os.path.join(tempfile.mkdtemp(prefix='lss_reader_test_prefs_'), 'preferences.json')
 # never write to the user's disk cache from the tests
 os.environ['LSS_READER_DISK_CACHE'] = tempfile.mkdtemp(prefix='lss_reader_test_cache_')
 
@@ -33,6 +35,15 @@ def qapp():
     from PyQt5.QtWidgets import QApplication
     app = QApplication.instance() or QApplication(['lss-reader-tests'])
     yield app
+
+
+@pytest.fixture(autouse=True)
+def _fresh_preferences():
+    """Every test starts from the default preferences (lss_core.preferences)."""
+    p = os.environ['LSS_READER_PREFS']
+    if os.path.exists(p):
+        os.remove(p)
+    yield
 
 
 @pytest.fixture(autouse=True)

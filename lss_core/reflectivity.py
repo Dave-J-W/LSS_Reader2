@@ -21,6 +21,8 @@ Per frame (the window's ``pilRefPatchData``):
    model (``detector.errors``, lss_core.errors) σ² = counting part
    + (net · u_M)², the monitor term applied once to the net signal.
 """
+import math
+
 import numpy as np
 
 from . import stitching
@@ -101,11 +103,14 @@ def apply_drops(data1, data2, drops):
     return data1, data2
 
 
-def patch(per_scan, order, drops=None):
+def patch(per_scan, order, drops=None, factors=None):
     """Join the scans in ``order`` (legacy chain). ``drops`` maps the join
     number (0 for the first pair) to a list of drop indices, or to a list
-    of such lists for several successive "Drop" presses."""
+    of such lists for several successive "Drop" presses. ``factors`` maps a
+    join number to the (factor, error) to use there instead of the fitted
+    one (the known absorber ratio, see ``patch_choice``)."""
     drops = drops or {}
+    factors = factors or {}
     data = np.array(per_scan[order[0]], dtype=float)
     for j, key in enumerate(order[1:]):
         new = np.array(per_scan[key], dtype=float)
@@ -115,8 +120,67 @@ def patch(per_scan, order, drops=None):
                 actions = [actions]
             for action in actions:
                 data, new = apply_drops(data, new, action)
-        data = stitching.join(data, new, mtype='merge')
+        data = stitching.join(data, new, mtype='merge', factor=factors.get(j))
     return data
+
+
+MONITOR_TOLERANCE = 0.03     # |Monc/Monp of scan b over scan a - 1| below this: no slit change
+
+
+def monitor_change(qz_a, monc_a, monp_a, qz_b, monc_b, monp_b):
+    """Median Monc/Monp of scan b over that of scan a, each over its points
+    in the overlap (P29: where it is not 1, something upstream of Monc
+    changed and the scale is not the foils alone). None without Monp."""
+    try:
+        qa, qb = np.asarray(qz_a, float), np.asarray(qz_b, float)
+        ra = np.asarray(monc_a, float) / np.asarray(monp_a, float)
+        rb = np.asarray(monc_b, float) / np.asarray(monp_b, float)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+    ia, ib = qa >= qb.min() - 1e-6, qb <= qa.max() + 1e-6
+    if not ia.any() or not ib.any():
+        return None
+    ma, mb = np.median(ra[ia]), np.median(rb[ib])
+    if not (np.isfinite(ma) and np.isfinite(mb)) or ma <= 0:
+        return None
+    return float(mb / ma)
+
+
+def patch_choice(patch, known, monitor, auto=True, threshold=0.03):
+    """Patch factor or known absorber ratio for one join.
+
+    ``patch``: (factor, error) fitted at the overlap; ``known``: (ratio,
+    relative error) from the foils, or None; ``monitor``: monitor_change(),
+    or None. The known ratio is suggested when its error is smaller than
+    the patch's, the monitor shows no slit change and the two agree within
+    3 combined sigma. It is used automatically (``auto``) when the patch's
+    relative error is also above ``threshold`` and at least twice the
+    known one. Returns a dict: use, suggest, patch_rel, known_rel, why."""
+    fac, err = patch
+    p_rel = abs(err / fac) if fac else float('inf')
+    out = dict(use=False, suggest=False, patch_rel=p_rel, known_rel=None, why='')
+    if known is None:
+        out['why'] = 'no known ratio at this energy and setting'
+        return out
+    ratio, k_rel = known
+    out['known_rel'] = k_rel
+    if p_rel <= k_rel:
+        out['why'] = 'the patch is more precise'
+        return out
+    if monitor is None:
+        out['why'] = 'no Monp: a slit change cannot be ruled out'
+        return out
+    if abs(monitor - 1) >= MONITOR_TOLERANCE:
+        out['why'] = 'Monc/Monp changed x%.2f: slits changed, keep the patch' % monitor
+        return out
+    sigmas = abs(math.log(fac / ratio)) / math.hypot(p_rel, k_rel) if fac > 0 else float('inf')
+    if sigmas > 3:
+        out['why'] = 'known ratio is %.1f sigma from the patch: keep the patch' % sigmas
+        return out
+    out['suggest'] = True
+    out['use'] = bool(auto and p_rel > threshold and k_rel <= p_rel / 2)
+    out['why'] = 'known ratio is more precise'
+    return out
 
 
 def finish(data, qc, qoff=0.0, norm_factor=None, rrf=True):

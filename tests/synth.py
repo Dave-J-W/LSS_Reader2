@@ -287,3 +287,42 @@ def make_identical_scans_dataset(root, name='same'):
                 os.path.join(root, 'pilatus', '%s_SCAN-%d_%04d.tif' % (name, num, j)),
                 pilatus_image(peak=peak, amplitude=amp))
     return spec
+
+
+# ---- two reflectivity scans across an absorber change, with Monp ----------
+
+def make_absorber_patch_dataset(root, name='abs', n=(6, 2), amplitude=2.0e3, monp_jump=1.0,
+                                seed=7):
+    """Scans 1 (absorber n[0]) and 2 (n[1]) as in make_dataset, attenuated
+    by the calibrated foils (lss_core.absorbers.Foils at 10 keV), with
+    Poisson noise (``seed``) and weak peaks (``amplitude`` at total
+    reflection before the foils), so that the fitted patch factor is
+    uncertain by several per cent. The scans share Qz points at the overlap
+    (as experiments do, D13), so the legacy cubic interpolation adds no
+    bias. Both scans record Monc and Monp; Monp of
+    scan 2 is divided by ``monp_jump``, so that Monc/Monp changes across the
+    join by that factor (a slit change, PHYSICS_ISSUES P29)."""
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from lss_core.absorbers import Foils
+    foils = Foils(energy_kev=12.39842 / WAVELENGTH)
+    root = str(root)
+    os.makedirs(os.path.join(root, 'pilatus'))
+    qz1 = np.linspace(0.01, 0.05, 9)
+    qz2 = np.linspace(0.04, 0.10, 13)
+    cols = ['H', 'K', 'L', 'Seconds', 'Monc', 'Monp', 'Pilatus']
+
+    def rows(qz, jump):
+        r = ref_rows(qz)
+        return np.column_stack([r[:, :5], r[:, 4] / jump, r[:, 5]])
+    scans = [spec_scan(1, name, cols, rows(qz1, 1.0), absorber=n[0]),
+             spec_scan(2, name, cols, rows(qz2, monp_jump), absorber=n[1])]
+    spec = write_spec(os.path.join(root, name), scans)
+    rng = np.random.default_rng(seed)
+    peak = (PIL_H - DB_X - 1, DB_Y)
+    for num, qzs, nn in ((1, qz1, n[0]), (2, qz2, n[1])):
+        for j, q in enumerate(qzs):
+            img = pilatus_image(peak=peak, amplitude=amplitude * reflectivity(q) / foils.factor(nn))
+            write_pilatus_tif(os.path.join(root, 'pilatus', '%s_SCAN-%d_%04d.tif' % (name, num, j)),
+                              rng.poisson(img))
+    return spec

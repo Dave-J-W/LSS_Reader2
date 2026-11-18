@@ -12,7 +12,11 @@ the legacy output must stay byte-identical (handoff/19, section 2.5):
   ``data2`` in place (hand-off trap T3) — pass a copy if that matters.
 
 ``mtype='fac'`` returns (factor, xmin, xmax, ymin, ymax) for previewing an
-overlap; ``mtype='merge'`` returns the joined (N, 3) array.
+overlap; ``mtype='merge'`` returns the joined (N, 3) array. ``factor``
+(merge only): (factor, error) to use instead of fitting it, e.g. the known
+absorber ratio (lss_core.absorbers.Foils.step); everything else is as with
+the fitted factor. ``fitted_factor`` gives (factor, error) as merge fits it,
+without joining.
 """
 import numpy as np
 from scipy.interpolate import interp1d
@@ -34,7 +38,31 @@ def fresnel(q, qc):
     return np.array(fre)
 
 
-def join(data1, data2, mtype='fac'):
+def _three_columns(data):
+    if len(data[0])>3:   #keep only first three columns
+        for i in range(len(data[0])-3):
+            data=np.delete(data,-1,1)
+    return data
+
+
+def _fit_factor(data1x, data1y, data1yerr, data2x, data2y, data2yerr, overlap1):
+    f=interp1d(data2x,data2y, kind='cubic')
+    ferr=interp1d(data2x,data2yerr, kind='cubic')
+    x=data1x[overlap1]
+    y=data1y[overlap1]/f(x)
+    yerr=y*np.sqrt(((data1yerr[overlap1]/data1y[overlap1])**2+(ferr(x)/f(x))**2))
+    pfit,pcov=curve_fit(polynomial,x,y,p0=[1],sigma=yerr) #fit the data with the scale factor
+    return pfit[0], pcov[0][0]**0.5
+
+
+def fitted_factor(data1, data2):
+    """(factor, error) that join(mtype='merge') would fit; changes nothing."""
+    data1, data2 = _three_columns(np.array(data1, dtype=float)), _three_columns(np.array(data2, dtype=float))
+    overlap1=np.where(data1[:,0]>=data2[0,0])
+    return _fit_factor(data1[:,0], data1[:,1], data1[:,2], data2[:,0], data2[:,1], data2[:,2], overlap1)
+
+
+def join(data1, data2, mtype='fac', factor=None):
     """Join two reflectivity curves (columns Qz, R, sigma); see module docstring."""
     if len(data1[0])>3:   #keep only first three columns
         for i in range(len(data1[0])-3):
@@ -67,14 +95,10 @@ def join(data1, data2, mtype='fac'):
     elif mtype=='merge':
         data1yerr=data1[:,2] #get error from data1
         data2yerr=data2[:,2] #get error from data2
-        #ferr=interp1d(data2x[overlap2],data2yerr[overlap2], kind='linear')
-        ferr=interp1d(data2x,data2yerr, kind='cubic')
-        x=data1x[overlap1]
-        y=data1y[overlap1]/f(x)
-        yerr=y*np.sqrt(((data1yerr[overlap1]/data1y[overlap1])**2+(ferr(x)/f(x))**2))
-        pfit,pcov=curve_fit(polynomial,x,y,p0=[1],sigma=yerr) #fit the data with the scale factor 
-        fac=pfit[0]
-        facerr=pcov[0][0]**0.5
+        if factor is None:
+            fac,facerr=_fit_factor(data1x,data1y,data1yerr,data2x,data2y,data2yerr,overlap1)
+        else:
+            fac,facerr=float(factor[0]),float(factor[1])
         data2y=data2y*fac           #scale data2 with the fac and facerr
         data2yerr=np.sqrt(data2yerr**2*fac**2+data2y**2*facerr**2/fac**2)
         data2[:,1]=data2y  #this also changed the data self.scanqzframe[self.pilrefsort[self.pilreforder+1]]

@@ -305,6 +305,15 @@ priority than the lists above.
 |---|---|---|
 | F55 | **Point labels in the SPEC plot as a checkbox** (owner, 2026-11-18). Each point of the SPEC plot carries its index in the scan as a red number; make that an option. | built: 'Point #' next to Legend, on by default (unchanged look until unticked) |
 
+### Requests (2026-11-18, continued)
+
+| # | Request | Notes |
+|---|---|---|
+| F56 | **Calibrated foils in the reader** (owner, 2026-11-18): use the measured foil table (physics_notes 2026-11-18) wherever the nominal absorber factor was used. | built: with "from E", at 9.70–10.30 keV; field shows "cal" |
+| F57 | **Preferences panel** showing the foil assumptions, short, with tooltips; the Ref Patch threshold and the switch for the automatic known ratio. | built: File > Preferences |
+| F58 | **Known absorber ratio in Ref Patch**: suggest it in the patch window when the fit's error exceeds the foil ratio's; use it automatically above a threshold where plainly better. | built; automatic only where Monc/Monp shows no slit change (P29) and the two agree within 3σ |
+| D35 | Explain in tooltips rather than wordy displays (owner); recorded in AGENTS.md rule 9. | all GUI work |
+
 ### Status of built items
 
 | # | Built | Where | Checked by |
@@ -316,6 +325,9 @@ priority than the lists above.
 | D15 | No message when a fluorescence scan is selected. | `scanListChanged` | `tests/test_xfntr.py` |
 | F10 (second half) | Handlers no longer raise when used before data is loaded or after the selection changed. | guards throughout `mainwindow.py`; `forgetImageSelection` | `pytest -m sweep`; `tests/test_guards_*.py` |
 | D14 | Scan lists formatted by one helper. | `listText` | `tests/test_xfntr.py` |
+| F56 | Calibrated foils: `lss_core.absorbers.Foils`/`calibrated`; every absorber factor goes through `attenuation()` (a number: the legacy arithmetic). The window uses them with "from E" at 9.70–10.30 keV. | `absorbers.py`, `TwoDDetector.sumFiles`, `normalise`, `fluorescence`, `absFacFromEnergy`, `absorberModel` | `tests/test_absorbers.py`, `tests/test_gui_preferences.py` |
+| F57 | File > Preferences: foil table (nominal, calibrated, tooltips with errors and provenance), calibrated switch, Ref Patch auto switch and threshold; saved to JSON. | `buildPreferences`, `lss_core/preferences.py` | `tests/test_gui_preferences.py` |
+| F58 | Patch window: "Known ratio" box and a one-line comparison (fit ± vs foils ±); automatic choice by `reflectivity.patch_choice`; the Script pane records `factors=`. | `refJoinInfo`, `refShowKnown`, `pilRefPatchNext`, `stitching.join(factor=)`, `reflectivity.patch(factors=)` | `tests/test_known_ratio_patch.py` |
 | F55 | 'Point #' checkbox in the SPEC plot options, on by default; unticked, the plot is redrawn with no point labels. Labels a log axis cannot show (≤ 0, non-finite) are hidden either way. | `initSpecPointLabels`, `specPlot`, `specPlotSettings` | `tests/test_guards_remaining.py` |
 | F24b | Qz² display option no longer changes the saved `_rrf.txt`. | `updateRefPlotData` | `tests/test_ref_export_golden.py` |
 | F27 (part) | Non-SPEC files and repeated scan numbers handled quietly. | `openSpecFile`, `readSpecFile`, `spec_routines.is_spec_file` | `tests/test_known_defects.py`, `tests/test_parsers.py`, `tests/test_real_bu.py` |

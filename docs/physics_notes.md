@@ -1689,3 +1689,48 @@ This is P29.
   averages, GID, fluorescence F50) can use this foil table at 10 keV, good
   to about 1 µm per foil. That is a proposal for the owner to decide
   (TODO). It is not built.
+
+### 2026-11-18 — Calibrated foils in the reader; known ratio instead of a poor patch
+
+**Owner:** build the calibrated foil table into the reader; show the foil
+assumptions in a preferences panel (short, tooltips); in the patch window
+suggest the known absorber ratio when the counting error of the patch
+exceeds the foil ratio's uncertainty; use it automatically beyond a
+threshold where plainly better; threshold and switch in the preferences.
+
+**Also received:** the analysing agent's answer to hand-off 03 (not
+committed; anonymous, dates removed). It reproduced the foil fit to 0.1 µm
+(409 joins, 389 kept, rank 6, 0.87 µm), by half-year to ≤ 0.9 µm, and found
+for P29 (measured) that it is **scan a's Monc that reads high at the narrow
+S1 gap** (0.04 mm), Monp unchanged, the detector's jump F = 2.2–2.3
+throughout; not a Monc offset (beam-off Monc 7–150 counts/s); S1 + S4 moved
+at all 367 joins we saw labelled "S4–S7". In the anomalous series Monc/Monp
+also drifts differently along scan b (×0.92 against ×0.82).
+
+**What was built (choices, reasoning):**
+- *Where the calibration applies:* 9.70–10.30 keV, with Al's μ/ρ at the
+  energy. No K edge of the usual Al impurities lies between Zn (9.66 keV)
+  and Ga (10.37 keV) (edge energies from memory). Elsewhere: 50 µm Al per
+  unit, as before. Only with "from E" (a typed number is a number).
+- *Uncertainty of a known ratio:* μ · 1.0 µm per foil that differs, in
+  quadrature (one join scatters 0.87 µm about the fit; run medians ±1.2
+  µm). At 10 keV that is 0.71 % per foil: 1.0–1.7 % for the joins seen.
+- *Patch error compared:* the error of the factor the patch fits
+  (`stitching.fitted_factor`, the same arithmetic as the merge).
+- *Automatic use* (all must hold): fit error > threshold (default 3 %);
+  known error ≤ half the fit error; Monc/Monp across the join within 3 %
+  of 1 (P29: otherwise the scale is not the foils alone, and the known
+  ratio would be wrong by up to ×1.46); fit and known ratio within 3σ.
+  Without Monp nothing is automatic. The patch window shows the choice and
+  can undo it; the Script pane records it as `factors=`.
+- *Effect on existing outputs:* none for a typed factor, outside
+  9.70–10.30 keV, or with the preference off. At 10 keV the default
+  changes (deliberate): cuts, background images, frame averages, GID and
+  fluorescence at absorber settings ≠ 0 use the calibrated foils. Example
+  before/after, n = 3 (foils 0 + 1): 1.4247³ = 2.892 → exp(μ·166.9 µm) =
+  3.259 (+12.7 %). The legacy reflectivity fixtures are unchanged (no
+  absorber factor; the synthetic data have no Monp).
+
+How verified: tests (`test_absorbers.py`, `test_gui_preferences.py`,
+`test_known_ratio_patch.py`), quick and slow suites, crash sweep.
+

@@ -33,12 +33,17 @@ def _open(w, qapp, spec, tmp_path, rows=None):
     qapp.processEvents()
 
 
-def test_on_by_default_and_10_kev_is_unchanged(loaded, qapp, recorder, dataset):
+def test_on_by_default_and_10_kev_gives_the_calibrated_foils(loaded, qapp, recorder, dataset):
+    """Changed deliberately 2026-11-18 (owner): at 10 keV the calibrated
+    foils replace 1.4247 per unit; with the preference off, 1.4247 as before."""
+    from lss_core import absorbers
     w = loaded
     assert w.absFacEnergyCheckBox.isChecked() and w.ui.AbsFacLineEdit.isReadOnly()
     sweep.state_spec_loaded(w, qapp, dataset)
     sweep._select_scans(w, qapp, [0])
-    assert w.ui.AbsFacLineEdit.text() == '1.4247' and w.absfac == 1.4247   # 1.24 A: 10 keV
+    assert w.ui.AbsFacLineEdit.text() == 'cal' and w.absfac == absorbers.calibrated(10.0)   # 1.24 A: 10 keV
+    w.setPreference('calibrated_foils', False)
+    assert w.ui.AbsFacLineEdit.text() == '1.4247' and w.absfac == 1.4247
     assert recorder.exceptions == []
 
 
