@@ -129,3 +129,17 @@ the same files. It is also written to the log.
   instead of the fitted patch factor at those joins (join 0 is the first
   pair). The window writes this when it used the known ratio.
 
+## Cuts (2026-11-18)
+
+    cut = exp.cut([1, 2], 'Pix H', (90, 110))            # one cut per frame
+    cut = exp.cut([1, 2], 'Q H', (0.005, 0.02), summed=True)
+    cut.save('dppc_')      # dppc_S# 1_F# 0_cut.txt ... or dppc_S# 1_sumcut.txt
+
+Directions as the window lists them: 'Q H', 'Q V', 'Pix H', 'Pix V';
+`axes` 'Pixels', 'Angles' or 'Q' for the pixel cuts. Frames are divided by
+the monitor and multiplied by `absfac` (a number or
+`absorbers.calibrated(10.0)`) first. `points`, `errors`, `monitor_gain`,
+`distance` and `db_pos` (typed geometry), `pinhole`, and the bad-pixel
+settings work as in the window. Background-subtracted cuts are not
+scriptable yet. Exporting a cut in the window writes this call.
+

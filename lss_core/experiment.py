@@ -16,7 +16,9 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from . import cuts as cutmod
 from . import fluorescence as fluo
+from . import normalise as norm
 from . import reflectivity as refl
 from .errors import as_model
 from .absorbers import ABSFAC_10KEV
@@ -55,6 +57,16 @@ class ReflectivityResult:
 
     def save(self, name):
         refl.save(name, self.ref, self.rrf)
+
+
+@dataclass
+class CutResult:
+    cuts: list            # (N, 3) x, I, sigma per frame, or one for the summed frames
+    labels: list          # 'S# 1_F# 0' per frame, as the window's file names
+    summed_label: str = None   # 'S# 1' when the frames were summed
+
+    def save(self, name):
+        return cutmod.save(name, self.cuts, self.labels, self.summed_label)
 
 
 @dataclass
@@ -148,6 +160,73 @@ class Experiment:
         ref, out_rrf = refl.finish(patched[:, :3] if patched.shape[1] > 3 else patched,
                                    qc, qoff, norm_factor, rrf)
         return ReflectivityResult(per_scan, order, patched, ref, out_rrf, offsets)
+
+    def cut(self, scans, direction, range, axes='Pixels', summed=False, points=None,
+            absfac=ABSFAC_10KEV, errors=None, monitor_gain=False, distance=None, db_pos=None,
+            pinhole=False, bad_pixel_iterations=0, bad_pixel_factor=1):
+        """Line cuts of the frames of ``scans``, as the window's Line/Area
+        Cuts tab with the same settings (lss_core.cuts). ``direction``: one of
+        cuts.DIRECTIONS ('Q H', 'Q V', 'Pix H', 'Pix V'); ``range``: (low,
+        high) in Qz, Qxy or pixels; ``axes``: 'Pixels', 'Angles' or 'Q' (pixel
+        cuts only); ``summed``: cut the mean of the frames (the window's
+        "Sum"). Frames are divided by their monitor and multiplied by the
+        absorber factor ``absfac`` (a number per unit, or
+        lss_core.absorbers.Foils) first. ``points``: {scan: [point numbers]}
+        to use only some frames. Geometry from the SPEC header, unless
+        ``distance`` (mm) and ``db_pos`` (column, row of the direct beam) are
+        given, as when the window's "use SPEC values" box is unticked;
+        ``pinhole``: S7D_Dist as the distance for Angles/Q axes. ``errors``,
+        ``monitor_gain``: as for ``reflectivity`` and ``fluorescence``."""
+        from TwoDDetector import TwoDDetector
+        from .errors import MonitorTerms
+        det = TwoDDetector('Pilatus')
+        det.errors = model = as_model(errors)
+        lo, hi = float(range[0]), float(range[1])
+        frames = [f for f in self.frames(scans)
+                  if points is None or f.scan not in points or f.index in points[f.scan]]
+        if not frames:
+            raise ValueError('no frames with images in scans %s' % list(scans))
+        data, errs, terms, geoms, labels = [], [], [], [], []
+        for k, f in enumerate(frames):
+            det.openFile(f.path, bad_pix=bad_pixel_iterations, bad_fac=bad_pixel_factor)
+            p = self.scans[f.scan].parameters
+            cols = self.scans[f.scan].columns
+            g = gain_factor(p.get('MoncGain')) if monitor_gain and p.get('MoncGain') is not None else 1.0
+            d, e = norm.normalise_frame(det.imageData, det.errorData, f.monitor, absfac, f.absorber,
+                                        model=model, gain=g)
+            data.append(d)
+            errs.append(e)
+            terms.append(norm.frame_terms(('', k), d, f.monitor, model) if model.budget else None)
+            wl = p['Wavelength']
+            alpha = np.arcsin(f.qz * wl / 4.0 / np.pi)
+            if 'Det_Th' in cols:
+                dth = cols['Det_Th'][f.index] * np.pi / 180.0
+            else:
+                dth = 2.0 * np.arcsin(np.sqrt(cols['H'][f.index] ** 2 + cols['K'][f.index] ** 2) * wl / 4.0 / np.pi)
+            dist = p['S2D_Dist'] if distance is None else float(distance)
+            if pinhole and axes in ('Angles', 'Q'):
+                dist = p['S7D_Dist']
+            if db_pos is None:
+                xc, yc = float(det.NCOLS) - 1 - p['DBPos'][1], p['DBPos'][0]
+            else:
+                xc, yc = float(db_pos[0]), float(db_pos[1])
+            geoms.append(cutmod.Geometry(wl, alpha, p['In_Rot'] * np.pi / 180.0, dth,
+                                         -p['g_l2'] * np.tan(alpha), dist, p['S2D_Dist'], xc, yc))
+            labels.append('S# %d_F# %d' % (f.scan, f.index))
+        if summed:
+            t = None
+            if model.budget:
+                t = MonitorTerms()
+                for x in terms:
+                    if x is not None:
+                        t.extend(x, 1.0 / len(frames))
+            d, e = cutmod.mean_frame(data, errs)
+            out = cutmod.frame_cut(det, d, e, direction, lo, hi, geoms[0], axes, absfac=absfac,
+                                   absnum=frames[0].absorber, terms=t)
+            return CutResult([out], labels, 'S# %d' % min(scans))
+        out = [cutmod.frame_cut(det, d, e, direction, lo, hi, g, axes, absfac=absfac, absnum=f.absorber, terms=t)
+               for d, e, g, f, t in zip(data, errs, geoms, frames, terms)]
+        return CutResult(out, labels)
 
     def spectra(self, scans):
         """(scan, spectrum number, Data, Par) for every MCA spectrum of the

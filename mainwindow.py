@@ -32,6 +32,7 @@ import traceback
 import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
+from lss_core import cuts
 from lss_core import absorbers
 from lss_core import preferences as prefs_store
 from lss_core.absorbers import ABSFAC_10KEV
@@ -4738,66 +4739,23 @@ class MainWindow (QMainWindow):
             for i in self.selectedPilFramesNums:
                 if self.selCutTerms.get(i) is not None:
                     self.selCutTerms[-1].extend(self.selCutTerms[i],1.0/len(self.selectedPilFramesNums))
+        # the cut itself is lss_core.cuts.frame_cut, shared with Experiment.cut
+        direction=self.ui.pilCutDirComboBox.currentIndex()
+        axes=str(self.ui.pilAxesComboBox.currentText())
         if self.ui.gixSumCheckBox.checkState()!=0:
-            self.selCutPilData[-1]=self.selCutPilData[self.selectedPilFramesNums[0]]
-            self.selCutPilErrorData[-1]=self.selCutPilErrorData[self.selectedPilFramesNums[0]]**2
-            for i in self.selectedPilFramesNums[1:]:
-                self.selCutPilData[-1]=self.selCutPilData[-1]+self.selCutPilData[i]
-                self.selCutPilErrorData[-1]=self.selCutPilErrorData[-1]+self.selCutPilErrorData[i]**2
-            self.selCutPilData[-1]=self.selCutPilData[-1]/len(self.selectedPilFramesNums)
-            self.selCutPilErrorData[-1]=np.sqrt(self.selCutPilErrorData[-1])/len(self.selectedPilFramesNums)
-            if self.ui.pilCutDirComboBox.currentIndex()==2:  #vertical integration; provide PixY
-                self.pilatus.plotVint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0],cen=[self.xcenter[0],self.ycenter[0]],  hroi=None,  vroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NROWS)], ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0], dth=self.dth[0],mon=None,terms=self.selCutTerms.get(-1))
-                self.cutData[-1]=self.pilatus.vintData
-            elif self.ui.pilCutDirComboBox.currentIndex()==0:
-                beta=np.arcsin(2*np.sin(self.alpha[0])-np.sin(self.truealpha[0]))  # get the beta value
-                ini=int(np.tan(np.arcsin(ini*self.wavelength[0]/2.0/np.pi-np.sin(self.alpha[0]))-beta)*self.pilSelected_Dist[0]/0.172)+self.ycenter[0]
-                fin=int(np.tan(np.arcsin(fin*self.wavelength[0]/2.0/np.pi-np.sin(self.alpha[0]))-beta)*self.pilSelected_Dist[0]/0.172)+self.ycenter[0]
-                #ini=-int((self.distance[0]*np.arcsin(ini*self.wavelength[0]/2.0/np.pi-np.sin(self.alpha[0]))+self.pilSelected_Sh[0])/0.172)+self.ycenter[0]
-                #fin=-int((self.distance[0]*np.arcsin(fin*self.wavelength[0]/2.0/np.pi-np.sin(self.alpha[0]))+self.pilSelected_Sh[0])/0.172)+self.ycenter[0]
-                self.pilatus.plotVint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0], cen=[self.xcenter[0],self.ycenter[0]],  hroi=None,  vroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NROWS)], ax_type='Q', wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0], dth=self.dth[0], mon=None,terms=self.selCutTerms.get(-1))
-                self.cutData[-1]=self.pilatus.vintData
-            elif self.ui.pilCutDirComboBox.currentIndex()==3:
-                self.pilatus.plotHint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0],cen=[self.xcenter[0],self.ycenter[0]],  hroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NCOLS)],  vroi=None, ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[0],s2d_dist=self.distance[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0], truealpha=self.truealpha[0], mon=None,terms=self.selCutTerms.get(-1))
-                self.cutData[-1]=self.pilatus.hintData
-            else:
-                ini=int((2.0*np.arcsin(ini*self.wavelength[0]/4.0/np.pi)-self.dth[0])*self.distance[0]/0.172)+self.xcenter[0]
-                fin=int((2.0*np.arcsin(fin*self.wavelength[0]/4.0/np.pi)-self.dth[0])*self.distance[0]/0.172)+self.xcenter[0]
-                self.pilatus.plotHint(self.selCutPilData[-1],self.selCutPilErrorData[-1],absfac=self.absfac,absnum=self.pilSelected_AbsNum[0],cen=[self.xcenter[0],self.ycenter[0]],  hroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NCOLS)],  vroi=None, ax_type='Q', wavelength=self.wavelength[0],s2d_dist=self.pilSelected_Dist[0],sh=self.pilSelected_Sh[0],alpha=self.alpha[0],truealpha=self.truealpha[0], mon=None,terms=self.selCutTerms.get(-1))
-                self.cutData[-1]=self.pilatus.hintData
+            frames=self.selectedPilFramesNums
+            self.selCutPilData[-1],self.selCutPilErrorData[-1]=cuts.mean_frame(
+                [self.selCutPilData[i] for i in frames],[self.selCutPilErrorData[i] for i in frames])
+            self.cutData[-1]=cuts.frame_cut(self.pilatus,self.selCutPilData[-1],self.selCutPilErrorData[-1],direction,ini,fin,
+                                            self.cutGeometry(0),axes=axes,absfac=self.absfac,
+                                            absnum=self.pilSelected_AbsNum[0],terms=self.selCutTerms.get(-1))
             self.cutLabel[-1]='summed cuts'
         else:
-            j=0
-            for i in self.selectedPilFramesNums:
-                if self.ui.pilCutDirComboBox.currentIndex()==2:
-                    self.pilatus.plotVint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j], cen=[self.xcenter[j],self.ycenter[j]], hroi=None, vroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NROWS)], ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j],dth=self.dth[j], mon=None,terms=self.selCutTerms.get(i))
-                    self.cutData[i]=self.pilatus.vintData
-                elif self.ui.pilCutDirComboBox.currentIndex()==0:
-                    beta=np.arcsin(2*np.sin(self.alpha[j])-np.sin(self.truealpha[j]))  # get the beta value
-                    #ini1=int(np.tan(np.arcsin(ini*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))-beta)*self.distance[j]/0.172)+self.ycenter[j]
-                    #fin1=int(np.tan(np.arcsin(fin*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))-beta)*self.distance[j]/0.172)+self.ycenter[j]
-                    ini1 = int(
-                        np.tan(np.arcsin(ini * self.wavelength[j] / 2.0 / np.pi - np.sin(self.alpha[j])) - beta) *
-                        self.pilSelected_Dist[j] / 0.172) + self.ycenter[j]       # should use standard sample to detector distance for y direction, self.distance could be changed for pinhole setup.
-                    fin1 = int(
-                        np.tan(np.arcsin(fin * self.wavelength[j] / 2.0 / np.pi - np.sin(self.alpha[j])) - beta) *
-                        self.pilSelected_Dist[j] / 0.172) + self.ycenter[j]
-                    #ini1=-int((self.distance[j]*np.arcsin(ini*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))+self.pilSelected_Sh[j])/0.172)+self.ycenter[j]
-                    #fin1=-int((self.distance[j]*np.arcsin(fin*self.wavelength[j]/2.0/np.pi-np.sin(self.alpha[j]))+self.pilSelected_Sh[j])/0.172)+self.ycenter[j]
-                    self.pilatus.plotVint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j],cen=[self.xcenter[j],self.ycenter[j]],  hroi=None,  vroi=[max(int(ini1),0), min(int(fin1)+1,self.pilatus.NROWS)], ax_type='Q', wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j], dth=self.dth[j], mon=None,terms=self.selCutTerms.get(i))
-                    self.cutData[i]=self.pilatus.vintData
-                elif self.ui.pilCutDirComboBox.currentIndex()==3:
-                    self.pilatus.plotHint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j],cen=[self.xcenter[j],self.ycenter[j]], hroi=[max(int(ini),0), min(int(fin)+1,self.pilatus.NCOLS)],  vroi=None, ax_type=str(self.ui.pilAxesComboBox.currentText()), wavelength=self.wavelength[j],s2d_dist=self.distance[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j],truealpha=self.truealpha[j], mon=None,terms=self.selCutTerms.get(i))
-                    self.cutData[i]=self.pilatus.hintData
-                else:
-                    ini1=int((2.0*np.arcsin(ini*self.wavelength[j]/4.0/np.pi)-self.dth[j])*self.distance[j]/0.172)+self.xcenter[j]
-                    fin1=int((2.0*np.arcsin(fin*self.wavelength[j]/4.0/np.pi)-self.dth[j])*self.distance[j]/0.172)+self.xcenter[j]
-                   # ini1=int(2.0*self.distance[j]*np.arcsin(ini*self.wavelength[j]/4.0/np.pi)/0.172)+self.xcenter[j]
-                    #fin1=int(2.0*self.distance[j]*np.arcsin(fin*self.wavelength[j]/4.0/np.pi)/0.172)+self.xcenter[j]
-                    self.pilatus.plotHint(self.selCutPilData[i],self.selCutPilErrorData[i],absfac=self.absfac,absnum=self.pilSelected_AbsNum[j], cen=[self.xcenter[j],self.ycenter[j]], hroi=[max(int(ini1),0), min(int(fin1)+1,self.pilatus.NCOLS)],  vroi=None, ax_type='Q', wavelength=self.wavelength[j],s2d_dist=self.pilSelected_Dist[j],sh=self.pilSelected_Sh[j],alpha=self.alpha[j], truealpha=self.truealpha[j], mon=None,terms=self.selCutTerms.get(i))  #again, use the standard same to detector distance for the y direction
-                    self.cutData[i]=self.pilatus.hintData
+            for j,i in enumerate(self.selectedPilFramesNums):
+                self.cutData[i]=cuts.frame_cut(self.pilatus,self.selCutPilData[i],self.selCutPilErrorData[i],direction,ini,fin,
+                                               self.cutGeometry(j),axes=axes,absfac=self.absfac,
+                                               absnum=self.pilSelected_AbsNum[j],terms=self.selCutTerms.get(i))
                 self.cutLabel[i]=str(self.ui.imageListWidget.item(i).text().split('\t')[0])+' '+str(self.ui.imageListWidget.item(i).text().split('\t')[1])
-                j=j+1
         if self.ui.gixSumCheckBox.checkState()!=0:
             if self.ui.cutErrorbarCheckBox.checkState()!=0:
                 self.ui.cutPlotMplWidget.canvas.ax.errorbar(self.cutData[-1][:,0],self.cutData[-1][:,1],self.cutData[-1][:,2],fmt='o-',label=self.cutLabel[-1])
@@ -4817,6 +4775,53 @@ class MainWindow (QMainWindow):
                     if self.ui.cutOffsetCheckBox.checkState()!=0:
                         fact=fact*float(self.ui.cutOffsetLineEdit.text())
         self.updateCutPlotData()
+
+    def cutGeometry(self,j):
+        """Geometry of the j-th selected frame, as the image display set it."""
+        return cuts.Geometry(self.wavelength[j],self.alpha[j],self.truealpha[j],self.dth[j],self.pilSelected_Sh[j],
+                             self.distance[j],self.pilSelected_Dist[j],self.xcenter[j],self.ycenter[j])
+
+    def cutScript(self,name):
+        """The lss_core call that reproduces the cuts just exported."""
+        if len(self.ui.backgroundListWidget.selectedItems())>0:
+            return '# these cuts are of background-subtracted frames; scripts cannot do that yet'
+        scans=sorted(set(int(self.pilScanNum[i]) for i in self.selectedPilFramesNums))
+        points={}
+        for n in scans:
+            chosen=[int(self.pilFrameNum[i]) for i in self.selectedPilFramesNums if self.pilScanNum[i]==n]
+            listed=[int(self.pilFrameNum[i]) for i in range(len(self.pilScanNum)) if self.pilScanNum[i]==n]
+            if chosen!=listed:
+                points[n]=chosen
+        lo,hi=(float(t) for t in str(self.ui.pilIntRangeLineEdit.text()).split(':'))
+        axes=str(self.ui.pilAxesComboBox.currentText())
+        kw=['%r' % cuts.DIRECTIONS[self.ui.pilCutDirComboBox.currentIndex()],'(%r, %r)' % (lo,hi)]
+        if axes!='Pixels':
+            kw.append('axes=%r' % axes)
+        if self.ui.gixSumCheckBox.checkState()!=0:
+            kw.append('summed=True')
+        if points:
+            kw.append('points=%r' % points)
+        absfac=self.absorberModel()
+        if any(self.pilSelected_AbsNum):
+            kw.append('absfac=%r' % absfac)
+        if script_kw(self.errorModel):
+            kw.append(script_kw(self.errorModel))
+        if self.monitorGain:
+            kw.append('monitor_gain=True')
+        if self.ui.pilSpecCheckBox.checkState()==0:
+            kw.append('distance=%r' % float(self.ui.pilSDDistLineEdit.text()))
+            kw.append('db_pos=(%r, %r)' % tuple(float(t) for t in (self.ui.pilDBPosLineEdit.text().split(',')[0],
+                                                                     self.ui.pilDBPosLineEdit.text().split(',')[-1])))
+        if self.ui.pilPinholeCheckBox.checkState()!=0 and axes in ('Angles','Q'):
+            kw.append('pinhole=True')
+        if int(self.ui.pilBPCiteSpinBox.value())!=0:
+            kw.append('bad_pixel_iterations=%d, bad_pixel_factor=%d' % (int(self.ui.pilBPCiteSpinBox.value()),int(self.ui.pilBPCfacSpinBox.value())))
+        head='from lss_core import absorbers\n' if isinstance(absfac,absorbers.Foils) and any(self.pilSelected_AbsNum) else ''
+        text=head+'cut = exp.cut(%r, %s)\n' % (scans,', '.join(kw))
+        first=int(self.ui.imageListWidget.item(0).text().split('\t')[0].split()[-1])
+        if self.ui.gixSumCheckBox.checkState()!=0 and first!=min(scans):   # the window names the file after the list's first scan
+            text+='cut.summed_label = %r\n' % ('S# %d' % first)
+        return text+'cut.save(%r)' % name
 
     def updatePilGIDCutData(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
@@ -4926,6 +4931,7 @@ class MainWindow (QMainWindow):
                     for i in self.selectedPilFramesNums:
                         self.fname=self.saveFileName+str(self.ui.imageListWidget.item(i).text().split('\t')[0])+'_'+str(self.ui.imageListWidget.item(i).text().split('\t')[1])+'_cut.txt'
                         np.savetxt(self.fname,self.cutData[i],fmt='%.4f\t%.4e\t%.4e')
+                self.scriptLine(self.cutScript(self.saveFileName))
             else:
                 self.fname=self.saveFileName
                 np.savetxt(self.fname,self.cutData,fmt='%.4f\t%.4e\t%.4e')
