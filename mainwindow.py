@@ -33,6 +33,7 @@ import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
 from lss_core import cuts
+from lss_core import gid as gidmod
 from lss_core import absorbers
 from lss_core import preferences as prefs_store
 from lss_core.absorbers import ABSFAC_10KEV
@@ -182,6 +183,11 @@ class MainWindow (QMainWindow):
         self.prefs=prefs_store.load()
         self.initAbsFacFromEnergy()
         self.initPreferences()
+        self.gidParams=gidmod.GIDParams()     # GID patch settings (worksheet, F61)
+        self.gidJoinLog=[]
+        self.gidLevels=[]
+        self.gidWorksheet=None
+        self.ui.gidComboBox.addItem('Worksheet')
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
@@ -3013,7 +3019,174 @@ class MainWindow (QMainWindow):
             self.saveGIDData()
         elif str(self.ui.gidComboBox.currentText())=='Form Factor':
             self.setGIDFormFactor()
+        elif str(self.ui.gidComboBox.currentText())=='Worksheet':
+            self.showGIDWorksheet()
             
+    def showGIDWorksheet(self):
+        if self.gidWorksheet is None:
+            self.gidWorksheet=self.buildGIDWorksheet()
+        self.gidWorksheetResults()
+        self.gidWorksheet.show()
+        self.gidWorksheet.raise_()
+
+    def buildGIDWorksheet(self):
+        """GID patching worksheet (F61): the patch's settings, editable, and
+        what each join did. Short labels; the explanations are in tooltips."""
+        from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox, QCheckBox,
+                                     QLabel, QSpinBox, QDoubleSpinBox, QComboBox, QPushButton, QTableWidget,
+                                     QAbstractItemView)
+        d=QDialog(self)
+        d.setObjectName('gidWorksheetDialog')
+        d.setWindowTitle('GID patching worksheet')
+        lay=QVBoxLayout(d)
+        g=QGroupBox('Settings',d)
+        form=QFormLayout(g)
+        gp=self.gidParams
+
+        def spin(name,lo,hi,val,tip,dbl=False):
+            w=(QDoubleSpinBox if dbl else QSpinBox)(g)
+            w.setObjectName(name)
+            w.setRange(lo,hi)
+            if dbl:
+                w.setDecimals(1)
+            w.setValue(val)
+            w.setToolTip(tip)
+            return w
+        cols=spin('gidColumnsSpinBox',1,195,int(float(self.ui.pilHSlitLineEdit.text() or 3)),
+                  'Pixels summed across each frame, centred on the direct-beam column; the sum is one profile placed at '
+                  'the frame\'s detector angle (the H slit field of the GID tab). More columns: more counts, coarser 2theta '
+                  'resolution (the pinhole correction, F45, is to lift that limit).')
+        rows=QHBoxLayout()
+        rmin=spin('gidRowMinSpinBox',0,4000,gp.row_min,'First detector row used (beta range). Default 15.')
+        rmax=spin('gidRowMaxSpinBox',0,4000,gp.row_max,'Last detector row used (beta range). Default 486.')
+        rows.addWidget(rmin)
+        rows.addWidget(rmax)
+        qzd=spin('gidQzDecimalsSpinBox',1,6,gp.qz_decimals,'Frames are grouped into Qz levels by their Qz rounded to this many '
+                 'decimals (at most three levels: low, middle, high; more go into high). Default 3.')
+        dthd=spin('gidDthDecimalsSpinBox',1,6,gp.dth_decimals,'The detector angle (degrees) is rounded to this many decimals '
+                  'before frames are ordered and joined. Default 3.')
+        area=QCheckBox('Area correction',g)
+        area.setObjectName('gidAreaCheckBox')
+        area.setChecked(gp.area_correction)
+        area.setToolTip('Divide by the fraction of the footprint seen through the detector slits at each detector angle '
+                        '(S1, S4, S5 and the distances from the SPEC header).')
+        hard=spin('gidHardSlitSpinBox',0,500,gp.hard_slit_offset_mm,'mm by which the sample-detector distance is shortened '
+                  'in the area correction when hard slits are used. Default 32.', dbl=True)
+        pol=QCheckBox('Polarisation',g)
+        pol.setObjectName('gidPolCheckBox')
+        pol.setChecked(gp.polarisation)
+        pol.setToolTip('Divide by 1 - (sin 2theta cos beta)^2 (horizontally polarised beam).')
+        kind=QComboBox(g)
+        kind.setObjectName('gidVJoinKindComboBox')
+        kind.addItems(['cubic','linear'])
+        kind.setCurrentText(gp.vjoin_kind)
+        kind.setToolTip('Interpolation of the beta-integrated profiles when two Qz levels are joined. Default cubic. '
+                        'Horizontal joins use linear interpolation and average the two scans in the overlap.')
+        dist=QLabel('sample-detector',g)
+        dist.setObjectName('gidDistanceLabel')
+        dist.setToolTip('Distance used to turn columns and rows into angles. A pinhole-geometry correction before '
+                        'patching (F45) will use the slit-detector distance per column; it waits for the IDL code.')
+        absl=QLabel('not applied',g)
+        absl.setObjectName('gidAbsorberLabel')
+        absl.setToolTip('Frames are divided by their monitor but not multiplied by the absorber factor: GID scans are '
+                        'expected at one absorber setting; joins absorb a difference between scans.')
+        form.addRow('Columns per frame',cols)
+        form.addRow('Rows',rows)
+        form.addRow('Qz grouping, decimals',qzd)
+        form.addRow('Angle rounding, decimals',dthd)
+        form.addRow(area,hard)
+        form.addRow(pol)
+        form.addRow('Vertical join',kind)
+        form.addRow('Distance for angles',dist)
+        form.addRow('Absorber factor',absl)
+        lay.addWidget(g)
+        levels=QLabel('',d)
+        levels.setObjectName('gidLevelsLabel')
+        levels.setToolTip('Qz levels of the last patch: scans, frames, detector-angle range (degrees)')
+        lay.addWidget(levels)
+        t=QTableWidget(0,7,d)
+        t.setObjectName('gidJoinTable')
+        t.setHorizontalHeaderLabels(['join','direction','from','to','points','factor','chi2/dof'])
+        tips=['Which data were joined: scans of one Qz level side by side (horizontal), or Qz levels (vertical)',
+              'horizontal: along 2theta (degrees); vertical: along beta (degrees)',
+              'Start of the overlap used for the scale factor (degrees)','End of the overlap (degrees)',
+              'Overlap points used in the fit','Scale factor applied to the second part, +/- its fitted error',
+              'Scatter of the overlap ratios about the factor; near 1 when the error bars describe it']
+        for c,tip in enumerate(tips):
+            t.horizontalHeaderItem(c).setToolTip(tip)
+        t.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        lay.addWidget(t)
+        buttons=QHBoxLayout()
+        again=QPushButton('Patch',d)
+        again.setObjectName('gidPatchPushButton')
+        again.setToolTip('Patch the selected frames again with these settings')
+        reset=QPushButton('Defaults',d)
+        reset.setObjectName('gidDefaultsPushButton')
+        reset.setToolTip('Back to the values the program always used')
+        close=QPushButton('Close',d)
+        close.setObjectName('gidClosePushButton')
+        for b in (again,reset,close):
+            buttons.addWidget(b)
+        lay.addLayout(buttons)
+
+        def apply(*_):
+            self.ui.pilHSlitLineEdit.setText(str(cols.value()))
+            self.gidParams=gidmod.GIDParams(columns=cols.value(),row_min=rmin.value(),row_max=rmax.value(),
+                                            qz_decimals=qzd.value(),dth_decimals=dthd.value(),
+                                            area_correction=area.isChecked(),hard_slit_offset_mm=hard.value(),
+                                            polarisation=pol.isChecked(),vjoin_kind=kind.currentText())
+            hard.setEnabled(area.isChecked())
+
+        def defaults():
+            dflt=gidmod.GIDParams()
+            for w,v in ((cols,dflt.columns),(rmin,dflt.row_min),(rmax,dflt.row_max),(qzd,dflt.qz_decimals),
+                        (dthd,dflt.dth_decimals),(hard,dflt.hard_slit_offset_mm)):
+                w.setValue(v)
+            area.setChecked(dflt.area_correction)
+            pol.setChecked(dflt.polarisation)
+            kind.setCurrentText(dflt.vjoin_kind)
+            apply()
+        for w in (cols,rmin,rmax,qzd,dthd,hard):
+            w.valueChanged.connect(apply)
+        area.toggled.connect(apply)
+        pol.toggled.connect(apply)
+        kind.currentIndexChanged.connect(apply)
+        again.clicked.connect(self.gidWorksheetPatch)
+        reset.clicked.connect(defaults)
+        close.clicked.connect(d.close)
+        d.gidColumnsSpinBox,d.gidRowMinSpinBox,d.gidRowMaxSpinBox=cols,rmin,rmax
+        d.gidQzDecimalsSpinBox,d.gidDthDecimalsSpinBox,d.gidAreaCheckBox=qzd,dthd,area
+        d.gidHardSlitSpinBox,d.gidPolCheckBox,d.gidVJoinKindComboBox=hard,pol,kind
+        d.gidLevelsLabel,d.gidJoinTable=levels,t
+        return d
+
+    def gidWorksheetPatch(self):
+        if self.det!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]))==0:
+            self.messageBox('Please select the Pilatus frames of the GID scans first.')
+            return
+        if self.gidParams.row_min>=self.gidParams.row_max:
+            self.messageBox('The first row must be below the last row.')
+            return
+        self.pilGIDRelax=getattr(self,'pilGIDRelax',0)
+        self.pilGIDpatchData()
+
+    def gidWorksheetResults(self):
+        """Fill the worksheet with the last patch's levels and joins."""
+        from PyQt5.QtWidgets import QTableWidgetItem
+        d=self.gidWorksheet
+        if d is None:
+            return
+        d.gidLevelsLabel.setText('; '.join('%s: S %s, %d frames, %.3f-%.3f' % (n,listText(k),f,lo,hi)
+                                           for n,k,f,lo,hi in self.gidLevels) or 'not patched yet')
+        t=d.gidJoinTable
+        t.setRowCount(len(self.gidJoinLog))
+        for r,j in enumerate(self.gidJoinLog):
+            vals=[j['label'],j['kind'],'%.3f' % j['x_from'],'%.3f' % j['x_to'],'%d' % j['points'],
+                  '%.4g +/- %.2g' % (j['factor'],j['error']),'%.2f' % j['chi2']]
+            for c,v in enumerate(vals):
+                t.setItem(r,c,QTableWidgetItem(v))
+        t.resizeColumnsToContents()
+
     def setGIDFormFactor(self):
         Dialog=QDialog(self)                
         self.uipdformfac=uic.loadUi(resource('pdformfac.ui'), Dialog)
@@ -3077,6 +3250,9 @@ class MainWindow (QMainWindow):
         self.pilGIDshow=1
         self.pilGISAXSshow=0
         self.ui.pilMplWidget.canvas.fig.clf()
+        gp=self.gidParams
+        self.gidJoinLog=[]
+        self.gidLevels=[]
         self.pilxleft=self.xcenter-(float(self.ui.pilHSlitLineEdit.text())-1)/2
         self.pilxright=self.xcenter+(float(self.ui.pilHSlitLineEdit.text())-1)/2
         self.pilhintLQDatadic={}  #create the dictionary for low qz 
@@ -3084,7 +3260,9 @@ class MainWindow (QMainWindow):
         self.pilhintHQDatadic={}  #create the dictionary for high qz
         areainfo={}  # create a dictinary for area cal info which are contants for each scan
         averagemonc={} #create the dicionary for average monc for each scan
-        qz=np.sort(list(set([float(format(self.pilSelectedQzs[i], '.3f')) for i in range(len(self.pilSelectedQzs))]))) # get and sort the qz in the selected frames
+        qzfmt='.%df' % gp.qz_decimals
+        qztol=10.0**-gp.qz_decimals
+        qz=np.sort(list(set([float(format(self.pilSelectedQzs[i], qzfmt)) for i in range(len(self.pilSelectedQzs))]))) # get and sort the qz in the selected frames
         self.absfac=self.absorberModel()
         j=0   #for xcenter and ycenter, which are already defined in self.selectedPilFramesNums
         for i in self.selectedPilFramesNums:  # get average monc for each scan
@@ -3096,7 +3274,7 @@ class MainWindow (QMainWindow):
         #print averagemonc, ckey
         #print np.average(averagemonc[ckey])
         for i in self.selectedPilFramesNums:
-            self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absnum=[self.pil_AbsNum[i]],cen=[self.xcenter[j],self.ycenter[j]], hroi=[self.pilxleft[j], self.pilxright[j]], vroi=[15,486], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]])
+            self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absnum=[self.pil_AbsNum[i]],cen=[self.xcenter[j],self.ycenter[j]], hroi=[self.pilxleft[j], self.pilxright[j]], vroi=[gp.row_min,gp.row_max], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]])
             j=j+1
             ckey=self.pilScanNum[i]
             if ckey in areainfo:
@@ -3104,13 +3282,13 @@ class MainWindow (QMainWindow):
             else:
              #   print ckey, self.pilTrueAlpha[i]
                 areainfo[ckey]=[self.pil_S1h[i],self.pil_S1v[i],self.pil_S4h[i],self.pil_S5h[i],self.pilTrueAlpha[i], self.pil_Dist[i], self.pil_PDist[i]]   #s1h, s1v, s4h, alpha, sample to detector, slit to detector
-            dth=float(format(self.pil_Dth[i]*180/np.pi,'.3f'))**np.ones_like(self.pilatus.hintData[:,0])            
-            if np.abs(self.pilFileQzs[i]-qz[0])<0.001:  #low qz
+            dth=float(format(self.pil_Dth[i]*180/np.pi,'.%df' % gp.dth_decimals))**np.ones_like(self.pilatus.hintData[:,0])            
+            if np.abs(self.pilFileQzs[i]-qz[0])<qztol:  #low qz
                 if ckey in self.pilhintLQDatadic:
                     self.pilhintLQDatadic[ckey].append(np.vstack((dth,self.pilatus.hintData[:,0],self.pilatus.hintData[:,1]*np.average(averagemonc[ckey]),self.pilatus.hintData[:,2]*np.average(averagemonc[ckey]))).transpose())
                 else:
                     self.pilhintLQDatadic[ckey]=[np.vstack((dth,self.pilatus.hintData[:,0],self.pilatus.hintData[:,1]*np.average(averagemonc[ckey]),self.pilatus.hintData[:,2]*np.average(averagemonc[ckey]))).transpose()]
-            elif np.abs(self.pilFileQzs[i]-qz[1])<0.001: #medium qz
+            elif np.abs(self.pilFileQzs[i]-qz[1])<qztol: #medium qz
                 if ckey in self.pilhintMQDatadic:
                     self.pilhintMQDatadic[ckey].append(np.vstack((dth,self.pilatus.hintData[:,0],self.pilatus.hintData[:,1]*np.average(averagemonc[ckey]),self.pilatus.hintData[:,2]*np.average(averagemonc[ckey]))).transpose())
                 else:
@@ -3127,23 +3305,15 @@ class MainWindow (QMainWindow):
        # print self.pilhintLQDatadic
        # print self.pilhintLQDatadic[LQkeys[0]][0][0][0]
       
-      # Area and polarization corrections;
-        for i in range(len(LQkeys)):
-            for j in range(len(self.pilhintLQDatadic[LQkeys[i]])):
-                areacorr=self.calArea(areainfo[LQkeys[i]], self.pilhintLQDatadic[LQkeys[i]][j][:,0][0])
-                self.pilhintLQDatadic[LQkeys[i]][j][:,2]=self.pilhintLQDatadic[LQkeys[i]][j][:,2]/areacorr/(1-(np.sin(self.pilhintLQDatadic[LQkeys[i]][j][:,0]*np.pi/180)*np.cos(self.pilhintLQDatadic[LQkeys[i]][j][:,1]*np.pi/180))**2)
-                self.pilhintLQDatadic[LQkeys[i]][j][:,3]=self.pilhintLQDatadic[LQkeys[i]][j][:,3]/areacorr/(1-(np.sin(self.pilhintLQDatadic[LQkeys[i]][j][:,0]*np.pi/180)*np.cos(self.pilhintLQDatadic[LQkeys[i]][j][:,1]*np.pi/180))**2)
-        for i in range(len(MQkeys)):
-            for j in range(len(self.pilhintMQDatadic[MQkeys[i]])):
-                areacorr=self.calArea(areainfo[MQkeys[i]], self.pilhintMQDatadic[MQkeys[i]][j][:,0][0])
-                self.pilhintMQDatadic[MQkeys[i]][j][:,2]=self.pilhintMQDatadic[MQkeys[i]][j][:,2]/areacorr/(1-(np.sin(self.pilhintMQDatadic[MQkeys[i]][j][:,0]*np.pi/180)*np.cos(self.pilhintMQDatadic[MQkeys[i]][j][:,1]*np.pi/180))**2)
-                self.pilhintMQDatadic[MQkeys[i]][j][:,3]=self.pilhintMQDatadic[MQkeys[i]][j][:,3]/areacorr/(1-(np.sin(self.pilhintMQDatadic[MQkeys[i]][j][:,0]*np.pi/180)*np.cos(self.pilhintMQDatadic[MQkeys[i]][j][:,1]*np.pi/180))**2)
-        for i in range(len(HQkeys)):
-            for j in range(len(self.pilhintHQDatadic[HQkeys[i]])):
-                areacorr=self.calArea(areainfo[HQkeys[i]], self.pilhintHQDatadic[HQkeys[i]][j][:,0][0])
-                self.pilhintHQDatadic[HQkeys[i]][j][:,2]=self.pilhintHQDatadic[HQkeys[i]][j][:,2]/areacorr/(1-(np.sin(self.pilhintHQDatadic[HQkeys[i]][j][:,0]*np.pi/180)*np.cos(self.pilhintHQDatadic[HQkeys[i]][j][:,1]*np.pi/180))**2)
-                self.pilhintHQDatadic[HQkeys[i]][j][:,3]=self.pilhintHQDatadic[HQkeys[i]][j][:,3]/areacorr/(1-(np.sin(self.pilhintHQDatadic[HQkeys[i]][j][:,0]*np.pi/180)*np.cos(self.pilhintHQDatadic[HQkeys[i]][j][:,1]*np.pi/180))**2)
+      # Area and polarization corrections (each can be switched off in the worksheet)
+        for name,keys,dic in (('low Qz',LQkeys,self.pilhintLQDatadic),('middle Qz',MQkeys,self.pilhintMQDatadic),
+                              ('high Qz',HQkeys,self.pilhintHQDatadic)):
+            self.gidCorrect(dic,keys,areainfo)
+            if len(keys):
+                self.gidLevels.append((name,list(keys),sum(len(dic[k]) for k in keys),
+                                       min(d[0,0] for k in keys for d in dic[k]),max(d[0,0] for k in keys for d in dic[k])))
        # print self.pilhintLQDatadic
+        self.gidJoinLabel='low Qz'
         if len(LQkeys)>1: #for low qz
             try:
                 self.pilLQPatchData=self.imagehjoin(self.pilhintLQDatadic[LQkeys[0]],self.pilhintLQDatadic[LQkeys[1]]) #horizontally patch the first two images
@@ -3154,6 +3324,7 @@ class MainWindow (QMainWindow):
                 return
         else:
             self.pilLQPatchData=self.pilhintLQDatadic[LQkeys[0]]
+        self.gidJoinLabel='middle Qz'
         if len(MQkeys)>1:  #for middle qz
             try:
                 self.pilMQPatchData=self.imagehjoin(self.pilhintMQDatadic[MQkeys[0]],self.pilhintMQDatadic[MQkeys[1]]) #horizontally patch the first two images
@@ -3166,6 +3337,7 @@ class MainWindow (QMainWindow):
             self.pilMQPatchData=self.pilhintMQDatadic[MQkeys[0]]
         else:
             self.pilMQPatchData=[]
+        self.gidJoinLabel='high Qz'
         if len(HQkeys)>1: #for middle qz
             try:
                 self.pilHQPatchData=self.imagehjoin(self.pilhintHQDatadic[HQkeys[0]],self.pilhintHQDatadic[HQkeys[1]]) #horizontally patch the first two images
@@ -3179,12 +3351,14 @@ class MainWindow (QMainWindow):
         else:
             self.pilHQPatchData=[]
         self.pilPatchData=self.pilLQPatchData # need vertical patch later on
+        self.gidJoinLabel='low + middle Qz'
         if len(self.pilMQPatchData)!=0:
             try:
                 self.pilPatchData=self.imagevjoin(self.pilPatchData,self.pilMQPatchData)
             except:
                 self.messageBox('Warning: One or more of selected scans do not have enough points for the vertical patching!')
                 return
+        self.gidJoinLabel='+ high Qz'
         if len(self.pilHQPatchData)!=0:
             try:
                 self.pilPatchData=self.imagevjoin(self.pilPatchData,self.pilHQPatchData)
@@ -3206,6 +3380,24 @@ class MainWindow (QMainWindow):
         self.ui.pilMaxHorizontalSlider.setValue(int(float(self.ui.pilMaxLineEdit.text())*100/(self.imageMax-self.imageMin)))
         self.ui.pilMinHorizontalSlider.setValue(int(float(self.ui.pilMinLineEdit.text())*100/(self.imageMax-self.imageMin)))
         self.pilGIDPlot()   # go to plot function
+        if self.gidWorksheet is not None and self.gidWorksheet.isVisible():
+            self.gidWorksheetResults()
+
+    def gidCorrect(self,dic,keys,areainfo):
+        """Area and polarisation corrections of the profiles in ``dic``,
+        in place (the arithmetic of the original three loops)."""
+        gp=self.gidParams
+        for k in keys:
+            for d in dic[k]:
+                areacorr=self.calArea(areainfo[k],d[:,0][0]) if gp.area_correction else 1.0
+                pol=(1-(np.sin(d[:,0]*np.pi/180)*np.cos(d[:,1]*np.pi/180))**2) if gp.polarisation else 1.0
+                d[:,2]=d[:,2]/areacorr/pol
+                d[:,3]=d[:,3]/areacorr/pol
+
+    def gidLogJoin(self,kind,x,y,yerr,fac,facerr):
+        self.gidJoinLog.append(dict(label=getattr(self,'gidJoinLabel',''),kind=kind,x_from=float(np.min(x)),x_to=float(np.max(x)),
+                                    points=int(len(x)),factor=float(fac),error=float(facerr),
+                                    chi2=gidmod.reduced_chi2(x,y,yerr,fac)))
 
     def calArea(self, areainfo, dth):  #calculate the area correction for pilatum100 GID measurement
         s1y=areainfo[0] # footrprint size perpendicular to the beam, y
@@ -3213,7 +3405,7 @@ class MainWindow (QMainWindow):
         s5h=areainfo[3]
         alpha=areainfo[4]
         s1x=areainfo[1]/np.sin(alpha)  #footprint size along the beam, x        
-        sam2d=areainfo[5]-32.0   # sample to detector distance; there is 32 mm shorter if we use hard slits. 
+        sam2d=areainfo[5]-self.gidParams.hard_slit_offset_mm   # sample to detector distance; there is 32 mm shorter if we use hard slits. 
         sli2s=areainfo[5]-areainfo[6]   # s2 slits to sample distance
         dth=dth*np.pi/180.0   #convert to rad. 
         if s5h> float(self.ui.pilHSlitLineEdit.text())*0.172:    
@@ -3537,7 +3729,7 @@ class MainWindow (QMainWindow):
             pfit,pcov=curve_fit(self.polynomial,x,y,p0=[1],sigma=yerr) #fit the data with the scale factor 
             fac=pfit[0]
             facerr=pcov[0][0]**0.5
-           # print fac, facerr
+            self.gidLogJoin('horizontal (2theta)',x,y,yerr,fac,facerr)
             for i in range(len(data2)):  # scale the data2 with the fac and facerr
                 data2[i][:,2]=data2[i][:,2]*fac
                 data2[i][:,3]=np.sqrt(data2[i][:,3]**2*fac**2+data2[i][:,2]**2*facerr**2/fac**2)
@@ -3615,8 +3807,8 @@ class MainWindow (QMainWindow):
             data2zinterr=np.array([np.sqrt(np.sum([data2[i][j,3]**2 for i in range(len(data2))])) for j in overlap2[0]]) #get error bars
            # print len(data2),data1zint,data2zint
            # print np.sum(data1zint)*len(data2zint)/(np.sum(data2zint)*len(data1zint))
-            f=interp1d(data2y[overlap2],data2zint, kind='cubic')
-            ferr=interp1d(data2y[overlap2],data2zinterr,kind='cubic')
+            f=interp1d(data2y[overlap2],data2zint, kind=self.gidParams.vjoin_kind)
+            ferr=interp1d(data2y[overlap2],data2zinterr,kind=self.gidParams.vjoin_kind)
             #print data1y[overlap1][:-1]
             nonzero=np.nonzero(f(data1y[overlap1][:-1]))
             overlap1z=data1zint[:-1][nonzero]
@@ -3630,7 +3822,7 @@ class MainWindow (QMainWindow):
             pfit,pcov=curve_fit(self.polynomial,x,y,p0=[1],sigma=yerr) #fit the data with the scale factor 
             fac=pfit[0]
             facerr=pcov[0][0]**0.5
-            #print np.sum(y)/len(y), fac, facerr
+            self.gidLogJoin('vertical (beta)',x,y,yerr,fac,facerr)
             for i in range(len(data2)):  # scale the data2 with the fac and facerr
                 data2[i][:,2]=data2[i][:,2]*fac
                 data2[i][:,3]=np.sqrt(data2[i][:,3]**2*fac**2+data2[i][:,2]**2*facerr**2/fac**2)

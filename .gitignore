@@ -10,3 +10,6 @@ sample_data/bu/
 # PyInstaller output (packaging/lss_reader.spec)
 build/
 dist/
+
+# private data the owner shared for testing: kept locally, never pushed
+sample_data/private/

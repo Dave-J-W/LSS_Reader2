@@ -113,9 +113,11 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] Docket (2026-11-18): F59 cuts for diffuse scattering (I vs β, β − α;
       the Q cuts' default ranges miss the detector and plot zeros silently),
       F60 contextual/automatic reduction. Not to be built yet.
-- [ ] GID sub-project (D36): F61 worksheet first, then F45 pinhole
-      correction before patching (needs the owner's answers and the IDL
-      code), then F62 flexible overlaps. P31 found while reading.
+- [x] F61 GID worksheet (2026-11-18): the patch's settings editable, joins
+      tabulated; defaults reproduce the patch exactly.
+- [ ] GID sub-project (D36): F45 pinhole correction before patching (IDL
+      code received, `docs/reference_code/idl/`; review: hand-off 04), then
+      F62 flexible overlaps. P31 found while reading.
 - [ ] → Stage 6: burn tests and peak fits scriptable, with the fitting
       sub-project (analysis tools, not reduction); P30 (burn test not
       monitor-normalised) to be fixed then.
