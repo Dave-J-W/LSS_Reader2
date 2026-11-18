@@ -462,3 +462,44 @@ def test_spec_export_second_y_column_has_its_own_errors(window, qapp, recorder, 
         d = np.loadtxt(str(tmp_path / ('out%d_1_sh_YAP%s.txt' % (normalised, suffix))))
         assert d[:, 2] == pytest.approx(err, rel=1e-3)
     assert recorder.exceptions == []
+
+
+@pytest.mark.parametrize('logx', [False, True])
+def test_spec_plot_log_axis_with_zero_or_negative_points(window, qapp, recorder, tmp_path, logx):
+    """Found by the random walk on 2026-11-18 (mca_frames, seed 1): Y2 = H,
+    zero at every point of an L scan, with log Y on. Each point carries a red
+    index label at its data coordinates; on a log axis matplotlib clips
+    y <= 0 to a finite but enormous pixel position, and FreeType raised
+    'raster overflow' drawing the label there. Such points are not drawn on a
+    log axis, so neither are their labels; the others still are. It needs a
+    narrow log range (here Y/Monc with 0.1 % errors), which puts the clipped
+    point millions of pixels away."""
+    import numpy as np
+    import synth
+    x = np.linspace(-1, 1, 5)
+    rows = np.column_stack([x, x * 0 + 1, x * 0 + 1e5, x * 0 + 1e6, x * 0, x - 0.5])
+    spec = synth.write_spec(str(tmp_path / 'z'), [synth.spec_scan(
+        1, 'z', ['sh', 'Seconds', 'Monc', 'Apex2', 'H', 'K'], rows,
+        command='ascan sh -1 1 4 1', image=False)])
+    w = window
+    w.openSpecFile(fname=spec)
+    w.directory = str(tmp_path)
+    sweep._select_scans(w, qapp, [0])
+    for box, col in ((w.ui.spXComboBox, 'K' if logx else 'sh'), (w.ui.spYComboBox, 'Apex2'),
+                     (w.ui.spNComboBox, 'Monc')):
+        box.setCurrentIndex(box.findText(col))
+    w.ui.spNCheckBox.setChecked(True)
+    w.ui.spLogYCheckBox.setChecked(True)
+    w.ui.spLogXCheckBox.setChecked(logx)
+    for col in ('H', 'K'):
+        w.ui.spY2ComboBox.setCurrentIndex(w.ui.spY2ComboBox.findText(col))
+        qapp.processEvents()
+        w.ui.specPlotMplWidget.canvas.draw()
+        assert recorder.exceptions == []
+        texts = w.ui.specPlotMplWidget.canvas.ax.texts
+        assert len(texts) == 10
+        shown = sorted(float(t.get_position()[1]) for t in texts if t.get_visible())
+        xs = np.array([t.get_position()[0] for t in texts])
+        ys = np.array([t.get_position()[1] for t in texts])
+        ok = (ys > 0) & ((xs > 0) if logx else True)
+        assert shown == sorted(ys[ok].tolist())

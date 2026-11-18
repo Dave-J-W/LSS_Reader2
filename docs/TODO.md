@@ -66,6 +66,11 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [x] F49 for Al (2026-11-18): the field follows the scans' energy ("from E").
       Reductions of bu scans at 6.21 / 7.51 / 9.9 keV with absorbers in
       should be redone (factor was 1.4247 per unit).
+- [x] Crash site found by the sweep after "from E" (2026-11-18; the extra
+      control changed the random walks): SPEC plot with log Y and a column
+      that is 0 (Y2 = H in an L scan) raised FreeType 'raster overflow' on the
+      point labels. Labels of points a log axis cannot show are now hidden.
+      Sweep before the fix: 65 passed, 2 failed (this site); after: both pass.
 - [ ] F49 for Cu at 30 keV: needs the unit thickness (owner).
 - [ ] Owner: which foils at 10.05 and 10.52 keV (bu 20260902)?
 - [ ] Owner: are `#A` 52 (20260902, 10 keV) and 63 (20261022) real settings

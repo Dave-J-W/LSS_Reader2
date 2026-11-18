@@ -959,6 +959,13 @@ class MainWindow (QMainWindow):
             self.ui.specPlotMplWidget.canvas.ax.set_yscale('log')
         if self.spGrid!=0:
             self.ui.specPlotMplWidget.canvas.ax.grid(visible=True,color='r',linestyle='--')
+        # point labels where the point cannot be drawn (not finite, or <= 0 on a
+        # log axis) are hidden: matplotlib clips such a position to a finite but
+        # enormous pixel offset, and FreeType raised 'raster overflow' there
+        for t in self.ui.specPlotMplWidget.canvas.ax.texts:
+            px,py=(float(v) for v in t.get_position())
+            t.set_visible(bool(np.isfinite(px) and np.isfinite(py)
+                               and (self.spLogX==0 or px>0) and (self.spLogY==0 or py>0)))
         if self.ui.spLegendCheckBox.checkState()!=0:
             self.ui.specPlotMplWidget.canvas.ax.legend(loc=self.ui.spLegendLocComboBox.currentIndex()+1,frameon=False,scatterpoints=0,numpoints=1)
         self.ui.specPlotMplWidget.canvas.draw()
