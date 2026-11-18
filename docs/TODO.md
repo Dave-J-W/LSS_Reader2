@@ -91,6 +91,8 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] Owner (P29): `Monc` missed ≈ 1/3 of a slit opening in some series
       (R05; 2026-09-26 to 2026-10-16). Which scan of the pair, which
       configuration, and is `Monc`'s acceptance smaller than S1 opened?
+- [ ] Hand-off 03 (`handoff_out/03-check-foil-fit-and-figures.md`): the
+      analysing agent checks the review above and makes the figures.
 - [ ] Owner (P28): reflectivity series with overlaps at 6–7 keV, to
       separate foil composition from thickness.
 - [ ] Owner: gain reference S_ref = 1 µA/V or 5 µA/V (the usual gain, D32)?
