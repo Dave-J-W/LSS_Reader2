@@ -177,6 +177,7 @@ class MainWindow (QMainWindow):
         self.initErrorPane()
         self.initMonitorGainOption()
         self.initAbsFacFromEnergy()
+        self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
         self.initValidator()
@@ -977,6 +978,8 @@ class MainWindow (QMainWindow):
             yerr=pl.sqrt(y/n**2+y**2/n**3)*g
             y=y/n*g
         self.ui.specPlotMplWidget.canvas.ax.errorbar(x,y,yerr,label=self.label,fmt='o-')
+        if not self.spPointLabelsCheckBox.isChecked():
+            return
         for i in range(len(x)):
             self.ui.specPlotMplWidget.canvas.ax.text(x[i],y[i],str(i),color='r',fontsize=16)
         
@@ -1082,6 +1085,19 @@ class MainWindow (QMainWindow):
             box.stateChanged.connect(self.setMonitorGain)
             self.monitorGainBoxes.append(box)
         self.mcaGainCheckBox,self.spGainCheckBox=self.monitorGainBoxes
+
+    def initSpecPointLabels(self):
+        """Option (F55), on by default: the SPEC plot labels each point
+        with its index in the scan (red numbers). Unticked, no labels."""
+        from PyQt5.QtWidgets import QCheckBox
+        box=QCheckBox('Point #')
+        box.setObjectName('spPointLabelsCheckBox')
+        box.setToolTip('Label each point of the SPEC plot with its index in the scan (0, 1, 2, ...)')
+        box.setChecked(True)
+        layout=self.ui.horizontalLayout_8
+        layout.insertWidget(layout.indexOf(self.ui.spLegendCheckBox)+1,box)
+        self.spPointLabelsCheckBox=box
+        box.stateChanged.connect(self.updateSpecPlotData)
 
     def initAbsFacFromEnergy(self):
         """Option (F49), on by default: the Absorber factor field follows

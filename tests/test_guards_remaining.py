@@ -503,3 +503,37 @@ def test_spec_plot_log_axis_with_zero_or_negative_points(window, qapp, recorder,
         ys = np.array([t.get_position()[1] for t in texts])
         ok = (ys > 0) & ((xs > 0) if logx else True)
         assert shown == sorted(ys[ok].tolist())
+
+
+def test_spec_plot_point_labels_option(window, qapp, recorder, tmp_path):
+    """F55 (owner, 2026-11-18): the red point-index labels are a checkbox,
+    'Point #', on by default (as before); unticked, the plot is redrawn
+    with the same points and no labels."""
+    import numpy as np
+    import synth
+    x = np.linspace(-1, 1, 5)
+    rows = np.column_stack([x, x * 0 + 1, x * 0 + 1e5, 400 + 10 * x, x * 0 + 9])
+    spec = synth.write_spec(str(tmp_path / 'p'), [synth.spec_scan(
+        1, 'p', ['sh', 'Seconds', 'Monc', 'Apex2', 'YAP'], rows,
+        command='ascan sh -1 1 4 1', image=False)])
+    w = window
+    w.openSpecFile(fname=spec)
+    w.directory = str(tmp_path)
+    sweep._select_scans(w, qapp, [0])
+    box = w.spPointLabelsCheckBox
+    assert box.isChecked() and box.text() == 'Point #'
+    ax = w.ui.specPlotMplWidget.canvas.ax
+    for col in ('None', 'YAP'):                      # one series, then Y and Y2
+        w.ui.spY2ComboBox.setCurrentIndex(w.ui.spY2ComboBox.findText(col))
+        qapp.processEvents()
+        n = 5 if col == 'None' else 10
+        assert [t.get_text() for t in ax.texts] == [str(i) for i in range(5)] * (n // 5)
+        lines = [l.get_ydata().tolist() for l in ax.lines]
+        box.setChecked(False)
+        qapp.processEvents()
+        assert len(ax.texts) == 0
+        assert [l.get_ydata().tolist() for l in ax.lines] == lines
+        box.setChecked(True)
+        qapp.processEvents()
+        assert len(ax.texts) == n
+    assert recorder.exceptions == []

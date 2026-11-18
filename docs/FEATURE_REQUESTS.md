@@ -299,6 +299,12 @@ priority than the lists above.
 | R7 | Output files in the newer formats (ORSO, HDF5, combined JSON) record the reduction steps and their parameters, so a file can be traced back to how it was made. The legacy text files stay byte-identical. | F24c, F25, F30 |
 | — | Owner's expectation: images are normalised first, then reduced. Today they are not (see `physics_notes.md`, 2026-11-17); the frame object of Stage 3 should hold the normalised frame once. | target design |
 
+### Request (2026-11-18)
+
+| # | Request | Notes |
+|---|---|---|
+| F55 | **Point labels in the SPEC plot as a checkbox** (owner, 2026-11-18). Each point of the SPEC plot carries its index in the scan as a red number; make that an option. | built: 'Point #' next to Legend, on by default (unchanged look until unticked) |
+
 ### Status of built items
 
 | # | Built | Where | Checked by |
@@ -310,6 +316,7 @@ priority than the lists above.
 | D15 | No message when a fluorescence scan is selected. | `scanListChanged` | `tests/test_xfntr.py` |
 | F10 (second half) | Handlers no longer raise when used before data is loaded or after the selection changed. | guards throughout `mainwindow.py`; `forgetImageSelection` | `pytest -m sweep`; `tests/test_guards_*.py` |
 | D14 | Scan lists formatted by one helper. | `listText` | `tests/test_xfntr.py` |
+| F55 | 'Point #' checkbox in the SPEC plot options, on by default; unticked, the plot is redrawn with no point labels. Labels a log axis cannot show (≤ 0, non-finite) are hidden either way. | `initSpecPointLabels`, `specPlot`, `specPlotSettings` | `tests/test_guards_remaining.py` |
 | F24b | Qz² display option no longer changes the saved `_rrf.txt`. | `updateRefPlotData` | `tests/test_ref_export_golden.py` |
 | F27 (part) | Non-SPEC files and repeated scan numbers handled quietly. | `openSpecFile`, `readSpecFile`, `spec_routines.is_spec_file` | `tests/test_known_defects.py`, `tests/test_parsers.py`, `tests/test_real_bu.py` |
 | Defect 1 (start of F23) | GID patching runs on current SciPy with unchanged results. | `interp_compat.py` | `tests/test_interp_compat.py`, `tests/test_real_nx_school.py` |
