@@ -24,7 +24,9 @@ def test_dialog_shows_the_foils_with_tooltips(window, qapp, recorder):
     assert t.rowCount() == 6
     assert [t.item(k, 2).text() for k in range(6)] == ['%.1f' % v for v in absorbers.CAL_FOILS_UM]
     assert [t.item(k, 1).text() for k in range(6)] == ['50', '100', '200', '400', '800', '1600']
-    assert '+/- 1.0 um per foil' in t.item(0, 2).toolTip()
+    assert [t.item(k, 3).text() for k in range(6)] == ['0.6', '0.5', '0.8', '0.6', '1.3', '1.3']
+    assert '+/- 0.6 um run to run' in t.item(0, 2).toolTip()
+    assert 'Qz >= 0.25' in t.horizontalHeaderItem(3).toolTip()
     for widget in (d.prefCalibratedCheckBox, t, d.prefPatchAutoCheckBox, d.prefPatchThresholdSpinBox):
         assert widget.toolTip()
     assert 'physics_notes' in t.toolTip()                  # where the numbers come from

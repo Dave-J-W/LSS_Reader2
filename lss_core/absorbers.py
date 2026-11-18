@@ -110,9 +110,17 @@ def factor_at(energy):
 # the analysing agent (hand-off 03 answer). tests/tools/foil_fit_from_joins.py.
 CAL_FOILS_UM = (54.7, 112.2, 218.0, 432.1, 862.7, 1725.1)
 CAL_FOILS_FIT_ERR_UM = (0.1, 0.1, 0.2, 0.2, 0.4, 0.5)   # statistical, from the fit
-# Uncertainty assumed per foil in a ratio: one join scatters 0.87 µm about
-# the fit and each run's median stays within ±1.2 µm over the year.
-CAL_FOIL_SIGMA_UM = 1.0
+# Run-to-run (leave-one-run-out) spread of each foil, µm; ABSORBER_RATIOS.md
+# (docs/handoff_out/03-answer), measured on 17 runs.
+CAL_FOILS_RUN_UM = (0.6, 0.5, 0.8, 0.6, 1.3, 1.3)
+# A ratio's relative error: the spreads of the foils that differ, in
+# quadrature, plus the scatter of one step about the fit, 0.5 %. Tested
+# there by predicting runs left out: right-sized for overlaps below
+# Qz = 0.25 1/Å (68 % of errors within 0.95 σ); above it single steps
+# scatter 3.2 times more (68 % within 3.19 σ), so σ is scaled by 3.2.
+CAL_STEP_SCATTER = 0.005
+CAL_HIGH_QZ = 0.25             # 1/Å
+CAL_HIGH_QZ_SCALE = 3.2
 CAL_ENERGY_KEV = 10.0
 # Used from 9.70 to 10.30 keV with μ of Al at the energy: no K edge of the
 # usual Al impurities lies between Zn (9.66 keV) and Ga (10.37 keV)
@@ -129,11 +137,11 @@ class Foils:
     ``energy_kev``, t_k the Al-equivalent thickness of foil k (µm)."""
 
     def __init__(self, thickness_um=CAL_FOILS_UM, energy_kev=CAL_ENERGY_KEV,
-                 sigma_um=CAL_FOIL_SIGMA_UM):
+                 sigma_um=CAL_FOILS_RUN_UM):
         self.thickness_um = tuple(float(t) for t in thickness_um)
         self.energy_kev = round(float(energy_kev), 2)
         self.mu_per_um = al_mu_rho(self.energy_kev) * AL_DENSITY * 1e-4
-        self.sigma_um = float(sigma_um)
+        self.sigma_um = tuple(float(s) for s in sigma_um)
 
     def _bits(self, n):
         n = int(n)
@@ -149,13 +157,20 @@ class Foils:
         """1/T(n): what a count at setting n is multiplied by."""
         return math.exp(self.mu_per_um * self.thickness(n))
 
-    def step(self, n_a, n_b):
+    def step(self, n_a, n_b, qz=None):
         """(T(n_a)/T(n_b), relative error): the scale between a scan at n_a
-        and one at n_b. The error is μ·σ per foil that differs, in quadrature."""
+        and one at n_b. The error is μ·σ_k of each foil that differs, in
+        quadrature, ⊕ CAL_STEP_SCATTER; × CAL_HIGH_QZ_SCALE when the overlap
+        is at ``qz`` ≥ CAL_HIGH_QZ (1/Å). No error when n_a == n_b."""
         a, b = self._bits(n_a), self._bits(n_b)
-        changed = sum(1 for x, y in zip(a, b) if x != y)
         ratio = math.exp(-self.mu_per_um * (self.thickness(n_a) - self.thickness(n_b)))
-        return ratio, self.mu_per_um * self.sigma_um * math.sqrt(changed)
+        var = sum((self.mu_per_um * s) ** 2 for x, y, s in zip(a, b, self.sigma_um) if x != y)
+        if var == 0:
+            return ratio, 0.0
+        rel = math.sqrt(var + CAL_STEP_SCATTER ** 2)
+        if qz is not None and qz >= CAL_HIGH_QZ:
+            rel *= CAL_HIGH_QZ_SCALE
+        return ratio, rel
 
     def __eq__(self, other):
         return (isinstance(other, Foils) and self.thickness_um == other.thickness_um
@@ -165,7 +180,7 @@ class Foils:
         return hash((self.thickness_um, self.energy_kev, self.sigma_um))
 
     def __repr__(self):         # a script line rebuilds it
-        if (self.thickness_um, self.sigma_um) == (CAL_FOILS_UM, CAL_FOIL_SIGMA_UM):
+        if (self.thickness_um, self.sigma_um) == (CAL_FOILS_UM, CAL_FOILS_RUN_UM):
             return 'absorbers.calibrated(%r)' % self.energy_kev
         return 'absorbers.Foils(%r, %r, %r)' % (self.thickness_um, self.energy_kev, self.sigma_um)
 

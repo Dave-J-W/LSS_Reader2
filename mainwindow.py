@@ -1225,23 +1225,26 @@ class MainWindow (QMainWindow):
                        'when "from E" is ticked. Measured: %s. Elsewhere, or unticked: 50 um Al per unit '
                        '(NIST SRD 126).' % (absorbers.CAL_RANGE_KEV+(absorbers.CAL_PROVENANCE,)))
         gl.addWidget(cal)
-        t=QTableWidget(len(absorbers.CAL_FOILS_UM),3,g)
+        t=QTableWidget(len(absorbers.CAL_FOILS_UM),4,g)
         t.setObjectName('prefFoilTable')
-        t.setHorizontalHeaderLabels(['units','nominal um','calibrated um'])
+        t.setHorizontalHeaderLabels(['units','nominal um','calibrated um','+/- um'])
         t.setVerticalHeaderLabels(['foil %d' % k for k in range(len(absorbers.CAL_FOILS_UM))])
         tips=['Absorber units of this foil: SPEC #A is the sum of the foils in (binary)',
               '50 um of Al per unit (beamline)',
-              'Al-equivalent thickness at 10 keV, fitted to measured joins. Hover a value for its error']
+              'Al-equivalent thickness at 10 keV, fitted to measured joins. Hover a value for its fit error',
+              'Run-to-run spread of the foil (leave one run out), used for the error of a ratio: these in '
+              'quadrature for the foils that change, plus %.1f %% per step; x%.1f when the overlap is at '
+              'Qz >= %.2f 1/A, where single steps scatter more (ABSORBER_RATIOS.md)'
+              % (100*absorbers.CAL_STEP_SCATTER,absorbers.CAL_HIGH_QZ_SCALE,absorbers.CAL_HIGH_QZ)]
         for c,tip in enumerate(tips):
             t.horizontalHeaderItem(c).setToolTip(tip)
-        for k,(tk,ek) in enumerate(zip(absorbers.CAL_FOILS_UM,absorbers.CAL_FOILS_FIT_ERR_UM)):
-            for c,val in enumerate(('%d' % 2**k,'%g' % (absorbers.UNIT_THICKNESS_UM*2**k),'%.1f' % tk)):
+        for k,(tk,ek,rk) in enumerate(zip(absorbers.CAL_FOILS_UM,absorbers.CAL_FOILS_FIT_ERR_UM,absorbers.CAL_FOILS_RUN_UM)):
+            for c,val in enumerate(('%d' % 2**k,'%g' % (absorbers.UNIT_THICKNESS_UM*2**k),'%.1f' % tk,'%.1f' % rk)):
                 it=QTableWidgetItem(val)
                 it.setFlags(it.flags() & ~QtC.ItemIsEditable)
                 it.setTextAlignment(int(QtC.AlignRight | QtC.AlignVCenter))
                 if c==2:
-                    it.setToolTip('%.1f +/- %.1f um (fit); +/- %.1f um per foil assumed in absorber ratios '
-                                  '(run-to-run spread of the measurements)' % (tk,ek,absorbers.CAL_FOIL_SIGMA_UM))
+                    it.setToolTip('%.1f +/- %.1f um (fit); +/- %.1f um run to run' % (tk,ek,rk))
                 t.setItem(k,c,it)
         t.setEditTriggers(QAbstractItemView.NoEditTriggers)
         t.setToolTip(absorbers.CAL_PROVENANCE)
@@ -1260,7 +1263,8 @@ class MainWindow (QMainWindow):
         auto.setObjectName('prefPatchAutoCheckBox')
         auto.setChecked(self.prefs['patch_auto_known_ratio'])
         auto.setToolTip('At a join, use the absorber ratio of the calibrated foils instead of the fitted patch '
-                        'factor when the fit error is above this, the ratio is at least twice as precise, '
+                        'factor when the fit error is above this, the ratio is at least twice as precise '
+                        '(its error is 3.2 times larger when the overlap is at Qz >= 0.25 1/A), '
                         'Monc/Monp shows no slit change across the join, and the two agree within 3 sigma. '
                         'The patch window shows the choice and can undo it.')
         spin=QDoubleSpinBox(g2)
@@ -4222,7 +4226,8 @@ class MainWindow (QMainWindow):
             foils=absorbers.calibrated(absorbers.energy_kev(wl))
             if foils is not None:
                 try:
-                    r,rel=foils.step(pa['Absorber'],pb['Absorber'])
+                    qz=float(np.atleast_2d(self.scanqzframe[b])[0][0])   # where the overlap starts
+                    r,rel=foils.step(pa['Absorber'],pb['Absorber'],qz=qz)
                     known=(self.refScale.get(a,1.0)*r,rel)
                 except ValueError:
                     known=None

@@ -1734,3 +1734,38 @@ also drifts differently along scan b (×0.92 against ×0.82).
 How verified: tests (`test_absorbers.py`, `test_gui_preferences.py`,
 `test_known_ratio_patch.py`), quick and slow suites, crash sweep.
 
+### 2026-11-18 — How far the absorber ratios can be trusted; higher Qz less so
+
+**Received:** `docs/handoff_out/03-answer/ABSORBER_RATIOS.md` (the
+analysing agent, from the same year of data; measured there, not here).
+The owner's summary: higher Qz is less trustworthy.
+
+- *Run-to-run spread of each foil* (leave one run out, 17 runs): 0.6, 0.5,
+  0.8, 0.6, 1.3, 1.3 µm.
+- *Prediction of runs left out*, clean joins: ±0.6 % (68 %), ±1.6 %
+  (95 %) with the overlap at Qz < 0.25 1/Å (335 joins); ±3.0 % (68 %) at
+  Qz ≥ 0.25 (89 joins). With S1 changed: ±2.2 % in typical runs, −26 % in
+  the affected runs (P29).
+- *Coverage of the stated error* (jackknife ⊕ counting ⊕ 0.5 % per step):
+  68 % of errors within 0.95 σ at low Qz, 3.19 σ at high Qz. The note puts
+  the excess at high Qz in the single steps, not in the foils (reasoning
+  there: same foils, more scatter than counting explains).
+- *Its transmission table* is reproduced by `lss_core.absorbers` to 0.2 %
+  (`test_calibrated_transmission_matches_the_absorber_ratios_table`).
+
+**Changed in the reader (deliberate):** the known ratio's error was
+μ · 1 µm per foil that differs (my assumption); it is now μ · σ_k (the
+run-to-run spreads) in quadrature ⊕ 0.5 %, × 3.2 when the overlap starts
+at Qz ≥ 0.25 1/Å. Before → after, relative error at 10 keV: 42→33 (foils 3,
+1, 0) 1.23 % → 0.86 % (low Qz) or 2.75 % (high Qz); 6→2 (foil 2) 0.71 % →
+0.76 %. Consequence: at high-Qz joins the known ratio replaces a patch only
+when the patch's error is at least twice ~2.8 %, i.e. rarely; the patch
+stays the default there, as the note advises ("quote ±3 %"). Which side
+really carries the high-Qz excess (the measured steps or the ratio) is not
+settled; if it is the steps, the patch's own error is understated there
+too (reasoning). The Preferences table shows the ± column; the tooltips say
+the rest.
+
+How verified: tests (`test_absorbers.py`, `test_gui_preferences.py`,
+`test_known_ratio_patch.py`), quick and slow suites.
+

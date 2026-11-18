@@ -105,7 +105,7 @@ def _open(window, qapp, tmp_path, **kw):
 def test_poor_patch_uses_the_known_ratio_and_the_script_reproduces_it(window, qapp, recorder, tmp_path):
     w = _open(window, qapp, tmp_path)
     out = _patch(w, qapp, recorder, tmp_path)
-    k, rel = absorbers.calibrated(10.0).step(6, 2)
+    k, rel = absorbers.calibrated(10.0).step(6, 2, qz=0.04)      # overlap starts at Qz 0.04
     assert w.refFactors == {0: (pytest.approx(k), pytest.approx(k * rel))}
     info = w.refInfoShown
     assert info['choice']['patch_rel'] > 0.03 and info['choice']['use']

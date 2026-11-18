@@ -67,15 +67,17 @@ def test_no_energy():
 
 def test_calibrated_foils_reproduce_the_measured_nx_school_steps():
     """NX school 20260923 S6-S9 (tests/test_absorber_steps.py: 0.788, 0.762,
-    0.870 of nominal) are predicted by the calibrated foils to within their
-    own error (μ·1 µm per foil changed), although they were not in the fit."""
+    0.870 of nominal; overlaps at Qz 0.035-0.19) are predicted by the
+    calibrated foils, although that day was not in the fit: the clean join
+    (S6->S7, Monc/Monp unchanged) within 2 sigma, the two with an S1 change
+    within 3 sigma. The nominal factor is more than 10 sigma off each."""
     import math
     f = absorbers.calibrated(10.0)
-    measured = {(41, 31): 0.0228871, (31, 24): 0.0639925, (24, 18): 0.1040}
-    for (a, b), m in measured.items():
-        r, e = f.step(a, b)
-        assert abs(math.log(m / r)) < 2 * e
-        assert abs(math.log(m / (absorbers.ABSFAC_10KEV ** -(a - b)))) > 10 * e   # nominal is far off
+    measured = {(41, 31): (0.0228871, 2), (31, 24): (0.0639925, 3), (24, 18): (0.1040, 3)}
+    for (a, b), (m, k) in measured.items():
+        r, e = f.step(a, b, qz=0.1)
+        assert abs(math.log(m / r)) < k * e
+        assert abs(math.log(m / (absorbers.ABSFAC_10KEV ** -(a - b)))) > 10 * e
 
 
 def test_calibrated_foils_arithmetic():
@@ -87,7 +89,10 @@ def test_calibrated_foils_arithmetic():
     assert f.factor(41) == pytest.approx(math.exp(mu * (54.7 + 432.1 + 1725.1)))
     r, e = f.step(42, 33)                  # 101010 -> 100001: foils 3, 1 in a; 0 in b
     assert r == pytest.approx(math.exp(-mu * (432.1 + 112.2 - 54.7)))
-    assert e == pytest.approx(mu * 1.0 * math.sqrt(3))
+    low = math.sqrt((mu * 0.6) ** 2 + (mu * 0.5) ** 2 + (mu * 0.6) ** 2 + 0.005 ** 2)
+    assert e == pytest.approx(low)                                   # run-to-run spreads ⊕ 0.5 %
+    assert f.step(42, 33, qz=0.1)[1] == pytest.approx(low)
+    assert f.step(42, 33, qz=0.25)[1] == pytest.approx(3.2 * low)    # high-Qz overlap
     assert f.step(20, 20) == (1.0, 0.0)
     with pytest.raises(ValueError):
         f.factor(64)
@@ -111,3 +116,14 @@ def test_attenuation_is_the_legacy_arithmetic_for_a_number():
         assert absorbers.attenuation(a, n, 2.0) == a ** (2.0 * n)
     f = absorbers.calibrated(10.0)
     assert absorbers.attenuation(f, 5, 2.0) == f.factor(5) ** 2.0
+
+
+def test_calibrated_transmission_matches_the_absorber_ratios_table():
+    """docs/handoff_out/03-answer/ABSORBER_RATIOS.md, 'Transmission of each
+    setting' (T measured), computed there from the same six foils."""
+    f = absorbers.calibrated(10.0)
+    table = {2: 0.452, 6: 0.09661, 12: 0.01003, 16: 0.002226, 20: 0.0004758, 24: 0.0001045,
+             26: 4.723e-05, 30: 1.01e-05, 33: 3.372e-06, 42: 1.054e-07, 52: 2.362e-09}
+    for n, t in table.items():
+        assert 1 / f.factor(n) == pytest.approx(t, rel=2e-3)
+
