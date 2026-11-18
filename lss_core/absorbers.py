@@ -44,7 +44,8 @@ AL_DENSITY = 2.699             # g/cm³ (NIST SRD 126, Table 1; from memory)
 UNIT_THICKNESS_UM = 50.0       # µm of Al per absorber unit (owner)
 
 AL_MAX_KEV = 10.0              # Al foils at 10 keV and below (owner, D28, D30)
-ENERGY_TOLERANCE_KEV = 0.01    # 1.239835 Å is 10.00004 keV: still "10 keV"
+ENERGY_STEP_KEV = 0.01         # energies are rounded to 10 eV first: 1.24 Å (9.9987 keV)
+                               # and 1.239835 Å (10.00004 keV) are both "10 keV"
 CU_KEV = 30.0                  # Cu foils at 30 keV (owner, D28); thickness not known
 
 
@@ -75,17 +76,18 @@ def energy_kev(wavelength_angstrom):
 
 
 def factor_at(energy):
-    """Absorber factor per unit at ``energy`` (keV), rounded like the field
+    """Absorber factor per unit at ``energy`` (keV, rounded to 10 eV; at
+    10 keV a 5 eV change is 0.15 % in μ/ρ), rounded like the field
     (4 decimals), and a note saying where it came from. ``(None, reason)``
     where the foil or its thickness is not known; nothing is guessed."""
     if energy is None or not energy > 0:
         return None, 'energy not known'
-    if energy <= AL_MAX_KEV + ENERGY_TOLERANCE_KEV:
-        if energy < AL_MU_RHO[0][0]:
-            return None, '%.4f keV is below the Al table' % energy
-        a = round(factor(al_mu_rho(min(energy, AL_MAX_KEV))), 4)
-        return a, '50 um Al at %.4f keV (NIST SRD 126)' % energy
-    if abs(energy - CU_KEV) <= 0.5:
-        return None, '%.4f keV: Cu foils, unit thickness not known yet' % energy
-    return None, ('%.4f keV: the foils used at this energy are not known '
-                  '(Al at <= 10 keV, Cu at 30 keV)' % energy)
+    e = round(round(energy / ENERGY_STEP_KEV) * ENERGY_STEP_KEV, 2)
+    if e <= AL_MAX_KEV:
+        if e < AL_MU_RHO[0][0]:
+            return None, '%.2f keV is below the Al table' % e
+        return round(factor(al_mu_rho(e)), 4), '50 um Al at %.2f keV (NIST SRD 126)' % e
+    if abs(e - CU_KEV) <= 0.5:
+        return None, '%.2f keV: Cu foils, unit thickness not known yet' % e
+    return None, ('%.2f keV: the foils used at this energy are not known '
+                  '(Al at <= 10 keV, Cu at 30 keV)' % e)

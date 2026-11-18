@@ -24,11 +24,17 @@ def test_10_kev_is_the_default_factor():
 
 def test_factors_at_the_energies_in_use():
     """6.21 and 7.514 keV are in the bu data (#W 1.996518 and 1.650036 A).
-    Values computed by hand from the rows: exp(mu/rho * 2.699 * 50e-4)."""
+    Energies are rounded to 10 eV. Values computed by hand from the rows: exp(mu/rho * 2.699 * 50e-4)."""
     assert A.factor_at(6.0)[0] == 4.7397
     assert A.factor_at(8.0)[0] == 1.9723
     assert A.factor_at(A.energy_kev(1.996518))[0] == 4.0924      # 6.2100 keV
-    assert A.factor_at(A.energy_kev(1.650036))[0] == 2.2561
+    assert A.factor_at(A.energy_kev(1.650036))[0] == 2.2589      # 7.514 -> 7.51 keV
+
+
+def test_energies_are_rounded_to_10_ev():
+    """The synthetic data's 1.24 A is 9.9987 keV: nominally 10 keV."""
+    assert A.factor_at(A.energy_kev(1.24)) == (1.4247, '50 um Al at 10.00 keV (NIST SRD 126)')
+    assert A.factor_at(10.004)[0] == 1.4247 and A.factor_at(10.006)[0] is None
 
 
 def test_mu_rho_is_monotone_and_power_law_between_rows():

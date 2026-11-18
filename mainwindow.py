@@ -32,6 +32,7 @@ import traceback
 import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
+from lss_core import absorbers
 from lss_core.absorbers import ABSFAC_10KEV
 from lss_core.monitor import gain_factor
 from lss_core.errors import ErrorModel, MonitorModel, MonitorTerms, script_kw, ELECTRONICS
@@ -175,6 +176,7 @@ class MainWindow (QMainWindow):
         self.initScriptPane()
         self.initErrorPane()
         self.initMonitorGainOption()
+        self.initAbsFacFromEnergy()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
         self.initValidator()
@@ -684,7 +686,8 @@ class MainWindow (QMainWindow):
                     self.ui.refBGOffLineEdit.setText('0.5')   #preset the background    
                     self.ui.refSlitLineEdit.setText('21,11')  #preset the size of ROI
                     self.ui.refQcLineEdit.setText('0.0217') #preset the critical q
-                    self.ui.AbsFacLineEdit.setText(str(ABSFAC_10KEV)) # 50 um Al at 10 keV (was '1.42')
+                    if not self.absFacEnergyCheckBox.isChecked():   # with "from E", the scans' energy sets it
+                        self.ui.AbsFacLineEdit.setText(str(ABSFAC_10KEV)) # 50 um Al at 10 keV (was '1.42')
         self.ui.statusBar.showMessage('Done')
         self.scanCenter={}
 
@@ -772,6 +775,7 @@ class MainWindow (QMainWindow):
             self.ui.spYComboBox.currentIndexChanged.connect(self.updateSpecPlotData)
             self.ui.spY2ComboBox.currentIndexChanged.connect(self.updateSpecPlotData)
             self.ui.spNComboBox.currentIndexChanged.connect(self.updateSpecPlotData)
+            self.absFacFromEnergy()
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Vortex' and self.specData[self.selectedScanNums[0]]['ScanVar']=='Empty':
                 # a fluorescence scan has no columns to plot; that is normal, not a warning
                 self.ui.specPlotMplWidget.canvas.ax.clear()
@@ -1071,6 +1075,65 @@ class MainWindow (QMainWindow):
             box.stateChanged.connect(self.setMonitorGain)
             self.monitorGainBoxes.append(box)
         self.mcaGainCheckBox,self.spGainCheckBox=self.monitorGainBoxes
+
+    def initAbsFacFromEnergy(self):
+        """Option (F49), on by default: the Absorber factor field follows
+        the energy of the selected scans (#W), 50 um Al per unit at 10 keV
+        and below (lss_core/absorbers.py, NIST SRD 126). Unticked, the
+        typed value is used, as before. Where the foil is not known (above
+        10 keV; Cu at 30 keV) the field keeps its value and the Messages
+        pane says so."""
+        from PyQt5.QtWidgets import QCheckBox
+        box=QCheckBox('from E')
+        box.setObjectName('absFacEnergyCheckBox')
+        box.setToolTip('Set the absorber factor from the energy of the selected scans (SPEC #W): 50 um Al per '
+                       'unit at <= 10 keV, exp(mu/rho rho t) with mu/rho from NIST SRD 126. Untick to type a '
+                       'value. Energy scans use the energy in their header.')
+        box.setChecked(True)
+        layout=self.ui.horizontalLayout_26
+        layout.insertWidget(layout.indexOf(self.ui.AbsFacLineEdit)+1,box)
+        self.absFacEnergyCheckBox=box
+        self.ui.AbsFacLineEdit.setReadOnly(True)
+        self.absFacEnergyNoted=set()
+        box.stateChanged.connect(self.setAbsFacFromEnergy)
+
+    def setAbsFacFromEnergy(self,state=None):
+        on=self.absFacEnergyCheckBox.isChecked()
+        self.ui.AbsFacLineEdit.setReadOnly(on)
+        self.notify('Absorber factor: '+('from the energy of the selected scans' if on else 'typed value'),
+                    title='Absorbers',level='info')
+        if on:
+            self.absFacFromEnergy()
+
+    def absFacFromEnergy(self):
+        """Set the Absorber factor field from the selected scans' energy,
+        when the "from E" option is on. Returns the factor set, or None."""
+        box=getattr(self,'absFacEnergyCheckBox',None)
+        if box is None or not box.isChecked():
+            return None
+        known,unknown={},{}
+        for i in getattr(self,'selectedScanNums',[]):
+            wl=self.specPar.get(i,{}).get('Wavelength')
+            e=absorbers.energy_kev(wl) if isinstance(wl,(int,float)) and wl>0 else None
+            a,why=absorbers.factor_at(e)
+            (known.setdefault((a,why),[]) if a is not None else unknown.setdefault(why,[])).append(i)
+        for why,scans in unknown.items():
+            key=(self.specFileName,why)
+            if key not in self.absFacEnergyNoted:
+                self.absFacEnergyNoted.add(key)
+                self.notify('Scan(s) %s: %s; the Absorber factor field keeps %s. Untick "from E" to type a '
+                            'value.' % (listText(scans),why,self.ui.AbsFacLineEdit.text()),title='Absorbers')
+        if not known:
+            return None
+        first=min(known,key=lambda k:known[k][0])     # the factor of the first selected scan
+        if len(known)>1:
+            self.notify('The selected scans are at energies with different absorber factors: '
+                        +'; '.join('scan(s) %s: %s, %s' % (listText(v),k[0],k[1]) for k,v in sorted(known.items(),key=lambda kv:kv[1][0]))
+                        +'. One factor is applied to all: %s. Reduce them separately.' % first[0],title='Absorbers')
+        if self.ui.AbsFacLineEdit.text()!=str(first[0]):
+            self.ui.AbsFacLineEdit.setText(str(first[0]))
+            self.notify('Absorber factor %s per unit: %s.' % first,title='Absorbers',level='info')
+        return first[0]
 
     def setMonitorGain(self,state=None):
         on=bool(self.sender().isChecked()) if self.sender() in self.monitorGainBoxes else bool(state)
