@@ -44,3 +44,12 @@ Three kinds:
    scan 7; its neighbours record 200 nA/V.
 
 The NX school file (public) has no problem lines.
+
+## Owner, 2026-11-18
+
+Another agent found the bu/2026oct gain lines malformed and no other SPEC
+file like them (D33); 5 µA/V is the usual gain, on more than 90 % of runs
+(D32). That covers kinds 2 and 3 (three entries). Kind 1 (bu/2026June/20260616
+scans 1–12) is not a malformed line: those MCA scans come before the first
+`#M` of the file. All stay unknown; nothing is guessed.
+

@@ -63,9 +63,14 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       start-up until a GID/Ref action re-read the field). Old background-
       subtracted reductions at non-zero absorber settings should be redone.
 - [ ] F53: Pilatus and Vortex from the same scans (tabs); needs a sample file.
-- [ ] F49: absorber factor at other energies. 50 µm Al at every energy
-      ≤ 10 keV (D30), Cu at 30 keV (D28); need the NIST Al table (download
-      refused by this session's permission check) and the Cu thickness.
+- [x] F49 for Al (2026-11-18): the field follows the scans' energy ("from E").
+      Reductions of bu scans at 6.21 / 7.51 / 9.9 keV with absorbers in
+      should be redone (factor was 1.4247 per unit).
+- [ ] F49 for Cu at 30 keV: needs the unit thickness (owner).
+- [ ] Owner: which foils at 10.05 and 10.52 keV (bu 20260902)?
+- [ ] Owner: are `#A` 52 (20260902, 10 keV) and 63 (20261022) real settings
+      during measurement? 52 units is 10⁸ at 10 keV; MCA scans 74–79 inherit it.
+- [ ] Owner: gain reference S_ref = 1 µA/V or 5 µA/V (the usual gain, D32)?
 - [ ] When the corrected/legacy two-file export (hand-off §2.5) is built,
       make Budget the default and carry the counting part as `sigma_meas`.
 - [x] Monitor model default from the owner's analysis: Gaussian 0.04 %

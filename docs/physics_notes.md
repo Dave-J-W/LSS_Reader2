@@ -29,6 +29,7 @@ exists.
 | I16 | The error model changes errors only: values are identical in both models up to the patch's scale-factor fit, which is weighted by the errors | tested: `test_error_budget.py` (NX school scans 6–9, per-frame columns identical), `test_gui_error_budget.py` (patched values within 0.5 %) |
 | I17 | Normalised fluorescence does not depend on the absorber setting: counts measured at setting n (attenuated by absfac⁻ⁿ; monitor upstream of the foils, unchanged), multiplied by absfac**n, equal those at n = 0 (exact for expected counts, within Poisson scatter for drawn ones). Holds only if absfac is right for the energy and the setting is right (for MCA scans, inferred from the last `#A`) | tested on synthetic data: `test_fluorescence_absorber.py` |
 | I18 | With the monitor-gain option, one flux measured at two SR570 sensitivities gives one normalised value: M ∝ 1/S, and the value is multiplied by S_ref/S (exact for expected counts). Requires the recorded gain to be the gain in use | tested on synthetic data: `test_monitor_gain.py` |
+| I19 | Absorber factor per unit = exp(μ/ρ(E)·ρ·t), 50 µm Al at E ≤ 10 keV: at the table energies μ/ρ equals the NIST SRD 126 rows exactly, it falls monotonically between them, and 10 keV gives the 1.4247 default; where the foil is not known no factor is made up | tested: `test_absorbers.py`; in the window `test_gui_absfac_energy.py` (a 6.21 keV MCA export is (4.0924/1.4247)³ times the 10 keV one at n = 3, and the Script pane reproduces it) |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -1409,4 +1410,77 @@ they are and what they are. The absorber foils are not changed below
   μ/ρ is roughly 115–50 cm²/g, so a 50 µm unit attenuates by about 4.7 at
   6 keV and 2.0 at 8 keV, not 1.42; data at those energies reduced with
   1.4247 per unit are wrong by a large factor wherever absorbers are in.)
+
+### 2026-11-18 — The NIST Al page; absorber factor from the energy; the gains
+
+**Q.** (owner) The NIST aluminium page is attached; is it complete? The
+gains that could not be read: another agent calls the bu/2026oct set
+malformed and found no other SPEC file like it. 5 µA/V is essentially the
+default, used on more than 90 % of runs.
+
+**A.**
+
+- *The page is complete* for what is needed (read): the whole SRD 126
+  table for Al, 1 keV to 20 MeV, μ/ρ and μ_en/ρ, 38 rows including the
+  K edge (1.5596 keV); the ASCII block and the HTML table agree. Its
+  10 keV row, μ/ρ = 26.23 cm²/g, is the value used since yesterday from
+  memory: the 1.4247 default is now confirmed against the table. What the
+  page does not give is the density; ρ = 2.699 g/cm³ (NIST's Table 1) is
+  still from memory. Source: Hubbell & Seltzer, NIST SRD 126,
+  <https://physics.nist.gov/PhysRefData/XrayMassCoef/ElemTab/z13.html>,
+  doi:[10.18434/T4D01F](https://doi.org/10.18434/T4D01F).
+- *F49 built for Al* (`lss_core/absorbers.py`, tests `test_absorbers.py`,
+  `test_gui_absfac_energy.py`). μ/ρ is interpolated linearly in log–log
+  between rows (no Al edge between 1.56 keV and 20 MeV); energy
+  E = 12.39842/λ from `#W`, rounded to 10 eV. Factors per 50 µm unit:
+
+  | E (keV) | in the data (`#W`, Å) | μ/ρ (cm²/g) | absfac |
+  |---|---|---|---|
+  | 6.21 | 1.996518 (bu 2026oct/20261019, 20260902) | 104.42 | 4.0924 |
+  | 7.51 | 1.650036 (bu 2026oct/20261022) | 60.38 | 2.2589 |
+  | 9.90, 9.95 | (bu 20260902) | 27.01, 26.62 | 1.4398, 1.4322 |
+  | 10.00 | 1.23984, 1.24 | 26.23 | 1.4247 |
+
+  Measured, size of the method's choices: a local log–log quadratic
+  differs from the linear interpolation by 0.07–0.13 % in μ/ρ at 6.2 and
+  7.5 keV; rounding E to 10 eV moves μ/ρ by up to 0.15 % at 10 keV. Both are
+  ≈0.1 % of ln(absfac**n) (×1.01 on an attenuation of 10⁴), below the foil
+  thickness tolerance (2 % in t is ×1.2 on 10⁴).
+- *In the window*: a "from E" box beside the Absorber factor field, ticked
+  by default. Selecting scans sets the field from their energy; the
+  reductions and the Script pane use the field, as before. Unticked: the
+  typed value. Where the foil is not known — above 10 keV (20260902 has
+  10.05 and 10.52 keV scans) and at 30 keV (Cu; thickness not known yet) —
+  the field keeps its value and the Messages pane says why. Scans at
+  energies with different factors selected together get one factor and a
+  message. NX school and the synthetic data are at 10 keV: unchanged
+  (real-data checks: 540 passed, hashes unchanged).
+- *What it changes* (measured on the bu files): every scan with absorbers
+  in at 6.21 or 7.51 keV was reduced with 1.4247 per unit until now; the
+  correct factor is larger by (4.0924/1.4247)ⁿ = 2.87ⁿ at 6.21 keV (×4.6×10³
+  at n = 8, the smallest setting in 20261019b) and 1.59ⁿ at 7.51 keV. At
+  9.90 keV, ×1.73 at n = 52. Earlier reductions of those scans at
+  different absorber settings are mutually inconsistent and should be
+  redone.
+- *Escan caveat* (read): an energy scan's factor changes along the scan;
+  the reader uses the energy in the scan header. At n = 52 near 10 keV,
+  100 eV is ≈3 % in μ/ρ, so ×1.7 in absfac**n across 100 eV.
+- *Gains*: noted in `reports/monitor_gains.md`. Only three of the 15
+  entries are in bu/2026oct (20261019 S1 and S7, 20261022 S2). The other 12
+  are bu/2026June/20260616 scans 1–12, `getandsave_mca` scans before the
+  first `#M` in that file: not malformed lines but no line at all, the
+  same macro gap as for `#A` (beamline to-do). They stay unknown. 5 µA/V
+  as the usual gain (D32): with the gain option the reference is
+  S_ref = 1 µA/V, so the usual 5 µA/V runs get ×0.2; a reference of
+  5 µA/V would leave them unchanged — a question for the owner, not
+  changed.
+- *Question for the owner* (read from the data, not checked): `#A` is 52
+  on every absorber-bearing 10 keV scan of 20260902 (65 scans) and 63 on
+  all of 20261022's 7.51 keV scans; 63 is all six foils in. At 10 keV,
+  52 units is an attenuation of 1.4247⁵² ≈ 10⁸; at 7.51 keV, 63 units is
+  2.2589⁶³ ≈ 10²². If those settings were real during the measurement,
+  little beam reached the sample; if the macros moved the foils without
+  writing `#A`, the values are stale — and MCA scans 74–79 of 20260902,
+  which inherit 52 from scan 73 (D24), would be multiplied by 10⁸ when
+  they should not be.
 
