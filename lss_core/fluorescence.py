@@ -16,6 +16,7 @@ a scan that records none; owner, 2026-11-17, F50).
 """
 import numpy as np
 
+from .absorbers import Foils, attenuation
 from .errors import as_model
 
 
@@ -46,8 +47,13 @@ def normalise_spectrum(counts, par, monitor_value, calibration, errors=None, abs
 
 
 def absorber_factor(absfac, absorber):
-    """absfac**n for a scan's absorber setting n (None: unknown, no factor)."""
-    return 1.0 if absorber is None else float(absfac) ** absorber
+    """absfac**n for a scan's absorber setting n (None: unknown, no factor);
+    for calibrated foils (lss_core.absorbers.Foils) their factor at n."""
+    if absorber is None:
+        return 1.0
+    if isinstance(absfac, Foils):
+        return attenuation(absfac, absorber)
+    return float(absfac) ** absorber
 
 
 def window_sum(data, lo, hi, u=None):

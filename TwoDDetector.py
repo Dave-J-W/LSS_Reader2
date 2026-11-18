@@ -8,6 +8,7 @@ from scipy.optimize import leastsq
 import traceback
 from lss_core.images import read_pilatus
 from lss_core.errors import LEGACY, MonitorTerms
+from lss_core.absorbers import attenuation
   
 
 class TwoDDetector:
@@ -108,18 +109,18 @@ class TwoDDetector:
             keys=list(data.keys())
             for i in keys:
                 if gain is None:
-                    sumData=sumData+data[i]*absfac**absnum[count]/mon[count]
+                    sumData=sumData+data[i]*attenuation(absfac,absnum[count])/mon[count]
                     if budget:   # counting part only; the monitor part is kept per frame
-                        sumErrorData=sumErrorData+errorData[i]**2/mon[count]**2*absfac**(2.0*absnum[count])
+                        sumErrorData=sumErrorData+errorData[i]**2/mon[count]**2*attenuation(absfac,absnum[count],2.0)
                     else:
-                        sumErrorData=sumErrorData+(errorData[i]**2/mon[count]**2+data[i]**2/mon[count]**3)*absfac**(2.0*absnum[count])
+                        sumErrorData=sumErrorData+(errorData[i]**2/mon[count]**2+data[i]**2/mon[count]**3)*attenuation(absfac,absnum[count],2.0)
                 else:
                     g=gain[count]
-                    sumData=sumData+data[i]*absfac**absnum[count]/mon[count]*g
+                    sumData=sumData+data[i]*attenuation(absfac,absnum[count])/mon[count]*g
                     if budget:
-                        sumErrorData=sumErrorData+errorData[i]**2/mon[count]**2*absfac**(2.0*absnum[count])*g**2
+                        sumErrorData=sumErrorData+errorData[i]**2/mon[count]**2*attenuation(absfac,absnum[count],2.0)*g**2
                     else:
-                        sumErrorData=sumErrorData+(errorData[i]**2/mon[count]**2+data[i]**2/mon[count]**3)*absfac**(2.0*absnum[count])*g**2
+                        sumErrorData=sumErrorData+(errorData[i]**2/mon[count]**2+data[i]**2/mon[count]**3)*attenuation(absfac,absnum[count],2.0)*g**2
                 count=count+1
             self.imageData=np.array(sumData/count)
             self.errorData=np.sqrt(sumErrorData)/count
@@ -129,7 +130,7 @@ class TwoDDetector:
                     terms_out.add((tag,keys[0]),self.imageData,1.0,float(self.errors.monitor.relative(mon[0])))
                 else:
                     for k,i in enumerate(keys):
-                        terms_out.add((tag,i),data[i],absfac**absnum[k]/mon[k]/count*(1.0 if gain is None else gain[k]),float(self.errors.monitor.relative(mon[k])))
+                        terms_out.add((tag,i),data[i],attenuation(absfac,absnum[k])/mon[k]/count*(1.0 if gain is None else gain[k]),float(self.errors.monitor.relative(mon[k])))
             self.monitorTerms=terms_out
         else:
             #print 'Error:: No Monitor Counts Provided!!'

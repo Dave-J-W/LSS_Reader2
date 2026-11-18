@@ -16,6 +16,7 @@ be applied to whole sums (``frame_terms``).
 """
 import numpy as np
 
+from .absorbers import attenuation
 from .errors import as_model, MonitorTerms
 
 
@@ -31,13 +32,13 @@ def normalise_frame(counts, errors, monitor, absfac=1.0, absnum=0, model=None, g
 
 
 def _normalise_frame(counts, errors, monitor, absfac, absnum, model):
-    value = np.array(np.zeros(np.shape(counts)) + counts * absfac ** absnum / monitor) / 1
+    value = np.array(np.zeros(np.shape(counts)) + counts * attenuation(absfac, absnum) / monitor) / 1
     if as_model(model).budget:
         error = np.sqrt(np.zeros(np.shape(counts)) + errors ** 2 / monitor ** 2
-                        * absfac ** (2.0 * absnum)) / 1
+                        * attenuation(absfac, absnum, 2.0)) / 1
         return value, error
     error = np.sqrt(np.zeros(np.shape(counts)) + (errors ** 2 / monitor ** 2 + counts ** 2 / monitor ** 3)
-                    * absfac ** (2.0 * absnum)) / 1
+                    * attenuation(absfac, absnum, 2.0)) / 1
     return value, error
 
 

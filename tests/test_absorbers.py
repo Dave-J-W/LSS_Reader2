@@ -8,6 +8,7 @@ import math
 import pytest
 
 from lss_core import absorbers as A
+from lss_core import absorbers
 
 
 def test_table_rows_are_reproduced_exactly():
@@ -60,3 +61,53 @@ def test_no_energy():
     assert A.factor_at(None) == (None, 'energy not known')
     with pytest.raises(ValueError):
         A.al_mu_rho(1.0)
+
+
+# --- calibrated foils (owner's data, physics_notes 2026-11-18) -------------
+
+def test_calibrated_foils_reproduce_the_measured_nx_school_steps():
+    """NX school 20260923 S6-S9 (tests/test_absorber_steps.py: 0.788, 0.762,
+    0.870 of nominal) are predicted by the calibrated foils to within their
+    own error (μ·1 µm per foil changed), although they were not in the fit."""
+    import math
+    f = absorbers.calibrated(10.0)
+    measured = {(41, 31): 0.0228871, (31, 24): 0.0639925, (24, 18): 0.1040}
+    for (a, b), m in measured.items():
+        r, e = f.step(a, b)
+        assert abs(math.log(m / r)) < 2 * e
+        assert abs(math.log(m / (absorbers.ABSFAC_10KEV ** -(a - b)))) > 10 * e   # nominal is far off
+
+
+def test_calibrated_foils_arithmetic():
+    import math
+    f = absorbers.Foils()
+    mu = absorbers.AL_MU_RHO_10KEV * absorbers.AL_DENSITY * 1e-4
+    assert f.thickness(0) == 0 and f.factor(0) == 1.0
+    assert f.thickness(41) == pytest.approx(54.7 + 432.1 + 1725.1)        # 101001
+    assert f.factor(41) == pytest.approx(math.exp(mu * (54.7 + 432.1 + 1725.1)))
+    r, e = f.step(42, 33)                  # 101010 -> 100001: foils 3, 1 in a; 0 in b
+    assert r == pytest.approx(math.exp(-mu * (432.1 + 112.2 - 54.7)))
+    assert e == pytest.approx(mu * 1.0 * math.sqrt(3))
+    assert f.step(20, 20) == (1.0, 0.0)
+    with pytest.raises(ValueError):
+        f.factor(64)
+
+
+def test_calibrated_range_and_script_form():
+    assert absorbers.calibrated(10.0) == absorbers.Foils()
+    assert absorbers.calibrated(9.70) is not None and absorbers.calibrated(10.30) is not None
+    for e in (9.66, 9.69, 10.31, 10.52, 7.51, 30.0, None, 0):
+        assert absorbers.calibrated(e) is None
+    f = absorbers.calibrated(9.95)
+    assert repr(f) == 'absorbers.calibrated(9.95)'
+    assert eval(repr(f), {'absorbers': absorbers}) == f
+    # μ follows Al's μ/ρ at the energy: 9.95 keV attenuates a little more than 10
+    assert f.factor(1) > absorbers.calibrated(10.0).factor(1)
+
+
+def test_attenuation_is_the_legacy_arithmetic_for_a_number():
+    for a, n in ((1.4247, 0), (1.4247, 7), (4.0924, 31), (1.5, 3)):
+        assert absorbers.attenuation(a, n) == a ** n
+        assert absorbers.attenuation(a, n, 2.0) == a ** (2.0 * n)
+    f = absorbers.calibrated(10.0)
+    assert absorbers.attenuation(f, 5, 2.0) == f.factor(5) ** 2.0

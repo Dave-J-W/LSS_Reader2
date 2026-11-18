@@ -31,6 +31,12 @@ scans 6–9 at 10 keV (`tests/tools/absorber_steps.py`, PHYSICS_ISSUES P28):
 each step attenuates 7–11 % more than nominal (1.458–1.481 per unit).
 Where the scale between scans is measured (Ref Patch), no nominal factor
 is used.
+
+Calibrated foils (``Foils``, ``calibrated``): the six foils measured on the
+owner's data, 2025-12 to 2026-10, at 10 keV (provenance in
+``CAL_PROVENANCE``). A setting n then attenuates by exp(μ Σ b_k t_k), not
+absfac**n. ``attenuation(absfac, n)`` is the one place the reader turns a
+setting into a factor; with a number it is absfac**n exactly as before.
 """
 import math
 
@@ -94,3 +100,93 @@ def factor_at(energy):
         return None, '%.2f keV: Cu foils, unit thickness not known yet' % e
     return None, ('%.2f keV: the foils used at this energy are not known '
                   '(Al at <= 10 keV, Cu at 30 keV)' % e)
+
+
+# --- calibrated foils (measured) ------------------------------------------
+
+# Al-equivalent thickness (µm) at 10 keV of foil k (bit k of #A, 2**k units).
+# Fit of 389 joins (of 409) across which Monc/Monp did not change, 10 keV,
+# absorber removed, owner's data 2025-12 to 2026-10; reproduced to 0.1 µm by
+# the analysing agent (hand-off 03 answer). tests/tools/foil_fit_from_joins.py.
+CAL_FOILS_UM = (54.7, 112.2, 218.0, 432.1, 862.7, 1725.1)
+CAL_FOILS_FIT_ERR_UM = (0.1, 0.1, 0.2, 0.2, 0.4, 0.5)   # statistical, from the fit
+# Uncertainty assumed per foil in a ratio: one join scatters 0.87 µm about
+# the fit and each run's median stays within ±1.2 µm over the year.
+CAL_FOIL_SIGMA_UM = 1.0
+CAL_ENERGY_KEV = 10.0
+# Used from 9.70 to 10.30 keV with μ of Al at the energy: no K edge of the
+# usual Al impurities lies between Zn (9.66 keV) and Ga (10.37 keV)
+# (reasoning; edge energies from memory). Elsewhere the nominal 50 µm Al.
+CAL_RANGE_KEV = (9.70, 10.30)
+CAL_PROVENANCE = ('Measured on the owner\'s reflectivity data, 2025-12 to 2026-10: 389 joins at '
+                  '10 keV across which Monc/Monp did not change (docs/physics_notes.md, '
+                  '2026-11-18; docs/handoff_out/02, 03; PHYSICS_ISSUES P28)')
+
+
+class Foils:
+    """A binary foil set: setting n = Σ b_k 2**k puts foil k in when bit k
+    is set; the beam is attenuated by exp(μ Σ b_k t_k), μ = μ/ρ·ρ of Al at
+    ``energy_kev``, t_k the Al-equivalent thickness of foil k (µm)."""
+
+    def __init__(self, thickness_um=CAL_FOILS_UM, energy_kev=CAL_ENERGY_KEV,
+                 sigma_um=CAL_FOIL_SIGMA_UM):
+        self.thickness_um = tuple(float(t) for t in thickness_um)
+        self.energy_kev = round(float(energy_kev), 2)
+        self.mu_per_um = al_mu_rho(self.energy_kev) * AL_DENSITY * 1e-4
+        self.sigma_um = float(sigma_um)
+
+    def _bits(self, n):
+        n = int(n)
+        if not 0 <= n < 2 ** len(self.thickness_um):
+            raise ValueError('absorber setting %r outside 0..%d' % (n, 2 ** len(self.thickness_um) - 1))
+        return [(n >> k) & 1 for k in range(len(self.thickness_um))]
+
+    def thickness(self, n):
+        """Al-equivalent thickness (µm) in the beam at setting n."""
+        return sum(t for b, t in zip(self._bits(n), self.thickness_um) if b)
+
+    def factor(self, n):
+        """1/T(n): what a count at setting n is multiplied by."""
+        return math.exp(self.mu_per_um * self.thickness(n))
+
+    def step(self, n_a, n_b):
+        """(T(n_a)/T(n_b), relative error): the scale between a scan at n_a
+        and one at n_b. The error is μ·σ per foil that differs, in quadrature."""
+        a, b = self._bits(n_a), self._bits(n_b)
+        changed = sum(1 for x, y in zip(a, b) if x != y)
+        ratio = math.exp(-self.mu_per_um * (self.thickness(n_a) - self.thickness(n_b)))
+        return ratio, self.mu_per_um * self.sigma_um * math.sqrt(changed)
+
+    def __eq__(self, other):
+        return (isinstance(other, Foils) and self.thickness_um == other.thickness_um
+                and self.energy_kev == other.energy_kev and self.sigma_um == other.sigma_um)
+
+    def __hash__(self):
+        return hash((self.thickness_um, self.energy_kev, self.sigma_um))
+
+    def __repr__(self):         # a script line rebuilds it
+        if (self.thickness_um, self.sigma_um) == (CAL_FOILS_UM, CAL_FOIL_SIGMA_UM):
+            return 'absorbers.calibrated(%r)' % self.energy_kev
+        return 'absorbers.Foils(%r, %r, %r)' % (self.thickness_um, self.energy_kev, self.sigma_um)
+
+    __str__ = __repr__
+
+
+def calibrated(energy):
+    """The calibrated foils at ``energy`` (keV, rounded to 10 eV), or None
+    outside CAL_RANGE_KEV."""
+    if energy is None or not energy > 0:
+        return None
+    e = round(round(energy / ENERGY_STEP_KEV) * ENERGY_STEP_KEV, 2)
+    if not CAL_RANGE_KEV[0] <= e <= CAL_RANGE_KEV[1]:
+        return None
+    return Foils(energy_kev=e)
+
+
+def attenuation(absfac, n, power=1):
+    """The factor for setting n: absfac.factor(n)**power for Foils, else
+    absfac**n (power 1) or absfac**(power*n), the legacy arithmetic exactly."""
+    if isinstance(absfac, Foils):
+        return absfac.factor(n) ** power
+    return absfac ** n if power == 1 else absfac ** (power * n)
+
