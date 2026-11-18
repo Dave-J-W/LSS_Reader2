@@ -110,6 +110,12 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] New output formats record reduction steps and parameters (R7).
 - [ ] GID and GISAXS scriptable: part of the GID sub-project (F23), which
       the owner wants scoped separately.
+- [ ] Docket (2026-11-18): F59 cuts for diffuse scattering (I vs β, β − α;
+      the Q cuts' default ranges miss the detector and plot zeros silently),
+      F60 contextual/automatic reduction. Not to be built yet.
+- [ ] GID sub-project (D36): F61 worksheet first, then F45 pinhole
+      correction before patching (needs the owner's answers and the IDL
+      code), then F62 flexible overlaps. P31 found while reading.
 - [ ] → Stage 6: burn tests and peak fits scriptable, with the fitting
       sub-project (analysis tools, not reduction); P30 (burn test not
       monitor-normalised) to be fixed then.
