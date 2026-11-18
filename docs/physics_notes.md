@@ -1840,3 +1840,17 @@ and 271 as sample–S4, the pinhole–detector distance would be 280 mm, while
 the measured peak drift gives 259–265 mm); where the sample–detector
 distance should come from. The review is being updated with these files.
 
+**Update of the review (second batch), 2026-11-18** (`IDL_REVIEW.md`, top
+section; subagent, measured on NX scan 11 unless marked): with the column
+response divided out, pinhole→detector = 267 ± 2 mm (the earlier 256–265
+was biased low); 280 (551 − 271) is excluded at ≈ 6σ. Two readings remain:
+271 is the S4→detector distance, or 271 is the sample→slit distance and
+the detector is at ≈ 538 mm, not 551 (owner to say). The G_L[3] term is
+0.0007 mm on scan 11 and does not explain it. `PD_GID_READ`'s β, Qxy, Qz
+equal the reader's to 1e-12, except IDL's vertical distance term
+PDIST + G_L[3](1/cos Out_Rot − 1) (scan 12: 0.049° in β, 0.004 Å⁻¹ in Qz
+at the top row). `IMG_JOIN` weights overlap pixels by their own errors,
+which biases low counts low (simulated 0.31× at 0.4 counts/pixel, typical
+of NX pinhole frames), so the spec combines overlaps as Σ counts / Σ
+normalisation instead. New reader issues: P34, P35.
+
