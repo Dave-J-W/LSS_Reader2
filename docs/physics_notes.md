@@ -1970,3 +1970,35 @@ uses the band through the pinhole centre (offset e = 0; the response
 absorbs the rest); split-pixel binning; P34 (Pix V cut β) and P32
 (automatic pinhole switch for display and cuts) are separate fixes.
 
+### 2026-11-18 — Foils at 10.05/10.52 keV, `#A` 52 and 63, gain reference, photons/s
+
+**Owner:**
+- 10.05 and 10.52 keV use the aluminium foils, as every energy below
+  10 keV does.
+- `#A` 52 and 63 are real settings. (The question came from the reader's
+  fallback: an *unreadable* `#A` line is set to 63, which looks like a real
+  setting; that is now a separate open issue in TODO.)
+- Gain reference: 5 µA/V.
+- Photons/s: the xray_fluxor hand-off
+  (`docs/handoff/xray_fluxor_counts_to_photons.md`, copied from the
+  owner's public repository).
+
+**Changed (deliberate):**
+- `absorbers.AL_MAX_KEV` 10 → 10.52 keV: at 10.01–10.52 keV the nominal
+  50 µm Al factor at the energy is used where the field kept its value
+  before (10.52 keV: 1.3565 per unit; 10.05 keV is inside the calibrated
+  range 9.70–10.30 and gets the calibrated foils).
+- Monitor-gain option (off by default): S_ref 1 → 5 µA/V. Values with the
+  option on are now per monitor count at 5 µA/V: a scan at 5 µA/V is
+  multiplied by 1 (was 0.2), at 200 nA/V by 25 (was 5), at 10 µA/V by 0.5
+  (was 0.1). Ratios between scans are unchanged.
+
+**Built:** `lss_core/flux.py`, the hand-off's route D: photons/s at the
+chamber's exit plane from counts, count time, energy and SR570
+sensitivity, for MonC or MonP, with the gas-density, sensitivity and
+wall-loss scalings and the hand-off's bounds (±3.6 % below 13 keV).
+Reproduces the hand-off's three worked examples to ≤ 0.1 % (test). At
+5 µA/V and 10 keV one net Hz of Monc is 4.37 × 10⁷ photons/s. Assumed
+when not given (and flagged): dark rate 0, 24.9 °C, 98.99 kPa. Not yet in
+the window ("per incident photon" normalisation: TODO).
+

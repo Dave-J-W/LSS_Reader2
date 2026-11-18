@@ -52,7 +52,7 @@ AL_MU_RHO_10KEV = 26.23        # cm²/g, the 10 keV row above
 AL_DENSITY = 2.699             # g/cm³ (NIST SRD 126, Table 1; from memory)
 UNIT_THICKNESS_UM = 50.0       # µm of Al per absorber unit (owner)
 
-AL_MAX_KEV = 10.0              # Al foils at 10 keV and below (owner, D28, D30)
+AL_MAX_KEV = 10.52             # Al foils at 10.52 keV and below, incl. 10.05 (owner, D28, D30; 2026-11-18)
 ENERGY_STEP_KEV = 0.01         # energies are rounded to 10 eV first: 1.24 Å (9.9987 keV)
                                # and 1.239835 Å (10.00004 keV) are both "10 keV"
 CU_KEV = 30.0                  # Cu foils at 30 keV (owner, D28); thickness not known
@@ -99,7 +99,7 @@ def factor_at(energy):
     if abs(e - CU_KEV) <= 0.5:
         return None, '%.2f keV: Cu foils, unit thickness not known yet' % e
     return None, ('%.2f keV: the foils used at this energy are not known '
-                  '(Al at <= 10 keV, Cu at 30 keV)' % e)
+                  '(Al at <= 10.52 keV, Cu at 30 keV)' % e)
 
 
 # --- calibrated foils (measured) ------------------------------------------

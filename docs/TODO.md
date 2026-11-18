@@ -55,7 +55,9 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       at one Q_z).
 - [ ] Sort out the gains the reader cannot interpret (owner, later):
       `reports/monitor_gains.md`.
-- [ ] F54: photons/s from the monitor, when the owner's scalar arrives.
+- [x] F54 core: photons/s from the monitor (`lss_core/flux.py`, xray_fluxor route D).
+- [ ] F54 in the window: "per incident photon" normalisation option (needs the dark rate
+      or an accepted 0, and which lane: MonC by default).
 - [x] Student t: σ_scan · w · t₄, w ≈ 0.94, σ_scan 0.039 % if unknown (D22).
 - [x] "width" is the t's scale (owner); σ_scan per scan declined: fixed t (D26).
 - [x] Absorber factor default: 50 µm Al at 10 keV, 1.4247 (D25).
@@ -72,9 +74,10 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       point labels. Labels of points a log axis cannot show are now hidden.
       Sweep before the fix: 65 passed, 2 failed (this site); after: both pass.
 - [ ] F49 for Cu at 30 keV: needs the unit thickness (owner).
-- [ ] Owner: which foils at 10.05 and 10.52 keV (bu 20260902)?
-- [ ] Owner: are `#A` 52 (20260902, 10 keV) and 63 (20261022) real settings
-      during measurement? 52 units is 10⁸ at 10 keV; MCA scans 74–79 inherit it.
+- [x] Foils at 10.05 and 10.52 keV: aluminium (owner, D37).
+- [x] `#A` 52 and 63 are real settings (owner, D38).
+- [ ] Issue: an unreadable `#A` line is read as 63 (`spec_routines.py`), which looks
+      like a real setting; it should be "unknown" (no factor, a message).
 - [ ] P28: nominal absorber steps 7–11 % off measured (NX school). Owner:
       reflectivity sets with overlapping joins from several days, to test
       day-to-day variation and calibrate per foil (`tests/tools/absorber_steps.py`);
@@ -95,7 +98,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       0.1 µm; P29 is scan a's Monc reading high at the narrow S1 gap; figures.
 - [ ] Owner (P28): reflectivity series with overlaps at 6–7 keV, to
       separate foil composition from thickness.
-- [ ] Owner: gain reference S_ref = 1 µA/V or 5 µA/V (the usual gain, D32)?
+- [x] Gain reference S_ref = 5 µA/V (owner, D39).
 - [ ] When the corrected/legacy two-file export (hand-off §2.5) is built,
       make Budget the default and carry the counting part as `sigma_meas`.
 - [x] Monitor model default from the owner's analysis: Gaussian 0.04 %

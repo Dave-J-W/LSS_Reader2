@@ -2,7 +2,7 @@
 
 `Monc` counts per photon scale as 1/S, S the SR570 sensitivity recorded as
 '#M Monc Gain'. With the option on, values are divided by M·S/S_ref
-(S_ref = 1 uA/V) instead of M. Off by default: nothing changes.
+(S_ref = 5 uA/V, owner 2026-11-18; was 1 uA/V) instead of M. Off by default: nothing changes.
 """
 import os
 
@@ -18,11 +18,15 @@ from spec_routines import specread
 from test_script_console import _run_script
 
 
+# S_ref = 5 uA/V (owner, 2026-11-18): the factors S_ref/S are 5x those with 1 uA/V
+G200, G10 = 25.0, 0.5          # 200 nA/V and 10 uA/V (were 5.0 and 0.1)
+
+
 def test_gain_words_and_factors():
-    assert gain_factor(parse_gain(['200', 'nA/V'])) == 5.0
-    assert gain_factor(parse_gain(['10', 'uA/V'])) == 0.1
-    assert gain_factor(parse_gain(['5', 'uA/V'])) == 0.2
-    assert gain_factor(parse_gain(['1', 'uA/V'])) == 1.0
+    assert gain_factor(parse_gain(['200', 'nA/V'])) == G200
+    assert gain_factor(parse_gain(['10', 'uA/V'])) == G10
+    assert gain_factor(parse_gain(['5', 'uA/V'])) == 1.0          # the usual gain: no change
+    assert gain_factor(parse_gain(['1', 'uA/V'])) == 5.0
     # seen in real files: no unit, no value; not guessed
     assert parse_gain(['200']) is None and parse_gain([]) is None
     assert parse_gain(['x', 'uA/V']) is None and parse_gain(['0', 'uA/V']) is None
@@ -69,7 +73,7 @@ def xf(tmp_path):
 
 
 MCA = list(range(2, 2 + len(synth.XF_QZ)))
-EXPECT = np.array([5.0 if s < 6 else 0.1 for s in MCA])
+EXPECT = np.array([G200 if s < 6 else G10 for s in MCA])
 
 
 def test_reader_takes_the_last_gain_above_a_scan(xf, tmp_path):
@@ -164,7 +168,7 @@ def test_window_option_specplot_export(window, qapp, recorder, tmp_path):
     w.ui.spExportPushButton.click()
     qapp.processEvents()
     assert recorder.exceptions == []
-    for scan, g in ((1, 5.0), (2, 0.1)):
+    for scan, g in ((1, G200), (2, G10)):
         d = np.loadtxt(str(tmp_path / ('out_%d_sh_Apex2_Monc.txt' % scan)))
         assert d[:, 1] == pytest.approx(1000 / 1e5 * g, rel=1e-4)
 
@@ -223,7 +227,7 @@ def test_cuts_follow_the_gain_option(window, qapp, recorder, pil, tmp_path):
     on = _cut(w, qapp)
     keys = sorted(k for k in off if k >= 0)
     assert len(keys) == 2
-    for k, g in zip(keys, (5.0, 0.1)):
+    for k, g in zip(keys, (G200, G10)):
         assert np.array_equal(on[k][:, 0], off[k][:, 0])
         assert on[k][:, 1] == pytest.approx(off[k][:, 1] * g, rel=1e-12)
         assert on[k][:, 2] == pytest.approx(off[k][:, 2] * g, rel=1e-12)
@@ -232,7 +236,7 @@ def test_cuts_follow_the_gain_option(window, qapp, recorder, pil, tmp_path):
 
 @pytest.mark.gui
 def test_background_subtraction_follows_the_gain_option(window, qapp, recorder, pil, tmp_path):
-    """Frame 0 of scan 1 (x5) minus half of frame 0 of scan 2 (x0.1)."""
+    """Frame 0 of scan 1 (x G200) minus half of frame 0 of scan 2 (x G10)."""
     w = window
     w.openSpecFile(fname=pil)
     w.directory = str(tmp_path)
@@ -248,8 +252,8 @@ def test_background_subtraction_follows_the_gain_option(window, qapp, recorder, 
     sample, bg = np.array(w.pilGIOXSData[0]), np.array(w.bgData)
     w.mcaGainCheckBox.setChecked(True)               # recomputes the frames on show
     qapp.processEvents()
-    assert np.array(w.pilGIOXSData[0]) == pytest.approx(sample * 5.0, rel=1e-12)
-    assert np.array(w.bgData) == pytest.approx(bg * 0.1, rel=1e-12)
-    assert np.array(w.pilData[0]) == pytest.approx(sample * 5.0 - 0.5 * bg * 0.1, rel=1e-9, abs=1e-15)
+    assert np.array(w.pilGIOXSData[0]) == pytest.approx(sample * G200, rel=1e-12)
+    assert np.array(w.bgData) == pytest.approx(bg * G10, rel=1e-12)
+    assert np.array(w.pilData[0]) == pytest.approx(sample * G200 - 0.5 * bg * G10, rel=1e-9, abs=1e-15)
     assert not np.allclose(off, w.pilData[0])
     assert recorder.exceptions == []

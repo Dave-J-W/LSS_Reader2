@@ -1085,7 +1085,7 @@ class MainWindow (QMainWindow):
         choice in the MCA tab and in SpecPlot."""
         from PyQt5.QtWidgets import QCheckBox
         self.monitorGain=False
-        tip=('Also divide by the Monc gain: normalise by M x S / (1 uA/V) instead of M, with S the SR570 '
+        tip=('Also divide by the Monc gain: normalise by M x S / (5 uA/V, the usual gain) instead of M, with S the SR570 '
              'sensitivity from "#M Monc Gain" (last one above the scan if it has none). Puts scans taken at '
              'different gains on one scale. Only for the Monc monitor; unknown gains get no factor.')
         self.monitorGainBoxes=[]
@@ -1124,7 +1124,7 @@ class MainWindow (QMainWindow):
         box.setObjectName('absFacEnergyCheckBox')
         box.setToolTip('Set the absorber factor from the energy of the selected scans (SPEC #W): the calibrated '
                        'foils at 9.70-10.30 keV (field shows "cal"; File > Preferences), elsewhere 50 um Al per '
-                       'unit at <= 10 keV, exp(mu/rho rho t) with mu/rho from NIST SRD 126. Untick to type a '
+                       'unit at <= 10.52 keV, exp(mu/rho rho t) with mu/rho from NIST SRD 126. Untick to type a '
                        'value. Energy scans use the energy in their header.')
         box.setChecked(True)
         layout=self.ui.horizontalLayout_26
@@ -1322,7 +1322,7 @@ class MainWindow (QMainWindow):
         if on==self.monitorGain:
             return
         self.monitorGain=on
-        self.notify('Monitor normalisation: '+('Monc current, M x S/(1 uA/V), S from "#M Monc Gain"' if on else 'Monc counts M (gain not used)')
+        self.notify('Monitor normalisation: '+('Monc current, M x S/(5 uA/V), S from "#M Monc Gain"' if on else 'Monc counts M (gain not used)')
                     +'. Spectra, SPEC plots and background-subtracted images on show are recomputed; cuts, GID and '
                     'frames at one Qz use it the next time they are computed. Ref Patch does not use it (it measures '
                     'the scale between scans).',title='Monitor',level='info')

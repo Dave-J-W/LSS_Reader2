@@ -35,7 +35,9 @@ def test_factors_at_the_energies_in_use():
 def test_energies_are_rounded_to_10_ev():
     """The synthetic data's 1.24 A is 9.9987 keV: nominally 10 keV."""
     assert A.factor_at(A.energy_kev(1.24)) == (1.4247, '50 um Al at 10.00 keV (NIST SRD 126)')
-    assert A.factor_at(10.004)[0] == 1.4247 and A.factor_at(10.006)[0] is None
+    assert A.factor_at(10.004)[0] == 1.4247 and A.factor_at(10.006)[0] == round(A.factor(A.al_mu_rho(10.01)), 4)
+    # Al up to 10.52 keV (owner, 2026-11-18; was 10 keV): 10.524 rounds to 10.52, 10.526 to 10.53
+    assert A.factor_at(10.524)[0] == 1.3565 and A.factor_at(10.526)[0] is None
 
 
 def test_mu_rho_is_monotone_and_power_law_between_rows():
@@ -46,10 +48,17 @@ def test_mu_rho_is_monotone_and_power_law_between_rows():
     assert A.al_mu_rho(math.sqrt(6 * 8)) == pytest.approx(math.sqrt(115.3 * 50.33))
 
 
-@pytest.mark.parametrize('energy', [10.0515, 10.515, 15.0])
-def test_unknown_foil_above_10_kev_is_not_guessed(energy):
+@pytest.mark.parametrize('energy', [10.53, 12.0, 15.0])
+def test_unknown_foil_above_10_52_kev_is_not_guessed(energy):
     a, why = A.factor_at(energy)
     assert a is None and 'not known' in why
+
+
+@pytest.mark.parametrize('energy', [10.0515, 10.515])
+def test_10_05_and_10_52_kev_are_aluminium(energy):
+    """Owner, 2026-11-18 (these were 'not known' before)."""
+    a, why = A.factor_at(energy)
+    assert a == round(A.factor(A.al_mu_rho(round(energy, 2))), 4) and 'Al' in why
 
 
 def test_30_kev_is_copper_with_unknown_thickness():

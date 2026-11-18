@@ -155,3 +155,11 @@ scriptable yet. Exporting a cut in the window writes this call.
 `info` holds the column response, the scan factors, counts used and frames
 per bin. Not yet an `Experiment` method.
 
+## Photons per second (2026-11-18)
+
+    from lss_core import flux
+    best, low, high, flags = flux.photons_per_second(counts, seconds, 10.0, 5e-6, lane='MonC')
+
+Photons/s at the ion chamber's exit plane (xray_fluxor hand-off, route D);
+`flags` lists what was assumed (dark 0, 24.9 °C, 98.99 kPa unless given).
+

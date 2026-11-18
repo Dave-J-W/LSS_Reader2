@@ -81,10 +81,10 @@ def test_6_kev_scans_use_the_al_factor_at_their_energy(window, qapp, recorder, t
 
 def test_unknown_foil_keeps_the_field_and_says_why(window, qapp, recorder, tmp_path):
     w = window
-    spec = _xf(tmp_path, {n: 1.179116 for n in range(1, 10)})       # 10.52 keV (bu 2026-09-02)
+    spec = _xf(tmp_path, {n: 1.033202 for n in range(1, 10)})       # 12.00 keV: no foil known there
     _open(w, qapp, spec, tmp_path)
     assert w.absfac == 1.4247
-    assert any('10.52 keV: the foils used at this energy are not known' in m for m in recorder.messages)
+    assert any('12.00 keV: the foils used at this energy are not known' in m for m in recorder.messages)
     assert recorder.exceptions == []
 
 
@@ -109,3 +109,15 @@ def test_unticked_the_typed_value_stays(window, qapp, recorder, tmp_path):
     w.absFacEnergyCheckBox.setChecked(True)                          # back on: follows the energy
     assert w.absfac == 4.0924
     assert recorder.exceptions == []
+
+
+def test_10_52_kev_is_aluminium(window, qapp, recorder, tmp_path):
+    """Owner, 2026-11-18: 10.05 and 10.52 keV use the Al foils (bu
+    2026-09-02 was at 10.52 keV); outside the calibration range (9.70-10.30)
+    the nominal 50 um Al factor at the energy is used."""
+    w = window
+    spec = _xf(tmp_path, {n: 1.179116 for n in range(1, 10)})
+    _open(w, qapp, spec, tmp_path)
+    assert w.absfac == 1.3565 and w.ui.AbsFacLineEdit.text() == '1.3565'
+    assert recorder.exceptions == []
+

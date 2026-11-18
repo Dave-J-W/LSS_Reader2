@@ -13,8 +13,8 @@ SR570 manual, https://www.thinksrs.com/downloads/pdfs/manuals/SR570m.pdf).
 
 Option "monitor gain" (F52; owner, 2026-11-17): divide by M · S / S_ref
 instead of M, i.e. multiply a normalised value (and its error) by
-S_ref / S. S_ref = 1 µA/V, so values read as "per monitor count at
-1 µA/V". G (the V2F scale) is the same for all scans and is not needed for
+S_ref / S. S_ref = 5 µA/V (the usual gain; owner, 2026-11-18; was 1 µA/V),
+so values read as "per monitor count at 5 µA/V". G (the V2F scale) is the same for all scans and is not needed for
 comparisons; a conversion to photons per second (owner, later) will bring
 G and the monitor's efficiency as one scalar.
 
@@ -22,7 +22,7 @@ A line without a unit ("#M Monc Gain 200") or without a value is read as
 unknown: no factor is applied and the window says so.
 """
 UNITS = {'pA/V': 1e-12, 'nA/V': 1e-9, 'uA/V': 1e-6, 'µA/V': 1e-6, 'mA/V': 1e-3, 'A/V': 1.0}
-REFERENCE = 1e-6          # A/V: values are per monitor count at 1 µA/V
+REFERENCE = 5e-6          # A/V: values are per monitor count at 5 µA/V, the usual gain (owner, 2026-11-18; was 1 µA/V)
 
 
 def parse_gain(words):
