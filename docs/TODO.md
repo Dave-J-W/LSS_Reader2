@@ -81,7 +81,18 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       foil tolerance (flat µm or %) and alloy, if known.
       Hand-off for that analysis written 2026-11-18:
       `docs/handoff_out/02-absorber-patch-check.md` (+ `02-absorber_steps.py`);
-      waiting for its deliverables (§8).
+      Answered 2026-11-18 (`handoff_out/02-answer-report.md`), reviewed
+      in physics_notes: foils calibrated at 10 keV, stable over the year;
+      the jumps are the monitor (P29).
+- [ ] Owner: use the calibrated foil table (54.7 … 1725.1 µm Al-eq at
+      10 keV, physics_notes 2026-11-18) in the paths that use the nominal
+      absorber factor (cuts, background images, frame averages, GID,
+      fluorescence)? Off-10-keV energies would need the composition (P28).
+- [ ] Owner (P29): `Monc` missed ≈ 1/3 of a slit opening in some series
+      (R05; 2026-09-26 to 2026-10-16). Which scan of the pair, which
+      configuration, and is `Monc`'s acceptance smaller than S1 opened?
+- [ ] Owner (P28): reflectivity series with overlaps at 6–7 keV, to
+      separate foil composition from thickness.
 - [ ] Owner: gain reference S_ref = 1 µA/V or 5 µA/V (the usual gain, D32)?
 - [ ] When the corrected/legacy two-file export (hand-off §2.5) is built,
       make Budget the default and carry the counting part as `sigma_meas`.

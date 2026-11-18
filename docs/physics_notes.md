@@ -1582,3 +1582,110 @@ columns only, numpy). New things learnt while writing it, on NX school
   push it away; the hand-off asks for the rate test rather than assuming
   the sign.
 
+
+### 2026-11-18 — Answer to hand-off 02 (absorber steps from the owner's data), reviewed
+
+**Received:** the analysing agent's report (`docs/handoff_out/02-answer-report.md`)
+and its joins table (`joins.csv`, 1983 joins from 2025-12 to 2026-10,
+anonymous ids; not committed, SHA-256 in the report's header). The owner
+had told that agent that `Monc` normalises S0/S1 changes and that the ROI is
+not cropped after the sample.
+
+**Checked (measured, from joins.csv):** the table reproduces the report:
+963 usable 10 keV joins that remove absorber, and single-foil thicknesses
+of 68 µm (foil 0, 3 joins), 112.5 (foil 1, 102), 213 (foil 2, 8) and
+432.6 (foil 3, 34).
+
+**Reanalysis (measured, `tests/tools/foil_fit_from_joins.py`):** I used only
+the joins across which `Monc/Monp` did not change (|ratio − 1| < 0.03,
+so nothing upstream of `Monc` changed) with χ²/dof < 20. That is 409 joins;
+389 were kept after 5-σ clipping. Their bit patterns have full rank, so all
+six foils are determined:
+
+| foil (units) | nominal µm | fitted µm (Al-equivalent, 10 keV) | excess | 1/T per unit |
+|---|---|---|---|---|
+| 0 (1) | 50 | 54.7 ± 0.1 | +9.3 % | 1.4726 |
+| 1 (2) | 100 | 112.2 ± 0.1 | +12.2 % | 1.4873 |
+| 2 (4) | 200 | 218.0 ± 0.2 | +9.0 % | 1.4707 |
+| 3 (8) | 400 | 432.1 ± 0.2 | +8.0 % | 1.4658 |
+| 4 (16) | 800 | 862.7 ± 0.4 | +7.8 % | 1.4648 |
+| 5 (32) | 1600 | 1725.1 ± 0.5 | +7.8 % | 1.4647 |
+
+- *Fit quality.* The robust scatter of a join about this fit is 0.87 µm
+  (0.6 % in the step).
+- *Robust to the cuts.* Changing the Monc/Monp tolerance (1–3 %), the
+  χ² cut (5, 20, none) or the 0–1 % error floor moves each foil by at most
+  0.9 µm.
+- *Stable over the year.* The first half of the year alone (R01–R11) gives
+  the same foils to within 0.5 µm. Each run's median residual stays within
+  ±1.2 µm across all 17 runs, from 2025-12 to 2026-10.
+- *Not one fraction for every foil.* The foils follow t ≈ 1.075 × nominal +
+  3.1 µm, with each foil off that line by up to ±2 µm (foil 1 is +7 µm
+  above 7.5 %). A pure fraction is excluded (χ² 1762 for 5 dof).
+- *NX school is explained.* With these foils, scans 6–9 of NX school
+  20260923 (in the table as R16) have residuals of +1.3, +3.4 and −0.2 µm.
+  "Neither simple model fits" (entry above) was the per-foil differences.
+
+**Where the jumps come from (measured).** Across all the joins where
+`Monc/Monp` changed (554, including the χ² ≥ 20 ones), 39 % are more than
+5 µm off this fit, against 4 % of the others. The large ones form one
+configuration:
+- S1 and S4 changed at the 25/26 → 20/22/23 join;
+- the residual is +54 ± 3 µm;
+- they come from five files: R05 (1 join), R17 from 2026-09-26, R18, R19,
+  R20 and R21 (to 2026-10-16).
+
+At the same joins, F = exp(μ·residual) × (`Monc/Monp` ratio) is the
+increase of the beam at the detector after the foils are taken out. F is
+2.26–2.32 in the anomalous joins and 2.19–2.26 in the normal ones of the
+same type. The beam at the detector rose the same way in both groups, but
+`Monc` registered only ×1.55–1.62 instead of ×2.0–2.3. So **`Monc` missed
+about a third of the added beam in those series.** The gains are the same
+(5 µA/V on both sides).
+
+Smaller versions of the same effect:
+- R04/R05: +11 µm, `Monc` short by about 8 %;
+- R18: S1 only, ratio 0.91, −19 µm.
+
+This is P29.
+
+**Revisions to the report:**
+1. "Slit changes do not spoil a join". Its test compared each join with
+   the median of the same join type, and the median absorbs a
+   configuration that most joins of a type share. Grouped by the
+   `Monc/Monp` change instead, the effect is large and reproducible. The
+   `#P`-derived class also labels 367 joins "S4–S7 only" across which
+   `Monc/Monp` changed, i.e. something upstream of `Monc` changed too.
+2. "Changes come in steps between runs … foil or beam position on a
+   non-uniform foil." The recurring joins that jump (26→20, 25→22, 26→23)
+   are those where `Monc` missed part of a slit change. With those
+   excluded the foils do not change over the year.
+3. Its foil-0 single-foil value (68 µm) comes from three 17→16 joins with
+   an S1 + S4 change. The clean fit gives 54.7 µm.
+4. Its across-day spread for some recurring joins includes single-day
+   values such as 0.035 and 0.131 (failed joins, χ²/dof in the thousands).
+   Its 90th percentile of 23 % is driven by these and by item 2.
+
+**Answers to the owner's questions (measured unless marked):**
+- *Day-to-day variation of the foils:* none beyond about 1 µm per foil
+  (0.7 % in transmission) in these data, which cover 17 runs and a year at
+  10 keV. The day-to-day variation that patching absorbs is in the monitor
+  normalisation across slit changes (P29), not in the foils.
+- *Tolerance flat or relative:* neither alone. About +7.5 % of the
+  thickness, plus about 3 µm, plus about ±2 µm per foil.
+- *Possible cause of the +7.5 % (reasoning; μ/ρ values from memory, not
+  checked).* μ/ρ at 10 keV is about 170 cm²/g for Fe, 216 for Cu and 150
+  for Mn, against 26.2 for Al. So about 1 % of Fe, Mn or Cu impurity raises
+  μ/ρ by 5–8 %, and common commercial Al grades (1100, 3003) contain that
+  much. Composition and thickness separate by energy: below the Fe K edge
+  (7.11 keV) and the Mn K edge (6.54 keV) an impurity's share drops, but a
+  thickness excess stays the same in µm. Reflectivity series with overlaps
+  at 6–7 keV would decide it.
+
+**For the reader:**
+- Ref Patch is still the right way to join scans, now because of P29 (the
+  monitor), not the foils.
+- The paths that use the nominal factor (cuts, background images, frame
+  averages, GID, fluorescence F50) can use this foil table at 10 keV, good
+  to about 1 µm per foil. That is a proposal for the owner to decide
+  (TODO). It is not built.

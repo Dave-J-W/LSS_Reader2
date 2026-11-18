@@ -1,5 +1,12 @@
 # Hand-off: measure the absorber steps by patching reflectivity scans
 
+**Answered 2026-11-18** (`02-answer-report.md`, reviewed in
+`docs/physics_notes.md`). From the 409 joins across which `Monc/Monp` did
+not change, the six foils are 54.7, 112.2, 218.0, 432.1, 862.7 and
+1725.1 µm Al-equivalent at 10 keV (± 0.1–0.5), constant to about 1 µm
+from 2025-12 to 2026-10. The jumps between runs are not the foils:
+they occur where a slit change was not followed by `Monc` (P29).
+
 Written 2026-11-18 by the LSS_Reader2 agent, for an agent with access to the
 owner's SPEC files (reflectivity series with a `proi` ROI counter and
 absorbers). Self-contained: you need this file, the script beside it
