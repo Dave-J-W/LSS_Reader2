@@ -118,6 +118,16 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] GID sub-project (D36): F45 pinhole correction before patching (IDL
       code received, `docs/reference_code/idl/`; review: hand-off 04), then
       F62 flexible overlaps. P31 found while reading.
+- [ ] Owner (IDL review §8): the missing routines `SCAN_PD_READ`,
+      `SCAN_PD_LCOO`, `IMG_JOIN`, `PD_GID_READ`, `PD_PIN_RANGE` (+ FILDAT
+      definitions) and IDL output for NX scans 11+12; is `S7D_Dist` the
+      S4-to-detector distance; are GID scans routinely pinhole mode (switch
+      on from the S4 gap?); per-column mode replacing or beside the 3-column
+      patch; column response from the data or geometric; overlap arithmetic;
+      β per column; one absorber setting for GID; what PD_MERGE's pinhole
+      data are.
+- [ ] Owner: resend the scan-136 GID frames as a zip (the image uploads
+      arrived as float16 zeros).
 - [ ] → Stage 6: burn tests and peak fits scriptable, with the fitting
       sub-project (analysis tools, not reduction); P30 (burn test not
       monitor-normalised) to be fixed then.

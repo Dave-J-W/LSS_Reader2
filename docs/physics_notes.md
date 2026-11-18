@@ -1769,3 +1769,42 @@ the rest.
 How verified: tests (`test_absorbers.py`, `test_gui_preferences.py`,
 `test_known_ratio_patch.py`), quick and slow suites.
 
+### 2026-11-18 — The IDL pinhole/GID code; the NX school GID scans are pinhole data
+
+**Owner:** sent five IDL files from Mati's stash that mention "pinhole"
+(`docs/reference_code/idl/`); asked for a review of what is useful,
+compared with the reader. Review by a subagent:
+`docs/handoff_out/04-answer/IDL_REVIEW.md` (hand-off 04).
+
+**What the IDL code says (read there, with line numbers):** "pinhole" is a
+way of measuring: a narrow slit on the detector arm (S4) acts as a pinhole
+camera, so each detector column sees its own in-plane angle at the
+pinhole–detector distance. `PD_PIN` gives every column its own angle;
+`PD_GID` keeps one column band per frame, as the reader does; `PD_MERGE`
+splices pinhole maps into GID maps, scaling by a quadratic in Qxy. The
+pixel→angle formulas and the join arithmetic are in routines not supplied
+(`SCAN_PD_READ`, `SCAN_PD_LCOO`, `IMG_JOIN`, `PD_GID_READ`,
+`PD_PIN_RANGE`).
+
+**Measured (the subagent; checked again here with separate code, scan 11,
+41 frames, rows 15–486):**
+- lit columns 29–137 (the S5 window); the reader's GID patch sums columns
+  46–48: median 776 counts per frame against 18 434 in the window, so it
+  uses ≈ 4 % of the counts;
+- a Bragg peak drifts 26.3–26.9 columns per degree of Det_Th (frames
+  17–31, 19–29, 21–27), an effective distance of 259–265 mm: close to
+  `S7D_Dist` = 271 mm, far from `S2D_Dist` = 551 mm (55.9 columns/degree).
+  So these frames are pinhole data, and wherever the reader maps their
+  columns with S2D (cuts and display with the "pinhole" box off, its
+  default) the horizontal angle scale is ≈ ×2 too coarse (P32);
+- the reader's `calArea` × sin 2θ is constant to 2×10⁻⁵ over 14–18° for
+  scan 11's slits, i.e. it equals the IDL `SIN_NORM` normalisation here
+  (subagent only).
+
+**Inferred there, not confirmed:** the sample is seen over ≈ columns 30–80
+with a non-flat response, so a per-column response must be measured from
+the data; the specification (§7 of the review) bins per-column data by
+Σ counts / Σ normalisation within a scan and joins Qz levels on a common
+2θ grid (covers F62). Waiting for the owner's answers (§8 there) and the
+missing routines before building F45.
+
