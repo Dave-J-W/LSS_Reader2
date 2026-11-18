@@ -1,0 +1,47 @@
+# Packaged LSS-Reader for Windows and macOS (F46). Runs only when started by
+# hand (Actions tab, "Run workflow") or for a version tag (v*), so ordinary
+# pushes cost nothing. Each build checks itself on the NX school sample data
+# before its archive is kept.
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install the pinned libraries
+        run: pip install -r packaging/requirements-build.txt
+      - name: Build
+        run: pyinstaller --noconfirm packaging/lss_reader.spec
+      - name: Self-test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          LSS_SELFTEST_REPORT: selftest.txt
+        run: |
+          $p = Start-Process -FilePath dist/LSS_Reader/LSS_Reader.exe -Wait -PassThru -ArgumentList '--self-test', 'sample_data/NX_school/2026sep/20260923', 'tests/reference/legacy_export/nx_scans_6-9'
+          Get-Content selftest.txt
+          exit $p.ExitCode
+      - name: Self-test (macOS)
+        if: runner.os == 'macOS'
+        env:
+          LSS_SELFTEST_REPORT: selftest.txt
+        run: dist/LSS_Reader.app/Contents/MacOS/LSS_Reader --self-test sample_data/NX_school/2026sep/20260923 tests/reference/legacy_export/nx_scans_6-9
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LSS_Reader-${{ runner.os }}
+          path: ${{ runner.os == 'macOS' && 'dist/LSS_Reader.app' || 'dist/LSS_Reader' }}

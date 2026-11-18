@@ -118,6 +118,14 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       become scriptable.
 - [x] Resources (`.ui`, icons) loaded relative to the program, not the
       working directory (`lss_core/resources.py`; prerequisite for F46).
+- [x] F46 packaged builds (2026-11-18): `packaging/lss_reader.spec`, pinned
+      libraries, `--self-test`, GitHub workflow (Windows, macOS; manual or
+      tag). Linux build measured here (self-test passed). The old recipe and
+      the committed `build/` folder (an old .exe) are removed. The About box
+      no longer needs the .py files (it raised in a build).
+- [ ] Owner: start the build workflow once (Actions → build → Run
+      workflow) and try the Windows/macOS builds; macOS signing is a
+      decision (docs/PACKAGING.md).
 
 ### Stage 1 work list
 - [x] Typos and leftovers: defects 2, 3, 4, 5, 6, 7, 14 and the shared

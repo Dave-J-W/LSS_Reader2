@@ -6,3 +6,7 @@ venv/
 
 # private sample data: kept locally, never pushed
 sample_data/bu/
+
+# PyInstaller output (packaging/lss_reader.spec)
+build/
+dist/

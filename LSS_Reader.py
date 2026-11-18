@@ -29,7 +29,44 @@ def create_app(argv=None):
     return app, w
 
 
+def self_test(specfile, reference_prefix):
+    """Check a build (F46): the window opens (its .ui files and icons are
+    found), and NX school scans 6-9 reduce to the reference files byte for
+    byte (tests/reference/legacy_export/nx_scans_6-9_ref.txt, _rrf.txt).
+    Returns 0 when both hold. Needs no display with QT_QPA_PLATFORM=offscreen.
+    The report goes to stdout and, if $LSS_SELFTEST_REPORT is set, to that
+    file (a Windows build has no console)."""
+    import os
+    import tempfile
+    lines = []
+
+    def say(text):
+        lines.append(text)
+        print(text)
+    app, w = create_app(['LSS-Reader'])
+    say('window: %s, %d tabs' % (w.windowTitle(), w.ui.PlotWidget.count()))
+    from lss_core.experiment import Experiment
+    out = os.path.join(tempfile.mkdtemp(prefix='lss_selftest_'), 'nx')
+    Experiment(specfile).reflectivity([6, 7, 8, 9]).save(out)
+    ok = True
+    for kind in ('_ref.txt', '_rrf.txt'):
+        with open(out + kind, 'rb') as f1, open(reference_prefix + kind, 'rb') as f2:
+            same = f1.read() == f2.read()
+        say('%s: %s' % (kind, 'identical' if same else 'DIFFERENT'))
+        ok = ok and same
+    w.close()
+    say('self-test %s' % ('passed' if ok else 'FAILED'))
+    if os.environ.get('LSS_SELFTEST_REPORT'):
+        with open(os.environ['LSS_SELFTEST_REPORT'], 'w') as f:
+            f.write('\n'.join(lines) + '\n')
+    return 0 if ok else 1
+
+
 def main(argv=None):
+    argv = sys.argv if argv is None else argv
+    if '--self-test' in argv:
+        k = argv.index('--self-test')
+        return self_test(argv[k + 1], argv[k + 2])
     app, w = create_app(argv)
     w.showMaximized()
     return app.exec_()

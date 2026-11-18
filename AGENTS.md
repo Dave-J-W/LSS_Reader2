@@ -36,6 +36,7 @@ Application code may now be changed, under these conditions:
 | `docs/handoff_out/` | Requests written by this project for analyses done elsewhere (e.g. monitor noise from the owner's larger data) |
 | `lss_core/` | GUI-free core: readers, cache, reduction, scripting API (`docs/SCRIPTING.md`) |
 | `reader_log.py` | Durable log, per-SPEC log, process-wide exception handler (no Qt needed) |
+| `packaging/`, `docs/PACKAGING.md` | PyInstaller recipe, pinned build libraries, the GitHub build workflow (`.github/workflows/build.yml`) |
 | `lss_core/preferences.py` | Preferences kept between sessions (`$LSS_READER_PREFS`; the tests use a temporary file) |
 | `tests/` | The suite; `synth.py` (synthetic data), `sweep.py` (GUI driver) |
 | `sample_data/NX_school/` | Real, public data set (committed) |
