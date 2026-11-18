@@ -1808,3 +1808,35 @@ the data; the specification (§7 of the review) bins per-column data by
 2θ grid (covers F62). Waiting for the owner's answers (§8 there) and the
 missing routines before building F45.
 
+### 2026-11-18 — Pinhole geometry: the owner's answers (part 1)
+
+**Owner:** S4 is the usual pinhole-defining slit. Every SPEC header gives
+the **sample-to-slit distance**; the detector-to-sample distance is known
+elsewhere. `S7D_Dist` is antiquated and its meaning is not firm ("it
+doesn't really matter what S7 is"). Answers to the other questions will
+follow. Also sent: `SCAN_PD_READ`, `SCAN_PD_LCOO`, `PD_PIN_RANGE`,
+`PD_GID_READ`, `IMG_JOIN` (`docs/reference_code/idl/`).
+
+**Read from the new IDL files (not yet run or tested):**
+- `PD_PIN_RANGE` uses `PDIST` (sample–detector), `PDSDIST`
+  (pinhole–detector: `PDIST − PDSDIST` is the sample–pinhole length, and
+  S5 sits at `PDSDIST − 32` mm from the pinhole), the S1 vertical gap, the
+  footprint `beam/sin α` and the S5 half-gaps to give the columns the
+  pinhole sees.
+- `SCAN_PD_LCOO` applies the pinhole transformation by default when Det_Th
+  > 1° (`pinhole` keyword default `angs[2] gt 1`), and corrects the
+  distance for the detector-arm lift: `dist = PDIST + G_L[3](1/cos β − 1)`.
+- `PD_GID_READ`: β = Out_Rot + atan(pixel·(n − n_s)/dist), and
+  Qxy = 2k √((sin((α+β)/2) sin((α−β)/2))² + cos α cos β sin²(2θ/2)),
+  Qz = 2k sin((α+β)/2) cos((α−β)/2), k = 2π/λ.
+- `IMG_JOIN`: one factor per join from `SCAN_JOIN` (not supplied) on the
+  integrated profiles; the overlap is the **inverse-variance weighted
+  mean** (the reader averages plainly); the result covers only the range
+  common to all images (intersection), regridded by triangulation.
+
+**Open:** which header item is the sample-to-S4 distance in the reader's
+files (`#B1` holds 551 and 271 for NX scan 11; with 551 as sample–detector
+and 271 as sample–S4, the pinhole–detector distance would be 280 mm, while
+the measured peak drift gives 259–265 mm); where the sample–detector
+distance should come from. The review is being updated with these files.
+
