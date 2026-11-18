@@ -1,5 +1,11 @@
 # Hand-off 03: check the LSS_Reader2 review of your absorber report, and make the figures
 
+**Answered 2026-11-18:** `03-answer/` holds the answer as received: the
+review, the figures and their data, the revised report, `joins.csv`, and a
+later note on how far the ratios can be trusted (`ABSORBER_RATIOS.md`).
+That note's own figures (`absorber_trust_*.png`) were not received. The
+owner cleared committing all of it, dates included.
+
 Written 2026-11-18 by the LSS_Reader2 agent, for the agent that wrote the
 answer to hand-off 02 (`REPORT.md`, `joins.csv`). You have the data and the
 plotting tools; this project does not make figures. Return what §3 asks for.
