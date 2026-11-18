@@ -22,10 +22,13 @@ log E (there is no absorption edge of Al between 1.56 keV and 20 MeV).
 Measured on these rows: a local quadratic in log–log differs from the
 linear one by 0.07–0.08 % in μ/ρ at 6.21 keV and 0.11–0.13 % at 7.51 keV.
 μ/ρ enters as absfac**n = exp(n·μ/ρ·ρ·t), so that is ≈0.1 % of ln(absfac**n):
-×1.01 on an attenuation of 10⁴. The foils' thickness tolerance is larger
-(2 % in t is 2 % of ln(absfac**n): ×1.2 on 10⁴).
+×1.01 on an attenuation of 10⁴.
 
-The factor is nominal: the foils' real thickness compounds over n units.
+The factor is nominal. The setting n is a sum of six binary-weighted foils
+(1, 2, 4, …, 32 units; owner, 2026-11-18), so a thickness error is a sum
+over the foils in use, not n times a per-unit error. Measured on NX school
+scans 6–9 at 10 keV (`tests/tools/absorber_steps.py`, PHYSICS_ISSUES P28):
+each step attenuates 7–11 % more than nominal (1.458–1.481 per unit).
 Where the scale between scans is measured (Ref Patch), no nominal factor
 is used.
 """

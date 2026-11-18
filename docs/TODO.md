@@ -70,6 +70,10 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] Owner: which foils at 10.05 and 10.52 keV (bu 20260902)?
 - [ ] Owner: are `#A` 52 (20260902, 10 keV) and 63 (20261022) real settings
       during measurement? 52 units is 10⁸ at 10 keV; MCA scans 74–79 inherit it.
+- [ ] P28: nominal absorber steps 7–11 % off measured (NX school). Owner:
+      reflectivity sets with overlapping joins from several days, to test
+      day-to-day variation and calibrate per foil (`tests/tools/absorber_steps.py`);
+      foil tolerance (flat µm or %) and alloy, if known.
 - [ ] Owner: gain reference S_ref = 1 µA/V or 5 µA/V (the usual gain, D32)?
 - [ ] When the corrected/legacy two-file export (hand-off §2.5) is built,
       make Budget the default and carry the counting part as `sigma_meas`.

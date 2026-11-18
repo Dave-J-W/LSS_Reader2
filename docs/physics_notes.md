@@ -1484,3 +1484,67 @@ default, used on more than 90 % of runs.
   which inherit 52 from scan 73 (D24), would be multiplied by 10⁸ when
   they should not be.
 
+### 2026-11-18 — Binary foil set; tolerance flat, not relative?
+
+**Q.** (owner) The attenuators are not 63 foils of 50 µm but six foils in
+a binary arrangement. That may not change the uncertainty, but it does if
+the foil tolerance is a flat 1–2 µm rather than 2 % (to be verified by the
+owner). A static absorber calibration is not used (the reflectivity
+macros patch across scans instead) because the ratio is believed to vary
+from day to day with beam position and size and foil position: the foils
+are not expected to be perfectly homogeneous.
+
+**A.**
+
+- *The owner is right that it changes the uncertainty* (arithmetic, not
+  measured). Setting n = Σ bₖ·2ᵏ units over foils k = 0…5, so the
+  thickness error is the sum of the errors of the foils in use, not n
+  times a per-unit error. With independent flat tolerances δ per foil, the
+  error of ln(absfac**n) is μ·δ·√(number of foils in), μ = μ/ρ·ρ =
+  0.00708 µm⁻¹ at 10 keV. δ = 1.5 µm: n = 41 (3 foils) 1.8 %, n = 31
+  (5 foils) 2.4 %, n = 63 2.6 %. The relative 2 % model used in these notes
+  before (2026-11-17, "2 % in t is a factor 1.44 at n = 52") gave 29 % at
+  n = 41. That earlier figure assumed a relative tolerance and should not
+  be used.
+- *But the measured steps are far off nominal, more than any 1–2 µm
+  tolerance* (measured, `tests/tools/absorber_steps.py`, test
+  `test_absorber_steps.py`). On NX school scans 6–9 (10 keV), points at
+  Q_z measured in both scans of a join give the step directly (no
+  interpolation; counting errors only):
+
+  | Join | n (bits) | measured / nominal | extra Al implied |
+  |---|---|---|---|
+  | S6→S7 | 41 (101001) → 31 (011111) | 0.788 ± 0.005 | +33.6 µm on 500 |
+  | S7→S8 | 31 (011111) → 24 (011000) | 0.762 ± 0.006 | +38.3 µm on 350 |
+  | S8→S9 | 24 (011000) → 18 (010010) | 0.870 ± 0.005 | +19.6 µm on 300 |
+
+  Every step attenuates more than 50 µm Al per unit predicts, by 7–11 % of
+  the thickness changed (1.458–1.481 per unit instead of 1.4247), at 26–
+  42 counting errors. χ²/dof within a join is 1.1–2.2, so the points of a
+  join agree with each other. Three joins and six foils: the foils cannot
+  be solved for individually; one uniform excess of ≈ 7 % fits two joins,
+  and the third (foils 1, 2, 4 units out) needs ≈ 15 µm more in the three
+  thinnest foils.
+- *Which way known effects push* (reasoning, not measured): dead time in
+  the brighter scan, and harmonics passing thick foils more easily, would
+  both make the measured step *smaller* than the true one, so they do not
+  explain it; the true excess would be at least this. Causes it could be
+  (not distinguished by one energy): foils thicker than nominal; an alloy
+  whose impurities (e.g. Fe, Cu) raise μ; density. Measuring at a second
+  energy would separate composition from thickness.
+- *What it means for the reader.* Ref Patch, which the macros' patching
+  relies on, measures the step and is unaffected. Everything that
+  combines settings on the nominal factor — cuts, background images,
+  frame averages, GID data, and fluorescence since F50 (I17) — is off by
+  this much per step (P28); comparing fluorescence at n = 41 and n = 18
+  with 1.4247 per unit would be off by ×0.52 on this day's foils. The
+  owner's day-to-day variation cannot be tested with one day of data: it
+  needs reflectivity sets with overlapping joins from several days (bu has
+  no hklscan reflectivity series). With those, the tool gives the per-join
+  steps; enough joins with different bit patterns would give per-foil
+  values and their spread over days.
+- Side result: NX school uses n = 52 for alignment through the direct
+  beam, so an attenuation of ≈ 10⁸ (more by this measurement) at 52 is
+  a real setting, not a stale value. Whether `getandsave_mca` scans
+  that inherit 52 were really taken at 52 stays open.
+
