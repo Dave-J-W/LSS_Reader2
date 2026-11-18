@@ -1854,3 +1854,37 @@ which biases low counts low (simulated 0.31× at 0.4 counts/pixel, typical
 of NX pinhole frames), so the spec combines overlaps as Σ counts / Σ
 normalisation instead. New reader issues: P34, P35.
 
+### 2026-11-18 — Geometry distances from the owner; new private GID frames
+
+**Owner:** g_l1 ≈ 560 mm (monochromator crystal → S1 slits), g_l2 ≈ 1238 mm
+(crystal → sample), g_l3 ≈ 556 mm (sample → Pilatus); all horizontal
+distances, not optical path lengths.
+
+**Where they are (read):** the `#G0` line, 6th–8th numbers (NX scan 11:
+`560 1238 556`); `spec_routines.py:119-122` reads them as `g_l1`, `g_l2`,
+`g_l3`. The reader uses `g_l2` only for the sample-height offset
+(sh = −g_l2 tan α) and takes the detector distance from `#B1`'s third
+number (`S2D_Dist`, 551 on NX), not from g_l3 (556): 0.9 % on every angle
+offset from the direct beam.
+
+**What it means (reasoning):**
+- The IDL `PD_PIN_RANGE` uses (G_L[2] − G_L[1]) as the S1→sample distance
+  (1238 − 560 = 678 mm), so its G_L array is [·, g_l1, g_l2, g_l3], and
+  `SCAN_PD_LCOO`'s G_L[3] in `dist = PDIST + G_L[3](1/cos β − 1)` is g_l3:
+  the horizontal distance turned into the path length when the detector
+  arm is raised to β (556 × (1/cos 6.5° − 1) = 3.6 mm on NX scan 12).
+- Pinhole distance: measured 267 ± 2 mm (IDL review, NX scan 11). With
+  g_l3 = 556 and 271 as the sample→slit distance, S4→detector would be
+  285 mm, which the measurement excludes; 271 as the S4→detector distance
+  fits (2σ). Which header item is the sample→slit distance the owner
+  mentioned is still to be named.
+
+**New private data (owner):** 206 Pilatus 100K frames of GID scans
+136–146 (one beamtime, no SPEC file), in `sample_data/private/gid_scans_136-146/`
+(git-ignored, never pushed). Dates removed as asked: the file-name prefix
+is `gid_` (was the date), the EPICS time-stamp tags 65000/65002/65003 in
+each TIFF are zero, file times are set to 2000-01-01; pixel data checked
+identical to the originals. Without the SPEC file (Det_Th per frame,
+In_Rot, Out_Rot, direct beam, slits, G_L, monitors) the reader cannot
+place them in angle or Q yet.
+
