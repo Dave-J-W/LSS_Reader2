@@ -10,7 +10,8 @@ scattering at ChemMatCARS. It is not a fitting program. Read
 
 **Implementation, following `docs/SCOPE.md` stage by stage** (authorised by
 the owner on 2026-11-17). Stages 0–2 are done (2026-11-18); GID work
-(Stage 6, D36) has started at the owner's request. The top of `docs/TODO.md` says which stage is in
+(Stage 6, D36) has started at the owner's request; Stage 3 started
+2026-11-19. The top of `docs/TODO.md` says which stage is in
 progress; if it disagrees with this paragraph, that file wins.
 
 Application code may now be changed, under these conditions:
@@ -45,6 +46,7 @@ Application code may now be changed, under these conditions:
 | `tests/` | The suite; `synth.py` (synthetic data), `sweep.py` (GUI driver) |
 | `sample_data/NX_school/` | Real, public data set (committed) |
 | `sample_data/bu/` | Real, private data set: git-ignored, never commit or push it |
+| `sample_data/private/` | The owner's private files (GID, XFNTR, macros): git-ignored. Owner, 2026-11-19: a few derived numbers in docs are acceptable, but **never peak locations, raw data or images**; private figures stay under this folder |
 
 ## Commands
 
@@ -93,7 +95,9 @@ No display is needed. Run from the repository root.
    whole feature (code, tests, docs) before running the suite, rather than
    running tests after each small edit.
 11. **Leave a trail for the figure agent and the manual writer** (owner,
-   2026-11-19), in the same commit as the change:
+   2026-11-19), in the same commit as the change. The main session builds
+   knowledge into the reader and records its provenance; polished figures
+   are for the figure agent or a subagent (owner, 2026-11-18):
    - a new or changed method: a row in `docs/COMPARISONS.md` (old vs new,
      data, result, evidence kind, how to regenerate; save old/new arrays as
      CSV for public data when you measure them);

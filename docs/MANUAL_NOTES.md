@@ -83,7 +83,9 @@ Each line: feature — where — default — script — notes entry (date).
 - Line/Area cuts: directions Q H, Q V, Pix H, Pix V; axes Pixels / Angles
   / Q; "Sum"; pinhole box (on: S4–detector distance at Det_Th > 1°) —
   `exp.cut` — Notes 2026-11-18 "Pinhole is the default". Q cuts with empty
-  default ranges are a known gap (F59, docket).
+  default ranges are a known gap (F59, docket). A user complained (2026-11-18)
+  that cuts in Qz/Qxy and I vs β are not documented: I vs β works today as
+  "Pix V" with axes "Angles"; write this part of the manual first.
 - Background images and background-subtracted frames (not scriptable yet).
 
 ### GID

@@ -35,6 +35,7 @@ updates a row here in the same commit, with before and after values.
 | GID columns | pinhole geometry at Det_Th > 1° | GID maps | D40 | O 2026-11-18; T `test_gid_worksheet.py` | `lss_core/pinhole.py` | 2026-11-18 |
 | Pinhole angles | exact per pixel (Mati Meron's IMG_COO_CONV), binned in (2θ, β); β kept over the range every 2θ bin shares | GID maps (pinhole) | owner: "the geometry needs to be more exact the further we go from the direct-beam position" | O 2026-11-19; L (IMG_COO_CONV); T (ray construction, `test_pinhole.py`); M (NX: join χ²/dof 1.31 → 0.83) | `pinhole.pixel_angles`, `level_map` | 2026-11-19 |
 | Pinhole response | 'fit' (one factor per column; default, unchanged); option 'beam': one profile along the beam axis shared by all frames | GID maps (pinhole) when chosen | owner 2026-11-19: build it as an option on top of what was demonstrated; a narrow Gaussian beam lights a column differently at each Det_Th | O; T (synthetic 30 µm beam: interior 0.93–1.04 → 0.98–1.02 of the truth, edges 0.71–2.8 → 0.88–1.04) | `pinhole.beam_response`, `GIDParams.response` | 2026-11-19 |
+| GID overlap pixels (pinhole) | ΣN/ΣW per (2θ, β) bin (counts over weights) | GID maps (pinhole) | the owner chose "as the IDL code does" (2026-11-18); IDL weights each pixel by its own error, which the review simulated at 0.31 × the true mean at 0.4 counts/pixel, so this departs from IDL on purpose — **to confirm with the owner** | O; M (IDL review); T (I21) | `pinhole.bin_counts_2d` | 2026-11-18 |
 | Pinhole distance | `#B1` 4th number (271 mm) unless typed | 2θ per column | owner; the fit is unstable (258–280) | O; M (NX 11) | `GIDParams.pinhole_distance_mm` | 2026-11-18 |
 | Column response | fitted from the data | GID weights | IDL practice | M; L (IDL code, `docs/reference_code/idl/`) | `pinhole.column_response` | 2026-11-18 |
 | Minimum frames per bin | 2 | GID bins kept | **A** | T | `GIDParams.min_frames` | 2026-11-18 |
@@ -44,7 +45,6 @@ updates a row here in the same commit, with before and after values.
 | Cuts, horizontal axis distance | S4–detector at Det_Th > 1° (pinhole) | Q H / Angles cut axes | D40, P32 | O; T `test_cut_script.py` | `Experiment.cut(pinhole=True)` | 2026-11-18 |
 | Pix V β distance | sample–detector | β axis of V cuts | P34 fix (was ×2) | T | `cuts.frame_cut` | 2026-11-18 |
 | Polarisation, area correction (GID) | on | GID maps | legacy behaviour | legacy fixtures | `GIDParams` | original |
-| Dead time (MCA) | real/live time | fluorescence | original | legacy | `fluorescence.normalise_spectrum` | original |
 
 ## Changes of output, with before and after
 
@@ -74,3 +74,4 @@ Each is also in `physics_notes.md` under its date.
 - Per-photon: gas at the table's conditions; one factor per scan from the
   median rate (dark term ≲ 0.05 %).
 - GID: minimum 2 frames per bin; β grid step = the largest row step.
+- GID overlap pixels: ΣN/ΣW rather than IDL's error weights.

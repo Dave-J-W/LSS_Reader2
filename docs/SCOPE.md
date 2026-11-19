@@ -130,6 +130,20 @@ logic being out of the dialogs (Stage 2) and on the masks (Stage 3).
 
 ## Open questions that block specific items
 
+Updated 2026-11-19 (documentation audit). Answered since: F26 (`Monc` noise
+not needed, D44; dark rate 50 Hz, D41); F23/F45 (IDL code received, pinhole
+GID built, D36, D40); F22 (requirements F22a; scoping later); P7 (kept);
+P13 (fixed); 9-ID-C (D17). Still open: the rows for F24/F41, F24 tests 5–6,
+F28/F29/F33–F36 sample files, F39/F34 syntax (proposal `handoff_out/05`),
+P5 and P6. Requests after F48 are placed as follows: F49, F50, F52, F54–F58
+(absorbers, foils, gain, per photon, preferences) built alongside Stages
+1–2 (F49 at 30 keV, the Cu foil, still open); F51 (σ_scan per scan) declined,
+D26; F53 (Pilatus + fluorescence in one scan) Stage 4; F59 (Q cuts) Stage 6 GUI;
+F60 (contextual reduction) with F39 in Stage 3; F61–F62 (GID worksheet,
+Qz joins) Stage 6 GID, built; F63 (second 200K module) Stage 4; F65 (XFNTR
+merge) built without the edge check, edge estimator backlog. (F64 was not
+assigned.)
+
 | Item | Question | Who |
 |---|---|---|
 | F26 | `Monc`'s own noise (bright steady repeated frames); subtract dark rate? | owner / a measurement |

@@ -11,7 +11,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 3 Saved state per SPEC file; live refresh | **started** 2026-11-19: series syntax proposed (`handoff_out/05`), reader parses it and SPEC's abort comment, guesses series in older files |
 | 4 Detectors and inputs | not started |
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
-| 6 Sub-projects (GID patching, fitting, beam size, GUI) | not started |
+| 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); fitting, beam size, GUI not started |
 
 ## Inputs needed from the owner (consolidated 2026-11-19)
 
@@ -21,19 +21,23 @@ stated assumption until the answer arrives.
 | # | Input | Unblocks | Without it |
 |---|---|---|---|
 | 1 | Answers on the series proposal (`handoff_out/05`, four questions) | Stage 3 series in the window, live refresh | can proceed on the proposed syntax as provisional |
-| 2 | A complete low + high Qz GID pair (public if possible) | C14 comparison, F62 check on real data, P36/P37 need three levels | C14 stays "not like for like" |
-| 3 | One full two-module 200K frame (one module is saved on purpose, D43; the second lies along 2θ, F63); a new-format fluorescence/GID SPEC file (F28); HDF5/bluesky file (F29); ME7 notes (F35); Pilatus + Vortex in one scan (F53); 1M geometry conventions (F38) | Stage 4, item by item | Stage 4 not started |
+| 2 | ~~A complete low + high Qz GID pair~~: private pairs received 2026-11-19 (C22); a **public** pair is still wanted for C14 | C14 comparison, F62 check on real data, P36/P37 need three levels | C14 stays "not like for like" |
+| 3 | One full two-module 200K frame (one module is saved on purpose, D43; the second lies along 2θ, F63); a new-format fluorescence/GID SPEC file (F28); HDF5/bluesky file (F29); ME7 notes (F35; mostly answered by D48, D49); Pilatus + Vortex in one scan (F53); 1M geometry conventions (F38) | Stage 4, item by item | Stage 4 not started |
 | 4 | `lss_reference.py`, `covariance_core.py` (XModJointFit) | Stage 5 hand-off tests 5–6 | independent implementation from the hand-off text |
 | 5 | ~~`Monc`'s own noise~~: not needed (owner, 2026-11-19, D44). Which monitor model the Budget uses by default when it becomes the default: Gaussian 0.04 % (D22, now) or Student t (D26)? | Stage 5: Budget as default | Gaussian stays the Budget's default |
-| 6 | IDL `IMG_COO_CONV`/`LIMG_COO_CONV`, `SCAN_JOIN`, `SPEC_FILE_INFO`; IDL output for NX 11+12 | checking the pinhole map against IDL numbers | pinhole checked on synthetic data and by reading |
+| 6 | ~~IDL `IMG_COO_CONV`/`LIMG_COO_CONV`, `SCAN_JOIN`, `SPEC_FILE_INFO`~~ received 2026-11-19 (`docs/reference_code/idl/`); still wanted: IDL output for NX 11+12 | checking the pinhole map against IDL numbers | pinhole checked on synthetic data and by reading |
 | 7 | IDL review §8: column response from data or geometry; per-column patch replacing or beside the 3-column one; PD_MERGE | GID defaults | pinhole default (D40), response fitted |
 | 8 | Reflectivity series with overlaps at 6–7 keV; foil tolerance and alloy; Cu thickness at 30 keV | P28 below 10 keV; F49 at 30 keV | nominal Al below 10 keV; no factor at 30 keV |
 | 9 | P29 mechanism (Monc high at narrow S1) | whether the 3 % Monc/Monp guard is right | guard as built |
 | 10 | Confirm or change the open assumptions in `OUTPUT_DECISIONS.md` (3 % tolerance; per-photon gas and median rate; GID min frames, β step) | — | as built |
 | 11 | Fitting requirements received (F22a, 2026-11-19); scoping later. Burn tests and peak fits scriptable: with that scoping | Stage 6 fitting | not started |
 | 12 | Run the build workflow once; macOS signing decision | packaged releases | Linux build measured only |
-| 13 | ~~`bu.zip` link sharing~~ off (owner, 2026-11-19); where sample data live; resend scan-136 frames as a zip | — | — |
-| 14 | P7 Merge: kept as is (owner). Merge window and XFNTR merging: the owner's rule is F65 (match within 0.1 × grid step, jitter 3e-5 1/Å in the errors, grouping, never across runs); its edge estimator is backlog. `S1T + S1T`: fixed. Per-point MCA files: to be handled; questions on channels and dead time open | F65, per-point MCA | — |
+| 13 | ~~`bu.zip` link sharing~~ off (owner, 2026-11-19); where sample data live; ~~resend scan-136 frames~~ received 2026-11-18 | — | — |
+| 14 | P7 Merge: kept as is (owner). Merge window and XFNTR merging: the owner's rule is F65 (match within 0.1 × grid step, jitter 3e-5 1/Å in the errors, grouping, never across runs); its edge estimator is backlog. `S1T + S1T`: fixed. Per-point MCA files: to be handled (owner: yes, 2026-11-19); channels and dead time answered (D48, D49) | F65, per-point MCA | — |
+| 15 | P39: end the footprint window at the S4 ramp's inner edge (≈ 5 columns more, departs from IDL)? See P40(b) first: the raised-arm streak reaches those columns | GID usable columns | IDL's centred window |
+| 16 | Half-cut sh scans for the beam's vertical profile (F43; owner, 2026-11-19) | a measured beam for response 'beam' and for P39 | the profile fitted from the GID data |
+| 17 | GID frames with little signal (mostly background) at both arm heights (P40; owner offered, 2026-11-19) | stray light and beam-path background in GID maps | P40 open |
+| 18 | GID overlap pixels: ΣN/ΣW (built) vs IDL's error-weighted mean (the owner chose "as the IDL code does", 2026-11-18; the error weights are biased at low counts, IDL review) | GID map values | ΣN/ΣW, to confirm |
 
 ### Stage 3 work list
 - [x] Proposal for the "scan i of N" line (`docs/handoff_out/05-scan-series-syntax.md`).
@@ -87,8 +91,9 @@ stated assumption until the answer arrives.
       scripts). Off by default.
 - [x] F52 in the Pilatus paths (cuts, background images, GID data, frames
       at one Q_z).
-- [ ] Sort out the gains the reader cannot interpret (owner, later):
-      `reports/monitor_gains.md`.
+- [ ] Gains the reader cannot interpret: malformed lines (D33), treated as
+      unknown; nothing more to sort out unless the owner wants them read
+      (`reports/monitor_gains.md`).
 - [x] F54 core: photons/s from the monitor (`lss_core/flux.py`, xray_fluxor route D).
 - [x] F54 in the window: "/ photon" option (MonC, dark 50 Hz when not recorded,
       D41), scripts `per_photon=True` (2026-11-19).
@@ -137,7 +142,7 @@ stated assumption until the answer arrives.
 - [ ] When the corrected/legacy two-file export (hand-off §2.5) is built,
       make Budget the default and carry the counting part as `sigma_meas`.
 - [x] Monitor model default from the owner's analysis: Gaussian 0.04 %
-      (D22); Student t ν = 3.6 offered.
+      (D22); Student t offered (ν = 4, D26; 3.6 was the first estimate).
 - [x] Cuts scriptable (2026-11-18): `lss_core/cuts.py` (`frame_cut`, shared by
       the window and `Experiment.cut`); Export writes `exp.cut(...)` to the
       Script pane, reproducing the files byte for byte (all directions, axes,
@@ -310,8 +315,8 @@ reruns the quick, real-data and export-fixture checks, and commits.
 - [x] **Monitor noise analysis** (hand-off `handoff_out/01-monitor-noise-analysis.md`):
       answered 2026-11-17, Gaussian σ = 0.04 % (D22).
 
-- [ ] Remaining feature requests and complaints (received so far: F1–F16
-      in `FEATURE_REQUESTS.md`; the owner called the latest list partial).
+- [x] Remaining feature requests and complaints (received so far: F1–F16
+      in `FEATURE_REQUESTS.md`; the owner called the latest list partial). (Requests received through F65; new ones are added as they come, 2026-11-19.)
 - [x] Counting time and fitting questions answered (2026-11-15; D6, D7,
       F20–F22).
 - [x] Hand-off on the xmodfit export received (F24, F25).
@@ -323,7 +328,7 @@ reruns the quick, real-data and export-fixture checks, and commits.
       points for now (D13). **Do not forget:** it is to be remedied later
       in the corrected chain.
 - [ ] **Remind the owner:** a full two-module 200K frame (the 200K data received are one module, 2026-11-19); a reflectivity
-      burn scan; a complete low + high Q_z GID pair; the new fluorescence &
+      burn scan; a public low + high Q_z GID pair (private pairs received 2026-11-19); the new fluorescence &
       GID SPEC file (F28); an HDF5/bluesky file (F29); ME7 data notes (F35).
 - [x] Monitor noise investigated (`reports/monitor_noise.md`).
 - [x] Beam variation vs monitor noise examined (`physics_notes.md`,
@@ -336,24 +341,25 @@ reruns the quick, real-data and export-fixture checks, and commits.
       if possible the sample lowered out of the beam, S5 nearly closed at
       the raised arm, the lower level repeated after the upper, and the S4
       and S5 vertical openings and the S5 → detector flight path.
-- [ ] Is the MCA "Merge" weighted mean Σ(y²/σ²)/Σ(y/σ²) intended? Explained 2026-11-19
-      (it equals ΣN/ΣM, pooled counts over pooled monitor); owner to confirm.
-- [ ] Scoping input for F22 (where better fitting is needed, which models)
-      and F23 (GID patching: overlaps, methods).
+- [x] Is the MCA "Merge" weighted mean Σ(y²/σ²)/Σ(y/σ²) intended? Explained 2026-11-19
+      (it equals ΣN/ΣM, pooled counts over pooled monitor); owner to confirm. Owner, 2026-11-19: kept as is; the error is handled downstream (F65).
+- [x] Scoping input for F22 (where better fitting is needed, which models)
+      and F23 (GID patching: overlaps, methods). F22a received 2026-11-19; F23 superseded by the pinhole GID work (D36).
 - [ ] Format of the photons-in estimate in the SPEC file (F21), when the
       beamline defines it.
 - [x] Pilatus 1M: another version handles it but is not otherwise better;
       stay on this code base, 1M support is feature group F17–F19.
-- [ ] Should per-point MCA files (`mca_save_point`) be readable from the
-      window? Open points on the 1M are listed under F17–F19.
+- [x] Should per-point MCA files (`mca_save_point`) be readable from the
+      window? Open points on the 1M are listed under F17–F19. Owner, 2026-11-19: yes (F53).
 - [x] Bruker/Apex CCD is defunct (D8): no fix; remove the code later.
 - [x] Link sharing off on `bu.zip` (owner, 2026-11-19).
 - [ ] Decide how sample data should be hosted (`bu` is 1.7 GB, local to the
       session only, git-ignored; NX school is committed at 104 MB).
-- [ ] Questions in `ASSESSMENT.md` sections 6 and 7 (S1T + S1T, reference
-      geometry for image axes vs cuts, 9-ID-C still needed, negative 2θ).
+- [ ] Questions in `ASSESSMENT.md` sections 6 and 7 still open: reference
+      geometry for image axes vs cuts (P6), negative 2θ (P5). (S1T + S1T fixed
+      2026-11-19; 9-ID-C answered, D17.)
 
-## Later phases (not started, by instruction)
+## Original phase plan (superseded by SCOPE.md stages; kept for history)
 
 1. Process-wide exception handler and durable log (F10–F12, D4): turns
    every hard abort into a logged failure. Agreed as the first step.
@@ -386,6 +392,10 @@ reruns the quick, real-data and export-fixture checks, and commits.
 Things the data files should record and do not. The reader works around
 them; the fix belongs in the macros.
 
+- Note (owner, 2026-11-17): `getandsave_mca` is a test macro, not the normal
+  XFNTR scan (`fluo_p`, an MCAscanpt hklscan with a `#V` line); the two
+  items below matter only for it. Whether `fluo_p` scans write `#A` and
+  `#M Monc Gain`: to check on the next new file.
 - [ ] **`getandsave_mca` writes no absorber setting** (`#A`): checked on
       every sample file; the MCA file header has none either. The reader
       takes the last `#A` above the scan (D24), which cannot see a change
@@ -395,6 +405,13 @@ them; the fix belongs in the macros.
 - [ ] Some `#M Monc Gain` lines have no unit ("200") or no value
       (bu/2026oct/20261019, 20261022); the reader treats them as unknown.
       Full list: `reports/monitor_gains.md`.
+- [ ] `#V` detector-type flag, 1, 4 or 7 elements (F34).
+- [ ] Series lines `#U Series …`, `#U SeriesMacro`, `#U SeriesT0` (F39;
+      proposal `handoff_out/05`, under review by the owner's agent, 2026-11-19).
+- [ ] Per-point `Tstart` and `Tend` in place of `Epoch` (F37; owner, 2026-11-19).
+- [ ] Photons-in estimate in the SPEC file (F21), when the beamline defines it.
+- [ ] Half-cut sh scans to characterise the beam (F43).
+- [ ] Multiple exposures per GID point (F40).
 - [ ] A scan with both Pilatus and Vortex data should say so in its header
       in a way that does not let one line override the other (F53).
 - [ ] **Gas conditions for photons/s** (F54; owner, 2026-11-19): record the

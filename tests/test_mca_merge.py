@@ -114,3 +114,19 @@ def test_window_merge_default_and_script(window, qapp, recorder, xf, tmp_path):
     _run_script(text.replace(repr(gui), repr(script)), tmp_path)
     assert open(gui + '_flu.txt', 'rb').read() == open(script + '_flu.txt', 'rb').read()
     assert recorder.exceptions == []
+
+
+def test_merge_of_poisson_points_is_pooled_counts_over_pooled_monitor():
+    """Invariant I22: for points y = N·a/M with σ = √N·a/M, the Merge on the
+    frame axis (no jitter) gives ΣN/Σ(M/a) with σ = √ΣN/Σ(M/a), exactly,
+    also when the points are merged one after another."""
+    rng = np.random.default_rng(3)
+    n = rng.poisson(40, 6).astype(float) + 1
+    m = rng.uniform(5e4, 2e5, 6)
+    a = rng.uniform(0.5, 3.0, 6)
+    rows = [[0.0, 0.1, 5.0, n[k] * a[k] / m[k], np.sqrt(n[k]) * a[k] / m[k]] for k in range(6)]
+    out = fl.merge_rows(rows, x='frame', window=0.5, jitter=0.0)
+    assert len(out) == 1
+    pooled = n.sum() / (m / a).sum()
+    assert out[0][3] == pytest.approx(pooled, rel=1e-12)
+    assert out[0][4] == pytest.approx(np.sqrt(n.sum()) / (m / a).sum(), rel=1e-12)

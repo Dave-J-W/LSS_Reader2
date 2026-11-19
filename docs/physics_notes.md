@@ -31,6 +31,10 @@ exists.
 | I18 | With the monitor-gain option, one flux measured at two SR570 sensitivities gives one normalised value: M ∝ 1/S, and the value is multiplied by S_ref/S (exact for expected counts). Requires the recorded gain to be the gain in use | tested on synthetic data: `test_monitor_gain.py` |
 | I19 | Absorber factor per unit = exp(μ/ρ(E)·ρ·t), 50 µm Al at E ≤ 10 keV: at the table energies μ/ρ equals the NIST SRD 126 rows exactly, it falls monotonically between them, and 10 keV gives the 1.4247 default; where the foil is not known no factor is made up | tested: `test_absorbers.py`; in the window `test_gui_absfac_energy.py` (a 6.21 keV MCA export is (4.0924/1.4247)³ times the 10 keV one at n = 3, and the Script pane reproduces it) |
 | I20 | With the "per photon" option, one photon flux read at two SR570 sensitivities, with the dark rate added to each monitor rate, gives one value I/N: the factor M/N = 1/(q(E)·S/(500 nA/V)·(1 − D/r)) undoes both. Requires the recorded gain to be the gain in use and D to be the true dark rate; the absolute scale is as good as q(E) (±3.6 % below 13 keV) | tested on synthetic data: `test_per_photon.py` |
+| I21 | Pinhole binning conserves counts (ΣN in = ΣN out), each bin is ΣN/ΣW, and at 0.4 counts per pixel the estimate is unbiased (1.00 ± 0.01); joining Qz levels conserves counts | `test_pinhole.py::test_counts_are_conserved_and_bins_are_count_over_weight`, `test_low_counts_are_unbiased`, `test_join_conserves_counts` |
+| I22 | For Poisson points (y = N·a/M, σ = √N·a/M) the MCA Merge equals ΣN/Σ(M/a) with σ = √ΣN/Σ(M/a), exactly, also merged pairwise | `test_mca_merge.py::test_merge_of_poisson_points_is_pooled_counts_over_pooled_monitor` |
+| I23 | Point times within a scan never go backwards, and no step is shorter than the count time | `test_timing.py::test_nx_school_steps_never_go_back_or_undercut_the_count_time` |
+| I24 | Exact pinhole angles equal an independent ray construction; on the direct-beam column they are exact at any β0 | `test_pinhole.py::test_pixel_angles_are_the_exact_ray_geometry` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -2318,8 +2322,7 @@ monitor model should be the Student t rather than the Gaussian 0.04 %
 
 **Owner.** Suggest a complete low + high Qz GID pair from the SPEC file on
 hand. **Suggested (read from the private GID SPEC file, 2026-11-19; scan
-numbers only, no data):** a pair at the NX scans' geometry (Det_Th 14–18°,
-Qz 0.016 and 0.582 1/Å, both complete), and a set of four complete scans
+numbers only, no data):** a pair at the NX scans' geometry (both complete), and a set of four complete scans
 (two Det_Th ranges at each Qz, overlapping by 0.4°) that exercises both the
 2θ joins and the Qz join. Scan numbers given to the owner in the
 conversation; the data stay private.
@@ -2556,9 +2559,9 @@ point; files with dates removed use Epoch's own clock, so scans still line
 up within a SPEC session.
 
 **Learned from the EXAFS macros (read):** EXAFS at ChemMatCARS is an energy
-scan with a spectrum per point: `Er_exafs`/`Lu_exafs` call `MCAscanpt
-escan_14 edge e_before e_after …` around the Er L3 (8.358 keV) and Lu L3
-(9.244 keV) edges, with a k-space part (`KtoE`); `*_edge` macros scan ±δE
+scan with a spectrum per point: the `<element>_exafs` macros call `MCAscanpt
+escan_14 edge e_before e_after …` around an absorption edge, with a k-space
+part (`KtoE`); `*_edge` macros scan ±δE
 around the edge. So the per-point MCA files are the EXAFS data format, and
 one spectrum per energy point is fitted for the element's line (D47); the
 energy axis comes from the scan, not from Qz. `eb_expose time abs` exposes
@@ -2578,7 +2581,8 @@ XFNTR uses the central element (D49).
 **A (read from the code).** Yes: each spectrum is multiplied by real/live
 time from the MCA file's `#@CTIME preset real live` line
 (`fluorescence.normalise_spectrum`, as the original program); on the
-1-element Dante file sent today that is 10.0003/9.98821 = 1.0012; the
+1-element file sent today it is a correction of about a tenth of a per cent
+(value in the conversation); the
 7-element files write `#@CTIME 1 1 1`, so nothing is applied twice. The
 second number on `#Monc` lines is read as Monb (then Mond), for hutches B
 and D.
@@ -2589,7 +2593,8 @@ Fluorescence detector (elements 1–7, default all); `channels=` in scripts;
 SPEC plot `Time_s` (seconds since the earliest selected point, the clock
 time of that point in the tooltip) and `Time_from_start_s`.
 
-**Open:** which element number is the central one (the selector lets the
+**Answered later the same day (owner): the central element is 1** (the
+"Centre" button selects it). Earlier text: which element number is the central one (the selector lets the
 user choose; no preset); the October per-point files (`ascan` without `#V`)
 are still not reachable from the window (F53).
 
@@ -2776,4 +2781,50 @@ frames at the raised arm with S5 closed or nearly closed (what bypasses
 S5); the S4 and S5 vertical openings and the flight path between S5 and
 the detector; levels measured interleaved or the lower level repeated after
 the upper (illumination drift between scans).
+
+### 2026-11-19 — What P39 is; would a half-cut beam profile help GID? What makes a column usable?
+
+(Recorded after a documentation audit; the answers were given in the
+conversation, the half-cut part is answered here.)
+
+**Q (owner).** "I don't know what P39 is." **A.** The reader decides which
+columns can see the lit strip of sample (the footprint) through the S4
+pinhole as a range centred on the direct-beam column, as Mati Meron's
+PD_PIN_RANGE does. Traced exactly (rays from the footprint's ends through
+S4), the range has the same width but sits about 5 columns higher (NX scan
+11). So a few columns that do see sample are dropped at the high end: fewer
+counts, no bias. Correcting it would depart from IDL on purpose; and P40(b)
+(the raised-arm streak, "junk" per the owner) reaches those columns, so the
+correction waits for the background data (TODO inputs 15, 17).
+
+**Q (owner).** "In the future we can measure the beam with a half-cut to
+inform this correction for beam vertical profile. Does that help to better
+normalise and patch?" **A (reasoning, with the measurements of the
+2026-11-19 outer-column diagnosis).** Partly. A measured vertical profile
+gives the footprint's illumination along the beam (profile stretched by
+1/sin α), which (1) checks the profile the 'beam' response fits from the GID
+data (NX: about 52 µm implied), (2) sets where the footprint really ends,
+which is what P39 is about, and (3) gives the ramps at the window's edges.
+It does not replace fitting per level: on the private pairs the
+illumination differed between the levels' scans (centroid a few mm along
+the beam), which a profile measured once cannot follow; a half-cut taken
+next to each GID level would. (Recorded under F43.)
+
+**Q (owner, figure 7).** "I don't know what makes [the columns] usable, the
+slit size or the footprint." **A (measured, NX 11, Det_Th 16°).** Both: a
+column is usable when it is inside S5's window and sees the footprint
+through S4. On NX, S5 sets the low edge (27.2) and the footprint the high
+edge (102.0 traced exactly; 96.6 as the reader computes it, P39): usable
+28–96. (Figure 7 and its README.) A study of a larger detector is later,
+not now (owner, 2026-11-19; F63).
+
+**Owner (2026-11-17, recorded late):** `getandsave_mca` is a test macro, not
+the normal XFNTR scan; the normal one is `fluo_p` (an MCAscanpt hklscan in
+Qz with a `#V` line). The beamline items about `getandsave_mca` (no `#A`, no
+gain) matter only for it; whether `fluo_p` scans write `#A` and the gain is
+to be checked on the next new file.
+
+**Owner (2026-11-19): private data policy.** "I don't mind a few private
+numbers leaking out, provided no peak locations and raw data/images are
+public." Written into AGENTS.md.
 

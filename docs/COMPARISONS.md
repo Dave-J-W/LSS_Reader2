@@ -37,7 +37,8 @@ curves for the NX school data.
 | NX school (2026-09-23) | `sample_data/NX_school/` (committed) | yes |
 | Synthetic (known truth) | `tests/synth.py` generators | yes |
 | bu (owner's runs, 2026 June–Oct) | `sample_data/bu/` (git-ignored) | **no**: figures stay local; commit nothing derived but SHA-256 |
-| Private GID (scans 136–146) | `sample_data/private/` (git-ignored) | **no**; dates removed |
+| Private GID (scans 136–146, 163–165, 386–389; one SPEC file) | `sample_data/private/gid_scans_136-146/` (git-ignored) | a few derived numbers only; never peak locations, raw data or images (owner, 2026-11-19); dates removed |
+| Private XFNTR and macros (2026-11-19) | `sample_data/private/xfntr/`, `sample_data/private/macros/` | as above |
 | Owner's absorber-join set (hand-off 02/03) | answers in `docs/handoff_out/03-answer/` | yes, as published there |
 
 ## Ledger
@@ -58,7 +59,7 @@ or read, not measured.
 | C7 | Fitted patch factor vs known foil ratio, per join | owner's joins (hand-off 03); synthetic | step errors before → after: 42→33 1.23 % → 0.86 % (low Qz) / 2.75 % (high Qz) | T, R | `docs/handoff_out/03-answer/joins.csv`, `figures/` | `python tests/tools/absorber_steps.py`; `pytest tests/test_known_ratio_patch.py` | 2026-11-18 "How far the absorber ratios can be trusted" |
 | C8 | Nominal absorber steps vs measured (P28) | NX school | 7–11 % off | R | no | `python tests/tools/absorber_steps.py SPEC scan,scan,...` | 2026-11-18 "Binary foil set" |
 | C9 | Monc/Monp across slit changes (P29) | owner's joins | Monc registered ×1.55–1.62 instead of ×2.0–2.3 | R | `03-answer/joins.csv` | `tests/tools/monitor_ratio.py` | 2026-11-18 "Answer to hand-off 02" |
-| C10 | Legacy 3-column GID vs pinhole geometry | NX scan 11 (public); private 137/139 | ~17× the counts; scan 11: DPPC peak Qxy 1.4631 (legacy) vs 1.4679 1/Å (pinhole), 40 vs 174 Qxy bins (176 before the exact geometry), error at the peak 2.5 % vs 1.0 %; private: ×23–24 counts, join 0.952 ± 0.002 | R (NX), C (private) | `docs/comparisons_data/C10_*` (Qxy, Qz integrals; maps regenerable) | `python tests/tools/compare_methods.py` | 2026-11-18 "Pinhole-geometry GID built"; 2026-11-19 "GID scriptable" Figures: `python tests/tools/gid_compare_figures.py` (maps, profiles, joins; public NX in `docs/figures/gid_compare/`, private ones outside the repository). |
+| C10 | Legacy 3-column GID vs pinhole geometry | NX scan 11 (public); private 137/139 | ~17× the counts; scan 11: DPPC peak Qxy 1.4631 (legacy) vs 1.4679 1/Å (pinhole), 40 vs 174 Qxy bins (176 before the exact geometry), error at the peak 2.5 % vs 1.0 %; private: numbers in the conversation only | R (NX), C (private) | `docs/comparisons_data/C10_*` (Qxy, Qz integrals; maps regenerable) | `python tests/tools/compare_methods.py` | 2026-11-18 "Pinhole-geometry GID built"; 2026-11-19 "GID scriptable" Figures: `python tests/tools/gid_compare_figures.py` (maps, profiles, joins; public NX in `docs/figures/gid_compare/`, private ones outside the repository). |
 | C11 | Pinhole distance: header 271 mm vs fitted | NX scan 11 | fit 258–280 mm depending on columns (±2–3 mm each); peak Qxy 1.4695 / 1.4679 / 1.4665 at 258 / 271 / 280 mm (exact geometry; 1.4666 at 280 before) | R | `C11_*` | `compare_methods.py`; worksheet Fit | same entry |
 | C12 | Pinhole binning vs near-sample mapping (synthetic line) | synthetic | one bin vs > 5 bins; unbiased 1.00 ± 0.01 | T | — | `pytest tests/test_pinhole.py` | same entry |
 | C13 | Pinhole Qz-level join: summed counts vs equal-weight cells | synthetic, factor 1.25 | 1.283 (biased) → 1.25 ± 0.0004 | T | — | `pytest tests/test_pinhole.py -k join` | 2026-11-19 "Joining Qz levels" |
