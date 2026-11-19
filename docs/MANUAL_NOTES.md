@@ -85,9 +85,10 @@ Each line: feature — where — default — script — notes entry (date).
   axes (with Pixels it says so; it used to crash).
 
 ### Figures of the pinhole geometry
-- Six isometric figures of the exact pinhole trigonometry (lab frame, the
+- Seven figures of the exact pinhole trigonometry (lab frame, the
   direct-beam row and column, the pinhole from above, β depending on the
-  column, the raised arm, the 200K's second module): `docs/figures/pinhole/`
+  column, the raised arm, the 200K's second module, and the footprint at the
+  usual GID α with what makes a column usable: the S5 slit and the footprint): `docs/figures/pinhole/`
   (README there), made by `tests/tools/pinhole_figures.py` from
   `lss_core.pinhole` (Mati Meron's IMG_COO_CONV transform).
 

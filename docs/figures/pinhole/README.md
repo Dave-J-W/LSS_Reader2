@@ -1,4 +1,4 @@
-# Pinhole GID geometry: six isometric figures
+# Pinhole GID geometry: seven figures (six isometric, one of the footprint)
 
 Made by `python tests/tools/pinhole_figures.py [--out DIR]` (default: this
 folder). The script draws only what the reader's own code returns:
@@ -128,6 +128,28 @@ With the present slits that module would get no light: S5 passes columns
 points x = −58…−559 mm and 87…140 mm, outside the ±31.7 mm footprint
 (`footprint_window`: columns 3.3…90.7). The rays in (a) are drawn to show
 where those columns look.
+
+### Case 7 — The footprint at the usual GID angle, and what makes a column usable
+
+Added 2026-11-19 at the owner's request ("better shows the footprint
+coordinates/sizes at the commonly used alpha for GID"; "I don't know what
+makes [a column] usable, the slit size or the footprint"). Mostly 2D, true
+millimetres and columns; scan 11, Det_Th 16°, α = 0.0905°, S1 0.10 × 2.0 mm.
+(a) The footprint on the sample, 63.3 × 2.0 mm (`footprint_length`), with
+the part the usable columns see (x = −12.8 … 28.5 mm, `ray_geometry`'s
+source points) and where the second module's columns would look.
+(b) The answer, on one column axis: a column is usable when S5 lets it
+through (`s5_window`: 27.2…139.3, the slit size) **and** its ray through S4
+starts on the footprint (true window 2.7…102.0 from `ray_geometry`);
+`usable_columns` = 28…96, the low edge set by S5, the high edge by the
+footprint. P39: the reader's window (`footprint_window`, after
+PD_PIN_RANGE, hatched) has the right width but is centred on c0 = 47
+(−2.6…96.6), 5.4 columns too low, so columns 97–102 are dropped. The
+second module's possible positions are shaded by S5 and look far off the
+footprint. (c) Footprint length against α for S1v 0.04, 0.10, 0.20 mm.
+(d) The true footprint window against α (S1v 0.10 mm) against the S5 band
+and the second module's first columns: the window reaches column 212 only
+below α ≈ 0.037°, and S5 would still have to be opened.
 
 ## Provenance and credit
 

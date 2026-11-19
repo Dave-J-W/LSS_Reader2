@@ -963,13 +963,164 @@ def case6(out):
     save(fig, [a, b], os.path.join(out, 'case6_second_module.png'))
 
 
+def footprint_columns(g, s1v, s1_to_sample, row=None):
+    """(first, last) column whose ray through S4 starts on the footprint
+    (the true footprint window, from ray_geometry), and the footprint length."""
+    row = g.r0 if row is None else row
+    ftp = ph.footprint_length(g, s1v, s1_to_sample)
+    return column_at_source(g, -ftp / 2, row), column_at_source(g, ftp / 2, row), ftp
+
+
+def case7(out):
+    """The footprint at the usual GID α, and what makes a column usable."""
+    f = frame(11, 16.0)
+    g = f.geom
+    s1v, s1h, s1s = f.areainfo[1], f.areainfo[0], f.s1_to_sample_mm
+    t_lo, t_hi, ftp = footprint_columns(g, s1v, s1s)
+    c_lo, c_hi = ph.footprint_window(g, s1v, s1s)
+    s5lo, s5hi = ph.s5_window(g, *f.s5)
+    use = usable(f)
+    src = {c: ph.ray_geometry(g, g.r0, c).source[0] for c in (use[0], use[-1])}
+    sec = {k: (ph.ray_geometry(g, g.r0, a).source[0], ph.ray_geometry(g, g.r0, b).source[0])
+           for k, (a, b) in SECOND.items()}
+    fig = new_fig()
+
+    # (a) the sample plane, true scale along the beam
+    ax = fig.add_axes([0.06, 0.745, 0.88, 0.15])
+    ax.add_patch(plt.Rectangle((-ftp / 2, -s1h / 2), ftp, s1h, color=FILL['footprint'], lw=0, zorder=1))
+    ax.add_patch(plt.Rectangle((src[use[0]], -s1h / 2), src[use[-1]] - src[use[0]], s1h, color=FILL['seen'],
+                               lw=0, zorder=2))
+    ax.annotate('', xy=(-ftp / 2 - 4, 0), xytext=(-ftp / 2 - 40, 0),
+                arrowprops=dict(arrowstyle='-|>', color=C['beam'], lw=2.0))
+    ax.text(-ftp / 2 - 22, 0.45 * s1h, r'$\mathbf{k}_\mathrm{in}$', color=C['beam'], ha='center', fontsize=11)
+    for x0, below in ((-ftp / 2, True), (ftp / 2, True), (src[use[0]], False), (src[use[-1]], False)):
+        ax.plot([x0, x0], [-s1h / 2, s1h / 2], color='#555555', lw=0.6)
+        ax.text(x0, (-0.62 if below else -1.05) * s1h, '%.1f' % x0, ha='center', va='top', fontsize=8,
+                color='#333333' if below else FILL['seen'])
+    ax.text(0, 0.62 * s1h, 'footprint %.1f mm × %.1f mm' % (ftp, s1h), ha='center', va='bottom', fontsize=9,
+            color='#8A4A20')
+    ax.text(0.5 * (src[use[0]] + src[use[-1]]), 0, 'seen by the\nusable columns', ha='center', va='center',
+            fontsize=8, color='white')
+    for k, (xa, xb) in sec.items():
+        lo, hi = sorted((xa, xb))
+        x_edge = -ftp / 2 - 48 if hi < 0 else ftp / 2 + 48
+        ax.annotate('module-2 columns (%s side)\nlook at x = %.0f…%.0f mm' % (k, lo, hi), xy=(x_edge, 0),
+                    xytext=(x_edge + (-4 if hi < 0 else 4), 0), fontsize=8, ha='right' if hi < 0 else 'left',
+                    va='center', color=C['approx'])
+    ax.set_xlim(-ftp / 2 - 130, ftp / 2 + 130)
+    ax.set_ylim(-1.9 * s1h, 1.3 * s1h)
+    ax.set_xlabel('x along the beam on the sample (mm, true scale)', fontsize=9)
+    ax.set_yticks([-s1h / 2, 0, s1h / 2])
+    ax.set_ylabel('y (mm,\nnot to scale)', fontsize=8)
+    ax.tick_params(labelsize=8)
+    for sp in ('top', 'right'):
+        ax.spines[sp].set_visible(False)
+    ax.set_title('(a) the footprint on the sample (α = %.4f°, S1v = %.2f mm, S1h = %.1f mm)'
+                 % (deg(g.alpha), s1v, s1h), fontsize=10, loc='left')
+
+    # (b) the column axis: what limits the usable columns
+    bx = fig.add_axes([0.06, 0.47, 0.88, 0.19])
+    bars = [('this module', 0 - 0.5, NC - 0.5, FILL['detector']),
+            ('module 2 (low side)?', SECOND['low'][0] - 0.5, SECOND['low'][1] + 0.5, FILL['ghost']),
+            ('module 2 (high side)?', SECOND['high'][0] - 0.5, SECOND['high'][1] + 0.5, FILL['ghost'])]
+    for lab, a0, a1, col in bars:
+        bx.barh(4, a1 - a0, left=a0, height=0.7, color=col, edgecolor='#4A6F96' if col == FILL['detector'] else '#999999')
+        bx.text(0.5 * (a0 + a1), 4, lab, ha='center', va='center', fontsize=8)
+    rows = [(3, 'S5 window (slit size): s5_window', s5lo, s5hi, '#7A7A7A'),
+            (2, 'footprint window, true (ray_geometry)', t_lo, t_hi, FILL['seen']),
+            (1, 'footprint window, reader (PD_PIN_RANGE, centred on c0)', c_lo, c_hi, 'white'),
+            (0, 'usable = S5 ∩ footprint window: usable_columns', use[0] - 0.5, use[-1] + 0.5, '#2A6FD0')]
+    for y, lab, a0, a1, col in rows:
+        bx.barh(y, a1 - a0, left=a0, height=0.55, color=col, alpha=0.85,
+                edgecolor=FILL['seen'] if col == 'white' else 'none', hatch='////' if col == 'white' else None)
+        bx.text(min(a0, a1) - 6, y, lab, ha='right', va='center', fontsize=8, color='#222222')
+        ends = (use[0], use[-1]) if y == 0 else (a0, a1)
+        for xe, v in zip((a0, a1), ends):
+            bx.text(xe, y - 0.42, ('%d' % v) if y == 0 else '%.1f' % v, ha='center', va='top', fontsize=7,
+                    color='#333333')
+    bx.axvline(g.c0, color=C['det'], lw=1.0, ls=(0, (3, 2)))
+    bx.text(g.c0, 4.55, 'c0 = %d (direct beam)' % g.c0, ha='center', va='bottom', fontsize=8, color=C['det'])
+    bx.annotate('', xy=(t_hi, 1.5), xytext=(c_hi, 1.5),
+                arrowprops=dict(arrowstyle='-|>', color='#C0652A', lw=1.2))
+    bx.text(t_hi + 14, 1.5, 'P39: the true window is %.1f columns higher' % (t_hi - c_hi), ha='left',
+            va='center', fontsize=8, color='#C0652A')
+    bx.set_xlim(SECOND['low'][0] - 230, SECOND['high'][1] + 10)
+    bx.set_ylim(-0.9, 5.0)
+    bx.set_yticks([])
+    bx.set_xlabel('column (Det_Th = %.1f°)' % deg(g.dth), fontsize=9, labelpad=1)
+    bx.tick_params(labelsize=8)
+    for sp in ('top', 'right', 'left'):
+        bx.spines[sp].set_visible(False)
+    bx.set_title('(b) which columns can receive light: the S5 slit and the footprint seen through S4',
+                 fontsize=10, loc='left')
+
+    # (c) footprint length against α; (d) the columns that see it
+    alphas = np.radians(np.linspace(0.04, 0.30, 40))
+    cx = fig.add_axes([0.07, 0.262, 0.38, 0.125])
+    dx = fig.add_axes([0.56, 0.262, 0.38, 0.125])
+    for sv, ls in ((0.04, ':'), (0.1, '-'), (0.2, '--')):
+        L = [ph.footprint_length(replace(g, alpha=a), sv, s1s) for a in alphas]
+        cx.plot(np.degrees(alphas), L, color=C['beam'], ls=ls, lw=1.3, label='S1v %.2f mm' % sv)
+        if sv == 0.1:
+            win = [footprint_columns(replace(g, alpha=a), sv, s1s)[:2] for a in alphas]
+            dx.fill_between(np.degrees(alphas), [w[0] for w in win], [w[1] for w in win], color=FILL['seen'],
+                            alpha=0.6, lw=0)
+    cx.axvline(deg(g.alpha), color=C['det'], lw=0.8, ls=(0, (3, 2)))
+    cx.set_yscale('log')
+    cx.set_xlabel('α (°)', fontsize=9, labelpad=1)
+    cx.set_ylabel('footprint length (mm)', fontsize=9)
+    cx.legend(fontsize=7.5, frameon=False)
+    cx.set_title('(c) footprint length = S1v / sin α', fontsize=10, loc='left')
+    dx.axhspan(s5lo, s5hi, color='#7A7A7A', alpha=0.25, lw=0)
+    dx.axhline(SECOND['high'][0], color=C['approx'], lw=0.8, ls='--')
+    dx.axhline(SECOND['low'][1], color=C['approx'], lw=0.8, ls='--')
+    dx.text(np.degrees(alphas[-1]), s5hi, 'S5', ha='right', va='bottom', fontsize=8, color='#555555')
+    dx.text(np.degrees(alphas[-1]), SECOND['high'][0], 'module 2 starts', ha='right', va='bottom', fontsize=8,
+            color=C['approx'])
+    dx.axvline(deg(g.alpha), color=C['det'], lw=0.8, ls=(0, (3, 2)))
+    dx.set_xlabel('α (°)', fontsize=9, labelpad=1)
+    dx.set_ylabel('column', fontsize=9)
+    dx.set_title('(d) columns that see the footprint (S1v %.2f mm)' % s1v, fontsize=10, loc='left')
+    for axx in (cx, dx):
+        axx.tick_params(labelsize=8)
+        for sp in ('top', 'right'):
+            axx.spines[sp].set_visible(False)
+    alpha_reach = None
+    for a in np.radians(np.linspace(0.005, 0.04, 200))[::-1]:
+        lo_c, hi_c, _ = footprint_columns(replace(g, alpha=a), s1v, s1s)
+        if hi_c >= SECOND['high'][0]:
+            alpha_reach = deg(a)
+            break
+    caption(fig, 'Case 7 — The footprint at the usual GID angle, and what makes a column usable',
+            'At the NX GID incidence α = %.4f° with S1 %.2f mm high, the beam lights a strip %.1f mm long '
+            '(S1v / sin α) and %.1f mm wide on the sample (a). Through the S4 pinhole each column sees one point '
+            'of that strip (case 3), so only the columns whose rays start on it receive light: the footprint '
+            'window, columns %.1f to %.1f at Det_Th = %.1f° (b, orange, from ray_geometry). S5, a slit 32 mm in '
+            'front of the detector, independently passes columns %.1f to %.1f (grey). A column is usable when '
+            'both hold: usable_columns = %d…%d (blue): here the low edge is set by S5 (the slit size), the high '
+            'edge by the footprint. P39: the reader\'s footprint window, after Mati Meron\'s PD_PIN_RANGE, has the '
+            'right width but is centred on the direct-beam column c0, giving %.1f to %.1f: %.1f columns too low, '
+            'so columns %d to %d, which do see the footprint, are left out (counts lost, no bias). The 200K\'s '
+            'second module (grey bars) would get no light with these slits: S5 shades both possible positions, '
+            'and through S4 its columns look at points of the beam axis far off the strip (a). How long the strip '
+            'is depends on α and S1 (c); the footprint window widens as α falls (d), reaching the second module\'s '
+            'first column only below α ≈ %s, and even then S5 must be opened for it.\n'
+            'Windows: footprint_window, s5_window, usable_columns; true window and the points in (a): '
+            'ray_geometry(g, r0, c).source; lengths: footprint_length.'
+            % (deg(g.alpha), s1v, ftp, s1h, t_lo, t_hi, deg(g.dth), s5lo, s5hi, use[0], use[-1], c_lo, c_hi,
+               t_hi - c_hi, int(np.floor(c_hi)) + 1, int(np.floor(t_hi)),
+               ('%.3f°' % alpha_reach) if alpha_reach else 'the plotted range'),
+            provenance(f))
+    save(fig, [], os.path.join(out, 'case7_footprint_and_usable_columns.png'))
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     p.add_argument('--out', default=os.path.join(ROOT, 'docs', 'figures', 'pinhole'))
     p.add_argument('--only', type=int, nargs='*', help='case numbers to draw (default: all)')
     args = p.parse_args(argv)
     os.makedirs(args.out, exist_ok=True)
-    cases = [case1, case2, case3, case4, case5, case6]
+    cases = [case1, case2, case3, case4, case5, case6, case7]
     for k, fn in enumerate(cases, 1):
         if not args.only or k in args.only:
             fn(args.out)
