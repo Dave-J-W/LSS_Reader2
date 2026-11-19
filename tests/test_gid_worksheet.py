@@ -202,3 +202,34 @@ def test_scripted_cut_uses_the_pinhole_distance_above_one_degree():
     assert np.diff(a[:, 0]).mean() == pytest.approx(math.degrees(0.172 / 271), rel=5e-3)
     assert np.diff(b[:, 0]).mean() == pytest.approx(math.degrees(0.172 / 551), rel=5e-3)
 
+
+
+@pytest.mark.gui
+@pytest.mark.slow
+@pytest.mark.skipif(not os.path.exists(SPEC), reason='NX_school sample data not present')
+def test_pinhole_join_of_nx_scans_11_and_12(window, qapp, recorder, tmp_path):
+    """F62 on real data: NX scans 11 (low Qz) and 12 (second level) in
+    pinhole mode are joined on one β grid with one factor, logged; 'all'
+    keeps every level's 2θ range with empty cells; Save GID works."""
+    from PyQt5.QtWidgets import QPushButton
+    w = window
+    w.openSpecFile(fname=SPEC)
+    w.directory = str(tmp_path)
+    qapp.processEvents()
+    sweep._select_scans(w, qapp, [10, 11])
+    sweep._select_images(w, qapp)
+    _menu(w, qapp, 'GID Patch')                                # pinhole is the default
+    assert recorder.exceptions == []
+    joins = [j for j in w.gidJoinLog if j['kind'] == 'vertical (beta)']
+    assert len(joins) == 1 and joins[0]['factor'] > 0 and np.isfinite(joins[0]['chi2'])
+    common = w.pilGIDData.shape
+    assert not np.isnan(w.pilGIDData).any()
+    _menu(w, qapp, 'Worksheet')
+    d = w.gidWorksheet
+    d.gidTransverseComboBox.setCurrentIndex(1)                 # all
+    d.findChild(QPushButton, 'gidPatchPushButton').click()
+    qapp.processEvents()
+    assert w.pilGIDData.shape[1] >= common[1] and np.isnan(w.pilGIDData).any()
+    recorder.save_name = str(tmp_path / 'joined')
+    _menu(w, qapp, 'Save GID')
+    assert recorder.exceptions == []

@@ -2025,3 +2025,30 @@ important").
   flagged. At 10 keV, 5 µA/V that is 2.2 × 10⁹ photons/s, 0.05 % of a
   10⁵ Hz reading.
 
+### 2026-11-19 — Joining Qz levels in pinhole mode (F62)
+
+**Built** (`lss_core/pinhole.join_levels`; the pinhole GID patch uses it):
+all levels are binned on one shared 2θ grid (`shared_edges`), so their
+bins coincide and nothing is interpolated in 2θ; each level's rows go onto
+one β grid (step = the largest row step of any level, so no level skips a
+bin), as summed counts and weights; levels are joined in order of β, each
+with one factor fitted on the β overlap within the 2θ bins both have; the
+map is ΣN/ΣW; σ includes each factor's error times its level's share of
+the weight. Range across levels: "common" (default, as IDL `IMG_JOIN`) or
+"all" (union, empty cells where a level has no data; the factor always
+uses the common part). One level alone keeps its own rows.
+
+**Found while testing (synthetic, measured):** summing counts and weights
+over the common 2θ bins before taking the ratio biased the factor by
++2.6 % (1.283 for a true 1.25), because the two levels cover those bins
+with different numbers of frames and a 2θ peak is then weighted
+differently in each. The factor now compares the levels' intensities
+averaged with equal weight over the same cells: 1.25 within its error
+(±0.0004). The legacy vertical join (`imagevjoin`) is unchanged and keeps
+P33's edge copies.
+
+**Checked:** synthetic two-level case (factor, common/all ranges, joined
+map = truth to 1 %, counts conserved); NX scans 11 + 12 in pinhole mode:
+one vertical join logged, no empty cells in "common", "all" has them,
+Save GID works.
+

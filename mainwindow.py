@@ -3124,6 +3124,13 @@ class MainWindow (QMainWindow):
         resp.setCurrentText(gp.response)
         resp.setToolTip('Column response: "fit" estimates each column\'s relative sensitivity from the data (the '
                         'same 2theta is seen by many columns in different frames); "none" takes it as flat.')
+        trans=QComboBox(g)
+        trans.setObjectName('gidTransverseComboBox')
+        trans.addItems(['common','all'])
+        trans.setCurrentIndex(0 if gp.transverse=='intersection' else 1)
+        trans.setToolTip('2theta range of a map joined from several Qz levels: "common", the range every level '
+                         'covers (as IDL IMG_JOIN); "all", every level\'s range, empty where a level has no data. '
+                         'The join factor always uses the common range only.')
         minf=spin('gidMinFramesSpinBox',1,50,gp.min_frames,'2theta bins seen by fewer frames than this are left out: '
                   'at the map edges a bin is seen only through the weakest columns of one or two frames.')
         arm=QCheckBox('Arm correction',g)
@@ -3145,6 +3152,7 @@ class MainWindow (QMainWindow):
         form.addRow('S4-detector (mm)',prow)
         form.addRow('Column response',resp)
         form.addRow('Frames per bin, at least',minf)
+        form.addRow('2theta range across levels',trans)
         form.addRow(arm)
         lay.addWidget(g)
         levels=QLabel('',d)
@@ -3184,9 +3192,10 @@ class MainWindow (QMainWindow):
                                             polarisation=pol.isChecked(),vjoin_kind=kind.currentText(),
                                             pinhole=pin.isChecked(),pinhole_distance_mm=pdist.value(),
                                             response=resp.currentText(),arm_correction=arm.isChecked(),
-                                            min_frames=minf.value())
+                                            min_frames=minf.value(),
+                                            transverse='intersection' if trans.currentIndex()==0 else 'union')
             hard.setEnabled(area.isChecked())
-            for w in (pdist,resp,arm,fit,minf):
+            for w in (pdist,resp,arm,fit,minf,trans):
                 w.setEnabled(pin.isChecked())
             cols.setEnabled(not pin.isChecked())
 
@@ -3203,6 +3212,7 @@ class MainWindow (QMainWindow):
             resp.setCurrentText(dflt.response)
             arm.setChecked(dflt.arm_correction)
             minf.setValue(dflt.min_frames)
+            trans.setCurrentIndex(0)
             apply()
 
         def fitdist():
@@ -3219,6 +3229,7 @@ class MainWindow (QMainWindow):
         kind.currentIndexChanged.connect(apply)
         pdist.valueChanged.connect(apply)
         minf.valueChanged.connect(apply)
+        trans.currentIndexChanged.connect(apply)
         pin.toggled.connect(apply)
         arm.toggled.connect(apply)
         resp.currentIndexChanged.connect(apply)
@@ -3233,6 +3244,7 @@ class MainWindow (QMainWindow):
         d.gidLevelsLabel,d.gidJoinTable=levels,t
         d.gidPinholeCheckBox,d.gidPinholeDistSpinBox,d.gidResponseComboBox,d.gidArmCheckBox=pin,pdist,resp,arm
         d.gidFitDistancePushButton,d.gidFitLabel=fit,fitl
+        d.gidTransverseComboBox,d.gidMinFramesSpinBox=trans,minf
         return d
 
     def gidWorksheetPatch(self):
@@ -3455,9 +3467,9 @@ class MainWindow (QMainWindow):
         self.pilGIDXAxs, self.pilGIDYAxs=np.meshgrid(pilGIDXAxis,pilGIDYAxis) # mesh the x-y corrdinates
         self.pilGIDData=np.array([np.hstack(self.pilPatchData[i][:,2]) for i in range(len(self.pilPatchData))]).T  # get z-axis 
         self.pilGIDDataErr=np.array([np.hstack(self.pilPatchData[i][:,3]) for i in range(len(self.pilPatchData))]).T  # get error bars
-        self.imageMax=np.max(self.pilGIDData)
+        self.imageMax=np.nanmax(self.pilGIDData)     # nan-aware: the pinhole 'all' range leaves cells empty
         #self.imageMin=max(1e-10,np.min(self.pilGIDData))
-        self.imageMin=np.min(self.pilGIDData[np.nonzero(self.pilGIDData)])
+        self.imageMin=np.nanmin(self.pilGIDData[np.nonzero(np.nan_to_num(self.pilGIDData))])
         self.ui.pilMaxLineEdit.setText(str(self.imageMax)) #set the vmax/vmin in the lineedit and slider 
         self.ui.pilMinLineEdit.setText(str(self.imageMin))
         self.ui.pilMaxHorizontalSlider.setValue(int(float(self.ui.pilMaxLineEdit.text())*100/(self.imageMax-self.imageMin)))
@@ -3468,16 +3480,17 @@ class MainWindow (QMainWindow):
 
     def gidPinholePatch(self):
         """GID patch in pinhole geometry (F45; lss_core.pinhole): every
-        usable column at its own 2θ, binned as ΣN/ΣW per Qz level; levels
-        joined vertically as in the legacy patch."""
+        usable column at its own 2θ, binned as ΣN/ΣW per Qz level on one
+        shared 2θ grid; levels joined on a common β grid with one factor
+        each (F62, pinhole.join_levels)."""
         gp=self.gidParams
         qzfmt='.%df' % gp.qz_decimals
         levels={}
         for j,i in enumerate(self.selectedPilFramesNums):
             levels.setdefault(float(format(self.pilFileQzs[i],qzfmt)),[]).append((j,i))
         names=['low Qz','middle Qz','high Qz']+['Qz level %d' % k for k in range(4,20)]
-        maps=[]
         self.gidPinholeInfo=[]
+        byqz={}
         for k,qz in enumerate(sorted(levels)):
             frames=[]
             for j,i in levels[qz]:
@@ -3493,24 +3506,28 @@ class MainWindow (QMainWindow):
                           float(self.pil_Dist[i]),dp)
                 frames.append(pinhole.PinholeFrame(np.asarray(self.pilData[i],float),float(self.pilMonc[i]),g,areainfo,
                                                    (p['S5L'],p['S5R']),p.get('g_l2',0.0)-p.get('g_l1',0.0),int(scan)))
-            self.gidJoinLabel=names[k]
+            byqz[k]=frames
+        edges=pinhole.shared_edges([f for k in byqz for f in byqz[k]])
+        infos=[]
+        for k in sorted(byqz):
+            frames=byqz[k]
             tt,beta,I,S,info=pinhole.level_map(frames,gp.row_min,gp.row_max,response=gp.response,
                                                area=gp.area_correction,pol=gp.polarisation,log=self.gidJoinLog,
-                                               min_frames=gp.min_frames)
+                                               min_frames=gp.min_frames,edges=edges)
             for e in self.gidJoinLog:
                 e.setdefault('label',names[k])
             self.gidPinholeInfo.append(dict(level=names[k],**info))
-            maps.append([np.vstack((np.full(len(beta),t),beta,I[b],S[b])).T for b,t in enumerate(tt)])
+            infos.append(info)
             keys=sorted(set(f.scan for f in frames))
             self.gidLevels.append((names[k],keys,len(frames),float(tt.min()),float(tt.max())))
-        self.pilPatchData=maps[0]
-        for k,m in enumerate(maps[1:]):
-            self.gidJoinLabel=names[0]+' + '+names[k+1]
-            try:
-                self.pilPatchData=self.imagevjoin(self.pilPatchData,m)
-            except Exception:
-                self.messageBox('Warning: the Qz levels could not be joined vertically (no common range).')
-                return
+        try:
+            tt,beta,I,S,jinfo=pinhole.join_levels(infos,transverse=gp.transverse,log=self.gidJoinLog,
+                                                  labels=[names[k] for k in sorted(byqz)])
+        except ValueError as e:
+            self.messageBox('The Qz levels could not be joined: %s.' % e)
+            return
+        self.gidJoinInfo=jinfo
+        self.pilPatchData=[np.vstack((np.full(len(beta),t),beta,I[b],S[b])).T for b,t in enumerate(tt)]
         self.gidFinishMap()
 
     def gidFitPinholeDistance(self):

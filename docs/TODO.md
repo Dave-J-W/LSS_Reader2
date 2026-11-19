@@ -121,8 +121,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [x] F45 pinhole correction, first version (2026-11-18): worksheet switch,
       off by default; physics_notes 2026-11-18.
 - [x] Pinhole the default (D40), P32 and P34 fixed (2026-11-18).
-- [ ] GID next: F62 flexible overlaps between Qz levels (common range,
-      count-over-weight overlap).
+- [x] F62 flexible overlaps between Qz levels, pinhole mode (2026-11-19).
 - [x] Distances settled (owner, 2026-11-18): 551 sample→detector, 271
       S4→detector, 556 = g_l3 (sample → output-arm rotation centre).
 - [ ] Owner (IDL review §8): the missing routines `SCAN_PD_READ`,

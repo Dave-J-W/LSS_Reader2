@@ -266,8 +266,26 @@ class PinholeFrame:
     scan: int
 
 
+def frame_range(f, ncols):
+    """(lowest, highest) 2θ (degrees) of the usable columns of frame ``f``."""
+    cols = usable_columns(f.geom, ncols, f.s5[0], f.s5[1], f.areainfo[1], f.s1_to_sample_mm)
+    t = np.degrees(column_two_theta(ncols, f.geom))[cols]
+    return float(t.min()), float(t.max())
+
+
+def shared_edges(frames, step_deg=0.0):
+    """One 2θ grid (bin edges, degrees) for all ``frames`` (all Qz levels),
+    one column wide (p/D_p) unless ``step_deg`` is given, so the levels'
+    bins coincide and need no interpolation when they are joined."""
+    ncols = frames[0].counts.shape[1]
+    step = step_deg if step_deg > 0 else math.degrees(PIXEL_MM / frames[0].geom.d_pinhole)
+    r = [frame_range(f, ncols) for f in frames]
+    lo, hi = min(a for a, _ in r), max(b for _, b in r)
+    return lo - step / 2 + step * np.arange(int(math.ceil((hi - lo) / step)) + 2)
+
+
 def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_step_deg=0.0, log=None,
-              min_frames=2):
+              min_frames=2, edges=None):
     """Pinhole map of one Qz level: every usable column at its own 2θ,
     binned as ΣN/ΣW; scans of the level joined by one factor each (fitted on
     the rows-summed profiles over their common bins, as the window's
@@ -275,7 +293,8 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     beta_deg (rows), I (bins, rows), σ (bins, rows), info). I is per monitor
     count times the level's mean monitor, like the window's GID map. Bins
     seen by fewer than ``min_frames`` frames (the edges, through the weakest
-    columns only) are left out."""
+    columns only) are left out. ``edges``: a 2θ grid shared with other
+    levels (``shared_edges``); by default the level's own."""
     ncols = frames[0].counts.shape[1]
     nrows = frames[0].counts.shape[0]
     g0 = frames[0].geom
@@ -290,8 +309,12 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
         w.append(frame_weights(f.geom, nrows, ncols, f.monitor, f.areainfo, row_lo, row_hi, area, pol))
     theta, n, w = np.array(theta), np.array(n), np.array(w)
     n = np.where(np.isfinite(theta)[:, None, :], np.clip(n, 0, None), 0.0)   # masked pixels (< 0) count nothing
-    lo, hi = np.nanmin(theta), np.nanmax(theta)
-    edges = lo - step / 2 + step * np.arange(int(math.ceil((hi - lo) / step)) + 2)
+    if edges is None:
+        lo, hi = np.nanmin(theta), np.nanmax(theta)
+        edges = lo - step / 2 + step * np.arange(int(math.ceil((hi - lo) / step)) + 2)
+    else:
+        edges = np.asarray(edges, float)
+        step = float(edges[1] - edges[0])
     thet = np.where(np.isfinite(theta), theta, -1e9)
     r = column_response(thet, n, w, edges) if response == 'fit' else np.ones(ncols)
     w = w * r[None, None, :]
@@ -326,7 +349,121 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     beta = np.degrees(row_beta(nrows, g0))[row_lo:row_hi + 1]
     info = dict(response=r, factors=factors, step_deg=step, counts_used=float(n.sum()),
                 sum_counts=sn[keep], sum_weights=sw[keep], frames_per_bin=nframes[keep],
+                edges=edges, keep=keep, all_counts=sn, all_weights=sw, beta=beta, mean_monitor=mean_m,
                 columns=[(int(np.nanargmin(t)) if np.isfinite(t).any() else -1,
                           int(np.nanargmax(t)) if np.isfinite(t).any() else -1) for t in theta])
     return centres[keep], beta, i[keep] * mean_m, s[keep] * mean_m, info
+
+
+def join_levels(levels, transverse='intersection', log=None, labels=None):
+    """Join the maps of several Qz levels (``level_map`` infos on one shared
+    2θ grid) into one map (F62; the review's §7.2 step 8, after IDL's
+    IMG_JOIN):
+
+    - every level's rows are put on one β grid (nearest bin; the step is
+      the largest row step of any level, so no level skips a bin), as summed
+      counts and weights, so nothing is interpolated; β bins no level
+      reaches are dropped;
+    - levels are taken in order of their lowest β; each is scaled by one
+      factor, fitted on the β overlap with what is joined so far: per β bin
+      the two intensity profiles are averaged over the same cells (2θ bins
+      both have), with equal weight per cell — summing counts and weights
+      instead would weight a 2θ feature differently in each level and bias
+      the factor — and the weighted mean of their ratios is applied to the
+      level's weights;
+    - the map is ΣN/ΣW over all levels; σ adds, to the counting error, each
+      factor's relative error times its level's share of the weight;
+    - ``transverse``: 'intersection' (IDL) keeps the 2θ bins every level
+      has; 'union' keeps all, NaN where no level has data at that β.
+
+    Returns (two_theta_deg, beta_deg, I (bins, β), σ, info); I is per
+    monitor count × the mean monitor of all levels."""
+    if len(levels) == 1:                                 # nothing to join: the level's own rows
+        lv = levels[0]
+        k = lv['keep']
+        m = lv['mean_monitor']
+        with np.errstate(invalid='ignore', divide='ignore'):
+            i = lv['all_counts'][k] / lv['all_weights'][k]
+            s = np.sqrt(lv['all_counts'][k]) / lv['all_weights'][k]
+        c = 0.5 * (lv['edges'][:-1] + lv['edges'][1:])[k]
+        return c, lv['beta'], i * m, s * m, dict(factors={}, transverse=transverse,
+                                                  sum_counts=lv['all_counts'][k], sum_weights=lv['all_weights'][k])
+    edges = levels[0]['edges']
+    for lv in levels[1:]:
+        if len(lv['edges']) != len(edges) or not np.allclose(lv['edges'], edges):
+            raise ValueError('the levels are not on one 2theta grid (use shared_edges)')
+    nb = len(edges) - 1
+    bstep = max(float(np.max(np.abs(np.diff(lv['beta'])))) for lv in levels)
+    blo = min(float(lv['beta'].min()) for lv in levels)
+    bhi = max(float(lv['beta'].max()) for lv in levels)
+    bedges = blo - bstep / 2 + bstep * np.arange(int(math.ceil((bhi - blo) / bstep)) + 2)
+    nbeta = len(bedges) - 1
+    order = sorted(range(len(levels)), key=lambda k: float(levels[k]['beta'].min()))
+    labels = labels or ['level %d' % (k + 1) for k in range(len(levels))]
+    rebinned = []
+    for lv in levels:
+        j = np.clip(np.digitize(lv['beta'], bedges) - 1, 0, nbeta - 1)
+        n = np.zeros((nb, nbeta))
+        w = np.zeros((nb, nbeta))
+        kept = lv['keep']
+        for r in range(len(j)):
+            n[kept, j[r]] += lv['all_counts'][kept, r]
+            w[kept, j[r]] += lv['all_weights'][kept, r]
+        rebinned.append((n, w, kept))
+    k0 = order[0]
+    nc, wc = rebinned[k0][0].copy(), rebinned[k0][1].copy()
+    have = rebinned[k0][2].copy()
+    every = rebinned[k0][2].copy()
+    factors = {labels[k0]: (1.0, 0.0)}
+    shares = [(wc.copy(), 0.0)]
+    for k in order[1:]:
+        n, w, kept = rebinned[k]
+        common = have & kept
+        if not common.any():
+            raise ValueError('%s has no 2theta bins in common with the levels below it' % labels[k])
+        cells = common[:, None] & (wc > 0) & (w > 0)
+        m = cells.sum(axis=0)
+        with np.errstate(invalid='ignore', divide='ignore'):
+            sa = np.where(cells, wc, 1.0)
+            sb = np.where(cells, w, 1.0)
+            pa = np.where(cells, nc / sa, 0.0).sum(axis=0) / np.maximum(m, 1)        # mean intensity per β bin
+            pb = np.where(cells, n / sb, 0.0).sum(axis=0) / np.maximum(m, 1)
+            va = np.where(cells, nc / sa ** 2, 0.0).sum(axis=0) / np.maximum(m, 1) ** 2
+            vb = np.where(cells, n / sb ** 2, 0.0).sum(axis=0) / np.maximum(m, 1) ** 2
+        ok = (m > 0) & (pa > 0) & (pb > 0)
+        if not ok.any():
+            raise ValueError('%s does not overlap in beta with the levels below it' % labels[k])
+        ratio = pa[ok] / pb[ok]
+        err = ratio * np.sqrt(va[ok] / pa[ok] ** 2 + vb[ok] / pb[ok] ** 2)
+        wt = 1 / err ** 2
+        fac = float(np.sum(wt * ratio) / np.sum(wt))
+        ferr = float(np.sum(wt) ** -0.5)
+        chi2 = float(np.sum(wt * (ratio - fac) ** 2) / max(ok.sum() - 1, 1))
+        factors[labels[k]] = (fac, ferr)
+        if log is not None:
+            x = 0.5 * (bedges[:-1] + bedges[1:])[ok]
+            log.append(dict(label=' + '.join(labels[i] for i in order[:order.index(k) + 1]),
+                            kind='vertical (beta)', x_from=float(x.min()), x_to=float(x.max()),
+                            points=int(ok.sum()), factor=fac, error=ferr, chi2=chi2))
+        w = w / fac
+        shares.append((w.copy(), ferr / fac))
+        nc += n
+        wc += w
+        have |= kept
+        every &= kept
+    mean_m = float(np.mean([lv['mean_monitor'] for lv in levels]))
+    with np.errstate(invalid='ignore', divide='ignore'):
+        i = np.where(wc > 0, nc / wc, np.nan)
+        s = np.where(wc > 0, np.sqrt(nc) / wc, np.nan)
+        frac = sum(np.where(wc > 0, w_k / np.where(wc > 0, wc, 1), 0.0) * rel for w_k, rel in shares)
+    s = np.sqrt(s ** 2 + (i * frac) ** 2)
+    sel = every if transverse == 'intersection' else have
+    if not sel.any():
+        raise ValueError('the levels have no 2theta range in common')
+    rows = (wc[sel] > 0).any(axis=0)                     # β bins some level reaches
+    centres = 0.5 * (edges[:-1] + edges[1:])
+    bcent = 0.5 * (bedges[:-1] + bedges[1:])
+    info = dict(factors=factors, beta_step_deg=bstep, transverse=transverse,
+                sum_counts=nc[sel][:, rows], sum_weights=wc[sel][:, rows])
+    return centres[sel], bcent[rows], i[sel][:, rows] * mean_m, s[sel][:, rows] * mean_m, info
 

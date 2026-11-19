@@ -153,3 +153,73 @@ def test_nx_scan_11_pinhole_map():
     dth = np.degrees([f.geom.dth for f in fr])
     d, err, slope, n = ph.fit_pinhole_distance(prof, dth, 47, tt[k], 271.0, (30, 100))
     assert 262 < d < 280
+
+
+# ---- joining Qz levels (F62) ---------------------------------------------------
+
+def _level(dths, beta0_deg, eff, truth, rng, monitor=1e6):
+    """Frames of one Qz level: counts = Poisson(M · eff · truth(2θ_c, β_r))."""
+    out = []
+    for d in dths:
+        g = ph.FrameGeometry(dth=math.radians(d), alpha=math.radians(0.09), beta0=math.radians(beta0_deg),
+                             c0=47.0, r0=53.0, d_sample=551.0, d_pinhole=271.0, g_l3=556.0, wavelength=1.24)
+        tt = np.degrees(ph.column_two_theta(NC, g))
+        bb = np.degrees(ph.row_beta(NR, g))
+        mu = monitor * eff * truth(tt[None, :], bb[:, None])
+        out.append(ph.PinholeFrame(rng.poisson(mu).astype(float), monitor, g,
+                                   (2.0, 0.1, 0.2, math.radians(0.09), 551.0, 271.0), (3.0, 14.0), 678.0, 1))
+    return out
+
+
+def _two_levels(seed=11):
+    rng = np.random.default_rng(seed)
+    truth = lambda t, b: 2e-4 * (1 + 2 * np.exp(-((t - 16.5) / 0.3) ** 2)) * (1 + 0.1 * b)
+    a = _level(np.arange(14.0, 17.01, 0.1), 0.09, 1.0, truth, rng)
+    b = _level(np.arange(15.0, 18.51, 0.1), 3.0, 0.8, truth, rng)      # monitor reads high: factor 1.25
+    edges = ph.shared_edges(a + b)
+    infos = [ph.level_map(x, 15, 486, response='none', area=False, pol=False, edges=edges)[4] for x in (a, b)]
+    return truth, infos, edges
+
+
+def test_join_recovers_the_factor_and_the_ranges():
+    """T10: levels with different 2θ extents and β ranges; the factor (truth
+    1.25) is fitted on the β overlap within the common 2θ range; 'common'
+    keeps the 2θ range both cover, 'all' the union with empty cells."""
+    truth, infos, edges = _two_levels()
+    log = []
+    tt, beta, I, S, info = ph.join_levels(infos, 'intersection', log=log, labels=['low', 'high'])
+    fac, err = info['factors']['high']
+    assert fac == pytest.approx(1.25, abs=3 * err) and err < 0.01
+    assert len(log) == 1 and log[0]['kind'] == 'vertical (beta)' and np.isfinite(log[0]['chi2'])
+    a_lo, a_hi = infos[0]['edges'][:-1][infos[0]['keep']][[0, -1]]
+    b_lo, b_hi = infos[1]['edges'][:-1][infos[1]['keep']][[0, -1]]
+    step = edges[1] - edges[0]
+    assert tt[0] == pytest.approx(max(a_lo, b_lo) + step / 2) and tt[-1] == pytest.approx(min(a_hi, b_hi) + step / 2)
+    assert beta[0] < 0.0 < 3.5 < beta[-1]                              # both levels' β ranges
+    assert not np.isnan(I).any()                                      # common range: every cell has data
+    tu, bu, Iu, Su, iu = ph.join_levels(infos, 'union')
+    assert tu[0] < tt[0] and tu[-1] > tt[-1] and np.isnan(Iu).any()
+    mean_m = 1e6
+    rel = (I / mean_m) / truth(tt[:, None], beta[None, :])            # the joined map is the truth
+    assert np.nanmean(rel) == pytest.approx(1.0, abs=0.01)
+
+
+def test_join_conserves_counts():
+    truth, infos, edges = _two_levels(seed=5)
+    tu, bu, Iu, Su, iu = ph.join_levels(infos, 'union')
+    total = sum(lv['all_counts'][lv['keep']].sum() for lv in infos)
+    assert iu['sum_counts'].sum() == pytest.approx(total)
+
+
+def test_levels_must_share_the_grid():
+    truth, infos, edges = _two_levels()
+    other = dict(infos[1], edges=infos[1]['edges'] + 0.01)
+    with pytest.raises(ValueError):
+        ph.join_levels([infos[0], other])
+
+
+def test_one_level_is_returned_as_it_is():
+    truth, infos, edges = _two_levels()
+    tt, beta, I, S, info = ph.join_levels(infos[:1])
+    assert len(beta) == 472 and I.shape == (infos[0]['keep'].sum(), 472)
+

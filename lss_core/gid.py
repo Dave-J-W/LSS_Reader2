@@ -24,7 +24,9 @@ the GID worksheet (F61). Where each one acts:
   is how GID is measured); off gives the patch above exactly as before. ``pinhole_distance_mm``: S4 → detector, 0 for the header
   value; ``response``: 'fit' or 'none' (column response);
   ``arm_correction``: the g_l3 term in the vertical distance;
-  ``min_frames``: 2θ bins seen by fewer frames are left out (map edges).
+  ``min_frames``: 2θ bins seen by fewer frames are left out (map edges);
+  ``transverse``: 2θ range of a map joined from several Qz levels,
+  'intersection' (common to all, IDL) or 'union' (F62).
 """
 from dataclasses import dataclass, fields
 
@@ -45,6 +47,7 @@ class GIDParams:
     response: str = 'fit'
     arm_correction: bool = True
     min_frames: int = 2
+    transverse: str = 'intersection'
 
     def changed(self):
         """Names of the settings that differ from the defaults."""
