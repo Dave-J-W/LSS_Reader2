@@ -131,8 +131,8 @@ where those columns look.
 
 ## Provenance and credit
 
-`tests/tools/pinhole_figures.py`, made with lss_core as of the commit that
-adds `pinhole.ray_geometry` (parent e95cb9b; the figures' header prints
+`tests/tools/pinhole_figures.py`, made with lss_core at commit 3eb11aa (the commit
+that adds `pinhole.ray_geometry`; each figure's header prints
 `git describe`), 2026-11-19, from the public NX school data. The exact
 pixel transform is Mati Meron's IMG_COO_CONV (version 7.1, horizontal
 pinhole configuration; `docs/reference_code/idl/img_coo_conv.pro`), ported
