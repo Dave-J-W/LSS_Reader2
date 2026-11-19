@@ -2631,3 +2631,46 @@ trigonometry in `tests/test_pinhole.py`).**
 No existing result changes: `pixel_angles`, `footprint_window`,
 `usable_columns`, `s5_window`, `ray_geometry` (offset 0) are bit-identical
 over 3000 random geometries (compared before and after, 2026-11-19).
+
+### 2026-11-19 — What a Gaussian beam does to the pinhole geometry
+
+**Q (owner).** What effect does the roughly Gaussian beam intensity have on
+the pinhole geometry? Vertical FWHM about 30 µm; horizontal Gaussian-like,
+FWHM about 1 mm.
+
+**A (computed, `tests/tools/pinhole_beam_profile.py`, NX scan 11, α =
+0.0905°, S1v 0.10 mm, S4 0.2 mm).**
+- The reader takes the footprint as uniform over S1v / sin α = 63.3 mm. A
+  30 µm beam is well inside S1's 0.1 mm, so the light on the surface is a
+  Gaussian along the beam of FWHM 30 µm / sin α = **19.0 mm**; S4's opening
+  and the 1 mm horizontal width seen along each column's line of sight
+  (σ_h / tan 2θ) widen it only to 19.3 mm. The horizontal width does not
+  change any column's 2θ: every source on the line through S4 and the pixel
+  gives the same in-plane angle; it only smears which points of the beam axis
+  a column sees.
+- Through S4 each column sees one stretch of the beam axis, so the light per
+  column follows that Gaussian: half or more of the peak in columns 33–62
+  (peak at the direct-beam column), while the reader treats 28–96 as evenly
+  lit (its windows assume the uniform footprint).
+- **The fitted column response is this beam profile.** On NX scan 11 the
+  response fitted from the data is a Gaussian of FWHM 35.9 columns on a flat
+  part of 41 % of its peak; the beam profile predicts 30.1 columns. Its centre
+  is at column 54.7 against 47.4 predicted: 7 columns, about 4.5 mm along the
+  beam, which a beam about 7 µm above the sample's centre height would give
+  (4.5 mm × sin α); not checked. The flat part is not explained by the beam
+  profile (a wider tail, or light scattered elsewhere).
+- **Bias left in the map.** The fitted response is one factor per column for
+  all frames, but a column looks at a different point of the beam axis at
+  each Det_Th, so with a narrow beam its light changes from frame to frame.
+  Synthetic frames lit by the Gaussian beam (expected counts, flat truth),
+  patched with the fitted response: interior of the map (14.3–17.7°, 11–25
+  frames per bin) 0.93–1.04 of the truth for a 30 µm beam, 0.97–1.03 for
+  60 µm; edges of the map (bins seen by a few frames through dim columns)
+  0.71–2.8 and 0.91–1.37. With a uniform footprint the same test gives 1.000.
+- **Remedy (proposed, not built):** fit the response as a function of the
+  source point on the beam axis (ray_geometry's source x, one profile shared
+  by all frames: the beam's own profile), not of the column; or a Gaussian
+  beam of fitted centre and width. Either keeps the map unbiased when the
+  column-to-source mapping changes with Det_Th, and also gives the beam's
+  position on the sample.
+
