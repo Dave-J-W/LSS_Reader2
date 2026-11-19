@@ -1,0 +1,129 @@
+{
+ "spec": "sample_data/NX_school/2026sep/20260923",
+ "scans": [
+  11,
+  12
+ ],
+ "k": 0.3972800086717279,
+ "sigma_ratio_equal_bins_median": {
+  "qxy_profile": 2.1061458437549856,
+  "qz_profile": 3.0429052876603
+ },
+ "common_qxy": [
+  1.235170628803421,
+  1.3805924864783672
+ ],
+ "common_qz": [
+  -0.04367908934585772,
+  1.221053918171518
+ ],
+ "low_level_top_qz": 0.5228093022479635,
+ "peaks": {},
+ "counts": {
+  "legacy": 35307.0,
+  "pinhole": 603272.0
+ },
+ "joins": {
+  "legacy": [
+   {
+    "label": "low + middle Qz",
+    "kind": "vertical (beta)",
+    "x_from": 5.830431486964455,
+    "x_to": 7.770776049830881,
+    "points": 111,
+    "factor": 0.8995818142710971,
+    "error": 0.04837440992072783,
+    "chi2": 9.164247110296959
+   }
+  ],
+  "pinhole": [
+   {
+    "label": "low Qz + middle Qz",
+    "kind": "vertical (beta)",
+    "x_from": 6.1405694363145695,
+    "x_to": 7.625058576837189,
+    "points": 84,
+    "factor": 1.096511584567041,
+    "error": 0.013326775390588852,
+    "chi2": 0.8321169462215491
+   }
+  ]
+ },
+ "levels": {
+  "legacy": [
+   [
+    "low Qz",
+    "[11]",
+    "41",
+    "14.0",
+    "18.0"
+   ],
+   [
+    "middle Qz",
+    "[12]",
+    "4",
+    "14.0",
+    "14.3"
+   ]
+  ],
+  "pinhole": [
+   [
+    "low Qz",
+    "[11]",
+    "41",
+    "13.403432857399693",
+    "19.803646279613815"
+   ],
+   [
+    "middle Qz",
+    "[12]",
+    "4",
+    "13.403432857399693",
+    "15.80351289072999"
+   ]
+  ]
+ },
+ "table": [
+  [
+   "Q map bins (Qxy \u00d7 Qz)",
+   "39 \u00d7 833",
+   "63 \u00d7 808"
+  ],
+  [
+   "Qxy range (\u00c5\u207b\u00b9)",
+   "1.235 \u2013 1.568",
+   "1.183 \u2013 1.381"
+  ],
+  [
+   "Qxy step (\u00c5\u207b\u00b9)",
+   "0.0088",
+   "0.0032"
+  ],
+  [
+   "Qz range (\u00c5\u207b\u00b9)",
+   "-0.044 \u2013 1.251",
+   "-0.044 \u2013 1.221"
+  ],
+  [
+   "2\u03b8 range (\u00b0)",
+   "14.00 \u2013 18.00",
+   "13.40 \u2013 15.80"
+  ],
+  [
+   "raw counts used",
+   "3.53e+04",
+   "6.03e+05"
+  ],
+  [
+   "Qz join (levels) factor",
+   "0.900 \u00b1 0.048 (\u03c7\u00b2 9.16)",
+   "1.097 \u00b1 0.013 (\u03c7\u00b2 0.83)"
+  ],
+  [
+   "scale k (legacy \u2192 pinhole)",
+   "0.397",
+   "1"
+  ]
+ ],
+ "command": "python tests/tools/gid_compare_figures.py --scans 11,12 --peak none --note not like for like: scan 12 stopped after 4 frames --out docs/figures/gid_compare"
+}
