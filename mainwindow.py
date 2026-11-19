@@ -1674,6 +1674,7 @@ class MainWindow (QMainWindow):
             rng=str(self.ui.mcaRanLineEdit.text()).split(':')
             self.mcaSumScript=(sorted(int(n) for n in self.selectedScanNums),float(rng[0]),float(rng[1]),
                                len(self.selectedMcaScanNums)==self.ui.imageListWidget.count())
+            self.mcaMerges=[]       # Merge actions since this Sum All, for the Script pane
             self.command='Flu Sum, scans=['+listText(np.sort(self.selectedScanNums))+'], energy range=['+str(ini)+':'+str(fin)+']'
             self.ui.commandLineEdit.setText(self.command)
         except:
@@ -1750,7 +1751,19 @@ class MainWindow (QMainWindow):
     def mcaIntMergeDia(self):
         Dialog=QDialog(self)
         self.uimcamerge=uic.loadUi(resource('mcamerge.ui'), Dialog)
-        self.uimcamerge.label.setText('Please provide the resolution of x')
+        self.uimcamerge.label.setText('Merge window')
+        x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
+        rows=getattr(self,'mcaIntData',None)
+        default=fluorescence.default_merge_window(rows,x) if rows is not None and len(rows) else 0.0
+        self.uimcamerge.resLineEdit.setText('%.6g' % default)
+        self.uimcamerge.resLineEdit.setToolTip(
+            'Points closer than this on the x axis are merged, as one longer measurement: weights y/sigma^2, which '
+            'for counting errors is total counts over total monitor. Default on the Qz axis: 0.1 x the Qz grid step '
+            '(%s), so only repeats of one target Qz merge (owner\'s XFNTR rule); on the frame and energy axes 0. '
+            'On the Qz axis the Qz jitter, %.0e 1/A, is added to the error bars: sigma(I)/I = |d ln I/dQz| x jitter, '
+            'which matters only within a step or two of the edge. Choose scans of one run, wavelength, sample and '
+            'signal shape: the reader does not check.' % ('%.4g 1/A' % (default/0.1) if x=='qz' and default else
+                                                           'not known', fluorescence.QZ_JITTER))
         self.uimcamerge.show()
         # self.connect(self.uimcamerge.cancelPushButton, SIGNAL('clicked()'), self.mcaMergeDiaClose)
         self.uimcamerge.cancelPushButton.clicked.connect(self.mcaMergeDiaClose)
@@ -1762,41 +1775,17 @@ class MainWindow (QMainWindow):
         
     
     def mcaIntMerge(self):
-        self.mcaSumScript=None   # the intensities no longer come from one Sum All
-        resolution=float(self.uimcamerge.resLineEdit.text())
         try:
-            if self.ui.mcaXAxisComboBox.currentIndex()==0:
-                index=0
-            elif self.ui.mcaXAxisComboBox.currentIndex()==1:
-                index=1
-            else:
-                index=2
-            self.mcaIntData=np.array(self.mcaIntData)
-            self.mcaIntData=self.mcaIntData[np.argsort(self.mcaIntData[:,index])]
-           # print self.mcaIntData
-            data=[self.mcaIntData[0]]
-           # print data
-           # print data[-1]
-            for i in range(1,len(self.mcaIntData)):
-                if np.abs(self.mcaIntData[i][index]-data[-1][index])<=resolution:
-                    a = data[-1][3] ** 2 / data[-1][4] ** 2
-                    b = self.mcaIntData[i][3] ** 2 / self.mcaIntData[i][4] ** 2
-                    c = data[-1][3] / data[-1][4] ** 2
-                    d = self.mcaIntData[i][3] / self.mcaIntData[i][4] ** 2
-                    data[-1][3] = (a + b) / (c + d)
-                    data[-1][4] = np.sqrt((a + b) / (c + d) ** 2)
-                else:
-                    data=np.vstack((data,self.mcaIntData[i]))
-            self.mcaIntData=data
+            resolution=float(self.uimcamerge.resLineEdit.text())
+            x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
+            self.mcaIntData=fluorescence.merge_rows(self.mcaIntData,x,resolution)
+            if getattr(self,'mcaSumScript',None):
+                self.mcaMerges=getattr(self,'mcaMerges',[])+[(resolution,x)]
             self.uimcamerge.close()
             self.updateMcaInt()
-        except:
+        except Exception:
             self.messageBox('no mca integral data to process.')
-            
-                
-                    
-    
-     
+
     def mcaDelIntData(self):
         self.mcaSumScript=None   # the intensities no longer come from one Sum All
         items=self.ui.mcaDataListWidget.selectedItems()
@@ -1850,7 +1839,8 @@ class MainWindow (QMainWindow):
             kw.append('per_photon=True' if self.mcaGainUsed=='photons' else 'monitor_gain=True')
         x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
         head='from lss_core import absorbers\n' if isinstance(getattr(self,'mcaAbsfacUsed',None),absorbers.Foils) else ''
-        return head+'flu = exp.fluorescence(%r, %s)\nflu.save(%r, x=%r)' % (scans,', '.join(kw),name,x)
+        merges=''.join('flu.merge(%r, x=%r)\n' % m for m in getattr(self,'mcaMerges',[]))
+        return head+'flu = exp.fluorescence(%r, %s)\n%sflu.save(%r, x=%r)' % (scans,', '.join(kw),merges,name,x)
 
     def addMcaFiles(self): #add mca files with integral intensity in the list
         f=QFileDialog.getOpenFileNames(caption='Select Multiple Files to import', directory=self.directory)[0]

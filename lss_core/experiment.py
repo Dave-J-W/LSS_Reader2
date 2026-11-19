@@ -104,6 +104,14 @@ class FluorescenceResult:
     def save(self, name, x='qz'):
         fluo.save_flu(name, self.rows, self.command, x=x)
 
+    def merge(self, window=None, x='qz', jitter=fluo.QZ_JITTER):
+        """The window's "Merge" (lss_core.fluorescence.merge_rows): rows
+        within ``window`` on axis ``x`` merged; default window 0.1 × the Qz
+        grid step; on the Qz axis the Qz jitter is added to the errors.
+        Changes ``rows`` in place and returns them."""
+        self.rows = [list(r) for r in fluo.merge_rows(self.rows, x, window, jitter)]
+        return self.rows
+
 
 @dataclass
 class GIDResult:

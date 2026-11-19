@@ -153,7 +153,12 @@ def test_merge_of_repeated_points_as_coded(xf, qapp, recorder):
     y1, s1, y2, s2 = data[0, 3], data[0, 4], data[1, 3], data[1, 4]
     a, b = y1 ** 2 / s1 ** 2 + y2 ** 2 / s2 ** 2, y1 / s1 ** 2 + y2 / s2 ** 2
     assert merged[0, 3] == pytest.approx(a / b)
-    assert merged[0, 4] == pytest.approx(np.sqrt(a / b ** 2))
+    # σ: the counting part as coded, ⊕ (since 2026-11-19, owner's XFNTR rule, step 5)
+    # the Qz jitter on the Qz axis: I·|d ln I/dQz|·3e-5·√Σw²/Σw, slope from the merged curve
+    slope = np.gradient(np.log(merged[:, 3]), merged[:, 1])[0]
+    w1, w2 = y1 / s1 ** 2, y2 / s2 ** 2
+    sj = abs(merged[0, 3] * slope) * 3e-5 * np.sqrt(w1 ** 2 + w2 ** 2) / (w1 + w2)
+    assert merged[0, 4] == pytest.approx(np.sqrt(a / b ** 2 + sj ** 2))
     usual = (y1 / s1 ** 2 + y2 / s2 ** 2) / (1 / s1 ** 2 + 1 / s2 ** 2)
     assert merged[0, 3] != pytest.approx(usual, rel=1e-3)
 

@@ -179,6 +179,18 @@ geometries, both axes, relaxed grid, typed columns, some frames:
 scriptable yet. Window and script share `lss_core/gid.py` (the joins,
 `calArea`, the map products and the save were moved there unchanged).
 
+## Merging fluorescence points (2026-11-19)
+
+    flu = exp.fluorescence([2, 3, 4, 12, 13, 14], window=(5.6, 7.2))
+    flu.merge()                    # default window: 0.1 × the Qz grid step
+    flu.merge(0.03, x='qz')        # or a typed window, as in the window's Merge dialog
+    flu.save('out', x='qz')
+
+The window's Merge: points closer than the window on the x axis are
+merged with weights y/σ² (total counts over total monitor). On the Qz axis
+the Qz jitter (3e-5 1/Å) is added to the errors. Choose scans of one run,
+wavelength, sample and signal shape; the reader does not check.
+
 ## Per-point times (2026-11-19)
 
     t = exp.point_times(11)

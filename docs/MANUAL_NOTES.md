@@ -63,6 +63,10 @@ Each line: feature — where — default — script — notes entry (date).
   "Absorber setting of the MCA scans". Output `_flu.txt` [frame, Qz,
   energy, intensity, error].
 
+- Merge (MCA tab): default window 0.1 × the Qz grid step, Qz jitter in the
+  error bars; tooltip on the window field; `flu.merge` in scripts. The user
+  chooses which scans to merge (one run, wavelength, sample, signal shape).
+
 ### Pilatus images, cuts
 - Line/Area cuts: directions Q H, Q V, Pix H, Pix V; axes Pixels / Angles
   / Q; "Sum"; pinhole box (on: S4–detector distance at Det_Th > 1°) —

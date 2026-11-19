@@ -80,3 +80,74 @@ def save_flu(name, rows, command, x='qz'):
         fid.write('#' + str(command) + '\n')
         for r in rows:
             fid.write(str(r[col]) + '\t' + str(r[3]) + '\t' + str(r[4]) + '\n')
+
+
+# ---- Merge (the window's MCA "Merge"; owner's XFNTR rule, 2026-11-19) ------------
+
+QZ_JITTER = 3e-5        # 1/Å: Qz jitter, added to merged errors on the Qz axis (owner, F65 step 5)
+MATCH_FRACTION = 0.1    # default window: this fraction of the Qz grid step (F65 step 2)
+
+
+def grid_step(values):
+    """The grid step of a set of Qz values that may hold repeats with Qz
+    jitter: the median of the spacings between sorted values, leaving out
+    those under a fifth of the 90th percentile (the gaps between repeats of
+    one target, ~3e-5 1/Å, against a step of ~1e-3). None with fewer than
+    two distinct values."""
+    v = np.sort(np.asarray(values, float))
+    d = np.diff(v)
+    d = d[d > 0]
+    if not len(d):
+        return None
+    big = d[d >= 0.2 * np.percentile(d, 90)]
+    return float(np.median(big))
+
+
+def default_merge_window(rows, x='qz'):
+    """0.1 × the Qz grid step for the Qz axis (1e-4 1/Å for a 0.001 step);
+    0 for the frame and energy axes (only identical values merge)."""
+    if x != 'qz':
+        return 0.0
+    step = grid_step([r[1] for r in rows])
+    return MATCH_FRACTION * step if step else 0.0
+
+
+def merge_rows(rows, x='qz', window=None, jitter=QZ_JITTER):
+    """The MCA Merge: rows ([frame, qz, energy, I, σ]) sorted on ``x`` and
+    every row within ``window`` of the first row of a group merged into it
+    with weights y/σ² (for counting errors ΣN/ΣM, pooled counts over pooled
+    monitor; P7, kept by the owner). Values and the counting part of σ are
+    the window's arithmetic exactly. On the Qz axis the Qz jitter is added
+    to σ (owner's XFNTR rule, step 5): σ_j = I·|d ln I/dQz|·``jitter``,
+    propagated through the same weights (√Σw²/Σw), d ln I/dQz from the
+    merged curve by central differences. ``window`` None: the default
+    (``default_merge_window``). Which scans to merge is the user's choice
+    (one run, wavelength, sample and signal shape)."""
+    index = {'frame': 0, 'qz': 1, 'energy': 2}[x]
+    if window is None:
+        window = default_merge_window(rows, x)
+    data = np.array(rows, dtype=float)
+    data = data[np.argsort(data[:, index])]
+    out = [data[0]]
+    wsum = [[data[0][3] / data[0][4] ** 2]]
+    for i in range(1, len(data)):
+        if np.abs(data[i][index] - out[-1][index]) <= window:
+            a = out[-1][3] ** 2 / out[-1][4] ** 2
+            b = data[i][3] ** 2 / data[i][4] ** 2
+            c = out[-1][3] / out[-1][4] ** 2
+            d = data[i][3] / data[i][4] ** 2
+            out[-1][3] = (a + b) / (c + d)
+            out[-1][4] = np.sqrt((a + b) / (c + d) ** 2)
+            wsum[-1].append(d)
+        else:
+            out = np.vstack((out, data[i]))
+            wsum.append([data[i][3] / data[i][4] ** 2])
+    out = np.array(out, dtype=float)
+    if index == 1 and jitter and len(out) > 1:
+        v, q = out[:, 3], out[:, 1]
+        with np.errstate(divide='ignore', invalid='ignore'):
+            slope = np.gradient(np.log(np.where(v > 0, v, np.nan)), q)
+        frac = np.array([np.sqrt(np.sum(np.square(w))) / np.sum(w) if np.sum(w) != 0 else 1.0 for w in wsum])
+        sj = np.abs(v * np.nan_to_num(slope)) * jitter * frac
+        out[:, 4] = np.sqrt(out[:, 4] ** 2 + sj ** 2)
+    return out

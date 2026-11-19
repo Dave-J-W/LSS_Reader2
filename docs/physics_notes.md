@@ -2481,3 +2481,25 @@ neither Epoch nor Tstart/Tend are the `getandsave_mca` scans.
 **Found while testing:** `np.allclose`'s default relative tolerance (1e-5)
 allows ±18,000 s on Unix times; time comparisons in tests use rtol = 0.
 
+### 2026-11-19 — XFNTR merging without the edge check
+
+**Owner.** Build the XFNTR merge rule without the edge check ("too fancy for
+now"); the reader doesn't need to know runs or samples, the user chooses
+scans to merge wisely.
+
+**Built:** the MCA Merge moved to `lss_core.fluorescence.merge_rows`, its
+arithmetic unchanged (byte-identical to the window's, tested against a copy
+of the old code); default window 0.1 × the Qz grid step (step 2); on the Qz
+axis the jitter is added to the errors (step 5), σ_j = I·|d ln I/dQz|·3e-5
+1/Å, propagated through the merge weights (√Σw²/Σw: 1/√n for n equal
+repeats), d ln I/dQz from the merged curve. Scriptable (`flu.merge`); the
+Script pane records each Merge after a Sum All.
+
+**Found while testing:** the grid step cannot be the median spacing of the
+distinct Qz values when repeats are jittered (most spacings are then the
+~3e-5 gaps between repeats): it is the median of the spacings above a fifth
+of their 90th percentile. And because Merge compares each point with the
+first point of its group (not with a target), two repeats 2.4 σ apart in
+jitter (> 1e-4) are left as separate points; rare, and harmless (the user
+sees two points at one Qz).
+
