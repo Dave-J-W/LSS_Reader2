@@ -56,6 +56,7 @@ Each is also in `physics_notes.md` under its date.
 | 2026-11-18 | S_ref 1 → 5 µA/V | gain factors ÷5; ratios unchanged | owner (D39) |
 | 2026-11-18 | Pinhole default (D40); P32, P34 | GID maps, cut axes | owner |
 | 2026-11-19 | Pinhole Qz join (F62) | interpolated vertical join → shared grids | owner (D36) |
+| 2026-11-19 | GID moved to `lss_core/gid.py` (scriptable) | none: maps byte-identical (tests); Save GID with Pixels axes now a message instead of a crash | refactor |
 | 2026-11-19 | Unreadable `#A`: 63 → unknown | unpatched outputs of such scans ÷absfac⁶³ | owner (D42) |
 
 ## Open assumptions (A) to confirm with the owner

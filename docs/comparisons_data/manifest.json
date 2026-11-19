@@ -1,0 +1,275 @@
+{
+ "command": "python tests/tools/compare_methods.py",
+ "spec": "sample_data/NX_school/2026sep/20260923",
+ "files": [
+  {
+   "file": "C2_ref_nx_legacy.csv",
+   "comparison": "C2/C3",
+   "method": "error model: legacy",
+   "data": "nx scans [6, 7, 8, 9]",
+   "columns": [
+    "Qz (1/A)",
+    "R",
+    "sigma_R"
+   ],
+   "note": "exp.reflectivity([6, 7, 8, 9], errors=None)"
+  },
+  {
+   "file": "C2_ref_nx_budget_gaussian.csv",
+   "comparison": "C2/C3",
+   "method": "error model: budget_gaussian",
+   "data": "nx scans [6, 7, 8, 9]",
+   "columns": [
+    "Qz (1/A)",
+    "R",
+    "sigma_R"
+   ],
+   "note": "exp.reflectivity([6, 7, 8, 9], errors={'mode': 'budget', 'kind': 'gaussian'})"
+  },
+  {
+   "file": "C2_ref_nx_budget_student_t.csv",
+   "comparison": "C2/C3",
+   "method": "error model: budget_student_t",
+   "data": "nx scans [6, 7, 8, 9]",
+   "columns": [
+    "Qz (1/A)",
+    "R",
+    "sigma_R"
+   ],
+   "note": "exp.reflectivity([6, 7, 8, 9], errors={'mode': 'budget', 'kind': 'student_t'})"
+  },
+  {
+   "file": "C10_gid_nx_S11_legacy_qxy.csv",
+   "comparison": "C10/C14",
+   "method": "GID legacy",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "exp.gid([11], params=GIDParams(pinhole=False)).products(\"Q\")"
+  },
+  {
+   "file": "C10_gid_nx_S11_legacy_qz.csv",
+   "comparison": "C10/C14",
+   "method": "GID legacy",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "exp.gid([11], params=GIDParams(pinhole=False)).products(\"Q\")"
+  },
+  {
+   "file": "C10_gid_nx_S11_legacy_map.csv",
+   "comparison": "C10/C14",
+   "method": "GID legacy",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qxy (1/A)",
+    "Qz (1/A)",
+    "I",
+    "sigma"
+   ],
+   "note": "exp.gid([11], params=GIDParams(pinhole=False)).products(\"Q\"); NaN where the map has no data"
+  },
+  {
+   "file": "C10_gid_nx_S11_pinhole_qxy.csv",
+   "comparison": "C10/C14",
+   "method": "GID pinhole",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "exp.gid([11], params=GIDParams(pinhole=True)).products(\"Q\")"
+  },
+  {
+   "file": "C10_gid_nx_S11_pinhole_qz.csv",
+   "comparison": "C10/C14",
+   "method": "GID pinhole",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "exp.gid([11], params=GIDParams(pinhole=True)).products(\"Q\")"
+  },
+  {
+   "file": "C10_gid_nx_S11_pinhole_map.csv",
+   "comparison": "C10/C14",
+   "method": "GID pinhole",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qxy (1/A)",
+    "Qz (1/A)",
+    "I",
+    "sigma"
+   ],
+   "note": "exp.gid([11], params=GIDParams(pinhole=True)).products(\"Q\"); NaN where the map has no data"
+  },
+  {
+   "file": "C11_gid_nx_S11_pinhole_258mm_qxy.csv",
+   "comparison": "C11",
+   "method": "pinhole distance 258 mm",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(pinhole_distance_mm=258)"
+  },
+  {
+   "file": "C11_gid_nx_S11_pinhole_271mm_qxy.csv",
+   "comparison": "C11",
+   "method": "pinhole distance 271 mm",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(pinhole_distance_mm=271)"
+  },
+  {
+   "file": "C11_gid_nx_S11_pinhole_280mm_qxy.csv",
+   "comparison": "C11",
+   "method": "pinhole distance 280 mm",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(pinhole_distance_mm=280)"
+  },
+  {
+   "file": "C10_gid_nx_S11-12_legacy_qxy.csv",
+   "comparison": "C10/C14",
+   "method": "GID legacy",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "exp.gid([11, 12], params=GIDParams(pinhole=False)).products(\"Q\")"
+  },
+  {
+   "file": "C10_gid_nx_S11-12_legacy_qz.csv",
+   "comparison": "C10/C14",
+   "method": "GID legacy",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "exp.gid([11, 12], params=GIDParams(pinhole=False)).products(\"Q\")"
+  },
+  {
+   "file": "C10_gid_nx_S11-12_legacy_map.csv",
+   "comparison": "C10/C14",
+   "method": "GID legacy",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qxy (1/A)",
+    "Qz (1/A)",
+    "I",
+    "sigma"
+   ],
+   "note": "exp.gid([11, 12], params=GIDParams(pinhole=False)).products(\"Q\"); NaN where the map has no data"
+  },
+  {
+   "file": "C10_gid_nx_S11-12_pinhole_qxy.csv",
+   "comparison": "C10/C14",
+   "method": "GID pinhole",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "exp.gid([11, 12], params=GIDParams(pinhole=True)).products(\"Q\")"
+  },
+  {
+   "file": "C10_gid_nx_S11-12_pinhole_qz.csv",
+   "comparison": "C10/C14",
+   "method": "GID pinhole",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "exp.gid([11, 12], params=GIDParams(pinhole=True)).products(\"Q\")"
+  },
+  {
+   "file": "C10_gid_nx_S11-12_pinhole_map.csv",
+   "comparison": "C10/C14",
+   "method": "GID pinhole",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qxy (1/A)",
+    "Qz (1/A)",
+    "I",
+    "sigma"
+   ],
+   "note": "exp.gid([11, 12], params=GIDParams(pinhole=True)).products(\"Q\"); NaN where the map has no data"
+  },
+  {
+   "file": "C11_gid_nx_S11-12_pinhole_258mm_qxy.csv",
+   "comparison": "C11",
+   "method": "pinhole distance 258 mm",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(pinhole_distance_mm=258)"
+  },
+  {
+   "file": "C11_gid_nx_S11-12_pinhole_271mm_qxy.csv",
+   "comparison": "C11",
+   "method": "pinhole distance 271 mm",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(pinhole_distance_mm=271)"
+  },
+  {
+   "file": "C11_gid_nx_S11-12_pinhole_280mm_qxy.csv",
+   "comparison": "C11",
+   "method": "pinhole distance 280 mm",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(pinhole_distance_mm=280)"
+  },
+  {
+   "file": "C6_absorber_factors_10keV.csv",
+   "comparison": "C6",
+   "method": "nominal 50 um Al vs calibrated foils",
+   "data": "10 keV",
+   "columns": [
+    "n (#A)",
+    "nominal 1.4247^n",
+    "calibrated",
+    "calibrated sigma (low Qz)"
+   ],
+   "note": "lss_core.absorbers.calibrated(10.0); step error from Foils.step(0, n)"
+  }
+ ]
+}

@@ -13,3 +13,4 @@ dist/
 
 # private data the owner shared for testing: kept locally, never pushed
 sample_data/private/
+docs/comparisons_data/*_map.csv
