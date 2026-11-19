@@ -793,6 +793,7 @@ class MainWindow (QMainWindow):
 
             except:   #for getandsave_mca, which doesn't have any 'ScanVar'
                 pass
+            self.addTimeColumn()
             self.ui.spXComboBox.currentIndexChanged.connect(self.updateSpecPlotData)
             self.ui.spYComboBox.currentIndexChanged.connect(self.updateSpecPlotData)
             self.ui.spY2ComboBox.currentIndexChanged.connect(self.updateSpecPlotData)
@@ -859,6 +860,52 @@ class MainWindow (QMainWindow):
             return
 
         
+
+    TIME_COLUMN='Time_s'
+
+    def scanTimes(self,i):
+        """Start time of every point of scan ``i`` (s, lss_core.timing), or
+        None; cached per SPEC file."""
+        from lss_core import timing
+        cache=getattr(self,'_scanTimes',{})
+        key=(self.specFileName,i)
+        if key not in cache:
+            p=self.specPar.get(i,{})
+            cols={k:v for k,v in self.specData.get(i,{}).items() if isinstance(v,np.ndarray)}
+            t=timing.point_times(cols,p.get('Date'),timing.utc_offset(p.get('FileEpoch'),p.get('FileDate')),
+                                 series_t0=p.get('SeriesT0'))
+            cache[key]=t
+            self._scanTimes=cache
+        return cache[key]
+
+    def addTimeColumn(self):
+        """Offer time as an x axis in the SPEC plot (owner, 2026-11-19): a
+        column Time_s, seconds since the first point of the file's first scan
+        with times (lss_core.timing: old files #D + Epoch steps, ~1 s, overhead
+        ignored; new files Tstart; dates removed: Epoch's own clock)."""
+        name=self.TIME_COLUMN
+        origin=None
+        for n in self.specData.get('ScanNums',[]):
+            t=self.scanTimes(n)
+            if t.start is not None and len(t.start):
+                origin=float(t.start[0])
+                break
+        if origin is None:
+            return
+        ok=True
+        for i in self.selectedScanNums:
+            t=self.scanTimes(i)
+            length=len(next((v for v in self.specData[i].values() if isinstance(v,np.ndarray)),[]))
+            if t.start is None or len(t.start)!=length:
+                ok=False
+                break
+            self.specData[i][name]=np.asarray(t.start,float)-origin
+        if ok and self.ui.spXComboBox.findText(name)<0:
+            self.ui.spXComboBox.addItem(name)
+            k=self.ui.spXComboBox.findText(name)
+            notes=self.scanTimes(self.selectedScanNums[0]).notes
+            self.ui.spXComboBox.setItemData(k,'Seconds since the first point of the file\'s first scan. '+
+                                            ' '.join(notes),Qt.ToolTipRole)
 
     def updateSpecPlotData(self):
         if (self.specFileName is None or len(self.selectedScanNums)==0

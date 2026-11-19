@@ -118,8 +118,10 @@ def point_times(columns, date=None, offset=None, series_t0=None, series_first_da
     if fmt == 'old':
         ep = np.asarray(columns['Epoch'], float)
         if anchor is None:
-            out.notes.append('no #D: only the spacing of the points is known (Epoch differences)')
-            out.start = ep - ep[0]
+            # no usable #D (e.g. dates removed): Epoch's own clock, whose base is
+            # arbitrary but common to a SPEC session, so scans still line up
+            out.notes.append("no #D: Epoch's own clock (base arbitrary; spacing and order right within a session)")
+            out.start = ep.copy()
             return out
         out.start = anchor + (ep - ep[0])
         out.precision_s = 1.0
@@ -134,7 +136,13 @@ def point_times(columns, date=None, offset=None, series_t0=None, series_first_da
             except ValueError:
                 pass
         return out
-    if anchor is not None:
+    if anchor is not None and 'Seconds' in columns and columns['Seconds'] is not None:
+        sec = np.asarray(columns['Seconds'], float)
+        out.start = anchor + np.concatenate([[0.0], np.cumsum(sec[:-1])])
+        out.precision_s = 1.0
+        out.notes.append('no per-point times (#L has neither Tstart/Tend nor Epoch): scan #D plus the count '
+                         'times before each point (overhead between points not known, ignored)')
+    elif anchor is not None:
         out.notes.append('no per-point times in this scan (#L has neither Tstart/Tend nor Epoch); scan #D only')
     else:
         out.notes.append('no times in this scan')

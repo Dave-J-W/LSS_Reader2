@@ -157,6 +157,11 @@ stated assumption until the answer arrives.
       gap (Stage 4), then the pinhole patch over both modules; ask for a full frame.
 - [x] Per-point times, old and new files (F37 reader side; owner's guidance 2026-11-19):
       `lss_core/timing.py`, `Experiment.point_times`.
+- [x] Time as an x axis in the SPEC plot (`Time_s`, D46).
+- [ ] Time as an x axis in the other plots: MCA integrals (per spectrum: its
+      scan point's time), Ref/GID frame lists; burn tests (below).
+- [ ] F65 step 3 (backlog): if built, the edge from the fitted element line
+      (D47), not ln(Vortex/Monc).
 - [ ] Use the measured times where the reader now assumes count time × frame
       (burn tests: `pilRefBurn`, `pilGidBurn`; would change their outputs: ask the
       owner, with F22a's burn-fit work) and show times in SpecPlot (x = time).

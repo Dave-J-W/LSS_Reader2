@@ -89,7 +89,9 @@ def test_old_format_uses_the_scan_date_not_e_plus_epoch(tmp_path):
 def test_no_times_and_no_zone_are_noted_not_errors(tmp_path):
     rows = [[k, 1.0, 1e5] for k in range(3)]
     t = Experiment(_file(tmp_path / 'x', [_scan(1, ['sh', 'Seconds', 'Monc'], rows, D0)])).point_times(1)
-    assert t.format == 'none' and t.start is None and t.notes
+    # no Epoch, no Tstart: the scan's #D plus the count times before each point (owner: as
+    # accurate as feasible; overhead ignored). Was 'no times' until 2026-11-19.
+    assert t.format == 'none' and close(t.start, E0 + np.array([0.0, 1.0, 2.0])) and t.notes
     rows = [[k, 1.0, 100.0 + k, 1e5] for k in range(3)]
     t = Experiment(_file(tmp_path / 'z', [_scan(1, ['sh', 'Seconds', 'Epoch', 'Monc'], rows, D0)], head=False)).point_times(1)
     assert any('read as UTC' in n for n in t.notes) and close(np.diff(t.start), 1.0)
@@ -134,3 +136,23 @@ def test_window_opens_both_formats_without_complaint(window, qapp, recorder, tmp
     qapp.processEvents()
     assert recorder.exceptions == []
     assert not [m for m in recorder.messages if 'Epoch' in m or 'Tstart' in m or 'time' in m.lower()]
+
+
+@pytest.mark.gui
+def test_time_is_an_x_axis_of_the_spec_plot(window, qapp, recorder, tmp_path):
+    """Owner, 2026-11-19: time as an x axis on any plot. Two old-format scans
+    5 min apart: Time_s is seconds since the first scan's first point."""
+    cols = ['sh', 'Seconds', 'Epoch', 'Monc', 'Apex2']
+    s1 = _scan(1, cols, [[k, 1.0, 900.0 + 2 * k, 1e5, 10.0] for k in range(4)], 'Wed Sep 23 10:00:00 2026')
+    s2 = _scan(2, cols, [[k, 1.0, 1200.0 + 3 * k, 1e5, 10.0] for k in range(4)], 'Wed Sep 23 10:05:00 2026')
+    w = window
+    w.openSpecFile(fname=_file(tmp_path / 'two', [s1, s2]))
+    w.directory = str(tmp_path)
+    sweep._select_scans(w, qapp, [0, 1])
+    k = w.ui.spXComboBox.findText('Time_s')
+    assert k >= 0 and 'Epoch' in str(w.ui.spXComboBox.itemData(k, 3))     # tooltip says how
+    w.ui.spXComboBox.setCurrentIndex(k)
+    w.ui.spYComboBox.setCurrentIndex(w.ui.spYComboBox.findText('Apex2'))
+    qapp.processEvents()
+    assert close(w.specData[1]['Time_s'], [0, 2, 4, 6]) and close(w.specData[2]['Time_s'], [300, 303, 306, 309])
+    assert recorder.exceptions == []

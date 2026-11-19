@@ -2539,3 +2539,29 @@ removed, the date in file names replaced by "xfntr"). All in
 `tests/tools/compare_methods.py --spec … --gid "163,165;386,387,388,389"`
 into a folder outside the repository; results in the conversation only.
 
+### 2026-11-19 — Time on any plot; merging allowed; fluorescence is fitted lines; EXAFS macros
+
+**Owner.** Offer time as an x axis on any plot, as accurate as is known (old
+data: the overhead is an uncertainty to live with, probably under a second;
+new data simple). Let users merge what they choose (D45). The SPEC `Vortex`
+counter is probably meaningless; what counts are element fluorescence lines,
+fitted with a Gaussian on a linear, quadratic or cubic background for the
+Rayleigh spill-over, normalised by Monc (D47). Sent an EXAFS macro file (kept
+privately in `sample_data/private/macros/`).
+
+**Built:** the SPEC plot offers `Time_s` (seconds since the first point of
+the file's first scan with times; tooltip says how they were obtained).
+Scans without Epoch or Tstart now get #D + the count times before each
+point; files with dates removed use Epoch's own clock, so scans still line
+up within a SPEC session.
+
+**Learned from the EXAFS macros (read):** EXAFS at ChemMatCARS is an energy
+scan with a spectrum per point: `Er_exafs`/`Lu_exafs` call `MCAscanpt
+escan_14 edge e_before e_after …` around the Er L3 (8.358 keV) and Lu L3
+(9.244 keV) edges, with a k-space part (`KtoE`); `*_edge` macros scan ±δE
+around the edge. So the per-point MCA files are the EXAFS data format, and
+one spectrum per energy point is fitted for the element's line (D47); the
+energy axis comes from the scan, not from Qz. `eb_expose time abs` exposes
+the sample at Qz 0.018 with the absorbers open for a set time (a deliberate
+dose, e.g. before or between measurements), then closes them and returns.
+
