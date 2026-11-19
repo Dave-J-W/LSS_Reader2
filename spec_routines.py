@@ -179,21 +179,22 @@ class specread:
                 # series end line follow the data (lss_core.series)
                 k=i-tmp
                 stop=startScanLineNums[k+1] if k+1<len(startScanLineNums) else len(fdata)
+                extras={}       # merged after the 'No parameters' check below, which counts header values only
                 for extra in fdata[startScanLineNums[k]+1:stop]:
                     if extra[:2]=='#U':
                         words=extra[2:].split()
                         if words[:1]==['Series']:
                             # scan series (F39): '#U Series id=.. i=.. n=.. kind=..'
-                            self.Par[num]['Series']=parse_series(words[1:])
+                            extras['Series']=parse_series(words[1:])
                         elif words[:1]==['SeriesMacro']:
-                            self.Par[num]['SeriesMacro']=' '.join(words[1:])
+                            extras['SeriesMacro']=' '.join(words[1:])
                     if extra[:2]=='#C':
                         n_ab=aborted_after(extra)
                         if n_ab is not None:
-                            self.Par[num]['AbortedAfter']=n_ab
+                            extras['AbortedAfter']=n_ab
                         words=extra[2:].split()
                         if 'Series' in words and 'end' in words:
-                            self.Par[num]['SeriesEnd']=parse_series(words[words.index('Series')+1:])
+                            extras['SeriesEnd']=parse_series(words[words.index('Series')+1:])
                 if self.Data[num]['ScanVar']!='Empty':
                     for j in range(len(scanVar)):
                         try:
@@ -202,6 +203,7 @@ class specread:
                             self.Data[num][scanVar[j]]=None
                 if len(self.Par[num])==1:
                     self.Par[num]['Message']='No parameters!!'
+                self.Par[num].update(extras)
                 if 'Absorber' in self.Par[num]:
                     self.lastAbsorber=(self.Par[num]['Absorber'],num)
                 elif self.lastAbsorber is not None:

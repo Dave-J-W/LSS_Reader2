@@ -133,3 +133,11 @@ def test_inference_on_the_nx_school_file():
     assert got == [('reflectivity', [3], [4, 5], 'complete'), ('reflectivity', [6, 7, 8, 9], [10], 'complete'),
                    ('gid', [11, 12], [13], 'partial')]
     assert series.group(info) == []                      # no '#U Series' lines in this file
+
+
+def test_a_scan_without_parameters_is_still_said_to_have_none(tmp_path):
+    """Reading the abort comment must not hide 'No parameters!!' (the
+    'parameters' check counts header values only; seen on a bu file)."""
+    text = '#S 1  getandsave_mca 10\n\n#C Thu Nov 19 10:00:00 2026.  Scan aborted after 0 points.\n\n'
+    r = specread(synth.write_spec(str(tmp_path / 's'), [text]), data={}, par={})
+    assert r.Par[1]['Message'] == 'No parameters!!' and r.Par[1]['AbortedAfter'] == 0

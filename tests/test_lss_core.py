@@ -175,7 +175,7 @@ def test_spec_reader_identical_to_eval_version(path, qapp):
     import spec_routines
     old = _legacy('spec_routines_eval').specread(path, data={}, par={})
     new = spec_routines.specread(path)
-    # the one deliberate addition since the eval version (F50/D24, 2026-11-17):
+    # deliberate additions since the eval version, each undone below. F50/D24 (2026-11-17):
     # a scan without #A gets the last #A above it, marked by 'AbsorberFrom',
     # and Data keeps that last #A for refreshes. Only those, and only on
     # scans the old reader left without an absorber.
@@ -198,6 +198,20 @@ def test_spec_reader_identical_to_eval_version(path, qapp):
         for k in ('MoncGain', 'MoncGainText'):
             assert k not in old.Par[num]
             p.pop(k, None)
+        # D42 (2026-11-19): the #A text is kept, and an unreadable #A is unknown
+        # (None) where the old reader set 63
+        if 'AbsorberText' in p:
+            assert 'AbsorberText' not in old.Par[num] and isinstance(p['AbsorberText'], str)
+            if p['Absorber'] is None:
+                assert old.Par[num]['Absorber'] == 63
+                p['Absorber'] = 63
+            del p['AbsorberText']
+        # F39 (2026-11-19): SPEC's "Scan aborted after k points" and the series
+        # lines, which the old reader did not read
+        for k in ('AbortedAfter', 'Series', 'SeriesMacro', 'SeriesEnd'):
+            if k in p:
+                assert k not in old.Par[num]
+                del p[k]
         par[num] = p
     assert _same(old.Data, data) and _same(old.Par, par)
 
