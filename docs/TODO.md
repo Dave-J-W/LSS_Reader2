@@ -33,7 +33,7 @@ stated assumption until the answer arrives.
 | 11 | Fitting requirements received (F22a, 2026-11-19); scoping later. Burn tests and peak fits scriptable: with that scoping | Stage 6 fitting | not started |
 | 12 | Run the build workflow once; macOS signing decision | packaged releases | Linux build measured only |
 | 13 | ~~`bu.zip` link sharing~~ off (owner, 2026-11-19); where sample data live; resend scan-136 frames as a zip | — | — |
-| 14 | P7 Merge: kept as is (owner, 2026-11-19); its default Qz window to come from the owner's Qz-jitter number (hold until then). `S1T + S1T`: fixed (owner). Per-point MCA files: to be handled (owner); questions on channels and dead time below | the matching fixes | — |
+| 14 | P7 Merge: kept as is (owner). Merge window and XFNTR merging: the owner's rule is F65 (match within 0.1 × grid step, jitter 3e-5 1/Å in the errors, grouping, never across runs); its edge estimator is backlog. `S1T + S1T`: fixed. Per-point MCA files: to be handled; questions on channels and dead time open | F65, per-point MCA | — |
 
 ### Stage 3 work list
 - [x] Proposal for the "scan i of N" line (`docs/handoff_out/05-scan-series-syntax.md`).
@@ -155,6 +155,8 @@ stated assumption until the answer arrives.
       display axes; the distance fit with exact angles.
 - [ ] F63: second 200K module along 2θ for GID: detector description with the
       gap (Stage 4), then the pinhole patch over both modules; ask for a full frame.
+- [ ] Backlog (owner, 2026-11-19): F65's edge estimator (steps 3, 4, 6: steepest rise of
+      ln(Vortex/Monc), outlier check against the group median, alignment).
 - [ ] P36, P37 (legacy GID with three Qz levels): fix with a synthetic
       three-level GID data set; outputs change only for such maps.
 - [ ] Docket (2026-11-18): F59 cuts for diffuse scattering (I vs β, β − α;

@@ -2429,3 +2429,25 @@ ray construction). Measured in the review, beyond the figures:
   `footprint_window`, `usable_columns` bit-identical to before over 24 000
   geometries.
 
+### 2026-11-19 — The owner's rule for merging XFNTR scans (F65)
+
+**Owner.** A seven-step rule (recorded in full as F65): group by run,
+wavelength, sample and signal shape (peaked vs monotonic, never mixed);
+match points on target Qz within 0.1 × the grid step, without
+interpolation; find each scan's edge at the steepest rise of
+ln(Vortex/Monc) refined by a parabola (repeats differ by a robust sd of
+2.8e-5 1/Å); merge without asking when every edge is within 1e-4 1/Å of the
+group median, else leave the outlier out and flag it; add the Qz jitter,
+σ(I)/I = |d ln I/dQz| × 3e-5 1/Å, to the error bars; optionally align on the
+edges; never merge across runs (the edge shift between runs is their
+critical angle). The jitter figures come from monotonic scans; only 6
+peaked scans were available, so the thresholds are untested for peaked
+groups. This also answers the earlier question of the merge window's
+default: 0.1 × the grid step.
+
+**Owner, same day:** the edge estimator (steps 3, 4, 6) goes to the backlog.
+
+**Checked (2026-11-19):** no real XFNTR qz scan is on hand to try it on;
+the `Vortex` counter column in the NX school and private GID files has the
+same maximum (29254) everywhere, i.e. it is not connected in those runs.
+
