@@ -2713,3 +2713,9 @@ the β-per-row geometry alone: something in the outer columns' contribution
 at the upper (raised-arm) level, not yet identified (TODO: maps from column
 groups per level; the β-overlap cells of the join).
 
+**Owner (same day):** 30 µm may not be right for these data: they are old,
+and the focusing was not as good then. So the beam response's measured
+profile (NX: 33 mm along the beam at α = 0.0905°, about 52 µm vertically)
+is plausibly the beam of that time, and the beam response is the way to get
+the beam size from GID data themselves rather than assuming it.
+
