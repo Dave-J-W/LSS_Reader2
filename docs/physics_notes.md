@@ -2323,3 +2323,59 @@ Qz 0.016 and 0.582 1/Å, both complete), and a set of four complete scans
 2θ joins and the Qz join. Scan numbers given to the owner in the
 conversation; the data stay private.
 
+### 2026-11-19 — Fitting requirements; MCA Merge; S1T + S1T; per-point MCA files
+
+**Owner, fitting (F22a, scoping later):** all fits need improving; the
+Gaussian fitting is simple and breaks easily; burn-test dynamics fitting is
+not robust and strange; GID burn tests should take the largest peak in the
+image or cut by default, with an override to another Qxy section; a fit for
+a planned sh-scan half-cut to characterise the beam (F43); for MCA series
+(EXAFS), better than a window sum: fit the summed spectra for position and
+width, then each spectrum with those fixed. Link sharing on `bu.zip` is off.
+
+**Q. Explain the MCA "Merge" weighted mean (P7) simply.**
+**A.** Merge combines MCA points closer together than a chosen resolution
+(in Qz, frame or energy). For two points with values y1, y2 and errors σ1,
+σ2 it takes (y1²/σ1² + y2²/σ2²)/(y1/σ1² + y2/σ2²). It looks odd, but for
+counting data it is exactly "add up the counts, add up the monitor, divide":
+with y = N/M (counts over monitor) and σ = √N/M, y²/σ² = N and y/σ² = M, so
+the result is (N1 + N2)/(M1 + M2), with error √(N1 + N2)/(M1 + M2), as if the
+two measurements were one longer measurement. The textbook weighted mean
+Σ(y/σ²)/Σ(1/σ²) would come out low when counts are small (it trusts the
+points that happened to count low, because their estimated σ is smaller):
+in a three-point check with 7–30 counts it was 7 % low, while the Merge
+formula equalled the pooled ratio to all digits (numerical check
+2026-11-19; the algebra holds also with an absorber factor and when merging
+pairwise in sequence, as the code does). Mati Meron's SCAN_JOIN merges
+overlaps with the same weights, y/σ². So it looks intended and correct for
+Poisson data; it would differ slightly with the Budget error model, whose
+σ includes a monitor term. Owner to confirm.
+
+**Q. Context to judge `S1T + S1T`.**
+**A (measured on every file here, 2026-11-19).** `mainwindow.py` builds
+the S1 vertical opening for the *legacy* (3-column) GID area correction as
+`S1T + S1T` (top blade twice); the horizontal one is `S1L + S1R`, and the
+pinhole patch and `PD_PIN_RANGE` use `S1T + S1B`. The vertical opening sets
+the footprint length along the beam (S1v / sin α), which the footprint
+correction (`calArea`) uses as a function of 2θ. In all 643 scans of the NX
+school, bu and private GID files, S1T equals S1B (e.g. 0.0499653 and
+0.0499653 on NX scan 11, a 0.1 mm gap), so the typo changes nothing in any
+data here; it would matter only for an asymmetric S1 (e.g. the gap moved off
+centre), where the footprint length would be 2·S1T instead of S1T + S1B.
+Fixing it to `S1T + S1B` is therefore safe for all existing data (the
+legacy GID references would not change).
+
+**Q. What is a per-point MCA file?**
+**A (read from the files).** Normally the fluorescence detector is read by
+a `getandsave_mca` scan: one SPEC scan, one MCA spectrum, and the reader's
+MCA tab handles those. In the October bu run, an ordinary motor scan
+(`ascan …`, e.g. scan 15 of 20261019) also saved a spectrum at *every
+point*, through a macro `mca_save_point`: the file `vortex/20261019_15_mca`
+holds one spectrum per scan point and per channel of the 7-channel
+Xspress3 detector (headers `#S 1 mca_save_point Point:0 Scan:15`). The
+reader can parse the file, but the window offers MCA data only for
+`getandsave_mca` scans, so these spectra cannot be reached from the
+interface. They would matter for any scan where a spectrum per point is
+wanted (e.g. an energy scan for EXAFS, or fluorescence along a motor
+scan); that is the "series of MCA spectra" of F22a.
+

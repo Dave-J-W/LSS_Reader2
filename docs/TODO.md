@@ -30,10 +30,10 @@ stated assumption until the answer arrives.
 | 8 | Reflectivity series with overlaps at 6–7 keV; foil tolerance and alloy; Cu thickness at 30 keV | P28 below 10 keV; F49 at 30 keV | nominal Al below 10 keV; no factor at 30 keV |
 | 9 | P29 mechanism (Monc high at narrow S1) | whether the 3 % Monc/Monp guard is right | guard as built |
 | 10 | Confirm or change the open assumptions in `OUTPUT_DECISIONS.md` (3 % tolerance; per-photon gas and median rate; GID min frames, β step) | — | as built |
-| 11 | F22 scope (which fits, which models); whether burn tests and fits move to scripts now | Stage 6 fitting | not started |
+| 11 | Fitting requirements received (F22a, 2026-11-19); scoping later. Burn tests and peak fits scriptable: with that scoping | Stage 6 fitting | not started |
 | 12 | Run the build workflow once; macOS signing decision | packaged releases | Linux build measured only |
-| 13 | Housekeeping: `bu.zip` link sharing off; where sample data live; resend scan-136 frames as a zip | — | — |
-| 14 | Smaller questions: MCA "Merge" weighted mean (P7); `S1T + S1T` in the slit sum (ASSESSMENT §6); per-point MCA files in the window | the matching fixes | recorded, not changed |
+| 13 | ~~`bu.zip` link sharing~~ off (owner, 2026-11-19); where sample data live; resend scan-136 frames as a zip | — | — |
+| 14 | P7 Merge: explained (2026-11-19: it pools counts, correct for Poisson data), owner to confirm; `S1T + S1T`: no effect on any file here (S1T = S1B in all 643 scans), owner to judge; per-point MCA files: explained, owner to say whether wanted | the matching fixes | recorded, not changed |
 
 ### Stage 3 work list
 - [x] Proposal for the "scan i of N" line (`docs/handoff_out/05-scan-series-syntax.md`).
@@ -314,7 +314,8 @@ reruns the quick, real-data and export-fixture checks, and commits.
       flux variation through S1, which the detector also sees.
 - [x] ~~Measure `Monc`'s own noise before a normalisation model is chosen~~: not
       needed, the Student t model is good enough (owner, 2026-11-19, D44).
-- [ ] Is the MCA "Merge" weighted mean Σ(y²/σ²)/Σ(y/σ²) intended?
+- [ ] Is the MCA "Merge" weighted mean Σ(y²/σ²)/Σ(y/σ²) intended? Explained 2026-11-19
+      (it equals ΣN/ΣM, pooled counts over pooled monitor); owner to confirm.
 - [ ] Scoping input for F22 (where better fitting is needed, which models)
       and F23 (GID patching: overlaps, methods).
 - [ ] Format of the photons-in estimate in the SPEC file (F21), when the
@@ -324,7 +325,7 @@ reruns the quick, real-data and export-fixture checks, and commits.
 - [ ] Should per-point MCA files (`mca_save_point`) be readable from the
       window? Open points on the 1M are listed under F17–F19.
 - [x] Bruker/Apex CCD is defunct (D8): no fix; remove the code later.
-- [ ] Turn link-sharing off on `bu.zip` in Drive.
+- [x] Link sharing off on `bu.zip` (owner, 2026-11-19).
 - [ ] Decide how sample data should be hosted (`bu` is 1.7 GB, local to the
       session only, git-ignored; NX school is committed at 104 MB).
 - [ ] Questions in `ASSESSMENT.md` sections 6 and 7 (S1T + S1T, reference
