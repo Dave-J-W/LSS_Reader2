@@ -2503,3 +2503,39 @@ first point of its group (not with a target), two repeats 2.4 σ apart in
 jitter (> 1e-4) are left as separate points; rare, and harmless (the user
 sees two points at one Qz).
 
+### 2026-11-19 — Real XFNTR and GID data from the owner (private; numbers in the conversation only)
+
+**Received:** frames of the private GID scans 163–165 and 386–389 (EPICS
+timestamp tags 65000/65002/65003 zeroed, pixels verified unchanged, renamed
+as the earlier private frames); an XFNTR set (SPEC file, six per-point MCA
+files, the macro `fluo.mac`), dates scrubbed (#E 0, #D and dated #C lines
+removed, the date in file names replaced by "xfntr"). All in
+`sample_data/private/` (git-ignored).
+
+**Learned about XFNTR (read and run, 2026-11-19):**
+- The usual XFNTR scan is the macro `fluo_p time abs`: S1 set, the
+  detector arm moved out of the way, then `MCAscanpt lscan 0.015 0.03 15
+  time`, i.e. an `hklscan` in Qz across the critical angle with one MCA
+  spectrum per point. The SPEC scan has a `#V vortex data:…` line, so the
+  reader already treats it as an MCA scan (this is why XFNTR "worked"; the
+  October `ascan` per-point files have no `#V`).
+- Each MCA file holds one spectrum per scan point (`#S k mca_save_point
+  Point:p Scan:n`), each with its own `#Monc`, `#Q`, `#@CTIME`, `#@CALIB`;
+  here a single-channel Dante.
+- The spectra are dominated by the elastic line at the beam energy; the
+  fluorescence lines are much weaker. The SPEC `Vortex` counter follows the
+  total, not a line: Vortex/Monc can have a different shape from the line's
+  window sum (seen: monotonic where the line is peaked). The owner's edge
+  rule (F65 step 3, backlog) names ln(Vortex/Monc); which signal it should
+  use is a question for the owner.
+- Repeats of one scan need not be stationary: in one group the line's
+  amplitude per monitor changed from repeat to repeat by tens of per cent.
+  Merging such repeats averages different states; the user's choice (F65).
+- The default Merge window (0.1 × the Qz grid step) grouped every repeat of
+  each target and nothing else; the Qz jitter term raised errors by a few
+  per cent at most, at the edge only.
+
+**GID (private scans 163 + 165, 386–389):** compared with
+`tests/tools/compare_methods.py --spec … --gid "163,165;386,387,388,389"`
+into a folder outside the repository; results in the conversation only.
+

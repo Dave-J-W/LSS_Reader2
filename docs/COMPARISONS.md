@@ -70,6 +70,7 @@ or read, not measured.
 | C19 | XFNTR before/after absorber scaling | bu 74–79 | hash `77be46ea…` → `e23206a9…` → `1cfab3ab…`; ×absfacⁿ | R (hashes only) | no (private) | `pytest -m slow tests/test_real_bu.py` | 2026-11-17 "Was XFNTR scaled by absorbers before?" |
 | C20 | Image reading speed old vs cached | NX, bu | frame 5.5 → 0.7 ms (100K); 378 → 0 file opens | R | `docs/timings.md` | `pytest -m bench -s` | 2026-11-17 "images are read once" |
 | C21 | Pinhole angles per axis vs exact per pixel (IMG_COO_CONV) | NX 11; NX 11+12; synthetic | inside each frame's usable columns β off by ≤ 0.41° (arm level) / 0.74° (β0 = 6.5°), 2θ ≤ 0.04°; NX 11 map nearly unchanged (peak +0.002°); NX 11+12 level factor 1.029 → 1.097, join χ²/dof 1.31 → 0.83; a line at fixed β stays in one β bin (was spread over > 10 rows) | T, R | `C21_*` (Qxy and Qz integrals, per axis and exact) | `pytest tests/test_pinhole.py`; the per-axis arrays were made with the commit before the change (34c33c8) | 2026-11-19 "Is the pinhole trig exact?" |
+| C22 | Legacy vs pinhole GID on complete private pairs (scans 163 + 165, like for like with NX 11 + 12; 386–389: two Det_Th ranges at each of two Qz) | private | reported in the conversation 2026-11-19 | C | none in the repository (private) | `python tests/tools/compare_methods.py --spec sample_data/private/gid_scans_136-146/gid --label private --ref "" --gid "163,165;386,387,388,389" --out <folder outside the repo>` | 2026-11-19 "Real XFNTR and GID data" |
 
 ## Gaps (what the figure agent will not find yet)
 
