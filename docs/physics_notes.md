@@ -2719,3 +2719,61 @@ profile (NX: 33 mm along the beam at α = 0.0905°, about 52 µm vertically)
 is plausibly the beam of that time, and the beam response is the way to get
 the beam size from GID data themselves rather than assuming it.
 
+### 2026-11-19 — Outer-column diagnosis: illumination per level, and stray light at the raised arm
+
+**Owner.** "Go ahead with the outer-column diagnosis" (why adding the outer
+columns changes the upper GID level relative to the lower); then: "there
+are slit-scattering effects that could be relevant for GID patching; they
+might be more obvious in the individual frames on a log intensity scale.
+Perhaps more example data is needed."
+
+**Ruled out (measured on the private pairs; numbers in the conversation):**
+the level ratio, fitted per column group, does not depend on β (flat across
+the β overlap within a few per cent), nor on 2θ (flat across the 2θ range),
+nor on a shift of the upper level's β by ±0.2°, nor on the arm term, the area
+and polarisation weights, the response kind, or the scale of the pinhole's
+β correction; the column → beam-axis mapping is the same at both levels to
+under 1 mm. So it is neither the angles nor the weights.
+
+**What it is, mostly (measured, private pairs):** the light per column, i.e.
+the illumination along the beam axis, differs between the two levels' scans:
+its centroid along the beam differs by a few mm between the levels, and the
+upstream tail is stronger at the raised level. The level factor fitted on a
+column group is the ratio of that group's mean illumination at the two
+levels, so it depends on which columns are used. Each level's own response
+('fit' or 'beam') corrects its map for its own illumination, so the joined
+maps from different column groups agree much better than the factors do
+(the upper-to-lower intensity ratio of the joined map varies by several per
+cent between column groups, against tens of per cent for the factor). That
+residual is not explained yet. The recorded sample height is the same for
+both levels; a change of the liquid's height between scans (Δx = Δh / tan α,
+0.64 mm along the beam per µm at α = 0.09°) or of the beam would move the
+illumination this way, but this is a reasoning, not a measurement.
+
+**Stray light (measured, public NX scans 11 + 12 and both private pairs;
+`tests/tools/gid_stray_light.py`, `docs/figures/gid_stray_light/`):**
+- Columns beyond the footprint but inside S5 (NX: 85–135) are lit at both
+  levels, at a third (arm level) to more than the full (raised arm) of the
+  usable columns' level per pixel. At the level arm they are lit even below
+  the sample horizon, which light from the surface cannot do: beam-path
+  scattering (gas, windows) or a footprint longer than S1v / sin α.
+- At the raised arm (β0 = 6.5°) only, a wedge-shaped streak with sharp
+  edges, rows ≈ 60–150 (β ≈ 6.5–8°), from about column 90 to the detector's
+  edge, crossing S5's high edge: light that does not come through S5 from
+  the footprint (slit scattering or a grazing reflection off a blade, by its
+  shape). NX: beyond S5 at β 6.2–7.6°, 1.5 × 10⁻⁷ counts per pixel per
+  monitor count at the raised arm against 1.4 × 10⁻⁹ at the level arm. It
+  lies in the β range where the levels are joined, but outside the usable
+  columns in these data (NX usable ends at 91); the P39 window correction
+  (end at the S4 ramp's inner edge, ≈ 101 at Det_Th 16°) would take in
+  columns it reaches. Recorded as P40. **Owner (same day): "that streak is
+  junk"**, i.e. not sample signal; the reader should keep it out of maps.
+
+**Data that would decide it (asked of the owner):** GID frames with little
+signal (mostly background), at both arm heights with the same slits;
+frames with the sample lowered out of the beam (beam-path scattering);
+frames at the raised arm with S5 closed or nearly closed (what bypasses
+S5); the S4 and S5 vertical openings and the flight path between S5 and
+the detector; levels measured interleaved or the lower level repeated after
+the upper (illumination drift between scans).
+

@@ -331,6 +331,11 @@ reruns the quick, real-data and export-fixture checks, and commits.
       flux variation through S1, which the detector also sees.
 - [x] ~~Measure `Monc`'s own noise before a normalisation model is chosen~~: not
       needed, the Student t model is good enough (owner, 2026-11-19, D44).
+- [ ] **GID background data (P40, 2026-11-19; owner offered GID data with
+      little signal):** frames at both arm heights with the same slits;
+      if possible the sample lowered out of the beam, S5 nearly closed at
+      the raised arm, the lower level repeated after the upper, and the S4
+      and S5 vertical openings and the S5 → detector flight path.
 - [ ] Is the MCA "Merge" weighted mean Σ(y²/σ²)/Σ(y/σ²) intended? Explained 2026-11-19
       (it equals ΣN/ΣM, pooled counts over pooled monitor); owner to confirm.
 - [ ] Scoping input for F22 (where better fitting is needed, which models)
