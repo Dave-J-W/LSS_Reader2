@@ -4,6 +4,7 @@ import os
 import numpy as np
 from lss_core.numbers import spec_number, spec_numbers
 from lss_core.monitor import parse_gain
+from lss_core.series import parse_series, aborted_after
 
 def is_spec_file(path):
     """True if ``path`` can be read and starts like a SPEC data file (#F)."""
@@ -137,6 +138,7 @@ class specread:
                     if line[:2]=='#Q':
                         tmppar=line[2:].split()
                         self.Par[num]['Q']=spec_numbers(tmppar)
+
                     if line[:2]=='#V':
                         self.Par[num]['Detector']='Vortex'
                     if line[:3]=='#B0':
@@ -173,6 +175,25 @@ class specread:
                         line=fdata[start]
                     except:
                         break
+                # the rest of this scan's block: SPEC's abort comment and a
+                # series end line follow the data (lss_core.series)
+                k=i-tmp
+                stop=startScanLineNums[k+1] if k+1<len(startScanLineNums) else len(fdata)
+                for extra in fdata[startScanLineNums[k]+1:stop]:
+                    if extra[:2]=='#U':
+                        words=extra[2:].split()
+                        if words[:1]==['Series']:
+                            # scan series (F39): '#U Series id=.. i=.. n=.. kind=..'
+                            self.Par[num]['Series']=parse_series(words[1:])
+                        elif words[:1]==['SeriesMacro']:
+                            self.Par[num]['SeriesMacro']=' '.join(words[1:])
+                    if extra[:2]=='#C':
+                        n_ab=aborted_after(extra)
+                        if n_ab is not None:
+                            self.Par[num]['AbortedAfter']=n_ab
+                        words=extra[2:].split()
+                        if 'Series' in words and 'end' in words:
+                            self.Par[num]['SeriesEnd']=parse_series(words[words.index('Series')+1:])
                 if self.Data[num]['ScanVar']!='Empty':
                     for j in range(len(scanVar)):
                         try:

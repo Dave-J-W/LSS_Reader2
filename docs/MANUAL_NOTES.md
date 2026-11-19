@@ -76,7 +76,13 @@ Each line: feature — where — default — script — notes entry (date).
   2026-11-18 "Pinhole-geometry GID built", 2026-11-19 "Joining Qz levels".
 - Pinhole geometry is the default (D40); "2θ range across levels"
   common/all.
-- Not scriptable yet (Stage 6).
+- Scriptable: `exp.gid(...)`; Save GID writes the call to the Script pane
+  (`docs/SCRIPTING.md`, "GID maps"). Save GID needs a map and Angles or Q
+  axes (with Pixels it says so; it used to crash).
+
+### Scan series (Stage 3, not in the window yet)
+- "Scan i of N" lines and how cancelled runs are shown: proposal
+  `docs/handoff_out/05-scan-series-syntax.md`; code `lss_core/series.py`.
 
 ## Terms a manual must define
 

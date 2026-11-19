@@ -2154,3 +2154,76 @@ rule 11 makes keeping them current part of every commit.
 **Still missing (listed in COMPARISONS "Gaps"):** saved old/new arrays for
 the error-model and GID comparisons; GID as a script call.
 
+### 2026-11-19 — GID scriptable; old and new GID compared on NX scan 11
+
+**Built:** the window's GID patch (both geometries), its joins (`imagehjoin`,
+`imagevjoin`), `calArea`, the map products (angles, Q, relaxed Q grid,
+integrals) and Save GID moved unchanged into `lss_core/gid.py`; the window
+and `Experiment.gid` call them. Save GID writes the call to the Script pane.
+
+**Checked (tests):** the legacy references (NX scan 11 Qxy/Qz, scans 11–12
+saved files) are unchanged; the script reproduces the window's three files
+byte for byte in both geometries and both axes, with the relaxed grid, a
+typed column count and some frames (`tests/test_gid_script.py`).
+
+**Found while moving (read, not fixed; PHYSICS_ISSUES P36, P37):** in the
+legacy patch, the first frame of each high-Qz scan is not scaled back by the
+scan's mean monitor, and a single high-Qz scan is looked up under the middle
+level's scan number. Only maps with three Qz levels are affected; no data
+set here has three, so they are recorded with the "as coded" behaviour kept.
+
+**Measured (NX scan 11 alone, `tests/tools/compare_methods.py`):** DPPC peak
+at Qxy 1.4631 1/Å (legacy) and 1.4679 1/Å (pinhole), 0.33 % apart; 40 vs 176
+Qxy bins; relative error at the peak 2.5 % vs 1.0 %. Pinhole distance 258 /
+271 / 280 mm moves the peak to 1.4695 / 1.4679 / 1.4666 1/Å. Which peak
+position is right is not settled by this: the legacy map puts each frame's
+3 central columns at the frame's Det_Th, so its 2θ is that of the column
+nearest the direct-beam column; the pinhole map gives every column its
+own angle through the pinhole.
+
+**Measured (NX scans 11 + 12):** not a like-for-like pair. Scan 12 stopped
+after 4 frames (2θ 13.4–15.8°), so the pinhole join's common range ends at
+15.8° and misses the DPPC peak (16.65°); the legacy join fills 14–18° with
+copies of scan 12's edge (P33). With `transverse='union'` the map keeps
+13.4–19.9°, but the β-integrated profile is NaN where a level has no data
+(sums are not taken over missing cells).
+
+**Error models on the final NX 6–9 `_ref` curve:** σ(budget)/σ(legacy)
+0.861–1.002 (Gaussian 0.04 %, median 1.000), 0.893–1.004 (Student t); values
+within 5e-6.
+
+### 2026-11-19 — "Scan i of N": what the reader needs, and cancelled scans
+
+**Q (owner).** Recommend the "scan i of N" syntax and its information
+capacity: is "reflectivity, scan i of N" enough, or is something else
+needed? What about users cancelling the later scans; can the reader infer
+how to handle that?
+
+**A.** Proposal in `docs/handoff_out/05-scan-series-syntax.md`. In short:
+"kind, i of N" is not enough on its own. The reader also needs an **id**
+per macro run (to tell repeated runs apart and to join a resumed run) and
+a **role** (data vs alignment/check scans, so that a macro may realign as
+often as it needs without spoiling N). Syntax: `#U Series id=… i=… n=…
+kind=… [role=…]` in every scan header, `#U SeriesMacro …` on the first,
+and an optional `#C Series id=… end status=aborted after=i` from the
+macro's abort hook.
+
+Cancellation: SPEC already writes `#C … Scan aborted after k points.` in
+a stopped scan (found in the NX school and the owner's files); what is
+lost is the rest of the plan, which only `n` can tell. With `n`, the
+reader infers the end from the next scan of another series, a short last
+scan, or a file that stopped growing; the end line removes the remaining
+guess. Missing scans never block a reduction: the scans present are
+reduced and labelled "aborted after scan i of n".
+
+**Found in the data (measured, 2026-11-19):** the NX school file has two
+short scans, 4 (15 of 21 points) and 12 (4 of 41: the high-Qz GID level),
+and scan 13 is marked "aborted after 21 points" with all 21 taken (a stop
+at the last point, treated as complete). Without series lines,
+`series.infer` finds reflectivity 3, reflectivity 6–9 with alignment
+4, 5, 10, and GID 11–12 (partial). Tests: `tests/test_series.py`, one per
+row of the proposal's table.
+
+**Not checked:** the SPEC hook names (`Fheader`, `cleanup_once`) are from
+reading about SPEC, not tried; the beamline should confirm.
+

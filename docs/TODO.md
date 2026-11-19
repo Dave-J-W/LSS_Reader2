@@ -8,10 +8,22 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 0 Safety net (error handler, durable log, messages pane) | **done** 2026-11-17 |
 | 1 Repair what is plainly broken | **done** 2026-11-17 |
 | 2 Readers and reduction out of the window; caching; scripting | **done** 2026-11-18 (quick 337, slow 542, sweep 67 passed) |
-| 3 Saved state per SPEC file; live refresh | **next** (needs the "Scan i of N" header syntax) |
+| 3 Saved state per SPEC file; live refresh | **started** 2026-11-19: series syntax proposed (`handoff_out/05`), reader parses it and SPEC's abort comment, guesses series in older files |
 | 4 Detectors and inputs | not started |
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
 | 6 Sub-projects (GID patching, fitting, beam size, GUI) | not started |
+
+### Stage 3 work list
+- [x] Proposal for the "scan i of N" line (`docs/handoff_out/05-scan-series-syntax.md`).
+- [x] Reader: `#U Series`, `#U SeriesMacro`, `#C … Scan aborted after k points`,
+      `#C Series … end`; `lss_core/series.py` groups, finds missing scans and
+      the status (complete, partial, in progress, aborted); `infer` for older files.
+- [ ] Owner/beamline: answer the proposal's four questions; try the lines in SPEC.
+- [ ] Window: series in the scan list (label "gid 2/2 (partial)", details in
+      the tooltip), select a series as one action.
+- [ ] Live refresh (F1–F5): poll the SPEC file and image folders, append, keep
+      selections, re-reduce a series in progress.
+- [ ] Per-SPEC saved state (F13–F16), dropped points as masks with undo.
 
 ### Stage 2 work list
 - [x] Fast, cached image reading, bit-identical (`lss_core/images.py`,
@@ -112,8 +124,11 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] Stage 3 frame object: normalise once at load; make each reduction's
       normalisation explicit (owner's expectation, 2026-11-17).
 - [ ] New output formats record reduction steps and parameters (R7).
-- [ ] GID and GISAXS scriptable: part of the GID sub-project (F23), which
-      the owner wants scoped separately.
+- [x] GID scriptable (2026-11-19): `Experiment.gid`, one implementation with
+      the window (`lss_core/gid.py`), Save GID writes the call; byte-identical.
+- [ ] GISAXS scriptable; background-subtracted GID and cuts scriptable.
+- [ ] P36, P37 (legacy GID with three Qz levels): fix with a synthetic
+      three-level GID data set; outputs change only for such maps.
 - [ ] Docket (2026-11-18): F59 cuts for diffuse scattering (I vs β, β − α;
       the Q cuts' default ranges miss the detector and plot zeros silently),
       F60 contextual/automatic reduction. Not to be built yet.
