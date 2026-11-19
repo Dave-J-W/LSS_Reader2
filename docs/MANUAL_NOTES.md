@@ -95,6 +95,9 @@ Each line: feature — where — default — script — notes entry (date).
 - Worksheet: response "fit" (per column), "beam" (along the beam axis, for a narrow beam;
   shows the beam's centre and FWHM on the sample) or "none"; the 2θ resolution
   (S4 + pixel) is shown with the levels.
+- Worksheet: "Footprint window" exact (default: columns that see the lit
+  strip through the whole S4 opening) or IDL (centred on the direct-beam
+  column, as PD_PIN_RANGE) — `GIDParams(footprint=...)` — P39, D51.
 - Pinhole geometry is the default (D40); "2θ range across levels"
   common/all.
 - Scriptable: `exp.gid(...)`; Save GID writes the call to the Script pane

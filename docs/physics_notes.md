@@ -2832,3 +2832,34 @@ to be checked on the next new file.
 numbers leaking out, provided no peak locations and raw data/images are
 public." Written into AGENTS.md.
 
+### 2026-11-19 — P39 fix: the exact footprint window (plan, written before the code)
+
+**Owner.** "Go ahead with the P39 fix, documentation first."
+
+**What changes.** In pinhole GID maps, a frame's usable columns are S5's
+window intersected with the footprint window. The footprint window was IDL's
+PD_PIN_RANGE: the right width, centred on the direct-beam column c0. It
+becomes the exact one: the columns whose rays, through every point of the S4
+opening, start on the footprint (the inner edges of `pinhole.s4_window`; S4
+opening from S4L + S4R, split equally about the line the reader uses).
+
+**Why fully lit only.** Between the inner and outer edges a column sees the
+footprint through part of the opening (a ramp, ±1.1–1.2 columns on NX). That
+fraction depends on Det_Th, so it differs from frame to frame for the same
+column, and the column response (one factor per column) cannot absorb it.
+
+**Measured before writing the code (NX 11 + 12):** the inner window is the
+same on rows 15, 53, 250 and 486 at both arm heights (β0 0.09° and 6.5°), so
+it is computed once per frame on the direct-beam row (about 10 ms). The high
+edge moves from IDL's 90.6 / 96.6 / 102.6 to 94.2 / 100.8 / 107.4 at Det_Th
+14 / 16 / 18°; the low edge is S5's (27.2) in all NX frames, so it does not
+move there.
+
+**Kept as an option:** `GIDParams(footprint='idl')` and the worksheet's
+"Footprint window" list, to reproduce earlier maps and IDL.
+
+**To check when built:** the before/after maps (counts, Bragg peak position
+and width on NX 11, the level join on 11 + 12), and whether the raised-arm
+streak (P40b, junk per the owner) reaches the added columns; if it does,
+those pixels need masking rather than a narrower window.
+
