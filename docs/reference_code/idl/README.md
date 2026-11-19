@@ -1,10 +1,18 @@
-# IDL reference code (pinhole and GID)
+# IDL reference code (pinhole and GID), by Mati Meron
 
-Received from the owner on 2026-11-18: the files from Mati's stash whose
-contents mention "pinhole". Stored unchanged, as the reference for the
-pinhole-geometry correction and GID patching (F45, F23, D36). They are
-not run by the reader; routines they call (PD_GID_READ, RANGE_PROC, ...)
-are not included.
+**Author: Mati Meron** (ChemMatCARS). Every file here names him as its
+author in its MODIFICATION HISTORY ("Created … by Mati Meron"), with dates
+from 2002 to 2016. Published in this repository at the owner's request
+(2026-11-19: "commit all the Mati Meron IDL code publicly, and attributed
+to him"), stored **unchanged**, as the reference for the reader's
+pinhole-geometry correction and GID patching (F45, F23, D36). The reader
+does not run them; it reimplements what it needs in Python and says so
+where it does. Routines they call from Meron's MIDL library (RANGE_PROC,
+LINFIT_MM, SCAN_INTER, …) are not included.
+
+Received from the owner: the first ten files on 2026-11-18 (from Mati
+Meron's code, the files whose contents mention "pinhole"); the last four on
+2026-11-19.
 
 | File | Version | Purpose (from its header) |
 |---|---|---|
@@ -18,8 +26,13 @@ are not included.
 | `pd_pin_range.pro` | 7.08 | Pinhole coverage (columns) from footprint, S4–detector distance and S5 |
 | `pd_gid_read.pro` | 7.0 | Reads GID scans, integrates each frame horizontally, joins scans; Qxy, Qz formulas |
 | `img_join.pro` | 7.0 | Joins 2D images: amplitude matching on the overlap, inverse-variance weighted overlap, common transverse range |
+| `img_coo_conv.pro` | 7.1 | Area-detector pixel → (2θ, β) or (Qxy, Qz), exact, with the horizontal pinhole transformation (2026-11-19) |
+| `limg_coo_conv.pro` | 7.02 | The same for a line detector (2026-11-19) |
+| `scan_join.pro` | 8.16 | Joins 1D scans: weighted order-0 fit of the ratio on the overlap, factor error, overlap merged with weights y/σ² (2026-11-19) |
+| `spec_file_info.pro` | 8.475 | Reads a SPEC file into FILDAT: `#B1` is centre x, centre y, distance, pinhole distance (the larger is PDIST), orientation H/V; detector sizes 487 × 195 (Pilatus), 981 × 1043 (1M) (2026-11-19) |
 
-Still not supplied: `IMG_COO_CONV` (the pixel → angle formula itself), `SCAN_JOIN` (the scale factor and its error), `IMG_TRIG` (triangulated regridding), `SPEC_FILE_INFO` (the FILDAT fields such as PDIST, PDSDIST).
+Still not supplied: `IMG_TRIG` (triangulated regridding); Meron's MIDL
+library routines the files call.
 
 What is useful for the reader, compared with its own code:
 `docs/handoff_out/04-idl-pinhole-review.md` and its answer.
