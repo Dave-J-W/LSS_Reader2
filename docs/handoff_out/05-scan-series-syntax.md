@@ -33,6 +33,7 @@ fields can be added later without breaking readers:
 and on the first scan only:
 
     #U SeriesMacro <the macro command as typed>
+    #U SeriesT0 <Unix s>          (owner, 2026-11-19: taken before any motor moves)
 
 and, optionally, when the macro ends or is aborted (see below):
 
@@ -126,3 +127,12 @@ it finds reflectivity 3, reflectivity 6–9 (alignment 4, 5, 10), and GID
 4. Which macros write series: reflectivity, GID, XFNTR (`getandsave_mca`
    loops), GISAXS, energy scans? XFNTR runs are many one-spectrum scans:
    `n` there is the number of Qz points.
+
+## Added 2026-11-19 (owner): timestamps
+
+New files carry `Tstart` and `Tend` columns in #L (Unix s, 0.01 s; counting
+began, point written) instead of `Epoch`, and `#U SeriesT0 <Unix s>`, the
+macro's start before any motor moves. Time since the macro started is
+then Tstart − SeriesT0. The reader reads both, and the old `Epoch` files
+(see `lss_core/timing.py`).
+

@@ -45,15 +45,16 @@ def _header(num, command, name, qz, absorber=0, image=True, motors=None):
 
 
 def spec_scan(num, name, columns, rows, command='hklscan 0 0 0 0 0.01 0.1 5 1',
-              **kw):
-    """Text of one scan. ``rows`` is a 2D array, one row per point."""
+              fmt='%.6g', **kw):
+    """Text of one scan. ``rows`` is a 2D array, one row per point;
+    ``fmt``: number format (full precision for Unix times, e.g. '%.2f')."""
     rows = np.asarray(rows, dtype=float)
     lcol = columns.index('L') if 'L' in columns else None
     qz = rows[0, lcol] if lcol is not None else 0.0
     lines = _header(num, command, name, qz, **kw)
     lines.append('#N %d' % len(columns))
     lines.append('#L ' + '  '.join(columns))
-    lines += [' '.join('%.6g' % v for v in r) for r in rows]
+    lines += [' '.join(fmt % v for v in r) for r in rows]
     return '\n'.join(lines) + '\n\n'
 
 

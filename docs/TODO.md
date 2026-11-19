@@ -155,6 +155,11 @@ stated assumption until the answer arrives.
       display axes; the distance fit with exact angles.
 - [ ] F63: second 200K module along 2θ for GID: detector description with the
       gap (Stage 4), then the pinhole patch over both modules; ask for a full frame.
+- [x] Per-point times, old and new files (F37 reader side; owner's guidance 2026-11-19):
+      `lss_core/timing.py`, `Experiment.point_times`.
+- [ ] Use the measured times where the reader now assumes count time × frame
+      (burn tests: `pilRefBurn`, `pilGidBurn`; would change their outputs: ask the
+      owner, with F22a's burn-fit work) and show times in SpecPlot (x = time).
 - [ ] Backlog (owner, 2026-11-19): F65's edge estimator (steps 3, 4, 6: steepest rise of
       ln(Vortex/Monc), outlier check against the group median, alignment).
 - [ ] P36, P37 (legacy GID with three Qz levels): fix with a synthetic

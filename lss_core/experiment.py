@@ -151,6 +151,29 @@ class Experiment:
             self.scans[n] = Scan(n, d['ScanLine'].split(None, 2)[-1].strip(),
                                  r.Par[n].get('Detector'), cols, r.Par[n])
 
+    def point_times(self, scan):
+        """When each point of ``scan`` was measured (lss_core.timing.PointTimes):
+        new files from Tstart/Tend and #U SeriesT0; old files from the scan's
+        #D plus Epoch differences, and the time since the macro started from
+        the #D of the first scan of the series lss_core.series infers (its
+        '#U Series' lines when present). Never fails for a missing column:
+        the result's ``format`` and ``notes`` say what was available."""
+        from . import series as sermod
+        from . import timing
+        p = self.scans[scan].parameters
+        offset = timing.utc_offset(p.get('FileEpoch'), p.get('FileDate'))
+        first_date = None
+        if timing.time_format(self.scans[scan].columns) == 'old':
+            info = sermod.scan_info(self._data, self._par)
+            groups = sermod.group(info) or sermod.infer(info)
+            for g in groups:
+                members = set(g.scans.values()) | set(n for n, _ in g.aux)
+                if scan in members:
+                    first_date = self.scans[min(members)].parameters.get('Date')
+                    break
+        return timing.point_times(self.scans[scan].columns, p.get('Date'), offset,
+                                  series_t0=p.get('SeriesT0'), series_first_date=first_date)
+
     def frames(self, scans):
         """Frame records of the Pilatus scans ``scans`` that have an image."""
         out = []

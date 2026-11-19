@@ -179,6 +179,20 @@ geometries, both axes, relaxed grid, typed columns, some frames:
 scriptable yet. Window and script share `lss_core/gid.py` (the joins,
 `calArea`, the map products and the save were moved there unchanged).
 
+## Per-point times (2026-11-19)
+
+    t = exp.point_times(11)
+    t.format          # 'new' (Tstart, Tend), 'old' (Epoch) or 'none', from the #L line
+    t.start           # Unix s when each point's counting began (old files: #D + Epoch differences, ~1 s)
+    t.end, t.overhead # new files only: Tend, and Tend - Tstart - Seconds
+    t.since_series    # s since the macro started (new: Tstart - SeriesT0; old: from the inferred series' first #D)
+    t.notes           # how each was obtained
+
+Old files: the scan's #D is the anchor and Epoch only spaces the points
+(Epoch's base is wrong; #E + Epoch is never used). #D is local time; its
+zone comes from the file header's #E/#D pair (UTC−5 on the NX file).
+Missing columns are noted in `t.notes`, never an error.
+
 ## Photons per second (2026-11-18)
 
     from lss_core import flux

@@ -208,7 +208,9 @@ def test_spec_reader_identical_to_eval_version(path, qapp):
             del p['AbsorberText']
         # F39 (2026-11-19): SPEC's "Scan aborted after k points" and the series
         # lines, which the old reader did not read
-        for k in ('AbortedAfter', 'Series', 'SeriesMacro', 'SeriesEnd'):
+        # F37 (2026-11-19): the scan's #D, the file header (#E, #D) above it and
+        # #U SeriesT0, for the per-point times (lss_core.timing)
+        for k in ('AbortedAfter', 'Series', 'SeriesMacro', 'SeriesEnd', 'Date', 'FileEpoch', 'FileDate', 'SeriesT0'):
             if k in p:
                 assert k not in old.Par[num]
                 del p[k]

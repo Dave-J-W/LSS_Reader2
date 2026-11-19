@@ -2451,3 +2451,33 @@ default: 0.1 × the grid step.
 the `Vortex` counter column in the NX school and private GID files has the
 same maximum (29254) everywhere, i.e. it is not connected in those runs.
 
+### 2026-11-19 — Timestamps: old Epoch files and new Tstart/Tend files
+
+**Owner's guidance** (checked by the owner on the old files first: Epoch's
+starting point is wrong, its steps within a scan are fine; of 189,439
+point-to-point steps in c51_surface none goes backwards and none is shorter
+than the count time):
+
+| File | Absolute time of a point | Time since the macro started |
+|---|---|---|
+| New: #L has Tstart Tend, no Epoch | Tstart (counting began), Tend (point written), Unix s to 0.01 s; overhead = Tend − Tstart − Seconds | Tstart − SeriesT0, from `#U SeriesT0`, taken before any motor moves |
+| Old: #L has Epoch | never #E + Epoch (more than an hour off in 4,458 of 8,043 scans); the scan's #D (1 s) as anchor plus Epoch differences within the scan: about 1 s, plus an unknown lag before the first point (sleep, count, readout) | not recorded; best guess the #D of the first scan of the inferred series, which misses the slit, absorber and umk moves before it; new files will show how long those take |
+
+The two formats are told apart by the #L line alone.
+
+**Built:** `lss_core/timing.py` (format from #L; `point_times`; #D's zone from
+the file header's #E/#D pair, since #D has none), the SPEC reader keeps each
+scan's #D, the file header above it and `#U SeriesT0`, and
+`Experiment.point_times` adds the inferred series for old files. Missing
+columns or zones are noted, never an error; the window opens both formats
+without a message (`tests/test_timing.py`).
+
+**Measured (2026-11-19, every SPEC file on hand: NX school, bu, private
+GID):** 18,544 point-to-point steps from #D + Epoch; none goes backwards and
+none is shorter than the count time (1 s resolution), as on the owner's
+c51_surface. Every file's #E/#D pair gives a zone (UTC−5 on NX). Scans with
+neither Epoch nor Tstart/Tend are the `getandsave_mca` scans.
+
+**Found while testing:** `np.allclose`'s default relative tolerance (1e-5)
+allows ±18,000 s on Unix times; time comparisons in tests use rtol = 0.
+

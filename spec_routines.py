@@ -92,6 +92,16 @@ class specread:
                 self.Data['Error']=False
             # (value, scan) of the last #A read; kept in Data between
             # incremental reads so that a refresh continues from it
+            # file headers (#E Unix s, #D local) above each scan: the time zone of
+            # its #D (lss_core.timing); a file can hold several, one per SPEC session
+            fileheads=[]
+            for k_e,l_e in enumerate(fdata):
+                if l_e[:2]=='#E':
+                    d_e=next((x for x in fdata[k_e+1:k_e+4] if x[:2]=='#D'),'')
+                    try:
+                        fileheads.append((k_e,float(l_e[2:].split()[0]),d_e[2:].strip()))
+                    except (ValueError,IndexError):
+                        pass
             self.lastAbsorber=self.Data.get('LastAbsorber') if startLineNum>0 else None
             self.lastMoncGain=self.Data.get('LastMoncGain') if startLineNum>0 else None
             for i in range(numOfScans): 
@@ -180,9 +190,19 @@ class specread:
                 k=i-tmp
                 stop=startScanLineNums[k+1] if k+1<len(startScanLineNums) else len(fdata)
                 extras={}       # merged after the 'No parameters' check below, which counts header values only
+                head=[h for h in fileheads if h[0]<startScanLineNums[k]]
+                if head:
+                    extras['FileEpoch'],extras['FileDate']=head[-1][1],head[-1][2]
                 for extra in fdata[startScanLineNums[k]+1:stop]:
+                    if extra[:2]=='#D' and 'Date' not in extras:
+                        extras['Date']=extra[2:].strip()      # the scan's own date (local, no zone)
                     if extra[:2]=='#U':
                         words=extra[2:].split()
+                        if words[:1]==['SeriesT0']:
+                            try:
+                                extras['SeriesT0']=float(words[1])   # macro start, Unix s (new files)
+                            except (IndexError,ValueError):
+                                pass
                         if words[:1]==['Series']:
                             # scan series (F39): '#U Series id=.. i=.. n=.. kind=..'
                             extras['Series']=parse_series(words[1:])
