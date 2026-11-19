@@ -13,6 +13,28 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
 | 6 Sub-projects (GID patching, fitting, beam size, GUI) | not started |
 
+## Inputs needed from the owner (consolidated 2026-11-19)
+
+Ordered by what they unblock. "Can proceed" means work goes on with a
+stated assumption until the answer arrives.
+
+| # | Input | Unblocks | Without it |
+|---|---|---|---|
+| 1 | Answers on the series proposal (`handoff_out/05`, four questions) | Stage 3 series in the window, live refresh | can proceed on the proposed syntax as provisional |
+| 2 | A complete low + high Qz GID pair (public if possible) | C14 comparison, F62 check on real data, P36/P37 need three levels | C14 stays "not like for like" |
+| 3 | 200K data; a new-format fluorescence/GID SPEC file (F28); HDF5/bluesky file (F29); ME7 notes (F35); Pilatus + Vortex in one scan (F53); 1M geometry conventions (F38) | Stage 4, item by item | Stage 4 not started |
+| 4 | `lss_reference.py`, `covariance_core.py` (XModJointFit) | Stage 5 hand-off tests 5–6 | independent implementation from the hand-off text |
+| 5 | `Monc`'s own noise from a bright steady signal (owner's condition before a normalisation model is chosen) | Stage 5: Budget as default | Legacy stays default |
+| 6 | IDL `IMG_COO_CONV`/`LIMG_COO_CONV`, `SCAN_JOIN`, `SPEC_FILE_INFO`; IDL output for NX 11+12 | checking the pinhole map against IDL numbers | pinhole checked on synthetic data and by reading |
+| 7 | IDL review §8: column response from data or geometry; per-column patch replacing or beside the 3-column one; PD_MERGE | GID defaults | pinhole default (D40), response fitted |
+| 8 | Reflectivity series with overlaps at 6–7 keV; foil tolerance and alloy; Cu thickness at 30 keV | P28 below 10 keV; F49 at 30 keV | nominal Al below 10 keV; no factor at 30 keV |
+| 9 | P29 mechanism (Monc high at narrow S1) | whether the 3 % Monc/Monp guard is right | guard as built |
+| 10 | Confirm or change the open assumptions in `OUTPUT_DECISIONS.md` (3 % tolerance; per-photon gas and median rate; GID min frames, β step) | — | as built |
+| 11 | F22 scope (which fits, which models); whether burn tests and fits move to scripts now | Stage 6 fitting | not started |
+| 12 | Run the build workflow once; macOS signing decision | packaged releases | Linux build measured only |
+| 13 | Housekeeping: `bu.zip` link sharing off; where sample data live; resend scan-136 frames as a zip | — | — |
+| 14 | Smaller questions: MCA "Merge" weighted mean (P7); `S1T + S1T` in the slit sum (ASSESSMENT §6); per-point MCA files in the window | the matching fixes | recorded, not changed |
+
 ### Stage 3 work list
 - [x] Proposal for the "scan i of N" line (`docs/handoff_out/05-scan-series-syntax.md`).
 - [x] Reader: `#U Series`, `#U SeriesMacro`, `#C … Scan aborted after k points`,
