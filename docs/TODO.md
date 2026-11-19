@@ -22,7 +22,7 @@ stated assumption until the answer arrives.
 |---|---|---|---|
 | 1 | Answers on the series proposal (`handoff_out/05`, four questions) | Stage 3 series in the window, live refresh | can proceed on the proposed syntax as provisional |
 | 2 | A complete low + high Qz GID pair (public if possible) | C14 comparison, F62 check on real data, P36/P37 need three levels | C14 stays "not like for like" |
-| 3 | 200K data; a new-format fluorescence/GID SPEC file (F28); HDF5/bluesky file (F29); ME7 notes (F35); Pilatus + Vortex in one scan (F53); 1M geometry conventions (F38) | Stage 4, item by item | Stage 4 not started |
+| 3 | Whether the 200K saves one module only (all frames received are 487 × 195, one module; a full 200K frame is 487 × 407), and one full frame if it can be saved; a new-format fluorescence/GID SPEC file (F28); HDF5/bluesky file (F29); ME7 notes (F35); Pilatus + Vortex in one scan (F53); 1M geometry conventions (F38) | Stage 4, item by item | Stage 4 not started |
 | 4 | `lss_reference.py`, `covariance_core.py` (XModJointFit) | Stage 5 hand-off tests 5–6 | independent implementation from the hand-off text |
 | 5 | `Monc`'s own noise from a bright steady signal (owner's condition before a normalisation model is chosen) | Stage 5: Budget as default | Legacy stays default |
 | 6 | IDL `IMG_COO_CONV`/`LIMG_COO_CONV`, `SCAN_JOIN`, `SPEC_FILE_INFO`; IDL output for NX 11+12 | checking the pinhole map against IDL numbers | pinhole checked on synthetic data and by reading |
@@ -299,7 +299,7 @@ reruns the quick, real-data and export-fixture checks, and commits.
 - [x] Stitch-factor interpolation bias: experiments ensure shared Q_z
       points for now (D13). **Do not forget:** it is to be remedied later
       in the corrected chain.
-- [ ] **Remind the owner:** 200K sample data (offered); a reflectivity
+- [ ] **Remind the owner:** a full two-module 200K frame (the 200K data received are one module, 2026-11-19); a reflectivity
       burn scan; a complete low + high Q_z GID pair; the new fluorescence &
       GID SPEC file (F28); an HDF5/bluesky file (F29); ME7 data notes (F35).
 - [x] Monitor noise investigated (`reports/monitor_noise.md`).

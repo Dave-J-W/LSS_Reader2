@@ -2227,3 +2227,31 @@ row of the proposal's table.
 **Not checked:** the SPEC hook names (`Fheader`, `cleanup_once`) are from
 reading about SPEC, not tried; the beamline should confirm.
 
+### 2026-11-19 — Is the data we have from the Pilatus 200K?
+
+**Q (owner).** "Didn't I provide [200K data]? Perhaps we are only saving
+one panel of the detector pixel array. But the data I recently provided is
+from the Pilatus 200K."
+
+**A (measured on the files, 2026-11-19).** Every Pilatus frame received is
+487 × 195 pixels: NX school (276 frames), bu June and September (595),
+the private GID scans 136–146 (206); only the bu October 1M frames differ
+(981 × 1043, header "PILATUS3 1M"). 487 × 195 is one module, the size of a
+100K; a full 200K frame is 487 × 407, two modules with a 17-pixel gap
+([DECTRIS PILATUS3 specifications](https://www.dectris.com/en/detectors/x-ray-detectors/pilatus3/)).
+The TIFFs are written by EPICS areaDetector and do not name the model;
+SPEC's counters are "Pilatus", "Pil300K" and "Pilatus1M". So the data are
+very likely from the 200K, as the owner says, with **only one module saved**
+(an areaDetector region of interest or file-plugin setting; not checked).
+My TODO entry "200K sample data still needed" was wrong in that sense; what
+the reader has never seen is a two-module frame.
+
+**Why it may matter.** In the reader's orientation the 195-pixel side is
+horizontal (2θ, `NCOLS = 195`). If the second module lies along 2θ, saving
+it would roughly double the in-plane range of each GID frame, which is what
+the pinhole method uses (more columns, F45); along β it would extend the
+vertical range instead. Either way, the reader's detector description
+(`TwoDDetector`, Stage 4, F17–F19) needs the 17-pixel gap and a mask before
+it can read such frames. Question for the owner: which way is the 200K
+mounted, and is the one-module saving deliberate?
+
