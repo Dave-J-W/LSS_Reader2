@@ -97,12 +97,19 @@ Each line: feature — where — default — script — notes entry (date).
   axes (with Pixels it says so; it used to crash).
 
 ### Figures of the pinhole geometry
-- Seven figures of the exact pinhole trigonometry (lab frame, the
+- Eight figures of the exact pinhole trigonometry (lab frame, the
   direct-beam row and column, the pinhole from above, β depending on the
   column, the raised arm, the 200K's second module, and the footprint at the
   usual GID α with what makes a column usable: the S5 slit and the footprint): `docs/figures/pinhole/`
-  (README there), made by `tests/tools/pinhole_figures.py` from
-  `lss_core.pinhole` (Mati Meron's IMG_COO_CONV transform).
+  (README there, written for non-specialists), made by `tests/tools/pinhole_figures.py` from
+  `lss_core.pinhole` (Mati Meron's IMG_COO_CONV transform). Explanations
+  are labels on the figures; each shows the footprint's reach against
+  what S5 lets through.
+- Case 8, what the finite S4 opening (S4L + S4R, 0.2 mm on NX) does: each
+  column accepts 2θ over 0.079° (2.2 columns, the true resolution of the
+  pinhole map), the footprint window's edges are ramps of ±1.2 columns,
+  S5's edges barely move (±0.08), and counts per column grow in
+  proportion to the opening (`pinhole.column_acceptance`, `s4_window`).
 
 ### Scan series (Stage 3, not in the window yet)
 - "Scan i of N" lines and how cancelled runs are shown: proposal

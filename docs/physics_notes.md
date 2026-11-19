@@ -2593,3 +2593,41 @@ time of that point in the tooltip) and `Time_from_start_s`.
 user choose; no preset); the October per-point files (`ascan` without `#V`)
 are still not reachable from the window (F53).
 
+
+### 2026-11-19 — What the finite S4 opening does (pinhole figure case 8)
+
+**Owner.** "What effect is S4 having?" The geometry treats S4 as a line
+(the pinhole), but S4 has an opening (S4L + S4R = 0.2 mm on NX).
+
+**A (measured, NX scan 11, Det_Th 16°; `pinhole.column_acceptance`,
+`s4_window`, `ray_geometry(slit_offset=…)`, checked against plain in-plane
+trigonometry in `tests/test_pinhole.py`).**
+- Each column accepts rays from anywhere across its pixel through anywhere
+  in the gap: 2θ over 0.079° full width (2.16 columns; S4 alone 0.042°, the
+  pixel 0.036°), a triangle-like spread since gap and pixel are about as
+  wide. The bin step is one column (0.036°), so this, not the bin, is the
+  pinhole map's 2θ resolution; neighbouring bins share resolution, not
+  counts. Each column sees 2.1 mm of the 63.3 mm footprint (0.6 mm with S4
+  as a line).
+- The footprint window's edges become ramps: 100.8…103.3 at the high edge
+  (±1.21 columns; ±1.09 at the low edge), against a one-pixel step at
+  102.0 with S4 as a line. S5's edges move by only ±0.08 columns (S5 is
+  32 mm from the detector, S4 271 mm).
+- With the NX settings no usable column is in a ramp (the reader's window
+  ends at 96.6, the low edge is S5's at 27.2), so the reduction is not
+  affected. A corrected window (P39) should end at the inner edge of the
+  ramp: column 102 is only 52 % lit.
+- Counts per column are proportional to the opening (0.5× at 0.1 mm, 5×
+  at 1 mm); the 2θ acceptance grows to 0.121° at 0.4 mm and 0.248° at
+  1 mm, the edge ramps to ±2.4 and ±6 columns.
+- The footprint weight A (`area_fraction`, the window's calArea) is the
+  part of the footprint a column's band covers; it does not scale with
+  the opening as the counts do (×0.37 at 0.02 mm and ×3.8 at 1 mm, where
+  the counts are ×0.1 and ×5). With one S4 setting for all frames of a map
+  the ratio is the same for every column (to 0.1 % over Det_Th 14–18°),
+  so it cancels in the map; noted, not changed (reading and one
+  calculation).
+
+No existing result changes: `pixel_angles`, `footprint_window`,
+`usable_columns`, `s5_window`, `ray_geometry` (offset 0) are bit-identical
+over 3000 random geometries (compared before and after, 2026-11-19).

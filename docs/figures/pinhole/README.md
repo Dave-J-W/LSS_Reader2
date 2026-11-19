@@ -1,163 +1,297 @@
-# Pinhole GID geometry: seven figures (six isometric, one of the footprint)
+# Pinhole GID geometry: eight figures
 
-Made by `python tests/tools/pinhole_figures.py [--out DIR]` (default: this
-folder). The script draws only what the reader's own code returns:
-`lss_core.pinhole.ray_geometry` (the lab-frame ray from the footprint
-through the S4 slit to a pixel: n, e_h, e_v, h, the pixel, the slit
-crossing, the footprint point, the direction, u, v, w, 2θ, β),
-`pixel_angles` (the exact transform, a port of Mati Meron's IMG_COO_CONV),
-`column_two_theta` / `row_beta` (the per-axis approximation),
-`footprint_length`, `footprint_window`, `s5_window` and `usable_columns`.
-The frame parameters (Det_Th, β0, α, c0 = 47, r0 = 53, D_s = 551 mm,
-D_p = 271 mm, g_l3 = 556 mm, slits) and the module size (487 × 195, from
-the image shape) are read from the public NX school SPEC file
-`sample_data/NX_school/2026sep/20260923` by
-`tests/tools/pinhole_frames.py`. The one typed constant is the 200K's
-17-pixel gap between its two modules (DECTRIS 487 × 407 layout), from which
-the second module's columns are derived. Pixels drawn with rays are chosen
-from `usable_columns`, so every ray footprint → S4 → pixel that is drawn as
-reaching the detector occurs; the exceptions (case 3's footprint-end
-columns, case 6's second module) are said to be blocked where they appear. The script adds
-only drawing offsets, arcs interpolated between two directions the reader
-returned, the clipping of close-ups, and in case 3 a stated exaggeration
-across the arm. All 3D panels are orthographic isometric views (elevation
-35.264°, azimuth −45°: the eye on the (1, −1, 1) diagonal, so the beam runs
-left to right; azimuth 45° is the same projection seen from behind the
-detector) at equal scale on all three axes. Close-ups are the same view
-zoomed; their magnification relative to panel (a) is printed on the panel.
+Made by `python tests/tools/pinhole_figures.py [--out DIR] [--only N …]`
+(default: this folder). Each figure carries its explanations as labels on
+the drawing; the two lines under it say what it shows and which functions
+of `lss_core.pinhole` its numbers come from. This file says, for a reader
+who is not a specialist, what to look at in each figure and why it
+matters.
 
-Colours, one per kind of vector in every figure: vermilion k_in (beam);
-blue the arm, n, and distances (D, D_p, the slit-crossing gap); green the
-detector's e_h, e_v and the direct-beam row and column; magenta the pixel
-offsets wx, wy and IMG_COO_CONV's u, v, w; black rays and their angles;
-grey the lab axes and the per-axis approximation (dashed). Every vector is
-labelled in its own colour, along it, rotated to its projected direction
-on screen (computed from the axes' projection matrix); labels of one or two
-characters (n, x, w, wy, e_v …) stay upright, since rotated they read as
-other letters. The four hues pass
-the dataviz palette validator's all-pairs normal-vision and contrast checks;
-the colour-blind separation of magenta and green is in the 6–8 warning band,
-which the direct labels cover.
+## The set-up in one paragraph
 
-## Why these six
+In grazing-incidence diffraction (GID) the X-ray beam skims the liquid
+surface at a tiny angle α (0.09° here), so it lights a long, thin strip
+of the surface: the **footprint**, 63.3 mm long and 2 mm wide on the NX
+data. The detector sits on an arm, 551 mm from the sample, turned by
+Det_Th. In front of it are two slits. **S4**, 271 mm before the detector,
+is very narrow (0.2 mm) and acts as a **pinhole**: each detector column can
+only see the footprint through it, so each column looks at its own point
+of the footprint and at its own angle 2θ. **S5**, 32 mm before the
+detector, is wide (3 mm on one side, 14 mm on the other) and decides
+which columns can receive light at all. The figures show where these
+rules put the light, how exactly the reader computes each pixel's angles,
+and what the finite width of S4 changes.
 
-The order goes from the frame of reference to the effects, smallest first:
-what the coordinates are (1); where the old per-axis formulas are right (2);
-the one physical fact that makes them wrong, the pinhole (3); its
-consequence for β (4), the largest effect on the module in use; the extra
-consequence when the arm is raised (5); and why it matters for the planned
-second module (6). Q vectors (k_in, k_out, Q, Qxy, Qz) are not a case:
-`lss_core.gid.products` computes Q from (2θ, β, α) by the standard formula,
-which was never in question; the errors were all in the angles, so the
-figures spend their space there.
+## Conventions
+
+- **Numbers.** Every point, length and angle is computed by the reader's
+  own code (`lss_core.pinhole`), never typed. Frame parameters (Det_Th,
+  β0, α, c0 = 47, r0 = 53, D_s = 551 mm, D_p = 271 mm, g_l3 = 556 mm,
+  slits S1, S4, S5) come from the public NX school SPEC file
+  `sample_data/NX_school/2026sep/20260923` via
+  `tests/tools/pinhole_frames.py`; the module size (487 × 195) from the
+  image. The one typed constant is the 200K's 17-pixel gap between its two
+  modules (DECTRIS 487 × 407 layout).
+- **Scale.** 3D panels are orthographic isometric views (elevation
+  35.264°, azimuth −45°: the beam runs left to right) at true scale on all
+  three axes; close-ups are the same view zoomed, their magnification
+  printed in the panel title. **Plan views** (cases 3 and 8) are drawn in
+  true millimetres on both axes, but the axis across the arm is stretched
+  so that the narrow fan of rays can be seen; the stretch is measured from
+  the finished axes and printed in the title ("across the arm drawn ×5").
+  Straight lines stay straight under that stretch.
+- **Colours**, the same in every figure: vermilion the incident beam
+  (k_in); light and dark orange the footprint and the part the usable
+  columns see; black rays; blue the arm, its unit vector n and distances;
+  green the detector's e_h, e_v and the direct-beam row and column; magenta
+  pixel offsets (wx, wy) and IMG_COO_CONV's u, v, w; **purple S5**: its
+  blades, the rays through its edges (dashed) and the stretch of the beam
+  axis it lets through; grey the lab axes and the reader's approximations
+  (dashed). A purple × marks where S5 stops a ray. Labels are in the colour
+  of what they label; a vector's label lies along it, except labels of one
+  or two characters (n, x, wy …), which stay upright.
+- **What the script adds**: drawing offsets, arcs between two directions
+  the reader returned, the point where a ray crosses the S5 plane, clipping
+  of close-ups and the outline (convex hull) of a bundle of rays. Nothing
+  that changes a number. It also checks that no label overlaps another or
+  leaves the figure, and prints any that do (none at present).
+- **S5's sides.** The header's S5L opens towards low columns and S5R
+  towards high ones (`s5_window`); S4L and S4R are taken the same way.
+  On the NX data S4L = S4R = 0.1 mm, so S4's side convention does not
+  matter there.
+
+## The order of the figures
+
+From the frame of reference to the effects: what the coordinates are (1);
+where the old one-angle-per-row/column formulas are right (2); the one
+physical fact that makes them wrong, the pinhole (3); its consequence for
+β (4); the extra consequence when the arm is raised (5); why it matters
+for the planned second module (6); what makes a column usable (7); and
+what the finite width of the S4 "pinhole" does (8). Q vectors are not a
+case: `lss_core.gid.products` computes Q from (2θ, β, α) by the standard
+formula; the errors were all in the angles.
 
 ## The figures
 
-**case1_lab_frame_and_detector.png — lab frame and detector coordinates.**
-NX scan 11 (low Qz level, β0 = 0.09°), Det_Th 16°. (a) The whole set-up at
-true scale: k_in along x, the 63.3 × 2.0 mm footprint (`footprint_length`,
-S1h), the arm and the distances D = `vertical_distance` = 551.0 mm and
-D_p = 271 mm, the S4 slit line, the module outline (`ray_geometry` at the
-corner pixels) and the ray from footprint point F through S4 to pixel P
-(row 300, column 96, the last usable column; F at x = 28.5 mm, inside the
-footprint; 2θ = 17.782°, β = 4.732°). (b) Close-up of the detector: n, e_h,
-e_v (unit vectors drawn 20 mm long) at the direct-beam pixel (r0, c0), and
-P's offsets wx = −(c − c0)p = −8.43 mm (negative: e_h points to lower 2θ)
-and wy = (r − r0)p = 42.48 mm. Everything from `ray_geometry`.
+### Case 1 — Lab frame, arm and the detector's coordinates
+`case1_lab_frame_and_detector.png` · NX scan 11, Det_Th 16°, β0 = 0.09°.
 
-**case2_direct_beam_row_and_column.png — per-axis angles: exact on the
-direct-beam column, on the row only at β0 = 0.** Same frame. Rays to A (row
-r0, column 96) and B (row 400, column c0), both in the usable columns, with
-their 2θ and β drawn as arcs from the ray's own direction (`ray_geometry`).
-On the direct-beam column the per-axis formulas are exact at any β0 (largest
-difference 6e-15° over the column, at β0 = 0.09° and 6.5°). On the
-direct-beam row they are exact only at β0 = 0: here (β0 = 0.09°) β is off by
-up to 0.012° along the row (A: β 0.0953° exact, 0.0906° per-axis; 2θ
-17.7813° both); on the high level (scan 12, β0 = 6.5°) by 1.02° over the
-module and 0.34° inside the usable columns, and 2θ by 0.045°. Panel (b)
-maps β per-axis − exact over the module (`pixel_angles` minus `row_beta`):
-up to 1.06° in the corners; 2θ is off by at most 0.0013° at this arm height.
+**Look at:** (a) the whole set-up at true scale. The beam (k_in) lights the
+footprint; one ray goes from footprint point F through the S4 pinhole to
+pixel P (row 300, column 96, the last usable column) and arrives at
+2θ = 17.782°, β = 4.732°. D = 551.0 mm is the sample-to-detector distance,
+D_p = 271 mm the S4-to-detector distance. The two black rays from the
+footprint's ends show its reach: the upstream end would land on column
+2.7 but S5 stops it (purple ×); the downstream end lands on column 102.0.
+(b) The detector close up: the arm's direction n, the detector's own axes
+e_h and e_v, and P's offsets from the direct-beam pixel, wx = −8.43 mm and
+wy = 42.48 mm.
 
-**case3_pinhole_top_view.png — every column sees its own footprint point.**
-Same frame, rays to the direct-beam row. Through the narrow S4 slit a column
-sees one point of the beam axis. (a) The fan at true scale. (b) Plan view in
-the arm's frame with the distance across the arm drawn ×5 (stated on the
-panel; rays stay straight under that scaling). The footprint's ends are seen
-by columns 2.7 and 102.0 (found by solving `ray_geometry`'s source point =
-±31.6 mm); `footprint_window` gives −2.6 and 96.6, the same width but
-centred on c0 (dashed grey). `s5_window` gives 27.2…139.3; `usable_columns`
-is 28…96 (pale blue), which see x = −12.8…28.5 mm of the footprint (dark).
-The ray to column 2.7 passes S4 but S5 stops it; it is drawn to show where
-the footprint's end would land.
+**Why it matters:** every later figure uses these names. wx is negative
+for a column above c0 because e_h points towards *lower* 2θ, a sign that
+is easy to get wrong.
 
-**case4_beta_depends_on_column.png — why β depends on the column.**
-Same frame. Two pixels on the top row (486) at the usable columns' ends, 28
-and 96: their rays start at footprint points x = −12.8 and 28.5 mm, cross
-the slit line 2.75 mm apart in height and leave at β = 7.620° and 8.187°
-(0.567° apart), while `row_beta` gives the row 7.788° (off by up to 0.398°
-inside the usable columns). (a) True scale, where the slit-crossing
-difference cannot be seen; (b) a 12 mm box around the slit crossings, ×24
-relative to (a), from the same `ray_geometry` points; (c) β along the row,
-`pixel_angles` against `row_beta`.
+### Case 2 — Per-axis angles: exact on the direct-beam column, on the row only with the arm level
+`case2_direct_beam_row_and_column.png` · same frame.
 
-**case5_raised_arm_uvw.png — raised arm: u, v, w; 2θ depends on the row.**
-NX scan 12 (high Qz level, β0 = 6.50°), Det_Th 14°; D = 554.6 mm (the arm
-term g_l3(1/cos β0 − 1) adds 3.6 mm). (a) The segment from the slit point
-S to pixel P (row 486, column 90, the last usable column) split as
-u·e_h + v·h + w·z, the (u, v, w) of IMG_COO_CONV (u = −7.40, v = 264.74,
-w = 70.37 mm; 2θ = 15.600°, β = 14.879°), and the rays of rows 486 and 0 of
-that column. (b) 2θ exact − per-axis against the row for columns 0, 28, 47,
-90 and 194. It spans 0.029° along column 90. The module's edge column 194
-shows the largest effect: a span of 0.108° (0.034…0.142°) with the arm
-raised, against 0.0015° (−0.0002…0.0013°) for the same column with the arm
-level (scan 11, dashed grey). Columns 0 and 194 get no light (S5 passes
-27.2…139.3, the footprint window 3.3…90.7) and appear in (b) only, marked
-"no light".
+The reader used to give each column one 2θ and each row one β (the
+"per-axis" formulas `column_two_theta`, `row_beta`); the cuts and the image
+axes still do (P38).
 
-**case6_second_module.png — where the 200K's second module would be.**
-The 200K is one detector of two 487 × 195 modules with a 17-pixel gap; the
-module not used would sit at columns −212…−18 or 212…406 of this module's
-numbering (derived from the image width and the gap). Scan 12, Det_Th 14°.
-(a) True scale, rays to the modules' end columns (row r0); (b) the three
-modules ×2, coloured by β per-axis − exact (`ray_geometry` at a 24 × 10 grid
-of pixel corners, colours from `pixel_angles` and `row_beta`); (c), (d) the β
-and 2θ errors along the top and bottom rows. Per-axis is off by up to 7.1°
-in β and 0.39° in 2θ there, against 2.2° and 0.14° on the module in use.
-With the present slits that module would get no light: S5 passes columns
-27.2…139.3 only, and through the S4 pinhole those columns look at beam-axis
-points x = −58…−559 mm and 87…140 mm, outside the ±31.7 mm footprint
-(`footprint_window`: columns 3.3…90.7). The rays in (a) are drawn to show
-where those columns look.
+**Look at:** (a) pixel A on the direct-beam row and pixel B on the
+direct-beam column, with their angles drawn as arcs from the ray's own
+direction. On B the two methods agree exactly (β 6.2727°); on A almost
+(β 0.0953° exact, 0.0906° per-axis), because the arm is nearly level here.
+The note in (a) gives the raised arm (scan 12, β0 = 6.5°): there the
+direct-beam row is off by up to 1.02° in β (0.34° inside the usable
+columns). (b) The β error over the whole module: zero only on the green
+cross (row r0 and column c0), up to −1.06° in the far corner; the dark
+blue bar at the bottom marks the usable columns.
+
+**Why it matters:** the old formulas are right only on a cross through
+the direct beam; everywhere else each column sees a different footprint
+point (cases 3, 4), so the reader now uses the exact transform
+(`pixel_angles`, Mati Meron's IMG_COO_CONV).
+
+### Case 3 — The pinhole seen from above: every column sees its own footprint point
+`case3_pinhole_top_view.png` · same frame, rays to the direct-beam row.
+
+**Look at:** (a) the fan of rays at true scale: they all pass through one
+point, S4. (b) The same from above (across the arm drawn ×5). The black
+rays from the footprint's ends reach columns 2.7 and 102.0: that is the
+footprint window. S5's two blades (purple) let through columns 27.2 to
+139.3; traced back through S4 (dashed purple), they allow the stretch
+x = −13.3…49.4 mm of the beam axis (purple line on the beam axis), which
+starts inside the footprint and runs 18 mm beyond its downstream end. So
+the footprint limits the high side and S5 the low side: the column
+reached by the footprint's upstream end (2.7) is stopped by S5. The dashed
+grey rays are the reader's footprint window (`footprint_window`, after
+PD_PIN_RANGE): the same width but centred on c0, from −2.6 to 96.6
+(P39). The usable columns, 28 to 96 (pale blue), see x = −12.8…28.5 mm of
+the footprint (dark orange).
+
+**Why it matters:** this is the physical reason why β depends on the
+column (case 4), and it shows directly how far the footprint and the S5
+allowance reach.
+
+### Case 4 — Why β depends on the column
+`case4_beta_depends_on_column.png` · same frame.
+
+**Look at:** (a) two pixels on the top row (486), at the ends of the
+usable columns (28 and 96). Through S4 they see different footprint
+points, F1 at x = −12.8 mm and F2 at x = 28.5 mm. (b) Close to S4 (×25)
+their rays cross the slit 2.75 mm apart in height, because their sources
+are at different distances. (c) So they leave the surface at different
+exit angles, β = 7.620° and 8.187° (0.567° apart), while the per-axis
+formula gives the whole row one β, 7.788°: off by up to 0.40° inside the
+usable columns.
+
+**Why it matters:** a feature at a fixed β (a Bragg rod's intensity
+profile, say) lies on a tilted line across the detector, not along a
+row; binning by row smears it.
+
+### Case 5 — Raised arm: the (u, v, w) decomposition, and 2θ depends on the row
+`case5_raised_arm_uvw.png` · NX scan 12 (high-Qz level), β0 = 6.50°,
+Det_Th 14°; D = 554.6 mm (raising the arm adds 3.6 mm).
+
+**Look at:** (a) how IMG_COO_CONV splits the ray from the slit point S to
+pixel P (row 486, column 90): u = −7.40 mm across the arm, v = 264.74 mm
+along it, w = 70.37 mm up; then 2θ = Det_Th − atan2(u, v) = 15.600° and
+β = atan2(w, √(u² + v²)) = 14.879°. (b) With the arm raised, the
+detector's vertical axis leans back, so the top and bottom of one column
+are at different 2θ: exact minus per-axis spans 0.029° along column 90,
+0.108° along the edge column 194 (which gets no light), against 0.0015°
+for that column with the arm level.
+
+**Why it matters:** at the high-Qz level 2θ is no longer a function of
+the column alone; the exact transform gives each pixel its own 2θ.
+
+### Case 6 — Where the 200K's second module would be
+`case6_second_module.png` · scan 12, Det_Th 14°.
+
+The 200K is two 487 × 195 modules with a 17-pixel gap; the unused one
+would sit at columns −212…−18 or 212…406 of this module's numbering.
+
+**Look at:** (a) rays to the modules' end columns: through S4 they look
+at beam-axis points far outside the ±31.7 mm footprint (x = −58 to
+−559 mm on the low side, 87 to 140 mm on the high side), and S5 stops
+every one of them (purple ×). (b) The three modules coloured by the
+per-axis β error: up to 7.1° on the low-side module, 4.0° on the high-side
+one, 2.2° on the module in use. (c, d) The β and 2θ errors along the top
+and bottom rows; the purple bar is what S5 lets through.
+
+**Why it matters:** using the second module needs both the exact angles
+and different slit settings: with the present slits it gets no light.
 
 ### Case 7 — The footprint at the usual GID angle, and what makes a column usable
+`case7_footprint_and_usable_columns.png` · scan 11, Det_Th 16°,
+α = 0.0905°, S1 0.10 × 2.0 mm. Added 2026-11-19 at the owner's request
+("I don't know what makes [a column] usable, the slit size or the
+footprint").
 
-Added 2026-11-19 at the owner's request ("better shows the footprint
-coordinates/sizes at the commonly used alpha for GID"; "I don't know what
-makes [a column] usable, the slit size or the footprint"). Mostly 2D, true
-millimetres and columns; scan 11, Det_Th 16°, α = 0.0905°, S1 0.10 × 2.0 mm.
-(a) The footprint on the sample, 63.3 × 2.0 mm (`footprint_length`), with
-the part the usable columns see (x = −12.8 … 28.5 mm, `ray_geometry`'s
-source points) and where the second module's columns would look.
-(b) The answer, on one column axis: a column is usable when S5 lets it
-through (`s5_window`: 27.2…139.3, the slit size) **and** its ray through S4
-starts on the footprint (true window 2.7…102.0 from `ray_geometry`);
-`usable_columns` = 28…96, the low edge set by S5, the high edge by the
-footprint. P39: the reader's window (`footprint_window`, after
-PD_PIN_RANGE, hatched) has the right width but is centred on c0 = 47
-(−2.6…96.6), 5.4 columns too low, so columns 97–102 are dropped. The
-second module's possible positions are shaded by S5 and look far off the
-footprint. (c) Footprint length against α for S1v 0.04, 0.10, 0.20 mm.
-(d) The true footprint window against α (S1v 0.10 mm) against the S5 band
-and the second module's first columns: the window reaches column 212 only
-below α ≈ 0.037°, and S5 would still have to be opened.
+**Look at:** (a) the footprint on the sample at true scale along the beam
+(63.3 × 2.0 mm), the part the usable columns see (−12.8…28.5 mm), and,
+below it in purple, the stretch S5 lets through (−13.3…49.4 mm): compare
+their lengths directly. The small black bar is what one column sees
+through S4 and its own pixel width: 2.1 mm. Columns of the second module
+would look far off to either side. (b) The same on the column axis: a
+column is usable when S5 passes it (27.2…139.3) **and** it sees the
+footprint (2.7…102.0); here the low edge is set by S5, the high edge by
+the footprint. The reader's window (hatched, P39) is 5.4 columns too low,
+so columns 97–102, which do see the footprint, are left out (counts lost,
+no bias). The footprint window's edges are not sharp: through the 0.2 mm
+S4 each is a ramp (1.7…3.8 and 100.8…103.3; case 8). (c) Footprint length
+against α for three S1 heights. (d) The columns that see the footprint
+against α: they reach the second module (column 212) only below
+α ≈ 0.037°, and S5 would still have to be opened.
+
+**Why it matters:** it answers the owner's question: S5 (the slit size)
+sets one edge, the footprint the other.
+
+### Case 8 — What the finite S4 opening does
+`case8_s4_opening.png` · scan 11, Det_Th 16°, row r0. Added 2026-11-19 at
+the owner's request ("what effect S4 is having").
+
+The reader treats S4 as a line through the centre of its opening (the
+"pinhole"). On the NX data S4 is a 0.2 mm gap (S4L 0.1 + S4R 0.1 mm), a
+little wider than a pixel (0.172 mm).
+
+**Look at:**
+- (a) Plan view (across the arm drawn ×5). Each column accepts a thin
+  **bundle** of rays: from anywhere across its pixel, through anywhere in
+  the gap. Behind S4 the bundle spreads again and meets the beam axis over
+  a stretch: column c0 sees x = −1.1…1.1 mm of the footprint, column 28
+  sees −13.9…−11.7 mm, and column 102, at the footprint's end, sees
+  30.7…32.5 mm, of which only 52 % is lit. The inset shows the bundles
+  narrowing to the 0.2 mm gap.
+- (b) The spread of 2θ one column accepts. With the NX S4 it is 0.079°
+  wide (2.2 columns; a triangle-like shape, since the gap and the pixel
+  are about the same width), while the reader gives the column one angle
+  and bins one column (0.036°) wide. S4 alone accounts for 0.042°
+  (1.16 columns), the pixel for 0.036°. A 0.1 mm S4 would give 0.058°,
+  0.4 mm 0.121°.
+- (c) How much of each column near the footprint's downstream end is lit.
+  With S4 as a line (pale, "pixel only") the edge is a step one pixel
+  wide at column 102.0; through the real 0.2 mm S4 it is a ramp from
+  100.8 to 103.3 (±1.2 columns; the low edge, ±1.1 columns, is hidden
+  behind S5 anyway). With 1 mm it would spread over ±6 columns.
+- (d) A wider or narrower S4, in columns (full widths): a column's 2θ
+  acceptance, the footprint-edge ramp, and the ramp S4 puts on S5's edges.
+  The last is tiny (±0.08 columns at 0.2 mm): seen from the detector, S5
+  is close and S4 far, so S4's width hardly blurs S5's shadow.
+- (e) The counts a column collects grow in proportion to the opening:
+  ×5 at 1 mm, ×0.1 at 0.02 mm.
+
+**The numbers** (NX, Det_Th 16°; at Det_Th 14° and 18° and on scan 12 the
+2θ widths and ramps differ by less than 0.02 columns, while the stretch of
+footprint a column sees grows as Det_Th falls: 2.4 mm at 14°, 1.9 mm at
+18°):
+
+| S4 opening (mm) | 0.05 | 0.1 | 0.2 (NX) | 0.4 | 1.0 |
+|---|---|---|---|---|---|
+| a column's 2θ acceptance, full width | 0.047° (1.29 col) | 0.058° (1.58) | 0.079° (2.16) | 0.121° (3.33) | 0.248° (6.81) |
+| of which S4 | 0.011° | 0.021° | 0.042° | 0.085° | 0.211° |
+| footprint seen by one column (mm) | 1.0 | 1.4 | 2.1 | 3.6 | 8.0 |
+| footprint-edge ramp, high / low edge (columns) | ±0.30 / ±0.27 | ±0.61 / ±0.54 | ±1.21 / ±1.09 | ±2.43 / ±2.18 | ±6.06 / ±5.44 |
+| S5-edge ramp (columns) | ±0.02 | ±0.04 | ±0.08 | ±0.16 | ±0.39 |
+| counts per column (× NX) | 0.25 | 0.5 | 1 | 2 | 5 |
+
+**Why it matters:**
+- **Resolution.** The true 2θ resolution of the pinhole map is set by
+  S4 and the pixel together, 0.079° full width at NX settings, about
+  twice the bin step. Neighbouring bins therefore share resolution (not
+  counts); a peak narrower than that cannot be resolved by narrowing the
+  bins.
+- **Edges.** With the NX settings every usable column is fully lit: the
+  reader's window ends at 96.6, below the ramp (100.8), and S5's edge at
+  27.2 is far inside the footprint. If the window were corrected (P39) to
+  the exact footprint edge, the last columns would be only partly lit
+  (column 102: 52 %), and the footprint weight would not know it; the
+  safe edge is `s4_window`'s inner edge (100.8 here).
+- **Trade-off.** A wider S4 gives proportionally more counts per column
+  and coarser 2θ; below about the pixel width (0.17 mm) narrowing S4 loses
+  counts faster than it gains resolution, since the pixel then dominates.
+- **Who limits what.** S5 decides which columns receive light (its
+  shadow edges are sharp to ±0.08 columns); the footprint decides which
+  columns see sample (edges ±1.2 columns); S4 decides how much light and
+  how wide a 2θ range each column gets.
+
+Functions: `column_acceptance` (the bundle: `ray_geometry` through
+evenly spread points of the pixel and of the opening; `.lit_fraction`,
+`.throughput`), `s4_window` (the ramps), `footprint_columns` (the exact
+footprint window), `s5_window(slit_offset=…)`; `ray_geometry` takes a
+`slit_offset` for a ray through any point of the opening. These were added
+for this figure and change no existing result (`pixel_angles`,
+`footprint_window`, `usable_columns`, `ray_geometry` bit-identical over
+3000 random geometries; tests in `tests/test_pinhole.py` check them
+against plain in-plane trigonometry).
 
 ## Provenance and credit
 
-`tests/tools/pinhole_figures.py`, made with lss_core at commit 3eb11aa (the commit
-that adds `pinhole.ray_geometry`; each figure's header prints
-`git describe`), 2026-11-19, from the public NX school data. The exact
-pixel transform is Mati Meron's IMG_COO_CONV (version 7.1, horizontal
-pinhole configuration; `docs/reference_code/idl/img_coo_conv.pro`), ported
-as `pinhole.pixel_angles`; the footprint window is his PD_PIN_RANGE.
+`tests/tools/pinhole_figures.py`, 2026-11-19, from the public NX school
+data; each figure's header prints `git describe` of the code that drew
+it. The exact pixel transform is Mati Meron's IMG_COO_CONV (version 7.1,
+horizontal pinhole configuration; `docs/reference_code/idl/img_coo_conv.pro`),
+ported as `pinhole.pixel_angles`; the footprint window is his PD_PIN_RANGE.
 `ray_geometry` is an independent construction of the same geometry, and
 `tests/test_pinhole.py` checks the two against each other to 1e-12 rad.

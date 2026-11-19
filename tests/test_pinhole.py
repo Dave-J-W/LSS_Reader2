@@ -349,3 +349,96 @@ def test_one_level_is_returned_as_it_is():
     assert np.array_equal(beta, infos[0]['beta']) and I.shape == (infos[0]['keep'].sum(), nb)
     assert np.array_equal(info['sum_counts'], infos[0]['all_counts'][infos[0]['keep']])
 
+
+
+# ---- S4 as a finite opening (column_acceptance, s4_window; figure case 8) -------
+
+def _level_geom(dth_deg):
+    """Arm level (β0 = 0) on row r0: everything in the horizontal plane, so
+    plain in-plane trigonometry is an independent check."""
+    return ph.FrameGeometry(dth=math.radians(dth_deg), alpha=math.radians(0.09), beta0=0.0, c0=47.0, r0=53.0,
+                            d_sample=551.0, d_pinhole=271.0, g_l3=556.0, wavelength=1.24)
+
+
+def test_slit_offset_zero_is_the_reader_line():
+    g = _geom(16.0)
+    for r, c in ((300, 96), (53, 47), (0, 194)):
+        a, b = ph.ray_geometry(g, r, c), ph.ray_geometry(g, r, c, 0.0)
+        for f in ('slit', 'source', 'pixel', 'direction'):
+            assert np.array_equal(getattr(a, f), getattr(b, f))
+        assert (a.two_theta, a.beta, a.u, a.v, a.w) == (b.two_theta, b.beta, b.u, b.v, b.w)
+
+
+@pytest.mark.parametrize('t', [-0.1, 0.1, 0.5])
+def test_slit_offset_moves_the_ray_by_plain_trig(t):
+    g = _level_geom(16.0)
+    for c in (10.0, 47.0, 96.0, 150.0):
+        r = ph.ray_geometry(g, g.r0, c, t)
+        assert r.two_theta == pytest.approx(g.dth + math.atan(((c - g.c0) * ph.PIXEL_MM - t) / 271.0), abs=1e-12)
+        off = r.slit - (r.slit_centre - t * r.e_h)                # the slit point lies on the offset line
+        assert np.linalg.norm(np.cross(off, r.e_v)) < 1e-9
+    g12 = _geom(14.0)                                              # raised arm: still through the offset line
+    g12 = ph.FrameGeometry(**{**g12.__dict__, 'beta0': math.radians(6.5)})
+    r = ph.ray_geometry(g12, 400, 90, t)
+    assert np.linalg.norm(np.cross(r.slit - (r.slit_centre - t * r.e_h), r.e_v)) < 1e-9
+
+
+@pytest.mark.parametrize('dth, beta0', [(16.0, 0.09), (14.0, 6.5), (25.0, 12.0)])
+def test_column_at_source_inverts_ray_geometry(dth, beta0):
+    g = ph.FrameGeometry(**{**_geom(dth).__dict__, 'beta0': math.radians(beta0)})
+    for x in (-400.0, -31.6, 0.0, 31.6, 150.0):
+        for t in (0.0, 0.1):
+            c = ph.column_at_source(g, x, slit_offset=t)
+            assert ph.ray_geometry(g, g.r0, c, t).source[0] == pytest.approx(x, abs=1e-6)
+    with pytest.raises(ValueError):
+        ph.column_at_source(g, 1e5)                               # beyond L / cos Det_Th: no column
+
+
+def test_exact_footprint_window_has_the_reader_width_but_not_its_centre():
+    """P39, as coded: footprint_window (PD_PIN_RANGE) is centred on c0, the
+    exact window is not (NX geometry, measured 2026-11-19)."""
+    for dth, shift in ((14.0, 4.8), (16.0, 5.4), (18.0, 6.0)):
+        g = _geom(dth)
+        lo, hi = ph.footprint_columns(g, 0.1, 678.0)
+        flo, fhi = ph.footprint_window(g, 0.1, 678.0)
+        assert (hi - lo) == pytest.approx(fhi - flo, abs=0.1)
+        assert 0.5 * (lo + hi) - g.c0 == pytest.approx(shift, abs=0.15)
+
+
+def test_s4_window_ramps_by_plain_trig():
+    """Each edge of the footprint window becomes a ramp: a slit point moved
+    by t moves the column that sees a footprint end by t·(D − x cos δ)/(D −
+    D_p − x cos δ) (similar triangles between planes perpendicular to the
+    arm, x the footprint end)."""
+    g = _level_geom(16.0)
+    half = ph.footprint_length(g, 0.1, 678.0) / 2
+    line = ph.footprint_columns(g, 0.1, 678.0)
+    outer, inner = ph.s4_window(g, 0.1, 0.1, 0.1, 678.0)
+    for k, x in ((0, -half), (1, half)):
+        a = x * math.cos(g.dth)
+        ramp = 0.1 * (551.0 - a) / (551.0 - 271.0 - a) / ph.PIXEL_MM
+        assert abs(outer[k] - line[k]) == pytest.approx(ramp, rel=1e-6)
+        assert abs(inner[k] - line[k]) == pytest.approx(ramp, rel=1e-6)
+    assert outer[0] < inner[0] < inner[1] < outer[1]
+    zero = ph.s4_window(g, 0.1, 0.0, 0.0, 678.0)
+    assert zero[0] == pytest.approx(line) and zero[1] == pytest.approx(line)
+
+
+def test_column_acceptance_by_plain_trig():
+    g = _level_geom(16.0)
+    p, dp = ph.PIXEL_MM, 271.0
+    for c in (47, 96):
+        a = ph.column_acceptance(g, c, 0.1, 0.1, n=5)
+        lo = math.atan(((c - g.c0 - 0.5) * p - 0.1) / dp)
+        hi = math.atan(((c - g.c0 + 0.5) * p + 0.1) / dp)
+        assert np.ptp(a.two_theta) == pytest.approx(hi - lo, rel=1e-9)
+        line = ph.column_acceptance(g, c, 0.0, 0.0, n=5)          # no S4 width: the pixel alone
+        assert np.ptp(line.two_theta) == pytest.approx(math.atan(((c - g.c0 + 0.5) * p) / dp)
+                                                       - math.atan(((c - g.c0 - 0.5) * p) / dp), rel=1e-9)
+    ftp = ph.footprint_length(g, 0.1, 678.0)
+    lo, hi = ph.footprint_columns(g, 0.1, 678.0)
+    assert ph.column_acceptance(g, 47, 0.1, 0.1).lit_fraction(ftp) == 1.0
+    assert ph.column_acceptance(g, round(hi) + 4, 0.1, 0.1).lit_fraction(ftp) == 0.0
+    assert ph.column_acceptance(g, hi, 0.1, 0.1, n=21).lit_fraction(ftp) == pytest.approx(0.5, abs=0.05)
+    t2, t4 = (ph.column_acceptance(g, 47, w / 2, w / 2, n=3).throughput(ftp) for w in (0.2, 0.4))
+    assert t2 == pytest.approx(ph.PIXEL_MM * 0.2) and t4 == pytest.approx(2 * t2)   # counts ∝ the opening
