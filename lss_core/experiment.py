@@ -163,7 +163,7 @@ class Experiment:
 
     def cut(self, scans, direction, range, axes='Pixels', summed=False, points=None,
             absfac=ABSFAC_10KEV, errors=None, monitor_gain=False, distance=None, db_pos=None,
-            pinhole=False, bad_pixel_iterations=0, bad_pixel_factor=1):
+            pinhole=True, bad_pixel_iterations=0, bad_pixel_factor=1):
         """Line cuts of the frames of ``scans``, as the window's Line/Area
         Cuts tab with the same settings (lss_core.cuts). ``direction``: one of
         cuts.DIRECTIONS ('Q H', 'Q V', 'Pix H', 'Pix V'); ``range``: (low,
@@ -175,7 +175,8 @@ class Experiment:
         to use only some frames. Geometry from the SPEC header, unless
         ``distance`` (mm) and ``db_pos`` (column, row of the direct beam) are
         given, as when the window's "use SPEC values" box is unticked;
-        ``pinhole``: S7D_Dist as the distance for Angles/Q axes. ``errors``,
+        ``pinhole`` (default, as the window): frames at Det_Th > 1° take the
+        S4-detector distance (S7D_Dist) for the horizontal Angles/Q axis. ``errors``,
         ``monitor_gain``: as for ``reflectivity`` and ``fluorescence``."""
         from TwoDDetector import TwoDDetector
         from .errors import MonitorTerms
@@ -204,7 +205,7 @@ class Experiment:
             else:
                 dth = 2.0 * np.arcsin(np.sqrt(cols['H'][f.index] ** 2 + cols['K'][f.index] ** 2) * wl / 4.0 / np.pi)
             dist = p['S2D_Dist'] if distance is None else float(distance)
-            if pinhole and axes in ('Angles', 'Q'):
+            if pinhole and axes in ('Angles', 'Q') and np.degrees(dth) > 1.0:
                 dist = p['S7D_Dist']
             if db_pos is None:
                 xc, yc = float(det.NCOLS) - 1 - p['DBPos'][1], p['DBPos'][0]

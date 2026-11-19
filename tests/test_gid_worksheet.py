@@ -18,6 +18,7 @@ def test_defaults_are_the_numbers_the_code_used():
     p = GIDParams()
     assert (p.columns, p.row_min, p.row_max, p.qz_decimals, p.dth_decimals) == (3, 15, 486, 3, 3)
     assert (p.area_correction, p.hard_slit_offset_mm, p.polarisation, p.vjoin_kind) == (True, 32.0, True, 'cubic')
+    assert p.pinhole                                     # the default (owner, 2026-11-18)
     assert p.changed() == []
     assert GIDParams(row_min=20).changed() == ['row_min']
     assert reduced_chi2([0, 1, 2], [1.1, 0.9, 1.0], [0.1, 0.1, 0.1], 1.0) == pytest.approx(1.0)
@@ -25,6 +26,7 @@ def test_defaults_are_the_numbers_the_code_used():
 
 @pytest.fixture
 def nx(window, qapp, tmp_path):
+    window.gidParams = GIDParams(pinhole=False)          # these tests start from the legacy patch
     window.openSpecFile(fname=SPEC)
     window.directory = str(tmp_path)
     qapp.processEvents()
@@ -84,15 +86,18 @@ def test_worksheet_settings_act_on_the_patch(nx, qapp, recorder):
     qapp.processEvents()
     assert nx.pilGIDData.shape[0] < rows_before
     d.findChild(QPushButton, 'gidDefaultsPushButton').click()
+    d.gidPinholeCheckBox.setChecked(False)      # legacy patch, as this test compares with it
     d.gidPolCheckBox.setChecked(False)          # the patch divides by 1-(sin 2θ cos β)² < 1; without it, smaller values
     patch.click()
     qapp.processEvents()
     assert nx.pilGIDData.shape == plain.shape
     assert np.nanmean(nx.pilGIDData / plain) < 1.0
     d.findChild(QPushButton, 'gidDefaultsPushButton').click()
+    assert d.gidPinholeCheckBox.isChecked()                    # the default is pinhole (2026-11-18)
+    d.gidPinholeCheckBox.setChecked(False)
     patch.click()
     qapp.processEvents()
-    assert nx.pilGIDData.tobytes() == plain.tobytes()          # defaults restore the original map
+    assert nx.pilGIDData.tobytes() == plain.tobytes()          # defaults (pinhole off) restore the original map
     d.gidColumnsSpinBox.setValue(5)
     assert nx.ui.pilHSlitLineEdit.text() == '5'               # one setting, two places
     assert recorder.exceptions == []
@@ -149,3 +154,51 @@ def test_footprint_fraction_is_the_windows_calarea(window):
         a = window.calArea(info, dth)
         b = ph.area_fraction(2.0, 0.1, 0.2, ph.PIXEL_MM, math.radians(0.0905), 551.0, 551.0 - 271.0, math.radians(dth))
         assert b == pytest.approx(a, rel=1e-12)
+
+
+@pytest.mark.gui
+@pytest.mark.slow
+@pytest.mark.skipif(not os.path.exists(SPEC), reason='NX_school sample data not present')
+def test_pinhole_is_the_default_gid_patch(window, qapp, recorder, tmp_path):
+    """Owner, 2026-11-18: pinhole is how GID is measured. A fresh window's
+    GID Patch is the pinhole map; the display and the raw-frame cuts take
+    the S4-detector distance for frames at Det_Th > 1 deg; Save GID and the
+    GID line cuts work on the pinhole map."""
+    w = window
+    w.openSpecFile(fname=SPEC)
+    w.directory = str(tmp_path)
+    qapp.processEvents()
+    assert w.ui.pilPinholeCheckBox.isChecked() and w.gidParams.pinhole
+    sweep._select_scans(w, qapp, [10])
+    sweep._select_images(w, qapp)
+    w.ui.pilAxesComboBox.setCurrentIndex(1)                 # Angles: the display uses 271 for these frames
+    qapp.processEvents()
+    assert np.all(w.distance == 271.0)
+    w.ui.pilAxesComboBox.setCurrentIndex(2)                 # Q, as the GID save names its files by it
+    qapp.processEvents()
+    _menu(w, qapp, 'GID Patch')
+    assert w.pilGIDData.shape[1] > 150                      # one column per bin, not one per frame
+    recorder.save_name = str(tmp_path / 'pin')
+    _menu(w, qapp, 'Save GID')
+    assert os.path.exists(str(tmp_path / 'pin_qxy_gid.txt'))
+    w.ui.pilCutDirComboBox.setCurrentIndex(0)
+    w.ui.pilIntRangeLineEdit.setText('0.0:0.2')
+    w.ui.pilLineAreaPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not os.path.exists(SPEC), reason='NX_school sample data not present')
+def test_scripted_cut_uses_the_pinhole_distance_above_one_degree():
+    """Experiment.cut follows the window: pinhole (default) gives frames at
+    Det_Th > 1 deg one column = p/271 rad on the horizontal Angles axis."""
+    import math
+    from lss_core.experiment import Experiment
+    exp = Experiment(SPEC)
+    a = exp.cut([11], 'Pix H', (100, 200), axes='Angles', points={11: [20]}).cuts[0]
+    b = exp.cut([11], 'Pix H', (100, 200), axes='Angles', points={11: [20]}, pinhole=False).cuts[0]
+    # columns 100-200 lie 53-153 columns from the direct beam: atan makes the step ~0.2 % smaller there
+    assert np.diff(a[:, 0]).mean() == pytest.approx(math.degrees(0.172 / 271), rel=5e-3)
+    assert np.diff(b[:, 0]).mean() == pytest.approx(math.degrees(0.172 / 551), rel=5e-3)
+

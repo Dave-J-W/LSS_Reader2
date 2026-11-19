@@ -61,10 +61,10 @@ def frame_cut(det, data, error, direction, lo, hi, g, axes='Pixels', absfac=1, a
                      wavelength=g.wavelength, s2d_dist=g.distance, sh=g.sh, alpha=g.alpha, dth=g.dth,
                      mon=None, terms=terms)
         return det.vintData
-    if d == 3:
+    if d == 3:      # the vertical angle always from the sample-detector distance (P34; was g.distance)
         det.plotHint(data, error, absfac=absfac, absnum=absnum, cen=cen,
                      hroi=[max(int(lo), 0), min(int(hi) + 1, det.NCOLS)], vroi=None, ax_type=str(axes),
-                     wavelength=g.wavelength, s2d_dist=g.distance, sh=g.sh, alpha=g.alpha,
+                     wavelength=g.wavelength, s2d_dist=g.spec_distance, sh=g.sh, alpha=g.alpha,
                      truealpha=g.truealpha, mon=None, terms=terms)
         return det.hintData
     lo1 = int((2.0 * np.arcsin(lo * g.wavelength / 4.0 / np.pi) - g.dth) * g.distance / PIXEL_MM) + g.xcenter

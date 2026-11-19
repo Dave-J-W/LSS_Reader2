@@ -17,8 +17,9 @@ and MonC chambers read through an SR570 and a V2F (g = 1e5 Hz/V):
   conditions of the table; the hand-off's §3 examples reproduce it);
 - wall: the lane's wall-loss correction, 1 below 18 keV; MonC ×1.02 at
   20 keV, ×1.16 at 25, ×1.37 at 30 (hand-off §5); MonP from its own row;
-- D: the dark rate at the same gain (not in SPEC files: 0 by default, and
-  flagged; it matters at low rates, δD/N).
+- D: the dark rate at the same gain; not in SPEC files, so 50 Hz for Monc
+  (owner, 2026-11-18) and 0 for MonP when not given, flagged; it matters
+  only at low rates (δD/N).
 
 Bounds (hand-off §7, "bounds, not a confidence interval"): ±3.6 % below
 13 keV; above it asymmetric, known here only at 30 keV (MonP +23.2/−19.7 %,
@@ -41,6 +42,7 @@ TABLE_P_KPA = 98.99
 LOW_BOUND_KEV = 13.0
 BOUNDS_LOW_E = (0.036, 0.036)                       # (+, −) below 13 keV
 BOUNDS_30KEV = {'MonP': (0.232, 0.197), 'MonC': (0.182, 0.149)}
+DARK_MONC_HZ = 50.0             # Monc dark when not recorded (owner, 2026-11-18: "not really important")
 PROVENANCE = ('xray_fluxor hand-off "monitor counts or current -> photons/s", route D (published commit '
               '67b70b0); docs/handoff/xray_fluxor_counts_to_photons.md')
 
@@ -78,8 +80,8 @@ def photons_per_second(counts, seconds, energy_kev, sensitivity, lane='MonC', da
     if seconds is None or not seconds > 0:
         return float('nan'), float('nan'), float('nan'), ['count time <= 0']
     if dark_hz is None:
-        dark_hz = 0.0
-        flags.append('dark not known: 0 used')
+        dark_hz = DARK_MONC_HZ if lane == 'MonC' else 0.0
+        flags.append('dark not known: %g Hz used' % dark_hz)
     if temp_c is None:
         temp_c = TABLE_T_C
         flags.append('temperature not known: 24.9 C used')

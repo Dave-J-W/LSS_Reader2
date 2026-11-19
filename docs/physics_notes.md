@@ -2002,3 +2002,26 @@ Reproduces the hand-off's three worked examples to ≤ 0.1 % (test). At
 when not given (and flagged): dark rate 0, 24.9 °C, 98.99 kPa. Not yet in
 the window ("per incident photon" normalisation: TODO).
 
+### 2026-11-18 — Pinhole is the default; Monc dark 50 Hz
+
+**Owner:** "Pinhole mode really is default." For old data without a
+recorded dark rate, assume 50 Hz on Monc ("the effect is not really
+important").
+
+**Changed (deliberate):**
+- GID patch: pinhole geometry by default (`GIDParams.pinhole = True`); the
+  worksheet switch gives the old patch exactly. The legacy GID tests now
+  switch it off explicitly, as their references were made with it.
+- Display and raw-frame cuts: the "Pinhole" box is ticked by default and
+  acts only on frames at Det_Th > 1° (IDL `SCAN_PD_LCOO` rule), whose
+  horizontal angle then uses the S4-detector distance; reflectivity frames
+  (Det_Th ≈ 0) are unaffected. NX GID frames: one column = p/271 rad
+  instead of p/551 (P32). `Experiment.cut(pinhole=True)` by default, same
+  rule; the Script pane writes `pinhole=False` when the box is unticked.
+- P34 fixed: the "Pix V" cut's β uses the sample-detector distance
+  (before: the cut distance, ×2 too large with the pinhole box on).
+- The movie view restores the pinhole box (it always unticked it).
+- `flux.photons_per_second`: Monc dark 50 Hz when not given (MonP 0),
+  flagged. At 10 keV, 5 µA/V that is 2.2 × 10⁹ photons/s, 0.05 % of a
+  10⁵ Hz reading.
+

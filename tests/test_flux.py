@@ -23,7 +23,8 @@ def test_scalings_and_flags():
     a = flux.photons_per_second(1e5, 1.0, 10.0, 500e-9)
     b = flux.photons_per_second(1e5, 1.0, 10.0, 5e-6)
     assert b[0] / a[0] == pytest.approx(10.0)          # x10 at 5 uA/V (hand-off §5)
-    assert len(a[3]) == 3 and 'dark' in a[3][0]        # dark, temperature, pressure assumed
+    assert len(a[3]) == 3 and a[3][0] == 'dark not known: 50 Hz used'   # MonC dark 50 Hz (owner); T, P assumed
+    assert flux.photons_per_second(1e5, 1.0, 10.0, 5e-6, lane='MonP')[3][0] == 'dark not known: 0 Hz used'
     warm = flux.photons_per_second(1e5, 1.0, 10.0, 5e-6, temp_c=25.9, pressure_kpa=98.99, dark_hz=0)
     cold = flux.photons_per_second(1e5, 1.0, 10.0, 5e-6, temp_c=24.9, pressure_kpa=98.99, dark_hz=0)
     assert warm[0] / cold[0] == pytest.approx(1.0034)

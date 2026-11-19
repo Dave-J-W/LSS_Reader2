@@ -188,3 +188,16 @@ def test_rapid_clicks_in_the_image_list_are_drawn_once(loaded, qapp, dataset,
     assert len(calls) == 1
     assert list(loaded.selectedPilFramesNums) == list(range(9))
     assert recorder.exceptions == []
+
+
+def test_movie_leaves_the_pinhole_box_as_it_was(loaded, qapp, dataset, recorder):
+    """The movie ticked the pinhole box and then always unticked it; with
+    pinhole the default (2026-11-18) it restores the state it found."""
+    sweep._select_scans(loaded, qapp, [0])
+    sweep._select_images(loaded, qapp, [5, 7])
+    for state in (True, False):
+        loaded.ui.pilPinholeCheckBox.setChecked(state)
+        loaded.ui.pilMoviePushButton.click()
+        qapp.processEvents()
+        assert loaded.ui.pilPinholeCheckBox.isChecked() == state
+    assert recorder.exceptions == []

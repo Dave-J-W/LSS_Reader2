@@ -56,8 +56,8 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] Sort out the gains the reader cannot interpret (owner, later):
       `reports/monitor_gains.md`.
 - [x] F54 core: photons/s from the monitor (`lss_core/flux.py`, xray_fluxor route D).
-- [ ] F54 in the window: "per incident photon" normalisation option (needs the dark rate
-      or an accepted 0, and which lane: MonC by default).
+- [ ] F54 in the window: "per incident photon" normalisation option (MonC, dark 50 Hz
+      when not recorded, D41).
 - [x] Student t: σ_scan · w · t₄, w ≈ 0.94, σ_scan 0.039 % if unknown (D22).
 - [x] "width" is the t's scale (owner); σ_scan per scan declined: fixed t (D26).
 - [x] Absorber factor default: 50 µm Al at 10 keV, 1.4247 (D25).
@@ -120,9 +120,9 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
       tabulated; defaults reproduce the patch exactly.
 - [x] F45 pinhole correction, first version (2026-11-18): worksheet switch,
       off by default; physics_notes 2026-11-18.
+- [x] Pinhole the default (D40), P32 and P34 fixed (2026-11-18).
 - [ ] GID next: F62 flexible overlaps between Qz levels (common range,
-      count-over-weight overlap); P34 and P32 fixes; then decide with the
-      owner whether pinhole mode becomes the default for Det_Th > 1°.
+      count-over-weight overlap).
 - [x] Distances settled (owner, 2026-11-18): 551 sample→detector, 271
       S4→detector, 556 = g_l3 (sample → output-arm rotation centre).
 - [ ] Owner (IDL review §8): the missing routines `SCAN_PD_READ`,

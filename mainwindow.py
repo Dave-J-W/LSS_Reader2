@@ -269,6 +269,13 @@ class MainWindow (QMainWindow):
         self.ui.pilBPCfacSpinBox.valueChanged.connect(self.imageSelectedScanChanged)
      #    self.connect(self.ui.pilPinholeCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
         self.ui.pilPinholeCheckBox.stateChanged.connect(self.update2dPlots)
+        self.ui.pilPinholeCheckBox.blockSignals(True)
+        self.ui.pilPinholeCheckBox.setChecked(True)      # pinhole geometry is the default (owner, 2026-11-18)
+        self.ui.pilPinholeCheckBox.blockSignals(False)
+        self.ui.pilPinholeCheckBox.setToolTip('Pinhole geometry (the default): frames at Det_Th > 1 deg get their horizontal '
+                                              'angle from the S4-detector distance (#B1 4th number), each column through the '
+                                              'pinhole; the vertical angle always uses the sample-detector distance. Untick for '
+                                              'the sample-detector distance everywhere.')
      #    self.connect(self.ui.pilLogIntCheckBox, SIGNAL('stateChanged(int)'),self.update2dPlots)
         self.ui.pilLogIntCheckBox.stateChanged.connect(self.update2dPlots)
      #    self.connect(self.ui.imageSelectAllCheckBox, SIGNAL('clicked()'),self.selectAllImages)
@@ -2494,8 +2501,8 @@ class MainWindow (QMainWindow):
                 ylabel=r'$\beta$'+' '+r'$[\deg]$'
                 pilYMin=((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
                 pilYMax=((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
-                if self.ui.pilPinholeCheckBox.checkState()!=0:
-                    self.distance=np.array(self.pilSelected_PDist)     #distance between S4 & S5 for pinhole setup
+                if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
+                    self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
                 #else:
                 #    self.distance=np.array(self.pilSelected_Dist)
                 pilXMin=(self.dth+(pilXMin-self.xcenter)*0.172/self.distance)*180.0/np.pi
@@ -2508,8 +2515,8 @@ class MainWindow (QMainWindow):
                 ylabel=r'$Q_z$'+' '+r'$[\AA^{-1}]$'
                 pilYMin=2.0*np.pi*(np.sin((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
                 pilYMax=2.0*np.pi*(np.sin((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
-                if self.ui.pilPinholeCheckBox.checkState()!=0:
-                    self.distance=np.array(self.pilSelected_PDist)     #distance between S4 & S5 for pinhole setup
+                if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
+                    self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
                 #else:
                 #    self.distance=np.array(self.pilSelected_Dist)
                 pilXMin=4.0*np.pi*np.sin((self.dth+(pilXMin-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
@@ -2610,10 +2617,11 @@ class MainWindow (QMainWindow):
         self.pilmovieindex=1
         #self.disconnect(self.ui.pilPinholeCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
         self.ui.pilPinholeCheckBox.stateChanged.disconnect(self.update2dPlots)
+        was=self.ui.pilPinholeCheckBox.checkState()
         self.ui.pilPinholeCheckBox.setCheckState(2)
         self.updatePilPlotData()
         self.pilmovieindex=0
-        self.ui.pilPinholeCheckBox.setCheckState(0)
+        self.ui.pilPinholeCheckBox.setCheckState(was)      # as it was (it was always left unticked)
         #self.connect(self.ui.pilPinholeCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
         self.ui.pilPinholeCheckBox.stateChanged.connect(self.update2dPlots)
         
@@ -5155,8 +5163,8 @@ class MainWindow (QMainWindow):
             kw.append('distance=%r' % float(self.ui.pilSDDistLineEdit.text()))
             kw.append('db_pos=(%r, %r)' % tuple(float(t) for t in (self.ui.pilDBPosLineEdit.text().split(',')[0],
                                                                      self.ui.pilDBPosLineEdit.text().split(',')[-1])))
-        if self.ui.pilPinholeCheckBox.checkState()!=0 and axes in ('Angles','Q'):
-            kw.append('pinhole=True')
+        if self.ui.pilPinholeCheckBox.checkState()==0 and axes in ('Angles','Q'):
+            kw.append('pinhole=False')
         if int(self.ui.pilBPCiteSpinBox.value())!=0:
             kw.append('bad_pixel_iterations=%d, bad_pixel_factor=%d' % (int(self.ui.pilBPCiteSpinBox.value()),int(self.ui.pilBPCfacSpinBox.value())))
         head='from lss_core import absorbers\n' if isinstance(absfac,absorbers.Foils) and any(self.pilSelected_AbsNum) else ''

@@ -20,8 +20,8 @@ the GID worksheet (F61). Where each one acts:
 - ``vjoin_kind``: interpolation of the β-integrated profiles in the
   vertical join (Qz levels); the horizontal join is linear.
 - ``pinhole``: patch in pinhole geometry instead (lss_core.pinhole, F45):
-  every usable column at its own 2θ; off by default, so the patch above is
-  unchanged. ``pinhole_distance_mm``: S4 → detector, 0 for the header
+  every usable column at its own 2θ; the default (owner, 2026-11-18: pinhole
+  is how GID is measured); off gives the patch above exactly as before. ``pinhole_distance_mm``: S4 → detector, 0 for the header
   value; ``response``: 'fit' or 'none' (column response);
   ``arm_correction``: the g_l3 term in the vertical distance;
   ``min_frames``: 2θ bins seen by fewer frames are left out (map edges).
@@ -40,7 +40,7 @@ class GIDParams:
     hard_slit_offset_mm: float = 32.0
     polarisation: bool = True
     vjoin_kind: str = 'cubic'
-    pinhole: bool = False
+    pinhole: bool = True
     pinhole_distance_mm: float = 0.0
     response: str = 'fit'
     arm_correction: bool = True

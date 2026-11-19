@@ -86,6 +86,10 @@ def test_reflectivity_scans_6_to_9_match_reference(nx, qapp, recorder):
 
 
 def _gid_patch(nx, qapp, rows):
+    # the legacy patch (the references were made with it); pinhole is the
+    # default since 2026-11-18 (tests/test_gid_worksheet.py)
+    from lss_core.gid import GIDParams
+    nx.gidParams = GIDParams(pinhole=False)
     sweep._select_scans(nx, qapp, rows)
     sweep._select_images(nx, qapp)
     i = nx.ui.gidComboBox.findText('GID Patch')
