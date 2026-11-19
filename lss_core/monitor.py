@@ -18,6 +18,11 @@ so values read as "per monitor count at 5 µA/V". G (the V2F scale) is the same 
 comparisons; a conversion to photons per second (owner, later) will bring
 G and the monitor's efficiency as one scalar.
 
+Option "per photon" (F54; owner 2026-11-17, scalar from xray_fluxor 2026-11-18): divide by the photons
+through the Monc chamber instead, N = (M − D·t)·q(E)·S/(500 nA/V) from the
+xray_fluxor hand-off (lss_core.flux.photon_factor). This includes the gain:
+it is the gain option times a factor of the energy, and the dark term.
+
 A line without a unit ("#M Monc Gain 200") or without a value is read as
 unknown: no factor is applied and the window says so.
 """
@@ -43,3 +48,20 @@ def gain_factor(sensitivity, reference=REFERENCE):
     # 12 significant digits: S and S_ref are decimal settings, so this
     # removes binary rounding (1e-6 / 2e-7 gives 4.999999999999999)
     return float('%.12g' % (reference / sensitivity))
+
+
+def scan_rate(columns, monitor='Monc', time='Seconds'):
+    """Median monitor rate (Hz) of a scan's points, from its ``monitor`` and
+    ``time`` columns; None when either is missing or no point has t > 0.
+    Used only for the dark term of the "per photon" option, which is
+    D/r ≲ 0.05 % at the usual rates (≳ 1e5 Hz)."""
+    import numpy as np
+    try:
+        m = np.asarray(columns[monitor], dtype=float)
+        t = np.asarray(columns[time], dtype=float)
+    except (KeyError, TypeError, ValueError):
+        return None
+    if m.shape != t.shape:
+        return None
+    ok = np.isfinite(m) & np.isfinite(t) & (t > 0)
+    return float(np.median(m[ok] / t[ok])) if ok.any() else None

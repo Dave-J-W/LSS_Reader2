@@ -97,3 +97,37 @@ def photons_per_second(counts, seconds, energy_kev, sensitivity, lane='MonC', da
         up, down = BOUNDS_30KEV[lane]
         flags.append('above 13 keV: the 30 keV bounds are used')
     return best, best * (1 - down), best * (1 + up), flags
+
+
+def photon_factor(sensitivity, energy_kev, rate_hz=None, dark_hz=None, lane='MonC'):
+    """Factor that turns a value divided by monitor counts M into a value
+    per incident photon (F54, option "per photon"): M / N with N the photons
+    through the chamber's exit plane in the same time,
+
+        N = (M − D·t) · q(E) · (S / 500 nA/V) · gas,  so
+        M / N = 1 / (q(E) · (S / 500 nA/V) · gas · (1 − D/r)),  r = M/t.
+
+    Returns (factor, flags); factor is None, with the reason in flags, when
+    the sensitivity S or the energy is unknown, the energy is outside the
+    table (5–30 keV), or the rate r is not above the dark rate D. ``rate_hz``
+    None: no dark subtraction (flagged). Gas at the table's conditions (the
+    SPEC file records neither temperature nor pressure). The bounds of
+    ``photons_per_second`` (±3.6 % below 13 keV) apply to the factor; they
+    are a common scale, not in the error bars."""
+    if sensitivity is None:
+        return None, ['Monc gain unknown']
+    if energy_kev is None:
+        return None, ['energy unknown']
+    if not E_KEV[0] <= energy_kev <= E_KEV[-1]:
+        return None, ['%.3g keV is outside the 5-30 keV table' % energy_kev]
+    flags = []
+    if rate_hz is None:
+        rate_hz, dark_hz = 1.0, 0.0
+        flags.append('monitor rate unknown: dark not subtracted')
+    elif dark_hz is None:
+        dark_hz = DARK_MONC_HZ if lane == 'MonC' else 0.0
+    if not rate_hz > dark_hz:
+        return None, ['monitor rate %.3g Hz is not above the dark rate %g Hz' % (rate_hz, dark_hz)]
+    best = photons_per_second(rate_hz, 1.0, energy_kev, sensitivity, lane, dark_hz=dark_hz,
+                              temp_c=TABLE_T_C, pressure_kpa=TABLE_P_KPA)[0]
+    return rate_hz / best, flags

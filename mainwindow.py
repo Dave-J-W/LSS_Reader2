@@ -38,7 +38,8 @@ from lss_core import pinhole
 from lss_core import absorbers
 from lss_core import preferences as prefs_store
 from lss_core.absorbers import ABSFAC_10KEV
-from lss_core.monitor import gain_factor
+from lss_core.monitor import gain_factor, scan_rate
+from lss_core.experiment import monitor_factor
 from lss_core.errors import ErrorModel, MonitorModel, MonitorTerms, script_kw, ELECTRONICS
 #from TwoD_Integrate import integrate_2d
 
@@ -1092,6 +1093,7 @@ class MainWindow (QMainWindow):
         choice in the MCA tab and in SpecPlot."""
         from PyQt5.QtWidgets import QCheckBox
         self.monitorGain=False
+        self.monitorPhotons=False
         tip=('Also divide by the Monc gain: normalise by M x S / (5 uA/V, the usual gain) instead of M, with S the SR570 '
              'sensitivity from "#M Monc Gain" (last one above the scan if it has none). Puts scans taken at '
              'different gains on one scale. Only for the Monc monitor; unknown gains get no factor.')
@@ -1105,6 +1107,21 @@ class MainWindow (QMainWindow):
             box.stateChanged.connect(self.setMonitorGain)
             self.monitorGainBoxes.append(box)
         self.mcaGainCheckBox,self.spGainCheckBox=self.monitorGainBoxes
+        # F54: per incident photon (includes the gain), beside each gain box
+        ptip=('Divide by the incident photons instead: N = (M - 50 Hz x t) x q(E) x S/(500 nA/V), the photons/s '
+              'through the Monc chamber (xray_fluxor hand-off, route D; lss_core/flux.py). Includes "/ gain". '
+              'q(E) from the scan energy (5-30 keV); dark 50 Hz, as SPEC does not record it (D41); gas at the '
+              "table's 24.9 C and 98.99 kPa. Bounds +-3.6 % below 13 keV, wider above: a common scale, not in "
+              'the error bars. Only for the Monc monitor; scans with an unknown gain or energy keep per-count values.')
+        self.monitorPhotonBoxes=[]
+        for gbox,layout in zip(self.monitorGainBoxes,(self.ui.horizontalLayout_12,self.ui.horizontalLayout_10)):
+            box=QCheckBox('/ photon')
+            box.setObjectName(gbox.objectName().replace('Gain','Photon'))
+            box.setToolTip(ptip)
+            layout.insertWidget(layout.indexOf(gbox)+1,box)
+            box.stateChanged.connect(self.setMonitorPhotons)
+            self.monitorPhotonBoxes.append(box)
+        self.mcaPhotonCheckBox,self.spPhotonCheckBox=self.monitorPhotonBoxes
 
     def initSpecPointLabels(self):
         """Option (F55), on by default: the SPEC plot labels each point
@@ -1322,14 +1339,28 @@ class MainWindow (QMainWindow):
 
     def setMonitorGain(self,state=None):
         on=bool(self.sender().isChecked()) if self.sender() in self.monitorGainBoxes else bool(state)
-        for box in self.monitorGainBoxes:
-            box.blockSignals(True)
-            box.setChecked(on)
-            box.blockSignals(False)
-        if on==self.monitorGain:
+        self.setMonitorMode(on,self.monitorPhotons and on)     # unticking the gain unticks "per photon"
+
+    def setMonitorPhotons(self,state=None):
+        on=bool(self.sender().isChecked()) if self.sender() in self.monitorPhotonBoxes else bool(state)
+        self.setMonitorMode(self.monitorGain or on,on)         # per photon includes the gain
+
+    def monitorMode(self):
+        """'photons', 'gain' or False: the Monc normalisation in use."""
+        return 'photons' if self.monitorPhotons else ('gain' if self.monitorGain else False)
+
+    def setMonitorMode(self,gain,photons):
+        for boxes,on in ((self.monitorGainBoxes,gain),(self.monitorPhotonBoxes,photons)):
+            for box in boxes:
+                box.blockSignals(True)
+                box.setChecked(on)
+                box.blockSignals(False)
+        if (gain,photons)==(self.monitorGain,self.monitorPhotons):
             return
-        self.monitorGain=on
-        self.notify('Monitor normalisation: '+('Monc current, M x S/(5 uA/V), S from "#M Monc Gain"' if on else 'Monc counts M (gain not used)')
+        self.monitorGain,self.monitorPhotons=gain,photons
+        what=('per incident photon, N = (M - D t) q(E) S/(500 nA/V) (xray_fluxor route D)' if photons else
+              'Monc current, M x S/(5 uA/V), S from "#M Monc Gain"' if gain else 'Monc counts M (gain not used)')
+        self.notify('Monitor normalisation: '+what
                     +'. Spectra, SPEC plots and background-subtracted images on show are recomputed; cuts, GID and '
                     'frames at one Qz use it the next time they are computed. Ref Patch does not use it (it measures '
                     'the scale between scans).',title='Monitor',level='info')
@@ -1339,12 +1370,31 @@ class MainWindow (QMainWindow):
             self.bgSelectionChanged()       # background and background-subtracted frames
         self.updateSpecPlotData()
 
-    def monitorGainFactor(self,scannum,column):
+    def monitorGainFactor(self,scannum,column,rate=None):
         """S_ref/S for scan ``scannum`` when the option is on and ``column``
-        is Monc; 1 otherwise (and when the gain is unknown, said once)."""
+        is Monc; 1 otherwise (and when the gain is unknown, said once).
+        With "per photon" on, M/N per incident photon (F54); ``rate``: the
+        monitor rate (Hz) for the dark term, else the scan's median
+        Monc/Seconds."""
         if not self.monitorGain or str(column).lower()!='monc' or scannum is None:
             return 1.0
         spar=self.specPar.get(scannum,{})
+        if self.monitorPhotons and spar.get('MoncGain') is not None:
+            if rate is None:
+                rate=scan_rate(self.specData.get(scannum,{}) if isinstance(self.specData,dict) else {})
+            f,known=monitor_factor(spar,per_photon=True,rate_hz=rate)
+            if not known:
+                seen=getattr(self,'photonUnknownNoted',set())
+                if (self.specFileName,scannum) not in seen:
+                    seen.add((self.specFileName,scannum))
+                    self.photonUnknownNoted=seen
+                    wl=spar.get('Wavelength')
+                    self.notify('Scan %d: photons per monitor count not known (%s); its values stay per monitor count.'
+                                % (scannum,'energy %.3g keV outside 5-30 keV' % absorbers.energy_kev(wl)
+                                   if isinstance(wl,(int,float)) and wl>0 else 'energy unknown'),
+                                title='Monitor',level='warning')
+                return 1.0
+            return f
         if spar.get('MoncGain') is None:
             seen=getattr(self,'gainUnknownNoted',set())
             if (self.specFileName,scannum) not in seen:
@@ -1443,7 +1493,7 @@ class MainWindow (QMainWindow):
             self.mcaMax=0
             self.absfac=self.absorberModel()
             self.mcaAbsfacUsed=self.absfac
-            self.mcaGainUsed=self.monitorGain and str(self.ui.mcaNormComboBox.currentText())=='Monc'
+            self.mcaGainUsed=self.monitorMode() if str(self.ui.mcaNormComboBox.currentText())=='Monc' else False
             if str(self.ui.mcaNormComboBox.currentText())!='None':
                 self.noteMixedAbsorbers([self.mcaAbsorber[i] for i in self.selectedMcaScanNums
                                          if getattr(self,'mcaAbsorber',{}).get(i) is not None],'The selected MCA spectra')
@@ -1464,7 +1514,11 @@ class MainWindow (QMainWindow):
                     n=self.mcaData[i][monitor]
                     tc=self.mcaPar[i]['Time'][1]/self.mcaPar[i]['Time'][2]  #real count time correction
                     a=self.mcaAbsorberFactor(i)
-                    g=self.monitorGainFactor(self.mcaScanOf.get(i),monitor)
+                    try:
+                        r=float(n)/float(self.mcaPar[i]['Time'][1])     # this spectrum's monitor rate
+                    except (KeyError,IndexError,TypeError,ValueError,ZeroDivisionError):
+                        r=None
+                    g=self.monitorGainFactor(self.mcaScanOf.get(i),monitor,rate=r)
                     self.nomMcaData[i]=fluorescence.normalise_spectrum(self.mcaData[i]['Vortex'],self.mcaPar[i],n,(con,lin,qua),self.errorModel,a,g)
                     a=a*g      # both factors on the plotted spectrum
                 else:
@@ -1583,7 +1637,7 @@ class MainWindow (QMainWindow):
     
     def mcaSumAll(self):  #sum all selected spectrum with given range
         try:
-            gain=self.monitorGain and str(self.ui.mcaNormComboBox.currentText())=='Monc'
+            gain=self.monitorMode() if str(self.ui.mcaNormComboBox.currentText())=='Monc' else False
             if self.selectedMcaScanNums is not None and len(self.selectedMcaScanNums)>0 and (
                     self.absorberModel()!=getattr(self,'mcaAbsfacUsed',None)
                     or gain!=getattr(self,'mcaGainUsed',False)):
@@ -1792,7 +1846,7 @@ class MainWindow (QMainWindow):
                 self.mcaAbsorber.get(i) for i in self.selectedMcaScanNums):
             kw.append('absfac=%r' % self.mcaAbsfacUsed)
         if getattr(self,'mcaGainUsed',False):
-            kw.append('monitor_gain=True')
+            kw.append('per_photon=True' if self.mcaGainUsed=='photons' else 'monitor_gain=True')
         x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
         head='from lss_core import absorbers\n' if isinstance(getattr(self,'mcaAbsfacUsed',None),absorbers.Foils) else ''
         return head+'flu = exp.fluorescence(%r, %s)\nflu.save(%r, x=%r)' % (scans,', '.join(kw),name,x)
@@ -5175,7 +5229,7 @@ class MainWindow (QMainWindow):
         if script_kw(self.errorModel):
             kw.append(script_kw(self.errorModel))
         if self.monitorGain:
-            kw.append('monitor_gain=True')
+            kw.append('per_photon=True' if self.monitorPhotons else 'monitor_gain=True')
         if self.ui.pilSpecCheckBox.checkState()==0:
             kw.append('distance=%r' % float(self.ui.pilSDDistLineEdit.text()))
             kw.append('db_pos=(%r, %r)' % tuple(float(t) for t in (self.ui.pilDBPosLineEdit.text().split(',')[0],

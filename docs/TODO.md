@@ -56,8 +56,8 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] Sort out the gains the reader cannot interpret (owner, later):
       `reports/monitor_gains.md`.
 - [x] F54 core: photons/s from the monitor (`lss_core/flux.py`, xray_fluxor route D).
-- [ ] F54 in the window: "per incident photon" normalisation option (MonC, dark 50 Hz
-      when not recorded, D41).
+- [x] F54 in the window: "/ photon" option (MonC, dark 50 Hz when not recorded,
+      D41), scripts `per_photon=True` (2026-11-19).
 - [x] Student t: σ_scan · w · t₄, w ≈ 0.94, σ_scan 0.039 % if unknown (D22).
 - [x] "width" is the t's scale (owner); σ_scan per scan declined: fixed t (D26).
 - [x] Absorber factor default: 50 µm Al at 10 keV, 1.4247 (D25).

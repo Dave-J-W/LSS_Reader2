@@ -66,9 +66,13 @@ The normalised value is N · (t_real/t_live) · absfac**n / M per channel:
 proportional to fluorescence per photon on the sample while the monitor
 gain, energy and geometry stay the same (`physics_notes.md`, 2026-11-17;
 `monitor_gain=True` also divides by the
-`Monc` gain, i.e. by M·S/(1 µA/V), S from `#M Monc Gain` (the last one
+`Monc` gain, i.e. by M·S/(5 µA/V), S from `#M Monc Gain` (the last one
 above an MCA scan); scans whose gain is unknown get no factor and are
-listed in `flu.unknown_gain`). `flu.spectra` holds the
+listed in `flu.unknown_gain`. `per_photon=True` divides by the incident
+photons instead, N = (M − 50 Hz·t)·q(E)·S/(500 nA/V) (`lss_core.flux`,
+xray_fluxor route D; includes the gain; bounds ±3.6 % below 13 keV, a
+common scale not in the errors); scans where it is not known are listed
+the same way). `flu.spectra` holds the
 normalised spectra, `flu.rows` the [frame, Qz, energy, intensity, error]
 rows. Checked byte for byte against the window's `_flu.txt` on synthetic
 and real data.
@@ -138,7 +142,7 @@ the same files. It is also written to the log.
 Directions as the window lists them: 'Q H', 'Q V', 'Pix H', 'Pix V';
 `axes` 'Pixels', 'Angles' or 'Q' for the pixel cuts. Frames are divided by
 the monitor and multiplied by `absfac` (a number or
-`absorbers.calibrated(10.0)`) first. `points`, `errors`, `monitor_gain`,
+`absorbers.calibrated(10.0)`) first. `points`, `errors`, `monitor_gain`, `per_photon`,
 `distance` and `db_pos` (typed geometry), `pinhole`, and the bad-pixel
 settings work as in the window. Background-subtracted cuts are not
 scriptable yet. Exporting a cut in the window writes this call.

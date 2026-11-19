@@ -30,6 +30,7 @@ exists.
 | I17 | Normalised fluorescence does not depend on the absorber setting: counts measured at setting n (attenuated by absfac⁻ⁿ; monitor upstream of the foils, unchanged), multiplied by absfac**n, equal those at n = 0 (exact for expected counts, within Poisson scatter for drawn ones). Holds only if absfac is right for the energy and the setting is right (for MCA scans, inferred from the last `#A`) | tested on synthetic data: `test_fluorescence_absorber.py` |
 | I18 | With the monitor-gain option, one flux measured at two SR570 sensitivities gives one normalised value: M ∝ 1/S, and the value is multiplied by S_ref/S (exact for expected counts). Requires the recorded gain to be the gain in use | tested on synthetic data: `test_monitor_gain.py` |
 | I19 | Absorber factor per unit = exp(μ/ρ(E)·ρ·t), 50 µm Al at E ≤ 10 keV: at the table energies μ/ρ equals the NIST SRD 126 rows exactly, it falls monotonically between them, and 10 keV gives the 1.4247 default; where the foil is not known no factor is made up | tested: `test_absorbers.py`; in the window `test_gui_absfac_energy.py` (a 6.21 keV MCA export is (4.0924/1.4247)³ times the 10 keV one at n = 3, and the Script pane reproduces it) |
+| I20 | With the "per photon" option, one photon flux read at two SR570 sensitivities, with the dark rate added to each monitor rate, gives one value I/N: the factor M/N = 1/(q(E)·S/(500 nA/V)·(1 − D/r)) undoes both. Requires the recorded gain to be the gain in use and D to be the true dark rate; the absolute scale is as good as q(E) (±3.6 % below 13 keV) | tested on synthetic data: `test_per_photon.py` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -2051,4 +2052,41 @@ P33's edge copies.
 map = truth to 1 %, counts conserved); NX scans 11 + 12 in pinhole mode:
 one vertical join logged, no empty cells in "common", "all" has them,
 Save GID works.
+
+### 2026-11-19 — Values per incident photon in the window (F54)
+
+**Built:** "/ photon" boxes beside "/ gain" in the MCA tab and SpecPlot (one
+setting, as the gain; ticking it ticks the gain, unticking the gain unticks
+it). A value divided by the Monc counts M is multiplied by M/N, N the
+photons through the Monc chamber in the same time (xray_fluxor hand-off,
+route D, `lss_core/flux.py`):
+
+    M/N = 1 / (q(E) · S/(500 nA/V) · gas · (1 − D/r)),   r = M/t.
+
+So "per photon" is the gain option times a function of energy, and the
+dark term. Choices made here, all in tooltips and docstrings:
+- E from the scan's wavelength (`#W` line); q(E) interpolated log–log in the
+  hand-off's table (5–30 keV); outside it, or with an unknown gain, the
+  scan keeps per-count values and the Messages pane says so once.
+- D = 50 Hz (D41). r: each MCA spectrum's Monc / real time; for SPEC
+  columns and Pilatus frames the scan's median Monc/Seconds (one factor
+  per scan; D/r is ≲ 0.05 % at the usual ≳ 1e5 Hz, so the per-point
+  difference is below that).
+- Gas at the table's 24.9 °C, 98.99 kPa (SPEC records neither; ±0.8 % from
+  the site-mean pressure, hand-off §3).
+- The bounds (±3.6 % below 13 keV; 30 keV bounds used above 13) are a
+  common scale for all scans at one energy, so they are not added to the
+  point errors.
+- Ref Patch and the reflectivity are not affected (they divide by the
+  direct beam, where any monitor scale cancels).
+
+**Not done:** the photons are at the chamber's exit plane; windows and air
+from there to the sample are not included (hand-off route D says so).
+
+**Checked (tests, synthetic data):** the factor equals M/N from
+`photons_per_second` and 1/(4.37e6·10·(1 − 50/1e5)) at 10 keV, 5 µA/V,
+1e5 Hz; invariant I20; scripted fluorescence and cuts equal the per-count
+values times the factor (values and errors, rel 1e-12); the window's MCA
+export and cut export are reproduced byte for byte by the Script pane.
+Not checked against an independent flux measurement.
 

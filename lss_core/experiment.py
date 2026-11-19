@@ -21,8 +21,24 @@ from . import fluorescence as fluo
 from . import normalise as norm
 from . import reflectivity as refl
 from .errors import as_model
-from .absorbers import ABSFAC_10KEV
-from .monitor import gain_factor
+from .absorbers import ABSFAC_10KEV, energy_kev
+from .flux import photon_factor
+from .monitor import gain_factor, scan_rate
+
+
+def monitor_factor(params, monitor_gain=False, per_photon=False, rate_hz=None):
+    """(factor, known) on a value divided by Monc counts: 1 (counts), the
+    gain factor S_ref/S (``monitor_gain``) or M/N per incident photon
+    (``per_photon``, lss_core.flux.photon_factor; includes the gain). Not
+    known (the gain or energy unknown, energy outside 5-30 keV): factor 1."""
+    if per_photon:
+        wl = params.get('Wavelength')
+        e = energy_kev(wl) if isinstance(wl, (int, float)) and wl > 0 else None
+        f, _ = photon_factor(params.get('MoncGain'), e, rate_hz)
+        return (1.0, False) if f is None else (f, True)
+    if monitor_gain:
+        return (1.0, False) if params.get('MoncGain') is None else (gain_factor(params['MoncGain']), True)
+    return 1.0, True
 
 
 @dataclass
@@ -163,7 +179,7 @@ class Experiment:
 
     def cut(self, scans, direction, range, axes='Pixels', summed=False, points=None,
             absfac=ABSFAC_10KEV, errors=None, monitor_gain=False, distance=None, db_pos=None,
-            pinhole=True, bad_pixel_iterations=0, bad_pixel_factor=1):
+            pinhole=True, bad_pixel_iterations=0, bad_pixel_factor=1, per_photon=False):
         """Line cuts of the frames of ``scans``, as the window's Line/Area
         Cuts tab with the same settings (lss_core.cuts). ``direction``: one of
         cuts.DIRECTIONS ('Q H', 'Q V', 'Pix H', 'Pix V'); ``range``: (low,
@@ -177,7 +193,8 @@ class Experiment:
         given, as when the window's "use SPEC values" box is unticked;
         ``pinhole`` (default, as the window): frames at Det_Th > 1° take the
         S4-detector distance (S7D_Dist) for the horizontal Angles/Q axis. ``errors``,
-        ``monitor_gain``: as for ``reflectivity`` and ``fluorescence``."""
+        ``monitor_gain``, ``per_photon``: as for ``fluorescence`` (the
+        monitor rate for the dark term is the scan's median Monc/Seconds)."""
         from TwoDDetector import TwoDDetector
         from .errors import MonitorTerms
         det = TwoDDetector('Pilatus')
@@ -192,7 +209,8 @@ class Experiment:
             det.openFile(f.path, bad_pix=bad_pixel_iterations, bad_fac=bad_pixel_factor)
             p = self.scans[f.scan].parameters
             cols = self.scans[f.scan].columns
-            g = gain_factor(p.get('MoncGain')) if monitor_gain and p.get('MoncGain') is not None else 1.0
+            g = monitor_factor(p, monitor_gain, per_photon,
+                               scan_rate(cols) if per_photon else None)[0]
             d, e = norm.normalise_frame(det.imageData, det.errorData, f.monitor, absfac, f.absorber,
                                         model=model, gain=g)
             data.append(d)
@@ -242,7 +260,8 @@ class Experiment:
         return out
 
     def fluorescence(self, scans, window=(1, 1000), monitor='Monc',
-                     calibration=None, errors=None, absfac=ABSFAC_10KEV, monitor_gain=False):
+                     calibration=None, errors=None, absfac=ABSFAC_10KEV, monitor_gain=False,
+                     per_photon=False):
         """Fluorescence intensity per spectrum, as the window's "Sum All".
 
         ``window``: energy range (keV with the file's calibration);
@@ -255,6 +274,12 @@ class Experiment:
         divide by the `Monc` gain, i.e. by M·S/S_ref instead of M
         (lss_core.monitor; only with monitor='Monc'); scans whose gain is
         unknown get no factor and are listed in ``result.unknown_gain``.
+        ``per_photon``: divide by the incident photons instead (F54;
+        lss_core.flux.photon_factor: xray_fluxor route D, Monc dark 50 Hz,
+        each spectrum's rate Monc / real time; bounds ±3.6 % below 13 keV, a
+        common scale not in the errors); includes the gain. Scans where it is
+        not known (gain or energy unknown) get no factor and are listed in
+        ``result.unknown_gain``.
         """
         model = as_model(errors)
         spectra, rows, unknown = [], [], []
@@ -264,9 +289,15 @@ class Experiment:
             p = self.scans[scan].parameters
             a = fluo.absorber_factor(absfac, p.get('Absorber'))
             g = 1.0
-            if monitor_gain and monitor == 'Monc':
-                g = gain_factor(p.get('MoncGain'))
-                if p.get('MoncGain') is None and scan not in unknown:
+            if (monitor_gain or per_photon) and monitor == 'Monc':
+                rate = None
+                if per_photon:
+                    try:
+                        rate = float(mon) / float(par['Time'][1])
+                    except (KeyError, IndexError, TypeError, ValueError, ZeroDivisionError):
+                        rate = None
+                g, known = monitor_factor(p, monitor_gain, per_photon, rate)
+                if not known and scan not in unknown:
                     unknown.append(scan)
             s = fluo.normalise_spectrum(data['Vortex'], par, mon, cal, model, a, g)
             u = float(model.monitor.relative(mon)) if (model.budget and mon is not None) else None
