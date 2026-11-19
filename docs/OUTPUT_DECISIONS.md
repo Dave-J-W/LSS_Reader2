@@ -29,6 +29,7 @@ updates a row here in the same commit, with before and after values.
 | Monitor gain | off; S_ref = 5 µA/V when on | ×S_ref/S | D29, D32, D39 | O; T `test_monitor_gain.py` | `lss_core/monitor.py` | 2026-11-17/18 |
 | Per photon | off; when on: q(E) table, dark 50 Hz, gas 24.9 °C / 98.99 kPa, median scan rate | ×M/N | F54, D41 | L (xray_fluxor hand-off); O (dark); gas and median rate **A**; T `test_per_photon.py` | `lss_core/flux.py` | 2026-11-19 |
 | GID columns | pinhole geometry at Det_Th > 1° | GID maps | D40 | O 2026-11-18; T `test_gid_worksheet.py` | `lss_core/pinhole.py` | 2026-11-18 |
+| Pinhole angles | exact per pixel (Mati Meron's IMG_COO_CONV), binned in (2θ, β); β kept over the range every 2θ bin shares | GID maps (pinhole) | owner: "the geometry needs to be more exact the further we go from the direct-beam position" | O 2026-11-19; L (IMG_COO_CONV); T (ray construction, `test_pinhole.py`); M (NX: join χ²/dof 1.31 → 0.83) | `pinhole.pixel_angles`, `level_map` | 2026-11-19 |
 | Pinhole distance | `#B1` 4th number (271 mm) unless typed | 2θ per column | owner; the fit is unstable (258–280) | O; M (NX 11) | `GIDParams.pinhole_distance_mm` | 2026-11-18 |
 | Column response | fitted from the data | GID weights | IDL practice | M; L (IDL code, `docs/reference_code/idl/`) | `pinhole.column_response` | 2026-11-18 |
 | Minimum frames per bin | 2 | GID bins kept | **A** | T | `GIDParams.min_frames` | 2026-11-18 |
@@ -57,6 +58,7 @@ Each is also in `physics_notes.md` under its date.
 | 2026-11-18 | Pinhole default (D40); P32, P34 | GID maps, cut axes | owner |
 | 2026-11-19 | Pinhole Qz join (F62) | interpolated vertical join → shared grids | owner (D36) |
 | 2026-11-19 | GID moved to `lss_core/gid.py` (scriptable) | none: maps byte-identical (tests); Save GID with Pixels axes now a message instead of a crash | refactor |
+| 2026-11-19 | Pinhole angles per axis → exact per pixel (P38) | NX 11: Bragg peak 2θ centroid 16.6456 → 16.6473°, map 472 rows → 460 β bins; NX 11+12 (arm raised 6.5°): level factor 1.029 ± 0.011 → 1.097 ± 0.013, join χ²/dof 1.31 → 0.83, β of the high level's maximum 8.41 → 7.80° | owner |
 | 2026-11-19 | Unreadable `#A`: 63 → unknown | unpatched outputs of such scans ÷absfac⁶³ | owner (D42) |
 
 ## Open assumptions (A) to confirm with the owner

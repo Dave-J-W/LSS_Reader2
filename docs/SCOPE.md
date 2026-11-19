@@ -104,7 +104,8 @@ Each stage ends with the checks green and something the user can see.
   corrected chain (D13).
 - Uncertainty model: monitor term once per frame with a measured model, not
   Poisson on `Monc`; dark-rate question (F26; `reports/monitor_noise.md`).
-  Needs the measurement of `Monc`'s own noise first.
+  The measurement of `Monc`'s own noise is not needed: the Student t model
+  is good enough (owner, 2026-11-19, D44).
 - Per-second option (F20); photons-in estimate when SPEC has it (F21).
 - Q_z offset from the reflection position using sh-scan images (F42).
 - ORSO and HDF5 export (F25, F30).

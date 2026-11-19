@@ -74,6 +74,59 @@ def row_beta(nrows, g):
     return g.beta0 + np.arctan((r - g.r0) * PIXEL_MM / vertical_distance(g))
 
 
+def pixel_angles(g, rows, cols):
+    """(2θ, β) in radians of every pixel (len(rows) × len(cols)), exactly.
+
+    The transform of Mati Meron's IMG_COO_CONV (docs/reference_code/idl/
+    img_coo_conv.pro, version 7.1, "horizontal pinhole configuration"),
+    in the reader's orientation (column offsets increase 2θ, row offsets
+    increase β): pixel offsets wx = −(c − c0)·p, wy = (r − r0)·p on a flat
+    detector perpendicular to the arm at (Det_Th, β0); for the pinhole, wy
+    is first reduced so that the vertical angle is the one of the ray from
+    the footprint through the S4 slit (a vertical line D_p in front of the
+    detector),
+
+        wy ← wy − (D − D_p)(wx sin β0 cos δ + wy sin δ)/(D sin δ − wx cos β0 cos δ),
+
+    then u = wx, v = D_p cos β0 − wy sin β0, w = D_p sin β0 + wy cos β0 and
+    2θ = δ − atan2(u, v), β = atan2(w, √(u² + v²)); D = ``vertical_distance``,
+    δ = Det_Th. Checked against an independent ray construction
+    (tests/test_pinhole.py). Not separable: β depends on the column (each
+    column sees another part of the footprint, at another distance) and 2θ
+    on the row when the arm is raised. At Det_Th ≤ 1° there is no pinhole
+    (IDL's rule; the formula is singular at δ = 0): D_p = D."""
+    R, C = np.meshgrid(np.asarray(rows, float), np.asarray(cols, float), indexing='ij')
+    wx = -(C - g.c0) * PIXEL_MM
+    wy = (R - g.r0) * PIXEL_MM
+    wdst = vertical_distance(g)
+    pdst = g.d_pinhole if (g.d_pinhole > 0 and abs(math.degrees(g.dth)) > 1.0) else wdst
+    b, d = g.beta0, g.dth
+    if wdst != pdst:
+        wy = wy - (wdst - pdst) * (wx * math.sin(b) * math.cos(d) + wy * math.sin(d)) / \
+            (wdst * math.sin(d) - wx * math.cos(b) * math.cos(d))
+    u = wx
+    v = pdst * math.cos(b) - wy * math.sin(b)
+    w = pdst * math.sin(b) + wy * math.cos(b)
+    return d - np.arctan2(u, v), np.arctan2(w, np.hypot(u, v))
+
+
+def bin_counts_2d(theta, beta, counts, weights, edges, bedges):
+    """I = ΣN/ΣW, σ = √ΣN/ΣW per (2θ bin, β bin); every array (frames, rows,
+    cols), angles in the units of the edges; NaN angles count nothing.
+    Returns (I, σ, ΣN, ΣW) of shape (bins, β bins)."""
+    nb, nbb = len(edges) - 1, len(bedges) - 1
+    i = np.digitize(theta, edges) - 1
+    j = np.digitize(beta, bedges) - 1
+    ok = np.isfinite(theta) & np.isfinite(beta) & (i >= 0) & (i < nb) & (j >= 0) & (j < nbb)
+    flat = (i * nbb + j)[ok]
+    sn = np.bincount(flat, weights=np.asarray(counts, float)[ok], minlength=nb * nbb).reshape(nb, nbb)
+    sw = np.bincount(flat, weights=np.asarray(weights, float)[ok], minlength=nb * nbb).reshape(nb, nbb)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        iv = np.where(sw > 0, sn / sw, np.nan)
+        sv = np.where(sw > 0, np.sqrt(sn) / sw, np.nan)
+    return iv, sv, sn, sw
+
+
 def s5_window(g, s5_low, s5_high, d5=S5_TO_DETECTOR_MM):
     """Columns (lo, hi) the S5 slits let through from the pinhole; ``s5_low``
     opens towards low columns, ``s5_high`` towards high ones (mm)."""
@@ -181,6 +234,8 @@ def column_response(theta, counts, weights, edges, iterations=20):
     """Column response R(c), mean 1, estimated from the data: alternately
     S(2θ) = ΣN/Σ(W·R) on the bins (rows summed) and R(c) = Σ_f N / Σ_f W·S
     (the review's §7.3). ``weights`` without R; arrays as for bin_counts."""
+    if np.ndim(theta) == 3:                                  # per-pixel angles (pixel_angles)
+        return _column_response_pixels(theta, counts, weights, edges, iterations)
     n = counts.sum(axis=1)                                   # (frames, cols)
     w = weights.sum(axis=1)
     nb = len(edges) - 1
@@ -195,6 +250,27 @@ def column_response(theta, counts, weights, edges, iterations=20):
         num, den = n.sum(axis=0), pred.sum(axis=0)
         r = np.where(den > 0, num / np.where(den > 0, den, 1), 1.0)
         r = r / r.mean()
+    return r
+
+
+def _column_response_pixels(theta, counts, weights, edges, iterations=20):
+    """column_response with an angle per pixel (frames, rows, cols)."""
+    nb = len(edges) - 1
+    idx = np.digitize(theta, edges) - 1
+    ok = np.isfinite(theta) & (idx >= 0) & (idx < nb)
+    ncol = counts.shape[2]
+    cidx = np.broadcast_to(np.arange(ncol), counts.shape)
+    n_ok, w_ok, i_ok, c_ok = counts[ok], weights[ok], idx[ok], cidx[ok]
+    num = np.bincount(c_ok, weights=n_ok, minlength=ncol)
+    r = np.ones(ncol)
+    for _ in range(iterations):
+        sn = np.bincount(i_ok, weights=n_ok, minlength=nb)
+        sw = np.bincount(i_ok, weights=w_ok * r[c_ok], minlength=nb)
+        s = np.where(sw > 0, sn / np.where(sw > 0, sw, 1), 0.0)
+        den = np.bincount(c_ok, weights=w_ok * s[i_ok], minlength=ncol)
+        r = np.where(den > 0, num / np.where(den > 0, den, 1), 1.0)
+        r = r / r[den > 0].mean() if (den > 0).any() else r
+        r[den <= 0] = 1.0
     return r
 
 
@@ -239,17 +315,24 @@ def fit_pinhole_distance(profiles, dth_deg, c0, peak_deg, d_guess, window, half_
     return d, math.sqrt(cov[0, 0]) * k, slope, int(ok.sum())
 
 
-def frame_weights(g, nrows, ncols, monitor, areainfo, row_lo, row_hi, area=True, pol=True):
-    """W = M · A(2θ_c) · P(2θ_c, β_r) for one frame, rows row_lo..row_hi,
-    without the column response. ``areainfo`` = (S1h, S1v, S4h, alpha, D_s, D_p)."""
+def frame_weights(g, nrows, ncols, monitor, areainfo, row_lo, row_hi, area=True, pol=True, angles=None):
+    """W = M · A(2θ_c) · P(2θ, β) for one frame, rows row_lo..row_hi,
+    without the column response. ``areainfo`` = (S1h, S1v, S4h, alpha, D_s,
+    D_p). ``angles``: the pixels' (2θ, β) in radians (``pixel_angles``) for
+    the polarisation; by default the per-axis angles. The footprint fraction
+    A is per column, at the column's in-plane angle (it is a horizontal
+    quantity; the row dependence of 2θ is < 0.04° on NX)."""
     tt = column_two_theta(ncols, g)
-    bb = row_beta(nrows, g)[row_lo:row_hi + 1]
     s1h, s1v, s4h, alpha, d_s, d_p = areainfo
     if area:
         a = np.array([area_fraction(s1h, s1v, s4h, PIXEL_MM, alpha, d_s, d_s - d_p, t) for t in tt])
     else:
         a = np.ones(ncols)
-    p = polarisation(tt[None, :], bb[:, None]) if pol else np.ones((len(bb), ncols))
+    if angles is None:
+        bb = row_beta(nrows, g)[row_lo:row_hi + 1]
+        p = polarisation(tt[None, :], bb[:, None]) if pol else np.ones((len(bb), ncols))
+    else:
+        p = polarisation(angles[0], angles[1]) if pol else np.ones_like(angles[0])
     return monitor * a[None, :] * p
 
 
@@ -267,9 +350,10 @@ class PinholeFrame:
 
 
 def frame_range(f, ncols):
-    """(lowest, highest) 2θ (degrees) of the usable columns of frame ``f``."""
+    """(lowest, highest) 2θ (degrees) of the usable columns of frame ``f``,
+    over all its rows (exact angles)."""
     cols = usable_columns(f.geom, ncols, f.s5[0], f.s5[1], f.areainfo[1], f.s1_to_sample_mm)
-    t = np.degrees(column_two_theta(ncols, f.geom))[cols]
+    t = np.degrees(pixel_angles(f.geom, np.arange(f.counts.shape[0]), cols)[0])
     return float(t.min()), float(t.max())
 
 
@@ -299,34 +383,39 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     nrows = frames[0].counts.shape[0]
     g0 = frames[0].geom
     step = bin_step_deg if bin_step_deg > 0 else math.degrees(PIXEL_MM / g0.d_pinhole)
-    theta, n, w = [], [], []
+    rows = np.arange(row_lo, row_hi + 1)
+    theta, beta_px, n, w = [], [], [], []
     for f in frames:
         cols = usable_columns(f.geom, ncols, f.s5[0], f.s5[1], f.areainfo[1], f.s1_to_sample_mm)
-        tt = np.full(ncols, np.nan)
-        tt[cols] = np.degrees(column_two_theta(ncols, f.geom))[cols]
-        theta.append(tt)
+        tt, bb = pixel_angles(f.geom, rows, np.arange(ncols))          # exact, per pixel (IMG_COO_CONV)
+        use = np.zeros(ncols, bool)
+        use[cols] = True
+        theta.append(np.where(use[None, :], np.degrees(tt), np.nan))
+        beta_px.append(np.degrees(bb))
         n.append(np.asarray(f.counts, float)[row_lo:row_hi + 1])
-        w.append(frame_weights(f.geom, nrows, ncols, f.monitor, f.areainfo, row_lo, row_hi, area, pol))
-    theta, n, w = np.array(theta), np.array(n), np.array(w)
-    n = np.where(np.isfinite(theta)[:, None, :], np.clip(n, 0, None), 0.0)   # masked pixels (< 0) count nothing
+        w.append(frame_weights(f.geom, nrows, ncols, f.monitor, f.areainfo, row_lo, row_hi, area, pol, angles=(tt, bb)))
+    theta, beta_px, n, w = np.array(theta), np.array(beta_px), np.array(n), np.array(w)
+    n = np.where(np.isfinite(theta), np.clip(n, 0, None), 0.0)          # masked pixels (< 0) count nothing
     if edges is None:
         lo, hi = np.nanmin(theta), np.nanmax(theta)
         edges = lo - step / 2 + step * np.arange(int(math.ceil((hi - lo) / step)) + 2)
     else:
         edges = np.asarray(edges, float)
         step = float(edges[1] - edges[0])
-    thet = np.where(np.isfinite(theta), theta, -1e9)
-    r = column_response(thet, n, w, edges) if response == 'fit' else np.ones(ncols)
+    bstep = math.degrees(PIXEL_MM / vertical_distance(g0))               # one row at the direct beam
+    blo, bhi = np.nanmin(np.where(np.isfinite(theta), beta_px, np.nan)), np.nanmax(np.where(np.isfinite(theta), beta_px, np.nan))
+    bedges = blo - bstep / 2 + bstep * np.arange(int(math.ceil((bhi - blo) / bstep)) + 2)
+    r = column_response(theta, n, w, edges) if response == 'fit' else np.ones(ncols)
     w = w * r[None, None, :]
     scans = sorted(set(f.scan for f in frames))
     factors = {scans[0]: (1.0, 0.0)}
     if len(scans) > 1:
         sel = [np.array([f.scan == sc for f in frames]) for sc in scans]
-        ref_i, ref_s, ref_n, ref_w = bin_counts(thet[sel[0]], n[sel[0]], w[sel[0]], edges)
-        prof0 = np.nansum(ref_n, axis=1), np.nansum(ref_w, axis=1)
+        _, _, ref_n, ref_w = bin_counts_2d(theta[sel[0]], beta_px[sel[0]], n[sel[0]], w[sel[0]], edges, bedges)
+        prof0 = ref_n.sum(axis=1), ref_w.sum(axis=1)
         for sc, m in zip(scans[1:], sel[1:]):
-            _, _, sn, sw = bin_counts(thet[m], n[m], w[m], edges)
-            a, b = np.nansum(sn, axis=1), np.nansum(sw, axis=1)
+            _, _, sn, sw = bin_counts_2d(theta[m], beta_px[m], n[m], w[m], edges, bedges)
+            a, b = sn.sum(axis=1), sw.sum(axis=1)
             ok = (prof0[1] > 0) & (b > 0) & (prof0[0] > 0) & (a > 0)
             ratio = (prof0[0][ok] / prof0[1][ok]) / (a[ok] / b[ok])
             err = ratio * np.sqrt(1 / prof0[0][ok] + 1 / a[ok])
@@ -340,19 +429,29 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
                 log.append(dict(kind='horizontal (2theta)', x_from=float(x.min()), x_to=float(x.max()),
                                 points=int(ok.sum()), factor=fac, error=ferr, chi2=chi2))
             w[m] = w[m] / fac
-    i, s, sn, sw = bin_counts(thet, n, w, edges)
-    bidx = np.digitize(thet, edges) - 1
-    nframes = np.array([int((bidx == b).any(axis=1).sum()) for b in range(len(edges) - 1)])
-    keep = np.all(sw > 0, axis=1) & (nframes >= min_frames)
+    i, s, sn, sw = bin_counts_2d(theta, beta_px, n, w, edges, bedges)
+    bidx = np.digitize(theta, edges) - 1
+    nframes = np.array([int((bidx == k).any(axis=(1, 2)).sum()) for k in range(len(edges) - 1)])
+    keep = (sw.sum(axis=1) > 0) & (nframes >= min_frames)
+    # β: the range every kept 2θ bin covers (each column sees its own β range)
+    bkeep = np.all(sw[keep] > 0, axis=0) if keep.any() else np.zeros(sw.shape[1], bool)
+    if bkeep.any():
+        k0, k1 = np.flatnonzero(bkeep)[[0, -1]]
+        bkeep[:] = False
+        bkeep[k0:k1 + 1] = True
+    keep &= np.all(sw[:, bkeep] > 0, axis=1)
     centres = 0.5 * (edges[:-1] + edges[1:])
+    bcentres = 0.5 * (bedges[:-1] + bedges[1:])
     mean_m = float(np.mean([f.monitor for f in frames]))
-    beta = np.degrees(row_beta(nrows, g0))[row_lo:row_hi + 1]
+    sn_k, sw_k = sn[:, bkeep], sw[:, bkeep]
     info = dict(response=r, factors=factors, step_deg=step, counts_used=float(n.sum()),
-                sum_counts=sn[keep], sum_weights=sw[keep], frames_per_bin=nframes[keep],
-                edges=edges, keep=keep, all_counts=sn, all_weights=sw, beta=beta, mean_monitor=mean_m,
-                columns=[(int(np.nanargmin(t)) if np.isfinite(t).any() else -1,
-                          int(np.nanargmax(t)) if np.isfinite(t).any() else -1) for t in theta])
-    return centres[keep], beta, i[keep] * mean_m, s[keep] * mean_m, info
+                sum_counts=sn_k[keep], sum_weights=sw_k[keep], frames_per_bin=nframes[keep],
+                edges=edges, keep=keep, all_counts=sn_k, all_weights=sw_k, beta=bcentres[bkeep],
+                beta_edges=bedges, beta_step_deg=bstep, mean_monitor=mean_m, geometry='exact (IMG_COO_CONV)',
+                columns=[(int(np.flatnonzero(np.isfinite(t).any(axis=0))[0]) if np.isfinite(t).any() else -1,
+                          int(np.flatnonzero(np.isfinite(t).any(axis=0))[-1]) if np.isfinite(t).any() else -1)
+                         for t in theta])
+    return centres[keep], bcentres[bkeep], i[keep][:, bkeep] * mean_m, s[keep][:, bkeep] * mean_m, info
 
 
 def join_levels(levels, transverse='intersection', log=None, labels=None):

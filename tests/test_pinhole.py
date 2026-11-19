@@ -26,8 +26,8 @@ def _frames(dths, intensity, d_p=271.0, monitor=1e5, rng=None, response=None, d_
     out = []
     for d in dths:
         g = _geom(d, d_p)
-        tt = np.degrees(ph.column_two_theta(NC, _geom(d, d_true or d_p)))
-        mu = monitor * intensity(tt)[None, :] * np.ones((NR, 1))
+        tt = np.degrees(ph.pixel_angles(_geom(d, d_true or d_p), np.arange(NR), np.arange(NC))[0])   # exact
+        mu = monitor * intensity(tt)
         if response is not None:
             mu = mu * response[None, :]
         n = rng.poisson(mu).astype(float) if rng is not None else mu
@@ -45,6 +45,78 @@ def test_angles_and_vertical_distance():
     g12 = ph.FrameGeometry(dth=0.3, alpha=0.0016, beta0=math.radians(6.5), c0=47, r0=53, d_sample=551,
                            d_pinhole=271, g_l3=556)
     assert ph.vertical_distance(g12) - 551 == pytest.approx(3.6, abs=0.05)   # 556 (1/cos 6.5° − 1)
+
+
+def _ray(g, r, c):
+    """Independent of IMG_COO_CONV: the ray from the beam axis (the
+    footprint line) through the vertical S4 slit, a distance D_p in front of
+    the detector, to pixel (r, c) on a flat detector perpendicular to the
+    arm at (Det_Th, β0), D from the sample; its in-plane and exit angles."""
+    D, Dp, b, d = ph.vertical_distance(g), g.d_pinhole, g.beta0, g.dth
+    n = np.array([math.cos(b) * math.cos(d), math.cos(b) * math.sin(d), math.sin(b)])
+    eh = np.array([math.sin(d), -math.cos(d), 0.0])          # towards lower 2θ
+    ev = np.array([-math.sin(b) * math.cos(d), -math.sin(b) * math.sin(d), math.cos(b)])
+    pix = D * n - (c - g.c0) * ph.PIXEL_MM * eh + (r - g.r0) * ph.PIXEL_MM * ev
+    slit = (D - Dp) * n
+    normal = np.cross(pix - slit, ev)                        # the plane of the pixel and the slit line
+    s = normal.dot(slit) / normal[0]                         # meets the beam axis at (s, 0, 0)
+    ray = pix - np.array([s, 0.0, 0.0])
+    return math.atan2(ray[1], ray[0]), math.atan2(ray[2], math.hypot(ray[0], ray[1]))
+
+
+@pytest.mark.parametrize('dth, beta0', [(14.0, 0.09), (18.0, 6.5), (25.0, 12.0), (3.0, 0.5)])
+def test_pixel_angles_are_the_exact_ray_geometry(dth, beta0):
+    """IMG_COO_CONV's pinhole transform (Mati Meron), as ported, equals an
+    independent ray construction, on this module and where a second 200K
+    module would be (columns −212…−18 and 212…406)."""
+    g = ph.FrameGeometry(dth=math.radians(dth), alpha=math.radians(0.09), beta0=math.radians(beta0),
+                         c0=47.0, r0=53.0, d_sample=551.0, d_pinhole=271.0, g_l3=556.0)
+    rows, cols = np.array([0, 53, 200, 486]), np.array([-212, -18, 0, 47, 120, 194, 212, 406])
+    tt, bb = ph.pixel_angles(g, rows, cols)
+    for i, r in enumerate(rows):
+        for j, c in enumerate(cols):
+            t, b = _ray(g, r, c)
+            assert tt[i, j] == pytest.approx(t, abs=1e-12) and bb[i, j] == pytest.approx(b, abs=1e-12)
+
+
+def test_pixel_angles_limits():
+    g = _geom(15.0)
+    tt, bb = ph.pixel_angles(g, np.array([53]), np.arange(NC))
+    assert np.allclose(tt[0], ph.column_two_theta(NC, g), atol=1e-6)     # direct-beam row, arm level: per-axis is exact
+    tt, bb = ph.pixel_angles(g, np.arange(NR), np.array([47]))
+    assert np.allclose(tt[:, 0], g.dth, atol=1e-9)                       # direct-beam column: 2θ = Det_Th
+    assert np.allclose(bb[:, 0], ph.row_beta(NR, g), atol=2e-5)          # and β as the per-axis formula
+    flat = ph.FrameGeometry(dth=math.radians(0.5), alpha=0.0016, beta0=0.0016, c0=47, r0=53, d_sample=551,
+                            d_pinhole=271, g_l3=0.0)                     # Det_Th <= 1°: no pinhole
+    tt, bb = ph.pixel_angles(flat, np.array([53]), np.array([147]))
+    assert tt[0, 0] == pytest.approx(flat.dth + math.atan2(100 * ph.PIXEL_MM, 551 * math.cos(0.0016)), abs=1e-9)
+
+
+def test_a_line_at_fixed_beta_stays_in_one_beta_bin():
+    """The reason for the exact geometry (owner, 2026-11-19): each column
+    sees another part of the footprint, so β depends on the column. A
+    feature at fixed β is one β bin wide in the map; with β per row only it
+    was spread over ~0.4° at the top of the detector."""
+    b0 = 5.0
+    rng = np.random.default_rng(5)
+    out = []
+    for d in np.arange(14.0, 18.01, 0.1):
+        g = _geom(d)
+        tt, bb = (np.degrees(a) for a in ph.pixel_angles(g, np.arange(NR), np.arange(NC)))
+        step_b = math.degrees(ph.PIXEL_MM / ph.vertical_distance(g))
+        mu = 1e6 * np.where(np.abs(bb - b0) < step_b / 2, 1e-3, 1e-6)
+        out.append(ph.PinholeFrame(rng.poisson(mu).astype(float), 1e6, g,
+                                   (2.0, 0.1, 0.2, math.radians(0.09), 551.0, 271.0), (3.0, 14.0), 678.0, 1))
+    tt, beta, I, S, info = ph.level_map(out, 15, 486, response='none', area=False, pol=False)
+    prof = np.nansum(I, axis=0)
+    k = int(np.argmax(prof))
+    assert beta[k] == pytest.approx(b0, abs=info['beta_step_deg'])
+    assert (prof > 0.3 * prof[k]).sum() <= 2
+    # per row, the same frames would put the line over many rows across the columns used
+    g = _geom(16.0)
+    tt, bb = ph.pixel_angles(g, np.arange(NR), np.arange(28, 103))
+    rows_at_b0 = [int(np.argmin(np.abs(np.degrees(bb[:, j]) - b0))) for j in range(bb.shape[1])]
+    assert max(rows_at_b0) - min(rows_at_b0) > 10
 
 
 def test_s5_window_is_asymmetric_and_matches_nx_lit_columns():
@@ -163,9 +235,8 @@ def _level(dths, beta0_deg, eff, truth, rng, monitor=1e6):
     for d in dths:
         g = ph.FrameGeometry(dth=math.radians(d), alpha=math.radians(0.09), beta0=math.radians(beta0_deg),
                              c0=47.0, r0=53.0, d_sample=551.0, d_pinhole=271.0, g_l3=556.0, wavelength=1.24)
-        tt = np.degrees(ph.column_two_theta(NC, g))
-        bb = np.degrees(ph.row_beta(NR, g))
-        mu = monitor * eff * truth(tt[None, :], bb[:, None])
+        tt, bb = (np.degrees(a) for a in ph.pixel_angles(g, np.arange(NR), np.arange(NC)))   # exact
+        mu = monitor * eff * truth(tt, bb)
         out.append(ph.PinholeFrame(rng.poisson(mu).astype(float), monitor, g,
                                    (2.0, 0.1, 0.2, math.radians(0.09), 551.0, 271.0), (3.0, 14.0), 678.0, 1))
     return out
@@ -221,5 +292,9 @@ def test_levels_must_share_the_grid():
 def test_one_level_is_returned_as_it_is():
     truth, infos, edges = _two_levels()
     tt, beta, I, S, info = ph.join_levels(infos[:1])
-    assert len(beta) == 472 and I.shape == (infos[0]['keep'].sum(), 472)
+    # the level's own β grid, untouched (was its 472 rows until 2026-11-19, when β
+    # became a grid per pixel; the grid covers the β range every 2θ bin shares)
+    nb = len(infos[0]['beta'])
+    assert np.array_equal(beta, infos[0]['beta']) and I.shape == (infos[0]['keep'].sum(), nb)
+    assert np.array_equal(info['sum_counts'], infos[0]['all_counts'][infos[0]['keep']])
 

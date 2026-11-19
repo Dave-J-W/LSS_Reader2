@@ -26,7 +26,7 @@ Meron's code, the files whose contents mention "pinhole"); the last four on
 | `pd_pin_range.pro` | 7.08 | Pinhole coverage (columns) from footprint, S4–detector distance and S5 |
 | `pd_gid_read.pro` | 7.0 | Reads GID scans, integrates each frame horizontally, joins scans; Qxy, Qz formulas |
 | `img_join.pro` | 7.0 | Joins 2D images: amplitude matching on the overlap, inverse-variance weighted overlap, common transverse range |
-| `img_coo_conv.pro` | 7.1 | Area-detector pixel → (2θ, β) or (Qxy, Qz), exact, with the horizontal pinhole transformation (2026-11-19) |
+| `img_coo_conv.pro` | 7.1 | Area-detector pixel → (2θ, β) or (Qxy, Qz), exact, with the horizontal pinhole transformation (2026-11-19). Ported to `lss_core.pinhole.pixel_angles`, checked against an independent ray construction |
 | `limg_coo_conv.pro` | 7.02 | The same for a line detector (2026-11-19) |
 | `scan_join.pro` | 8.16 | Joins 1D scans: weighted order-0 fit of the ratio on the overlap, factor error, overlap merged with weights y/σ² (2026-11-19) |
 | `spec_file_info.pro` | 8.475 | Reads a SPEC file into FILDAT: `#B1` is centre x, centre y, distance, pinhole distance (the larger is PDIST), orientation H/V; detector sizes 487 × 195 (Pilatus), 981 × 1043 (1M) (2026-11-19) |

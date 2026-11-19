@@ -22,9 +22,9 @@ stated assumption until the answer arrives.
 |---|---|---|---|
 | 1 | Answers on the series proposal (`handoff_out/05`, four questions) | Stage 3 series in the window, live refresh | can proceed on the proposed syntax as provisional |
 | 2 | A complete low + high Qz GID pair (public if possible) | C14 comparison, F62 check on real data, P36/P37 need three levels | C14 stays "not like for like" |
-| 3 | Whether the 200K saves one module only (all frames received are 487 × 195, one module; a full 200K frame is 487 × 407), and one full frame if it can be saved; a new-format fluorescence/GID SPEC file (F28); HDF5/bluesky file (F29); ME7 notes (F35); Pilatus + Vortex in one scan (F53); 1M geometry conventions (F38) | Stage 4, item by item | Stage 4 not started |
+| 3 | One full two-module 200K frame (one module is saved on purpose, D43; the second lies along 2θ, F63); a new-format fluorescence/GID SPEC file (F28); HDF5/bluesky file (F29); ME7 notes (F35); Pilatus + Vortex in one scan (F53); 1M geometry conventions (F38) | Stage 4, item by item | Stage 4 not started |
 | 4 | `lss_reference.py`, `covariance_core.py` (XModJointFit) | Stage 5 hand-off tests 5–6 | independent implementation from the hand-off text |
-| 5 | `Monc`'s own noise from a bright steady signal (owner's condition before a normalisation model is chosen) | Stage 5: Budget as default | Legacy stays default |
+| 5 | ~~`Monc`'s own noise~~: not needed (owner, 2026-11-19, D44). Which monitor model the Budget uses by default when it becomes the default: Gaussian 0.04 % (D22, now) or Student t (D26)? | Stage 5: Budget as default | Gaussian stays the Budget's default |
 | 6 | IDL `IMG_COO_CONV`/`LIMG_COO_CONV`, `SCAN_JOIN`, `SPEC_FILE_INFO`; IDL output for NX 11+12 | checking the pinhole map against IDL numbers | pinhole checked on synthetic data and by reading |
 | 7 | IDL review §8: column response from data or geometry; per-column patch replacing or beside the 3-column one; PD_MERGE | GID defaults | pinhole default (D40), response fitted |
 | 8 | Reflectivity series with overlaps at 6–7 keV; foil tolerance and alloy; Cu thickness at 30 keV | P28 below 10 keV; F49 at 30 keV | nominal Al below 10 keV; no factor at 30 keV |
@@ -149,6 +149,12 @@ stated assumption until the answer arrives.
 - [x] GID scriptable (2026-11-19): `Experiment.gid`, one implementation with
       the window (`lss_core/gid.py`), Save GID writes the call; byte-identical.
 - [ ] GISAXS scriptable; background-subtracted GID and cuts scriptable.
+- [x] Exact pinhole geometry per pixel (P38; owner 2026-11-19, "is your trig up
+      to snuff?"): `pinhole.pixel_angles` (IMG_COO_CONV), GID patch binned in (2θ, β).
+- [ ] P38 remainder: exact angles also for the cuts' pinhole axis and the image
+      display axes; the distance fit with exact angles.
+- [ ] F63: second 200K module along 2θ for GID: detector description with the
+      gap (Stage 4), then the pinhole patch over both modules; ask for a full frame.
 - [ ] P36, P37 (legacy GID with three Qz levels): fix with a synthetic
       three-level GID data set; outputs change only for such maps.
 - [ ] Docket (2026-11-18): F59 cuts for diffuse scattering (I vs β, β − α;
@@ -306,10 +312,8 @@ reruns the quick, real-data and export-fixture checks, and commits.
 - [x] Beam variation vs monitor noise examined (`physics_notes.md`,
       2026-11-16): `Monc`'s scatter in reflectivity scans is mostly real
       flux variation through S1, which the detector also sees.
-- [ ] Before any normalisation model is chosen (owner's condition):
-      measure `Monc`'s own noise with a bright steady signal (repeated
-      direct-beam or total-reflection frames); decide whether to subtract
-      the dark rate (~100 counts/s `Monc`).
+- [x] ~~Measure `Monc`'s own noise before a normalisation model is chosen~~: not
+      needed, the Student t model is good enough (owner, 2026-11-19, D44).
 - [ ] Is the MCA "Merge" weighted mean Σ(y²/σ²)/Σ(y/σ²) intended?
 - [ ] Scoping input for F22 (where better fitting is needed, which models)
       and F23 (GID patching: overlaps, methods).

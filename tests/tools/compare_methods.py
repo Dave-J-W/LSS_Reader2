@@ -115,7 +115,13 @@ def main():
     for group in filter(None, a.gid.split(';')):
         gid(exp, [int(s) for s in group.split(',')], label, a.out, manifest, maps=not a.no_maps)
     absorbers(a.out, manifest)
-    with open(os.path.join(a.out, 'manifest.json'), 'w') as f:
+    path = os.path.join(a.out, 'manifest.json')
+    if os.path.exists(path):                     # keep entries for files written otherwise (e.g. C21)
+        mine = set(m['file'] for m in manifest)
+        with open(path) as f:
+            manifest += [m for m in json.load(f).get('files', [])
+                         if m['file'] not in mine and os.path.exists(os.path.join(a.out, m['file']))]
+    with open(path, 'w') as f:
         json.dump(dict(command=' '.join(['python', 'tests/tools/compare_methods.py'] + sys.argv[1:]),
                        spec=a.spec, files=manifest), f, indent=1)
     print('%d files in %s' % (len(manifest), a.out))

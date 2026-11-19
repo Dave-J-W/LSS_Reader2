@@ -3155,8 +3155,8 @@ class MainWindow (QMainWindow):
                         'Horizontal joins use linear interpolation and average the two scans in the overlap.')
         dist=QLabel('sample-detector',g)
         dist.setObjectName('gidDistanceLabel')
-        dist.setToolTip('Distance used to turn columns and rows into angles. A pinhole-geometry correction before '
-                        'patching (F45) will use the slit-detector distance per column; it waits for the IDL code.')
+        dist.setToolTip('Distance used to turn columns and rows into angles in the 3-column patch (pinhole off). '
+                        'With the pinhole on, every pixel gets its own 2theta and beta through S4 (below).')
         absl=QLabel('not applied',g)
         absl.setObjectName('gidAbsorberLabel')
         absl.setToolTip('Frames are divided by their monitor but not multiplied by the absorber factor: GID scans are '
@@ -3173,10 +3173,11 @@ class MainWindow (QMainWindow):
         pin=QCheckBox('Pinhole: angle per column',g)
         pin.setObjectName('gidPinholeCheckBox')
         pin.setChecked(gp.pinhole)
-        pin.setToolTip('Give every column its own 2theta through the pinhole (S4) and use all columns the S5 slits and '
-                       'the footprint allow, binned as counts over normalisation (F45; lss_core/pinhole.py). Off: '
-                       'the patch above, columns summed at the frame angle. The settings above that apply: rows, '
-                       'Qz grouping, area correction, polarisation.')
+        pin.setToolTip('Give every pixel its own 2theta and beta through the pinhole (S4), exactly as Mati Meron\'s '
+                       'IMG_COO_CONV (beta depends on the column: each column sees another part of the footprint), and '
+                       'use all columns the S5 slits and the footprint allow, binned in (2theta, beta) as counts over '
+                       'normalisation (F45; lss_core/pinhole.py). Off: the patch above, columns summed at the frame '
+                       'angle. The settings above that apply: rows, Qz grouping, area correction, polarisation.')
         pdist=spin('gidPinholeDistSpinBox',0,2000,gp.pinhole_distance_mm,'S4 (pinhole) to detector distance, mm. '
                    '0: the header value (#B1 4th number, 271 on NX). "Fit" estimates it from a peak\'s drift; the fit '
                    'depends on the columns used by several mm (column response), so the header value is the default.',dbl=True)

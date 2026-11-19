@@ -2255,3 +2255,71 @@ vertical range instead. Either way, the reader's detector description
 it can read such frames. Question for the owner: which way is the 200K
 mounted, and is the one-module saving deliberate?
 
+### 2026-11-19 — Is the pinhole trig exact? The 200K's second module
+
+**Owner.** The 200K is mounted so that the other module would extend 2θ.
+Saving one module is deliberate (no switching between GID and
+reflectivity, which needs one module; GID patching did not use the
+pinhole geometry fully until now). "The geometry needs to be more exact
+the further we go away from the pdx, pdy positions. Is your trig up to
+snuff?" Sent Mati Meron's IMG_COO_CONV, LIMG_COO_CONV, SCAN_JOIN and
+SPEC_FILE_INFO (published, attributed, `docs/reference_code/idl/`).
+
+**A. It was not.** The reader gave each column a 2θ, atan((c − c0)p/D_p),
+and each row a β, atan((r − r0)p/D_v): exact only on the direct-beam row
+and column. IMG_COO_CONV's transform is exact for a flat detector
+perpendicular to the arm with a vertical slit (S4) D_p in front of it;
+ported as `pinhole.pixel_angles` and checked against an independent ray
+construction (beam-axis point → slit line → pixel) to 1e-12 rad at
+Det_Th 3–25°, β0 0.09–12°, on this module and where a second module would
+be (`test_pixel_angles_are_the_exact_ray_geometry`). The physics: each
+column sees a different part of the footprint through the slit, at a
+different distance from the detector, so **β depends on the column**; with
+the arm raised, 2θ also depends on the row.
+
+**Measured (NX school, 2026-11-19), per-axis minus exact:**
+- inside the columns the patch uses (28–102): β up to 0.41° (scan 11, arm
+  level) and 0.74° (scan 12, β0 = 6.5°); along the top row β spans 0.6° and
+  1.1° across those columns; 2θ up to 0.0005° and 0.038° (one 0.036° bin);
+- over a whole module: β 1.2° and 2.2°, 2θ 0.001° and 0.14°;
+- where a second module would be: β 2–7°, 2θ up to 0.39°.
+SPEC_FILE_INFO also confirms the reading of `#B1`: centre (53, 147),
+distance 551, pinhole distance 271 (the smaller is the pinhole one), no
+"H" so the 487 axis is vertical.
+
+**Changed (deliberate; default GID maps):** the pinhole patch gives every
+pixel its exact (2θ, β) and bins counts and weights on a (2θ, β) grid
+(β step one row at the direct beam), keeping the β range every 2θ bin
+shares. Before → after: NX 11, Bragg-peak 2θ centroid 16.6456 → 16.6473°,
+472 rows → 460 β bins, rod half-maximum β 0.02–1.57 → 0.02–1.63°; NX 11+12,
+level factor 1.029 ± 0.011 → 1.097 ± 0.013 and the join's χ²/dof on the β
+overlap 1.31 → 0.83, i.e. the two levels agree better with exact angles
+(one pair, scan 12 has 4 frames: supporting, not conclusive). A synthetic
+line at fixed β now stays in one β bin; per row it fell on rows more than
+10 apart across the columns used. The legacy 3-column patch is unchanged.
+
+**Not yet exact (P38 remainder):** the cuts' pinhole axis, the image
+display axes, and the distance fit still use per-axis angles.
+
+**Second module (F63, measured):** its columns would be 212–406 (or
+−212…−18) in this frame's numbering; per-axis angles there are off by up to
+7° in β, so the exact transform is a precondition. How many of its columns
+the footprint and S5 windows let through is to be checked with a full frame.
+
+### 2026-11-19 — Monc's own noise; a complete GID pair
+
+**Owner.** "You don't need this Monc noise measurement, you have the
+Student's t model that is good enough." (D44: the condition set on
+2026-11-15, measure Monc's noise on a bright steady signal before choosing
+a normalisation model, is lifted.) Open: whether the Budget's default
+monitor model should be the Student t rather than the Gaussian 0.04 %
+(D22) when the Budget becomes the default (Stage 5).
+
+**Owner.** Suggest a complete low + high Qz GID pair from the SPEC file on
+hand. **Suggested (read from the private GID SPEC file, 2026-11-19; scan
+numbers only, no data):** a pair at the NX scans' geometry (Det_Th 14–18°,
+Qz 0.016 and 0.582 1/Å, both complete), and a set of four complete scans
+(two Det_Th ranges at each Qz, overlapping by 0.4°) that exercises both the
+2θ joins and the Qz join. Scan numbers given to the owner in the
+conversation; the data stay private.
+

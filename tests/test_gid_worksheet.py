@@ -116,6 +116,7 @@ def test_pinhole_mode_from_the_worksheet(nx, qapp, recorder):
     _menu(nx, qapp, 'GID Patch')
     legacy = nx.pilGIDData.copy()
     assert legacy.shape[1] == 41                              # one profile per frame
+    legacy_beta = nx.pilGIDYAxs[:, 0].copy()
     _menu(nx, qapp, 'Worksheet')
     d = nx.gidWorksheet
     assert not d.gidPinholeCheckBox.isChecked() and not d.gidPinholeDistSpinBox.isEnabled()
@@ -125,7 +126,11 @@ def test_pinhole_mode_from_the_worksheet(nx, qapp, recorder):
     qapp.processEvents()
     assert recorder.exceptions == []
     assert nx.pilGIDData.shape[1] > 150                       # 2θ bins of one column (0.036°) over 13.3-20°
-    assert nx.pilGIDData.shape[0] == legacy.shape[0]          # same rows
+    # β: bins one row wide (at the direct beam) over the range every 2θ bin
+    # shares; since 2026-11-19 β is per pixel (exact geometry), not per row
+    lb, pb = legacy_beta, nx.pilGIDYAxs[:, 0]
+    assert np.median(np.diff(pb)) == pytest.approx(np.median(np.diff(lb)), rel=0.02)
+    assert lb[0] - 0.05 <= pb[0] and pb[-1] <= lb[-1] + 0.6 and (pb[-1] - pb[0]) > 0.95 * (lb[-1] - lb[0])
     x = nx.pilGIDXAxs[0]
     assert np.all(np.diff(x) > 0) and x[0] < 14.0 < 18.0 < x[-1]
     info = nx.gidPinholeInfo[0]

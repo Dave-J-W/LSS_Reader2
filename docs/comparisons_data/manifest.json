@@ -270,6 +270,102 @@
     "calibrated sigma (low Qz)"
    ],
    "note": "lss_core.absorbers.calibrated(10.0); step error from Foils.step(0, n)"
+  },
+  {
+   "file": "C21_gid_nx_S11-12_pinhole_exact_qxy.csv",
+   "comparison": "C21",
+   "method": "exact per-pixel angles (IMG_COO_CONV)",
+   "data": "NX school",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
+  },
+  {
+   "file": "C21_gid_nx_S11-12_pinhole_exact_qz.csv",
+   "comparison": "C21",
+   "method": "exact per-pixel angles (IMG_COO_CONV)",
+   "data": "NX school",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
+  },
+  {
+   "file": "C21_gid_nx_S11-12_pinhole_peraxis_qxy.csv",
+   "comparison": "C21",
+   "method": "per-axis angles (before 2026-11-19, commit 34c33c8)",
+   "data": "NX school",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
+  },
+  {
+   "file": "C21_gid_nx_S11-12_pinhole_peraxis_qz.csv",
+   "comparison": "C21",
+   "method": "per-axis angles (before 2026-11-19, commit 34c33c8)",
+   "data": "NX school",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
+  },
+  {
+   "file": "C21_gid_nx_S11_pinhole_exact_qxy.csv",
+   "comparison": "C21",
+   "method": "exact per-pixel angles (IMG_COO_CONV)",
+   "data": "NX school",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
+  },
+  {
+   "file": "C21_gid_nx_S11_pinhole_exact_qz.csv",
+   "comparison": "C21",
+   "method": "exact per-pixel angles (IMG_COO_CONV)",
+   "data": "NX school",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
+  },
+  {
+   "file": "C21_gid_nx_S11_pinhole_peraxis_qxy.csv",
+   "comparison": "C21",
+   "method": "per-axis angles (before 2026-11-19, commit 34c33c8)",
+   "data": "NX school",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
+  },
+  {
+   "file": "C21_gid_nx_S11_pinhole_peraxis_qz.csv",
+   "comparison": "C21",
+   "method": "per-axis angles (before 2026-11-19, commit 34c33c8)",
+   "data": "NX school",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
   }
  ]
 }
