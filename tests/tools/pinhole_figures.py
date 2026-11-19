@@ -61,13 +61,19 @@ X = np.array([1.0, 0.0, 0.0])
 
 # ---- the frames and the reader's numbers ----------------------------------------
 
+# the data drawn: the public NX file by default; ``--spec``, ``--low``, ``--high``
+# choose another file and its low- and high-Qz GID scans (they stand in for NX 11, 12)
+DATA = dict(spec=NX, label='NX school 20260923', scans={11: 11, 12: 12})
+
+
 @lru_cache(maxsize=None)
 def _frames(scan):
-    return tuple(frames_for(NX, [scan]))
+    return tuple(frames_for(DATA['spec'], [DATA['scans'].get(scan, scan)]))
 
 
 def frame(scan, dth_deg):
-    """The NX frame of ``scan`` whose Det_Th is nearest ``dth_deg``."""
+    """The frame of ``scan`` (11: the low-Qz scan, 12: the high-Qz one) whose
+    Det_Th is nearest ``dth_deg``."""
     return min(_frames(scan), key=lambda f: abs(math.degrees(f.geom.dth) - dth_deg))
 
 
@@ -401,13 +407,27 @@ def text_overlaps(fig):
     return out
 
 
+def name_scans(fig):
+    """Fill the placeholders <LOW>, <HIGH>, <DATA> in the figure's texts with
+    the data drawn (NX scan 11, 12 by default)."""
+    from matplotlib.text import Text
+    low = '%s scan %d' % (DATA['label'], DATA['scans'][11])
+    high = 'scan %d' % DATA['scans'][12]
+    for t in fig.findobj(Text):
+        txt = t.get_text()
+        if '<' in txt:
+            t.set_text(txt.replace('<LOW>', low).replace('<HIGH>', high).replace('<DATA>', DATA['label']))
+
+
 def save(fig, isos, path, late=()):
+    name_scans(fig)
     for iso in isos:
         iso.fit()                                      # fixes the projections
     for iso in isos:
         iso.place_labels()
     for fn in late:                                    # labels that need the final layout
         fn()
+    name_scans(fig)
     problems = text_overlaps(fig)
     for p in problems:
         print('  %s: %r %r' % p)
@@ -422,8 +442,8 @@ def provenance(f):
                              text=True).stdout.strip()
     except OSError:
         rev = '?'
-    return ('tests/tools/pinhole_figures.py · lss_core %s · NX school 20260923 scan %d, Det_Th %.1f°'
-            % (rev, f.scan, deg(f.geom.dth)))
+    return ('tests/tools/pinhole_figures.py · lss_core %s · %s scan %d, Det_Th %.1f°'
+            % (rev, DATA['label'], f.scan, deg(f.geom.dth)))
 
 
 def mag_note(main, close):
@@ -664,7 +684,7 @@ def case2(out):
     _, bh = ph.pixel_angles(hg, [hg.r0], cols)
     _, bhp = per_axis(hg, [hg.r0], cols)
     dh = np.degrees(np.abs(bhp[0] - bh[0]))
-    fig.text(0.03, 0.80, 'With the arm raised (scan 12, β0 = %.1f°) row r0 is no longer exact:\n'
+    fig.text(0.03, 0.80, 'With the arm raised (<HIGH>, β0 = %.1f°) row r0 is no longer exact:\n'
              'β per-axis is off by up to %.2f° along it (%.2f° inside the usable columns).'
              % (deg(hg.beta0), dh.max(), dh[usable(hf)].max()), fontsize=9, color=C['det'], va='top')
     k = np.unravel_index(np.argmax(np.abs(db)), db.shape)
@@ -678,7 +698,7 @@ def case2(out):
     cb = fig.colorbar(im, ax=bx, fraction=0.08, pad=0.03)
     cb.ax.tick_params(labelsize=8)
     caption(fig, 'Case 2 — Per-axis angles: exact on the direct-beam column, on the row only with the arm level',
-            'Per-axis angles (one 2θ per column, one β per row) against the exact ones, NX scan 11 (β0 = %.2f°). '
+            'Per-axis angles (one 2θ per column, one β per row) against the exact ones, <LOW> (β0 = %.2f°). '
             'Elsewhere each column sees another footprint point (cases 3, 4).' % deg(g.beta0),
             'ray_geometry (rays, F, arcs), pixel_angles (exact; IMG_COO_CONV, Mati Meron) minus '
             'column_two_theta / row_beta.', provenance(f))
@@ -843,7 +863,7 @@ def case3(out):
                      '(across the arm drawn ×%.0f)' % (fmt_cols(*cend), fmt_cols(s5lo, s5hi), use[0], use[-1],
                                                       plan_magnification(bx)), fontsize=10, loc='left')
     caption(fig, 'Case 3 — The pinhole seen from above: every column sees its own footprint point',
-            'Rays to the direct-beam row, NX scan 11, Det_Th %.1f°. Black: from the footprint\'s ends; dashed grey: '
+            'Rays to the direct-beam row, <LOW>, Det_Th %.1f°. Black: from the footprint\'s ends; dashed grey: '
             'the reader\'s footprint window (P39); purple: S5\'s edges traced back to the beam.' % deg(g.dth),
             'ray_geometry, footprint_columns, footprint_window, s5_window, usable_columns, footprint_length.',
             provenance(f))
@@ -931,7 +951,7 @@ def case4(out):
     for s in ('top', 'right'):
         cx.spines[s].set_visible(False)
     caption(fig, 'Case 4 — Why β depends on the column',
-            'Top row (%d), the usable columns\' ends (%d, %d), NX scan 11, Det_Th %.1f°: different footprint '
+            'Top row (%d), the usable columns\' ends (%d, %d), <LOW>, Det_Th %.1f°: different footprint '
             'points, different heights at S4, different β; per-axis gives the row one β.' % (row, c1, c2, deg(g.dth)),
             'ray_geometry (rays, F, slit points), pixel_angles (IMG_COO_CONV, Mati Meron), row_beta, '
             'footprint_columns, s5_window, usable_columns.', provenance(f))
@@ -997,7 +1017,7 @@ def case5(out):
                      C['ray'] if lit else '#666666'))
     y11 = np.degrees(t11 - per_axis(g11, rows, np.array([edge]))[0][0])
     bx.plot(rows, y11, color=C['approx'], lw=1.3, ls=(0, (4, 3)))
-    ends.append((y11[-1], 'c = %d, arm level (scan 11): %.4f°' % (edge, np.ptp(y11)), C['approx']))
+    ends.append((y11[-1], 'c = %d, arm level (<LOW>): %.4f°' % (edge, np.ptp(y11)), C['approx']))
     span = max(e[0] for e in ends) - min(e[0] for e in ends)
     for (y, text, colour), yl in zip(ends, spread_labels([e[0] for e in ends], 0.17 * span)):
         bx.annotate(text, (NR - 1, y), xytext=(NR + 10, yl), textcoords='data', fontsize=8.5, va='center',
@@ -1011,7 +1031,7 @@ def case5(out):
     for s in ('top', 'right'):
         bx.spines[s].set_visible(False)
     caption(fig, 'Case 5 — Raised arm: the (u, v, w) decomposition, and 2θ depends on the row',
-            'High-Qz level, NX scan %d: β0 = %.2f°, Det_Th %.1f°, D = %.1f mm (the arm term adds %.1f mm); '
+            'High-Qz level, <DATA> scan %d: β0 = %.2f°, Det_Th %.1f°, D = %.1f mm (the arm term adds %.1f mm); '
             'e_v leans back, so one column\'s top and bottom lie at different 2θ.'
             % (f.scan, deg(g.beta0), deg(g.dth), ph.vertical_distance(g), ph.vertical_distance(g) - g.d_sample),
             'ray_geometry (u, v, w, h, S, P, rays), pixel_angles, column_two_theta, vertical_distance, '
@@ -1137,7 +1157,7 @@ def case6(out):
                      loc='left', pad=18 if k == 0 else 6)
     caption(fig, 'Case 6 — Where the 200K\'s second module would be',
             'Two %d × %d modules with a %d-pixel gap: the unused one would sit at columns %d…%d or %d…%d of this '
-            'numbering (NX scan %d, β0 = %.1f°): per-axis angles fail there, and S5 gives it no light.'
+            'numbering (<DATA> scan %d, β0 = %.1f°): per-axis angles fail there, and S5 gives it no light.'
             % (NR, NC, GAP, llo, lhi, rlo, rhi, f.scan, deg(g.beta0)),
             'ray_geometry (rays, sources, module surfaces), pixel_angles minus column_two_theta / row_beta, '
             's5_window, footprint_length.', provenance(f))
@@ -1287,7 +1307,7 @@ def case7(out):
         for sp in ('top', 'right'):
             axx.spines[sp].set_visible(False)
     caption(fig, 'Case 7 — The footprint at the usual GID angle, and what makes a column usable',
-            'NX scan 11, Det_Th %.1f°, α = %.4f°: the footprint against the S5 slit, on the sample (a) and on the '
+            '<LOW>, Det_Th %.1f°, α = %.4f°: the footprint against the S5 slit, on the sample (a) and on the '
             'column axis (b); how both change with α (c, d).' % (deg(g.dth), deg(g.alpha)),
             'footprint_length, footprint_columns, footprint_window, s5_window, usable_columns, s4_window, '
             'column_acceptance, ray_geometry(…).source.', provenance(f))
@@ -1526,7 +1546,7 @@ def case8(out):
         ex.spines[sp].set_visible(False)
     ex.set_title('(e) …and passes light in proportion', fontsize=10, loc='left')
     caption(fig, 'Case 8 — What the finite S4 opening does',
-            'S4 is a %.1f mm gap, not a line (NX scan 11, Det_Th %.1f°, row r0): each column accepts a bundle of rays '
+            'S4 is a %.1f mm gap, not a line (<LOW>, Det_Th %.1f°, row r0): each column accepts a bundle of rays '
             '(a, b), the footprint\'s edges become ramps (c); a wider S4 trades resolution for counts (d, e).'
             % (w4, deg(g.dth)),
             'column_acceptance (and .lit_fraction, .throughput), s4_window, footprint_columns, footprint_window, '
@@ -1538,7 +1558,20 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     p.add_argument('--out', default=os.path.join(ROOT, 'docs', 'figures', 'pinhole'))
     p.add_argument('--only', type=int, nargs='*', help='case numbers to draw (default: all)')
+    p.add_argument('--spec', default=None, help='another SPEC file (default: the public NX file)')
+    p.add_argument('--low', type=int, default=11, help='its low-Qz GID scan (stands in for NX 11)')
+    p.add_argument('--high', type=int, default=12, help='its high-Qz GID scan (stands in for NX 12)')
+    p.add_argument('--label', default=None, help='name of the data in the figure headers')
     args = p.parse_args(argv)
+    if args.spec:
+        spec = os.path.abspath(args.spec)
+        DATA.update(spec=spec, label=args.label or os.path.basename(spec), scans={11: args.low, 12: args.high})
+        _frames.cache_clear()                      # the NX frames read at import (module size) must not be reused
+        private = os.path.join(ROOT, 'sample_data', 'private')
+        out = os.path.abspath(args.out)
+        if spec.startswith(private) and out.startswith(ROOT) and not out.startswith(private):
+            raise SystemExit('private data: write the figures outside the repository or under sample_data/private/ '
+                             '(git-ignored), not to %s' % args.out)
     os.makedirs(args.out, exist_ok=True)
     cases = [case1, case2, case3, case4, case5, case6, case7, case8]
     for k, fn in enumerate(cases, 1):

@@ -286,6 +286,18 @@ for this figure and change no existing result (`pixel_angles`,
 3000 random geometries; tests in `tests/test_pinhole.py` check them
 against plain in-plane trigonometry).
 
+## Private data
+
+The same figures can be drawn from another SPEC file, e.g. the owner's
+private GID scans, without anything entering the repository:
+
+    python tests/tools/pinhole_figures.py --spec sample_data/private/gid_scans_136-146/gid \
+        --low 163 --high 165 --label "private GID file" --out sample_data/private/figures/pinhole
+
+`--low` and `--high` are the low- and high-Qz GID scans (standing in for NX
+11 and 12). `sample_data/private/` is git-ignored, and the script refuses
+to write figures of private data anywhere else inside the repository.
+
 ## Provenance and credit
 
 `tests/tools/pinhole_figures.py`, 2026-11-19, from the public NX school
