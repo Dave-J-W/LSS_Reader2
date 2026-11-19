@@ -2256,7 +2256,7 @@ class MainWindow (QMainWindow):
                     self.pil_Dist.append(self.specPar[i]['S2D_Dist'])
                     self.pil_PDist.append(self.specPar[i]['S7D_Dist'])
                     self.pil_Sh.append(self.specPar[i]['Sample_H'])
-                    self.pil_S1v.append(self.specPar[i]['S1T']+self.specPar[i]['S1T'])
+                    self.pil_S1v.append(self.specPar[i]['S1T']+self.specPar[i]['S1B'])   # top + bottom (was S1T + S1T, defect 10)
                     self.pil_S1h.append(self.specPar[i]['S1L']+self.specPar[i]['S1R'])
                     self.pil_S4h.append(self.specPar[i]['S4L']+self.specPar[i]['S4R'])
                     self.pil_S5h.append(self.specPar[i]['S5L']+self.specPar[i]['S5R'])

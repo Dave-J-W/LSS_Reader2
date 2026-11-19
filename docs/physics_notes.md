@@ -2379,3 +2379,29 @@ interface. They would matter for any scan where a spectrum per point is
 wanted (e.g. an energy scan for EXAFS, or fluorescence along a motor
 scan); that is the "series of MCA spectra" of F22a.
 
+### 2026-11-19 — Merge kept; S1 fixed; per-point MCA files not reachable (checked in the window)
+
+**Owner.** The MCA Merge stays as it is ("take care of the error
+downstream"); its default Qz window should reflect the jitter in Qz and
+work 99 % of the time; the owner will provide the number (no analysis
+until then). Fix the S1 sum (S1 was usually symmetric). Per-point MCA files
+should be handled; "are you sure we couldn't [load them]?"
+
+**Checked in the window (2026-11-19, bu/2026oct/20261019 scan 15, private
+data, locally):** opening the file and selecting scan 15 (`ascan oh …`, whose
+spectra are in `vortex/20261019_15_mca`) gives an empty MCA list; the scan
+is taken as a Pilatus scan (it has `#B0`) and the window says "2 of 2 frames
+have no readable image". The reader marks a scan as having MCA data only for
+the command `getandsave_mca` or a `#V` line, and scans 11–15 have neither.
+In the files on hand, the XFNTR scans that work (bu June 1–12, September
+74–79) are `getandsave_mca` scans with a `#V vortex data:…` line.
+
+**The per-point file (read):** for each scan point, one `#S k
+mca_save_point Point:p Scan:s` block per detector channel (7, Xspress3
+`XSP3_7Chan`), each with `#Monc` (two numbers), `#Q`, `#Energy`,
+`#@CALIB`, `#@CTIME`, `#@CHANNEL k` and `#@DCT` (e.g. "60 0 1 Enable").
+
+**Fixed:** S1 vertical opening = S1T + S1B in the legacy GID footprint
+correction (window and `Experiment.gid_frames`); no change for any file on
+hand.
+

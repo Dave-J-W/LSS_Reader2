@@ -315,7 +315,7 @@ class Experiment:
             out.append(gidmod.GIDFrame(np.array(det.imageData), np.array(det.errorData), f.monitor, f.absorber,
                                        f.scan, f.qz, np.arcsin(f.qz * wl / 4.0 / np.pi), p['In_Rot'] * np.pi / 180.0,
                                        dth, wl, centre, p['S2D_Dist'], p['S7D_Dist'], p['Sample_H'],
-                                       (p['S1L'] + p['S1R'], p['S1T'] + p['S1T'], p['S4L'] + p['S4R'], p['S5L'] + p['S5R']),
+                                       (p['S1L'] + p['S1R'], p['S1T'] + p['S1B'], p['S4L'] + p['S4R'], p['S5L'] + p['S5R']),
                                        p))
         if not out:
             raise ValueError('no frames with images in scans %s' % list(scans))

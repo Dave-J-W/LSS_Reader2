@@ -113,7 +113,7 @@ References (cited from memory; DOIs not re-checked in this session):
 
 | # | Location | Problem |
 |---|---|---|
-| 10 | `mainwindow.py:1510` | `pil_S1v = S1T + S1T`; almost certainly meant top + bottom. Feeds the GID footprint correction. |
+| 10 | `mainwindow.py:1510` | `pil_S1v = S1T + S1T`; almost certainly meant top + bottom. Feeds the GID footprint correction. **Fixed 2026-11-19** (owner): S1T + S1B, also in `Experiment.gid_frames`; no change for any file on hand (S1 symmetric in all 643 scans); `tests/test_s1_slit_sum.py`. |
 | 11 | `mainwindow.py:2617` | First high-Q_z GID frame of each scan is not multiplied by the average monitor, unlike every other branch. |
 | 12 | `mainwindow.py:2673` | `self.pilhintHQDatadic[MQkeys[0]]` indexes the high-Q_z data with the medium-Q_z keys. |
 | 13 | `mainwindow.py:4713` | Absorber-ratio fit curve is drawn with the initial guess `par[0]` in the dead-time term instead of the fitted `fp[0]`. |

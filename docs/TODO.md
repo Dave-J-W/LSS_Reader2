@@ -33,7 +33,7 @@ stated assumption until the answer arrives.
 | 11 | Fitting requirements received (F22a, 2026-11-19); scoping later. Burn tests and peak fits scriptable: with that scoping | Stage 6 fitting | not started |
 | 12 | Run the build workflow once; macOS signing decision | packaged releases | Linux build measured only |
 | 13 | ~~`bu.zip` link sharing~~ off (owner, 2026-11-19); where sample data live; resend scan-136 frames as a zip | — | — |
-| 14 | P7 Merge: explained (2026-11-19: it pools counts, correct for Poisson data), owner to confirm; `S1T + S1T`: no effect on any file here (S1T = S1B in all 643 scans), owner to judge; per-point MCA files: explained, owner to say whether wanted | the matching fixes | recorded, not changed |
+| 14 | P7 Merge: kept as is (owner, 2026-11-19); its default Qz window to come from the owner's Qz-jitter number (hold until then). `S1T + S1T`: fixed (owner). Per-point MCA files: to be handled (owner); questions on channels and dead time below | the matching fixes | — |
 
 ### Stage 3 work list
 - [x] Proposal for the "scan i of N" line (`docs/handoff_out/05-scan-series-syntax.md`).

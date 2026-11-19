@@ -59,6 +59,7 @@ Each is also in `physics_notes.md` under its date.
 | 2026-11-19 | Pinhole Qz join (F62) | interpolated vertical join → shared grids | owner (D36) |
 | 2026-11-19 | GID moved to `lss_core/gid.py` (scriptable) | none: maps byte-identical (tests); Save GID with Pixels axes now a message instead of a crash | refactor |
 | 2026-11-19 | Pinhole angles per axis → exact per pixel (P38) | NX 11: Bragg peak 2θ centroid 16.6456 → 16.6473°, map 472 rows → 460 β bins; NX 11+12 (arm raised 6.5°): level factor 1.029 ± 0.011 → 1.097 ± 0.013, join χ²/dof 1.31 → 0.83, β of the high level's maximum 8.41 → 7.80° | owner |
+| 2026-11-19 | Legacy GID footprint: S1 vertical = S1T + S1B (was S1T + S1T, defect 10) | none on any file here (S1T = S1B in all 643 scans); for an asymmetric S1 the footprint length is now right | owner |
 | 2026-11-19 | Unreadable `#A`: 63 → unknown | unpatched outputs of such scans ÷absfac⁶³ | owner (D42) |
 
 ## Open assumptions (A) to confirm with the owner
