@@ -378,21 +378,24 @@ class Experiment:
         res.warnings = warnings
         return res
 
-    def spectra(self, scans):
+    def spectra(self, scans, channels=None):
         """(scan, spectrum number, Data, Par) for every MCA spectrum of the
-        fluorescence scans ``scans``, in the window's list order."""
+        fluorescence scans ``scans``, in the window's list order. Files of a
+        multi-element detector give one spectrum per point, the elements in
+        ``channels`` summed (None: all; lss_core.fluorescence.combine_channels)."""
         from mca_routines import mcaread
         out = []
         name = os.path.basename(self.specfile)
         for n in scans:
             m = mcaread(os.path.join(self.mca_folder, '%s_%d_mca' % (name, n)))
-            for j in range(m.Data['NumOfScans']):
-                out.append((n, j + 1, m.Data[j], m.Par[j]))
+            spec = fluo.combine_channels([(m.Data[j], m.Par[j]) for j in range(m.Data['NumOfScans'])], channels)
+            for j, (d, p) in enumerate(spec):
+                out.append((n, j + 1, d, p))
         return out
 
     def fluorescence(self, scans, window=(1, 1000), monitor='Monc',
                      calibration=None, errors=None, absfac=ABSFAC_10KEV, monitor_gain=False,
-                     per_photon=False):
+                     per_photon=False, channels=None):
         """Fluorescence intensity per spectrum, as the window's "Sum All".
 
         ``window``: energy range (keV with the file's calibration);
@@ -414,7 +417,7 @@ class Experiment:
         """
         model = as_model(errors)
         spectra, rows, unknown = [], [], []
-        for k, (scan, num, data, par) in enumerate(self.spectra(scans)):
+        for k, (scan, num, data, par) in enumerate(self.spectra(scans, channels)):
             cal = calibration if calibration is not None else par['Calib']
             mon = None if monitor is None else data[monitor]
             p = self.scans[scan].parameters

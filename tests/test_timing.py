@@ -155,4 +155,9 @@ def test_time_is_an_x_axis_of_the_spec_plot(window, qapp, recorder, tmp_path):
     w.ui.spYComboBox.setCurrentIndex(w.ui.spYComboBox.findText('Apex2'))
     qapp.processEvents()
     assert close(w.specData[1]['Time_s'], [0, 2, 4, 6]) and close(w.specData[2]['Time_s'], [300, 303, 306, 309])
+    # each scan from its own start, to compare scans as if they started together
+    assert w.ui.spXComboBox.findText('Time_from_start_s') >= 0
+    assert close(w.specData[1]['Time_from_start_s'], [0, 2, 4, 6]) and close(w.specData[2]['Time_from_start_s'], [0, 3, 6, 9])
+    sweep._select_scans(w, qapp, [1])                         # scan 2 alone: its own first point is 0
+    assert close(w.specData[2]['Time_s'], [0, 3, 6, 9])
     assert recorder.exceptions == []

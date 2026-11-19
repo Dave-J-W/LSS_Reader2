@@ -166,7 +166,17 @@ def _spec_files():
 def test_mca_reader_identical_to_eval_version(path):
     import mca_routines
     old, new = _legacy('mca_routines_eval').mcaread(path), mca_routines.mcaread(path)
-    assert _same(old.Data, new.Data) and _same(old.Par, new.Par)
+    # deliberate additions (2026-11-19): 'Point' (per-point files) and 'Channel' (#@CHANNEL,
+    # multi-element detectors), which the old reader did not read
+    par = {}
+    for k, p in new.Par.items():
+        p = dict(p)
+        for key in ('Point', 'Channel'):
+            if key in p:
+                assert key not in old.Par[k]
+                del p[key]
+        par[k] = p
+    assert _same(old.Data, new.Data) and _same(old.Par, par)
 
 
 @pytest.mark.slow

@@ -39,7 +39,18 @@ class mcaread:
                 self.Data[i]={}
                 self.Par[i]={}
                 tmpdata=[]
+                for w in scanLines[i].split():
+                    if w.startswith('Point:'):       # per-point files (mca_save_point)
+                        try:
+                            self.Par[i]['Point']=int(w[6:])
+                        except ValueError:
+                            pass
                 while line[:2]!='@A':
+                    if line[:10]=='#@CHANNEL ':      # detector element of a multi-element file
+                        try:
+                            self.Par[i]['Channel']=int(line[10:].split()[0])
+                        except (ValueError,IndexError):
+                            pass
                     if line[:7]=='#@CTIME':
                         tmppar=line[7:].split()
                         self.Par[i]['Time']=spec_numbers(tmppar)

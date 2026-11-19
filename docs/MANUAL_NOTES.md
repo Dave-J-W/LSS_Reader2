@@ -35,6 +35,18 @@ Each line: feature — where — default — script — notes entry (date).
   File > Preferences — `lss_core/preferences.py`; Notes 2026-11-18
   "Calibrated foils in the reader".
 
+### Fluorescence detector
+- File > Preferences > Fluorescence detector: elements 1–7 of the
+  multi-element detector summed into one spectrum per point (default all,
+  EXAFS; XFNTR uses the central one); the MCA list shows "ch …"; `channels=`
+  in scripts. Dead time: corrected by the 7-element detector itself; the
+  1-element one by real/live time (D48).
+
+### Time
+- SPEC plot x axis `Time_s` (selected scans on one true timeline) and
+  `Time_from_start_s` (each scan from its own start); how the times were
+  obtained is in the item's tooltip (`lss_core/timing.py`, D46, D50).
+
 ### Monitor and absorbers (affect every tab)
 - Absorber factor field, "from E", "cal" — main panel — `absfac=` in
   scripts — OUTPUT_DECISIONS "Absorber factor per unit".

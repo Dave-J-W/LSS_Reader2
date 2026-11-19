@@ -862,6 +862,7 @@ class MainWindow (QMainWindow):
         
 
     TIME_COLUMN='Time_s'
+    TIME_START_COLUMN='Time_from_start_s'
 
     def scanTimes(self,i):
         """Start time of every point of scan ``i`` (s, lss_core.timing), or
@@ -879,33 +880,35 @@ class MainWindow (QMainWindow):
         return cache[key]
 
     def addTimeColumn(self):
-        """Offer time as an x axis in the SPEC plot (owner, 2026-11-19): a
-        column Time_s, seconds since the first point of the file's first scan
-        with times (lss_core.timing: old files #D + Epoch steps, ~1 s, overhead
-        ignored; new files Tstart; dates removed: Epoch's own clock)."""
-        name=self.TIME_COLUMN
-        origin=None
-        for n in self.specData.get('ScanNums',[]):
-            t=self.scanTimes(n)
-            if t.start is not None and len(t.start):
-                origin=float(t.start[0])
-                break
-        if origin is None:
-            return
-        ok=True
+        """Offer time as an x axis in the SPEC plot (owner, 2026-11-19; D46):
+        Time_s, the true timeline of the selected scans (seconds since the
+        earliest selected point), and Time_from_start_s, each scan from its
+        own first point (to compare scans as if they started together). From
+        lss_core.timing: old files #D + Epoch steps (~1 s, overhead ignored),
+        new files Tstart; dates removed: Epoch's own clock."""
+        import time as _time
+        times={}
         for i in self.selectedScanNums:
             t=self.scanTimes(i)
             length=len(next((v for v in self.specData[i].values() if isinstance(v,np.ndarray)),[]))
-            if t.start is None or len(t.start)!=length:
-                ok=False
-                break
-            self.specData[i][name]=np.asarray(t.start,float)-origin
-        if ok and self.ui.spXComboBox.findText(name)<0:
-            self.ui.spXComboBox.addItem(name)
-            k=self.ui.spXComboBox.findText(name)
-            notes=self.scanTimes(self.selectedScanNums[0]).notes
-            self.ui.spXComboBox.setItemData(k,'Seconds since the first point of the file\'s first scan. '+
-                                            ' '.join(notes),Qt.ToolTipRole)
+            if t.start is None or len(t.start)!=length or length==0:
+                return
+            times[i]=np.asarray(t.start,float)
+        if not times:
+            return
+        origin=min(float(v[0]) for v in times.values())
+        for i,v in times.items():
+            self.specData[i][self.TIME_COLUMN]=v-origin
+            self.specData[i][self.TIME_START_COLUMN]=v-v[0]
+        notes=' '.join(self.scanTimes(self.selectedScanNums[0]).notes)
+        clock='' if origin<1e8 else ' (%s UTC)' % _time.strftime('%Y-%m-%d %H:%M:%S',_time.gmtime(origin))
+        for name,tip in ((self.TIME_COLUMN,'Seconds since the earliest selected point%s: the selected scans on '
+                          'one true timeline. ' % clock),
+                         (self.TIME_START_COLUMN,'Seconds since each scan\'s own first point: the scans compared '
+                          'as if they had started together. ')):
+            if self.ui.spXComboBox.findText(name)<0:
+                self.ui.spXComboBox.addItem(name)
+            self.ui.spXComboBox.setItemData(self.ui.spXComboBox.findText(name),tip+notes,Qt.ToolTipRole)
 
     def updateSpecPlotData(self):
         if (self.specFileName is None or len(self.selectedScanNums)==0
@@ -1120,12 +1123,15 @@ class MainWindow (QMainWindow):
                 spar=self.specPar.get(self.selectedScanNums[i],{})
                 n=spar.get('Absorber')
                 abstext='' if n is None else '\tAbs=%g' % n + ('' if 'AbsorberFrom' not in spar else ' (#A of S%d)' % spar['AbsorberFrom'])
-                for j in range(data['NumOfScans']):
-                    self.mcaData[start]=data[j]
-                    self.mcaPar[start]=par[j]
+                spectra=fluorescence.combine_channels([(data[j],par[j]) for j in range(data['NumOfScans'])],
+                                                      self.mcaChannels())
+                for j,(dj,pj) in enumerate(spectra):
+                    self.mcaData[start]=dj
+                    self.mcaPar[start]=pj
                     self.mcaAbsorber[start]=n
                     self.mcaScanOf[start]=self.selectedScanNums[i]
-                    self.ui.imageListWidget.addItem('S# '+str(self.selectedScanNums[i])+'\tmS# '+str(j+1)+'\tQz='+str(self.mcaPar[start]['Q'][2])+abstext)
+                    chtext='\tch '+','.join(map(str,pj['Channels'])) if 'Channels' in pj else ''
+                    self.ui.imageListWidget.addItem('S# '+str(self.selectedScanNums[i])+'\tmS# '+str(j+1)+'\tQz='+str(self.mcaPar[start]['Q'][2])+abstext+chtext)
                     start=start+1
         except:
             self.messageBox('MCA file(s) of selected scans do not exit!')
@@ -1360,6 +1366,41 @@ class MainWindow (QMainWindow):
         hl.addWidget(auto)
         hl.addWidget(spin)
         lay.addWidget(g2)
+        g3=QGroupBox('Fluorescence detector',d)
+        g3.setToolTip('Multi-element detector (7-element Xspress3): the elements summed into one spectrum per '
+                      'point, for plotting and reduction. EXAFS sums all seven; XFNTR uses the central one. '
+                      'Single-element files are not affected. The 7-element detector corrects its own dead time; '
+                      'the 1-element one is corrected here by real/live time (#@CTIME).')
+        h3=QHBoxLayout(g3)
+        boxes=[]
+        sel=self.mcaChannels()
+        for k in range(1,8):
+            b=QCheckBox(str(k),g3)
+            b.setObjectName('prefMcaChannel%dCheckBox' % k)
+            b.setChecked(not sel or k in sel)
+            b.setToolTip('Element %d (#@CHANNEL %d in the MCA file)' % (k,k))
+            h3.addWidget(b)
+            boxes.append(b)
+        allb=QPushButton('All',g3)
+        allb.setObjectName('prefMcaAllPushButton')
+        allb.setToolTip('Sum all elements (EXAFS)')
+        h3.addWidget(allb)
+        lay.addWidget(g3)
+
+        def channels_changed(*_):
+            chosen=[k for k,b in enumerate(boxes,1) if b.isChecked()]
+            self.setPreference('mca_channels',[] if len(chosen) in (0,7) else chosen)
+
+        def all_on():
+            for b in boxes:
+                b.blockSignals(True)
+                b.setChecked(True)
+                b.blockSignals(False)
+            channels_changed()
+        for b in boxes:
+            b.toggled.connect(channels_changed)
+        allb.clicked.connect(all_on)
+        d.prefMcaChannelBoxes=boxes
         close=QPushButton('Close',d)
         close.setObjectName('prefClosePushButton')
         close.clicked.connect(d.close)
@@ -1369,6 +1410,11 @@ class MainWindow (QMainWindow):
         spin.valueChanged.connect(lambda v:self.setPreference('patch_threshold_percent',float(v)))
         d.prefCalibratedCheckBox,d.prefFoilTable,d.prefPatchAutoCheckBox,d.prefPatchThresholdSpinBox=cal,t,auto,spin
         return d
+
+    def mcaChannels(self):
+        """Elements of a multi-element fluorescence detector to sum (empty: all)."""
+        ch=self.prefs.get('mca_channels',[])
+        return [int(c) for c in ch if isinstance(c,int) and not isinstance(c,bool)]
 
     def setPreference(self,key,value):
         if self.prefs.get(key)==value:
@@ -1384,6 +1430,16 @@ class MainWindow (QMainWindow):
             self.notify('Absorbers: '+('calibrated foils where they apply' if value else '50 um Al per unit'),
                         title='Absorbers',level='info')
             self.absFacFromEnergy()
+        if key=='mca_channels':
+            self.notify('Fluorescence detector: '+('all elements summed' if not value else
+                        'element(s) %s' % ', '.join(map(str,value))),title='Fluorescence detector',level='info')
+            scans=getattr(self,'selectedScanNums',None) or []
+            if scans and self.specPar.get(scans[0],{}).get('Detector')=='Vortex' and getattr(self,'mcafhead',None):
+                self.forgetImageSelection()
+                self.ui.imageListWidget.blockSignals(True)
+                self.ui.imageListWidget.clear()       # rebuilt with the new elements (the list builder appends)
+                self.ui.imageListWidget.blockSignals(False)
+                self.updateMcaImageList()
 
     def setMonitorGain(self,state=None):
         on=bool(self.sender().isChecked()) if self.sender() in self.monitorGainBoxes else bool(state)
@@ -1884,6 +1940,8 @@ class MainWindow (QMainWindow):
             kw.append('absfac=%r' % self.mcaAbsfacUsed)
         if getattr(self,'mcaGainUsed',False):
             kw.append('per_photon=True' if self.mcaGainUsed=='photons' else 'monitor_gain=True')
+        if self.mcaChannels() and any('Channels' in self.mcaPar[i] for i in self.selectedMcaScanNums):
+            kw.append('channels=%r' % self.mcaChannels())
         x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
         head='from lss_core import absorbers\n' if isinstance(getattr(self,'mcaAbsfacUsed',None),absorbers.Foils) else ''
         merges=''.join('flu.merge(%r, x=%r)\n' % m for m in getattr(self,'mcaMerges',[]))

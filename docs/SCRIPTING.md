@@ -179,6 +179,16 @@ geometries, both axes, relaxed grid, typed columns, some frames:
 scriptable yet. Window and script share `lss_core/gid.py` (the joins,
 `calArea`, the map products and the save were moved there unchanged).
 
+## Multi-element detectors (2026-11-19)
+
+    flu = exp.fluorescence(scans, window=(5.1, 5.4))               # all elements summed (EXAFS)
+    flu = exp.fluorescence(scans, window=(5.1, 5.4), channels=[4])  # one element (XFNTR: the central one)
+
+Per-point MCA files of a multi-element detector hold one block per element
+(`#@CHANNEL`); `channels` selects the elements summed into one spectrum per
+point (`exp.spectra(scans, channels)` gives them). Single-element files
+are not affected.
+
 ## Merging fluorescence points (2026-11-19)
 
     flu = exp.fluorescence([2, 3, 4, 12, 13, 14], window=(5.6, 7.2))

@@ -151,3 +151,46 @@ def merge_rows(rows, x='qz', window=None, jitter=QZ_JITTER):
         sj = np.abs(v * np.nan_to_num(slope)) * jitter * frac
         out[:, 4] = np.sqrt(out[:, 4] ** 2 + sj ** 2)
     return out
+
+
+# ---- multi-element detectors (owner, 2026-11-19) ------------------------------------
+
+def combine_channels(spectra, channels=None):
+    """One spectrum per scan point from a multi-element file, summing the
+    elements in ``channels`` (None or empty: all). ``spectra``: [(Data, Par)]
+    of one MCA file in file order; a point's elements are consecutive blocks
+    with ascending ``#@CHANNEL`` (a new point starts when the channel number
+    does not increase). Monitor, times, Qz, energy and calibration are the
+    first selected element's (the same for all elements of a point on the
+    7-element Xspress3, which corrects its own dead time). Single-element
+    files are returned unchanged. Owner: EXAFS sums all elements; XFNTR uses
+    the central one."""
+    chans = [p.get('Channel') for _, p in spectra]
+    if all(c is None for c in chans) or len(set(c for c in chans if c is not None)) < 2:
+        return list(spectra)
+    groups, cur, last = [], [], None
+    for d, p in spectra:
+        c = p.get('Channel')
+        if cur and (c is None or last is None or c <= last):
+            groups.append(cur)
+            cur = []
+        cur.append((d, p))
+        last = c
+    if cur:
+        groups.append(cur)
+    out = []
+    for g in groups:
+        chosen = [(d, p) for d, p in g if not channels or p.get('Channel') in channels]
+        if not chosen:
+            continue
+        d0, p0 = chosen[0]
+        total = np.sum([np.asarray(d['Vortex'], float) for d, _ in chosen], axis=0)
+        d = dict(d0)
+        d['Vortex'] = list(total)
+        p = dict(p0)
+        p['Channels'] = [q.get('Channel') for _, q in chosen]
+        if any(q.get('Calib') != p0.get('Calib') for _, q in chosen):
+            p['CalibMismatch'] = True
+        out.append((d, p))
+    return out
+

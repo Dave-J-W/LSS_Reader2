@@ -2565,3 +2565,31 @@ energy axis comes from the scan, not from Qz. `eb_expose time abs` exposes
 the sample at Qz 0.018 with the absorbers open for a set time (a deliberate
 dose, e.g. before or between measurements), then closes them and returns.
 
+### 2026-11-19 — Time axes, dead time, the 7-element detector
+
+**Owner.** Show a true timeline when several scans are selected, and keep
+the option of comparing scans as if they started together (D50). The
+7-element detector corrects its own dead time; the 1-element detector, with
+other electronics, needs the correction in the reader: "there is an
+equation in reader for that, correct?" (D48). The 7-element detector needs
+a configuration panel with a global element selector; EXAFS sums all seven,
+XFNTR uses the central element (D49).
+
+**A (read from the code).** Yes: each spectrum is multiplied by real/live
+time from the MCA file's `#@CTIME preset real live` line
+(`fluorescence.normalise_spectrum`, as the original program); on the
+1-element Dante file sent today that is 10.0003/9.98821 = 1.0012; the
+7-element files write `#@CTIME 1 1 1`, so nothing is applied twice. The
+second number on `#Monc` lines is read as Monb (then Mond), for hutches B
+and D.
+
+**Built:** the MCA reader reads `#@CHANNEL` and `Point:`; one spectrum per
+point summing the selected elements (`combine_channels`); Preferences >
+Fluorescence detector (elements 1–7, default all); `channels=` in scripts;
+SPEC plot `Time_s` (seconds since the earliest selected point, the clock
+time of that point in the tooltip) and `Time_from_start_s`.
+
+**Open:** which element number is the central one (the selector lets the
+user choose; no preset); the October per-point files (`ascan` without `#V`)
+are still not reachable from the window (F53).
+
