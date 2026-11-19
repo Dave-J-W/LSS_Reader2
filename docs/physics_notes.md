@@ -2808,7 +2808,11 @@ which is what P39 is about, and (3) gives the ramps at the window's edges.
 It does not replace fitting per level: on the private pairs the
 illumination differed between the levels' scans (centroid a few mm along
 the beam), which a profile measured once cannot follow; a half-cut taken
-next to each GID level would. (Recorded under F43.)
+next to each GID level would. (Recorded under F43.) Two limits: the
+profile is stretched by 1/sin α, so α must be known well (at α = 0.09° an
+error of 0.005° changes the footprint's length by about 6 %); and a
+half-cut says nothing about the stray light of P40, which needs its own
+data. (Owner asked again 2026-11-19; same answer given in the conversation.)
 
 **Q (owner, figure 7).** "I don't know what makes [the columns] usable, the
 slit size or the footprint." **A (measured, NX 11, Det_Th 16°).** Both: a
