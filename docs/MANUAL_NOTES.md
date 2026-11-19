@@ -38,7 +38,7 @@ Each line: feature — where — default — script — notes entry (date).
 ### Fluorescence detector
 - File > Preferences > Fluorescence detector: elements 1–7 of the
   multi-element detector summed into one spectrum per point (default all,
-  EXAFS; XFNTR uses the central one); the MCA list shows "ch …"; `channels=`
+  EXAFS; "Centre" selects element 1, the central one, for XFNTR); the MCA list shows "ch …"; `channels=`
   in scripts. Dead time: corrected by the 7-element detector itself; the
   1-element one by real/live time (D48).
 
@@ -90,6 +90,9 @@ Each line: feature — where — default — script — notes entry (date).
 - GID worksheet (GID menu > Worksheet): every patch parameter, Patch,
   Defaults, Fit (pinhole distance, diagnostic only), join table — Notes
   2026-11-18 "Pinhole-geometry GID built", 2026-11-19 "Joining Qz levels".
+- Worksheet: response "fit" (per column), "beam" (along the beam axis, for a narrow beam;
+  shows the beam's centre and FWHM on the sample) or "none"; the 2θ resolution
+  (S4 + pixel) is shown with the levels.
 - Pinhole geometry is the default (D40); "2θ range across levels"
   common/all.
 - Scriptable: `exp.gid(...)`; Save GID writes the call to the Script pane

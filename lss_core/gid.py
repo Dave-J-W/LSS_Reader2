@@ -22,7 +22,9 @@ the GID worksheet (F61). Where each one acts:
 - ``pinhole``: patch in pinhole geometry instead (lss_core.pinhole, F45):
   every usable column at its own 2θ; the default (owner, 2026-11-18: pinhole
   is how GID is measured); off gives the patch above exactly as before. ``pinhole_distance_mm``: S4 → detector, 0 for the header
-  value; ``response``: 'fit' or 'none' (column response);
+  value; ``response``: 'fit' (one factor per column), 'beam' (one
+  profile along the beam axis shared by all frames, for a narrow Gaussian
+  beam; owner, 2026-11-19) or 'none';
   ``arm_correction``: the g_l3 term in the vertical distance;
   ``min_frames``: 2θ bins seen by fewer frames are left out (map edges);
   ``transverse``: 2θ range of a map joined from several Qz levels,

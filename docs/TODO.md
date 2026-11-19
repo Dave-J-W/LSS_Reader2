@@ -151,10 +151,11 @@ stated assumption until the answer arrives.
 - [ ] GISAXS scriptable; background-subtracted GID and cuts scriptable.
 - [x] Exact pinhole geometry per pixel (P38; owner 2026-11-19, "is your trig up
       to snuff?"): `pinhole.pixel_angles` (IMG_COO_CONV), GID patch binned in (2θ, β).
-- [ ] Beam profile (2026-11-19, physics_notes): fit the pinhole column response as
-      a function of the source point on the beam axis (or a Gaussian beam of fitted
-      centre and width) instead of per column; today's per-column response leaves
-      −7 %/+4 % inside a 30 µm-beam map and much more at its edges (synthetic).
+- [x] Beam profile: response 'beam' built as an option (2026-11-19); default 'fit'.
+- [ ] The upper-level difference (pinhole vs legacy) on a private pair: the three central
+      columns reproduce legacy; adding the outer columns changes the upper level relative
+      to the lower; not area, polarisation or the response model. Next: maps from column
+      groups (inner, middle, outer) per level, and the β-overlap cells of the Qz join.
 - [ ] P38 remainder: exact angles also for the cuts' pinhole axis and the image
       display axes; the distance fit with exact angles.
 - [ ] F63: second 200K module along 2θ for GID: detector description with the

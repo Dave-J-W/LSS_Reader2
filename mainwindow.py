@@ -1385,6 +1385,10 @@ class MainWindow (QMainWindow):
         allb.setObjectName('prefMcaAllPushButton')
         allb.setToolTip('Sum all elements (EXAFS)')
         h3.addWidget(allb)
+        centreb=QPushButton('Centre',g3)
+        centreb.setObjectName('prefMcaCentrePushButton')
+        centreb.setToolTip('The central element only, element 1 (XFNTR; owner, 2026-11-19)')
+        h3.addWidget(centreb)
         lay.addWidget(g3)
 
         def channels_changed(*_):
@@ -1397,9 +1401,16 @@ class MainWindow (QMainWindow):
                 b.setChecked(True)
                 b.blockSignals(False)
             channels_changed()
+        def centre_only():
+            for k,b in enumerate(boxes,1):
+                b.blockSignals(True)
+                b.setChecked(k==1)
+                b.blockSignals(False)
+            channels_changed()
         for b in boxes:
             b.toggled.connect(channels_changed)
         allb.clicked.connect(all_on)
+        centreb.clicked.connect(centre_only)
         d.prefMcaChannelBoxes=boxes
         close=QPushButton('Close',d)
         close.setObjectName('prefClosePushButton')
@@ -3278,10 +3289,14 @@ class MainWindow (QMainWindow):
                    'depends on the columns used by several mm (column response), so the header value is the default.',dbl=True)
         resp=QComboBox(g)
         resp.setObjectName('gidResponseComboBox')
-        resp.addItems(['fit','none'])
+        resp.addItems(['fit','beam','none'])
         resp.setCurrentText(gp.response)
         resp.setToolTip('Column response: "fit" estimates each column\'s relative sensitivity from the data (the '
-                        'same 2theta is seen by many columns in different frames); "none" takes it as flat.')
+                        'same 2theta is seen by many columns in different frames); "beam" estimates one profile '
+                        'along the beam axis instead, shared by all frames: through S4 each column sees one point '
+                        'of the lit strip, and that point moves with Det_Th, so a narrow (Gaussian) beam lights a '
+                        'column differently from frame to frame, which one factor per column cannot follow; it '
+                        'also gives the beam\'s position and width on the sample; "none" takes it as flat.')
         trans=QComboBox(g)
         trans.setObjectName('gidTransverseComboBox')
         trans.addItems(['common','all'])
@@ -3421,8 +3436,24 @@ class MainWindow (QMainWindow):
         d=self.gidWorksheet
         if d is None:
             return
-        d.gidLevelsLabel.setText('; '.join('%s: S %s, %d frames, %.3f-%.3f' % (n,listText(k),f,lo,hi)
-                                           for n,k,f,lo,hi in self.gidLevels) or 'not patched yet')
+        text='; '.join('%s: S %s, %d frames, %.3f-%.3f' % (n,listText(k),f,lo,hi)
+                       for n,k,f,lo,hi in self.gidLevels) or 'not patched yet'
+        tip=''
+        info=(getattr(self,'gidPinholeInfo',None) or [None])[0] if self.gidParams.pinhole else None
+        if info and 'two_theta_resolution_deg' in info:
+            text+='\n2theta resolution %.3f deg (%.1f columns)' % (info['two_theta_resolution_deg'],
+                                                               info['two_theta_resolution_columns'])
+            tip=('2theta resolution: the full width of the in-plane angles one column accepts through the S4 '
+                 'opening (%.2f mm) and its own pixel, at the direct-beam column (lss_core.pinhole.'
+                 'column_acceptance). The map\'s bins are %.4f deg wide, one column; the resolution, not the bin, '
+                 'limits how sharp a peak can be.' % (info['s4_mm'],info['step_deg']))
+            beam=info.get('beam')
+            if beam and np.isfinite(beam['centre_mm']):
+                text+='; beam on the sample: centre %.1f mm, FWHM %.1f mm (response "beam")' % (beam['centre_mm'],beam['fwhm_mm'])
+                tip+=(' Beam: the response along the beam axis, x = 0 at the sample centre, positive downstream; '
+                      'its centre and FWHM are where and how long the lit strip is.')
+        d.gidLevelsLabel.setText(text)
+        d.gidLevelsLabel.setToolTip(tip)
         t=d.gidJoinTable
         t.setRowCount(len(self.gidJoinLog))
         for r,j in enumerate(self.gidJoinLog):

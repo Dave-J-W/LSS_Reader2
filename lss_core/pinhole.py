@@ -510,6 +510,77 @@ def _column_response_pixels(theta, counts, weights, edges, iterations=20):
     return r
 
 
+BEAM_BIN_MM = 1.0      # bins of the beam-axis response (mm along the beam)
+
+
+def source_positions(frames, ncols):
+    """Where on the beam axis (mm, x) each column of each frame looks
+    through S4 (``ray_geometry``'s source point at the direct-beam row);
+    NaN where no ray runs forward. Shape (frames, cols)."""
+    out = np.full((len(frames), ncols), np.nan)
+    for k, f in enumerate(frames):
+        for c in range(ncols):
+            try:
+                out[k, c] = ray_geometry(f.geom, f.geom.r0, c).source[0]
+            except ValueError:
+                pass
+    return out
+
+
+def beam_response(theta, counts, weights, edges, xsrc, bin_mm=BEAM_BIN_MM, iterations=20):
+    """The response as a function of the point on the beam axis a column
+    looks at (owner, 2026-11-19): one profile R(x), shared by all frames,
+    estimated as ``column_response`` does (alternately S(2θ) = ΣN/Σ(W·R) and
+    R(x) = ΣN / ΣW·S), with x per (frame, column) from ``source_positions``.
+    A per-column response cannot follow the light a column receives when the
+    column-to-beam-axis mapping changes with Det_Th, as it does with a narrow
+    Gaussian beam (physics_notes 2026-11-19). Returns (R per frame and column,
+    (x bin centres, R(x))), R normalised to mean 1 over the bins with light."""
+    nb = len(edges) - 1
+    idx = np.digitize(theta, edges) - 1
+    fin = np.isfinite(xsrc)
+    x0 = np.nanmin(xsrc[fin]) if fin.any() else 0.0
+    xb = np.where(fin, np.floor((np.where(fin, xsrc, x0) - x0) / bin_mm).astype(int), -1)
+    nx = int(xb.max()) + 1 if fin.any() else 1
+    xpix = np.broadcast_to(xb[:, None, :], counts.shape)
+    ok = np.isfinite(theta) & (idx >= 0) & (idx < nb) & (xpix >= 0)
+    n_ok, w_ok, i_ok, x_ok = counts[ok], weights[ok], idx[ok], xpix[ok]
+    num = np.bincount(x_ok, weights=n_ok, minlength=nx)
+    r = np.ones(nx)
+    for _ in range(iterations):
+        sn = np.bincount(i_ok, weights=n_ok, minlength=nb)
+        sw = np.bincount(i_ok, weights=w_ok * r[x_ok], minlength=nb)
+        sv = np.where(sw > 0, sn / np.where(sw > 0, sw, 1), 0.0)
+        den = np.bincount(x_ok, weights=w_ok * sv[i_ok], minlength=nx)
+        r = np.where(den > 0, num / np.where(den > 0, den, 1), 0.0)
+        lit = den > 0
+        if lit.any() and r[lit].mean() > 0:
+            r = r / r[lit].mean()
+    per = np.where(xb >= 0, r[np.clip(xb, 0, nx - 1)], 1.0)
+    centres = x0 + bin_mm * (np.arange(nx) + 0.5)
+    return per, (centres, r)
+
+
+def profile_width(x, r):
+    """(centre, FWHM) of a profile R(x): centre of mass of the part above
+    half its maximum, FWHM between the first and last points above half."""
+    r = np.asarray(r, float)
+    if not len(r) or r.max() <= 0:
+        return float('nan'), float('nan')
+    top = r >= 0.5 * r.max()
+    k = np.flatnonzero(top)
+    return float(np.sum(x[top] * r[top]) / np.sum(r[top])), float(x[k[-1]] - x[k[0]])
+
+
+def two_theta_resolution(f):
+    """Full width (degrees) of the 2θ one column accepts through S4's opening
+    and its own pixel width (``column_acceptance`` at the direct-beam column
+    of frame ``f``), and S4's opening (mm)."""
+    s4 = float(f.areainfo[2])
+    acc = column_acceptance(f.geom, int(round(f.geom.c0)), s4 / 2, s4 / 2)
+    return float(np.degrees(np.ptp(acc.two_theta))), s4
+
+
 def fit_pinhole_distance(profiles, dth_deg, c0, peak_deg, d_guess, window, half_width=6, min_frames=6):
     """S4 → detector distance (mm) from the drift of a feature at a fixed
     angle ``peak_deg`` (e.g. a Bragg peak): each column profile (frames,
@@ -641,8 +712,19 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     bstep = math.degrees(PIXEL_MM / vertical_distance(g0))               # one row at the direct beam
     blo, bhi = np.nanmin(np.where(np.isfinite(theta), beta_px, np.nan)), np.nanmax(np.where(np.isfinite(theta), beta_px, np.nan))
     bedges = blo - bstep / 2 + bstep * np.arange(int(math.ceil((bhi - blo) / bstep)) + 2)
-    r = column_response(theta, n, w, edges) if response == 'fit' else np.ones(ncols)
-    w = w * r[None, None, :]
+    beam = None
+    if response == 'beam':
+        xsrc = source_positions(frames, ncols)
+        xsrc = np.where(np.isfinite(theta).any(axis=1), xsrc, np.nan)       # usable columns only
+        rfc, beam = beam_response(theta, n, w, edges, xsrc)
+        w = w * rfc[:, None, :]
+        with np.errstate(invalid='ignore', divide='ignore'):
+            used = np.isfinite(xsrc)
+            r = np.where(used.any(axis=0), np.sum(np.where(used, rfc, 0.0), axis=0) / np.maximum(used.sum(axis=0), 1), np.nan)
+        r = np.where(np.isfinite(r), r, 1.0)
+    else:
+        r = column_response(theta, n, w, edges) if response == 'fit' else np.ones(ncols)
+        w = w * r[None, None, :]
     scans = sorted(set(f.scan for f in frames))
     factors = {scans[0]: (1.0, 0.0)}
     if len(scans) > 1:
@@ -680,7 +762,13 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     bcentres = 0.5 * (bedges[:-1] + bedges[1:])
     mean_m = float(np.mean([f.monitor for f in frames]))
     sn_k, sw_k = sn[:, bkeep], sw[:, bkeep]
+    res_deg, s4 = two_theta_resolution(frames[len(frames) // 2])
+    if beam is not None:
+        bc, bw = profile_width(*beam)
+        beam = dict(x_mm=beam[0], response=beam[1], centre_mm=bc, fwhm_mm=bw)
     info = dict(response=r, factors=factors, step_deg=step, counts_used=float(n.sum()),
+                two_theta_resolution_deg=res_deg, two_theta_resolution_columns=res_deg / step, s4_mm=s4,
+                beam=beam,
                 sum_counts=sn_k[keep], sum_weights=sw_k[keep], frames_per_bin=nframes[keep],
                 edges=edges, keep=keep, all_counts=sn_k, all_weights=sw_k, beta=bcentres[bkeep],
                 beta_edges=bedges, beta_step_deg=bstep, mean_monitor=mean_m, geometry='exact (IMG_COO_CONV)',

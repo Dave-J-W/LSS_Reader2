@@ -100,4 +100,6 @@ def test_preferences_selector_reloads_and_is_scripted(window, qapp, recorder, me
     from PyQt5.QtWidgets import QPushButton
     d.findChild(QPushButton, 'prefMcaAllPushButton').click()
     assert w.prefs['mca_channels'] == []
+    d.findChild(QPushButton, 'prefMcaCentrePushButton').click()      # element 1 is the central one (owner)
+    assert w.prefs['mca_channels'] == [1]
     assert recorder.exceptions == []

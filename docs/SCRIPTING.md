@@ -171,7 +171,10 @@ The window's "GID Patch" (`relax=True`: "GID Patch Relax", the larger Q
 grid), with the GID worksheet's settings in `params` (every field of
 `GIDParams`; `columns` is the window's H slit field). `points`, `db_pos`,
 `errors` (legacy patch only) and the bad-pixel settings as for cuts.
-`gid.joins` is the worksheet's join table, `gid.levels` its level list,
+`GIDParams(response='beam')` fits the pinhole response along the beam axis
+instead of per column (for a narrow beam); `gid.info['levels'][k]` then has
+`beam` (profile, centre and FWHM on the sample, mm) and, always,
+`two_theta_resolution_deg`. `gid.joins` is the worksheet's join table, `gid.levels` its level list,
 `gid.info` the pinhole details. "Save GID" writes the equivalent call to
 the Script pane; running it writes the same files byte for byte (both
 geometries, both axes, relaxed grid, typed columns, some frames:

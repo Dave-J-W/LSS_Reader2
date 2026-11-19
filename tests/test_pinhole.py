@@ -442,3 +442,50 @@ def test_column_acceptance_by_plain_trig():
     assert ph.column_acceptance(g, hi, 0.1, 0.1, n=21).lit_fraction(ftp) == pytest.approx(0.5, abs=0.05)
     t2, t4 = (ph.column_acceptance(g, 47, w / 2, w / 2, n=3).throughput(ftp) for w in (0.2, 0.4))
     assert t2 == pytest.approx(ph.PIXEL_MM * 0.2) and t4 == pytest.approx(2 * t2)   # counts ∝ the opening
+
+
+def _beam_lit(dths, fwhm_mm=19.0):
+    """Frames lit by a Gaussian beam along the beam axis (FWHM ``fwhm_mm`` on the
+    sample, centred), flat true spectrum, expected counts: each column receives
+    the light of the point of the beam axis it sees through S4."""
+    out = []
+    for d in dths:
+        g = _geom(d)
+        f = ph.PinholeFrame(np.zeros((NR, NC)), 1e5, g, (2.0, 0.1, 0.2, math.radians(0.09), 551.0, 271.0),
+                            (3.0, 14.0), 678.0, 1)
+        x = ph.source_positions([f], NC)[0]
+        lit = np.exp(-0.5 * (np.nan_to_num(x, nan=1e9) / (fwhm_mm / 2.3548)) ** 2)
+        out.append(ph.PinholeFrame(1e5 * 1e-3 * np.ones((NR, NC)) * lit[None, :], 1e5, g, f.areainfo, f.s5,
+                                   f.s1_to_sample_mm, 1))
+    return out
+
+
+def test_beam_response_follows_a_narrow_beam():
+    """Owner, 2026-11-19: with a narrow Gaussian beam the light a column
+    receives changes with Det_Th (the column sees another point of the beam
+    axis); one factor per column cannot follow it, one profile along the beam
+    axis can, and it gives the beam's position and width."""
+    fr = _beam_lit(np.arange(14.0, 18.01, 0.1))
+    spans = {}
+    for resp in ('fit', 'beam'):
+        tt, beta, I, S, info = ph.level_map(fr, 15, 486, response=resp, area=False, pol=False)
+        p = np.nanmean(I, axis=1)
+        p = p / np.nanmedian(p)
+        inner = (tt > 14.3) & (tt < 17.7)
+        spans[resp] = (np.ptp(p[inner]), np.ptp(p[~inner]))
+    assert spans['beam'][0] < 0.05 and spans['beam'][0] < spans['fit'][0]
+    assert spans['beam'][1] < 0.25 and spans['beam'][1] < 0.5 * spans['fit'][1]
+    b = info['beam']
+    assert b['centre_mm'] == pytest.approx(0.0, abs=1.0) and b['fwhm_mm'] == pytest.approx(19.0, abs=2.5)
+
+
+def test_two_theta_resolution_is_in_the_map_info():
+    """The 2θ resolution: the full width one column accepts through S4 and
+    its pixel (column_acceptance), here S4 0.2 mm at D_p 271 mm: 0.079°,
+    about 2.2 one-column bins."""
+    fr = _frames(np.arange(14, 16, 0.5), lambda t: 1e-4 + 0 * t)
+    tt, beta, I, S, info = ph.level_map(fr, 15, 486, response='none', area=False, pol=False)
+    acc = ph.column_acceptance(fr[len(fr) // 2].geom, 47, 0.1, 0.1)
+    assert info['two_theta_resolution_deg'] == pytest.approx(math.degrees(np.ptp(acc.two_theta)))
+    assert info['two_theta_resolution_deg'] == pytest.approx(0.079, abs=0.003)
+    assert info['two_theta_resolution_columns'] == pytest.approx(2.2, abs=0.1) and info['s4_mm'] == 0.2

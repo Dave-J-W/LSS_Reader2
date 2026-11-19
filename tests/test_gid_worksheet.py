@@ -238,3 +238,24 @@ def test_pinhole_join_of_nx_scans_11_and_12(window, qapp, recorder, tmp_path):
     recorder.save_name = str(tmp_path / 'joined')
     _menu(w, qapp, 'Save GID')
     assert recorder.exceptions == []
+
+
+@pytest.mark.gui
+@pytest.mark.slow
+@pytest.mark.skipif(not os.path.exists(SPEC), reason='NX_school sample data not present')
+def test_beam_response_and_resolution_in_the_worksheet(nx, qapp, recorder):
+    """Response "beam" (owner, 2026-11-19) from the worksheet; the 2θ
+    resolution and the beam's position are shown with the levels."""
+    sweep._select_scans(nx, qapp, [10])
+    sweep._select_images(nx, qapp)
+    _menu(nx, qapp, 'Worksheet')
+    d = nx.gidWorksheet
+    d.gidPinholeCheckBox.setChecked(True)
+    d.gidResponseComboBox.setCurrentText('beam')
+    from PyQt5.QtWidgets import QPushButton
+    d.findChild(QPushButton, 'gidPatchPushButton').click()
+    qapp.processEvents()
+    assert nx.gidParams.response == 'beam' and recorder.exceptions == []
+    text = d.gidLevelsLabel.text()
+    assert '2theta resolution 0.0' in text and 'beam on the sample' in text
+    assert 'column_acceptance' in d.gidLevelsLabel.toolTip()

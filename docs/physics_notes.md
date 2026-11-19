@@ -2674,3 +2674,42 @@ FWHM about 1 mm.
   column-to-source mapping changes with Det_Th, and also gives the beam's
   position on the sample.
 
+### 2026-11-19 — Beam response built; the upper-level difference is not geometry alone
+
+**Owner.** Build the beam-axis response, as an option on what was already
+built and demonstrated; show the 2θ resolution to the user; the central
+element of the 7-element detector is 1. "I thought the GID upper-level
+difference came down to having the correct geometry, but you're saying
+even when you patch in legacy mode with a 1–3 pixel wide column selection
+you still get some difference?"
+
+**Built:** `GIDParams(response='beam')` (worksheet: response "beam"): the
+pinhole response as one profile along the beam axis, the source point of
+each column per frame from `ray_geometry`, shared by all frames of a level;
+the map info gives the profile and the beam's centre and FWHM on the sample.
+The 2θ resolution (S4 opening + pixel, `column_acceptance`) is in every
+pinhole map's info and shown with the levels in the worksheet (0.079° on
+NX, 2.2 one-column bins). Preferences: "Centre" selects element 1.
+
+**Measured:** synthetic frames lit by a 30 µm beam (flat truth): per-column
+response 0.93–1.04 of the truth inside, 0.71–2.8 at the edges; beam
+response 0.98–1.02 and 0.88–1.04, and it recovers the beam (centre −0.1 mm,
+FWHM 18.0 mm against 0 and 19.3). NX scan 11: the beam response puts the
+lit strip's centre 5.2 mm downstream of the sample centre and its FWHM at
+33 mm along the beam (i.e. about 52 µm vertically at α = 0.0905°, if it is
+all beam profile), longer than the 19 mm a 30 µm beam would give.
+
+**The owner's question (answered with measurements on the private pairs;
+numbers in the conversation):** we had compared the legacy patch (3 columns,
+β per row) with the full pinhole patch, not with a narrow pinhole patch. A
+pinhole patch restricted to the three central columns, with exact angles,
+reproduces the legacy patch's upper level on one pair (with the area weight
+off in both, to within a fraction of a per cent); on the other pair it
+differs, but the narrow patch has few counts there. Adding the outer columns
+changes the upper level relative to the lower by about a tenth, on both
+pairs, in opposite directions; switching off the area weight or the
+polarisation, or using the beam response, does not remove it. So it is not
+the β-per-row geometry alone: something in the outer columns' contribution
+at the upper (raised-arm) level, not yet identified (TODO: maps from column
+groups per level; the β-overlap cells of the join).
+
