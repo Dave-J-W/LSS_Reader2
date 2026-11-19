@@ -319,6 +319,7 @@ priority than the lists above.
 | F62 | **Flexible GID overlaps** (owner, 2026-11-18; part of F23): patch along Qz when the Qxy ranges of two images do not overlap exactly, and along Qxy when the Qz ranges differ. | Today the vertical join interpolates the second image onto the first's Qxy grid (and so silently extrapolates or drops where they differ), and the horizontal join requires the same β grid. |
 | D40 | Pinhole geometry is the default for GID, display and cuts (frames at Det_Th > 1°) (owner, 2026-11-18). | F45 |
 | D41 | Monc dark rate 50 Hz when not recorded (owner, 2026-11-18). | F54 |
+| D42 | Pilatus scans need no absorber number: they are patched and normalised all the same (owner, 2026-11-19). An unreadable `#A` is unknown: no factor, no known ratio for its joins, a message. | F50, F58 |
 | D37 | Aluminium foils at 10.05 and 10.52 keV and every energy below 10 keV (owner, 2026-11-18); `AL_MAX_KEV` = 10.52. | F49 |
 | D38 | `#A` 52 and 63 are real absorber settings (owner, 2026-11-18). | F50 |
 | D39 | Monitor-gain reference S_ref = 5 µA/V, the usual gain (owner, 2026-11-18). | F52 |

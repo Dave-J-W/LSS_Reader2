@@ -39,7 +39,7 @@ from lss_core import absorbers
 from lss_core import preferences as prefs_store
 from lss_core.absorbers import ABSFAC_10KEV
 from lss_core.monitor import gain_factor, scan_rate
-from lss_core.experiment import monitor_factor
+from lss_core.experiment import monitor_factor, absorber_setting
 from lss_core.errors import ErrorModel, MonitorModel, MonitorTerms, script_kw, ELECTRONICS
 #from TwoD_Integrate import integrate_2d
 
@@ -1094,6 +1094,7 @@ class MainWindow (QMainWindow):
         from PyQt5.QtWidgets import QCheckBox
         self.monitorGain=False
         self.monitorPhotons=False
+        self.absorberUnknownNoted=set()     # (SPEC file, scan) with no readable #A, said once
         tip=('Also divide by the Monc gain: normalise by M x S / (5 uA/V, the usual gain) instead of M, with S the SR570 '
              'sensitivity from "#M Monc Gain" (last one above the scan if it has none). Puts scans taken at '
              'different gains on one scale. Only for the Monc monitor; unknown gains get no factor.')
@@ -1433,7 +1434,7 @@ class MainWindow (QMainWindow):
             if (self.specFileName,i) in seen or spar.get('Detector')!='Vortex':
                 continue
             seen.add((self.specFileName,i))
-            if 'Absorber' not in spar:
+            if spar.get('Absorber') is None:
                 unknown.append(i)
             elif 'AbsorberFrom' in spar:
                 inferred.setdefault((spar['Absorber'],spar['AbsorberFrom']),[]).append(i)
@@ -2239,7 +2240,8 @@ class MainWindow (QMainWindow):
                     fnum=filelist[j].split('_')[-1].split('.')[0].lstrip('0')
                     if fnum=='':
                         fnum='0'
-                    self.ui.imageListWidget.addItem('S# '+str(i)+'\tF# '+fnum+'\tQz='+'%.4f'%self.specData[i]['L'][j]+'\tQx='+'%.4f'%self.specData[i]['H'][j]+'\tAbs=%d'%self.specPar[i]['Absorber'])
+                    absn=self.specPar[i].get('Absorber')
+                    self.ui.imageListWidget.addItem('S# '+str(i)+'\tF# '+fnum+'\tQz='+'%.4f'%self.specData[i]['L'][j]+'\tQx='+'%.4f'%self.specData[i]['H'][j]+('\tAbs=?' if absn is None else '\tAbs=%d'%absn))
                     self.pilMonc=np.append(self.pilMonc, scanmonc[j])
                     self.pilScanNum.append(i)  
                     self.pilFrameNum.append(j)
@@ -2265,7 +2267,7 @@ class MainWindow (QMainWindow):
                     self.pil_Tth.append(self.specPar[i]['Two_Thet'])
                     self.pil_Chi.append(self.specPar[i]['Chi'])
                     self.pil_Gl2.append(self.specPar[i]['g_l2'])
-                    self.pil_AbsNum.append(self.specPar[i]['Absorber'])
+                    self.pil_AbsNum.append(absorber_setting(self.specPar[i]))   # unknown: 0, no factor
                     self.pil_Phi.append(self.specPar[i]['Phi'])
                 except Exception:
                     # a frame whose header values cannot be read is left out
@@ -2277,6 +2279,12 @@ class MainWindow (QMainWindow):
                         self.ui.imageListWidget.takeItem(self.ui.imageListWidget.count()-1)
                     self.log.exception('scan %s frame %d could not be listed',i,j)
                     missing.append(j)
+            if self.specPar[i].get('Absorber') is None and (self.specFileName,i) not in self.absorberUnknownNoted:
+                self.absorberUnknownNoted.add((self.specFileName,i))
+                self.notify('Scan %d: absorber setting unknown (%s); no absorber factor on its frames, the patch '
+                            'scales them as usual.' % (i,'"#A %s"' % self.specPar[i]['AbsorberText']
+                                                         if 'AbsorberText' in self.specPar[i] else 'no #A'),
+                            title='Absorbers',level='warning')
             if len(missing)>0:
                 self.messageBox('Scan '+str(i)+': '+str(len(missing))+' of '+str(self.numFrames[i])+' frames have no readable image ('+listText(missing[:10])+('...' if len(missing)>10 else '')+').')
 #            except:
@@ -5378,7 +5386,7 @@ class MainWindow (QMainWindow):
                 impsnumtit=impsnumtit+'Detector:\t'+self.specPar[i]['Detector']+'\n\n'
                 impsnumtit=impsnumtit+'Energy:\t'+str(format(12.39842/self.specPar[i]['Wavelength'],'.4f'))+' keV\n\n'
                 impsnumtit=impsnumtit+'Wavelength:\t'+str(self.specPar[i]['Wavelength'])+' '+u'\u212b'+'\n\n'  
-                impsnumtit=impsnumtit+'Absorber\t'+str(self.specPar[i]['Absorber'])+'\n\n'
+                impsnumtit=impsnumtit+'Absorber\t'+('unknown' if self.specPar[i].get('Absorber') is None else str(self.specPar[i]['Absorber']))+'\n\n'
                 impsnumtit=impsnumtit+'SX\t'+str(self.specPar[i]['Sample_X'])+'\n\n'
                 impsnumtit=impsnumtit+'Qx\tQy\tQz\n'
                 impsnumtit=impsnumtit+str(self.specPar[i]['Q'][0])+'\t'+str(self.specPar[i]['Q'][1])+'\t'+str(self.specPar[i]['Q'][2])+'\n\n'

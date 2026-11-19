@@ -26,6 +26,15 @@ from .flux import photon_factor
 from .monitor import gain_factor, scan_rate
 
 
+def absorber_setting(params):
+    """A Pilatus scan's absorber setting n for the arithmetic: 0 (no factor)
+    when ``#A`` is missing or unreadable (Absorber None). Such scans are
+    scaled by the patch like any other (owner, 2026-11-19); only a known
+    ratio is not available for their joins."""
+    n = params.get('Absorber')
+    return 0 if n is None else n
+
+
 def monitor_factor(params, monitor_gain=False, per_photon=False, rate_hz=None):
     """(factor, known) on a value divided by Monc counts: 1 (counts), the
     gain factor S_ref/S (``monitor_gain``) or M/N per incident photon
@@ -130,7 +139,7 @@ class Experiment:
             for j, qz in enumerate(scan.columns['L']):
                 if j in files:
                     out.append(Frame(n, j, files[j], float(qz), float(monc[j]),
-                                     p['Absorber'], (p['DBPos'][1], p['DBPos'][0]),
+                                     absorber_setting(p), (p['DBPos'][1], p['DBPos'][0]),
                                      float(p['S2D_Dist'])))
         return out
 

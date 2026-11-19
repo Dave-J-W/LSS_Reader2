@@ -76,8 +76,9 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 - [ ] F49 for Cu at 30 keV: needs the unit thickness (owner).
 - [x] Foils at 10.05 and 10.52 keV: aluminium (owner, D37).
 - [x] `#A` 52 and 63 are real settings (owner, D38).
-- [ ] Issue: an unreadable `#A` line is read as 63 (`spec_routines.py`), which looks
-      like a real setting; it should be "unknown" (no factor, a message).
+- [x] An unreadable `#A` line (one real case: an empty "#A Absorber " in
+      bu/2026oct/20261019) was read as 63; now unknown: no factor, a message,
+      "Abs=?", frames patched as usual (D42, 2026-11-19).
 - [ ] P28: nominal absorber steps 7–11 % off measured (NX school). Owner:
       reflectivity sets with overlapping joins from several days, to test
       day-to-day variation and calibrate per foil (`tests/tools/absorber_steps.py`);
@@ -332,4 +333,12 @@ them; the fix belongs in the macros.
       Full list: `reports/monitor_gains.md`.
 - [ ] A scan with both Pilatus and Vortex data should say so in its header
       in a way that does not let one line override the other (F53).
+- [ ] **Gas conditions for photons/s** (F54; owner, 2026-11-19): record the
+      ion-chamber temperature and pressure, or the current photons/s
+      number from the monitor IOC. The reader now assumes the hand-off
+      table's 24.9 °C and 98.99 kPa (±0.8 % from the site-mean pressure).
+- [ ] **Dark counts** (F54, D41; owner, 2026-11-19): record the dark rate
+      from the new monitor IOC. The reader now assumes 50 Hz on Monc.
+- [ ] One `#A` line with no value (bu/2026oct/20261019, scan 1): the macro
+      should always write the setting. The reader treats it as unknown (D42).
 

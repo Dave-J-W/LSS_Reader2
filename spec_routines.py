@@ -125,11 +125,15 @@ class specread:
                         self.Par[num]['MoncGainText']=' '.join(line[2:].split()[2:])
                         self.Par[num]['MoncGain']=parse_gain(line[2:].split()[2:])
                     if line[:2]=='#A':
+                        # an unreadable value ("#A Absorber " with nothing after it,
+                        # seen in a real file) is unknown, not a setting: None, with
+                        # the text kept (it was 63, which is a real setting, D38)
+                        tmppar=line[2:].split()
+                        self.Par[num]['AbsorberText']=' '.join(tmppar[1:])
                         try:
-                            tmppar=line[2:].split()
                             self.Par[num]['Absorber']=spec_number(tmppar[1])
-                        except:
-                            self.Par[num]['Absorber'] = 63
+                        except (IndexError,ValueError,TypeError,SyntaxError):
+                            self.Par[num]['Absorber']=None
                     if line[:2]=='#Q':
                         tmppar=line[2:].split()
                         self.Par[num]['Q']=spec_numbers(tmppar)
