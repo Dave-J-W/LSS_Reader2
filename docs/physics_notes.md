@@ -2266,8 +2266,9 @@ snuff?" Sent Mati Meron's IMG_COO_CONV, LIMG_COO_CONV, SCAN_JOIN and
 SPEC_FILE_INFO (published, attributed, `docs/reference_code/idl/`).
 
 **A. It was not.** The reader gave each column a 2θ, atan((c − c0)p/D_p),
-and each row a β, atan((r − r0)p/D_v): exact only on the direct-beam row
-and column. IMG_COO_CONV's transform is exact for a flat detector
+and each row a β, atan((r − r0)p/D_v): exact on the direct-beam column at
+any β0, and on the direct-beam row only with the arm level (β0 = 0; at
+β0 = 6.5° that row is off by up to 1.02° in β, review 2026-11-19). IMG_COO_CONV's transform is exact for a flat detector
 perpendicular to the arm with a vertical slit (S4) D_p in front of it;
 ported as `pinhole.pixel_angles` and checked against an independent ray
 construction (beam-axis point → slit line → pixel) to 1e-12 rad at
@@ -2278,7 +2279,7 @@ different distance from the detector, so **β depends on the column**; with
 the arm raised, 2θ also depends on the row.
 
 **Measured (NX school, 2026-11-19), per-axis minus exact:**
-- inside the columns the patch uses (28–102): β up to 0.41° (scan 11, arm
+- inside each frame's usable columns (28–90 at Det_Th 14° … 28–102 at 18°): β up to 0.41° (scan 11, arm
   level) and 0.74° (scan 12, β0 = 6.5°); along the top row β spans 0.6° and
   1.1° across those columns; 2θ up to 0.0005° and 0.038° (one 0.036° bin);
 - over a whole module: β 1.2° and 2.2°, 2θ 0.001° and 0.14°;
@@ -2404,4 +2405,27 @@ mca_save_point Point:p Scan:s` block per detector channel (7, Xspress3
 **Fixed:** S1 vertical opening = S1T + S1B in the legacy GID footprint
 correction (window and `Experiment.gid_frames`); no change for any file on
 hand.
+
+### 2026-11-19 — Figures of the pinhole trig: what the review found
+
+Six isometric figures were made by one subagent and reviewed by another
+(`docs/figures/pinhole/`, `tests/tools/pinhole_figures.py`; every point and
+angle from `lss_core.pinhole`, with a new `ray_geometry` as the independent
+ray construction). Measured in the review, beyond the figures:
+- **Per-axis angles on the direct-beam row are exact only with the arm
+  level**: at β0 = 6.5° that row is off by 1.02° in β over the module (0.34°
+  inside the usable columns) and 0.045° in 2θ; the direct-beam column is
+  exact at any β0. Wording in the notes above and P38 corrected.
+- **The footprint window is centred on c0, the true one is not** (P39):
+  shifted +4.8 to +6.0 columns at Det_Th 14–18°; the high edge drops ~8 % of
+  the usable columns (counts, not bias). Faithful to IDL's PD_PIN_RANGE.
+- **The 200K's second module would see no footprint** with these slits
+  (F63): its columns look through S4 at beam-axis points far outside the
+  ±32 mm footprint, and S5 shades both possible positions. Using it for GID
+  needs the slits set for it.
+- The "β up to 0.41° / 0.74°" figures above are maxima over each frame's
+  own usable columns (reproduced exactly: 0.406°, 0.736°).
+- The refactor around `ray_geometry` changes no number: `pixel_angles`,
+  `footprint_window`, `usable_columns` bit-identical to before over 24 000
+  geometries.
 

@@ -80,6 +80,13 @@ Each line: feature — where — default — script — notes entry (date).
   (`docs/SCRIPTING.md`, "GID maps"). Save GID needs a map and Angles or Q
   axes (with Pixels it says so; it used to crash).
 
+### Figures of the pinhole geometry
+- Six isometric figures of the exact pinhole trigonometry (lab frame, the
+  direct-beam row and column, the pinhole from above, β depending on the
+  column, the raised arm, the 200K's second module): `docs/figures/pinhole/`
+  (README there), made by `tests/tools/pinhole_figures.py` from
+  `lss_core.pinhole` (Mati Meron's IMG_COO_CONV transform).
+
 ### Scan series (Stage 3, not in the window yet)
 - "Scan i of N" lines and how cancelled runs are shown: proposal
   `docs/handoff_out/05-scan-series-syntax.md`; code `lss_core/series.py`.
