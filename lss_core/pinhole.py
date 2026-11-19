@@ -33,6 +33,10 @@ Approximations, said where they act: the footprint fraction is taken on the
 band through the pinhole centre (offset e = 0); the column response R,
 estimated from the data, absorbs what that leaves out. Nearest-bin
 assignment (no split pixels); the bin step defaults to one column (p/D_p).
+The angles and windows treat S4 as a line (the centre of its opening); what
+its finite opening (S4L + S4R) does — each column's 2θ acceptance and the
+ramps at the footprint window's edges — is computed by ``column_acceptance``
+and ``s4_window`` (docs/figures/pinhole, case 8), not used in the reduction.
 """
 import math
 from dataclasses import dataclass
@@ -141,7 +145,7 @@ class Ray:
     beta: float              # exit angle of the ray (rad)
 
 
-def ray_geometry(g, row, col):
+def ray_geometry(g, row, col, slit_offset=0.0):
     """The ray from the footprint (the beam axis) through the S4 slit to the
     pixel (``row``, ``col``; fractional values allowed), built in the lab
     frame without IMG_COO_CONV's algebra: a flat detector perpendicular to
@@ -154,6 +158,13 @@ def ray_geometry(g, row, col):
     It is the independent reference for ``pixel_angles``: do not build it
     from ``pixel_angles`` or from IMG_COO_CONV's wy correction.
 
+    ``slit_offset`` (mm) moves the slit line sideways, towards higher
+    columns (along −e_h), within the S4 opening: the reader's geometry is
+    the line through the opening's centre (0, the default); a finite S4
+    (S4L + S4R) is the range of offsets (``column_acceptance``,
+    ``s4_window``). With an offset, ``slit_centre`` stays the opening's
+    centre and (u, v, w) are taken from the offset slit point.
+
     Raises ValueError when the plane of the pixel and the slit line is
     parallel to the beam axis (the column looks along the beam, 2θ ≈ 0, and
     the source point is at infinity)."""
@@ -165,18 +176,19 @@ def ray_geometry(g, row, col):
     centre = D * n
     pix = centre + wx * eh + wy * ev
     slit_c = (D - Dp) * n
+    line = slit_c - slit_offset * eh if slit_offset else slit_c   # the slit line the ray passes
     if D == Dp:                                                  # no pinhole: rays from the sample centre
         s = 0.0
     else:
-        normal = np.cross(pix - slit_c, ev)                      # the plane of the pixel and the slit line
+        normal = np.cross(pix - line, ev)                        # the plane of the pixel and the slit line
         if abs(normal[0]) <= 1e-12 * np.linalg.norm(normal):
             raise ValueError('pixel (%g, %g): its plane through the slit is parallel to the beam axis '
                              '(source at infinity)' % (row, col))
-        s = normal.dot(slit_c) / normal[0]                       # meets the beam axis at (s, 0, 0)
+        s = normal.dot(line) / normal[0]                         # meets the beam axis at (s, 0, 0)
     source = np.array([s, 0.0, 0.0])
     ray = pix - source
-    (_, t), *_ = np.linalg.lstsq(np.column_stack([ray, -ev]), slit_c - source, rcond=None)
-    slit = slit_c + t * ev
+    (_, t), *_ = np.linalg.lstsq(np.column_stack([ray, -ev]), line - source, rcond=None)
+    slit = line + t * ev
     hd = np.array([math.cos(d), math.sin(d), 0.0])
     pv = pix - slit
     return Ray(n=n, e_h=eh, e_v=ev, h=hd, centre=centre, pixel=pix, slit_centre=slit_c, slit=slit, source=source,
@@ -202,11 +214,17 @@ def bin_counts_2d(theta, beta, counts, weights, edges, bedges):
     return iv, sv, sn, sw
 
 
-def s5_window(g, s5_low, s5_high, d5=S5_TO_DETECTOR_MM):
+def s5_window(g, s5_low, s5_high, d5=S5_TO_DETECTOR_MM, slit_offset=0.0):
     """Columns (lo, hi) the S5 slits let through from the pinhole; ``s5_low``
-    opens towards low columns, ``s5_high`` towards high ones (mm)."""
+    opens towards low columns, ``s5_high`` towards high ones (mm).
+    ``slit_offset``: seen from a point of the S4 opening that far (mm)
+    towards higher columns from its centre (in-plane, as the window)."""
     k = g.d_pinhole / (g.d_pinhole - d5)
-    return g.c0 - s5_low * k / PIXEL_MM, g.c0 + s5_high * k / PIXEL_MM
+    lo, hi = g.c0 - s5_low * k / PIXEL_MM, g.c0 + s5_high * k / PIXEL_MM
+    if slit_offset:
+        shift = slit_offset * (1 - k) / PIXEL_MM                 # the S5 edges' shadow moves the other way
+        lo, hi = lo + shift, hi + shift
+    return lo, hi
 
 
 def footprint_length(g, s1_vertical, s1_to_sample_mm=0.0):
@@ -240,6 +258,134 @@ def usable_columns(g, ncols, s5_low, s5_high, s1_vertical, s1_to_sample_mm=0.0, 
     f, h = footprint_window(g, s1_vertical, s1_to_sample_mm)
     lo, hi = max(a, f, 0), min(b, h, ncols - 1)
     return np.arange(int(math.ceil(lo)), int(math.floor(hi)) + 1)
+
+
+def column_at_source(g, x, row=None, slit_offset=0.0):
+    """The (fractional) column whose ray through the S4 slit line (at
+    ``slit_offset``, see ``ray_geometry``) starts at ``x`` mm on the beam
+    axis; ``row`` defaults to the direct-beam row r0. The inverse of
+    ``ray_geometry``'s source point, by bisection: the source point grows
+    with the column, from −∞ (the column that looks along the beam) to
+    L/cos Det_Th at infinity, L the sample → slit distance. Raises
+    ValueError when no column sees ``x``."""
+    row = g.r0 if row is None else row
+
+    def src(c):                                   # source x, or None where the ray does not run forward
+        try:
+            r = ray_geometry(g, row, c, slit_offset)
+        except ValueError:
+            return None
+        return r.source[0] if r.direction.dot(r.n) > 0 else None
+
+    c0 = float(g.c0)
+    s0 = src(c0)
+    if s0 is None:
+        raise ValueError('the direct-beam column has no ray from the beam axis')
+    a, step = c0, 1.0                             # a: the side of the target the bracket starts from
+    if s0 < x:                                    # go to higher columns
+        b = c0 + step
+        while (sb := src(b)) is not None and sb < x:
+            a, step = b, 2 * step
+            b = c0 + step
+            if step > 1e7:
+                raise ValueError('no column sees x = %g mm' % x)
+        if sb is None:
+            raise ValueError('no column sees x = %g mm' % x)
+    else:                                         # go to lower columns, stopping short of 2θ = 0
+        b = c0 - step
+        while True:
+            sb = src(b)
+            if sb is None:                        # past the column that looks along the beam: come back
+                b = 0.5 * (a + b)
+                if abs(a - b) < 1e-9:
+                    raise ValueError('no column sees x = %g mm' % x)
+                continue
+            if sb <= x:
+                break
+            a, step = b, 2 * step
+            b = c0 - step
+    lo, hi = sorted((a, b))
+    flo = src(lo) - x
+    for _ in range(100):
+        m = 0.5 * (lo + hi)
+        fm = src(m) - x
+        if (fm < 0) == (flo < 0):
+            lo, flo = m, fm
+        else:
+            hi = m
+        if hi - lo < 1e-10:
+            break
+    return 0.5 * (lo + hi)
+
+
+def footprint_columns(g, s1_vertical, s1_to_sample_mm=0.0, row=None, slit_offset=0.0):
+    """The exact footprint window: the (fractional) columns (first, last)
+    whose rays through the S4 slit line (at ``slit_offset``) start at the
+    footprint's upstream (−L/2) and downstream (+L/2) ends, L =
+    ``footprint_length``; ``row`` defaults to r0. ``footprint_window``
+    (PD_PIN_RANGE) has the same width but is centred on c0 (P39)."""
+    half = footprint_length(g, s1_vertical, s1_to_sample_mm) / 2
+    return (column_at_source(g, -half, row, slit_offset), column_at_source(g, half, row, slit_offset))
+
+
+def s4_window(g, s1_vertical, s4_low, s4_high, s1_to_sample_mm=0.0, row=None):
+    """The footprint window through an S4 of finite opening, ``s4_low`` mm
+    towards low columns and ``s4_high`` towards high ones from the line the
+    reader uses (S4L, S4R as S5L, S5R are taken). Returns (outer, inner),
+    each (lo, hi): ``outer``, the columns that see some of the footprint
+    through some part of the opening (where light starts); ``inner``, those
+    that see it through all of the opening (fully lit). Between the two
+    each edge of the window is a ramp, not a step. Exact rays
+    (``ray_geometry``) on row ``row`` (default r0)."""
+    a = footprint_columns(g, s1_vertical, s1_to_sample_mm, row, -s4_low)
+    b = footprint_columns(g, s1_vertical, s1_to_sample_mm, row, s4_high)
+    return (min(a[0], b[0]), max(a[1], b[1])), (max(a[0], b[0]), min(a[1], b[1]))
+
+
+@dataclass
+class Acceptance:
+    """The rays one pixel accepts through a finite S4 (``column_acceptance``):
+    arrays (pixel positions, slit positions)."""
+    columns: np.ndarray       # fractional column of each ray's landing point
+    offsets: np.ndarray       # slit offset of each ray (mm towards higher columns)
+    source_x: np.ndarray      # where each ray starts on the beam axis (mm)
+    two_theta: np.ndarray     # in-plane angle (rad)
+    beta: np.ndarray          # exit angle (rad)
+
+    def lit_fraction(self, footprint_length_mm):
+        """Fraction of the pixel's acceptance whose rays start on a footprint
+        of this length (centred on the sample): how much of the column is
+        lit. Trapezoid weights over the evenly spread rays (ends half)."""
+        w = np.outer(_trapezoid(self.source_x.shape[0]), _trapezoid(self.source_x.shape[1]))
+        return float(np.sum(w * (np.abs(self.source_x) <= footprint_length_mm / 2)) / np.sum(w))
+
+
+def _trapezoid(n):
+    w = np.ones(n)
+    if n > 1:
+        w[[0, -1]] = 0.5
+    return w
+
+
+def column_acceptance(g, col, s4_low, s4_high, row=None, n=11, pixel=True):
+    """The rays pixel (``row``, ``col``) accepts through an S4 opening
+    ``s4_low`` + ``s4_high`` mm (see ``s4_window``): ``n`` evenly spread
+    points across the pixel's width, its edges included (column ± ½;
+    ``pixel=False``: its centre only), times ``n`` across the opening, its
+    edges included, each traced by ``ray_geometry``. The spread of ``two_theta`` is the column's 2θ
+    acceptance (its resolution; the reader gives the column the angle of
+    the centre ray), the spread of ``source_x`` the stretch of footprint it
+    sees. ``row`` defaults to r0."""
+    row = g.r0 if row is None else row
+    k = np.linspace(0.0, 1.0, n)
+    cols = col - 0.5 + k if pixel else np.array([float(col)])
+    offs = -s4_low + (s4_low + s4_high) * k if (s4_low + s4_high) > 0 else np.array([0.0])
+    rays = [[ray_geometry(g, row, c, t) for t in offs] for c in cols]
+    get = lambda f: np.array([[f(r) for r in line] for line in rays])
+    return Acceptance(columns=np.repeat(cols[:, None], len(offs), axis=1),
+                      offsets=np.repeat(offs[None, :], len(cols), axis=0),
+                      source_x=get(lambda r: r.source[0]), two_theta=get(lambda r: r.two_theta),
+                      beta=get(lambda r: r.beta))
 
 
 def area_fraction(s1h, s1v, s4h, s5h, alpha, sam2d, sli2s, dth):
