@@ -105,6 +105,37 @@ class FluorescenceResult:
         fluo.save_flu(name, self.rows, self.command, x=x)
 
 
+@dataclass
+class GIDResult:
+    """A GID map as the window makes it (lss_core.gid). ``x``, ``y``: 2θ and
+    β meshes (degrees); ``data``, ``err``: the map; ``joins``: one entry per
+    join (label, kind, overlap, points, factor ± error, χ²/dof); ``levels``:
+    (name, scans, frames, 2θ from, 2θ to) per Qz level; ``info``: the
+    pinhole patch's per-level and join details (None for the legacy one)."""
+    x: np.ndarray
+    y: np.ndarray
+    data: np.ndarray
+    err: np.ndarray
+    joins: list
+    levels: list
+    params: object
+    alpha: float
+    wavelength: float
+    relax: bool = False
+    info: dict = None
+
+    def products(self, axes='Q'):
+        """The window's plotted and saved arrays in 'Angles' or 'Q'."""
+        from . import gid as gidmod
+        return gidmod.products(self.x, self.y, self.data, self.err, axes, self.alpha, self.wavelength, self.relax)
+
+    def save(self, name, axes=None):
+        """The window's "Save GID" files; ``axes`` defaults to the one given
+        to Experiment.gid."""
+        from . import gid as gidmod
+        return gidmod.save(name, self.products(axes or self.axes))
+
+
 class Experiment:
     def __init__(self, specfile, image_folder='pilatus', mca_folder='vortex'):
         from spec_routines import specread          # no Qt is needed
@@ -255,6 +286,66 @@ class Experiment:
         out = [cutmod.frame_cut(det, d, e, direction, lo, hi, g, axes, absfac=absfac, absnum=f.absorber, terms=t)
                for d, e, g, f, t in zip(data, errs, geoms, frames, terms)]
         return CutResult(out, labels)
+
+    def gid_frames(self, scans, points=None, db_pos=None, bad_pixel_iterations=0, bad_pixel_factor=1,
+                   errors=None):
+        """lss_core.gid.GIDFrame for the frames of ``scans`` (in the window's
+        list order), with the values the window takes from the SPEC file;
+        and the detector object the legacy patch sums with."""
+        from TwoDDetector import TwoDDetector
+        from . import gid as gidmod
+        det = TwoDDetector('Pilatus')
+        det.errors = as_model(errors)
+        out = []
+        for f in self.frames(sorted(scans)):
+            if points is not None and f.scan in points and f.index not in points[f.scan]:
+                continue
+            det.openFile(f.path, bad_pix=bad_pixel_iterations, bad_fac=bad_pixel_factor)
+            p = self.scans[f.scan].parameters
+            cols = self.scans[f.scan].columns
+            wl = p['Wavelength']
+            if 'Det_Th' in cols:
+                dth = cols['Det_Th'][f.index] * np.pi / 180.0
+            else:
+                dth = 2.0 * np.arcsin(np.sqrt(cols['H'][f.index] ** 2 + cols['K'][f.index] ** 2) * wl / 4.0 / np.pi)
+            if db_pos is None:
+                centre = (float(det.NCOLS) - 1 - p['DBPos'][1], p['DBPos'][0])
+            else:
+                centre = (float(db_pos[0]), float(db_pos[1]))
+            out.append(gidmod.GIDFrame(np.array(det.imageData), np.array(det.errorData), f.monitor, f.absorber,
+                                       f.scan, f.qz, np.arcsin(f.qz * wl / 4.0 / np.pi), p['In_Rot'] * np.pi / 180.0,
+                                       dth, wl, centre, p['S2D_Dist'], p['S7D_Dist'], p['Sample_H'],
+                                       (p['S1L'] + p['S1R'], p['S1T'] + p['S1T'], p['S4L'] + p['S4R'], p['S5L'] + p['S5R']),
+                                       p))
+        if not out:
+            raise ValueError('no frames with images in scans %s' % list(scans))
+        return out, det
+
+    def gid(self, scans, params=None, axes='Q', relax=False, points=None, db_pos=None, errors=None,
+            bad_pixel_iterations=0, bad_pixel_factor=1):
+        """GID map of the frames of ``scans``, as the window's "GID Patch"
+        (``relax``: "GID Patch Relax") with the GID worksheet's settings
+        ``params`` (lss_core.gid.GIDParams; default: pinhole geometry, as
+        the window). ``axes``: 'Q' or 'Angles', what ``save`` writes;
+        ``points``, ``db_pos`` (typed direct beam, column and row), the
+        bad-pixel settings and ``errors`` (legacy patch only) as the window.
+        Background-subtracted frames are not scriptable yet. Raises
+        lss_core.gid.GIDError where the window shows a message and stops."""
+        from . import gid as gidmod
+        gp = gidmod.GIDParams() if params is None else params
+        frames, det = self.gid_frames(scans, points, db_pos, bad_pixel_iterations, bad_pixel_factor, errors)
+        log, warnings = [], []
+        info = None
+        if gp.pinhole:
+            patch, levels, level_info, jinfo = gidmod.pinhole_patch(frames, gp, log=log)
+            info = dict(levels=level_info, join=jinfo)
+        else:
+            patch, levels = gidmod.legacy_patch(frames, gp, det, log=log, warn=warnings.append)
+        X, Y, D, E = gidmod.map_arrays(patch)
+        res = GIDResult(X, Y, D, E, log, levels, gp, frames[0].true_alpha, frames[0].wavelength, bool(relax), info)
+        res.axes = axes
+        res.warnings = warnings
+        return res
 
     def spectra(self, scans):
         """(scan, spectrum number, Data, Par) for every MCA spectrum of the

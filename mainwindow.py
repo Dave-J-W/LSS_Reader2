@@ -3399,138 +3399,52 @@ class MainWindow (QMainWindow):
         self.pilGIDshow=1
         self.pilGISAXSshow=0
         self.ui.pilMplWidget.canvas.fig.clf()
-        gp=self.gidParams
+        gp=self.gidEffectiveParams()
         self.gidJoinLog=[]
         self.gidLevels=[]
-        if gp.pinhole:
-            self.gidPinholePatch()
-            return
-        self.pilxleft=self.xcenter-(float(self.ui.pilHSlitLineEdit.text())-1)/2
-        self.pilxright=self.xcenter+(float(self.ui.pilHSlitLineEdit.text())-1)/2
-        self.pilhintLQDatadic={}  #create the dictionary for low qz 
-        self.pilhintMQDatadic={}  #create the dictionary for medium qz
-        self.pilhintHQDatadic={}  #create the dictionary for high qz
-        areainfo={}  # create a dictinary for area cal info which are contants for each scan
-        averagemonc={} #create the dicionary for average monc for each scan
-        qzfmt='.%df' % gp.qz_decimals
-        qztol=10.0**-gp.qz_decimals
-        qz=np.sort(list(set([float(format(self.pilSelectedQzs[i], qzfmt)) for i in range(len(self.pilSelectedQzs))]))) # get and sort the qz in the selected frames
-        self.absfac=self.absorberModel()
-        j=0   #for xcenter and ycenter, which are already defined in self.selectedPilFramesNums
-        for i in self.selectedPilFramesNums:  # get average monc for each scan
-            ckey=self.pilScanNum[i]
-            if ckey in averagemonc:
-                averagemonc[ckey].append(self.pilMonc[i])
-            else: 
-                averagemonc[ckey]=[self.pilMonc[i]]
-        #print averagemonc, ckey
-        #print np.average(averagemonc[ckey])
-        for i in self.selectedPilFramesNums:
-            self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absnum=[self.pil_AbsNum[i]],cen=[self.xcenter[j],self.ycenter[j]], hroi=[self.pilxleft[j], self.pilxright[j]], vroi=[gp.row_min,gp.row_max], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]])
-            j=j+1
-            ckey=self.pilScanNum[i]
-            if ckey in areainfo:
-                pass
+        frames=self.gidFrames()
+        try:
+            if gp.pinhole:
+                patch,self.gidLevels,self.gidPinholeInfo,self.gidJoinInfo=gidmod.pinhole_patch(frames,gp,log=self.gidJoinLog)
             else:
-             #   print ckey, self.pilTrueAlpha[i]
-                areainfo[ckey]=[self.pil_S1h[i],self.pil_S1v[i],self.pil_S4h[i],self.pil_S5h[i],self.pilTrueAlpha[i], self.pil_Dist[i], self.pil_PDist[i]]   #s1h, s1v, s4h, alpha, sample to detector, slit to detector
-            dth=float(format(self.pil_Dth[i]*180/np.pi,'.%df' % gp.dth_decimals))**np.ones_like(self.pilatus.hintData[:,0])            
-            if np.abs(self.pilFileQzs[i]-qz[0])<qztol:  #low qz
-                if ckey in self.pilhintLQDatadic:
-                    self.pilhintLQDatadic[ckey].append(np.vstack((dth,self.pilatus.hintData[:,0],self.pilatus.hintData[:,1]*np.average(averagemonc[ckey]),self.pilatus.hintData[:,2]*np.average(averagemonc[ckey]))).transpose())
-                else:
-                    self.pilhintLQDatadic[ckey]=[np.vstack((dth,self.pilatus.hintData[:,0],self.pilatus.hintData[:,1]*np.average(averagemonc[ckey]),self.pilatus.hintData[:,2]*np.average(averagemonc[ckey]))).transpose()]
-            elif np.abs(self.pilFileQzs[i]-qz[1])<qztol: #medium qz
-                if ckey in self.pilhintMQDatadic:
-                    self.pilhintMQDatadic[ckey].append(np.vstack((dth,self.pilatus.hintData[:,0],self.pilatus.hintData[:,1]*np.average(averagemonc[ckey]),self.pilatus.hintData[:,2]*np.average(averagemonc[ckey]))).transpose())
-                else:
-                    self.pilhintMQDatadic[ckey]=[np.vstack((dth,self.pilatus.hintData[:,0],self.pilatus.hintData[:,1]*np.average(averagemonc[ckey]),self.pilatus.hintData[:,2]*np.average(averagemonc[ckey]))).transpose()]
-            else:  #high qz
-                if ckey in self.pilhintHQDatadic:
-                    self.pilhintHQDatadic[ckey].append(np.vstack((dth,self.pilatus.hintData[:,0],self.pilatus.hintData[:,1]*np.average(averagemonc[ckey]),self.pilatus.hintData[:,2]*np.average(averagemonc[ckey]))).transpose())
-                else:
-                    self.pilhintHQDatadic[ckey]=[np.vstack((dth,self.pilatus.hintData[:,0],self.pilatus.hintData[:,1],self.pilatus.hintData[:,2])).transpose()]
-        LQkeys=self.sortedScans(self.pilhintLQDatadic, mtype='dth') #sorted scan numbers for low, middle, high qz.
-        MQkeys=self.sortedScans(self.pilhintMQDatadic, mtype='dth')
-        HQkeys=self.sortedScans(self.pilhintHQDatadic, mtype='dth')
-       # print areainfo, LQkeys, MQkeys
-       # print self.pilhintLQDatadic
-       # print self.pilhintLQDatadic[LQkeys[0]][0][0][0]
-      
-      # Area and polarization corrections (each can be switched off in the worksheet)
-        for name,keys,dic in (('low Qz',LQkeys,self.pilhintLQDatadic),('middle Qz',MQkeys,self.pilhintMQDatadic),
-                              ('high Qz',HQkeys,self.pilhintHQDatadic)):
-            self.gidCorrect(dic,keys,areainfo)
-            if len(keys):
-                self.gidLevels.append((name,list(keys),sum(len(dic[k]) for k in keys),
-                                       min(d[0,0] for k in keys for d in dic[k]),max(d[0,0] for k in keys for d in dic[k])))
-       # print self.pilhintLQDatadic
-        self.gidJoinLabel='low Qz'
-        if len(LQkeys)>1: #for low qz
-            try:
-                self.pilLQPatchData=self.imagehjoin(self.pilhintLQDatadic[LQkeys[0]],self.pilhintLQDatadic[LQkeys[1]]) #horizontally patch the first two images
-                for i in range(2,len(LQkeys)):
-                    self.pilLQPatchData=self.imagehjoin(self.pilLQPatchData,self.pilhintLQDatadic[LQkeys[i]])  #horizontally patch other images at low qz if necessary
-            except:
-                self.messageBox('Warning: One or more of selected scans do not have enough points for the horizontal patching!')
-                return
-        else:
-            self.pilLQPatchData=self.pilhintLQDatadic[LQkeys[0]]
-        self.gidJoinLabel='middle Qz'
-        if len(MQkeys)>1:  #for middle qz
-            try:
-                self.pilMQPatchData=self.imagehjoin(self.pilhintMQDatadic[MQkeys[0]],self.pilhintMQDatadic[MQkeys[1]]) #horizontally patch the first two images
-                for i in range(2,len(MQkeys)):
-                    self.pilMQPatchData=self.imagehjoin(self.pilMQPatchData,self.pilhintMQDatadic[MQkeys[i]])  #horizontally patch other images at low qz if necessary
-            except:
-                self.messageBox('Warning: One or more of selected scans do not have enough points for the horizontal patching!')
-                return
-        elif len(MQkeys)==1:
-            self.pilMQPatchData=self.pilhintMQDatadic[MQkeys[0]]
-        else:
-            self.pilMQPatchData=[]
-        self.gidJoinLabel='high Qz'
-        if len(HQkeys)>1: #for middle qz
-            try:
-                self.pilHQPatchData=self.imagehjoin(self.pilhintHQDatadic[HQkeys[0]],self.pilhintHQDatadic[HQkeys[1]]) #horizontally patch the first two images
-                for i in range(2,len(HQkeys)):
-                    self.pilHQPatchData=self.imagehjoin(self.pilHQPatchData,self.pilhintHQDatadic[HQkeys[i]])  #horizontally patch other images at low qz if necessary
-            except:
-                self.messageBox('Warning: One or more of selected scans do not have enough points for the horizontal patching!')
-                return
-        elif len(HQkeys)==1:
-            self.pilHQPatchData=self.pilhintHQDatadic[MQkeys[0]]
-        else:
-            self.pilHQPatchData=[]
-        self.pilPatchData=self.pilLQPatchData # need vertical patch later on
-        self.gidJoinLabel='low + middle Qz'
-        if len(self.pilMQPatchData)!=0:
-            try:
-                self.pilPatchData=self.imagevjoin(self.pilPatchData,self.pilMQPatchData)
-            except:
-                self.messageBox('Warning: One or more of selected scans do not have enough points for the vertical patching!')
-                return
-        self.gidJoinLabel='+ high Qz'
-        if len(self.pilHQPatchData)!=0:
-            try:
-                self.pilPatchData=self.imagevjoin(self.pilPatchData,self.pilHQPatchData)
-            except:
-                self.messageBox('Warning: One or more of selected scans do not have enough points for the vertical patching!')
-                return
-
-        
+                self.pilxleft=self.xcenter-(gp.columns-1)/2      # also read by the GID line cuts
+                self.pilxright=self.xcenter+(gp.columns-1)/2
+                self.absfac=self.absorberModel()
+                patch,self.gidLevels=gidmod.legacy_patch(frames,gp,self.pilatus,log=self.gidJoinLog,warn=self.messageBox)
+        except gidmod.GIDError as e:
+            self.messageBox(str(e))
+            return
+        self.pilPatchData=patch
         self.gidFinishMap()
+
+    def gidEffectiveParams(self):
+        """The worksheet's settings with the H slit field as the column count
+        (the field can be typed without the worksheet)."""
+        import dataclasses
+        try:
+            cols=float(self.ui.pilHSlitLineEdit.text())
+        except ValueError:
+            cols=self.gidParams.columns
+        return dataclasses.replace(self.gidParams,columns=int(cols) if cols==int(cols) else cols)
+
+    def gidFrames(self):
+        """lss_core.gid.GIDFrame for each selected frame, in selection order."""
+        out=[]
+        for j,i in enumerate(self.selectedPilFramesNums):
+            scan=self.pilScanNum[i]
+            out.append(gidmod.GIDFrame(self.pilData[i],self.pilErrorData[i],self.pilMonc[i],self.pil_AbsNum[i],scan,
+                                       self.pilFileQzs[i],self.pilAlpha[i],self.pilTrueAlpha[i],self.pil_Dth[i],
+                                       self.pil_Wavelength[i],(self.xcenter[j],self.ycenter[j]),self.pil_Dist[i],
+                                       self.pil_PDist[i],self.pil_Sh[i],
+                                       (self.pil_S1h[i],self.pil_S1v[i],self.pil_S4h[i],self.pil_S5h[i]),
+                                       self.specPar.get(scan,{})))
+        return out
 
     def gidFinishMap(self):
         """Map arrays, colour limits and the plot from self.pilPatchData
-        (the end of the GID patch, shared by the pinhole patch)."""
-        pilGIDXAxis=[self.pilPatchData[i][0][0] for i in range(len(self.pilPatchData))]  #get x-axis
-        pilGIDYAxis=list(self.pilPatchData[0][:,1])  #get y-axis
-        self.pilGIDXAxs, self.pilGIDYAxs=np.meshgrid(pilGIDXAxis,pilGIDYAxis) # mesh the x-y corrdinates
-        self.pilGIDData=np.array([np.hstack(self.pilPatchData[i][:,2]) for i in range(len(self.pilPatchData))]).T  # get z-axis 
-        self.pilGIDDataErr=np.array([np.hstack(self.pilPatchData[i][:,3]) for i in range(len(self.pilPatchData))]).T  # get error bars
+        (the end of the GID patch, both geometries)."""
+        self.pilGIDXAxs,self.pilGIDYAxs,self.pilGIDData,self.pilGIDDataErr=gidmod.map_arrays(self.pilPatchData)
         self.imageMax=np.nanmax(self.pilGIDData)     # nan-aware: the pinhole 'all' range leaves cells empty
-        #self.imageMin=max(1e-10,np.min(self.pilGIDData))
         self.imageMin=np.nanmin(self.pilGIDData[np.nonzero(np.nan_to_num(self.pilGIDData))])
         self.ui.pilMaxLineEdit.setText(str(self.imageMax)) #set the vmax/vmin in the lineedit and slider 
         self.ui.pilMinLineEdit.setText(str(self.imageMin))
@@ -3540,57 +3454,11 @@ class MainWindow (QMainWindow):
         if self.gidWorksheet is not None and self.gidWorksheet.isVisible():
             self.gidWorksheetResults()
 
-    def gidPinholePatch(self):
-        """GID patch in pinhole geometry (F45; lss_core.pinhole): every
-        usable column at its own 2θ, binned as ΣN/ΣW per Qz level on one
-        shared 2θ grid; levels joined on a common β grid with one factor
-        each (F62, pinhole.join_levels)."""
-        gp=self.gidParams
-        qzfmt='.%df' % gp.qz_decimals
-        levels={}
-        for j,i in enumerate(self.selectedPilFramesNums):
-            levels.setdefault(float(format(self.pilFileQzs[i],qzfmt)),[]).append((j,i))
-        names=['low Qz','middle Qz','high Qz']+['Qz level %d' % k for k in range(4,20)]
-        self.gidPinholeInfo=[]
-        byqz={}
-        for k,qz in enumerate(sorted(levels)):
-            frames=[]
-            for j,i in levels[qz]:
-                scan=self.pilScanNum[i]
-                p=self.specPar[scan]
-                dp=gp.pinhole_distance_mm or float(self.pil_PDist[i])
-                g=pinhole.FrameGeometry(dth=float(self.pil_Dth[i]),alpha=float(self.pilTrueAlpha[i]),
-                                        beta0=float(np.arcsin(2*np.sin(self.pilAlpha[i])-np.sin(self.pilTrueAlpha[i]))),
-                                        c0=float(self.xcenter[j]),r0=float(self.ycenter[j]),d_sample=float(self.pil_Dist[i]),
-                                        d_pinhole=dp,g_l3=float(p.get('g_l3',0.0)) if gp.arm_correction else 0.0,
-                                        wavelength=float(self.pil_Wavelength[i]))
-                areainfo=(p['S1L']+p['S1R'],p['S1T']+p['S1B'],p['S4L']+p['S4R'],float(self.pilTrueAlpha[i]),
-                          float(self.pil_Dist[i]),dp)
-                frames.append(pinhole.PinholeFrame(np.asarray(self.pilData[i],float),float(self.pilMonc[i]),g,areainfo,
-                                                   (p['S5L'],p['S5R']),p.get('g_l2',0.0)-p.get('g_l1',0.0),int(scan)))
-            byqz[k]=frames
-        edges=pinhole.shared_edges([f for k in byqz for f in byqz[k]])
-        infos=[]
-        for k in sorted(byqz):
-            frames=byqz[k]
-            tt,beta,I,S,info=pinhole.level_map(frames,gp.row_min,gp.row_max,response=gp.response,
-                                               area=gp.area_correction,pol=gp.polarisation,log=self.gidJoinLog,
-                                               min_frames=gp.min_frames,edges=edges)
-            for e in self.gidJoinLog:
-                e.setdefault('label',names[k])
-            self.gidPinholeInfo.append(dict(level=names[k],**info))
-            infos.append(info)
-            keys=sorted(set(f.scan for f in frames))
-            self.gidLevels.append((names[k],keys,len(frames),float(tt.min()),float(tt.max())))
-        try:
-            tt,beta,I,S,jinfo=pinhole.join_levels(infos,transverse=gp.transverse,log=self.gidJoinLog,
-                                                  labels=[names[k] for k in sorted(byqz)])
-        except ValueError as e:
-            self.messageBox('The Qz levels could not be joined: %s.' % e)
-            return
-        self.gidJoinInfo=jinfo
-        self.pilPatchData=[np.vstack((np.full(len(beta),t),beta,I[b],S[b])).T for b,t in enumerate(tt)]
-        self.gidFinishMap()
+    def gidProducts(self,axes):
+        """What is plotted and saved for the current map in ``axes``
+        (lss_core.gid.products)."""
+        return gidmod.products(self.pilGIDXAxs,self.pilGIDYAxs,self.pilGIDData,self.pilGIDDataErr,axes,
+                               self.truealpha[0],self.wavelength[0],relax=getattr(self,'pilGIDRelax',0)!=0)
 
     def gidFitPinholeDistance(self):
         """S4 → detector distance from the drift of the strongest feature of
@@ -3620,113 +3488,10 @@ class MainWindow (QMainWindow):
             return None
         return dict(distance=d,error=err,frames=n,peak=peak,columns=(int(win[0]),int(win[-1])),header=dp)
 
-    def gidCorrect(self,dic,keys,areainfo):
-        """Area and polarisation corrections of the profiles in ``dic``,
-        in place (the arithmetic of the original three loops)."""
-        gp=self.gidParams
-        for k in keys:
-            for d in dic[k]:
-                areacorr=self.calArea(areainfo[k],d[:,0][0]) if gp.area_correction else 1.0
-                pol=(1-(np.sin(d[:,0]*np.pi/180)*np.cos(d[:,1]*np.pi/180))**2) if gp.polarisation else 1.0
-                d[:,2]=d[:,2]/areacorr/pol
-                d[:,3]=d[:,3]/areacorr/pol
+    def calArea(self, areainfo, dth):
+        """Footprint fraction (lss_core.gid.cal_area) with the H slit field."""
+        return gidmod.cal_area(areainfo,dth,float(self.ui.pilHSlitLineEdit.text()),self.gidParams.hard_slit_offset_mm)
 
-    def gidLogJoin(self,kind,x,y,yerr,fac,facerr):
-        self.gidJoinLog.append(dict(label=getattr(self,'gidJoinLabel',''),kind=kind,x_from=float(np.min(x)),x_to=float(np.max(x)),
-                                    points=int(len(x)),factor=float(fac),error=float(facerr),
-                                    chi2=gidmod.reduced_chi2(x,y,yerr,fac)))
-
-    def calArea(self, areainfo, dth):  #calculate the area correction for pilatum100 GID measurement
-        s1y=areainfo[0] # footrprint size perpendicular to the beam, y
-        s4h=areainfo[2]
-        s5h=areainfo[3]
-        alpha=areainfo[4]
-        s1x=areainfo[1]/np.sin(alpha)  #footprint size along the beam, x        
-        sam2d=areainfo[5]-self.gidParams.hard_slit_offset_mm   # sample to detector distance; there is 32 mm shorter if we use hard slits. 
-        sli2s=areainfo[5]-areainfo[6]   # s2 slits to sample distance
-        dth=dth*np.pi/180.0   #convert to rad. 
-        if s5h> float(self.ui.pilHSlitLineEdit.text())*0.172:    
-            s5h=float(self.ui.pilHSlitLineEdit.text())*0.172
-            sam2d=areainfo[5]
-        phi=np.arcsin((s4h+s5h)/2.0/np.sqrt((s4h+s5h)**2/4.0+(sam2d-sli2s)**2))
-        dist=(s4h/2.0*sam2d+s5h/2.0*sli2s)/np.sqrt((s4h+s5h)**2/4.0+(sam2d-sli2s)**2)
-      #  print s1y, s1x, s4h, alpha, s5h, sam2d, sli2s, dth
-        seg=[]
-        seg.append([-s1x/2.0, s1y/2.0,-s1x/2.0,-s1y/2.0])    #segment 1 of the footprint, (x1, x2, y1, y2)
-        seg.append([-s1x/2.0,-s1y/2.0, s1x/2.0,-s1y/2.0])    #segment 2 of the footprint, (x1, x2, y1, y2)
-        seg.append([ s1x/2.0,-s1y/2.0, s1x/2.0, s1y/2.0])    #segment 3 of the footprint, (x1, x2, y1, y2)
-        seg.append([ s1x/2.0, s1y/2.0,-s1x/2.0, s1y/2.0])    #segment 4 of the footprint, (x1, x2, y1, y2)
-        
-        conners=[[-s1x/2,-s1y/2], [s1x/2,-s1y/2],[s1x/2,s1y/2],[-s1x/2,s1y/2]]  #conners for the footprint
-        pointb=[]         #cross point for the bottom line
-        pointt=[]         #cross point for the top line
-
-        
-        for i in range(4):  # get the cross points for both top and bottom lines
-            if seg[i][0]==seg[i][2]:    #vertical line  
-                xtemp=seg[i][0]
-                ybtemp=(xtemp*np.sin(dth-phi)-dist)/np.cos(dth-phi)
-                yttemp=(xtemp*np.sin(dth+phi)+dist)/np.cos(dth+phi)
-                if ybtemp>-s1y/2 and ybtemp<s1y/2:
-                    pointb.append([xtemp, ybtemp])
-                else:
-                    pointb.append('None')
-                if yttemp>-s1y/2 and yttemp<s1y/2:
-                    pointt.append([xtemp, yttemp])
-                else:
-                    pointt.append('None')
-            else:      #horizontal line
-                ytemp=seg[i][1]
-                xbtemp=(ytemp*np.cos(dth-phi)+dist)/np.sin(dth-phi)
-                xttemp=(ytemp*np.cos(dth+phi)-dist)/np.sin(dth+phi)
-                if xbtemp>-s1x/2 and xbtemp<s1x/2:
-                    pointb.append([xbtemp, ytemp])
-                else:
-                    pointb.append('None')
-                if xttemp>-s1x/2 and xttemp<s1x/2:
-                    pointt.append([xttemp, ytemp])
-                else:
-                    pointt.append('None')
-                  
-        listb=[]
-        listt=[] 
-        for i in range(4):  #get segment numbers from top and bottom line
-            if pointb[i]!='None':
-                listb.append(i)
-            if pointt[i]!='None':
-                listt.append(i)
-                # print listb, listt
-        bpop=[]    # list for the footprint conners need to be poped out
-        if len(listb)!=0:  #get conner points need to be poped out 
-            bpop=list(range(listb[0],listb[1]))
-        if len(listt)!=0:
-            tpop=list(range(listt[1],listt[0]+4))
-            for i in range(len(tpop)):
-                if tpop[i]>3:
-                    bpop.append(tpop[i]-4)
-                else:
-                    bpop.append(tpop[i])
-        bpop.sort(reverse=True)   
-        for i in bpop:    #pop selected conner points
-            conners.pop(i)
-        for i in range(len(listb)):  #add points from bottom line    
-            conners.append(pointb[listb[i]])
-        for i in range(len(listt)):  #add points from top line
-            conners.append(pointt[listt[i]])
-        conangle=np.array([np.arctan2(conners[i][1],conners[i][0]) for i in range(len(conners))])  # get angles from the each point on the polygon 
-        conorder=[conners[i] for i in np.argsort(conangle)]     # sort the points for the area calculation
-
-        area=0  # area for the polygon
-        for i in range(len(conorder)):
-            if i==len(conorder)-1:
-                area=area+conorder[i][0]*conorder[0][1]-conorder[i][1]*conorder[0][0]
-            else:
-                area=area+conorder[i][0]*conorder[i+1][1]-conorder[i][1]*conorder[i+1][0]
-        #print np.abs(area)/2/s1x/s1y,dth
-       # print dth, np.abs(area)/2.0
-        return np.abs(area)/2/s1x/s1y  #return the normalized polygon area 
-
-        
     def pilGIDPlot(self):
         self.ui.pilMplWidget.canvas.fig.clf()
         aspect=str(self.ui.pilAspectComboBox.currentText())
@@ -3756,19 +3521,14 @@ class MainWindow (QMainWindow):
                 self.gid_p=self.gidax.imshow(inter_pilGIDData,interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower') 
            # self.ui.pilMplWidget.canvas.fig.colorbar(self.gid_p)
             #get the h-cut data and label
-            self.gid_h=np.vstack((self.pilGIDXAxs[0,:],np.sum(self.pilGIDData,axis=0),np.sqrt(np.sum(self.pilGIDDataErr**2,axis=0)))).transpose()
+            prod=self.gidProducts('Angles')
+            self.gid_h,self.gid_v,self.gid_vc=prod['h'],prod['v'],prod['vc']
             self.gidax_h.set_xlabel(r'$2\theta$'+' '+r'$[\deg]$')
             self.gidax_h.set_title('Integrated over '+r'$\beta$')
             #get the v-cut data
-            self.gid_v=np.vstack((self.pilGIDYAxs[:,0],np.sum(self.pilGIDData,axis=1),np.sqrt(np.sum(self.pilGIDDataErr**2,axis=1)))).transpose()
             self.gidax_v.set_ylabel(r'$\beta$'+' '+r'$[\deg]$')
             self.gidax_v.set_title('Integrated over '+r'$2\theta$')
             #get the v-slice-cut data
-            vc_ran=np.linspace(np.where(self.pilGIDYAxs[:,0]>0)[0][0],np.where(self.pilGIDYAxs[:,0]>0)[0][-1],5)
-            vc_ran=list(map(int,vc_ran))
-            self.gid_vc={}
-            for i in range(4):
-                self.gid_vc[i]=np.vstack((self.pilGIDXAxs[0,:],np.sum(self.pilGIDData[vc_ran[i]:vc_ran[i+1],:],axis=0),np.sqrt(np.sum(self.pilGIDDataErr[vc_ran[i]:vc_ran[i+1],:]**2,axis=0)))).transpose()
             self.gidax_vc.set_title(r'$\beta$'+'-binned')
             self.gidax_vc.set_xlabel(r'$2\theta$'+' '+r'$[\deg]$')
             
@@ -3776,25 +3536,9 @@ class MainWindow (QMainWindow):
         if str(self.ui.pilAxesComboBox.currentText())=='Q':
             self.pilGIDxlabel=r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$'
             self.pilGIDylabel=r'$Q_z$'+' '+r'$[\AA^{-1}]$'
-            self.pilGIDXAxs_Q=k0*np.sqrt(np.cos(alpha)**2+np.cos(self.pilGIDYAxs/180*np.pi)**2-2*np.cos(alpha)*np.cos(self.pilGIDYAxs/180*np.pi)*np.cos(self.pilGIDXAxs/180*np.pi))
-            self.pilGIDYAxs_Q=k0*(np.sin(alpha)+np.sin(self.pilGIDYAxs/180*np.pi))
-            if self.pilGIDRelax==0:
-                qxyrange=np.where(np.logical_and(self.pilGIDXAxs_Q[0]<self.pilGIDXAxs_Q[-1][-1],self.pilGIDXAxs_Q[0]>self.pilGIDXAxs_Q[-1][0]))  #find the qxy range in the smallest rectangular grids. 
-                qxy,qz=np.meshgrid(self.pilGIDXAxs_Q[0][qxyrange],self.pilGIDYAxs_Q[:,0])
-                self.pilGIDData_Q=griddata((self.pilGIDXAxs_Q.ravel(),self.pilGIDYAxs_Q.ravel()),self.pilGIDData.ravel(), (qxy,qz), method='linear')
-                self.pilGIDDataErr_Q=griddata((self.pilGIDXAxs_Q.ravel(),self.pilGIDYAxs_Q.ravel()),self.pilGIDDataErr.ravel(), (qxy,qz), method='linear')
-            else:
-               # print  self.pilGIDXAxs_Q[0][0], self.pilGIDXAxs_Q[0][-1], self.pilGIDXAxs_Q[-1][0], self.pilGIDXAxs_Q[-1][-1] 
-                #print np.min(self.pilGIDXAxs_Q), np.max(self.pilGIDXAxs_Q)
-                qxyrange=np.linspace(np.min(self.pilGIDXAxs_Q), np.max(self.pilGIDXAxs_Q),int(len(self.pilGIDXAxs_Q[0])*(np.max(self.pilGIDXAxs_Q)-np.min(self.pilGIDXAxs_Q))/(self.pilGIDXAxs_Q[0][-1]-self.pilGIDXAxs_Q[0][0])))
-               # print len(self.pilGIDXAxs_Q[0]),  len(self.pilGIDXAxs_Q[0])*(np.max(self.pilGIDXAxs_Q)-np.min(self.pilGIDXAxs_Q))/(self.pilGIDXAxs_Q[0][-1]-self.pilGIDXAxs_Q[0][0])
-               # print qxyrange
-                #qxyrange=np.where(np.logical_and(self.pilGIDXAxs_Q[0]<self.pilGIDXAxs_Q[-1][-1],self.pilGIDXAxs_Q[0]>self.pilGIDXAxs_Q[-1][0]))  #find the qxy range in the biggest rectangular grids. (relax mode)
-                qxy,qz=np.meshgrid(qxyrange,self.pilGIDYAxs_Q[:,0])
-                self.pilGIDData_Q=griddata((self.pilGIDXAxs_Q.ravel(),self.pilGIDYAxs_Q.ravel()),self.pilGIDData.ravel(), (qxy,qz), method='linear',fill_value=1e-10)
-                self.pilGIDDataErr_Q=griddata((self.pilGIDXAxs_Q.ravel(),self.pilGIDYAxs_Q.ravel()),self.pilGIDDataErr.ravel(), (qxy,qz), method='linear',fill_value=1e-10)
-            self.pilGIDXAxs_Q=qxy
-            self.pilGIDYAxs_Q=qz
+            prod=self.gidProducts('Q')
+            self.pilGIDXAxs_Q,self.pilGIDYAxs_Q,self.pilGIDData_Q,self.pilGIDDataErr_Q=prod['x'],prod['y'],prod['data'],prod['err']
+            self.gid_h,self.gid_v,self.gid_vc=prod['h'],prod['v'],prod['vc']
             fint=interp1d(self.pilGIDXAxs_Q[0], self.pilGIDData_Q, kind='linear')   # interpolate the data along x-axis
             newpilGIDXAxis=np.linspace(self.pilGIDXAxs_Q[0][0],self.pilGIDXAxs_Q[0][-1],len(self.pilGIDXAxs_Q[0])*10)
             inter_pilGIDData_Q=fint(newpilGIDXAxis)
@@ -3844,18 +3588,12 @@ class MainWindow (QMainWindow):
                     plotqz=np.nan_to_num(np.sqrt((totq**2-plotqxy**2*self.formfactor_rxy**2)/self.formfactor_rz**2))       # get the y-axis for formfactor for ith order
                     self.gidax.plot(plotqxy, plotqz, 'w-', linewidth=1.5)
              #get the h-cut data and label
-            self.gid_h=np.vstack((self.pilGIDXAxs_Q[0,:],np.sum(self.pilGIDData_Q,axis=0),np.sqrt(np.sum(self.pilGIDDataErr_Q**2,axis=0)))).transpose()
             self.gidax_h.set_xlabel(r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$')
             self.gidax_h.set_title('Integrated over '+r'$Q_z$')
             #get the v-cut data
-            self.gid_v=np.vstack((self.pilGIDYAxs_Q[:,0],np.sum(self.pilGIDData_Q,axis=1),np.sqrt(np.sum(self.pilGIDDataErr_Q**2,axis=1)))).transpose()
             self.gidax_v.set_ylabel(r'$Q_z$'+' '+r'$[\AA^{-1}]$')
             self.gidax_v.set_title('Integrated over '+r'$Q_{xy}$')
             #get the v-slice-cut data
-            vc_ran=np.linspace(np.where(self.pilGIDYAxs_Q[:,0]>0)[0][0],np.where(self.pilGIDYAxs_Q[:,0]>0)[0][-1],5)
-            self.gid_vc={}
-            for i in range(4):
-                self.gid_vc[i]=np.vstack((self.pilGIDXAxs_Q[0,:],np.sum(self.pilGIDData_Q[int(vc_ran[i]):int(vc_ran[i+1]),:],axis=0),np.sqrt(np.sum(self.pilGIDDataErr_Q[int(vc_ran[i]):int(vc_ran[i+1]),:]**2,axis=0)))).transpose()
             self.gidax_vc.set_title(r'$Q_z$'+'-binned')
             self.gidax_vc.set_xlabel(r'$Q_{xy}$ '+r'$[\AA^{-1}]$')
         
@@ -3907,200 +3645,53 @@ class MainWindow (QMainWindow):
         self.ui.commandLineEdit.setText(self.command)
         
     def saveGIDData(self):
-#        print self.pilGIDData_Q
-#        print self.pilGIDXAxs_Q[0]
-#        print self.pilGIDYAxs_Q[:,0]
-#        print len(self.pilGIDData_Q), len(self.pilGIDData_Q[0]),  len(self.pilGIDXAxs_Q[0]), len(self.pilGIDYAxs_Q[:,0])
+        axes=str(self.ui.pilAxesComboBox.currentText())
+        if axes not in ('Angles','Q') or getattr(self,'pilGIDData',None) is None:
+            self.messageBox('Make a GID map first, with the axes in Angles or Q, then save it.')
+            return
         self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save gioxs data', directory=self.directory)[0])
         if self.saveFileName=='':   # dialog cancelled: write nothing
             return
-        data2d=[]
-        if str(self.ui.pilAxesComboBox.currentText())=='Q':
-            fname_h=self.saveFileName+'_qxy_gid.txt'
-            fname_v=self.saveFileName+'_qz_gid.txt'
-            fname_2d=self.saveFileName+'_q2d_gid.txt'
-            for i in range(len(self.pilGIDData_Q)):
-                for j in range(len(self.pilGIDData_Q[0])):
-                    data2d.append([self.pilGIDXAxs_Q[i][j],self.pilGIDYAxs_Q[i][j],self.pilGIDData_Q[i][j],self.pilGIDDataErr_Q[i][j]])
-        elif str(self.ui.pilAxesComboBox.currentText())=='Angles':
-            fname_h=self.saveFileName+'_dth_gid.txt'
-            fname_v=self.saveFileName+'_beta_gid.txt'
-            fname_2d=self.saveFileName+'_agnle2d_gid.txt'
-            for i in range(len(self.pilGIDData)):
-                for j in range(len(self.pilGIDData[0])):
-                    data2d.append([self.pilGIDXAxs[i][j],self.pilGIDYAxs[i][j],self.pilGIDData[i][j],self.pilGIDDataErr[i][j]])
-#        print np.array(data2d)
-#        print len(np.array(data2d)), len(np.array(data2d[0]))
-        np.savetxt(fname_h,self.gid_h,fmt='%.4e\t%.4e\t%.4e')
-        np.savetxt(fname_v,self.gid_v,fmt='%.4e\t%.4e\t%.4e')
-        np.savetxt(fname_2d,np.array(data2d),fmt='%.4e\t%.4e\t%.4e\t%.4e')
-        
-        
-    def imagehjoin(self, data1, data2): #join two images horizontally 
-        data1x=np.array([data1[i][0][0] for i in range(len(data1))])  #get dth/x range for data1
-        data1z=np.array([np.sum(data1[i][:,2]) for i in range(len(data1))]) #get integrated (along beta) for each dth in data1
-        data1zerr=np.array([np.sqrt(np.sum(data1[i][:,3]**2)) for i in range(len(data1))]) # get error bars
-        data2x=np.array([data2[i][0][0] for i in range(len(data2))])  #get dth range for data2
-        data2z=np.array([np.sum(data2[i][:,2]) for i in range(len(data2))])  #get integrated (along beta) for each dth in data2
-        data2zerr=np.array([np.sqrt(np.sum(data2[i][:,3]**2)) for i in range(len(data2))]) #get error bars
-        data1step=np.abs(data1x[0]-data1x[1])
-        data2step=np.abs(data2x[0]-data2x[1])
-        if data2x[0]>=data1x[-1]:
-            self.messageBox('Warning: no overlap area between two scans!')
-            return np.vstack((data1,data2))
-        else:  #patching
-            overlap2=np.where(data2x<=data1x[-1]) #create an array for where data2 having smaller dth than the point in data1
-            overlap1=np.where(np.logical_and(data1x>=data2x[0],data1x<=data2x[overlap2[0][-1]])) #create an array for where data1 having larger dth than the point in data2
-            f=interp1d(data2x[overlap2],data2z[overlap2],kind='linear')
-            ferr=interp1d(data2x[overlap2],data2zerr[overlap2],kind='linear')
-            nonzero=np.nonzero(f(data1x[overlap1])) #get rid of nonzero element in f(data1x[overlap1])
-            overlap1z=data1z[overlap1][nonzero]
-            overlap1zerr=data1zerr[overlap1][nonzero]
-            overlap2z=f(data1x[overlap1])[nonzero]
-            overlap2zerr=ferr(data1x[overlap1])[nonzero]
-           # print overlap1y, overlap1yerr
-            #print overlap2y, overlap2yerr
-            x=data1x[overlap1][nonzero]   #get x, y, yerr for the ratio between two images in the overlap range
-            y=overlap1z/overlap2z
-            yerr=y*np.sqrt(((overlap1zerr/overlap1z)**2+(overlap2zerr/overlap2z)**2))
-            pfit,pcov=curve_fit(self.polynomial,x,y,p0=[1],sigma=yerr) #fit the data with the scale factor 
-            fac=pfit[0]
-            facerr=pcov[0][0]**0.5
-            self.gidLogJoin('horizontal (2theta)',x,y,yerr,fac,facerr)
-            for i in range(len(data2)):  # scale the data2 with the fac and facerr
-                data2[i][:,2]=data2[i][:,2]*fac
-                data2[i][:,3]=np.sqrt(data2[i][:,3]**2*fac**2+data2[i][:,2]**2*facerr**2/fac**2)
-           # print overlap1, overlap2
-           # print data1x[overlap1], data2x[overlap2]
-            data=[]
-            for i in range(overlap1[0][0]):  #part 1 for patching data 
-                data.append(data1[i])
-            if data1step<=data2step:  # if data1 has finer or equal step size; part 2 for patching
-                data2zoverlap=np.array([np.hstack(data2[i][:,2].T) for i in overlap2[0]]).T
-                data2zerroverlap=np.array([np.hstack(data2[i][:,3].T) for i in overlap2[0]]).T
-               # print data2zoverlap,  data2zerroverlap, data2x[overlap2]
-                f2d=interp2d_linear(data2x[overlap2],data2[0][:,1],data2zoverlap)  #interpolate the data2 in the overlap2
-                f2derr=interp2d_linear(data2x[overlap2],data2[0][:,1],data2zerroverlap)
-                data3=f2d(data1x[overlap1],data2[0][:,1])  #get data2 data at data1 x-axis from the interpolation 
-                data3err=f2derr(data1x[overlap1],data2[0][:,1]) 
-                for i in range(overlap1[0][0],overlap1[0][-1]+1):
-                    #use avreage 
-                    data.append(np.vstack((data1[i][:,0],data1[i][:,1],(data1[i][:,2]+data3[:,i-overlap1[0][0]])/2.0,np.sqrt(data1[i][:,3]**2+data3err[:,i-overlap1[0][0]]**2)/2.0)).transpose())
-                    #use minimum error combination for the overlap area                    
-                    #data.append(np.vstack((data1[i][:,0],data1[i][:,1],np.nan_to_num((data1[i][:,2]*data3err[:,i-overlap1[0][0]]**2+data1[i][:,3]**2*data3[:,i-overlap1[0][0]])/(data1[i][:,3]**2+data3err[:,i-overlap1[0][0]]**2)),np.nan_to_num(data1[i][:,3]*data3err[:,i-overlap1[0][0]]/np.sqrt(data1[i][:,3]**2+data3err[:,i-overlap1[0][0]]**2)))).transpose())
-                    #use weighted average
-                    #data.append(np.vstack((data1[i][:,0],data1[i][:,1],np.nan_to_num((data1[i][:,2]**2*data3err[:,i-overlap1[0][0]]**2+data1[i][:,3]**2*data3[:,i-overlap1[0][0]]**2)/(data1[i][:,3]**2*data3[:,i-overlap1[0][0]]+data3err[:,i-overlap1[0][0]]**2*data1[i][:,2])),np.nan_to_num(np.sqrt(data1[i][:,3]**2*data1[i][:,2]**2*data3err[:,i-overlap1[0][0]]**4+data1[i][:,3]**4*data3[:,i-overlap1[0][0]]**2*data3err[:,i-overlap1[0][0]]**2)/(data1[i][:,3]**2*data3[:,i-overlap1[0][0]]+data3err[:,i-overlap1[0][0]]**2*data1[i][:,2])))).transpose())
-               # print data1[overlap1[0][-1]], data2[overlap2[0][-1]], data[-1]
-            else: # if data2 has finer step size
-                data1zoverlap=np.array([np.hstack(data1[i][:,2].T) for i in overlap1[0]]).T
-                data1zerroverlap=np.array([np.hstack(data1[i][:,3].T) for i in overlap1[0]]).T
-               # print data2zoverlap,  data2zerroverlap, data2x[overlap2]
-                f2d=interp2d_linear(data1x[overlap1],data1[0][:,1],data1zoverlap)  #interpolate the data1 in the overlap1
-                f2derr=interp2d_linear(data1x[overlap1],data1[0][:,1],data1zerroverlap)
-                data3=f2d(data2x[overlap2],data1[0][:,1])  #get data1 data at data2 x-axis from the interpolation 
-                data3err=f2derr(data2x[overlap2],data1[0][:,1]) 
-                for i in range(overlap2[0][0],overlap2[0][-1]+1):
-                    data.append(np.vstack((data2[i][:,0],data2[i][:,1],(data2[i][:,2]+data3[:,i-overlap2[0][0]])/2.0,np.sqrt(data2[i][:,3]**2+data3err[:,i-overlap2[0][0]]**2)/2.0)).transpose())
-                    #data.append(np.vstack((data2[i][:,0],data2[i][:,1],np.nan_to_num((data2[i][:,2]*data3err[:,i-overlap2[0][0]]**2+data2[i][:,3]**2*data3[:,i-overlap2[0][0]])/(data2[i][:,3]**2+data3err[:,i-overlap2[0][0]]**2)),np.nan_to_num(data2[i][:,3]*data3err[:,i-overlap2[0][0]]/np.sqrt(data2[i][:,3]**2+data3err[:,i-overlap2[0][0]]**2)))).transpose())
-                    #data.append(np.vstack((data2[i][:,0],data2[i][:,1],np.nan_to_num((data2[i][:,2]**2*data3err[:,i-overlap2[0][0]]**2+data2[i][:,3]**2*data3[:,i-overlap2[0][0]]**2)/(data2[i][:,3]**2*data3[:,i-overlap2[0][0]]+data3err[:,i-overlap2[0][0]]**2*data2[i][:,2])),np.nan_to_num(np.sqrt(data2[i][:,3]**2*data2[i][:,2]**2*data3err[:,i-overlap2[0][0]]**4+data2[i][:,3]**4*data3[:,i-overlap2[0][0]]**2*data3err[:,i-overlap2[0][0]]**2)/(data2[i][:,3]**2*data3[:,i-overlap2[0][0]]+data3err[:,i-overlap2[0][0]]**2*data2[i][:,2])))).transpose())
-               # print data1[overlap1[0][0]][-10:], data1[overlap1[0][1]][-10:]
-               # print data3[:,0][-10:], data3[:,1][-10:], data3err[:,1][-10:], data3[:,2][-10:]
-              #  print data2[overlap2[0][1]][-10:], data[-20][-10:], data[-19][-10:]
-            if data1x[-1]>=data2x[-1]: #part 3 for patching
-                for i in range(overlap1[0][-1]+1,len(data1)):
-                    data.append(data1[i])
-            else: 
-                for i in range(overlap2[0][-1]+1,len(data2)):
-                    data.append(data2[i])
-            #print data1[overlap1[0][-1]], data2[-1], data[-1]   
-            #print data
-            return data
-    
+        gidmod.save(self.saveFileName,self.gidProducts(axes))
+        self.scriptLine(self.gidScript(self.saveFileName,axes))
+
+    def gidScript(self,name,axes):
+        """The lss_core call that reproduces the GID map just saved."""
+        if len(self.ui.backgroundListWidget.selectedItems())>0:
+            return '# this GID map is of background-subtracted frames; scripts cannot do that yet'
+        scans=sorted(set(int(self.pilScanNum[i]) for i in self.selectedPilFramesNums))
+        points={}
+        for n in scans:
+            chosen=[int(self.pilFrameNum[i]) for i in self.selectedPilFramesNums if self.pilScanNum[i]==n]
+            listed=[int(self.pilFrameNum[i]) for i in range(len(self.pilScanNum)) if self.pilScanNum[i]==n]
+            if chosen!=listed:
+                points[n]=chosen
+        kw=['axes=%r' % axes]
+        gp=self.gidEffectiveParams()
+        changed=gp.changed()
+        head=''
+        if changed:
+            head='from lss_core.gid import GIDParams\n'
+            kw.append('params=GIDParams(%s)' % ', '.join('%s=%r' % (k,getattr(gp,k)) for k in changed))
+        if getattr(self,'pilGIDRelax',0):
+            kw.append('relax=True')
+        if points:
+            kw.append('points=%r' % points)
+        if script_kw(self.errorModel) and not gp.pinhole:
+            kw.append(script_kw(self.errorModel))
+        if self.ui.pilSpecCheckBox.checkState()==0:
+            kw.append('db_pos=(%r, %r)' % (float(self.xcenter[0]),float(self.ycenter[0])))
+        if int(self.ui.pilBPCiteSpinBox.value())!=0:
+            kw.append('bad_pixel_iterations=%d, bad_pixel_factor=%d' % (int(self.ui.pilBPCiteSpinBox.value()),int(self.ui.pilBPCfacSpinBox.value())))
+        return head+'gid = exp.gid(%r, %s)\ngid.save(%r)' % (scans,', '.join(kw),name)
+
+    def imagehjoin(self, data1, data2):
+        return gidmod.hjoin(data1,data2,getattr(self,'gidJoinLog',None),getattr(self,'gidJoinLabel',''),self.messageBox)
+
     def imagevjoin(self, data1, data2):
-        data1y=data1[0][:,1]  #get beta/y range for data1
-        data2y=data2[0][:,1]  #get beta/y range for data2
-        if data1y[-1]<data2y[0]:
-            self.messageBox('Warning: no overlap area between two scans!')
-            return np.vstack((data1,data2))
-        else:
-            data1x=np.array([data1[i][0][0] for i in range(len(data1))])  #get dth/x range for data1
-            data2x=np.array([data2[i][0][0] for i in range(len(data2))]) #get dth/x range for data2
-            data2z=np.array([np.hstack(data2[i][:,2]) for i in range(len(data2))]).T  #get z for data2
-            data2zerr=np.array([np.hstack(data2[i][:,3]) for i in range(len(data2))]).T #get zerr for data2
-            fdata2=interp2d_linear(data2x,data2y,data2z)  #interpolate data2 to match data1 x-axis
-            fdata2err=interp2d_linear(data2x,data2y,data2zerr)
-            data2znew=fdata2(data1x,data2y)
-            data2zerrnew=fdata2err(data1x,data2y)
-            data2new=[np.vstack((data1x[0]*np.ones_like(data2y),data2y,data2znew[:,0],data2zerrnew[:,0])).transpose()]
-            for i in range(1,len(data1x)):
-                data2new.append(np.vstack((data1x[i]*np.ones_like(data2y),data2y,data2znew[:,i],data2zerrnew[:,i])).transpose())
-            data2=data2new
-            overlap1=np.where(data1y>=data2y[0]) #create an array for where data1 having larger beta than the point in data2
-            overlap2=np.where(data2y<=data1y[-1]) #create an array for where data2 having smaller beta than the point in data1
-            #print overlap1, overlap2, len(overlap1[0]), len(overlap2[0])
-            data1zint=np.array([np.sum([data1[i][j,2] for i in range(len(data1))]) for j in overlap1[0]]) #get integrated for each beat for data1 in overlap1
-            data1zinterr=np.array([np.sqrt(np.sum([data1[i][j,3]**2 for i in range(len(data1))])) for j in overlap1[0]]) #get error bars
-            data2zint=np.array([np.sum([data2[i][j,2] for i in range(len(data2))]) for j in overlap2[0]]) #get integrated for each beat for data2 in overlap2
-            data2zinterr=np.array([np.sqrt(np.sum([data2[i][j,3]**2 for i in range(len(data2))])) for j in overlap2[0]]) #get error bars
-           # print len(data2),data1zint,data2zint
-           # print np.sum(data1zint)*len(data2zint)/(np.sum(data2zint)*len(data1zint))
-            f=interp1d(data2y[overlap2],data2zint, kind=self.gidParams.vjoin_kind)
-            ferr=interp1d(data2y[overlap2],data2zinterr,kind=self.gidParams.vjoin_kind)
-            #print data1y[overlap1][:-1]
-            nonzero=np.nonzero(f(data1y[overlap1][:-1]))
-            overlap1z=data1zint[:-1][nonzero]
-            overlap1zerr=data1zinterr[:-1][nonzero]
-            overlap2z=f(data1y[overlap1][:-1])[nonzero]
-            overlap2zerr=ferr(data1y[overlap1][:-1])[nonzero]
-           # print len(overlap1z), len(overlap2z)
-            x=data1y[overlap1][:-1][nonzero]   #get x, y, yerr for the ratio between two images in the overlap range
-            y=overlap1z/overlap2z
-            yerr=y*np.sqrt(((overlap1zerr/overlap1z)**2+(overlap2zerr/overlap2z)**2))
-            pfit,pcov=curve_fit(self.polynomial,x,y,p0=[1],sigma=yerr) #fit the data with the scale factor 
-            fac=pfit[0]
-            facerr=pcov[0][0]**0.5
-            self.gidLogJoin('vertical (beta)',x,y,yerr,fac,facerr)
-            for i in range(len(data2)):  # scale the data2 with the fac and facerr
-                data2[i][:,2]=data2[i][:,2]*fac
-                data2[i][:,3]=np.sqrt(data2[i][:,3]**2*fac**2+data2[i][:,2]**2*facerr**2/fac**2)
-            #print data2[0][:,2][:overlap2[0][-1]+1]
-            data2zoverlap=np.array([np.hstack(data2[i][:,2][:overlap2[0][-1]+1].T) for i in range(len(data2))]).T
-            data2zerroverlap=np.array([np.hstack(data2[i][:,3][:overlap2[0][-1]+1].T) for i in range(len(data2))]).T
-            f2d=interp2d_linear(data1x,data2y[overlap2],data2zoverlap)  #interpolate the data2 in the overlap2
-            f2derr=interp2d_linear(data1x,data2y[overlap2],data2zerroverlap)
-            data3=f2d(data1x,data1y[overlap1][:-1])  #get data2 data at data1 y-axis from the interpolation 
-            data3err=f2derr(data1x,data1y[overlap1][:-1]) #get data2 error bars at data1 y-axis from the interpolation 
-            #print  data3[:,:10]
-            #print len(data3[:,:10][0]), data3[:,:10][0]
-            #print data1[0][0:overlap1[0][0]]
-            #print data2zoverlap[:,:10]
-            #print data1y[overlap1][-10:], data2y[overlap2][-10:]
-            #print data2[0][0,2],data2[0][0,3],data2[-1][0,2],data2[-1][0,3]
-            #print data3[-1], data3err[-1]
-           # data=np.vstack(data1[i][0:overlap1[0][0]]
-            data1z=np.array([np.hstack(data1[i][:,2]) for i in range(len(data1))])  
-            data1zerr=np.array([np.hstack(data1[i][:,3]) for i in range(len(data1))])
-            data2z=np.array([np.hstack(data2[i][:,2]) for i in range(len(data2))])  
-            data2zerr=np.array([np.hstack(data2[i][:,3]) for i in range(len(data2))])
-            data=[np.vstack((data1y[0]*np.ones_like(data1x),data1x,data1z[:,0],data1zerr[:,0])).transpose()]
-            for i  in range(1,overlap1[0][0]):
-                data.append(np.vstack((data1y[i]*np.ones_like(data1x),data1x,data1z[:,i],data1zerr[:,i])).transpose())
-            for i in range(overlap1[0][0],overlap1[0][-1]):
-                data.append(np.vstack((data1y[i]*np.ones_like(data1x),data1x,(data1z[:,i]+data3.T[:,i-overlap1[0][0]])/2.0,np.sqrt(data1zerr[:,i]**2+data3err.T[:,i-overlap1[0][0]]**2)/2.0)).transpose())
-            #print data1z[:,-1],data1z[:,-2],data1zerr[:,-2]
-            #print data[-1]
-            for i in range(overlap2[0][-1],len(data2[0])):
-                data.append(np.vstack((data2y[i]*np.ones_like(data1x),data1x,data2z[:,i],data2zerr[:,i])).transpose())
-            dataz=np.array([np.hstack(data[i][:,2]) for i in range(len(data))]) 
-            datazerr=np.array([np.hstack(data[i][:,3]) for i in range(len(data))]) 
-            datay=np.array([data[i][0][0] for i in range(len(data))])
-            datanew=[np.vstack((data1x[0]*np.ones_like(datay),datay,dataz[:,0],datazerr[:,0])).transpose()]
-            for i in range(1,len(data1x)):
-                datanew.append(np.vstack((data1x[i]*np.ones_like(datay),datay,dataz[:,i],datazerr[:,i])).transpose())
-            #print len(datanew)
-        return datanew
-    
-    
+        return gidmod.vjoin(data1,data2,self.gidParams.vjoin_kind,getattr(self,'gidJoinLog',None),
+                            getattr(self,'gidJoinLabel',''),self.messageBox)
+
     def sortedScans(self,data, mtype='dth'):  #reture the order of scans from low dth to higt dth, also works for sorting qz in the ref
         if len(data)<2:
             return list(data.keys())

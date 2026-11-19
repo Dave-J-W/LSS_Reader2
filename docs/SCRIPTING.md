@@ -157,7 +157,27 @@ scriptable yet. Exporting a cut in the window writes this call.
 
 `level_map` bins every usable column at its own 2θ (one Qz level);
 `info` holds the column response, the scan factors, counts used and frames
-per bin. Not yet an `Experiment` method.
+per bin.
+
+## GID maps (2026-11-19)
+
+    from lss_core.gid import GIDParams
+    gid = exp.gid([11, 12])                                  # pinhole geometry, as the window
+    old = exp.gid([11, 12], params=GIDParams(pinhole=False)) # the legacy 3-column patch
+    gid.save('dppc', axes='Angles')                          # the window's three "Save GID" files
+    q = gid.products('Q')                                    # x, y, data, err, h, v, vc as plotted
+
+The window's "GID Patch" (`relax=True`: "GID Patch Relax", the larger Q
+grid), with the GID worksheet's settings in `params` (every field of
+`GIDParams`; `columns` is the window's H slit field). `points`, `db_pos`,
+`errors` (legacy patch only) and the bad-pixel settings as for cuts.
+`gid.joins` is the worksheet's join table, `gid.levels` its level list,
+`gid.info` the pinhole details. "Save GID" writes the equivalent call to
+the Script pane; running it writes the same files byte for byte (both
+geometries, both axes, relaxed grid, typed columns, some frames:
+`tests/test_gid_script.py`). Background-subtracted frames are not
+scriptable yet. Window and script share `lss_core/gid.py` (the joins,
+`calArea`, the map products and the save were moved there unchanged).
 
 ## Photons per second (2026-11-18)
 
