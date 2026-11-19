@@ -51,17 +51,10 @@ def _ray(g, r, c):
     """Independent of IMG_COO_CONV: the ray from the beam axis (the
     footprint line) through the vertical S4 slit, a distance D_p in front of
     the detector, to pixel (r, c) on a flat detector perpendicular to the
-    arm at (Det_Th, β0), D from the sample; its in-plane and exit angles."""
-    D, Dp, b, d = ph.vertical_distance(g), g.d_pinhole, g.beta0, g.dth
-    n = np.array([math.cos(b) * math.cos(d), math.cos(b) * math.sin(d), math.sin(b)])
-    eh = np.array([math.sin(d), -math.cos(d), 0.0])          # towards lower 2θ
-    ev = np.array([-math.sin(b) * math.cos(d), -math.sin(b) * math.sin(d), math.cos(b)])
-    pix = D * n - (c - g.c0) * ph.PIXEL_MM * eh + (r - g.r0) * ph.PIXEL_MM * ev
-    slit = (D - Dp) * n
-    normal = np.cross(pix - slit, ev)                        # the plane of the pixel and the slit line
-    s = normal.dot(slit) / normal[0]                         # meets the beam axis at (s, 0, 0)
-    ray = pix - np.array([s, 0.0, 0.0])
-    return math.atan2(ray[1], ray[0]), math.atan2(ray[2], math.hypot(ray[0], ray[1]))
+    arm at (Det_Th, β0), D from the sample (``pinhole.ray_geometry``, which
+    the figures in docs/figures/pinhole draw); its in-plane and exit angles."""
+    ray = ph.ray_geometry(g, r, c)
+    return ray.two_theta, ray.beta
 
 
 @pytest.mark.parametrize('dth, beta0', [(14.0, 0.09), (18.0, 6.5), (25.0, 12.0), (3.0, 0.5)])
@@ -77,6 +70,64 @@ def test_pixel_angles_are_the_exact_ray_geometry(dth, beta0):
         for j, c in enumerate(cols):
             t, b = _ray(g, r, c)
             assert tt[i, j] == pytest.approx(t, abs=1e-12) and bb[i, j] == pytest.approx(b, abs=1e-12)
+
+
+@pytest.mark.parametrize('dth, beta0', [(16.0, 0.09), (14.0, 6.5), (0.5, 0.09)])
+def test_ray_geometry_goes_from_the_beam_axis_through_the_slit_to_the_pixel(dth, beta0):
+    """The ray of ``ray_geometry``: starts on the beam axis, crosses the S4
+    slit line (along e_v through (D − D_p)·n), ends on the pixel; its angles
+    are ``pixel_angles``' and its (u, v, w) give them by IMG_COO_CONV's last
+    two formulas. At Det_Th ≤ 1° (no pinhole) it starts at the sample centre."""
+    g = ph.FrameGeometry(dth=math.radians(dth), alpha=math.radians(0.09), beta0=math.radians(beta0),
+                         c0=47.0, r0=53.0, d_sample=551.0, d_pinhole=271.0, g_l3=556.0)
+    D, Dp = ph.vertical_distance(g), ph.pinhole_distance(g)
+    for r, c in [(53, 47), (486, 28), (486, 102), (0, 194), (300, -212), (300, 406)]:
+        ray = ph.ray_geometry(g, r, c)
+        tt, bb = ph.pixel_angles(g, [r], [c])
+        assert ray.two_theta == pytest.approx(tt[0, 0], abs=1e-12) and ray.beta == pytest.approx(bb[0, 0], abs=1e-12)
+        assert ray.source[1:] == pytest.approx([0, 0], abs=1e-12)                       # on the beam axis
+        assert np.cross(ray.slit - (D - Dp) * ray.n, ray.e_v) == pytest.approx(np.zeros(3), abs=1e-9)  # on the slit line
+        to_slit, to_pix = ray.slit - ray.source, ray.pixel - ray.source
+        assert np.cross(to_slit, ray.direction) == pytest.approx(np.zeros(3), abs=1e-9)     # the slit is on the ray,
+        assert 0 <= to_slit.dot(ray.direction) <= np.linalg.norm(to_pix) + 1e-9          # between source and pixel
+        assert to_pix / np.linalg.norm(to_pix) == pytest.approx(ray.direction, abs=1e-12)
+        assert ray.pixel == pytest.approx(D * ray.n - (c - 47) * ph.PIXEL_MM * ray.e_h + (r - 53) * ph.PIXEL_MM * ray.e_v)
+        assert np.dot(ray.n, ray.e_h) == pytest.approx(0, abs=1e-15) and np.dot(ray.n, ray.e_v) == pytest.approx(0, abs=1e-15)
+        assert ray.u * ray.e_h + ray.v * ray.h + ray.w * np.array([0, 0, 1.0]) == pytest.approx(ray.pixel - ray.slit)
+        assert ray.two_theta == pytest.approx(g.dth - math.atan2(ray.u, ray.v), abs=1e-12)
+        assert ray.beta == pytest.approx(math.atan2(ray.w, math.hypot(ray.u, ray.v)), abs=1e-12)
+        if dth <= 1.0:
+            assert ray.source == pytest.approx(np.zeros(3), abs=1e-12)
+
+
+@pytest.mark.parametrize('dth, beta0', [(16.0, 0.09), (14.0, 6.5), (25.0, 12.0)])
+def test_ray_geometry_uvw_are_img_coo_conv_s(dth, beta0):
+    """Ray.u, v, w (built from the slit crossing) equal IMG_COO_CONV's
+    (Mati Meron): u = wx, v = D_p cos β0 − wy' sin β0, w = D_p sin β0 +
+    wy' cos β0, with its pinhole correction
+    wy' = wy − (D − D_p)(wx sin β0 cos δ + wy sin δ)/(D sin δ − wx cos β0 cos δ)."""
+    g = ph.FrameGeometry(dth=math.radians(dth), alpha=math.radians(0.09), beta0=math.radians(beta0),
+                         c0=47.0, r0=53.0, d_sample=551.0, d_pinhole=271.0, g_l3=556.0)
+    D, Dp, b, d = ph.vertical_distance(g), ph.pinhole_distance(g), g.beta0, g.dth
+    for r, c in [(53, 47), (486, 28), (0, 194), (300, -212), (300, 406)]:
+        ray = ph.ray_geometry(g, r, c)
+        wx, wy = -(c - 47) * ph.PIXEL_MM, (r - 53) * ph.PIXEL_MM
+        wy1 = wy - (D - Dp) * (wx * math.sin(b) * math.cos(d) + wy * math.sin(d)) / \
+            (D * math.sin(d) - wx * math.cos(b) * math.cos(d))
+        assert (ray.wx, ray.wy) == pytest.approx((wx, wy), abs=1e-12)
+        assert ray.u == pytest.approx(wx, abs=1e-9)
+        assert ray.v == pytest.approx(Dp * math.cos(b) - wy1 * math.sin(b), abs=1e-9)
+        assert ray.w == pytest.approx(Dp * math.sin(b) + wy1 * math.cos(b), abs=1e-9)
+
+
+def test_ray_geometry_refuses_a_source_at_infinity():
+    """The column whose ray runs parallel to the beam (2θ = 0 at β0 = 0)
+    has no footprint point: a clear error, not a division by zero."""
+    g = ph.FrameGeometry(dth=math.radians(14.0), alpha=0.0016, beta0=0.0, c0=47.0, r0=53.0, d_sample=551.0,
+                         d_pinhole=271.0, g_l3=556.0)
+    c = g.c0 - g.d_pinhole * math.tan(g.dth) / ph.PIXEL_MM
+    with pytest.raises(ValueError):
+        ph.ray_geometry(g, 53, c)
 
 
 def test_pixel_angles_limits():

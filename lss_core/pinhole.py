@@ -68,6 +68,13 @@ def vertical_distance(g):
     return g.d_sample + g.g_l3 * (1.0 / math.cos(g.beta0) - 1.0)
 
 
+def pinhole_distance(g):
+    """Slit (S4) → detector distance the exact transform uses: D_p, or the
+    sample distance D (no pinhole) when D_p ≤ 0 or Det_Th ≤ 1° (IDL's rule;
+    the pinhole formula is singular at Det_Th = 0)."""
+    return g.d_pinhole if (g.d_pinhole > 0 and abs(math.degrees(g.dth)) > 1.0) else vertical_distance(g)
+
+
 def row_beta(nrows, g):
     """β (rad) of every row."""
     r = np.arange(nrows, dtype=float)
@@ -99,7 +106,7 @@ def pixel_angles(g, rows, cols):
     wx = -(C - g.c0) * PIXEL_MM
     wy = (R - g.r0) * PIXEL_MM
     wdst = vertical_distance(g)
-    pdst = g.d_pinhole if (g.d_pinhole > 0 and abs(math.degrees(g.dth)) > 1.0) else wdst
+    pdst = pinhole_distance(g)
     b, d = g.beta0, g.dth
     if wdst != pdst:
         wy = wy - (wdst - pdst) * (wx * math.sin(b) * math.cos(d) + wy * math.sin(d)) / \
@@ -108,6 +115,74 @@ def pixel_angles(g, rows, cols):
     v = pdst * math.cos(b) - wy * math.sin(b)
     w = pdst * math.sin(b) + wy * math.cos(b)
     return d - np.arctan2(u, v), np.arctan2(w, np.hypot(u, v))
+
+
+@dataclass
+class Ray:
+    """The ray that reaches one pixel, in the lab frame (mm; x along the
+    incident beam, y horizontal in the sample plane, z up; origin at the
+    sample centre). Returned by ``ray_geometry``."""
+    n: np.ndarray            # unit vector of the arm, at (Det_Th, β0)
+    e_h: np.ndarray          # detector's horizontal unit vector (towards lower 2θ)
+    e_v: np.ndarray          # detector's vertical unit vector (towards higher β)
+    h: np.ndarray            # horizontal unit vector of the arm's azimuth, (cos Det_Th, sin Det_Th, 0)
+    centre: np.ndarray       # D·n: the direct-beam pixel (r0, c0)
+    pixel: np.ndarray        # the pixel: centre + wx·e_h + wy·e_v
+    slit_centre: np.ndarray  # (D − D_p)·n: the middle of the S4 slit line (direction e_v)
+    slit: np.ndarray         # where the ray crosses the slit line
+    source: np.ndarray       # the footprint point on the beam axis the ray comes from
+    direction: np.ndarray    # unit vector, source → pixel
+    wx: float                # pixel offsets on the detector (mm), as IMG_COO_CONV
+    wy: float
+    u: float                 # pixel − slit = u·e_h + v·h + w·z: the (u, v, w) of
+    v: float                 # IMG_COO_CONV (after its wy correction), whence
+    w: float                 # 2θ = Det_Th − atan2(u, v), β = atan2(w, √(u² + v²))
+    two_theta: float         # in-plane angle of the ray (rad)
+    beta: float              # exit angle of the ray (rad)
+
+
+def ray_geometry(g, row, col):
+    """The ray from the footprint (the beam axis) through the S4 slit to the
+    pixel (``row``, ``col``; fractional values allowed), built in the lab
+    frame without IMG_COO_CONV's algebra: a flat detector perpendicular to
+    the arm at (Det_Th, β0), D = ``vertical_distance`` from the sample; the
+    slit, a line along e_v at D − D_p (``pinhole_distance``) on the arm; the
+    plane through the pixel and the slit line meets the beam axis at the
+    source point. Its angles equal ``pixel_angles`` (tests/test_pinhole.py),
+    which makes the two an independent check of each other; it also gives
+    the points and vectors for drawing (tests/tools/pinhole_figures.py).
+    It is the independent reference for ``pixel_angles``: do not build it
+    from ``pixel_angles`` or from IMG_COO_CONV's wy correction.
+
+    Raises ValueError when the plane of the pixel and the slit line is
+    parallel to the beam axis (the column looks along the beam, 2θ ≈ 0, and
+    the source point is at infinity)."""
+    D, Dp, b, d = vertical_distance(g), pinhole_distance(g), g.beta0, g.dth
+    n = np.array([math.cos(b) * math.cos(d), math.cos(b) * math.sin(d), math.sin(b)])
+    eh = np.array([math.sin(d), -math.cos(d), 0.0])
+    ev = np.array([-math.sin(b) * math.cos(d), -math.sin(b) * math.sin(d), math.cos(b)])
+    wx, wy = -(col - g.c0) * PIXEL_MM, (row - g.r0) * PIXEL_MM
+    centre = D * n
+    pix = centre + wx * eh + wy * ev
+    slit_c = (D - Dp) * n
+    if D == Dp:                                                  # no pinhole: rays from the sample centre
+        s = 0.0
+    else:
+        normal = np.cross(pix - slit_c, ev)                      # the plane of the pixel and the slit line
+        if abs(normal[0]) <= 1e-12 * np.linalg.norm(normal):
+            raise ValueError('pixel (%g, %g): its plane through the slit is parallel to the beam axis '
+                             '(source at infinity)' % (row, col))
+        s = normal.dot(slit_c) / normal[0]                       # meets the beam axis at (s, 0, 0)
+    source = np.array([s, 0.0, 0.0])
+    ray = pix - source
+    (_, t), *_ = np.linalg.lstsq(np.column_stack([ray, -ev]), slit_c - source, rcond=None)
+    slit = slit_c + t * ev
+    hd = np.array([math.cos(d), math.sin(d), 0.0])
+    pv = pix - slit
+    return Ray(n=n, e_h=eh, e_v=ev, h=hd, centre=centre, pixel=pix, slit_centre=slit_c, slit=slit, source=source,
+               direction=ray / np.linalg.norm(ray), wx=float(wx), wy=float(wy),
+               u=float(pv.dot(eh)), v=float(pv.dot(hd)), w=float(pv[2]),
+               two_theta=math.atan2(ray[1], ray[0]), beta=math.atan2(ray[2], math.hypot(ray[0], ray[1])))
 
 
 def bin_counts_2d(theta, beta, counts, weights, edges, bedges):
@@ -134,15 +209,22 @@ def s5_window(g, s5_low, s5_high, d5=S5_TO_DETECTOR_MM):
     return g.c0 - s5_low * k / PIXEL_MM, g.c0 + s5_high * k / PIXEL_MM
 
 
+def footprint_length(g, s1_vertical, s1_to_sample_mm=0.0):
+    """Length (mm) of the footprint along the beam, beam / sin α (PD_PIN_RANGE);
+    the beam is S1v widened by the slit's diffraction over ``s1_to_sample_mm``.
+    Infinite at α ≤ 0."""
+    rwid = 1e-4 * g.wavelength / s1_vertical if s1_vertical > 0 else 0.0
+    beam = math.sqrt(s1_vertical ** 2 + (1e-3 * s1_to_sample_mm * rwid) ** 2)
+    return beam / math.sin(g.alpha) if g.alpha > 0 else float('inf')
+
+
 def footprint_window(g, s1_vertical, s1_to_sample_mm=0.0):
     """Columns (lo, hi) that see the footprint through the pinhole
     (PD_PIN_RANGE): footprint ftp = beam / sin α, seen from the pinhole at
     the sample → pinhole distance L = D_s − D_p; the angular range is
     ψ = atan(2δ sin Det_Th, 1 − δ²), δ = ftp / 2L, centred on c0 as in IDL.
     ``s1_to_sample_mm`` (g_l2 − g_l1) adds the slit's diffraction width."""
-    rwid = 1e-4 * g.wavelength / s1_vertical if s1_vertical > 0 else 0.0
-    beam = math.sqrt(s1_vertical ** 2 + (1e-3 * s1_to_sample_mm * rwid) ** 2)
-    ftp = beam / math.sin(g.alpha) if g.alpha > 0 else float('inf')
+    ftp = footprint_length(g, s1_vertical, s1_to_sample_mm)
     lpin = g.d_sample - g.d_pinhole
     if lpin <= 0 or not math.isfinite(ftp):
         return -math.inf, math.inf                 # no pinhole in front of the sample: no limit
