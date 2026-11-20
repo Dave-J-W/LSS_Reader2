@@ -2982,3 +2982,38 @@ cause of the 22 % between levels taken at identical settings is not known
 (illumination change between the scans, sample height drift, raised-arm
 vignetting are candidates; P40 data and half-cuts would decide it).
 
+### 2026-11-20 — Physical column response built; all private GID scans used
+
+**Owner.** "What is column response? Is this explained in the manual so
+far" (answered: manual addendum 3b, written then) and "Go ahead with
+physical model for this". Then: "Are you using all the available data or
+did you lose track of the larger gid dataset?"
+
+**Built:** `GIDParams(response='physical')` (`pinhole.PhysicalResponse`,
+`source_x`, `BeamModel`, `fit_beam`): the response from rays through each
+column's pixel and the S4 opening and a Gaussian beam clipped by S1, beam
+centre and vertical FWHM fitted per level (each scan's scale a nuisance
+parameter) unless typed; absolute scale kept; replaces the area correction.
+`GIDParams(apply_joins=False)`: factors fitted and reported, not applied.
+Worksheet controls with tooltips. Tests: `test_pinhole.py` (vectorised rays
+= ray_geometry; synthetic beam recovered; absolute scale; uniform beam R = 1
+and edge ramps; scan scale recovered; joins not applied),
+`test_gid_scan_join.py` (NX split: 1.2549 for 1.25), `test_gid_worksheet.py`.
+Measurements: addendum 3b and COMPARISONS C26.
+
+**The data (answer to the second question):** the private GID file has
+frames for nine Det_Th scans: 137 and 139 (12–22°, low Qz, the same range
+twice), 163 (14–18°), 164 (15.5–17.5°, a partial repeat), 165 (Qz 0.582),
+386–389 (two Det_Th ranges at two Qz). Until now 163 + 165 and 386–389 were
+used; 137, 139 and 164, the repeats that test the 2θ join, were not (137 and
+139 once, for C10). The `bu` files have Pilatus frames only for alignment and
+reflectivity scans. With all of them (measured; private numbers in the
+conversation): the same range measured twice differs by 5 % under every
+response (a real change between the measurements, which no column
+correction touches), and 163 + 164 + 165 as collected put the two levels on
+one scale to 0.3 % while the fitted responses make the level factor 1.03–
+1.06. So in that set the monitor normalisation alone already joins the
+levels, and the fitted corrections add the disagreement; on NX the levels
+are 22 % apart as collected. Both cases argue for showing the data as
+collected, with the factors reported.
+

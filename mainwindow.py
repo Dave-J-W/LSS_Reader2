@@ -3289,14 +3289,38 @@ class MainWindow (QMainWindow):
                    'depends on the columns used by several mm (column response), so the header value is the default.',dbl=True)
         resp=QComboBox(g)
         resp.setObjectName('gidResponseComboBox')
-        resp.addItems(['fit','beam','none'])
+        resp.addItems(['fit','beam','physical','none'])
         resp.setCurrentText(gp.response)
         resp.setToolTip('Column response: "fit" estimates each column\'s relative sensitivity from the data (the '
                         'same 2theta is seen by many columns in different frames); "beam" estimates one profile '
                         'along the beam axis instead, shared by all frames: through S4 each column sees one point '
                         'of the lit strip, and that point moves with Det_Th, so a narrow (Gaussian) beam lights a '
                         'column differently from frame to frame, which one factor per column cannot follow; it '
-                        'also gives the beam\'s position and width on the sample; "none" takes it as flat.')
+                        'also gives the beam\'s position and width on the sample; "physical" computes it from the '
+                        'geometry and the beam instead of fitting a factor per column: rays through each column\'s '
+                        'pixel and the S4 opening to the footprint, lit by a Gaussian beam (its centre and vertical '
+                        'FWHM fitted unless typed below, e.g. from a half-cut), clipped by S1; it includes the area '
+                        'correction and keeps each level\'s absolute scale; "none" takes it as flat.')
+        bfw=spin('gidBeamFwhmSpinBox',0,5000,gp.beam_fwhm_um,'Response "physical": the beam\'s vertical FWHM in '
+                 'micrometres, e.g. from a half-cut (sh) scan. 0: fitted to the data of each Qz level.',dbl=True)
+        bcf=QCheckBox('fit',g)
+        bcf.setObjectName('gidBeamCentreFitCheckBox')
+        bcf.setChecked(gp.beam_centre_mm is None)
+        bcf.setToolTip('Response "physical": fit the beam centre to the data of each Qz level (the sample height '
+                       'drifts, so it can differ between levels). Untick to type it.')
+        bce=spin('gidBeamCentreSpinBox',-200,200,0.0 if gp.beam_centre_mm is None else gp.beam_centre_mm,
+                 'Response "physical": where the beam\'s centre meets the surface, mm along the beam from the sample '
+                 'centre, positive downstream. A height offset dz moves it by dz / sin(alpha).',dbl=True)
+        bhw=spin('gidBeamHFwhmSpinBox',0,20,gp.beam_h_fwhm_mm,'Response "physical": the beam\'s horizontal FWHM, mm '
+                 '(about 1 mm: owner\'s estimate). A column\'s line of sight crosses the beam\'s width at 2theta, '
+                 'which spreads the part of the footprint it sees and makes the footprint\'s ends ramps.',dbl=True)
+        joins=QCheckBox('Apply join factors',g)
+        joins.setObjectName('gidApplyJoinsCheckBox')
+        joins.setChecked(gp.apply_joins)
+        joins.setToolTip('On: the scans of a level and the Qz levels are scaled by the factors fitted in their '
+                         'overlaps. Off: the factors are fitted and shown in the table (marked "not applied") but the '
+                         'data stay as collected, normalised by the monitor and absorbers only, so any disagreement '
+                         'stays visible. Pinhole geometry only.')
         foot=QComboBox(g)
         foot.setObjectName('gidFootprintComboBox')
         foot.addItems(['exact','IDL'])
@@ -3335,6 +3359,11 @@ class MainWindow (QMainWindow):
         form.addRow('S4-detector (mm)',prow)
         form.addRow('Column response',resp)
         form.addRow('Footprint window',foot)
+        brow=QHBoxLayout()
+        for w_ in (QLabel('FWHM um',g),bfw,QLabel('centre mm',g),bce,bcf,QLabel('horizontal mm',g),bhw):
+            brow.addWidget(w_)
+        form.addRow('Beam (physical)',brow)
+        form.addRow(joins)
         form.addRow('Frames per bin, at least',minf)
         form.addRow('2theta range across levels',trans)
         form.addRow(arm)
@@ -3377,10 +3406,16 @@ class MainWindow (QMainWindow):
                                             pinhole=pin.isChecked(),pinhole_distance_mm=pdist.value(),
                                             response=resp.currentText(),arm_correction=arm.isChecked(),
                                             min_frames=minf.value(),footprint='exact' if foot.currentIndex()==0 else 'idl',
+                                            beam_fwhm_um=bfw.value(),beam_h_fwhm_mm=bhw.value(),apply_joins=joins.isChecked(),
+                                            beam_centre_mm=None if bcf.isChecked() else bce.value(),
                                             transverse='intersection' if trans.currentIndex()==0 else 'union')
             hard.setEnabled(area.isChecked())
-            for w in (pdist,resp,arm,fit,minf,trans,foot):
+            for w in (pdist,resp,arm,fit,minf,trans,foot,joins):
                 w.setEnabled(pin.isChecked())
+            physical=pin.isChecked() and resp.currentText()=='physical'
+            for w in (bfw,bcf,bhw):
+                w.setEnabled(physical)
+            bce.setEnabled(physical and not bcf.isChecked())
             cols.setEnabled(not pin.isChecked())
 
         def defaults():
@@ -3398,6 +3433,11 @@ class MainWindow (QMainWindow):
             minf.setValue(dflt.min_frames)
             trans.setCurrentIndex(0)
             foot.setCurrentIndex(0 if dflt.footprint=='exact' else 1)
+            bfw.setValue(dflt.beam_fwhm_um)
+            bhw.setValue(dflt.beam_h_fwhm_mm)
+            bcf.setChecked(dflt.beam_centre_mm is None)
+            bce.setValue(0.0)
+            joins.setChecked(dflt.apply_joins)
             apply()
 
         def fitdist():
@@ -3419,6 +3459,10 @@ class MainWindow (QMainWindow):
         arm.toggled.connect(apply)
         resp.currentIndexChanged.connect(apply)
         foot.currentIndexChanged.connect(apply)
+        for w_ in (bfw,bce,bhw):
+            w_.valueChanged.connect(apply)
+        bcf.toggled.connect(apply)
+        joins.toggled.connect(apply)
         fit.clicked.connect(fitdist)
         apply()
         again.clicked.connect(self.gidWorksheetPatch)
@@ -3432,6 +3476,8 @@ class MainWindow (QMainWindow):
         d.gidFitDistancePushButton,d.gidFitLabel=fit,fitl
         d.gidTransverseComboBox,d.gidMinFramesSpinBox=trans,minf
         d.gidFootprintComboBox=foot
+        d.gidBeamFwhmSpinBox,d.gidBeamCentreSpinBox,d.gidBeamCentreFitCheckBox=bfw,bce,bcf
+        d.gidBeamHFwhmSpinBox,d.gidApplyJoinsCheckBox=bhw,joins
         return d
 
     def gidWorksheetPatch(self):
@@ -3461,6 +3507,13 @@ class MainWindow (QMainWindow):
                  'opening (%.2f mm) and its own pixel, at the direct-beam column (lss_core.pinhole.'
                  'column_acceptance). The map\'s bins are %.4f deg wide, one column; the resolution, not the bin, '
                  'limits how sharp a peak can be.' % (info['s4_mm'],info['step_deg']))
+            phys=info.get('physical')
+            if phys:
+                text+='; beam: centre %.1f mm, vertical FWHM %.0f um%s (response "physical", chi2/dof %.2f)' % (
+                    phys['centre_mm'],phys['fwhm_um'],' (fitted)' if phys['fitted'] else '',phys['chi2_dof'])
+                tip+=(' Physical response: the beam that best explains the data (or the one typed), with each column\'s '
+                      'light from the geometry; x = 0 at the sample centre, positive downstream; along the beam the lit '
+                      'strip is FWHM / sin(alpha) = %.1f mm long. Other levels: in the log.' % phys['fwhm_mm'])
             beam=info.get('beam')
             if beam and np.isfinite(beam['centre_mm']):
                 text+='; beam on the sample: centre %.1f mm, FWHM %.1f mm (response "beam")' % (beam['centre_mm'],beam['fwhm_mm'])
@@ -3472,7 +3525,8 @@ class MainWindow (QMainWindow):
         t.setRowCount(len(self.gidJoinLog))
         for r,j in enumerate(self.gidJoinLog):
             vals=[j['label'],j['kind'],'%.3f' % j['x_from'],'%.3f' % j['x_to'],'%d' % j['points'],
-                  '%.4g +/- %.2g' % (j['factor'],j['error']),'%.2f' % j['chi2']]
+                  '%.4g +/- %.2g%s' % (j['factor'],j['error'],'' if j.get('applied',True) else ' (not applied)'),
+                  '%.2f' % j['chi2']]
             for c,v in enumerate(vals):
                 t.setItem(r,c,QTableWidgetItem(v))
         t.resizeColumnsToContents()

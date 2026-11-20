@@ -265,10 +265,53 @@ response and 21 % with 'fit'.
   scans are joined, so it absorbs part of a real scale difference between
   scans (P42, section 3a).
 
-**A more physical alternative (proposed, not built):** R from what is known
-or measured rather than fitted: the slits' acceptance (computable now,
-`pinhole.column_acceptance`) times the beam's profile along the footprint
-(measured by a half-cut next to each level, or the one-profile 'beam' fit).
+**'physical' (built 2026-11-20, owner: "go ahead with physical model"):** R
+from the geometry and the beam rather than one free factor per column
+(`pinhole.PhysicalResponse`). For each frame and usable column, rays are
+traced through three points across the column's pixel and three across the
+S4 opening to the point of the beam axis each comes from (`source_x`, the
+same construction as `ray_geometry`); a point at lateral offset y on the
+column's line of sight sits at x + y cot 2θ, so the beam's horizontal width
+(1 mm by default) is folded in. The beam is a Gaussian vertical profile
+whose centre meets the surface at x0, clipped by S1 to the footprint; the
+column's light is its share of the beam, R = that share × the footprint
+length, so a uniformly lit footprint gives R = 1. Free parameters: only the
+beam's centre and vertical FWHM, per level, fitted to the level's data
+(or typed, e.g. from a half-cut: worksheet "Beam (physical)", `GIDParams(
+beam_centre_mm=…, beam_fwhm_um=…)`), with each scan's own scale as a
+nuisance parameter in that fit so that a scale between scans is not taken
+for a beam shift. It replaces the area correction (which assumes a uniform
+footprint) and is **not** normalised to a mean of 1: each level keeps its
+absolute scale.
+
+Measured (2026-11-20):
+- Synthetic frames lit by a known beam (centre 2 mm, 30 µm, horizontal 1
+  mm): the fit returns the beam within 0.3 mm and 1.5 µm and a map flat to
+  2 %; a level lit twice as much comes out twice as bright (tests).
+- P42 split of NX scan 11 (B × 0.8): 'physical' recovers 1.2549 for 1.25
+  ('fit' 1.173); with the beam typed, 1.2496.
+- NX 11 + 12: beam centre 5.7 / 3.6 mm downstream, vertical FWHM 65 / 57 µm
+  (levels 1 / 2; fit χ²/dof 5.0 / 7.6); level join 1.107 ± 0.014 ('fit'
+  1.068, as collected with no response 1.217).
+- The two halves of NX scan 11 still differ by 2–6 % under it (0.935 with
+  the beam fitted, 0.978 typed): something changes along a scan that one
+  beam per level does not describe (the beyond-footprint light, P40a, and
+  drift during the scan are candidates); χ²/dof 5–8 says the same.
+- The owner's private pairs: with every scan on disk included (137 + 139,
+  163 + 164 + 165, 386–389), the same pattern; the numbers are in the
+  conversation. Two of them matter here: the same range measured twice
+  (137, 139) differs by 5 % under any response (the same columns see the
+  same 2θ, so no column correction can matter: a real change between the
+  measurements); and 163 + 164 + 165 as collected (no response, no
+  factors) join their two levels at 0.997 ± 0.003, while the fitted
+  responses make it 1.03–1.06.
+
+**Joins as collected.** With "Apply join factors" off (`GIDParams(
+apply_joins=False)`), scan and level factors are still fitted and shown in
+the join table, marked "not applied", but the data stay as collected:
+normalised by the monitor and absorbers only, so a disagreement stays
+visible instead of being scaled away. With 'physical' this is the
+presentation closest to the data as collected.
 
 ![Column response: the light from each point of the beam axis, and per column](../figures/pinhole_beam/beam_response_11.png)
 
@@ -310,7 +353,7 @@ the label in GID > Worksheet; `name` is the `GIDParams` field.
 |---|---|---|---|
 | Area correction (`area_correction`), hard slit offset (`hard_slit_offset_mm`) | on (on), 32 mm | Divides by the fraction of the footprint the slits let the detector see, which changes with Det_Th. The 32 mm shortens the sample–detector distance with hard slits. | Uniform footprint assumed (S1v / sin α); a narrow Gaussian beam is not uniform (see "Column response"); 2 % asymmetric in ±2θ (P5). |
 | Polarisation (`polarisation`) | on (on) | Divides by 1 − (sin 2θ cos β)², the horizontally polarised synchrotron beam's factor. | Not small: 5.1 % at 2θ = 13°, 7.6 % at 16°, 11.7 % at 20° (from the formula, β = 0), changing across a map; off only to compare. |
-| Column response (`response`, pinhole) | fit / beam / none (fit) | **fit**: one factor per column, estimated from the data (the same 2θ is seen by many columns in different frames): absorbs pixel sensitivity, S4 and S5 edge effects and the mean illumination. **beam**: one profile along the beam axis shared by all frames: through S4 each column sees one point of the footprint, and that point moves with Det_Th, so a narrow beam lights a column differently in each frame; it also measures the beam's size and position on the sample (NX: footprint FWHM 33 mm along the beam, i.e. ≤ 52 µm vertically; 36 µm above the beyond-footprint floor; measured). **none**: flat. | **fit**: cannot follow illumination that changes from frame to frame: on synthetic frames lit by a 30 µm beam, 0.93–1.04 of the truth inside, 0.71–2.8 at the edges (measured). **beam**: 0.98–1.02 inside, 0.88–1.04 at the edges on the same frames (measured), but assumes the illumination is the same for all frames of a level (sample height drift breaks this) and does not absorb pixel-to-pixel sensitivity. **none**: no correction at all. |
+| Column response (`response`, pinhole) | fit / beam / physical / none (fit) | **fit**: one factor per column, estimated from the data (the same 2θ is seen by many columns in different frames): absorbs pixel sensitivity, S4 and S5 edge effects and the mean illumination. **beam**: one profile along the beam axis shared by all frames: through S4 each column sees one point of the footprint, and that point moves with Det_Th, so a narrow beam lights a column differently in each frame; it also measures the beam's size and position on the sample (NX: footprint FWHM 33 mm along the beam, i.e. ≤ 52 µm vertically; 36 µm above the beyond-footprint floor; measured). **physical**: R from the geometry (rays through each column's pixel and the S4 opening) and a Gaussian beam clipped by S1; only the beam's centre and vertical FWHM free (fitted or typed); absolute scale kept; recovers a scale between scans (1.255 for 1.25). **none**: flat. | **fit**: cannot follow illumination that changes from frame to frame: on synthetic frames lit by a 30 µm beam, 0.93–1.04 of the truth inside, 0.71–2.8 at the edges (measured). **beam**: 0.98–1.02 inside, 0.88–1.04 at the edges on the same frames (measured), but assumes the illumination is the same for all frames of a level (sample height drift breaks this) and does not absorb pixel-to-pixel sensitivity. **physical**: χ²/dof 5–8 on real data (one beam per level does not describe everything: P40a light, drift); slower (~1 s per level for the fit). **none**: no correction at all. |
 
 ### 4.4 Binning (pinhole)
 
@@ -328,6 +371,7 @@ the label in GID > Worksheet; `name` is the `GIDParams` field.
 | Scan join (within a level) | pinhole: one factor per scan on the 2θ-overlap profiles, applied to W; legacy: interpolated ratio fit, then the overlap averaged | Pinhole: no interpolation, counts conserved. | Pinhole: biased by the column response, which is fitted before the scans are joined (recovers 1.173 of an injected 1.25, P42; section 3a). Each further scan is fitted against the **first** scan of the level, so every scan must overlap the first; scans that overlap only in a chain (A–B, B–C) leave the factor undefined (P41, read only). Legacy: a scan with no overlap is placed unscaled, with a warning. |
 | Level join (between levels) | pinhole: one factor per level on the β overlap, equal weight per cell (figure 6); legacy: β-integrated profiles, interpolated (`vjoin_kind`: cubic) | Equal weight per cell avoids the 2.6 % bias of summed counts, which weight a 2θ feature differently in each level (measured on synthetic data). The factor's error is carried into the map's errors (its relative error × the level's share of the weight). | The factor depends on the columns used when the illumination changed between the levels' scans (section 3); the β overlap is short (NX: β 6.1–7.6°, 84 β bins), at the lower level's top rows and the upper level's bottom rows, where stray light (P40) lies. |
 | 2θ range across levels (`transverse`) | intersection / union (intersection) | **intersection**: every 2θ bin has every level, as the IDL code (IMG_JOIN). **union**: keeps all measured 2θ. | **intersection**: a short level (NX scan 12: 4 frames, 2θ 13.4–15.8°) cuts the whole map to its range. **union**: NaN where a level is missing at that β. |
+| Apply join factors (`apply_joins`) | on / off (on) | **off**: the data as collected; every factor still fitted and shown ("not applied"); disagreements stay visible. | **off**: the map keeps any real step between scans or levels (e.g. 5 % between two repeats of one range in the owner's data); with the response 'fit', whose level scale is arbitrary, it makes little sense: use it with 'physical' or 'none'. |
 | GID Patch Relax (`relax=True`) | off | The Q map on the largest rectangle the data reach. | Fills empty regions with 1e-10, which the integrated cuts sum as data (P33). |
 
 ### 4.6 Output

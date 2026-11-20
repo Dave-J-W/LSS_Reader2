@@ -627,6 +627,165 @@ def profile_width(x, r):
     return float(np.sum(x[top] * r[top]) / np.sum(r[top])), float(x[k[-1]] - x[k[0]])
 
 
+BEAM_H_FWHM_MM = 1.0     # horizontal beam FWHM by default (owner's rough estimate, 2026-11-19)
+_K = 2 * math.sqrt(2 * math.log(2))     # FWHM / σ
+
+
+def source_x(g, row, cols, slit_offsets):
+    """Where on the beam axis (mm) the rays through columns ``cols``
+    (fractional, any shape) and the S4 slit line at ``slit_offsets`` (mm,
+    broadcast against ``cols``) start: ``ray_geometry``'s source point,
+    vectorised (the same construction; checked against it in the tests).
+    NaN where the column looks along the beam."""
+    D, Dp, b, d = vertical_distance(g), pinhole_distance(g), g.beta0, g.dth
+    cols, t = np.broadcast_arrays(np.asarray(cols, float), np.asarray(slit_offsets, float))
+    if D == Dp:
+        return np.zeros(cols.shape)
+    n = np.array([math.cos(b) * math.cos(d), math.cos(b) * math.sin(d), math.sin(b)])
+    eh = np.array([math.sin(d), -math.cos(d), 0.0])
+    ev = np.array([-math.sin(b) * math.cos(d), -math.sin(b) * math.sin(d), math.cos(b)])
+    wx, wy = -(cols - g.c0) * PIXEL_MM, (row - g.r0) * PIXEL_MM
+    pix = D * n + wx[..., None] * eh + wy * ev
+    line = (D - Dp) * n - t[..., None] * eh
+    normal = np.cross(pix - line, ev)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        s = np.einsum('...k,...k->...', normal, line) / normal[..., 0]
+    bad = np.abs(normal[..., 0]) <= 1e-12 * np.linalg.norm(normal, axis=-1)
+    return np.where(bad, np.nan, s)
+
+
+@dataclass
+class BeamModel:
+    """The beam as the physical response sees it (owner, 2026-11-20): a
+    Gaussian vertical profile of FWHM ``fwhm_um`` whose centre meets the
+    surface at ``centre_mm`` along the beam (x = 0 at the sample centre,
+    positive downstream), clipped by S1 to the footprint S1v / sin α centred
+    on x = 0, and a Gaussian horizontal profile of FWHM ``h_fwhm_mm``."""
+    centre_mm: float
+    fwhm_um: float
+    h_fwhm_mm: float = BEAM_H_FWHM_MM
+
+
+class PhysicalResponse:
+    """The column response from the geometry and the beam, not fitted per
+    column (owner, 2026-11-20: "go ahead with physical model").
+
+    For each frame and usable column, rays are traced through ``n_pixel``
+    points across the column's pixel and ``n_slit`` points across the S4
+    opening (``source_x``) to the point of the beam axis each starts from;
+    a point at lateral offset y on the column's line of sight sits at x + y
+    cot 2θ, so the beam's horizontal profile is folded in with Gauss–Hermite
+    points. The light a column records is the mean over those rays of the
+    beam's illumination B(x) = g((x − x0) sin α) sin α / Γ on the footprint,
+    g the vertical profile, Γ the fraction of it S1 lets through, so that ∫B
+    dx = 1 over the footprint: the column's share of the beam, in absolute
+    terms. The response is that light times the footprint length L, so that
+    a uniformly lit footprint gives 1 everywhere: no normalisation to a mean
+    of 1, and every level keeps its own scale. It replaces the uniform-
+    footprint area correction (it includes it)."""
+
+    def __init__(self, frames, cols, n_pixel=3, n_slit=3, n_y=5):
+        self.frames = frames
+        self.cols = cols                                     # usable columns of each frame
+        up = (np.arange(n_pixel) + 0.5) / n_pixel - 0.5      # midpoints across the pixel
+        ys, yw = np.polynomial.hermite_e.hermegauss(n_y)
+        self.yz, self.yw = ys, yw / yw.sum()
+        self.x, self.cot = [], []
+        for f, c in zip(frames, cols):
+            s4 = float(f.areainfo[2])
+            ts = ((np.arange(n_slit) + 0.5) / n_slit - 0.5) * s4 if s4 > 0 else np.zeros(1)
+            cc = np.asarray(c, float)[:, None, None] + up[None, :, None]
+            self.x.append(source_x(f.geom, f.geom.r0, cc, ts[None, None, :]).reshape(len(c), -1))
+            tt = pixel_angles(f.geom, [f.geom.r0], np.asarray(c))[0][0]
+            self.cot.append(1.0 / np.tan(tt))
+
+    def light(self, beam):
+        """Response per frame: arrays over each frame's usable columns."""
+        out = []
+        for f, x, cot in zip(self.frames, self.x, self.cot):
+            alpha = f.geom.alpha
+            half = footprint_length(f.geom, f.areainfo[1], f.s1_to_sample_mm) / 2
+            sv = beam.fwhm_um * 1e-3 / _K
+            sh = beam.h_fwhm_mm / _K
+            z0 = beam.centre_mm * math.sin(alpha)
+            # the fraction of the vertical profile S1 passes (S1 centred on the axis: |z| <= L/2 sin α)
+            zc = half * math.sin(alpha)
+            gamma = 0.5 * (math.erf((zc - z0) / (sv * math.sqrt(2))) + math.erf((zc + z0) / (sv * math.sqrt(2))))
+            xs = x[:, :, None] + (self.yz * sh)[None, None, :] * cot[:, None, None]
+            z = xs * math.sin(alpha)
+            g = np.exp(-0.5 * ((z - z0) / sv) ** 2) / (sv * math.sqrt(2 * math.pi))
+            b = np.where(np.abs(xs) <= half, g * math.sin(alpha), 0.0) / max(gamma, 1e-12)
+            lit = np.nansum(b * self.yw[None, None, :], axis=2).mean(axis=1)
+            out.append(lit * 2 * half)
+        return out
+
+
+def fit_beam(resp, theta_cols, n_cols, w_cols, edges, h_fwhm_mm=BEAM_H_FWHM_MM, centre_mm=None, fwhm_um=None,
+             start=None, scans=None):
+    """Fit the beam's centre and vertical FWHM (those not given) to one
+    level's data: per frame and usable column, rows-summed counts N and
+    weights W (without response), and the column's 2θ; the model is N = W ·
+    R(beam) · S(2θ bin), S estimated for each trial; minimises the Poisson
+    χ² Σ(N − W R S)² / max(W R S, 1). ``scans``: the scan of each frame;
+    each scan then has its own scale in the fit (a nuisance parameter), so
+    that a scale between scans is not taken up by the beam (scans that cover
+    different Det_Th see the beam axis through different columns, and a
+    shifted beam would otherwise mimic their scale; P42). Returns
+    (BeamModel, χ²/dof)."""
+    from scipy.optimize import minimize
+    nb = len(edges) - 1
+    idx = [np.clip(np.digitize(t, edges) - 1, 0, nb - 1) for t in theta_cols]
+    ok = [np.isfinite(t) & (np.digitize(t, edges) - 1 >= 0) & (np.digitize(t, edges) - 1 < nb) for t in theta_cols]
+    I = np.concatenate([i[o] for i, o in zip(idx, ok)])
+    N = np.concatenate([n[o] for n, o in zip(n_cols, ok)])
+    W = np.concatenate([w[o] for w, o in zip(w_cols, ok)])
+    sc_of = np.zeros(len(theta_cols), int) if scans is None else np.unique(scans, return_inverse=True)[1]
+    SC = np.concatenate([np.full(int(o.sum()), sc_of[k]) for k, o in enumerate(ok)])
+    nsc = int(SC.max()) + 1 if len(SC) else 1
+
+    def model(p):
+        c = centre_mm if centre_mm is not None else p[0]
+        v = fwhm_um if fwhm_um is not None else abs(p[-1])
+        beam = BeamModel(float(c), float(max(v, 1.0)), h_fwhm_mm)
+        R = np.concatenate([r[o] for r, o in zip(resp.light(beam), ok)])
+        return beam, W * R
+
+    def chi2(p):
+        _, wr = model(p)
+        fs = np.ones(nsc)
+        sn = np.bincount(I, weights=N, minlength=nb)
+        for _ in range(8 if nsc > 1 else 1):
+            sw = np.bincount(I, weights=wr * fs[SC], minlength=nb)
+            s = np.where(sw > 0, sn / np.where(sw > 0, sw, 1), 0.0)
+            if nsc > 1:
+                fs = np.bincount(SC, weights=N, minlength=nsc) / np.maximum(
+                    np.bincount(SC, weights=wr * s[I], minlength=nsc), 1e-300)
+                fs = fs / fs[0]
+        mu = wr * fs[SC] * s[I]
+        return float(np.sum((N - mu) ** 2 / np.maximum(mu, 1.0)))
+
+    free = []
+    if centre_mm is None:
+        free.append(0.0 if start is None else start[0])
+    if fwhm_um is None:
+        f0 = resp.frames[0]
+        free.append((f0.areainfo[1] * 1e3 * 0.6) if start is None else start[1])
+    if free:
+        best = None
+        for s0 in ([free] if centre_mm is not None or len(free) == 1 else
+                   [free, [free[0] - 10.0, free[1]], [free[0] + 10.0, free[1]]]):
+            r = minimize(chi2, np.array(s0, float), method='Nelder-Mead',
+                         options=dict(xatol=0.05, fatol=1e-3, maxiter=400))
+            if best is None or r.fun < best.fun:
+                best = r
+        p = best.x
+    else:
+        p = np.zeros(0)
+    beam, _ = model(p if len(p) else [0.0])
+    dof = max(len(N) - nb - len(free) - (nsc - 1), 1)
+    return beam, chi2(p if len(p) else [0.0]) / dof
+
+
 def two_theta_resolution(f):
     """Full width (degrees) of the 2θ one column accepts through S4's opening
     and its own pixel width (``column_acceptance`` at the direct-beam column
@@ -732,7 +891,8 @@ def shared_edges(frames, step_deg=0.0):
 
 
 def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_step_deg=0.0, log=None,
-              min_frames=2, edges=None):
+              min_frames=2, edges=None, beam_centre_mm=None, beam_fwhm_um=None, beam_h_fwhm_mm=BEAM_H_FWHM_MM,
+              apply_joins=True):
     """Pinhole map of one Qz level: every usable column at its own 2θ,
     binned as ΣN/ΣW; scans of the level joined by one factor each (fitted on
     the rows-summed profiles over their common bins, as the window's
@@ -741,7 +901,15 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     count times the level's mean monitor, like the window's GID map. Bins
     seen by fewer than ``min_frames`` frames (the edges, through the weakest
     columns only) are left out. ``edges``: a 2θ grid shared with other
-    levels (``shared_edges``); by default the level's own."""
+    levels (``shared_edges``); by default the level's own.
+
+    ``response`` 'physical' (owner, 2026-11-20): the response from the
+    geometry and the beam (``PhysicalResponse``), the beam's centre and
+    vertical FWHM fitted to the level unless given (``beam_centre_mm``,
+    ``beam_fwhm_um``), its horizontal FWHM ``beam_h_fwhm_mm``; it includes the
+    area correction (``area`` is then not applied) and keeps the level's
+    absolute scale. ``apply_joins`` False: the scans' factors are fitted and
+    logged but not applied (the data as collected)."""
     ncols = frames[0].counts.shape[1]
     nrows = frames[0].counts.shape[0]
     g0 = frames[0].geom
@@ -756,7 +924,8 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
         theta.append(np.where(use[None, :], np.degrees(tt), np.nan))
         beta_px.append(np.degrees(bb))
         n.append(np.asarray(f.counts, float)[row_lo:row_hi + 1])
-        w.append(frame_weights(f.geom, nrows, ncols, f.monitor, f.areainfo, row_lo, row_hi, area, pol, angles=(tt, bb)))
+        w.append(frame_weights(f.geom, nrows, ncols, f.monitor, f.areainfo, row_lo, row_hi,
+                               area and response != 'physical', pol, angles=(tt, bb)))
     theta, beta_px, n, w = np.array(theta), np.array(beta_px), np.array(n), np.array(w)
     n = np.where(np.isfinite(theta), np.clip(n, 0, None), 0.0)          # masked pixels (< 0) count nothing
     if edges is None:
@@ -769,7 +938,30 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     blo, bhi = np.nanmin(np.where(np.isfinite(theta), beta_px, np.nan)), np.nanmax(np.where(np.isfinite(theta), beta_px, np.nan))
     bedges = blo - bstep / 2 + bstep * np.arange(int(math.ceil((bhi - blo) / bstep)) + 2)
     beam = None
-    if response == 'beam':
+    phys = None
+    if response == 'physical':
+        cols_f = [frame_columns(f, ncols) for f in frames]
+        presp = PhysicalResponse(frames, cols_f)
+        with np.errstate(invalid='ignore'):
+            th_c = [np.nanmean(theta[k][:, c], axis=0) for k, c in enumerate(cols_f)]
+        n_c = [n[k][:, c].sum(axis=0) for k, c in enumerate(cols_f)]
+        w_c = [w[k][:, c].sum(axis=0) for k, c in enumerate(cols_f)]
+        model, chi2dof = fit_beam(presp, th_c, n_c, w_c, edges, beam_h_fwhm_mm, beam_centre_mm, beam_fwhm_um,
+                                  scans=[f.scan for f in frames])
+        rfc = np.ones((len(frames), ncols))
+        for k, (c, lt) in enumerate(zip(cols_f, presp.light(model))):
+            rfc[k, c] = np.where(lt > 0, lt, np.nan)
+        w = w * rfc[:, None, :]
+        theta = np.where(np.isfinite(rfc)[:, None, :], theta, np.nan)          # columns the beam does not reach
+        w = np.where(np.isfinite(w), w, 0.0)
+        lit = np.where(np.isfinite(theta).any(axis=1), rfc, np.nan)
+        used = np.isfinite(lit).sum(axis=0)
+        r = np.where(used > 0, np.nansum(lit, axis=0) / np.maximum(used, 1), 1.0)
+        along = model.fwhm_um * 1e-3 / math.sin(frames[0].geom.alpha)
+        phys = dict(centre_mm=model.centre_mm, fwhm_um=model.fwhm_um, h_fwhm_mm=model.h_fwhm_mm,
+                    fwhm_mm=along, fitted=[k for k, v in (('centre_mm', beam_centre_mm), ('fwhm_um', beam_fwhm_um))
+                                           if v is None], chi2_dof=chi2dof)
+    elif response == 'beam':
         xsrc = source_positions(frames, ncols)
         xsrc = np.where(np.isfinite(theta).any(axis=1), xsrc, np.nan)       # usable columns only
         rfc, beam = beam_response(theta, n, w, edges, xsrc)
@@ -779,6 +971,8 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
             r = np.where(used.any(axis=0), np.sum(np.where(used, rfc, 0.0), axis=0) / np.maximum(used.sum(axis=0), 1), np.nan)
         r = np.where(np.isfinite(r), r, 1.0)
     else:
+        if response not in ('fit', 'none'):
+            raise ValueError("response %r: use 'fit', 'beam', 'physical' or 'none'" % (response,))
         r = column_response(theta, n, w, edges) if response == 'fit' else np.ones(ncols)
         w = w * r[None, None, :]
     scans = sorted(set(f.scan for f in frames))
@@ -801,8 +995,9 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
             if log is not None:
                 x = 0.5 * (edges[:-1] + edges[1:])[ok]
                 log.append(dict(kind='horizontal (2theta)', x_from=float(x.min()), x_to=float(x.max()),
-                                points=int(ok.sum()), factor=fac, error=ferr, chi2=chi2))
-            w[m] = w[m] / fac
+                                points=int(ok.sum()), factor=fac, error=ferr, chi2=chi2, applied=bool(apply_joins)))
+            if apply_joins:
+                w[m] = w[m] / fac
     i, s, sn, sw = bin_counts_2d(theta, beta_px, n, w, edges, bedges)
     bidx = np.digitize(theta, edges) - 1
     nframes = np.array([int((bidx == k).any(axis=(1, 2)).sum()) for k in range(len(edges) - 1)])
@@ -824,7 +1019,7 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
         beam = dict(x_mm=beam[0], response=beam[1], centre_mm=bc, fwhm_mm=bw)
     info = dict(response=r, factors=factors, step_deg=step, counts_used=float(n.sum()),
                 two_theta_resolution_deg=res_deg, two_theta_resolution_columns=res_deg / step, s4_mm=s4,
-                beam=beam,
+                beam=beam, physical=phys, joins_applied=bool(apply_joins),
                 sum_counts=sn_k[keep], sum_weights=sw_k[keep], frames_per_bin=nframes[keep],
                 edges=edges, keep=keep, all_counts=sn_k, all_weights=sw_k, beta=bcentres[bkeep],
                 beta_edges=bedges, beta_step_deg=bstep, mean_monitor=mean_m, geometry='exact (IMG_COO_CONV)',
@@ -834,7 +1029,7 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     return centres[keep], bcentres[bkeep], i[keep][:, bkeep] * mean_m, s[keep][:, bkeep] * mean_m, info
 
 
-def join_levels(levels, transverse='intersection', log=None, labels=None):
+def join_levels(levels, transverse='intersection', log=None, labels=None, apply=True):
     """Join the maps of several Qz levels (``level_map`` infos on one shared
     2θ grid) into one map (F62; the review's §7.2 step 8, after IDL's
     IMG_JOIN):
@@ -923,9 +1118,12 @@ def join_levels(levels, transverse='intersection', log=None, labels=None):
             x = 0.5 * (bedges[:-1] + bedges[1:])[ok]
             log.append(dict(label=' + '.join(labels[i] for i in order[:order.index(k) + 1]),
                             kind='vertical (beta)', x_from=float(x.min()), x_to=float(x.max()),
-                            points=int(ok.sum()), factor=fac, error=ferr, chi2=chi2))
-        w = w / fac
-        shares.append((w.copy(), ferr / fac))
+                            points=int(ok.sum()), factor=fac, error=ferr, chi2=chi2, applied=bool(apply)))
+        if apply:
+            w = w / fac
+            shares.append((w.copy(), ferr / fac))
+        else:                                      # as collected: the factor is reported, not applied
+            shares.append((w.copy(), 0.0))
         nc += n
         wc += w
         have |= kept

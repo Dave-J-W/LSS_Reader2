@@ -307,3 +307,34 @@ def test_exact_window_adds_columns_and_keeps_the_bragg_peak():
     assert out['exact'][0] > out['idl'][0] + 0.05
     assert out['exact'][1] > out['idl'][1]
     assert out['exact'][2] == pytest.approx(out['idl'][2], abs=0.002)
+
+
+@pytest.mark.gui
+@pytest.mark.slow
+@pytest.mark.skipif(not os.path.exists(SPEC), reason='NX_school sample data not present')
+def test_physical_response_and_joins_as_collected_in_the_worksheet(nx, qapp, recorder):
+    """Owner, 2026-11-20: the physical column response, and the joins
+    reported but not applied (the data as collected)."""
+    sweep._select_scans(nx, qapp, [10, 11])
+    sweep._select_images(nx, qapp)
+    _menu(nx, qapp, 'Worksheet')
+    d = nx.gidWorksheet
+    from PyQt5.QtWidgets import QPushButton
+    d.gidPinholeCheckBox.setChecked(True)
+    assert not d.gidBeamFwhmSpinBox.isEnabled()
+    d.gidResponseComboBox.setCurrentText('physical')
+    assert d.gidBeamFwhmSpinBox.isEnabled() and not d.gidBeamCentreSpinBox.isEnabled()
+    d.gidApplyJoinsCheckBox.setChecked(False)
+    d.findChild(QPushButton, 'gidPatchPushButton').click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert nx.gidParams.response == 'physical' and nx.gidParams.apply_joins is False
+    assert 'response "physical"' in d.gidLevelsLabel.text()
+    t = d.gidJoinTable
+    assert any('(not applied)' in (t.item(r, 5).text() if t.item(r, 5) else '') for r in range(t.rowCount()))
+    d.gidBeamCentreFitCheckBox.setChecked(False)
+    d.gidBeamCentreSpinBox.setValue(5.0)
+    d.gidBeamFwhmSpinBox.setValue(60.0)
+    assert nx.gidParams.beam_centre_mm == 5.0 and nx.gidParams.beam_fwhm_um == 60.0
+    d.findChild(QPushButton, 'gidDefaultsPushButton').click()
+    assert nx.gidParams.response == 'fit' and nx.gidParams.apply_joins and nx.gidParams.beam_centre_mm is None

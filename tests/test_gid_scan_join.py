@@ -68,3 +68,13 @@ def test_pinhole_scan_join_recovers_a_scale_between_scans(scan11):
 def test_pinhole_halves_of_one_scan_join_at_one(scan11):
     frames, det = scan11
     assert _factor(_split(frames, 1.0), det, True) == pytest.approx(1.0, abs=0.01)
+
+
+def test_physical_response_scan_join_recovers_a_scale_between_scans(scan11):
+    """With the physical response (owner, 2026-11-20) each scan has its own
+    scale in the beam fit, so the scan join sees a scale between scans:
+    measured 1.2549 for 1.25 (response 'fit': 1.173)."""
+    frames, det = scan11
+    ratio = (_factor(_split(frames, 0.8), det, True, 'physical') /
+             _factor(_split(frames, 1.0), det, True, 'physical'))
+    assert ratio == pytest.approx(1.25, rel=0.01)

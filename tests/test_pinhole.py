@@ -542,3 +542,104 @@ def test_column_at_source_gives_up_promptly_where_no_column_sees_x():
     lo, hi = ph._exact_window(g, 0.1, 678.0, 0.2)
     assert lo < hi
     assert time.time() - t < 5
+
+
+# ---- physical column response (owner, 2026-11-20) --------------------------
+
+@pytest.mark.parametrize('dth, beta0', [(14.0, 0.09), (16.0, 0.09), (14.0, 6.5)])
+def test_vectorised_source_x_is_ray_geometry(dth, beta0):
+    g = ph.FrameGeometry(**{**_geom(dth).__dict__, 'beta0': math.radians(beta0)})
+    cols = np.array([28.0, 47.0, 63.4, 99.5])
+    for t in (-0.1, 0.0, 0.1):
+        want = [ph.ray_geometry(g, g.r0, c, t).source[0] for c in cols]
+        assert ph.source_x(g, g.r0, cols, t) == pytest.approx(want, rel=1e-9, abs=1e-9)
+
+
+def _physical_lit(dths, beam, spectrum=lambda t: 1e-3 + 0 * t, scan=1, scale=1.0):
+    """Frames whose expected counts are monitor × the physical response of
+    ``beam`` × a spectrum in 2θ (no area or polarisation)."""
+    out = []
+    for d in dths:
+        g = _geom(d)
+        f = ph.PinholeFrame(np.zeros((NR, NC)), 1e5, g, (2.0, 0.1, 0.2, math.radians(0.09), 551.0, 271.0),
+                            (3.0, 14.0), 678.0, scan)
+        cols = ph.frame_columns(f, NC)
+        lit = np.zeros(NC)
+        lit[cols] = ph.PhysicalResponse([f], [cols]).light(beam)[0]
+        tt = np.degrees(ph.pixel_angles(g, np.arange(NR), np.arange(NC))[0])
+        out.append(ph.PinholeFrame(scale * 1e5 * spectrum(tt) * lit[None, :], 1e5, g, f.areainfo, f.s5,
+                                   f.s1_to_sample_mm, scan))
+    return out
+
+
+def test_physical_response_recovers_the_beam_and_a_flat_map():
+    """Frames lit by a known beam (centre 2 mm, 30 µm, horizontal 1 mm): the
+    fit finds the beam and the map is flat, with no free factor per column."""
+    beam = ph.BeamModel(2.0, 30.0, 1.0)
+    fr = _physical_lit(np.arange(14.0, 18.01, 0.1), beam)
+    tt, beta, I, S, info = ph.level_map(fr, 15, 486, response='physical', area=False, pol=False)
+    p = info['physical']
+    assert p['centre_mm'] == pytest.approx(2.0, abs=0.3) and p['fwhm_um'] == pytest.approx(30.0, abs=1.5)
+    prof = np.nanmean(I, axis=1)
+    assert np.ptp(prof / np.nanmedian(prof)) < 0.02
+    assert p['fitted'] == ['centre_mm', 'fwhm_um']
+
+
+def test_physical_response_keeps_the_absolute_scale():
+    """No normalisation to a mean of 1: a level lit twice as much per monitor
+    count comes out twice as bright; a typed beam is used as given."""
+    beam = ph.BeamModel(0.0, 40.0, 1.0)
+    dths = np.arange(14.0, 16.01, 0.2)
+    a = ph.level_map(_physical_lit(dths, beam), 15, 486, response='physical', area=False, pol=False,
+                     beam_centre_mm=0.0, beam_fwhm_um=40.0)
+    b = ph.level_map(_physical_lit(dths, beam, scale=2.0), 15, 486, response='physical', area=False, pol=False,
+                     beam_centre_mm=0.0, beam_fwhm_um=40.0)
+    assert np.nanmedian(b[2] / a[2]) == pytest.approx(2.0, rel=1e-6)
+    assert np.nanmedian(a[2]) == pytest.approx(1e-3 * 1e5, rel=0.02)        # the true spectrum × mean monitor
+    assert a[4]['physical']['fitted'] == []
+
+
+def test_uniform_beam_gives_a_response_of_one():
+    """A beam much taller than S1 lights the footprint evenly: R = 1 on fully
+    lit columns (the area correction it replaces). A horizontal beam width
+    turns the footprint's ends into ramps: a column's line of sight crosses
+    the beam's width at 2θ, so near an end part of it falls off the
+    footprint (x + y cot 2θ)."""
+    f = _physical_lit([16.0], ph.BeamModel(0.0, 1e5, 1.0))[0]
+    cols = ph.frame_columns(f, NC)
+    pr = ph.PhysicalResponse([f], [cols])
+    narrow = pr.light(ph.BeamModel(0.0, 1e5, 1e-3))[0]
+    assert narrow == pytest.approx(np.ones(len(cols)), abs=0.01)
+    wide = pr.light(ph.BeamModel(0.0, 1e5, 1.0))[0]
+    assert wide[:-8] == pytest.approx(np.ones(len(cols) - 8), abs=0.01)     # interior
+    assert wide[-1] < 0.9 and np.all(np.diff(wide[-6:]) < 0)                  # the downstream ramp
+
+
+def test_physical_scan_join_recovers_a_scale_between_scans():
+    """P42 with the physical response: each scan has its own scale in the
+    beam fit, so the scan join recovers a scale between scans (synthetic:
+    two overlapping scans, the second × 0.8)."""
+    beam = ph.BeamModel(1.0, 35.0, 1.0)
+    spec = lambda t: 1e-3 * (1 + 0.5 * np.exp(-0.5 * ((t - 16.6) / 0.08) ** 2))
+    a = _physical_lit(np.arange(14.0, 16.01, 0.1), beam, spec, scan=1)
+    b = _physical_lit(np.arange(15.5, 18.01, 0.1), beam, spec, scan=2, scale=0.8)
+    log = []
+    ph.level_map(a + b, 15, 486, response='physical', area=False, pol=False, log=log)
+    j = [x for x in log if x['kind'] == 'horizontal (2theta)'][0]
+    assert j['factor'] == pytest.approx(1.25, rel=0.005)
+
+
+def test_joins_reported_but_not_applied():
+    """apply_joins=False: the factor is fitted and logged, the data stay as
+    collected (the second scan keeps its own scale)."""
+    beam = ph.BeamModel(0.0, 40.0, 1.0)
+    a = _physical_lit(np.arange(14.0, 16.01, 0.2), beam, scan=1)
+    b = _physical_lit(np.arange(15.0, 17.01, 0.2), beam, scan=2, scale=0.8)
+    log = []
+    tt, beta, I, S, info = ph.level_map(a + b, 15, 486, response='physical', area=False, pol=False, log=log,
+                                        beam_centre_mm=0.0, beam_fwhm_um=40.0, apply_joins=False)
+    j = [x for x in log if x['kind'] == 'horizontal (2theta)'][0]
+    assert j['factor'] == pytest.approx(1.25, rel=1e-3) and j['applied'] is False
+    prof = np.nanmean(I, axis=1)
+    assert prof[tt < 14.5].mean() / prof[tt > 18.0].mean() == pytest.approx(1.25, rel=0.01)   # A only / B only
+    assert info['joins_applied'] is False

@@ -171,7 +171,11 @@ The window's "GID Patch" (`relax=True`: "GID Patch Relax", the larger Q
 grid), with the GID worksheet's settings in `params` (every field of
 `GIDParams`; `columns` is the window's H slit field). `points`, `db_pos`,
 `errors` (legacy patch only) and the bad-pixel settings as for cuts.
-`GIDParams(response='beam')` fits the pinhole response along the beam axis
+`GIDParams(response='physical')` computes the response from the geometry and
+a Gaussian beam (`beam_fwhm_um`, `beam_centre_mm` fitted unless given;
+`gid.info['levels'][k]['physical']` holds the beam found), and
+`GIDParams(apply_joins=False)` leaves the data as collected (factors only in
+`gid.joins`, each with `applied`). `GIDParams(response='beam')` fits the pinhole response along the beam axis
 instead of per column (for a narrow beam); `gid.info['levels'][k]` then has
 `beam` (profile, centre and FWHM on the sample, mm) and, always,
 `two_theta_resolution_deg`. `gid.joins` is the worksheet's join table, `gid.levels` its level list,

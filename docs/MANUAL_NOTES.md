@@ -98,6 +98,12 @@ Each line: feature — where — default — script — notes entry (date).
 - Worksheet: "Footprint window" exact (default: columns that see the lit
   strip through the whole S4 opening) or IDL (centred on the direct-beam
   column, as PD_PIN_RANGE) — `GIDParams(footprint=...)` — P39, D51.
+- Worksheet: response "physical" (the column response from the geometry and a
+  Gaussian beam; "Beam (physical)": vertical FWHM µm (0 = fit), centre mm ("fit"
+  ticked = fitted), horizontal FWHM mm) and "Apply join factors" (off: the data
+  as collected, factors only reported) — `GIDParams(response='physical',
+  beam_fwhm_um=…, beam_centre_mm=…, beam_h_fwhm_mm=…, apply_joins=False)` —
+  addendum `docs/manual/gid_patching.md` 3b; Notes 2026-11-20.
 - Pinhole geometry is the default (D40); "2θ range across levels"
   common/all.
 - Scriptable: `exp.gid(...)`; Save GID writes the call to the Script pane

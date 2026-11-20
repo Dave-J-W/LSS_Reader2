@@ -28,7 +28,13 @@ the GID worksheet (F61). Where each one acts:
   ``arm_correction``: the g_l3 term in the vertical distance;
   ``min_frames``: 2θ bins seen by fewer frames are left out (map edges);
   ``transverse``: 2θ range of a map joined from several Qz levels,
-  'intersection' (common to all, IDL) or 'union' (F62).
+  'intersection' (common to all, IDL) or 'union' (F62);
+  ``footprint``: the usable columns' footprint window, 'exact' or 'idl'
+  (P39); ``response`` 'physical' (owner, 2026-11-20): the column response
+  from the geometry and the beam, with ``beam_centre_mm`` and
+  ``beam_fwhm_um`` fitted unless given and ``beam_h_fwhm_mm``;
+  ``apply_joins`` False: join factors fitted and reported, not applied
+  (the data as collected).
 """
 from dataclasses import dataclass, fields
 
@@ -51,6 +57,10 @@ class GIDParams:
     min_frames: int = 2
     transverse: str = 'intersection'
     footprint: str = 'exact'          # pinhole footprint window: 'exact' (P39, D51) or 'idl' (PD_PIN_RANGE)
+    beam_centre_mm: object = None     # response 'physical': beam centre on the sample along the beam (None: fitted)
+    beam_fwhm_um: float = 0.0         # response 'physical': vertical FWHM (0: fitted), e.g. from a half-cut
+    beam_h_fwhm_mm: float = 1.0       # response 'physical': horizontal FWHM (owner's estimate, 2026-11-19)
+    apply_joins: bool = True          # False: scan and level factors fitted and reported, not applied (as collected)
 
     def changed(self):
         """Names of the settings that differ from the defaults."""
@@ -455,7 +465,9 @@ def pinhole_patch(frames, params, log=None):
     for k, level in enumerate(byqz):
         tt, beta, I, S, info = pinhole.level_map(level, gp.row_min, gp.row_max, response=gp.response,
                                                  area=gp.area_correction, pol=gp.polarisation, log=log,
-                                                 min_frames=gp.min_frames, edges=edges)
+                                                 min_frames=gp.min_frames, edges=edges,
+                                                 beam_centre_mm=gp.beam_centre_mm, beam_fwhm_um=gp.beam_fwhm_um or None,
+                                                 beam_h_fwhm_mm=gp.beam_h_fwhm_mm, apply_joins=gp.apply_joins)
         for e in log:
             e.setdefault('label', LEVEL_NAMES[k])
         level_info.append(dict(level=LEVEL_NAMES[k], **info))
@@ -463,7 +475,8 @@ def pinhole_patch(frames, params, log=None):
         levels.append((LEVEL_NAMES[k], sorted(set(f.scan for f in level)), len(level), float(tt.min()), float(tt.max())))
     try:
         tt, beta, I, S, jinfo = pinhole.join_levels(infos, transverse=gp.transverse, log=log,
-                                                    labels=[LEVEL_NAMES[k] for k in range(len(byqz))])
+                                                    labels=[LEVEL_NAMES[k] for k in range(len(byqz))],
+                                                    apply=gp.apply_joins)
     except ValueError as e:
         raise GIDError('The Qz levels could not be joined: %s.' % e)
     patch = [np.vstack((np.full(len(beta), t), beta, I[b], S[b])).T for b, t in enumerate(tt)]
