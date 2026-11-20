@@ -2944,3 +2944,41 @@ scan each, so NX maps are not affected; the owner's levels of two Det_Th
 ranges are. Remedy proposed, not built: fit scan factors and response
 together, then measure again.
 
+### 2026-11-20 — An honest presentation: less arbitrary scaling in GID patches
+
+**Owner.** "I'm not quite sure what you're fighting against here on this
+patch in 2θ. Isn't there an honest way to present the data that is more
+true to the data as collected? Less arbitrary scaling?"
+
+**A (reasoning, with the measurements below).** The data are already on one
+scale before any patching: counts per monitor count, times the absorber
+factor. Two things are added on top, and both are fitted from the sample's
+own data: (1) the column response, an empirical flat field normalised to
+mean 1 per level, which also discards each level's absolute scale; (2) free
+join factors per scan and per level, which force the overlaps to agree. The
+legacy patch needs a scan factor partly because it multiplies each scan
+back by its own mean monitor (the 1.006 of C25); a monitor-normalised map
+of scans taken at the same settings should need none. An "as collected"
+presentation would use weights of monitor × absorber factor × the known
+geometry only (polarisation, the slits' acceptance), average overlapping
+measurements as ΣN/ΣW (counts-weighted, as for repeated measurements), and
+report each overlap's ratio and χ² as a consistency check instead of
+removing it; fitted factors and a fitted response would remain options,
+labelled as corrections. Proposed, not built.
+
+**Measured (NX 11 + 12, same absorber setting 12, same S1, S4, S5, same
+Monc gain, mean Monc 2.21 × 10⁶ in both, α 0.0905 / 0.0903°):** with no
+column response, the two levels agree in shape over their β overlap
+(χ²/dof 0.84) but the upper level reads lower by a factor 1.217 ± 0.014
+(exact window; 1.224 IDL's) at the same (2θ, β). With the response 'beam'
+the fitted factor is 1.139, with 'fit' 1.068: the empirical response hides
+part of that difference. Within one scan, frames scatter about a cell's
+value with an rms of 0.43 without a response (figure 7): the column-to-
+column differences in light are real (the footprint is not uniformly lit),
+so the honest correction for them is a physical one, the beam profile along
+the footprint (measured by a half-cut, or the one-profile 'beam' fit) and
+the slits' geometric acceptance, rather than a free factor per column. The
+cause of the 22 % between levels taken at identical settings is not known
+(illumination change between the scans, sample height drift, raised-arm
+vignetting are candidates; P40 data and half-cuts would decide it).
+
