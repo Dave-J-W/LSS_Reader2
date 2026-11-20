@@ -343,3 +343,24 @@ and checks it against the reader's value). The scan join fits its factor
 the same way along 2θ, on rows-summed profiles.
 
 ![Join factor](figures/gid_patching/06_join_factor.png)
+
+**7. Within one scan.** (a) Pinhole: every frame of scan 11 as a strip over
+its usable columns' 2θ; the 2θ bin 16.600–16.636° is reached by 25 frames,
+through column 28 at Det_Th 17.3°, column 61 at 16.1°, column 94 at 14.9°;
+each frame's N/W in that bin against the cell's ΣN/ΣW, rms 0.43 without a
+response, 0.21 with 'fit'. (b) Legacy: one 3-column profile per frame at its
+Det_Th, 0.109° wide through the pinhole at 0.100° steps: side by side,
+nothing fitted.
+
+![Within one scan](figures/gid_patching/07_two_theta_within_a_scan.png)
+
+**8. Joining two scans.** NX scan 11 split into A (Det_Th 14.0–16.0°) and B
+(15.5–18.0°), B's counts × 0.8. (a) The overlap each method uses: legacy, 6
+Det_Th values (15.5–16.0°); pinhole, 87 2θ bins (14.80–17.93°). (b) Legacy:
+one ratio per shared Det_Th, factor 1.2574 = 1.25 × 1.006 (the scans' mean
+monitors). (c) Pinhole: ratio per shared 2θ bin; 'fit' 1.1298 ± 0.0039
+(χ²/dof 6.3), 'none' 0.9642 ± 0.0034 (χ²/dof 37.5); the ratio's slope across
+the overlap is the response's misfit (P42).
+
+![Scan join](figures/gid_patching/08_scan_join.png)
+
