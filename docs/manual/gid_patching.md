@@ -135,7 +135,11 @@ normalisation alone; nothing is fitted between them.
   through different columns is also what the column response is estimated
   from: in the cells, column-to-column differences and frame-to-frame
   differences are separated by assuming the response depends on the column
-  only ('fit') or on the point of the beam axis only ('beam').
+  only ('fit') or on the point of the beam axis only ('beam'). Measured on
+  the 2θ bin 16.600–16.636° (25 frames): each frame's own N/W scatters about
+  the cell's ΣN/ΣW with an rms of 0.43 without a response and 0.21 with
+  'fit' (figure 7a): the response removes half of the frame-to-frame
+  scatter, not all of it.
 - **Legacy.** Each frame gives one profile at its Det_Th (the legacy column
   band, ≈ 0.11° wide through the pinhole, at steps of 0.1°): profiles side
   by side, no overlap, nothing averaged (figure 7b).
@@ -175,7 +179,11 @@ the factor A/B must change by 1.25 (`tests/test_gid_scan_join.py`):
 | Pinhole, response 'beam' | 0.963, χ²/dof 8.0 | 1.130 | 1.173 |
 | Pinhole, response 'none' | 0.777, χ²/dof 43 | 0.964 | 1.240 |
 
-Two things follow (P42). First, the column response is fitted on all
+Figure 8c shows the per-bin ratio of the two pinhole scans: not flat but
+rising from about 1.0 at 14.8° to about 1.3 at 17.9°, with a dip at the
+Bragg peak. A sees the high end of the overlap through its high columns and
+B through its low ones, so the slope is the column response's misfit made
+visible; it is why χ²/dof is 6–7. Two things follow (P42). First, the column response is fitted on all
 frames of the level **before** the scans are joined, so it absorbs about a
 third of a real scale difference between scans: the pinhole join recovers
 1.173 of 1.25. Second, two halves of the same scan, which should join at
