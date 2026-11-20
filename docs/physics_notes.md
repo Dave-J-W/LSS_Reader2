@@ -2900,3 +2900,12 @@ difference between the levels found in the outer-column diagnosis. Added
 to the beamline to-do: a height (sh) scan, or a half-cut, next to each GID
 level, recorded in the file so the reader can use it.
 
+### 2026-11-20 — The raised-arm question, explained; stale figures
+
+**Owner.** "Please regenerate figures when they become stale. There was a
+question about raised arm columns and patching and I never saw it. Please
+explain in two paragraphs that situation." The question (asked during the
+P39 fix) had arrived without an answer; the conservative option had been
+taken (raised-arm frames keep IDL's high edge). Explained in the
+conversation; regenerating stale figures is now AGENTS.md rule 11.
+

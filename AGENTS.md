@@ -107,6 +107,11 @@ No display is needed. Run from the repository root.
    - a user-visible control: a tooltip (rule 9), a line in
      `docs/MANUAL_NOTES.md`, and `python tests/tools/dump_tooltips.py >
      docs/manual/controls.md`.
+   - figures that a change makes stale (they show the old method or old
+     numbers): regenerate them, public ones in the repository and private
+     ones under `sample_data/private/figures/`, in the same tranche (owner,
+     2026-11-20). Every figure is made by a tool in `tests/tools/`, so this
+     is a rerun, not a redraw.
 
 ## Things that will bite you
 
