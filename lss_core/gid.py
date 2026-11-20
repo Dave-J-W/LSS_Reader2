@@ -50,6 +50,7 @@ class GIDParams:
     arm_correction: bool = True
     min_frames: int = 2
     transverse: str = 'intersection'
+    footprint: str = 'exact'          # pinhole footprint window: 'exact' (P39, D51) or 'idl' (PD_PIN_RANGE)
 
     def changed(self):
         """Names of the settings that differ from the defaults."""
@@ -436,7 +437,8 @@ def pinhole_frames(frames, params):
             areainfo = (p['S1L'] + p['S1R'], p['S1T'] + p['S1B'], p['S4L'] + p['S4R'], float(f.true_alpha),
                         float(f.s2d), dp)
             level.append(pinhole.PinholeFrame(np.asarray(f.data, float), float(f.monitor), g, areainfo,
-                                              (p['S5L'], p['S5R']), p.get('g_l2', 0.0) - p.get('g_l1', 0.0), int(f.scan)))
+                                              (p['S5L'], p['S5R']), p.get('g_l2', 0.0) - p.get('g_l1', 0.0), int(f.scan),
+                                              footprint=gp.footprint))
         out.append(level)
     return out
 

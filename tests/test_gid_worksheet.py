@@ -259,3 +259,51 @@ def test_beam_response_and_resolution_in_the_worksheet(nx, qapp, recorder):
     text = d.gidLevelsLabel.text()
     assert '2theta resolution 0.0' in text and 'beam on the sample' in text
     assert 'column_acceptance' in d.gidLevelsLabel.toolTip()
+
+
+@pytest.mark.gui
+@pytest.mark.slow
+@pytest.mark.skipif(not os.path.exists(SPEC), reason='NX_school sample data not present')
+def test_footprint_window_choice_in_the_worksheet(nx, qapp, recorder):
+    """P39 fix (D51): "exact" by default, "IDL" reproduces the earlier maps;
+    the exact window uses more columns and so more counts."""
+    assert GIDParams().footprint == 'exact'
+    sweep._select_scans(nx, qapp, [10])
+    sweep._select_images(nx, qapp)
+    _menu(nx, qapp, 'Worksheet')
+    d = nx.gidWorksheet
+    from PyQt5.QtWidgets import QPushButton
+    d.gidPinholeCheckBox.setChecked(True)
+    assert d.gidFootprintComboBox.currentText() == 'exact'
+    d.findChild(QPushButton, 'gidPatchPushButton').click()
+    qapp.processEvents()
+    d.gidFootprintComboBox.setCurrentIndex(1)
+    d.findChild(QPushButton, 'gidPatchPushButton').click()
+    qapp.processEvents()
+    assert nx.gidParams.footprint == 'idl' and recorder.exceptions == []
+    d.findChild(QPushButton, 'gidDefaultsPushButton').click()
+    assert d.gidFootprintComboBox.currentText() == 'exact' and nx.gidParams.footprint == 'exact'
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not os.path.exists(SPEC), reason='NX_school sample data not present')
+def test_exact_window_adds_columns_and_keeps_the_bragg_peak():
+    """Measured with the change (2026-11-19, C24): on NX scan 11 the exact
+    window covers 2θ up to 19.93° (IDL's: 19.82°) with more filled cells, and
+    the Bragg peak's 2θ is unchanged to 0.002°."""
+    from lss_core.experiment import Experiment
+    e = Experiment(SPEC)
+    out = {}
+    for fp in ('idl', 'exact'):
+        r = e.gid([11], params=GIDParams(footprint=fp), axes='Angles')
+        x, y, d = np.asarray(r.x), np.asarray(r.y), np.asarray(r.data)
+        tt = x[:, 0] if np.allclose(x[:, 0], x[:, -1]) else x[0]
+        ax = 0 if np.allclose(x[:, 0], x[:, -1]) else 1
+        prof = np.nanmean(np.where((y >= 0.3) & (y <= 3), d, np.nan), axis=1 - ax)
+        k = int(np.nanargmax(prof))
+        w = slice(k - 12, k + 13)
+        p = prof[w] - np.nanmin(prof[w])
+        out[fp] = (tt.max(), int(np.isfinite(d).sum()), float(np.nansum(tt[w] * p) / np.nansum(p)))
+    assert out['exact'][0] > out['idl'][0] + 0.05
+    assert out['exact'][1] > out['idl'][1]
+    assert out['exact'][2] == pytest.approx(out['idl'][2], abs=0.002)

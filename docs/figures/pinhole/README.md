@@ -1,5 +1,10 @@
 # Pinhole GID geometry: eight figures
 
+> **Drawn before the P39 fix (2026-11-19, D51).** "The reader's window" in
+> these figures is IDL's centred one, now the option `footprint='idl'`; the
+> reader now uses the exact window (to the S4 ramps' inner edges), except at
+> the raised arm. The figures are to be redrawn for it.
+
 Made by `python tests/tools/pinhole_figures.py [--out DIR] [--only N …]`
 (default: this folder). Each figure carries its explanations as labels on
 the drawing; the two lines under it say what it shows and which functions

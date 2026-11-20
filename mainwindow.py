@@ -3297,6 +3297,16 @@ class MainWindow (QMainWindow):
                         'of the lit strip, and that point moves with Det_Th, so a narrow (Gaussian) beam lights a '
                         'column differently from frame to frame, which one factor per column cannot follow; it '
                         'also gives the beam\'s position and width on the sample; "none" takes it as flat.')
+        foot=QComboBox(g)
+        foot.setObjectName('gidFootprintComboBox')
+        foot.addItems(['exact','IDL'])
+        foot.setCurrentIndex(0 if gp.footprint=='exact' else 1)
+        foot.setToolTip('Which columns of each frame see the lit strip of sample (the footprint) through the S4 '
+                        'pinhole. "exact": traced ray by ray, only columns that see it through the whole S4 opening '
+                        '(partly lit columns at the edges change with Det_Th, which a column response cannot follow); '
+                        '"IDL": the window of the IDL code (PD_PIN_RANGE), the right width but centred on the '
+                        'direct-beam column, which drops a few lit columns at the high-2theta edge (P39). '
+                        'The S5 slits limit the columns too.')
         trans=QComboBox(g)
         trans.setObjectName('gidTransverseComboBox')
         trans.addItems(['common','all'])
@@ -3324,6 +3334,7 @@ class MainWindow (QMainWindow):
         form.addRow(pin)
         form.addRow('S4-detector (mm)',prow)
         form.addRow('Column response',resp)
+        form.addRow('Footprint window',foot)
         form.addRow('Frames per bin, at least',minf)
         form.addRow('2theta range across levels',trans)
         form.addRow(arm)
@@ -3365,10 +3376,10 @@ class MainWindow (QMainWindow):
                                             polarisation=pol.isChecked(),vjoin_kind=kind.currentText(),
                                             pinhole=pin.isChecked(),pinhole_distance_mm=pdist.value(),
                                             response=resp.currentText(),arm_correction=arm.isChecked(),
-                                            min_frames=minf.value(),
+                                            min_frames=minf.value(),footprint='exact' if foot.currentIndex()==0 else 'idl',
                                             transverse='intersection' if trans.currentIndex()==0 else 'union')
             hard.setEnabled(area.isChecked())
-            for w in (pdist,resp,arm,fit,minf,trans):
+            for w in (pdist,resp,arm,fit,minf,trans,foot):
                 w.setEnabled(pin.isChecked())
             cols.setEnabled(not pin.isChecked())
 
@@ -3386,6 +3397,7 @@ class MainWindow (QMainWindow):
             arm.setChecked(dflt.arm_correction)
             minf.setValue(dflt.min_frames)
             trans.setCurrentIndex(0)
+            foot.setCurrentIndex(0 if dflt.footprint=='exact' else 1)
             apply()
 
         def fitdist():
@@ -3406,6 +3418,7 @@ class MainWindow (QMainWindow):
         pin.toggled.connect(apply)
         arm.toggled.connect(apply)
         resp.currentIndexChanged.connect(apply)
+        foot.currentIndexChanged.connect(apply)
         fit.clicked.connect(fitdist)
         apply()
         again.clicked.connect(self.gidWorksheetPatch)
@@ -3418,6 +3431,7 @@ class MainWindow (QMainWindow):
         d.gidPinholeCheckBox,d.gidPinholeDistSpinBox,d.gidResponseComboBox,d.gidArmCheckBox=pin,pdist,resp,arm
         d.gidFitDistancePushButton,d.gidFitLabel=fit,fitl
         d.gidTransverseComboBox,d.gidMinFramesSpinBox=trans,minf
+        d.gidFootprintComboBox=foot
         return d
 
     def gidWorksheetPatch(self):
@@ -3602,7 +3616,8 @@ class MainWindow (QMainWindow):
         g=pinhole.FrameGeometry(dth=float(np.radians(np.median(dth))),alpha=float(self.pilTrueAlpha[frames[0]]),beta0=0.0,
                                 c0=float(self.xcenter[0]),r0=float(self.ycenter[0]),d_sample=float(self.pil_Dist[frames[0]]),
                                 d_pinhole=dp,wavelength=float(self.pil_Wavelength[frames[0]]))
-        win=pinhole.usable_columns(g,prof.shape[1],p['S5L'],p['S5R'],p['S1T']+p['S1B'],p.get('g_l2',0.0)-p.get('g_l1',0.0))
+        win=pinhole.usable_columns(g,prof.shape[1],p['S5L'],p['S5R'],p['S1T']+p['S1B'],p.get('g_l2',0.0)-p.get('g_l1',0.0),
+                                   s4_mm=p.get('S4L',0.0)+p.get('S4R',0.0),footprint=gp.footprint)
         tt=float(np.median(dth))+np.degrees(np.arctan((np.arange(prof.shape[1])-g.c0)*pinhole.PIXEL_MM/dp))
         ex=prof-np.median(prof,axis=0)
         f=int(np.argmax(ex[:,win].max(axis=1)))          # the frame with the strongest feature

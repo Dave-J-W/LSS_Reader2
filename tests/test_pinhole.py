@@ -489,3 +489,56 @@ def test_two_theta_resolution_is_in_the_map_info():
     assert info['two_theta_resolution_deg'] == pytest.approx(math.degrees(np.ptp(acc.two_theta)))
     assert info['two_theta_resolution_deg'] == pytest.approx(0.079, abs=0.003)
     assert info['two_theta_resolution_columns'] == pytest.approx(2.2, abs=0.1) and info['s4_mm'] == 0.2
+
+
+# ---- P39 fix (D51): the exact footprint window in usable_columns ----------
+
+@pytest.mark.parametrize('dth', [14.0, 16.0, 18.0])
+def test_usable_columns_end_where_the_footprint_is_lit_through_all_of_s4(dth):
+    """Arm level: the exact window's columns are those inside S5 and inside
+    the inner edges of s4_window; IDL's ('idl') is the centred window."""
+    g = _level_geom(dth)
+    s5 = (2.99986, 13.9999)
+    ncols = 195
+    cols = ph.usable_columns(g, ncols, *s5, 0.1, 678.0, s4_mm=0.2)
+    a, b = ph.s5_window(g, *s5)
+    lo, hi = ph.s4_window(g, 0.1, 0.1, 0.1, 678.0)[1]
+    assert cols[0] == math.ceil(max(a, lo, 0)) and cols[-1] == math.floor(min(b, hi, ncols - 1))
+    idl = ph.usable_columns(g, ncols, *s5, 0.1, 678.0, s4_mm=0.2, footprint='idl')
+    flo, fhi = ph.footprint_window(g, 0.1, 678.0)
+    assert idl[-1] == math.floor(min(b, fhi, ncols - 1))
+    assert cols[-1] > idl[-1]                                 # P39: the exact window reaches further
+    line = ph.usable_columns(g, ncols, *s5, 0.1, 678.0)       # no S4 opening: the slit line
+    assert line[-1] == math.floor(min(b, ph.footprint_columns(g, 0.1, 678.0)[1], ncols - 1))
+    with pytest.raises(ValueError):
+        ph.usable_columns(g, ncols, *s5, 0.1, 678.0, footprint='centred')
+
+
+def test_raised_arm_keeps_the_idl_high_edge():
+    """β0 > 1°: the high edge stays at IDL's (P40b streak), the low edge is
+    the exact one."""
+    g = ph.FrameGeometry(**{**_level_geom(14.0).__dict__, 'beta0': math.radians(6.5)})
+    s5 = (20.0, 13.9999)                                      # S5 wide open towards low columns
+    cols = ph.usable_columns(g, 195, *s5, 0.1, 678.0, s4_mm=0.2)
+    lo = ph.s4_window(g, 0.1, 0.1, 0.1, 678.0)[1][0]
+    fhi = ph.footprint_window(g, 0.1, 678.0)[1]
+    assert cols[0] == math.ceil(max(lo, 0)) and cols[-1] == math.floor(fhi)
+
+
+def test_column_at_source_gives_up_promptly_where_no_column_sees_x():
+    """Pinhole 11 mm in front of the sample (D_p 540 of 551 mm): the
+    footprint's upstream end may be seen by no column; the search must say so
+    (it used to loop for ever), and the exact window then has no limit on
+    that side."""
+    import time
+    g = _geom(16.0, 540.0)
+    t = time.time()
+    for x in (-31.8, -500.0, 1e4):
+        try:
+            c = ph.column_at_source(g, x)
+            assert ph.ray_geometry(g, g.r0, c).source[0] == pytest.approx(x, abs=1e-6)
+        except ValueError:
+            pass
+    lo, hi = ph._exact_window(g, 0.1, 678.0, 0.2)
+    assert lo < hi
+    assert time.time() - t < 5

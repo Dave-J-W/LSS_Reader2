@@ -76,8 +76,7 @@ def main(argv=None):
     cols = np.arange(ncols)
     half = cols[lit >= 0.5]
     print('columns receiving >= half the peak light: %d..%d (peak at column %.1f); the reader\'s usable columns: %s'
-          % (half[0], half[-1], cols[np.argmax(lit)], '%d..%d' % tuple(ph.usable_columns(
-              g, ncols, f0.s5[0], f0.s5[1], f0.areainfo[1], f0.s1_to_sample_mm)[[0, -1]])))
+          % (half[0], half[-1], cols[np.argmax(lit)], '%d..%d' % tuple(ph.frame_columns(f0, ncols)[[0, -1]])))
     # the response the patch fits from the data, against the prediction
     tt, beta, I, S, info = ph.level_map(frames, 15, 486, response='fit')
     r = info['response']

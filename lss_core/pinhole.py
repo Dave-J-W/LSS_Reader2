@@ -252,12 +252,59 @@ def footprint_window(g, s1_vertical, s1_to_sample_mm=0.0):
     return g.c0 - half, g.c0 + half
 
 
-def usable_columns(g, ncols, s5_low, s5_high, s1_vertical, s1_to_sample_mm=0.0, d5=S5_TO_DETECTOR_MM):
-    """Integer columns inside both the S5 window and the footprint window."""
+FOOTPRINT_WINDOWS = ('exact', 'idl')
+RAISED_ARM_DEG = 1.0     # above this β0 the exact window keeps IDL's high edge (P40b streak)
+
+
+def usable_columns(g, ncols, s5_low, s5_high, s1_vertical, s1_to_sample_mm=0.0, d5=S5_TO_DETECTOR_MM,
+                   s4_mm=0.0, footprint='exact'):
+    """Integer columns inside both the S5 window and the footprint window.
+
+    ``footprint`` 'exact' (default since 2026-11-19, P39, D51): the columns
+    that see the footprint through the whole S4 opening ``s4_mm`` (S4L +
+    S4R, taken as two equal halves about the slit line), i.e. the inner
+    edges of ``s4_window``; with ``s4_mm`` 0, ``footprint_columns``. The
+    same on every row (measured at β0 0.09° and 6.5°), so it is traced on
+    the direct-beam row. On frames with the arm raised (β0 > ``RAISED_ARM_DEG``)
+    the high edge is kept at IDL's: there the added columns pick up a
+    sharp-edged streak of stray light (P40b, junk per the owner) until it can
+    be masked. 'idl': IDL's PD_PIN_RANGE window (``footprint_window``), the
+    right width centred on c0."""
     a, b = s5_window(g, s5_low, s5_high, d5)
-    f, h = footprint_window(g, s1_vertical, s1_to_sample_mm)
+    if footprint == 'idl':
+        f, h = footprint_window(g, s1_vertical, s1_to_sample_mm)
+    elif footprint == 'exact':
+        f, h = _exact_window(g, s1_vertical, s1_to_sample_mm, s4_mm)
+        if g.beta0 > math.radians(RAISED_ARM_DEG):
+            h = min(h, footprint_window(g, s1_vertical, s1_to_sample_mm)[1])
+    else:
+        raise ValueError('footprint window %r: use one of %s' % (footprint, ', '.join(FOOTPRINT_WINDOWS)))
     lo, hi = max(a, f, 0), min(b, h, ncols - 1)
     return np.arange(int(math.ceil(lo)), int(math.floor(hi)) + 1)
+
+
+def _exact_window(g, s1_vertical, s1_to_sample_mm, s4_mm):
+    """The fully lit footprint window (columns), or no limit where there is
+    no pinhole in front of the sample or no footprint (α ≤ 0)."""
+    if g.d_sample - g.d_pinhole <= 0 or not math.isfinite(footprint_length(g, s1_vertical, s1_to_sample_mm)):
+        return -math.inf, math.inf
+    half = footprint_length(g, s1_vertical, s1_to_sample_mm) / 2
+    t = s4_mm / 2
+    edges = []
+    for x, side in ((-half, -math.inf), (half, math.inf)):
+        try:                                       # fully lit: the inner of the two slit edges' columns
+            cs = [column_at_source(g, x, slit_offset=o) for o in ((-t, t) if t > 0 else (0.0,))]
+            edges.append(max(cs) if x < 0 else min(cs))
+        except ValueError:                         # no column sees that end: no limit on that side
+            edges.append(side)
+    return edges[0], edges[1]
+
+
+def frame_columns(f, ncols):
+    """``usable_columns`` of a PinholeFrame, with its S4 opening and its
+    footprint window choice (``f.footprint``)."""
+    return usable_columns(f.geom, ncols, f.s5[0], f.s5[1], f.areainfo[1], f.s1_to_sample_mm,
+                          s4_mm=f.areainfo[2], footprint=f.footprint)
 
 
 def column_at_source(g, x, row=None, slit_offset=0.0):
@@ -293,17 +340,25 @@ def column_at_source(g, x, row=None, slit_offset=0.0):
             raise ValueError('no column sees x = %g mm' % x)
     else:                                         # go to lower columns, stopping short of 2θ = 0
         b = c0 - step
-        while True:
+        bad = None                                # nearest column known to have no forward ray
+        for _ in range(500):
             sb = src(b)
             if sb is None:                        # past the column that looks along the beam: come back
+                bad = b
                 b = 0.5 * (a + b)
-                if abs(a - b) < 1e-9:
-                    raise ValueError('no column sees x = %g mm' % x)
-                continue
-            if sb <= x:
+            elif sb <= x:
                 break
-            a, step = b, 2 * step
-            b = c0 - step
+            else:                                 # still upstream of x: move on, never past ``bad``
+                a = b
+                if bad is None:
+                    step *= 2
+                    b = c0 - step
+                else:
+                    b = 0.5 * (a + bad)
+            if bad is not None and abs(a - bad) < 1e-9:
+                raise ValueError('no column sees x = %g mm' % x)
+        else:
+            raise ValueError('no column sees x = %g mm' % x)
     lo, hi = sorted((a, b))
     flo = src(lo) - x
     for _ in range(100):
@@ -654,12 +709,13 @@ class PinholeFrame:
     s5: tuple                # (S5 towards low columns, S5 towards high columns), mm
     s1_to_sample_mm: float
     scan: int
+    footprint: str = 'exact'   # footprint window: 'exact' (P39, D51) or 'idl' (usable_columns)
 
 
 def frame_range(f, ncols):
     """(lowest, highest) 2θ (degrees) of the usable columns of frame ``f``,
     over all its rows (exact angles)."""
-    cols = usable_columns(f.geom, ncols, f.s5[0], f.s5[1], f.areainfo[1], f.s1_to_sample_mm)
+    cols = frame_columns(f, ncols)
     t = np.degrees(pixel_angles(f.geom, np.arange(f.counts.shape[0]), cols)[0])
     return float(t.min()), float(t.max())
 
@@ -693,7 +749,7 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     rows = np.arange(row_lo, row_hi + 1)
     theta, beta_px, n, w = [], [], [], []
     for f in frames:
-        cols = usable_columns(f.geom, ncols, f.s5[0], f.s5[1], f.areainfo[1], f.s1_to_sample_mm)
+        cols = frame_columns(f, ncols)
         tt, bb = pixel_angles(f.geom, rows, np.arange(ncols))          # exact, per pixel (IMG_COO_CONV)
         use = np.zeros(ncols, bool)
         use[cols] = True

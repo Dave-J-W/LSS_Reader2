@@ -2863,3 +2863,40 @@ and width on NX 11, the level join on 11 + 12), and whether the raised-arm
 streak (P40b, junk per the owner) reaches the added columns; if it does,
 those pixels need masking rather than a narrower window.
 
+### 2026-11-19 — P39 fix built; the beam profile figure; sample height drifts
+
+**Built (D51):** `usable_columns(..., s4_mm, footprint='exact')`, the
+default; `GIDParams.footprint`; the worksheet's "Footprint window" (exact /
+IDL); `pinhole.frame_columns` for a frame's own S4 opening. Where no column
+sees an end of the footprint (pinhole close to the sample) that side has no
+limit (a synthetic case in the tests raised there). **Measured (NX):** see
+OUTPUT_DECISIONS, "Pinhole footprint window IDL → exact": +3.3 % counts on
+scan 11, the Bragg peak unmoved (0.0005°), the 11 + 12 join 1.097 → 1.068 ±
+0.013; `footprint='idl'` reproduces the old maps bit for bit.
+
+**The streak (P40b) reaches the added columns at the raised arm** (NX: rows
+60–150 of those columns 2.4× rows 200–400, against 1.5× in the old edge
+columns and 1.03× at the level arm; the private pairs the same way). The
+owner was asked how to handle it and did not choose; the conservative
+option was taken: on raised-arm frames (β0 > 1°) the high edge stays at
+IDL's until the streak can be masked with the background data (TODO input
+17). The join moved by about 2σ; that is the per-column illumination of the
+outer-column diagnosis (the lower level gains columns that see the
+footprint's downstream end, the raised one does not), not an error of the
+map.
+
+**Owner:** "Illustrate [the 52 µm] with a figure." `docs/figures/pinhole_beam/
+beam_response_11.png` (`tests/tools/pinhole_beam_figure.py`). New in it
+(measured): downstream of the beam the profile levels off at 0.6 of its
+mean rather than falling to zero, light not from the beam (P40a); above that
+floor the width is 23 mm along the beam, 36 µm of beam height, against 52 µm
+at half the maximum. Both are upper bounds (S4 opening, horizontal width).
+
+**Owner:** "A change of sample height by several microns is likely in an
+hour, or even in a half hour. So the sample height scan is more critical
+now." At α = 0.09° that moves the footprint by 0.64 mm per µm along the
+beam, i.e. several mm per half hour: consistent with the illumination
+difference between the levels found in the outer-column diagnosis. Added
+to the beamline to-do: a height (sh) scan, or a half-cut, next to each GID
+level, recorded in the file so the reader can use it.
+

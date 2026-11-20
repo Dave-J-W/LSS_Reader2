@@ -78,8 +78,11 @@ def frame(scan, dth_deg):
 
 
 def usable(f):
-    """The frame's usable columns (``usable_columns``: S5 and footprint windows)."""
-    return ph.usable_columns(f.geom, NC, f.s5[0], f.s5[1], f.areainfo[1], f.s1_to_sample_mm)
+    """The frame's usable columns (``usable_columns``: S5 and footprint windows)
+    as the reader had them when these figures were drawn: IDL's window
+    (``footprint='idl'``). The reader now uses the exact one (P39 fix, D51);
+    the figures are to be redrawn for it."""
+    return ph.usable_columns(f.geom, NC, f.s5[0], f.s5[1], f.areainfo[1], f.s1_to_sample_mm, footprint='idl')
 
 
 def ftp_of(f):

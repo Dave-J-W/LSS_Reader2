@@ -410,7 +410,9 @@ them; the fix belongs in the macros.
       proposal `handoff_out/05`, under review by the owner's agent, 2026-11-19).
 - [ ] Per-point `Tstart` and `Tend` in place of `Epoch` (F37; owner, 2026-11-19).
 - [ ] Photons-in estimate in the SPEC file (F21), when the beamline defines it.
-- [ ] Half-cut sh scans to characterise the beam (F43).
+- [ ] Half-cut sh scans to characterise the beam (F43), and a height (sh) scan
+      next to each GID level: the liquid's height drifts by several µm in half an
+      hour to an hour (owner, 2026-11-19), which moves the footprint by mm.
 - [ ] Multiple exposures per GID point (F40).
 - [ ] A scan with both Pilatus and Vortex data should say so in its header
       in a way that does not let one line override the other (F53).

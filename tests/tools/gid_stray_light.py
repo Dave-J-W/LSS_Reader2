@@ -39,7 +39,7 @@ OUT = os.path.join('docs', 'figures', 'gid_stray_light')
 def bands_for(frame, ncols):
     """Column bands (lo, hi, name) from the first frame's windows."""
     g = frame.geom
-    cols = ph.usable_columns(g, ncols, frame.s5[0], frame.s5[1], frame.areainfo[1], frame.s1_to_sample_mm)
+    cols = ph.frame_columns(frame, ncols)
     s5lo, s5hi = ph.s5_window(g, *frame.s5)
     lo, hi = int(cols.min()), int(cols.max())
     edges = np.linspace(lo, hi + 1, 4).astype(int)
