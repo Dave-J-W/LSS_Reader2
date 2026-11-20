@@ -47,7 +47,7 @@ The same words are used in the worksheet, in the figures and below.
 | **map edges** | 2θ bins seen by fewer than `min_frames` frames; left out. | 3 |
 | **transverse range** | The 2θ range of a map joined from several levels: 'intersection' (bins every level has; default, as the IDL code) or 'union' (all). | 5 |
 | **edge copies** | Legacy patch only (P33): where the vertical join fills a level's missing 2θ range with copies of its edge column. | 5 |
-| **column response** | A sensitivity factor per column ('fit'), or one profile along the beam axis ('beam'), estimated from the data. | — |
+| **column response** | How much light each column records, relative to the others, for the same scattering: one factor per column ('fit'), or one profile along the beam axis ('beam'), estimated from the data; section 3b. | 7, beam figure |
 
 ## 2. What happens to the frames, in order
 
@@ -200,6 +200,81 @@ these splits.
 |---|---|---|
 | Pinhole scan join | Many shared 2θ bins; no interpolation; counts conserved. | P42: biased by the response fit (above); P41: every scan is fitted against the level's first scan only. |
 | Legacy scan join | Recovers a scale between scans exactly (above). | Few shared values (the Det_Th both scans have); interpolates; averages the overlap (smoothing, correlated errors); needs Det_Th overlap, not just 2θ overlap. |
+
+## 3b. The column response
+
+**What it is.** In the pinhole patch, each column of a frame records the
+scattering at its own 2θ. If every column were equally efficient and saw
+an equally lit piece of sample, a column's counts per monitor count would
+depend only on the sample's scattering at that (2θ, β). They do not, for
+three reasons:
+
+1. **Illumination.** Through S4, each column looks at one point of the
+   footprint (figure 2). The footprint is not lit evenly: the beam's
+   vertical profile, stretched along the surface by 1/sin α (a few tens of
+   mm on NX), is brightest near the middle and falls off towards the ends.
+   Columns that look at the bright middle record more than columns that look
+   at the dim ends. This is the largest effect: up to a factor of ~2.5
+   between columns on NX (figure below).
+2. **Geometric acceptance.** Near the edges of the usable columns, the S4
+   opening and the S5 slit let a column see only part of the footprint, or
+   part of its own pixel (the ramps of P39).
+3. **Pixel sensitivity.** Small differences between detector pixels (a
+   per-cent or so for a Pilatus).
+
+The **column response** R is the factor by which a column records more or
+less than the average, for these reasons together. The patch divides by it,
+by putting it into the weights: W = monitor × area × polarisation × R.
+
+**How it is estimated ('fit', the default).** The same 2θ is seen by many
+columns in different frames of a scan (figure 7a: up to 26 frames). So the
+data can separate "what the sample scatters at this 2θ" from "how much this
+column records": the reader alternates between the two, S(2θ) from all the
+columns that see each 2θ bin, then R(column) from all the 2θ each column
+saw, twenty times, and normalises R to a mean of 1 over each level's columns
+(`pinhole.column_response`). Measured on the 2θ bin 16.6° of NX scan 11: the
+frames that reach it scatter about the bin's value by 43 % rms without a
+response and 21 % with 'fit'.
+
+**The alternatives.**
+- **'beam'**: instead of one factor per column, one profile along the beam
+  axis (reason 1 only), shared by all frames of a level, with each column
+  mapped, frame by frame, to the point of the footprint it sees
+  (`pinhole.beam_response`). It is a physical quantity, the footprint's
+  illumination, and it gives the beam's centre and width on the sample (NX:
+  33 mm along the beam, at most 52 µm of beam height; figure below).
+- **'none'**: R = 1; counts per monitor only.
+
+**What it cannot do.**
+- **Light that changes from frame to frame.** 'fit' assumes a column always
+  records the same fraction. But a column sees a different point of the
+  footprint at each Det_Th, so with a narrow beam its light changes along
+  the scan (synthetic 30 µm beam: 'fit' 0.93–1.04 of the truth inside, 0.71–
+  2.8 at the edges; 'beam' 0.98–1.02 and 0.88–1.04; measured). 'beam'
+  follows that, but assumes the illumination is the same for all frames of
+  a level, which a sample height drift breaks.
+- **Absolute scale.** Normalising R to a mean of 1 per level discards each
+  level's own scale, so the levels must then be joined by a fitted factor.
+  As collected, with no response, NX's two levels (same absorbers, slits,
+  gain and monitor) differ by 22 %; with 'fit' the fitted level factor is
+  1.068, with 'beam' 1.139: the empirical response hides part of a real
+  difference (physics_notes 2026-11-20).
+- **Scale between scans.** R is fitted on all frames of a level before the
+  scans are joined, so it absorbs part of a real scale difference between
+  scans (P42, section 3a).
+
+**A more physical alternative (proposed, not built):** R from what is known
+or measured rather than fitted: the slits' acceptance (computable now,
+`pinhole.column_acceptance`) times the beam's profile along the footprint
+(measured by a half-cut next to each level, or the one-profile 'beam' fit).
+
+![Column response: the light from each point of the beam axis, and per column](../figures/pinhole_beam/beam_response_11.png)
+
+*Left: the light from each point of the footprint along the beam (response
+'beam', NX scan 11). Right: the same light as each column sees it at three
+Det_Th (coloured), against the one-factor-per-column 'fit' (black): the
+column that looks at a given point moves with Det_Th, so one factor per
+column is an average. Made by `tests/tools/pinhole_beam_figure.py`.*
 
 ## 4. The options
 
