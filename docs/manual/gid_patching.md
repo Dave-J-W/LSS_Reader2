@@ -214,13 +214,15 @@ three reasons:
    vertical profile, stretched along the surface by 1/sin α (a few tens of
    mm on NX), is brightest near the middle and falls off towards the ends.
    Columns that look at the bright middle record more than columns that look
-   at the dim ends. This is the largest effect: up to a factor of ~2.5
-   between columns on NX (figure below).
+   at the dim ends. This is the largest effect: about a factor of 2.4
+   between the brightest and dimmest interior columns on NX, more at the
+   edges (figure below; measured).
 2. **Geometric acceptance.** Near the edges of the usable columns, the S4
    opening and the S5 slit let a column see only part of the footprint, or
    part of its own pixel (the ramps of P39).
 3. **Pixel sensitivity.** Small differences between detector pixels (a
-   per-cent or so for a Pilatus).
+   per-cent or so is typical for a flat-field-corrected Pilatus; not
+   measured here).
 
 The **column response** R is the factor by which a column records more or
 less than the average, for these reasons together. The patch divides by it,
