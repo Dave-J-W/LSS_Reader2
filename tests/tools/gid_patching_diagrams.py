@@ -17,16 +17,24 @@ Six 2D diagrams (default folder docs/manual/figures/gid_patching/):
    the transverse range, and the legacy edge copies.
 6. ``06_join_factor.png``: how the level join factor is fitted, with the
    NX 11 + 12 numbers.
+7. ``07_two_theta_within_a_scan.png``: how the frames of one scan are
+   combined across 2θ (pinhole: one 2θ bin seen by many columns; legacy:
+   one profile per Det_Th), no factor fitted.
+8. ``08_scan_join.png``: two scans of one level joined across 2θ, legacy
+   and pinhole, on NX scan 11 split in two (scan B's counts × 0.8, so the
+   true factor A/B is 1.25).
 
 Every number comes from lss_core (pinhole, gid, experiment) and the public
 NX school data (sample_data/NX_school/2026sep/20260923, GID scans 11 and
-12); nothing is typed. Only that file is read: the script takes no other
+12); nothing is typed. The split of scan 11 (frames 0–20 and 15–40) and the
+scale 0.8 of diagram 8 are the illustration's choices. Only that file is read: the script takes no other
 SPEC file, so no private data can reach the repository. Runs headless
 (Agg) from anywhere (it changes to the repository root). Reads only; writes
 the PNG files. Prints any text label that overlaps another or leaves the
 figure.
 """
 import argparse
+import dataclasses
 import math
 import os
 import re
@@ -44,6 +52,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt                      # noqa: E402
 from matplotlib.patches import Polygon, Rectangle   # noqa: E402
 
+from lss_core import gid as gidmod                   # noqa: E402
 from lss_core import pinhole as ph                   # noqa: E402
 from lss_core.experiment import Experiment           # noqa: E402
 from lss_core.gid import GIDParams, pinhole_frames   # noqa: E402
@@ -66,6 +75,7 @@ LV1 = '#1a9a6c'          # Qz level 1 (scan 11, arm level)
 LV2 = '#6250d6'          # Qz level 2 (scan 12, arm raised)
 OVL = '#3d3c38'          # overlaps (hatched)
 EDGE = '#b9b8b1'         # map edges (left out)
+SCB = '#0d6e9e'          # scan B of the split of scan 11 (diagram 8; scan A is LV1; validated with LV1 and LEG)
 INK, INK2, MUTED, GRID = '#0b0b0b', '#52514e', '#898781', '#e1e0d9'
 
 plt.rcParams.update({
@@ -835,8 +845,398 @@ def fig_join_factor(out):
     save(fig, out, '06_join_factor.png')
 
 
+# ------------------------------------------- 7 and 8: joining across 2θ
+
+SPLIT_A, SPLIT_B, SPLIT_SCALE = 21, 15, 0.8      # scan A = frames[:21], scan B = frames[15:] × 0.8 (illustration)
+BIN_NEAR_DEG = 16.6                              # the 2θ bin followed in diagram 7
+
+
+def h_entry(log):
+    """The one scan-join ('horizontal (2theta)') entry of a patch log."""
+    h = [e for e in log if e['kind'] == 'horizontal (2theta)']
+    assert len(h) == 1, h
+    return h[0]
+
+
+class Split:
+    """Scan 11 alone, and split in two scans A and B of one level (B a
+    copy of frames 15–40 with its counts × s), with the scan joins of both
+    patches from lss_core's logs, for s = 1 and s = SPLIT_SCALE."""
+
+    def __init__(self):
+        e = Experiment(SPEC)
+        frames, self.det = e.gid_frames([LOW_SCAN])
+        self.frames = frames
+        self.params = GIDParams()
+        self.level = pinhole_frames(frames, self.params)[0]          # scan 11, pinhole frames
+        self.A = frames[:SPLIT_A]
+        self.Bs = {s: [dataclasses.replace(f, scan=f.scan + 1000, data=f.data * s, error=f.error * s)
+                       for f in frames[SPLIT_B:]] for s in (1.0, SPLIT_SCALE)}
+        self.mon_ratio = float(np.mean([f.monitor for f in self.A]) / np.mean([f.monitor for f in frames[SPLIT_B:]]))
+        self.joins = {}
+        for s, B in self.Bs.items():
+            for resp in ('fit', 'none'):
+                log = []
+                gidmod.pinhole_patch(self.A + B, GIDParams(response=resp), log=log)
+                self.joins[resp, s] = h_entry(log)
+            log = []
+            gidmod.legacy_patch(self.A + B, GIDParams(pinhole=False), self.det, log=log)
+            self.joins['legacy', s] = h_entry(log)
+
+    def recovered(self, method):
+        """Factor A/B with B × SPLIT_SCALE over the factor with B × 1: 1/SPLIT_SCALE if exact."""
+        return self.joins[method, SPLIT_SCALE]['factor'] / self.joins[method, 1.0]['factor']
+
+
+SPLIT = None
+
+
+def split():
+    global SPLIT
+    if SPLIT is None:
+        SPLIT = Split()
+    return SPLIT
+
+
+def level_arrays(level, gp):
+    """Per-pixel 2θ (NaN outside the usable columns), β, counts and weights
+    (without the column response) of a level, rows used, and the β grid,
+    as lss_core.pinhole.level_map builds them."""
+    ncols, nrows = level[0].counts.shape[1], level[0].counts.shape[0]
+    rows = np.arange(gp.row_min, gp.row_max + 1)
+    theta, beta, n, w = [], [], [], []
+    for f in level:
+        tt, bb = ph.pixel_angles(f.geom, rows, np.arange(ncols))
+        use = np.zeros(ncols, bool)
+        use[ph.frame_columns(f, ncols)] = True
+        theta.append(np.where(use[None, :], np.degrees(tt), np.nan))
+        beta.append(np.degrees(bb))
+        n.append(np.asarray(f.counts, float)[gp.row_min:gp.row_max + 1])
+        w.append(ph.frame_weights(f.geom, nrows, ncols, f.monitor, f.areainfo, gp.row_min, gp.row_max,
+                                  gp.area_correction, gp.polarisation, angles=(tt, bb)))
+    theta, beta, n, w = np.array(theta), np.array(beta), np.array(n), np.array(w)
+    n = np.where(np.isfinite(theta), np.clip(n, 0, None), 0.0)
+    bstep = math.degrees(ph.PIXEL_MM / ph.vertical_distance(level[0].geom))
+    fin = np.isfinite(theta)
+    blo, bhi = np.nanmin(np.where(fin, beta, np.nan)), np.nanmax(np.where(fin, beta, np.nan))
+    bedges = blo - bstep / 2 + bstep * np.arange(int(math.ceil((bhi - blo) / bstep)) + 2)
+    return theta, beta, n, w, bedges
+
+
+def pinhole_scan_join(frames, response):
+    """The pinhole scan join of a level of two scans, recomputed as
+    lss_core.pinhole.level_map does it: column response on all frames
+    first, then the rows-summed ΣN, ΣW per 2θ bin of each scan, their ratio
+    per shared bin and its inverse-variance mean."""
+    gp = GIDParams(response=response)
+    level = pinhole_frames(frames, gp)
+    assert len(level) == 1
+    level = level[0]
+    edges = ph.shared_edges(level)
+    theta, beta, n, w, bedges = level_arrays(level, gp)
+    r = ph.column_response(theta, n, w, edges) if response == 'fit' else np.ones(n.shape[2])
+    w = w * r[None, None, :]
+    scans = sorted({f.scan for f in level})
+    assert len(scans) == 2
+    prof = []
+    for sc in scans:
+        m = np.array([f.scan == sc for f in level])
+        _, _, sn, sw = ph.bin_counts_2d(theta[m], beta[m], n[m], w[m], edges, bedges)
+        prof.append((sn.sum(axis=1), sw.sum(axis=1)))
+    (na, wa), (nb, wb) = prof
+    ok = (wa > 0) & (wb > 0) & (na > 0) & (nb > 0)
+    ratio = (na[ok] / wa[ok]) / (nb[ok] / wb[ok])
+    err = ratio * np.sqrt(1 / na[ok] + 1 / nb[ok])
+    wt = 1 / err ** 2
+    fac = float(np.sum(wt * ratio) / np.sum(wt))
+    centres = 0.5 * (edges[:-1] + edges[1:])
+    with np.errstate(invalid='ignore', divide='ignore'):
+        ia, ib = np.where(wa > 0, na / wa, np.nan), np.where(wb > 0, nb / wb, np.nan)
+    return dict(x=centres[ok], ratio=ratio, err=err, factor=fac, error=float(np.sum(wt) ** -0.5),
+                chi2=float(np.sum(wt * (ratio - fac) ** 2) / max(ok.sum() - 1, 1)), centres=centres, ia=ia, ib=ib,
+                sa=np.sqrt(na) / np.where(wa > 0, wa, np.nan), sb=np.sqrt(nb) / np.where(wb > 0, wb, np.nan),
+                mean_monitor=float(np.mean([f.monitor for f in level])))
+
+
+def legacy_profiles(frames, det):
+    """Det_Th and β-summed value ± error of every frame of one scan, as the
+    legacy patch hands them to its scan join (lss_core.gid.hjoin's data1z)."""
+    patch, _ = gidmod.legacy_patch(frames, GIDParams(pinhole=False), det)
+    x = np.array([p[0][0] for p in patch])
+    z = np.array([np.sum(p[:, 2]) for p in patch])
+    ze = np.array([np.sqrt(np.sum(p[:, 3] ** 2)) for p in patch])
+    return x, z, ze
+
+
+def legacy_scan_join(xa, za, zea, xb, zb, zeb):
+    """lss_core.gid.hjoin's factor: B interpolated onto A's Det_Th in the
+    overlap, ratio per Det_Th, weighted mean (a constant fitted with σ)."""
+    o2 = xb <= xa[-1]
+    o1 = (xa >= xb[0]) & (xa <= xb[o2][-1])
+    zi = np.interp(xa[o1], xb[o2], zb[o2])
+    zei = np.interp(xa[o1], xb[o2], zeb[o2])
+    y = za[o1] / zi
+    ye = y * np.sqrt((zea[o1] / za[o1]) ** 2 + (zei / zi) ** 2)
+    wt = 1 / ye ** 2
+    return xa[o1], y, ye, float(np.sum(wt * y) / np.sum(wt))
+
+
+def pow10(v):
+    """A power of ten that brings the median of v near 1..10, and its exponent."""
+    ex = int(math.floor(math.log10(float(np.nanmedian(v)))))
+    return 10.0 ** -ex, ex
+
+
+def fig_two_theta_within_scan(out):
+    sp = split()
+    gp = sp.params
+    level = sp.level
+    ncols = level[0].counts.shape[1]
+    edges = ph.shared_edges(level)
+    step = float(edges[1] - edges[0])
+    k = int(np.digitize(BIN_NEAR_DEG, edges) - 1)
+    b0, b1 = float(edges[k]), float(edges[k + 1])
+    bc = 0.5 * (b0 + b1)
+    theta, beta, n, w, _ = level_arrays(level, gp)
+    r = ph.column_response(theta, n, w, edges)
+    idx = np.digitize(theta, edges) - 1
+    rows_n, rows_w, rows_wr, seen = [], [], [], []
+    for i, f in enumerate(level):
+        m = idx[i] == k
+        if not m.any():
+            continue
+        cols = np.nonzero(m)[1]
+        seen.append((i, int(np.bincount(cols).argmax()), int(m.sum())))
+        rows_n.append(n[i][m].sum())
+        rows_w.append(w[i][m].sum())
+        rows_wr.append((w[i] * r[None, :])[m].sum())
+    rows_n, rows_w, rows_wr = np.array(rows_n), np.array(rows_w), np.array(rows_wr)
+    nfr = frames_per_bin(level, edges, gp, ncols)[k]
+    assert nfr == len(seen), (nfr, len(seen))
+    cell, cell_r = rows_n.sum() / rows_w.sum(), rows_n.sum() / rows_wr.sum()
+    dth = np.array([deg(f.geom.dth) for f in level])
+    fig = plt.figure(figsize=(9.6, 10.2))
+    fig.text(0.015, 0.985, 'Within one scan: frames combined across 2θ, no factor fitted (scan %d, %d frames)'
+             % (LOW_SCAN, len(level)), fontsize=10.5, fontweight='bold', ha='left', va='top')
+    # (a) pinhole: every frame a strip over its usable columns' 2θ
+    ax = fig.add_axes([0.08, 0.47, 0.60, 0.45])
+    hb = 0.065
+    for f, y in zip(level, dth):
+        a, b = ph.frame_range(f, ncols)
+        ax.add_patch(Rectangle((a, y - hb / 2), b - a, hb, facecolor=USABLE, alpha=0.30, edgecolor='none'))
+    ax.axvspan(b0, b1, color=OVL, alpha=0.35, lw=0)
+    for i, c, _ in seen:
+        ax.plot([bc], [dth[i]], 'o', color=INK, ms=3.6, zorder=4)
+    ylo, yhi = dth[0] - 0.12, dth[-1] + 0.12
+    ax.set_ylim(ylo, yhi)
+    lo2, hi2 = ph.frame_range(level[0], ncols)[0], ph.frame_range(level[-1], ncols)[1]
+    ax.set_xlim(lo2 - 0.15, hi2 + 0.15)
+    ax.text(bc + 0.08, ylo + 0.08, 'one 2θ bin, %.3f–%.3f°' % (b0, b1), color=OVL, fontsize=9, ha='left',
+            va='bottom')
+    picks = [seen[0], seen[len(seen) // 2], seen[-1]]
+    for (i, c, npx), side in zip(picks, ('right', 'right', 'left')):
+        txt = 'frame Det_Th %.1f°: column %d' % (dth[i], c)
+        if side == 'right':
+            ax.annotate(txt, xy=(bc + 0.02, dth[i]), xytext=(bc + 0.45, dth[i] - 0.35), fontsize=8.5, color=INK,
+                        ha='left', va='center', arrowprops=dict(arrowstyle='-', color=INK, lw=0.7),
+                        bbox=dict(facecolor='white', edgecolor='none', pad=1.0))
+        else:
+            ax.annotate(txt, xy=(bc - 0.02, dth[i]), xytext=(bc - 0.45, dth[i] + 0.35), fontsize=8.5, color=INK,
+                        ha='right', va='center', arrowprops=dict(arrowstyle='-', color=INK, lw=0.7),
+                        bbox=dict(facecolor='white', edgecolor='none', pad=1.0))
+    ax.set_title("(a) Pinhole: each frame covers its usable columns' 2θ (bar); %d frames reach the bin (dots)"
+                 % len(seen), fontsize=9.5)
+    ax.set_xlabel('2θ (deg)')
+    ax.set_ylabel('Det_Th of the frame (deg)')
+    ax.grid(axis='x', color=GRID, lw=0.6)
+    # (a') each contributing frame's own N/W in that bin, against the cell value
+    axf = fig.add_axes([0.74, 0.47, 0.24, 0.45], sharey=ax)
+    ys = dth[[i for i, _, _ in seen]]
+    axf.plot(rows_n / rows_w / cell, ys, 'o', color=MUTED, mfc='white', ms=4.5, mew=1.0,
+             label='weights without the response')
+    axf.plot(rows_n / rows_wr / cell_r, ys, 'o', color=USABLE, ms=3.8, label="with the column response 'fit'")
+    axf.axvline(1.0, color=INK, lw=1.0)
+    axf.set_xlabel("frame's N/W ÷ cell ΣN/ΣW")
+    axf.tick_params(labelleft=False)
+    axf.grid(axis='x', color=GRID, lw=0.6)
+    axf.legend(loc='lower center', bbox_to_anchor=(0.5, 1.0), fontsize=8, handlelength=1.0, ncol=1,
+               title='each frame alone, in that bin', title_fontsize=8)
+    sd0 = float(np.std(rows_n / rows_w / cell))
+    sd1 = float(np.std(rows_n / rows_wr / cell_r))
+    axf.text(0.97, 0.03, 'spread (rms)\n%.3f → %.3f' % (sd0, sd1), transform=axf.transAxes, fontsize=8.5,
+             color=INK2, ha='right', va='bottom', bbox=dict(facecolor='white', edgecolor='none', pad=1.0))
+    fig.text(0.08, 0.40, '• The scale between frames comes from the monitor (and absorber) normalisation in W; '
+             'nothing is fitted.\n'
+             '• All pixels of the bin, from all %d frames, go to its cells as ΣN/ΣW.\n'
+             "• The same 2θ seen by different columns in different frames is what the column response 'fit' "
+             'is estimated from.' % len(seen), fontsize=9, color=INK, ha='left', va='top', linespacing=1.5)
+    # (b) legacy: one profile per Det_Th, the 3-column band placed at Det_Th
+    axl = fig.add_axes([0.08, 0.11, 0.60, 0.17])
+    half = (gp.columns - 1) / 2
+    widths = []
+    sel = [i for i, y in enumerate(dth) if BIN_NEAR_DEG - 0.65 <= y <= BIN_NEAR_DEG + 0.45]
+    for i in sel:
+        g = level[i].geom
+        ta, tb = np.degrees(ph.pixel_angles(g, [g.r0], [g.c0 - half - 0.5, g.c0 + half + 0.5])[0][0])
+        widths.append(abs(tb - ta))
+        axl.add_patch(Rectangle((min(ta, tb), dth[i] - hb / 2), abs(tb - ta), hb, facecolor=LEG, alpha=0.35,
+                                edgecolor='none'))
+        axl.plot([dth[i]], [dth[i]], 'o', color=LEG, ms=3.6, zorder=4)
+    wid = float(np.mean(widths))
+    dstep = float(np.median(np.diff(dth)))
+    axl.set_xlim(dth[sel[0]] - 0.25, dth[sel[-1]] + 0.25)
+    axl.set_ylim(dth[sel[0]] - 0.1, dth[sel[-1]] + 0.1)
+    axl.set_xlabel('2θ (deg)')
+    axl.set_ylabel('Det_Th (deg)')
+    axl.grid(axis='x', color=GRID, lw=0.6)
+    axl.set_title('(b) Legacy: the %d-column band of each frame, put at 2θ = Det_Th (dot)' % gp.columns,
+                  fontsize=9.5)
+    fig.text(0.72, 0.28, 'Legacy, within a scan:\n• the band accepts %.3f° of 2θ\n  through the pinhole '
+             '(%d columns);\n• Det_Th step %.3f°;\n• one profile per frame at one\n  2θ, side by side;\n'
+             '• nothing overlaps, nothing\n  is fitted.' % (wid, gp.columns, dstep),
+             fontsize=9, color=LEG, ha='left', va='top', linespacing=1.4)
+    caption(fig, 'Pinhole: every frame adds its pixels to the 2θ bins its columns see; legacy: each frame '
+                 'gives one profile at its Det_Th.', source='NX school 20260923, scan %d' % LOW_SCAN)
+    save(fig, out, '07_two_theta_within_a_scan.png')
+
+
+def fig_scan_join(out):
+    sp = split()
+    s = SPLIT_SCALE
+    A, B = sp.A, sp.Bs[s]
+    jl, jf, jn = sp.joins['legacy', s], sp.joins['fit', s], sp.joins['none', s]
+    # legacy, recomputed from its per-frame profiles (one scan at a time)
+    xa, za, zea = legacy_profiles(A, sp.det)
+    xb, zb, zeb = legacy_profiles(B, sp.det)
+    lx, ly, lye, lfac = legacy_scan_join(xa, za, zea, xb, zb, zeb)
+    assert abs(lfac - jl['factor']) < 1e-6 * jl['factor'] and len(lx) == jl['points'], (lfac, jl)
+    # pinhole, recomputed as level_map
+    pf = pinhole_scan_join(A + B, 'fit')
+    pn = pinhole_scan_join(A + B, 'none')
+    for p, j in ((pf, jf), (pn, jn)):
+        assert abs(p['factor'] - j['factor']) < 1e-6 * j['factor'] and len(p['x']) == j['points'], (p['factor'], j)
+    ncols = sp.level[0].counts.shape[1]
+    lvA, lvB = pinhole_frames(A, sp.params)[0], pinhole_frames(B, sp.params)[0]
+    rA = (min(ph.frame_range(f, ncols)[0] for f in lvA), max(ph.frame_range(f, ncols)[1] for f in lvA))
+    rB = (min(ph.frame_range(f, ncols)[0] for f in lvB), max(ph.frame_range(f, ncols)[1] for f in lvB))
+    dA = (deg(A[0].dth), deg(A[-1].dth))
+    dB = (deg(B[0].dth), deg(B[-1].dth))
+    fig = plt.figure(figsize=(9.6, 10.8))
+    fig.text(0.015, 0.985, 'Two scans of one Qz level joined across 2θ: one factor A/B, legacy and pinhole',
+             fontsize=10.5, fontweight='bold', ha='left', va='top')
+    # (a) coverage and overlaps
+    ax = fig.add_axes([0.30, 0.80, 0.66, 0.14])
+    rows = [('scan A: Det_Th', dA, LV1, None, '%d frames' % len(A)),
+            ('scan B: Det_Th', dB, SCB, None, '%d frames' % len(B)),
+            ("scan A: usable columns' 2θ", rA, LV1, None, ''),
+            ("scan B: usable columns' 2θ", rB, SCB, None, ''),
+            ('legacy overlap: Det_Th both have', (jl['x_from'], jl['x_to']), LEG, '////',
+             '%d frames, %.1f–%.1f°' % (jl['points'], jl['x_from'], jl['x_to'])),
+            ('pinhole overlap: 2θ bins both reach', (jf['x_from'], jf['x_to']), OVL, '\\\\\\\\',
+             '%d bins, %.2f–%.2f°' % (jf['points'], jf['x_from'], jf['x_to']))]
+    for kk, (name, (a, b), col, hatch, lab) in enumerate(rows):
+        y = len(rows) - 1 - kk
+        if hatch:
+            hatch_rect(ax, a - 0.02, b + 0.02, y - 0.3, y + 0.3, col, hatch=hatch, lw=1.0)
+        else:
+            ax.add_patch(Rectangle((a, y - 0.3), b - a, 0.6, facecolor=col, alpha=0.55 if kk >= 2 else 0.9,
+                                   edgecolor='none'))
+        if kk < 2:
+            for f in (A if kk == 0 else B):
+                ax.plot([deg(f.dth)] * 2, [y - 0.3, y + 0.3], color='white', lw=0.6)
+        if lab:
+            ax.text(b + 0.1, y, lab, color=INK2, fontsize=8.5, ha='left', va='center')
+    ax.set_yticks(range(len(rows)))
+    ax.set_yticklabels([r[0] for r in rows][::-1])
+    for t, r in zip(ax.get_yticklabels(), rows[::-1]):
+        t.set_color(INK if r[2] in (OVL,) else r[2])
+    ax.tick_params(axis='y', length=0)
+    ax.spines['left'].set_visible(False)
+    ax.set_ylim(-0.6, len(rows) - 0.4)
+    ax.set_xlim(rA[0] - 0.2, rB[1] + 1.6)
+    ax.set_xlabel('Det_Th or 2θ (deg)')
+    ax.grid(axis='x', color=GRID, lw=0.6)
+    ax.set_title('(a) What each scan covers, and the overlap each method fits on', fontsize=9.5, x=-0.36)
+    # (b) legacy
+    sc, ex = pow10(za)
+    axv = fig.add_axes([0.08, 0.50, 0.39, 0.21])
+    axv.errorbar(xa, za * sc, zea * sc, fmt='o', ms=3.5, color=LV1, lw=0.8, label='scan A')
+    axv.errorbar(xb, zb * sc, zeb * sc, fmt='s', ms=3.5, color=SCB, mfc='white', lw=0.8,
+                 label='scan B, before the factor')
+    axv.axvspan(jl['x_from'] - 0.03, jl['x_to'] + 0.03, color=LEG, alpha=0.12, lw=0)
+    axv.set_ylabel('β-summed value per frame (10$^{%d}$)' % ex)
+    axv.set_title('(b) Legacy: one value per frame at its Det_Th', fontsize=9.5)
+    axv.legend(loc='upper left', fontsize=8)
+    axv.grid(color=GRID, lw=0.5)
+    axv.tick_params(labelbottom=False)
+    axr = fig.add_axes([0.08, 0.31, 0.39, 0.16], sharex=axv)
+    axr.errorbar(lx, ly, lye, fmt='o', ms=4, color=OVL, lw=0.8, label='A / B per Det_Th')
+    axr.axhline(lfac, color=LEG, lw=1.6, label='factor %.4f' % lfac)
+    axr.set_ylim(lfac - 2.4 * lye.max(), lfac + 2.4 * lye.max())
+    axr.set_xlabel('Det_Th = 2θ (deg)')
+    axr.set_ylabel('A / B')
+    axr.grid(color=GRID, lw=0.5)
+    axr.legend(loc='upper right', fontsize=8)
+    axr.text(0.02, 0.04, '%.4f = %.2f × %.4f (mean monitor A / B)\nthen the overlap is averaged'
+             % (lfac, lfac / sp.mon_ratio, sp.mon_ratio), transform=axr.transAxes, fontsize=8.5, color=INK2,
+             ha='left', va='bottom')
+    # (c) pinhole
+    sc2, ex2 = pow10(pf['ia'])
+    axp = fig.add_axes([0.57, 0.50, 0.41, 0.21])
+    x = pf['centres']
+    axp.plot(x, pf['ia'] * sc2, color=LV1, lw=1.0, label='scan A')
+    axp.plot(x, pf['ib'] * sc2, color=SCB, lw=1.0, ls=(0, (4, 1.5)), label='scan B, before the factor')
+    axp.axvspan(jf['x_from'], jf['x_to'], color=OVL, alpha=0.10, lw=0)
+    axp.set_ylabel('ΣN/ΣW per 2θ bin, rows summed (10$^{%d}$)' % ex2)
+    axp.set_title("(c) Pinhole: ΣN/ΣW per 2θ bin of each scan (response 'fit')", fontsize=9.5)
+    axp.legend(loc='upper right', fontsize=8)
+    axp.grid(color=GRID, lw=0.5)
+    axp.tick_params(labelbottom=False)
+    axq = fig.add_axes([0.57, 0.31, 0.41, 0.16], sharex=axp)
+    axq.errorbar(pf['x'], pf['ratio'], pf['err'], fmt='o', ms=2.2, color=INK, lw=0.5, elinewidth=0.5,
+                 label="per bin, 'fit'")
+    axq.errorbar(pn['x'], pn['ratio'], pn['err'], fmt='o', ms=2.2, color=MUTED, mfc='white', lw=0.5,
+                 elinewidth=0.5, label="per bin, 'none'")
+    axq.axhline(pf['factor'], color=INK, lw=1.6,
+                label="'fit' factor %.4f ± %.4f, χ²/dof %.1f" % (pf['factor'], pf['error'], pf['chi2']))
+    axq.axhline(pn['factor'], color=MUTED, lw=1.6, ls='--',
+                label="'none' factor %.4f ± %.4f, χ²/dof %.1f" % (pn['factor'], pn['error'], pn['chi2']))
+    allr = np.r_[pf['ratio'], pn['ratio']]
+    lo, hi = (float(v) for v in np.percentile(allr, [2, 98]))
+    y0, y1 = lo - 0.1 * (hi - lo), hi + 1.2 * (hi - lo)
+    nlo, nhi = int(np.sum(allr < y0)), int(np.sum(allr > y1))
+    axq.set_ylim(y0, y1)
+    if nlo or nhi:
+        axq.text(0.02, 0.97, ', '.join('%d bin%s %s the scale' % (k, '' if k == 1 else 's', where)
+                                       for k, where in ((nhi, 'above'), (nlo, 'below')) if k),
+                 transform=axq.transAxes, fontsize=8, color=INK2, ha='left', va='top')
+    axq.set_xlim(rA[0] - 0.2, rB[1] + 0.2)
+    axq.set_xlabel('2θ (deg)')
+    axq.set_ylabel('A / B')
+    axq.grid(color=GRID, lw=0.5)
+    axq.legend(loc='upper right', fontsize=7.5, ncol=1, handlelength=1.6)
+    fig.text(0.08, 0.245, 'Legacy: B interpolated onto A\'s Det_Th, one ratio per Det_Th, weighted mean; B scaled; '
+             'the overlap averaged.\nPinhole: one ratio per shared 2θ bin, inverse-variance mean; B\'s weights '
+             'divided by it; then all pixels\nbinned together (ΣN/ΣW): no averaging, no interpolation. Every '
+             'further scan is fitted against the first (P41).', fontsize=8.8, color=INK, ha='left', va='top',
+             linespacing=1.45)
+    fig.text(0.08, 0.10, "Recovered A/B (true %.2f): legacy %.3f, pinhole 'fit' %.3f, 'none' %.3f. The column "
+             'response is fitted before\nscans are joined and absorbs part of a scale difference (P42). '
+             "With B × 1: legacy %.4f, 'fit' %.4f ± %.4f, 'none' %.4f."
+             % (1 / s, sp.recovered('legacy'), sp.recovered('fit'), sp.recovered('none'),
+                sp.joins['legacy', 1.0]['factor'], sp.joins['fit', 1.0]['factor'], sp.joins['fit', 1.0]['error'],
+                sp.joins['none', 1.0]['factor']),
+             fontsize=8.8, color=INK, ha='left', va='bottom', linespacing=1.45,
+             bbox=dict(facecolor='#f4f3ee', edgecolor='#c3c2b7', pad=5))
+    caption(fig, "Illustration: NX scan %d split in two (frames 0–%d, %d–%d); scan B's counts × %.1f, so the true "
+                 'factor is %.2f.' % (LOW_SCAN, SPLIT_A - 1, SPLIT_B, len(sp.frames) - 1, s, 1 / s),
+            source='NX school 20260923, scan %d' % LOW_SCAN)
+    save(fig, out, '08_scan_join.png')
+
+
 FIGURES = {1: fig_frame_anatomy, 2: fig_columns_to_two_theta, 3: fig_frames_cover, 4: fig_pixels_to_cells,
-           5: fig_levels, 6: fig_join_factor}
+           5: fig_levels, 6: fig_join_factor, 7: fig_two_theta_within_scan,
+           8: fig_scan_join}
 
 
 def main(argv=None):
