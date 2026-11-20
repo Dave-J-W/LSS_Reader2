@@ -209,15 +209,51 @@ the beam profile: `docs/figures/pinhole_beam/`.
 
 ## Figures
 
-1. `01_frame_anatomy.png` — one frame: direct-beam pixel, rows used, sample
-   horizon, S5 window, footprint windows, usable columns, legacy band.
-2. `02_columns_to_two_theta.png` — from above: each column sees one point of
-   the footprint through S4, so each has its own 2θ.
-3. `03_frames_cover_two_theta.png` — which 2θ each frame's usable columns
-   reach, frames per 2θ bin, map edges, 2θ overlap, bin width against
-   resolution.
-4. `04_pixels_to_cells.png` — exact pixel angles over the (2θ, β) cell grid,
-   arm level and raised.
-5. `05_levels_and_overlaps.png` — two Qz levels in (2θ, β), the β overlap,
-   intersection and union, the legacy edge copies.
-6. `06_join_factor.png` — how a level join factor is fitted.
+Made by `python tests/tools/gid_patching_diagrams.py` (NX school data only;
+numbers from `lss_core`).
+
+**1. One frame.** Scan 11 at Det_Th 16°: direct-beam pixel (47, 53), rows
+used 15–486, sample horizon near row 48; S5 window 27.2–139.3, exact
+footprint window 3.8–100.8, IDL's −2.6–96.6, usable columns 28–100; legacy
+column band 46–48.
+
+![One frame](figures/gid_patching/01_frame_anatomy.png)
+
+**2. Each column has its own 2θ.** From above (not to scale): through the
+S4 pinhole, column 28 sees x = −12.8 mm of the footprint at 2θ 15.31°, c0
+sees the centre at 16.00°, column 100 sees x = 30.6 mm at 17.93°. The legacy
+patch puts its three columns (15.96°, 16.00°, 16.04° through the pinhole) at
+Det_Th.
+
+![Columns to 2θ](figures/gid_patching/02_columns_to_two_theta.png)
+
+**3. Which 2θ each frame reaches.** One bar per frame (scan 11: 41 frames,
+scan 12: 4); frames per 2θ bin with the `min_frames` line and the map edges;
+a 2θ overlap between two scans of one level (scan 11 split in two, as an
+illustration); one 2θ bin (0.0364°) against the 2θ resolution (0.079° =
+2.16 columns).
+
+![Frames cover 2θ](figures/gid_patching/03_frames_cover_two_theta.png)
+
+**4. Pixels into cells.** The exact (2θ, β) of the pixels over the cell
+grid. Arm level (scan 11): the top row spans β 7.62–8.22° across the usable
+columns, and 2θ changes by 0.0005° along a column. Arm raised (scan 12): the
+top row spans β 13.80–14.88°, and 2θ changes by 0.028° along column 90.
+
+![Pixels to cells](figures/gid_patching/04_pixels_to_cells.png)
+
+**5. Levels and overlaps.** Pinhole patch: level 1 (scan 11) β −0.57–7.62°,
+level 2 (scan 12) β 6.14–13.85°; β overlap 6.14–7.62° (84 β bins);
+transverse range 'intersection' 2θ 13.40–15.80°, 'union' 13.40–19.95°.
+Legacy patch of the same scans: level 2 measured at Det_Th 14.0–14.3° only,
+the rest of its 2θ range filled by edge copies (P33).
+
+![Levels and overlaps](figures/gid_patching/05_levels_and_overlaps.png)
+
+**6. A level join factor.** Cells both levels have, equal weight per cell,
+a ratio per β bin, and the weighted mean: NX 11 + 12, 1.068 ± 0.013,
+χ²/dof 0.93 over 84 β bins (the tool recomputes it as `join_levels` does
+and checks it against the reader's value). The scan join fits its factor
+the same way along 2θ, on rows-summed profiles.
+
+![Join factor](figures/gid_patching/06_join_factor.png)
