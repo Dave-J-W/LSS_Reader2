@@ -28,6 +28,11 @@ refuses to write private data into the repository).
 | `nx_S11_joins.png`, `nx_S11+12_joins.png` | Where each join was fitted (2θ overlaps, β overlap of the Qz join), the factors ± errors with χ²/dof, and the summary table (bins, Qxy and Qz ranges, raw counts used, peak position and FWHM, σ/I at the peak, join factors, k). Scan 11 alone has no join. |
 | `*_summary.json` | The numbers of the table, the joins and levels of both methods, k, the common ranges and the command. |
 
+Regenerated 2026-11-20 after the P39 fix (exact footprint window, D51):
+the pinhole map of scan 11 reaches 2θ 19.93° (was 19.82°), 177 Qxy bins
+(was 174), 5.65e5 raw counts (was 5.47e5), peak FWHM 0.0155 (was 0.0157);
+the 11 + 12 Qz join is 1.068 ± 0.013 (was 1.097).
+
 ## How to read them
 
 - **k** is fitted over the lowest Qz level and the common Qxy range,
@@ -50,7 +55,7 @@ refuses to write private data into the repository).
   copies, not data.
 
 Scan 11 (one level): DPPC peak Qxy 1.4663 ± 0.0004 (legacy) and
-1.4665 ± 0.0001 Å⁻¹ (pinhole), FWHM 0.0180 ± 0.0009 vs 0.0157 ± 0.0002 Å⁻¹
-(fit window 1.424–1.512), 40 vs 174 Qxy bins, 3.2e4 vs 5.5e5 raw counts;
-σ/I at the peak 2.55 % vs 1.03 % per own bin, 0.66 % on the legacy bins;
+1.4665 ± 0.0001 Å⁻¹ (pinhole), FWHM 0.0180 ± 0.0009 vs 0.0155 ± 0.0002 Å⁻¹
+(fit window 1.424–1.512), 40 vs 177 Qxy bins, 3.2e4 vs 5.65e5 raw counts;
+σ/I at the peak 2.55 % vs 1.02 % per own bin, 0.66 % on the legacy bins;
 relative errors on equal bins 3.8× smaller (≈ 15× the counts).

@@ -25,7 +25,8 @@ Three PNG files per scan set, named ``<label>_S<scans>_<what>.png``:
 and ``<label>_S<scans>_summary.json`` with the numbers of the table.
 Uses only the scripting API (lss_core.experiment), i.e. the same code as
 the window, and runs headless (Agg). Private data (sample_data/private,
-sample_data/bu): --out must be outside the repository.
+sample_data/bu): --out must be under sample_data/private/figures/
+(git-ignored) or outside the repository.
 """
 import argparse
 import json
@@ -657,8 +658,10 @@ def _check_private(spec, out):
     s = os.path.abspath(spec)
     if any(os.path.join(ROOT, 'sample_data', p) in s for p in ('private', 'bu')):
         o = os.path.abspath(out)
-        if o == ROOT or o.startswith(ROOT + os.sep):
-            sys.exit('Private data: --out must be outside the repository (%s).' % ROOT)
+        safe = os.path.join(ROOT, 'sample_data', 'private', 'figures')      # git-ignored (AGENTS.md)
+        if (o == ROOT or o.startswith(ROOT + os.sep)) and not (o == safe or o.startswith(safe + os.sep)):
+            sys.exit('Private data: --out must be under sample_data/private/figures/ or outside the '
+                     'repository (%s).' % ROOT)
 
 
 def main(argv=None):
