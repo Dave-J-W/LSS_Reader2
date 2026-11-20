@@ -2909,3 +2909,19 @@ P39 fix) had arrived without an answer; the conservative option had been
 taken (raised-arm frames keep IDL's high edge). Explained in the
 conversation; regenerating stale figures is now AGENTS.md rule 11.
 
+### 2026-11-20 — GID patching options written up (manual addendum)
+
+**Owner.** "Commit a writeup about all the possible GID patching options and
+their advantages and disadvantages. Consider it part of the written manual
+but a technical addendum. A few clearly labelled 2D diagrams will help
+tremendously to disambiguate the various column, row, edge, overlap
+terminology." **Done:** `docs/manual/gid_patching.md` (terms, the pipeline,
+legacy vs pinhole, every option with advantages and disadvantages, choices,
+limitations), diagrams by a subagent (`tests/tools/gid_patching_diagrams.py`
+→ `docs/manual/figures/gid_patching/`). Numbers quoted are the measured NX
+ones already recorded (C10, C21–C24, OUTPUT_DECISIONS). **Found while
+writing (read only):** P41, the pinhole scan join fits every scan against
+the level's first scan, so scans that overlap only in a chain leave a factor
+undefined; and the polarisation factor is 5–12 % over a typical map (2θ
+13–20°), not negligible.
+

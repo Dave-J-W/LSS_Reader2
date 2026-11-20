@@ -104,6 +104,11 @@ Each line: feature — where — default — script — notes entry (date).
   (`docs/SCRIPTING.md`, "GID maps"). Save GID needs a map and Angles or Q
   axes (with Pixels it says so; it used to crash).
 
+- Technical addendum: every GID patching option with advantages and
+  disadvantages, terms and diagrams — `docs/manual/gid_patching.md`
+  (figures `docs/manual/figures/gid_patching/`, by
+  `tests/tools/gid_patching_diagrams.py`).
+
 ### Figures of the pinhole geometry
 - Eight figures of the exact pinhole trigonometry (lab frame, the
   direct-beam row and column, the pinhole from above, β depending on the
