@@ -2925,3 +2925,22 @@ the level's first scan, so scans that overlap only in a chain leave a factor
 undefined; and the polarisation factor is 5–12 % over a typical map (2θ
 13–20°), not negligible.
 
+### 2026-11-20 — Joining across 2θ: more on it, and P42
+
+**Owner.** "Is the joining across Qxy/detector theta so obvious that it
+isn't illustrated? I want more on that." **Done:** section 3a of
+`docs/manual/gid_patching.md` (within a scan: no factor, monitor
+normalisation and ΣN/ΣW for the pinhole, profiles side by side for the
+legacy; between scans: one fitted factor per scan, how each method fits
+it), diagrams 7 and 8.
+
+**Measured (NX scan 11 split into two scans, `tests/test_gid_scan_join.py`):**
+with B's counts × 0.8 the factor A/B must change by 1.25. Legacy: 1.250
+exactly. Pinhole with the default response 'fit': 1.173; 'beam' the same;
+'none' 1.240. Halves of one scan join at 0.963 ± 0.003 (χ²/dof 6.9) with
+'fit'. So the pinhole scan join is biased by the column response, which is
+fitted before the scans are joined (P42, new). NX's own levels have one
+scan each, so NX maps are not affected; the owner's levels of two Det_Th
+ranges are. Remedy proposed, not built: fit scan factors and response
+together, then measure again.
+

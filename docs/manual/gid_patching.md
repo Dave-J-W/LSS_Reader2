@@ -115,6 +115,84 @@ without interpolation (figure 6).
 | No interpolation: overlap cells hold summed counts, errors stay Poisson (ΣN). Counts are conserved (invariant I21, tested). | Light that does not come from the footprint through the pinhole (beam-path scattering, slit scattering, P40) is treated as signal; the exact window and the raised arm interact with a stray-light streak (see "Footprint window"). |
 | NX Bragg peak: σ/I 1.02 % per own bin against 2.55 % legacy; level join 1.068 ± 0.013, χ²/dof 0.93 (measured). | The level join factor depends on which columns each level uses when the illumination along the beam changes between the levels' scans (sample height drift of a few µm moves the footprint by mm at α = 0.09°; owner, 2026-11-19). The joined map stays consistent; the factor's value is a normalisation. |
 
+## 3a. Joining across 2θ (Det_Th): within a scan, and between scans
+
+A map's 2θ range is built from many frames at different Det_Th. That
+happens at two scales, and the two methods do both differently
+(figures 7 and 8). Qxy follows from 2θ (and β), so this is also the join
+along Qxy.
+
+### Within one scan: no factor is fitted
+
+Frames of one scan are put on one scale by the monitor (and absorber)
+normalisation alone; nothing is fitted between them.
+
+- **Pinhole.** Each frame's usable columns span about 2.6° of 2θ (NX), and
+  Det_Th steps by 0.1°, so the frames overlap heavily: a 2θ bin is seen by
+  up to 26 frames, each time through a different column (figure 7a). All
+  their pixels go into the same cells as ΣN/ΣW, so the overlap is an
+  average weighted by counts, not by a fitted factor. The same 2θ seen
+  through different columns is also what the column response is estimated
+  from: in the cells, column-to-column differences and frame-to-frame
+  differences are separated by assuming the response depends on the column
+  only ('fit') or on the point of the beam axis only ('beam').
+- **Legacy.** Each frame gives one profile at its Det_Th (the legacy column
+  band, ≈ 0.11° wide through the pinhole, at steps of 0.1°): profiles side
+  by side, no overlap, nothing averaged (figure 7b).
+
+| | Advantages | Disadvantages |
+|---|---|---|
+| Pinhole | Every 2θ seen many times, through many columns: counts add up, and column sensitivity can be measured from the data. | The frames' relative scale rests on the monitor and on the response model: if the light a column receives changes from frame to frame (narrow beam, sample height drift), the response cannot fully follow it, and the residual shows up as structure along 2θ and in the joins. |
+| Legacy | Simple; no model beyond the monitor. | One 3-column sample per frame; any frame-to-frame illumination change goes straight into the map. |
+
+### Between scans of one level: one factor per scan
+
+When a level is measured in several scans (e.g. two Det_Th ranges, as in
+the owner's GID runs, overlapping by 0.4°), their scales can differ
+(absorbers, slits, beam drift between scans), so a factor is fitted where
+they overlap in 2θ (figure 8).
+
+- **Legacy** (`gid.hjoin`): the β-summed value of each frame of the second
+  scan is interpolated linearly onto the first scan's Det_Th values in their
+  overlap; the ratios are fitted to one factor; the second scan is scaled,
+  and in the overlap the two scans are **averaged** (each interpolated onto
+  the finer grid). The overlap is the Det_Th values both scans have.
+- **Pinhole** (`pinhole.level_map`): the rows-summed ΣN/ΣW of the first scan
+  and of each further scan per shared 2θ bin; the ratios' inverse-variance
+  mean is the factor, applied to that scan's weights; then all pixels are
+  binned together. No interpolation, no averaging of two maps. The overlap
+  is every 2θ bin both scans' usable columns reach (many more than the
+  shared Det_Th values: 87 bins against 6 frames in the example below).
+
+**Measured (2026-11-20), NX scan 11 split into two scans** A (frames 0–20,
+Det_Th 14.0–16.0°) and B (frames 15–40, 15.5–18.0°), B's counts × 0.8, so
+the factor A/B must change by 1.25 (`tests/test_gid_scan_join.py`):
+
+| Method | A/B, B as measured | A/B, B × 0.8 | change (should be 1.25) |
+|---|---|---|---|
+| Legacy | 1.006 (the scans' mean monitors differ) | 1.257 | **1.250** |
+| Pinhole, response 'fit' (default) | 0.963 ± 0.003, χ²/dof 6.9 | 1.130 | **1.173** |
+| Pinhole, response 'beam' | 0.963, χ²/dof 8.0 | 1.130 | 1.173 |
+| Pinhole, response 'none' | 0.777, χ²/dof 43 | 0.964 | 1.240 |
+
+Two things follow (P42). First, the column response is fitted on all
+frames of the level **before** the scans are joined, so it absorbs about a
+third of a real scale difference between scans: the pinhole join recovers
+1.173 of 1.25. Second, two halves of the same scan, which should join at
+1.000, join at 0.963 with χ²/dof 6.9: the per-column response does not
+describe the frames well enough, and the scan factor takes up the misfit.
+With no response at all the join sees the scale (1.240), but the halves are
+then 22 % apart (columns differ). The legacy join recovers the scale
+exactly, but from 6 shared Det_Th values and with interpolation. The
+remedy, to be decided: estimate the scan factors together with the response
+(alternating, as the response itself is estimated), and measure again on
+these splits.
+
+| | Advantages | Disadvantages |
+|---|---|---|
+| Pinhole scan join | Many shared 2θ bins; no interpolation; counts conserved. | P42: biased by the response fit (above); P41: every scan is fitted against the level's first scan only. |
+| Legacy scan join | Recovers a scale between scans exactly (above). | Few shared values (the Det_Th both scans have); interpolates; averages the overlap (smoothing, correlated errors); needs Det_Th overlap, not just 2θ overlap. |
+
 ## 4. The options
 
 Defaults are what a user gets without changing anything. "Worksheet" is
@@ -162,7 +240,7 @@ the label in GID > Worksheet; `name` is the `GIDParams` field.
 
 | Option | Values (default) | Advantages | Disadvantages |
 |---|---|---|---|
-| Scan join (within a level) | pinhole: one factor per scan on the 2θ-overlap profiles, applied to W; legacy: interpolated ratio fit, then the overlap averaged | Pinhole: no interpolation, counts conserved. | Pinhole: each further scan is fitted against the **first** scan of the level, so every scan must overlap the first; scans that overlap only in a chain (A–B, B–C) leave the factor undefined (P41, read only). Legacy: a scan with no overlap is placed unscaled, with a warning. |
+| Scan join (within a level) | pinhole: one factor per scan on the 2θ-overlap profiles, applied to W; legacy: interpolated ratio fit, then the overlap averaged | Pinhole: no interpolation, counts conserved. | Pinhole: biased by the column response, which is fitted before the scans are joined (recovers 1.173 of an injected 1.25, P42; section 3a). Each further scan is fitted against the **first** scan of the level, so every scan must overlap the first; scans that overlap only in a chain (A–B, B–C) leave the factor undefined (P41, read only). Legacy: a scan with no overlap is placed unscaled, with a warning. |
 | Level join (between levels) | pinhole: one factor per level on the β overlap, equal weight per cell (figure 6); legacy: β-integrated profiles, interpolated (`vjoin_kind`: cubic) | Equal weight per cell avoids the 2.6 % bias of summed counts, which weight a 2θ feature differently in each level (measured on synthetic data). The factor's error is carried into the map's errors (its relative error × the level's share of the weight). | The factor depends on the columns used when the illumination changed between the levels' scans (section 3); the β overlap is short (NX: β 6.1–7.6°, 84 β bins), at the lower level's top rows and the upper level's bottom rows, where stray light (P40) lies. |
 | 2θ range across levels (`transverse`) | intersection / union (intersection) | **intersection**: every 2θ bin has every level, as the IDL code (IMG_JOIN). **union**: keeps all measured 2θ. | **intersection**: a short level (NX scan 12: 4 frames, 2θ 13.4–15.8°) cuts the whole map to its range. **union**: NaN where a level is missing at that β. |
 | GID Patch Relax (`relax=True`) | off | The Q map on the largest rectangle the data reach. | Fills empty regions with 1e-10, which the integrated cuts sum as data (P33). |
@@ -200,7 +278,7 @@ P5 (area correction asymmetry), P16 (bad-pixel replacement), P31/P36/P37
 (legacy, three levels), P33 (legacy edge copies, relaxed fill), P38 (per-axis
 angles still used in cuts and image axes), P39 (fixed: exact window), P40
 (stray light; raised-arm exception), P41 (pinhole scan join against the
-first scan only), and the open assumptions in
+first scan only), P42 (pinhole scan join biased by the response fit), and the open assumptions in
 `docs/OUTPUT_DECISIONS.md` (minimum frames per bin, β step, ΣN/ΣW vs IDL
 weights, the 1° raised-arm threshold). Comparisons behind the numbers above:
 `docs/COMPARISONS.md` C10, C11, C14, C21–C24; figures of the geometry:
