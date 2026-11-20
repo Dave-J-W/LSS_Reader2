@@ -78,11 +78,11 @@ def frame(scan, dth_deg):
 
 
 def usable(f):
-    """The frame's usable columns (``usable_columns``: S5 and footprint windows)
-    as the reader had them when these figures were drawn: IDL's window
-    (``footprint='idl'``). The reader now uses the exact one (P39 fix, D51);
-    the figures are to be redrawn for it."""
-    return ph.usable_columns(f.geom, NC, f.s5[0], f.s5[1], f.areainfo[1], f.s1_to_sample_mm, footprint='idl')
+    """The frame's usable columns as the reader uses them (``frame_columns``:
+    S5 window and the footprint seen through the whole S4 opening; P39 fix,
+    D51). IDL's centred window (``footprint_window``) is drawn as the option
+    it now is."""
+    return ph.frame_columns(f, NC)
 
 
 def ftp_of(f):
@@ -854,11 +854,9 @@ def case3(out):
             bx.annotate('S5 edge → column %.1f' % c, (x0, y0), xytext=(-40, 14 if c > g.c0 else -14),
                         textcoords='offset points', fontsize=8.5, ha='right', va='center', color=C['s5'],
                         path_effects=HALO, arrowprops=dict(arrowstyle='-', color=C['s5'], lw=0.5, alpha=0.6))
-        for c, rr in idl.items():
-            bx.annotate(('reader (P39): %.1f' % c).replace('-', '−'), st(rr.source),
-                        xytext=(10, 6) if c < g.c0 else (8, -6), textcoords='offset points', fontsize=8.5,
-                        ha='left', va='bottom' if c < g.c0 else 'top', color=C['approx'],
-                        path_effects=HALO)
+        for c, rr in idl.items():                    # along the dashed ray, on its free side
+            label_on_line(bx, st(rr.source), st(rr.slit), ('IDL (option): %.1f' % c).replace('-', '−'),
+                          C['approx'], frac=0.27, dy=3, size=8.5)
         u0, u1 = st(ph.ray_geometry(g, r0, use[0]).pixel), st(ph.ray_geometry(g, r0, use[-1]).pixel)
         bx.annotate('usable %d–%d' % (use[0], use[-1]), (u0[0], 0.55 * u1[1]), xytext=(u0[0] + 14, 0.55 * u1[1]),
                     textcoords='data', ha='left', va='center', fontsize=8.5, color='#4A6F96', path_effects=HALO)
@@ -867,7 +865,7 @@ def case3(out):
                                                       plan_magnification(bx)), fontsize=10, loc='left')
     caption(fig, 'Case 3 — The pinhole seen from above: every column sees its own footprint point',
             'Rays to the direct-beam row, <LOW>, Det_Th %.1f°. Black: from the footprint\'s ends; dashed grey: '
-            'the reader\'s footprint window (P39); purple: S5\'s edges traced back to the beam.' % deg(g.dth),
+            'IDL\'s window (an option); purple: S5\'s edges traced back to the beam.' % deg(g.dth),
             'ray_geometry, footprint_columns, footprint_window, s5_window, usable_columns, footprint_length.',
             provenance(f))
     save(fig, [a], os.path.join(out, 'case3_pinhole_top_view.png'), late=[late])
@@ -1159,8 +1157,8 @@ def case6(out):
                      % ('cd'[k], name, np.abs(arr[:, (allc < 0) | (allc >= NC)]).max()), fontsize=9.5,
                      loc='left', pad=18 if k == 0 else 6)
     caption(fig, 'Case 6 — Where the 200K\'s second module would be',
-            'Two %d × %d modules with a %d-pixel gap: the unused one would sit at columns %d…%d or %d…%d of this '
-            'numbering (<DATA> scan %d, β0 = %.1f°): per-axis angles fail there, and S5 gives it no light.'
+            'Two %d × %d modules, %d-pixel gap: the unused one would sit at columns %d…%d or %d…%d in this '
+            'numbering (<DATA> scan %d, β0 = %.1f°): per-axis angles fail there; S5 gives it no light.'
             % (NR, NC, GAP, llo, lhi, rlo, rhi, f.scan, deg(g.beta0)),
             'ray_geometry (rays, sources, module surfaces), pixel_angles minus column_two_theta / row_beta, '
             's5_window, footprint_length.', provenance(f))
@@ -1238,8 +1236,8 @@ def case7(out):
         bx.text(0.5 * (a0 + a1), 4, lab, ha='center', va='center', fontsize=8)
     rows = [(3, 'S5 window (slit size)', s5lo, s5hi, C['s5']),
             (2, 'footprint seen through S4 (exact)', t_lo, t_hi, FILL['seen']),
-            (1, 'reader\'s footprint window (centred on c0)', c_lo, c_hi, 'white'),
-            (0, 'usable = S5 ∩ reader\'s window', use[0] - 0.5, use[-1] + 0.5, '#2A6FD0')]
+            (1, 'IDL\'s window (centred on c0; an option)', c_lo, c_hi, 'white'),
+            (0, 'usable = S5 ∩ fully lit footprint', use[0] - 0.5, use[-1] + 0.5, '#2A6FD0')]
     for y, lab, a0, a1, col in rows:
         bx.barh(y, a1 - a0, left=a0, height=0.55, color=col, alpha=0.85 if col != C['s5'] else 0.55,
                 edgecolor=FILL['seen'] if col == 'white' else 'none', hatch='////' if col == 'white' else None)
@@ -1255,10 +1253,8 @@ def case7(out):
                 va='center', arrowprops=dict(arrowstyle='-', color=C['ray'], lw=0.5, alpha=0.6))
     bx.axvline(g.c0, color=C['det'], lw=1.0, ls=(0, (3, 2)))
     bx.text(g.c0, 4.55, 'c0 = %d (direct beam)' % g.c0, ha='center', va='bottom', fontsize=8, color=C['det'])
-    bx.annotate('', xy=(t_hi, 1.5), xytext=(c_hi, 1.5),
-                arrowprops=dict(arrowstyle='-|>', color='#C0652A', lw=1.2))
-    bx.text(t_hi + 14, 1.45, 'P39: the reader\'s window is %.1f columns low' % (t_hi - c_hi), ha='left',
-            va='center', fontsize=8, color='#C0652A')
+    bx.text(use[-1] + 14, 0, 'the reader stops at the S4 ramp\'s inner edge, %.1f\n(IDL\'s window ends %.1f '
+            'columns earlier)' % (i_hi, i_hi - c_hi), ha='left', va='center', fontsize=8, color='#2A6FD0')
     bx.set_xlim(SECOND['low'][0] - 230, SECOND['high'][1] + 10)
     bx.set_ylim(-0.9, 5.0)
     bx.set_yticks([])
@@ -1486,8 +1482,11 @@ def case8(out):
     cx.axvline(t_hi, color=C['ray'], lw=0.8, ls=(0, (2, 2)))
     cx.text(t_hi, 1.04, 'S4 as a line: edge at %.1f' % t_hi, ha='center', va='bottom', fontsize=8, color=C['ray'])
     cx.axvline(c_hi, color=C['approx'], lw=0.8, ls=(0, (4, 2)))
-    cx.text(c_hi + 0.15, 0.5, 'reader\'s window\nends %.1f (P39)' % c_hi, ha='left', va='center', fontsize=8,
+    cx.text(c_hi + 0.15, 0.62, 'IDL\'s window\n(option) ends %.1f' % c_hi, ha='left', va='center', fontsize=8,
             color=C['approx'], path_effects=HALO)
+    cx.axvline(use[-1] + 0.5, color='#4A6F96', lw=1.0, ls=(0, (4, 2)))
+    cx.text(use[-1] + 0.35, 0.3, 'reader: last\nusable column\n%d (fully lit)' % use[-1], ha='right', va='center',
+            fontsize=8, color='#4A6F96', path_effects=HALO)
     cx.set_xlim(cols[0], cols[-1])
     cx.set_ylim(-0.03, 1.14)
     cx.set_xlabel('column', fontsize=9, labelpad=1)
@@ -1549,8 +1548,8 @@ def case8(out):
         ex.spines[sp].set_visible(False)
     ex.set_title('(e) …and passes light in proportion', fontsize=10, loc='left')
     caption(fig, 'Case 8 — What the finite S4 opening does',
-            'S4 is a %.1f mm gap, not a line (<LOW>, Det_Th %.1f°, row r0): each column accepts a bundle of rays '
-            '(a, b), the footprint\'s edges become ramps (c); a wider S4 trades resolution for counts (d, e).'
+            'S4 is a %.1f mm gap, not a line (<LOW>, Det_Th %.1f°, row r0): each column takes a bundle of rays '
+            '(a, b), the footprint\'s ends are ramps (c); a wider S4: more counts, coarser 2θ (d, e).'
             % (w4, deg(g.dth)),
             'column_acceptance (and .lit_fraction, .throughput), s4_window, footprint_columns, footprint_window, '
             's5_window(slit_offset), ray_geometry.', provenance(f))

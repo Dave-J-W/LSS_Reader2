@@ -1,10 +1,5 @@
 # Pinhole GID geometry: eight figures
 
-> **Drawn before the P39 fix (2026-11-19, D51).** "The reader's window" in
-> these figures is IDL's centred one, now the option `footprint='idl'`; the
-> reader now uses the exact window (to the S4 ramps' inner edges), except at
-> the raised arm. The figures are to be redrawn for it.
-
 Made by `python tests/tools/pinhole_figures.py [--out DIR] [--only N …]`
 (default: this folder). Each figure carries its explanations as labels on
 the drawing; the two lines under it say what it shows and which functions
@@ -26,6 +21,14 @@ detector, is wide (3 mm on one side, 14 mm on the other) and decides
 which columns can receive light at all. The figures show where these
 rules put the light, how exactly the reader computes each pixel's angles,
 and what the finite width of S4 changes.
+
+**The reader's usable columns** (`usable_columns`, `frame_columns`; since
+the P39 fix, 2026-11-19, D51) are those that S5 passes and that see the
+footprint through the whole S4 opening (the inner edges of `s4_window`),
+the same on every row. On raised-arm frames (β0 > 1°) the high edge stays
+at IDL's because of a stray-light streak (P40b). IDL's own window
+(PD_PIN_RANGE: the right width, but centred on the direct-beam column c0)
+is kept as the option `footprint='idl'` and drawn in the figures as such.
 
 ## Conventions
 
@@ -51,8 +54,8 @@ and what the finite width of S4 changes.
   green the detector's e_h, e_v and the direct-beam row and column; magenta
   pixel offsets (wx, wy) and IMG_COO_CONV's u, v, w; **purple S5**: its
   blades, the rays through its edges (dashed) and the stretch of the beam
-  axis it lets through; grey the lab axes and the reader's approximations
-  (dashed). A purple × marks where S5 stops a ray. Labels are in the colour
+  axis it lets through; grey the lab axes, the per-axis approximations
+  and IDL's footprint window (dashed). A purple × marks where S5 stops a ray. Labels are in the colour
   of what they label; a vector's label lies along it, except labels of one
   or two characters (n, x, wy …), which stay upright.
 - **What the script adds**: drawing offsets, arcs between two directions
@@ -83,13 +86,13 @@ formula; the errors were all in the angles.
 
 **Look at:** (a) the whole set-up at true scale. The beam (k_in) lights the
 footprint; one ray goes from footprint point F through the S4 pinhole to
-pixel P (row 300, column 96, the last usable column) and arrives at
-2θ = 17.782°, β = 4.732°. D = 551.0 mm is the sample-to-detector distance,
+pixel P (row 300, column 100, the last usable column) and arrives at
+2θ = 17.927°, β = 4.749°. D = 551.0 mm is the sample-to-detector distance,
 D_p = 271 mm the S4-to-detector distance. The two black rays from the
 footprint's ends show its reach: the upstream end would land on column
 2.7 but S5 stops it (purple ×); the downstream end lands on column 102.0.
 (b) The detector close up: the arm's direction n, the detector's own axes
-e_h and e_v, and P's offsets from the direct-beam pixel, wx = −8.43 mm and
+e_h and e_v, and P's offsets from the direct-beam pixel, wx = −9.12 mm and
 wy = 42.48 mm.
 
 **Why it matters:** every later figure uses these names. wx is negative
@@ -106,7 +109,7 @@ axes still do (P38).
 **Look at:** (a) pixel A on the direct-beam row and pixel B on the
 direct-beam column, with their angles drawn as arcs from the ray's own
 direction. On B the two methods agree exactly (β 6.2727°); on A almost
-(β 0.0953° exact, 0.0906° per-axis), because the arm is nearly level here.
+(β 0.0957° exact, 0.0906° per-axis), because the arm is nearly level here.
 The note in (a) gives the raised arm (scan 12, β0 = 6.5°): there the
 direct-beam row is off by up to 1.02° in β (0.34° inside the usable
 columns). (b) The β error over the whole module: zero only on the green
@@ -129,11 +132,12 @@ footprint window. S5's two blades (purple) let through columns 27.2 to
 x = −13.3…49.4 mm of the beam axis (purple line on the beam axis), which
 starts inside the footprint and runs 18 mm beyond its downstream end. So
 the footprint limits the high side and S5 the low side: the column
-reached by the footprint's upstream end (2.7) is stopped by S5. The dashed
-grey rays are the reader's footprint window (`footprint_window`, after
-PD_PIN_RANGE): the same width but centred on c0, from −2.6 to 96.6
-(P39). The usable columns, 28 to 96 (pale blue), see x = −12.8…28.5 mm of
-the footprint (dark orange).
+reached by the footprint's upstream end (2.7) is stopped by S5. The usable
+columns, 28 to 100 (pale blue), end just inside the footprint's reach,
+where S4's width starts to cut the light (case 8); they see
+x = −12.8…30.6 mm of the footprint (dark orange). The dashed grey rays are
+IDL's footprint window (`footprint_window`, after PD_PIN_RANGE, now an
+option): the same width but centred on c0, from −2.6 to 96.6.
 
 **Why it matters:** this is the physical reason why β depends on the
 column (case 4), and it shows directly how far the footprint and the S5
@@ -143,12 +147,12 @@ allowance reach.
 `case4_beta_depends_on_column.png` · same frame.
 
 **Look at:** (a) two pixels on the top row (486), at the ends of the
-usable columns (28 and 96). Through S4 they see different footprint
-points, F1 at x = −12.8 mm and F2 at x = 28.5 mm. (b) Close to S4 (×25)
-their rays cross the slit 2.75 mm apart in height, because their sources
+usable columns (28 and 100). Through S4 they see different footprint
+points, F1 at x = −12.8 mm and F2 at x = 30.6 mm. (b) Close to S4 (×25)
+their rays cross the slit 2.90 mm apart in height, because their sources
 are at different distances. (c) So they leave the surface at different
-exit angles, β = 7.620° and 8.187° (0.567° apart), while the per-axis
-formula gives the whole row one β, 7.788°: off by up to 0.40° inside the
+exit angles, β = 7.620° and 8.217° (0.597° apart), while the per-axis
+formula gives the whole row one β, 7.788°: off by up to 0.43° inside the
 usable columns.
 
 **Why it matters:** a feature at a fixed β (a Bragg rod's intensity
@@ -195,17 +199,19 @@ and different slit settings: with the present slits it gets no light.
 footprint").
 
 **Look at:** (a) the footprint on the sample at true scale along the beam
-(63.3 × 2.0 mm), the part the usable columns see (−12.8…28.5 mm), and,
+(63.3 × 2.0 mm), the part the usable columns see (−12.8…30.6 mm), and,
 below it in purple, the stretch S5 lets through (−13.3…49.4 mm): compare
 their lengths directly. The small black bar is what one column sees
 through S4 and its own pixel width: 2.1 mm. Columns of the second module
 would look far off to either side. (b) The same on the column axis: a
 column is usable when S5 passes it (27.2…139.3) **and** it sees the
 footprint (2.7…102.0); here the low edge is set by S5, the high edge by
-the footprint. The reader's window (hatched, P39) is 5.4 columns too low,
-so columns 97–102, which do see the footprint, are left out (counts lost,
-no bias). The footprint window's edges are not sharp: through the 0.2 mm
-S4 each is a ramp (1.7…3.8 and 100.8…103.3; case 8). (c) Footprint length
+the footprint. The footprint window's edges are not sharp: through the
+0.2 mm S4 each is a ramp (1.7…3.8 and 100.8…103.3; case 8), so the reader
+stops at the ramp's inner edge, 100.8: usable columns 28–100, all fully
+lit. IDL's window (hatched, now an option) is centred on c0 and ends 4.2
+columns earlier (96.6), so it leaves out columns 97–100 (counts lost, no
+bias; P39, fixed 2026-11-19). (c) Footprint length
 against α for three S1 heights. (d) The columns that see the footprint
 against α: they reach the second module (column 212) only below
 α ≈ 0.037°, and S5 would still have to be opened.
@@ -268,11 +274,11 @@ footprint a column sees grows as Det_Th falls: 2.4 mm at 14°, 1.9 mm at
   counts); a peak narrower than that cannot be resolved by narrowing the
   bins.
 - **Edges.** With the NX settings every usable column is fully lit: the
-  reader's window ends at 96.6, below the ramp (100.8), and S5's edge at
-  27.2 is far inside the footprint. If the window were corrected (P39) to
-  the exact footprint edge, the last columns would be only partly lit
-  (column 102: 52 %), and the footprint weight would not know it; the
-  safe edge is `s4_window`'s inner edge (100.8 here).
+  reader stops at `s4_window`'s inner edge (100.8, last column 100; dashed
+  blue in (c)), and S5's edge at 27.2 is far inside the footprint. Going
+  on to the exact footprint edge (102.0) would add columns that are only
+  partly lit (column 102: 52 %), which the footprint weight would not
+  know. IDL's window (dashed grey, an option) ends earlier, at 96.6.
 - **Trade-off.** A wider S4 gives proportionally more counts per column
   and coarser 2θ; below about the pixel width (0.17 mm) narrowing S4 loses
   counts faster than it gains resolution, since the pixel then dominates.
@@ -305,10 +311,11 @@ to write figures of private data anywhere else inside the repository.
 
 ## Provenance and credit
 
-`tests/tools/pinhole_figures.py`, 2026-11-19, from the public NX school
-data; each figure's header prints `git describe` of the code that drew
+`tests/tools/pinhole_figures.py`, 2026-11-19 (redrawn 2026-11-20 for the
+P39 fix), from the public NX school data; each figure's header prints `git describe` of the code that drew
 it. The exact pixel transform is Mati Meron's IMG_COO_CONV (version 7.1,
 horizontal pinhole configuration; `docs/reference_code/idl/img_coo_conv.pro`),
-ported as `pinhole.pixel_angles`; the footprint window is his PD_PIN_RANGE.
+ported as `pinhole.pixel_angles`; IDL's footprint window (the option
+`footprint='idl'`) is his PD_PIN_RANGE.
 `ray_geometry` is an independent construction of the same geometry, and
 `tests/test_pinhole.py` checks the two against each other to 1e-12 rad.
