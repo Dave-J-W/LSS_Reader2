@@ -1,0 +1,3 @@
+set,level,distance_mm,error_mm,header_mm,reliable,why,peak_deg,frames,chi2_dof,drift,chi2_dof_header,drift_header,centre_deg,fwhm_deg
+20260923 S11+12,1,265.77405923106005,1.0666116824850052,271.0,True,,16.63644898255071,16,1.417201313291116,-0.0002927651905793432,3.69550787053174,0.017044375118084203,16.648368421101466,0.16705610517510563
+20260923 S11+12,2,,,,False,the level covers too little 2theta for a peak window,,,,,,,,

@@ -1,4 +1,5 @@
 from PyQt5 import uic, Qt#, QtGui, QtCore
+import dataclasses
 # from PyQt5.QtCore import *
 # from PyQt5.QtGui import *
 from PyQt5.QtGui import QIcon, QIntValidator, QDoubleValidator
@@ -3351,8 +3352,11 @@ class MainWindow (QMainWindow):
                        'a path when the arm is raised (IDL). Pinhole mode only.')
         fit=QPushButton('Fit',g)
         fit.setObjectName('gidFitDistancePushButton')
-        fit.setToolTip('Estimate the S4-detector distance from the drift of the strongest feature across the frames; '
-                       'shown, not applied')
+        fit.setToolTip('Calibrate the S4-detector distance from single frames (owner, 2026-11-21): the strongest peak '
+                       'of the first Qz level is fitted in every frame that holds it, without patching; a wrong distance '
+                       'makes it drift with the column that sees it, so the distance where the frames agree best is '
+                       'the calibrated one. Filled in above when reliable (enough frames, they agree, no drift left); '
+                       'otherwise only shown, with the reason. lss_core.pinhole.calibrate_distance.')
         fitl=QLabel('',g)
         fitl.setObjectName('gidFitLabel')
         prow=QHBoxLayout()
@@ -3463,10 +3467,14 @@ class MainWindow (QMainWindow):
         def fitdist():
             r=self.gidFitPinholeDistance()
             if r:
-                fitl.setText('%.0f +/- %.0f' % (r['distance'],r['error']))
-                fitl.setToolTip('Fitted from %d frames, feature at 2theta %.3f deg, columns %d-%d; header value %.0f mm. '
-                                'The statistical error leaves out the column-response bias (several mm).'
-                                % (r['frames'],r['peak'],r['columns'][0],r['columns'][1],r['header']))
+                fitl.setText('%.1f +/- %.1f%s' % (r.distance_mm,r.error_mm,'' if r.reliable else ' (not used)'))
+                fitl.setToolTip('Single frames: peak at 2theta %.3f deg in %d frames (rows %d-%d), frames agree chi2/dof '
+                                '%.2f, drift %.4f deg/deg; at the header value (%.1f mm): chi2/dof %.2f, drift %.4f. %s'
+                                % (r.peak_deg,r.frames,r.rows[0],r.rows[1],r.chi2_dof,r.drift,r.header_mm,
+                                   r.chi2_dof_header,r.drift_header,
+                                   'Filled in above.' if r.reliable else 'Not used: %s.' % r.why))
+                if r.reliable:
+                    pdist.setValue(round(r.distance_mm,1))
         for w in (cols,rmin,rmax,qzd,dthd,hard):
             w.valueChanged.connect(apply)
         area.toggled.connect(apply)
@@ -3685,33 +3693,18 @@ class MainWindow (QMainWindow):
                                self.truealpha[0],self.wavelength[0],relax=getattr(self,'pilGIDRelax',0)!=0)
 
     def gidFitPinholeDistance(self):
-        """S4 → detector distance from the drift of the strongest feature of
-        the first Qz level (a diagnostic; the value is not changed)."""
+        """S4 -> detector distance calibrated from single frames of the first
+        Qz level (lss_core.pinhole.calibrate_distance); None on failure."""
         if self.det!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]))<6:
             self.messageBox('Select the frames of a GID scan (at least 6) first.')
             return None
-        gp=self.gidParams
-        frames=list(self.selectedPilFramesNums)
-        prof=np.array([np.clip(np.asarray(self.pilData[i],float)[gp.row_min:gp.row_max+1],0,None).sum(0) for i in frames])
-        dth=np.degrees([self.pil_Dth[i] for i in frames])
-        p=self.specPar[self.pilScanNum[frames[0]]]
-        dp=gp.pinhole_distance_mm or float(self.pil_PDist[frames[0]])
-        g=pinhole.FrameGeometry(dth=float(np.radians(np.median(dth))),alpha=float(self.pilTrueAlpha[frames[0]]),beta0=0.0,
-                                c0=float(self.xcenter[0]),r0=float(self.ycenter[0]),d_sample=float(self.pil_Dist[frames[0]]),
-                                d_pinhole=dp,wavelength=float(self.pil_Wavelength[frames[0]]))
-        win=pinhole.usable_columns(g,prof.shape[1],p['S5L'],p['S5R'],p['S1T']+p['S1B'],p.get('g_l2',0.0)-p.get('g_l1',0.0),
-                                   s4_mm=p.get('S4L',0.0)+p.get('S4R',0.0),footprint=gp.footprint)
-        tt=float(np.median(dth))+np.degrees(np.arctan((np.arange(prof.shape[1])-g.c0)*pinhole.PIXEL_MM/dp))
-        ex=prof-np.median(prof,axis=0)
-        f=int(np.argmax(ex[:,win].max(axis=1)))          # the frame with the strongest feature
-        c=int(win[0]+np.argmax(ex[f,win]))
-        peak=float(dth[f]+np.degrees(np.arctan((c-g.c0)*pinhole.PIXEL_MM/dp)))
+        gp=dataclasses.replace(self.gidParams,pinhole_distance_mm=0.0)        # start from the header value
         try:
-            d,err,slope,n=pinhole.fit_pinhole_distance(prof,dth,g.c0,peak,dp,(int(win[0]),int(win[-1])))
-        except Exception as e:
-            self.messageBox('No distance fit: %s.' % e)
+            level=gidmod.pinhole_frames(self.gidFrames(),gp)[0]
+            return pinhole.calibrate_distance(level)
+        except (ValueError,IndexError,KeyError) as e:
+            self.messageBox('No distance calibration: %s.' % e)
             return None
-        return dict(distance=d,error=err,frames=n,peak=peak,columns=(int(win[0]),int(win[-1])),header=dp)
 
     def calArea(self, areainfo, dth):
         """Footprint fraction (lss_core.gid.cal_area) with the H slit field."""

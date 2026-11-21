@@ -409,9 +409,22 @@ about 4 % at 263 mm; legacy is 36 % broader. So:
 - **a wrong distance broadens the patched peak** (the frames put it in
   slightly different places); at the right distance the patch does not.
 
-The minimum χ²/dof is 5–13, not 1, so something else also moves the peak a
-little from frame to frame (counting statistics of the background fit, the
-illumination slope across the peak, c0); the distance is the main term.
+**Update 2026-11-21 (owner: "calibrate from single frames"):** the
+single-frame fits above binned each frame on a fixed 2θ grid, which aliases
+the columns (the centre then depends on where the peak falls within a bin,
+±0.02°). Fitted column by column instead, each column at its own mean 2θ
+(`pinhole.single_frame_peaks`), the frames agree almost to counting noise:
+NX scan 11 calibrates to **265.7 ± 1.1 mm** with χ²/dof **1.42** (3.7 at
+271 mm); the owner's scan 163 to 262.0 ± 1.4 mm (χ²/dof 6.7, against 28.7
+at 271 mm). At 265.7 mm the patched map's centre is 16.6481 ± 0.0036°
+against the single frames' 16.6485 ± 0.0014°, width within 3 %. The
+worksheet's **Fit** button now runs this calibration
+(`pinhole.calibrate_distance`: the strongest peak that single frames fit,
+distances 0.90–1.06 × the header value) and fills in the S4–detector
+distance when the result is reliable (enough frames, they agree, no drift
+left, an error below 5 mm); otherwise it shows the result and why it was
+not used (e.g. the owner's 386 + 387: no peak that single frames fit
+cleanly). The header value stays the default until Fit is pressed.
 
 ## 4. The options
 

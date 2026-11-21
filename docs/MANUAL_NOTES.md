@@ -109,6 +109,10 @@ Each line: feature — where — default — script — notes entry (date).
   as collected, factors only reported) — `GIDParams(response='physical',
   beam_fwhm_um=…, beam_centre_mm=…, beam_h_fwhm_mm=…, apply_joins=False)` —
   addendum `docs/manual/gid_patching.md` 3b; Notes 2026-11-20.
+- Worksheet "Fit" (S4-detector): calibrates the distance from single frames
+  (the strongest peak fitted in every frame, the distance where they agree) and
+  fills it in when reliable; the label's tooltip gives the frames, χ²/dof and
+  drift, or why it was not used — `pinhole.calibrate_distance` — addendum 3d.
 - Pinhole geometry is the default (D40); "2θ range across levels"
   common/all.
 - Scriptable: `exp.gid(...)`; Save GID writes the call to the Script pane

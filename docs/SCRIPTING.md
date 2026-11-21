@@ -171,6 +171,10 @@ The window's "GID Patch" (`relax=True`: "GID Patch Relax", the larger Q
 grid), with the GID worksheet's settings in `params` (every field of
 `GIDParams`; `columns` is the window's H slit field). `points`, `db_pos`,
 `errors` (legacy patch only) and the bad-pixel settings as for cuts.
+Distance from single frames: `from lss_core import gid, pinhole;
+level = gid.pinhole_frames(exp.gid_frames([11])[0], gid.GIDParams())[0];
+cal = pinhole.calibrate_distance(level)` (`cal.distance_mm`, `.error_mm`,
+`.reliable`, `.why`), then `GIDParams(pinhole_distance_mm=cal.distance_mm)`.
 `GIDParams(response='physical')` computes the response from the geometry and
 a Gaussian beam (`beam_fwhm_um`, `beam_centre_mm` fitted unless given;
 `gid.info['levels'][k]['physical']` holds the beam found), and

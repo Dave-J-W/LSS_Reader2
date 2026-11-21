@@ -818,6 +818,214 @@ def two_theta_resolution(f):
     return float(np.degrees(np.ptp(acc.two_theta))), s4
 
 
+def _gauss_line(x, a, c, s, b0, b1):
+    return a * np.exp(-0.5 * ((x - c) / s) ** 2) + b0 + b1 * (x - c)
+
+
+def single_frame_peaks(level, peak_deg, half_deg=0.4, rows=None, distance=None):
+    """A peak fitted in every single frame of ``level`` that holds it, with
+    no patching (owner, 2026-11-21: an unpatched frame is the ground truth
+    for a peak's position and width). Each frame's usable columns, exact
+    per-pixel 2θ at S4–detector ``distance`` (mm; None: the frames' own),
+    each column's counts over ``rows`` (first, last) per monitor count at
+    the column's mean 2θ (no binning: a fixed 2θ grid aliases the columns
+    and biases the centre by ±0.02°), a Gaussian on a line over peak_deg ±
+    half_deg. Frames whose fit
+    fails or is implausible are left out. Returns an array of rows (Det_Th,
+    centre, its error, FWHM, its error), degrees."""
+    from dataclasses import replace
+    from scipy.optimize import curve_fit
+    out = []
+    for f in level:
+        g = f.geom if distance is None else replace(f.geom, d_pinhole=float(distance))
+        r0, r1 = rows if rows is not None else (0, f.counts.shape[0] - 1)
+        cols = frame_columns(replace(f, geom=g), f.counts.shape[1])
+        if len(cols) < 3:
+            continue
+        tt, _ = pixel_angles(g, np.arange(r0, r1 + 1), cols)
+        x = np.degrees(tt).mean(axis=0)                       # each column at its own mean 2θ: no binning
+        n = np.clip(np.asarray(f.counts, float)[r0:r1 + 1][:, cols], 0, None).sum(axis=0)
+        if not (x.min() < peak_deg - half_deg and x.max() > peak_deg + half_deg):
+            continue
+        ok = np.abs(x - peak_deg) <= half_deg
+        if ok.sum() < 8:
+            continue
+        nrow = r1 - r0 + 1
+        x, y, e = x[ok], n[ok] / f.monitor / nrow, np.sqrt(np.maximum(n[ok], 1)) / f.monitor / nrow
+        try:
+            p, c = curve_fit(_gauss_line, x, y, p0=[y.max() - np.median(y), x[np.argmax(y)], 0.06, np.median(y), 0.0],
+                             sigma=e, maxfev=20000)
+        except (RuntimeError, ValueError):
+            continue
+        err = np.sqrt(np.clip(np.diag(c), 0, None))
+        fw = 2 * math.sqrt(2 * math.log(2)) * abs(p[2])
+        if np.isfinite(err[1]) and err[1] < 0.02 and 0.02 < fw < 4 * half_deg and abs(p[1] - peak_deg) < half_deg:
+            out.append((math.degrees(f.geom.dth), p[1], err[1], fw, 2 * math.sqrt(2 * math.log(2)) * err[2]))
+    return np.array(out).reshape(-1, 5)
+
+
+def frames_agree(peaks):
+    """(weighted mean centre, its error, χ²/dof of the centres about it,
+    drift of the centre with Det_Th in deg/deg, median FWHM) of
+    ``single_frame_peaks``."""
+    w = 1 / peaks[:, 2] ** 2
+    m = float(np.sum(w * peaks[:, 1]) / w.sum())
+    chi = float(np.sum(w * (peaks[:, 1] - m) ** 2) / max(len(peaks) - 1, 1))
+    drift = float(np.polyfit(peaks[:, 0], peaks[:, 1], 1, w=1 / peaks[:, 2])[0]) if len(peaks) > 2 else float('nan')
+    return m, float(w.sum() ** -0.5), chi, drift, float(np.median(peaks[:, 3]))
+
+
+def rows_for_beta(f, beta_deg):
+    """Detector rows whose β (at the direct-beam column) lies in
+    ``beta_deg`` (low, high), as (first, last)."""
+    rows = np.arange(f.counts.shape[0])
+    _, bb = pixel_angles(f.geom, rows, [f.geom.c0])
+    b = np.degrees(bb[:, 0])
+    sel = rows[(b >= beta_deg[0]) & (b <= beta_deg[1])]
+    return (int(sel.min()), int(sel.max())) if len(sel) else (0, f.counts.shape[0] - 1)
+
+
+def strongest_peak(level, rows, half_deg=0.4, min_frames=6, all_candidates=False):
+    """2θ (deg) of the strongest narrow feature of a level: the frames'
+    counts per monitor binned in 2θ (no response), minus a running median
+    over ±1°, the maximum among the bins whose whole window ± ``half_deg``
+    lies inside at least ``min_frames`` frames (owner: the largest peak by
+    default)."""
+    step = math.degrees(PIXEL_MM / level[0].geom.d_pinhole)
+    ts, ns, ws = [], [], []
+    for f in level:
+        cols = frame_columns(f, f.counts.shape[1])
+        tt, _ = pixel_angles(f.geom, np.arange(rows[0], rows[1] + 1), cols)
+        ts.append(np.degrees(tt).ravel())
+        ns.append(np.clip(np.asarray(f.counts, float)[rows[0]:rows[1] + 1][:, cols], 0, None).ravel())
+        ws.append(np.full(tt.size, f.monitor))
+    t, n, w = np.concatenate(ts), np.concatenate(ns), np.concatenate(ws)
+    edges = np.arange(t.min(), t.max() + step, step)
+    sn = np.histogram(t, edges, weights=n)[0]
+    sw = np.histogram(t, edges, weights=w)[0]
+    x = 0.5 * (edges[1:] + edges[:-1])
+    nf = np.zeros(len(edges) - 1)                     # frames that hold the whole window x ± half_deg
+    for tf in ts:
+        nf += (tf.min() < x - half_deg) & (tf.max() > x + half_deg)
+    prof = np.where(sw > 0, sn / np.where(sw > 0, sw, 1), np.nan)
+    k = max(int(round(1.0 / step)), 3)
+    base = np.array([np.nanmedian(prof[max(i - k, 0):i + k + 1]) for i in range(len(prof))])
+    ok = (nf >= min_frames) & np.isfinite(prof)
+    if not ok.any():
+        raise ValueError('the level covers too little 2theta for a peak window')
+    cands = peak_candidates(x, prof - base, ok, half_deg)
+    return cands if all_candidates else float(cands[0])
+
+
+def peak_candidates(x, excess, ok, half_deg, n=5):
+    """Up to ``n`` positions of the largest ``excess`` among ``ok`` bins, at
+    least 2 × ``half_deg`` apart, strongest first."""
+    order = np.argsort(np.where(ok, excess, -np.inf))[::-1]
+    out = []
+    for i in order:
+        if not ok[i] or not np.isfinite(excess[i]):
+            break
+        if all(abs(x[i] - c) >= 2 * half_deg for c in out):
+            out.append(float(x[i]))
+        if len(out) == n:
+            break
+    return out
+
+
+@dataclass
+class DistanceCalibration:
+    """``calibrate_distance``'s result. ``distance_mm`` ± ``error_mm``: the
+    S4–detector distance at which the single frames agree best;
+    ``header_mm``: the frames' own (header) value; ``peak_deg``, ``rows``,
+    ``half_deg``: what was fitted; ``frames``: frames used at the best
+    distance; ``chi2_dof``, ``drift``: their agreement and drift there;
+    ``chi2_dof_header``, ``drift_header``: the same at the header distance;
+    ``scan``: rows (distance, frames, centre, χ²/dof, drift, median FWHM);
+    ``reliable``: enough frames, χ²/dof ≤ ``MAX_CAL_CHI2``, no residual drift
+    (|drift| ≤ 0.01 deg/deg), the best distance inside the scanned range and
+    an error below 5 mm; ``why``: what failed otherwise."""
+    distance_mm: float
+    error_mm: float
+    header_mm: float
+    peak_deg: float
+    rows: tuple
+    half_deg: float
+    frames: int
+    chi2_dof: float
+    drift: float
+    chi2_dof_header: float
+    drift_header: float
+    centre_deg: float
+    fwhm_deg: float
+    scan: np.ndarray
+    reliable: bool = True
+    why: str = ''
+
+
+MAX_CAL_CHI2 = 25.0    # single frames agreeing worse than this: no calibration (NX 5.3, owner's 163: 11.8)
+
+
+def calibrate_distance(level, peak_deg=None, half_deg=0.4, beta_deg=(-0.1, 2.0), rel_range=(0.90, 1.06),
+                       step_mm=1.0, min_frames=5):
+    """S4–detector distance from single frames (owner, 2026-11-21: "calibrate
+    from single frames"): a peak fitted in every frame that holds it
+    (``single_frame_peaks``) must sit at one 2θ whatever columns see it; a
+    wrong distance scales the angle per column, so the peak then drifts with
+    Det_Th. The distance is scanned over ``rel_range`` × the header value in
+    ``step_mm`` steps; the result is the vertex of a parabola through the χ²
+    minimum, with the error where the χ², rescaled to 1 per degree of
+    freedom at the minimum, rises by 1. ``peak_deg`` None: the strongest
+    peak that at least ``min_frames`` single frames fit (``strongest_peak``
+    candidates, strongest first); rows from ``beta_deg`` (near the horizon,
+    where GID peaks are brightest). Raises ValueError when too few frames
+    hold the peak."""
+    header = float(level[0].geom.d_pinhole)
+    rows = rows_for_beta(level[0], beta_deg)
+    cands = [peak_deg] if peak_deg is not None else strongest_peak(level, rows, half_deg, all_candidates=True)
+    grid = np.arange(header * rel_range[0], header * rel_range[1] + step_mm / 2, step_mm)
+    for peak_deg in cands:                              # the strongest peak that single frames fit
+        if len(single_frame_peaks(level, peak_deg, half_deg, rows, header)) < min_frames:
+            continue
+        scan = []
+        for d in grid:
+            pk = single_frame_peaks(level, peak_deg, half_deg, rows, d)
+            if len(pk) >= min_frames:
+                m, me, chi, drift, fw = frames_agree(pk)
+                scan.append((d, len(pk), m, chi, drift, fw))
+        scan = np.array(scan).reshape(-1, 6)
+        if len(scan) >= 3:
+            break
+    else:
+        raise ValueError('no peak (tried %s deg) is fitted in %d single frames'
+                         % (', '.join('%.3f' % c for c in cands), min_frames))
+    k = int(np.argmin(scan[:, 3]))
+    lo, hi = max(k - 2, 0), min(k + 3, len(scan))
+    best, err = float(scan[k, 0]), float(step_mm)
+    if hi - lo >= 3:
+        a, b, c = np.polyfit(scan[lo:hi, 0], scan[lo:hi, 3], 2)
+        if a > 0 and scan[lo, 0] <= -b / (2 * a) <= scan[hi - 1, 0]:
+            best = float(-b / (2 * a))
+            cmin = max(float(c - b * b / (4 * a)), 1e-9)
+            err = float(math.sqrt(cmin / (a * max(scan[k, 1] - 1, 1))))
+    at = single_frame_peaks(level, peak_deg, half_deg, rows, best)
+    hd = single_frame_peaks(level, peak_deg, half_deg, rows, None)
+    m, _, chi, drift, fw = frames_agree(at) if len(at) >= 3 else (float('nan'),) * 5
+    _, _, chi_h, drift_h, _ = frames_agree(hd) if len(hd) >= 3 else (float('nan'),) * 5
+    why = []
+    if len(at) < min_frames:
+        why.append('only %d frames fit the peak at the best distance' % len(at))
+    if not chi <= MAX_CAL_CHI2:
+        why.append('the frames disagree (chi2/dof %.1f)' % chi)
+    if not abs(drift) <= 0.01:
+        why.append('the peak still drifts with Det_Th (%.3f deg/deg)' % drift)
+    if not (scan[0, 0] < best < scan[-1, 0]):
+        why.append('the best distance is at the edge of the range tried')
+    if not err < 5.0:
+        why.append('the distance is poorly defined (+/- %.1f mm)' % err)
+    return DistanceCalibration(best, err, header, float(peak_deg), rows, half_deg, len(at), chi, drift, chi_h,
+                               drift_h, m, fw, scan, not why, '; '.join(why))
+
+
 def fit_pinhole_distance(profiles, dth_deg, c0, peak_deg, d_guess, window, half_width=6, min_frames=6):
     """S4 → detector distance (mm) from the drift of a feature at a fixed
     angle ``peak_deg`` (e.g. a Bragg peak): each column profile (frames,

@@ -3070,3 +3070,33 @@ patch is 21 % (NX) and 36 % (163) broader than single frames. Decision
 waiting on the owner: calibrate the distance from single frames, or keep
 the header value (TODO input 19).
 
+### 2026-11-21 — Distance calibrated from single frames; survey for a final judgment
+
+**Owner.** "Calibrate from single frames as you suggest. Commit your
+comparison work such that another agent can pick up what you were doing
+with a much larger dataset for a final judgment."
+
+**Built.** `pinhole.calibrate_distance` (with `single_frame_peaks`,
+`frames_agree`, `strongest_peak`, `rows_for_beta`): the strongest peak that
+at least 5 single frames fit, the S4–detector distance scanned over 0.90–
+1.06 × the header value, a parabola through the χ² minimum, the error where
+the rescaled χ² rises by 1, and a reliability verdict with reasons. The
+worksheet's Fit button runs it and fills in the distance when reliable.
+Tests: synthetic frames drawn at 262 mm with a header of 271 give 262; a
+flat spectrum is refused. The window's Fit used to be a response-based
+diagnostic (shown, not applied): changed deliberately.
+
+**Found on the way (measured):** fitting single frames on a fixed 2θ grid
+aliases the columns: on synthetic frames with no noise, at the true
+distance, the centres swung ±0.02° with a three-frame period. Fitting each
+column at its own mean 2θ removes it; on NX the frames then agree to χ²/dof
+1.42 at 265.7 ± 1.1 mm (it was 5.3 binned). Owner's 163: 262.0 ± 1.4 mm,
+χ²/dof 6.7; 386 + 387: refused (no peak that single frames fit cleanly).
+
+**For the final judgment:** `tests/tools/gid_method_survey.py` runs every
+method, the calibration, the single-frame truth and the split test on any
+number of GID sets and writes CSVs and a summary; hand-off
+`docs/handoff_out/06-gid-method-comparison.md` says what to decide, how to
+judge, the caveats and the privacy rule; the worked example on NX is
+`docs/comparisons_data/gid_survey_nx/`.
+

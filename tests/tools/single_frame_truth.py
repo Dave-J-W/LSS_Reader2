@@ -9,9 +9,10 @@ position and width (sharper statistics, not a moved or broader peak).
     python tests/tools/single_frame_truth.py --scans 11 --peak 16.63
     python tests/tools/single_frame_truth.py --spec FILE --scans 163 --peak P --distances 255:280:2.5
 
-For each frame whose usable columns cover peak ± half: counts per one-column
-2θ bin (exact per-pixel angles, rows --rows), per monitor count, fitted with
-a Gaussian on a line; frames whose fit fails or is implausible are left out.
+For each frame whose usable columns cover peak ± half: each column's counts
+over --rows per monitor count at its own mean 2θ (exact per-pixel angles;
+no binning, which aliases), fitted with a Gaussian on a line
+(``lss_core.pinhole.single_frame_peaks``); frames whose fit fails or is implausible are left out.
 Prints the frames, then, for each S4–detector distance in --distances, how
 well the frames agree (χ²/dof of their centres about the weighted mean) and
 their drift with Det_Th (a wrong distance makes the peak move with the
@@ -57,35 +58,12 @@ def fit_peak(x, y, e, x0):
 
 
 def frame_peaks(level, peak, half, rows, distance=None):
-    """Per frame (Det_Th, centre, error, FWHM) of the peak, at ``distance``
-    (S4–detector, mm; None: the frames' own)."""
-    out = []
-    for f in level:
-        g = f.geom if distance is None else dataclasses.replace(f.geom, d_pinhole=distance)
-        cols = ph.frame_columns(dataclasses.replace(f, geom=g), f.counts.shape[1])
-        tt, _ = ph.pixel_angles(g, np.arange(rows[0], rows[1] + 1), cols)
-        t = np.degrees(tt).ravel()
-        n = f.counts[rows[0]:rows[1] + 1][:, cols].ravel()
-        if not (t.min() < peak - half and t.max() > peak + half):
-            continue
-        step = math.degrees(ph.PIXEL_MM / g.d_pinhole)
-        edges = np.arange(peak - half, peak + half + step, step)
-        sn = np.histogram(t, edges, weights=np.clip(n, 0, None))[0]
-        npx = np.histogram(t, edges)[0]
-        y = sn / np.maximum(npx, 1) / f.monitor
-        e = np.sqrt(np.maximum(sn, 1)) / np.maximum(npx, 1) / f.monitor
-        r = fit_peak(0.5 * (edges[1:] + edges[:-1]), y, e, peak)
-        if r and r[1] < 0.02 and 0.02 < r[2] < 4 * half:
-            out.append((math.degrees(f.geom.dth),) + r)
-    return np.array(out)
+    """``lss_core.pinhole.single_frame_peaks`` (per column, no binning)."""
+    return ph.single_frame_peaks(level, peak, half, rows, distance)
 
 
 def agreement(a):
-    w = 1 / a[:, 2] ** 2
-    m = float(np.sum(w * a[:, 1]) / w.sum())
-    chi = float(np.sum(w * (a[:, 1] - m) ** 2) / max(len(a) - 1, 1))
-    drift = float(np.polyfit(a[:, 0], a[:, 1], 1, w=1 / a[:, 2])[0])
-    return m, float(w.sum() ** -0.5), chi, drift, float(np.median(a[:, 3]))
+    return ph.frames_agree(a)
 
 
 def map_peak(e, scans, params, peak, half, beta):
@@ -133,7 +111,10 @@ def main():
               % (dist, len(fd), m, me, chi, drift, fw))
         if best is None or chi < best[1]:
             best = (dist, chi)
-    print('Frames agree best at %.1f mm (header %.1f mm).' % (best[0], header))
+    print('Frames agree best at %.1f mm on the grid (header %.1f mm).' % (best[0], header))
+    cal = ph.calibrate_distance(level, peak_deg=a.peak, half_deg=a.half)
+    print('calibrate_distance: %.1f ± %.1f mm, reliable %s %s' % (cal.distance_mm, cal.error_mm, cal.reliable, cal.why))
+    best = (round(cal.distance_mm, 1), cal.chi2_dof)
     for dist in (0.0, best[0]):
         fd = frame_peaks(level, a.peak, a.half, rows, dist or None)
         m, me, chi, drift, fw = agreement(fd)

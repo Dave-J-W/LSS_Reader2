@@ -37,7 +37,7 @@ stated assumption until the answer arrives.
 | 15 | ~~P39~~: decided 2026-11-19 (D51), exact window to the S4 ramps' inner edges; IDL's as an option | — | — |
 | 16 | Half-cut sh scans for the beam's vertical profile (F43; owner, 2026-11-19) | a measured beam for response 'beam' and for P39 | the profile fitted from the GID data |
 | 17 | GID frames with little signal (mostly background) at both arm heights (P40; owner offered, 2026-11-19) | stray light and beam-path background in GID maps | P40 open |
-| 19 | S4–detector distance (P43): keep the header value (271 mm), or calibrate it from single frames (NX ≈ 265, private ≈ 263 mm)? | GID 2θ scale, peak widths | header value |
+| 19 | ~~S4–detector distance (P43)~~: calibrate from single frames (owner, 2026-11-21): built, worksheet Fit; automatic calibration and the final GID defaults: large-data survey, `docs/handoff_out/06-gid-method-comparison.md` | — | header value until Fit |
 | 18 | GID overlap pixels: ΣN/ΣW (built) vs IDL's error-weighted mean (the owner chose "as the IDL code does", 2026-11-18; the error weights are biased at low counts, IDL review) | GID map values | ΣN/ΣW, to confirm |
 
 ### Stage 3 work list

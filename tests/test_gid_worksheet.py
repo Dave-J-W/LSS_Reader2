@@ -139,7 +139,10 @@ def test_pinhole_mode_from_the_worksheet(nx, qapp, recorder):
     qapp.processEvents()
     assert recorder.exceptions == []
     fitted = float(d.gidFitLabel.text().split()[0])
-    assert 255 < fitted < 285 and d.gidPinholeDistSpinBox.value() == 0.0    # shown, not applied
+    # owner, 2026-11-21: calibrate from single frames; the calibrated value is filled in when reliable
+    # (was: a response-based fit, shown, not applied). NX scan 11: 265.2 +/- 1.6 mm
+    assert fitted == pytest.approx(265.2, abs=1.5) and d.gidPinholeDistSpinBox.value() == pytest.approx(fitted, abs=0.05)
+    d.gidPinholeDistSpinBox.setValue(0.0)
     d.gidPinholeCheckBox.setChecked(False)
     d.findChild(QPushButton, 'gidPatchPushButton').click()
     qapp.processEvents()

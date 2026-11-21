@@ -675,3 +675,27 @@ def test_frame_consistency_is_one_for_counting_noise():
     assert info['consistency_chi2'] == pytest.approx(1.0, abs=0.15)
     exact = _frames(np.arange(14, 18.01, 0.1), lambda t: 1e-4 + 0 * t)
     assert ph.level_map(exact, 15, 486, response='none', area=False, pol=False)[4]['consistency_chi2'] < 1e-6
+
+
+# ---- S4–detector distance from single frames (owner, 2026-11-21) ----------
+
+def test_calibrate_distance_recovers_the_true_distance():
+    """Frames drawn with a Bragg line at 16.65° seen through a pinhole 262 mm
+    from the detector, while the header says 271 mm: at 271 the line drifts
+    with Det_Th; the calibration finds 262 mm, where the single frames
+    agree, and the line's 2θ there."""
+    rng = np.random.default_rng(2)
+    line = lambda t: 2e-3 + 4e-2 * np.exp(-0.5 * ((t - 16.65) / 0.07) ** 2)    # FWHM 0.16°, as NX
+    fr = _frames(np.arange(14.0, 18.01, 0.1), line, d_p=271.0, d_true=262.0, rng=rng, monitor=300.0)   # real-data counts
+    cal = ph.calibrate_distance(fr)
+    assert cal.peak_deg == pytest.approx(16.65, abs=0.05)
+    assert cal.distance_mm == pytest.approx(262.0, abs=max(1.0, 2 * cal.error_mm)) and cal.error_mm < 2.0
+    assert cal.reliable and abs(cal.drift) < 0.005 and cal.drift_header > 0.01
+    assert cal.centre_deg == pytest.approx(16.65, abs=0.005) and cal.header_mm == 271.0
+
+
+def test_calibrate_distance_refuses_what_single_frames_cannot_fit():
+    """No narrow peak (a flat spectrum): no calibration, with the reason."""
+    fr = _frames(np.arange(14.0, 18.01, 0.1), lambda t: 1e-3 + 0 * t, rng=np.random.default_rng(3))
+    with pytest.raises(ValueError):
+        ph.calibrate_distance(fr)
