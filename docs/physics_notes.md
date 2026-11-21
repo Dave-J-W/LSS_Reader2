@@ -3047,3 +3047,26 @@ every column model, so they really differ (a change along the scan); the
 old expected-failure test that they should join at 1 is now a
 characterisation.
 
+### 2026-11-21 — Single frames as the ground truth for patching
+
+**Owner.** "Had you considered a single frame with pinhole correction as the
+ground truth for [what] patching the scans should give back? I mean instead
+of a legacy mode patched image being ground truth, an unpatched image is
+ground truth for peak location and width."
+
+**A (measured; `tests/tools/single_frame_truth.py`, manual addendum 3d,
+COMPARISONS C28).** Not as a reference until now: the C10 comparison used
+the legacy map, and the distance fit used the drift of a feature across
+frames (the same principle) but through the column response. As a
+reference it works and says two things. (1) The single frames of NX scan 11
+put the peak near 16.6° at one 2θ only if the S4–detector distance is about
+265 mm, not the header's 271 mm (χ²/dof 5.5 and no drift at 265; drift
++0.015° per degree of Det_Th at 271); the owner's scan 163 says about 263 mm
+(P43, new). (2) At that distance the patched map gives back the single
+frames: centre 16.6490 ± 0.0038° against 16.6491 ± 0.0014°, FWHM within 2 %
+(every pinhole response). At the header distance a patch is broadened when
+the frames disagree (scan 163: +14 %, against +4 % at 263 mm); the legacy
+patch is 21 % (NX) and 36 % (163) broader than single frames. Decision
+waiting on the owner: calibrate the distance from single frames, or keep
+the header value (TODO input 19).
+

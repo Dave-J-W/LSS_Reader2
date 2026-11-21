@@ -371,6 +371,48 @@ join, not from the data alone. To see the levels as collected, switch
 "Apply join factors" off with 'physical' or 'physical+fit' (they keep the
 absolute scale); the join table still shows what the factors would be.
 
+## 3d. Single frames as the ground truth
+
+Owner (2026-11-21): "instead of a legacy mode patched image being ground
+truth, an unpatched image is ground truth for peak location and width."
+With the pinhole geometry, one unpatched frame already shows a Bragg peak at
+its 2θ: no patching, no response, no joins. Two tests follow
+(`tests/tools/single_frame_truth.py`):
+
+1. **Every frame must put the peak at the same 2θ**, whichever columns see
+   it. A wrong S4–detector distance scales the angle per column, so the peak
+   then drifts with the column that sees it, i.e. with Det_Th.
+2. **The patched map must give back the single frames' position and
+   width**: better statistics, not a moved or broader peak.
+
+**Measured (2026-11-21), NX scan 11, the peak near 16.6°** (rows 50–170,
+16 frames with the whole fit window inside them):
+
+| | Header distance, 271 mm | Best distance, 265 mm |
+|---|---|---|
+| Single frames agree (χ²/dof of centres) | 6.8; drift +0.015° per degree of Det_Th | **5.5**; drift −0.004 |
+| Single frames: centre, FWHM (median) | 16.6368 ± 0.0013°, 0.164° | 16.6491 ± 0.0014°, 0.167° |
+| Pinhole patch ('fit'): centre, FWHM | 16.6457 ± 0.0034°, 0.162° (−1 %) | **16.6490 ± 0.0038°, 0.164° (−2 %)** |
+| Legacy patch: FWHM | 0.198° (+21 %) | — |
+
+At the distance where the single frames agree, the patched map gives back
+their centre exactly and their width within 2 %; every pinhole response
+does the same; the legacy patch broadens the peak by a fifth. On the
+owner's scan 163 the same test (numbers in the conversation; no peak
+positions here): the frames agree best near 263 mm, and the pinhole patch
+is 14 % broader than the single frames at the header distance but only
+about 4 % at 263 mm; legacy is 36 % broader. So:
+
+- **the single frames measure the S4–detector distance**, more cleanly than
+  the worksheet's "Fit" (which needs the column response): both data sets
+  say about 2–4 % shorter than the header's 271 mm (P43);
+- **a wrong distance broadens the patched peak** (the frames put it in
+  slightly different places); at the right distance the patch does not.
+
+The minimum χ²/dof is 5–13, not 1, so something else also moves the peak a
+little from frame to frame (counting statistics of the background fit, the
+illumination slope across the peak, c0); the distance is the main term.
+
 ## 4. The options
 
 Defaults are what a user gets without changing anything. "Worksheet" is
@@ -394,7 +436,7 @@ the label in GID > Worksheet; `name` is the `GIDParams` field.
 | Pinhole: angle per column (`pinhole`) | on / off (on, D40) | See section 3. | See section 3. |
 | Columns per frame (`columns`, legacy only) | integer (3) | A wider band gives more counts. | Blurs 2θ by the band's width (the band is placed at one angle); the area correction must follow (it does, through the band width). |
 | Footprint window (`footprint`, pinhole) | exact / IDL (exact, D51) | **Exact**: uses every column that sees the footprint through the whole S4 opening: on NX +3.3 % counts, 2θ to 19.93° (IDL: 19.82°), Bragg peak unmoved (measured). **IDL's**: reproduces earlier maps and the IDL code exactly. | **Exact**: on raised-arm frames (β0 > 1°) the high edge stays at IDL's, because the extra 3–4 columns there catch a stray-light streak (P40b; NX: 2.4× brighter in rows 60–150 than lower rows, against 1.5× in the old edge columns; measured). So only the lower level gains the edge columns, which shifts the NX level factor from 1.097 to 1.068 ± 0.013 (a normalisation, not an error of the map). **IDL's**: drops a few lit columns at the high-2θ edge (P39). |
-| S4–detector (mm) (`pinhole_distance_mm`) | number (0 = header, 271 on NX) | A typed value overrides a wrong header. "Fit" estimates it from a feature's drift (diagnostic). | The fit depends on the column response by several mm (258–280 on NX); use it to check, not to set. |
+| S4–detector (mm) (`pinhole_distance_mm`; section 3d) | number (0 = header, 271 on NX) | A typed value overrides a wrong header. "Fit" estimates it from a feature's drift (diagnostic). | The fit depends on the column response by several mm (258–280 on NX); use it to check, not to set. |
 | Arm correction (`arm_correction`) | on / off (on) | Includes the arm's own offset (`g_l3`) in the sample–detector distance used for β. | — (off only to compare with older maps). |
 
 ### 4.3 Weights
