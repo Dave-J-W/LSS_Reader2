@@ -74,7 +74,7 @@ working list, one table per area, each row with its source. Rows marked
 | Item | Source |
 |---|---|
 | ~~Fix `series.infer`: `#V` hklscans as xfntr, `escan` as energy; series lines and inference together; `SeriesMacro` attached~~ **done 2026-11-21** (`series.all_series`) | review §3, §4 R1 |
-| Series in the scan list; select a series as one action | F39; Stage 3; review R2 |
+| ~~Series in the scan list; select a series as one action~~ **done 2026-11-21** (Series list; whole series selected on a click by default, D55) | F39; Stage 3; review R2 |
 | Contextual reduction from `kind` (offer, not run); the burn test for burn scans | F60; review R4 |
 | Live refresh by polling, driven by series status | F1–F5 |
 | Time axis in MCA, Ref/GID lists | D46, D50, F37 |

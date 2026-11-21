@@ -166,6 +166,21 @@ Each line: feature — where — default — script — notes entry (date).
 - "Scan i of N" lines and how cancelled runs are shown: proposal
   `docs/handoff_out/05-scan-series-syntax.md`; code `lss_core/series.py`.
 
+### Scan series in the scan list (2026-11-21)
+
+- A **Series** list above the scan list: each series of the file (from
+  its `#U Series` lines, or guessed: reflectivity, gid, xfntr, energy,
+  burn) with "kind done/planned (status): S# scans"; its tooltip says why
+  (missing or stopped scans, guessed or not, the macro). Choosing one
+  selects its data scans as one action.
+- **Whole series** (check box, on by default; owner): clicking a scan of a
+  series selects all its data scans; Ctrl-click still removes one;
+  alignment scans are selected alone; typed scan numbers are never
+  widened. Off: one scan at a time, as before. Kept as a preference.
+- Scan rows: a tooltip with the series, the position ("scan 2 of ?") and
+  the status, and a faint tint by kind (blue reflectivity, green GID,
+  orange XFNTR, purple energy, red burn, grey alignment).
+
 ### Burn tests (2026-11-21)
 
 - The Burn test dialog opens on **Trends**, already analysed; the old plots

@@ -42,6 +42,7 @@ from lss_core import absorbers
 from lss_core import preferences as prefs_store
 from lss_core import trends as trendmod
 from lss_core import burn as burnmod
+from lss_core import series as seriesmod
 from lss_core.absorbers import ABSFAC_10KEV
 from lss_core.monitor import gain_factor, scan_rate
 from lss_core.experiment import monitor_factor, absorber_setting
@@ -62,6 +63,20 @@ def selectionDelayMs():
         return max(0,int(os.environ.get('LSS_READER_SELECTION_DELAY_MS','150')))
     except ValueError:
         return 150
+
+
+def scanRanges(values):
+    """'6-9, 11' for scan numbers: consecutive runs written as ranges."""
+    v=sorted(int(x) for x in values)
+    out=[]
+    k=0
+    while k<len(v):
+        j=k
+        while j+1<len(v) and v[j+1]==v[j]+1:
+            j+=1
+        out.append(str(v[k]) if j==k else '%d-%d' % (v[k],v[j]))
+        k=j+1
+    return ', '.join(out)
 
 
 def listText(values):
@@ -369,6 +384,7 @@ class MainWindow (QMainWindow):
      #    self.connect(self.ui.cutLegendCheckBox, SIGNAL('stateChanged(int)'),self.updateCutPlotData)
         self.ui.cutLegendCheckBox.stateChanged.connect(self.updateCutPlotData)
         self.setupCutFit()
+        self.setupSeriesBox()
      #    self.connect(self.ui.cutLegendLocComboBox, SIGNAL('currentIndexChanged(int)'),self.updateCutPlotData)
         self.ui.cutLegendLocComboBox.currentIndexChanged.connect(self.updateCutPlotData)
      #    self.connect(self.ui.cutErrorbarCheckBox, SIGNAL('stateChanged(int)'),self.updateCutData)
@@ -687,6 +703,7 @@ class MainWindow (QMainWindow):
                 self.messageBox('Scan number(s) '+listText(repeated)+' appear more than once in this SPEC file. The last scan with each number is shown.')
             self.scanlines=[self.specData[i]['ScanLine'] for i in scannums]
             self.ui.scanListWidget.addItems(self.scanlines)
+            self.updateSeries()
             if np.any([self.specPar[i]['Detector']=='Vortex' for i in scannums]):
                 if QDir(self.directory+'/'+self.mcaDirName).exists()==True:
                     self.mcaDir=self.directory+'/'+self.mcaDirName
@@ -734,6 +751,196 @@ class MainWindow (QMainWindow):
         self.pilGIDshow=0
         self.pilGISAXSshow=0
 
+    # ---- scan series in the scan list (F39, review R2; owner, 2026-11-21) ----
+
+    SERIES_TINT={'reflectivity':(70,130,220),'gid':(60,170,90),'xfntr':(230,140,40),'energy':(150,90,200),
+                 'burn':(220,70,70),'gisaxs':(40,170,170),'direct_beam':(120,120,120),'alignment':(150,150,150)}
+
+    def setupSeriesBox(self):
+        """A 'Series' list above the scan list: choosing a series selects its
+        data scans as one action; each scan row says its series in a tooltip
+        and carries a faint tint of its kind."""
+        from PyQt5.QtWidgets import QComboBox
+        box=QComboBox(self)
+        box.setObjectName('seriesComboBox')
+        box.setToolTip('Scan series: the scans one experiment macro took together, from the file\'s "#U Series" lines '
+                       'or, in older files, guessed by the reader (reflectivity: L scans whose Qz ranges move up and '
+                       'overlap; gid: consecutive "ascan dth" with images; xfntr: "#V" L scans; energy: escans; burn: '
+                       '"ascan ih" without movement). Choosing one selects its data scans (alignment scans between '
+                       'them are not selected). The label says how many scans it has of how many were planned '
+                       '("?" when the file does not say) and whether it was complete, partial (a scan stopped early), '
+                       'aborted or still being written; the item\'s tooltip says why. Scan rows are tinted by kind: '
+                       'blue reflectivity, green GID, orange XFNTR, purple energy, red burn, grey alignment.')
+        box.addItem('Series: choose to select its scans')
+        box.setEnabled(False)
+        lay=self.ui.scanListWidget.parentWidget().layout()
+        idx=lay.indexOf(self.ui.scanListWidget)
+        inner=None
+        if idx<0:                                   # the list sits in a nested layout
+            for k in range(lay.count()):
+                it=lay.itemAt(k)
+                if it.layout() is not None and it.layout().indexOf(self.ui.scanListWidget)>=0:
+                    inner=it.layout()
+                    break
+        target=inner if inner is not None else lay
+        from PyQt5.QtWidgets import QCheckBox, QHBoxLayout
+        row=QHBoxLayout()
+        row.addWidget(box,1)
+        whole=QCheckBox('Whole series',self)
+        whole.setObjectName('seriesWholeCheckBox')
+        whole.setChecked(bool(self.prefs.get('select_whole_series',True)))
+        whole.setToolTip('On (default): clicking a scan that belongs to a series selects all the data scans of that '
+                         'series (Ctrl-click still removes one; alignment scans are selected alone). Off: scans are '
+                         'selected one by one, as before. Typed scan numbers are never expanded.')
+        whole.toggled.connect(lambda on:self.setPreference('select_whole_series',bool(on)))
+        row.addWidget(whole)
+        target.insertLayout(max(target.indexOf(self.ui.scanListWidget),0),row)
+        self.seriesWholeCheckBox=whole
+        self.scanSelectionBefore=set()
+        self.seriesUserAction=False
+        self.ui.scanListWidget.viewport().installEventFilter(self)
+        self.ui.scanListWidget.installEventFilter(self)
+        box.activated.connect(self.selectSeries)
+        self.ui.scanListWidget.itemSelectionChanged.connect(self.syncSeriesBox)
+        self.seriesComboBox=box
+        self.seriesList=[]
+
+    def updateSeries(self):
+        """The series of the open file (lss_core.series.all_series) into the
+        Series list and the scan rows' tooltips and tints."""
+        from PyQt5.QtGui import QBrush, QColor
+        box=getattr(self,'seriesComboBox',None)
+        if box is None:
+            return
+        try:
+            info=seriesmod.scan_info(self.specData,self.specPar)
+            found=seriesmod.all_series(info)
+        except Exception as e:                       # a nicety: the list works without it
+            self.log.info('series not found: %s',e)
+            found=[]
+        self.seriesList=[s for s in found if s.data_scans]
+        box.blockSignals(True)
+        box.clear()
+        box.addItem('Series: choose to select its scans' if self.seriesList else 'Series: none found')
+        where={}
+        for k,s in enumerate(self.seriesList):
+            box.addItem('%s: S# %s' % (s.label(),scanRanges(s.data_scans)))
+            tip=['%s series %s%s' % (s.kind,s.id,' (guessed by the reader)' if s.inferred else '')]
+            tip.append('scans %s%s' % (listText(s.data_scans),'' if s.n is None else ' of %d planned' % s.n))
+            if s.aux:
+                tip.append('other scans: '+', '.join('%d (%s)' % (n,r) for n,r in s.aux))
+            tip.append('status: %s%s' % (s.status.replace('_',' '),' — '+s.why if s.why else ''))
+            if s.macro:
+                tip.append('macro: '+s.macro)
+            box.setItemData(k+1,'\n'.join(tip),Qt.ToolTipRole)
+            for i,n in sorted(s.scans.items()):
+                where.setdefault(n,(s,'scan %d of %s' % (i,'?' if s.n is None else s.n),s.kind))
+            for n,r in s.aux:
+                where.setdefault(n,(s,r,'alignment' if r=='align' else s.kind))
+        box.setCurrentIndex(0)
+        box.setEnabled(bool(self.seriesList))
+        box.blockSignals(False)
+        for row,line in enumerate(self.scanlines):
+            item=self.ui.scanListWidget.item(row)
+            try:
+                num=int(line.split()[1])
+            except (IndexError,ValueError):
+                continue
+            if num in where:
+                s,pos,kind=where[num]
+                item.setToolTip('%s series %s: %s%s; %s' % (s.kind,s.id,pos,' (guessed)' if s.inferred else '',
+                                                               s.status.replace('_',' ')))
+                c=self.SERIES_TINT.get(kind)
+                if c:
+                    item.setBackground(QBrush(QColor(c[0],c[1],c[2],40)))
+            else:
+                item.setToolTip('Scan %d: not part of a series' % num)
+
+    def eventFilter(self,obj,event):
+        """A mouse press or key press in the scan list is the user's own
+        selection: only then is it widened to whole series (expandToSeries)."""
+        from PyQt5.QtCore import QEvent
+        lw=getattr(self.ui,'scanListWidget',None) if hasattr(self,'ui') else None
+        if lw is not None and obj in (lw,lw.viewport()) and event.type() in (QEvent.MouseButtonPress,
+                                                                             QEvent.KeyPress):
+            self.seriesUserAction=True
+            QTimer.singleShot(0,self.endSeriesUserAction)
+        return super().eventFilter(obj,event)
+
+    def endSeriesUserAction(self):
+        self.seriesUserAction=False
+        try:
+            self.scanSelectionBefore=set(self.selectedScanNumbersInList())
+        except RuntimeError:
+            pass
+
+    def selectedScanNumbersInList(self):
+        out=[]
+        for it in self.ui.scanListWidget.selectedItems():
+            try:
+                out.append(int(str(it.text()).split()[1]))
+            except (IndexError,ValueError):
+                pass
+        return out
+
+    def expandToSeries(self):
+        """With "Whole series" on, a scan the user has just added to the
+        selection brings the other data scans of its series (one selection,
+        signals blocked); scans removed stay removed."""
+        now=set(self.selectedScanNumbersInList())
+        before=getattr(self,'scanSelectionBefore',set())
+        self.scanSelectionBefore=now
+        box=getattr(self,'seriesWholeCheckBox',None)
+        if box is None or not box.isChecked() or not getattr(self,'seriesUserAction',False):
+            return
+        added=now-before
+        extra=set()
+        for s in getattr(self,'seriesList',[]):
+            members=set(s.data_scans)
+            if added & members:
+                extra|=members
+        extra-=now
+        if not extra:
+            return
+        lw=self.ui.scanListWidget
+        lw.blockSignals(True)
+        for n in sorted(extra):
+            r=self.scanRow(n)
+            if r is not None:
+                lw.item(r).setSelected(True)
+        lw.blockSignals(False)
+        self.scanSelectionBefore=now|extra
+
+    def selectSeries(self,index):
+        """Select the data scans of the chosen series as one action."""
+        if index<=0 or index>len(self.seriesList):
+            return
+        s=self.seriesList[index-1]
+        rows=[r for r in (self.scanRow(n) for n in s.data_scans) if r is not None]
+        lw=self.ui.scanListWidget
+        lw.blockSignals(True)
+        lw.clearSelection()
+        for r in rows:
+            lw.item(r).setSelected(True)
+        if rows:
+            lw.scrollToItem(lw.item(rows[0]))
+        lw.blockSignals(False)
+        self.seriesChosen=s
+        lw.itemSelectionChanged.emit()
+
+    def syncSeriesBox(self):
+        """Back to the placeholder when the selection is no longer the chosen series."""
+        box=getattr(self,'seriesComboBox',None)
+        s=getattr(self,'seriesChosen',None)
+        if box is None or s is None:
+            return
+        chosen=sorted(int(str(it.text()).split()[1]) for it in self.ui.scanListWidget.selectedItems())
+        if chosen!=sorted(s.data_scans):
+            self.seriesChosen=None
+            box.blockSignals(True)
+            box.setCurrentIndex(0)
+            box.blockSignals(False)
+
     def scanRow(self,scannum):
         """Row of scan number ``scannum`` in the scan list, or None.
 
@@ -749,6 +956,7 @@ class MainWindow (QMainWindow):
         return None
 
     def scanListChanged(self):
+        self.expandToSeries()
         self.forgetImageSelection()
         self.ui.statusBar.clearMessage()
         self.ui.imageSelectAllCheckBox.setCheckState(0)

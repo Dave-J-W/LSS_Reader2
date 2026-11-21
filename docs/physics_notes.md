@@ -3319,3 +3319,24 @@ and, for old files, the "time since the series started" of these scans
 (now from their own series' first #D). Verified: `test_series.py` (new
 synthetic cases), the existing NX expectations.
 
+### 2026-11-21 — Series in the scan list (review R2, D55)
+
+**Owner:** "go ahead with series in the scan list", then, during the work:
+"make selecting the entire series the default behavior, and have a
+checkbox in the selector area to disable that function."
+
+**Done.** A Series list above the scan list (each series with its kind,
+scans done/planned, status and scans; tooltip: why, guessed or not, the
+macro); choosing one selects its data scans in one selection signal. A
+"Whole series" check box beside it, on by default (preference
+`select_whole_series`): a click or key press in the list that adds a scan
+of a series adds the rest of that series's data scans; Ctrl-click still
+removes one; alignment scans are selected alone; selections by typed
+numbers, scripts and tests are not widened (only the user's own mouse or
+key presses in the list count). Scan rows: tooltip with series, position
+and status; a faint tint by kind. No reduction changes; what a click
+selects does. Verified: `test_gui_series.py` (NX file: series 6–9 chosen
+gives one signal and scans 6–9; a real mouse click on scan 7 selects
+6–9; Ctrl-click on 9 removes it; scan 10, alignment, alone; with the box
+off, scan 7 alone; typed '8' stays 8).
+
