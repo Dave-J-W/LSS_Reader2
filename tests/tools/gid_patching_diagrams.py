@@ -926,7 +926,7 @@ def level_arrays(level, gp):
 def pinhole_scan_join(frames, response):
     """The pinhole scan join of a level of two scans, recomputed as
     lss_core.pinhole.level_map does it: column response on all frames
-    first, then the rows-summed ΣN, ΣW per 2θ bin of each scan, their ratio
+    first (fitted with each scan's own scale, the P42 fix), then the rows-summed ΣN, ΣW per 2θ bin of each scan, their ratio
     per shared bin and its inverse-variance mean."""
     gp = GIDParams(response=response)
     level = pinhole_frames(frames, gp)
@@ -934,7 +934,8 @@ def pinhole_scan_join(frames, response):
     level = level[0]
     edges = ph.shared_edges(level)
     theta, beta, n, w, bedges = level_arrays(level, gp)
-    r = ph.column_response(theta, n, w, edges) if response == 'fit' else np.ones(n.shape[2])
+    r = (ph.column_response(theta, n, w, edges, scans=[f.scan for f in level]) if response == 'fit'
+         else np.ones(n.shape[2]))
     w = w * r[None, None, :]
     scans = sorted({f.scan for f in level})
     assert len(scans) == 2
@@ -998,7 +999,7 @@ def fig_two_theta_within_scan(out):
     b0, b1 = float(edges[k]), float(edges[k + 1])
     bc = 0.5 * (b0 + b1)
     theta, beta, n, w, _ = level_arrays(level, gp)
-    r = ph.column_response(theta, n, w, edges)
+    r = ph.column_response(theta, n, w, edges, scans=[f.scan for f in level])
     idx = np.digitize(theta, edges) - 1
     rows_n, rows_w, rows_wr, seen = [], [], [], []
     for i, f in enumerate(level):
@@ -1221,7 +1222,7 @@ def fig_scan_join(out):
              'further scan is fitted against the first (P41).', fontsize=8.8, color=INK, ha='left', va='top',
              linespacing=1.45)
     fig.text(0.08, 0.10, "Recovered A/B (true %.2f): legacy %.3f, pinhole 'fit' %.3f, 'none' %.3f. The column "
-             'response is fitted before\nscans are joined and absorbs part of a scale difference (P42). '
+             'response is fitted together\nwith each scan\'s scale, so a scale between scans is recovered (P42, fixed 2026-11-20). '
              "With B × 1: legacy %.4f, 'fit' %.4f ± %.4f, 'none' %.4f."
              % (1 / s, sp.recovered('legacy'), sp.recovered('fit'), sp.recovered('none'),
                 sp.joins['legacy', 1.0]['factor'], sp.joins['fit', 1.0]['factor'], sp.joins['fit', 1.0]['error'],

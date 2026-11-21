@@ -3289,7 +3289,7 @@ class MainWindow (QMainWindow):
                    'depends on the columns used by several mm (column response), so the header value is the default.',dbl=True)
         resp=QComboBox(g)
         resp.setObjectName('gidResponseComboBox')
-        resp.addItems(['fit','beam','physical','none'])
+        resp.addItems(['fit','beam','physical','physical+fit','none'])
         resp.setCurrentText(gp.response)
         resp.setToolTip('Column response: "fit" estimates each column\'s relative sensitivity from the data (the '
                         'same 2theta is seen by many columns in different frames); "beam" estimates one profile '
@@ -3300,7 +3300,11 @@ class MainWindow (QMainWindow):
                         'geometry and the beam instead of fitting a factor per column: rays through each column\'s '
                         'pixel and the S4 opening to the footprint, lit by a Gaussian beam (its centre and vertical '
                         'FWHM fitted unless typed below, e.g. from a half-cut), clipped by S1; it includes the area '
-                        'correction and keeps each level\'s absolute scale; "none" takes it as flat.')
+                        'correction and keeps each level\'s absolute scale; "physical+fit" adds to it one factor per '
+                        'column (mean 1) for what physics misses, keeping the physical scale; "none" takes it as flat. '
+                        'Every kind fits each scan\'s scale with it, so a scale between scans is not absorbed (P42). '
+                        'Default "fit": the frames of a level agree best with it on all the data measured '
+                        '(2026-11-20; the consistency chi2 is shown with the levels).')
         bfw=spin('gidBeamFwhmSpinBox',0,5000,gp.beam_fwhm_um,'Response "physical": the beam\'s vertical FWHM in '
                  'micrometres, e.g. from a half-cut (sh) scan. 0: fitted to the data of each Qz level.',dbl=True)
         bcf=QCheckBox('fit',g)
@@ -3385,6 +3389,16 @@ class MainWindow (QMainWindow):
         t.setEditTriggers(QAbstractItemView.NoEditTriggers)
         lay.addWidget(t)
         buttons=QHBoxLayout()
+        live=QCheckBox('Update the map on every change',d)
+        live.setObjectName('gidLiveCheckBox')
+        live.setChecked(True)
+        live.setToolTip('On: every change of a setting above patches the selected frames again (after a short pause), '
+                        'so the effect of each method shows at once in the map and in the join table. Off: press '
+                        'Patch.')
+        timer=QTimer(d)
+        timer.setSingleShot(True)
+        timer.setInterval(400)
+        timer.timeout.connect(self.gidWorksheetPatch)
         again=QPushButton('Patch',d)
         again.setObjectName('gidPatchPushButton')
         again.setToolTip('Patch the selected frames again with these settings')
@@ -3393,9 +3407,12 @@ class MainWindow (QMainWindow):
         reset.setToolTip('Back to the values the program always used')
         close=QPushButton('Close',d)
         close.setObjectName('gidClosePushButton')
+        buttons.addWidget(live)
         for b in (again,reset,close):
             buttons.addWidget(b)
         lay.addLayout(buttons)
+
+        ready=[False]                               # no live patch while the dialog is being built
 
         def apply(*_):
             self.ui.pilHSlitLineEdit.setText(str(cols.value()))
@@ -3412,10 +3429,13 @@ class MainWindow (QMainWindow):
             hard.setEnabled(area.isChecked())
             for w in (pdist,resp,arm,fit,minf,trans,foot,joins):
                 w.setEnabled(pin.isChecked())
-            physical=pin.isChecked() and resp.currentText()=='physical'
+            physical=pin.isChecked() and resp.currentText().startswith('physical')
             for w in (bfw,bcf,bhw):
                 w.setEnabled(physical)
             bce.setEnabled(physical and not bcf.isChecked())
+            if ready[0] and live.isChecked() and getattr(self,'gidLevels',None) and \
+                    len(getattr(self,'selectedPilFramesNums',[]))>0:
+                timer.start()                       # patch again shortly (one patch for a burst of changes)
             cols.setEnabled(not pin.isChecked())
 
         def defaults():
@@ -3465,6 +3485,7 @@ class MainWindow (QMainWindow):
         joins.toggled.connect(apply)
         fit.clicked.connect(fitdist)
         apply()
+        ready[0]=True
         again.clicked.connect(self.gidWorksheetPatch)
         reset.clicked.connect(defaults)
         close.clicked.connect(d.close)
@@ -3478,6 +3499,7 @@ class MainWindow (QMainWindow):
         d.gidFootprintComboBox=foot
         d.gidBeamFwhmSpinBox,d.gidBeamCentreSpinBox,d.gidBeamCentreFitCheckBox=bfw,bce,bcf
         d.gidBeamHFwhmSpinBox,d.gidApplyJoinsCheckBox=bhw,joins
+        d.gidLiveCheckBox,d.gidLiveTimer=live,timer
         return d
 
     def gidWorksheetPatch(self):
@@ -3507,6 +3529,13 @@ class MainWindow (QMainWindow):
                  'opening (%.2f mm) and its own pixel, at the direct-beam column (lss_core.pinhole.'
                  'column_acceptance). The map\'s bins are %.4f deg wide, one column; the resolution, not the bin, '
                  'limits how sharp a peak can be.' % (info['s4_mm'],info['step_deg']))
+            cons=[lv.get('consistency_chi2') for lv in (getattr(self,'gidPinholeInfo',None) or [])]
+            if cons and all(c is not None for c in cons):
+                text+='\nframes agree: chi2/dof %s' % ' / '.join('%.2f' % c for c in cons)
+                tip+=(' Frames agree: for each Qz level, how well its frames match the map made from them once the '
+                      'column response and scan factors are applied (Poisson chi2 per degree of freedom of the '
+                      'rows-summed counts of each frame and column; 1 = counting noise only). Lower is better; '
+                      'use it to compare responses (lss_core.pinhole.frame_consistency).')
             phys=info.get('physical')
             if phys:
                 text+='; beam: centre %.1f mm, vertical FWHM %.0f um%s (response "physical", chi2/dof %.2f)' % (

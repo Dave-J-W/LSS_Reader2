@@ -643,3 +643,35 @@ def test_joins_reported_but_not_applied():
     prof = np.nanmean(I, axis=1)
     assert prof[tt < 14.5].mean() / prof[tt > 18.0].mean() == pytest.approx(1.25, rel=0.01)   # A only / B only
     assert info['joins_applied'] is False
+
+
+def test_physical_plus_fit_removes_column_sensitivity_and_keeps_the_scale():
+    """'physical+fit': the physical response sets the scale and the shape, a
+    per-column factor (mean 1) takes up what physics misses, here a known
+    pixel sensitivity of ±10 % per column."""
+    rng = np.random.default_rng(5)
+    sens = 1 + 0.1 * rng.uniform(-1, 1, NC)
+    beam = ph.BeamModel(1.0, 40.0, 1.0)
+    fr = _physical_lit(np.arange(14.0, 18.01, 0.1), beam)
+    fr = [ph.PinholeFrame(f.counts * sens[None, :], f.monitor, f.geom, f.areainfo, f.s5, f.s1_to_sample_mm, f.scan)
+          for f in fr]
+    out = {}
+    for resp in ('physical', 'physical+fit'):
+        tt, beta, I, S, info = ph.level_map(fr, 15, 486, response=resp, area=False, pol=False)
+        prof = np.nanmean(I, axis=1)
+        out[resp] = (np.std(prof / np.nanmedian(prof)), np.nanmedian(prof), info['consistency_chi2'])
+    assert out['physical+fit'][0] < 0.01 < out['physical'][0]
+    assert out['physical+fit'][1] == pytest.approx(1e-3 * 1e5, rel=0.03)            # the true scale
+    assert out['physical+fit'][2] < out['physical'][2]
+
+
+def test_frame_consistency_is_one_for_counting_noise():
+    """frame_consistency: χ²/dof ≈ 1 when the frames differ only by Poisson
+    noise and the response is right (synthetic, flat spectrum, known
+    response, response 'none' on frames that need none)."""
+    rng = np.random.default_rng(11)
+    fr = _frames(np.arange(14, 18.01, 0.1), lambda t: 1e-4 + 0 * t, rng=rng)
+    tt, beta, I, S, info = ph.level_map(fr, 15, 486, response='none', area=False, pol=False)
+    assert info['consistency_chi2'] == pytest.approx(1.0, abs=0.15)
+    exact = _frames(np.arange(14, 18.01, 0.1), lambda t: 1e-4 + 0 * t)
+    assert ph.level_map(exact, 15, 486, response='none', area=False, pol=False)[4]['consistency_chi2'] < 1e-6

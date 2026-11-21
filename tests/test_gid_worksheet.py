@@ -338,3 +338,31 @@ def test_physical_response_and_joins_as_collected_in_the_worksheet(nx, qapp, rec
     assert nx.gidParams.beam_centre_mm == 5.0 and nx.gidParams.beam_fwhm_um == 60.0
     d.findChild(QPushButton, 'gidDefaultsPushButton').click()
     assert nx.gidParams.response == 'fit' and nx.gidParams.apply_joins and nx.gidParams.beam_centre_mm is None
+
+
+@pytest.mark.gui
+@pytest.mark.slow
+@pytest.mark.skipif(not os.path.exists(SPEC), reason='NX_school sample data not present')
+def test_worksheet_updates_the_map_on_every_change(nx, qapp, recorder):
+    """Owner, 2026-11-20: see the effect of each method from check boxes and
+    drop-down menus. After a first patch, a change starts the patch timer;
+    the levels show how well the frames agree."""
+    sweep._select_scans(nx, qapp, [10])
+    sweep._select_images(nx, qapp)
+    _menu(nx, qapp, 'Worksheet')
+    d = nx.gidWorksheet
+    from PyQt5.QtWidgets import QPushButton
+    assert d.gidLiveCheckBox.isChecked()
+    d.gidPinholeCheckBox.setChecked(True)
+    d.findChild(QPushButton, 'gidPatchPushButton').click()
+    qapp.processEvents()
+    assert 'frames agree: chi2/dof' in d.gidLevelsLabel.text()
+    d.gidResponseComboBox.setCurrentText('physical+fit')
+    assert d.gidLiveTimer.isActive() and d.gidBeamFwhmSpinBox.isEnabled()
+    d.gidLiveTimer.stop()
+    d.gidLiveTimer.timeout.emit()                      # what the timer does when it fires
+    qapp.processEvents()
+    assert nx.gidParams.response == 'physical+fit' and 'response "physical"' in d.gidLevelsLabel.text()
+    d.gidLiveCheckBox.setChecked(False)
+    d.gidResponseComboBox.setCurrentText('fit')
+    assert not d.gidLiveTimer.isActive() and recorder.exceptions == []

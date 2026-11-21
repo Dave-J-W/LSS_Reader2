@@ -521,12 +521,15 @@ def bin_counts(theta, counts, weights, edges):
     return i, s, sn, sw
 
 
-def column_response(theta, counts, weights, edges, iterations=20):
+def column_response(theta, counts, weights, edges, iterations=20, scans=None):
     """Column response R(c), mean 1, estimated from the data: alternately
     S(2θ) = ΣN/Σ(W·R) on the bins (rows summed) and R(c) = Σ_f N / Σ_f W·S
-    (the review's §7.3). ``weights`` without R; arrays as for bin_counts."""
+    (the review's §7.3). ``weights`` without R; arrays as for bin_counts.
+    ``scans`` (the scan of each frame; per-pixel angles only): each scan then
+    gets its own scale in the same alternation, so that R does not take up a
+    scale between scans (P42; owner, 2026-11-20)."""
     if np.ndim(theta) == 3:                                  # per-pixel angles (pixel_angles)
-        return _column_response_pixels(theta, counts, weights, edges, iterations)
+        return _column_response_pixels(theta, counts, weights, edges, iterations, scans)
     n = counts.sum(axis=1)                                   # (frames, cols)
     w = weights.sum(axis=1)
     nb = len(edges) - 1
@@ -544,7 +547,7 @@ def column_response(theta, counts, weights, edges, iterations=20):
     return r
 
 
-def _column_response_pixels(theta, counts, weights, edges, iterations=20):
+def _column_response_pixels(theta, counts, weights, edges, iterations=20, scans=None):
     """column_response with an angle per pixel (frames, rows, cols)."""
     nb = len(edges) - 1
     idx = np.digitize(theta, edges) - 1
@@ -552,13 +555,23 @@ def _column_response_pixels(theta, counts, weights, edges, iterations=20):
     ncol = counts.shape[2]
     cidx = np.broadcast_to(np.arange(ncol), counts.shape)
     n_ok, w_ok, i_ok, c_ok = counts[ok], weights[ok], idx[ok], cidx[ok]
+    if scans is not None and len(set(scans)) > 1:
+        sc = np.broadcast_to(np.unique(scans, return_inverse=True)[1][:, None, None], counts.shape)[ok]
+        nsc = int(sc.max()) + 1
+        nscan = np.bincount(sc, weights=n_ok, minlength=nsc)
+    else:
+        sc, nsc = np.zeros(len(n_ok), int), 1
+    fs = np.ones(nsc)
     num = np.bincount(c_ok, weights=n_ok, minlength=ncol)
     r = np.ones(ncol)
     for _ in range(iterations):
         sn = np.bincount(i_ok, weights=n_ok, minlength=nb)
-        sw = np.bincount(i_ok, weights=w_ok * r[c_ok], minlength=nb)
+        sw = np.bincount(i_ok, weights=w_ok * r[c_ok] * fs[sc], minlength=nb)
         s = np.where(sw > 0, sn / np.where(sw > 0, sw, 1), 0.0)
-        den = np.bincount(c_ok, weights=w_ok * s[i_ok], minlength=ncol)
+        if nsc > 1:
+            fs = nscan / np.maximum(np.bincount(sc, weights=w_ok * r[c_ok] * s[i_ok], minlength=nsc), 1e-300)
+            fs = fs / fs[0]
+        den = np.bincount(c_ok, weights=w_ok * fs[sc] * s[i_ok], minlength=ncol)
         r = np.where(den > 0, num / np.where(den > 0, den, 1), 1.0)
         r = r / r[den > 0].mean() if (den > 0).any() else r
         r[den <= 0] = 1.0
@@ -582,7 +595,7 @@ def source_positions(frames, ncols):
     return out
 
 
-def beam_response(theta, counts, weights, edges, xsrc, bin_mm=BEAM_BIN_MM, iterations=20):
+def beam_response(theta, counts, weights, edges, xsrc, bin_mm=BEAM_BIN_MM, iterations=20, scans=None):
     """The response as a function of the point on the beam axis a column
     looks at (owner, 2026-11-19): one profile R(x), shared by all frames,
     estimated as ``column_response`` does (alternately S(2θ) = ΣN/Σ(W·R) and
@@ -600,13 +613,23 @@ def beam_response(theta, counts, weights, edges, xsrc, bin_mm=BEAM_BIN_MM, itera
     xpix = np.broadcast_to(xb[:, None, :], counts.shape)
     ok = np.isfinite(theta) & (idx >= 0) & (idx < nb) & (xpix >= 0)
     n_ok, w_ok, i_ok, x_ok = counts[ok], weights[ok], idx[ok], xpix[ok]
+    if scans is not None and len(set(scans)) > 1:           # each scan its own scale (P42)
+        sc = np.broadcast_to(np.unique(scans, return_inverse=True)[1][:, None, None], counts.shape)[ok]
+        nsc = int(sc.max()) + 1
+        nscan = np.bincount(sc, weights=n_ok, minlength=nsc)
+    else:
+        sc, nsc = np.zeros(len(n_ok), int), 1
+    fs = np.ones(nsc)
     num = np.bincount(x_ok, weights=n_ok, minlength=nx)
     r = np.ones(nx)
     for _ in range(iterations):
         sn = np.bincount(i_ok, weights=n_ok, minlength=nb)
-        sw = np.bincount(i_ok, weights=w_ok * r[x_ok], minlength=nb)
+        sw = np.bincount(i_ok, weights=w_ok * r[x_ok] * fs[sc], minlength=nb)
         sv = np.where(sw > 0, sn / np.where(sw > 0, sw, 1), 0.0)
-        den = np.bincount(x_ok, weights=w_ok * sv[i_ok], minlength=nx)
+        if nsc > 1:
+            fs = nscan / np.maximum(np.bincount(sc, weights=w_ok * r[x_ok] * sv[i_ok], minlength=nsc), 1e-300)
+            fs = fs / fs[0]
+        den = np.bincount(x_ok, weights=w_ok * fs[sc] * sv[i_ok], minlength=nx)
         r = np.where(den > 0, num / np.where(den > 0, den, 1), 0.0)
         lit = den > 0
         if lit.any() and r[lit].mean() > 0:
@@ -890,6 +913,32 @@ def shared_edges(frames, step_deg=0.0):
     return lo - step / 2 + step * np.arange(int(math.ceil((hi - lo) / step)) + 2)
 
 
+def frame_consistency(theta, n, w, edges):
+    """How well a level's frames agree with the map made from them: per frame
+    and column, rows summed, counts N against W · S, S = ΣN/ΣW of the 2θ bin
+    the column falls in (its mean 2θ over the rows); returns the Poisson
+    χ²/dof Σ(N − W S)² / max(W S, 1) / (cells − bins). 1 means the frames
+    differ only by counting noise; the response and the scan factors are in
+    W, so this measures what they leave unexplained (owner, 2026-11-20: the
+    yardstick for choosing a method). ``theta`` etc. as ``level_map``'s."""
+    nb = len(edges) - 1
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', RuntimeWarning)       # columns with no angle (unused)
+        th = np.nanmean(theta, axis=1)                         # (frames, cols)
+    nn, ww = n.sum(axis=1), w.sum(axis=1)
+    idx = np.digitize(th, edges) - 1
+    ok = np.isfinite(th) & (idx >= 0) & (idx < nb) & (ww > 0)
+    if not ok.any():
+        return float('nan')
+    sn = np.bincount(idx[ok], weights=nn[ok], minlength=nb)
+    sw = np.bincount(idx[ok], weights=ww[ok], minlength=nb)
+    s = np.where(sw > 0, sn / np.where(sw > 0, sw, 1), 0.0)
+    mu = ww[ok] * s[idx[ok]]
+    used = int((np.bincount(idx[ok], minlength=nb) > 0).sum())
+    return float(np.sum((nn[ok] - mu) ** 2 / np.maximum(mu, 1.0)) / max(int(ok.sum()) - used, 1))
+
+
 def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_step_deg=0.0, log=None,
               min_frames=2, edges=None, beam_centre_mm=None, beam_fwhm_um=None, beam_h_fwhm_mm=BEAM_H_FWHM_MM,
               apply_joins=True):
@@ -925,7 +974,7 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
         beta_px.append(np.degrees(bb))
         n.append(np.asarray(f.counts, float)[row_lo:row_hi + 1])
         w.append(frame_weights(f.geom, nrows, ncols, f.monitor, f.areainfo, row_lo, row_hi,
-                               area and response != 'physical', pol, angles=(tt, bb)))
+                               area and not response.startswith('physical'), pol, angles=(tt, bb)))
     theta, beta_px, n, w = np.array(theta), np.array(beta_px), np.array(n), np.array(w)
     n = np.where(np.isfinite(theta), np.clip(n, 0, None), 0.0)          # masked pixels (< 0) count nothing
     if edges is None:
@@ -939,7 +988,7 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     bedges = blo - bstep / 2 + bstep * np.arange(int(math.ceil((bhi - blo) / bstep)) + 2)
     beam = None
     phys = None
-    if response == 'physical':
+    if response in ('physical', 'physical+fit'):
         cols_f = [frame_columns(f, ncols) for f in frames]
         presp = PhysicalResponse(frames, cols_f)
         with np.errstate(invalid='ignore'):
@@ -957,6 +1006,10 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
         lit = np.where(np.isfinite(theta).any(axis=1), rfc, np.nan)
         used = np.isfinite(lit).sum(axis=0)
         r = np.where(used > 0, np.nansum(lit, axis=0) / np.maximum(used, 1), 1.0)
+        if response == 'physical+fit':                 # what physics misses, per column, mean 1 (scale kept)
+            r2 = column_response(theta, n, w, edges, scans=[f.scan for f in frames])
+            w = w * r2[None, None, :]
+            r = r * r2
         along = model.fwhm_um * 1e-3 / math.sin(frames[0].geom.alpha)
         phys = dict(centre_mm=model.centre_mm, fwhm_um=model.fwhm_um, h_fwhm_mm=model.h_fwhm_mm,
                     fwhm_mm=along, fitted=[k for k, v in (('centre_mm', beam_centre_mm), ('fwhm_um', beam_fwhm_um))
@@ -964,7 +1017,7 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     elif response == 'beam':
         xsrc = source_positions(frames, ncols)
         xsrc = np.where(np.isfinite(theta).any(axis=1), xsrc, np.nan)       # usable columns only
-        rfc, beam = beam_response(theta, n, w, edges, xsrc)
+        rfc, beam = beam_response(theta, n, w, edges, xsrc, scans=[f.scan for f in frames])
         w = w * rfc[:, None, :]
         with np.errstate(invalid='ignore', divide='ignore'):
             used = np.isfinite(xsrc)
@@ -972,8 +1025,9 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
         r = np.where(np.isfinite(r), r, 1.0)
     else:
         if response not in ('fit', 'none'):
-            raise ValueError("response %r: use 'fit', 'beam', 'physical' or 'none'" % (response,))
-        r = column_response(theta, n, w, edges) if response == 'fit' else np.ones(ncols)
+            raise ValueError("response %r: use 'fit', 'beam', 'physical', 'physical+fit' or 'none'" % (response,))
+        r = (column_response(theta, n, w, edges, scans=[f.scan for f in frames]) if response == 'fit'
+             else np.ones(ncols))
         w = w * r[None, None, :]
     scans = sorted(set(f.scan for f in frames))
     factors = {scans[0]: (1.0, 0.0)}
@@ -999,6 +1053,7 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
             if apply_joins:
                 w[m] = w[m] / fac
     i, s, sn, sw = bin_counts_2d(theta, beta_px, n, w, edges, bedges)
+    consistency = frame_consistency(theta, n, w, edges)
     bidx = np.digitize(theta, edges) - 1
     nframes = np.array([int((bidx == k).any(axis=(1, 2)).sum()) for k in range(len(edges) - 1)])
     keep = (sw.sum(axis=1) > 0) & (nframes >= min_frames)
@@ -1019,7 +1074,7 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
         beam = dict(x_mm=beam[0], response=beam[1], centre_mm=bc, fwhm_mm=bw)
     info = dict(response=r, factors=factors, step_deg=step, counts_used=float(n.sum()),
                 two_theta_resolution_deg=res_deg, two_theta_resolution_columns=res_deg / step, s4_mm=s4,
-                beam=beam, physical=phys, joins_applied=bool(apply_joins),
+                beam=beam, physical=phys, joins_applied=bool(apply_joins), consistency_chi2=consistency,
                 sum_counts=sn_k[keep], sum_weights=sw_k[keep], frames_per_bin=nframes[keep],
                 edges=edges, keep=keep, all_counts=sn_k, all_weights=sw_k, beta=bcentres[bkeep],
                 beta_edges=bedges, beta_step_deg=bstep, mean_monitor=mean_m, geometry='exact (IMG_COO_CONV)',

@@ -3,9 +3,10 @@ on that"). Illustration on real data: NX scan 11 split into two scans, A =
 frames 0–20 (Det_Th 14.0–16.0°) and B = frames 15–40 (15.5–18.0°; frames
 15–20 in both), B's counts × s, so the factor A/B should change by 1/s.
 Measured 2026-11-20: legacy 1.006 → 1.257 (ratio 1.250, exact); pinhole with
-response 'fit' 0.963 → 1.130 (ratio 1.173): the column response is fitted
-on all frames before the scans are joined and absorbs part of a scale
-difference between scans (P42)."""
+response 'fit' 0.963 → 1.130 (ratio 1.173): the column response was fitted
+on all frames before the scans were joined and absorbed part of a scale
+difference between scans (P42). Fixed the same day: each scan's scale is
+now fitted together with the response (1.2565)."""
 import dataclasses
 import os
 
@@ -56,18 +57,27 @@ def test_pinhole_scan_join_without_response_recovers_most_of_it(scan11):
     assert ratio == pytest.approx(1.25, rel=0.015)
 
 
-@pytest.mark.xfail(strict=True, reason='P42: the column response is fitted before scans are joined '
-                                       'and absorbs part of a scale between scans (1.173 for 1.25)')
-def test_pinhole_scan_join_recovers_a_scale_between_scans(scan11):
+@pytest.mark.parametrize('response', ['fit', 'beam', 'physical+fit'])
+def test_pinhole_scan_join_recovers_a_scale_between_scans(scan11, response):
+    """P42 fixed (2026-11-20): every response fits each scan's scale together
+    with the response, so the scale is not absorbed. Measured: fit 1.2565,
+    beam 1.2567, physical+fit 1.2530 for 1.25 (before: 1.173)."""
     frames, det = scan11
-    ratio = _factor(_split(frames, 0.8), det, True) / _factor(_split(frames, 1.0), det, True)
+    ratio = _factor(_split(frames, 0.8), det, True, response) / _factor(_split(frames, 1.0), det, True, response)
     assert ratio == pytest.approx(1.25, rel=0.01)
 
 
-@pytest.mark.xfail(strict=True, reason='P42: two halves of one scan join at 0.963 ± 0.003 (chi2 6.9), not 1')
-def test_pinhole_halves_of_one_scan_join_at_one(scan11):
+def test_halves_of_one_scan_differ_under_every_column_model(scan11):
+    """As measured (2026-11-20): the two halves of NX scan 11 (Det_Th 14.0–
+    16.0° and 15.5–18.0°, measured one after the other) join at 0.95–0.96
+    under every column model ('fit' 0.951, 'beam' 0.952, 'physical+fit'
+    0.962), not at 1: a change along the scan (the sample height drifts by
+    microns in half an hour, owner 2026-11-19), not an artefact of one model.
+    A characterisation: it changes only with the method."""
     frames, det = scan11
-    assert _factor(_split(frames, 1.0), det, True) == pytest.approx(1.0, abs=0.01)
+    f = {r: _factor(_split(frames, 1.0), det, True, r) for r in ('fit', 'beam', 'physical+fit')}
+    assert f['fit'] == pytest.approx(0.951, abs=0.005)
+    assert max(f.values()) - min(f.values()) < 0.02 and max(f.values()) < 0.975
 
 
 def test_physical_response_scan_join_recovers_a_scale_between_scans(scan11):

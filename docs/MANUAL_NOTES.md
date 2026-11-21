@@ -98,6 +98,11 @@ Each line: feature — where — default — script — notes entry (date).
 - Worksheet: "Footprint window" exact (default: columns that see the lit
   strip through the whole S4 opening) or IDL (centred on the direct-beam
   column, as PD_PIN_RANGE) — `GIDParams(footprint=...)` — P39, D51.
+- Worksheet: "Update the map on every change" (on): every check box and drop-down
+  re-patches after a short pause, to see each method's effect; the levels line
+  shows "frames agree: chi2/dof" per level, the yardstick for comparing
+  methods (addendum 3c). Response "physical+fit" (physical scale × a per-column
+  refinement).
 - Worksheet: response "physical" (the column response from the geometry and a
   Gaussian beam; "Beam (physical)": vertical FWHM µm (0 = fit), centre mm ("fit"
   ticked = fitted), horizontal FWHM mm) and "Apply join factors" (off: the data

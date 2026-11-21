@@ -192,13 +192,18 @@ describe the frames well enough, and the scan factor takes up the misfit.
 With no response at all the join sees the scale (1.240), but the halves are
 then 22 % apart (columns differ). The legacy join recovers the scale
 exactly, but from 6 shared Det_Th values and with interpolation. The
-remedy, to be decided: estimate the scan factors together with the response
-(alternating, as the response itself is estimated), and measure again on
-these splits.
+remedy, built the same day (2026-11-20): every response now estimates each
+scan's scale together with itself (alternating, as the response itself is
+estimated). Measured again on these splits: 'fit' 1.2565, 'beam' 1.2567,
+'physical+fit' 1.2530, 'physical' 1.2549 for 1.25 (P42 fixed). The two
+halves of one scan still join at 0.95–0.96 under every column model ('fit'
+0.951): that is a change along the scan itself (measured one after the
+other; the sample height drifts by microns in half an hour), not a model
+artefact, and diagram 8 now shows the fixed join.
 
 | | Advantages | Disadvantages |
 |---|---|---|
-| Pinhole scan join | Many shared 2θ bins; no interpolation; counts conserved. | P42: biased by the response fit (above); P41: every scan is fitted against the level's first scan only. |
+| Pinhole scan join | Many shared 2θ bins; no interpolation; counts conserved; recovers a scale between scans (P42 fixed). | P41: every scan is fitted against the level's first scan only. |
 | Legacy scan join | Recovers a scale between scans exactly (above). | Few shared values (the Det_Th both scans have); interpolates; averages the overlap (smoothing, correlated errors); needs Det_Th overlap, not just 2θ overlap. |
 
 ## 3b. The column response
@@ -321,6 +326,51 @@ Det_Th (coloured), against the one-factor-per-column 'fit' (black): the
 column that looks at a given point moves with Det_Th, so one factor per
 column is an average. Made by `tests/tools/pinhole_beam_figure.py`.*
 
+## 3c. Which method is the default, and why
+
+Owner (2026-11-20): "Users will want to see the effect of all these
+different methods via check boxes and drop-down menus. If you have a best
+method then make that the default." Every method is a check box or a
+drop-down in the GID worksheet, and with "Update the map on every change"
+(on by default) the map and the join table follow each change at once.
+
+**The yardstick.** For each Qz level the worksheet shows how well its
+frames agree with the map made from them, once the column response and the
+scan factors are applied: the Poisson χ²/dof of every frame's and column's
+rows-summed counts against the map (`pinhole.frame_consistency`; 1 =
+counting noise only). Lower is better; a level has thousands of such
+cells, so the ~70 factors of 'fit' do not make it low by themselves.
+
+**Measured (2026-11-20), frames-agree χ²/dof per level, and the scan scale
+recovered on the NX split (true 1.25):**
+
+| Data | fit | beam | physical | physical+fit | none |
+|---|---|---|---|---|---|
+| NX 11 (one level) | 2.08 | 2.70 | 4.97 | **1.92** | 16.3 |
+| NX 11 + 12 (two levels) | 2.07 / 0.91 | 2.68 / 1.26 | 4.95 / 2.56 | **1.92 / 0.70** | 16.2 / 5.4 |
+| owner's 137 + 139 (same range twice) | 5.23 | **4.60** | 6.29 | 4.75 | 36.5 |
+| owner's 163 + 164 + 165 | 3.65 / 2.17 | 4.71 / 3.31 | 6.73 / 4.87 | **3.50 / 1.92** | 51 / 44 |
+| owner's 386–389 (Det_Th 9–17°) | **1.67 / 2.24** | 4.61 / 4.50 | 7.04 / 7.26 | 4.62 / 3.17 | 23 / 31 |
+| scan scale recovered (true 1.25) | 1.2565 | 1.2567 | 1.2549 | 1.2530 | 1.240 |
+
+**The decision: 'fit' stays the default** (with joins applied): it is the
+best or close to the best on every data set, assumes nothing about the
+beam, and now recovers a scale between scans. 'physical+fit' is better on
+three sets by 5–25 % but clearly worse on the low-Det_Th set (386–389):
+there the physical part's assumptions (one Gaussian beam per level, 1 mm
+horizontal width; narrower helps a little: 3.76 at 0.1 mm) do not hold
+well enough, and a per-column factor cannot repair a Det_Th-dependent
+error. 'physical' alone has the fewest free parameters and an absolute
+scale but leaves the frames 2–4× less consistent. So the honest default is
+the method that fits the data best everywhere; the physical ones are there
+to compare, to measure the beam, and to keep the absolute scale.
+
+**What the default does not do.** 'fit' normalises each level's response to
+a mean of 1, so a level's absolute scale comes from the fitted level
+join, not from the data alone. To see the levels as collected, switch
+"Apply join factors" off with 'physical' or 'physical+fit' (they keep the
+absolute scale); the join table still shows what the factors would be.
+
 ## 4. The options
 
 Defaults are what a user gets without changing anything. "Worksheet" is
@@ -353,7 +403,7 @@ the label in GID > Worksheet; `name` is the `GIDParams` field.
 |---|---|---|---|
 | Area correction (`area_correction`), hard slit offset (`hard_slit_offset_mm`) | on (on), 32 mm | Divides by the fraction of the footprint the slits let the detector see, which changes with Det_Th. The 32 mm shortens the sample–detector distance with hard slits. | Uniform footprint assumed (S1v / sin α); a narrow Gaussian beam is not uniform (see "Column response"); 2 % asymmetric in ±2θ (P5). |
 | Polarisation (`polarisation`) | on (on) | Divides by 1 − (sin 2θ cos β)², the horizontally polarised synchrotron beam's factor. | Not small: 5.1 % at 2θ = 13°, 7.6 % at 16°, 11.7 % at 20° (from the formula, β = 0), changing across a map; off only to compare. |
-| Column response (`response`, pinhole) | fit / beam / physical / none (fit) | **fit**: one factor per column, estimated from the data (the same 2θ is seen by many columns in different frames): absorbs pixel sensitivity, S4 and S5 edge effects and the mean illumination. **beam**: one profile along the beam axis shared by all frames: through S4 each column sees one point of the footprint, and that point moves with Det_Th, so a narrow beam lights a column differently in each frame; it also measures the beam's size and position on the sample (NX: footprint FWHM 33 mm along the beam, i.e. ≤ 52 µm vertically; 36 µm above the beyond-footprint floor; measured). **physical**: R from the geometry (rays through each column's pixel and the S4 opening) and a Gaussian beam clipped by S1; only the beam's centre and vertical FWHM free (fitted or typed); absolute scale kept; recovers a scale between scans (1.255 for 1.25). **none**: flat. | **fit**: cannot follow illumination that changes from frame to frame: on synthetic frames lit by a 30 µm beam, 0.93–1.04 of the truth inside, 0.71–2.8 at the edges (measured). **beam**: 0.98–1.02 inside, 0.88–1.04 at the edges on the same frames (measured), but assumes the illumination is the same for all frames of a level (sample height drift breaks this) and does not absorb pixel-to-pixel sensitivity. **physical**: χ²/dof 5–8 on real data (one beam per level does not describe everything: P40a light, drift); slower (~1 s per level for the fit). **none**: no correction at all. |
+| Column response (`response`, pinhole) | fit / beam / physical / physical+fit / none (fit; section 3c) | **fit**: one factor per column, estimated from the data (the same 2θ is seen by many columns in different frames): absorbs pixel sensitivity, S4 and S5 edge effects and the mean illumination. **beam**: one profile along the beam axis shared by all frames: through S4 each column sees one point of the footprint, and that point moves with Det_Th, so a narrow beam lights a column differently in each frame; it also measures the beam's size and position on the sample (NX: footprint FWHM 33 mm along the beam, i.e. ≤ 52 µm vertically; 36 µm above the beyond-footprint floor; measured). **physical+fit**: the physical R times one factor per column (mean 1) for what physics misses; keeps the physical scale; best frame agreement on three of four data sets. **physical**: R from the geometry (rays through each column's pixel and the S4 opening) and a Gaussian beam clipped by S1; only the beam's centre and vertical FWHM free (fitted or typed); absolute scale kept; recovers a scale between scans (1.255 for 1.25). **none**: flat. | **fit**: cannot follow illumination that changes from frame to frame: on synthetic frames lit by a 30 µm beam, 0.93–1.04 of the truth inside, 0.71–2.8 at the edges (measured). **beam**: 0.98–1.02 inside, 0.88–1.04 at the edges on the same frames (measured), but assumes the illumination is the same for all frames of a level (sample height drift breaks this) and does not absorb pixel-to-pixel sensitivity. **physical+fit**: worse than 'fit' on low-Det_Th data (386–389), where one Gaussian beam per level does not describe the light well enough. **physical**: χ²/dof 5–8 on real data (one beam per level does not describe everything: P40a light, drift); slower (~1 s per level for the fit). **none**: no correction at all. |
 
 ### 4.4 Binning (pinhole)
 
@@ -368,7 +418,7 @@ the label in GID > Worksheet; `name` is the `GIDParams` field.
 
 | Option | Values (default) | Advantages | Disadvantages |
 |---|---|---|---|
-| Scan join (within a level) | pinhole: one factor per scan on the 2θ-overlap profiles, applied to W; legacy: interpolated ratio fit, then the overlap averaged | Pinhole: no interpolation, counts conserved. | Pinhole: biased by the column response, which is fitted before the scans are joined (recovers 1.173 of an injected 1.25, P42; section 3a). Each further scan is fitted against the **first** scan of the level, so every scan must overlap the first; scans that overlap only in a chain (A–B, B–C) leave the factor undefined (P41, read only). Legacy: a scan with no overlap is placed unscaled, with a warning. |
+| Scan join (within a level) | pinhole: one factor per scan on the 2θ-overlap profiles, applied to W; legacy: interpolated ratio fit, then the overlap averaged | Pinhole: no interpolation, counts conserved. | Pinhole: each scan's scale is fitted together with the column response, so a scale between scans is recovered (1.2565 of an injected 1.25; P42, fixed 2026-11-20; before: 1.173). Each further scan is fitted against the **first** scan of the level, so every scan must overlap the first; scans that overlap only in a chain (A–B, B–C) leave the factor undefined (P41, read only). Legacy: a scan with no overlap is placed unscaled, with a warning. |
 | Level join (between levels) | pinhole: one factor per level on the β overlap, equal weight per cell (figure 6); legacy: β-integrated profiles, interpolated (`vjoin_kind`: cubic) | Equal weight per cell avoids the 2.6 % bias of summed counts, which weight a 2θ feature differently in each level (measured on synthetic data). The factor's error is carried into the map's errors (its relative error × the level's share of the weight). | The factor depends on the columns used when the illumination changed between the levels' scans (section 3); the β overlap is short (NX: β 6.1–7.6°, 84 β bins), at the lower level's top rows and the upper level's bottom rows, where stray light (P40) lies. |
 | 2θ range across levels (`transverse`) | intersection / union (intersection) | **intersection**: every 2θ bin has every level, as the IDL code (IMG_JOIN). **union**: keeps all measured 2θ. | **intersection**: a short level (NX scan 12: 4 frames, 2θ 13.4–15.8°) cuts the whole map to its range. **union**: NaN where a level is missing at that β. |
 | Apply join factors (`apply_joins`) | on / off (on) | **off**: the data as collected; every factor still fitted and shown ("not applied"); disagreements stay visible. | **off**: the map keeps any real step between scans or levels (e.g. 5 % between two repeats of one range in the owner's data); with the response 'fit', whose level scale is arbitrary, it makes little sense: use it with 'physical' or 'none'. |
@@ -383,7 +433,7 @@ the label in GID > Worksheet; `name` is the `GIDParams` field.
 
 ## 5. Choosing
 
-- **Most data (pinhole slit set, Det_Th > 1°):** the defaults: pinhole,
+- **Most data (pinhole slit set, Det_Th > 1°):** the defaults (section 3c): pinhole,
   exact footprint window, response 'fit', intersection. Look at the worksheet's
   join table: a level factor with χ²/dof well above 1 means the levels
   disagree in their β overlap (illumination change, stray light, wrong

@@ -3017,3 +3017,33 @@ levels, and the fitted corrections add the disagreement; on NX the levels
 are 22 % apart as collected. Both cases argue for showing the data as
 collected, with the factors reported.
 
+### 2026-11-21 — The best method as the default; P42 fixed; live worksheet
+
+**Owner (2026-11-20).** "Users will want to see the effect of all these
+different methods via check boxes and drop-down menus. If you have a best
+method then make that the default."
+
+**Built.** The worksheet re-patches on every change of a check box or
+drop-down ("Update the map on every change", on; a 0.4 s pause collects a
+burst of changes), and shows per level how well the frames agree with the
+map (`pinhole.frame_consistency`, Poisson χ²/dof of rows-summed counts per
+frame and column against the map; tested: 1.0 ± 0.15 for pure counting
+noise). New response 'physical+fit'. P42 fixed for every response: each
+scan's scale is estimated together with the response (`column_response`,
+`beam_response`, `fit_beam` take the scans).
+
+**Measured** (the table is in the manual addendum 3c and COMPARISONS C27):
+'fit' has the lowest or near-lowest frames-agree χ²/dof on all five data
+sets (NX 11, NX 11 + 12, the owner's 137 + 139, 163 + 164 + 165, 386–389);
+'physical+fit' is lower on three of them but much higher on 386–389 (low
+Det_Th, where one Gaussian beam per level with a 1 mm horizontal width does
+not describe the light); 'physical' 5–7; 'none' 16–51. Every response now
+recovers the NX split's scale 1.25 to 0.5 %. **Decision:** 'fit' stays the
+default, joins applied. Single-scan levels are unchanged bit for bit; levels
+of several scans change slightly (OUTPUT_DECISIONS).
+
+**Also measured:** the two halves of NX scan 11 join at 0.95–0.96 under
+every column model, so they really differ (a change along the scan); the
+old expected-failure test that they should join at 1 is now a
+characterisation.
+
