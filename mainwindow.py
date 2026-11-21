@@ -37,6 +37,7 @@ from lss_core import cuts
 from lss_core import gid as gidmod
 from lss_core import pinhole
 from lss_core import peaks
+from lss_core import workbook as workbookmod
 from lss_core import absorbers
 from lss_core import preferences as prefs_store
 from lss_core.absorbers import ABSFAC_10KEV
@@ -178,13 +179,13 @@ class MainWindow (QMainWindow):
         # mpl.rc('axes',color_cycle=['b','r','g','c','m','y','k'])
         self.ui.plotMoveUpPushButton.setIcon(QIcon(resource('arrow_up.png')))
         self.ui.plotMoveDownPushButton.setIcon(QIcon(resource('arrow_down.png')))
+        self.prefs=prefs_store.load()           # before the signals: the fit controls read their options from it
         self.init_signals()
         self.log=reader_log.get_logger()
         self.initMessagePane()
         self.initScriptPane()
         self.initErrorPane()
         self.initMonitorGainOption()
-        self.prefs=prefs_store.load()
         self.initAbsFacFromEnergy()
         self.initPreferences()
         self.gidParams=gidmod.GIDParams()     # GID patch settings (worksheet, F61)
@@ -192,6 +193,7 @@ class MainWindow (QMainWindow):
         self.gidLevels=[]
         self.gidWorksheet=None
         self.ui.gidComboBox.addItem('Worksheet')
+        self.ui.gidComboBox.addItem('Save to workbook')
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
@@ -949,28 +951,27 @@ class MainWindow (QMainWindow):
                     yerr=pl.sqrt(y/n**2+y**2/n**3)*g
                     y=y/n*g
             try:
-                self.specPeakFit(x,y,yerr)
+                # the shape of the scan (lss_core.peaks.fit_scan, owner 2026-11-21; P9 fixed): a peak, an
+                # edge (a half-cut: the edge width is the beam size) or a plateau, whichever the data support
+                yerr_=np.asarray(yerr,float)
+                res=peaks.fit_scan(x,y,yerr_ if np.all(yerr_>0) else None)
+                self.specFit=res
                 self.peakPos='%.4f'%x[np.argmax(y)]
-                if (self.specFitPar[0]+self.specFitPar[1]/2.0)>x[0] and (self.specFitPar[0]+self.specFitPar[1]/2.0)>x[-1]:
-                    self.peakCenter='%.4f'%(self.specFitPar[0]-self.specFitPar[1]/2.0)
-                    self.peakFWHM='%.4f'%self.specFitPar[5]
-                    #print '1', self.specFitPar[0]
+                if not res.peaks:
+                    raise ValueError(res.message)
+                p=res.peaks[0]
+                self.peakCenter='%.4f'%p.centre
+                self.peakFWHM='%.4f'%p.fwhm
+                if res.kind=='edge':
                     self.ui.specPlotMplWidget.canvas.ax.set_title(title+'\n'+'Peak= '+self.peakPos+', Edge= '+self.peakCenter+', Edge Width= '+self.peakFWHM)
-                elif (self.specFitPar[0]-self.specFitPar[1]/2.0)<x[0] and (self.specFitPar[0]-self.specFitPar[1]/2.0)<x[-1]:
-                    self.peakCenter='%.4f'%(self.specFitPar[0]+self.specFitPar[1]/2.0)
-                    self.peakFWHM='%.4f'%self.specFitPar[5]
-                    #print '2', self.specFitPar[0]
-                    self.ui.specPlotMplWidget.canvas.ax.set_title(title+'\n'+'Peak= '+self.peakPos+', Edge= '+self.peakCenter+', Edge Width= '+self.peakFWHM)
-                else:    
-                    self.peakCenter='%.4f'%self.specFitPar[0]
-                    self.peakFWHM='%.4f'%self.specFitPar[1]
-                    #print '3', self.specFitPar[0]
-                    self.ui.specPlotMplWidget.canvas.ax.set_title(title+'\n'+'Peak= '+self.peakPos+', Cen= '+self.peakCenter+', FWHM= '+self.peakFWHM)
-                if self.specFitPar[7]<1:
-                    self.ui.specPlotMplWidget.canvas.ax.plot(x,self.specPeakFun1(self.specFitPar, x),'g--',label='Fit')
+                elif res.kind=='box':
+                    self.ui.specPlotMplWidget.canvas.ax.set_title(title+'\n'+'Peak= '+self.peakPos+', Cen= '+self.peakCenter+', Width= '+self.peakFWHM+
+                                                                  ', Edge widths= %.4f, %.4f' % (res.edges[0][1],res.edges[1][1]))
                 else:
-                    self.ui.specPlotMplWidget.canvas.ax.plot(x,self.specPeakFun2(self.specFitPar, x),'g--',label='Fit')
-                self.scanCenter[self.selectedScanNums[-1]]=float(format(self.specFitPar[0],'.3f'))
+                    self.ui.specPlotMplWidget.canvas.ax.set_title(title+'\n'+'Peak= '+self.peakPos+', Cen= '+self.peakCenter+', FWHM= '+self.peakFWHM)
+                xf=np.linspace(np.min(x),np.max(x),400)
+                self.ui.specPlotMplWidget.canvas.ax.plot(xf,res.model(xf),'g--',label='Fit (%s)' % res.kind)
+                self.scanCenter[self.selectedScanNums[-1]]=float(format(p.centre,'.3f'))
             except:
                 self.peakPos='%.4f'%x[np.argmax(y)]
                 self.peakCenter=self.peakPos
@@ -1415,6 +1416,19 @@ class MainWindow (QMainWindow):
         allb.clicked.connect(all_on)
         centreb.clicked.connect(centre_only)
         d.prefMcaChannelBoxes=boxes
+        g4=QGroupBox('Saving',d)
+        g4.setToolTip('The Save buttons store results in this SPEC file\'s workbook (<SPEC file>_reader.xlsx in the output '
+                      'folder: sheets Scans, Saved, Data, Fits, Maps, Settings). Export still writes the usual text files.')
+        l4=QVBoxLayout(g4)
+        asknote=QCheckBox('Ask for a note on every Save',g4)
+        asknote.setObjectName('prefSaveNoteCheckBox')
+        asknote.setChecked(bool(self.prefs.get('save_asks_note',False)))
+        asknote.setToolTip('On: every Save asks for a short note, kept with that version in the workbook (Saved sheet). '
+                           'Off: Shift-click a Save button to add one.')
+        asknote.toggled.connect(lambda on:self.setPreference('save_asks_note',bool(on)))
+        l4.addWidget(asknote)
+        lay.addWidget(g4)
+        d.prefSaveNoteCheckBox=asknote
         close=QPushButton('Close',d)
         close.setObjectName('prefClosePushButton')
         close.clicked.connect(d.close)
@@ -3201,6 +3215,8 @@ class MainWindow (QMainWindow):
             self.setGIDFormFactor()
         elif str(self.ui.gidComboBox.currentText())=='Worksheet':
             self.showGIDWorksheet()
+        elif str(self.ui.gidComboBox.currentText())=='Save to workbook':
+            self.saveGIDToWorkbook()
             
     def showGIDWorksheet(self):
         if self.gidWorksheet is None:
@@ -5116,10 +5132,13 @@ class MainWindow (QMainWindow):
     def setupCutFit(self):
         """"Fit peaks" and "Fit options..." beside the line-cut plot (owner,
         2026-11-21): every plotted cut fitted automatically (lss_core.peaks)."""
-        self.peakFitOptions=peaks.FitOptions()
+        self.peakFitOptions=peaks.options_from_dict(self.prefs.get('peak_fit'))     # kept between sessions
+        self.mcaFitOptions=peaks.options_from_dict(self.prefs.get('mca_fit'),peaks.FitOptions(background='quadratic',n_peaks=1))
         self.cutFitResults=[]
         self.cutFitArtists=[]
         self.cutFitDialog=None
+        self.mcaFitDialog=None
+        self.mcaLineFits=None
         b=QPushButton('Fit peaks',self)
         b.setObjectName('cutFitPushButton')
         b.setToolTip('Find and fit the peaks of every plotted cut at once (lss_core.peaks): peaks standing out of a '
@@ -5136,6 +5155,30 @@ class MainWindow (QMainWindow):
         b.clicked.connect(self.fitCuts)
         o.clicked.connect(self.showCutFitOptions)
         self.cutFitPushButton,self.cutFitOptionsPushButton=b,o
+        # MCA: the lines of a series of spectra (lss_core.peaks.fit_series; F22a)
+        fl=QPushButton('Fit lines',self)
+        fl.setObjectName('mcaFitLinesPushButton')
+        fl.setToolTip('Fit the fluorescence line(s) of all selected spectra (F22a, owner\'s rule): the sum of the spectra '
+                      'is fitted within the range in the Sum All field for the lines\' positions and widths; then every '
+                      'spectrum is fitted with those fixed, heights and background only (a Gaussian on a quadratic '
+                      'background by default, for the Rayleigh spill-over). The intensity of the strongest line, as its '
+                      'area over the channel width (the same units as Sum All, background removed), goes to the '
+                      'integral plot and list like Sum All. "Fit options..." beside it sets the shape, background, lines.')
+        fo=QPushButton('Fit options...',self)
+        fo.setObjectName('mcaFitOptionsPushButton')
+        fo.setToolTip('Shape, background, number of lines or their energies, sensitivity, for "Fit lines".')
+        self.ui.horizontalLayout_37.addWidget(fl)
+        self.ui.horizontalLayout_37.addWidget(fo)
+        fl.clicked.connect(self.mcaFitLines)
+        fo.clicked.connect(self.showMcaFitOptions)
+        self.mcaFitLinesPushButton,self.mcaFitOptionsPushButton=fl,fo
+        # one-click Save into the SPEC file's workbook beside every Export (owner, 2026-11-21)
+        self.saveButtons={}
+        for name,export,handler in (('spec',self.ui.spExportPushButton,self.saveSpecToWorkbook),
+                                    ('ref',self.ui.refExportPushButton,self.saveRefToWorkbook),
+                                    ('cut',self.ui.cutExportPushButton,self.saveCutsToWorkbook),
+                                    ('mca',self.ui.mcaExportIntPushButton,self.saveMcaToWorkbook)):
+            self.saveButtons[name]=self.addSaveButton(export,handler,name)
 
     def cutCurves(self):
         """The plotted cuts as (label, x, y, sigma, scale): scale is the
@@ -5234,14 +5277,16 @@ class MainWindow (QMainWindow):
         self.cutFitDialog.show()
         self.cutFitDialog.raise_()
 
-    def buildCutFitDialog(self):
-        """The options of "Fit peaks" (lss_core.peaks.FitOptions)."""
+    def buildCutFitDialog(self,which='cut'):
+        """The options of "Fit peaks" (``which`` 'cut') or of the MCA's "Fit
+        lines" ('mca'): lss_core.peaks.FitOptions, kept in the preferences."""
+        attr,pref={'cut':('peakFitOptions','peak_fit'),'mca':('mcaFitOptions','mca_fit')}[which]
         d=QDialog(self)
-        d.setWindowTitle('Peak fit options')
-        d.setObjectName('cutFitDialog')
+        d.setWindowTitle('Peak fit options' if which=='cut' else 'Fluorescence line fit options')
+        d.setObjectName('%sFitDialog' % which)
         lay=QVBoxLayout(d)
         form=QFormLayout()
-        o=self.peakFitOptions
+        o=getattr(self,attr)
         shape=QComboBox(d); shape.setObjectName('cutFitShapeComboBox')
         shape.addItems(list(peaks.SHAPES)); shape.setCurrentText(o.shape)
         shape.setToolTip('Peak shape: Gaussian (instrument-limited peaks, most GID and fluorescence lines), Lorentzian '
@@ -5279,7 +5324,8 @@ class MainWindow (QMainWindow):
             form.addRow(lab,w)
         form.addRow(fix)
         lay.addLayout(form)
-        res=QLabel(self.cutFitSummary(),d); res.setObjectName('cutFitResultLabel'); res.setWordWrap(True)
+        res=QLabel(self.cutFitSummary() if which=='cut' else self.mcaFitSummary(),d)
+        res.setObjectName('%sFitResultLabel' % which); res.setWordWrap(True)
         from PyQt5.QtCore import Qt as QtC
         res.setTextInteractionFlags(QtC.TextSelectableByMouse)
         res.setToolTip('The last fit of every cut; also in the Messages pane.')
@@ -5304,9 +5350,11 @@ class MainWindow (QMainWindow):
                 cs=tuple(float(v) for v in cen.text().replace(';',',').split(',') if v.strip())
             except ValueError:
                 cs=()
-            self.peakFitOptions=peaks.FitOptions(shape=shape.currentText(),background=bg.currentText(),n_peaks=npk.value(),
-                                                 max_peaks=mpk.value(),min_prominence=prom.value(),window=win.value(),
-                                                 x_range=xr,centres=cs,fix_centres=fix.isChecked(),fwhm=fw.value())
+            new=peaks.FitOptions(shape=shape.currentText(),background=bg.currentText(),n_peaks=npk.value(),
+                                 max_peaks=mpk.value(),min_prominence=prom.value(),window=win.value(),
+                                 x_range=xr,centres=cs,fix_centres=fix.isChecked(),fwhm=fw.value())
+            setattr(self,attr,new)
+            self.setPreference(pref,peaks.options_to_dict(new))          # kept between sessions
         for w in (shape,bg):
             w.currentIndexChanged.connect(apply)
         for w in (npk,mpk,prom,win,fw):
@@ -5314,12 +5362,252 @@ class MainWindow (QMainWindow):
         for w in (rng,cen):
             w.editingFinished.connect(apply)
         fix.toggled.connect(apply)
-        go.clicked.connect(lambda: (apply(),self.fitCuts()))
-        save.clicked.connect(self.saveCutFits)
+        go.clicked.connect(lambda: (apply(),self.fitCuts() if which=='cut' else self.mcaFitLines()))
+        if which=='cut':
+            save.clicked.connect(self.saveCutFits)
+        else:
+            save.setText('Save to workbook')
+            save.setToolTip('Save the fluorescence intensities and the line fits into the workbook (as the Save button).')
+            save.clicked.connect(self.saveMcaToWorkbook)
         close.clicked.connect(d.close)
         d.cutFitShapeComboBox,d.cutFitBackgroundComboBox,d.cutFitNumberSpinBox=shape,bg,npk
         d.cutFitRangeLineEdit,d.cutFitCentresLineEdit,d.cutFitNowPushButton=rng,cen,go
         return d
+
+    def addSaveButton(self,beside,handler,name):
+        """A Save button just after ``beside`` (an Export button) in its layout."""
+        b=QPushButton('Save',self)
+        b.setObjectName('%sSaveWorkbookPushButton' % name)
+        b.setToolTip('Save what is shown into this SPEC file\'s workbook (<SPEC file>_reader.xlsx in the output folder): '
+                     'the reduced data, any fits of it, the settings that made it, tied to its scans and labelled by '
+                     'experiment type; each Save of the same scans is a new version. Shift-click (or the Preferences '
+                     'option) to add a note. Export still writes the usual text files.')
+        b.clicked.connect(handler)
+
+        def find(layout):
+            for k in range(layout.count()):
+                it=layout.itemAt(k)
+                if it.widget() is beside:
+                    return layout,k
+                if it.layout() is not None:
+                    r=find(it.layout())
+                    if r:
+                        return r
+            return None
+        top=beside.parentWidget().layout() if beside.parentWidget() is not None else None
+        found=find(top) if top is not None else None
+        if found:
+            found[0].insertWidget(found[1]+1,b)
+        return b
+
+    def workbookPath(self):
+        return workbookmod.path_for(self.specFileName,self.directory)
+
+    def saveToWorkbook(self,kind,items):
+        """Store ``items`` (dicts for lss_core.workbook.Workbook.add_result)
+        in the workbook, with a note when asked for; returns the ids."""
+        if not getattr(self,'specFileName',None):
+            self.messageBox('Open a SPEC file first.')
+            return []
+        if not items:
+            self.messageBox('There is nothing to save here yet.')
+            return []
+        from PyQt5.QtWidgets import QInputDialog, QApplication
+        from PyQt5.QtCore import Qt as QtC
+        note=''
+        if self.prefs.get('save_asks_note') or QApplication.keyboardModifiers() & QtC.ShiftModifier:
+            note,ok=QInputDialog.getMultiLineText(self,'Note','A note for this saved version (optional):','')
+            if not ok:
+                return []
+        try:
+            wb=workbookmod.Workbook(self.workbookPath())
+            wb.set_scans(workbookmod.scan_rows(self.specData,self.specPar))
+            wb.set_settings('peak_fit',peaks.options_to_dict(self.peakFitOptions))
+            wb.set_settings('mca_fit',peaks.options_to_dict(self.mcaFitOptions))
+            wb.set_settings('reduction',self.reductionSettings())
+            ids=[wb.add_result(kind,note=note,**it) for it in items]
+            wb.save()
+        except Exception as e:
+            self.notify('Could not save to the workbook %s: %s' % (self.workbookPath(),e),title='Save')
+            return []
+        rows={r['id']:r for r in wb.results()}
+        self.notify('Saved to %s: %s' % (os.path.basename(self.workbookPath()),'; '.join(
+            '%s %s, scans %s, %s v%d' % (i,rows[i]['kind'],rows[i]['scans'],rows[i]['label'] or '',rows[i]['version'])
+            for i in ids)),title='Save',level='info')
+        return ids
+
+    def reductionSettings(self):
+        """The settings that shape reduced data, for the workbook."""
+        out={}
+        try:
+            out['absorber']=str(self.absorberModel())
+        except Exception:
+            pass
+        out['monitor_gain']=bool(getattr(self,'monitorGain',False))
+        out['per_photon']=bool(getattr(self,'monitorPhotons',False))
+        out['error_model']=str(getattr(self.errorModel,'budget',False) and 'budget' or 'legacy')
+        try:
+            from dataclasses import asdict
+            out['gid']=asdict(self.gidParams)
+        except Exception:
+            pass
+        return out
+
+    def saveSpecToWorkbook(self):
+        if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
+            self.messageBox('Please select a scan with data to save first!')
+            return
+        xc,yc,nc=(str(c.currentText()) for c in (self.ui.spXComboBox,self.ui.spYComboBox,self.ui.spNComboBox))
+        norm=self.ui.spNCheckBox.checkState()!=0
+        items=[]
+        for i in self.selectedScanNums:
+            d=self.specData[i]
+            if xc not in d or yc not in d or (norm and nc not in d):
+                continue
+            x,y=np.asarray(d[xc],float),np.asarray(d[yc],float)
+            yerr=np.sqrt(np.abs(y))
+            cols=[xc,yc,'d'+yc]
+            if norm:
+                n=np.asarray(d[nc],float)
+                g=self.monitorGainFactor(i,nc)
+                yerr=np.sqrt(np.abs(y)/n**2+y**2/n**3)*g
+                y=y/n*g
+                cols=[xc,'%s/%s' % (yc,nc),'d(%s/%s)' % (yc,nc)]
+            fits=[('%s vs %s' % (yc,xc),self.specFit)] if i==self.selectedScanNums[-1] and getattr(self,'specFit',None) is not None else []
+            items.append(dict(scans=[i],data=np.column_stack([x,y,yerr]),columns=cols,label='%s vs %s%s' % (yc,xc,' / '+nc if norm else ''),
+                              fits=fits,settings=dict(x=xc,y=yc,monitor=nc if norm else None)))
+        self.saveToWorkbook('scan',items)
+
+    def saveRefToWorkbook(self):
+        if self.det!='Pilatus' or len(getattr(self,'refData',[]))==0 or getattr(self,'normRefData',None) is None:
+            self.messageBox('There is no reflectivity data to save yet')
+            return
+        scans=sorted(int(n) for n in self.selectedScanNums)
+        d=np.asarray(self.normRefData,float)
+        cols=['Qz','R','dR','dQz'][:d.shape[1]]
+        items=[dict(scans=scans,data=d,columns=cols,label='R',settings=dict(command=str(getattr(self,'command',''))))]
+        rrf=getattr(self,'RrfData',None)
+        if rrf is not None and len(rrf):
+            r=np.asarray(rrf,float)
+            items.append(dict(scans=scans,data=r,columns=['Qz','R/RF','d(R/RF)','dQz'][:r.shape[1]],label='R/RF'))
+        self.saveToWorkbook('reflectivity',items)
+
+    def saveCutsToWorkbook(self):
+        curves=self.cutCurves()
+        if not curves:
+            self.messageBox('Make a line cut first.')
+            return
+        cd=self.cutData
+        keys=[-1] if isinstance(cd,dict) and -1 in cd else ([i for i in getattr(self,'selectedPilFramesNums',[]) if isinstance(cd,dict) and i in cd])
+        fits={label:groups for label,groups in self.cutFitResults}
+        direction=str(self.ui.pilCutDirComboBox.currentText())
+        settings=dict(direction=direction,range=str(self.ui.pilIntRangeLineEdit.text()),axes=str(self.ui.pilAxesComboBox.currentText()))
+        items=[]
+        for k,(label,x,y,sg,scale) in enumerate(curves):
+            if label=='GID cut':
+                scans=sorted({int(n) for lv in getattr(self,'gidLevels',[]) for n in lv[1]})
+                kind='gid cut'
+            else:
+                key=keys[k] if k<len(keys) else None
+                frames=getattr(self,'selectedPilFramesNums',[]) if key==-1 else ([key] if key is not None else [])
+                scans=sorted({int(self.pilScanNum[i]) for i in frames})
+                kind='line cut'
+            items.append(dict(scans=scans,data=np.column_stack([x,y,sg]),columns=[direction.split()[0]+' x','I','dI'],
+                              label='%s, %s %s' % (label,direction,settings['range']),settings=settings,
+                              fits=[(label,fits[label])] if label in fits else []))
+        self.saveToWorkbook('gid cut' if curves[0][0]=='GID cut' else 'line cut',items)
+
+    def saveMcaToWorkbook(self):
+        rows=getattr(self,'mcaIntData',None)
+        if not rows:
+            self.messageBox('Sum or fit the fluorescence first (Sum All or Fit lines).')
+            return
+        scans=sorted(int(n) for n in self.selectedScanNums)
+        fits=[]
+        if self.mcaLineFits is not None:
+            ref,each,nums=self.mcaLineFits
+            fits=[('sum of %d spectra' % len(each),ref)]+[('frame %d' % (n+1),r) for n,r in zip(nums,each)]
+        items=[dict(scans=scans,data=np.asarray(rows,float),columns=['frame','Qz','energy','I','dI'],
+                    label=str(getattr(self,'command','')),fits=fits,settings=dict(command=str(getattr(self,'command',''))))]
+        self.saveToWorkbook('fluorescence',items)
+
+    def saveGIDToWorkbook(self):
+        if getattr(self,'pilGIDData',None) is None or not getattr(self,'gidLevels',None):
+            self.messageBox('Patch a GID map first.')
+            return
+        scans=sorted({int(n) for lv in self.gidLevels for n in lv[1]})
+        from dataclasses import asdict
+        items=[dict(scans=scans,map_xyz=(self.pilGIDXAxs,self.pilGIDYAxs,self.pilGIDData,self.pilGIDDataErr),
+                    label='2theta, beta (deg)',settings=asdict(self.gidParams))]
+        self.saveToWorkbook('gid map',items)
+
+    def mcaFitLines(self):
+        """Fit the selected spectra's lines (lss_core.peaks.fit_series)."""
+        nums=list(getattr(self,'selectedMcaScanNums',[]) or [])
+        if not nums or not all(n in self.nomMcaData for n in nums):
+            self.messageBox('Select and plot MCA spectra first.')
+            return
+        data=[np.asarray(self.nomMcaData[n],float) for n in nums]
+        if any(len(d)!=len(data[0]) or not np.allclose(d[:,0],data[0][:,0]) for d in data):
+            self.messageBox('The selected spectra have different energy axes; fit them in groups with the same axis.')
+            return
+        x=data[0][:,0]
+        o=self.mcaFitOptions
+        if o.x_range is None:
+            try:
+                lo,hi=(float(t) for t in str(self.ui.mcaRanLineEdit.text()).split(':'))
+                o=dataclasses.replace(o,x_range=(lo,hi))
+            except ValueError:
+                pass
+        ref,each=peaks.fit_series(x,[d[:,1] for d in data],[d[:,2] for d in data],o)
+        if not each:
+            self.notify('Fit lines: %s' % (ref.message or 'no line found'),title='Fit lines')
+            return
+        step=float(np.median(np.abs(np.diff(x))))
+        self.mcaIntData=[]
+        self.ui.mcaDataListWidget.clear()
+        for n,r in zip(nums,each):
+            p=r.peaks[0]
+            inten,err=p.area/step,p.area_err/step
+            frame=n+1
+            qz=self.mcaPar[n]['Q'][2]
+            energy=self.mcaPar[n].get('Energy',10.0) if isinstance(self.mcaPar[n],dict) else 10.0
+            self.mcaIntData.append([frame,qz,energy,inten,err])
+            xv=(frame,qz,energy)[min(self.ui.mcaXAxisComboBox.currentIndex(),2)]
+            self.ui.mcaDataListWidget.addItem(('%d' % xv if self.ui.mcaXAxisComboBox.currentIndex()==0 else '%.4f' % xv)+
+                                              '\t%.4e\t%.4e' % (inten,err))
+        self.mcaSumScript=None
+        self.mcaMerges=[]
+        self.mcaLineFits=(ref,each,nums)
+        self.updateMcaIntPlot()
+        try:
+            ax=self.ui.mcaPlotMplWidget.canvas.ax
+            for r in each[:20]:
+                xx=np.linspace(r.window[0],r.window[1],300)
+                ax.plot(xx,r.model(xx),'k--',lw=0.8)
+            self.ui.mcaPlotMplWidget.canvas.draw()
+        except Exception:
+            pass
+        p=ref.peaks[0]
+        self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background' % (
+            listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background)
+        self.ui.commandLineEdit.setText(self.command)
+        self.notify('Fit lines: sum of %d spectra: %s. Intensities of the line at %.4g (area / channel width) in the '
+                    'integral plot.' % (len(each),ref.summary(),p.centre),title='Fit lines',level='info')
+        if self.mcaFitDialog is not None:
+            self.mcaFitDialog.findChild(QLabel,'mcaFitResultLabel').setText(self.mcaFitSummary())
+
+    def mcaFitSummary(self):
+        if self.mcaLineFits is None:
+            return 'not fitted yet'
+        ref,each,nums=self.mcaLineFits
+        return 'Sum of %d spectra: %s' % (len(each),ref.summary())
+
+    def showMcaFitOptions(self):
+        if self.mcaFitDialog is None:
+            self.mcaFitDialog=self.buildCutFitDialog('mca')
+        self.mcaFitDialog.show()
+        self.mcaFitDialog.raise_()
 
     def updateCutPlotData(self):
         if self.det!='Pilatus':   # no cut plotted: display options do nothing

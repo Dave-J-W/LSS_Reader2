@@ -27,9 +27,11 @@ def test_motor_scan_is_plotted_and_peak_fitted(loaded, qapp, dataset, recorder):
     assert loaded.ui.PlotWidget.currentIndex() == 0
     assert float(loaded.peakPos) == pytest.approx(0.0, abs=1e-6)
     assert float(loaded.peakCenter) == pytest.approx(0.0, abs=2e-3)
-    # As coded: the tanh-edged box model is tried first and its width is
-    # reported as "FWHM". For this Gaussian (true FWHM 0.471) it gives 0.406.
-    assert float(loaded.peakFWHM) == pytest.approx(0.4064, abs=2e-3)
+    # P9 fixed (2026-11-21, owner: close F22): the scan's shape is chosen by
+    # lss_core.peaks.fit_scan, and this Gaussian (true FWHM 0.471) is fitted
+    # as a peak (was 0.406 from the tanh box model tried first)
+    assert loaded.specFit.kind == 'peak'
+    assert float(loaded.peakFWHM) == pytest.approx(0.471, abs=5e-3)
 
 
 def test_selecting_pilatus_scan_lists_frames(loaded, qapp, dataset, recorder):

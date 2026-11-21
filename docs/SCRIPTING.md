@@ -133,6 +133,18 @@ the same files. It is also written to the log.
   instead of the fitted patch factor at those joins (join 0 is the first
   pair). The window writes this when it used the known ratio.
 
+## Workbook (2026-11-21)
+
+    from lss_core import workbook
+    wb = workbook.Workbook(workbook.path_for(spec, out_dir))      # <SPEC file>_reader.xlsx
+    rid = wb.add_result('line cut', [11], cut.cuts[0], ['Qxy', 'I', 'dI'], label='S# 11 F# 20',
+                        note='first look', fits=[('S# 11 F# 20', fits[0])])
+    wb.save()
+    wb.results(kind='line cut'), wb.data(rid), wb.fits(scan=11), wb.settings('peak_fit')
+
+The window's Save buttons do the same; the sheets are described in
+`lss_core/workbook.py`.
+
 ## Peaks (2026-11-21)
 
     from lss_core import peaks
@@ -142,6 +154,7 @@ the same files. It is also written to the log.
     fits = cut.fit(peaks.FitOptions())                    # every cut of exp.cut(...), as "Fit peaks"
     ref, each = peaks.fit_series(energy, spectra, sigmas, peaks.FitOptions(centres=(6.93,)))   # MCA series
     line = peaks.fit_lines(energy, counts, [6.40, 7.06], sigma)
+    shape = peaks.fit_scan(x, y, sigma)                   # 'peak', 'edge' or 'box' (SpecPlot); fit_edge for half-cuts
 
 `fit_series` fits the sum of a series of spectra for the lines' positions
 and widths, then each spectrum with those fixed (owner's rule for MCA

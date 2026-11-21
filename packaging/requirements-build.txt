@@ -7,4 +7,5 @@ PyQt5==5.15.11
 lmfit==1.3.4
 sympy==1.14.0
 pillow==12.3.0
+openpyxl==3.1.5
 pyinstaller==6.22.3

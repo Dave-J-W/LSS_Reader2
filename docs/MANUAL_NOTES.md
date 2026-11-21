@@ -47,6 +47,22 @@ Each line: feature — where — default — script — notes entry (date).
   `Time_from_start_s` (each scan from its own start); how the times were
   obtained is in the item's tooltip (`lss_core/timing.py`, D46, D50).
 
+### Saving to the workbook (F66, D53)
+- "Save" beside every Export (SpecPlot, Reflectivity, Cuts, MCA integral) and
+  "Save to workbook" in the GID menu: one click stores what is shown in
+  `<SPEC file>_reader.xlsx` in the output folder (sheets Scans, Saved, Data,
+  Fits, Maps, Settings; kind, scans, version, note, settings per result; every
+  sheet filtered and sortable). Shift-click, or Preferences > Saving, for a
+  note. Export still writes the legacy text files and is unchanged.
+  `lss_core.workbook`; Notes 2026-11-21.
+
+### Fitting (F22)
+- SpecPlot: the scan is fitted as a peak, an edge (half-cut: edge width = beam
+  FWHM) or a plateau, whichever fits best; the title says which (P9 fixed).
+- MCA tab: "Fit lines" and "Fit options..." (lines of all selected spectra,
+  the sum fixing position and width; intensities like Sum All).
+- Fit options are kept between sessions (preferences) and in the workbook.
+
 ### Monitor and absorbers (affect every tab)
 - Absorber factor field, "from E", "cal" — main panel — `absfac=` in
   scripts — OUTPUT_DECISIONS "Absorber factor per unit".

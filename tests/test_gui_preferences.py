@@ -44,7 +44,9 @@ def test_settings_are_saved_and_read_back(window, qapp, recorder):
     with open(os.environ[preferences.ENV]) as f:
         stored = json.load(f)
     assert stored == {'calibrated_foils': False, 'patch_auto_known_ratio': False,
-                      'patch_threshold_percent': 5.5, 'mca_channels': []}   # mca_channels: 2026-11-19
+                      'patch_threshold_percent': 5.5, 'mca_channels': [],   # mca_channels: 2026-11-19
+                      # fitting options and saving (owner, 2026-11-21)
+                      'peak_fit': {}, 'mca_fit': {'background': 'quadratic', 'n_peaks': 1}, 'save_asks_note': False}
     assert preferences.load() == stored
     assert recorder.exceptions == []
 

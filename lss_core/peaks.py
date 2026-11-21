@@ -476,3 +476,202 @@ def fit_series(x, spectra, sigmas=None, options=None):
         out.append(FitResult(pk, coef[len(ref.peaks):], ref.x0, ref.xs, chi2, ref.window, int(w.sum()), True,
                              'centres and widths from the sum of %d spectra' % len(Y), o))
     return ref, out
+
+
+# ---- edges and plateaus: alignment scans, half-cuts (owner, 2026-11-21; F22a, F43) ----
+
+def _step(x, c, fwhm):
+    """Rising unit step whose derivative is a Gaussian of this FWHM (an
+    error function): a half-cut through a Gaussian beam."""
+    from scipy.special import erf
+    return 0.5 * (1 + erf((x - c) / (max(abs(fwhm), 1e-300) / _G * math.sqrt(2))))
+
+
+def _shape_fit(x, y, s, weighted, model, p0, lo, hi, kind, unpack, background_n):
+    """Shared least squares for edges and boxes; ``unpack`` turns the fitted
+    parameters (and their errors) into (Peak, background)."""
+    from scipy.optimize import curve_fit
+    try:
+        if weighted:
+            try:
+                p0 = curve_fit(model, x, y, p0=p0, bounds=(lo, hi), x_scale='jac', max_nfev=5000)[0]
+            except (RuntimeError, ValueError):
+                pass
+        popt, pcov = curve_fit(model, x, y, p0=p0, sigma=s, absolute_sigma=bool(weighted), bounds=(lo, hi),
+                               x_scale='jac', max_nfev=20000)
+    except (RuntimeError, ValueError) as e:
+        return None, 'the %s fit did not converge (%s)' % (kind, str(e).split('\n')[0][:60])
+    perr = np.sqrt(np.clip(np.diag(pcov), 0, None)) if np.all(np.isfinite(pcov)) else np.full(len(popt), np.nan)
+    dof = max(len(x) - len(popt), 1)
+    rss = float(np.sum(((y - model(x, *popt)) / s) ** 2))
+    pk, b = unpack(popt, perr)
+    return (pk, b, rss / dof, rss, len(popt)), ''
+
+
+def fit_edge(x, y, sigma=None, background='linear'):
+    """One step, rising or falling (a half-cut, a knife edge, a slit
+    blade): returns a FitResult whose one Peak has ``centre`` (the edge),
+    ``fwhm`` (the width of the edge: for a half-cut through a Gaussian beam,
+    the beam's FWHM in x units) and ``height`` (the step, signed); shape
+    'edge'."""
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    weighted = sigma is not None and np.any(np.asarray(sigma, float) > 0)
+    s = noise_sigma(y, sigma)
+    o = np.argsort(x)
+    x, y, s = x[o], y[o], s[o]
+    nb = BACKGROUNDS[background] + 1
+    x0, xs = float(0.5 * (x.min() + x.max())), float(max(0.5 * (x.max() - x.min()), 1e-300))
+    if len(x) < nb + 5:
+        return FitResult([], np.zeros(0), x0, xs, float('nan'), (float(x.min()), float(x.max())), len(x), False,
+                         'too few points for an edge', FitOptions(background=background))
+    ys = np.convolve(y, np.ones(3) / 3, 'same')
+    g = np.gradient(ys[1:-1], x[1:-1])
+    k = int(np.argmax(np.abs(g))) + 1
+    step = float(np.median(np.diff(x)))
+    n4 = max(len(y) // 4, 2)
+    h0 = float(np.mean(y[-n4:]) - np.mean(y[:n4]))
+    w0 = max(abs(h0 / g[k - 1]) * 0.94 if g[k - 1] else 3 * step, 2 * step)
+    b0 = [float(np.mean(y[:n4]))] + [0.0] * (nb - 1) if nb else []
+
+    def model(xv, c, w, h, *b):
+        bg = np.polyval(np.asarray(b)[::-1], (xv - x0) / xs) if b else 0.0
+        return bg + h * _step(xv, c, w)
+
+    span = float(x.max() - x.min())
+
+    def unpack(p, e):
+        return (Peak(float(p[0]), float(e[0]), float(abs(p[1])), float(e[1]), float(p[2]), float(e[2]), float('nan'),
+                     float('nan'), 'edge'), np.asarray(p[3:], float))
+    r, msg = _shape_fit(x, y, s, weighted, model, [float(x[k]), w0, h0] + b0,
+                        [float(x.min()), 0.3 * step, -np.inf] + [-np.inf] * nb,
+                        [float(x.max()), 2 * span, np.inf] + [np.inf] * nb, 'edge', unpack, nb)
+    if r is None:
+        return FitResult([], np.zeros(0), x0, xs, float('nan'), (float(x.min()), float(x.max())), len(x), False, msg,
+                         FitOptions(background=background))
+    pk, b, chi2, rss, npar = r
+    res = FitResult([pk], b, x0, xs, chi2, (float(x.min()), float(x.max())), len(x), True, '',
+                    FitOptions(background=background))
+    res.model = lambda xv, _p=pk, _r=res: _r.background_at(xv) + _p.height * _step(np.asarray(xv, float), _p.centre, _p.fwhm)
+    res.kind, res.rss, res.npar = 'edge', rss, npar
+    return res
+
+
+def fit_box(x, y, sigma=None, background='linear'):
+    """A plateau between two edges (a slit scan, a box-shaped beam):
+    ``centre`` the midpoint, ``fwhm`` the distance between the edges,
+    ``height`` the plateau; ``edges`` on the result: ((centre, width) of
+    the rising edge, (centre, width) of the falling one)."""
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    weighted = sigma is not None and np.any(np.asarray(sigma, float) > 0)
+    s = noise_sigma(y, sigma)
+    o = np.argsort(x)
+    x, y, s = x[o], y[o], s[o]
+    nb = BACKGROUNDS[background] + 1
+    x0, xs = float(0.5 * (x.min() + x.max())), float(max(0.5 * (x.max() - x.min()), 1e-300))
+    fail = lambda msg: FitResult([], np.zeros(0), x0, xs, float('nan'), (float(x.min()), float(x.max())), len(x),
+                                 False, msg, FitOptions(background=background))
+    if len(x) < nb + 7:
+        return fail('too few points for a box')
+    step = float(np.median(np.diff(x)))
+    span = float(x.max() - x.min())
+    base = float(np.median(np.r_[y[:2], y[-2:]]))
+    top = float(np.max(y))
+    above = np.flatnonzero(y > base + 0.5 * (top - base))
+    c1, c2 = (float(x[above[0]]), float(x[above[-1]])) if len(above) >= 2 else (x0 - xs / 2, x0 + xs / 2)
+    b0 = [base] + [0.0] * (nb - 1) if nb else []
+    edges = []
+
+    def model(xv, a, b_, w1, w2, h, *bb):
+        bg = np.polyval(np.asarray(bb)[::-1], (xv - x0) / xs) if bb else 0.0
+        return bg + h * (_step(xv, a, w1) - _step(xv, b_, w2))
+
+    def unpack(p, e):
+        (a, wa), (b_, wb) = sorted(((p[0], abs(p[2])), (p[1], abs(p[3]))))
+        edges[:] = [(float(a), float(wa)), (float(b_), float(wb))]
+        return (Peak(float(0.5 * (a + b_)), float(0.5 * math.hypot(e[0], e[1])), float(b_ - a),
+                     float(math.hypot(e[0], e[1])), float(p[4]), float(e[4]), float(p[4] * (b_ - a)), float('nan'),
+                     'box'), np.asarray(p[5:], float))
+    r, msg = _shape_fit(x, y, s, weighted, model, [c1, c2, 2 * step, 2 * step, top - base] + b0,
+                        [float(x.min()), float(x.min()), 0.3 * step, 0.3 * step, -np.inf] + [-np.inf] * nb,
+                        [float(x.max()), float(x.max()), span, span, np.inf] + [np.inf] * nb, 'box', unpack, nb)
+    if r is None:
+        return fail(msg)
+    pk, b, chi2, rss, npar = r
+    res = FitResult([pk], b, x0, xs, chi2, (float(x.min()), float(x.max())), len(x), True, '',
+                    FitOptions(background=background))
+    (a, wa), (b_, wb) = edges
+    res.model = lambda xv: res.background_at(xv) + pk.height * (_step(np.asarray(xv, float), a, wa) -
+                                                                 _step(np.asarray(xv, float), b_, wb))
+    res.kind, res.rss, res.npar, res.edges = 'box', rss, npar, tuple(edges)
+    return res
+
+
+def fit_scan(x, y, sigma=None, background='linear'):
+    """The shape of an alignment or half-cut scan: a peak (Gaussian), an
+    edge (``fit_edge``) or a box (``fit_box``), whichever the data support
+    best by the Akaike criterion (χ² + 2 × parameters); returns the
+    FitResult with ``kind`` 'peak', 'edge' or 'box' and ``candidates``
+    (kind → FitResult) for the others. Replaces the window's tanh box model
+    (P9), which reported 0.406 for a Gaussian of FWHM 0.471."""
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    weighted = sigma is not None and np.any(np.asarray(sigma, float) > 0)
+    s = noise_sigma(y, sigma)
+    out = {}
+    span = float(np.nanmax(x) - np.nanmin(x)) if len(x) else 1.0
+    pk = fit(x, y, sigma, FitOptions(n_peaks=1, background=background, window=span, min_prominence=3.0))
+    if pk.peaks:
+        r = (y - pk.model(x)) / s
+        pk.kind, pk.rss, pk.npar = 'peak', float(np.sum(r ** 2)), 3 + BACKGROUNDS[background] + 1
+        out['peak'] = pk
+    for kind, f in (('edge', fit_edge), ('box', fit_box)):
+        r = f(x, y, sigma, background)
+        if r.ok:
+            out[kind] = r
+    if not out:
+        return FitResult([], np.zeros(0), 0.0, 1.0, float('nan'), (float('nan'),) * 2, len(x), False,
+                         'no peak, edge or plateau could be fitted', FitOptions(background=background))
+    n = len(x)
+
+    def aic(r):
+        if weighted:
+            return r.rss + 2 * r.npar
+        return n * math.log(max(r.rss, 1e-300) / n) + 2 * r.npar
+    best = min(out.values(), key=aic)
+    best.candidates = out
+    return best
+
+
+def options_to_dict(o):
+    """FitOptions as a plain dict (for preferences and the workbook)."""
+    from dataclasses import asdict
+    d = asdict(o)
+    d['x_range'] = None if o.x_range is None else list(o.x_range)
+    d['centres'] = list(o.centres)
+    return d
+
+
+def options_from_dict(d, default=None):
+    """FitOptions from a stored dict; unknown keys and bad values fall back
+    to ``default`` (or the module's defaults)."""
+    from dataclasses import fields
+    base = default or FitOptions()
+    kw = {}
+    names = {f.name for f in fields(FitOptions)}
+    for k, v in (d or {}).items():
+        if k not in names:
+            continue
+        if k == 'x_range':
+            v = None if v in (None, [], ()) else tuple(float(t) for t in v)[:2]
+        elif k == 'centres':
+            v = tuple(float(t) for t in (v or ()))
+        else:
+            ref = getattr(base, k)
+            try:
+                v = type(ref)(v) if not isinstance(ref, bool) else bool(v)
+            except (TypeError, ValueError):
+                continue
+        kw[k] = v
+    try:
+        return replace(base, **kw).check()
+    except ValueError:
+        return base

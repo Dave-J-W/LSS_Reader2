@@ -5,3 +5,4 @@ PyQt5
 lmfit
 sympy
 pillow
+openpyxl

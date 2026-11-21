@@ -134,3 +134,37 @@ def test_a_wrong_shape_is_fitted_but_flagged():
     assert res.peaks and ('does not describe' in res.message or 'did not converge' in res.message)
     good = peaks.fit(x, y, s, peaks.FitOptions(shape='gaussian', background='constant', n_peaks=1))
     assert good.ok and not good.message and good.peaks[0].fwhm == pytest.approx(8.0, rel=1e-3)
+
+
+# ---- edges, boxes, scan shapes (F22a, F43, P9) -----------------------------
+
+def test_edge_gives_the_beam_size_of_a_half_cut():
+    """A half-cut (sample height scanned through a Gaussian beam of FWHM 52
+    µm): the edge's centre is where the beam is half cut, its FWHM the
+    beam's."""
+    from scipy.special import erf
+    z = np.linspace(-0.2, 0.2, 81)
+    mu = 2000 * (0.5 * (1 - erf((z - 0.013) / (0.052 / G * math.sqrt(2))))) + 20
+    y = _poisson(mu, 11)
+    res = peaks.fit_edge(z, y, np.sqrt(np.maximum(y, 1)))
+    p = res.peaks[0]
+    assert res.ok and p.centre == pytest.approx(0.013, abs=3 * p.centre_err + 1e-4)
+    assert p.fwhm == pytest.approx(0.052, abs=3 * p.fwhm_err + 5e-4) and p.height < 0      # falling
+    assert 0.6 < res.chi2_dof < 1.6
+
+
+def test_scan_shape_picks_peak_edge_or_box():
+    x = np.linspace(-1, 1, 121)
+    from scipy.special import erf
+    st = lambda c, w: 0.5 * (1 + erf((x - c) / (w / G * math.sqrt(2))))
+    cases = {'peak': 50 + _gauss(x, 0.1, 0.471, 1000),
+             'edge': 50 + 1000 * st(0.2, 0.1),
+             'box': 50 + 1000 * (st(-0.4, 0.05) - st(0.3, 0.05))}
+    for k, (kind, mu) in enumerate(cases.items()):
+        y = _poisson(mu, 20 + k)
+        res = peaks.fit_scan(x, y, np.sqrt(np.maximum(y, 1)))
+        assert res.kind == kind, (kind, res.kind)
+    peak = peaks.fit_scan(x, _poisson(cases['peak'], 20), None)
+    assert peak.peaks[0].fwhm == pytest.approx(0.471, rel=0.05)        # P9: the box model gave 0.406
+    box = peaks.fit_scan(x, _poisson(cases['box'], 22), None)
+    assert box.peaks[0].centre == pytest.approx(-0.05, abs=0.01) and box.peaks[0].fwhm == pytest.approx(0.7, abs=0.02)

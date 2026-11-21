@@ -238,3 +238,38 @@ def test_gid_save_cancelled_writes_nothing(nx, qapp, recorder, tmp_path):
     qapp.processEvents()
     assert recorder.exceptions == []
     assert (set(os.listdir(ROOT)), set(os.listdir(str(tmp_path)))) == before
+
+
+def test_reflectivity_and_gid_map_are_saved_to_the_workbook(nx, qapp, recorder):
+    """Owner, 2026-11-21: one-click Save beside the reflectivity Export and in
+    the GID menu, into the SPEC file's workbook, tied to the scans."""
+    from lss_core import workbook
+    sweep._select_scans(nx, qapp, [5, 6, 7, 8])
+    sweep._select_images(nx, qapp)
+    nx.ui.pilRefPatchPushButton.click()
+    for _ in range(10):
+        if nx.uirefpatch.isVisible() and nx.uirefpatch.nextPushButton.isEnabled():
+            nx.uirefpatch.nextPushButton.click()
+        qapp.processEvents()
+    nx.saveButtons['ref'].click()
+    sweep._select_scans(nx, qapp, [10])
+    sweep._select_images(nx, qapp)
+    i = nx.ui.gidComboBox.findText('GID Patch')
+    nx.ui.gidComboBox.setCurrentIndex(i)
+    nx.ui.gidComboBox.activated.emit(i)
+    qapp.processEvents()
+    i = nx.ui.gidComboBox.findText('Save to workbook')
+    nx.ui.gidComboBox.setCurrentIndex(i)
+    nx.ui.gidComboBox.activated.emit(i)
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    wb = workbook.Workbook(nx.workbookPath())
+    ref = wb.results(kind='reflectivity')
+    assert ref and ref[0]['scans'] == '6,7,8,9' and ref[0]['label'] == 'R'
+    assert len(wb.data(ref[0]['id'])) == len(nx.normRefData)
+    gid = wb.results(kind='gid map')
+    assert gid and gid[0]['scans'] == '11'
+    cells = [r for r in wb._rows('Maps') if r['id'] == gid[0]['id']]
+    assert len(cells) == int(np.isfinite(nx.pilGIDData).sum())
+    kinds = {r['scan']: r['kind'] for r in wb._rows('Scans')}
+    assert kinds[6] == 'reflectivity' and kinds[11] == 'gid'

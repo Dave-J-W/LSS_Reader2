@@ -3135,3 +3135,41 @@ unweighted fit comes first and a weighted misfit is flagged.
 **Next (not done):** switch the MCA tab's fits (P20) and the SpecPlot fit
 (P9) to the module, and the MCA series fit to `fit_series` (F22a).
 
+### 2026-11-21 — F22 closed (but burn tests); fitting preferences; the per-SPEC workbook
+
+**Owner.** "Close F22 if within reach. Save all the fitting preferences in
+the config, that should be obvious. The fit results should also go there,
+related to their scan. Perhaps the config file should actually be an Excel
+file with sheets, such that results (reduced data and fits) are stored
+inside it in an organized fashion, always tied to their scan number. Then
+saving a reduced data vector is one click, with an optional notes dialog box
+to allow for saving different versions of the same scans. Export will still
+be a button ... Label each experiment type in the output and make easily
+sortable in the Excel file. Keep a legacy export option as the default for
+exporting ... Try and keep the number of sheets in this config Excel file
+below 8, but at least 4. Set a subagent on a review ..."
+
+**Built.** F22: SpecPlot fits the scan's shape (`peaks.fit_scan`: peak, edge
+or plateau by AIC; P9 fixed: 0.406 → 0.471 for the test's Gaussian); the
+half-cut edge (`peaks.fit_edge`, F43: edge width = beam FWHM, tested on a 52 µm
+synthetic beam); the MCA tab's "Fit lines" (`peaks.fit_series`, F22a 6;
+intensities = area / channel width, so in Sum All's units; tested: a spectrum
+×2 gives ×2). Burn-test fits (F22a 3–4, P30) remain open. Fit options: the
+preferences (`peak_fit`, `mca_fit`), read at start-up, written on every change,
+and the workbook's Settings sheet. The workbook (`lss_core/workbook.py`, F66,
+D53): `<SPEC file>_reader.xlsx` in the output folder, six sheets (Scans,
+Saved, Data, Fits, Maps, Settings), each with kind, first scan and version
+columns, a filter and frozen headers; Save beside every Export and "Save to
+workbook" in the GID menu; a note by Shift-click or the preference; versions
+counted per kind, scans and label; written atomically. Exports unchanged.
+
+**Global preferences vs the workbook:** the preferences file holds what a
+user wants everywhere (fit options among them); the workbook holds one SPEC
+file's settings and results. Reopening a SPEC file with the workbook's
+settings, and tying results to series ids, are the next steps (Stage 3).
+
+**Review (subagent, `docs/reviews/2026-11-21-todo-review.md`, 1d065ad):**
+about 30 doc lines that say "open" for done work, regrouping into eleven
+areas, forgotten items, and a minimal series-metadata plan for the macros
+(owner to read; the doc fixes are not yet applied).
+

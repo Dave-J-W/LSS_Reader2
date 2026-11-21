@@ -50,7 +50,8 @@ stated assumption until the answer arrives.
       the tooltip), select a series as one action.
 - [ ] Live refresh (F1–F5): poll the SPEC file and image folders, append, keep
       selections, re-reduce a series in progress.
-- [ ] Per-SPEC saved state (F13–F16), dropped points as masks with undo.
+- [x] Per-SPEC saved state, first part (2026-11-21, F66/D53): the workbook `<SPEC file>_reader.xlsx` with settings, fit preferences and saved results; Save buttons.
+- [ ] Per-SPEC saved state, rest (F13–F16): reopen a SPEC file with its settings from the workbook; dropped points as masks with undo; tie saved results to series ids (review 2026-11-21, `docs/reviews/2026-11-21-todo-review.md`).
 
 ### Stage 2 work list
 - [x] Fast, cached image reading, bit-identical (`lss_core/images.py`,

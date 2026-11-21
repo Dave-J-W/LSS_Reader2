@@ -20,6 +20,12 @@ DEFAULTS = {
     # multi-element fluorescence detector: elements to sum (empty: all). EXAFS sums
     # all seven; XFNTR uses the central one (owner, 2026-11-19)
     'mca_channels': [],
+    # fitting (lss_core.peaks.FitOptions as a dict; owner, 2026-11-21: "save all the fitting
+    # preferences in the config"): line cuts, and MCA lines (Rayleigh spill-over: quadratic)
+    'peak_fit': {},
+    'mca_fit': {'background': 'quadratic', 'n_peaks': 1},
+    # the per-SPEC workbook (lss_core.workbook): ask for a note on every Save
+    'save_asks_note': False,
 }
 
 
