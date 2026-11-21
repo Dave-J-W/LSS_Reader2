@@ -157,6 +157,7 @@ in conversation with the owner.
 | Distance calibration | `lss_core/pinhole.py`: `calibrate_distance`, `single_frame_peaks`, `frames_agree`, `strongest_peak`, `rows_for_beta` |
 | Responses | `pinhole.column_response`, `beam_response`, `PhysicalResponse`, `fit_beam`, `level_map` |
 | Frames agree | `pinhole.frame_consistency` |
+| Peak finding and fitting (all fits) | `lss_core/peaks.py` (`fit`, `fit_all`, `find_peaks`, `fit_series`) |
 | Joins | `pinhole.level_map` (scans), `pinhole.join_levels` (levels) |
 | Settings | `lss_core/gid.py` `GIDParams` |
 | Tests | `tests/test_pinhole.py`, `tests/test_gid_scan_join.py`, `tests/test_gid_worksheet.py` |

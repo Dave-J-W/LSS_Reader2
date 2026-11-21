@@ -93,6 +93,12 @@ class CutResult:
     def save(self, name):
         return cutmod.save(name, self.cuts, self.labels, self.summed_label)
 
+    def fit(self, options=None):
+        """Peaks of every cut (lss_core.peaks.fit_all, as the window's "Fit
+        peaks"): a list, per cut, of FitResult (one per group of peaks)."""
+        from . import peaks
+        return [peaks.fit_all(c[:, 0], c[:, 1], c[:, 2], options) for c in self.cuts]
+
 
 @dataclass
 class FluorescenceResult:

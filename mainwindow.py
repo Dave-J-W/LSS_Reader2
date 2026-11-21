@@ -36,6 +36,7 @@ from lss_core import stitching, reflectivity, fluorescence, normalise
 from lss_core import cuts
 from lss_core import gid as gidmod
 from lss_core import pinhole
+from lss_core import peaks
 from lss_core import absorbers
 from lss_core import preferences as prefs_store
 from lss_core.absorbers import ABSFAC_10KEV
@@ -363,6 +364,7 @@ class MainWindow (QMainWindow):
         self.ui.cutGridCheckBox.stateChanged.connect(self.updateCutPlotData)
      #    self.connect(self.ui.cutLegendCheckBox, SIGNAL('stateChanged(int)'),self.updateCutPlotData)
         self.ui.cutLegendCheckBox.stateChanged.connect(self.updateCutPlotData)
+        self.setupCutFit()
      #    self.connect(self.ui.cutLegendLocComboBox, SIGNAL('currentIndexChanged(int)'),self.updateCutPlotData)
         self.ui.cutLegendLocComboBox.currentIndexChanged.connect(self.updateCutPlotData)
      #    self.connect(self.ui.cutErrorbarCheckBox, SIGNAL('stateChanged(int)'),self.updateCutData)
@@ -5111,6 +5113,214 @@ class MainWindow (QMainWindow):
             self.ui.cutPlotMplWidget.canvas.ax.plot(self.cutData[:,0],self.cutData[:,1],'b-',label='GID Cut')
         self.updateCutPlotData()
     
+    def setupCutFit(self):
+        """"Fit peaks" and "Fit options..." beside the line-cut plot (owner,
+        2026-11-21): every plotted cut fitted automatically (lss_core.peaks)."""
+        self.peakFitOptions=peaks.FitOptions()
+        self.cutFitResults=[]
+        self.cutFitArtists=[]
+        self.cutFitDialog=None
+        b=QPushButton('Fit peaks',self)
+        b.setObjectName('cutFitPushButton')
+        b.setToolTip('Find and fit the peaks of every plotted cut at once (lss_core.peaks): peaks standing out of a '
+                     'running-median background by the chosen number of sigma, each fitted with its neighbours and a '
+                     'polynomial background, weighted by the error bars. The fits are drawn dashed over the cuts and '
+                     'listed in the Messages pane (centre, FWHM, area with errors, chi2/dof). "Fit options..." sets '
+                     'the shape, background, number of peaks, range and sensitivity.')
+        o=QPushButton('Fit options...',self)
+        o.setObjectName('cutFitOptionsPushButton')
+        o.setToolTip('Shape (Gaussian, Lorentzian, pseudo-Voigt), background (none to cubic), number of peaks '
+                     '(0: automatic), range, given centres, sensitivity; save the results as a table.')
+        self.ui.horizontalLayout_18.addWidget(b)
+        self.ui.horizontalLayout_18.addWidget(o)
+        b.clicked.connect(self.fitCuts)
+        o.clicked.connect(self.showCutFitOptions)
+        self.cutFitPushButton,self.cutFitOptionsPushButton=b,o
+
+    def cutCurves(self):
+        """The plotted cuts as (label, x, y, sigma, scale): scale is the
+        offset factor they are drawn with."""
+        cd=getattr(self,'cutData',None)
+        if cd is None or (isinstance(cd,dict) and not cd):
+            return []
+        if isinstance(cd,dict):
+            if -1 in cd:
+                keys=[-1]
+            else:
+                keys=[i for i in getattr(self,'selectedPilFramesNums',[]) if i in cd]
+            out,fact=[],1.0
+            for i in keys:
+                c=np.asarray(cd[i],float)
+                out.append((self.cutLabel.get(i,str(i)),c[:,0],c[:,1],c[:,2],fact))
+                if i!=-1 and self.ui.cutOffsetCheckBox.checkState()!=0:
+                    try:
+                        fact*=float(self.ui.cutOffsetLineEdit.text())
+                    except ValueError:
+                        pass
+            return out
+        c=np.asarray(cd,float)
+        return [('GID cut',c[:,0],c[:,1],c[:,2],1.0)] if c.ndim==2 and c.shape[1]>=3 else []
+
+    def fitCuts(self):
+        """Fit every plotted cut (the "Fit peaks" button)."""
+        curves=self.cutCurves()
+        if not curves:
+            self.messageBox('Make a line cut first: the fit works on the cuts in the plot.')
+            return
+        ax=self.ui.cutPlotMplWidget.canvas.ax
+        for a in self.cutFitArtists:
+            try:
+                a.remove()
+            except (ValueError,AttributeError):
+                pass
+        self.cutFitArtists=[]
+        self.cutFitResults=[]
+        opts=self.peakFitOptions
+        for k,(label,x,y,s,scale) in enumerate(curves):
+            groups=peaks.fit_all(x,y,s,opts)
+            self.cutFitResults.append((label,groups))
+            colour='C%d' % (k%10) if label!='GID cut' else 'k'
+            for g in groups:
+                if not g.peaks or not np.all(np.isfinite(g.window)):
+                    continue
+                xx=np.linspace(g.window[0],g.window[1],400)
+                self.cutFitArtists+=ax.plot(xx,scale*g.model(xx),'--',color=colour,lw=1.2)
+                for p in g.peaks:
+                    self.cutFitArtists.append(ax.axvline(p.centre,color=colour,lw=0.6,ls=':'))
+            good=[g for g in groups if g.ok]
+            text='; '.join(g.summary() for g in groups) if groups else 'no fit'
+            self.notify('Fit of %s: %s' % (label,text),title='Peak fit',level='info' if good else 'warning')
+        self.ui.cutPlotMplWidget.canvas.draw()
+        if self.cutFitDialog is not None:
+            self.cutFitDialog.findChild(QLabel,'cutFitResultLabel').setText(self.cutFitSummary())
+        if not any(l=='GID cut' for l,*_ in curves) and getattr(self,'specFileName',None):
+            try:
+                text=self.cutScript('fitted').rsplit('\n',1)[0]
+                self.scriptLine('from lss_core import peaks\n'+text+'\nfits = cut.fit(peaks.%r)' % (opts,))
+            except Exception:
+                pass
+
+    def cutFitSummary(self):
+        lines=[]
+        for label,groups in self.cutFitResults:
+            for g in groups:
+                if not g.ok:
+                    lines.append('%s: %s' % (label,g.message))
+                for k,p in enumerate(g.peaks):
+                    lines.append('%s #%d: centre %.5g +/- %.2g, FWHM %.4g +/- %.2g, area %.4g +/- %.2g (chi2/dof %.2f)'
+                                 % (label,k+1,p.centre,p.centre_err,p.fwhm,p.fwhm_err,p.area,p.area_err,g.chi2_dof))
+        return '\n'.join(lines) or 'not fitted yet'
+
+    def saveCutFits(self):
+        if not self.cutFitResults:
+            self.messageBox('Fit the cuts first.')
+            return
+        name=QFileDialog.getSaveFileName(self,'Save the peak fits',os.path.join(self.directory,'peak_fits.txt'),
+                                         'Text (*.txt *.csv)')[0]
+        if not name:
+            return
+        with open(name,'w') as f:
+            f.write('# cut\tpeak\tcentre\tcentre_err\tfwhm\tfwhm_err\theight\theight_err\tarea\tarea_err\tchi2_dof\tshape\tbackground\n')
+            for label,groups in self.cutFitResults:
+                for g in groups:
+                    for row in g.table():
+                        f.write('%s\t%d\t%s\t%.4f\t%s\t%s\n' % (label,row[0],'\t'.join('%.8g' % v for v in row[1:]),g.chi2_dof,
+                                                              g.options.shape,g.options.background))
+        self.notify('Peak fits saved: %s' % name,title='Peak fit',level='info')
+
+    def showCutFitOptions(self):
+        if self.cutFitDialog is None:
+            self.cutFitDialog=self.buildCutFitDialog()
+        self.cutFitDialog.show()
+        self.cutFitDialog.raise_()
+
+    def buildCutFitDialog(self):
+        """The options of "Fit peaks" (lss_core.peaks.FitOptions)."""
+        d=QDialog(self)
+        d.setWindowTitle('Peak fit options')
+        d.setObjectName('cutFitDialog')
+        lay=QVBoxLayout(d)
+        form=QFormLayout()
+        o=self.peakFitOptions
+        shape=QComboBox(d); shape.setObjectName('cutFitShapeComboBox')
+        shape.addItems(list(peaks.SHAPES)); shape.setCurrentText(o.shape)
+        shape.setToolTip('Peak shape: Gaussian (instrument-limited peaks, most GID and fluorescence lines), Lorentzian '
+                         '(lifetime or domain-size broadening), pseudo-Voigt (a fitted mix of the two, eta 0 = Gaussian).')
+        bg=QComboBox(d); bg.setObjectName('cutFitBackgroundComboBox')
+        bg.addItems(list(peaks.BACKGROUNDS)); bg.setCurrentText(o.background)
+        bg.setToolTip('Background under the peaks, a polynomial over each fit window: linear for most cuts; quadratic or '
+                      'cubic where a slope bends (e.g. the Rayleigh spillover under a fluorescence line).')
+        npk=QSpinBox(d); npk.setObjectName('cutFitNumberSpinBox'); npk.setRange(0,20); npk.setValue(o.n_peaks)
+        npk.setToolTip('Number of peaks to fit per cut; 0: every peak that stands out (up to the maximum below).')
+        mpk=QSpinBox(d); mpk.setObjectName('cutFitMaxSpinBox'); mpk.setRange(1,20); mpk.setValue(o.max_peaks)
+        mpk.setToolTip('With 0 above: at most this many peaks, the strongest first.')
+        prom=QDoubleSpinBox(d); prom.setObjectName('cutFitProminenceSpinBox'); prom.setRange(1,100); prom.setDecimals(1)
+        prom.setValue(o.min_prominence)
+        prom.setToolTip('Sensitivity: a peak must stand this many sigma above the running-median background (its three '
+                        'central points together) to be found. Lower finds weaker peaks and more noise.')
+        win=QDoubleSpinBox(d); win.setObjectName('cutFitWindowSpinBox'); win.setRange(0,1e6); win.setDecimals(4)
+        win.setValue(o.window)
+        win.setToolTip('Half width of each peak\'s fit window, in the cut\'s x units; 0: three times the peak\'s '
+                       'estimated FWHM (at least 6 points). Peaks whose windows overlap are fitted together.')
+        fw=QDoubleSpinBox(d); fw.setObjectName('cutFitFwhmSpinBox'); fw.setRange(0,1e6); fw.setDecimals(4)
+        fw.setValue(o.fwhm)
+        fw.setToolTip('A fixed FWHM for every peak (e.g. the resolution); 0: fitted.')
+        rng=QLineEdit(d); rng.setObjectName('cutFitRangeLineEdit')
+        rng.setText('' if o.x_range is None else '%g:%g' % tuple(o.x_range))
+        rng.setToolTip('x range to fit, "min:max" in the cut\'s x units; empty: the whole cut.')
+        cen=QLineEdit(d); cen.setObjectName('cutFitCentresLineEdit')
+        cen.setText(', '.join('%g' % c for c in o.centres))
+        cen.setToolTip('Centres to start from, comma-separated (e.g. known lines); empty: found automatically.')
+        fix=QCheckBox('fix the centres',d); fix.setObjectName('cutFitFixCheckBox'); fix.setChecked(o.fix_centres)
+        fix.setToolTip('Keep the given centres fixed and fit only heights, widths and background.')
+        for lab,w in (('Shape',shape),('Background',bg),('Peaks per cut (0 = automatic)',npk),('At most',mpk),
+                      ('Sensitivity (sigma)',prom),('Window half width (0 = automatic)',win),('Fixed FWHM (0 = fitted)',fw),
+                      ('x range (min:max)',rng),('Centres',cen)):
+            form.addRow(lab,w)
+        form.addRow(fix)
+        lay.addLayout(form)
+        res=QLabel('not fitted yet',d); res.setObjectName('cutFitResultLabel'); res.setWordWrap(True)
+        from PyQt5.QtCore import Qt as QtC
+        res.setTextInteractionFlags(QtC.TextSelectableByMouse)
+        res.setToolTip('The last fit of every cut; also in the Messages pane.')
+        lay.addWidget(res)
+        buttons=QHBoxLayout()
+        go=QPushButton('Fit now',d); go.setObjectName('cutFitNowPushButton'); go.setToolTip('Fit the plotted cuts with these options')
+        save=QPushButton('Save results...',d); save.setObjectName('cutFitSavePushButton')
+        save.setToolTip('Write the last fits as a tab-separated table (cut, peak, centre, FWHM, height, area with errors, chi2/dof).')
+        close=QPushButton('Close',d)
+        for w in (go,save,close):
+            buttons.addWidget(w)
+        lay.addLayout(buttons)
+
+        def apply(*_):
+            try:
+                xr=tuple(float(v) for v in rng.text().split(':')) if rng.text().strip() else None
+                if xr is not None and len(xr)!=2:
+                    raise ValueError
+            except ValueError:
+                xr=None
+            try:
+                cs=tuple(float(v) for v in cen.text().replace(';',',').split(',') if v.strip())
+            except ValueError:
+                cs=()
+            self.peakFitOptions=peaks.FitOptions(shape=shape.currentText(),background=bg.currentText(),n_peaks=npk.value(),
+                                                 max_peaks=mpk.value(),min_prominence=prom.value(),window=win.value(),
+                                                 x_range=xr,centres=cs,fix_centres=fix.isChecked(),fwhm=fw.value())
+        for w in (shape,bg):
+            w.currentIndexChanged.connect(apply)
+        for w in (npk,mpk,prom,win,fw):
+            w.valueChanged.connect(apply)
+        for w in (rng,cen):
+            w.editingFinished.connect(apply)
+        fix.toggled.connect(apply)
+        go.clicked.connect(lambda: (apply(),self.fitCuts()))
+        save.clicked.connect(self.saveCutFits)
+        close.clicked.connect(d.close)
+        d.cutFitShapeComboBox,d.cutFitBackgroundComboBox,d.cutFitNumberSpinBox=shape,bg,npk
+        d.cutFitRangeLineEdit,d.cutFitCentresLineEdit,d.cutFitNowPushButton=rng,cen,go
+        return d
+
     def updateCutPlotData(self):
         if self.det!='Pilatus':   # no cut plotted: display options do nothing
             return

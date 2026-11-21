@@ -834,7 +834,7 @@ def single_frame_peaks(level, peak_deg, half_deg=0.4, rows=None, distance=None):
     fails or is implausible are left out. Returns an array of rows (Det_Th,
     centre, its error, FWHM, its error), degrees."""
     from dataclasses import replace
-    from scipy.optimize import curve_fit
+    from . import peaks
     out = []
     for f in level:
         g = f.geom if distance is None else replace(f.geom, d_pinhole=float(distance))
@@ -852,15 +852,15 @@ def single_frame_peaks(level, peak_deg, half_deg=0.4, rows=None, distance=None):
             continue
         nrow = r1 - r0 + 1
         x, y, e = x[ok], n[ok] / f.monitor / nrow, np.sqrt(np.maximum(n[ok], 1)) / f.monitor / nrow
-        try:
-            p, c = curve_fit(_gauss_line, x, y, p0=[y.max() - np.median(y), x[np.argmax(y)], 0.06, np.median(y), 0.0],
-                             sigma=e, maxfev=20000)
-        except (RuntimeError, ValueError):
+        r = peaks.fit(x, y, e, peaks.FitOptions(shape='gaussian', background='linear', n_peaks=1,
+                                                centres=(float(x[np.argmax(y)]),), window=2 * half_deg,
+                                                scale_errors=True))
+        if not r.ok or not r.peaks:
             continue
-        err = np.sqrt(np.clip(np.diag(c), 0, None))
-        fw = 2 * math.sqrt(2 * math.log(2)) * abs(p[2])
-        if np.isfinite(err[1]) and err[1] < 0.02 and 0.02 < fw < 4 * half_deg and abs(p[1] - peak_deg) < half_deg:
-            out.append((math.degrees(f.geom.dth), p[1], err[1], fw, 2 * math.sqrt(2 * math.log(2)) * err[2]))
+        p = r.peaks[0]
+        if np.isfinite(p.centre_err) and p.centre_err < 0.02 and 0.02 < p.fwhm < 4 * half_deg and \
+                abs(p.centre - peak_deg) < half_deg:
+            out.append((math.degrees(f.geom.dth), p.centre, p.centre_err, p.fwhm, p.fwhm_err))
     return np.array(out).reshape(-1, 5)
 
 

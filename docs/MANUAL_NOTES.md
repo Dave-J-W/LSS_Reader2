@@ -80,6 +80,12 @@ Each line: feature — where — default — script — notes entry (date).
   chooses which scans to merge (one run, wavelength, sample, signal shape).
 
 ### Pilatus images, cuts
+- "Fit peaks" and "Fit options..." beside the cut plot (D52): every plotted cut
+  fitted at once (peaks found by significance over a running-median background,
+  Gaussian / Lorentzian / pseudo-Voigt with a polynomial background, weighted by
+  the error bars); fits drawn dashed, results in the Messages pane and the
+  options dialog, "Save results..." writes a table; `cut.fit(peaks.FitOptions(...))`
+  in scripts; `lss_core/peaks.py`. A fit that does not describe the data says so.
 - Line/Area cuts: directions Q H, Q V, Pix H, Pix V; axes Pixels / Angles
   / Q; "Sum"; pinhole box (on: S4–detector distance at Det_Th > 1°) —
   `exp.cut` — Notes 2026-11-18 "Pinhole is the default". Q cuts with empty

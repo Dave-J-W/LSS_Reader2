@@ -3100,3 +3100,38 @@ number of GID sets and writes CSVs and a summary; hand-off
 judge, the caveats and the privacy rule; the worked example on NX is
 `docs/comparisons_data/gid_survey_nx/`.
 
+### 2026-11-21 — A reusable peak module; fitting line cuts with one button
+
+**Owner.** "You have become very good at fitting GID peaks, locating them,
+etc. Build that into a module that can be reused, perhaps also with MCA
+data. Make fitting any line cuts automatic with a button press, with
+options available in a dialog box accessible from another button nearby."
+
+**Built.** `lss_core/peaks.py`: `find_peaks` (significance over a running-
+median background, in noise σ; width by walking to half height on the
+smoothed excess), `fit` / `fit_all` (Gaussian, Lorentzian, pseudo-Voigt;
+polynomial background none to cubic; overlapping peaks together; bounded;
+an unweighted start, then weighted by σ; reports failure, edge and width
+limits, and a misfit at χ²/dof > 10), `fit_lines` (known lines) and
+`fit_series` (the owner's MCA rule: the sum for positions and widths, each
+spectrum by linear least squares). Areas with the right Gaussian factor
+(P20's √(2π)). The cut plot has "Fit peaks" (fits every plotted cut, draws
+the fits, lists results in the Messages pane, writes `cut.fit(...)` to the
+Script pane) and "Fit options..." (shape, background, number, maximum,
+sensitivity, window, fixed FWHM, range, centres; "Fit now"; "Save
+results..."). `pinhole.single_frame_peaks` now uses the module
+(`scale_errors=True` keeps its weighting): the calibration's numbers are
+unchanged (NX 265.8 ± 1.1 mm, χ²/dof 1.42; owner's 163 262.0 ± 1.4).
+
+**Learned while building it (measured on synthetic data, tests):** a
+peak's significance must be its height above the background in σ, not
+scipy's prominence (pure Poisson noise of 200 points gave a "5.3σ" peak by
+prominence); a first width from the raw half height is cut short by noise
+(0.025 for a true 0.5), so it is taken from a smoothed excess; a weighted
+Lorentzian fitted to a Gaussian with error bars that span three orders of
+magnitude runs to a spike (FWHM 1 for 8) or does not converge, so an
+unweighted fit comes first and a weighted misfit is flagged.
+
+**Next (not done):** switch the MCA tab's fits (P20) and the SpecPlot fit
+(P9) to the module, and the MCA series fit to `fit_series` (F22a).
+

@@ -133,6 +133,21 @@ the same files. It is also written to the log.
   instead of the fitted patch factor at those joins (join 0 is the first
   pair). The window writes this when it used the known ratio.
 
+## Peaks (2026-11-21)
+
+    from lss_core import peaks
+    res = peaks.fit(x, y, sigma)                          # find and fit, automatic
+    res.peaks[0].centre, res.peaks[0].fwhm, res.peaks[0].area, res.chi2_dof, res.ok, res.message
+    res = peaks.fit(x, y, sigma, peaks.FitOptions(shape='pseudo-voigt', background='quadratic', n_peaks=2))
+    fits = cut.fit(peaks.FitOptions())                    # every cut of exp.cut(...), as "Fit peaks"
+    ref, each = peaks.fit_series(energy, spectra, sigmas, peaks.FitOptions(centres=(6.93,)))   # MCA series
+    line = peaks.fit_lines(energy, counts, [6.40, 7.06], sigma)
+
+`fit_series` fits the sum of a series of spectra for the lines' positions
+and widths, then each spectrum with those fixed (owner's rule for MCA
+series); `peaks.find_peaks` alone gives the candidates. "Fit peaks" in the
+window writes the `cut.fit(...)` call to the Script pane.
+
 ## Cuts (2026-11-18)
 
     cut = exp.cut([1, 2], 'Pix H', (90, 110))            # one cut per frame
