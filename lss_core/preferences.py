@@ -25,7 +25,10 @@ DEFAULTS = {
     'peak_fit': {},
     'mca_fit': {'background': 'quadratic', 'n_peaks': 1},
     # the per-SPEC workbook (lss_core.workbook): ask for a note on every Save
-    'save_asks_note': False,
+    'save_asks_note': True,
+    # burn tests (lss_core.burn, lss_core.trends): models compared, estimator, time axis,
+    # the change that matters (%), automatic peak
+    'burn': {},
 }
 
 

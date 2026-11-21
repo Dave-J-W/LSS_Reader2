@@ -49,7 +49,10 @@ cannot run on a current SciPy.
 | `test_real_nx_school.py`, `reference/` | Real NX school data: SPEC inventory, reflectivity scans 6–9 and GID scan 11 against stored curves produced by this program. |
 | `test_ref_export_golden.py`, `reference/legacy_export/` | Today's `_ref.txt` / `_rrf.txt` byte for byte (synthetic and real), the "legacy" fixtures required by the xmodfit hand-off; plus the export format and traps T3, T8. |
 | `test_xfntr.py`, `reference/private_hashes.json` | Fluorescence (XFNTR) reduction on synthetic spectra with known line counts: window sum, peak fit, "Fit All"; `_flu.txt` bytes; a SHA-256 of the real `bu` export (private data: only the hash is committed). |
-| `test_burn.py` | Burn tests: synthetic reflectivity frames with a known decay constant; real GID burn (NX school scan 14) against stored curves. |
+| `test_burn.py` | Burn tests (Legacy tab): synthetic reflectivity frames with a known decay constant; real GID burn (NX school scan 14) against stored curves. |
+| `test_trends.py` | `lss_core.trends`: constant, drift, exponential, double exponential recovered; QAICc; errors from the scatter; coverage of the confident 5 % time (slow). |
+| `test_burn_trends.py` | `lss_core.burn` / `Experiment.burn`: time axes, synthetic reflectivity τ, synthetic GID profiles per estimator, NX scans 14 and 15 (slow). |
+| `test_gui_burn_trends.py` | The burn dialog's Trends tab: opens analysed, options kept, Save to the workbook, three axes for GID (slow). |
 | `test_real_bu.py` | Private data: every scan of every SPEC file opens without raising. |
 | `test_known_defects.py` | Defects from `ASSESSMENT.md`, each a strict expected failure. |
 | `test_gui_sweep.py`, `known_crashes.json`, `known_crash_sites.json` | Crash inventory. |

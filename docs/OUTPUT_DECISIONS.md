@@ -50,6 +50,14 @@ updates a row here in the same commit, with before and after values.
 | Cuts, horizontal axis distance | S4–detector at Det_Th > 1° (pinhole) | Q H / Angles cut axes | D40, P32 | O; T `test_cut_script.py` | `Experiment.cut(pinhole=True)` | 2026-11-18 |
 | Pix V β distance | sample–detector | β axis of V cuts | P34 fix (was ×2) | T | `cuts.frame_cut` | 2026-11-18 |
 | Polarisation, area correction (GID) | on | GID maps | legacy behaviour | legacy fixtures | `GIDParams` | original |
+| Burn test: tab and quantities | the burn dialog opens on "Trends", analysed: reflectivity, the ROI per Monc (Ref Patch arithmetic); GID, the strongest peak's integrated intensity, position and FWHM per Monc | burn-test values, plot, workbook | owner F22a 3–4, P30 (legacy: raw counts, one quantity at a time); the legacy plots stay in their own tab, unchanged | O 2026-11-21; T `test_gui_burn_trends.py`, `test_burn.py` (legacy unchanged) | `lss_core/burn.py`, `Experiment.burn`, `MainWindow.burnTrends` | 2026-11-21 |
+| Burn test: time axis | exposure: counting time accumulated, at the middle of each frame, from the start of the first exposure (clock: measured starts + half the count time) | burn x axis, change times | the spot is certainly in the beam while counting; the shutter state between frames is not recorded (clock is 3 % longer on NX) | A (ask the owner whether the shutter closes between frames); T `test_burn_trends.py` | `burn.frame_times` | 2026-11-21 |
+| Burn test: GID peak window | the strongest peak of the mean of the frames, 3 FWHM either side, kept inside the lit columns (2 points in); a typed Qxy range when "Auto peak" is off | which columns are measured | owner F22a 4 ("largest peak by default, override"); the legacy test worked once its range was constrained (owner, 2026-11-21); NX 14: 1.400–1.534 Å⁻¹ (legacy test: 1.40–1.52) | O; T | `burn.choose_window` | 2026-11-21 |
+| Burn test: GID estimator | template: the mean profile less the legacy straight background is the peak's shape; each frame = A × shape shifted by δ, stretched by w, on a straight background; intensity A·w·area | GID burn values | relative to the other frames (owner: relative change matters); per-frame χ²/dof ≈ 1 on NX 14 (Gaussian fit: 10–40); position 3 × more precise than the legacy moments on NX; moments dilute a peak's shift by a steady shoulder (synthetic 0.004 → 0.0023 Å⁻¹) | M (C31); T `test_burn_trends.py` | `burn.measure_gid` | 2026-11-21 |
+| Burn test: GID trend errors | the frames' errors as relative weights only, scaled to the scatter about the most general model ("scatter"); reflectivity: counting errors, QAICc when the scatter exceeds them | trend parameter errors, criterion, change times | owner 2026-11-21: "put less weight on absolute measurements of sigma" for a relative change | O; T | `trends.compare(errors=)` | 2026-11-21 |
+| Trend models and criterion | constant, linear, exponential, double exponential; AICc (Hurvich & Tsai 1989); "stable" when AICc(constant) − AICc(linear) ≤ 2 | verdicts | owner: "when an average has the same confidence of fit as a linear fit we're in a good regime"; Δ ≤ 2 = substantial support (Burnham & Anderson 2002 §2.6) | O; L; T `test_trends.py` (constant called stable in > 85 % of draws; measured 95 %) | `lss_core/trends.py` | 2026-11-21 |
+| Time to a 5 % change | the 5 % quantile of the crossing times of 2000 parameter draws from the best model that beats the constant (else the linear model); intensity and width relative to their value at t = 0, position relative to the mean FWHM | the "≥ … s" times | owner: "a confident suggestion about how much time causes a less than 5 % change"; a peak's position has no meaningful relative change, its width sets the scale | O; T coverage (miss rate measured 5.5 % for a nominal 5 %); position scale: A | `trends.change_time` | 2026-11-21 |
+| Save note | every Save asks for an optional note (Cancel: nothing saved); Shift-click saves without asking | workbook notes | owner 2026-11-21 (second reply: "ask for one on every save, with shift-click preventing the ask") | O; T `test_gui_workbook.py` | `MainWindow.saveToWorkbook`, preference `save_asks_note` | 2026-11-21 |
 
 ## Changes of output, with before and after
 
@@ -57,6 +65,9 @@ Each is also in `physics_notes.md` under its date.
 
 | Date | Change | Before → after | Who decided |
 |---|---|---|---|
+| 2026-11-21 | Burn tests: Trends tab (new default view), monitor-normalised, measured time axis, four models by AICc, the 5 % time (P30 fixed there) | legacy REF burn: τ of raw counts vs count time × list row → Trends: per Monc, exposure time; synthetic τ 400 s unchanged; NX 14/15 GID: one quantity, exponential on intensity only → intensity, position, FWHM with verdicts (NX 15: intensity stable, position +0.008 Å⁻¹, width +19 %). Legacy tab numbers unchanged (`test_burn.py`) | owner (F22a 3–4) |
+| 2026-11-21 | Workbook: Trends sheet (7 sheets), Data up to 8 values | older workbooks gain the sheet and columns on opening, rows kept | owner (burn results in the workbook) |
+| 2026-11-21 | Save asks for a note by default; Shift-click skips | default: no question → question | owner |
 | 2026-11-17 | Absorber default 1.606 → 1.4247 (D25) | ×(1.4247/1.606)ⁿ | owner |
 | 2026-11-17 | Fluorescence scaled by absfacⁿ (F50) | XFNTR hashes `77be46ea…` → `e23206a9…` → `1cfab3ab…` | owner |
 | 2026-11-17 | P24: factor in use = factor shown | was 1.606 until a GID/Ref action | defect fix |
@@ -78,6 +89,9 @@ Each is also in `physics_notes.md` under its date.
 | 2026-11-19 | Unreadable `#A`: 63 → unknown | unpatched outputs of such scans ÷absfac⁶³ | owner (D42) |
 
 ## Open assumptions (A) to confirm with the owner
+
+- Burn tests: exposure time (counting only) rather than clock time as the
+  default axis; the position's 5 % measured against the FWHM.
 
 - Known-ratio Monc/Monp tolerance 3 %.
 - Per-photon: gas at the table's conditions; one factor per scan from the

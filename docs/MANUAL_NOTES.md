@@ -51,9 +51,10 @@ Each line: feature — where — default — script — notes entry (date).
 - "Save" beside every Export (SpecPlot, Reflectivity, Cuts, MCA integral) and
   "Save to workbook" in the GID menu: one click stores what is shown in
   `<SPEC file>_reader.xlsx` in the output folder (sheets Scans, Saved, Data,
-  Fits, Maps, Settings; kind, scans, version, note, settings per result; every
-  sheet filtered and sortable). Shift-click, or Preferences > Saving, for a
-  note. Export still writes the legacy text files and is unchanged.
+  Fits, Trends, Maps, Settings; kind, scans, version, note, settings per result; every
+  sheet filtered and sortable). Every Save asks for an optional note
+  (owner, 2026-11-21); Shift-click saves without asking; Preferences > Saving
+  turns the question off (then Shift-click asks). Export still writes the legacy text files and is unchanged.
   `lss_core.workbook`; Notes 2026-11-21.
 
 ### Fitting (F22)
@@ -165,13 +166,31 @@ Each line: feature — where — default — script — notes entry (date).
 - "Scan i of N" lines and how cancelled runs are shown: proposal
   `docs/handoff_out/05-scan-series-syntax.md`; code `lss_core/series.py`.
 
+### Burn tests (2026-11-21)
+
+- The Burn test dialog opens on **Trends**, already analysed; the old plots
+  are in the **Legacy** tab (the REF button and the GID list switch to it).
+- Models (check boxes): constant, linear, exponential, double exponential,
+  compared by AICc; "stable" when a constant fits as well as a line (the
+  owner's good regime); the best model drawn thick, the others faint; a
+  dotted vertical line at the confident 5 % time.
+- GID: intensity on top; position (left axis, green) and FWHM (right axis,
+  red) below. "Auto peak": the strongest peak of the mean frame; off: the
+  typed Qxy range. Estimator: template (default), moments (legacy), fit.
+  Errors: auto (scatter for GID, counting for reflectivity). Time:
+  exposure or clock. Change: the threshold (5 %).
+- Save stores the values and the trend table (Trends sheet).
+- Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
+  Notes 2026-11-21.
+
 ## Terms a manual must define
 
 Monc, Monp, Monb (monitors; Monc is the normaliser, upstream of the
 absorbers); `#A` absorber setting (binary foils, units of the factor);
 S1, S4 (pinhole), S5 slits; Det_Th; `#B1` and `#G0` numbers (table in
 Notes 2026-11-18 "What the `#B1` and `#G0` numbers are"); Qz, Qxy, α, β, 2θ;
-patch/join/known ratio; footprint; column response.
+patch/join/known ratio; footprint; column response; AICc, Akaike weight,
+stable (burn tests), the confident 5 % time.
 
 ## Gaps a manual writer will hit
 

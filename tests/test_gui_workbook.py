@@ -109,3 +109,24 @@ def test_saving_with_nothing_to_save_says_so(window, recorder):
     window.saveButtons['cut'].click()
     window.saveMcaToWorkbook()
     assert recorder.exceptions == [] and len(recorder.messages) >= 2
+
+
+def test_every_save_asks_and_shift_skips(loaded, qapp, dataset, recorder, monkeypatch):
+    """Owner, 2026-11-21: ask for a note on every Save; Shift-click saves
+    without asking."""
+    sweep.state_motor_scan(loaded, qapp, dataset)
+    asked = []
+    monkeypatch.setattr('PyQt5.QtWidgets.QInputDialog.getMultiLineText',
+                        staticmethod(lambda *a, **k: asked.append(1) or ('v1', True)))
+    loaded.saveButtons['spec'].click()
+    assert asked == [1]
+    from PyQt5.QtCore import Qt
+    monkeypatch.setattr('PyQt5.QtWidgets.QApplication.keyboardModifiers', staticmethod(lambda: Qt.ShiftModifier))
+    loaded.saveButtons['spec'].click()
+    assert asked == [1]                                       # Shift: no question
+    notes = [r['note'] for r in _book(loaded).results(kind='scan')]
+    assert notes == ['v1', None] or notes == ['v1', '']
+    loaded.prefs['save_asks_note'] = False                    # the preference off: Shift asks instead
+    loaded.saveButtons['spec'].click()
+    assert asked == [1, 1]
+    assert recorder.exceptions == []

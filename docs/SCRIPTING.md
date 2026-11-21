@@ -42,7 +42,7 @@ the patched curve before normalisation, `ref`, `rrf`, and the frames whose
 beam was more than 2 pixels from its recorded position (`beam_offsets`).
 
 Not yet available from scripts: background images, single-scan export,
-GID, GISAXS, cuts, burn tests, peak fits. They follow in Stage 2.
+GISAXS. (GID, cuts, peak fits and burn tests followed: sections below.)
 
 ## Fluorescence (XFNTR)
 
@@ -160,6 +160,26 @@ The window's Save buttons do the same; the sheets are described in
 and widths, then each spectrum with those fixed (owner's rule for MCA
 series); `peaks.find_peaks` alone gives the candidates. "Fit peaks" in the
 window writes the `cut.fit(...)` call to the Script pane.
+
+## Burn tests (2026-11-21)
+
+```python
+burn = exp.burn(15)                            # NX school: a GID burn scan
+print(burn.summary())                          # verdicts, best models, the 5 % time
+burn.trends['centre'].table()                  # every model: chi2/dof, AICc, Δ, weight, parameters
+cols, values = burn.data()                     # time and each quantity with its error
+burn = exp.burn(14, estimator='moments', time='clock', threshold=0.10, qxy_range=(1.40, 1.52))
+```
+
+Reflectivity geometry (Det_Th 0): the Ref Patch ROI per Monc (`slit`,
+`bg_offset`, `direction`); GID: the strongest peak's integrated intensity,
+position and FWHM per Monc (`estimator` 'template' (default), 'moments'
+(legacy arithmetic) or 'fit' with `fit=FitOptions(...)`; `qxy_range` to
+choose the peak; `rows` the pixel rows summed). Each quantity over `time`
+('exposure' default, or 'clock') is compared over `models`
+(`lss_core.trends.MODELS`) by AICc; `trend_errors` 'scatter' (GID default)
+or 'given'. `lss_core.trends.compare(t, y, sigma)` does the comparison for
+any series.
 
 ## Cuts (2026-11-18)
 

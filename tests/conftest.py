@@ -115,6 +115,8 @@ def recorder(qapp, monkeypatch):
                         staticmethod(lambda *a, **k: (rec.save_name, '')))
     monkeypatch.setattr(QtWidgets.QFileDialog, 'getExistingDirectory',
                         staticmethod(lambda *a, **k: rec.directory))
+    monkeypatch.setattr(QtWidgets.QInputDialog, 'getMultiLineText',      # the Save note: OK, no note
+                        staticmethod(lambda *a, **k: ('', True)))
     monkeypatch.setattr(QtWidgets.QInputDialog, 'getText',
                         staticmethod(lambda *a, **k: ('', False)))
     monkeypatch.setattr(sys, 'excepthook',

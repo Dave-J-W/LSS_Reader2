@@ -30,7 +30,7 @@ stated assumption until the answer arrives.
 | 8 | Reflectivity series with overlaps at 6–7 keV; foil tolerance and alloy; Cu thickness at 30 keV | P28 below 10 keV; F49 at 30 keV | nominal Al below 10 keV; no factor at 30 keV |
 | 9 | P29 mechanism (Monc high at narrow S1) | whether the 3 % Monc/Monp guard is right | guard as built |
 | 10 | Confirm or change the open assumptions in `OUTPUT_DECISIONS.md` (3 % tolerance; per-photon gas and median rate; GID min frames, β step) | — | as built |
-| 11 | Fitting requirements received (F22a, 2026-11-19); scoping later. Burn tests and peak fits scriptable: with that scoping | Stage 6 fitting | not started |
+| 11 | Fitting requirements (F22a, 2026-11-19) | Stage 6 fitting | **done 2026-11-21**: peaks module, MCA lines, scan shapes, burn trends (open questions in the list below) |
 | 12 | Run the build workflow once; macOS signing decision | packaged releases | Linux build measured only |
 | 13 | ~~`bu.zip` link sharing~~ off (owner, 2026-11-19); where sample data live; ~~resend scan-136 frames~~ received 2026-11-18 | — | — |
 | 14 | P7 Merge: kept as is (owner). Merge window and XFNTR merging: the owner's rule is F65 (match within 0.1 × grid step, jitter 3e-5 1/Å in the errors, grouping, never across runs); its edge estimator is backlog. `S1T + S1T`: fixed. Per-point MCA files: to be handled (owner: yes, 2026-11-19); channels and dead time answered (D48, D49) | F65, per-point MCA | — |
@@ -174,9 +174,9 @@ stated assumption until the answer arrives.
       scan point's time), Ref/GID frame lists; burn tests (below).
 - [ ] F65 step 3 (backlog): if built, the edge from the fitted element line
       (D47), not ln(Vortex/Monc).
-- [ ] Use the measured times where the reader now assumes count time × frame
-      (burn tests: `pilRefBurn`, `pilGidBurn`; would change their outputs: ask the
-      owner, with F22a's burn-fit work) and show times in SpecPlot (x = time).
+- [x] Use the measured times where the reader assumed count time × frame:
+      burn tests' Trends tab (2026-11-21; the Legacy tab keeps the old axis).
+      SpecPlot already has `Time_s`.
 - [ ] Backlog (owner, 2026-11-19): F65's edge estimator (steps 3, 4, 6: steepest rise of
       ln(Vortex/Monc), outlier check against the group median, alignment).
 - [ ] P36, P37 (legacy GID with three Qz levels): fix with a synthetic
@@ -202,9 +202,11 @@ stated assumption until the answer arrives.
       data are.
 - [ ] Owner: resend the scan-136 GID frames as a zip (the image uploads
       arrived as float16 zeros).
-- [ ] → Stage 6: burn tests and peak fits scriptable, with the fitting
-      sub-project (analysis tools, not reduction); P30 (burn test not
-      monitor-normalised) to be fixed then.
+- [x] Burn tests and peak fits scriptable (2026-11-21): `Experiment.burn`,
+      `lss_core.trends`, `lss_core.peaks`; P30 fixed in the Trends tab.
+- [ ] Owner: does the shutter close between burn frames (exposure vs clock
+      time)? Is 5 % of the FWHM the right scale for a position change? A
+      burn scan at higher flux or from the private data to test the 5 % times.
 - [x] Script pane (F48, first part): opening a SPEC file and exporting a
       patched reflectivity write the equivalent `lss_core` Python, which
       reproduces the exported files byte for byte (tested), including merges,

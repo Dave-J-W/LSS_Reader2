@@ -8,7 +8,7 @@ each experiment type in the output and make easily sortable in the Excel
 file ... keep the number of sheets ... below 8, but at least 4").
 
 ``<SPEC file name>_reader.xlsx`` in the output directory, never beside or
-inside the SPEC file itself. Six sheets, each with a header row, frozen
+inside the SPEC file itself. Seven sheets, each with a header row, frozen
 panes and a filter, so that Excel sorts and filters them by kind, scan,
 version or time:
 
@@ -25,6 +25,10 @@ Data       the reduced data vectors, one row per point: result id, kind,
 Fits       one row per fitted peak, edge or line: result id, kind, scans,
            label, curve, peak, centre, FWHM, height, area with errors,
            χ²/dof, shape, background, fit kind, time
+Trends     quantities over time (burn tests, lss_core.trends): one row
+           per quantity and model: χ²/dof, AICc (or QAICc), Δ, Akaike
+           weight, parameters, best, stable, the time to a 5 % change
+           and its confident lower bound
 Maps       two-dimensional results (GID maps), one row per cell: result
            id, kind, scans, x, y, value, error
 Settings   the current settings (section, key, value, time), the fitting
@@ -41,20 +45,25 @@ import os
 
 import numpy as np
 
-SHEETS = ('Scans', 'Saved', 'Data', 'Fits', 'Maps', 'Settings')
+SHEETS = ('Scans', 'Saved', 'Data', 'Fits', 'Trends', 'Maps', 'Settings')
 HEADERS = {
     'Scans': ['scan', 'kind', 'command', 'points', 'series', 'series_position', 'role', 'status'],
     'Saved': ['id', 'saved', 'kind', 'first_scan', 'scans', 'label', 'version', 'note', 'points', 'columns',
               'settings', 'program'],
-    'Data': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'point', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6'],
+    'Data': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'point', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6',
+             'v7', 'v8'],
     'Fits': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'curve', 'peak', 'centre', 'centre_err',
              'fwhm', 'fwhm_err', 'height', 'height_err', 'area', 'area_err', 'chi2_dof', 'shape', 'background',
              'fit', 'saved'],
+    'Trends': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'quantity', 'model', 'k', 'points',
+               'chi2_dof', 'criterion', 'value', 'delta', 'weight', 'best', 'stable', 'params', 'change',
+               'change_time', 'change_time_confident', 'confidence', 'time_axis', 'saved'],
     'Maps': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'x', 'y', 'value', 'error'],
     'Settings': ['section', 'key', 'value', 'updated'],
 }
-KINDS = ('reflectivity', 'gid map', 'gid cut', 'line cut', 'fluorescence', 'scan', 'peak fit', 'other')
-MAX_VALUES = 6
+KINDS = ('reflectivity', 'gid map', 'gid cut', 'line cut', 'fluorescence', 'scan', 'peak fit', 'burn test',
+         'other')
+MAX_VALUES = 8
 
 
 def path_for(spec_path, directory):
@@ -95,7 +104,7 @@ def _clean(v):
 
 class Workbook:
     """One SPEC file's workbook. Opens the file when it exists, otherwise
-    starts the six sheets; ``save`` writes it (atomically: a temporary file
+    starts the sheets (an older workbook gains any sheet or column it lacks); ``save`` writes it (atomically: a temporary file
     replaced in one step, so a crash never leaves half a workbook)."""
 
     def __init__(self, path):
@@ -106,6 +115,10 @@ class Workbook:
             for name in SHEETS:
                 if name not in self.wb.sheetnames:
                     self._new_sheet(name)
+                else:
+                    self._extend_header(name)
+            for i, name in enumerate(SHEETS):          # a sheet added later goes to its place
+                self.wb.move_sheet(name, offset=i - self.wb.sheetnames.index(name))
         else:
             self.wb = openpyxl.Workbook()
             self.wb.remove(self.wb.active)
@@ -120,6 +133,15 @@ class Workbook:
         for c in ws[1]:
             c.font = Font(bold=True)
         return ws
+
+    def _extend_header(self, name):
+        """Add the header names a workbook from an earlier version lacks
+        (new columns are only ever added at the end)."""
+        ws = self.wb[name]
+        head = [c.value for c in ws[1]]
+        from openpyxl.styles import Font
+        for j, h in enumerate(HEADERS[name][len(head):], start=len(head) + 1):
+            ws.cell(row=1, column=j, value=h).font = Font(bold=True)
 
     def _rows(self, name):
         ws = self.wb[name]
@@ -192,13 +214,14 @@ class Workbook:
                        if r['kind'] == kind and str(r['scans']) == st and (r['label'] or '') == (label or ''))
 
     def add_result(self, kind, scans, data=None, columns=(), label='', note='', settings=None, fits=(),
-                   map_xyz=None, program=None):
+                   map_xyz=None, program=None, trends=(), time_axis=''):
         """Store one result and return its id. ``kind``: one of ``KINDS``
         (or another short text); ``scans``: the scan numbers it comes from;
         ``data``: (N, k ≤ 6) array, named by ``columns``; ``fits``: (curve
         label, lss_core.peaks.FitResult or a list of them) pairs; ``map_xyz``:
-        (X, Y, value, error) 2-D arrays of a map; ``settings``: what produced
-        it (stored as JSON in Saved)."""
+        (X, Y, value, error) 2-D arrays of a map; ``trends``: (quantity,
+        lss_core.trends.TrendComparison) pairs, over ``time_axis``;
+        ``settings``: what produced it (stored as JSON in Saved)."""
         scans = [int(s) for s in scans]
         first = min(scans) if scans else None
         rid = self.next_id()
@@ -221,6 +244,8 @@ class Workbook:
         for curve, res in fits:
             for r in (res if isinstance(res, (list, tuple)) else [res]):
                 self._add_fit(rid, kind, first, st, label, version, curve, r, now)
+        for quantity, comp in trends:
+            self._add_trend(rid, kind, first, st, label, version, quantity, comp, time_axis, now)
         if map_xyz is not None:
             X, Y, V, E = (np.asarray(a, float) for a in map_xyz)
             ws = self.wb['Maps']
@@ -242,6 +267,32 @@ class Workbook:
                       [_clean(v) for v in (p.centre, p.centre_err, p.fwhm, p.fwhm_err, p.height, p.height_err,
                                            p.area, p.area_err, r.chi2_dof)] +
                       [p.shape, getattr(o, 'background', None), fitkind, now])
+
+    def _add_trend(self, rid, kind, first, st, label, version, quantity, comp, time_axis, now):
+        ws = self.wb['Trends']
+        ch = comp.change
+        for r in comp.table():
+            mine = ch is not None and r['model'] == ch.model
+            ws.append([rid, kind, first, st, label, version, quantity, r['model'], r['k'], len(comp.t),
+                       _clean(r['chi2_dof']), comp.criterion, _clean(r['criterion']), _clean(r['delta']),
+                       _clean(r['weight']), r['model'] == comp.best, _clean(comp.stable),
+                       r['params'] or (r['message'] or None),
+                       _clean(ch.threshold) if mine else None, _clean(ch.best) if mine and np.isfinite(ch.best) else
+                       ('> %g' % ch.horizon if mine and ch.best == float('inf') else None),
+                       _clean(ch.confident) if mine and np.isfinite(ch.confident) else
+                       ('> %g' % ch.horizon if mine and ch.confident == float('inf') else None),
+                       _clean(ch.confidence) if mine else None, time_axis, now])
+
+    def trends(self, rid=None, scan=None):
+        """Trends rows (dicts) of one result or containing a scan."""
+        out = []
+        for r in self._rows('Trends'):
+            if rid is not None and r['id'] != rid:
+                continue
+            if scan is not None and int(scan) not in [int(s) for s in str(r['scans']).split(',') if s]:
+                continue
+            out.append(r)
+        return out
 
     def results(self, kind=None, scan=None):
         """Saved rows (dicts), optionally of one kind or containing a scan."""

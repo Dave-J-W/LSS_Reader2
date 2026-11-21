@@ -40,6 +40,8 @@ from lss_core import peaks
 from lss_core import workbook as workbookmod
 from lss_core import absorbers
 from lss_core import preferences as prefs_store
+from lss_core import trends as trendmod
+from lss_core import burn as burnmod
 from lss_core.absorbers import ABSFAC_10KEV
 from lss_core.monitor import gain_factor, scan_rate
 from lss_core.experiment import monitor_factor, absorber_setting
@@ -1418,13 +1420,13 @@ class MainWindow (QMainWindow):
         d.prefMcaChannelBoxes=boxes
         g4=QGroupBox('Saving',d)
         g4.setToolTip('The Save buttons store results in this SPEC file\'s workbook (<SPEC file>_reader.xlsx in the output '
-                      'folder: sheets Scans, Saved, Data, Fits, Maps, Settings). Export still writes the usual text files.')
+                      'folder: sheets Scans, Saved, Data, Fits, Trends, Maps, Settings). Export still writes the usual text files.')
         l4=QVBoxLayout(g4)
         asknote=QCheckBox('Ask for a note on every Save',g4)
         asknote.setObjectName('prefSaveNoteCheckBox')
-        asknote.setChecked(bool(self.prefs.get('save_asks_note',False)))
-        asknote.setToolTip('On: every Save asks for a short note, kept with that version in the workbook (Saved sheet). '
-                           'Off: Shift-click a Save button to add one.')
+        asknote.setChecked(bool(self.prefs.get('save_asks_note',True)))
+        asknote.setToolTip('On (default): every Save asks for a short note, kept with that version in the workbook (Saved '
+                           'sheet); Shift-click a Save button to save without asking. Off: never asks; Shift-click asks.')
         asknote.toggled.connect(lambda on:self.setPreference('save_asks_note',bool(on)))
         l4.addWidget(asknote)
         lay.addWidget(g4)
@@ -2947,19 +2949,318 @@ class MainWindow (QMainWindow):
         if  self.pilSelectedQxs.count(self.pilSelectedQxs[0])!=len(self.pilSelectedQxs) or self.pilSelectedQzs.count(self.pilSelectedQzs[0])!=len(self.pilSelectedQzs) or self.pilSelectedScanNum.count(self.pilSelectedScanNum[0])!=len(self.pilSelectedScanNum):
             self.messageBox('Warning: It is not a burn test scan or multiple scans are selected!')
         else:
-            Dialog=QDialog(self)                
-            self.uipdburn=uic.loadUi(resource('pdburn.ui'), Dialog)
-            self.uipdburn.show()
-            # self.connect(self.uipdburn.gidComboBox, SIGNAL('activated(int)'),self.pilGidBurn)  #do GID burn analysis
-            self.uipdburn.gidComboBox.activated.connect(self.pilGidBurn)
-            ##self.connect(self.uipdburn.rangeLineEdit, SIGNAL('returnPressed()'),self.pilGidBurn)
-            # self.connect(self.uipdburn.refPushButton, SIGNAL('clicked()'),self.pilRefBurn) #do REF burn analysis
-            self.uipdburn.refPushButton.clicked.connect(self.pilRefBurn)
-            # self.connect(self.uipdburn.closePushButton,SIGNAL('clicked()'),self.pilBurnClose) #close the window
-            self.uipdburn.closePushButton.clicked.connect(self.pilBurnClose)
-        
+            self.buildBurnDialog().show()
+            self.burnTrends()
+
+    def buildBurnDialog(self):
+        """The burn-test dialog: the Trends tab (default) and the legacy plots."""
+        Dialog=QDialog(self)
+        self.uipdburn=uic.loadUi(resource('pdburn.ui'), Dialog)
+        self.uipdburn.gidComboBox.activated.connect(self.pilGidBurn)      # legacy GID burn analysis
+        self.uipdburn.refPushButton.clicked.connect(self.pilRefBurn)      # legacy REF burn analysis
+        self.uipdburn.closePushButton.clicked.connect(self.pilBurnClose)
+        self.setupBurnTrends()
+        return self.uipdburn
+
     def pilBurnClose(self):
         self.uipdburn.close()
+
+    # ---- burn tests: trends over time (owner, 2026-11-21; F22a 3-4, P30) ----
+
+    def burnOptions(self):
+        o=dict(models=list(trendmod.MODELS),estimator='template',time='exposure',threshold=5.0,auto_peak=True,
+               errors='auto')
+        o.update({k:v for k,v in (self.prefs.get('burn') or {}).items() if k in o})
+        return o
+
+    def setupBurnTrends(self):
+        """The burn dialog's Trends tab (the default): every quantity over
+        time with constant, linear, exponential and double-exponential fits
+        compared by AICc; the legacy plot moves to its own tab."""
+        from PyQt5.QtWidgets import (QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QCheckBox, QComboBox,
+                                     QDoubleSpinBox, QPushButton, QLabel)
+        u=self.uipdburn
+        o=self.burnOptions()
+        tabs=QTabWidget(u)
+        tabs.setObjectName('burnTabWidget')
+        u.layout().replaceWidget(u.plotWidget,tabs)
+        page=QWidget()
+        lay=QVBoxLayout(page)
+        row=QHBoxLayout()
+        u.burnModelBoxes={}
+        tips={'constant':'c: no change (the average)',
+              'linear':'c + s·t: a steady drift',
+              'exponential':'a·exp(k·t): a decay (k < 0) or growth with a time constant τ = −1/k',
+              'double exponential':'a1·exp(k1·t) + a2·exp(k2·t): a fast and a slow change'}
+        for m in trendmod.MODELS:
+            b=QCheckBox({'double exponential':'double exp.'}.get(m,m),page)
+            b.setObjectName('burn%sCheckBox' % ''.join(w.capitalize() for w in m.split()))
+            b.setChecked(m in o['models'])
+            b.setToolTip('Fit %s. %s. Models are compared by AICc (Akaike\'s criterion for small samples; QAICc '
+                         'when the scatter exceeds the errors); the lowest wins, and a difference below 2 means '
+                         'the data cannot tell them apart (Burnham & Anderson 2002).' % (m,tips[m]))
+            b.toggled.connect(self.burnOptionsChanged)
+            row.addWidget(b)
+            u.burnModelBoxes[m]=b
+            setattr(u,b.objectName(),b)
+        est=QComboBox(page)
+        est.setObjectName('burnEstimatorComboBox')
+        est.addItems(burnmod.ESTIMATORS)
+        est.setCurrentText(o['estimator'])
+        est.setToolTip('GID: how each frame\'s peak is measured, in the peak window (constrained as the legacy test '
+                       'needed). template (default): the mean of the frames, less the legacy straight background, is the '
+                       'peak\'s shape; each frame is fitted as that shape scaled, shifted and stretched, i.e. measured '
+                       'relative to the others. moments (legacy arithmetic): straight line through the window\'s first '
+                       'and last three points removed, then sum, centroid, r.m.s. width; a steady shoulder under the '
+                       'peak dilutes its shift (synthetic: 0.004 read as 0.0023). fit: one peak of the line-cut Fit '
+                       'options\' shape (a Gaussian does not describe a pinhole frame\'s peak).')
+        est.currentIndexChanged.connect(self.burnOptionsChanged)
+        tim=QComboBox(page)
+        tim.setObjectName('burnTimeComboBox')
+        tim.addItems(['exposure','clock'])
+        tim.setCurrentText(o['time'])
+        tim.setToolTip('Time axis, from the start of the first frame\'s exposure, at the middle of each frame. '
+                       'exposure (default): the counting time accumulated (the spot was certainly in the beam). '
+                       'clock: measured start times (Tstart, or Epoch steps in older files), which include the '
+                       'overhead between frames.')
+        tim.currentIndexChanged.connect(self.burnOptionsChanged)
+        err=QComboBox(page)
+        err.setObjectName('burnErrorsComboBox')
+        err.addItems(['auto','scatter','counting'])
+        err.setCurrentText(o['errors'])
+        err.setToolTip('What sets the size of the error bars in the trend fits. scatter: the frames\' errors only as '
+                       'relative weights, scaled to the frames\' scatter about the most general model (a relative '
+                       'change is what matters). counting: the errors as computed (QAICc when the scatter exceeds '
+                       'them). auto (default): scatter for GID, counting for reflectivity.')
+        err.currentIndexChanged.connect(self.burnOptionsChanged)
+        thr=QDoubleSpinBox(page)
+        thr.setObjectName('burnThresholdSpinBox')
+        thr.setRange(0.5,50.0)
+        thr.setDecimals(1)
+        thr.setSuffix(' %')
+        thr.setValue(float(o['threshold']))
+        thr.setToolTip('The change that matters: the time until intensity or width changes by this fraction (the '
+                       'position: by this fraction of the peak\'s FWHM). Given as a 95 % confident lower bound '
+                       '(parameters drawn from the fit\'s covariance), from the best model that can change.')
+        thr.valueChanged.connect(self.burnOptionsChanged)
+        auto=QCheckBox('Auto peak',page)
+        auto.setObjectName('burnAutoPeakCheckBox')
+        auto.setChecked(bool(o['auto_peak']))
+        auto.setToolTip('GID: the strongest peak of the mean of the frames, 3 FWHM either side, inside the lit '
+                        'columns. Off: the Qxy range typed below.')
+        auto.toggled.connect(self.burnOptionsChanged)
+        run=QPushButton('Analyse',page)
+        run.setObjectName('burnAnalysePushButton')
+        run.setToolTip('Measure every selected frame and fit the trends again.')
+        run.clicked.connect(self.burnTrends)
+        save=QPushButton('Save',page)
+        save.setObjectName('burnSavePushButton')
+        save.setToolTip('Save the values over time and the trend table (every model: chi2/dof, AICc, weight, '
+                        'parameters; the change time) into this SPEC file\'s workbook (Data and Trends sheets).')
+        save.clicked.connect(self.saveBurnToWorkbook)
+        for w in (QLabel('Estimator',page),est,QLabel('Errors',page),err,QLabel('Time',page),tim,QLabel('Change',page),
+                  thr,auto,run,save):
+            row.addWidget(w)
+        row.addStretch(1)
+        lay.addLayout(row)
+        canvas=MplWidget(page)
+        canvas.setObjectName('burnTrendPlotWidget')
+        lay.addWidget(canvas)
+        res=QLabel(page)
+        res.setObjectName('burnResultLabel')
+        res.setWordWrap(True)
+        lay.addWidget(res)
+        tabs.addTab(page,'Trends')
+        tabs.addTab(u.plotWidget,'Legacy')
+        tabs.setTabToolTip(1,'The program\'s original burn plots (REF button, GID list): raw counts against count time '
+                             '× frame (P30), one quantity at a time, an exponential for the intensity only.')
+        u.refPushButton.clicked.connect(lambda: tabs.setCurrentIndex(1))
+        u.gidComboBox.activated.connect(lambda i: i and tabs.setCurrentIndex(1))
+        u.burnTabWidget,u.burnEstimatorComboBox,u.burnTimeComboBox,u.burnErrorsComboBox=tabs,est,tim,err
+        u.burnThresholdSpinBox,u.burnAutoPeakCheckBox,u.burnAnalysePushButton=thr,auto,run
+        u.burnSavePushButton,u.burnTrendPlotWidget,u.burnResultLabel=save,canvas,res
+        self.burnResult=None
+
+    def burnOptionsChanged(self,*args):
+        u=self.uipdburn
+        o=dict(models=[m for m,b in u.burnModelBoxes.items() if b.isChecked()],
+               estimator=str(u.burnEstimatorComboBox.currentText()),time=str(u.burnTimeComboBox.currentText()),
+               errors=str(u.burnErrorsComboBox.currentText()),
+               threshold=float(u.burnThresholdSpinBox.value()),auto_peak=bool(u.burnAutoPeakCheckBox.isChecked()))
+        self.setPreference('burn',o)
+        self.burnTrends()
+
+    def burnExperiment(self):
+        """An lss_core Experiment of the open SPEC file (kept while the file
+        is unchanged)."""
+        from lss_core.experiment import Experiment
+        key=(os.path.abspath(self.specFileName),os.path.getmtime(self.specFileName))
+        if getattr(self,'_burnExperiment',(None,None))[0]!=key:
+            self._burnExperiment=(key,Experiment(self.specFileName))
+        return self._burnExperiment[1]
+
+    def burnArguments(self):
+        """(scan, keywords) for Experiment.burn from the selection and the window's settings."""
+        u=self.uipdburn
+        o=self.burnOptions()
+        scan=int(self.pilScanNum[self.selectedPilFramesNums[0]])
+        kw=dict(points=[int(self.pilFrameNum[i]) for i in self.selectedPilFramesNums],time=o['time'],
+                models=tuple(o['models']),threshold=o['threshold']/100.0,estimator=o['estimator'])
+        if o['errors']!='auto':
+            kw['trend_errors']={'counting':'given'}.get(o['errors'],o['errors'])
+        if o['estimator']=='fit':
+            kw['fit']=dataclasses.replace(self.peakFitOptions,n_peaks=1)
+        if not o['auto_peak']:
+            lo,hi=(float(v) for v in str(u.rangeLineEdit.text()).split(':'))
+            kw['qxy_range']=(lo,hi)
+        kw['slit']=tuple(int(v) for v in str(self.ui.refSlitLineEdit.text()).split(','))
+        kw['bg_offset']=float(self.ui.refBGOffLineEdit.text())
+        kw['direction']=str(self.ui.refBGDirComboBox.currentText())
+        if self.ui.pilSpecCheckBox.checkState()==0:
+            t=str(self.ui.pilDBPosLineEdit.text()).split(',')
+            kw['db_pos']=(float(t[0]),float(t[-1]))
+        if int(self.ui.pilBPCiteSpinBox.value())!=0:
+            kw['bad_pixel_iterations']=int(self.ui.pilBPCiteSpinBox.value())
+            kw['bad_pixel_factor']=int(self.ui.pilBPCfacSpinBox.value())
+        return scan,kw
+
+    def burnTrends(self):
+        """Measure the selected burn frames and fit their trends (lss_core.burn)."""
+        u=getattr(self,'uipdburn',None)
+        if u is None or not hasattr(u,'burnResultLabel'):
+            return
+        if self.det!='Pilatus' or len(self.selectedPilFramesNums)==0 or not getattr(self,'specFileName',None):
+            u.burnResultLabel.setText('Select the Pilatus frames of a burn scan first.')
+            return
+        try:
+            scan,kw=self.burnArguments()
+        except (ValueError,IndexError) as e:
+            u.burnResultLabel.setText('Not analysed: the settings could not be read (%s).' % e)
+            return
+        if not kw['models']:
+            u.burnResultLabel.setText('Tick at least one model.')
+            return
+        try:
+            res=self.burnExperiment().burn(scan,errors=self.errorModel,**kw)
+        except (ValueError,KeyError,OSError) as e:
+            self.burnResult=None
+            u.burnResultLabel.setText('Not analysed: %s' % e)
+            u.burnResultLabel.setToolTip('')
+            self.log.info('burn test of scan %d not analysed: %s',scan,e)
+            return
+        self.burnResult=res
+        self.plotBurnTrends(res)
+        u.Label.setText('Burn test for Scan #%d' % scan)
+        u.burnResultLabel.setText(self.burnShortText(res))
+        u.burnResultLabel.setToolTip(self.burnLongText(res))
+        args=dict(kw)
+        args.pop('models') if tuple(args.get('models',()))==trendmod.MODELS else None
+        for k,v in (('time','exposure'),('threshold',0.05),('estimator','template'),('slit',(21,11)),
+                    ('bg_offset',0.5),('direction','H')):
+            if args.get(k)==v:
+                args.pop(k)
+        if args.get('points')==[f.index for f in self.burnExperiment().frames([scan])]:
+            args.pop('points')
+        extra=script_kw(self.errorModel)
+        head='from lss_core.peaks import FitOptions\n' if 'fit' in args else ''
+        self.burnScript=head+'burn = exp.burn(%d%s%s)\nprint(burn.summary())' % (
+            scan,''.join(', %s=%r' % (k,v) for k,v in args.items()),', '+extra if extra else '')
+
+    def burnShortText(self,res):
+        parts=[]
+        for q,c in res.trends.items():
+            if c.stable is None:
+                parts.append('%s: best %s' % (burnmod.LABELS[q],c.best))
+            else:
+                parts.append('%s: %s' % (burnmod.LABELS[q],'stable' if c.stable else 'changing'))
+        t,q=res.safe_time()
+        if q:
+            ch=res.trends[q].change
+            parts.append('%.0f %% change in ≥ %.3g s (%s, %.0f %% confidence%s)' % (
+                100*res.threshold,t,burnmod.LABELS[q].lower(),100*ch.confidence,', extrapolated' if ch.extrapolated else ''))
+        elif res.trends:
+            parts.append('no %.0f %% change within the horizon' % (100*res.threshold))
+        return '; '.join(parts)
+
+    def burnLongText(self,res):
+        lines=[res.summary(),'']
+        for q,c in res.trends.items():
+            lines.append('%s (%s):' % (burnmod.LABELS[q],c.criterion))
+            for f in c.ranked():
+                lines.append('  %s  Δ %.1f  weight %.2f  %s' % (f.model,f.delta,f.weight,f.describe()))
+        lines+=['']+res.notes
+        if res.kind=='gid' and res.reference is not None:
+            r=res.reference
+            lines.append('peak window Qxy %.4f–%.4f; mean profile: centroid %.4f, FWHM %.4f; estimator %s'
+                         % (res.window[0],res.window[1],r['centre'],r['fwhm'],r['estimator']))
+        lines.append('A position change can also be the sample height drifting (pinhole geometry), not damage.'
+                     if res.kind=='gid' else '')
+        return '\n'.join(l for l in lines if l is not None)
+
+    def plotBurnTrends(self,res):
+        """Intensity on top; position (left axis) and FWHM (right axis) below
+        for GID: the three quantities at once on two panels (owner)."""
+        fig=self.uipdburn.burnTrendPlotWidget.canvas.fig
+        fig.clf()
+        styles={'constant':':','linear':'--','exponential':'-.','double exponential':'-'}
+        tt=np.linspace(0,res.duration(),300)
+        if res.kind=='gid':
+            ax1=fig.add_subplot(2,1,1)
+            ax2=fig.add_subplot(2,1,2,sharex=ax1)
+            ax3=ax2.twinx()
+            panels=[(ax1,'intensity','C0','Intensity / Monc'),(ax2,'centre','C2',r'Position $Q_{xy}$ [$\AA^{-1}$]'),
+                    (ax3,'fwhm','C3',r'FWHM [$\AA^{-1}$]')]
+        else:
+            ax1=fig.add_subplot(1,1,1)
+            ax2=ax1
+            panels=[(ax1,'intensity','C0','Reflected intensity / Monc')]
+        for ax,q,col,lab in panels:
+            y,s=res.values[q]
+            ax.errorbar(res.t,y,s,fmt='o',color=col,ms=3,lw=0.8)
+            ax.set_ylabel(lab,color=col)
+            ax.tick_params(axis='y',colors=col)
+            c=res.trends.get(q)
+            if c is None:
+                continue
+            for m,f in c.fits.items():
+                if f.ok:
+                    best=m==c.best
+                    ax.plot(tt,f(tt),styles[m],color=col,lw=2 if best else 1,alpha=1.0 if best else 0.45)
+            ch=c.change
+            if ch is not None and np.isfinite(ch.confident) and ch.confident<=tt[-1]:
+                ax.axvline(ch.confident,color=col,ls=(0,(1,3)),lw=1)
+        from matplotlib.lines import Line2D
+        first=res.trends.get('intensity')
+        handles=[]
+        for m,ls in styles.items():
+            f=first.fits.get(m) if first else None
+            if f is not None and f.ok:
+                handles.append(Line2D([],[],color='k',ls=ls,lw=2 if m==first.best else 1,
+                                      label='%s (Δ %.1f)' % (m,f.delta)))
+        if handles:
+            ax1.legend(handles=handles,fontsize=7,frameon=False,title='intensity: %s' % first.criterion,
+                       title_fontsize=7)
+        ax2.set_xlabel('Time %s (s)' % ('under the beam' if res.time=='exposure' else 'by the clock'))
+        stable='stable' if res.stable() else 'changing'
+        ax1.set_title('%s S# %d: %s' % (os.path.basename(self.specFileName),res.scan,stable),fontsize=9)
+        try:
+            fig.tight_layout()
+        except Exception:
+            pass
+        self.uipdburn.burnTrendPlotWidget.canvas.draw()
+
+    def saveBurnToWorkbook(self):
+        res=getattr(self,'burnResult',None)
+        if res is None:
+            self.messageBox('Analyse a burn test first.')
+            return
+        cols,arr=res.data()
+        o=self.burnOptions()
+        ids=self.saveToWorkbook('burn test',[dict(scans=[res.scan],data=arr,columns=cols,
+                                                  label=res.kind,settings=dict(o,window=res.window,notes=res.notes),
+                                                  trends=list(res.trends.items()),time_axis=res.time)])
+        if ids and getattr(self,'burnScript',None):
+            self.scriptLine(self.burnScript)
         
     def expdecay(self, x, a,b):  #define exponential decay
         return a*np.exp(-x/b)
@@ -5380,8 +5681,9 @@ class MainWindow (QMainWindow):
         b.setObjectName('%sSaveWorkbookPushButton' % name)
         b.setToolTip('Save what is shown into this SPEC file\'s workbook (<SPEC file>_reader.xlsx in the output folder): '
                      'the reduced data, any fits of it, the settings that made it, tied to its scans and labelled by '
-                     'experiment type; each Save of the same scans is a new version. Shift-click (or the Preferences '
-                     'option) to add a note. Export still writes the usual text files.')
+                     'experiment type; each Save of the same scans is a new version. Each Save asks for an optional note '
+                     '(Cancel: nothing saved); Shift-click saves without asking (Preferences > Saving turns the '
+                     'question off). Export still writes the usual text files.')
         b.clicked.connect(handler)
 
         def find(layout):
@@ -5415,7 +5717,8 @@ class MainWindow (QMainWindow):
         from PyQt5.QtWidgets import QInputDialog, QApplication
         from PyQt5.QtCore import Qt as QtC
         note=''
-        if self.prefs.get('save_asks_note') or QApplication.keyboardModifiers() & QtC.ShiftModifier:
+        shift=bool(QApplication.keyboardModifiers() & QtC.ShiftModifier)
+        if bool(self.prefs.get('save_asks_note',True)) != shift:   # owner 2026-11-21: ask every time, Shift skips
             note,ok=QInputDialog.getMultiLineText(self,'Note','A note for this saved version (optional):','')
             if not ok:
                 return []

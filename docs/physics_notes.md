@@ -35,6 +35,8 @@ exists.
 | I22 | For Poisson points (y = N·a/M, σ = √N·a/M) the MCA Merge equals ΣN/Σ(M/a) with σ = √ΣN/Σ(M/a), exactly, also merged pairwise | `test_mca_merge.py::test_merge_of_poisson_points_is_pooled_counts_over_pooled_monitor` |
 | I23 | Point times within a scan never go backwards, and no step is shorter than the count time | `test_timing.py::test_nx_school_steps_never_go_back_or_undercut_the_count_time` |
 | I24 | Exact pinhole angles equal an independent ray construction; on the direct-beam column they are exact at any β0 | `test_pinhole.py::test_pixel_angles_are_the_exact_ray_geometry` |
+| I25 | A quantity constant in time is called stable (AICc(constant) − AICc(linear) ≤ 2) in ≥ 85 % of noise draws (measured 95 %); the 95 % confident time to a 5 % change exceeds the true time in ≤ 9 % of draws (measured 5.5 %) | `test_trends.py::test_the_confident_time_is_conservative_at_its_stated_level` |
+| I26 | A burn signal decaying as exp(−t/τ) gives τ from the exponential model and a 5 % time of τ·ln(1/0.95) | `test_burn_trends.py::test_reflectivity_burn_is_monitor_normalised_and_finds_tau` (τ 400 s, 20.5 s) |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -3172,4 +3174,88 @@ settings, and tying results to series ids, are the next steps (Stage 3).
 about 30 doc lines that say "open" for done work, regrouping into eleven
 areas, forgotten items, and a minimal series-metadata plan for the macros
 (owner to read; the doc fixes are not yet applied).
+
+### 2026-11-21 — Burn tests: trends over time, the 5 % time (F22a 3–4, P30)
+
+**Q.** (owner) "What do you need to complete this? The user needs a
+comparison of validity for average over time vs linear over time vs
+exponential vs double exponential in terms of information criterion. When
+an average (flat line) has the same confidence of fit as a linear fit then
+we know we're in a good regime for avoiding beam damage. Another result is
+a confident suggestion about how much time causes a less than 5 % change
+in the quantity of merit. For GID burn testing make sure to show all 3
+qualities at the same time, perhaps on 2 panels using 3 axes."
+Then, during the work: "since we are more concerned with a relative change
+in a GID burn test put less weight on absolute measurements of sigma etc.
+The legacy GID burn test did well once the fit range was constrained, so
+use that as inspiration."
+
+**A. Nothing more was needed from the owner to build it**; two choices are
+open for confirmation (below). Built (`lss_core/trends.py`,
+`lss_core/burn.py`, `Experiment.burn`, the burn dialog's Trends tab):
+
+- Four models per quantity, compared by AICc (Hurvich & Tsai 1989,
+  https://doi.org/10.1093/biomet/76.2.297), with Akaike weights; QAICc when
+  counting errors understate the scatter (Burnham & Anderson 2002,
+  https://doi.org/10.1007/b97636, §6.2). **Stable** = AICc(constant) −
+  AICc(linear) ≤ 2 (ibid. §2.6). When a curved model beats both, the
+  verdict says so (e.g. an early fast change).
+- **The 5 % time**: the first time the model's change since t = 0 reaches
+  5 % (intensity, width: of their value; position: of the FWHM), given as
+  the 5 % quantile over 2000 draws from the fit's covariance, i.e. "≥ T at
+  95 % confidence", from the best model that beats the constant (else the
+  linear one: a bound on a steady drift the data still allow). Tested for
+  coverage: 5.5 % misses at a nominal 5 % (200 draws); a constant is
+  called stable in 95 % of draws (I25).
+- **Time**: from the start of the first exposure, at the middle of each
+  frame; exposure (counting time accumulated, default) or clock (measured
+  Tstart / Epoch steps). The legacy used count time × list row (P30).
+- **Reflectivity**: the Ref Patch ROI per Monc. Synthetic τ = 400 s
+  recovered to 1e-3, 5 % in 20.5 s = τ·ln(1/0.95) (I26).
+- **GID**, all three quantities at once: intensity on top; position (left
+  axis) and FWHM (right axis) below. Window: the strongest peak of the mean
+  frame, 3 FWHM either side, inside the lit columns (NX 14: 1.400–1.534;
+  the legacy test used 1.40–1.52), or a typed range. Errors: the frames'
+  σ only as relative weights, scaled to the scatter (owner's second
+  message). Estimator: **template** (default): the mean profile less the
+  legacy straight background is the peak's shape, each frame fitted as
+  that shape scaled, shifted and stretched, i.e. measured relative to the
+  others; **moments** (the legacy arithmetic); **fit** (one Gaussian).
+
+**Measured on NX scans 14 and 15** (public; same spot and geometry,
+absorber 12 then 8, so scan 15 had ≈ 1.4247⁴ = 4.1 × the flux; run, C31):
+
+| | scan 14 | scan 15 |
+|---|---|---|
+| Integrated intensity | stable (template and moments) | stable (both) |
+| Position | +0.0024 Å⁻¹ in 210 s (changing) | +0.008 Å⁻¹ (changing) |
+| FWHM | stable | +19 % (changing) |
+| 95 % time to a 5 % change | position, ≈ 67 s | position, ≈ 11 s |
+
+The position drifts ≈ 3.3 × faster at ≈ 4.1 × the flux, which points to a
+dose effect rather than the sample height (a height drift would not scale
+with the absorbers); not proven: the two scans also differ in time. The
+broadening at a constant integrated intensity looks like disorder rather
+than loss of material. Reading only: the absorber factor 1.4247 per foil
+is the 10 keV default.
+
+**Estimators compared** (C31): per-frame χ²/dof template 1.0 on scan 14
+(4.3 on 15, where the shape changes), Gaussian fit 10–41 (it does not
+describe a pinhole frame's sharp peak on its broad shoulder). Residual
+position scatter: template 1.4e-4, moments 3.8e-4, fit 2.9e-4 Å⁻¹. On
+synthetic profiles with a steady shoulder, the moments' centroid dilutes a
+peak shift of 0.004 Å⁻¹ to 0.0023, so its 5 % time comes out too long; the
+template recovers 0.0039. Intensity precision is about the same for template
+and moments (2–3 % per frame). **Before the commit**, the template's
+intensity ignored the stretch (area ∝ A·w) and read scan 15 as −15 %;
+corrected, it agrees with the moments' "stable". Verified: run, tests.
+
+**Open for the owner:** (1) does the shutter close between frames? If not,
+the clock time is the dose time (3 % longer on NX); (2) is 5 % of the FWHM
+the right scale for a position change? (3) a burn scan at higher flux or
+on the private data would test the 5 % times where damage is clear.
+
+**Also (owner's second reply on saving):** every Save now asks for an
+optional note; Shift-click saves without asking (preference to turn the
+question off; then Shift-click asks). Tested.
 

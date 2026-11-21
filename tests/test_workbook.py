@@ -66,8 +66,9 @@ def test_maps_and_too_many_columns(tmp_path):
     rid = wb.add_result('gid map', [11, 12], map_xyz=(X, Y, V, V * 0.1), program='test')
     rows = [r for r in wb._rows('Maps') if r['id'] == rid]
     assert len(rows) == 5                                         # NaN cells are not stored
+    assert workbook.MAX_VALUES == 8                               # 6 until the burn tests (2026-11-21): time + 3 × (value, error)
     with pytest.raises(ValueError):
-        wb.add_result('other', [1], np.zeros((3, 7)))
+        wb.add_result('other', [1], np.zeros((3, workbook.MAX_VALUES + 1)))
 
 
 def test_scan_rows_label_experiment_kinds():
@@ -92,3 +93,35 @@ def test_fit_options_round_trip_and_bad_values():
     assert peaks.options_from_dict(peaks.options_to_dict(o)) == o
     assert peaks.options_from_dict({'shape': 'nonsense'}) == peaks.FitOptions()
     assert peaks.options_from_dict({'n_peaks': 'x', 'unknown': 1}).n_peaks == 0
+
+
+def test_an_older_workbook_gains_the_trends_sheet_and_wider_data(tmp_path):
+    """A workbook written before the burn trends (six sheets, Data v1–v6)
+    is opened, extended and keeps its rows."""
+    import openpyxl
+    p = str(tmp_path / 'old_reader.xlsx')
+    book = openpyxl.Workbook()
+    book.remove(book.active)
+    for name in ('Scans', 'Saved', 'Data', 'Fits', 'Maps', 'Settings'):
+        ws = book.create_sheet(name)
+        head = workbook.HEADERS[name][:13] if name == 'Data' else workbook.HEADERS[name]
+        ws.append(head)
+    book['Saved'].append(['R0001', 'then', 'scan', 4, '4', '', 1, '', 2, 'x, y', '{}', 'old'])
+    book['Data'].append(['R0001', 'scan', 4, '4', '', 1, 0, 1.0, 2.0])
+    book.save(p)
+    wb = workbook.Workbook(p)
+    assert wb.wb.sheetnames == list(workbook.SHEETS)
+    assert [c.value for c in wb.wb['Data'][1]] == workbook.HEADERS['Data']
+    assert wb.data('R0001').tolist() == [[1.0, 2.0]]
+    from lss_core import trends
+    t = np.arange(10.0)
+    comp = trends.compare(t, 5 - 0.1 * t + 0.01 * np.cos(t), np.full(10, 0.01))
+    rid = wb.add_result('burn test', [4], np.column_stack([t] * 7), ['c%d' % k for k in range(7)],
+                        trends=[('intensity', comp)], time_axis='exposure')
+    wb.save()
+    wb = workbook.Workbook(p)
+    assert wb.data(rid).shape == (10, 7)
+    rows = wb.trends(rid=rid)
+    assert len(rows) == 4 and sum(bool(r['best']) for r in rows) == 1
+    assert {r['model'] for r in rows if r['change_time'] is not None} == {comp.change.model}
+    assert wb.trends(scan=4) == rows and wb.trends(scan=5) == []
