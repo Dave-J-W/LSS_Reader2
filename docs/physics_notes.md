@@ -3259,3 +3259,13 @@ on the private data would test the 5 % times where damage is clear.
 optional note; Shift-click saves without asking (preference to turn the
 question off; then Shift-click asks). Tested.
 
+**Owner (same day):** "Put each GID burn fitted quantity on its own axes,
+with the right hand axis of each panel being a normalized quantity, given
+in percent. Put the summary results to the right of the panels, not in the
+title." **Done** (`lss_core.burn.plot`, used by the dialog and
+`tests/tools/burn_figures.py`): intensity and FWHM in % of the best
+model's value at t = 0; the position as its shift from t = 0 in % of the
+mean FWHM, the scale its 5 % change is judged on; dashed lines at ± the
+threshold. Tested: `test_gui_burn_trends.py` (three panels, right-axis
+labels, summary text beside, none in the title).
+

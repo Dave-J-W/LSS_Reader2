@@ -174,8 +174,12 @@ Each line: feature — where — default — script — notes entry (date).
   compared by AICc; "stable" when a constant fits as well as a line (the
   owner's good regime); the best model drawn thick, the others faint; a
   dotted vertical line at the confident 5 % time.
-- GID: intensity on top; position (left axis, green) and FWHM (right axis,
-  red) below. "Auto peak": the strongest peak of the mean frame; off: the
+- GID: one panel per quantity (intensity, position, FWHM; owner,
+  2026-11-21), each with a right-hand axis in percent: intensity and FWHM
+  as % of the best model's value at t = 0, the position as its shift in %
+  of the FWHM; grey dashed lines at ± the threshold. The summary (verdict,
+  const − lin, best model, each model's Δ, the 5 % time, the limit, the
+  settings) is beside the panels, not in the title. "Auto peak": the strongest peak of the mean frame; off: the
   typed Qxy range. Estimator: template (default), moments (legacy), fit.
   Errors: auto (scatter for GID, counting for reflectivity). Time:
   exposure or clock. Change: the threshold (5 %).

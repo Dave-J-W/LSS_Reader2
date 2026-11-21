@@ -3198,56 +3198,15 @@ class MainWindow (QMainWindow):
         return '\n'.join(l for l in lines if l is not None)
 
     def plotBurnTrends(self,res):
-        """Intensity on top; position (left axis) and FWHM (right axis) below
-        for GID: the three quantities at once on two panels (owner)."""
-        fig=self.uipdburn.burnTrendPlotWidget.canvas.fig
-        fig.clf()
-        styles={'constant':':','linear':'--','exponential':'-.','double exponential':'-'}
-        tt=np.linspace(0,res.duration(),300)
-        if res.kind=='gid':
-            ax1=fig.add_subplot(2,1,1)
-            ax2=fig.add_subplot(2,1,2,sharex=ax1)
-            ax3=ax2.twinx()
-            panels=[(ax1,'intensity','C0','Intensity / Monc'),(ax2,'centre','C2',r'Position $Q_{xy}$ [$\AA^{-1}$]'),
-                    (ax3,'fwhm','C3',r'FWHM [$\AA^{-1}$]')]
-        else:
-            ax1=fig.add_subplot(1,1,1)
-            ax2=ax1
-            panels=[(ax1,'intensity','C0','Reflected intensity / Monc')]
-        for ax,q,col,lab in panels:
-            y,s=res.values[q]
-            ax.errorbar(res.t,y,s,fmt='o',color=col,ms=3,lw=0.8)
-            ax.set_ylabel(lab,color=col)
-            ax.tick_params(axis='y',colors=col)
-            c=res.trends.get(q)
-            if c is None:
-                continue
-            for m,f in c.fits.items():
-                if f.ok:
-                    best=m==c.best
-                    ax.plot(tt,f(tt),styles[m],color=col,lw=2 if best else 1,alpha=1.0 if best else 0.45)
-            ch=c.change
-            if ch is not None and np.isfinite(ch.confident) and ch.confident<=tt[-1]:
-                ax.axvline(ch.confident,color=col,ls=(0,(1,3)),lw=1)
-        from matplotlib.lines import Line2D
-        first=res.trends.get('intensity')
-        handles=[]
-        for m,ls in styles.items():
-            f=first.fits.get(m) if first else None
-            if f is not None and f.ok:
-                handles.append(Line2D([],[],color='k',ls=ls,lw=2 if m==first.best else 1,
-                                      label='%s (Δ %.1f)' % (m,f.delta)))
-        if handles:
-            ax1.legend(handles=handles,fontsize=7,frameon=False,title='intensity: %s' % first.criterion,
-                       title_fontsize=7)
-        ax2.set_xlabel('Time %s (s)' % ('under the beam' if res.time=='exposure' else 'by the clock'))
-        stable='stable' if res.stable() else 'changing'
-        ax1.set_title('%s S# %d: %s' % (os.path.basename(self.specFileName),res.scan,stable),fontsize=9)
+        """Each quantity on its own panel, its right axis in percent, the
+        summary to the right (owner, 2026-11-21; lss_core.burn.plot)."""
+        canvas=self.uipdburn.burnTrendPlotWidget.canvas
+        burnmod.plot(res,canvas.fig,'%s S# %d' % (os.path.basename(self.specFileName),res.scan))
         try:
-            fig.tight_layout()
+            canvas.fig.subplots_adjust(left=0.1,right=0.97,top=0.9,bottom=0.09)
         except Exception:
             pass
-        self.uipdburn.burnTrendPlotWidget.canvas.draw()
+        canvas.draw()
 
     def saveBurnToWorkbook(self):
         res=getattr(self,'burnResult',None)

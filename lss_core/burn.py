@@ -342,3 +342,124 @@ def analyse(t, values, models=trends.MODELS, threshold=0.05, confidence=0.95, ov
                                 confidence=confidence, label=LABELS.get(q, q), overdispersion=overdispersion,
                                 t0=0.0, errors=errors)
     return out
+
+
+STYLES = {'constant': ':', 'linear': '--', 'exponential': '-.', 'double exponential': '-'}
+COLOURS = {'intensity': 'C0', 'centre': 'C2', 'fwhm': 'C3'}
+UNITS = {'reflectivity': {'intensity': 'Reflected intensity / Monc'},
+         'gid': {'intensity': 'Intensity / Monc', 'centre': r'Position $Q_{xy}$ [$\AA^{-1}$]',
+                 'fwhm': r'FWHM [$\AA^{-1}$]'}}
+SHORT = {'constant': 'const', 'linear': 'lin', 'exponential': 'exp', 'double exponential': 'dbl'}
+
+
+def normaliser(c, quantity):
+    """(reference, scale, label) for the right-hand axis in percent:
+    intensity and FWHM as % of the best model's value at t = 0; the
+    position as its shift from t = 0 in % of the mean FWHM (the scale its
+    5 % change is measured against)."""
+    f = c.fits.get(c.best)
+    ref = float(f(np.array([0.0]))[0]) if f is not None and f.ok else float(np.nanmean(c.y))
+    if quantity == 'centre' and c.change is not None:
+        return ref, c.change.scale, 'shift, % of FWHM'
+    return ref, ref, '% of t = 0'
+
+
+def summary_text(res):
+    """The text beside the panels: per quantity the verdict, the best
+    model, each model's Δ and the 5 % time; then the limit and the settings."""
+    out = []
+    for q, c in res.trends.items():
+        out.append(LABELS.get(q, q))
+        if c.stable is not None:
+            out.append('  %s' % ('stable' if c.stable else 'changing'))
+            out.append('  const − lin %+.1f' % c.delta_constant_linear)
+        out.append('  best: %s' % SHORT[c.best])
+        ds = ['%s %.1f' % (SHORT[m], f.delta) for m, f in c.fits.items() if f.ok]
+        for i in range(0, len(ds), 2):
+            out.append(('  Δ%s: ' % c.criterion if i == 0 else ' ' * (5 + len(c.criterion))) + ', '.join(ds[i:i + 2]))
+        ch = c.change
+        if ch is not None:
+            t = '> %.3g s' % ch.horizon if math.isinf(ch.confident) else '%.3g s' % ch.confident
+            out.append('  %.0f %% in ≥ %s' % (100 * ch.threshold, t))
+            out.append('    (%s%s)' % (SHORT[ch.model], ', extrap.' if ch.extrapolated else ''))
+        out.append('')
+    t, q = res.safe_time()
+    if q:
+        out.append('Limit: %s' % LABELS.get(q, q).lower())
+        out.append('  %.0f %% in ≥ %.3g s' % (100 * res.threshold, t))
+        out.append('  (%.0f %% confidence)' % (100 * res.trends[q].change.confidence))
+    elif res.trends:
+        out.append('No %.0f %% change' % (100 * res.threshold))
+        out.append('  within the horizon')
+    out.append('')
+    out.append('%d frames, %.0f s' % (len(res.t), res.duration()))
+    out.append('time: %s' % res.time)
+    est = (res.reference or {}).get('estimator') if isinstance(res.reference, dict) else None
+    if est:
+        out.append('estimator: %s' % est)
+    if getattr(res, 'trend_errors', None):
+        out.append('errors: %s' % res.trend_errors)
+    if res.window is not None:
+        out.append('Qxy %.3f–%.3f' % tuple(res.window))
+    return '\n'.join(out)
+
+
+def plot(res, fig, title=''):
+    """Draw a burn result into a matplotlib figure: one panel per quantity
+    (GID: intensity, position, FWHM; reflectivity: intensity), the values
+    with their errors and every fitted model (the best thick), a dotted
+    vertical line at the confident change time; on the right of each panel
+    the same quantity normalised, in percent (``normaliser``), with the
+    threshold marked; the summary as text to the right of the panels.
+    Returns the data axes."""
+    fig.clf()
+    qs = [q for q in ('intensity', 'centre', 'fwhm') if q in res.values]
+    gs = fig.add_gridspec(len(qs), 2, width_ratios=[3.4, 1.0], wspace=0.42, hspace=0.12)
+    tt = np.linspace(0, res.duration(), 300)
+    axes = []
+    for k, q in enumerate(qs):
+        ax = fig.add_subplot(gs[k, 0], sharex=axes[0] if axes else None)
+        axes.append(ax)
+        col = COLOURS[q]
+        y, s = res.values[q]
+        ax.errorbar(res.t, y, s, fmt='o', color=col, ms=3, lw=0.8)
+        ax.set_ylabel(UNITS[res.kind].get(q, q), color=col, fontsize=8)
+        ax.tick_params(axis='y', colors=col, labelsize=7)
+        ax.tick_params(axis='x', labelsize=7)
+        c = res.trends.get(q)
+        if c is None:
+            continue
+        for m, f in c.fits.items():
+            if f.ok:
+                best = m == c.best
+                ax.plot(tt, f(tt), STYLES[m], color=col, lw=2 if best else 1, alpha=1.0 if best else 0.45)
+        ch = c.change
+        if ch is not None and np.isfinite(ch.confident) and ch.confident <= tt[-1]:
+            ax.axvline(ch.confident, color=col, ls=(0, (1, 3)), lw=1)
+        ref, scale, lab = normaliser(c, q)
+        if np.isfinite(ref) and np.isfinite(scale) and scale != 0:
+            if q == 'centre':
+                fwd, inv = (lambda v, r=ref, sc=scale: 100 * (v - r) / sc), (lambda p, r=ref, sc=scale: r + p * sc / 100)
+                marks = (-100 * res.threshold, 100 * res.threshold)
+            else:
+                fwd, inv = (lambda v, sc=scale: 100 * v / sc), (lambda p, sc=scale: p * sc / 100)
+                marks = (100 * (1 - res.threshold), 100 * (1 + res.threshold))
+            sec = ax.secondary_yaxis('right', functions=(fwd, inv))
+            sec.set_ylabel(lab, fontsize=7, color='0.35')
+            sec.tick_params(labelsize=7, colors='0.35')
+            for mk in marks:
+                ax.axhline(inv(mk), color='0.6', lw=0.6, ls=(0, (4, 4)))
+        if k < len(qs) - 1:
+            ax.tick_params(axis='x', labelbottom=False)
+    axes[-1].set_xlabel('Time %s (s)' % ('under the beam' if res.time == 'exposure' else 'by the clock'), fontsize=8)
+    from matplotlib.lines import Line2D
+    axes[0].legend(handles=[Line2D([], [], color='k', ls=ls, lw=1, label=m) for m, ls in STYLES.items()
+                            if any(m in c.fits and c.fits[m].ok for c in res.trends.values())],
+                   fontsize=6, frameon=False, ncol=4, loc='lower left', bbox_to_anchor=(0.0, 1.0))
+    text = fig.add_subplot(gs[:, 1])
+    text.axis('off')
+    text.text(0.0, 1.0, summary_text(res), va='top', ha='left', fontsize=7, family='monospace',
+              transform=text.transAxes)
+    if title:
+        fig.suptitle(title, fontsize=9)
+    return axes

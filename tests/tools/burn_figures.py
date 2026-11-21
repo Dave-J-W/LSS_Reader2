@@ -5,9 +5,9 @@
     python tests/tools/burn_figures.py --spec PATH --scans 23 35 --out DIR
 
 For each burn scan: one figure as the reader's Trends tab draws it
-(intensity on top; position and FWHM below, on two y axes; every model
-fitted, the best one thick; dotted vertical line at the confident 5 %
-time) for the default estimator (template) and for the legacy moments,
+(one panel per quantity, its right axis normalised in percent, the
+threshold marked; every model fitted, the best one thick; dotted vertical
+line at the confident 5 % time; the summary beside the panels) for the default estimator (template) and for the legacy moments,
 and a table of the three estimators (template, moments, fit) per
 quantity: best model, stable or not, ĉ (scatter / errors squared), the
 median per-frame χ²/dof, and the 5 % times. CSVs: ``values_<scan>.csv``
@@ -38,40 +38,10 @@ STYLES = {'constant': ':', 'linear': '--', 'exponential': '-.', 'double exponent
 
 
 def draw(res, path, title):
-    fig = plt.figure(figsize=(7.5, 6.0))
-    tt = np.linspace(0, res.duration(), 300)
-    if res.kind == 'gid':
-        ax1 = fig.add_subplot(2, 1, 1)
-        ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
-        ax3 = ax2.twinx()
-        panels = [(ax1, 'intensity', 'C0', 'Intensity / Monc'), (ax2, 'centre', 'C2', r'Position $Q_{xy}$ [$\AA^{-1}$]'),
-                  (ax3, 'fwhm', 'C3', r'FWHM [$\AA^{-1}$]')]
-    else:
-        ax1 = ax2 = fig.add_subplot(1, 1, 1)
-        panels = [(ax1, 'intensity', 'C0', 'Reflected intensity / Monc')]
-    for ax, q, col, lab in panels:
-        y, s = res.values[q]
-        ax.errorbar(res.t, y, s, fmt='o', color=col, ms=3, lw=0.8)
-        ax.set_ylabel(lab, color=col)
-        ax.tick_params(axis='y', colors=col)
-        c = res.trends[q]
-        for m, f in c.fits.items():
-            if f.ok:
-                ax.plot(tt, f(tt), STYLES[m], color=col, lw=2 if m == c.best else 1, alpha=1 if m == c.best else 0.45)
-        if c.change is not None and np.isfinite(c.change.confident) and c.change.confident <= tt[-1]:
-            ax.axvline(c.change.confident, color=col, ls=(0, (1, 3)), lw=1)
-    from matplotlib.lines import Line2D
-    first = res.trends['intensity']
-    ax1.legend(handles=[Line2D([], [], color='k', ls=STYLES[m], lw=2 if m == first.best else 1,
-                               label='%s (Δ %.1f)' % (m, f.delta)) for m, f in first.fits.items() if f.ok],
-               fontsize=7, frameon=False, title='intensity: %s' % first.criterion, title_fontsize=7)
-    ax2.set_xlabel('Time under the beam (s)' if res.time == 'exposure' else 'Clock time (s)')
-    verdicts = ', '.join('%s %s' % (burnmod.LABELS[q].lower(), 'stable' if c.stable else 'changing')
-                         for q, c in res.trends.items())
-    t, q = res.safe_time()
-    ax1.set_title('%s\n%s; 5 %% change in ≥ %.3g s (%s, 95 %%)' % (title, verdicts, t, burnmod.LABELS.get(q, q).lower()),
-                  fontsize=9)
-    fig.tight_layout()
+    """The reader's Trends-tab figure (lss_core.burn.plot)."""
+    fig = plt.figure(figsize=(9.0, 7.0) if res.kind == 'gid' else (9.0, 4.0))
+    burnmod.plot(res, fig, title)
+    fig.subplots_adjust(left=0.1, right=0.97, top=0.9, bottom=0.08)
     fig.savefig(path, dpi=110)
     plt.close(fig)
 

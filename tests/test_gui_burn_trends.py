@@ -42,8 +42,11 @@ def test_dialog_opens_on_the_analysed_trends(burn, qapp, recorder):
     text = d.burnResultLabel.text()
     assert 'Intensity: changing' in text and '5 % change in ≥ 20.5 s' in text
     assert 'AICc' in d.burnResultLabel.toolTip()
-    axes = d.burnTrendPlotWidget.canvas.fig.axes
+    axes = [a for a in d.burnTrendPlotWidget.canvas.fig.axes if a.axison]
     assert len(axes) == 1 and len(axes[0].lines) >= 4          # data and four models
+    assert axes[0].child_axes and '% of t = 0' in axes[0].child_axes[0].get_ylabel()   # normalised, right axis
+    side = ''.join(t.get_text() for a in d.burnTrendPlotWidget.canvas.fig.axes for t in a.texts)
+    assert 'Intensity' in side and 'best: exp' in side and '5 % in ≥ 20.5 s' in side     # summary beside
     assert 'exp.burn(1)' in burn.burnScript
     d.refPushButton.click()                                    # the legacy plot: its own tab
     assert d.burnTabWidget.currentIndex() == 1
@@ -96,9 +99,13 @@ def test_gid_burn_shows_three_quantities_on_two_panels(window, qapp, recorder, t
     d = _open(window, qapp)
     assert recorder.exceptions == [] and recorder.messages == []
     fig = d.burnTrendPlotWidget.canvas.fig
-    assert len(fig.axes) == 3                                  # intensity; position and FWHM (twin)
-    labels = [a.get_ylabel() for a in fig.axes]
+    panels = [a for a in fig.axes if a.axison]
+    assert len(panels) == 3                                    # one panel per quantity (owner, 2026-11-21)
+    labels = [a.get_ylabel() for a in panels]
     assert 'Intensity' in labels[0] and 'Position' in labels[1] and 'FWHM' in labels[2]
+    right = [a.child_axes[0].get_ylabel() for a in panels]
+    assert right == ['% of t = 0', 'shift, % of FWHM', '% of t = 0']
+    assert not fig._suptitle.get_text().count('stable')        # the results beside the panels, not in the title
     res = window.burnResult
     assert res.scan == 15 and set(res.trends) == {'intensity', 'centre', 'fwhm'}
     text = d.burnResultLabel.text()
