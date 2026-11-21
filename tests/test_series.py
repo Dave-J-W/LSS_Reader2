@@ -16,7 +16,7 @@ NX = os.path.join(ROOT, 'sample_data', 'NX_school', '2026sep', '20260923')
 
 
 def _scan(num, npts=5, planned=5, sid=None, i=None, n=None, kind='reflectivity', role=None, aborted=None,
-          end=None, command=None):
+          end=None, command=None, header='', macro=None):
     qz = np.linspace(0.02 * num, 0.02 * num + 0.03, npts)
     text = synth.spec_scan(num, 's', synth.REF_COLUMNS, synth.ref_rows(qz),
                            command=command or 'hklscan 0 0 0 0 %g %g %d 1' % (qz[0], qz[0] + 0.03, planned - 1))
@@ -26,6 +26,11 @@ def _scan(num, npts=5, planned=5, sid=None, i=None, n=None, kind='reflectivity',
         words = ['id=%s' % sid, 'kind=%s' % kind] + (['i=%d' % i] if i else []) + (['n=%d' % n] if n else [])
         words += ['role=%s' % role] if role else []
         extra = '#U Series ' + ' '.join(words) + '\n'
+    if macro is not None:
+        extra += '#U SeriesMacro %s\n' % macro
+    extra += header
+    if '#V' in header:              # a fluorescence scan (fluo_p) has no image line
+        body = ''.join(l for l in body.splitlines(True) if not l.startswith('#B0'))
     tail = ''
     if aborted is not None:
         tail += '#C Thu Nov 19 10:00:00 2026.  Scan aborted after %d points.\n' % aborted
@@ -144,3 +149,36 @@ def test_a_scan_without_parameters_is_still_said_to_have_none(tmp_path):
     text = '#S 1  getandsave_mca 10\n\n#C Thu Nov 19 10:00:00 2026.  Scan aborted after 0 points.\n\n'
     r = specread(synth.write_spec(str(tmp_path / 's'), [text]), data={}, par={})
     assert r.Par[1]['Message'] == 'No parameters!!' and r.Par[1]['AbortedAfter'] == 0
+
+
+# ---- the review of 2026-11-21 (section 3, step R1) ------------------------------
+
+def test_xfntr_and_energy_scans_are_not_reflectivity(tmp_path):
+    """Measured for the review: every `fluo_p` scan (an hklscan with a '#V'
+    line) of the owner's XFNTR file was inferred as reflectivity. Now:
+    consecutive '#V' hklscans are one xfntr series, escans an energy
+    series, plain hklscans still reflectivity."""
+    v = '#V 1\n'
+    scans = [_scan(1, header=v), _scan(2, header=v), _scan(3, command='a2scan sh -1 1 oh -1 1 4 1'),
+             _scan(4, header=v), _scan(5), _scan(6),
+             _scan(7, command='escan 10 9.9 10.1 1 0 3 6 0.5'), _scan(8, command='escan 10 9.9 10.1 1 0 3 6 0.5')]
+    spec = synth.write_spec(str(tmp_path / 's'), scans)
+    r = specread(spec, data={}, par={})
+    got = [(g.kind, g.data_scans, g.aux) for g in series.infer(series.scan_info(r.Data, r.Par))]
+    assert got == [('xfntr', [1, 2, 4], [(3, 'align')]), ('reflectivity', [5, 6], []), ('energy', [7, 8], [])]
+
+
+def test_lined_and_plain_scans_together(tmp_path):
+    """A file whose later scans have '#U Series' lines and earlier ones not:
+    both kinds of series (before: `group(info) or infer(info)` dropped the
+    guessed ones); '#U SeriesMacro' reaches the series."""
+    scans = [_scan(1), _scan(2), _scan(3, sid='r9', i=1, n=2, macro='refl_run 0.02 0.5'),
+             _scan(4, sid='r9', i=2, n=2)]
+    spec = synth.write_spec(str(tmp_path / 's'), scans)
+    r = specread(spec, data={}, par={})
+    info = series.scan_info(r.Data, r.Par)
+    allof = series.all_series(info)
+    assert [(g.id, g.kind, g.data_scans, g.inferred) for g in allof] == [
+        ('inferred-1', 'reflectivity', [1, 2], True), ('r9', 'reflectivity', [3, 4], False)]
+    assert allof[1].macro == 'refl_run 0.02 0.5' and allof[1].status == 'complete'
+    assert series.all_series([]) == []

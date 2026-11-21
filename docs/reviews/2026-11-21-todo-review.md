@@ -1,5 +1,11 @@
 # Review of the to-do lists, 2026-11-21
 
+**Applied 2026-11-21** (owner: "move on to the review work"): section 1 in
+the docs; sections 2 and 3 as "Remaining work by area" in `TODO.md`;
+section 4 step R1 in `lss_core/series.py`. Next steps: R2 (series in the
+scan list), R3 (workbook ties), M1 (questions to the owner). Line numbers
+below refer to the docs before these changes.
+
 Asked by the owner (2026-11-21): what has been knocked off, what needs
 regrouping, what was forgotten, and a plan for scan macros and series built
 on a little new metadata. Sources: the docs, the 198 commits and

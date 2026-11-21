@@ -179,7 +179,7 @@ class Experiment:
         first_date = None
         if timing.time_format(self.scans[scan].columns) == 'old':
             info = sermod.scan_info(self._data, self._par)
-            groups = sermod.group(info) or sermod.infer(info)
+            groups = sermod.all_series(info)
             for g in groups:
                 members = set(g.scans.values()) | set(n for n, _ in g.aux)
                 if scan in members:

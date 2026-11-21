@@ -2,8 +2,8 @@
 
 Written 2026-11-16, when the owner supplied "the rest of the feature set".
 It orders everything in `FEATURE_REQUESTS.md` (R1–R6, D1–D16, F1–F48) into
-stages. Nothing here has been built. Implementation starts when the owner
-says so; until then the phase rule in `AGENTS.md` and `TODO.md` holds.
+stages. Implementation started on the owner's word (2026-11-17): Stages
+0–2 are done, Stages 3 and 6 are under way; `TODO.md` holds the status.
 
 ## What must stay true throughout
 
@@ -133,7 +133,7 @@ logic being out of the dialogs (Stage 2) and on the masks (Stage 3).
 Updated 2026-11-19 (documentation audit). Answered since: F26 (`Monc` noise
 not needed, D44; dark rate 50 Hz, D41); F23/F45 (IDL code received, pinhole
 GID built, D36, D40); F22 (requirements F22a; scoping later); P7 (kept);
-P13 (fixed); 9-ID-C (D17). Still open: the rows for F24/F41, F24 tests 5–6,
+P13 (fixed); 9-ID-C (D17); F22 (fitting, built 2026-11-21). Still open: the rows for F24/F41, F24 tests 5–6,
 F28/F29/F33–F36 sample files, F39/F34 syntax (proposal `handoff_out/05`),
 P5 and P6. Requests after F48 are placed as follows: F49, F50, F52, F54–F58
 (absorbers, foils, gain, per photon, preferences) built alongside Stages
@@ -146,17 +146,14 @@ assigned.)
 
 | Item | Question | Who |
 |---|---|---|
-| F26 | `Monc`'s own noise (bright steady repeated frames); subtract dark rate? | owner / a measurement |
 | F24, F41 | How do same-absorber scans enter W and Σ? | hand-off author |
 | F24 tests 5–6 | XModJointFit files | owner |
 | F28, F29, F33–F36 | Sample files and conventions | owner |
 | F39, F34 | Exact SPEC header syntax for "Scan i of N" and the `#V` flag | beamline |
-| F23, F45 | IDL code; which algorithms; overlap conventions | owner |
-| F22 | Where better fitting is needed, which models | owner |
-| P5, P6, P7, P13 | Questions in `PHYSICS_ISSUES.md` | owner |
-| 9-ID-C | Is that beamline path still needed? | owner |
+| P5, P6 | Questions in `PHYSICS_ISSUES.md` | owner |
 
 ## What is not in scope
 
-Fitting of structural models (xmodfit does that). Changes to SPEC macros
-(beamline side; the reader adapts to what SPEC writes).
+Fitting of structural models (xmodfit does that). Changes to SPEC macros:
+the project proposes them (beamline to-do in `TODO.md`, hand-off 05) and
+adapts to what SPEC writes; it does not make them.

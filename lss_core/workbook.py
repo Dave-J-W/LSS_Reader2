@@ -333,8 +333,7 @@ def scan_rows(data, par):
     from . import series
     info = series.scan_info(data, par)
     kinds, where = {}, {}
-    groups = series.group(info) if any(i.series for i in info) else []
-    for s in list(groups) + list(series.infer(info)):
+    for s in series.all_series(info):
         for pos, num in s.scans.items():
             kinds.setdefault(num, (s.kind, s.id, pos, 'data', s.status))
         for num, role in s.aux:

@@ -67,6 +67,7 @@ Each is also in `physics_notes.md` under its date.
 
 | Date | Change | Before → after | Who decided |
 |---|---|---|---|
+| 2026-11-21 | Series inference: `#V` hklscans → xfntr, `escan` → energy; lined and guessed series together; `SeriesMacro` attached | owner's XFNTR file: 153 `#V` scans in reflectivity series → 20 xfntr series; workbook Scans kinds; old-file "since series start" times of those scans from their own series | review of 2026-11-21 (R1), owner ("move on to the review work") |
 | 2026-11-21 | Burn trends: clock time by default; position out of the limit by default; ih scans without movement inferred as burn series | NX 14: limit 66.9 s (position, exposure) → 189.6 s (intensity, clock; position alone 68.9 s); NX 15: 10.6 s (position) → 55.7 s (width; position alone 9.3 s); `series.infer` on NX gains ('burn', [14]) and ('burn', [15]) | owner |
 | 2026-11-21 | Burn tests: Trends tab (new default view), monitor-normalised, measured time axis, four models by AICc, the 5 % time (P30 fixed there) | legacy REF burn: τ of raw counts vs count time × list row → Trends: per Monc, exposure time; synthetic τ 400 s unchanged; NX 14/15 GID: one quantity, exponential on intensity only → intensity, position, FWHM with verdicts (NX 15: intensity stable, position +0.008 Å⁻¹, width +19 %). Legacy tab numbers unchanged (`test_burn.py`) | owner (F22a 3–4) |
 | 2026-11-21 | Workbook: Trends sheet (7 sheets), Data up to 8 values | older workbooks gain the sheet and columns on opening, rows kept | owner (burn results in the workbook) |

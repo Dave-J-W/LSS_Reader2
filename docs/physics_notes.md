@@ -3287,3 +3287,35 @@ alone ≥ 69 s); scan 15 ≥ 56 s (width; position alone ≥ 9.3 s). Hand-off
 for testing and extension: `docs/handoff_out/07-burn-trends.md`. More burn
 data: to ask the owner later (TODO). Verified: tests.
 
+### 2026-11-21 — The to-do review applied; series inference fixed (R1)
+
+**Owner:** "Record your suggestions as to-dos (add two sentences
+description for each). Then let's move on to the review work."
+
+**Done.** The ten burn-trend suggestions are to-dos with two-sentence
+descriptions (TODO.md, Stage 2 list, under hand-off 07). From the review
+(`docs/reviews/2026-11-21-todo-review.md`): section 1's corrections
+applied to TODO, SCOPE, FEATURE_REQUESTS and PHYSICS_ISSUES (the stitching
+bias reopened; P14, P15, P31 point to P36/P37; P16's factor part marked
+fixed; the `fluo_p` `#A`/gain question answered); section 2's regrouping
+is the new "Remaining work by area" at the top of TODO.md, with section 3's
+forgotten items in it (marked **new**). Section 4, step R1, built:
+
+- `series.infer`: consecutive hklscans with a `#V` line are an **xfntr**
+  series (alignment scans between them attached), `escan`s an **energy**
+  series, `ascan ih` without movement a **burn** series; plain hklscans
+  stay reflectivity.
+- `series.all_series`: series from `#U Series` lines plus guessed series
+  for the scans without them (before, `group(info) or infer(info)` gave a
+  file with any series line no guessed series at all); used by
+  `Experiment.point_times` and the workbook's Scans sheet.
+- `#U SeriesMacro` now reaches `Series.macro`.
+
+**Measured** on the owner's XFNTR file (run; private, counts only): before,
+all 153 `#V` hklscans fell into reflectivity series; after, they form 20
+xfntr series, the 145 Pilatus hklscans 22 reflectivity series, and scans
+19 and 20 two burn series. Effect on outputs: the workbook's Scans kinds
+and, for old files, the "time since the series started" of these scans
+(now from their own series' first #D). Verified: `test_series.py` (new
+synthetic cases), the existing NX expectations.
+

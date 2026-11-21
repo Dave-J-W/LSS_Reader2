@@ -8,10 +8,113 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 0 Safety net (error handler, durable log, messages pane) | **done** 2026-11-17 |
 | 1 Repair what is plainly broken | **done** 2026-11-17 |
 | 2 Readers and reduction out of the window; caching; scripting | **done** 2026-11-18 (quick 337, slow 542, sweep 67 passed) |
-| 3 Saved state per SPEC file; live refresh | **started** 2026-11-19: series syntax proposed (`handoff_out/05`), reader parses it and SPEC's abort comment, guesses series in older files |
+| 3 Saved state per SPEC file; live refresh | **started** 2026-11-19: series syntax proposed (`handoff_out/05`), reader parses it and SPEC's abort comment, guesses series in older files; per-SPEC workbook with Save (F66, 2026-11-21) |
 | 4 Detectors and inputs | not started |
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
-| 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); fitting, beam size, GUI not started |
+| 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); **fitting done** 2026-11-21 (peak module D52, MCA lines, scan shapes, burn trends D54); beam size (half-cut fit built, no data), GUI not started |
+
+## Remaining work by area (regrouped 2026-11-21, review `docs/reviews/2026-11-21-todo-review.md`)
+
+The stage lists further down keep the history and the detail; this is the
+working list, one table per area, each row with its source. Rows marked
+**new** were found forgotten by the review (its section 3).
+
+**A. GID (pinhole patching)**
+
+| Item | Source |
+|---|---|
+| Final defaults from many data sets (distance, response, joins) | hand-off 06; input 19 |
+| Scan join against everything joined so far (a chain of scans gets no factor now; remedy known) — **new** | P41 |
+| Stray light, streak mask, background frames | P40; input 17 |
+| Exact angles for cut axes, display, distance fit | P38 remainder |
+| Legacy three-level map (synthetic three-level set) | P36, P37 (= P14, P15, P31) |
+| Second 200K module | F63, D43; input 3 |
+| ΣN/ΣW vs IDL error weights | input 18 |
+| Multiple exposures, cosmic rays | F40 |
+| GID scan designer — **new** (only in SCOPE's text) | F32 |
+| GISAXS one column off; GISAXS and background-subtracted GID scriptable | P35 |
+| sh scans paired with GID levels (sample height drifts by µm in 30–60 min): read a nearby sh scan per level and report the height change — **new** | physics_notes 2026-11-19 |
+
+**B. Reflectivity and export (Stage 5)**
+
+| Item | Source |
+|---|---|
+| Two-file export, covariance sidecar; Budget then the default | F24, F24a, F24c; P4; input 5 |
+| Stitch-factor bias, measured on real overlaps, then remedied | P1, D13 |
+| Same-absorber scans share a factor: send the question to the hand-off author — **new** | F41 |
+| Qz offset from sh-scan images — **new** | F42 |
+| Per-second option — **new** | F20 |
+| ORSO, HDF5 export; steps and parameters recorded — **new** (F30) | F25, F30, R7 |
+| Synthetic K = 3–5 generator; hand-off tests 2–6 | hand-off §5; input 4 |
+| Tell users which old reductions to redo (non-zero absorbers before P24; bu files at 6.21/7.51/9.9 keV before F49): a release note and a manual line — **new** | TODO Stage 2 list; P24, F49 |
+
+**C. Fluorescence, MCA, EXAFS**
+
+| Item | Source |
+|---|---|
+| Per-point MCA files of scans without `#V` (October `ascan`): the owner said yes — **new** as a work item | input 14; physics_notes 2026-11-19 |
+| EXAFS output (energy axis, line fit per point, `fit_series`) — **new** as a work item | F36 |
+| Edge estimator (backlog) | F65 steps 3, 4, 6 |
+| Pilatus and Vortex in one scan | F53 |
+| Line markers, escape peaks — **new** (only in SCOPE's text) | F47, I14 |
+| Fluorescence burns (XFNTR 19, 20) | hand-off 07 |
+
+**D. Monitor, absorbers, normalisation**
+
+| Item | Source |
+|---|---|
+| Monc high at narrow S1 | P29; input 9 |
+| Foil composition (6–7 keV overlaps); Cu at 30 keV | P28, F49; input 8 |
+| Dark offset in ordinary normalisation (D41 covers per photon only) — **new** | P21 |
+| Frame object: normalise once at load | owner 2026-11-17 |
+| End-to-end photons-in/photons-out for GID, GISAXS, cuts, MCA | Stage 2 list |
+
+**E. Scan series, live refresh, time**
+
+| Item | Source |
+|---|---|
+| ~~Fix `series.infer`: `#V` hklscans as xfntr, `escan` as energy; series lines and inference together; `SeriesMacro` attached~~ **done 2026-11-21** (`series.all_series`) | review §3, §4 R1 |
+| Series in the scan list; select a series as one action | F39; Stage 3; review R2 |
+| Contextual reduction from `kind` (offer, not run); the burn test for burn scans | F60; review R4 |
+| Live refresh by polling, driven by series status | F1–F5 |
+| Time axis in MCA, Ref/GID lists | D46, D50, F37 |
+| Owner: hand-off 05's four questions with the review's minimum metadata | input 1; review §4 M1 |
+
+**F. Per-SPEC state and saving**
+
+| Item | Source |
+|---|---|
+| Workbook results tied to series id and scans used; stale flag when a series gains scans | F66; review R3 |
+| Reopen a SPEC file with its workbook's settings | F66 |
+| The workbook and D1–D3 (config beside the SPEC file, read-only second instance, yellow light): record how they relate — **new** | D1–D3, D53 |
+| Dropped points as masks, undo | F16, D2 |
+| Disk-cache settings dialog with the per-SPEC state — **new** in the Stage 3 list | Stage 2 list |
+
+**G. Fitting, burn tests, beam**
+
+| Item | Source |
+|---|---|
+| Burn trends: tests and extensions (ten items) | hand-off 07, Stage 2 list |
+| Half-cut fit for the beam profile on real data | F43; input 16 |
+| Remaining characterisation tests: GISAXS, g_l2/g_l3, absorber-ratio fits, legacy peak-fit dialog, 2D plot tab | Carried-over list |
+
+**H. Detectors and inputs (Stage 4)**: 1M (F17–F19, F38, D11), 100K/200K
+models (F33), ME7 tab (F34, F35), new-format SPEC (F28), HDF5 (F29). All
+wait on input 3.
+
+**I. GUI, speed, packaging**: GUI reorganisation (R4) with redraw in place
+and diffuse cuts (F59); slow-file-system timing; `timings.md` regenerated;
+build workflow and macOS signing (input 12); sample-data hosting.
+
+**J. Beamline / SPEC macros**: see "Beamline to-do" at the end (series
+lines, `Tstart`/`Tend`, `#V` flag, Pilatus + Vortex header, gas conditions
+and dark rate, photons-in, half-cuts and an sh scan beside each GID level,
+`#A` always written; `getandsave_mca` `#A`/gain low priority).
+
+**K. Questions for the owner in one batch — new**: P10–P12, P19, P35
+("may be intended" behaviours never put to the owner), P21 (dark offset),
+the open assumptions in `OUTPUT_DECISIONS.md`, and F41 (to the hand-off
+author, not the owner).
 
 ## Inputs needed from the owner (consolidated 2026-11-19)
 
@@ -26,7 +129,7 @@ stated assumption until the answer arrives.
 | 4 | `lss_reference.py`, `covariance_core.py` (XModJointFit) | Stage 5 hand-off tests 5–6 | independent implementation from the hand-off text |
 | 5 | ~~`Monc`'s own noise~~: not needed (owner, 2026-11-19, D44). Which monitor model the Budget uses by default when it becomes the default: Gaussian 0.04 % (D22, now) or Student t (D26)? | Stage 5: Budget as default | Gaussian stays the Budget's default |
 | 6 | ~~IDL `IMG_COO_CONV`/`LIMG_COO_CONV`, `SCAN_JOIN`, `SPEC_FILE_INFO`~~ received 2026-11-19 (`docs/reference_code/idl/`); still wanted: IDL output for NX 11+12 | checking the pinhole map against IDL numbers | pinhole checked on synthetic data and by reading |
-| 7 | IDL review §8: column response from data or geometry; per-column patch replacing or beside the 3-column one; PD_MERGE | GID defaults | pinhole default (D40), response fitted |
+| 7 | ~~IDL review §8: column response from data or geometry; per-column patch replacing or beside the 3-column one~~: both built as options (`fit`, `physical`, 2026-11-20); still open: PD_MERGE | GID defaults | pinhole default (D40), response fitted |
 | 8 | Reflectivity series with overlaps at 6–7 keV; foil tolerance and alloy; Cu thickness at 30 keV | P28 below 10 keV; F49 at 30 keV | nominal Al below 10 keV; no factor at 30 keV |
 | 9 | P29 mechanism (Monc high at narrow S1) | whether the 3 % Monc/Monp guard is right | guard as built |
 | 10 | Confirm or change the open assumptions in `OUTPUT_DECISIONS.md` (3 % tolerance; per-photon gas and median rate; GID min frames, β step) | — | as built |
@@ -37,8 +140,8 @@ stated assumption until the answer arrives.
 | 15 | ~~P39~~: decided 2026-11-19 (D51), exact window to the S4 ramps' inner edges; IDL's as an option | — | — |
 | 16 | Half-cut sh scans for the beam's vertical profile (F43; owner, 2026-11-19) | a measured beam for response 'beam' and for P39 | the profile fitted from the GID data |
 | 17 | GID frames with little signal (mostly background) at both arm heights (P40; owner offered, 2026-11-19) | stray light and beam-path background in GID maps | P40 open |
-| 19 | ~~S4–detector distance (P43)~~: calibrate from single frames (owner, 2026-11-21): built, worksheet Fit; automatic calibration and the final GID defaults: large-data survey, `docs/handoff_out/06-gid-method-comparison.md` | — | header value until Fit |
 | 18 | GID overlap pixels: ΣN/ΣW (built) vs IDL's error-weighted mean (the owner chose "as the IDL code does", 2026-11-18; the error weights are biased at low counts, IDL review) | GID map values | ΣN/ΣW, to confirm |
+| 19 | ~~S4–detector distance (P43)~~: calibrate from single frames (owner, 2026-11-21): built (5fbebf8), worksheet Fit; automatic calibration and the final GID defaults: large-data survey, `docs/handoff_out/06-gid-method-comparison.md` | — | header value until Fit |
 
 ### Stage 3 work list
 - [x] Proposal for the "scan i of N" line (`docs/handoff_out/05-scan-series-syntax.md`).
@@ -93,8 +196,8 @@ stated assumption until the answer arrives.
       scripts). Off by default.
 - [x] F52 in the Pilatus paths (cuts, background images, GID data, frames
       at one Q_z).
-- [ ] Gains the reader cannot interpret: malformed lines (D33), treated as
-      unknown; nothing more to sort out unless the owner wants them read
+- [x] Gains the reader cannot interpret: malformed lines (D33), treated as
+      unknown; nothing to do (review 2026-11-21) unless the owner wants them read
       (`reports/monitor_gains.md`).
 - [x] F54 core: photons/s from the monitor (`lss_core/flux.py`, xray_fluxor route D).
 - [x] F54 in the window: "/ photon" option (MonC, dark 50 Hz when not recorded,
@@ -120,7 +223,8 @@ stated assumption until the answer arrives.
 - [x] An unreadable `#A` line (one real case: an empty "#A Absorber " in
       bu/2026oct/20261019) was read as 63; now unknown: no factor, a message,
       "Abs=?", frames patched as usual (D42, 2026-11-19).
-- [ ] P28: nominal absorber steps 7–11 % off measured (NX school). Owner:
+- [x] P28: nominal absorber steps 7–11 % off measured (NX school); calibrated
+      foils built (F56); the 6–7 keV part stays open (input 8). Owner:
       reflectivity sets with overlapping joins from several days, to test
       day-to-day variation and calibrate per foil (`tests/tools/absorber_steps.py`);
       foil tolerance (flat µm or %) and alloy, if known.
@@ -159,7 +263,8 @@ stated assumption until the answer arrives.
 - [x] Exact pinhole geometry per pixel (P38; owner 2026-11-19, "is your trig up
       to snuff?"): `pinhole.pixel_angles` (IMG_COO_CONV), GID patch binned in (2θ, β).
 - [x] Beam profile: response 'beam' built as an option (2026-11-19); default 'fit'.
-- [ ] The upper-level difference (pinhole vs legacy) on a private pair: the three central
+- [x] The upper-level difference (pinhole vs legacy) on a private pair (done 2026-11-20:
+      per-level illumination and stray light; continues as P40 and hand-off 06): the three central
       columns reproduce legacy; adding the outer columns changes the upper level relative
       to the lower; not area, polarisation or the response model. Next: maps from column
       groups (inner, middle, outer) per level, and the β-overlap cells of the Qz join.
@@ -192,16 +297,13 @@ stated assumption until the answer arrives.
 - [x] F62 flexible overlaps between Qz levels, pinhole mode (2026-11-19).
 - [x] Distances settled (owner, 2026-11-18): 551 sample→detector, 271
       S4→detector, 556 = g_l3 (sample → output-arm rotation centre).
-- [ ] Owner (IDL review §8): the missing routines `SCAN_PD_READ`,
-      `SCAN_PD_LCOO`, `IMG_JOIN`, `PD_GID_READ`, `PD_PIN_RANGE` (+ FILDAT
-      definitions) and IDL output for NX scans 11+12; is `S7D_Dist` the
-      S4-to-detector distance; are GID scans routinely pinhole mode (switch
-      on from the S4 gap?); per-column mode replacing or beside the 3-column
-      patch; column response from the data or geometric; overlap arithmetic;
-      β per column; one absorber setting for GID; what PD_MERGE's pinhole
-      data are.
-- [ ] Owner: resend the scan-136 GID frames as a zip (the image uploads
-      arrived as float16 zeros).
+- [ ] Owner (IDL review §8), what remains (review 2026-11-21): IDL output for
+      NX scans 11+12; PD_MERGE's pinhole data; overlap arithmetic (input 18);
+      one absorber setting per GID set. Settled: routines received (36c0432);
+      `S7D_Dist` is S4–detector, 271 mm; pinhole the default (D40), legacy
+      beside it; column response from data (`fit`) and geometry (`physical`)
+      both built.
+- [x] Owner: resend the scan-136 GID frames as a zip: received 2026-11-18.
 - [x] Burn tests and peak fits scriptable (2026-11-21): `Experiment.burn`,
       `lss_core.trends`, `lss_core.peaks`; P30 fixed in the Trends tab.
 - [x] Owner's answers on burn tests (2026-11-21): shutter closes, wall time
@@ -211,7 +313,46 @@ stated assumption until the answer arrives.
       later"): higher flux, reflectivity burns, the private file's burn scans
       (gid 23, 35, 51, 211, 275, 277, 278; xfntr 19, 20) with their frames.
 - [ ] Burn trends: testing and extension by another agent
-      (`docs/handoff_out/07-burn-trends.md`).
+      (`docs/handoff_out/07-burn-trends.md`). Items (2026-11-21), tests first:
+  - [ ] **Coverage for curved models.** The 95 % confident time is checked only
+        for a linear truth (5.5 % misses); repeat the check with exponential and
+        double-exponential truths, all four models fitted. If the miss rate is far
+        from 5 %, compare a parametric bootstrap or a profile likelihood with the
+        covariance draws.
+  - [ ] **False alarms of the double exponential.** On constant data, count how
+        often the double exponential wins by AICc and drags the 5 % time down. The
+        verdict flags "a change a line misses"; this should be rare, and the rate
+        belongs in C31.
+  - [ ] **Estimators against known truths.** Synthetic pinhole-like frames with a
+        peak that broadens at constant area, one that shifts, one that fades under a
+        steady shoulder, and a rising background. Record which of template, moments
+        and fit reads each truth, with its bias and scatter.
+  - [ ] **Noise floor of each estimator.** The legacy moments use three points at
+        each end for the baseline and degrade faster than the template as counts
+        fall. Find the counts per frame where each becomes unusable, so the
+        default can warn.
+  - [ ] **Burn dialog in the crash sweep.** The sweep does not drive the burn
+        dialog's own controls (models, estimator, errors, time, limit, Save). Add a
+        sweep state with a burn scan selected and the dialog open, then run
+        `pytest -m sweep`.
+  - [ ] **Exponential to a plateau.** c + a·e^(kt) (three parameters) is a common
+        physical form for damage that saturates and is missing from the four
+        models. Adding it changes every comparison's criteria, so it needs an
+        OUTPUT_DECISIONS row with before/after on NX.
+  - [ ] **Dose axis.** Flux ∝ Monc × absfac^n, so Σ Monc·absfac^n·Seconds would
+        compare burns at different absorbers and join consecutive scans on one
+        spot. Test whether NX 14's and 15's position drifts (3.3 × apart at 4.1 ×
+        the flux) fall on one curve against dose.
+  - [ ] **Fluorescence burns.** XFNTR scans 19 and 20 of the private file are
+        `ascan ih` without movement, with MCA spectra. Feed the line intensity per
+        spectrum (`peaks.fit_series`, as "Fit lines") through `trends.compare`.
+  - [ ] **Row range for GID burns.** The profiles now sum all detector rows; the
+        Bragg rod's β range may give a cleaner peak. Expose `rows=` as a control
+        in the dialog with a tooltip.
+  - [ ] **Offer the burn test automatically (F60).** When a selected scan is a
+        burn scan (`series.is_burn`), the window could offer or open the burn test.
+        This belongs with the contextual-reduction work and the GUI
+        reorganisation (R4).
 - [x] Script pane (F48, first part): opening a SPEC file and exporting a
       patched reflectivity write the equivalent `lss_core` Python, which
       reproduces the exported files byte for byte (tested), including merges,
@@ -279,10 +420,11 @@ reruns the quick, real-data and export-fixture checks, and commits.
 - [x] Sweep made cheaper (one selection signal per action), then made
       stricter (fresh window per control).
 - [x] `pytest -m slow` rerun in full: all pass, expected failures as marked.
-- [ ] Characterisation tests still missing for: GID multi-scan joining
-      (`imagehjoin`, `imagevjoin`), GISAXS, line/area cuts
-      through the GUI, burn tests, g_l2/g_l3 and absorber-ratio fits,
-      MCA peak fit / sum / merge, peak-fit dialog, 2D plot tab. (All fitting
+- [ ] Characterisation tests still missing for: GISAXS, g_l2/g_l3 and
+      absorber-ratio fits, the legacy peak-fit dialog, 2D plot tab. (Done
+      since: GID multi-scan joining `test_gid_scan_join.py`, `test_gid_script.py`;
+      MCA merge `test_mca_merge.py`; cuts, burn tests, MCA fits: the 2026-11-21
+      tests.) (All fitting
       features stay, D7, so each needs tests. Bruker is defunct: none.)
 - [x] NX school GID scan 11 frozen as a reference; low + high Q_z patch
       pinned as an expected failure (interp2d). The shipped
@@ -300,8 +442,9 @@ reruns the quick, real-data and export-fixture checks, and commits.
       known τ; real GID burn), MCA peak fit, line cuts on real frames and
       through a real GID map.
 - [ ] Benchmarks still missing (R5): GISAXS, GIOXS, calibration fits
-      (g_l2, g_l3, absorber ratio), GID and cut export bytes, synthetic GID
-      with known truth, a real reflectivity burn scan (none in the samples).
+      (g_l2, g_l3, absorber ratio), cut export bytes, a real reflectivity burn
+      scan (none in the samples); synthetic GID with known truth: partly
+      (`test_pinhole.py`). (GID export bytes: `test_gid_script.py`.)
 - [ ] Run each reduction path on Pilatus 1M frames by calling the code
       directly, to measure what the module gaps do (D11).
 - [ ] Synthetic K = 3–5 scan generator with known factors and a non-one-hot
@@ -316,8 +459,6 @@ reruns the quick, real-data and export-fixture checks, and commits.
 - [ ] Regenerate `docs/timings.md` on an idle machine (the committed table
       predates the file-count columns).
 - [x] Scoping document written: `SCOPE.md`.
-- [ ] (superseded) Write the scoping document once the feature list is complete:
-      target architecture, order of work, what each request needs.
 
 ## Waiting on the owner
 
@@ -333,9 +474,10 @@ reruns the quick, real-data and export-fixture checks, and commits.
       `covariance_core.py` from XModJointFit (unreleased, not public) for
       hand-off acceptance tests 5 and 6. Until then, work around it with an
       independent implementation of hand-off §3 written from the text.
-- [x] Stitch-factor interpolation bias: experiments ensure shared Q_z
+- [ ] Stitch-factor interpolation bias: experiments ensure shared Q_z
       points for now (D13). **Do not forget:** it is to be remedied later
-      in the corrected chain.
+      in the corrected chain (Stage 5; reopened by the review of 2026-11-21:
+      a ticked "do not forget" is how it gets forgotten).
 - [ ] **Remind the owner:** a full two-module 200K frame (the 200K data received are one module, 2026-11-19); a reflectivity
       burn scan; a public low + high Q_z GID pair (private pairs received 2026-11-19); the new fluorescence &
       GID SPEC file (F28); an HDF5/bluesky file (F29); ME7 data notes (F35).
@@ -404,7 +546,9 @@ them; the fix belongs in the macros.
 - Note (owner, 2026-11-17): `getandsave_mca` is a test macro, not the normal
   XFNTR scan (`fluo_p`, an MCAscanpt hklscan with a `#V` line); the two
   items below matter only for it. Whether `fluo_p` scans write `#A` and
-  `#M Monc Gain`: to check on the next new file.
+  `#M Monc Gain`: **yes** (measured for the review of 2026-11-21: all 153
+  `#V` hklscans of the private XFNTR file have both; only the 7
+  `getandsave_mca` scans have neither), so these two are low priority.
 - [ ] **`getandsave_mca` writes no absorber setting** (`#A`): checked on
       every sample file; the MCA file header has none either. The reader
       takes the last `#A` above the scan (D24), which cannot see a change

@@ -78,6 +78,7 @@ class ScanInfo:
     series_end: dict = None            # a '#C Series ... end' line in this scan's block
     detector: str = ''
     qz: tuple = None                   # (first, last) Qz of an L scan
+    macro: str = ''                    # '#U SeriesMacro' text
 
     @property
     def aborted(self):
@@ -171,6 +172,8 @@ def group(info, growing=False):
             s.aux.append((x.num, role))
         if f.get('macro'):
             s.macro = f['macro']
+        if x.macro and not s.macro:              # '#U SeriesMacro' (review 2026-11-21: was never attached)
+            s.macro = x.macro
     last = None
     for x in reversed(info):
         if x.series and 'id' in x.series:
@@ -186,6 +189,17 @@ def group(info, growing=False):
 def _is_l_scan(x):
     w = x.command.split()
     return bool(w) and w[0] == 'hklscan' and x.qz is not None and x.points > 1
+
+
+def _is_xfntr(x):
+    """An XFNTR scan: an L scan with a fluorescence spectrum per point
+    (the '#V' line, ``fluo_p``; detector 'Vortex')."""
+    return _is_l_scan(x) and x.detector == 'Vortex'
+
+
+def _is_energy(x):
+    w = x.command.split()
+    return bool(w) and w[0] == 'escan'
 
 
 def is_burn(command):
@@ -204,8 +218,12 @@ def infer(info, growing=False):
     """Series guessed from files without '#U Series' lines (marked
     ``inferred``), for the window's list until SPEC writes the line:
 
-    - reflectivity: consecutive L scans (hklscan, more than one point)
-      whose Qz ranges move up and overlap or touch the previous one;
+    - xfntr: consecutive L scans with a fluorescence spectrum per point
+      (``#V``, ``fluo_p``): repeats of one run (review 2026-11-21: they
+      were inferred as reflectivity);
+    - energy: consecutive ``escan`` scans (EXAFS, edges);
+    - reflectivity: consecutive L scans (hklscan, more than one point, no
+      ``#V``) whose Qz ranges move up and overlap or touch the previous one;
       alignment scans in between (ascan/a2scan/dscan of sh, oh, ih, chi,
       th over a range; a fixed position is not one) are attached as 'align';
     - gid: consecutive ``ascan dth`` scans with images (one per Qz level);
@@ -234,7 +252,15 @@ def infer(info, growing=False):
     prev_q = None
     for x in info:
         w = x.command.split()
-        if _is_l_scan(x):
+        if _is_xfntr(x) or _is_energy(x):
+            kind = 'xfntr' if _is_xfntr(x) else 'energy'
+            if cur is not None and cur.kind == kind:
+                cur.scans[len(cur.scans) + 1] = x.num
+            else:
+                close()
+                cur = Series('inferred-%d' % x.num, kind, None, {1: x.num}, inferred=True)
+            prev_q = None
+        elif _is_l_scan(x):
             lo, hi = min(x.qz), max(x.qz)
             if cur is not None and cur.kind == 'reflectivity' and prev_q is not None and prev_q[0] < lo <= prev_q[1] + 1e-9:
                 cur.scans[len(cur.scans) + 1] = x.num
@@ -275,6 +301,19 @@ def infer(info, growing=False):
     return series
 
 
+def all_series(info, growing=False):
+    """Every series of a file: those its '#U Series' lines give
+    (``group``), and those guessed (``infer``) for the scans without such a
+    line, in file order of their first scan. (Before 2026-11-21 callers
+    took ``group(info) or infer(info)``, so a file whose later scans have
+    series lines got no inferred series for its earlier ones.)"""
+    lined = group(info, growing)
+    plain = [x for x in info if not (x.series and 'id' in x.series)]
+    guessed = infer(plain, growing and bool(info) and info[-1] in plain)
+    first = lambda s: min(list(s.scans.values()) + [a for a, _ in s.aux]) if (s.scans or s.aux) else 0
+    return sorted(lined + guessed, key=first)
+
+
 def scan_info(data, par):
     """ScanInfo for every scan of a specread result (Data, Par), file order."""
     out = []
@@ -289,5 +328,5 @@ def scan_info(data, par):
         if 'L' in d and d['L'] is not None and len(d['L']):
             qz = (float(d['L'][0]), float(d['L'][-1]))
         out.append(ScanInfo(num, cmd, points, planned_points(cmd), p.get('AbortedAfter'), p.get('Series'),
-                            p.get('SeriesEnd'), p.get('Detector', ''), qz))
+                            p.get('SeriesEnd'), p.get('Detector', ''), qz, p.get('SeriesMacro', '') or ''))
     return out
