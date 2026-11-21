@@ -5279,7 +5279,7 @@ class MainWindow (QMainWindow):
             form.addRow(lab,w)
         form.addRow(fix)
         lay.addLayout(form)
-        res=QLabel('not fitted yet',d); res.setObjectName('cutFitResultLabel'); res.setWordWrap(True)
+        res=QLabel(self.cutFitSummary(),d); res.setObjectName('cutFitResultLabel'); res.setWordWrap(True)
         from PyQt5.QtCore import Qt as QtC
         res.setTextInteractionFlags(QtC.TextSelectableByMouse)
         res.setToolTip('The last fit of every cut; also in the Messages pane.')

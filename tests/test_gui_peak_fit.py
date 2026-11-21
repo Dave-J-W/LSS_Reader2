@@ -68,6 +68,15 @@ def test_fit_options_dialog_changes_the_fit(frame, qapp, recorder, tmp_path, mon
     assert len(rows) == 1 and 'lorentzian' in rows[0]
 
 
+def test_options_opened_after_a_fit_show_it(frame, qapp, recorder):
+    _hcut(frame, qapp)
+    frame.cutFitPushButton.click()
+    frame.cutFitOptionsPushButton.click()
+    from PyQt5.QtWidgets import QLabel
+    assert 'centre' in frame.cutFitDialog.findChild(QLabel, 'cutFitResultLabel').text()
+    assert recorder.exceptions == []
+
+
 def test_fit_without_a_cut_says_so(window, qapp, recorder):
     window.cutData = {}
     window.cutFitPushButton.click()
