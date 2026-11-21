@@ -2968,7 +2968,7 @@ class MainWindow (QMainWindow):
     # ---- burn tests: trends over time (owner, 2026-11-21; F22a 3-4, P30) ----
 
     def burnOptions(self):
-        o=dict(models=list(trendmod.MODELS),estimator='template',time='exposure',threshold=5.0,auto_peak=True,
+        o=dict(models=list(trendmod.MODELS),estimator='template',time='clock',threshold=5.0,auto_peak=True,position_limit=False,
                errors='auto')
         o.update({k:v for k,v in (self.prefs.get('burn') or {}).items() if k in o})
         return o
@@ -3017,12 +3017,12 @@ class MainWindow (QMainWindow):
         est.currentIndexChanged.connect(self.burnOptionsChanged)
         tim=QComboBox(page)
         tim.setObjectName('burnTimeComboBox')
-        tim.addItems(['exposure','clock'])
+        tim.addItems(['clock','exposure'])
         tim.setCurrentText(o['time'])
         tim.setToolTip('Time axis, from the start of the first frame\'s exposure, at the middle of each frame. '
-                       'exposure (default): the counting time accumulated (the spot was certainly in the beam). '
-                       'clock: measured start times (Tstart, or Epoch steps in older files), which include the '
-                       'overhead between frames.')
+                       'clock (default; owner: the shutter closes between exposures, wall time is better): measured '
+                       'start times (Tstart, or Epoch steps in older files); a scan without them falls back to '
+                       'exposure and says so. exposure: the counting time accumulated.')
         tim.currentIndexChanged.connect(self.burnOptionsChanged)
         err=QComboBox(page)
         err.setObjectName('burnErrorsComboBox')
@@ -3043,6 +3043,13 @@ class MainWindow (QMainWindow):
                        'position: by this fraction of the peak\'s FWHM). Given as a 95 % confident lower bound '
                        '(parameters drawn from the fit\'s covariance), from the best model that can change.')
         thr.valueChanged.connect(self.burnOptionsChanged)
+        poslim=QCheckBox('Position in limit',page)
+        poslim.setObjectName('burnPositionLimitCheckBox')
+        poslim.setChecked(bool(o['position_limit']))
+        poslim.setToolTip('GID: let the position\'s change (in % of the FWHM) set the limit too. Off (default): the '
+                          'limit is the shortest 5 % time of intensity and width; whether a position change matters '
+                          'is your judgment (owner, 2026-11-21), so it is shown but not counted.')
+        poslim.toggled.connect(self.burnOptionsChanged)
         auto=QCheckBox('Auto peak',page)
         auto.setObjectName('burnAutoPeakCheckBox')
         auto.setChecked(bool(o['auto_peak']))
@@ -3059,7 +3066,7 @@ class MainWindow (QMainWindow):
                         'parameters; the change time) into this SPEC file\'s workbook (Data and Trends sheets).')
         save.clicked.connect(self.saveBurnToWorkbook)
         for w in (QLabel('Estimator',page),est,QLabel('Errors',page),err,QLabel('Time',page),tim,QLabel('Change',page),
-                  thr,auto,run,save):
+                  thr,poslim,auto,run,save):
             row.addWidget(w)
         row.addStretch(1)
         lay.addLayout(row)
@@ -3078,6 +3085,7 @@ class MainWindow (QMainWindow):
         u.gidComboBox.activated.connect(lambda i: i and tabs.setCurrentIndex(1))
         u.burnTabWidget,u.burnEstimatorComboBox,u.burnTimeComboBox,u.burnErrorsComboBox=tabs,est,tim,err
         u.burnThresholdSpinBox,u.burnAutoPeakCheckBox,u.burnAnalysePushButton=thr,auto,run
+        u.burnPositionLimitCheckBox=poslim
         u.burnSavePushButton,u.burnTrendPlotWidget,u.burnResultLabel=save,canvas,res
         self.burnResult=None
 
@@ -3086,7 +3094,8 @@ class MainWindow (QMainWindow):
         o=dict(models=[m for m,b in u.burnModelBoxes.items() if b.isChecked()],
                estimator=str(u.burnEstimatorComboBox.currentText()),time=str(u.burnTimeComboBox.currentText()),
                errors=str(u.burnErrorsComboBox.currentText()),
-               threshold=float(u.burnThresholdSpinBox.value()),auto_peak=bool(u.burnAutoPeakCheckBox.isChecked()))
+               threshold=float(u.burnThresholdSpinBox.value()),auto_peak=bool(u.burnAutoPeakCheckBox.isChecked()),
+               position_limit=bool(u.burnPositionLimitCheckBox.isChecked()))
         self.setPreference('burn',o)
         self.burnTrends()
 
@@ -3106,6 +3115,8 @@ class MainWindow (QMainWindow):
         scan=int(self.pilScanNum[self.selectedPilFramesNums[0]])
         kw=dict(points=[int(self.pilFrameNum[i]) for i in self.selectedPilFramesNums],time=o['time'],
                 models=tuple(o['models']),threshold=o['threshold']/100.0,estimator=o['estimator'])
+        if o['position_limit']:
+            kw['limit']=('intensity','fwhm','centre')
         if o['errors']!='auto':
             kw['trend_errors']={'counting':'given'}.get(o['errors'],o['errors'])
         if o['estimator']=='fit':
@@ -3155,7 +3166,7 @@ class MainWindow (QMainWindow):
         u.burnResultLabel.setToolTip(self.burnLongText(res))
         args=dict(kw)
         args.pop('models') if tuple(args.get('models',()))==trendmod.MODELS else None
-        for k,v in (('time','exposure'),('threshold',0.05),('estimator','template'),('slit',(21,11)),
+        for k,v in (('time','clock'),('threshold',0.05),('estimator','template'),('slit',(21,11)),
                     ('bg_offset',0.5),('direction','H')):
             if args.get(k)==v:
                 args.pop(k)

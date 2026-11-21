@@ -3269,3 +3269,21 @@ mean FWHM, the scale its 5 % change is judged on; dashed lines at ± the
 threshold. Tested: `test_gui_burn_trends.py` (three panels, right-axis
 labels, summary text beside, none in the title).
 
+**Owner's answers (same day):** "Shutter does close between exposures by
+default; wall time is better. Position change judgment is up to the user.
+Most burn scans are an ih motor scan with no movement, that is the
+standard for now, for inferring what type of data it is. Ask later for
+more burn data, for now write the handoff for another agent to test and
+extend what you just built."
+
+**Done:** clock (wall) time is the default axis (a scan without per-point
+times falls back to exposure and records which axis was used); the
+position is still drawn with its %-of-FWHM axis but sets the limit only
+when "Position in limit" is ticked (`Experiment.burn(limit=)`); an `ascan
+ih` without movement (≥ 3 points) is inferred as a burn series
+(`series.is_burn`; the NX file gains burn series 14 and 15). New NX
+numbers (clock, template): scan 14 limit ≥ 190 s (intensity; position
+alone ≥ 69 s); scan 15 ≥ 56 s (width; position alone ≥ 9.3 s). Hand-off
+for testing and extension: `docs/handoff_out/07-burn-trends.md`. More burn
+data: to ask the owner later (TODO). Verified: tests.
+

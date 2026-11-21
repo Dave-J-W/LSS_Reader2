@@ -117,9 +117,11 @@ def test_inference_on_files_without_the_line(tmp_path):
     spec = synth.write_spec(str(tmp_path / 's'), scans)
     r = specread(spec, data={}, par={})
     got = series.infer(series.scan_info(r.Data, r.Par))
-    # scans 1, 3, 4 move up in Qz and overlap (0.02k .. 0.02k+0.03); 5 is a fixed position, not alignment
+    # scans 1, 3, 4 move up in Qz and overlap (0.02k .. 0.02k+0.03); 5 is a fixed position, not alignment:
+    # a burn scan (ascan ih without movement, the beamline's standard; owner, 2026-11-21)
     assert [(g.kind, g.data_scans, g.aux) for g in got] == [('reflectivity', [1], [(2, 'align')]),
                                                             ('reflectivity', [3, 4], []),
+                                                            ('burn', [5], []),
                                                             ('reflectivity', [6], [])]
     assert all(g.inferred and g.n is None for g in got)
 
@@ -131,7 +133,8 @@ def test_inference_on_the_nx_school_file():
     assert [(x.num, x.points, x.planned) for x in info if x.aborted] == [(4, 15, 21), (12, 4, 41)]
     got = [(g.kind, g.data_scans, [a for a, _ in g.aux], g.status) for g in series.infer(info)]
     assert got == [('reflectivity', [3], [4, 5], 'complete'), ('reflectivity', [6, 7, 8, 9], [10], 'complete'),
-                   ('gid', [11, 12], [13], 'partial')]
+                   ('gid', [11, 12], [13], 'partial'), ('burn', [14], [], 'complete'),
+                   ('burn', [15], [], 'complete')]          # burn scans: ascan ih without movement (2026-11-21)
     assert series.group(info) == []                      # no '#U Series' lines in this file
 
 

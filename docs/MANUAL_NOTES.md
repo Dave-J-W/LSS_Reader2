@@ -181,8 +181,12 @@ Each line: feature — where — default — script — notes entry (date).
   const − lin, best model, each model's Δ, the 5 % time, the limit, the
   settings) is beside the panels, not in the title. "Auto peak": the strongest peak of the mean frame; off: the
   typed Qxy range. Estimator: template (default), moments (legacy), fit.
-  Errors: auto (scatter for GID, counting for reflectivity). Time:
-  exposure or clock. Change: the threshold (5 %).
+  Errors: auto (scatter for GID, counting for reflectivity). Time: clock
+  (default, wall time; the owner: the shutter closes between exposures) or
+  exposure. Change: the threshold (5 %). "Position in limit": off by default
+  (whether a position change matters is the user's judgment).
+- Burn scans are recognised as `ascan ih` without movement (the beamline's
+  standard), labelled 'burn' in the workbook's Scans sheet.
 - Save stores the values and the trend table (Trends sheet).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.

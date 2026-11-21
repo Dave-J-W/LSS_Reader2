@@ -23,8 +23,8 @@ def test_frame_times_exposure_and_clock():
     pt = PointTimes('old', start=np.array([100.0, 110.5, 121.0, 131.5]))
     t, note = burn.frame_times(cols, pt, [1, 2, 3], 'clock')
     assert t.tolist() == [5.0, 15.5, 23.5] and 'clock' in note
-    t, note = burn.frame_times(cols, PointTimes('none'), [0, 1], 'clock')
-    assert t.tolist() == [5.0, 15.0] and 'no per-point times' in note
+    t, note = burn.frame_times(cols, PointTimes('none'), [0, 1])          # clock is the default
+    assert t.tolist() == [5.0, 15.0] and 'no per-point times' in note and note.startswith('exposure')
     with pytest.raises(ValueError):
         burn.frame_times(cols, None, [0], 'wall')
 
@@ -35,7 +35,8 @@ def test_reflectivity_burn_is_monitor_normalised_and_finds_tau(tmp_path):
     from lss_core.experiment import Experiment
     exp = Experiment(synth.make_burn_dataset(tmp_path / 'burn'))
     res = exp.burn(1)
-    assert res.kind == 'reflectivity' and res.time == 'exposure'
+    assert res.kind == 'reflectivity' and res.time == 'exposure'      # clock asked; no per-point times in this file
+    assert 'clock asked' in res.notes[0]
     c = res.trends['intensity']
     assert c.best == 'exponential' and not c.stable
     f = c.fits['exponential']
@@ -146,7 +147,20 @@ def test_nx_school_burn_pair():
         c = r.trends['centre']
         return np.std(c.y - c.fits[c.best](c.t))
     assert spread(r14) < 0.5 * spread(m14)                # the template follows the position more closely
-    clock = exp.burn(14, time='clock')
-    assert clock.t[-1] > r14.t[-1]                       # the clock includes the overhead between frames
+    assert r14.time == 'clock'                           # the default (owner: wall time is better)
+    exposure = exp.burn(14, time='exposure')
+    assert r14.t[-1] > exposure.t[-1]                    # the clock includes the overhead between frames
+    assert r14.safe_time()[1] in ('intensity', 'fwhm')   # the position does not set the limit by default
+    assert exp.burn(14, limit=('intensity', 'fwhm', 'centre')).safe_time()[1] == 'centre'
     counting = exp.burn(14, trend_errors='given')
     assert counting.trend_errors == 'given' and counting.trends['intensity'].criterion in ('AICc', 'QAICc')
+
+
+def test_burn_scans_are_ih_scans_that_do_not_move():
+    """The beamline's standard (owner, 2026-11-21)."""
+    from lss_core import series
+    assert series.is_burn('ascan  ih -0.994512 -0.994512  20 10')
+    assert not series.is_burn('ascan  ih -1 1  20 1')                 # moves: alignment
+    assert not series.is_burn('ascan  oh 0 0  20 1')                  # another motor
+    assert not series.is_burn('ascan  ih 0 0  1 1')                   # two points: not a trend
+    assert not series.is_burn('hklscan 0 0 0 0 0.01 0.5 40 1')

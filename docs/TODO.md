@@ -204,9 +204,14 @@ stated assumption until the answer arrives.
       arrived as float16 zeros).
 - [x] Burn tests and peak fits scriptable (2026-11-21): `Experiment.burn`,
       `lss_core.trends`, `lss_core.peaks`; P30 fixed in the Trends tab.
-- [ ] Owner: does the shutter close between burn frames (exposure vs clock
-      time)? Is 5 % of the FWHM the right scale for a position change? A
-      burn scan at higher flux or from the private data to test the 5 % times.
+- [x] Owner's answers on burn tests (2026-11-21): shutter closes, wall time
+      better (clock default); position judgment is the user's (out of the
+      limit by default); burn scans = `ascan ih` without movement.
+- [ ] **Ask the owner later for more burn data** (owner, 2026-11-21: "ask
+      later"): higher flux, reflectivity burns, the private file's burn scans
+      (gid 23, 35, 51, 211, 275, 277, 278; xfntr 19, 20) with their frames.
+- [ ] Burn trends: testing and extension by another agent
+      (`docs/handoff_out/07-burn-trends.md`).
 - [x] Script pane (F48, first part): opening a SPEC file and exporting a
       patched reflectivity write the equivalent `lss_core` Python, which
       reproduces the exported files byte for byte (tested), including merges,

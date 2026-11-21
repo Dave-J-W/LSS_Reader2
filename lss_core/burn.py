@@ -22,19 +22,27 @@ general model (``trends.compare(errors='scatter')``): a relative change is
 what matters, and the absolute σ of a sum, centroid or width is not
 trusted (owner, 2026-11-21). Reflectivity keeps the counting errors.
 
-Time: since the first frame's exposure began, at the middle of each
-frame's exposure. ``time='exposure'`` (default): the counting time
+Time (owner, 2026-11-21: the shutter closes between exposures by
+default; wall time is better): ``time='clock'`` (default) measured start
+times; ``time='exposure'`` the counting time alone. Details: since the first frame's exposure began, at the middle of each
+frame's exposure. ``time='exposure'``: the counting time
 accumulated, Σ Seconds of the earlier frames + half the frame's own, i.e.
 the time the spot was certainly in the beam; ``time='clock'``: measured
 start times (Tstart, or Epoch differences in older files) + half the
-count time, which includes the overhead between frames (shutter state
+count time, which includes the overhead between frames (default) (shutter state
 during it not recorded). Without per-point times, clock falls back to
 exposure and says so.
 
 What the change is measured against: the intensity and the width
 relative to their own value at t = 0; the position against the peak's
 width (a shift of 5 % of the FWHM), since a relative change of a Qxy near
-1.5 Å⁻¹ means nothing.
+1.5 Å⁻¹ means nothing. Whether a position change matters is the user's
+judgment (owner, 2026-11-21): the position is shown, but it sets the
+limit only when asked (``limit_quantities``).
+
+Which scans are burn scans: by the standard of the beamline (owner,
+2026-11-21), an ``ascan ih`` that does not move (start = end);
+``lss_core.series.is_burn``.
 """
 import math
 from dataclasses import dataclass, field, replace
@@ -69,12 +77,18 @@ class BurnResult:
     notes: list = field(default_factory=list)
     threshold: float = 0.05
     seconds: np.ndarray = None    # count time of each frame
+    limit_quantities: tuple = ('intensity', 'fwhm')   # what sets the limit (position: the user's choice)
 
-    def safe_time(self):
+    def safe_time(self, quantities=None):
         """(time, quantity): the shortest confident time to a ``threshold``
-        change over the quantities (math.inf: none within the horizon)."""
+        change over ``quantities`` (default ``limit_quantities``: intensity
+        and width; the position only when the user asks) (math.inf: none
+        within the horizon)."""
         best = (math.inf, '')
+        use = self.limit_quantities if quantities is None else quantities
         for q, c in self.trends.items():
+            if q not in use:
+                continue
             if c.change is not None and np.isfinite(c.change.confident) and c.change.confident < best[0]:
                 best = (c.change.confident, q)
         return best
@@ -125,7 +139,7 @@ class BurnResult:
         return cols, np.column_stack(arr)
 
 
-def frame_times(columns, point_times, points, time='exposure'):
+def frame_times(columns, point_times, points, time='clock'):
     """(t, note): seconds since the first selected frame's exposure began,
     at the middle of each frame's exposure (module docstring)."""
     points = list(points)
@@ -142,7 +156,7 @@ def frame_times(columns, point_times, points, time='exposure'):
         return st - st[0] + s / 2, 'clock: measured start times + half the count time (%s)' % point_times.format
     note = 'exposure: counting time accumulated, at the middle of each frame'
     if time == 'clock':
-        note = 'clock asked, but the scan has no per-point times: ' + note
+        note = 'exposure: clock asked, but the scan has no per-point times; counting time accumulated'
     return np.concatenate([[0.0], np.cumsum(s)[:-1]]) + s / 2, note
 
 
@@ -385,7 +399,8 @@ def summary_text(res):
         out.append('')
     t, q = res.safe_time()
     if q:
-        out.append('Limit: %s' % LABELS.get(q, q).lower())
+        out.append('Limit (%s): %s' % (', '.join(LABELS.get(x, x).lower() for x in res.limit_quantities
+                                               if x in res.trends), LABELS.get(q, q).lower()))
         out.append('  %.0f %% in ≥ %.3g s' % (100 * res.threshold, t))
         out.append('  (%.0f %% confidence)' % (100 * res.trends[q].change.confidence))
     elif res.trends:

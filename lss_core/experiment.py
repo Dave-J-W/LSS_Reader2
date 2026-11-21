@@ -384,10 +384,10 @@ class Experiment:
         res.warnings = warnings
         return res
 
-    def burn(self, scan, points=None, time='exposure', qxy_range=None, rows=None, fit=None,
+    def burn(self, scan, points=None, time='clock', qxy_range=None, rows=None, fit=None,
              models=None, threshold=0.05, confidence=0.95, slit=(21, 11), bg_offset=0.5, direction='H',
              errors=None, db_pos=None, bad_pixel_iterations=0, bad_pixel_factor=1, overdispersion=True,
-             estimator='template', trend_errors=None):
+             estimator='template', trend_errors=None, limit=('intensity', 'fwhm')):
         """Burn test of one Pilatus scan (lss_core.burn): per frame the
         reflected intensity (Det_Th 0; ``slit``, ``bg_offset``,
         ``direction`` as Ref Patch) or the strongest GID peak's intensity,
@@ -396,13 +396,15 @@ class Experiment:
         peaks.FitOptions, for ``estimator`` 'fit'; ``estimator``: 'template'
         (default), 'moments' (the legacy arithmetic) or 'fit', lss_core.burn.measure_gid),
         all per monitor count; then each quantity over
-        ``time`` ('exposure' or 'clock') compared by AICc over ``models``
+        ``time`` ('clock', default, the wall time; or 'exposure') compared by AICc over ``models``
         (lss_core.trends.MODELS), with the time until a ``threshold``
         change at ``confidence``. ``points``: point numbers to use.
         ``trend_errors``: 'scatter' (default for GID: the frames' errors
         only as relative weights, their scale from the scatter, since a
         relative change is what matters; owner, 2026-11-21) or 'given'
-        (default for reflectivity: counting errors as they are)."""
+        (default for reflectivity: counting errors as they are). ``limit``:
+        the quantities whose 5 % time sets ``safe_time`` (add 'centre' for
+        the position: the user's judgment)."""
         from . import burn as burnmod
         from . import trends
         sc = self.scans[scan]
@@ -422,7 +424,9 @@ class Experiment:
         except Exception:                     # times are a nicety: exposure time still works
             pt = None
         t, note = burnmod.frame_times(cols, pt, idx, time)
-        res = burnmod.BurnResult(scan, kind, t, time, idx, notes=[note], threshold=threshold,
+        used = 'clock' if note.startswith('clock:') else 'exposure'     # the axis actually used
+        res = burnmod.BurnResult(scan, kind, t, used, idx, notes=[note], threshold=threshold,
+                                 limit_quantities=tuple(limit),
                                  seconds=np.asarray(cols['Seconds'], float)[idx] if 'Seconds' in cols else None)
         if kind == 'reflectivity':
             r = self.reflectivity([scan], slit=slit, bg_offset=bg_offset, direction=direction,

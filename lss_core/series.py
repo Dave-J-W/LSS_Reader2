@@ -188,6 +188,18 @@ def _is_l_scan(x):
     return bool(w) and w[0] == 'hklscan' and x.qz is not None and x.points > 1
 
 
+def is_burn(command):
+    """A burn scan by the beamline's standard (owner, 2026-11-21): an
+    ``ascan ih`` that does not move (start = end), at least 3 points."""
+    w = command.split()
+    if len(w) < 6 or w[0] != 'ascan' or w[1] != 'ih':
+        return False
+    try:
+        return float(w[2]) == float(w[3]) and int(float(w[4])) >= 2
+    except ValueError:
+        return False
+
+
 def infer(info, growing=False):
     """Series guessed from files without '#U Series' lines (marked
     ``inferred``), for the window's list until SPEC writes the line:
@@ -196,7 +208,9 @@ def infer(info, growing=False):
       whose Qz ranges move up and overlap or touch the previous one;
       alignment scans in between (ascan/a2scan/dscan of sh, oh, ih, chi,
       th over a range; a fixed position is not one) are attached as 'align';
-    - gid: consecutive ``ascan dth`` scans with images (one per Qz level).
+    - gid: consecutive ``ascan dth`` scans with images (one per Qz level);
+    - burn: an ``ascan ih`` that does not move (``is_burn``), each its own
+      series (owner, 2026-11-21: the standard for burn tests).
 
     N is not known for an inferred series (the plan is not in the file), so
     an inferred series is 'complete' unless one of its scans is aborted
@@ -234,6 +248,10 @@ def infer(info, growing=False):
             else:
                 close()
                 cur = Series('inferred-%d' % x.num, 'gid', None, {1: x.num}, inferred=True)
+            prev_q = None
+        elif is_burn(x.command):
+            close()
+            series.append(Series('inferred-%d' % x.num, 'burn', None, {1: x.num}, inferred=True))
             prev_q = None
         elif cur is not None and is_align(x):
             cur.aux.append((x.num, 'align'))

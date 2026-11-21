@@ -59,12 +59,16 @@ def test_options_are_kept_and_rerun(burn, qapp, recorder):
     assert set(burn.burnResult.trends['intensity'].fits) == {'constant', 'linear'}
     d.burnThresholdSpinBox.setValue(10.0)
     assert burn.burnResult.threshold == pytest.approx(0.10)
-    d.burnTimeComboBox.setCurrentText('clock')
-    assert burn.burnResult.time == 'clock' and 'no per-point times' in burn.burnResult.notes[0]
+    assert d.burnTimeComboBox.currentText() == 'clock'                    # the default (owner: wall time)
+    assert burn.burnResult.time == 'exposure' and 'no per-point times' in burn.burnResult.notes[0]
+    d.burnTimeComboBox.setCurrentText('exposure')
+    assert burn.burnResult.notes[0].startswith('exposure: counting time')
+    d.burnPositionLimitCheckBox.setChecked(True)
     import json
     with open(os.environ[preferences.ENV]) as f:
         stored = json.load(f)['burn']
-    assert stored['models'] == ['constant', 'linear'] and stored['threshold'] == 10.0 and stored['time'] == 'clock'
+    assert stored['models'] == ['constant', 'linear'] and stored['threshold'] == 10.0 and stored['time'] == 'exposure'
+    assert stored['position_limit'] is True
     for m in trends.MODELS:
         getattr(d, 'burn%sCheckBox' % ''.join(w.capitalize() for w in m.split())).setChecked(False)
     assert 'Tick at least one model' in d.burnResultLabel.text()
