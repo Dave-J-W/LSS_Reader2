@@ -39,8 +39,8 @@ working list, one table per area, each row with its source. Rows marked
 
 | Item | Source |
 |---|---|
-| Two-file export, covariance sidecar; Budget then the default | F24, F24a, F24c; P4; input 5 |
-| Stitch-factor bias, measured on real overlaps, then remedied | P1, D13 |
+| Two-file export, covariance sidecar; Budget then the default (the covariance itself is computed since 2026-11-22: `lss_core.uncertainty`; what to export: area B2) | F24, F24a, F24c; P4; input 5 |
+| Stitch-factor bias, measured on real overlaps, then remedied: remedy built as an option 2026-11-22 (`lss_core.patching`, joint fit); measuring on the larger data set: hand-off 08 | P1, D13 |
 | Same-absorber scans share a factor: send the question to the hand-off author — **new** | F41 |
 | Qz offset from sh-scan images — **new** | F42 |
 | Per-second option — **new** | F20 |

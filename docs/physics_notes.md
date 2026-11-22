@@ -3618,3 +3618,58 @@ scale fitted on the overlap; a scan measured later can differ for real
 (the halves of NX 11 differ by 5 %, sample height), and the fix does not
 hide that.
 
+### 2026-11-22 — Reflectivity patching: joint fit, prior, correlated error
+
+**Owner:** "Then work on the reflectivity patching and error. Leave
+decisions about export and saving in the to-dos. Employ a subagent to
+think deeply on the patching method and whether there is a way to avoid
+the correlated error by doing joint fitting on both scans in the ref patch
+and using the prior knowledge. The curvature matching up across the patch
+is one constraint. A quadratic or 4th order model should be adequate for
+non fresnel normed data patches. In any case, make reusable code for
+calculating uncertainty and prepare for later work by a third agent where
+they compare methods with a larger dataset, like will be done with GID."
+
+**A.** The subagent's report: `docs/reports/ref_patch_joint_fit.md`
+(measured on synthetic slabs, NX 6–9 and the committed aggregates of the
+owner's 1041 joins). In short:
+
+- **Joint fit**: one polynomial for both scans in a window (the overlap
+  plus points either side) with the factor as a parameter. A shared
+  polynomial makes value, slope and curvature match everywhere in the
+  window, which is the owner's curvature constraint in its strongest form
+  (matching them only at one junction point is unbiased but 1.5× noisier).
+- **Order**: on raw (non-Fresnel-normalised) data, a quadratic is adequate
+  only on the overlap alone; with points either side it is biased up to
+  +2.6 % / −5 % near Q_c, fringes and high Qz. Order 4 with 4 points
+  either side is unbiased within 0.1 % (raw and R/R_F alike), and the
+  factor's scatter is 20–30 % below the spline-ratio estimator. The P1
+  bias disappears (no interpolation).
+- **Prior**: the foils' ratio, with errors correlated between joins that
+  share a foil, combined only where Monc/Monp is unchanged and the two agree
+  (|z| ≤ 3); elsewhere marginalised (P29).
+- **The correlated error cannot be avoided**, only made smaller and reported
+  correctly: each scan's level is known through a finite overlap, so its
+  error is one common shift of the whole scan and of every later scan.
+  Reported as φ and Σ; with the full covariance a downstream slab fit's
+  pulls return to 1 (SLD pull SD 3.4–4.8 → 1.07).
+
+**Built** (2026-11-22): `lss_core/uncertainty.py` (method-free: chain
+covariance, steps → φ, prior combination with marginalisation, per-point
+total error, N × N covariance, pulls; meant for GID joins too) and
+`lss_core/patching.py` (joint fit with a window guard, spline-ratio and
+coinciding-point references, the correlated foil prior and its guard,
+chain, global fit, stitched output). Verified: `tests/test_patching.py`
+(16 tests; the NX factors 0.023004, 0.064516, 0.103604 and the last
+scan's level 0.75 % reproduced; 1000-draw Monte Carlo pull SD 0.9–1.1 per
+join). One finding on the way: a Monte Carlo of 200 draws gave a pull SD
+of 0.80 at the first join, 1000 draws 0.99 (the pull SD of 200 draws
+scatters by about 0.05; that set was unlucky), so the test uses 1000.
+The legacy patch, its export and its tests are unchanged; the defaults
+and the export are the owner's decisions (TODO area B2).
+
+**For the third agent**: `tests/tools/ref_patch_survey.py` and
+`docs/handoff_out/08-ref-patch-comparison.md` (outputs, split truth on
+real curves with interleaved halves, repeats, how to judge); a worked
+example on NX in `docs/comparisons_data/ref_patch_nx/`.
+

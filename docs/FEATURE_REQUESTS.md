@@ -387,6 +387,7 @@ priority than the lists above.
 | D55 / F39 (window) | Series list above the scan list (one action selects a series); clicking a scan selects its whole series (check box, on by default); row tooltips and tints by kind | `MainWindow.setupSeriesBox`, `updateSeries`, `selectSeries`, `expandToSeries` | `tests/test_gui_series.py` |
 | D56 | Automatic saving: each finished reduction saved (origin 'auto', no note, no duplicates by content digest, quiet); Preferences > Saving to turn off; maps stored as grids; the workbook kept in memory between saves | `MainWindow.wrapReductionsForAutoSave`, `autoSave`, `openWorkbook`; `workbook.content_key`, `_add_map`, `map` | `tests/test_gui_workbook.py`, `tests/test_workbook.py` |
 | D57 / F1–F5 | Live mode: file watched, new scans read, stale results remade from parsed (never executed) recipes as 'live' versions, old ones superseded; whole-series selections follow; stop when a lined series completes | `MainWindow.setupLive`, `liveTick`, `liveUpdate`, `remakeStale`; `lss_core/live.py`; `Workbook.mark_stale(points=)`, `supersede` | `tests/test_live.py`, `tests/test_gui_live.py` |
+| P1 / P4 / F24 (groundwork) | Joint-fit reflectivity patching with the correlated foil prior, as an option; the covariance of chained factors and stitched data as reusable code; a survey tool and hand-off 08 for the method comparison on a large data set | `lss_core/patching.py`, `lss_core/uncertainty.py`, `tests/tools/ref_patch_survey.py` | `tests/test_patching.py` |
 
 ## Order
 

@@ -94,6 +94,16 @@ started.
   faster at about 4 × the flux; width +19 % in 15. Tests and extensions for
   another agent: `handoff_out/07`.
 
+## Reflectivity patching and uncertainty (2026-11-22)
+
+- A joint fit of both scans at each join (one smooth curve in ln(R/R_F),
+  no interpolation) removes the stitching bias P1 and gives factors 20–30
+  % more precise on synthetic data (measured); the known absorber ratio as
+  a correlated prior where the monitor shows it applies; the stitched
+  curve's full covariance (P4), as reusable code (`lss_core.uncertainty`).
+  An option beside the unchanged legacy patch; the comparison on the
+  owner's larger data set is handed off (`handoff_out/08`).
+
 ## Series, saving and live updates (2026-11-19 to 22)
 
 - **Per-point times** for old files (Epoch steps) and new ones

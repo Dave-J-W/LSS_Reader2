@@ -73,6 +73,7 @@ Not listed above until 2026-11-22, by area:
 | `test_peaks.py`, `test_gui_peak_fit.py` | Peak module and the cut/MCA fit buttons. |
 | `test_timing.py`, `test_series.py`, `test_gui_series.py` | Per-point times; scan series (lines, aborts, guesses: reflectivity, gid, xfntr, energy, burn); the Series list and whole-series selection. |
 | `test_workbook.py`, `test_gui_workbook.py` | The per-SPEC workbook: sheets, versions, series ties, stale flags, map grids, automatic saving, notes. |
+| `test_patching.py` | Joint-fit reflectivity patching and `lss_core.uncertainty`: P1 removed on the staggered grid, exact quartic data, scaling rules, sensitivities, chain covariance, global = chain, prior combination and guard, stitched covariance, Monte Carlo pulls (slow), NX 6–9 (slow). |
 | `test_live.py`, `test_gui_live.py` | Live updates: recipes parsed not executed, point selections carried over, remakes in a worker thread, open displays redrawn, new images and spectra picked up, no reset. |
 | `test_packaging.py` | Packaged builds: the recipe bundles what the program loads; the self-test passes from source. |
 

@@ -192,6 +192,28 @@ choose the peak; `rows` the pixel rows summed). Each quantity over `time`
 or 'given'. `lss_core.trends.compare(t, y, sigma)` does the comparison for
 any series.
 
+## Reflectivity patching and uncertainty (2026-11-22)
+
+```python
+from lss_core import patching, absorbers
+r = exp.reflectivity([6, 7, 8, 9], errors='budget')
+scans = patching.scans_from_reflectivity(r)            # each scan's Qz, net signal, error
+res = patching.chain(scans)                             # joint fit at each join (order 4, R/R_F, 4 points either side)
+[(j.factor, j.err, j.chi2 / j.dof, j.flags) for j in res.joins]
+res.phi, res.Sigma                                      # each scan's log factor to the first, and their covariance
+st = res.stitch(scans)                                  # every point on the first scan's scale
+st.sigma_total(), st.covariance('log')                  # per-point error with the factors'; the N x N covariance
+prior = patching.known_steps(absorbers.calibrated(10.0), [41, 31, 24, 18])
+res = patching.chain(scans, prior=prior, monitor_ratios=[1.005, 4.35, 1.32])   # foil prior where it applies
+```
+
+`patching.interp_factor`, `coincident_factor` and `global_fit` are the
+alternatives the survey compares (`tests/tools/ref_patch_survey.py`,
+hand-off 08); `lss_core.uncertainty` holds the method-free pieces
+(`chain_covariance`, `steps_to_phi`, `combine`, `total_sigma`,
+`stitched_covariance`, `pulls`). The legacy patch and export are
+unchanged.
+
 ## Cuts (2026-11-18)
 
     cut = exp.cut([1, 2], 'Pix H', (90, 110))            # one cut per frame

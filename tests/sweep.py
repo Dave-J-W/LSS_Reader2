@@ -42,6 +42,11 @@ def state_empty(w, app, spec):
 def state_spec_loaded(w, app, spec):
     if w.specFileName != spec:
         w.openSpecFile(fname=spec)
+        # an output folder of its own (2026-11-22): every reduction is saved into the workbook there,
+        # and a folder shared by the hundreds of windows of one sweep test grew one workbook that each
+        # new window had to open again (the sweep slowed down and its memory grew to gigabytes)
+        import tempfile
+        w.directory = tempfile.mkdtemp(prefix='lss-sweep-out-')
     w.ui.scanListWidget.clearSelection()
     app.processEvents()
 
