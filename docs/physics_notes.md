@@ -20,7 +20,10 @@ exists.
 | I6 | At the direct-beam row with α = α_true, Q_z = 4π sin α / λ; at the direct-beam column with Det_Th = 0, Q_xy = 0 and the axis is antisymmetric | tested: `test_twod_detector.py` |
 | I7 | Stitching two scans of one curve recovers the attenuation factor exactly, and overlap errors fall by √2, when the overlap points coincide | tested: `test_stitching.py` |
 | I8 | Reduced reflectivity of each scan is proportional to the true curve (R/R_F flat) | tested end to end on synthetic data: `test_gui_workflows.py` |
-| I10 | (to hold once F24 is built) Every row of the scan-weight matrix W sums to 1; Σ is symmetric, positive semi-definite, with zero row and column for the anchor scan; corrected error ≥ counting-only error, equal on the anchor scan's non-overlap points | specified in hand-off §3.3–3.4, §5; no code yet |
+| I10 | Every row of the scan-weight matrix W sums to 1 (simple-chain overlap rows exactly ½/½); Σ is symmetric, positive semi-definite, with zero row and column for the anchor scan, a random walk for one-hot a_m and the §3.4 recursion otherwise; corrected error ≥ counting-only error, equal on the anchor scan's points outside any overlap; the sidecar's x and y equal its data file's columns | tested (2026-11-22): `test_covariance_export.py::test_weights_sigma_and_total_error`, `test_written_sidecars_load_and_match_their_files`, `test_oracle_agrees_with_the_corrected_chain`; window: `test_gui_covariance_export.py` |
+| I27 | One scan has no stitching error: Σ = 0, the sidecar has `terms: []`, σ_total = σ_meas | `test_covariance_export.py::test_single_scan_has_no_stitch_term` |
+| I28 | The data covariance C = diag + W Σ Wᵀ is symmetric positive definite; per-point scaling (normalisation, Fresnel division) leaves C_log unchanged and scales C_lin by D⁻¹·D⁻¹; Q_z offset moves x only; sorting, removal and Q cuts select rows and columns of C; averaging gives the linearised W row (checked by Monte Carlo); a join of two sets adds the link's variance to every scan of the second | `test_covariance_export.py` (`test_permutation_*`, `test_scaling_*`, `test_finish_*`, `test_average_*`, `test_concat_*`), `test_gls.py::test_covariance_is_symmetric_positive_definite` |
+| I29 | The GLS χ² rᵀC_log⁻¹r equals the χ² minimised over one log scale shift per scan with the Gaussian penalty φᵀΣ⁺φ (nuisance or "pull" form), exactly, with and without a free overall scale; the Woodbury solve and log-determinant equal the dense ones | `test_gls.py::test_gls_chi2_equals_the_nuisance_form`, `test_woodbury_solve_and_logdet_equal_the_dense_ones` (to 1e-9) |
 | I11 | On a specular frame the direct beam lies at Q_z = 0 and the reflected beam at the frame's Q_z, 2α apart on the detector | tested on real data: `test_real_nx_school.py` (NX school scan 7, frame 0; both within 1.5 pixels, separation within 8 %) |
 | I12 | A signal decaying as exp(−t/τ) under the beam is reduced to the same decay and the burn-test fit returns τ | tested on synthetic data: `test_burn.py` (τ within 0.5 %) |
 | I13 | A window sum over an MCA line returns counts / monitor × (real / live time); a Gaussian fit returns the line's position, width and height | tested on synthetic data: `test_xfntr.py` |
@@ -3697,4 +3700,56 @@ a broadening at constant area on a shoulder as a 15 % intensity gain;
 every window estimator under-reads a peak fading on a shoulder. Recorded;
 the estimator choice is hand-off 07's item 3. P36 and P37 are now strict
 xfails on the three-level set.
+
+### 2026-11-22 — What does a model fit need from the covariance?
+
+**Owner:** "Have another subagent think about what is needed on
+covariance downstream for model fitting, then have them build something
+workable."
+
+**Answer** (`docs/reports/downstream_covariance.md`): a fit needs, per
+point, the counting-only error σ_meas, the point's weights W on the
+scans' log scales, and the K × K covariance Σ of those scales, which is
+exactly the xmodfit sidecar (hand-off 19). The covariance is then
+diag((σ_meas/y)²) + W Σ Wᵀ in log space. With the Woodbury identity it
+costs an r × r solve (r ≤ K − 1). Equivalently, it is one nuisance scale
+per scan with a Gaussian prior, exactly in log space (I29). The overall
+normalisation is a free scale, not part of Σ. Per-point
+multiplications (normalisation, Fresnel) never change Σ. Sorting, cuts
+and masks select rows of W (I28). A fitter must check x and y against
+the file and must use σ_meas, not the file's column, with the
+covariance.
+
+**Measured** (synthetic NX-like scans of a 25 Å film, 300 seeds, fits of
+d, ρ, σ with a free scale; `tests/tools/covariance_pulls.py`):
+
+| Errors used | pull SD d / ρ / σ | χ²/dof | RMS of ρ |
+|---|---|---|---|
+| legacy column | 1.71 / 3.26 / 4.15 | 0.84 | 5.2e-4 |
+| √diag C (the hand-off's corrected column) | 0.80 / 3.01 / 2.09 | 0.56 | 6.8e-4 |
+| counting only | 2.53 / 4.35 / 5.25 | 1.24 | 5.1e-4 |
+| covariance (legacy or corrected factors) | 1.00 / 0.98 / 1.00 | 0.99 | 2.3e-4 |
+| covariance, joint-fit patch | 1.05 / 1.05 / 1.07 | 0.98 | 1.8e-4 |
+
+Σ is 1.08–1.11 × the true spread of the factors (inflate-only, hand-off
+§5.7). NX school 6–9: √Σ of scan 9 is 1.03 % (legacy factors) and 0.75 %
+(joint). One finding: synthetic data with Poisson monitor counts but
+counting-only errors gave χ²/dof 1.29 and pulls up to 1.2 even with the
+covariance. A covariance is only as good as its diagonal (monitor noise
+belongs in σ_meas).
+
+**Built:** `lss_core/covariance_export.py` (W and Σ carried beside the
+legacy patch, bit for bit; the hand-off's corrected chain, checked
+against an independent oracle to 1e-10; the joint fit's output; the
+window's finishing steps; the sidecar and combined files; both of the
+contract's layouts). `lss_core/gls.py` (XModFit's loader checks, Woodbury
+χ², a reference fitter in nuisance form). `ReflectivityResult.save(name,
+covariance='sidecar' | 'contract')`. The Ref Patch "+ covariance" box
+(off: owner's decision, TODO B2), which writes sidecars beside the
+unchanged text files. Verified: `tests/test_covariance_export.py` (41),
+`tests/test_gls.py` (7), `tests/test_gui_covariance_export.py` (8 + 2
+slow on NX). The legacy export fixtures are unchanged. Hand-off tests 5
+and 6 use stand-ins: an oracle written from the hand-off's text, and
+XModFit's checks reimplemented. XModJointFit's `lss_reference.py` and
+`covariance_core.py` are still to be supplied (D13 note).
 

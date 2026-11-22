@@ -63,6 +63,14 @@ updates a row here in the same commit, with before and after values.
 | Automatic saving | every finished reduction (reflectivity patch, line cut, cut fit, GID map, GID cut, MCA sum, line fit, merge, burn test) is saved into the workbook, origin 'auto', no note; a result identical to a stored one (same content digest) is not stored again; quiet (status bar, log); Preferences > Saving turns it off | workbook rows | owner 2026-11-22: "make saving in the excel file automatic once a reduction/processing has been carried through" | O; T `test_gui_workbook.py` | `MainWindow.wrapReductionsForAutoSave`, `autoSave`; `workbook.content_key` | 2026-11-22 |
 | Live updates | off until "Live" is ticked; then every 5 s; stale results with a recipe remade on the series' scans now, in a worker thread, with the user's point selection carried over (frames left out stay out; frames and scans written since come in) and saved as 'live' versions; the old marked superseded | workbook rows during measurement | owner 2026-11-22 (D57; "point selection ... should be preserved across updates") | O; T `test_live.py`, `test_gui_live.py` | `lss_core/live.py`, `MainWindow.remakeStale` | 2026-11-22 |
 | Save note | every Save asks for an optional note (Cancel: nothing saved); Shift-click saves without asking | workbook notes | owner 2026-11-21 (second reply: "ask for one on every save, with shift-click preventing the ask") | O; T `test_gui_workbook.py` | `MainWindow.saveToWorkbook`, preference `save_asks_note` | 2026-11-21 |
+| Covariance sidecar (Ref Patch "+ covariance"; `ReflectivityResult.save(covariance=...)`) | off; when on in the window: `<name>_ref.cov.json` / `_rrf.cov.json` beside **unchanged** `_ref.txt` / `_rrf.txt` (legacy patch). Scripts: `'sidecar'` (same) or `'contract'` (hand-off §2.5: corrected `_ref.txt` with √diag C, legacy bytes as `_ref_legacy.txt`) | new files only; no existing number changes | the contract asks for the two-output layout, but it changes `_ref.txt`'s numbers: owner's decision (TODO B2, F24a) | L (hand-off 19); T `test_covariance_export.py`, `test_gui_covariance_export.py` (legacy bytes unchanged); default and layout **A** | `lss_core/covariance_export.py`, `MainWindow.saveRefCovariance` | 2026-11-22 |
+| Σ of the legacy patch | the legacy factors, each with its error recomputed from counting errors (the variance of the legacy weighted mean under counting noise, × max(1, √χ²_red) against counting errors); the legacy `absolute_sigma=False` error kept as `facerr_legacy` in the provenance | sidecar `cov` | the legacy error can fall below counting noise (pull SD 1.49, joint-fit report table 1); recomputed: Σ/true spread 1.08–1.11, pulls 0.93–0.95 over 300 seeds | M (`test_statistical_sanity_of_sigma`, report `downstream_covariance.md` §6); the choice is **A** | `covariance_export._ratio_counting` | 2026-11-22 |
+| W of an averaged overlap point (chains) | ½ W(existing) + ½ e_m | sidecar weights; √diag C | hand-off §3.3 (its acceptance test 3) | L | `covariance_export._merge_rows` | 2026-11-22 |
+| W of averaged points (`CovData.average`, binning) | Σ_j (w_j y_j/ȳ) W_j: each point's share of the mean (first-order exact; = Σ w_j W_j when the values agree) | weights of binned data | derivative of ln ȳ; checked by Monte Carlo | T `test_average_is_the_linearised_combination`; reasoned | `CovData.average` | 2026-11-22 |
+| σ_meas interpolated from the new scan | cubic (as the legacy total error), linear where the cubic gives ≤ 0 or not finite; such points listed in the provenance | sidecar σ_meas | hand-off §3.1 | L | `covariance_export._interp_error` | 2026-11-22 |
+| Known ratio at a join (legacy patch) in Σ | step from the previous scan in order (a_m = e_(m−1)), log error = error/ratio; the foil correlations between several known-ratio joins **not** included | sidecar `cov` | the window forms the known factor as (level of the previous scan) × foil step; correlations are in the joint path's prior (`patching.known_steps`) | **A** | `covariance_export._chain` | 2026-11-22 |
+| Joint-fit export points | every measured point scaled by its scan's factor, averaged (inverse-variance, W rows split) only where Q_z coincide; error column √diag C | joint-method files | joint-fit report §4.4 | **A** (owner) | `covariance_export.joint_covdata` | 2026-11-22 |
+| Normalisation in the covariance | not a term (a free overall scale, contract §2.6); the normalising point's relative counting error recorded as `norm_rel_err` in the provenance | — | contract | L | `covariance_export.finish` | 2026-11-22 |
 
 ## Changes of output, with before and after
 
@@ -110,6 +118,11 @@ Each is also in `physics_notes.md` under its date.
   leaves its judgment to the user; it does not set the limit by default).
 
 - Known-ratio Monc/Monp tolerance 3 %.
+- Covariance export (2026-11-22): the window option off by default and
+  writing sidecars beside the legacy files; Σ of the legacy patch from
+  recomputed counting errors; known-ratio joins without foil
+  correlations; joint-fit output averaged at coinciding Q_z
+  (`reports/downstream_covariance.md` §8).
 - Per-photon: gas at the table's conditions; one factor per scan from the
   median rate (dark term ≲ 0.05 %).
 - GID: minimum 2 frames per bin; β grid step = the largest row step.

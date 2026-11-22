@@ -39,7 +39,7 @@ working list, one table per area, each row with its source. Rows marked
 
 | Item | Source |
 |---|---|
-| Two-file export, covariance sidecar; Budget then the default (the covariance itself is computed since 2026-11-22: `lss_core.uncertainty`; what to export: area B2) | F24, F24a, F24c; P4; input 5 |
+| Two-file export, covariance sidecar; Budget then the default (the covariance itself is computed since 2026-11-22: `lss_core.uncertainty`; what to export: area B2). **Built 2026-11-22 as options** (`lss_core.covariance_export`, `lss_core.gls`, `reports/downstream_covariance.md`): sidecars beside the legacy files (window "+ covariance", off; scripts `save(covariance='sidecar')`), the contract's two outputs and the combined file (scripts `covariance='contract'`, `combined=True`). Open: the defaults (B2); hand-off tests 5–6 with XModJointFit's own `lss_reference.py` / `covariance_core.py` when supplied; the GUI path for a joint-fit patch, if the window gets one | F24, F24a, F24c; P4; input 5 |
 | Stitch-factor bias, measured on real overlaps, then remedied: remedy built as an option 2026-11-22 (`lss_core.patching`, joint fit); measuring on the larger data set: hand-off 08 | P1, D13 |
 | Same-absorber scans share a factor: send the question to the hand-off author — **new** | F41 |
 | Qz offset from sh-scan images — **new** | F42 |
@@ -53,7 +53,10 @@ working list, one table per area, each row with its source. Rows marked
 | Decision | Options | Source |
 |---|---|---|
 | Which reflectivity patching method is the default (legacy spline factor, joint fit at each join, global fit, with or without the absorber prior) | after the method comparison on the larger data set (hand-off 08) | owner 2026-11-22; `reports/ref_patch_joint_fit.md` |
-| How the stitch factors' correlated uncertainty is exported: folded into each point's error (legacy), a covariance sidecar beside `_ref.txt` (F24), or a combined JSON (F24c) | xmodfit hand-off contract | F24, F24a, F24c; P4 |
+| How the stitch factors' correlated uncertainty is exported: folded into each point's error (legacy), a covariance sidecar beside `_ref.txt` (F24), or a combined JSON (F24c). All three are built (2026-11-22). Open: is the window's "+ covariance" box on by default; which layout it writes (sidecars beside the unchanged legacy files, built; or the contract's corrected `_ref.txt` with √diag C plus `_ref_legacy.txt`, built for scripts) | xmodfit hand-off contract; `reports/downstream_covariance.md` §8 (measured: pull SD ≈ 1 only with the covariance) | F24, F24a, F24c; P4 |
+| Σ of the legacy patch: the legacy factors with errors recomputed from counting errors, inflate-only (built), or the legacy `absolute_sigma=False` error | `OUTPUT_DECISIONS.md` | downstream_covariance §8 |
+| Joint-fit export points: averaged where Q_z coincide (built), or every point as measured | | joint-fit report §4.4 |
+| Known-ratio joins in the legacy covariance: foil correlations between them are not included (assumption) | | downstream_covariance §4 |
 | Whether the legacy export stays the default once corrected outputs exist, and the file names of the corrected ones | | F24a |
 | Which error model the export uses by default (legacy, budget) | | P2, input 5 |
 | What the workbook stores for a reflectivity: factors and their covariance, the joint-fit model per join, both methods side by side | | F66 |
