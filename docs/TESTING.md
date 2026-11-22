@@ -23,6 +23,7 @@ library changes a number, record it in `physics_notes.md`.
 | `pytest -m bench -s` | timing table, rewrites `docs/timings.md` | ~30 s |
 | `pytest -m sweep` | crash inventory (see below) | ~30 min |
 | `LSS_UPDATE_CRASHES=1 pytest -m sweep` | regenerate the crash baselines | ~30 min |
+| `LSS_SWEEP_TIMES=FILE pytest -m sweep` | also append each control's time (state, control, seconds) to FILE, to find a slow one | |
 
 `slow`, `bench` and `sweep` are deselected by default (`pyproject.toml`).
 Tests on `sample_data/bu` skip themselves when that private folder is

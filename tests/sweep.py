@@ -3,6 +3,8 @@
 Used by test_gui_sweep.py to keep an inventory of the controls that raise.
 The goal of the project is an empty inventory.
 """
+import os
+import time
 import traceback
 
 from PyQt5 import QtWidgets
@@ -233,6 +235,18 @@ class _Driver:
         return None
 
 
+def _log_time(state, key, t0):
+    """Append 'state<TAB>key<TAB>seconds' to $LSS_SWEEP_TIMES, if set.
+
+    A diagnostic for a slow sweep: sort the file by its last column.
+    """
+    path = os.environ.get('LSS_SWEEP_TIMES')
+    if path:
+        name = getattr(state, '__name__', str(state))
+        with open(path, 'a') as f:
+            f.write('%s\t%s\t%.3f\n' % (name, key, time.perf_counter() - t0))
+
+
 def run_state(make_window, app, recorder, spec, state):
     """Trigger every control once in ``state``; return {key: 'Type @ where'}.
 
@@ -253,7 +267,9 @@ def run_state(make_window, app, recorder, spec, state):
         fn = controls(drv.w).get(key)
         if fn is None:
             continue
+        t0 = time.perf_counter()
         err = drv.trigger(fn)
+        _log_time(state, key, t0)
         del fn
         if err:
             failures[key] = err
@@ -275,7 +291,9 @@ def run_state(make_window, app, recorder, spec, state):
             if child is None:
                 continue
             recorder.exceptions.clear()
+            t0 = time.perf_counter()
             err = drv.trigger(child)
+            _log_time(state, '%s > %s' % (key, ck), t0)
             if err:
                 failures['%s > %s' % (key, ck)] = err
     drv.close()
