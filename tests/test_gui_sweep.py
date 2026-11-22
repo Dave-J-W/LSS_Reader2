@@ -33,9 +33,14 @@ UPDATE = bool(os.environ.get('LSS_UPDATE_CRASHES'))
 
 
 def _save(path, data):
-    with open(path, 'w') as f:
+    if os.environ.get('PYTEST_XDIST_WORKER'):
+        # the walks subtract the single-control sites, which must all be known first
+        pytest.fail('regenerate the crash baselines in one process: LSS_UPDATE_CRASHES=1 pytest -m sweep -p no:xdist')
+    tmp = path + '.tmp'
+    with open(tmp, 'w') as f:
         json.dump(data, f, indent=1, sort_keys=True)
         f.write('\n')
+    os.replace(tmp, path)
 
 
 def _load_sites():
@@ -65,6 +70,12 @@ def clean_root():
     Module-scoped: a few of those files appear only after the test that
     caused them has finished.
     """
+    if os.environ.get('LSS_CLEAN_ROOT_FLAG'):
+        # under pytest-xdist another worker may be writing such a file right now:
+        # the controller removes them when every worker has finished (conftest.py)
+        open(os.environ['LSS_CLEAN_ROOT_FLAG'], 'a').close()
+        yield
+        return
     before = set(os.listdir(ROOT))
     yield
     for name in set(os.listdir(ROOT)) - before:

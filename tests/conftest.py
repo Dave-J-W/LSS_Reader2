@@ -30,6 +30,33 @@ os.chdir(ROOT)
 import pytest  # noqa: E402
 
 
+def _xdist_controller(config):
+    """True in the process that runs pytest-xdist workers (``-n N``)."""
+    return not hasattr(config, 'workerinput') and bool(getattr(config.option, 'numprocesses', None))
+
+
+def pytest_configure(config):
+    # Some save handlers write into the working directory; the sweep removes such files
+    # (test_gui_sweep.clean_root). Under xdist a worker cannot, as another may be writing
+    # one at that moment: the workers mark that they ran the sweep, the controller cleans.
+    if _xdist_controller(config):
+        flag_dir = tempfile.mkdtemp(prefix='lss_reader_clean_root_')
+        os.environ['LSS_CLEAN_ROOT_FLAG'] = os.path.join(flag_dir, 'sweep_ran')
+        config._lss_root_before = set(os.listdir(ROOT))
+
+
+def pytest_unconfigure(config):
+    flag = os.environ.get('LSS_CLEAN_ROOT_FLAG')
+    if _xdist_controller(config) and flag:
+        if os.path.exists(flag):
+            for name in set(os.listdir(ROOT)) - config._lss_root_before:
+                if os.path.isfile(os.path.join(ROOT, name)):
+                    os.remove(os.path.join(ROOT, name))
+        import shutil
+        shutil.rmtree(os.path.dirname(flag), ignore_errors=True)
+        del os.environ['LSS_CLEAN_ROOT_FLAG']
+
+
 @pytest.fixture(scope='session')
 def qapp():
     from PyQt5.QtWidgets import QApplication
