@@ -52,13 +52,34 @@ cannot run on a current SciPy.
 | `test_burn.py` | Burn tests (Legacy tab): synthetic reflectivity frames with a known decay constant; real GID burn (NX school scan 14) against stored curves. |
 | `test_trends.py` | `lss_core.trends`: constant, drift, exponential, double exponential recovered; QAICc; errors from the scatter; coverage of the confident 5 % time (slow). |
 | `test_burn_trends.py` | `lss_core.burn` / `Experiment.burn`: time axes, synthetic reflectivity τ, synthetic GID profiles per estimator, NX scans 14 and 15 (slow). |
-| `test_gui_burn_trends.py` | The burn dialog's Trends tab: opens analysed, options kept, Save to the workbook, three axes for GID (slow). |
+| `test_gui_burn_trends.py` | The burn dialog's Trends tab: opens analysed, options kept, Save to the workbook; GID: one panel per quantity with a right axis in percent, the summary beside them (slow). |
 | `test_real_bu.py` | Private data: every scan of every SPEC file opens without raising. |
 | `test_known_defects.py` | Defects from `ASSESSMENT.md`, each a strict expected failure. |
 | `test_gui_sweep.py`, `known_crashes.json`, `known_crash_sites.json` | Crash inventory. |
 | `tools/monitor_noise_mc.py` | Not a test: Monte Carlo behind `docs/reports/monitor_noise.md`. Run with `python3 tests/tools/monitor_noise_mc.py`. |
 | `tools/monitor_ratio.py`, `tools/spec_epoch.py` | Not tests: analyses of the sample SPEC files behind entries in `physics_notes.md` (beam variation vs monitor noise; what the Epoch column measures). |
 | `test_bench_selection.py` | Timing and file-read counts per user action. |
+
+Not listed above until 2026-11-22, by area:
+
+| Files | Purpose |
+|---|---|
+| `test_reader_log.py`, `test_guards_2dplot.py`, `test_guards_reflectivity.py`, `test_guards_remaining.py`, `test_graceful_opening.py`, `test_no_ccd.py` | Stages 0–1: nothing closes the program (real subprocess), every handler guarded before data are loaded, odd SPEC files and folders open quietly, the CCD code gone. |
+| `test_lss_core.py`, `test_api.py`, `test_cut_script.py`, `test_gid_script.py`, `test_script_console.py` | Stage 2: the GUI-free core and scripting; scripted reflectivity, cuts and GID maps write the window's files byte for byte; the Script pane's Python reproduces them. |
+| `test_error_budget.py`, `test_gui_error_budget.py`, `test_monitor_gain.py`, `test_per_photon.py`, `test_flux.py` | Errors and normalisation: the budget error model, monitor gain, values per incident photon (xray_fluxor hand-off examples). |
+| `test_absorbers.py`, `test_absorber_unknown.py`, `test_absorber_steps.py`, `test_handoff_absorber_steps.py`, `test_foil_fit_from_joins.py`, `test_known_ratio_patch.py`, `test_gui_absfac_energy.py`, `test_spec_absorber.py`, `test_fluorescence_absorber.py`, `test_gui_preferences.py` | Absorbers: factor from the energy, calibrated foils, known ratio in Ref Patch, unknown `#A`, settings inherited from the last `#A`, Preferences. |
+| `test_mca_channels.py`, `test_mca_merge.py` | Fluorescence: multi-element files and the element selector; MCA Merge with the owner's XFNTR rule. |
+| `test_pinhole.py`, `test_gid_worksheet.py`, `test_gid_scan_join.py`, `test_s1_slit_sum.py`, `test_interp_compat.py` | GID: exact pinhole geometry, responses, joins, distance calibration, the worksheet, joins across 2θ; the S1 slit sum; the interp2d replacement. |
+| `test_peaks.py`, `test_gui_peak_fit.py` | Peak module and the cut/MCA fit buttons. |
+| `test_timing.py`, `test_series.py`, `test_gui_series.py` | Per-point times; scan series (lines, aborts, guesses: reflectivity, gid, xfntr, energy, burn); the Series list and whole-series selection. |
+| `test_workbook.py`, `test_gui_workbook.py` | The per-SPEC workbook: sheets, versions, series ties, stale flags, map grids, automatic saving, notes. |
+| `test_live.py`, `test_gui_live.py` | Live updates: recipes parsed not executed, point selections carried over, remakes in a worker thread, open displays redrawn, new images and spectra picked up, no reset. |
+| `test_packaging.py` | Packaged builds: the recipe bundles what the program loads; the self-test passes from source. |
+
+Note (2026-11-22): `test_gui_workflows.py::test_rapid_clicks_in_the_image_list_are_drawn_once`
+waits 100 ms for a selection timer and has failed three times when the
+suite ran beside the crash sweep on a busy machine; it passes alone. A
+to-do (TODO, area I) is to make it independent of load.
 
 ## Fixtures (`conftest.py`)
 

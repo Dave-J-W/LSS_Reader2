@@ -8,7 +8,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 0 Safety net (error handler, durable log, messages pane) | **done** 2026-11-17 |
 | 1 Repair what is plainly broken | **done** 2026-11-17 |
 | 2 Readers and reduction out of the window; caching; scripting | **done** 2026-11-18 (quick 337, slow 542, sweep 67 passed) |
-| 3 Saved state per SPEC file; live refresh | **started** 2026-11-19: series syntax proposed (`handoff_out/05`), reader parses it and SPEC's abort comment, guesses series in older files; per-SPEC workbook with Save (F66, 2026-11-21) |
+| 3 Saved state per SPEC file; live refresh | **largely built** 2026-11-19 to 22: series read and guessed, Series list and whole-series selection; per-SPEC workbook (F66) with automatic saving (D56), series ties and stale flags; live updates (D57: file and data folders watched, remakes in a worker thread, open plots redrawn, no reset). Open: reopening a file with its workbook's settings, D1–D3, dropped points as masks, the owner's answers on the series format |
 | 4 Detectors and inputs | not started |
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
 | 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); **fitting done** 2026-11-21 (peak module D52, MCA lines, scan shapes, burn trends D54); beam size (half-cut fit built, no data), GUI not started |
@@ -103,7 +103,7 @@ working list, one table per area, each row with its source. Rows marked
 models (F33), ME7 tab (F34, F35), new-format SPEC (F28), HDF5 (F29). All
 wait on input 3.
 
-**I. GUI, speed, packaging**: GUI reorganisation (R4) with redraw in place
+**I. GUI, speed, packaging**: make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load (it fails beside the sweep, passes alone); GUI reorganisation (R4) with redraw in place
 and diffuse cuts (F59); slow-file-system timing; `timings.md` regenerated;
 build workflow and macOS signing (input 12); sample-data hosting.
 
@@ -528,6 +528,9 @@ reruns the quick, real-data and export-fixture checks, and commits.
 6. GUI reorganisation.
 
 ## Done
+
+What has been built is summarised in `ACCOMPLISHMENTS.md` (2026-11-22);
+the items below are the tests-and-scoping phase, kept for history.
 
 - [x] First assessment (`ASSESSMENT.md`) and addendum with measured results.
 - [x] Test scaffolding, synthetic data, fast suite (47 pass, 8 expected

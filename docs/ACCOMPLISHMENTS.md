@@ -1,0 +1,132 @@
+# What has been done
+
+A summary for the owner and for newcomers: what the reader can do now that
+it could not when this fork began (2026-11-14), area by area, with where
+the details are. Written 2026-11-22; update it when a stage or a large
+feature is finished. The working lists are in `TODO.md`; the reasons and
+the measurements are in `physics_notes.md` (dated), `OUTPUT_DECISIONS.md`
+(every default that changes a number) and `COMPARISONS.md` (old against
+new). "Measured" below means a test or a run gave the number; everything
+else is how the code is built.
+
+## In numbers (2026-11-22)
+
+| | |
+|---|---|
+| Commits on this fork | about 190 (2026-11-14 to 2026-11-22) |
+| Tests | 549 quick, 581 slow (real data), 67 crash-sweep tests (1,198 collected in all) |
+| Crash inventory | 420 failing control/state combinations on 2026-11-14 → 0 since Stage 1 (2026-11-17) |
+| GUI-free core (`lss_core/`) | 26 modules, about 7,000 lines; every reduction scriptable |
+| Analysis tools (`tests/tools/`) | 20, each the source of a figure or a measured number |
+| Hand-offs | 7 written for other agents or the owner's data (`docs/handoff_out/`), 3 answered |
+
+## By stage (`SCOPE.md`)
+
+**Stage 0, safety net (2026-11-17).** A failing action is logged and
+reported, never closes the program; a durable log per session and per
+SPEC file; messages in a pane instead of blocking dialogs.
+
+**Stage 1, repairs (2026-11-17).** The assessed defects that were plainly
+broken fixed (defects 1–7 and 14 of `ASSESSMENT.md`: GID patching on
+current SciPy, typos, dialogs that raised, the bad-pixel factor; defect 10,
+the S1 slit sum, on 2026-11-19); every handler guarded before data are loaded;
+crash inventory emptied; the Bruker CCD and 9-ID-C code removed (defunct).
+
+**Stage 2, readers and reduction out of the window (2026-11-18).** SPEC
+and MCA readers without `eval` (MCA 20 × faster); cached image reading and
+a disk cache for network drives; reflectivity, cuts, fluorescence and GID
+maps in `lss_core`, shared by the window and scripts, which reproduce the
+window's files byte for byte; the Script pane shows the Python for what
+the window did; packaged builds (recipe and self-test).
+
+**Stage 3, state per SPEC file and live refresh (started 2026-11-19, much
+of it built).** See "Series, saving and live updates" below.
+
+**Stage 6, sub-projects.** GID patching and fitting built (below); beam
+size: the half-cut fit exists, waiting for data; GUI reorganisation not
+started.
+
+## Normalisation, errors, absorbers
+
+- Line and area cuts normalised by the monitor (they were raw).
+- A budget error model beside the legacy one: the monitor's uncertainty
+  applied once to each whole sum (the legacy errors understate it, ×1.4 to
+  ×6.5, measured).
+- Monitor gain from `#M Monc Gain`, values per incident photon (the
+  xray_fluxor route), the Monc dark rate.
+- Absorber factor from the beam energy (NIST aluminium table), calibrated
+  foils from the owner's runs, the known ratio offered at a Ref Patch join
+  when it beats the fit; an unreadable `#A` is unknown, not 63.
+
+## GID (pinhole) patching
+
+- Exact per-pixel angles (Mati Meron's IMG_COO_CONV ported); pinhole mode
+  the default; Qz levels joined on a shared 2θ grid without interpolation;
+  the patch's hidden numbers editable in a worksheet with a table of joins,
+  updated live.
+- The exact footprint window (P39), column responses fitted, along the
+  beam, or physical (rays through pixel and S4 with a Gaussian beam), and
+  joins "as collected" as an option; scan scales fitted with the response
+  (P42).
+- Single unpatched frames as ground truth for peak position and width;
+  the S4–detector distance calibrated from them (NX 265.7 ± 1.1 mm against
+  the header's 271, measured), after which patched peaks equal the single
+  frames'.
+- A technical addendum to the manual with eight diagrams
+  (`manual/gid_patching.md`) and a method-survey hand-off for the final
+  defaults on the owner's larger data (`handoff_out/06`).
+
+## Fitting and burn tests
+
+- One peak module (`lss_core.peaks`) for line cuts, GID profiles and MCA
+  spectra: found automatically, Gaussian, Lorentzian or pseudo-Voigt on a
+  polynomial background, misfits flagged; "Fit peaks" and "Fit options…"
+  beside the cut plot; "Fit lines" for MCA series (the sum fixes position
+  and width); SpecPlot recognises a peak, an edge (the half-cut beam) or a
+  plateau (P9 fixed: 0.471, was 0.406).
+- Burn tests as trends over time (`lss_core.trends`, `lss_core.burn`):
+  constant, linear, exponential and double exponential compared by AICc;
+  "stable" when a flat line fits as well as a line; the 95 % confident time
+  to a 5 % change (coverage measured: 5.5 % misses for a nominal 5 %); per
+  monitor count and on wall-clock time (P30 fixed); GID intensity,
+  position and width each on its own panel with a percent axis. NX scans 14
+  and 15 (measured): intensity stable in both; position drifts about 3 ×
+  faster at about 4 × the flux; width +19 % in 15. Tests and extensions for
+  another agent: `handoff_out/07`.
+
+## Series, saving and live updates (2026-11-19 to 22)
+
+- **Per-point times** for old files (Epoch steps) and new ones
+  (Tstart/Tend); time as an x axis in SpecPlot.
+- **Scan series**: the proposed `#U Series` lines are read; older files
+  are guessed (reflectivity, GID, XFNTR, energy, burn); a Series list above
+  the scan list; clicking a scan selects its whole series (on by default).
+- **The workbook** (`<SPEC file>_reader.xlsx` in the output folder, 7
+  sheets): every finished reduction saved automatically, Save buttons for a
+  version with a note, results tied to their series with the call that
+  remakes them, fits and burn trends in their own sheets, GID maps as
+  grids Excel can colour.
+- **Live updates**: a "Live" box watches the SPEC file, the Pilatus folder
+  and the MCA files; every new SPEC line, image or spectrum is read without
+  resetting the window (selection, tab, axes and frames kept); results
+  whose series grew are remade in a background thread from their recipes
+  (parsed, never executed), with the user's frame selection kept, saved as
+  new versions and shown in the open plot; live mode stops at the end of a
+  series written with series lines.
+
+## Records kept for others
+
+`physics_notes.md` (every question with its answer, dated, and 26
+invariants with their tests), `PHYSICS_ISSUES.md` (43 issues with sizes
+and status), `OUTPUT_DECISIONS.md`, `COMPARISONS.md` (31 comparisons with
+how to regenerate them), `MANUAL_NOTES.md` and `manual/controls.md` (every
+control's tooltip), `SCRIPTING.md`, a review of the to-do lists
+(`reviews/2026-11-21-todo-review.md`).
+
+## Not done yet (the main items; all in `TODO.md`)
+
+Final GID defaults from the larger data set; the stitching-bias remedy and
+the two-file export with covariances (Stage 5); detectors and new formats
+(Stage 4: Pilatus 1M, HDF5); the GUI reorganisation; answers from the
+owner on the series format, the batch of physics questions, and more burn
+data.

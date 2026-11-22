@@ -9,10 +9,12 @@ scattering at ChemMatCARS. It is not a fitting program. Read
 ## Current phase — read before changing anything
 
 **Implementation, following `docs/SCOPE.md` stage by stage** (authorised by
-the owner on 2026-11-17). Stages 0–2 are done (2026-11-18); GID work
-(Stage 6, D36) has started at the owner's request; Stage 3 started
-2026-11-19. The top of `docs/TODO.md` says which stage is in
-progress; if it disagrees with this paragraph, that file wins.
+the owner on 2026-11-17). Stages 0–2 are done (2026-11-18); Stage 3 (series,
+the per-SPEC workbook, automatic saving, live updates) is largely built
+(2026-11-19 to 22); in Stage 6, GID patching and fitting (peaks, burn
+trends) are built. `docs/ACCOMPLISHMENTS.md` summarises what exists; the
+top of `docs/TODO.md` says what is in progress and holds the working list
+by area; if it disagrees with this paragraph, that file wins.
 
 Application code may now be changed, under these conditions:
 - one defect or one feature per commit, with its test in the same commit;
@@ -25,6 +27,7 @@ Application code may now be changed, under these conditions:
 | Path | What it is |
 |---|---|
 | `docs/PROJECT_CONTEXT.md` | What the program is for, in the owner's words |
+| `docs/ACCOMPLISHMENTS.md` | What has been built so far, by stage and area, with pointers |
 | `docs/ASSESSMENT.md` | Structure, physics to preserve, numbered defects, Python 3 audit |
 | `docs/FEATURE_REQUESTS.md` | Requirements R1–R4 and requests F1…; add new ones here with the date |
 | `docs/SCOPE.md` | The plan: target structure and stages, with every request placed |
@@ -43,6 +46,10 @@ Application code may now be changed, under these conditions:
 | `reader_log.py` | Durable log, per-SPEC log, process-wide exception handler (no Qt needed) |
 | `packaging/`, `docs/PACKAGING.md` | PyInstaller recipe, pinned build libraries, the GitHub build workflow (`.github/workflows/build.yml`) |
 | `lss_core/preferences.py` | Preferences kept between sessions (`$LSS_READER_PREFS`; the tests use a temporary file) |
+| `lss_core/series.py`, `timing.py` | Scan series (lines and guesses) and per-point times |
+| `lss_core/workbook.py`, `live.py` | The per-SPEC Excel workbook (saved results, series ties, stale flags); remaking results from their recipes (live updates) |
+| `lss_core/peaks.py`, `trends.py`, `burn.py` | Peak finding and fitting; trends over time; burn tests |
+| `lss_core/pinhole.py`, `gid.py` | Pinhole GID geometry, responses, joins, distance calibration; the GID patch |
 | `tests/` | The suite; `synth.py` (synthetic data), `sweep.py` (GUI driver) |
 | `sample_data/NX_school/` | Real, public data set (committed) |
 | `sample_data/bu/` | Real, private data set: git-ignored, never commit or push it |

@@ -142,8 +142,19 @@ the same files. It is also written to the log.
     wb.save()
     wb.results(kind='line cut'), wb.data(rid), wb.fits(scan=11), wb.settings('peak_fit')
 
-The window's Save buttons do the same; the sheets are described in
-`lss_core/workbook.py`.
+The window's Save buttons do the same (and every finished reduction is
+saved automatically); the sheets are described in `lss_core/workbook.py`.
+
+Series, stale results and remakes (2026-11-22):
+
+    from lss_core import series, live
+    info = series.scan_info(spec.Data, spec.Par)           # spec: a spec_routines.specread
+    found = series.all_series(info)                        # lined and guessed series
+    s = workbook.series_for([6, 7, 8, 9], found)           # the dict add_result(series=...) stores
+    stale = wb.mark_stale(found, points={6: 21, 7: 21})    # {result id: why it is out of date}
+    call, res, used, pts = live.remake(row['recipe'], scans, exp, then, now)   # parsed, not executed
+    kind, items = live.item_for(call, res, used)
+    X, Y, V, E = wb.map(rid)                               # a saved GID map, as a grid
 
 ## Peaks (2026-11-21)
 

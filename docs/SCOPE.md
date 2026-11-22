@@ -3,7 +3,8 @@
 Written 2026-11-16, when the owner supplied "the rest of the feature set".
 It orders everything in `FEATURE_REQUESTS.md` (R1–R6, D1–D16, F1–F48) into
 stages. Implementation started on the owner's word (2026-11-17): Stages
-0–2 are done, Stages 3 and 6 are under way; `TODO.md` holds the status.
+0–2 are done, Stage 3 is largely built and Stage 6's GID and fitting work
+is built (`ACCOMPLISHMENTS.md`); `TODO.md` holds the status.
 
 ## What must stay true throughout
 

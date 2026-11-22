@@ -3526,3 +3526,18 @@ out of a re-applied "all frames" selection until it does. Verified:
 runs and the result is remade at 21; an MCA file of 1 spectrum rewritten
 with 3: the update runs and the scan counts 3).
 
+### 2026-11-22 — Documents brought up to date
+
+**Owner:** "Update the accomplishments and other docs while the tests run."
+
+There was no accomplishments document (TODO's "Done" list stopped at the
+tests-and-scoping phase). Written: `docs/ACCOMPLISHMENTS.md`, a one-page
+summary by stage and area with pointers and the counts (checked against
+the files: 43 physics issues, 31 comparisons, 26 invariants, 549 quick,
+581 slow and 67 sweep tests collected). Updated: the current-phase
+paragraph and the file map in `AGENTS.md`; the stage table in `TODO.md`
+(Stage 3 largely built) and its "Done" pointer; `SCOPE.md`'s status line;
+`TESTING.md` (the 43 test files it did not list, by area, and the
+load-sensitive timing test); `SCRIPTING.md` (series, stale results,
+remakes, maps); `MANUAL_NOTES.md`'s sources; the README.
+
