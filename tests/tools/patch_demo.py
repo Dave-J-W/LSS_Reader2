@@ -46,11 +46,9 @@ def main(argv=None):
             figures.report(a.save, replicates=n, burn_replicates=nb, log=print, rows_out=a.rows)
         return 0
     from PyQt5 import QtWidgets
-    from demonstrator.window import DemoWindow
+    from demonstrator.window import open_demo
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
-    w = DemoWindow(mode=a.mode, seed=a.seed)
-    w.resize(1500, 950)
-    w.show()
+    w = open_demo(mode=a.mode, seed=a.seed)     # noqa: F841 (kept alive until the loop ends)
     return app.exec_()
 
 

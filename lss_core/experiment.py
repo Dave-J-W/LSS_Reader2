@@ -6,6 +6,7 @@
     frames = exp.frames([6, 7, 8, 9])  # Frame records, in scan/point order
     result = exp.reflectivity([6, 7, 8, 9])
     result.save('dppc')                # dppc_ref.txt, dppc_rrf.txt
+    result.save('dppc', covariance='sidecar')   # + dppc_ref.cov.json, dppc_rrf.cov.json (xmodfit)
 
 Frames are matched to image files by the frame number in the file name,
 and images are read through the shared cache (lss_core.images).
@@ -81,9 +82,65 @@ class ReflectivityResult:
     beam_offsets: list = field(default_factory=list)  # (scan, point, dx, dy)
     method: str = refl.DEFAULT_PATCH_METHOD           # how the patch factors were fitted
     notes: list = field(default_factory=list)         # (join, note) left by the fit
+    settings: dict = field(default_factory=dict)       # qc, qoff, norm_factor, rrf, drops, factors, method
 
-    def save(self, name):
-        refl.save(name, self.ref, self.rrf)
+    def covariance(self, method=None, error_column=None):
+        """The stitched curve with its covariance, as written to the
+        xmodfit sidecars (``lss_core.covariance_export``): (ref, rrf)
+        ``CovData`` after the window's normalisation, sort, Q_z offset and
+        Fresnel division (rrf None without R/R_F).
+
+        ``method``: None (default) the patch this result was made with
+        (``self.method``: 'joint' or 'legacy'), replayed with W and Σ carried
+        beside it, so x and y are exactly ``self.ref``/``self.rrf``; or
+        'legacy'/'joint' explicitly; 'corrected' (the hand-off's §3.2 chain);
+        'stitched' (``lss_core.patching.chain``: every point as measured,
+        averaged only where Q_z coincide). ``error_column``: 'legacy' (the
+        patch's own folded column, as in the files) or 'total' (√diag C);
+        default 'legacy' for the 'legacy'/'joint' replays, 'total' otherwise."""
+        from . import covariance_export as ce
+        st = self.settings
+        method = method or self.method
+        drops, factors = st.get('drops'), st.get('factors')
+        if method in ('legacy', 'joint'):
+            cd = ce.tracked_chain(self.per_scan, self.order, drops, factors, method).covdata(error_column or 'legacy')
+        elif method == 'corrected':
+            cd = ce.corrected_chain(self.per_scan, self.order, drops, factors).covdata(error_column or 'total')
+        elif method == 'stitched':
+            if error_column == 'legacy':
+                raise ValueError("the 'stitched' output has no folded error column")
+            cd = ce.joint_covdata(self.per_scan, self.order, drops, factors, qc=st.get('qc', 0.0217),
+                                  qoff=st.get('qoff', 0.0))
+        else:
+            raise ValueError("method %r: None, 'joint', 'legacy', 'corrected' or 'stitched'" % method)
+        return ce.finish(cd, st.get('qc', 0.0217), st.get('qoff', 0.0), st.get('norm_factor'), st.get('rrf', True))
+
+    def save(self, name, covariance=None, method=None, combined=False):
+        """<name>_ref.txt and <name>_rrf.txt as the window writes them.
+
+        ``covariance`` (default None: just those files, unchanged):
+        'sidecar' adds <name>_ref.cov.json / _rrf.cov.json describing the
+        files written (``method`` default: the patch of this result, whose
+        files are then byte for byte those of ``save(name)``); 'contract'
+        writes the hand-off's two outputs (docs/handoff/19 §2.5): <name>_ref.txt
+        / _rrf.txt from ``method`` (default: this result's patch) with the
+        error column √diag C, their sidecars, and the legacy patch's files
+        as <name>_ref_legacy.txt / _rrf_legacy.txt (byte for byte the
+        legacy method's _ref.txt / _rrf.txt). ``combined``: also
+        <name>_ref.json / _rrf.json (§2.6). Returns the paths written."""
+        if covariance is None:
+            refl.save(name, self.ref, self.rrf)
+            return [name + '_ref.txt'] + ([name + '_rrf.txt'] if self.rrf is not None else [])
+        from . import covariance_export as ce
+        if covariance == 'sidecar':
+            ref, rrf = self.covariance(method)
+            return ce.save(name, ref, rrf, combined=combined)
+        if covariance == 'contract':
+            ref, rrf = self.covariance(method, 'total')
+            lref, lrrf = self.covariance('legacy', 'legacy')
+            return ce.save(name, ref, rrf, legacy=(lref.array(), None if lrrf is None else lrrf.array()),
+                           combined=combined)
+        raise ValueError("covariance %r: None, 'sidecar' or 'contract'" % covariance)
 
 
 @dataclass
@@ -259,7 +316,9 @@ class Experiment:
         patched = refl.patch(per_scan, order, drops, factors, method=method, notes=notes)
         ref, out_rrf = refl.finish(patched[:, :3] if patched.shape[1] > 3 else patched,
                                    qc, qoff, norm_factor, rrf)
-        return ReflectivityResult(per_scan, order, patched, ref, out_rrf, offsets, method, notes)
+        return ReflectivityResult(per_scan, order, patched, ref, out_rrf, offsets, method, notes,
+                                  dict(qc=qc, qoff=qoff, norm_factor=norm_factor, rrf=rrf, drops=drops,
+                                       factors=factors, method=method))
 
     def cut(self, scans, direction, range, axes='Pixels', summed=False, points=None,
             absfac=ABSFAC_10KEV, errors=None, monitor_gain=False, distance=None, db_pos=None,

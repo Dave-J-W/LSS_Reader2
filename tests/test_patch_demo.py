@@ -45,15 +45,18 @@ def test_without_foil_errors_the_prior_is_the_truth():
 
 
 def test_every_method_is_near_the_truth_at_high_counts():
-    """Water, NX-like grids, ×100 the NX counts (errors ≈ 0.05 %): every
-    method within 0.15 % and 3 reported σ of the true factor of each join
-    (measured: within 0.08 %, |pull| ≤ 1.6, seeds 0–2)."""
+    """Water, NX-like grids, ×100 the NX counts (counting errors ≈ 0.05 %,
+    the monitor's 0.05 % per point): every method within 0.15 % and 3
+    reported σ of the true factor of each join, except the legacy chain's
+    own error, known to be too small (pull SD 1.2–2.2 at NX counts, figure 2;
+    4 σ here once the counting errors are small)."""
     rep = refl.replicate(refl.Config(truth='water', plan='nx', counts=100.0), 0)
     for name, r in refl.run_all(rep).items():
         assert r.ok, (name, r.error)
         dev = np.log(r.factors / rep.true_steps)
         assert np.all(np.abs(dev) < 0.0015), (name, dev)
-        assert np.all(np.abs(dev / r.step_err) < 3), (name, dev / r.step_err)
+        if name != 'legacy':
+            assert np.all(np.abs(dev / r.step_err) < 3), (name, dev / r.step_err)
 
 
 def test_the_rebuilt_join_curve_is_the_joint_fit():
@@ -89,27 +92,62 @@ def test_legacy_and_spline_ratio_agree_on_the_first_join():
     assert leg.factors[0] == pytest.approx(sp.factors[0], rel=1e-4)
 
 
-def test_the_p1_case_as_coded():
-    """As coded (2026-11-22), noise-free water, a staggered overlap that
-    straddles Qc: legacy −13.7 %, spline in ln y −1.1 %, the default joint
-    fit (R/R_F; the χ² guard steps down to the overlap at order 2) +2.0 %."""
+def test_the_monitor_is_the_owners_by_default():
+    """Owner, 2026-11-22: Monc has no Poisson noise, a 0.05 % uncertainty
+    (``xrr_scans.REAL_MONITOR``); Poisson stays an option."""
+    real = refl.replicate(FAST, 0)
+    pois = refl.replicate(refl.Config(truth='water', plan='nx', monitor='poisson'), 0)
+    assert real.config.monitor == 'real'
+
+    def scatter(rep):
+        rec = rep.data.scans[rep.order[1]]
+        return np.std(rec.monc / (rep.data.beamline.monc_rate * rec.seconds) - 1)
+    assert 2e-4 < scatter(real) < 1e-3              # 0.05 %
+    assert scatter(pois) > 1.5e-3                     # 1/√(2.2e5) = 0.21 %
+
+
+def test_realistic_joins_as_coded():
+    """As coded (2026-11-22, the default since main's 6bb29bf: 2 points
+    either side, guard ladder), noise-free: water's first join on
+    coinciding points (standard plan): legacy and default joint exact
+    (< 0.01 %), the old window (order 4, 4 either side, no guard) −0.32 %;
+    100 Å film, staggered NX-like overlaps, join 3: default joint −0.02 %,
+    order 2 with 4 either side without the guard +12 %."""
+    rep = refl.denoised(refl.replicate(refl.Config(truth='water', plan='standard'), 0))
+    dev = {n: refl.run_method(rep, n).factors[0] / rep.true_steps[0] - 1 for n in ('legacy', 'joint', 'fixed_o4_e4')}
+    assert abs(dev['legacy']) < 1e-4 and abs(dev['joint']) < 1e-4
+    assert -0.004 < dev['fixed_o4_e4'] < -0.0025
+    rep = refl.denoised(refl.replicate(refl.Config(truth='film', plan='nx_staggered'), 0))
+    dev = {n: refl.run_method(rep, n).factors[2] / rep.true_steps[2] - 1 for n in ('joint', 'fixed_o2_e4')}
+    assert abs(dev['joint']) < 0.001
+    assert 0.10 < dev['fixed_o2_e4'] < 0.14
+
+
+def test_the_p1_aside_as_coded():
+    """As coded, noise-free water, a staggered overlap that straddles Qc
+    (an aside: the owner does not patch there). Deliberate change
+    2026-11-22 (new joint default, the owner's monitor): legacy −13.7 →
+    −16.6 % (the monitor model changes the weights), spline in ln y −1.1 →
+    −1.75 %, default joint fit +2.0 → +2.44 % (no adequate fit on the
+    ladder: order 4, 1 either side, error inflated)."""
     rep = refl.denoised(refl.replicate(refl.Config(truth='water', plan='edge'), 0))
     dev = {n: refl.run_method(rep, n).factors[0] / rep.true_steps[0] - 1
-           for n in ('legacy', 'interp_log', 'joint_o4_e4')}
-    assert -0.16 < dev['legacy'] < -0.11
-    assert abs(dev['interp_log']) < 0.015
-    assert 0.015 < dev['joint_o4_e4'] < 0.025
+           for n in ('legacy', 'interp_log', 'joint')}
+    assert -0.19 < dev['legacy'] < -0.14
+    assert abs(dev['interp_log']) < 0.025
+    assert 0.02 < dev['joint'] < 0.03
 
 
 def test_global_fit_has_no_guard_as_coded():
     """As coded: on a 100 Å film (NX-like grids, no noise) the last join's
-    window spans more than a fringe; the guarded joint fit steps down and
-    stays within 0.2 %, the global fit (no guard) is 3 % off."""
+    window (4 either side) spans more than a fringe; the default joint fit
+    (2 either side, guard ladder) is within 0.01 %, the global fit (no
+    guard) is 3.3 % off (−3.1 % with the Poisson monitor before 2026-11-22)."""
     rep = refl.denoised(refl.replicate(refl.Config(truth='film', plan='nx'), 0))
-    j = refl.run_method(rep, 'joint_o4_e4').factors[2] / rep.true_steps[2] - 1
+    j = refl.run_method(rep, 'joint').factors[2] / rep.true_steps[2] - 1
     g = refl.run_method(rep, 'global').factors[2] / rep.true_steps[2] - 1
-    assert abs(j) < 0.002
-    assert -0.04 < g < -0.02
+    assert abs(j) < 0.0002
+    assert -0.04 < g < -0.025
 
 
 def test_coincident_fails_on_staggered_grids_and_says_so():
@@ -119,7 +157,7 @@ def test_coincident_fails_on_staggered_grids_and_says_so():
 
 
 def test_chi2_against_the_truth_with_the_full_covariance_is_near_one():
-    vals = [refl.chi2_vs_truth(rep, refl.run_method(rep, 'joint_o4_e4'))[1]
+    vals = [refl.chi2_vs_truth(rep, refl.run_method(rep, 'joint'))[1]
             for rep in (refl.replicate(FAST, s) for s in range(4))]
     assert 0.6 < np.mean(vals) < 1.4
 
@@ -231,7 +269,9 @@ def test_the_window_space_bar_checkboxes_and_modes(qapp, recorder):
         assert w.seed == 2 and box.isChecked() == was
         box.click()
         assert box.isChecked() != was
-        w.method_boxes['joint_o2_e4'].click()
+        w.method_boxes['fixed_o2_e4'].click()
+        w.monc.setCurrentIndex(w.monc.findData('poisson'))
+        assert w.rep.config.monitor == 'poisson'
         w.view.setCurrentIndex(1)
         w.join.setValue(3)
         w.plan.setCurrentIndex(w.plan.findData('edge'))
@@ -248,7 +288,6 @@ def test_the_window_space_bar_checkboxes_and_modes(qapp, recorder):
         assert 'template' in w.notes.toPlainText()
     finally:
         w.close()
-        w.deleteLater()
     assert recorder.exceptions == []
 
 
@@ -264,4 +303,20 @@ def test_the_report_figures_are_written_headless(tmp_path):
     assert sum(n.endswith('.png') for n in names) == 6
     assert 'numbers.json' in names and 'burn_estimator_summary.csv' in names
     assert sorted(os.listdir(tmp_path / 'rows')) == ['burn_estimators.csv', 'factors_film100_nx.csv',
-                                                     'factors_water_nx.csv']
+                                                     'factors_film100_nx_staggered.csv', 'factors_water_nx.csv']
+
+
+@pytest.mark.gui
+def test_the_window_opens_from_code_with_a_parent(qapp, recorder):
+    """The entry point a Tools menu would call: open_demo(parent, mode)."""
+    from PyQt5 import QtWidgets
+    from demonstrator.window import open_demo
+    host = QtWidgets.QMainWindow()
+    w = open_demo(parent=host, mode='burn', seed=2)
+    try:
+        assert w.parent() is host and w.isWindow() and w.current_mode() == 'burn'
+        assert isinstance(w.rep, bm.Replicate) and w.rep.seed == 2
+    finally:
+        w.close()
+        host.close()
+    assert recorder.exceptions == []
