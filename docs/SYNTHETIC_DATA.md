@@ -277,6 +277,7 @@ destination SPEC file is empty until the first `advance`.
 | Diffuse background, Yoneda wings, sh scans, Qz offset | F42, F59 | `xrr_images` background is flat |
 | Bad pixels, cosmic rays, multiple exposures, stray light | F40, P40 | |
 | Monitor noise with heavy tails (Student t, drifts) | `reports/monitor_noise.md` | `Beamline.monitor_jitter` is Gaussian |
+| **Monc as it is** (owner, 2026-11-22): "monc doesn't have poisson noise, it's more like a strict 0.05% uncertainty" (xray_fluxor) | `xrr_scans.REAL_MONITOR` = `Beamline(monitor_poisson=False, monitor_jitter=0.0005)`; `errors='counting+monitor'` then adds (net × 0.0005)² | the default stays Poisson so that older tests keep their numbers; use `REAL_MONITOR` for anything that judges error models (the gauntlet does) |
 | GISAXS, GIOXS, calibration fits (g_l2, g_l3) | R5 benchmarks | |
 | The covariance contract's acceptance tests 2–6 | hand-off 19 §5 | the generator provides K = 3–5 and the non-one-hot case; the tests belong to the patching work |
 

@@ -80,7 +80,12 @@ class Beamline:
     (attenuated by the foils); ``dark``: counts/s per pixel (not
     attenuated). ``max_rate``: counts/s in the ROI the automatic absorber
     choice stays below. ``monitor_jitter``: relative Gaussian noise of
-    Monc beyond Poisson (0: Poisson only)."""
+    Monc beyond Poisson (0: Poisson only). ``monitor_poisson``: whether Monc
+    is drawn as Poisson counts (default, as before); the owner (2026-11-22):
+    "monc doesn't have poisson noise, it's more like a strict 0.05 %
+    uncertainty" (an ion chamber read through a current amplifier and a
+    V2F converter; xray_fluxor). For that model: monitor_poisson=False,
+    monitor_jitter=0.0005 (``REAL_MONITOR``)."""
     flux: float = 2.5e12
     monc_rate: float = 1.1e5
     monp_rate: float = 2.15e5
@@ -89,6 +94,7 @@ class Beamline:
     max_rate: float = 4.0e5
     monitor_jitter: float = 0.0
     energy_kev: float = xrr.ENERGY_KEV
+    monitor_poisson: bool = True
 
     @property
     def wavelength(self):
@@ -98,6 +104,10 @@ class Beamline:
         """The calibrated foils at this energy (the nominal attenuation)."""
         f = absorbers.calibrated(self.energy_kev)
         return f if f is not None else absorbers.Foils(energy_kev=self.energy_kev)
+
+
+# the monitor as the owner describes it (2026-11-22): no Poisson noise, 0.05 % relative
+REAL_MONITOR = dict(monitor_poisson=False, monitor_jitter=0.0005)
 
 
 @dataclass
@@ -252,7 +262,7 @@ def measure(profile, plan, beamline=None, resolution=None, errors='counting', se
             monc = m_exp.copy()
             monp = bl.monp_rate * t
         else:
-            monc = rng.poisson(m_exp).astype(float)
+            monc = rng.poisson(m_exp).astype(float) if bl.monitor_poisson else m_exp.copy()
             if bl.monitor_jitter:
                 monc = np.round(monc * (1 + bl.monitor_jitter * rng.standard_normal(qz.size)))
             monp = rng.poisson(bl.monp_rate * t).astype(float)
@@ -266,8 +276,9 @@ def measure(profile, plan, beamline=None, resolution=None, errors='counting', se
         B2 = np.where(core, c['B2_core'], c['B2_core'] + c['B2_outer'])
         net = (S - (B1 + B2) / 2.0) / monc
         var = (S + (B1 + B2) / 4.0) / monc ** 2
-        if errors == 'counting+monitor':
-            var = var + net ** 2 / monc
+        if errors == 'counting+monitor':      # the monitor's own relative variance, as drawn
+            rel2 = (1.0 / monc if bl.monitor_poisson else 0.0) + bl.monitor_jitter ** 2
+            var = var + net ** 2 * rel2
         elif errors != 'counting':
             raise ValueError("errors: 'counting' or 'counting+monitor'")
         per_scan[num] = np.column_stack([qz, net, np.sqrt(var), S / monc, np.sqrt(S) / monc,
