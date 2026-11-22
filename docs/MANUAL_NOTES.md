@@ -21,6 +21,7 @@ with each feature commit (AGENTS.md rule 11).
 | Features built, with the code and the test for each | `docs/FEATURE_REQUESTS.md`, "Built" table |
 | Installing and packaged builds | `docs/PACKAGING.md`, `requirements.txt` |
 | Old vs new methods (for figures in the manual) | `docs/COMPARISONS.md` |
+| Teaching figures of the fitting methods (patching, burn line cuts) on synthetic data with known truth, and a small demonstrator window (not part of the reader) | `docs/reports/patch_demo.md`, `docs/figures/patch_demo/`; `python tests/tools/patch_demo.py` (space bar: new noise replicate; tooltips explain each control) |
 | Real example data a manual can use | `sample_data/NX_school/` (public). Never `sample_data/bu/` or `sample_data/private/` |
 
 ## Features by area of the window
@@ -290,3 +291,5 @@ stable (burn tests), the confident 5 % time.
 - Several result panes are built only when data are loaded, so
   `controls.md` misses their controls; open NX school data and harvest
   again if needed.
+
+- **Preferences → Ref Patch → patch factor** (2026-11-22): 'Joint fit' (default) or 'Legacy fit'. The joint fit draws one smooth curve through both scans at a join and fits the factor with it; its errors are honest and it has no interpolation bias (P1). 'Legacy fit' reproduces files made before 2026-11-22 exactly. The patch window's preview shows the factor that Next will use. Where a join has fewer than two points of a scan in the overlap the legacy fit is used and the Messages pane says so. Evidence: `docs/comparisons_data/ref_patch_gauntlet/summary.md`.

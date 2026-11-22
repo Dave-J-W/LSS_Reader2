@@ -17,6 +17,9 @@ DEFAULTS = {
     # when the fit's relative error is above the threshold (lss_core.reflectivity.patch_choice)
     'patch_auto_known_ratio': True,
     'patch_threshold_percent': 3.0,
+    # Ref Patch: how the factor at a join is fitted, 'joint' (one curve through both
+    # scans, lss_core.patching; default since 2026-11-22, the gauntlet) or 'legacy'
+    'ref_patch_method': 'joint',
     # multi-element fluorescence detector: elements to sum (empty: all). EXAFS sums
     # all seven; XFNTR uses the central one (owner, 2026-11-19)
     'mca_channels': [],

@@ -168,14 +168,19 @@ Notes (reasoned):
   further multiplicative term with W[i, m] = (q_i − q̄_m)·[i ∈ m] and a
   per-scan slope variance (reasoned; not built: no measurement of the
   size yet).
-- **Monitor noise per point** (P3, Gaussian 0.04 %, budget model) is
-  independent from point to point and belongs in σ_meas. One finding
-  on the way (measured): synthetic scans drawn with Poisson monitor
-  counts but reduced with detector counting errors only gave GLS χ²/dof
-  1.29 and joint-fit pulls 1.13–1.20. With the monitor term in σ_meas
-  (`errors='counting+monitor'`) the numbers were 0.99 and 1.05. A
-  covariance is only as good as its diagonal. With the legacy error
-  model (P2: the monitor term per pixel), σ_meas carries P2's error.
+- **Monitor noise per point** is independent from point to point and
+  belongs in σ_meas. The owner (2026-11-22): "monc doesn't have poisson
+  noise, it's more like a strict 0.05% uncertainty" (the xray_fluxor
+  chain). The budget model's Gaussian 0.04 % (P3) is that, and the
+  synthetic `xrr_scans.REAL_MONITOR` models it. All numbers in §6 use it
+  unless they say otherwise. One finding (measured, with the older
+  Poisson-monitor synthetic data, Monc ≈ 2×10⁵ counts, i.e. 0.22 % per
+  point): reduced with detector counting errors only, the GLS χ²/dof was
+  1.29 and the pulls reached 1.2 even with the covariance; with the
+  monitor term in σ_meas they were 0.99 and 1.05. A covariance is only as
+  good as its diagonal. With the real monitor (0.05 %) the term matters
+  only at the brightest points. With the legacy error model (P2: the
+  monitor term per pixel, Poisson), σ_meas carries P2's error.
 
 ## 5. What is lost with diagonal errors only, and what a fitter must check
 
@@ -225,56 +230,124 @@ they are 2.5 / 4.4 / 5.3 (§6).
 Synthetic NX-like scans (`tests/synthetic/xrr_scans.nx_like_plan`: the
 NX school grids, times, absorbers chosen automatically, slits opened ×2.7
 and ×3.2 for the last two scans) of a 25 Å film (ρ 0.39 e/Å³, σ 3.5 Å)
-on water, Poisson detector and monitor counts, reduced by each patch
-method, written as the sidecar, read back, and fitted with
-`gls.fit` for d, ρ, σ and a free overall scale, in log space. 300 seeds;
-the SD of a pull SD from 300 draws is ≈ 0.04. Tool:
+on water. Detector counts are Poisson; the monitor is the owner's model
+(`REAL_MONITOR`: no Poisson noise, 0.05 %), in σ_meas. Each set was
+reduced by each patch method, written as the sidecar, read back, and
+fitted with `gls.fit` for d, ρ, σ and a free overall scale, in log
+space. 300 seeds; the SD of a pull SD from 300 draws is ≈ 0.04. Tool:
 `python tests/tools/covariance_pulls.py --seeds 300 --nx`; output
 `docs/comparisons_data/downstream_covariance/`.
+
+The patch methods:
+- **joint**, the default since 2026-11-22 (`reflectivity.patch(method=
+  'joint')`): each scan against the stitched curve so far, the factor
+  from `patching.joint_factor`, the legacy merge;
+- **legacy**: the old fit in the same chain;
+- **corrected**: the hand-off's §3.2 chain;
+- **stitched**: `patching.chain`, every point as measured, averaged only
+  where Q_z coincide.
 
 **Table 1. Pull SD of d / ρ / σ; mean χ²/dof; RMS error of d (Å), ρ (e/Å³), σ (Å)** (measured)
 
 | Patch | Errors used in the fit | Pull SD d / ρ / σ | χ²/dof | RMS d / ρ / σ |
 |---|---|---|---|---|
-| legacy | file column (legacy folding) | 1.71 / 3.26 / 4.15 | 0.84 | 0.026 / 5.2e-4 / 0.0093 |
-| legacy | √diag C | 0.80 / 3.01 / 2.09 | 0.56 | 0.023 / 6.8e-4 / 0.0072 |
-| legacy | counting only | 2.53 / 4.35 / 5.25 | 1.24 | 0.028 / 5.1e-4 / 0.0097 |
-| legacy | **covariance (sidecar)** | **1.00 / 0.98 / 1.00** | **0.99** | **0.015 / 2.3e-4 / 0.0041** |
-| corrected (hand-off §3.2) | √diag C (its file column) | 0.80 / 3.01 / 2.09 | 0.56 | 0.023 / 6.8e-4 / 0.0072 |
-| corrected | **covariance** | **1.00 / 0.97 / 1.00** | 0.99 | 0.015 / 2.3e-4 / 0.0041 |
-| joint (o4 e4, coincident points averaged) | √diag C | 0.83 / 2.67 / 2.01 | 0.56 | 0.022 / 5.6e-4 / 0.0063 |
-| joint | **covariance** | **1.05 / 1.05 / 1.07** | 0.98 | **0.014 / 1.8e-4 / 0.0036** |
+| joint (default) | file column (factor error folded per point) | 1.48 / 4.12 / 3.88 | 0.79 | 0.026 / 6.3e-4 / 0.0091 |
+| joint | √diag C | 0.88 / 3.88 / 2.35 | 0.61 | 0.023 / 7.2e-4 / 0.0074 |
+| joint | counting only | 2.89 / 6.36 / 6.19 | 1.35 | 0.031 / 5.9e-4 / 0.0104 |
+| joint | **covariance (sidecar)** | **1.10 / 1.00 / 0.96** | **1.01** | **0.015 / 2.2e-4 / 0.0038** |
+| legacy | file column | 1.87 / 4.32 / 4.47 | 0.87 | 0.027 / 5.9e-4 / 0.0094 |
+| legacy | √diag C | 0.83 / 3.70 / 2.15 | 0.57 | 0.023 / 7.1e-4 / 0.0071 |
+| legacy | **covariance** | **1.10 / 0.98 / 0.96** | 1.01 | 0.016 / 2.2e-4 / 0.0038 |
+| corrected (hand-off §3.2) | √diag C (its file column) | 0.83 / 3.70 / 2.15 | 0.57 | 0.023 / 7.1e-4 / 0.0071 |
+| corrected | **covariance** | **1.10 / 0.98 / 0.95** | 1.01 | 0.016 / 2.2e-4 / 0.0038 |
+| stitched | √diag C | 0.90 / 3.86 / 2.45 | 0.60 | 0.024 / 7.2e-4 / 0.0078 |
+| stitched | **covariance** | **1.06 / 1.00 / 1.00** | 1.01 | **0.014 / 1.6e-4 / 0.0033** |
+
+The same with the older Poisson-monitor synthetic data
+(`--poisson-monitor`, `pulls_nx_like_plan_poisson_monitor.csv`, methods
+as before the default changed): covariance 0.97–1.07, legacy column
+1.71 / 3.26 / 4.15, √diag C 0.80 / 3.01 / 2.09. With the quieter real
+monitor, the factors' error is a larger share of the total error, so
+ignoring its correlations costs more (ρ pull 4.1–4.3 against 3.3).
 
 Findings (measured):
-- With the covariance every method gives pull SDs within 0.97–1.07 and
-  χ²/dof 0.98–0.99. Without it, no error column gives honest errors for
-  all three parameters.
-- With the covariance the parameters are also 2–3× more accurate (ρ:
-  RMS 2.3e-4 against 5.2–6.8e-4).
-- With the covariance, legacy and corrected factors give the same fit.
-  The joint fit gives smaller Σ and the best accuracy (ρ RMS 1.8e-4).
-  The covariance matters more than the factor estimator, as in the
-  joint-fit report §5.1.
-- Statistical sanity (hand-off §5.7, `test_statistical_sanity_of_sigma`):
-  over 300 seeds the RMS of √Σ_mm is 1.08–1.11 × the true spread of ln f_m
-  (inflate-only; XModJointFit measured 6–17 % above). Pull SDs are
-  0.93–0.95, the same for the legacy factors with their recomputed
-  errors.
+- With the covariance every method gives pull SDs within 0.95–1.10 and
+  χ²/dof 1.01. Without it, no error column gives honest errors for all
+  three parameters.
+- With the covariance the parameters are also about 3× more accurate (ρ:
+  RMS 2.2e-4 against 5.9–7.2e-4).
+- With the covariance the joint, legacy and corrected factors give the
+  same fit: the covariance matters more than the factor estimator (as in
+  the joint-fit report §5.1). Stitched points (no interpolation) are the
+  most accurate (ρ RMS 1.6e-4).
+- Statistical sanity (hand-off §5.7, `test_statistical_sanity_of_sigma`,
+  300 seeds): for the corrected and legacy factors, the RMS of √Σ_mm is
+  1.08–1.11 × the true spread of ln f_m (inflate-only; XModJointFit
+  measured 6–17 % above). For the joint factors the ratio is
+  0.88 / 0.95 / 0.95, with pull SDs 1.13 / 1.06 / 1.05.
+- At the first join the joint Σ equals the joint fit's own reported
+  error (to 2×10⁻³), and that error's pull SD is 1.13 on these scans: the
+  joint fit's error is about 12 % small there. This is a finding about
+  the default estimator (`patching.joint_factor` with the p > 0.3 guard
+  ladder; probably because the window and order are chosen after looking
+  at χ²), not about the covariance. It has been passed to the main
+  session.
 
 **NX school scans 6–9** (public, budget errors, measured; `nx_sigma.csv`):
-√Σ of scans 7, 8, 9: legacy factors 0.46, 0.92, 1.03 %; corrected 0.46,
-0.92, 1.03 %; joint 0.38, 0.63, 0.75 % (as the joint-fit report §6.1).
-The largest σ_total/σ_meas is 4.8 (legacy) and 5.5 (joint). At those
-points the factor's error dominates, and it is the common part.
+
+| Method | √Σ scan 7 | √Σ scan 8 | √Σ scan 9 | largest σ_total/σ_meas |
+|---|---|---|---|---|
+| joint (default) | 0.43 % | 0.75 % | 0.85 % | 3.9 |
+| legacy factors | 0.46 % | 0.92 % | 1.03 % | 4.8 |
+| corrected | 0.46 % | 0.92 % | 1.03 % | 4.8 |
+| stitched | 0.43 % | 0.75 % | 0.85 % | 6.2 |
+
+The joint and stitched values use `N_EXT` = 2, the setting since the
+gauntlet; with 4 points either side the last scan's √Σ was 0.75 %. At
+the points where σ_total/σ_meas is largest, the factor's error dominates,
+and it is the common part.
+
+### 6.1 Σ of the default (joint) patch: what was chosen and why
+
+The default chain fits each new scan against the stitched curve so far,
+*using that curve's error column*, which has the earlier factors' errors
+folded in (P4). The fit's reported error therefore counts the earlier
+joins' errors once, inside the weights, and Σ would count them again
+through a_m (the double counting the hand-off §3.2 warns of). The export
+keeps the factor the patch used, so the files do not change. Σ is built
+from that estimator's spread under **counting noise alone**
+(`covariance_export._joint_counting`):
+
+- the fit's sensitivity h_i = dδ/d ln y_i (`JoinFit.sensitivity`, at the
+  window and order the guard chose) gives the counting error
+  √(Σ h_i² (σ_meas,i/y_i)²). It also gives the exact a_m = Σ_(i in old)
+  h_i W_i, which sums to 1 because a common shift of the old points moves
+  δ by the same amount. This replaces the hand-off's mean of the
+  overlap's W rows;
+- the inflation max(1, √(χ²/dof)) comes from the same model refitted with
+  counting errors on both sides: the overlap's scatter against counting
+  noise, as in §3.2;
+- where `join_factor` fell back to the legacy fit (fewer than two points
+  in the overlap), that join is treated as in the legacy chain. A known
+  ratio is a step from the previous scan, with the ratio's error.
+
+Tested in `tests/test_covariance_export.py`:
+- the replay equals `reflectivity.patch(method='joint')` bit for bit,
+  with drops and with known factors;
+- at the first join the step error equals the joint fit's own error, to
+  2×10⁻³ (the difference is model against observed variance);
+- at later joins the counting error is smaller than the error of the fit
+  against the folded column;
+- a_m sums to 1.
 
 ## 7. What was built
 
 | Piece | Where | What it does |
 |---|---|---|
 | Covariance data and transforms | `lss_core/covariance_export.py` (`CovData`) | x, y, σ_meas, W, Σ; `take`/`sort`/`cut`, `scale`/`divide`, `shift_x`, `average`, `concat`; `sigma_total`, `covariance` |
-| Legacy chain with W and Σ | `legacy_chain` | replays `reflectivity.patch` (same drops, same known factors), its data bit for bit; carries σ_meas and W (§3.1, §3.3); Σ by §3.4 from the legacy factors, their errors recomputed against counting errors, inflate-only |
+| The patch with W and Σ | `tracked_chain(method)`: `joint_chain` (the default), `legacy_chain` | replays `reflectivity.patch(method=...)` (same drops, same known factors), its data bit for bit; carries σ_meas and W (§3.1, §3.3); Σ by §3.4 from the patch's factors, their errors their counting spread, inflate-only (§6.1) |
 | Corrected chain | `corrected_chain` | hand-off §3.1–3.4 exactly (an independent oracle written from the text agrees to 1e-10) |
-| Joint fit | `joint_covdata` | `patching.chain` + `stitch(merge='coincident')` |
+| Stitched points | `joint_covdata` (method 'stitched') | `patching.chain` + `stitch(merge='coincident')`: no interpolated points |
 | Finishing | `finish` | `reflectivity.finish` (normalisation, sort, q_off, Fresnel) on x, y, σ_meas, W: the written arrays exactly |
 | Files | `sidecar_dict`, `write_sidecar`, `save` | schema v1; `<name>_ref.cov.json`/`_rrf.cov.json`; the contract's two outputs (`_legacy` files); the combined `.json` (§2.6) |
 | Reading and fitting | `lss_core/gls.py` | `load`/`problems`/`match_problems` (XModFit's §2.3 checks), `LowRank` (Woodbury), `chi2` (free scale in closed form), `fit` (nuisance form, log or linear, free scale, masks, diagonal mode for comparisons; returns the per-scan shifts) |
@@ -288,28 +361,32 @@ Script:
     from lss_core import gls
     exp = Experiment('sample_data/NX_school/2026sep/20260923')
     res = exp.reflectivity([6, 7, 8, 9], errors='budget')
-    res.save('dppc')                                  # as before: legacy files only
+    res.save('dppc')                                  # as before: the patch's files only
     res.save('dppc', covariance='sidecar')            # + dppc_ref.cov.json, dppc_rrf.cov.json (files unchanged)
-    res.save('dppc', covariance='contract')           # hand-off §2.5: corrected _ref/_rrf + sidecars + _legacy files
-    res.save('dppc', covariance='contract', method='joint', combined=True)
-    ref, rrf = res.covariance('joint')                # CovData in memory
+    res.save('dppc', covariance='contract')           # hand-off §2.5: _ref/_rrf with √diag C + sidecars + _legacy files
+    res.save('dppc', covariance='contract', method='stitched', combined=True)
+    ref, rrf = res.covariance()                       # CovData in memory (the patch res was made with)
     sc = gls.load('dppc_rrf.cov.json')
     fit = gls.fit(sc, model, p0)                      # model(x, *p) -> R/R_F; free overall scale
     fit.params, fit.errors, fit.chi2, fit.dof, fit.shifts['stitch']
 
 Window: Reflectivity tab, tick "+ covariance" next to Export, then
-Export. The `_ref.txt`/`_rrf.txt` bytes do not change
+Export. The patch is replayed with the method it was made with
+(`refMethodUsed`: joint by default, legacy by preference). The
+`_ref.txt`/`_rrf.txt` bytes do not change
 (`tests/test_gui_covariance_export.py` checks them against the legacy
-fixtures).
+fixtures for the legacy method, and the sidecars against the files for
+both).
 
 ## 8. Decisions left to the owner (TODO area B2)
 
 1. Is the window's covariance option on by default, and which layout
-   does it write: sidecars beside the legacy files (built, off), or the
-   contract's two outputs (corrected `_ref.txt` with √diag C, legacy files
-   as `_legacy`; built for scripts only)? The contract asks for the
-   latter. It changes `_ref.txt`'s numbers, which is the owner's call
-   (F24a).
+   does it write: sidecars beside the patch's own files (built, off), or
+   the contract's two outputs (`_ref.txt` with √diag C as error column,
+   the legacy patch's files as `_legacy`; built for scripts only, its
+   `_ref.txt` from the result's patch, joint by default, or the hand-off's
+   §3.2 'corrected' chain on request)? The contract asks for the latter.
+   It changes `_ref.txt`'s error column, which is the owner's call (F24a).
 2. For the legacy method, Σ from the legacy factors with errors
    recomputed against counting errors (built). The alternative is the
    legacy `absolute_sigma=False` error, recorded in the provenance as
@@ -317,9 +394,10 @@ fixtures).
    error was 0.28–0.72 % and the recomputed one 0.44–0.77 %; the
    legacy error's pull SD was 1.49 at the first join (joint-fit report
    table 1).
-3. The joint method's output points: averaged where Q_z coincide
-   (built default, as the joint-fit report recommends), or every point
-   as measured (duplicates in Q_z).
+3. Whether the default output should become the stitched points (every
+   point as measured, no interpolated averages; the most accurate in
+   table 1) instead of the legacy merge, and if so, averaged where Q_z
+   coincide (built) or with duplicates.
 4. Whether to write the combined `.json` (§2.6) by default once
    XModFit's loader exists.
 5. Whether a monitor-slope term (§4) is worth measuring for.

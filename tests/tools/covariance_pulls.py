@@ -3,7 +3,9 @@
 fitting"). Synthetic NX-like scans of a 25 Å film on water
 (tests/synthetic), reduced by each patch method, written as the xmodfit
 sidecar (lss_core.covariance_export) and fitted (lss_core.gls) for the
-film's thickness, density and roughness with a free overall scale, under
+film's thickness, density and roughness with a free overall scale (the
+monitor as the owner describes it, no Poisson noise and 0.05 %, unless
+``--poisson-monitor``), under
 four error treatments:
 
     file      the data file's own error column (legacy: factor error folded
@@ -12,7 +14,7 @@ four error treatments:
     counting  σ_meas alone (the factors' error ignored)
     cov       the full covariance (the sidecar)
 
-    python tests/tools/covariance_pulls.py [--seeds 300] [--plan nx_like_plan] [--nx]
+    python tests/tools/covariance_pulls.py [--seeds 300] [--plan nx_like_plan] [--nx] [--poisson-monitor]
         [--out docs/comparisons_data/downstream_covariance]
 
 Writes ``pulls.csv`` (per method × treatment: pull SD and mean of each
@@ -40,8 +42,9 @@ NAMES = ['d', 'rho', 'sigma']
 QC = 0.0217
 
 
-def run(plan_name, seeds, methods=('legacy', 'corrected', 'joint')):
-    wl = xs.Beamline().wavelength
+def run(plan_name, seeds, methods=('joint', 'legacy', 'corrected', 'stitched'), poisson_monitor=False):
+    bl = xs.Beamline() if poisson_monitor else xs.Beamline(**xs.REAL_MONITOR)
+    wl = bl.wavelength
 
     def model(q, d, rho, sig):
         return xrr.film(d, rho, sig).reflectivity(q, wl)
@@ -50,9 +53,10 @@ def run(plan_name, seeds, methods=('legacy', 'corrected', 'joint')):
         t0 = time.time()
         acc = {k: [] for k in ('file', 'total', 'counting', 'cov')}
         for seed in range(seeds):
-            r = xs.measure(xrr.film(*TRUTH), getattr(xs, plan_name)(), seed=seed, errors='counting+monitor')
-            if method == 'legacy':
-                cd = ce.legacy_chain(r.per_scan, r.order).covdata('legacy')
+            r = xs.measure(xrr.film(*TRUTH), getattr(xs, plan_name)(), beamline=bl, seed=seed,
+                           errors='counting+monitor')
+            if method in ('legacy', 'joint'):
+                cd = ce.tracked_chain(r.per_scan, r.order, method=method).covdata('legacy')
             elif method == 'corrected':
                 cd = ce.corrected_chain(r.per_scan, r.order).covdata('total')
             else:
@@ -68,7 +72,8 @@ def run(plan_name, seeds, methods=('legacy', 'corrected', 'joint')):
                 acc[k].append(np.concatenate([(f.params - TRUTH) / f.errors, f.params - TRUTH, [f.chi2 / f.dof]]))
         for k, v in acc.items():
             v = np.array(v)
-            row = dict(plan=plan_name, method=method, errors=k, seeds=seeds, points=ref.n)
+            row = dict(plan=plan_name, monitor='poisson' if poisson_monitor else 'real (0.05 %)', method=method,
+                       errors=k, seeds=seeds, points=ref.n)
             for i, n in enumerate(NAMES):
                 row['pull_sd_' + n] = round(float(v[:, i].std(ddof=1)), 3)
                 row['pull_mean_' + n] = round(float(v[:, i].mean()), 3)
@@ -84,7 +89,7 @@ def nx_sigma():
     spec = os.path.join(ROOT, 'sample_data', 'NX_school', '2026sep', '20260923')
     res = Experiment(spec).reflectivity([6, 7, 8, 9], errors='budget')
     rows = []
-    for method in ('legacy', 'corrected', 'joint'):
+    for method in ('joint', 'legacy', 'corrected', 'stitched'):
         ref, _ = res.covariance(method)
         tot = ref.sigma_total() / ref.y
         for lab, s in zip(ref.labels, np.sqrt(np.diag(ref.Sigma))):
@@ -106,12 +111,13 @@ def main():
     ap.add_argument('--seeds', type=int, default=300)
     ap.add_argument('--plan', default='nx_like_plan')
     ap.add_argument('--nx', action='store_true')
+    ap.add_argument('--poisson-monitor', action='store_true', help='Monc with Poisson noise (before 2026-11-22)')
     ap.add_argument('--out', default=os.path.join(ROOT, 'docs', 'comparisons_data', 'downstream_covariance'))
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     warnings.simplefilter('ignore')
-    rows = run(a.plan, a.seeds)
-    write(os.path.join(a.out, 'pulls_%s.csv' % a.plan), rows)
+    rows = run(a.plan, a.seeds, poisson_monitor=a.poisson_monitor)
+    write(os.path.join(a.out, 'pulls_%s%s.csv' % (a.plan, '_poisson_monitor' if a.poisson_monitor else '')), rows)
     for r in rows:
         print('%-9s %-8s pull SD %5.2f %5.2f %5.2f  chi2/dof %.2f  rms %.3g %.3g %.3g' % (
             r['method'], r['errors'], r['pull_sd_d'], r['pull_sd_rho'], r['pull_sd_sigma'], r['chi2_dof'],

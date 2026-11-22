@@ -338,6 +338,10 @@ class TrackedChain:
         if self.method == 'legacy':
             p['sigma_from'] = ('legacy factors; their error recomputed from counting errors, inflate-only '
                                '(hand-off §3.2 rule applied to the legacy weighted mean)')
+        elif self.method == 'joint':
+            p['sigma_from'] = ('joint-fit factors (reflectivity.join_factor); their error the counting spread of that '
+                               'fit (its sensitivity to each point, counting errors only), inflated by the overlap '
+                               'chi2 against counting errors; a_m from the same sensitivity')
         return p
 
 
@@ -443,8 +447,8 @@ def _actions(drops, j):
 
 
 def _chain(per_scan, order, drops, factors, method):
-    if method not in ('legacy', 'corrected'):
-        raise ValueError("method %r: 'legacy' or 'corrected'" % method)
+    if method not in ('legacy', 'corrected', 'joint'):
+        raise ValueError("method %r: 'legacy', 'joint' or 'corrected'" % method)
     drops, factors = drops or {}, factors or {}
     K = len(order)
     labels = ['S%s' % k for k in order]
@@ -465,17 +469,30 @@ def _chain(per_scan, order, drops, factors, method):
         overlap1, overlap2 = _overlaps(x1, x2)
         a = W[overlap1].mean(axis=0)
         given = factors.get(j)
+        source = 'fit'
         if method == 'legacy':
             fac_l, ferr_l = stitching._fit_factor(x1, d1[:, 1], d1[:, 2], x2, d2[:, 1], d2[:, 2], overlap1)
             if given is None:
                 fac, ferr, fcnt, chi, fb = _ratio_counting(x1, d1[:, 1], sm, x2, d2[:, 1], sm2, overlap1, fac=fac_l,
                                                            weights=_legacy_weights(d1, d2, overlap1))
             merged = stitching.join(d1.copy(), d2.copy(), mtype='merge', factor=given)
+        elif method == 'joint':
+            fac_l, ferr_l = stitching._fit_factor(x1, d1[:, 1], d1[:, 2], x2, d2[:, 1], d2[:, 2], overlap1)
+            used = given
+            if given is None:
+                f_j, e_j, note = refl_join_factor(d1, d2)
+                used = (f_j, e_j)
+                if note.startswith('joint fit impossible'):      # reflectivity.join_factor fell back to legacy
+                    fac, ferr, fcnt, chi, fb = _ratio_counting(x1, d1[:, 1], sm, x2, d2[:, 1], sm2, overlap1, fac=f_j,
+                                                               weights=_legacy_weights(d1, d2, overlap1))
+                    source = 'legacy fit (joint impossible)'
+                else:
+                    fac, ferr, fcnt, chi, a, fb = _joint_counting(d1, d2, sm, sm2, W, f_j)
+            merged = stitching.join(d1.copy(), d2.copy(), mtype='merge', factor=used)
         else:
             fac_l, ferr_l = math.nan, math.nan                # filled from the legacy chain (corrected_chain)
             if given is None:
                 fac, ferr, fcnt, chi, fb = _ratio_counting(x1, d1[:, 1], sm, x2, d2[:, 1], sm2, overlap1)
-        source = 'fit'
         if given is not None:
             # a known ratio (the window's "Known ratio"): k = (level of the previous scan) × foil step,
             # so the step is taken from the previous scan in order, its log error err/k
@@ -511,6 +528,73 @@ def _chain(per_scan, order, drops, factors, method):
     if method == 'corrected':
         out[:, 2] = sm
     return TrackedChain(out, sm, W, Sigma, labels, joins, method, list(order))
+
+
+def refl_join_factor(d1, d2):
+    """``reflectivity.join_factor(..., 'joint')``: the factor the default
+    patch uses at a join (the same call, so the replay is bit for bit)."""
+    from . import reflectivity as refl
+    return refl.join_factor(d1, d2, 'joint')
+
+
+def _joint_counting(d1, d2, sm1, sm2, W1, fac):
+    """Σ's ingredients for a join made by the joint fit (``reflectivity.
+    join_factor``), which fits the new scan against the stitched curve so
+    far *with the error that curve carries* (earlier factors' errors folded
+    in, P4). The factor used is kept; what enters Σ is the spread of that
+    estimator under counting noise alone, so earlier factors' errors are
+    not counted twice (they reach Σ through a_m, hand-off §3.2):
+
+    * the fit's sensitivity h_i = dδ/d ln y_i at its own window and order
+      (``JoinFit.sensitivity``) gives the counting error
+      √(Σ h_i² (σ_meas,i/y_i)²) and the exact a_m = Σ_(i in a) h_i W_i
+      (Σ h over the existing points is 1: a common shift moves δ by it);
+    * the inflation max(1, √(χ²/dof)) is from the same model refitted with
+      counting errors on both sides (the overlap's scatter against counting
+      noise, as §3.2).
+
+    Returns (fac, facerr, facerr_counting, χ²_red, a_m, [])."""
+    from . import patching
+    oa, ob = np.argsort(d1[:, 0], kind='stable'), np.argsort(d2[:, 0], kind='stable')
+    a_used = patching.Scan(d1[:, 0], d1[:, 1], d1[:, 2])
+    b = patching.Scan(d2[:, 0], d2[:, 1], d2[:, 2])
+    jf = patching.joint_factor(a_used, b)
+    if not math.isclose(jf.factor, fac, rel_tol=1e-12):
+        raise ValueError('the joint fit did not reproduce the factor used (%r vs %r)' % (jf.factor, fac))
+    ia, ib = oa[jf.ia], ob[jf.ib]
+    na = len(jf.ia)
+    h_a, h_b = jf.sensitivity[:na], jf.sensitivity[na:]
+    e_c = float(np.sqrt(np.sum(h_a ** 2 * (sm1[ia] / d1[ia, 1]) ** 2) + np.sum(h_b ** 2 * (sm2[ib] / d2[ib, 1]) ** 2)))
+    a = h_a @ W1[ia]
+    a = a / a.sum()
+    chi = jf.chi2 / jf.dof if jf.dof > 0 else 1.0
+    try:
+        r = patching._fit_once(patching.Scan(d1[:, 0], d1[:, 1], sm1), b, jf.order, jf.n_ext, jf.space, patching.QC,
+                               0.0, jf.likelihood, None, 0.0)
+        if r['dof'] > 0:
+            chi = r['chi2'] / r['dof']
+    except (ValueError, np.linalg.LinAlgError):
+        pass
+    return fac, fac * e_c * max(1.0, math.sqrt(chi)), fac * e_c, float(chi), a, []
+
+
+def joint_chain(per_scan, order, drops=None, factors=None):
+    """The default patch since 2026-11-22 (``reflectivity.patch(method=
+    'joint')``: each scan against everything joined so far, the factor from
+    the joint fit, the overlap averaged, the factor's error folded into the
+    points) with W, σ_meas and Σ carried beside it; ``data`` equals that
+    patch bit for bit. Σ from the joint factors' counting spread
+    (``_joint_counting``)."""
+    return _chain(per_scan, order, drops, factors, 'joint')
+
+
+def tracked_chain(per_scan, order, drops=None, factors=None, method='joint'):
+    """``joint_chain`` or ``legacy_chain`` by the patch ``method`` used."""
+    if method == 'legacy':
+        return legacy_chain(per_scan, order, drops, factors)
+    if method == 'joint':
+        return joint_chain(per_scan, order, drops, factors)
+    raise ValueError("patch method %r: 'joint' or 'legacy'" % method)
 
 
 def legacy_chain(per_scan, order, drops=None, factors=None):

@@ -22,9 +22,17 @@ biased at low counts). The reported error is the counting error ×
 max(1, √(χ²/dof)) (inflate-only). Defaults: order 4, R/R_F, 4 points either
 side (measured: unbiased within 0.1 %, factor scatter 20–30 % below the
 spline-ratio estimator; order 2 with points either side is biased up to
-−5 %). **Guard** (not a search): if the fit's χ² has p < ``guard_p``, the
-window steps down to 2 points either side, then to the overlap alone with
-order 2, and the join is flagged.
+−5 %); since 2026-11-22 the default is 2 points either side (``N_EXT``,
+the gauntlet). **Guard** (``guard_ladder``; revised 2026-11-22 after the gauntlet,
+``tests/tools/ref_patch_gauntlet.py``): the fits are tried from the
+largest window down (4, 2, 1 points either side, then the overlap alone),
+the order rising at each window from 4 (from 2 on the overlap alone) as
+far as the points allow, and the first whose χ² has p ≥ ``guard_p`` (0.3)
+is kept; if none, the most adequate, its error inflated. Before, the
+ladder was (4, 4), (4, 2), (2, 0) with p ≥ 0.01: a thick film's fringes
+or four coinciding points at a fringe minimum fit no quadratic, and the
+factor was biased by up to 4 % or its error inflated ×17; and p ≥ 0.01
+let model bias of 0.2–0.4 σ through.
 
 **Prior.** δ_0 = ln(T(n_a)/T(n_b)) from the calibrated foils; across joins
 the foil errors are shared, so the prior on the steps is correlated
@@ -119,6 +127,15 @@ def fresnel(q, qc=QC):
     return np.where(q <= qc, 1.0, ((q - s) / (q + s)) ** 2)
 
 
+MAX_ORDER = 7      # the guard's highest polynomial order (guard_ladder)
+# the guard keeps the first fit whose chi2 p-value is at least this (2026-11-22, the gauntlet:
+# 0.01 let model bias of 0.2-0.4 sigma through at 4 of 21 synthetic joins, 0.3 passes 19 of 21)
+GUARD_P = 0.3
+# points either side of the overlap (2026-11-22, the gauntlet with the owner's monitor model:
+# 4 let a 0.4-sigma model bias through at water's first join, 2 passes 17 of 18 joins)
+N_EXT = 2
+
+
 def window(qa, qb, n_ext=4):
     """(indices of a, indices of b) used at a join: the overlap [min q_b,
     max q_a] plus ``n_ext`` points of a below it and of b above it."""
@@ -197,18 +214,36 @@ def _fit_once(a, b, order, n_ext, space, qc, qoff, likelihood, prior, snr_min):
     return dict(delta=float(th[-1]), err_c=err_c, chi2=chi2, dof=dof, ia=ia, ib=ib, sens=sens)
 
 
-def joint_factor(a, b, order=4, n_ext=4, space='rrf', qc=QC, qoff=0.0, likelihood='poisson', prior=None,
-                 inflate=True, guard_p=0.01, snr_min=0.0):
+def guard_ladder(a, b, order=4, n_ext=N_EXT, max_order=MAX_ORDER):
+    """The (order, points either side) the guard tries, in order of preference
+    (2026-11-22, the gauntlet, ``tests/tools/ref_patch_gauntlet.py``): the
+    largest window first (most precise), the order rising from ``order`` at
+    each window, down to the overlap alone with orders from 2. The first fit
+    whose chi2 is adequate is kept. Orders are limited to what the window
+    can carry: two degrees of freedom at least, and, when no Qz is shared
+    by the two scans, fewer coefficients than positions (else the
+    polynomial absorbs the offset)."""
+    windows = [n_ext] + [e for e in (2, 1, 0) if e < n_ext]
+    out = []
+    for e in windows:
+        ia, ib = window(a.q, b.q, e)
+        qa, qb = np.round(a.q[ia], 9), np.round(b.q[ib], 9)
+        n_pos = len(np.unique(np.concatenate([qa, qb])))
+        shared = len(np.intersect1d(qa, qb))
+        top = min(max_order, len(ia) + len(ib) - 4, n_pos - (1 if shared else 2))
+        lo = order if e else 2
+        out += [(o, e) for o in range(lo, top + 1)]
+    return out or [(order, n_ext)]
+
+
+def joint_factor(a, b, order=4, n_ext=N_EXT, space='rrf', qc=QC, qoff=0.0, likelihood='poisson', prior=None,
+                 inflate=True, guard_p=GUARD_P, snr_min=0.0):
     """The joint fit at one join (module docstring): a ``JoinFit``. ``prior``:
     (δ_0, s_0) or None (a single join; for several use ``chain(prior=...)``,
     which handles the correlations)."""
     from scipy.stats import chi2 as C2
-    tries = [(order, n_ext)]
-    if guard_p:
-        if n_ext > 2:
-            tries.append((order, 2))
-        tries.append((2, 0))
-    flags, last_err, fallback = [], None, None
+    tries = guard_ladder(a, b, order, n_ext) if guard_p else [(order, n_ext)]
+    flags, last_err, best = [], None, None
 
     def result(r, o, e):
         err = unc.inflate(r['err_c'], r['chi2'], r['dof']) if inflate else r['err_c']
@@ -220,18 +255,21 @@ def joint_factor(a, b, order=4, n_ext=4, space='rrf', qc=QC, qoff=0.0, likelihoo
         except (ValueError, np.linalg.LinAlgError) as err:
             last_err = err
             continue
-        p = C2.sf(r['chi2'], r['dof']) if r['dof'] > 0 else 1.0
-        if guard_p and p < guard_p and k < len(tries) - 1:
-            flags.append('window reduced: chi2/dof %.2f at order %d, %d either side' % (r['chi2'] / max(r['dof'], 1), o, e))
-            fallback = fallback or (r, o, e)
+        if not (np.isfinite(r['delta']) and np.isfinite(r['err_c']) and np.isfinite(r['chi2'])):
+            last_err = ValueError('the fit at order %d, %d either side diverged' % (o, e))
             continue
-        if guard_p and p < guard_p:
-            flags.append('chi2/dof %.2f even on the overlap alone' % (r['chi2'] / max(r['dof'], 1)))
+        p = C2.sf(r['chi2'], r['dof']) if r['dof'] > 0 else 1.0
+        if not guard_p or p >= guard_p:
+            if k:
+                flags.append('order %d, %d either side: the first adequate fit (%d tried)' % (o, e, k + 1))
+            return result(r, o, e)
+        if best is None or p > best[0]:
+            best = (p, r, o, e)
+    if best is not None:              # none adequate: the most adequate one, its error inflated by its chi2
+        _, r, o, e = best
+        flags.append('no adequate fit (chi2 p < %g everywhere): order %d, %d either side, chi2/dof %.2f, '
+                     'error inflated' % (guard_p, o, e, r['chi2'] / max(r['dof'], 1)))
         return result(r, o, e)
-    if fallback is not None:          # a smaller window could not be fitted: the first fit, flagged
-        flags.append('the smaller windows could not be fitted (%s): kept order %d, %d either side, with its '
-                     'chi2 (error inflated)' % (last_err, fallback[1], fallback[2]))
-        return result(*fallback)
     raise ValueError('no joint fit possible at this join: %s' % last_err)
 
 

@@ -219,10 +219,11 @@ unchanged.
 ```python
 r = exp.reflectivity([6, 7, 8, 9], errors='budget')
 r.save('dppc')                                   # unchanged: dppc_ref.txt, dppc_rrf.txt
-r.save('dppc', covariance='sidecar')             # + dppc_ref.cov.json, dppc_rrf.cov.json (legacy files byte for byte)
-r.save('dppc', covariance='contract')            # hand-off §2.5: corrected files (error √diag C) + sidecars + *_legacy.txt
-r.save('dppc', covariance='contract', method='joint', combined=True)   # joint-fit patch; + dppc_ref.json (§2.6)
-ref, rrf = r.covariance('legacy')                # CovData: x, y, sigma_meas, W, Sigma; .take/.cut/.scale/.average/.concat
+r.save('dppc', covariance='sidecar')             # + dppc_ref.cov.json, dppc_rrf.cov.json (the files byte for byte)
+r.save('dppc', covariance='contract')            # hand-off §2.5: error column √diag C + sidecars + *_legacy.txt
+r.save('dppc', covariance='contract', method='stitched', combined=True)   # points as measured; + dppc_ref.json (§2.6)
+ref, rrf = r.covariance()                        # CovData of the patch r was made with (r.method: 'joint' by default)
+                                                 # .take/.cut/.scale/.average/.concat; methods 'legacy', 'corrected', 'stitched'
 
 from lss_core import gls
 sc = gls.load('dppc_rrf.cov.json')               # refuses what XModFit refuses (hand-off §2.3)
@@ -233,8 +234,9 @@ gls.fit(sc, model, p0, mode='diagonal', yerr=d[:, 2])   # the same fit with the 
 gls.chi2(sc, model_curve)                         # GLS chi2 of a curve (Woodbury)
 ```
 
-Without Experiment: `covariance_export.legacy_chain(per_scan, order,
-drops, factors)`, `corrected_chain(...)`, `joint_covdata(...)`, then
+Without Experiment: `covariance_export.tracked_chain(per_scan, order,
+drops, factors, method)` (the patch replayed: 'joint' or 'legacy'),
+`corrected_chain(...)`, `joint_covdata(...)` (stitched points), then
 `finish(cd.covdata(), qc, qoff, norm_factor, rrf)` and `save(name, ref,
 rrf)`. Why and what it changes: `docs/reports/downstream_covariance.md`.
 

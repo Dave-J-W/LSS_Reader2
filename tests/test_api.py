@@ -2,7 +2,9 @@
 
 lss_core.experiment.Experiment runs the window's Ref Patch workflow without
 Qt. Its output is compared with the legacy export fixtures, which were
-written by the window (tests/test_ref_export_golden.py).
+written by the window (tests/test_ref_export_golden.py), with the legacy
+patch fit (``method='legacy'``; the default became the joint fit on
+2026-11-22), and with the window's own files under the default.
 """
 import os
 import sys
@@ -41,7 +43,7 @@ def _compare(case, tmp_path, result):
 @pytest.mark.parametrize('case', list(CASES))
 def test_script_reproduces_window_files_synthetic(case, dataset, tmp_path):
     exp = Experiment(dataset)
-    _compare(case, tmp_path, exp.reflectivity([1, 2], **CASES[case]))
+    _compare(case, tmp_path, exp.reflectivity([1, 2], method='legacy', **CASES[case]))
 
 
 @pytest.mark.slow
@@ -52,7 +54,38 @@ def test_script_reproduces_window_files_synthetic(case, dataset, tmp_path):
 ])
 def test_script_reproduces_window_files_real(case, kw, tmp_path):
     exp = Experiment(NX)
-    _compare(case, tmp_path, exp.reflectivity([6, 7, 8, 9], **kw))
+    _compare(case, tmp_path, exp.reflectivity([6, 7, 8, 9], method='legacy', **kw))
+
+
+@pytest.mark.gui
+@pytest.mark.parametrize('drops', [(), ('-1',)])
+def test_script_reproduces_window_files_under_the_default_method(drops, window, qapp, recorder, dataset, tmp_path):
+    """The joint patch fit (default since 2026-11-22): the window's files and
+    the script's, byte for byte, and the script line says no method."""
+    from test_ref_export_golden import reduce_and_save
+    window.openSpecFile(fname=dataset)
+    qapp.processEvents()
+    window.directory = str(tmp_path)
+    ref, rrf = reduce_and_save(window, qapp, recorder, str(tmp_path / 'win'), [0, 1], drops=drops, method=None)
+    assert recorder.exceptions == []
+    line = window.reflectivityScript('x')
+    assert 'method=' not in line
+    kw = {'drops': {0: [-1]}} if drops else {}
+    r = Experiment(dataset).reflectivity([1, 2], **kw)
+    assert r.method == 'joint'
+    out = str(tmp_path / 'script')
+    r.save(out)
+    for kind, path in (('ref', ref), ('rrf', rrf)):
+        with open(path, 'rb') as a, open(out + '_%s.txt' % kind, 'rb') as b:
+            assert a.read() == b.read(), kind
+    legacy = Experiment(dataset).reflectivity([1, 2], method='legacy', **kw)
+    if drops:     # one point of scan 2 left in the overlap: too few for the joint fit, the legacy one is used
+        assert [j for j, _ in r.notes] == [0] and 'legacy fit used' in r.notes[0][1]
+        assert (legacy.ref == r.ref).all()
+        assert any('legacy fit used' in str(m) for m in recorder.messages)    # the window said so
+    else:
+        assert r.notes == [] or 'legacy' not in r.notes[0][1]
+        assert not (legacy.ref == r.ref).all()      # the default really is another fit
 
 
 def test_experiment_lists_scans_and_frames(dataset):

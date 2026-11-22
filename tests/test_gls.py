@@ -20,10 +20,13 @@ def _model(q, d, rho, sig):
     return xrr.film(d, rho, sig).reflectivity(q, WL)
 
 
-def _sidecar(seed=0, method='legacy', plan=None):
-    r = xs.measure(xrr.film(*TRUTH), plan or xs.nx_like_plan(), seed=seed, errors='counting+monitor')
-    if method == 'legacy':
-        cd = ce.legacy_chain(r.per_scan, r.order).covdata('legacy')
+BL = xs.Beamline(**xs.REAL_MONITOR)      # the monitor as the owner describes it: no Poisson noise, 0.05 %
+
+
+def _sidecar(seed=0, method='joint', plan=None):
+    r = xs.measure(xrr.film(*TRUTH), plan or xs.nx_like_plan(), beamline=BL, seed=seed, errors='counting+monitor')
+    if method in ('legacy', 'joint'):
+        cd = ce.tracked_chain(r.per_scan, r.order, method=method).covdata('legacy')
     else:
         cd = ce.corrected_chain(r.per_scan, r.order).covdata('total')
     ref, _ = ce.finish(cd, QC, 0.0, None, False)
@@ -91,15 +94,15 @@ def test_fit_with_a_mask_selects_rows():
     assert np.array_equal(sub.term('stitch').weights, sc.term('stitch').weights[keep])
 
 
-@pytest.mark.parametrize('method', ['legacy', 'corrected'])
+@pytest.mark.parametrize('method', ['joint', 'legacy', 'corrected'])
 def test_monte_carlo_pulls_with_and_without_the_covariance(method):
     """What a downstream fit gains (measured; report §6). 120 noise seeds of
     NX-like scans of a 25 Å film; d, ρ, σ fitted with a free overall scale.
-    With the sidecar's covariance the pull SDs are ≈ 1 (measured 0.97–1.07
-    over 300 seeds) and χ²/dof ≈ 1; with the legacy error column (factor
-    errors folded into each point) the ρ and σ pulls are 3–4 and with the
-    corrected diagonal (√diag C) 2–3. The SD of a pull SD from 120 draws is
-    ≈ 0.065."""
+    With the sidecar's covariance the pull SDs are ≈ 1 (measured 0.95–1.10
+    over 300 seeds) and χ²/dof ≈ 1; with the file's error column (factor
+    errors folded into each point) the ρ and σ pulls are about 4, and with
+    the corrected diagonal (√diag C) 2–4. The SD of a pull SD from 120
+    draws is ≈ 0.065."""
     pulls = {'file': [], 'cov': []}
     chi = []
     rms = {'file': [], 'cov': []}

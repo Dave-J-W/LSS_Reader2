@@ -47,6 +47,21 @@ def test_sidecars_beside_unchanged_files(case, kw, loaded, qapp, recorder, tmp_p
     assert any('Covariance written' in t for _, _, t in loaded.messages)
 
 
+@pytest.mark.parametrize('kw', [{}, {'drops': ['-1']}, {'qoff': 0.0005, 'norm': 2.5}])
+def test_default_joint_patch_gets_its_own_sidecar(kw, loaded, qapp, recorder, tmp_path):
+    """The default patch (joint fit, since 2026-11-22): the replay follows
+    the method used, so the sidecars match the files written (T10), and
+    their Σ comes from the joint factors."""
+    loaded.refCovarianceCheckBox.setChecked(True)
+    ref, rrf = reduce_and_save(loaded, qapp, recorder, str(tmp_path / 'out'), [0, 1], method=None, **kw)
+    assert recorder.exceptions == []
+    assert loaded.refMethodUsed == 'joint'
+    _check(ref, rrf)
+    t = gls.load(ref[:-4] + '.cov.json').term('stitch')
+    assert t.provenance['method'] == 'joint'
+    assert any('Covariance written' in m for _, _, m in loaded.messages)
+
+
 def test_no_rrf_sidecar_without_rrf(loaded, qapp, recorder, tmp_path):
     loaded.refCovarianceCheckBox.setChecked(True)
     ref, rrf = reduce_and_save(loaded, qapp, recorder, str(tmp_path / 'out'), [0, 1], rrf=False)
@@ -71,7 +86,8 @@ def test_stale_patch_is_refused(loaded, qapp, recorder, tmp_path):
 
 @pytest.mark.slow
 @pytest.mark.skipif(not os.path.exists(NX), reason='NX_school data not present')
-@pytest.mark.parametrize('case,kw', [('nx_scans_6-9', {}), ('nx_scans_6-9_drops', {'drops': ['0', '-1', '0,-1']})])
+@pytest.mark.parametrize('case,kw', [('nx_scans_6-9', {}), ('nx_scans_6-9_drops', {'drops': ['0', '-1', '0,-1']}),
+                                     (None, {'method': None})])
 def test_real_sidecars(case, kw, window, qapp, recorder, tmp_path):
     window.openSpecFile(fname=NX)
     window.directory = str(tmp_path)

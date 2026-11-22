@@ -3701,6 +3701,63 @@ every window estimator under-reads a peak fading on a shoulder. Recorded;
 the estimator choice is hand-off 07's item 3. P36 and P37 are now strict
 xfails on the three-level set.
 
+### 2026-11-22 — The patching gauntlet; the joint fit becomes the default
+
+**Owner:** "Reflectivity patching: make new method the default if it passes
+the gauntlet." Then, while it ran: "to be clear we dont need to patch across
+critical edge. There's really no reason to patch early in Qz (change
+absorbers) until counting statistics drop off by more than 100x, since we
+start from a place of 'plenty', with 1e6 counts per second in the ROI at
+total reflection (low Qz)." And: "monc doesn't have poisson noise, it's more
+like a strict 0.05% uncertainty, you can see the xray_fluxor public repo for
+more on that."
+
+**The gauntlet** (`tests/tools/ref_patch_gauntlet.py`; outputs in
+`docs/comparisons_data/ref_patch_gauntlet/`; C36). Hand-off 08's rule at
+every join: |mean pull| < 0.2 and pull SD within 0.9–1.15, over 400 noise
+replicates of synthetic scans with known factors: water, DPPC, 100 Å and
+250 Å films (Kiessig fringes), coinciding, staggered and NX-like grids, a
+low-count set. The private `bu` data hold no reflectivity series (checked
+with `series.all_series`: GID, energy and fluorescence only), so real data
+gave only NX scans 6–9 (3 joins; the split test there has n = 3, too few
+for a pull SD). Monc is modelled as the owner says (no Poisson noise,
+0.05 %: `xrr_scans.REAL_MONITOR`); with Poisson Monc noise (0.2–0.3 % per
+point) the χ² test was blunter and the verdict the same in kind. The plan
+across the critical edge is kept as information only.
+
+**Measured** (18 judged joins): legacy passes 0 (its errors are 1.1–4.8 ×
+too small; +5.5 % at a thick film's last join); the joint fit as built
+earlier today (4 points either side, guard p ≥ 0.01) passes 6; after two
+fixes, 17 with 2 points either side (16 with 4). The fixes:
+1. *The guard could only shrink the window, ending at order 2.* Four
+   coinciding points at a fringe minimum fit no quadratic (χ²/dof 282) and
+   the error was inflated × 17 (δ itself was right); a 250 Å film's fringes
+   biased the factor by −2 to −4 %. Now `guard_ladder` tries the largest
+   window first with the order rising to what the points carry, then
+   smaller windows, and keeps the first adequate fit.
+2. *p ≥ 0.01 let model bias through.* Noise-free, the joint fit with 4
+   points either side is 0.23 % (0.4 σ) low at water's first join, where
+   legacy is exact (the points coincide); χ² accepted it in 75 % of
+   replicates. The guard now asks p ≥ 0.3, and the default window is 2
+   points either side.
+The remaining failure is fail-safe: the 250 Å film's third join, +0.44 %
+inside an error inflated by its χ² (pull SD 0.19). Across the critical edge
+every method is biased (joint +1.35 %, legacy −10.4 %), which per the owner
+does not arise.
+
+**Changed output** (deliberate): the window's Ref Patch and
+`Experiment.reflectivity` fit the factor with the joint fit
+(`reflectivity.join_factor`; preference `ref_patch_method`, 'legacy' for
+the old files byte for byte; the legacy export fixtures are compared under
+'legacy'). NX 6–9: factors +0.20 %, +0.13 %, +0.14 % (within 1σ); no point
+moves by more than 0.2 %. The synthetic two-scan set's last point: 0.982 →
+0.994 of the truth (`test_gui_workflows`). Verified: tests and the tool
+(measured), not reading only.
+
+**Not yet:** the larger real data set (hand-off 08), whether the foil prior
+is used by default (TODO B2), and the export of the covariance (the
+covariance agent's branch, merged next).
+
 ### 2026-11-22 — What does a model fit need from the covariance?
 
 **Owner:** "Have another subagent think about what is needed on
@@ -3709,47 +3766,67 @@ workable."
 
 **Answer** (`docs/reports/downstream_covariance.md`): a fit needs, per
 point, the counting-only error σ_meas, the point's weights W on the
-scans' log scales, and the K × K covariance Σ of those scales, which is
+scans' log scales, and the K × K covariance Σ of those scales. That is
 exactly the xmodfit sidecar (hand-off 19). The covariance is then
 diag((σ_meas/y)²) + W Σ Wᵀ in log space. With the Woodbury identity it
 costs an r × r solve (r ≤ K − 1). Equivalently, it is one nuisance scale
 per scan with a Gaussian prior, exactly in log space (I29). The overall
 normalisation is a free scale, not part of Σ. Per-point
-multiplications (normalisation, Fresnel) never change Σ. Sorting, cuts
-and masks select rows of W (I28). A fitter must check x and y against
-the file and must use σ_meas, not the file's column, with the
+multiplications (normalisation, Fresnel) never change Σ, and sorting,
+cuts and masks select rows of W (I28). A fitter must check x and y
+against the file and must use σ_meas, not the file's column, with the
 covariance.
 
-**Measured** (synthetic NX-like scans of a 25 Å film, 300 seeds, fits of
-d, ρ, σ with a free scale; `tests/tools/covariance_pulls.py`):
+**Measured** (synthetic NX-like scans of a 25 Å film, the owner's
+monitor model (no Poisson, 0.05 %: "monc doesn't have poisson noise,
+it's more like a strict 0.05% uncertainty"), 300 seeds, fits of d, ρ, σ
+with a free scale; `tests/tools/covariance_pulls.py`):
 
-| Errors used | pull SD d / ρ / σ | χ²/dof | RMS of ρ |
+| Errors used (default joint patch) | pull SD d / ρ / σ | χ²/dof | RMS of ρ |
 |---|---|---|---|
-| legacy column | 1.71 / 3.26 / 4.15 | 0.84 | 5.2e-4 |
-| √diag C (the hand-off's corrected column) | 0.80 / 3.01 / 2.09 | 0.56 | 6.8e-4 |
-| counting only | 2.53 / 4.35 / 5.25 | 1.24 | 5.1e-4 |
-| covariance (legacy or corrected factors) | 1.00 / 0.98 / 1.00 | 0.99 | 2.3e-4 |
-| covariance, joint-fit patch | 1.05 / 1.05 / 1.07 | 0.98 | 1.8e-4 |
+| the file's column (factor errors folded) | 1.48 / 4.12 / 3.88 | 0.79 | 6.3e-4 |
+| √diag C (the hand-off's corrected column) | 0.88 / 3.88 / 2.35 | 0.61 | 7.2e-4 |
+| counting only | 2.89 / 6.36 / 6.19 | 1.35 | 5.9e-4 |
+| covariance (joint, legacy or corrected factors) | 1.10 / 0.98–1.00 / 0.95–0.96 | 1.01 | 2.2e-4 |
+| covariance, stitched points | 1.06 / 1.00 / 1.00 | 1.01 | 1.6e-4 |
 
-Σ is 1.08–1.11 × the true spread of the factors (inflate-only, hand-off
-§5.7). NX school 6–9: √Σ of scan 9 is 1.03 % (legacy factors) and 0.75 %
-(joint). One finding: synthetic data with Poisson monitor counts but
-counting-only errors gave χ²/dof 1.29 and pulls up to 1.2 even with the
-covariance. A covariance is only as good as its diagonal (monitor noise
-belongs in σ_meas).
+Measured Σ against the true spread of the factors (hand-off §5.7):
+1.08–1.11 × for the legacy and §3.2 factors; 0.88–0.95 × for the
+joint factors. At the first join the joint Σ is the joint fit's own
+error, whose pull SD is 1.13 on these scans: the default fit's error
+is about 12 % small there (a finding for the patching, passed on).
 
-**Built:** `lss_core/covariance_export.py` (W and Σ carried beside the
-legacy patch, bit for bit; the hand-off's corrected chain, checked
-against an independent oracle to 1e-10; the joint fit's output; the
-window's finishing steps; the sidecar and combined files; both of the
-contract's layouts). `lss_core/gls.py` (XModFit's loader checks, Woodbury
-χ², a reference fitter in nuisance form). `ReflectivityResult.save(name,
-covariance='sidecar' | 'contract')`. The Ref Patch "+ covariance" box
-(off: owner's decision, TODO B2), which writes sidecars beside the
-unchanged text files. Verified: `tests/test_covariance_export.py` (41),
-`tests/test_gls.py` (7), `tests/test_gui_covariance_export.py` (8 + 2
-slow on NX). The legacy export fixtures are unchanged. Hand-off tests 5
-and 6 use stand-ins: an oracle written from the hand-off's text, and
-XModFit's checks reimplemented. XModJointFit's `lss_reference.py` and
-`covariance_core.py` are still to be supplied (D13 note).
+NX school 6–9: √Σ of scan 9 is 0.85 % (joint, the default), 1.03 %
+(legacy factors).
 
+With the older Poisson-monitor synthetic data, counting-only σ_meas gave
+χ²/dof 1.29 even with the covariance: a covariance is only as good as
+its diagonal.
+
+**Σ of the default patch** (report §6.1): the joint chain fits each scan
+against the folded error column of the curve so far. The export keeps
+the factor used, so the files do not change. Each step's error in Σ is
+that fit's spread under counting noise alone (its sensitivity to each
+point), inflated by the overlap χ² against counting errors, with a_m
+from the same sensitivity. This avoids counting the earlier factors'
+errors twice.
+
+**Built:**
+- `lss_core/covariance_export.py`: the patch replayed bit for bit with W
+  and Σ carried beside it (joint and legacy, `tracked_chain`); the
+  hand-off's corrected chain, checked against an independent oracle to
+  1e-10; stitched points; the window's finishing steps; the sidecar and
+  combined files; both of the contract's layouts.
+- `lss_core/gls.py`: XModFit's loader checks, the Woodbury χ², and a
+  reference fitter in nuisance form.
+- `ReflectivityResult.save(name, covariance='sidecar' | 'contract')`.
+- The Ref Patch "+ covariance" box (off by default: the owner's
+  decision, TODO B2). It writes sidecars beside the unchanged text files
+  and follows the method the patch used.
+
+**Verified:** `tests/test_covariance_export.py`, `tests/test_gls.py`,
+`tests/test_gui_covariance_export.py`. The legacy export fixtures are
+unchanged. Hand-off tests 5 and 6 use stand-ins: an oracle written from
+the hand-off's text, and XModFit's checks reimplemented. XModJointFit's
+`lss_reference.py` and `covariance_core.py` are still to be supplied
+(D13 note).
