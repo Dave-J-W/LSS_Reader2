@@ -125,3 +125,39 @@ def test_an_older_workbook_gains_the_trends_sheet_and_wider_data(tmp_path):
     assert len(rows) == 4 and sum(bool(r['best']) for r in rows) == 1
     assert {r['model'] for r in rows if r['change_time'] is not None} == {comp.change.model}
     assert wb.trends(scan=4) == rows and wb.trends(scan=5) == []
+
+
+def test_results_tied_to_their_series_and_marked_stale(tmp_path):
+    """Review R3 (owner, 2026-11-21): a saved result records its series
+    (id, kind, data scans and status then) and the call that remakes it;
+    when the series gains scans or changes status, mark_stale says why."""
+    from lss_core.series import Series
+    s1 = Series('inferred-6', 'reflectivity', None, {1: 6, 2: 7}, status='complete', inferred=True)
+    s2 = Series('g1', 'gid', 3, {1: 11, 2: 12}, status='in_progress')
+    p = str(tmp_path / 'f_reader.xlsx')
+    wb = workbook.Workbook(p)
+    assert workbook.series_for([6, 7], [s1, s2])['id'] == 'inferred-6'
+    assert workbook.series_for([11], [s1, s2]) == dict(id='g1', kind='gid', scans=[11, 12], status='in_progress')
+    assert workbook.series_for([99], [s1, s2]) is None
+    r1 = wb.add_result('reflectivity', [6, 7], np.ones((3, 3)), ['Qz', 'R', 'dR'],
+                       series=workbook.series_for([6, 7], [s1, s2]), recipe="ref = exp.reflectivity([6, 7])")
+    r2 = wb.add_result('gid map', [11, 12], series=workbook.series_for([11, 12], [s1, s2]))
+    r3 = wb.add_result('scan', [1], np.ones((2, 2)), ['x', 'y'])            # not in a series
+    wb.save()
+    wb = workbook.Workbook(p)
+    row = wb.results(kind='reflectivity')[0]
+    assert row['series'] == 'inferred-6' and row['series_scans'] == '6,7' and row['series_status'] == 'complete'
+    assert row['recipe'].startswith('ref = exp.reflectivity')
+    assert wb.mark_stale([s1, s2]) == {} and wb.stale() == []               # nothing changed
+    grown = Series('inferred-6', 'reflectivity', None, {1: 6, 2: 7, 3: 8}, status='complete', inferred=True)
+    done = Series('g1', 'gid', 3, {1: 11, 2: 12, 3: 13}, status='complete')
+    stale = wb.mark_stale([grown, done])
+    assert stale[r1] == 'series inferred-6 gained scans 8'
+    assert stale[r2] == 'series g1 gained scans 13; status in_progress → complete'
+    assert r3 not in stale
+    wb.save()
+    assert {r['id'] for r in workbook.Workbook(p).stale()} == {r1, r2}
+    # a guessed series renamed (its first scan changed) is found by the result's first scan
+    moved = Series('inferred-5', 'reflectivity', None, {1: 5, 2: 6, 3: 7}, status='complete', inferred=True)
+    assert 'gained scans 5' in wb.mark_stale([moved, done])[r1]
+    assert 'no longer found' in wb.mark_stale([done])[r1]

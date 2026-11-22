@@ -317,7 +317,8 @@ def all_series(info, growing=False):
 def scan_info(data, par):
     """ScanInfo for every scan of a specread result (Data, Par), file order."""
     out = []
-    for num in data.get('ScanNums', []):
+    nums = list(dict.fromkeys(data.get('ScanNums', [])))      # a scan number once, in file order
+    for num in nums:
         d, p = data.get(num, {}), par.get(num, {})
         line = d.get('ScanLine', '')
         cmd = ' '.join(line.split()[2:])

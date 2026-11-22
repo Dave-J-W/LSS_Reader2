@@ -244,7 +244,11 @@ class specread:
                 self.Data[num]['ScanLine']=fdata[startScanLineNums[i-tmp]]
                 self.Data[num]['StartScanLineNum']=startScanLineNums[i-tmp]
                 self.endLineNum=startScanLineNums[i-tmp]
-                self.Data['ScanNums'].append(num)
+                # an update re-reads the last scan (it may have grown): its number is
+                # listed already (2026-11-22: it was listed twice, so every "Update
+                # Specfile" warned of a repeated scan and split the series guess)
+                if not (startLineNum>0 and i==tmp and self.Data['ScanNums'] and self.Data['ScanNums'][-1]==num):
+                    self.Data['ScanNums'].append(num)
                 self.Data['LastAbsorber']=self.lastAbsorber
                 self.Data['LastMoncGain']=self.lastMoncGain
                 if self.progressDialog.wasCanceled()==True:

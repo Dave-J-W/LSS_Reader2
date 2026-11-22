@@ -18,7 +18,12 @@ Scans      every scan of the SPEC file: number, command, experiment kind
            reader infers or the ``#U Series`` lines), series and position
 Saved      one row per saved result: id (R0001…), time, kind, scans, first
            scan, label, version (1, 2, … per kind, scans and label), note,
-           points, column names, the settings used (JSON), program version
+           points, column names, the settings used (JSON), program version;
+           the series it came from (id, kind, its data scans and status at
+           the time of saving), the lss_core call that remakes it
+           (``recipe``, when the reduction is scriptable) and ``stale``:
+           why it is out of date when its series has changed since
+           (``mark_stale``; the step towards live updates, F1–F5)
 Data       the reduced data vectors, one row per point: result id, kind,
            first scan, scans, label, version, point, then the values
            (columns named in Saved)
@@ -49,7 +54,7 @@ SHEETS = ('Scans', 'Saved', 'Data', 'Fits', 'Trends', 'Maps', 'Settings')
 HEADERS = {
     'Scans': ['scan', 'kind', 'command', 'points', 'series', 'series_position', 'role', 'status'],
     'Saved': ['id', 'saved', 'kind', 'first_scan', 'scans', 'label', 'version', 'note', 'points', 'columns',
-              'settings', 'program'],
+              'settings', 'program', 'series', 'series_kind', 'series_scans', 'series_status', 'recipe', 'stale'],
     'Data': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'point', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6',
              'v7', 'v8'],
     'Fits': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'curve', 'peak', 'centre', 'centre_err',
@@ -214,13 +219,16 @@ class Workbook:
                        if r['kind'] == kind and str(r['scans']) == st and (r['label'] or '') == (label or ''))
 
     def add_result(self, kind, scans, data=None, columns=(), label='', note='', settings=None, fits=(),
-                   map_xyz=None, program=None, trends=(), time_axis=''):
+                   map_xyz=None, program=None, trends=(), time_axis='', series=None, recipe=''):
         """Store one result and return its id. ``kind``: one of ``KINDS``
         (or another short text); ``scans``: the scan numbers it comes from;
         ``data``: (N, k ≤ 6) array, named by ``columns``; ``fits``: (curve
         label, lss_core.peaks.FitResult or a list of them) pairs; ``map_xyz``:
         (X, Y, value, error) 2-D arrays of a map; ``trends``: (quantity,
         lss_core.trends.TrendComparison) pairs, over ``time_axis``;
+        ``series``: the series the scans belong to (``series_for``: dict with
+        id, kind, scans, status); ``recipe``: the lss_core call that remakes
+        the result;
         ``settings``: what produced it (stored as JSON in Saved)."""
         scans = [int(s) for s in scans]
         first = min(scans) if scans else None
@@ -234,8 +242,11 @@ class Workbook:
         if data is not None and data.shape[1] > MAX_VALUES:
             raise ValueError('at most %d columns per data vector' % MAX_VALUES)
         npts = 0 if data is None else len(data)
+        se = series or {}
         self.wb['Saved'].append([rid, now, kind, first, st, label, version, note, npts, ', '.join(columns),
-                                 json.dumps(settings or {}, default=str), program or program_version()])
+                                 json.dumps(settings or {}, default=str), program or program_version(),
+                                 se.get('id'), se.get('kind'), _scans_text(se['scans']) if se.get('scans') else None,
+                                 se.get('status'), recipe or None, None])
         if data is not None:
             ws = self.wb['Data']
             for i, row in enumerate(data):
@@ -294,6 +305,51 @@ class Workbook:
             out.append(r)
         return out
 
+    def mark_stale(self, current):
+        """Compare every saved result's series with ``current`` (the file's
+        series now, lss_core.series.Series) and write why it is out of date
+        into ``stale`` (or clear it): the series has data scans it did not
+        have, its status changed (e.g. in progress → complete), or it is
+        gone. A guessed series' id is its first scan's number, so a result
+        is matched by id first, then by the series that holds its first
+        scan. Returns {result id: reason} of the stale ones."""
+        ws = self.wb['Saved']
+        head = [c.value for c in ws[1]]
+        if 'stale' not in head:
+            return {}
+        col = {h: k for k, h in enumerate(head)}
+        by_id = {s.id: s for s in current}
+        out = {}
+        for row in ws.iter_rows(min_row=2):
+            sid = row[col['series']].value
+            if not sid:
+                continue
+            saved = [int(x) for x in str(row[col['series_scans']].value or '').split(',') if x.strip()]
+            s = by_id.get(sid)
+            if s is None and saved:
+                s = next((c for c in current if saved[0] in c.data_scans), None)
+            reason = ''
+            if s is None:
+                reason = 'series %s no longer found' % sid
+            else:
+                new = [n for n in s.data_scans if n not in saved]
+                gone = [n for n in saved if n not in s.data_scans]
+                if new:
+                    reason = 'series %s gained scans %s' % (s.id, _scans_text(new))
+                if gone:
+                    reason += ('; ' if reason else '') + 'scans %s left the series' % _scans_text(gone)
+                was = row[col['series_status']].value
+                if was and s.status and was != s.status:
+                    reason += ('; ' if reason else '') + 'status %s → %s' % (was, s.status)
+            row[col['stale']].value = reason or None
+            if reason:
+                out[row[col['id']].value] = reason
+        return out
+
+    def stale(self):
+        """Saved rows (dicts) whose ``stale`` says why they are out of date."""
+        return [r for r in self._rows('Saved') if r.get('stale')]
+
     def results(self, kind=None, scan=None):
         """Saved rows (dicts), optionally of one kind or containing a scan."""
         out = []
@@ -324,6 +380,21 @@ class Workbook:
                 continue
             out.append(r)
         return out
+
+
+def series_for(scans, current):
+    """The series (of ``current``, lss_core.series.Series) that the most of
+    ``scans`` belong to, as the dict ``add_result`` stores; None when no
+    scan is in a series."""
+    scans = set(int(n) for n in scans)
+    best, hits = None, 0
+    for s in current:
+        k = len(scans & set(s.data_scans))
+        if k > hits:
+            best, hits = s, k
+    if best is None:
+        return None
+    return dict(id=best.id, kind=best.kind, scans=list(best.data_scans), status=best.status)
 
 
 def scan_rows(data, par):

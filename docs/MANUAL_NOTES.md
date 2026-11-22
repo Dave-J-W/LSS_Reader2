@@ -166,6 +166,17 @@ Each line: feature — where — default — script — notes entry (date).
 - "Scan i of N" lines and how cancelled runs are shown: proposal
   `docs/handoff_out/05-scan-series-syntax.md`; code `lss_core/series.py`.
 
+### Saved results and their series (2026-11-22)
+
+- Each Save records the series of its scans (id, kind, the series' data
+  scans and status at that moment) and, when the reduction is scriptable,
+  the lss_core call that remakes it (`recipe`; reflectivity patch, cuts,
+  GID map, fluorescence sum, burn test). Columns in the Saved sheet.
+- "Update Specfile": results whose series has since gained scans or
+  changed status are marked out of date (`stale` column, a message in the
+  Messages pane). Nothing is re-made automatically yet (live refresh,
+  steps L1–L4 in TODO.md).
+
 ### Scan series in the scan list (2026-11-21)
 
 - A **Series** list above the scan list: each series of the file (from

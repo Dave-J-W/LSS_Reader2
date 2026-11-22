@@ -3340,3 +3340,37 @@ gives one signal and scans 6–9; a real mouse click on scan 7 selects
 6–9; Ctrl-click on 9 removes it; scan 10, alignment, alone; with the box
 off, scan 7 alone; typed '8' stays 8).
 
+### 2026-11-22 — Saved results tied to their series (review R3); the way to live updates
+
+**Q.** (owner) "go ahead with tying workbook results to series. presumably
+this is the gateway to live updating processed data as raw data comes
+in?"
+
+**A. Yes.** A live update needs three things: knowing that the raw data of
+a result have changed, knowing how the result was made, and redoing it.
+This step gives the first two. Each saved result now records its series
+(id, kind, the series' data scans and status when it was saved) and,
+where the reduction is scriptable, the lss_core call that remakes it
+(`recipe`: reflectivity patch, cuts, GID map, fluorescence sum, burn test;
+not yet the SpecPlot curves, fitted MCA intensities or GID cuts).
+"Update Specfile" compares every result's series with the file as it is
+now and marks it out of date when the series has gained scans, lost scans
+or changed status (`Workbook.mark_stale`), with a message. A guessed
+series is matched by id, else by the result's first scan. What remains
+(TODO, area E, L1–L4): watch the file and update by itself; re-run each
+stale result's recipe and save it as a new, automatic version; refresh the
+open plot; stop at the series' end line or its planned n, which needs the
+macros' series lines (input 1).
+
+**Defect found on the way** (fixed, tested): "Update Specfile" re-reads
+the last scan in case it grew, and appended its number again, so every
+update warned that a scan appeared more than once and the series guess
+split at the repeated scan (`ScanNums` [1, 2, 2, 3]; now [1, 2, 3]).
+`series.scan_info` also takes each scan number once.
+
+Verified: `test_workbook.py::test_results_tied_to_their_series_and_marked_stale`
+(grown series, status change, renamed guessed series, vanished series),
+`test_gui_workbook.py::test_a_saved_result_goes_stale_when_its_series_grows`
+(a SPEC file grows by the next scan of the series; Update Specfile marks
+the saved result and says so), `test_series.py::test_an_update_lists_each_scan_once`.
+

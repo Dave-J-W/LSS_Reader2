@@ -76,7 +76,7 @@ working list, one table per area, each row with its source. Rows marked
 | ~~Fix `series.infer`: `#V` hklscans as xfntr, `escan` as energy; series lines and inference together; `SeriesMacro` attached~~ **done 2026-11-21** (`series.all_series`) | review §3, §4 R1 |
 | ~~Series in the scan list; select a series as one action~~ **done 2026-11-21** (Series list; whole series selected on a click by default, D55) | F39; Stage 3; review R2 |
 | Contextual reduction from `kind` (offer, not run); the burn test for burn scans | F60; review R4 |
-| Live refresh by polling, driven by series status | F1–F5 |
+| Live refresh, in steps on top of the series ties (2026-11-22): **L1** watch the SPEC file (poll its size and mtime every few seconds, or a "Live" check box) and run the update; **L2** re-run each stale result's `recipe` (the lss_core call stored in Saved) and save it as a new version marked automatic, keeping the old one; **L3** refresh the open plot when its result is re-made; **L4** stop when the series' end line or its planned n arrives (needs the macro's series lines, input 1) | F1–F5 |
 | Time axis in MCA, Ref/GID lists | D46, D50, F37 |
 | Owner: hand-off 05's four questions with the review's minimum metadata | input 1; review §4 M1 |
 
@@ -84,7 +84,7 @@ working list, one table per area, each row with its source. Rows marked
 
 | Item | Source |
 |---|---|
-| Workbook results tied to series id and scans used; stale flag when a series gains scans | F66; review R3 |
+| ~~Workbook results tied to series id and scans used; stale flag when a series gains scans~~ **done 2026-11-22**: Saved gains series, series_kind, series_scans, series_status, recipe, stale; "Update Specfile" marks changed results | F66; review R3 |
 | Reopen a SPEC file with its workbook's settings | F66 |
 | The workbook and D1–D3 (config beside the SPEC file, read-only second instance, yellow light): record how they relate — **new** | D1–D3, D53 |
 | Dropped points as masks, undo | F16, D2 |

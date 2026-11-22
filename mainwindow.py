@@ -704,6 +704,7 @@ class MainWindow (QMainWindow):
             self.scanlines=[self.specData[i]['ScanLine'] for i in scannums]
             self.ui.scanListWidget.addItems(self.scanlines)
             self.updateSeries()
+            self.checkStaleResults()
             if np.any([self.specPar[i]['Detector']=='Vortex' for i in scannums]):
                 if QDir(self.directory+'/'+self.mcaDirName).exists()==True:
                     self.mcaDir=self.directory+'/'+self.mcaDirName
@@ -818,6 +819,7 @@ class MainWindow (QMainWindow):
         except Exception as e:                       # a nicety: the list works without it
             self.log.info('series not found: %s',e)
             found=[]
+        self.seriesAll=found
         self.seriesList=[s for s in found if s.data_scans]
         box.blockSignals(True)
         box.clear()
@@ -3436,7 +3438,8 @@ class MainWindow (QMainWindow):
         o=self.burnOptions()
         ids=self.saveToWorkbook('burn test',[dict(scans=[res.scan],data=arr,columns=cols,
                                                   label=res.kind,settings=dict(o,window=res.window,notes=res.notes),
-                                                  trends=list(res.trends.items()),time_axis=res.time)])
+                                                  trends=list(res.trends.items()),time_axis=res.time,
+                                                  recipe=getattr(self,'burnScript','') or '')])
         if ids and getattr(self,'burnScript',None):
             self.scriptLine(self.burnScript)
         
@@ -5906,6 +5909,9 @@ class MainWindow (QMainWindow):
             wb.set_settings('peak_fit',peaks.options_to_dict(self.peakFitOptions))
             wb.set_settings('mca_fit',peaks.options_to_dict(self.mcaFitOptions))
             wb.set_settings('reduction',self.reductionSettings())
+            for it in items:
+                if 'series' not in it:
+                    it['series']=workbookmod.series_for(it.get('scans',[]),getattr(self,'seriesAll',[]))
             ids=[wb.add_result(kind,note=note,**it) for it in items]
             wb.save()
         except Exception as e:
@@ -5916,6 +5922,32 @@ class MainWindow (QMainWindow):
             '%s %s, scans %s, %s v%d' % (i,rows[i]['kind'],rows[i]['scans'],rows[i]['label'] or '',rows[i]['version'])
             for i in ids)),title='Save',level='info')
         return ids
+
+    def checkStaleResults(self):
+        """After the SPEC file is read or updated: saved results whose series
+        has changed since (more scans, another status) are marked stale in
+        the workbook, with a message. The step towards live updates (F1–F5)."""
+        try:
+            path=self.workbookPath()
+        except Exception:
+            return
+        if not os.path.exists(path):
+            return
+        try:
+            wb=workbookmod.Workbook(path)
+            before={r['id']:r.get('stale') for r in wb.results()}
+            stale=wb.mark_stale(getattr(self,'seriesAll',[]))
+            after={r['id']:r.get('stale') for r in wb.results()}
+            if after!=before:
+                wb.save()
+        except Exception as e:
+            self.log.info('workbook %s not checked: %s',path,e)
+            return
+        new={k:v for k,v in stale.items() if before.get(k)!=v}
+        if new:
+            self.notify('%d saved result(s) in %s are out of date: %s' % (
+                len(new),os.path.basename(path),'; '.join('%s: %s' % kv for kv in sorted(new.items()))),
+                title='Workbook',level='info')
 
     def reductionSettings(self):
         """The settings that shape reduced data, for the workbook."""
@@ -5933,6 +5965,15 @@ class MainWindow (QMainWindow):
         except Exception:
             pass
         return out
+
+    def recipe(self,builder):
+        """The lss_core call that remakes a saved result (the Script pane's
+        text with 'result' as the output name), or '' when there is none."""
+        try:
+            text=builder('result')
+        except Exception:
+            return ''
+        return text if text and not text.lstrip().startswith('#') else ''
 
     def saveSpecToWorkbook(self):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
@@ -5966,7 +6007,8 @@ class MainWindow (QMainWindow):
         scans=sorted(int(n) for n in self.selectedScanNums)
         d=np.asarray(self.normRefData,float)
         cols=['Qz','R','dR','dQz'][:d.shape[1]]
-        items=[dict(scans=scans,data=d,columns=cols,label='R',settings=dict(command=str(getattr(self,'command',''))))]
+        items=[dict(scans=scans,data=d,columns=cols,label='R',settings=dict(command=str(getattr(self,'command',''))),
+                    recipe=self.recipe(self.reflectivityScript))]
         rrf=getattr(self,'RrfData',None)
         if rrf is not None and len(rrf):
             r=np.asarray(rrf,float)
@@ -5995,7 +6037,8 @@ class MainWindow (QMainWindow):
                 kind='line cut'
             items.append(dict(scans=scans,data=np.column_stack([x,y,sg]),columns=[direction.split()[0]+' x','I','dI'],
                               label='%s, %s %s' % (label,direction,settings['range']),settings=settings,
-                              fits=[(label,fits[label])] if label in fits else []))
+                              fits=[(label,fits[label])] if label in fits else [],
+                              recipe='' if label=='GID cut' else self.recipe(self.cutScript)))
         self.saveToWorkbook('gid cut' if curves[0][0]=='GID cut' else 'line cut',items)
 
     def saveMcaToWorkbook(self):
@@ -6009,7 +6052,8 @@ class MainWindow (QMainWindow):
             ref,each,nums=self.mcaLineFits
             fits=[('sum of %d spectra' % len(each),ref)]+[('frame %d' % (n+1),r) for n,r in zip(nums,each)]
         items=[dict(scans=scans,data=np.asarray(rows,float),columns=['frame','Qz','energy','I','dI'],
-                    label=str(getattr(self,'command','')),fits=fits,settings=dict(command=str(getattr(self,'command',''))))]
+                    label=str(getattr(self,'command','')),fits=fits,settings=dict(command=str(getattr(self,'command',''))),
+                    recipe='' if fits else self.recipe(self.fluorescenceScript))]
         self.saveToWorkbook('fluorescence',items)
 
     def saveGIDToWorkbook(self):
@@ -6019,7 +6063,8 @@ class MainWindow (QMainWindow):
         scans=sorted({int(n) for lv in self.gidLevels for n in lv[1]})
         from dataclasses import asdict
         items=[dict(scans=scans,map_xyz=(self.pilGIDXAxs,self.pilGIDYAxs,self.pilGIDData,self.pilGIDDataErr),
-                    label='2theta, beta (deg)',settings=asdict(self.gidParams))]
+                    label='2theta, beta (deg)',settings=asdict(self.gidParams),
+                    recipe=self.recipe(lambda name:self.gidScript(name,'Q')))]
         self.saveToWorkbook('gid map',items)
 
     def mcaFitLines(self):

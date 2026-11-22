@@ -130,3 +130,30 @@ def test_every_save_asks_and_shift_skips(loaded, qapp, dataset, recorder, monkey
     loaded.saveButtons['spec'].click()
     assert asked == [1, 1]
     assert recorder.exceptions == []
+
+
+def test_a_saved_result_goes_stale_when_its_series_grows(window, qapp, recorder, tmp_path):
+    """Review R3: save a scan of a series, the SPEC file grows (the next scan
+    of the series), "Update Specfile": the result is marked out of date in
+    the workbook and the user is told. The step towards live updates."""
+    from test_series import _scan
+    import synth
+    spec = synth.write_spec(str(tmp_path / 'grow'), [_scan(1), _scan(2)])
+    window.openSpecFile(fname=spec)
+    window.directory = str(tmp_path)
+    qapp.processEvents()
+    sweep._select_scans(window, qapp, [0])
+    window.saveButtons['spec'].click()
+    qapp.processEvents()
+    r = _book(window).results(kind='scan')[0]
+    assert r['series'] == 'inferred-1' and r['series_scans'] == '1,2' and not r['stale']
+    with open(spec, 'a') as f:
+        f.write(_scan(3))
+    recorder.messages.clear()
+    window.ui.speUpSpeFilePushButton.click()
+    qapp.processEvents()
+    assert any('out of date' in m and 'gained scans 3' in m for m in recorder.messages)
+    assert not any('more than once' in m for m in recorder.messages)   # the update re-reads scan 2: not a repeat
+    assert window.specData['ScanNums'] == [1, 2, 3]
+    assert _book(window).stale()[0]['id'] == r['id']
+    assert recorder.exceptions == []

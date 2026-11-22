@@ -182,3 +182,18 @@ def test_lined_and_plain_scans_together(tmp_path):
         ('inferred-1', 'reflectivity', [1, 2], True), ('r9', 'reflectivity', [3, 4], False)]
     assert allof[1].macro == 'refl_run 0.02 0.5' and allof[1].status == 'complete'
     assert series.all_series([]) == []
+
+
+def test_an_update_lists_each_scan_once(tmp_path):
+    """"Update Specfile" re-reads the last scan (it may have grown); its
+    number was appended again, so every update warned of a repeated scan
+    and the series guess split (found 2026-11-22 while tying saved results
+    to series)."""
+    spec = synth.write_spec(str(tmp_path / 's'), [_scan(1), _scan(2)])
+    r = specread(spec, data={}, par={})
+    with open(spec, 'a') as f:
+        f.write(_scan(3))
+    r2 = specread(spec, startLineNum=r.endLineNum, endScanNum=r.Data['NumOfScans'], data=r.Data, par=r.Par)
+    assert r2.Data['ScanNums'] == [1, 2, 3]
+    got = series.infer(series.scan_info(r2.Data, r2.Par))
+    assert [(g.kind, g.data_scans) for g in got] == [('reflectivity', [1, 2, 3])]
