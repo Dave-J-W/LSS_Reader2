@@ -250,3 +250,18 @@ def test_the_window_space_bar_checkboxes_and_modes(qapp, recorder):
         w.close()
         w.deleteLater()
     assert recorder.exceptions == []
+
+
+@pytest.mark.slow
+def test_the_report_figures_are_written_headless(tmp_path):
+    """The figure writer with few replicates (16 s): every figure, the
+    numbers and the summaries."""
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))
+    import patch_demo
+    assert patch_demo.main(['--save', str(tmp_path / 'out'), '--quick', '--rows', str(tmp_path / 'rows')]) == 0
+    names = os.listdir(tmp_path / 'out')
+    assert sum(n.endswith('.png') for n in names) == 6
+    assert 'numbers.json' in names and 'burn_estimator_summary.csv' in names
+    assert sorted(os.listdir(tmp_path / 'rows')) == ['burn_estimators.csv', 'factors_film100_nx.csv',
+                                                     'factors_water_nx.csv']

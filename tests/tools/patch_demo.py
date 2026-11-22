@@ -12,8 +12,8 @@ Run from the repository root (or anywhere: the paths are set from this
 file). The computation is in tests/demonstrator/ (GUI-free, used by the
 tests); the window in tests/demonstrator/window.py. All data are
 synthetic, so the figures are public. ``--save`` also writes
-``numbers.json`` (every number the report quotes) and the per-replicate
-CSVs into DIR.
+``numbers.json`` (every number the report quotes) and per-method summary
+CSVs into DIR; ``--rows DIR2`` adds the per-replicate CSVs (large).
 """
 import argparse
 import os
@@ -32,6 +32,7 @@ def main(argv=None):
     ap.add_argument('--views', metavar='DIR', help='write the two default views as PNG (no display needed)')
     ap.add_argument('--replicates', type=int, default=200, help='replicates per reflectivity survey (--save)')
     ap.add_argument('--burn-replicates', type=int, default=30, help='replicates per burn survey (--save)')
+    ap.add_argument('--rows', metavar='DIR2', help='also write the per-replicate CSVs (large) into DIR2 (--save)')
     ap.add_argument('--quick', action='store_true', help='few replicates (smoke run)')
     a = ap.parse_args(argv)
     if a.save or a.views:
@@ -42,7 +43,7 @@ def main(argv=None):
             figures.views(a.views, seed=a.seed)
         if a.save:
             n, nb = (6, 3) if a.quick else (a.replicates, a.burn_replicates)
-            figures.report(a.save, replicates=n, burn_replicates=nb, log=print)
+            figures.report(a.save, replicates=n, burn_replicates=nb, log=print, rows_out=a.rows)
         return 0
     from PyQt5 import QtWidgets
     from demonstrator.window import DemoWindow

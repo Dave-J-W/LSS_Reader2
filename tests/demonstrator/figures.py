@@ -2,8 +2,9 @@
 same code the window uses (``refl``, ``burnmode``, ``draw``). Headless
 (Agg). Entry point: ``python tests/tools/patch_demo.py --save DIR``.
 
-Every number the report quotes is written to ``DIR/numbers.json``; the
-per-replicate values to ``DIR/*.csv``.
+Every number the report quotes is written to ``DIR/numbers.json``, the
+per-method summaries to ``DIR/*_summary*.csv``; the per-replicate values
+only with ``--rows DIR2`` (hundreds of kB).
 """
 import csv
 import json
@@ -83,17 +84,25 @@ def figure1(out, numbers):
 
 # ---- figure 2: factors over many replicates ----------------------------------------------
 
-def figure2(out, numbers, replicates):
+def figure2(out, numbers, replicates, rows_out=None):
     fig = Figure(figsize=(12.5, 8.5))
     names = list(refl.METHODS)
     allres = {}
     for col, (key, cfg) in enumerate(SURVEYS.items()):
         summ, rows = refl.survey(cfg, range(replicates), names)
         allres[key] = summ
-        with open(os.path.join(out, 'factors_%s.csv' % key), 'w', newline='') as fh:
-            w = csv.DictWriter(fh, ['seed', 'method', 'join', 'delta', 'err', 'true'])
-            w.writeheader()
-            w.writerows(rows)
+        with open(os.path.join(out, 'factor_summary_%s.csv' % key), 'w', newline='') as fh:
+            cols = ['n', 'bias', 'sd', 'rmse', 'pull_mean', 'pull_sd', 'coverage68', 'coverage95']
+            w = csv.writer(fh)
+            w.writerow(['method', 'join'] + [c + ('_ln' if c in ('bias', 'sd', 'rmse') else '') for c in cols])
+            for n, d in summ.items():
+                for j, v in d['joins'].items():
+                    w.writerow([n, j] + ['%.6g' % v[c] for c in cols])
+        if rows_out:
+            with open(os.path.join(rows_out, 'factors_%s.csv' % key), 'w', newline='') as fh:
+                w = csv.DictWriter(fh, ['seed', 'method', 'join', 'delta', 'err', 'true'])
+                w.writeheader()
+                w.writerows(rows)
         axb = fig.add_subplot(2, 2, 1 + col)
         axp = fig.add_subplot(2, 2, 3 + col, sharey=axb)
         y = np.arange(len(names))[::-1]
@@ -330,7 +339,7 @@ def figure5(out, numbers):
                               true_change={q: _r(bm.true_change(rep, q), 5) for q in bm.QUANTITIES}, estimators=d)
 
 
-def figure6(out, numbers, replicates):
+def figure6(out, numbers, replicates, rows_out=None):
     fig = Figure(figsize=(12.5, 4.6))
     axes = [fig.add_subplot(1, 3, i + 1) for i in range(3)]
     summary = {}
@@ -359,24 +368,35 @@ def figure6(out, numbers, replicates):
                  'per change' % replicates, fontsize=9)
     fig.subplots_adjust(left=0.06, right=0.99, bottom=0.17, top=0.88, wspace=0.35)
     _save(fig, os.path.join(out, '06_burn_estimators.png'))
-    with open(os.path.join(out, 'burn_estimators.csv'), 'w', newline='') as fh:
-        w = csv.DictWriter(fh, ['change', 'seed', 'estimator', 'quantity', 'true', 'measured', 'stable'])
-        w.writeheader()
-        w.writerows(rows_all)
+    with open(os.path.join(out, 'burn_estimator_summary.csv'), 'w', newline='') as fh:
+        w = csv.writer(fh)
+        w.writerow(['change', 'estimator', 'quantity', 'n', 'true', 'mean', 'sd', 'bias', 'stable_fraction'])
+        for ch, summ in summary.items():
+            for e, d in summ.items():
+                for q, v in d.items():
+                    w.writerow([ch, e, q, v['n']] + ['%.6g' % v[c] for c in ('true', 'mean', 'sd', 'bias', 'stable')])
+    if rows_out:
+        with open(os.path.join(rows_out, 'burn_estimators.csv'), 'w', newline='') as fh:
+            w = csv.DictWriter(fh, ['change', 'seed', 'estimator', 'quantity', 'true', 'measured', 'stable'])
+            w.writeheader()
+            w.writerows(rows_all)
     numbers['figure6'] = dict(replicates=replicates, changes={
         ch: {e: {q: dict(true=_r(v['true'], 5), mean=_r(v['mean'], 5), sd=_r(v['sd'], 5),
                          stable=_r(v['stable'], 3)) for q, v in d.items()} for e, d in summ.items()}
         for ch, summ in summary.items()})
 
 
-def report(out, replicates=200, burn_replicates=30, log=None):
-    """Every figure of the report and numbers.json into ``out``."""
+def report(out, replicates=200, burn_replicates=30, log=None, rows_out=None):
+    """Every figure of the report, numbers.json and the summary CSVs into
+    ``out``; the per-replicate CSVs into ``rows_out`` (if given: large)."""
     os.makedirs(out, exist_ok=True)
+    if rows_out:
+        os.makedirs(rows_out, exist_ok=True)
     log = log or (lambda *a: None)
     numbers = {}
     figure1(out, numbers)
     log('figure 1 done')
-    surveys = figure2(out, numbers, replicates)
+    surveys = figure2(out, numbers, replicates, rows_out)
     log('figure 2 done')
     figure3(out, numbers, max(replicates // 2, 3), surveys['film100_nx'])
     log('figure 3 done')
@@ -384,7 +404,7 @@ def report(out, replicates=200, burn_replicates=30, log=None):
     log('figure 4 done')
     figure5(out, numbers)
     log('figure 5 done')
-    figure6(out, numbers, burn_replicates)
+    figure6(out, numbers, burn_replicates, rows_out)
     log('figure 6 done')
     with open(os.path.join(out, 'numbers.json'), 'w') as fh:
         json.dump(numbers, fh, indent=1, default=lambda o: o.tolist() if hasattr(o, 'tolist') else str(o))
