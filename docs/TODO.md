@@ -41,6 +41,7 @@ working list, one table per area, each row with its source. Rows marked
 |---|---|
 | Two-file export, covariance sidecar; Budget then the default (the covariance itself is computed since 2026-11-22: `lss_core.uncertainty`; what to export: area B2) | F24, F24a, F24c; P4; input 5 |
 | Stitch-factor bias, measured on real overlaps, then remedied: remedy built 2026-11-22 (`lss_core.patching`, joint fit), **the default since 2026-11-22** after the synthetic gauntlet (C36); confirming on the larger data set: hand-off 08 (the private `bu` set holds no reflectivity) | P1, D13 |
+| Undersampled fringes at a join (fewer than 3 points per Kiessig period of the coarser scan): every curve model fails there in the gauntlet, the coinciding-points ratio alone stays honest. Fall back to it where the joint fit's χ² is marginal and three or more Qz coincide, and test it with the gauntlet — **new** 2026-11-22 | C36; physics_notes 2026-11-22 |
 | Same-absorber scans share a factor: send the question to the hand-off author — **new** | F41 |
 | Qz offset from sh-scan images — **new** | F42 |
 | Per-second option — **new** | F20 |
