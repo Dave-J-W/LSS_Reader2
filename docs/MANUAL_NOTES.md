@@ -168,9 +168,12 @@ Each line: feature — where — default — script — notes entry (date).
 
 ### Live updates (2026-11-22)
 
-- **Live** (beside Update Specfile): while ticked, the SPEC file is checked
-  every 5 s (preference `live_interval_s`); when it has grown, the new
-  scans are read (as Update Specfile).
+- **Live** (beside Update Specfile): while ticked, the SPEC file, the
+  Pilatus folder and the latest fluorescence scan's MCA file are checked
+  every 5 s (preference `live_interval_s`); a new SPEC line, a new image
+  or a new spectrum each triggers an update. What counts is the data on
+  disk: a frame whose image has not arrived yet waits, and is added (to
+  the frame selection, the plots and the remade results) when it does.
 - Saved results whose series gained scans, or whose scans gained points,
   are **remade** from their recipe and saved as a new version (origin
   'live', note "remade from R…: why"); the old version is marked

@@ -256,3 +256,64 @@ def test_the_open_gid_map_follows_its_series(window, qapp, recorder, tmp_path):
     assert sorted({int(n) for lv in window.gidLevels for n in lv[1]}) == [11, 12]
     window.liveCheckBox.setChecked(False)
     assert recorder.exceptions == []
+
+
+def test_images_that_arrive_after_their_spec_lines_are_picked_up(window, qapp, recorder, tmp_path):
+    """Owner, 2026-11-22: updating should proceed on each new Pilatus image.
+    The SPEC file has all 21 points of a burn scan but only 8 images are
+    written; the other 13 arrive while the SPEC file does not change."""
+    import shutil
+    spec = synth.make_burn_dataset(tmp_path / 'burn')
+    pil = str(tmp_path / 'burn' / 'pilatus')
+    later = str(tmp_path / 'later')
+    os.makedirs(later)
+    for j in range(8, synth.BURN_FRAMES):
+        shutil.move(os.path.join(pil, 'burn_SCAN-1_%04d.tif' % j), later)
+    window.openSpecFile(fname=spec)
+    window.directory = str(tmp_path)
+    qapp.processEvents()
+    assert window.scanPoints[1] == 8                         # frames on disk, not SPEC lines
+    sweep._select_scans(window, qapp, [0])
+    sweep._select_images(window, qapp, list(range(8)))
+    window.ui.pilBurnPushButton.click()
+    qapp.processEvents()
+    qapp.processEvents()
+    assert workbook.Workbook(window.workbookPath()).results(kind='burn test')[0]['series_points'] == 8
+    window.liveCheckBox.setChecked(True)
+    stamp = window.fileStamp()
+    for name in sorted(os.listdir(later)):
+        shutil.move(os.path.join(later, name), pil)
+    assert window.fileStamp() != stamp                        # the Pilatus folder is watched
+    window.liveTick()
+    window.finishRemakes()
+    qapp.processEvents()
+    assert window.scanPoints[1] == synth.BURN_FRAMES
+    rows = workbook.Workbook(window.workbookPath()).results(kind='burn test')
+    assert rows[-1]['origin'] == 'live' and 'points 8 → 21' in rows[-1]['note']
+    assert len(window.burnResult.t) == synth.BURN_FRAMES
+    window.liveCheckBox.setChecked(False)
+    assert recorder.exceptions == []
+
+
+def test_spectra_appended_to_an_mca_file_are_picked_up(window, qapp, recorder, dataset, tmp_path):
+    """A fluorescence scan's MCA file grows by one spectrum; the SPEC file does not change."""
+    import numpy as np
+    window.openSpecFile(fname=dataset)
+    window.directory = str(tmp_path)
+    qapp.processEvents()
+    mca = window.mcaFilePath(3)
+    ch = np.arange(1, 257)
+    spectrum = 500 * np.exp(-(ch - 120.0) ** 2 / 2 / 5 ** 2) + 5
+    synth.write_mca(mca, [spectrum])
+    window.updateSeries()
+    assert window.scanPoints[3] == 1
+    window.liveCheckBox.setChecked(True)
+    window.liveStamp = window.fileStamp()
+    synth.write_mca(mca, [spectrum, spectrum * 2, spectrum * 3])
+    assert window.fileStamp() != window.liveStamp             # the last scan's MCA file is watched
+    window.liveTick()
+    qapp.processEvents()
+    assert window.scanPoints[3] == 3
+    assert window.countSpectra(mca) == 3
+    window.liveCheckBox.setChecked(False)
+    assert recorder.exceptions == []

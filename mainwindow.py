@@ -716,8 +716,6 @@ class MainWindow (QMainWindow):
                 self.messageBox('Scan number(s) '+listText(repeated)+' appear more than once in this SPEC file. The last scan with each number is shown.')
             self.scanlines=[self.specData[i]['ScanLine'] for i in scannums]
             self.ui.scanListWidget.addItems(self.scanlines)
-            self.updateSeries()
-            self.checkStaleResults()
             if np.any([self.specPar[i]['Detector']=='Vortex' for i in scannums]):
                 if QDir(self.directory+'/'+self.mcaDirName).exists()==True:
                     self.mcaDir=self.directory+'/'+self.mcaDirName
@@ -748,6 +746,8 @@ class MainWindow (QMainWindow):
                     self.ui.refQcLineEdit.setText('0.0217') #preset the critical q
                     if not self.absFacEnergyCheckBox.isChecked():   # with "from E", the scans' energy sets it
                         self.ui.AbsFacLineEdit.setText(str(ABSFAC_10KEV)) # 50 um Al at 10 keV (was '1.42')
+            self.updateSeries()             # after the folders are known: it counts the frames and spectra on disk
+            self.checkStaleResults()
         self.ui.statusBar.showMessage('Done')
         self.scanCenter={}
 
@@ -828,7 +828,7 @@ class MainWindow (QMainWindow):
             return
         try:
             info=seriesmod.scan_info(self.specData,self.specPar)
-            self.scanPoints={x.num:x.points for x in info}
+            self.scanPoints=self.dataCounts({x.num:x.points for x in info})
             found=seriesmod.all_series(info,growing=self.liveOn())   # live: the last series may be in progress
         except Exception as e:                       # a nicety: the list works without it
             self.log.info('series not found: %s',e)
@@ -938,8 +938,9 @@ class MainWindow (QMainWindow):
         from PyQt5.QtWidgets import QCheckBox
         box=QCheckBox('Live',self)
         box.setObjectName('liveCheckBox')
-        box.setToolTip('Watch the SPEC file while it is being written: every %g s the reader checks it and, when it '
-                       'has grown, reads the new scans (as "Update Specfile"). Results saved in the workbook whose '
+        box.setToolTip('Watch the data while they are being written: every %g s the reader checks the SPEC file, the '
+                       'Pilatus folder and the latest fluorescence scan\'s MCA file, and on any new SPEC line, image or '
+                       'spectrum reads what is new without resetting the window. Results saved in the workbook whose '
                        'series gained scans or points are remade from their recipe (the lss_core call stored with '
                        'them) and saved as a new version marked "live"; the old one is marked superseded. A selection '
                        'that was a whole series grows with it. Live mode stops by itself when the followed series '
@@ -1000,11 +1001,96 @@ class MainWindow (QMainWindow):
             self.liveTimer.stop()
 
     def fileStamp(self):
+        """What live mode watches (owner, 2026-11-22: every new Pilatus image or
+        Vortex spectrum, not only new SPEC lines): the SPEC file, the Pilatus
+        folder (a new image changes it) and the MCA file of the last scan (it
+        grows by one block per spectrum)."""
         try:
             st=os.stat(self.specFileName)
-            return (st.st_size,st.st_mtime_ns)
         except (OSError,TypeError):
             return None
+        stamp=[st.st_size,st.st_mtime_ns]
+        for d in (getattr(self,'pilDir',None),getattr(self,'mcaDir',None)):
+            try:
+                stamp.append(os.stat(d).st_mtime_ns if d else None)
+            except OSError:
+                stamp.append(None)
+        nums=self.specData.get('ScanNums',[]) if isinstance(getattr(self,'specData',None),dict) else []
+        par=getattr(self,'specPar',{}) or {}
+        vortex=[n for n in nums if par.get(n,{}).get('Detector')=='Vortex']
+        mca=self.mcaFilePath(vortex[-1]) if vortex else None          # the latest fluorescence scan's file
+        try:
+            stamp.append(os.stat(mca).st_size if mca else None)
+        except OSError:
+            stamp.append(None)
+        return tuple(stamp)
+
+    def mcaFilePath(self,scan):
+        head=getattr(self,'mcafhead',None)
+        return head+str(scan)+getattr(self,'mcaftail','_mca') if head else None
+
+    def dataCounts(self,points):
+        """{scan: frames or spectra on disk}: a Pilatus scan counts the images
+        written (one listing of the folder), a fluorescence scan the spectra
+        in its MCA file (re-read only when the file's size changed); neither
+        more than the SPEC points, which carry each point's Qz and monitor
+        (a spectrum-only scan, getandsave_mca, has no SPEC points: its
+        spectra). Other scans: their SPEC points. Live mode and the stale
+        check compare these, so a frame or spectrum written after its SPEC
+        line still counts as new data."""
+        import re
+        out=dict(points)
+        par=getattr(self,'specPar',{}) or {}
+        pil={n for n in out if par.get(n,{}).get('Detector')=='Pilatus'}
+        if pil and getattr(self,'pilDir',None):
+            try:
+                names=os.listdir(self.pilDir)
+            except OSError:
+                names=[]
+            base=re.escape(os.path.basename(self.specFileName))
+            pat=re.compile(r'^%s_SCAN-(\d+)_\d+\.' % base)
+            have={}
+            for nm in names:
+                m=pat.match(nm)
+                if m:
+                    k=int(m.group(1))
+                    have[k]=have.get(k,0)+1
+            for n in pil:
+                out[n]=min(out[n],have.get(n,0))
+        cache=getattr(self,'mcaCountCache',None)
+        if cache is None:
+            cache=self.mcaCountCache={}
+        for n in [n for n in out if par.get(n,{}).get('Detector')=='Vortex']:
+            path=self.mcaFilePath(n)
+            try:
+                size=os.stat(path).st_size if path else None
+            except OSError:
+                size=None
+            if size is None:
+                out[n]=0 if out[n] else out[n]
+                continue
+            if cache.get(path,(None,))[0]!=size:
+                cache[path]=(size,self.countSpectra(path))
+            k=cache[path][1]
+            out[n]=k if not out[n] else min(out[n],k)
+        return out
+
+    @staticmethod
+    def countSpectra(path):
+        """Spectra in an MCA file: one '#S' block each (a multi-element file
+        holds one block per element and point: its distinct 'Point:' values)."""
+        blocks,pointset=0,set()
+        try:
+            with open(path,errors='replace') as f:
+                for line in f:
+                    if line.startswith('#S'):
+                        blocks+=1
+                        for w in line.split():
+                            if w.startswith('Point:'):
+                                pointset.add(w)
+        except OSError:
+            return 0
+        return len(pointset) if pointset else blocks
 
     def liveTick(self):
         """L1: the file grew: read it again, keep the selection (L3), stop at the end (L4)."""
@@ -1101,10 +1187,18 @@ class MainWindow (QMainWindow):
                     c.setCurrentIndex(k)
             self.ui.PlotWidget.setCurrentIndex(tab)
             if frames and il.count():
+                counts=getattr(self,'scanPoints',{}) or {}
+                rows_scan=list(getattr(self,'pilScanNum',[]))
+                rows_frame=list(getattr(self,'pilFrameNum',[]))
+
+                def written(k):            # the frame's image is on disk (a frame may be listed before it is)
+                    if self.det!='Pilatus' or k>=len(rows_scan):
+                        return True
+                    return int(rows_frame[k])<counts.get(int(rows_scan[k]),10**9)
                 il.blockSignals(True)
                 for k in range(il.count()):
                     it=il.item(k)
-                    it.setSelected(all_frames or it.text() in frames)
+                    it.setSelected((all_frames and written(k)) or (not all_frames and it.text() in frames))
                 il.blockSignals(False)
                 il.itemSelectionChanged.emit()
                 self.flushPendingSelection()            # drawn now, so that the tab can be put back after it

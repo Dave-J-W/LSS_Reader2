@@ -3502,3 +3502,27 @@ the same length); NX GID scan 11's map becomes the remade map of 11 + 12
 grid and scan 12 has 4 frames). The MCA redraw is not tested on a
 fluorescence series yet (no synthetic XFNTR series with a recipe).
 
+### 2026-11-22 — Live updates on every new image or spectrum
+
+**Q.** (owner) "Does the updating proceed on each new Pilatus image or
+vortex spectrum? Not just the scans that contain multiple images? It
+should."
+
+**A. Not fully, until this change.** Updates were triggered by the SPEC
+file growing only. Each new point line did trigger one, in a scan of any
+length, but (1) an image written after its SPEC line was not noticed until
+the next SPEC line (the last frame of a scan could wait for the next
+scan), and (2) a spectrum appended to an MCA file changes no SPEC line, so
+it was not noticed at all. **Now** live mode also watches the Pilatus
+folder (a new file changes the folder) and the MCA file of the latest
+fluorescence scan (it grows by one block per spectrum), and every count
+of a scan's points is the data on disk: images written (one listing of
+the folder per update) or spectra in the MCA file (re-read only when its
+size changes; distinct `Point:` values in a multi-element file), never
+more than the SPEC lines. A frame listed before its image arrives is left
+out of a re-applied "all frames" selection until it does. Verified:
+`test_gui_live.py` (a burn scan with 21 SPEC lines and 8 images, saved at
+8 points; the 13 images arrive with the SPEC file unchanged: the update
+runs and the result is remade at 21; an MCA file of 1 spectrum rewritten
+with 3: the update runs and the scan counts 3).
+
