@@ -86,6 +86,8 @@ def peak_shape():
 def _spread(total, weights, rng, integer):
     """``total`` counts over cells in proportion to ``weights``."""
     w = np.asarray(weights, float)
+    if not w.sum() > 0:
+        w = np.ones_like(w)
     p = (w / w.sum()).ravel()
     if integer:
         return rng.multinomial(int(round(total)), p).reshape(w.shape).astype(float)
@@ -104,8 +106,6 @@ def frame(record, k, rng, integer=True):
     for col, key in ((sc, 'S'), (lc, 'B1'), (rc, 'B2')):
         core, outer = _box(row, col)
         w = np.full(shape.shape, b) + (shape * c['peak'][k] if key == 'S' else 0.0)
-        if b == 0 and key != 'S':
-            w = np.ones(shape.shape)
         img[core] = _spread(c[key + '_core'][k], w, rng, integer)
         n_out = (xrr_scans.ROI_ROWS - xrr_scans.CORE_ROWS) // 2        # 3 rows above, 3 below
         out = _spread(c[key + '_outer'][k], np.ones((2 * n_out, SLIT[0])), rng, integer)
