@@ -179,7 +179,7 @@ hand-off 19 contract exactly; nothing in the joint fit changes its form.
 | A common-mode error per scan | **no** | The data determine each scan's level only through finite overlaps; any estimator (spline, joint fit, global fit, prior, structural model) leaves a variance, and it belongs to the whole scan, not to points. The correlation is information, not a defect: it says that the shape within a scan is known to counting precision while its level is known to σ_δ. |
 | Accumulation along the chain | **no** (only reducible) | Scan K's level relative to the anchor is a product of K−1 measured steps. Only an independent measurement of a longer step (the foil prior from n_1 to n_K directly, which the correlated prior contains) or an absolute scale at high Qz would break the walk. Moving the anchor changes Σ but not a downstream fit that has a free overall scale (reasoned). |
 | Its size | partly | Joint fit −20 to −30 % on σ_δ; prior −8 % (NX counts) to −50 % (low counts); longer counting or more points in the overlaps (an experiment-design choice). |
-| Folding it into the diagonal (P4) | **yes** | Downstream fits become overconfident (table 6). |
+| Folding it into the diagonal (P4) | **yes** | Downstream fits become overconfident: slab-fit pull SDs 3–4 even with the inherited Σ on the diagonal, 1.0–1.15 with the covariance (table 6). |
 | Not inheriting it | **yes** | §3.4 recursion. |
 | Double counting earlier factor errors in the next fit | **yes** | Fit against counting errors (hand-off §3.2). |
 | Bias of the level (P1) | **yes** | Joint fit. |
@@ -330,11 +330,48 @@ sum of the steps.
 | search (χ² p ≥ 0.01 and Hausman 2σ, up to 8) | 0.51 / 1.06 | 0.81 / 1.09 |
 | search, order 2 | 0.45 / 1.07 | 0.91 / 0.92 |
 
-**Table 6. Downstream: a slab fit to the stitched curve** — see §5.1.
-
 ### 5.1 Downstream fit (P4)
 
-DOWNSTREAM_PLACEHOLDER
+`mc4.py`: the five synthetic scans stitched, then the slab model (d, SLD,
+σ, free overall scale) fitted by least squares in ln y with the given
+covariance (Cholesky-whitened residuals, `scipy.optimize.least_squares`),
+truth as the model. Pull = (fitted − true)/(fit's own error, not rescaled
+by χ²). 200 seeds (NX grid, 5×10⁵), 150 seeds (others); the SD of a pull
+SD from 150 seeds is ≈ 0.06. "χ²/N vs truth" = the stitched curve against
+the true curve (true scale) with that covariance: 1 means the errors cover.
+
+**Table 6. Slab fit: pull SD of d / SLD / σ; fit χ²/dof; χ²/N of the curve vs truth; RMS error of d (Å) / SLD (10⁻⁶ Å⁻²) / σ (Å)**
+
+| Error treatment | NX grid, 5×10⁵ | staggered, 5×10⁵ | NX grid, 2×10⁴ |
+|---|---|---|---|
+| A legacy chain, legacy error column (diagonal) | **1.72 / 4.83 / 4.52**; 0.81; 1.68; 0.026 / 0.020 / 0.006 | 1.83 / 5.96 / 5.34; 0.83; 2.11 | 1.57 / 5.26 / 4.34; 0.80; 1.78; 0.125 / 0.106 / 0.032 |
+| B joint, counting errors only | 2.06 / 5.87 / 7.39; 1.31; 4.54; 0.016 / 0.015 / 0.005 | 2.35 / 6.34 / 8.64; 1.41; 5.50 | 1.97 / 7.00 / 7.15; 1.35; 4.95 |
+| C joint, Σ_mm folded into the diagonal (the hand-off's corrected error column used alone) | 1.01 / **3.44 / 3.17**; 0.54; 0.86; 0.018 / 0.018 / 0.005 | 1.01 / 3.61 / 3.51; 0.52; 0.89 | 0.93 / 4.04 / 3.08; 0.53; 0.91 |
+| **D joint, full covariance** | **1.04 / 1.07 / 1.13**; 0.97; 0.98; **0.011 / 0.006 / 0.003** | 1.14 / 1.06 / 1.29; 0.96; 0.97; 0.012 / 0.006 / 0.004 | 1.13 / 1.15 / 1.14; 0.96; 0.97; 0.060 / 0.032 / 0.015 |
+| D joint + foil prior (guarded), full covariance | 1.03 / 1.05 / 1.12; 0.97; 0.97; 0.011 / 0.006 / 0.003 | 1.14 / 1.05 / 1.28 | 1.10 / 1.19 / 1.16; 0.97; 0.98; **0.052 / 0.026 / 0.012** |
+| D §3.2 spline ratio, full covariance | 1.02 / 1.03 / 1.06; 0.97; 0.97; 0.011 / 0.006 / 0.003 | 1.10 / 1.01 / 1.22 | 1.12 / 1.12 / 1.10; 0.96; 0.97; 0.061 / 0.032 / 0.015 |
+
+Findings (measured):
+
+- **The covariance is what restores the pulls.** Legacy errors give
+  SLD and roughness pull SDs of 4.5–6 (the hand-off's 5.3 reproduced in
+  kind); folding the inherited Σ into the diagonal fixes the coverage of
+  single points (χ²/N 0.86–0.91) but not the fit (pulls 3–4, and the fit's
+  χ²/dof 0.53 looks deceptively good); only the full covariance gives
+  pulls of 1.0–1.15 (1.2–1.3 on one parameter of the staggered set).
+- **It also makes the fit more accurate**, not just honest: RMS error of
+  the SLD 0.006 against 0.020 (legacy) and 0.018 (folded), of d 0.011 Å
+  against 0.026 Å. With the covariance the fit lets each scan's level
+  float within Σ instead of bending the model to absorb it.
+- **Downstream, the factor estimator matters less than the covariance.**
+  With the full covariance, joint and §3.2 give the same parameter
+  accuracy at these counts: the structural model re-determines the
+  levels. The joint fit's gains are in the curve itself (σ of the levels,
+  table 3), in any fit that does not use the covariance, and at low counts
+  together with the prior (2×10⁴: RMS of d 0.052 against 0.061 Å).
+- The small excess over 1 (≤ 0.15, once 0.29) is consistent with the
+  double use of the overlap points discussed in §4.3 and with the
+  inflate-only rule; it is far smaller than any other treatment's.
 
 ## 6. Real data
 
@@ -412,7 +449,7 @@ answer's leave-one-run-out check is.)
 | Legacy | unchanged, byte-identical (rule 3) | | |
 
 Cost: one small linear solve per join plus ≤ 8 Gauss–Newton steps:
-negligible (the whole 300-seed table 1 ran in 15 s for 25 methods).
+negligible (table 1, 300 seeds × 3 grids × 25 estimators, ran in 15 s).
 
 ## 8. API sketch: `lss_core/patching.py`
 
@@ -587,7 +624,7 @@ pull; the shared scan a makes it conservative).
 | Script | What it does |
 |---|---|
 | `patchlab.py` | Parratt model; `joint_factor` (log-space WLS, shared polynomial, R/R_F, raw or log–log baseline, prior, C2-junction variant), `joint_factor_linear` (Poisson-like Gauss–Newton), `interp_factor`, `coincident_factor`, `chain_covariance`, `chain`, `global_fit` (local windows or B-spline), `combine`, `stitch_all_points`, `auto_joint` |
-| `sim.py` | synthetic scans (table 5 setup), grids `nx`, `staggered`, `coincide`; priors with optional P29 offset |
+| `sim.py` | synthetic scans (the §5 setup), grids `nx`, `staggered`, `coincide`; priors with optional P29 offset |
 | `p1scan.py` | table 2 (noise-free) |
 | `mc1.py` | table 1 (300 seeds × 3 grids × 25 estimators) |
 | `mc2.py` | table 3 (chains, global fits) |
