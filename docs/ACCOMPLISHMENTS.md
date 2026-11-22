@@ -106,6 +106,13 @@ started.
   curve's full covariance (P4), as reusable code (`lss_core.uncertainty`).
   An option beside the unchanged legacy patch; the comparison on the
   owner's larger data set is handed off (`handoff_out/08`).
+- The covariance exported for model fits (the xmodfit sidecar,
+  `lss_core.covariance_export`) and a reference fitter that uses it
+  (`lss_core.gls`). Scripts can write it with any patch method
+  (`save(covariance=...)`), and the window's Ref Patch has a "+ covariance"
+  box (off). On synthetic film fits, pull SDs are 0.97–1.07 with the
+  covariance and 1.7–4.2 with the legacy error column (measured,
+  `reports/downstream_covariance.md`).
 
 ## Series, saving and live updates (2026-11-19 to 22)
 
