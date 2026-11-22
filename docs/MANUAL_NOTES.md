@@ -178,7 +178,13 @@ Each line: feature — where — default — script — notes entry (date).
   recipe (SpecPlot curves, fitted MCA lines, GID cuts) are only marked out
   of date.
 - A selection that was a whole series grows with the series; another
-  selection is kept as it was.
+  selection is kept as it was. The tab, the SpecPlot axis choices and the
+  frames selected in the image list are kept (all frames selected: the new
+  frames join); nothing is redrawn when the new scans are elsewhere.
+  "Update Specfile" works the same way (no reset).
+- Remakes run in the background; the window stays usable. Frames left out
+  of a result (its point selection) stay out of its remakes; frames and
+  scans written since are added.
 - Live mode stops by itself when the followed series writes that it is
   complete (needs the macro's series lines); otherwise untick it.
 - Recipes are read, not run: only the reader's own reduction calls with

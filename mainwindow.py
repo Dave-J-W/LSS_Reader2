@@ -66,6 +66,16 @@ def selectionDelayMs():
         return 150
 
 
+def runRemake(job):
+    """In the worker thread (no Qt): remake one saved result from its recipe
+    (lss_core.live) on a fresh Experiment of the SPEC file as it is now."""
+    from lss_core.experiment import Experiment
+    exp=Experiment(job['spec'])
+    call,res,used,pts=livemod.remake(job['recipe'],job['scans'],exp,job['then'],job['now'])
+    kind,items=livemod.item_for(call,res,used)
+    return kind,items,livemod.with_scans(job['recipe'],used,pts)
+
+
 def scanRanges(values):
     """'6-9, 11' for scan numbers: consecutive runs written as ranges."""
     v=sorted(int(x) for x in values)
@@ -225,7 +235,7 @@ class MainWindow (QMainWindow):
         # self.connect(self.ui.actionOpen_Spec_File, SIGNAL('triggered()'),self.openSpecFile)
         self.ui.actionOpen_Spec_File.triggered.connect(lambda x:self.openSpecFile(fname=None))
         # self.connect(self.ui.speUpSpeFilePushButton, SIGNAL('clicked()'),self.readSpecFile)
-        self.ui.speUpSpeFilePushButton.clicked.connect(self.readSpecFile)
+        self.ui.speUpSpeFilePushButton.clicked.connect(self.updateSpecFile)
         # self.connect(self.ui.actionAPS_15IDC, SIGNAL('triggered()'),self.selectAPS_15IDC)
         self.ui.actionAPS_15IDC.triggered.connect(self.selectAPS_15IDC)
         self.ui.actionAPS_9IDC.setVisible(False)   # 9-ID-C is not supported (owner, 2026-11-17)
@@ -962,6 +972,10 @@ class MainWindow (QMainWindow):
         self.liveTimer=QTimer(self)
         self.liveTimer.timeout.connect(self.liveTick)
         self.liveStamp=None
+        self.remakeJobs=[]
+        self.remakePool=None
+        self.remakeTimer=QTimer(self)
+        self.remakeTimer.timeout.connect(self.collectRemakes)
 
     def liveInterval(self):
         try:
@@ -1000,48 +1014,124 @@ class MainWindow (QMainWindow):
         self.liveStamp=stamp
         self.liveUpdate()
 
+    def updateSpecFile(self):
+        """"Update Specfile": the scans the file gained, read without resetting
+        the window (liveUpdate), the same as one step of live mode; a file not
+        read yet is read in full."""
+        if not getattr(self,'specFileName',None) or not self.specData.get('ScanNums'):
+            self.readSpecFile()
+            return
+        self.liveUpdate()
+
+    def liveRead(self):
+        """Read what the SPEC file gained since the last read without
+        resetting the window (owner, 2026-11-22: "updates shouldn't feel
+        like a reset or clunky"): no clearing, no progress dialog; rows of
+        new scans are added and the re-read last scan's row is updated in
+        place, so the selection stays. Returns (new scans, scans that
+        gained points)."""
+        old_nums=set(self.specData.get('ScanNums',[]))
+        old_pts=dict(getattr(self,'scanPoints',{}) or {})
+        r=specread(self.specFileName,startLineNum=self.startLineNum,endScanNum=self.endScanNum,beamline=self.beamline,
+                   data=self.specData,par=self.specPar,progress=None)
+        self.specRead=r
+        self.startLineNum=r.endLineNum
+        self.specData,self.specPar=r.Data,r.Par
+        self.endScanNum=self.specData['NumOfScans']
+        scannums=sorted(set(self.specData.get('ScanNums',[])))
+        lines=[self.specData[i]['ScanLine'] for i in scannums]
+        lw=self.ui.scanListWidget
+        lw.blockSignals(True)
+        for row,line in enumerate(lines):
+            if row<lw.count():
+                if lw.item(row).text()!=line:
+                    lw.item(row).setText(line)
+            else:
+                lw.addItem(line)
+        lw.blockSignals(False)
+        self.scanlines=lines
+        new=[n for n in scannums if n not in old_nums]
+        dets={self.specPar[n].get('Detector') for n in new}
+        if ('Pilatus' in dets and not hasattr(self,'pilfhead')) or ('Vortex' in dets and not hasattr(self,'mcafhead')):
+            # a detector this file had not used yet: its folder is looked up the usual way
+            self.startLineNum,self.endScanNum=0,0
+            self.specData,self.specPar={},{}
+            self.readSpecFile()
+            return new,[]
+        self.updateSeries()
+        grown=[n for n in scannums if n in old_pts and self.scanPoints.get(n,0)>old_pts[n]]
+        self.checkStaleResults()
+        return new,grown
+
     def liveUpdate(self):
+        """One live update: read the new data (liveRead); when the scans being
+        looked at changed or the followed series grew, redraw them while
+        keeping the tab, the plot's axis choices and the frame selection;
+        otherwise leave the window as it is (L1, L3, L4)."""
         before=sorted(int(n) for n in getattr(self,'selectedScanNums',[]))
-        followed=None
-        for s in getattr(self,'seriesAll',[]):
-            if before and sorted(s.data_scans)==before:
-                followed=s
-                break
-        self.readSpecFile()
+        followed=next((s for s in getattr(self,'seriesAll',[]) if before and sorted(s.data_scans)==before),None)
+        tab=self.ui.PlotWidget.currentIndex()
+        combos=[(c,c.currentText()) for c in (self.ui.spXComboBox,self.ui.spYComboBox,self.ui.spY2ComboBox,
+                                              self.ui.spNComboBox)]
+        il=self.ui.imageListWidget
+        frames=[it.text() for it in il.selectedItems()]
+        all_frames=il.count()>0 and len(frames)==il.count()
+        new,grown=self.liveRead()
         now=None
         if followed is not None:
             now=next((s for s in self.seriesAll if s.id==followed.id),None) or \
                 next((s for s in self.seriesAll if followed.data_scans[0] in s.data_scans),None)
         want=sorted(now.data_scans) if now is not None else before
-        rows=[r for r in (self.scanRow(n) for n in want) if r is not None]
-        if rows:
+        touched=set(want)!=set(before) or bool(set(want)&(set(new)|set(grown)))
+        if touched and want:
             lw=self.ui.scanListWidget
             lw.blockSignals(True)
             lw.clearSelection()
-            for r in rows:
-                lw.item(r).setSelected(True)
+            for r in (self.scanRow(n) for n in want):
+                if r is not None:
+                    lw.item(r).setSelected(True)
             lw.blockSignals(False)
             self.seriesChosen=now
-            lw.itemSelectionChanged.emit()
+            self.scanSelectionBefore=set(want)
+            self.scanListChanged()
+            for c,text in combos:                       # the plot's axis choices, as they were
+                k=c.findText(text)
+                if text and k>=0 and c.currentText()!=text:
+                    c.setCurrentIndex(k)
+            self.ui.PlotWidget.setCurrentIndex(tab)
+            if frames and il.count():
+                il.blockSignals(True)
+                for k in range(il.count()):
+                    it=il.item(k)
+                    it.setSelected(all_frames or it.text() in frames)
+                il.blockSignals(False)
+                il.itemSelectionChanged.emit()
+                self.flushPendingSelection()            # drawn now, so that the tab can be put back after it
+            self.ui.PlotWidget.setCurrentIndex(tab)
+        if new or grown:
+            self.ui.statusBar.showMessage('Live: %s%s' % ('new scans %s' % scanRanges(new) if new else '',
+                ('%sscans %s grew' % ('; ' if new else '',scanRanges(grown))) if grown else ''),8000)
         # L4: a series with the macro's lines says when it is done (a guessed one cannot)
-        if now is not None and not now.inferred and now.status in ('complete','aborted','partial'):
+        if self.liveOn() and now is not None and not now.inferred and now.status in ('complete','aborted','partial'):
             self.liveCheckBox.setChecked(False)
             self.notify('Live updates stopped: series %s is %s.' % (now.id,now.status),title='Live',level='info')
 
     def remakeStale(self,wb,stale):
         """L2: results whose series changed are remade from their recipes on
-        the series' scans now and saved as new versions ('live'); the old
-        rows are marked superseded. One remake per recipe (a reflectivity's
-        R and R/RF share one)."""
+        the series' scans now, with the user's point selection carried over
+        (lss_core.live.carry_points), in a worker thread (owner,
+        2026-11-22); collectRemakes saves them as new versions ('live') and
+        marks the old rows superseded. One remake per recipe (a
+        reflectivity's R and R/RF share one); a result already being remade
+        is not queued again."""
+        import concurrent.futures
         rows={r['id']:r for r in wb.results()}
         groups={}
         for rid in stale:
             r=rows.get(rid)
-            if r is None:
-                continue
-            groups.setdefault(r.get('recipe') or '',[]).append(r)
-        done,left=[],[]
-        exp=None
+            if r is not None and rid not in self.remakesInFlight():
+                groups.setdefault(r.get('recipe') or '',[]).append(r)
+        left=[]
         for recipe,members in groups.items():
             if not recipe:
                 left+=[(r['id'],'no recipe') for r in members]
@@ -1050,32 +1140,66 @@ class MainWindow (QMainWindow):
             saved=[int(x) for x in str(first.get('series_scans') or first['scans']).split(',') if x.strip()]
             cur=next((s for s in self.seriesAll if s.id==first.get('series')),None) or \
                 next((s for s in self.seriesAll if saved and saved[0] in s.data_scans),None)
-            scans=cur.data_scans if cur is not None else saved
-            try:
-                exp=exp or self.burnExperiment()
-                call,res,used=livemod.remake(recipe,scans,exp)
-                kind,items=livemod.item_for(call,res,used)
-                new_recipe=livemod.with_scans(recipe,used)
-            except Exception as e:
-                left+=[(r['id'],str(e)) for r in members]
-                continue
-            for r in members:
-                it=next((i for i in items if i.get('label')==r.get('label')),items[0] if len(items)==1 else None)
-                if it is None:
-                    left.append((r['id'],'no matching part in the remade result'))
+            job=dict(recipe=recipe,spec=self.specFileName,scans=list(cur.data_scans if cur is not None else saved),
+                     then=workbookmod.scan_points_of(first),now=dict(self.scanPoints),series=list(self.seriesAll),
+                     members=[(r['id'],r.get('label'),stale[r['id']]) for r in members])
+            if getattr(self,'remakePool',None) is None:
+                self.remakePool=concurrent.futures.ThreadPoolExecutor(max_workers=1,thread_name_prefix='remake')
+            self.remakeJobs.append((self.remakePool.submit(runRemake,job),job))
+        if self.remakeJobs and not self.remakeTimer.isActive():
+            self.remakeTimer.start(100)
+        if left:
+            self.notify('Live: out of date, not remade: %s' % '; '.join('%s (%s)' % l for l in left),
+                        title='Live',level='info')
+
+    def remakesInFlight(self):
+        return {m[0] for _,job in getattr(self,'remakeJobs',[]) for m in job['members']}
+
+    def collectRemakes(self):
+        """In the window's thread: store the remakes that have finished."""
+        done=[(f,job) for f,job in self.remakeJobs if f.done()]
+        if not done:
+            return
+        self.remakeJobs=[(f,job) for f,job in self.remakeJobs if not f.done()]
+        if not self.remakeJobs:
+            self.remakeTimer.stop()
+        made,left=[],[]
+        try:
+            wb=self.openWorkbook()
+            for f,job in done:
+                try:
+                    kind,items,new_recipe=f.result()
+                except Exception as e:
+                    left+=[(rid,str(e)) for rid,_,_ in job['members']]
                     continue
-                it=dict(it,label=r.get('label') or it.get('label',''))
-                it['series']=workbookmod.series_for(it.get('scans',[]),self.seriesAll,getattr(self,'scanPoints',None))
-                nid=wb.add_result(kind,note='remade from %s: %s' % (r['id'],stale[r['id']]),origin='live',
-                                  recipe=new_recipe,**it)
-                wb.supersede(r['id'],nid)
-                done.append((r['id'],nid))
-        if done:
-            self.saveWorkbook(wb)
-        if done or left:
-            self.notify('Live: %s%s' % ('; '.join('%s remade as %s' % d for d in done),
+                for rid,label,why in job['members']:
+                    it=next((i for i in items if i.get('label')==label),items[0] if len(items)==1 else None)
+                    if it is None:
+                        left.append((rid,'no matching part in the remade result'))
+                        continue
+                    it=dict(it,label=label or it.get('label',''))
+                    it['series']=workbookmod.series_for(it.get('scans',[]),job['series'],job['now'])
+                    nid=wb.add_result(kind,note='remade from %s: %s' % (rid,why),origin='live',recipe=new_recipe,**it)
+                    wb.supersede(rid,nid)
+                    made.append((rid,nid))
+            if made:
+                self.saveWorkbook(wb)
+        except Exception as e:
+            self.workbookCache=None
+            self.notify('Live: could not store the remade results: %s' % e,title='Live')
+            return
+        if made or left:
+            self.notify('Live: %s%s' % ('; '.join('%s remade as %s' % d for d in made),
                         ('; not remade: '+'; '.join('%s (%s)' % l for l in left)) if left else ''),
                         title='Live',level='info')
+
+    def finishRemakes(self,timeout=120):
+        """Wait for the remakes under way and store them (tests; closing)."""
+        import concurrent.futures
+        futures=[f for f,_ in getattr(self,'remakeJobs',[])]
+        if futures:
+            concurrent.futures.wait(futures,timeout=timeout)
+        self.collectRemakes()
 
     def selectSeries(self,index):
         """Select the data scans of the chosen series as one action."""

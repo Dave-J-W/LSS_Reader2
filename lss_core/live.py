@@ -104,22 +104,50 @@ def parse(recipe):
     return call
 
 
-def remake(recipe, scans, exp):
+def carry_points(points, then, now):
+    """The point selection for a remake (owner, 2026-11-22: "point selection
+    ... should be preserved across updates"): every frame the user left out
+    stays out; frames written since (indices from ``then[scan]``, the
+    scan's points when the result was saved, up to ``now[scan]``) are
+    added; scans without a selection are used whole. ``points``: the
+    recipe's {scan: [frames]} or None; returns it updated, or None."""
+    if not points:
+        return None
+    out = {}
+    for scan, chosen in points.items():
+        scan = int(scan)
+        chosen = sorted(int(c) for c in chosen)
+        t, n = (then or {}).get(scan), (now or {}).get(scan)
+        if t is not None and n is not None and n > t:
+            chosen += list(range(t, n))
+        out[scan] = chosen
+    return out
+
+
+def remake(recipe, scans, exp, then=None, now=None):
     """Run the recipe's reduction again on ``scans`` (the series' data scans
-    now; a burn test keeps its one scan). Point selections (``points=``)
-    are dropped: new scans are used whole. Returns (Call, result, scans)."""
+    now; a burn test keeps its one scan), with its point selection carried
+    over (``carry_points``; ``then``/``now``: {scan: points} when saved and
+    now). Returns (Call, result, scans used, points used)."""
     call = parse(recipe)
     kw = dict(call.kwargs)
-    kw.pop('points', None)
+    raw = kw.pop('points', None)
+    if call.method == 'burn' and isinstance(raw, (list, tuple)):       # a burn's points: one scan's list
+        raw = {int(call.args[0]): list(raw)}
+    pts = carry_points(raw, then, now)
     if call.method == 'burn':
         used = [int(call.args[0])]
+        if pts is not None and used[0] in pts:
+            kw['points'] = pts[used[0]]
         res = exp.burn(used[0], **kw)
     else:
         used = sorted(int(s) for s in scans)
+        if pts is not None:
+            kw['points'] = pts
         res = getattr(exp, call.method)(used, *call.args[1:], **kw)
     for m in call.merges:
         res.merge(**m)
-    return call, res, used
+    return call, res, used, pts
 
 
 def item_for(call, res, scans, label=''):
@@ -145,9 +173,10 @@ def item_for(call, res, scans, label=''):
                        trends=list(res.trends.items()), time_axis=res.time)]
 
 
-def with_scans(recipe, scans):
-    """The recipe text with its reduction's scans replaced by ``scans`` (and
-    its point selection dropped), for the remade result's own recipe."""
+def with_scans(recipe, scans, points=None):
+    """The recipe text with its reduction's scans replaced by ``scans`` and
+    its point selection by ``points`` (None: none), for the remade
+    result's own recipe."""
     tree = ast.parse(recipe)
     for st in tree.body:
         if (isinstance(st, ast.Assign) and isinstance(st.value, ast.Call)
@@ -155,4 +184,11 @@ def with_scans(recipe, scans):
             if st.value.func.attr != 'burn' and st.value.args:
                 st.value.args[0] = ast.parse(repr(sorted(int(s) for s in scans)), mode='eval').body
             st.value.keywords = [k for k in st.value.keywords if k.arg != 'points']
+            if points is not None:
+                if st.value.func.attr == 'burn':
+                    p = points.get(int(ast.literal_eval(st.value.args[0])))
+                else:
+                    p = points
+                if p is not None:
+                    st.value.keywords.append(ast.keyword('points', ast.parse(repr(p), mode='eval').body))
     return ast.unparse(tree)

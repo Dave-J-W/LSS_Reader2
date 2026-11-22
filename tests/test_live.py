@@ -28,19 +28,26 @@ def test_recipes_are_parsed_not_executed():
             live.parse(bad)
 
 
-def test_with_scans_rewrites_the_scans_and_drops_points():
+def test_with_scans_rewrites_the_scans_and_the_points():
     r = live.with_scans("ref = exp.reflectivity([6, 7], slit=(21, 11), points={7: [0, 1]})\nref.save('result')",
-                        [6, 7, 8])
-    assert "exp.reflectivity([6, 7, 8], slit=(21, 11))" in r and 'points' not in r
+                        [6, 7, 8], {7: [0, 1, 5]})
+    assert "exp.reflectivity([6, 7, 8], slit=(21, 11), points={7: [0, 1, 5]})" in r
+    assert 'points' not in live.with_scans("ref = exp.reflectivity([6], points={6: [0]})", [6, 7])
+    assert live.carry_points({7: [0, 2]}, {7: 3}, {7: 6}) == {7: [0, 2, 3, 4, 5]}
+    assert live.carry_points({7: [0, 2]}, {}, {7: 6}) == {7: [0, 2]}           # unknown then: as it was
+    assert live.carry_points(None, {7: 3}, {7: 6}) is None
     assert live.with_scans("burn = exp.burn(14)\nprint(burn.summary())", [14]).startswith('burn = exp.burn(14)')
+    assert 'points=[0, 2, 9]' in live.with_scans("burn = exp.burn(14, points=[0, 2])", [14], {14: [0, 2, 9]})
 
 
 def test_a_burn_result_is_remade_on_the_grown_scan(tmp_path):
     spec = synth.make_burn_dataset(tmp_path / 'burn')
     exp = Experiment(spec)
-    call, res, used = live.remake("burn = exp.burn(1, points=[0, 1, 2])\nprint(burn.summary())", [1], exp)
-    assert used == [1] and len(res.t) == synth.BURN_FRAMES             # points dropped: the whole scan
+    call, res, used, pts = live.remake("burn = exp.burn(1)\nprint(burn.summary())", [1], exp)
+    assert used == [1] and pts is None and len(res.t) == synth.BURN_FRAMES
     kind, items = live.item_for(call, res, used)
+    _, few, _, pts = live.remake("burn = exp.burn(1, points=[0, 2, 3])", [1], exp, {1: 4}, {1: 6})
+    assert pts == {1: [0, 2, 3, 4, 5]} and len(few.t) == 5             # frame 1 stays out; 4 and 5 come in
     assert kind == 'burn test' and items[0]['scans'] == [1] and items[0]['data'].shape[0] == synth.BURN_FRAMES
 
 

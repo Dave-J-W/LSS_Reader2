@@ -17,10 +17,10 @@ As stated by the project owner. Status is updated as work lands.
 
 | # | Request | Notes on the current code |
 |---|---|---|
-| F1 | Refresh the SPEC file and raw data without overwriting what is already in memory. | **Built** (Update Specfile re-reads from the last scan; 2026-11-22: the re-read scan no longer listed twice, and the selection kept in live mode). |
+| F1 | Refresh the SPEC file and raw data without overwriting what is already in memory. | **Built** (2026-11-22): Update Specfile and live mode read only what the file gained, add the new scans' rows and keep the window as it was (selection, tab, plot axes, frames); the re-read scan no longer listed twice. |
 | F2 | Refresh automatically as SPEC appends to the file; no "refresh" button press. | **Built 2026-11-22**: the "Live" box beside Update Specfile watches the file (every `live_interval_s`, 5 s) and updates when it grows (L1). |
 | F3 | New raw data (images, MCA files) is picked up as soon as it is written. | Partly: in live mode the scan list and series update and the selection is re-applied, so frame lists are rebuilt for the selected scans; images written after the selection appear at the next update. |
-| F4 | New points appear automatically in the preview pane, with one or several scans selected. | Partly built 2026-11-22: a selection that is a whole series grows with it (L3); a hand-picked selection is kept as it was. |
+| F4 | New points appear automatically in the preview pane, with one or several scans selected. | Built 2026-11-22: the scans and frames being looked at are redrawn when they gain points; a whole-series selection grows with the series; tab, axes and frame selection kept. |
 | F5 | Reduced X-ray reflectivity plots update the same way. | Partly built 2026-11-22: saved results whose series grew are remade from their recipes and saved as new versions (L2: reflectivity, fluorescence sums, GID maps, burn tests); the open Ref plot is not yet redrawn from the remade result. |
 
 Design points to settle before building: a partially written last line or

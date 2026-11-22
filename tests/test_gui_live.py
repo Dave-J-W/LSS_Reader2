@@ -42,6 +42,8 @@ def test_a_growing_burn_scan_is_remade_live(window, qapp, recorder, tmp_path):
         f.write(rest)
     window.liveTick()
     qapp.processEvents()
+    assert window.remakeJobs or window.workbookCache       # the remake runs in a worker thread
+    window.finishRemakes()
     wb = workbook.Workbook(window.workbookPath())
     rows = wb.results(kind='burn test')
     assert len(rows) == 2 and rows[1]['origin'] == 'live' and 'points 8 → 21' in rows[1]['note']
@@ -75,3 +77,79 @@ def test_live_follows_a_series_and_stops_at_its_end(window, qapp, recorder, tmp_
 def test_live_needs_a_file(window, recorder):
     window.liveCheckBox.setChecked(True)
     assert not window.liveCheckBox.isChecked() and any('SPEC file' in m for m in recorder.messages)
+
+
+def test_a_frame_left_out_stays_out_and_new_frames_come_in(window, qapp, recorder, tmp_path):
+    """Owner, 2026-11-22: point selection "should be preserved across
+    updates": frame 3 left out of the burn test stays out when the scan
+    grows; the frames written since are added."""
+    spec = synth.make_burn_dataset(tmp_path / 'burn')
+    rest = _split(spec, 8)
+    window.openSpecFile(fname=spec)
+    window.directory = str(tmp_path)
+    qapp.processEvents()
+    sweep._select_scans(window, qapp, [0])
+    sweep._select_images(window, qapp, [0, 1, 2, 4, 5, 6, 7])
+    window.ui.pilBurnPushButton.click()
+    qapp.processEvents()
+    qapp.processEvents()
+    first = workbook.Workbook(window.workbookPath()).results(kind='burn test')[0]
+    assert 'points=[0, 1, 2, 4, 5, 6, 7]' in first['recipe']
+    window.liveCheckBox.setChecked(True)
+    with open(spec, 'a') as f:
+        f.write(rest)
+    window.liveTick()
+    window.finishRemakes()
+    row = workbook.Workbook(window.workbookPath()).results(kind='burn test')[-1]
+    assert row['origin'] == 'live'
+    assert 'points=[0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]' in row['recipe']
+    assert workbook.Workbook(window.workbookPath()).data(row['id']).shape[0] == synth.BURN_FRAMES - 1
+    assert recorder.exceptions == []
+
+
+def test_an_update_keeps_the_tab_the_axes_and_the_frames(window, qapp, recorder, tmp_path):
+    """Owner, 2026-11-22: "updates shouldn't feel like a reset or clunky"."""
+    spec = synth.make_burn_dataset(tmp_path / 'burn')
+    rest = _split(spec, 8)
+    window.openSpecFile(fname=spec)
+    window.directory = str(tmp_path)
+    qapp.processEvents()
+    sweep._select_scans(window, qapp, [0])
+    sweep._select_images(window, qapp, [2, 5])
+    window.ui.spYComboBox.setCurrentIndex(window.ui.spYComboBox.findText('Monc'))
+    window.ui.PlotWidget.setCurrentIndex(1)
+    window.liveCheckBox.setChecked(True)
+    with open(spec, 'a') as f:
+        f.write(rest)
+    window.liveTick()
+    qapp.processEvents()
+    assert window.ui.PlotWidget.currentIndex() == 1
+    assert window.ui.spYComboBox.currentText() == 'Monc'
+    assert [i for i in range(window.ui.imageListWidget.count())
+            if window.ui.imageListWidget.item(i).isSelected()] == [2, 5]
+    assert window.ui.imageListWidget.count() == synth.BURN_FRAMES      # the new frames listed
+    assert not any('Reading scans' in m for m in recorder.messages)
+    window.liveCheckBox.setChecked(False)
+    window.finishRemakes()
+    assert recorder.exceptions == []
+
+
+def test_nothing_moves_when_the_new_scans_are_elsewhere(window, qapp, recorder, tmp_path):
+    from test_series import _scan
+    spec = synth.write_spec(str(tmp_path / 's'), [_scan(1), _scan(2, command='ascan oh -1 1 4 1')])
+    window.openSpecFile(fname=spec)
+    window.directory = str(tmp_path)
+    qapp.processEvents()
+    sweep._select_scans(window, qapp, [1])
+    calls = []
+    window.ui.imageListWidget.itemSelectionChanged.connect(lambda: calls.append(1))
+    window.liveCheckBox.setChecked(True)
+    with open(spec, 'a') as f:
+        f.write(_scan(5, command='ascan oh -1 1 4 1'))
+    window.liveTick()
+    qapp.processEvents()
+    assert window.ui.scanListWidget.count() == 3 and window.selectedScanNums == [2]
+    assert calls == []                                          # no redraw: the selection did not change
+    assert 'new scans 5' in window.ui.statusBar.currentMessage()
+    window.liveCheckBox.setChecked(False)
+    assert recorder.exceptions == []

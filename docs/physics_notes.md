@@ -3440,3 +3440,39 @@ while Live is on: remade as a 'live' version with 21 frames, the old one
 superseded, the selection kept; a lined two-scan series followed and
 live mode stopped at its end).
 
+### 2026-11-22 — Remakes in a worker thread; point selections kept; updates without a reset
+
+**Owner:** "run the remakes in a worker thread. Point selection (what is
+this exactly) sounds like it should be preserved across updates; updates
+shouldn't feel like a reset or clunky."
+
+**Q. What is a point selection?** **A.** The frames of a scan that a
+result was made from, when they are not all of them: the user selects
+some frames in the image list (leaving out a bad one, say) and the
+reduction uses only those. The recipe records them as
+`points={scan: [frames]}` (a burn test: `points=[frames]`). Until now a
+remake dropped it and used every frame, which would quietly put a
+left-out frame back.
+
+**Done.** (1) The point selection is carried over
+(`live.carry_points`): frames left out stay out; frames written since the
+result was saved (from that scan's point count then, now recorded per
+scan in Saved's `scan_points`) and new scans are added. (2) Remakes run in
+a worker thread (one at a time, `concurrent.futures`; no Qt in it, a
+fresh Experiment of the file); a 100 ms timer in the window stores the
+finished ones (new 'live' versions, old ones superseded) and says so; a
+result being remade is not queued again. (3) Updates no longer reset the
+window: Update Specfile and live mode read only what the file gained
+(no progress dialog, no clearing), add rows for new scans and update the
+re-read one in place; when the scans being looked at changed, they are
+redrawn with the tab, the SpecPlot axis choices and the image-list
+selection put back (all frames selected: the new ones join); when the new
+scans are elsewhere, nothing is redrawn (a status-bar line says what
+arrived).
+
+Verified: `test_live.py` (carry-over rules; a burn remade with frame 1
+left out and frames 4–5 added), `test_gui_live.py` (frame 3 left out of a
+burn test stays out after the scan grows 8 → 21: 20 frames, and the
+recipe lists them; tab 1, the Monc y axis and frames 2, 5 kept after an
+update; new scans elsewhere: no redraw).
+

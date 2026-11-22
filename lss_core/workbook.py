@@ -65,7 +65,7 @@ HEADERS = {
     'Scans': ['scan', 'kind', 'command', 'points', 'series', 'series_position', 'role', 'status'],
     'Saved': ['id', 'saved', 'kind', 'first_scan', 'scans', 'label', 'version', 'note', 'points', 'columns',
               'settings', 'program', 'series', 'series_kind', 'series_scans', 'series_status', 'recipe', 'stale',
-              'origin', 'content', 'series_points'],
+              'origin', 'content', 'series_points', 'scan_points'],
     'Data': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'point', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6',
              'v7', 'v8'],
     'Fits': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'curve', 'peak', 'centre', 'centre_err',
@@ -273,7 +273,8 @@ class Workbook:
         self.wb['Saved'].append([rid, now, kind, first, st, label, version, note, npts, ', '.join(columns),
                                  json.dumps(settings or {}, default=str), program or program_version(),
                                  se.get('id'), se.get('kind'), _scans_text(se['scans']) if se.get('scans') else None,
-                                 se.get('status'), recipe or None, None, origin, digest, se.get('points')])
+                                 se.get('status'), recipe or None, None, origin, digest, se.get('points'),
+                                 json.dumps(se['scan_points']) if se.get('scan_points') else None])
         if data is not None:
             ws = self.wb['Data']
             for i, row in enumerate(data):
@@ -511,7 +512,16 @@ def series_for(scans, current, points=None):
     out = dict(id=best.id, kind=best.kind, scans=list(best.data_scans), status=best.status)
     if points is not None:
         out['points'] = int(sum(points.get(n, 0) for n in best.data_scans))
+        out['scan_points'] = {str(n): int(points.get(n, 0)) for n in best.data_scans}
     return out
+
+
+def scan_points_of(row):
+    """{scan: points} a saved row recorded (its series' scans when saved), or {}."""
+    try:
+        return {int(k): int(v) for k, v in json.loads(row.get('scan_points') or '{}').items()}
+    except (ValueError, TypeError, AttributeError):
+        return {}
 
 
 def scan_rows(data, par):
