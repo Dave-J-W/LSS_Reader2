@@ -22,6 +22,7 @@ F67–F73 in `docs/FEATURE_REQUESTS.md`):
 | 1b Reorganisation | Same tabs and functions, regrouped; one visual language (group boxes, button roles, colours, state cues); one line-cut interface on every image plot, defaults by scan kind | planned after 1a and the owner's answers |
 | 2 Raw-data visualisation | Images: movie by default with sticky zoom (never more than 6 frames on screen), sequential sampling (first, middles, last; 4 by default) or first n; sticky plot preferences; intelligent colour scales; ROI close-up for reflectivity; other visual analysis | requirements in `image_display.md` (1a); build after 1b |
 | later | Faster log-scale plotting | outside the first deliverables (owner) |
+| later | Residuals panel above every fit plot (F74): about 15 % of the height, own scale, χ²/dof in the legend, hidden by default | recorded 2026-11-22 |
 | 3 Contextual GUIs | Alternative layouts driven by data type and series kind (F60): offer or run the obvious reduction, show the controls the workflow needs | designed from the workflow map |
 
 ## Decisions by the owner so far

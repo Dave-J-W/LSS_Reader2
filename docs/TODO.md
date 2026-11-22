@@ -125,6 +125,7 @@ GUI overhaul (R4, D58; plan `docs/gui/README.md`), planning only until the owner
 | Phase 1b: regrouping, one visual language, state cues; one line-cut interface on every image plot with defaults by scan kind | D58, F68, F59 |
 | Phase 2: frames as a movie with sticky zoom (≤ 6 tiles; sampling first/middles/last, default 4; first n), sticky plot preferences, intelligent colour scales, ROI close-up for reflectivity | F69–F71 |
 | Faster log-scale plotting (outside the first deliverables) | F72 |
+| Residuals panel above every fit plot (about 15 % of the height, own scale, χ²/dof in the legend; can be hidden, hidden by default for now); for later | F74 |
 | Phase 3: contextual GUIs by data type | F73, F60 |
 
 Other items: ~~make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load~~ done 2026-11-22 (waits up to 3 s for the one draw); GUI reorganisation (R4) with redraw in place
