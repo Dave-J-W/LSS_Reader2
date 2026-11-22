@@ -209,6 +209,21 @@ def random_conditions(n, seed=20261122, monitor='real'):
     return out
 
 
+def fringe_period(profile):
+    """Kiessig period 2π/d of the layers' total thickness (Å⁻¹); inf without layers."""
+    d = sum(l.thickness for l in profile.layers)
+    return 2 * math.pi / d if d > 0 else math.inf
+
+
+def sampling_class(ppf):
+    """Points per fringe period of the coarser scan at a join: whether the
+    measurement resolves the fringes there at all (a plan the experimenter
+    would choose samples a fringe with several points)."""
+    if not np.isfinite(ppf) or ppf >= 6:
+        return '>=6 per fringe'
+    return '3-6 per fringe' if ppf >= 3 else '<3 per fringe'
+
+
 def q_class(q):
     return '<0.05' if q < 0.05 else ('0.05-0.25' if q < 0.25 else '>=0.25')
 
@@ -271,6 +286,7 @@ def run(conds, n_rep, methods, errors='counting+monitor', keep_rows=False, log=p
     lev = defaultdict(list)        # (cond, method) -> [(phi - truth, err)]
     rdr = defaultdict(list)        # (cond, method) -> [(level, folded factor error)]
     prior_used = defaultdict(list)
+    sampling = {}                  # (cond, join) -> points per fringe period of scan b
     rows = [] if keep_rows else None
     for ci, (name, cond) in enumerate(conds.items()):
         t0 = time.time()
@@ -283,6 +299,11 @@ def run(conds, n_rep, methods, errors='counting+monitor', keep_rows=False, log=p
                 log('%s rep %d: generator failed: %s' % (name, rep, exc))
                 continue
             phi_true = float(np.sum(truth))
+            if rep == 0:
+                per = fringe_period(cond.profile)
+                for m in range(1, len(sc)):
+                    step = float(np.median(np.diff(sc[m].q))) if len(sc[m].q) > 1 else math.inf
+                    sampling[(name, m)] = per / step
             for mname in methods:
                 spec = METHODS[mname]
                 d, e = [], []
@@ -325,7 +346,7 @@ def run(conds, n_rep, methods, errors='counting+monitor', keep_rows=False, log=p
                 except Exception:
                     rdr[(name, meth)].append('fail')
         log('%s: %d replicates, %.0f s' % (name, n_rep, time.time() - t0))
-    return acc, lev, rdr, prior_used, rows
+    return acc, lev, rdr, prior_used, sampling, rows
 
 
 def judge(pu, n_fail, tolerant):
@@ -341,7 +362,7 @@ def judge(pu, n_fail, tolerant):
     return bias, sd, ok and n_fail == 0
 
 
-def verdict(acc, conds, prior_used, tolerant_factors=('random',)):
+def verdict(acc, conds, prior_used, sampling, tolerant_factors=('random',)):
     rows = []
     for (name, j, m), v in sorted(acc.items()):
         if m == 'generator':
@@ -356,7 +377,9 @@ def verdict(acc, conds, prior_used, tolerant_factors=('random',)):
         dd = np.array([x[0] for x in ok])
         ee = np.array([x[1] for x in ok])
         bias, sd, passed = judge(dd / ee, n_fail, cond.factor in tolerant_factors)
-        row = dict(condition=name, factor=cond.factor, join=j, method=m, q_class=ok[0][2], n=len(ok), failures=n_fail,
+        ppf = sampling.get((name, j), math.inf)
+        row = dict(condition=name, factor=cond.factor, join=j, method=m, q_class=ok[0][2],
+                   points_per_fringe=ppf, sampling=sampling_class(ppf), n=len(ok), failures=n_fail,
                    mean_pull=bias, pull_sd=sd, bias_rel=float(np.expm1(np.mean(dd))),
                    rmse_delta=float(np.sqrt(np.mean(dd ** 2))), median_err=float(np.median(ee)),
                    passed=passed if cond.judged else None)
@@ -396,20 +419,25 @@ def reader_verdict(rdr, conds):
     return rows
 
 
-def pooled(ver_rows, acc, conds, factor='random'):
-    """Pooled pulls over all conditions of ``factor`` by method and Qz class."""
+def pooled(ver_rows, acc, conds, sampling, factor='random'):
+    """Pooled pulls over all conditions of ``factor`` by method, fringe
+    sampling and Qz class; and the share of joins passed by sampling."""
     out = defaultdict(list)
     for (name, j, m), v in acc.items():
         if m == 'generator' or conds[name].factor != factor or not conds[name].judged:
             continue
+        sc_ = sampling_class(sampling.get((name, j), math.inf))
         for x in v:
             if x != 'fail':
-                out[(m, x[2])].append(x[0] / x[1])
+                out[(m, sc_, x[2])].append(x[0] / x[1])
     rows = []
-    for (m, qc), pu in sorted(out.items()):
+    for (m, sc_, qc), pu in sorted(out.items()):
         pu = np.array(pu)
-        rows.append(dict(method=m, q_class=qc, n=len(pu), mean_pull=float(np.mean(pu)), pull_sd=float(np.std(pu, ddof=1)),
-                         frac_abs_gt3=float(np.mean(np.abs(pu) > 3))))
+        passed = [x for x in ver_rows if x['method'] == m and x.get('sampling') == sc_ and x.get('q_class') == qc
+                  and conds[x['condition']].factor == factor and x.get('passed') is not None]
+        rows.append(dict(method=m, sampling=sc_, q_class=qc, n=len(pu), mean_pull=float(np.mean(pu)),
+                         pull_sd=float(np.std(pu, ddof=1)), frac_abs_gt3=float(np.mean(np.abs(pu) > 3)),
+                         joins=len(passed), joins_passed=sum(bool(x['passed']) for x in passed)))
     return rows
 
 
@@ -455,19 +483,24 @@ def summary(ver, lev, rdr, pool, conds, args, out):
                 max(ok, key=lambda x: abs(x['pull_sd'] - 1))['pull_sd'], float(np.median([x['rmse_delta'] for x in ok]))))
         L.append('')
     if pool:
-        L += ['## Pooled over the random conditions, by Qz class', '', '| method | Qz class | pulls | mean pull | pull SD | |pull| > 3 |',
-              '|---|---|---|---|---|---|']
+        L += ['## Pooled over the random conditions, by fringe sampling and Qz class', '',
+              'Sampling: points per Kiessig period 2π/d of the coarser scan at the join (d the layers\' total '
+              'thickness); below 3 the scans do not resolve the fringes there.', '',
+              '| method | sampling | Qz class | joins passed | pulls | mean pull | pull SD | \|pull\| > 3 |',
+              '|---|---|---|---|---|---|---|---|']
         for x in pool:
-            L.append('| %s | %s | %d | %+.3f | %.3f | %.2f %% |' % (x['method'], x['q_class'], x['n'], x['mean_pull'],
-                                                                 x['pull_sd'], 100 * x['frac_abs_gt3']))
+            L.append('| %s | %s | %s | %d / %d | %d | %+.3f | %.3f | %.2f %% |' % (
+                x['method'], x['sampling'], x['q_class'], x['joins_passed'], x['joins'], x['n'], x['mean_pull'],
+                x['pull_sd'], 100 * x['frac_abs_gt3']))
         L.append('')
-    L += ['## Where the default (%s) fails' % DEFAULT, '', '| condition | what | join | Qz class | mean pull | pull SD | bias (rel.) | failed fits |',
-          '|---|---|---|---|---|---|---|---|']
+    L += ['## Where the default (%s) fails' % DEFAULT, '', '| condition | what | join | Qz class | points per fringe | mean pull | pull SD | bias (rel.) | failed fits |',
+          '|---|---|---|---|---|---|---|---|---|']
     for x in ver:
         if x['method'] == DEFAULT and x.get('passed') is False:
             c = conds[x['condition']]
-            L.append('| %s | %s | %s | %s | %s | %s | %s | %d |' % (
+            L.append('| %s | %s | %s | %s | %s | %s | %s | %s | %d |' % (
                 x['condition'], c.describe or c.factor, x['join'], x.get('q_class', ''),
+                '%.1f' % x['points_per_fringe'] if np.isfinite(x.get('points_per_fringe', math.inf)) else '–',
                 '%+.2f' % x['mean_pull'] if 'mean_pull' in x else '', '%.2f' % x['pull_sd'] if 'pull_sd' in x else '',
                 '%+.3f %%' % (100 * x['bias_rel']) if 'bias_rel' in x else '', x.get('failures', 0)))
     L += ['', "## The reader's path: the last scan's level (`reflectivity.patch`)", '',
@@ -533,15 +566,15 @@ def main(argv=None):
     def log(msg):
         print(msg, flush=True)
         logf.write(msg + '\n')
-    acc, lev, rdr, pu, rows = run(designed, a.replicates, methods, a.errors, a.rows, log)
+    acc, lev, rdr, pu, smp, rows = run(designed, a.replicates, methods, a.errors, a.rows, log)
     if randoms:
-        acc2, lev2, rdr2, pu2, rows2 = run(randoms, a.random_replicates, methods, a.errors, a.rows, log)
-        acc.update(acc2), lev.update(lev2), rdr.update(rdr2), pu.update(pu2)
+        acc2, lev2, rdr2, pu2, smp2, rows2 = run(randoms, a.random_replicates, methods, a.errors, a.rows, log)
+        acc.update(acc2), lev.update(lev2), rdr.update(rdr2), pu.update(pu2), smp.update(smp2)
         if rows is not None:
             rows += rows2
     conds = dict(designed, **randoms)
-    ver, lv, rv = verdict(acc, conds, pu), level_verdict(lev, conds), reader_verdict(rdr, conds)
-    pool = pooled(ver, acc, conds) if randoms else []
+    ver, lv, rv = verdict(acc, conds, pu, smp), level_verdict(lev, conds), reader_verdict(rdr, conds)
+    pool = pooled(ver, acc, conds, smp) if randoms else []
     write_csv(os.path.join(a.out, 'conditions.csv'),
               [dict(condition=n, factor=c.factor, judged=c.judged, profile=getattr(c.profile, 'name', ''),
                     resolution=c.resolution, flux=c.beamline.flux, background=c.beamline.background,
