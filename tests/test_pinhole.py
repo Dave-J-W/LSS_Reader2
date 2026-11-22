@@ -699,3 +699,26 @@ def test_calibrate_distance_refuses_what_single_frames_cannot_fit():
     fr = _frames(np.arange(14.0, 18.01, 0.1), lambda t: 1e-3 + 0 * t, rng=np.random.default_rng(3))
     with pytest.raises(ValueError):
         ph.calibrate_distance(fr)
+
+
+def test_kept_columns_and_the_lean_source_are_exact():
+    """Speed-ups of 2026-11-22 that must not change a number: usable_columns
+    keeps its answers (a copy is returned, the same as computing afresh),
+    and column_at_source's bisection uses _ray_source, which must give
+    ray_geometry's source point and direction bit for bit."""
+    for dth, beta0, d_p, off in ((14.0, 0.09, 271.0, 0.0), (16.65, 6.5, 262.0, 0.4), (0.5, 0.09, 271.0, 0.0),
+                                 (30.0, 1.5, 150.0, -0.3)):
+        g = ph.FrameGeometry(dth=math.radians(dth), alpha=math.radians(0.09), beta0=math.radians(beta0), c0=47.0,
+                             r0=53.0, d_sample=551.0, d_pinhole=d_p)
+        for row, col in ((53.0, 47.0), (10.5, 3.25), (190.0, 480.0)):
+            r = ph.ray_geometry(g, row, col, off)
+            n, *_, source, ray, _wx, _wy = ph._ray_source(g, row, col, off)
+            assert np.array_equal(source, r.source) and np.array_equal(ray / np.linalg.norm(ray), r.direction)
+            assert np.array_equal(n, r.n)
+        for footprint in ('exact', 'idl'):
+            args = (g, 487, 1.0, 1.2, 0.05, 900.0)
+            fresh = ph._usable_columns(*args, s4_mm=1.0, footprint=footprint)
+            first = ph.usable_columns(*args, s4_mm=1.0, footprint=footprint)
+            first[:] = -1                                    # a caller's change does not reach the kept answer
+            again = ph.usable_columns(*args, s4_mm=1.0, footprint=footprint)
+            assert np.array_equal(again, fresh) and again.dtype == fresh.dtype

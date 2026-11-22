@@ -39,7 +39,8 @@ ramps at the footprint window's edges — is computed by ``column_acceptance``
 and ``s4_window`` (docs/figures/pinhole, case 8), not used in the reduction.
 """
 import math
-from dataclasses import dataclass
+from collections import OrderedDict
+from dataclasses import astuple, dataclass
 
 import numpy as np
 
@@ -145,6 +146,32 @@ class Ray:
     beta: float              # exit angle of the ray (rad)
 
 
+def _ray_source(g, row, col, slit_offset=0.0):
+    """The part of ``ray_geometry`` up to the source point and the ray
+    (pixel − source), the same operations: what ``column_at_source``'s
+    bisection needs, without the slit crossing (a least-squares solve)."""
+    D, Dp, b, d = vertical_distance(g), pinhole_distance(g), g.beta0, g.dth
+    n = np.array([math.cos(b) * math.cos(d), math.cos(b) * math.sin(d), math.sin(b)])
+    eh = np.array([math.sin(d), -math.cos(d), 0.0])
+    ev = np.array([-math.sin(b) * math.cos(d), -math.sin(b) * math.sin(d), math.cos(b)])
+    wx, wy = -(col - g.c0) * PIXEL_MM, (row - g.r0) * PIXEL_MM
+    centre = D * n
+    pix = centre + wx * eh + wy * ev
+    slit_c = (D - Dp) * n
+    line = slit_c - slit_offset * eh if slit_offset else slit_c   # the slit line the ray passes
+    if D == Dp:                                                  # no pinhole: rays from the sample centre
+        s = 0.0
+    else:
+        normal = np.cross(pix - line, ev)                        # the plane of the pixel and the slit line
+        if abs(normal[0]) <= 1e-12 * np.linalg.norm(normal):
+            raise ValueError('pixel (%g, %g): its plane through the slit is parallel to the beam axis '
+                             '(source at infinity)' % (row, col))
+        s = normal.dot(line) / normal[0]                         # meets the beam axis at (s, 0, 0)
+    source = np.array([s, 0.0, 0.0])
+    ray = pix - source
+    return n, eh, ev, centre, pix, slit_c, line, source, ray, wx, wy
+
+
 def ray_geometry(g, row, col, slit_offset=0.0):
     """The ray from the footprint (the beam axis) through the S4 slit to the
     pixel (``row``, ``col``; fractional values allowed), built in the lab
@@ -168,25 +195,8 @@ def ray_geometry(g, row, col, slit_offset=0.0):
     Raises ValueError when the plane of the pixel and the slit line is
     parallel to the beam axis (the column looks along the beam, 2θ ≈ 0, and
     the source point is at infinity)."""
-    D, Dp, b, d = vertical_distance(g), pinhole_distance(g), g.beta0, g.dth
-    n = np.array([math.cos(b) * math.cos(d), math.cos(b) * math.sin(d), math.sin(b)])
-    eh = np.array([math.sin(d), -math.cos(d), 0.0])
-    ev = np.array([-math.sin(b) * math.cos(d), -math.sin(b) * math.sin(d), math.cos(b)])
-    wx, wy = -(col - g.c0) * PIXEL_MM, (row - g.r0) * PIXEL_MM
-    centre = D * n
-    pix = centre + wx * eh + wy * ev
-    slit_c = (D - Dp) * n
-    line = slit_c - slit_offset * eh if slit_offset else slit_c   # the slit line the ray passes
-    if D == Dp:                                                  # no pinhole: rays from the sample centre
-        s = 0.0
-    else:
-        normal = np.cross(pix - line, ev)                        # the plane of the pixel and the slit line
-        if abs(normal[0]) <= 1e-12 * np.linalg.norm(normal):
-            raise ValueError('pixel (%g, %g): its plane through the slit is parallel to the beam axis '
-                             '(source at infinity)' % (row, col))
-        s = normal.dot(line) / normal[0]                         # meets the beam axis at (s, 0, 0)
-    source = np.array([s, 0.0, 0.0])
-    ray = pix - source
+    n, eh, ev, centre, pix, slit_c, line, source, ray, wx, wy = _ray_source(g, row, col, slit_offset)
+    d = g.dth
     (_, t), *_ = np.linalg.lstsq(np.column_stack([ray, -ev]), line - source, rcond=None)
     slit = line + t * ev
     hd = np.array([math.cos(d), math.sin(d), 0.0])
@@ -256,8 +266,39 @@ FOOTPRINT_WINDOWS = ('exact', 'idl')
 RAISED_ARM_DEG = 1.0     # above this β0 the exact window keeps IDL's high edge (P40b streak)
 
 
+_COLUMNS_CACHE = OrderedDict()
+_COLUMNS_CACHE_SIZE = 4096
+
+
+def _cache_key(*values):
+    """Exact key: every value with its type (1 and 1.0, float32 and float64 differ)."""
+    return tuple((type(v), v) for v in values)
+
+
 def usable_columns(g, ncols, s5_low, s5_high, s1_vertical, s1_to_sample_mm=0.0, d5=S5_TO_DETECTOR_MM,
                    s4_mm=0.0, footprint='exact'):
+    """Integer columns inside both the S5 window and the footprint window
+    (``_usable_columns``). The same geometry and slits give the same
+    columns, so the answer is kept (2026-11-22: a level map asks twice per
+    frame, a distance calibration for every candidate distance, and each
+    exact window takes about 15 ms of ray bisection); a copy is returned."""
+    key = _cache_key(*astuple(g), ncols, s5_low, s5_high, s1_vertical, s1_to_sample_mm, d5, s4_mm, footprint)
+    try:
+        cols = _COLUMNS_CACHE.get(key)
+    except TypeError:                              # an unhashable value (an array): not kept
+        return _usable_columns(g, ncols, s5_low, s5_high, s1_vertical, s1_to_sample_mm, d5, s4_mm, footprint)
+    if cols is None:
+        cols = _usable_columns(g, ncols, s5_low, s5_high, s1_vertical, s1_to_sample_mm, d5, s4_mm, footprint)
+        _COLUMNS_CACHE[key] = cols
+        if len(_COLUMNS_CACHE) > _COLUMNS_CACHE_SIZE:
+            _COLUMNS_CACHE.popitem(last=False)
+    else:
+        _COLUMNS_CACHE.move_to_end(key)
+    return cols.copy()
+
+
+def _usable_columns(g, ncols, s5_low, s5_high, s1_vertical, s1_to_sample_mm=0.0, d5=S5_TO_DETECTOR_MM,
+                    s4_mm=0.0, footprint='exact'):
     """Integer columns inside both the S5 window and the footprint window.
 
     ``footprint`` 'exact' (default since 2026-11-19, P39, D51): the columns
@@ -319,10 +360,10 @@ def column_at_source(g, x, row=None, slit_offset=0.0):
 
     def src(c):                                   # source x, or None where the ray does not run forward
         try:
-            r = ray_geometry(g, row, c, slit_offset)
+            n, *_, source, ray, _wx, _wy = _ray_source(g, row, c, slit_offset)   # ray_geometry's source and direction
         except ValueError:
             return None
-        return r.source[0] if r.direction.dot(r.n) > 0 else None
+        return source[0] if (ray / np.linalg.norm(ray)).dot(n) > 0 else None
 
     c0 = float(g.c0)
     s0 = src(c0)
