@@ -43,6 +43,7 @@ from lss_core import preferences as prefs_store
 from lss_core import trends as trendmod
 from lss_core import burn as burnmod
 from lss_core import series as seriesmod
+from lss_core import live as livemod
 from lss_core.absorbers import ABSFAC_10KEV
 from lss_core.monitor import gain_factor, scan_rate
 from lss_core.experiment import monitor_factor, absorber_setting
@@ -386,6 +387,7 @@ class MainWindow (QMainWindow):
         self.ui.cutLegendCheckBox.stateChanged.connect(self.updateCutPlotData)
         self.setupCutFit()
         self.setupSeriesBox()
+        self.setupLive()
      #    self.connect(self.ui.cutLegendLocComboBox, SIGNAL('currentIndexChanged(int)'),self.updateCutPlotData)
         self.ui.cutLegendLocComboBox.currentIndexChanged.connect(self.updateCutPlotData)
      #    self.connect(self.ui.cutErrorbarCheckBox, SIGNAL('stateChanged(int)'),self.updateCutData)
@@ -816,7 +818,8 @@ class MainWindow (QMainWindow):
             return
         try:
             info=seriesmod.scan_info(self.specData,self.specPar)
-            found=seriesmod.all_series(info)
+            self.scanPoints={x.num:x.points for x in info}
+            found=seriesmod.all_series(info,growing=self.liveOn())   # live: the last series may be in progress
         except Exception as e:                       # a nicety: the list works without it
             self.log.info('series not found: %s',e)
             found=[]
@@ -913,6 +916,166 @@ class MainWindow (QMainWindow):
                 lw.item(r).setSelected(True)
         lw.blockSignals(False)
         self.scanSelectionBefore=now|extra
+
+    # ---- live updates (F1-F5, L1-L4; owner, 2026-11-22) ----
+
+    def setupLive(self):
+        """A "Live" box beside "Update Specfile": the SPEC file is watched and,
+        when it grows, read again (L1); results saved from a series that
+        changed are remade from their recipes and saved as new versions
+        (L2); a selection that was a whole series follows it (L3); live mode
+        ends when the followed series says it is complete (L4)."""
+        from PyQt5.QtWidgets import QCheckBox
+        box=QCheckBox('Live',self)
+        box.setObjectName('liveCheckBox')
+        box.setToolTip('Watch the SPEC file while it is being written: every %g s the reader checks it and, when it '
+                       'has grown, reads the new scans (as "Update Specfile"). Results saved in the workbook whose '
+                       'series gained scans or points are remade from their recipe (the lss_core call stored with '
+                       'them) and saved as a new version marked "live"; the old one is marked superseded. A selection '
+                       'that was a whole series grows with it. Live mode stops by itself when the followed series '
+                       'writes that it is complete (series lines from the macro); otherwise untick it. Results '
+                       'without a recipe (SpecPlot curves, fitted MCA lines, GID cuts) are only marked out of date.'
+                       % self.liveInterval())
+        box.toggled.connect(self.liveToggled)
+        btn=self.ui.speUpSpeFilePushButton
+        lay=btn.parentWidget().layout()
+        idx=lay.indexOf(btn)
+        inner=None
+        if idx<0:
+            for k in range(lay.count()):
+                it=lay.itemAt(k)
+                if it.layout() is not None and it.layout().indexOf(btn)>=0:
+                    inner=it.layout()
+                    break
+        target=inner if inner is not None else lay
+        from PyQt5.QtWidgets import QHBoxLayout
+        if hasattr(target,'insertLayout') and not isinstance(target,QHBoxLayout):
+            row=QHBoxLayout()
+            pos=target.indexOf(btn)
+            target.removeWidget(btn)
+            row.addWidget(btn,1)
+            row.addWidget(box)
+            target.insertLayout(max(pos,0),row)
+        else:
+            target.insertWidget(target.indexOf(btn)+1,box)
+        self.liveCheckBox=box
+        self.liveTimer=QTimer(self)
+        self.liveTimer.timeout.connect(self.liveTick)
+        self.liveStamp=None
+
+    def liveInterval(self):
+        try:
+            return max(float(self.prefs.get('live_interval_s',5.0)),0.2)
+        except (TypeError,ValueError):
+            return 5.0
+
+    def liveOn(self):
+        box=getattr(self,'liveCheckBox',None)
+        return bool(box is not None and box.isChecked())
+
+    def liveToggled(self,on):
+        if on:
+            if not getattr(self,'specFileName',None):
+                self.liveCheckBox.setChecked(False)
+                self.messageBox('Open a SPEC file first.')
+                return
+            self.liveStamp=self.fileStamp()
+            self.liveTimer.start(int(self.liveInterval()*1000))
+            self.ui.statusBar.showMessage('Live: watching %s' % os.path.basename(self.specFileName),5000)
+        else:
+            self.liveTimer.stop()
+
+    def fileStamp(self):
+        try:
+            st=os.stat(self.specFileName)
+            return (st.st_size,st.st_mtime_ns)
+        except (OSError,TypeError):
+            return None
+
+    def liveTick(self):
+        """L1: the file grew: read it again, keep the selection (L3), stop at the end (L4)."""
+        stamp=self.fileStamp()
+        if stamp is None or stamp==self.liveStamp:
+            return
+        self.liveStamp=stamp
+        self.liveUpdate()
+
+    def liveUpdate(self):
+        before=sorted(int(n) for n in getattr(self,'selectedScanNums',[]))
+        followed=None
+        for s in getattr(self,'seriesAll',[]):
+            if before and sorted(s.data_scans)==before:
+                followed=s
+                break
+        self.readSpecFile()
+        now=None
+        if followed is not None:
+            now=next((s for s in self.seriesAll if s.id==followed.id),None) or \
+                next((s for s in self.seriesAll if followed.data_scans[0] in s.data_scans),None)
+        want=sorted(now.data_scans) if now is not None else before
+        rows=[r for r in (self.scanRow(n) for n in want) if r is not None]
+        if rows:
+            lw=self.ui.scanListWidget
+            lw.blockSignals(True)
+            lw.clearSelection()
+            for r in rows:
+                lw.item(r).setSelected(True)
+            lw.blockSignals(False)
+            self.seriesChosen=now
+            lw.itemSelectionChanged.emit()
+        # L4: a series with the macro's lines says when it is done (a guessed one cannot)
+        if now is not None and not now.inferred and now.status in ('complete','aborted','partial'):
+            self.liveCheckBox.setChecked(False)
+            self.notify('Live updates stopped: series %s is %s.' % (now.id,now.status),title='Live',level='info')
+
+    def remakeStale(self,wb,stale):
+        """L2: results whose series changed are remade from their recipes on
+        the series' scans now and saved as new versions ('live'); the old
+        rows are marked superseded. One remake per recipe (a reflectivity's
+        R and R/RF share one)."""
+        rows={r['id']:r for r in wb.results()}
+        groups={}
+        for rid in stale:
+            r=rows.get(rid)
+            if r is None:
+                continue
+            groups.setdefault(r.get('recipe') or '',[]).append(r)
+        done,left=[],[]
+        exp=None
+        for recipe,members in groups.items():
+            if not recipe:
+                left+=[(r['id'],'no recipe') for r in members]
+                continue
+            first=members[0]
+            saved=[int(x) for x in str(first.get('series_scans') or first['scans']).split(',') if x.strip()]
+            cur=next((s for s in self.seriesAll if s.id==first.get('series')),None) or \
+                next((s for s in self.seriesAll if saved and saved[0] in s.data_scans),None)
+            scans=cur.data_scans if cur is not None else saved
+            try:
+                exp=exp or self.burnExperiment()
+                call,res,used=livemod.remake(recipe,scans,exp)
+                kind,items=livemod.item_for(call,res,used)
+                new_recipe=livemod.with_scans(recipe,used)
+            except Exception as e:
+                left+=[(r['id'],str(e)) for r in members]
+                continue
+            for r in members:
+                it=next((i for i in items if i.get('label')==r.get('label')),items[0] if len(items)==1 else None)
+                if it is None:
+                    left.append((r['id'],'no matching part in the remade result'))
+                    continue
+                it=dict(it,label=r.get('label') or it.get('label',''))
+                it['series']=workbookmod.series_for(it.get('scans',[]),self.seriesAll,getattr(self,'scanPoints',None))
+                nid=wb.add_result(kind,note='remade from %s: %s' % (r['id'],stale[r['id']]),origin='live',
+                                  recipe=new_recipe,**it)
+                wb.supersede(r['id'],nid)
+                done.append((r['id'],nid))
+        if done:
+            self.saveWorkbook(wb)
+        if done or left:
+            self.notify('Live: %s%s' % ('; '.join('%s remade as %s' % d for d in done),
+                        ('; not remade: '+'; '.join('%s (%s)' % l for l in left)) if left else ''),
+                        title='Live',level='info')
 
     def selectSeries(self,index):
         """Select the data scans of the chosen series as one action."""
@@ -5933,7 +6096,8 @@ class MainWindow (QMainWindow):
             wb.set_settings('reduction',self.reductionSettings())
             for it in items:
                 if 'series' not in it:
-                    it['series']=workbookmod.series_for(it.get('scans',[]),getattr(self,'seriesAll',[]))
+                    it['series']=workbookmod.series_for(it.get('scans',[]),getattr(self,'seriesAll',[]),
+                                                        getattr(self,'scanPoints',None))
             ids=[wb.add_result(kind,note=note,origin='auto' if auto else 'user',**it) for it in items]
             self.saveWorkbook(wb)
         except Exception as e:
@@ -6041,7 +6205,7 @@ class MainWindow (QMainWindow):
         try:
             wb=self.openWorkbook()
             before={r['id']:r.get('stale') for r in wb.results()}
-            stale=wb.mark_stale(getattr(self,'seriesAll',[]))
+            stale=wb.mark_stale(getattr(self,'seriesAll',[]),getattr(self,'scanPoints',None))
             after={r['id']:r.get('stale') for r in wb.results()}
             if after!=before:
                 self.saveWorkbook(wb)
@@ -6050,7 +6214,9 @@ class MainWindow (QMainWindow):
             self.log.info('workbook %s not checked: %s',path,e)
             return
         new={k:v for k,v in stale.items() if before.get(k)!=v}
-        if new:
+        if new and self.liveOn():
+            self.remakeStale(wb,new)
+        elif new:
             self.notify('%d saved result(s) in %s are out of date: %s' % (
                 len(new),os.path.basename(path),'; '.join('%s: %s' % kv for kv in sorted(new.items()))),
                 title='Workbook',level='info')

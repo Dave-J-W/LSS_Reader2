@@ -17,11 +17,11 @@ As stated by the project owner. Status is updated as work lands.
 
 | # | Request | Notes on the current code |
 |---|---|---|
-| F1 | Refresh the SPEC file and raw data without overwriting what is already in memory. | `readSpecFile` already re-reads from the last scan's line (`startLineNum`) into the existing dictionaries, but `clearAll` then wipes the scan list, selection and every plot. |
-| F2 | Refresh automatically as SPEC appends to the file; no "refresh" button press. | Nothing watches the file today. |
-| F3 | New raw data (images, MCA files) is picked up as soon as it is written. | Frame lists are built once, when a scan is selected (`updatePilImageList` globs the directory). |
-| F4 | New points appear automatically in the preview pane, with one or several scans selected. | Depends on F1–F3 and on keeping the selection across a refresh. |
-| F5 | Reduced X-ray reflectivity plots update the same way. | Reduction is driven by button presses and stores results in window attributes. |
+| F1 | Refresh the SPEC file and raw data without overwriting what is already in memory. | **Built** (Update Specfile re-reads from the last scan; 2026-11-22: the re-read scan no longer listed twice, and the selection kept in live mode). |
+| F2 | Refresh automatically as SPEC appends to the file; no "refresh" button press. | **Built 2026-11-22**: the "Live" box beside Update Specfile watches the file (every `live_interval_s`, 5 s) and updates when it grows (L1). |
+| F3 | New raw data (images, MCA files) is picked up as soon as it is written. | Partly: in live mode the scan list and series update and the selection is re-applied, so frame lists are rebuilt for the selected scans; images written after the selection appear at the next update. |
+| F4 | New points appear automatically in the preview pane, with one or several scans selected. | Partly built 2026-11-22: a selection that is a whole series grows with it (L3); a hand-picked selection is kept as it was. |
+| F5 | Reduced X-ray reflectivity plots update the same way. | Partly built 2026-11-22: saved results whose series grew are remade from their recipes and saved as new versions (L2: reflectivity, fluorescence sums, GID maps, burn tests); the open Ref plot is not yet redrawn from the remade result. |
 
 Design points to settle before building: a partially written last line or
 image must be tolerated and retried; the scan being written must be re-read
@@ -332,6 +332,7 @@ priority than the lists above.
 | D54 | Burn tests (owner, 2026-11-21): compare average, linear, exponential and double exponential over time by an information criterion; a flat line as good as a line means the good regime (no beam damage); a confident time for a change below 5 % in the quantity of merit; GID: intensity, position and width at once (first two panels with three axes; then, same day: each on its own panel, the right axis normalised in percent, the summary beside the panels); for GID, a relative change matters, so less weight on absolute σ, and the legacy test (constrained range) as the inspiration. Answers the same day: wall (clock) time by default (the shutter closes between exposures); position judgment is the user's; burn scans are `ascan ih` without movement; more burn data later; a hand-off for testing and extension (`docs/handoff_out/07-burn-trends.md`). | F22a 3–4, P30, R6 |
 | D55 | Scan series in the scan list (owner, 2026-11-21: "go ahead with series in the scan list"; then "make selecting the entire series the default behavior, and have a checkbox in the selector area to disable that function"). | F39, review R2 |
 | D56 | Saving in the workbook is automatic once a reduction or processing has been carried through (owner, 2026-11-22: "Before you do those live update Ls, make saving in the excel file automatic"). | F66, D53 |
+| D57 | Live updates (owner, 2026-11-22: "Okay, proceed" with L1–L4 after D56): watch the SPEC file, remake changed results from their recipes, follow the selected series, stop at its end. | F1–F5 |
 | D45 | Let users merge what they choose: the reader offers and warns, it does not forbid (owner, 2026-11-19: "they may have a good reason to do a weird thing"). | F65, Merge |
 | D46 | Time is offered as an x axis on any plot, as accurate as is known: new files exact (Tstart), old files #D + Epoch steps with the overhead ignored (≲ 1 s), scans without either #D + count times (owner, 2026-11-19). | F37 |
 | D47 | The SPEC `Vortex` counter is meaningless for fluorescence; what counts are element lines, fitted with a Gaussian on a linear, quadratic or cubic background (Rayleigh spill-over), normalised by Monc (owner, 2026-11-19). | F22a, F65 |
@@ -385,6 +386,7 @@ priority than the lists above.
 | D54 / F22a 3–4 | Burn tests as trends over time (four models by AICc, the 5 % time; Trends tab) | `lss_core/trends.py`, `lss_core/burn.py`, `Experiment.burn` | `tests/test_trends.py`, `tests/test_burn_trends.py`, `tests/test_gui_burn_trends.py` |
 | D55 / F39 (window) | Series list above the scan list (one action selects a series); clicking a scan selects its whole series (check box, on by default); row tooltips and tints by kind | `MainWindow.setupSeriesBox`, `updateSeries`, `selectSeries`, `expandToSeries` | `tests/test_gui_series.py` |
 | D56 | Automatic saving: each finished reduction saved (origin 'auto', no note, no duplicates by content digest, quiet); Preferences > Saving to turn off; maps stored as grids; the workbook kept in memory between saves | `MainWindow.wrapReductionsForAutoSave`, `autoSave`, `openWorkbook`; `workbook.content_key`, `_add_map`, `map` | `tests/test_gui_workbook.py`, `tests/test_workbook.py` |
+| D57 / F1–F5 | Live mode: file watched, new scans read, stale results remade from parsed (never executed) recipes as 'live' versions, old ones superseded; whole-series selections follow; stop when a lined series completes | `MainWindow.setupLive`, `liveTick`, `liveUpdate`, `remakeStale`; `lss_core/live.py`; `Workbook.mark_stale(points=)`, `supersede` | `tests/test_live.py`, `tests/test_gui_live.py` |
 
 ## Order
 

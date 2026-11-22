@@ -3405,3 +3405,38 @@ saved), `test_workbook.py` (grid round trip, irregular maps, conversion of
 the first format), `test_real_nx_school.py` (the NX map read back equals
 the window's).
 
+### 2026-11-22 — Live updates (L1–L4, D57)
+
+**Owner:** "Okay, proceed" (with L1–L4 after automatic saving).
+
+**Done.** **L1:** a "Live" box beside Update Specfile; while ticked the SPEC
+file's size and time are checked every 5 s and a change runs the update.
+The series are then guessed with the file taken as growing, so the last
+one can be "in progress". **L2:** the stale check now also notices a scan
+that gained points (Saved records `series_points`); in live mode every
+newly stale result with a recipe is remade on the series' scans now and
+saved as a new version (origin 'live', note "remade from R…: reason"),
+the old row marked "superseded by R…" and then left alone; one remake per
+recipe (a reflectivity's R and R/RF share one). Recipes are parsed, never
+executed (`lss_core/live.py`): only `exp.reflectivity/fluorescence/gid/
+burn` with literal arguments, `GIDParams`/`FitOptions` constructors,
+`merge`, `save` and `print` are accepted; anything else leaves the result
+stale with the reason. **L3:** a selection that was a whole series is
+re-selected with the series' new scans; another selection is kept. **L4:**
+live mode stops when the followed series is a lined one (the macro's
+`#U Series`) and is complete, aborted or partial.
+
+Not yet: the open Ref or GID plot is not redrawn from a remade result
+(the window's reductions live in dialogs; R4); remakes run in the
+window's thread; cuts, fitted MCA lines and SpecPlot curves have no
+recipe; guessed series never end by themselves. Assumed (A): point
+selections of the first version are dropped in remakes.
+
+Verified: `test_live.py` (recipes rejected when they import, call or
+assign anything else; scans rewritten; a burn remade on the grown scan;
+stale by points; superseded rows left alone), `test_gui_live.py` (a burn
+scan written 8 of 21 frames, analysed and saved automatically, grows
+while Live is on: remade as a 'live' version with 21 frames, the old one
+superseded, the selection kept; a lined two-scan series followed and
+live mode stopped at its end).
+

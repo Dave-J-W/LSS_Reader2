@@ -28,6 +28,8 @@ DEFAULTS = {
     'save_asks_note': True,
     # save every finished reduction into the workbook (owner, 2026-11-22)
     'auto_save': True,
+    # live updates: seconds between looks at the SPEC file (owner, 2026-11-22)
+    'live_interval_s': 5.0,
     # burn tests (lss_core.burn, lss_core.trends): models compared, estimator, time axis,
     # the change that matters (%), automatic peak
     'burn': {},

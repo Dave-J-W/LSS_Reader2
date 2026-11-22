@@ -166,6 +166,24 @@ Each line: feature — where — default — script — notes entry (date).
 - "Scan i of N" lines and how cancelled runs are shown: proposal
   `docs/handoff_out/05-scan-series-syntax.md`; code `lss_core/series.py`.
 
+### Live updates (2026-11-22)
+
+- **Live** (beside Update Specfile): while ticked, the SPEC file is checked
+  every 5 s (preference `live_interval_s`); when it has grown, the new
+  scans are read (as Update Specfile).
+- Saved results whose series gained scans, or whose scans gained points,
+  are **remade** from their recipe and saved as a new version (origin
+  'live', note "remade from R…: why"); the old version is marked
+  "superseded by R…". The Messages pane says which. Results without a
+  recipe (SpecPlot curves, fitted MCA lines, GID cuts) are only marked out
+  of date.
+- A selection that was a whole series grows with the series; another
+  selection is kept as it was.
+- Live mode stops by itself when the followed series writes that it is
+  complete (needs the macro's series lines); otherwise untick it.
+- Recipes are read, not run: only the reader's own reduction calls with
+  plain values are accepted (`lss_core/live.py`).
+
 ### Automatic saving (2026-11-22)
 
 - Every reduction carried through is saved into the workbook by itself:

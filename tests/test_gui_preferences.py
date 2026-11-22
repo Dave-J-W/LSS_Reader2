@@ -46,7 +46,7 @@ def test_settings_are_saved_and_read_back(window, qapp, recorder):
     assert stored == {'calibrated_foils': False, 'patch_auto_known_ratio': False,
                       'patch_threshold_percent': 5.5, 'mca_channels': [],   # mca_channels: 2026-11-19
                       # fitting options and saving (owner, 2026-11-21)
-                      'peak_fit': {}, 'mca_fit': {'background': 'quadratic', 'n_peaks': 1}, 'save_asks_note': True, 'auto_save': True, 'burn': {},
+                      'peak_fit': {}, 'mca_fit': {'background': 'quadratic', 'n_peaks': 1}, 'save_asks_note': True, 'auto_save': True, 'live_interval_s': 5.0, 'burn': {},
                       'select_whole_series': True}
     assert preferences.load() == stored
     assert recorder.exceptions == []

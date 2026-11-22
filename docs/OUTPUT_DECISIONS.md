@@ -61,6 +61,7 @@ updates a row here in the same commit, with before and after values.
 | Time to a 5 % change | the 5 % quantile of the crossing times of 2000 parameter draws from the best model that beats the constant (else the linear model); intensity and width relative to their value at t = 0, position relative to the mean FWHM | the "≥ … s" times | owner: "a confident suggestion about how much time causes a less than 5 % change"; a peak's position has no meaningful relative change, its width sets the scale | O; T coverage (miss rate measured 5.5 % for a nominal 5 %); position scale: A | `trends.change_time` | 2026-11-21 |
 | Scan selection | clicking a scan of a series selects the whole series's data scans ("Whole series", on); typed and scripted selections are not widened | which scans a reduction gets when the user clicks | owner 2026-11-21 (D55) | O; T `test_gui_series.py` | `MainWindow.expandToSeries`, preference `select_whole_series` | 2026-11-21 |
 | Automatic saving | every finished reduction (reflectivity patch, line cut, cut fit, GID map, GID cut, MCA sum, line fit, merge, burn test) is saved into the workbook, origin 'auto', no note; a result identical to a stored one (same content digest) is not stored again; quiet (status bar, log); Preferences > Saving turns it off | workbook rows | owner 2026-11-22: "make saving in the excel file automatic once a reduction/processing has been carried through" | O; T `test_gui_workbook.py` | `MainWindow.wrapReductionsForAutoSave`, `autoSave`; `workbook.content_key` | 2026-11-22 |
+| Live updates | off until "Live" is ticked; then every 5 s; stale results with a recipe remade on the series' scans now (point selections dropped: new scans are used whole) and saved as 'live' versions; the old marked superseded | workbook rows during measurement | owner 2026-11-22 (D57) | O; T `test_live.py`, `test_gui_live.py`; "point selections dropped": A | `lss_core/live.py`, `MainWindow.remakeStale` | 2026-11-22 |
 | Save note | every Save asks for an optional note (Cancel: nothing saved); Shift-click saves without asking | workbook notes | owner 2026-11-21 (second reply: "ask for one on every save, with shift-click preventing the ask") | O; T `test_gui_workbook.py` | `MainWindow.saveToWorkbook`, preference `save_asks_note` | 2026-11-21 |
 
 ## Changes of output, with before and after
@@ -69,6 +70,7 @@ Each is also in `physics_notes.md` under its date.
 
 | Date | Change | Before → after | Who decided |
 |---|---|---|---|
+| 2026-11-22 | Live mode; Saved gains series_points (stale when a scan gains points) | new rows only when Live is on | owner |
 | 2026-11-22 | Automatic saving of every finished reduction; Saved gains origin and content | workbook rows appear without a Save click; Save still makes a version with a note | owner |
 | 2026-11-22 | Workbook Maps sheet: grids (an 'x' row, 'value' and 'error' rows per y) instead of one row per cell; first-format sheets converted on opening ('cell' rows) | values unchanged (round trip tested on NX 11+12); NX map: 1.3 MB instead of 2.7 MB, a later save 1.1 s instead of 6.4 s | needed for automatic saving |
 | 2026-11-22 | Workbook Saved sheet: series, series_kind, series_scans, series_status, recipe, stale (columns added at the end; older workbooks extended on opening) | new columns only; values unchanged | owner (review R3) |
@@ -99,6 +101,9 @@ Each is also in `physics_notes.md` under its date.
 | 2026-11-19 | Unreadable `#A`: 63 → unknown | unpatched outputs of such scans ÷absfac⁶³ | owner (D42) |
 
 ## Open assumptions (A) to confirm with the owner
+
+- Live remakes use every frame of the series' scans: a point selection the
+  user made for the first version (`points=`) is not carried over.
 
 - Burn tests: the position's change shown as % of the FWHM (the owner
   leaves its judgment to the user; it does not set the limit by default).

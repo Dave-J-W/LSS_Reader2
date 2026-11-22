@@ -1,0 +1,158 @@
+"""Remaking saved results when their raw data grow (live updates, L2;
+owner, 2026-11-22).
+
+A result saved in the workbook carries its ``recipe``: the lss_core call
+that made it, as the Script pane shows it (``ref = exp.reflectivity([6,
+7, 8, 9], slit=(21, 11), ...)``). When its series gains scans (or its
+scans gain points), ``remake`` runs that call again on the series' scans
+now, and ``item_for`` turns the result into a workbook item.
+
+The recipe text comes from a file a user can edit, so it is **not
+executed**: it is parsed, and only these forms are accepted, every
+argument a Python literal (numbers, strings, tuples, lists, dicts, None,
+True, False) or one of the constructors in ``CONSTRUCTORS`` with literal
+arguments:
+
+- ``from lss_core... import ...`` (ignored; the names are known here);
+- ``<name> = exp.<method>(...)`` with ``method`` in ``METHODS``;
+- ``<name>.merge(...)`` on a fluorescence result;
+- ``<name>.save(...)`` and ``print(...)`` (skipped: remaking writes no files).
+
+Anything else makes ``remake`` raise ``RecipeError`` with the reason; the
+result is then left stale for the user to redo.
+"""
+import ast
+from dataclasses import dataclass
+
+import numpy as np
+
+METHODS = ('reflectivity', 'fluorescence', 'gid', 'burn')
+KINDS = {'reflectivity': 'reflectivity', 'fluorescence': 'fluorescence', 'gid': 'gid map', 'burn': 'burn test'}
+
+
+class RecipeError(ValueError):
+    pass
+
+
+def _constructors():
+    from .gid import GIDParams
+    from .peaks import FitOptions
+    return {'GIDParams': GIDParams, 'FitOptions': FitOptions}
+
+
+def _value(node):
+    """A literal, or an allowed constructor with literal arguments."""
+    if isinstance(node, ast.Call) and isinstance(node.func, (ast.Name, ast.Attribute)):
+        name = node.func.id if isinstance(node.func, ast.Name) else node.func.attr
+        cons = _constructors()
+        if name not in cons:
+            raise RecipeError('call to %s is not allowed in a recipe' % name)
+        args = [_value(a) for a in node.args]
+        kw = {k.arg: _value(k.value) for k in node.keywords}
+        return cons[name](*args, **kw)
+    try:
+        return ast.literal_eval(node)
+    except ValueError:
+        raise RecipeError('argument %s is not a literal' % ast.dump(node)[:80])
+
+
+@dataclass
+class Call:
+    method: str
+    args: list
+    kwargs: dict
+    merges: list          # keyword dicts of .merge calls (fluorescence)
+
+
+def parse(recipe):
+    """The one exp call of a recipe (and its merges), checked (module docstring)."""
+    try:
+        tree = ast.parse(recipe or '')
+    except SyntaxError as e:
+        raise RecipeError('not Python: %s' % e)
+    call, var, merges = None, None, []
+    for st in tree.body:
+        if isinstance(st, (ast.ImportFrom, ast.Import)):
+            mod = st.module if isinstance(st, ast.ImportFrom) else st.names[0].name
+            if not (mod or '').startswith('lss_core'):
+                raise RecipeError('import of %s is not allowed' % mod)
+            continue
+        if isinstance(st, ast.Assign) and isinstance(st.value, ast.Call):
+            f = st.value.func
+            if (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and f.value.id == 'exp'
+                    and f.attr in METHODS and len(st.targets) == 1 and isinstance(st.targets[0], ast.Name)):
+                if call is not None:
+                    raise RecipeError('more than one reduction in the recipe')
+                call = Call(f.attr, [_value(a) for a in st.value.args],
+                            {k.arg: _value(k.value) for k in st.value.keywords}, merges)
+                var = st.targets[0].id
+                continue
+        if isinstance(st, ast.Expr) and isinstance(st.value, ast.Call):
+            f = st.value.func
+            if isinstance(f, ast.Name) and f.id == 'print':
+                continue
+            if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and f.value.id == var:
+                if f.attr == 'save':
+                    continue
+                if f.attr == 'merge' and call is not None and call.method == 'fluorescence':
+                    merges.append(dict(zip(('window', 'x', 'jitter'), [_value(a) for a in st.value.args]),
+                                       **{k.arg: _value(k.value) for k in st.value.keywords}))
+                    continue
+        raise RecipeError('statement not allowed in a recipe: %s' % ast.dump(st)[:80])
+    if call is None:
+        raise RecipeError('no exp.<reduction>(...) call in the recipe')
+    return call
+
+
+def remake(recipe, scans, exp):
+    """Run the recipe's reduction again on ``scans`` (the series' data scans
+    now; a burn test keeps its one scan). Point selections (``points=``)
+    are dropped: new scans are used whole. Returns (Call, result, scans)."""
+    call = parse(recipe)
+    kw = dict(call.kwargs)
+    kw.pop('points', None)
+    if call.method == 'burn':
+        used = [int(call.args[0])]
+        res = exp.burn(used[0], **kw)
+    else:
+        used = sorted(int(s) for s in scans)
+        res = getattr(exp, call.method)(used, *call.args[1:], **kw)
+    for m in call.merges:
+        res.merge(**m)
+    return call, res, used
+
+
+def item_for(call, res, scans, label=''):
+    """(kind, [workbook items]) for a remade result, as the window's Save makes them."""
+    kind = KINDS[call.method]
+    if call.method == 'reflectivity':
+        scans = list(scans)
+        d = np.asarray(res.ref, float)
+        items = [dict(scans=scans, data=d, columns=['Qz', 'R', 'dR', 'dQz'][:d.shape[1]], label='R')]
+        if res.rrf is not None and len(res.rrf):
+            r = np.asarray(res.rrf, float)
+            items.append(dict(scans=scans, data=r, columns=['Qz', 'R/RF', 'd(R/RF)', 'dQz'][:r.shape[1]],
+                              label='R/RF'))
+        return kind, items
+    if call.method == 'fluorescence':
+        return kind, [dict(scans=list(scans), data=np.asarray(res.rows, float),
+                           columns=['frame', 'Qz', 'energy', 'I', 'dI'], label=label or res.command)]
+    if call.method == 'gid':
+        return kind, [dict(scans=list(scans), map_xyz=(res.x, res.y, res.data, res.err),
+                           label=label or '2theta, beta (deg)')]
+    cols, arr = res.data()
+    return kind, [dict(scans=[res.scan], data=arr, columns=cols, label=label or res.kind,
+                       trends=list(res.trends.items()), time_axis=res.time)]
+
+
+def with_scans(recipe, scans):
+    """The recipe text with its reduction's scans replaced by ``scans`` (and
+    its point selection dropped), for the remade result's own recipe."""
+    tree = ast.parse(recipe)
+    for st in tree.body:
+        if (isinstance(st, ast.Assign) and isinstance(st.value, ast.Call)
+                and isinstance(st.value.func, ast.Attribute) and st.value.func.attr in METHODS):
+            if st.value.func.attr != 'burn' and st.value.args:
+                st.value.args[0] = ast.parse(repr(sorted(int(s) for s in scans)), mode='eval').body
+            st.value.keywords = [k for k in st.value.keywords if k.arg != 'points']
+    return ast.unparse(tree)

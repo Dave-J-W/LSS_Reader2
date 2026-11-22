@@ -65,7 +65,7 @@ HEADERS = {
     'Scans': ['scan', 'kind', 'command', 'points', 'series', 'series_position', 'role', 'status'],
     'Saved': ['id', 'saved', 'kind', 'first_scan', 'scans', 'label', 'version', 'note', 'points', 'columns',
               'settings', 'program', 'series', 'series_kind', 'series_scans', 'series_status', 'recipe', 'stale',
-              'origin', 'content'],
+              'origin', 'content', 'series_points'],
     'Data': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'point', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6',
              'v7', 'v8'],
     'Fits': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'curve', 'peak', 'centre', 'centre_err',
@@ -273,7 +273,7 @@ class Workbook:
         self.wb['Saved'].append([rid, now, kind, first, st, label, version, note, npts, ', '.join(columns),
                                  json.dumps(settings or {}, default=str), program or program_version(),
                                  se.get('id'), se.get('kind'), _scans_text(se['scans']) if se.get('scans') else None,
-                                 se.get('status'), recipe or None, None, origin, digest])
+                                 se.get('status'), recipe or None, None, origin, digest, se.get('points')])
         if data is not None:
             ws = self.wb['Data']
             for i, row in enumerate(data):
@@ -372,14 +372,17 @@ class Workbook:
             out.append(r)
         return out
 
-    def mark_stale(self, current):
+    def mark_stale(self, current, points=None):
         """Compare every saved result's series with ``current`` (the file's
         series now, lss_core.series.Series) and write why it is out of date
         into ``stale`` (or clear it): the series has data scans it did not
         have, its status changed (e.g. in progress → complete), or it is
-        gone. A guessed series' id is its first scan's number, so a result
+        gone, or (``points``: {scan: points now}) its scans hold more
+        points than when it was saved (the last scan still being written).
+        A guessed series' id is its first scan's number, so a result
         is matched by id first, then by the series that holds its first
-        scan. Returns {result id: reason} of the stale ones."""
+        scan. Rows already remade ('superseded by …') are left as they
+        are. Returns {result id: reason} of the stale ones."""
         ws = self.wb['Saved']
         head = [c.value for c in ws[1]]
         if 'stale' not in head:
@@ -389,7 +392,7 @@ class Workbook:
         out = {}
         for row in ws.iter_rows(min_row=2):
             sid = row[col['series']].value
-            if not sid:
+            if not sid or str(row[col['stale']].value or '').startswith('superseded'):
                 continue
             saved = [int(x) for x in str(row[col['series_scans']].value or '').split(',') if x.strip()]
             s = by_id.get(sid)
@@ -408,6 +411,11 @@ class Workbook:
                 was = row[col['series_status']].value
                 if was and s.status and was != s.status:
                     reason += ('; ' if reason else '') + 'status %s → %s' % (was, s.status)
+                had = row[col['series_points']].value if 'series_points' in col else None
+                if points is not None and had is not None and not new and not gone:
+                    now_pts = sum(points.get(n, 0) for n in s.data_scans)
+                    if now_pts > had:
+                        reason += ('; ' if reason else '') + 'points %d → %d' % (had, now_pts)
             row[col['stale']].value = reason or None
             if reason:
                 out[row[col['id']].value] = reason
@@ -419,6 +427,15 @@ class Workbook:
             if r.get('content') == digest:
                 return r['id']
         return None
+
+    def supersede(self, rid, by):
+        """Mark result ``rid`` as remade by ``by`` (live updates)."""
+        ws = self.wb['Saved']
+        head = [c.value for c in ws[1]]
+        for row in ws.iter_rows(min_row=2):
+            if row[head.index('id')].value == rid:
+                row[head.index('stale')].value = 'superseded by %s (%s)' % (by, row[head.index('stale')].value or '')
+                return
 
     def stale(self):
         """Saved rows (dicts) whose ``stale`` says why they are out of date."""
@@ -478,10 +495,11 @@ def content_key(kind, scans, data=None, columns=(), label='', settings=None, fit
     return h.hexdigest()[:16]
 
 
-def series_for(scans, current):
+def series_for(scans, current, points=None):
     """The series (of ``current``, lss_core.series.Series) that the most of
-    ``scans`` belong to, as the dict ``add_result`` stores; None when no
-    scan is in a series."""
+    ``scans`` belong to, as the dict ``add_result`` stores (with the total
+    of its scans' points when ``points``, {scan: points}, is given); None
+    when no scan is in a series."""
     scans = set(int(n) for n in scans)
     best, hits = None, 0
     for s in current:
@@ -490,7 +508,10 @@ def series_for(scans, current):
             best, hits = s, k
     if best is None:
         return None
-    return dict(id=best.id, kind=best.kind, scans=list(best.data_scans), status=best.status)
+    out = dict(id=best.id, kind=best.kind, scans=list(best.data_scans), status=best.status)
+    if points is not None:
+        out['points'] = int(sum(points.get(n, 0) for n in best.data_scans))
+    return out
 
 
 def scan_rows(data, par):
