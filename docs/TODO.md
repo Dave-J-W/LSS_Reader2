@@ -128,6 +128,25 @@ GUI overhaul (R4, D58; plan `docs/gui/README.md`), planning only until the owner
 | Residuals panel above every fit plot (about 15 % of the height, own scale, χ²/dof in the legend; can be hidden, hidden by default for now); for later | F74 |
 | Phase 3: contextual GUIs by data type | F73, F60 |
 
+**Defects found by the GUI assessment (2026-11-22)**, to fix one per commit with its test when coding resumes (details in `docs/gui/assessment_a.md`, `assessment_b.md`, `image_display.md`; "seen" = in an offscreen window, "measured" = a number taken, "read" = code only):
+
+| Defect | How known |
+|---|---|
+| **Workbook Save records the scans selected at the time of saving, not the scans behind the result** (a scan-6 curve saved after selecting scan 11 is stored as scan 11; the plot title too) | seen |
+| **The point-by-point path (Analyze/Accept) saves one workbook version per Accept** | seen |
+| 2D_Plot: adding a file raises AttributeError (`matplotlib.cm.get_cmap`, removed in matplotlib 3.9), `update2dPlotPlot`; its colour-map list offers `spectral`, not valid now. The crash sweep misses it because its file chooser returns no file | seen |
+| Log Int on frames with a negative bad pixel: typed Min −2, log10 gives NaN, the colour range collapses to ±0.1 decades | measured |
+| Cursor readout over tiled frames shows the last frame's value; the ROI close-up's readout swaps rows and columns | measured |
+| The drawn right background box of the reflectivity ROI is 2 px from the one summed | measured |
+| Movie: blocking loop (0.5 s per frame, no stop); switches the Axes box to Q and leaves it there | measured |
+| File > Quit and Help > Documentation are not connected | seen |
+| Legend-position lists (Reflectivity, MCA): "lower right" twice, no "lower left" | seen |
+| MCA default Range 1:1000 is in channels on a keV axis; Sum All clips it silently | seen |
+| A new message shows the Messages pane but does not raise it above Script/Errors | seen |
+| GIOXS uses a variable before assignment when the frame count is not a multiple of "ave frames" | read |
+| The Plot tab still opens a blocking QMessageBox (rule: `notify`) | read |
+| The crash sweep never exercises actions behind a file chooser that returns a file (e.g. 2D_Plot add file): extend it | read |
+
 Other items: ~~make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load~~ done 2026-11-22 (waits up to 3 s for the one draw); GUI reorganisation (R4) with redraw in place
 and diffuse cuts (F59); slow-file-system timing; `timings.md` regenerated;
 build workflow and macOS signing (input 12); sample-data hosting.

@@ -1,0 +1,212 @@
+# Inventory B: the Plot tab (objectName tab_3): plots columns of text files from disk.
+# Read from code and seen empty in an offscreen window (2026-11-22); not exercised with files.
+
+- id: tab_3
+  kind: tab
+  label: "Plot"
+  where: "Plot"
+  handler: ""
+  does: "Overlays x, y, (error) columns of any text files, with scaling, a derivative and the legacy peak fit"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "objectName tab_3 (default name). Independent of the SPEC file."
+- id: PlotMplWidget
+  kind: plot
+  label: ""
+  where: "Plot"
+  handler: ""
+  does: "The selected files (scaled), any derivative or legacy fit"
+  workflows: [flex-plot]
+  needs: "files selected"
+  shown: always
+  tooltip: false
+  notes: "Axis labels fixed 'X', 'Y'. Has a matplotlib toolbar."
+- id: plotAddFilePushButton
+  kind: button
+  label: "Add Files"
+  where: "Plot"
+  handler: addPlotFile
+  does: "Adds text files to the list"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Same pair as on Reflectivity, MCA and 2D_Plot."
+- id: plotRemoveFilePushButton
+  kind: button
+  label: "Remove Files"
+  where: "Plot"
+  handler: removePlotFile
+  does: "Removes the selected files from the list"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: plotMoveUpPushButton
+  kind: button
+  label: ""
+  where: "Plot"
+  handler: upPlotFile
+  does: "Moves the selected files up the list"
+  workflows: [flex-plot]
+  needs: "files selected"
+  shown: always
+  tooltip: false
+  notes: "Icon only, no tooltip."
+- id: plotMoveDownPushButton
+  kind: button
+  label: ""
+  where: "Plot"
+  handler: downPlotFile
+  does: "Moves the selected files down the list"
+  workflows: [flex-plot]
+  needs: "files selected"
+  shown: always
+  tooltip: false
+  notes: "Icon only, no tooltip."
+- id: plotFileListWidget
+  kind: list
+  label: ""
+  where: "Plot"
+  handler: updateSelectedPlotFile
+  does: "Files; the selected ones are plotted"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Changing the selection resets every scale to 1,0,1,0 (read only). A file that is not columns raises a blocking QMessageBox.warning, the one place outside About that bypasses notify (read only)."
+- id: plotRSPushButton
+  kind: button
+  label: "Rescale"
+  where: "Plot"
+  handler: setPlotScale
+  does: "Opens the Plot Scale table: x and y factor and offset per selected file"
+  workflows: [flex-plot]
+  needs: "files selected"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: plotPFPushButton
+  kind: button
+  label: "Peak Fit"
+  where: "Plot"
+  handler: dataPeakFit
+  does: "Opens the legacy Peak Fit Panel on the one selected file"
+  workflows: [flex-plot]
+  needs: "exactly one file selected"
+  shown: always
+  tooltip: false
+  notes: "Legacy fitter; the lss_core peak module ('Fit peaks') is offered on cuts and MCA but not here."
+- id: graPushButton
+  kind: button
+  label: "Gradient"
+  where: "Plot"
+  handler: graPlotPlot
+  does: "Plots the derivative of each selected file (interpolated to an even grid)"
+  workflows: [flex-plot]
+  needs: "files selected"
+  shown: always
+  tooltip: false
+  notes: "Ignores the Rescale factors; no error bars."
+- id: savegraPushButton
+  kind: button
+  label: "Save Gradient"
+  where: "Plot"
+  handler: saveGraPlotData
+  does: "Writes the last derivative to <name>_der.txt"
+  workflows: [flex-plot]
+  needs: "Gradient pressed"
+  shown: always
+  tooltip: false
+  notes: "Saves only the last file's derivative when several are selected (read only). No export of scaled data; no workbook Save."
+- id: plotLogXCheckBox
+  kind: checkbox
+  label: "LogX"
+  where: "Plot"
+  handler: updatePlotPlot
+  does: "Log x axis"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Ticking it after Gradient redraws the files, not the derivative."
+- id: plotLogYCheckBox
+  kind: checkbox
+  label: "LogY"
+  where: "Plot"
+  handler: updatePlotPlot
+  does: "Log y axis"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: plotGridCheckBox
+  kind: checkbox
+  label: "Grid"
+  where: "Plot"
+  handler: updatePlotPlot
+  does: "Grid"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: plotLegendCheckBox
+  kind: checkbox
+  label: "Legend"
+  where: "Plot"
+  handler: updatePlotPlot
+  does: "Legend"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: plotLegendLocComboBox
+  kind: combo
+  label: ""
+  where: "Plot"
+  handler: updatePlotPlot
+  does: "Legend position"
+  workflows: [flex-plot]
+  needs: "Legend ticked"
+  shown: always
+  tooltip: false
+  notes: "Correct list here (lower left present), unlike Reflectivity and MCA."
+- id: onedStyComboBox
+  kind: combo
+  label: "Style:"
+  where: "Plot"
+  handler: updatePlotPlot
+  does: "Symbol only, line only, or both"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Only tab with a style choice."
+- id: onedLabelSizeSpinBox
+  kind: spin
+  label: "Label Size"
+  where: "Plot"
+  handler: updatePlotPlot
+  does: "Font size of the axis labels"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Only Plot and 2D_Plot have font sizes."
+- id: onedTickSizeSpinBox
+  kind: spin
+  label: "Tick Size"
+  where: "Plot"
+  handler: updatePlotPlot
+  does: "Font size of the tick labels"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""

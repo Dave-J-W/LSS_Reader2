@@ -1,0 +1,444 @@
+# Inventory B: the Reflectivity tab (objectName refTab), with its sub-tabs Ref and Norm Ref
+# (refDataTabWidget). Schema: docs/gui/README.md. Observed in an offscreen window on NX school
+# scans 6-9 (2026-11-22) unless a note says "read only".
+# The tab has no group boxes; "where" names the visual area: top = single-Qz analysis (Analyze
+# path), middle = the point readout row, bottom = the reflectivity curve and its lists.
+# Entry to this tab is from the Pilatus tab: pilRefPushButton ("Reflectivity", opens the Analyze
+# path) and pilRefPatchPushButton ("Ref Patch", runs the patch and lands here); both are in
+# inventory A. The patch method lives in File > Preferences > Ref Patch (dialogs.yaml).
+
+- id: refTab
+  kind: tab
+  label: "Reflectivity"
+  where: "Reflectivity"
+  handler: ""
+  does: "Shows one reflectivity curve (from Analyze/Accept or from Ref Patch) with R/RF, Qc, export and save"
+  workflows: [reflectivity]
+  needs: "Pilatus frames of specular scans; reached by Reflectivity or Ref Patch on the Pilatus tab"
+  shown: always
+  tooltip: false
+  notes: "Holds two different reductions (point-by-point Analyze, and Ref Patch) in one layout with no cue which one made the curve on show; refpatchindex switches behaviour silently."
+
+# ---- top: single-Qz analysis (the Analyze path) ----
+- id: refQzListWidget
+  kind: list
+  label: ""
+  where: "Reflectivity > top"
+  handler: refQzListSelectionChanged
+  does: "Lists the selected frames (or merged same-Qz groups) by Qz, scan:frame and absorber; selecting one draws its ROI without correction"
+  workflows: [reflectivity]
+  needs: "Reflectivity pressed on the Pilatus tab with frames selected"
+  shown: always
+  tooltip: false
+  notes: "Built when Reflectivity is pressed; goes stale when the image selection changes (refFramesGone message). Not filled by Ref Patch, so after a patch it still shows the last Analyze list. Rows are raw text 'Qz= ... {S:F}= ... Abs='."
+- id: refSlitLineEdit
+  kind: lineedit
+  label: "Slit(H,V):"
+  where: "Reflectivity > top"
+  handler: refQzListSelectionChanged
+  does: "ROI size in pixels (H,V); preset to 21,11 when a Pilatus SPEC file is opened"
+  workflows: [reflectivity, burn-ref]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Also read by Ref Patch and by the burn test (burnArguments, pilRefBurn): a setting of two other workflows hidden on this tab. .ui default 61,31 differs from the load-time preset 21,11. No units shown."
+- id: refBGDirComboBox
+  kind: combo
+  label: "BG Dir:"
+  where: "Reflectivity > top"
+  handler: refQzListSelectionChanged
+  does: "Direction (H or V) in which the background boxes sit beside the ROI"
+  workflows: [reflectivity, burn-ref]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Also read by Ref Patch and the burn test."
+- id: refCenCheckBox
+  kind: checkbox
+  label: "Cen(H,V)"
+  where: "Reflectivity > top"
+  handler: ""
+  does: "When ticked, the ROI centre typed beside it is used instead of the expected beam position"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Not connected; read by refQzListSelectionChanged/refAnalyze; unticked each time Reflectivity is pressed. Analyze path only (Ref Patch ignores it)."
+- id: refCenLineEdit
+  kind: lineedit
+  label: ""
+  where: "Reflectivity > top"
+  handler: refAnalyzeFromField
+  does: "ROI centre in pixels (H,V); filled with the expected centre unless Cen is ticked"
+  workflows: [reflectivity]
+  needs: "a Qz selected"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: refBGOffLineEdit
+  kind: lineedit
+  label: "BG Offset (degree):"
+  where: "Reflectivity > top"
+  handler: refQzListSelectionChanged
+  does: "Angular offset of the background boxes from the ROI, degrees; preset 0.5 on load"
+  workflows: [reflectivity, burn-ref]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Also read by Ref Patch and the burn test. Only field on the tab with a unit in its label."
+- id: refSeaWinLineEdit
+  kind: lineedit
+  label: "Search Win:"
+  where: "Reflectivity > top"
+  handler: refAnalyzeFromField
+  does: "Search window, as a multiple of the slit, for the peak centre found by Analyze"
+  workflows: [reflectivity]
+  needs: "a Qz selected"
+  shown: always
+  tooltip: false
+  notes: "Analyze path only."
+- id: refBPCFacLineEdit
+  kind: lineedit
+  label: "Bad Pixel Correction fac:"
+  where: "Reflectivity > top"
+  handler: refAnalyzeFromField
+  does: "Nothing today: read into a local variable in refAnalyze and never used"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Defunct (read only: bfac is unused). Bad-pixel correction is set on the Pilatus tab (pilBPCiteSpinBox, pilBPCfacSpinBox); this field duplicates it in name only."
+- id: refAnalyzePushButton
+  kind: button
+  label: "Analyze"
+  where: "Reflectivity > top"
+  handler: refAnalyze
+  does: "Finds the peak in the selected Qz's frames, sums ROI less background, shows the corrected ROI and Q, R, R_Err, %R_Err"
+  workflows: [reflectivity]
+  needs: "a Qz selected in the list"
+  shown: always
+  tooltip: false
+  notes: "The corrected ROI image uses the hidden Apex tab's colour map (gixCMapComboBox), the uncorrected one the Pilatus map (read only). Not scriptable (Script pane says so on export)."
+- id: refAcceptPushButton
+  kind: button
+  label: "Accept"
+  where: "Reflectivity > top"
+  handler: updateRefDataList
+  does: "Adds the analysed point (Qz, R, error, comment) to the Ref list and replots"
+  workflows: [reflectivity]
+  needs: "Analyze done for the selected Qz"
+  shown: always
+  tooltip: false
+  notes: "Observed: each Accept triggers an automatic workbook save, one new version per point (3 Accepts -> R0001..R0003). No duplicate check: accepting the same Qz twice adds two points."
+- id: refAnalyzeAllPushButton
+  kind: button
+  label: "Analyze All"
+  where: "Reflectivity > top"
+  handler: refAnalyzeAll
+  does: "Analyzes and accepts every Qz in the list in turn, with a modal progress dialog"
+  workflows: [reflectivity]
+  needs: "a Qz selected (starts from the first)"
+  shown: always
+  tooltip: false
+  notes: "Requires a selection although it runs over the whole list."
+- id: refADDataPlotWidget
+  kind: plot
+  label: ""
+  where: "Reflectivity > top"
+  handler: ""
+  does: "ROI close-up of the selected Qz: without correction (top/left) and, after Analyze, with correction"
+  workflows: [reflectivity]
+  needs: "a Qz selected"
+  shown: always
+  tooltip: false
+  notes: "Empty after Ref Patch (no close-up of any frame of the patch); see F71 (ROI close-up for reflectivity). Has a matplotlib toolbar."
+- id: refBadPixListWidget
+  kind: list
+  label: "Bad Pixels:"
+  where: "Reflectivity > top"
+  handler: ""
+  does: "Nothing today: only ever cleared"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Defunct (read only: no code adds items). Bad pixels in the ROI are reported instead by the modal pilBadPixDialog during Ref Patch."
+
+# ---- middle: readout of the analysed point ----
+- id: refQLineEdit
+  kind: lineedit
+  label: "Q:"
+  where: "Reflectivity > middle"
+  handler: ""
+  does: "Shows the Qz of the analysed point"
+  workflows: [reflectivity]
+  needs: "Analyze"
+  shown: always
+  tooltip: false
+  notes: "Output shown in an editable field; editing it does nothing. Same for R, R_Err, %R_Err."
+- id: refRLineEdit
+  kind: lineedit
+  label: "R:"
+  where: "Reflectivity > middle"
+  handler: ""
+  does: "Shows the net ROI intensity of the analysed point (per monitor, times absorber factor; not normalised)"
+  workflows: [reflectivity]
+  needs: "Analyze"
+  shown: always
+  tooltip: false
+  notes: "Observed 2.2e7 for NX scan 6 frame 0: not R in the sense of the curve below (normalisation happens in Norm Ref)."
+- id: refRErrLineEdit
+  kind: lineedit
+  label: "R_Err:"
+  where: "Reflectivity > middle"
+  handler: ""
+  does: "Shows the error of R"
+  workflows: [reflectivity]
+  needs: "Analyze"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: refPerRErrLineEdit
+  kind: lineedit
+  label: "%R_Err:"
+  where: "Reflectivity > middle"
+  handler: ""
+  does: "Shows the relative error of R in percent"
+  workflows: [reflectivity]
+  needs: "Analyze"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: refComLineEdit
+  kind: lineedit
+  label: "Comments:"
+  where: "Reflectivity > middle"
+  handler: ""
+  does: "Free comment stored with the next accepted point (written to temp_ref.txt, not to the export)"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Cleared when Reflectivity is pressed. Comments do not reach _ref.txt or the workbook (read only)."
+
+# ---- bottom: the curve ----
+- id: reflectivityDataLabel
+  kind: label
+  label: "Reflectivity Data:"
+  where: "Reflectivity > bottom"
+  handler: ""
+  does: "Title of the data lists"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: refNormFacCheckBox
+  kind: checkbox
+  label: "Norm Factor"
+  where: "Reflectivity > bottom"
+  handler: updateRefPlotData
+  does: "Divides the curve by the typed factor (after the plateau normalisation)"
+  workflows: [reflectivity]
+  needs: "a curve"
+  shown: always
+  tooltip: false
+  notes: "Error of the factor not propagated (a commented-out line). With both plateau and factor, Norm Ref lists both tables one after the other."
+- id: refNormLineEdit
+  kind: lineedit
+  label: ""
+  where: "Reflectivity > bottom"
+  handler: ""
+  does: "The normalisation factor"
+  workflows: [reflectivity]
+  needs: "Norm Factor ticked"
+  shown: always
+  tooltip: false
+  notes: "Not connected: changing it needs a toggle or another replot to take effect (read only)."
+- id: refDelPushButton
+  kind: button
+  label: "Delete"
+  where: "Reflectivity > bottom"
+  handler: delRefDataList
+  does: "Removes the selected points of the Ref list and replots"
+  workflows: [reflectivity]
+  needs: "points selected in the Ref sub-tab"
+  shown: always
+  tooltip: false
+  notes: "No undo; deleted points leave no trace in the export or the workbook settings. Works on the Ref list only, not Norm Ref."
+- id: refDataTabWidget
+  kind: tab
+  label: "Ref | Norm Ref"
+  where: "Reflectivity > bottom"
+  handler: ""
+  does: "Switches between the raw (Ref) and normalised (Norm Ref) point lists"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Ref is the default sub-tab although Export, Save and the plot use the normalised data."
+- id: refDataListWidget
+  kind: list
+  label: "Ref"
+  where: "Reflectivity > bottom > Ref"
+  handler: updateRefPlotData
+  does: "Points of the curve before plateau normalisation: Qz, R, error (and comment for Analyze points)"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Connected on itemChanged, which never fires for these read-only items. Tab-separated text rows, no header."
+- id: refNormRefListWidget
+  kind: list
+  label: "Norm Ref"
+  where: "Reflectivity > bottom > Norm Ref"
+  handler: ""
+  does: "Points normalised to the plateau below Qc (and by Norm Factor): Qz, R, error, % error"
+  workflows: [reflectivity]
+  needs: "data below Qc"
+  shown: always
+  tooltip: false
+  notes: "The header is a list row ('Q Ref Ref_Err %Err'). Empty when no point lies below Qc, without a message."
+- id: refRefDataPlotwidget
+  kind: plot
+  label: ""
+  where: "Reflectivity > bottom"
+  handler: ""
+  does: "The reflectivity curve (R or R/RF vs Qz or Qz^2) with any files from disk"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Title 'File: <path> S# ...' takes the scan list from the left panel at plot time and is clipped at the top (observed). Legend labels '#0', '#1'... Has a matplotlib toolbar."
+- id: refExportPushButton
+  kind: button
+  label: "Export"
+  where: "Reflectivity > bottom"
+  handler: saveRefData
+  does: "Writes <name>_ref.txt (normalised R) and <name>_rrf.txt (R/RF if computed); adds the lss_core line to the Script pane"
+  workflows: [reflectivity]
+  needs: "a curve"
+  shown: always
+  tooltip: false
+  notes: "_rrf.txt is the R/RF of the last plot with R/RF ticked; if never ticked it is silently skipped (print only)."
+- id: refSaveWorkbookPushButton
+  kind: button
+  label: "Save"
+  where: "Reflectivity > bottom"
+  handler: saveRefToWorkbook
+  does: "Saves R and R/RF with recipe into the SPEC file's workbook, asking for a note"
+  workflows: [reflectivity, session]
+  needs: "a curve; a SPEC file"
+  shown: always
+  tooltip: true
+  notes: "Observed: the scans saved are the left panel's current selection, not those behind the curve (selecting scan 11 after a scan-6 curve saved it as scans 11)."
+- id: refQcLineEdit
+  kind: lineedit
+  label: "Qc:"
+  where: "Reflectivity > bottom"
+  handler: updateRefPlotData
+  does: "Critical Qz used for the plateau normalisation and for R_F"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Observed 0.0217 after loading NX (preset from data; .ui default 0.01). No unit shown (1/A)."
+- id: refQoffLineEdit
+  kind: lineedit
+  label: "Qoff:"
+  where: "Reflectivity > bottom"
+  handler: updateRefPlotData
+  does: "Qz offset added before dividing by R_F"
+  workflows: [reflectivity]
+  needs: "R/RF ticked"
+  shown: always
+  tooltip: false
+  notes: "Only acts with R/RF; no cue of that."
+- id: refRRFCheckBox
+  kind: checkbox
+  label: "R/RF"
+  where: "Reflectivity > bottom"
+  handler: updateRefPlotData
+  does: "Plots R divided by the Fresnel reflectivity (and makes the data that _rrf.txt exports)"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "A display toggle that also decides what is exported."
+- id: refLogYCheckBox
+  kind: checkbox
+  label: "LogY"
+  where: "Reflectivity > bottom"
+  handler: updateRefPlotData
+  does: "Log y axis"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Off by default although reflectivity is nearly always viewed on log y."
+- id: refQzSqrCheckBox
+  kind: checkbox
+  label: "Qz^2"
+  where: "Reflectivity > bottom"
+  handler: updateRefPlotData
+  does: "Plots against Qz squared"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: refLegendCheckBox
+  kind: checkbox
+  label: "Legend"
+  where: "Reflectivity > bottom"
+  handler: updateRefPlotData
+  does: "Shows the legend"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: refLegendLocComboBox
+  kind: combo
+  label: ""
+  where: "Reflectivity > bottom"
+  handler: updateRefPlotData
+  does: "Legend position"
+  workflows: [reflectivity]
+  needs: "Legend ticked"
+  shown: always
+  tooltip: false
+  notes: "Items list 'lower right' twice and no 'lower left'; the third item actually places it lower left (index+1 to matplotlib). Same defect in the MCA tab."
+- id: refAddFilePushButton
+  kind: button
+  label: "Add Files"
+  where: "Reflectivity > bottom > files"
+  handler: addRefFiles
+  does: "Adds _ref.txt/_rrf.txt/.ref files from disk to the overlay list"
+  workflows: [reflectivity, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Overlay for comparison; the Plot tab does the same for any file."
+- id: refRemoveFilePushButton
+  kind: button
+  label: "Remove Files"
+  where: "Reflectivity > bottom > files"
+  handler: removeRefFiles
+  does: "Removes the selected files from the overlay list"
+  workflows: [reflectivity, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: refRefFileListWidget
+  kind: list
+  label: ""
+  where: "Reflectivity > bottom > files"
+  handler: updateSelectedRefFiles
+  does: "Files from disk; selected ones are overlaid on the curve (R/RF applied unless the name ends in rrf.txt)"
+  workflows: [reflectivity, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No label; purpose not visible."

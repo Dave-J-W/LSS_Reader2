@@ -1,0 +1,1773 @@
+# Inventory B: every dialog and secondary window. Schema: docs/gui/README.md.
+# Ids are <dialog>.<widget>. For .ui dialogs <dialog> is the .ui file's base name, because the
+# objectNames inside the files collide (eleven are "Dialog"; absratioDialog.ui and g_l3Dialog.ui
+# are both "g_l2Dialog"; the two pil*Dialog.ui and scanInfoDialog.ui are all "ScanInfoDialog").
+# Code-built windows use their objectName (preferencesDialog, gidWorksheetDialog, cutFitDialog,
+# mcaFitDialog). "where" gives the window title shown today, then the area.
+# Modal = opened with exec_() (blocks the window); modeless = show().
+# Observed offscreen 2026-11-22 (NX school 6-9 Ref Patch, 14 burn; synthetic MCA) unless "read only".
+
+# ======================= Preferences (File > Preferences...) =======================
+- id: preferencesDialog
+  kind: dialog
+  label: "Preferences"
+  where: "Preferences"
+  handler: showPreferences
+  does: "Settings kept between sessions: absorber foils, Ref Patch method and rule, fluorescence detector elements, saving"
+  workflows: [session, reflectivity, xfntr, exafs]
+  needs: ""
+  shown: "File > Preferences..."
+  tooltip: false
+  notes: "Modeless; changes apply at once (no OK/Cancel/Apply), Close only. The menu action's tooltip still says 'Absorber foils and Ref Patch settings' (two of four groups). Holds reduction choices (patch method, detector elements) that change numbers, far from the tabs that use them."
+- id: prefCalibratedCheckBox
+  kind: checkbox
+  label: "Calibrated foils"
+  where: "Preferences > Absorber foils"
+  handler: setPreference
+  does: "Uses the measured foil thicknesses (9.70-10.30 keV) when 'from E' is ticked"
+  workflows: [reflectivity, xfntr, gid]
+  needs: "'from E' ticked in the left panel"
+  shown: always
+  tooltip: true
+  notes: "Cue in the main window: the absorber field reads 'cal'."
+- id: prefFoilTable
+  kind: table
+  label: ""
+  where: "Preferences > Absorber foils"
+  handler: ""
+  does: "Shows each foil's units, nominal and calibrated thickness and run-to-run spread (read-only)"
+  workflows: [reflectivity, xfntr]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefFoilRangeLabel
+  kind: label
+  label: "9.70-10.30 keV"
+  where: "Preferences > Absorber foils"
+  handler: ""
+  does: "Energy range where the calibration applies"
+  workflows: [reflectivity, xfntr]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefPatchAutoCheckBox
+  kind: checkbox
+  label: "Known ratio when fit error >"
+  where: "Preferences > Ref Patch"
+  handler: setPreference
+  does: "At a join, uses the foils' ratio instead of the fitted factor when the fit error exceeds the threshold (and checks pass)"
+  workflows: [reflectivity]
+  needs: "calibrated foils"
+  shown: always
+  tooltip: true
+  notes: "The patch window's 'Known ratio' box shows and can undo the choice per join."
+- id: prefPatchThresholdSpinBox
+  kind: spin
+  label: "3.0 %"
+  where: "Preferences > Ref Patch"
+  handler: setPreference
+  does: "Fit-error threshold for the known ratio"
+  workflows: [reflectivity]
+  needs: "Known ratio ticked"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefPatchMethodComboBox
+  kind: combo
+  label: ""
+  where: "Preferences > Ref Patch"
+  handler: setPreference
+  does: "How the join factor is fitted: Joint fit (default) or Legacy fit"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "No label on screen. The method in use is not shown on the Reflectivity tab or in the patch window; only the Script line (method=) and workbook recipe carry it."
+- id: prefMcaChannel1CheckBox
+  kind: checkbox
+  label: "1"
+  where: "Preferences > Fluorescence detector"
+  handler: setPreference
+  does: "Sums detector element 1 into the spectrum when ticked"
+  workflows: [xfntr, exafs]
+  needs: "a multi-element MCA file"
+  shown: always
+  tooltip: true
+  notes: "Group tooltip explains the 7-element detector (EXAFS all, XFNTR centre). The MCA tab shows no cue of the elements in use; a message is posted on change."
+- id: prefMcaChannel2CheckBox
+  kind: checkbox
+  label: "2"
+  where: "Preferences > Fluorescence detector"
+  handler: setPreference
+  does: "Sums detector element 2 into the spectrum when ticked"
+  workflows: [xfntr, exafs]
+  needs: "a multi-element MCA file"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefMcaChannel3CheckBox
+  kind: checkbox
+  label: "3"
+  where: "Preferences > Fluorescence detector"
+  handler: setPreference
+  does: "Sums detector element 3 into the spectrum when ticked"
+  workflows: [xfntr, exafs]
+  needs: "a multi-element MCA file"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefMcaChannel4CheckBox
+  kind: checkbox
+  label: "4"
+  where: "Preferences > Fluorescence detector"
+  handler: setPreference
+  does: "Sums detector element 4 into the spectrum when ticked"
+  workflows: [xfntr, exafs]
+  needs: "a multi-element MCA file"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefMcaChannel5CheckBox
+  kind: checkbox
+  label: "5"
+  where: "Preferences > Fluorescence detector"
+  handler: setPreference
+  does: "Sums detector element 5 into the spectrum when ticked"
+  workflows: [xfntr, exafs]
+  needs: "a multi-element MCA file"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefMcaChannel6CheckBox
+  kind: checkbox
+  label: "6"
+  where: "Preferences > Fluorescence detector"
+  handler: setPreference
+  does: "Sums detector element 6 into the spectrum when ticked"
+  workflows: [xfntr, exafs]
+  needs: "a multi-element MCA file"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefMcaChannel7CheckBox
+  kind: checkbox
+  label: "7"
+  where: "Preferences > Fluorescence detector"
+  handler: setPreference
+  does: "Sums detector element 7 into the spectrum when ticked"
+  workflows: [xfntr, exafs]
+  needs: "a multi-element MCA file"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefMcaAllPushButton
+  kind: button
+  label: "All"
+  where: "Preferences > Fluorescence detector"
+  handler: all_on
+  does: "Ticks all seven elements (EXAFS)"
+  workflows: [exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefMcaCentrePushButton
+  kind: button
+  label: "Centre"
+  where: "Preferences > Fluorescence detector"
+  handler: centre_only
+  does: "Ticks element 1 only (XFNTR)"
+  workflows: [xfntr]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefSaveNoteCheckBox
+  kind: checkbox
+  label: "Ask for a note on every Save"
+  where: "Preferences > Saving"
+  handler: setPreference
+  does: "Every Save button asks for a note (Shift-click inverts)"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: prefAutoSaveCheckBox
+  kind: checkbox
+  label: "Save every reduction automatically"
+  where: "Preferences > Saving"
+  handler: setPreference
+  does: "Saves each finished reduction into the workbook without asking"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Observed: in the Analyze path each Accept is a reduction, so one version per point is stored. Cue: status-bar text for 8 s only."
+- id: prefClosePushButton
+  kind: button
+  label: "Close"
+  where: "Preferences"
+  handler: close
+  does: "Closes the dialog"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+
+# ======================= Workbook note (every Save button) =======================
+# ======================= Ref Patch (Pilatus > Ref Patch) =======================
+- id: refpatchsamescan
+  kind: dialog
+  label: "Dialog"
+  where: "Dialog (identical scans)"
+  handler: pilRefSameScan
+  does: "Shown before patching when scans with the same Qz range and length are found: merge, drop, or keep each group"
+  workflows: [reflectivity]
+  needs: "Ref Patch with repeated scans selected"
+  shown: "identical scans found"
+  tooltip: false
+  notes: "Read only (NX 6-9 has none). Modeless; window title 'Dialog'. Label typo 'Indentical'."
+- id: refpatchsamescan.mergePushButton
+  kind: button
+  label: "Merge"
+  where: "Dialog (identical scans)"
+  handler: pilRefSSMerge
+  does: "Averages the scans of the group into one"
+  workflows: [reflectivity]
+  needs: "two or more scans left in the group"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: refpatchsamescan.dropPushButton
+  kind: button
+  label: "Drop"
+  where: "Dialog (identical scans)"
+  handler: pilRefSSDrop
+  does: "Drops the scan numbers typed beside it from the patch"
+  workflows: [reflectivity]
+  needs: "scan numbers of the group"
+  shown: always
+  tooltip: false
+  notes: "Scan numbers here, point indices in the patch window: same field look, different meaning."
+- id: refpatchsamescan.dropLineEdit
+  kind: lineedit
+  label: "0"
+  where: "Dialog (identical scans)"
+  handler: ""
+  does: "Scan numbers to drop, comma-separated"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Default '0' is not a valid scan."
+- id: refpatchsamescan.nextPushButton
+  kind: button
+  label: "Next>>"
+  where: "Dialog (identical scans)"
+  handler: pilRefSSNext
+  does: "Goes to the next group; 'Finish!' on the last starts the patch"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No Back, no Cancel."
+- id: refpatchsamescan.plotWidget
+  kind: plot
+  label: ""
+  where: "Dialog (identical scans)"
+  handler: ""
+  does: "The identical scans overlaid"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: refpatch
+  kind: dialog
+  label: "Dialog"
+  where: "Dialog (Reflectivity Patch)"
+  handler: pilRefPatch
+  does: "Steps through the joins of the selected scans: preview the scaled overlap with numbered points, drop points, choose the known ratio, Next"
+  workflows: [reflectivity]
+  needs: "Ref Patch with two or more overlapping scans"
+  shown: "Pilatus > Ref Patch"
+  tooltip: false
+  notes: "Observed: modeless, title 'Dialog', y label clipped; the label names the two scans but not the factor, its error or the method. Closing it with the window's X abandons the patch silently. Low-Qz bad-pixel and centre warnings come first as two modal dialogs."
+- id: refpatch.Label
+  kind: label
+  label: "Reflectivity Patch between Scans 6 and 7"
+  where: "Dialog (Reflectivity Patch)"
+  handler: ""
+  does: "Which join is on show"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No 'join k of n'."
+- id: refpatch.plotWidget
+  kind: plot
+  label: ""
+  where: "Dialog (Reflectivity Patch)"
+  handler: ""
+  does: "Overlap of the patched curve (blue, negative indices) and the next scan scaled (red, 0,1,2...)"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Point indices drawn as large coloured numbers are the only way to choose drops; linear y only."
+- id: refpatch.dropPushButton
+  kind: button
+  label: "Drop"
+  where: "Dialog (Reflectivity Patch)"
+  handler: pilRefPatchDrop
+  does: "Drops the points whose indices are typed (negative: patched side, 0+: next scan) and redraws"
+  workflows: [reflectivity]
+  needs: "valid indices"
+  shown: always
+  tooltip: false
+  notes: "No undo; dropped points disappear from the plot and are not marked anywhere afterwards (only the Script line's drops= records them)."
+- id: refpatch.dropLineEdit
+  kind: lineedit
+  label: "0"
+  where: "Dialog (Reflectivity Patch)"
+  handler: ""
+  does: "Point indices to drop, e.g. '-1, 0'"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Default '0' would drop a point if Drop is pressed by mistake."
+- id: refpatch.knownRatioLabel
+  kind: label
+  label: "fit +/-0.4%, foils +/-1.5%"
+  where: "Dialog (Reflectivity Patch)"
+  handler: ""
+  does: "Relative error of the fitted factor and of the foils' ratio for this join"
+  workflows: [reflectivity]
+  needs: "calibrated foils at the energy"
+  shown: "foils known"
+  tooltip: true
+  notes: "Added in code."
+- id: refpatch.knownRatioCheckBox
+  kind: checkbox
+  label: "Known ratio"
+  where: "Dialog (Reflectivity Patch)"
+  handler: pilRefPatchKnownToggled
+  does: "Uses the foils' absorber ratio at this join instead of the fitted factor"
+  workflows: [reflectivity]
+  needs: "calibrated foils; a fitted factor"
+  shown: always
+  tooltip: true
+  notes: "Disabled with an explanatory tooltip when not applicable."
+- id: refpatch.nextPushButton
+  kind: button
+  label: "Next>>"
+  where: "Dialog (Reflectivity Patch)"
+  handler: pilRefPatchNext
+  does: "Accepts this join and goes to the next; 'Finish!' on the last puts the curve on the Reflectivity tab"
+  workflows: [reflectivity]
+  needs: "overlapping scans"
+  shown: always
+  tooltip: false
+  notes: "No Back, no Cancel."
+- id: pilPeakCenDialog
+  kind: dialog
+  label: "Scan Details"
+  where: "Scan Details (beam centre off)"
+  handler: pilRefPeakCenDis
+  does: "Lists frames whose beam centre is more than 2 pixels from the expected one"
+  workflows: [reflectivity]
+  needs: "Ref Patch finds such frames"
+  shown: "during Ref Patch"
+  tooltip: false
+  notes: "Modal (exec_) although messages go to the Messages pane elsewhere; title 'Scan Details' is wrong. Not shown for the Analyze path or the burn test."
+- id: pilPeakCenDialog.peakCenTextBrowser
+  kind: list
+  label: ""
+  where: "Scan Details (beam centre off)"
+  handler: ""
+  does: "Table text: scan, frame, axis, pixels off"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pilBadPixDialog
+  kind: dialog
+  label: "Scan Details"
+  where: "Scan Details (bad pixels)"
+  handler: pilBadPixInfDis
+  does: "Lists frames with corrected bad pixels inside the signal ROI, with a stop-sign icon"
+  workflows: [reflectivity]
+  needs: "Ref Patch with bad-pixel correction finding pixels in the ROI"
+  shown: "during Ref Patch"
+  tooltip: false
+  notes: "Modal; the large icon button does nothing (no handler). Points to the Pilatus tab's criteria; text typo 'Conside'. Same objectName and title as pilPeakCenDialog."
+- id: pilBadPixDialog.peakCenTextBrowser
+  kind: list
+  label: ""
+  where: "Scan Details (bad pixels)"
+  handler: ""
+  does: "Table text: scan, frame, pixel positions"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+
+# ======================= Burn test (Pilatus > Burn Test) =======================
+- id: pdburn
+  kind: dialog
+  label: "Dialog"
+  where: "Dialog (Burn test)"
+  handler: pilBurnTest
+  does: "Burn-test window: Trends tab (four models by AICc, the 5 % change time) and Legacy tab (REF / GID plots)"
+  workflows: [burn-ref, burn-gid]
+  needs: "Pilatus frames of one burn scan (one Qz, one Qxy)"
+  shown: "Pilatus > Burn Test"
+  tooltip: false
+  notes: "Observed: modeless, title 'Dialog'. Trends analysed at once on opening. Uses the Reflectivity tab's Slit, BG Offset and BG Dir and the Pilatus tab's bad-pixel and direct-beam settings, none visible here. No fluorescence burn (burn-fluo)."
+- id: burnTabWidget
+  kind: tab
+  label: "Trends | Legacy"
+  where: "Dialog (Burn test)"
+  handler: ""
+  does: "Switches between the trend analysis and the legacy plots"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "The Legacy controls (REF, GID combo, Qxy range) and Close sit below both tabs."
+- id: burnConstantCheckBox
+  kind: checkbox
+  label: "constant"
+  where: "Dialog (Burn test) > Trends"
+  handler: burnOptionsChanged
+  does: "Fits the constant (no change) model to every quantity over time"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "One of four model boxes; every change re-analyses at once."
+- id: burnLinearCheckBox
+  kind: checkbox
+  label: "linear"
+  where: "Dialog (Burn test) > Trends"
+  handler: burnOptionsChanged
+  does: "Fits the linear (steady drift) model to every quantity over time"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: burnExponentialCheckBox
+  kind: checkbox
+  label: "exponential"
+  where: "Dialog (Burn test) > Trends"
+  handler: burnOptionsChanged
+  does: "Fits the exponential (decay or growth) model to every quantity over time"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: burnDoubleExponentialCheckBox
+  kind: checkbox
+  label: "double exp."
+  where: "Dialog (Burn test) > Trends"
+  handler: burnOptionsChanged
+  does: "Fits the double-exponential (fast and slow) model to every quantity over time"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: burnEstimatorComboBox
+  kind: combo
+  label: "Estimator"
+  where: "Dialog (Burn test) > Trends"
+  handler: burnOptionsChanged
+  does: "How each GID frame's peak is measured: template, moments, fit"
+  workflows: [burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "GID-only control shown also for reflectivity burns."
+- id: burnErrorsComboBox
+  kind: combo
+  label: "Errors"
+  where: "Dialog (Burn test) > Trends"
+  handler: burnOptionsChanged
+  does: "Error bars of the trend fits: auto, scatter, counting"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: burnTimeComboBox
+  kind: combo
+  label: "Time"
+  where: "Dialog (Burn test) > Trends"
+  handler: burnOptionsChanged
+  does: "Time axis: clock (measured) or exposure"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: burnThresholdSpinBox
+  kind: spin
+  label: "Change"
+  where: "Dialog (Burn test) > Trends"
+  handler: burnOptionsChanged
+  does: "The change that matters (default 5 %) for the safe-time estimate"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: burnPositionLimitCheckBox
+  kind: checkbox
+  label: "Position in limit"
+  where: "Dialog (Burn test) > Trends"
+  handler: burnOptionsChanged
+  does: "Lets the GID peak position's change set the limit too"
+  workflows: [burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "GID-only, shown for both kinds."
+- id: burnAutoPeakCheckBox
+  kind: checkbox
+  label: "Auto peak"
+  where: "Dialog (Burn test) > Trends"
+  handler: burnOptionsChanged
+  does: "Finds the GID peak window automatically; off uses the Qxy range field (below the tabs)"
+  workflows: [burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Its counterpart field (rangeLineEdit) sits in the legacy row, outside the Trends tab."
+- id: burnAnalysePushButton
+  kind: button
+  label: "Analyse"
+  where: "Dialog (Burn test) > Trends"
+  handler: burnTrends
+  does: "Measures every selected frame and fits the trends again"
+  workflows: [burn-ref, burn-gid]
+  needs: "burn frames still selected"
+  shown: always
+  tooltip: true
+  notes: "Needed after changing the frame selection or a setting on another tab; there is no cue that the shown result is out of date."
+- id: burnSavePushButton
+  kind: button
+  label: "Save"
+  where: "Dialog (Burn test) > Trends"
+  handler: saveBurnToWorkbook
+  does: "Saves values over time and the trend table into the workbook (Data and Trends sheets)"
+  workflows: [burn-ref, burn-gid, session]
+  needs: "an analysed burn test"
+  shown: always
+  tooltip: true
+  notes: "No text export (Export) for burn results, unlike every other reduction."
+- id: burnTrendPlotWidget
+  kind: plot
+  label: ""
+  where: "Dialog (Burn test) > Trends"
+  handler: ""
+  does: "Each quantity over time on its own panel with the fitted models and a right axis in percent"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Has a matplotlib toolbar."
+- id: burnResultLabel
+  kind: label
+  label: ""
+  where: "Dialog (Burn test) > Trends"
+  handler: ""
+  does: "One-line verdict (stable/changing per quantity, the change time); the full model table in its tooltip"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Good example of rule 9."
+- id: pdburn.plotWidget
+  kind: plot
+  label: ""
+  where: "Dialog (Burn test) > Legacy"
+  handler: ""
+  does: "Legacy burn plot: one quantity vs count time x frame, exponential for intensity"
+  workflows: [burn-ref, burn-gid]
+  needs: "REF or a GID mode chosen"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pdburn.refPushButton
+  kind: button
+  label: "REF"
+  where: "Dialog (Burn test) > below tabs"
+  handler: pilRefBurn
+  does: "Legacy reflectivity burn: ROI intensity vs time with an exponential; switches to Legacy"
+  workflows: [burn-ref]
+  needs: "a specular burn scan"
+  shown: always
+  tooltip: false
+  notes: "Same row as the GID combo and Close; a legacy control outside the Legacy tab."
+- id: pdburn.gidComboBox
+  kind: combo
+  label: "GID"
+  where: "Dialog (Burn test) > below tabs"
+  handler: pilGidBurn
+  does: "Legacy GID burn: Intensity, Location or Width of the peak in the Qxy range vs time; switches to Legacy"
+  workflows: [burn-gid]
+  needs: "a GID burn scan; a Qxy range"
+  shown: always
+  tooltip: false
+  notes: "A combo used as a menu of actions (first item 'GID' does nothing), like the Pilatus tab's GID and GISAXS combos."
+- id: pdburn.rangeLineEdit
+  kind: lineedit
+  label: "Qxy range (single peak only)"
+  where: "Dialog (Burn test) > below tabs"
+  handler: ""
+  does: "Qxy window min:max for the legacy GID burn and for Trends with Auto peak off"
+  workflows: [burn-gid]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Default 1.4:1.5 fixed; changing it does not re-run Trends."
+- id: pdburn.closePushButton
+  kind: button
+  label: "Close"
+  where: "Dialog (Burn test) > below tabs"
+  handler: pilBurnClose
+  does: "Closes the window"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+
+# ======================= GID worksheet (Pilatus > GID combo > Worksheet) =======================
+- id: gidWorksheetDialog
+  kind: dialog
+  label: "GID patching worksheet"
+  where: "GID patching worksheet"
+  handler: showGIDWorksheet
+  does: "GID patch settings, editable (live re-patch), with the Qz levels and the join table of the last patch"
+  workflows: [gid]
+  needs: "Pilatus frames of GID scans for Patch; opens without"
+  shown: "Pilatus > GID combo > Worksheet"
+  tooltip: false
+  notes: "Modeless, kept between openings, a proper title. The patch itself is still started from the GID combo (GID Patch / GID Patch Relax); results (map) appear on the Pilatus tab."
+- id: gidColumnsSpinBox
+  kind: spin
+  label: "columns"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Pixels summed across each frame (legacy 3-column patch)"
+  workflows: [gid]
+  needs: "Pinhole off"
+  shown: always
+  tooltip: true
+  notes: "Disabled while Pinhole is on (observed), without a visible reason."
+- id: gidRowMinSpinBox
+  kind: spin
+  label: "rows from"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "First detector row used"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidRowMaxSpinBox
+  kind: spin
+  label: "to"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Last detector row used"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidQzDecimalsSpinBox
+  kind: spin
+  label: "Qz decimals"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Rounding that groups frames into Qz levels"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidDthDecimalsSpinBox
+  kind: spin
+  label: "angle decimals"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Rounding of the detector angle before ordering and joining"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidAreaCheckBox
+  kind: checkbox
+  label: "Area correction"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Divides by the footprint fraction seen through the detector slits"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidHardSlitSpinBox
+  kind: spin
+  label: "hard slit mm"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Shortening of the distance in the area correction with hard slits"
+  workflows: [gid]
+  needs: "Area correction"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidPolCheckBox
+  kind: checkbox
+  label: "Polarisation"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Polarisation correction"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidVJoinKindComboBox
+  kind: combo
+  label: "vertical join"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Interpolation when Qz levels are joined"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidDistanceLabel
+  kind: label
+  label: "sample-detector"
+  where: "GID patching worksheet > Settings"
+  handler: ""
+  does: "Distance in use for the 3-column patch"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidAbsorberLabel
+  kind: label
+  label: "not applied"
+  where: "GID patching worksheet > Settings"
+  handler: ""
+  does: "States that the absorber factor is not applied to GID frames"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "A state cue; the kind other windows lack."
+- id: gidPinholeCheckBox
+  kind: checkbox
+  label: "Pinhole: angle per column"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Pinhole geometry: each pixel its own 2theta and beta through S4 (default)"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Not the same control as the Pilatus tab's 'Pinhole' box (pilPinholeCheckBox, display geometry): two pinhole switches in two places."
+- id: gidPinholeDistSpinBox
+  kind: spin
+  label: "S4-detector mm"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "S4 to detector distance; 0 takes the header value"
+  workflows: [gid]
+  needs: "Pinhole on"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidFitDistancePushButton
+  kind: button
+  label: "Fit"
+  where: "GID patching worksheet > Settings"
+  handler: fitdist
+  does: "Calibrates the S4-detector distance from a peak's drift across single frames"
+  workflows: [gid]
+  needs: "GID frames selected"
+  shown: always
+  tooltip: true
+  notes: "Result in gidFitLabel beside it."
+- id: gidFitLabel
+  kind: label
+  label: ""
+  where: "GID patching worksheet > Settings"
+  handler: ""
+  does: "Result of the distance fit"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: gidArmCheckBox
+  kind: checkbox
+  label: "Arm correction"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Adds the raised-arm path to the vertical distance (pinhole mode)"
+  workflows: [gid]
+  needs: "Pinhole on"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidResponseComboBox
+  kind: combo
+  label: "response"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Column response model (fit, beam, physical, ...)"
+  workflows: [gid]
+  needs: "Pinhole on"
+  shown: always
+  tooltip: true
+  notes: "Enables the four 'physical' beam fields."
+- id: gidBeamFwhmSpinBox
+  kind: spin
+  label: "FWHM um"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Beam vertical FWHM for the physical response; 0 fitted"
+  workflows: [gid]
+  needs: "response physical"
+  shown: always
+  tooltip: true
+  notes: "Could come from a half-cut (alignment) result; typed by hand today."
+- id: gidBeamCentreSpinBox
+  kind: spin
+  label: "centre mm"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Beam centre on the surface for the physical response"
+  workflows: [gid]
+  needs: "response physical, fit unticked"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidBeamCentreFitCheckBox
+  kind: checkbox
+  label: "fit"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Fits the beam centre per Qz level"
+  workflows: [gid]
+  needs: "response physical"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidBeamHFwhmSpinBox
+  kind: spin
+  label: "horizontal mm"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Beam horizontal FWHM for the physical response"
+  workflows: [gid]
+  needs: "response physical"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidApplyJoinsCheckBox
+  kind: checkbox
+  label: "Apply join factors"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Scales scans and levels by the fitted join factors (off: fitted and shown only)"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Cue: '(not applied)' in the table."
+- id: gidFootprintComboBox
+  kind: combo
+  label: "footprint"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Which columns see the lit strip through S4 (exact, ...)"
+  workflows: [gid]
+  needs: "Pinhole on"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidTransverseComboBox
+  kind: combo
+  label: "2theta range"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "2theta range of a multi-level map: common or all"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidMinFramesSpinBox
+  kind: spin
+  label: "min frames"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Drops 2theta bins seen by fewer frames"
+  workflows: [gid]
+  needs: "Pinhole on"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidLevelsLabel
+  kind: label
+  label: ""
+  where: "GID patching worksheet"
+  handler: ""
+  does: "Qz levels of the last patch, 2theta resolution, frame consistency, fitted beam"
+  workflows: [gid]
+  needs: "a patch"
+  shown: always
+  tooltip: true
+  notes: "The only place that says which scans a GID map came from."
+- id: gidJoinTable
+  kind: table
+  label: "join | direction | from | to | points | factor | chi2/dof"
+  where: "GID patching worksheet"
+  handler: ""
+  does: "What each join did: overlap, points, factor with error, chi2/dof"
+  workflows: [gid]
+  needs: "a patch"
+  shown: always
+  tooltip: true
+  notes: "Header tooltips. Reflectivity has no equivalent table of its join factors."
+- id: gidLiveCheckBox
+  kind: checkbox
+  label: "Update the map on every change"
+  where: "GID patching worksheet"
+  handler: ""
+  does: "Re-patches after each setting change (short pause)"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Word 'live' also used for the left panel's Live (file watching): different meanings."
+- id: gidPatchPushButton
+  kind: button
+  label: "Patch"
+  where: "GID patching worksheet"
+  handler: gidWorksheetPatch
+  does: "Patches the selected frames again with these settings"
+  workflows: [gid]
+  needs: "GID frames selected"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: gidDefaultsPushButton
+  kind: button
+  label: "Defaults"
+  where: "GID patching worksheet"
+  handler: defaults
+  does: "Restores the program's default settings"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "No Defaults button in any other settings dialog (Preferences, fit options, burn)."
+- id: gidClosePushButton
+  kind: button
+  label: "Close"
+  where: "GID patching worksheet"
+  handler: close
+  does: "Closes the worksheet"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+
+# ======================= Form factor (Pilatus > GID combo > Form Factor) =======================
+- id: pdformfac
+  kind: dialog
+  label: "Dialog"
+  where: "Dialog (Pilatus GID Form Factor Setup)"
+  handler: setGIDFormFactor
+  does: "Overlays the minima of a sphere or ellipsoid form factor on the GID map"
+  workflows: [gid]
+  needs: "a GID map for Update Plot"
+  shown: "Pilatus > GID combo > Form Factor"
+  tooltip: false
+  notes: "Read only. Modeless, title 'Dialog'. Sphere and Ellipsoid are check boxes that must not both be ticked (radio buttons would enforce it). OK only, no Cancel; OK closes without replotting."
+- id: pdformfac.sphCheckBox
+  kind: checkbox
+  label: "Sphere"
+  where: "Dialog (Pilatus GID Form Factor Setup)"
+  handler: ""
+  does: "Uses a sphere of radius r"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pdformfac.sphLineEdit
+  kind: lineedit
+  label: "r (angstrom)"
+  where: "Dialog (Pilatus GID Form Factor Setup)"
+  handler: ""
+  does: "Sphere radius"
+  workflows: [gid]
+  needs: "Sphere"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pdformfac.ellCheckBox
+  kind: checkbox
+  label: "Ellipsoid"
+  where: "Dialog (Pilatus GID Form Factor Setup)"
+  handler: ""
+  does: "Uses an ellipsoid of radii r_xy, r_z"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pdformfac.ellXYLineEdit
+  kind: lineedit
+  label: "r_xy (angstrom)"
+  where: "Dialog (Pilatus GID Form Factor Setup)"
+  handler: ""
+  does: "In-plane radius"
+  workflows: [gid]
+  needs: "Ellipsoid"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pdformfac.ellZLineEdit
+  kind: lineedit
+  label: "r_z (angstrom)"
+  where: "Dialog (Pilatus GID Form Factor Setup)"
+  handler: ""
+  does: "Out-of-plane radius"
+  workflows: [gid]
+  needs: "Ellipsoid"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pdformfac.updatePushButton
+  kind: button
+  label: "Update Plot"
+  where: "Dialog (Pilatus GID Form Factor Setup)"
+  handler: updateFormFactor
+  does: "Redraws the GID map with the form-factor minima"
+  workflows: [gid]
+  needs: "a GID map"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pdformfac.okPushButton
+  kind: button
+  label: "OK"
+  where: "Dialog (Pilatus GID Form Factor Setup)"
+  handler: presetFormFactor
+  does: "Keeps the radii for the next map and closes"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No cue on the map that a form factor is active."
+
+# ======================= GIOXS (Pilatus > GIOXS button) =======================
+- id: pdgioxs
+  kind: dialog
+  label: "Dialog"
+  where: "Dialog (GIOXS)"
+  handler: gioxsDisplay
+  does: "Background-subtracted, frame- and point-averaged Qz profiles of fluorescence-like (GIOXS) frames"
+  workflows: [gisaxs]
+  needs: "signal frames and background frames selected on the Pilatus tab"
+  shown: "Pilatus > GIOXS"
+  tooltip: false
+  notes: "Read only. Modeless, title 'Dialog', capitals RUN/SAVE/CLOSE unlike every other dialog. When the frame count is not a multiple of 'ave frames' the last group uses an undefined variable (read only: pilGioxsRun uses datagioxs before assignment). Which workflow it belongs to is unclear (no GIOXS id)."
+- id: pdgioxs.frameLineEdit
+  kind: lineedit
+  label: "ave frames"
+  where: "Dialog (GIOXS)"
+  handler: ""
+  does: "Frames averaged per profile (preset to all selected)"
+  workflows: [gisaxs]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pdgioxs.pointLineEdit
+  kind: lineedit
+  label: "ave points"
+  where: "Dialog (GIOXS)"
+  handler: ""
+  does: "Points averaged along Qz"
+  workflows: [gisaxs]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pdgioxs.runPushButton
+  kind: button
+  label: "RUN"
+  where: "Dialog (GIOXS)"
+  handler: pilGioxsRun
+  does: "Recomputes and replots the profiles"
+  workflows: [gisaxs]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pdgioxs.savePushButton
+  kind: button
+  label: "SAVE"
+  where: "Dialog (GIOXS)"
+  handler: pilGioxsSave
+  does: "Writes each profile to <name>_frameA-B_gio.txt and the background to _bg_gio.txt"
+  workflows: [gisaxs]
+  needs: "RUN done"
+  shown: always
+  tooltip: false
+  notes: "Called SAVE but is an Export (text files); no workbook save."
+- id: pdgioxs.closePushButton
+  kind: button
+  label: "CLOSE"
+  where: "Dialog (GIOXS)"
+  handler: pilGioxsClose
+  does: "Closes the dialog"
+  workflows: [gisaxs]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: pdgioxs.plotWidget
+  kind: plot
+  label: ""
+  where: "Dialog (GIOXS)"
+  handler: ""
+  does: "Profiles and background, log y"
+  workflows: [gisaxs]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+
+# ======================= MCA merge (MCA > Merge) =======================
+- id: mcamerge
+  kind: dialog
+  label: "Dialog"
+  where: "Dialog (Merge window)"
+  handler: mcaIntMergeDia
+  does: "Asks for the merge window on the integral's x axis"
+  workflows: [xfntr]
+  needs: "an integral list"
+  shown: "MCA > Merge"
+  tooltip: false
+  notes: "Observed: modeless, title 'Dialog'; the label is overwritten to 'Merge window' (the .ui text asked for a 'resolution'). OK/Cancel are plain buttons in the order Cancel, OK."
+- id: mcamerge.resLineEdit
+  kind: lineedit
+  label: "0"
+  where: "Dialog (Merge window)"
+  handler: ""
+  does: "Merge window in x units; default 0.1 x the Qz grid step on the Qz axis, 0 otherwise"
+  workflows: [xfntr]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "No unit shown though it depends on the X-axis choice."
+- id: mcamerge.okPushButton
+  kind: button
+  label: "OK"
+  where: "Dialog (Merge window)"
+  handler: mcaIntMerge
+  does: "Merges the integral rows and closes"
+  workflows: [xfntr]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No undo; after merging the list shows no cue it was merged."
+- id: mcamerge.cancelPushButton
+  kind: button
+  label: "Cancel"
+  where: "Dialog (Merge window)"
+  handler: mcaMergeDiaClose
+  does: "Closes without merging"
+  workflows: [xfntr]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+
+# ======================= Fit options (Cuts > Fit options..., MCA > Fit options...) =======================
+- id: cutFitDialog
+  kind: dialog
+  label: "Peak fit options"
+  where: "Peak fit options"
+  handler: showCutFitOptions
+  does: "Options of the line-cut 'Fit peaks' (lss_core.peaks), kept in preferences, with the last results and Fit now"
+  workflows: [cuts, gid]
+  needs: ""
+  shown: "Line/Area Cuts > Fit options..."
+  tooltip: false
+  notes: "Modeless; changes apply at once; Close. Built by the same code as mcaFitDialog. Its shape is also used by the burn test's 'fit' estimator, which does not say so on the burn window."
+- id: mcaFitDialog
+  kind: dialog
+  label: "Fluorescence line fit options"
+  where: "Fluorescence line fit options"
+  handler: showMcaFitOptions
+  does: "Options of MCA 'Fit lines', kept in preferences, with the last result, Fit now and Save to workbook"
+  workflows: [xfntr, exafs]
+  needs: ""
+  shown: "MCA > Fit options..."
+  tooltip: false
+  notes: "Same widgets and objectNames (cutFit*) as the cut dialog; tooltips speak of 'cuts' and 'the cut's x units' here too. Its Save button saves to the workbook while the cut dialog's writes a text table."
+- id: cutFitShapeComboBox
+  kind: combo
+  label: "Shape"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: apply
+  does: "Peak shape: Gaussian, Lorentzian, pseudo-Voigt"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Shared id in both dialogs."
+- id: cutFitBackgroundComboBox
+  kind: combo
+  label: "Background"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: apply
+  does: "Polynomial background order"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: cutFitNumberSpinBox
+  kind: spin
+  label: "Peaks per cut (0 = automatic)"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: apply
+  does: "Number of peaks or lines; 0 automatic"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Label says 'per cut' in the fluorescence dialog."
+- id: cutFitMaxSpinBox
+  kind: spin
+  label: "At most"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: apply
+  does: "Maximum peaks when automatic"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: cutFitProminenceSpinBox
+  kind: spin
+  label: "Sensitivity (sigma)"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: apply
+  does: "Detection threshold in sigma above the running-median background"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: cutFitWindowSpinBox
+  kind: spin
+  label: "Window half width (0 = automatic)"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: apply
+  does: "Half width of each fit window"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: cutFitFwhmSpinBox
+  kind: spin
+  label: "Fixed FWHM (0 = fitted)"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: apply
+  does: "Fixed width for every peak"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: cutFitRangeLineEdit
+  kind: lineedit
+  label: "x range (min:max)"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: apply
+  does: "x range to fit; empty: whole cut (MCA: the Range field)"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "For MCA duplicates the tab's Range field."
+- id: cutFitCentresLineEdit
+  kind: lineedit
+  label: "Centres"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: apply
+  does: "Starting centres (e.g. known line energies)"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Line energies typed by hand; no element lookup (F47)."
+- id: cutFitFixCheckBox
+  kind: checkbox
+  label: "fix the centres"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: apply
+  does: "Keeps the given centres fixed"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: "centres given"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: cutFitResultLabel
+  kind: label
+  label: ""
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: ""
+  does: "Summary of the last fit (mcaFitResultLabel in the fluorescence dialog)"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: cutFitNowPushButton
+  kind: button
+  label: "Fit now"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: fitCuts / mcaFitLines
+  does: "Fits with these options"
+  workflows: [cuts, gid, xfntr, exafs]
+  needs: "cuts plotted / spectra selected"
+  shown: always
+  tooltip: true
+  notes: ""
+- id: cutFitSavePushButton
+  kind: button
+  label: "Save results... / Save to workbook"
+  where: "Peak fit options / Fluorescence line fit options"
+  handler: saveCutFits / saveMcaToWorkbook
+  does: "Cut dialog: writes the fits as a text table; fluorescence dialog: saves into the workbook"
+  workflows: [cuts, gid, xfntr, exafs, session]
+  needs: "a fit"
+  shown: always
+  tooltip: true
+  notes: "One button, two meanings."
+
+# ======================= Legacy peak fit (MCA > Fit / Fit All, Plot > Peak Fit) =======================
+- id: peakfit
+  kind: dialog
+  label: "Dialog"
+  where: "Dialog (Peak Fit Panel)"
+  handler: peakFit
+  does: "Legacy multi-peak fit (Gaussian/Lorentzian + polynomial) with editable start values and limits"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: "one spectrum (Fit), all selected spectra (Fit All) or one Plot file"
+  shown: "MCA > Fit, MCA > Fit All, Plot > Peak Fit"
+  tooltip: false
+  notes: "Read only (observed: refuses to open with two spectra and says so). Modeless, title 'Dialog'. 'Chi_Sqaure' typo. Fit All closes the panel when done; Fit does not. Does not use lss_core.peaks."
+- id: peakfit.peakTypeComboBox
+  kind: combo
+  label: "Peak type"
+  where: "Dialog (Peak Fit Panel)"
+  handler: ""
+  does: "Gaussian or Lorentzian"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No pseudo-Voigt (the new dialog has it)."
+- id: peakfit.numberOfPeakSpinBox
+  kind: spin
+  label: "Number of Peak"
+  where: "Dialog (Peak Fit Panel)"
+  handler: modPeakPara
+  does: "Rows of the peak table"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: peakfit.invCheckBox
+  kind: checkbox
+  label: "Inv."
+  where: "Dialog (Peak Fit Panel)"
+  handler: ""
+  does: "Fits inverted (dip) peaks"
+  workflows: [mca-look, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Meaning not visible."
+- id: peakfit.bgSpinBox
+  kind: spin
+  label: "BG poly order"
+  where: "Dialog (Peak Fit Panel)"
+  handler: modBGPara
+  does: "Background polynomial order"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: peakfit.rangeLineEdit
+  kind: lineedit
+  label: "Fit range"
+  where: "Dialog (Peak Fit Panel)"
+  handler: ""
+  does: "x range min:max"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "A third fit-range field on the MCA tab's path."
+- id: peakfit.peakTW
+  kind: table
+  label: "Peak Parameters"
+  where: "Dialog (Peak Fit Panel)"
+  handler: setupPeakPara
+  does: "Start values and results (Location, Intensity, Width); double-click a cell for limits"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Double-click for limits is not discoverable."
+- id: peakfit.bgTW
+  kind: table
+  label: "bg Parameters"
+  where: "Dialog (Peak Fit Panel)"
+  handler: setupPeakPara
+  does: "Background coefficients; double-click for limits"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: peakfit.chiLineEdit
+  kind: lineedit
+  label: "Chi_Sqaure"
+  where: "Dialog (Peak Fit Panel)"
+  handler: ""
+  does: "Shows the reduced chi-square of the fit"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: "a fit"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: peakfit.fitPushButton
+  kind: button
+  label: "Fit"
+  where: "Dialog (Peak Fit Panel)"
+  handler: fitPeakFit
+  does: "Fits (or, from Fit All, fits and accepts every selected spectrum)"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "After a single MCA fit the user must press the tab's Accept to keep the result."
+- id: peakfit.exportFitPushButton
+  kind: button
+  label: "Export Fit"
+  where: "Dialog (Peak Fit Panel)"
+  handler: savePeakFit
+  does: "Writes the fitted curve to <name>_fit.txt"
+  workflows: [mca-look, flex-plot]
+  needs: "a fit"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: peakfit.exportParaPushButton
+  kind: button
+  label: "Export Para"
+  where: "Dialog (Peak Fit Panel)"
+  handler: savePeakPara
+  does: "Writes the fitted parameters to a text file"
+  workflows: [mca-look, flex-plot]
+  needs: "a fit"
+  shown: always
+  tooltip: false
+  notes: "No workbook Save."
+- id: peakfit.closePushButton
+  kind: button
+  label: "Close"
+  where: "Dialog (Peak Fit Panel)"
+  handler: closePeakFit
+  does: "Closes the panel"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: peakpara
+  kind: dialog
+  label: "Dialog"
+  where: "Dialog (Limits Setup)"
+  handler: setupPeakPara
+  does: "Min/max limits for one legacy fit parameter"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: "double-click in a Peak Fit Panel table"
+  shown: "Peak Fit Panel table double-click"
+  tooltip: false
+  notes: "Read only. Modeless, title 'Dialog'; plain Cancel/OK buttons."
+- id: peakpara.minCB
+  kind: checkbox
+  label: "Min:"
+  where: "Dialog (Limits Setup)"
+  handler: ""
+  does: "Enables the lower limit"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "minLE beside it holds the value."
+- id: peakpara.maxCB
+  kind: checkbox
+  label: "Max:"
+  where: "Dialog (Limits Setup)"
+  handler: ""
+  does: "Enables the upper limit"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "maxLE beside it holds the value."
+- id: peakpara.okPB
+  kind: button
+  label: "OK"
+  where: "Dialog (Limits Setup)"
+  handler: takePeakPara
+  does: "Keeps the limits"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No cue in the table that a parameter is limited."
+- id: peakpara.cancelPB
+  kind: button
+  label: "Cancel"
+  where: "Dialog (Limits Setup)"
+  handler: cancelPeakPara
+  does: "Closes without change"
+  workflows: [mca-look, xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: peakfit2
+  kind: dialog
+  label: "Dialog"
+  where: "(never shown)"
+  handler: ""
+  does: "Nothing: an older peak-fit panel not loaded by any code"
+  workflows: [flex-plot]
+  needs: ""
+  shown: never
+  tooltip: false
+  notes: "Defunct (read only: no reference in any .py). Candidate for removal."
+- id: peakfitpara
+  kind: dialog
+  label: "Dialog"
+  where: "(never shown)"
+  handler: ""
+  does: "Nothing: a peak-parameter table not loaded by any code"
+  workflows: [flex-plot]
+  needs: ""
+  shown: never
+  tooltip: false
+  notes: "Defunct (read only). Candidate for removal."
+
+# ======================= Plot scale (Plot > Rescale) =======================
+- id: plotscale
+  kind: dialog
+  label: "Dialog"
+  where: "Dialog (Plot Scale Setup)"
+  handler: setPlotScale
+  does: "Table of X factor, X offset, Y factor, Y offset per selected file; edits replot at once"
+  workflows: [flex-plot]
+  needs: "files selected on the Plot tab"
+  shown: "Plot > Rescale"
+  tooltip: false
+  notes: "Read only. Modeless, title 'Dialog'; scales are lost when the file selection changes."
+- id: plotscale.scaleTW
+  kind: table
+  label: "X Factor | X Offset | Y Factor | Y Offset"
+  where: "Dialog (Plot Scale Setup)"
+  handler: updatePlotScale
+  does: "The scale values per file"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "A non-number in a cell raises in updatePlotScale (read only)."
+- id: plotscale.closePB
+  kind: button
+  label: "Close"
+  where: "Dialog (Plot Scale Setup)"
+  handler: closePlotScale
+  does: "Closes the table"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+
+# ======================= Scan info (double-click a scan) =======================
+- id: scanInfoDialog
+  kind: dialog
+  label: "Scan Details"
+  where: "Scan Details"
+  handler: displayScanInfo
+  does: "Full SPEC text of the selected scans and a digest: detector, energy, absorber, SX, Q, slits, direct-beam pixel"
+  workflows: [general, alignment]
+  needs: "a scan double-clicked in the scan list"
+  shown: "scan list double-click"
+  tooltip: false
+  notes: "Modal; only door is a double-click (no menu or button). Uses the left-panel selection, not only the clicked row."
+- id: scanInfoDialog.scanInfoTextBrowser
+  kind: list
+  label: "Full Scan Info:"
+  where: "Scan Details"
+  handler: ""
+  does: "The scan's lines from the SPEC file"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: scanInfoDialog.impInfoTextBrowser
+  kind: list
+  label: "Important Scan Info:"
+  where: "Scan Details"
+  handler: ""
+  does: "Digest of the scan's parameters"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Shows 'No detailed info found' for the whole set if one scan lacks a field."
+
+# ======================= Calculations menu =======================
+- id: g_l2Dialog
+  kind: dialog
+  label: "Scan Details"
+  where: "Scan Details (g_l2 calculation)"
+  handler: calg_l2
+  does: "Fits g_l2 (and an offset) from sh-scan centres vs incident angle; old and new values in text"
+  workflows: [alignment]
+  needs: "two or more plotted sh scans with fitted centres (SpecPlot)"
+  shown: "Calculations > g_l2"
+  tooltip: false
+  notes: "Read only. Modal; title 'Scan Details'. Result is only text: nothing is applied or saved."
+- id: g_l2Dialog.g_l2CalPushButton
+  kind: button
+  label: "Calculate"
+  where: "Scan Details (g_l2 calculation)"
+  handler: g_l2plot
+  does: "Runs the fit and fills plot and text"
+  workflows: [alignment]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Not run on opening (the abs-ratio dialog fits on opening)."
+- id: g_l2Dialog.g_l2centercheckBox
+  kind: checkbox
+  label: "Centers:"
+  where: "Scan Details (g_l2 calculation)"
+  handler: ""
+  does: "Uses the typed centres instead of the fitted ones"
+  workflows: [alignment]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "g_l2CenterLineEdit and g_l2ScanLineEdit beside it."
+- id: g_l3Dialog
+  kind: dialog
+  label: "Scan Details"
+  where: "Scan Details (g_l3 calculation)"
+  handler: calg_l3
+  does: "Fits g_l2 - g_l3 from oh-scan centres vs incident angle"
+  workflows: [alignment]
+  needs: "two or more plotted oh scans with fitted centres"
+  shown: "Calculations > g_l3"
+  tooltip: false
+  notes: "Read only. Same layout and behaviour as g_l2 (Calculate, Centers, text). objectName in the .ui is g_l2Dialog."
+- id: g_l3Dialog.g_l3CalPushButton
+  kind: button
+  label: "Calculate"
+  where: "Scan Details (g_l3 calculation)"
+  handler: g_l3plot
+  does: "Runs the fit"
+  workflows: [alignment]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: g_l3Dialog.g_l3centercheckBox
+  kind: checkbox
+  label: "Centers:"
+  where: "Scan Details (g_l3 calculation)"
+  handler: ""
+  does: "Uses the typed centres"
+  workflows: [alignment]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: absratioDialog
+  kind: dialog
+  label: "Scan Details"
+  where: "Scan Details (absorber ratio calculation)"
+  handler: calabsrat
+  does: "Fits an absorber scan for the ratio per absorber unit, source intensity and dead time"
+  workflows: [alignment, reflectivity]
+  needs: "an absorber scan selected; the SpecPlot Y counter chosen"
+  shown: "Calculations > abs ratio"
+  tooltip: false
+  notes: "Read only. Modal; result fields are editable line edits; the ratio is not offered to the absorber field or to Preferences. Depends silently on the SpecPlot Y combo."
+
+# ======================= Small system dialogs =======================
+- id: progressDialog
+  kind: dialog
+  label: "Wait"
+  where: "Wait"
+  handler: ""
+  does: "Window-modal progress with Abort while frames, spectra or Analyze All run"
+  workflows: [general]
+  needs: ""
+  shown: "long reads; Analyze All; > 10 spectra"
+  tooltip: false
+  notes: ""
