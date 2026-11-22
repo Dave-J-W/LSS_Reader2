@@ -38,6 +38,7 @@ and shape; each spectrum is then a linear least-squares problem for the
 heights and the background, which cannot fail to converge.
 """
 import math
+from collections import OrderedDict
 from dataclasses import dataclass, field, replace
 
 import numpy as np
@@ -606,7 +607,33 @@ def fit_box(x, y, sigma=None, background='linear'):
     return res
 
 
+_SCAN_FITS = OrderedDict()
+_SCAN_FITS_SIZE = 128
+
+
 def fit_scan(x, y, sigma=None, background='linear'):
+    """``_fit_scan``, keeping its answers: the window fits the plotted scan
+    on every redraw of the SpecPlot (a selection, a log box, a column), and
+    a box fit that does not converge spends up to 25 000 evaluations, about
+    9 s on a 21-point peak (measured 2026-11-22), before it is dropped. The
+    same arrays give the same fit; a copy is returned."""
+    import copy
+    xa, ya = np.asarray(x, float), np.asarray(y, float)
+    sa = None if sigma is None else np.asarray(sigma, float)
+    key = (xa.shape, xa.tobytes(), ya.shape, ya.tobytes(), None if sa is None else (sa.shape, sa.tobytes()),
+           background)
+    res = _SCAN_FITS.get(key)
+    if res is None:
+        res = _fit_scan(x, y, sigma, background)
+        _SCAN_FITS[key] = res
+        if len(_SCAN_FITS) > _SCAN_FITS_SIZE:
+            _SCAN_FITS.popitem(last=False)
+    else:
+        _SCAN_FITS.move_to_end(key)
+    return copy.deepcopy(res)
+
+
+def _fit_scan(x, y, sigma=None, background='linear'):
     """The shape of an alignment or half-cut scan: a peak (Gaussian), an
     edge (``fit_edge``) or a box (``fit_box``), whichever the data support
     best by the Akaike criterion (χ² + 2 × parameters); returns the

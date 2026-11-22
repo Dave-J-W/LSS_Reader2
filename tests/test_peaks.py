@@ -168,3 +168,28 @@ def test_scan_shape_picks_peak_edge_or_box():
     assert peak.peaks[0].fwhm == pytest.approx(0.471, rel=0.05)        # P9: the box model gave 0.406
     box = peaks.fit_scan(x, _poisson(cases['box'], 22), None)
     assert box.peaks[0].centre == pytest.approx(-0.05, abs=0.01) and box.peaks[0].fwhm == pytest.approx(0.7, abs=0.02)
+
+
+def test_scan_fits_are_kept_and_given_as_copies():
+    """fit_scan keeps its answers (2026-11-22: the SpecPlot refits on every
+    redraw): the same arrays give a result equal to a fresh fit, without
+    fitting again, and a caller's change to it does not reach the next."""
+    from scipy.special import erf
+    x = np.linspace(-1, 1, 121)
+    st = lambda c, w: 0.5 * (1 + erf((x - c) / (w / G * math.sqrt(2))))
+    y = _poisson(50 + 1000 * (st(-0.4, 0.05) - st(0.3, 0.05)), 22)
+    fresh = peaks._fit_scan(x, y, np.sqrt(np.maximum(y, 1)))
+    first = peaks.fit_scan(list(x), y, np.sqrt(np.maximum(y, 1)))
+    calls = []
+    real = peaks._fit_scan
+    peaks._fit_scan = lambda *a, **k: calls.append(a) or real(*a, **k)
+    try:
+        first.peaks[0] = None
+        again = peaks.fit_scan(x, y.copy(), np.sqrt(np.maximum(y, 1)))
+    finally:
+        peaks._fit_scan = real
+    assert calls == []
+    assert again.kind == fresh.kind and set(again.candidates) == set(fresh.candidates)
+    assert repr(again.peaks[0]) == repr(fresh.peaks[0]) and np.array_equal(again.background, fresh.background)
+    assert np.array_equal(again.model(x), fresh.model(x))
+    assert peaks.fit_scan(x, y + 1.0, np.sqrt(np.maximum(y, 1))).peaks[0].height != fresh.peaks[0].height   # other data: fitted
