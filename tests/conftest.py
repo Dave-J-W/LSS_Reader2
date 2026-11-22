@@ -21,6 +21,10 @@ os.environ['LSS_READER_SELECTION_DELAY_MS'] = '0'
 os.environ['LSS_READER_PREFS'] = os.path.join(tempfile.mkdtemp(prefix='lss_reader_test_prefs_'), 'preferences.json')
 # never write to the user's disk cache from the tests
 os.environ['LSS_READER_DISK_CACHE'] = tempfile.mkdtemp(prefix='lss_reader_test_cache_')
+# the in-memory frame cache (lss_core.cache) defaults to a quarter of the RAM, 4 GB here; every test
+# reads its own new files, so in one test process it only grew (2026-11-22). 512 MB holds what a test,
+# or the NX school data shared by tests, reads.
+os.environ.setdefault('LSS_READER_RAM_CACHE_MB', '512')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
