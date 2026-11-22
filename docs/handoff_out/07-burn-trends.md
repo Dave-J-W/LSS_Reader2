@@ -81,7 +81,7 @@ template's behaviour when the peak's shape changes a lot (NX 15: per-frame
    the double exponential win (AICc) and drive the 5 % time down? The
    verdict text flags "a change a line misses"; check that it is rare
    (NX 14's intensity, before the area fix, was such a case).
-3. **Estimators on synthetic GID frames** made like pinhole frames
+3. **Estimators on synthetic GID frames** (generator: `tests/synthetic/burn_profiles.py`, `docs/SYNTHETIC_DATA.md`; first look: PHYSICS_ISSUES P44) made like pinhole frames
    (`tests/test_burn_trends.py` `_gid_profiles`): a peak that broadens at a
    constant area, a peak that shifts, a peak that fades under a steady
    shoulder, and a background that rises. Which estimator reads each

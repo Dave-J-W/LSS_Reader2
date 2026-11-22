@@ -138,4 +138,4 @@ curves or images. Keep survey outputs of private data under
 | Foils | `lss_core/absorbers.py` (`Foils.step`, `calibrated`) |
 | Design, measurements, prototype descriptions | `docs/reports/ref_patch_joint_fit.md` |
 | Tests | `tests/test_patching.py` (invariants, Monte Carlo, NX), `tests/test_stitching.py` (legacy) |
-| Synthetic reflectivity with known truth | `docs/SYNTHETIC_DATA.md` (generators being added on 2026-11-22: Parratt, water–air interface, Kiessig fringes, scans split with absorbers) |
+| Synthetic reflectivity with known truth | `tests/synthetic/xrr.py`, `xrr_scans.py`, `xrr_images.py`; `docs/SYNTHETIC_DATA.md` (water–air interface, Kiessig fringes, scans split with known factors and planted faults; legacy factor 16.7 % low when a staggered overlap straddles Qc) |

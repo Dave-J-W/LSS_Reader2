@@ -334,7 +334,7 @@ stated assumption until the answer arrives.
         often the double exponential wins by AICc and drags the 5 % time down. The
         verdict flags "a change a line misses"; this should be rare, and the rate
         belongs in C31.
-  - [ ] **Estimators against known truths.** Synthetic pinhole-like frames with a
+  - [ ] **Estimators against known truths** (generator now in `tests/synthetic/burn_profiles.py`; first look found P44: the template reads a broadening at constant area as a 15 % gain). Synthetic pinhole-like frames with a
         peak that broadens at constant area, one that shifts, one that fades under a
         steady shoulder, and a rising background. Record which of template, moments
         and fit reads each truth, with its bias and scatter.

@@ -3673,3 +3673,28 @@ and the export are the owner's decisions (TODO area B2).
 real curves with interleaved halves, repeats, how to judge); a worked
 example on NX in `docs/comparisons_data/ref_patch_nx/`.
 
+### 2026-11-22 — Synthetic data generators merged; two findings
+
+**Owner:** "spawn another subagent to spearhead a synthetic data revolution
+in a worktree ... Reflectivity synthetic data should be first made in the
+reduced form, rather than images. Kiessig fringes and the response of
+water-air interface are critical components of the synthesis. They should
+keep notes for other agents to use the generators for testing."
+
+**Done** by the subagent, merged: `tests/synthetic/` (reflectivity of
+water and layered interfaces by Parratt with Névot–Croce roughness,
+Kiessig fringes, capillary roughness; reduced scans as the reader makes
+them, with known factors, absorbers, monitors and planted faults; frames
+and SPEC files rendered from them; a three-level legacy GID set; GID burn
+profiles; XFNTR; growing files for live tests), 72 tests, notes in
+`docs/SYNTHETIC_DATA.md`. Literature values marked "from memory" there
+(NIST could not be reached from the session).
+
+**Findings (measured with the generators):** (1) P1: the legacy factor is
+16.7 % low when a staggered overlap straddles the critical edge (0.01–
+0.04 % above Qc). (2) P44 (new): the burn test's template estimator reads
+a broadening at constant area on a shoulder as a 15 % intensity gain;
+every window estimator under-reads a peak fading on a shoulder. Recorded;
+the estimator choice is hand-off 07's item 3. P36 and P37 are now strict
+xfails on the three-level set.
+
