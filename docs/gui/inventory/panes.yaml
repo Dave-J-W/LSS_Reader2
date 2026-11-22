@@ -1,0 +1,201 @@
+# Inventory A: the panes (docks), the Command line, the status bar and the
+# tab widget. Schema: docs/gui/README.md. Seen in a running window
+# (offscreen, 2026-11-22, 1600x1000) unless a note says "read only".
+- id: PlotWidget
+  kind: tab
+  label: "SpecPlot | Pilatus | Reflectivity | Line/Area Cuts | MCA | Plot | 2D_Plot"
+  where: "Main window (right of the left panel)"
+  handler: ""
+  does: "The tabs of the window; the Apex tab (index 1) is hidden"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Tabs switch by themselves: selecting a scan goes to SpecPlot (Pilatus scans too), selecting Pilatus frames goes to Pilatus, a Vortex scan to MCA (read only), a line cut to Line/Area Cuts, Reflectivity to Reflectivity. Tab names mix styles (SpecPlot, 2D_Plot, Line/Area Cuts). Window title in the .ui is 'Form1' (LSS_Reader.py sets 'LSS-Reader')."
+- id: messageDock
+  kind: pane
+  label: "Messages"
+  where: "Bottom dock (tabbed with Script and Errors)"
+  handler: "notify (appends and shows)"
+  does: "Collects every message to the user (warnings, fit results, absorber notes) with the time; nothing blocks"
+  workflows: [session, general]
+  needs: ""
+  shown: "hidden until the first message; each message makes it visible"
+  tooltip: false
+  notes: "Each message calls show(), which does not bring it to the front of the dock tab group: measured, after a fit message the Script tab stayed in front and the result was behind the Messages tab. Shows time and text; the title (Warning, Absorbers, Peak fit) goes to the log only. As a bottom dock it spans the full width and takes height from the left panel (Q-UI-A1 asks whether D59 applies here too). Messages of all levels look the same (no colour for warnings vs info)."
+- id: messageView
+  kind: pane
+  label: ""
+  where: "Messages pane"
+  handler: ""
+  does: "Read-only text of the messages (last 2000 blocks)"
+  workflows: [session]
+  needs: ""
+  shown: with messageDock
+  tooltip: false
+  notes: "No Clear, no filter, no 'open log'."
+- id: scriptDock
+  kind: pane
+  label: "Script"
+  where: "Bottom dock (tabbed with Messages and Errors)"
+  handler: "scriptLine (appends and shows)"
+  does: "Shows, for actions that have one, the lss_core Python that does the same thing, ready to copy (F48)"
+  workflows: [session]
+  needs: ""
+  shown: "hidden at start, but shows itself with the first line; opening a SPEC file writes one, so in practice always visible"
+  tooltip: false
+  notes: "Measured: after opening the NX file the Script dock is visible and about 200 px tall at a 1000 px window, spanning the full width; the scan list above it is 100 px tall and shows two scans. Decided requirement D59 (owner, 2026-11-22): 'The script terminal panel shouldn't compete with data selection and it should be hidden by default' -> hidden by default, never raises itself (scriptLine must not call show()), opened from View, and placed so it takes no room from the left panel. Layout constraint: the left panel is part of the central widget (splitter_3), not a dock, so any bottom dock spans under it; options are confining docks to the right column (make the left panel a left dock and setCorner(BottomLeft, LeftDockWidgetArea)), a right dock, a floating window, or a splitter under the tab area inside the central widget."
+- id: scriptView
+  kind: pane
+  label: ""
+  where: "Script pane"
+  handler: ""
+  does: "Read-only Python, starting 'from lss_core.experiment import Experiment'"
+  workflows: [session]
+  needs: ""
+  shown: with scriptDock
+  tooltip: false
+  notes: "No Copy-all or Save-as-script button; select and copy by hand."
+- id: errorDock
+  kind: pane
+  label: "Errors"
+  where: "Bottom dock (tabbed with Messages and Script)"
+  handler: ""
+  does: "Holds the error model: Legacy or Budget, and the monitor model with its parameters"
+  workflows: [session, reflectivity, gid, xfntr, cuts, burn-ref, burn-gid, burn-fluo]
+  needs: ""
+  shown: "hidden; View > Errors"
+  tooltip: false
+  notes: "A setting that changes every error bar lives in a hidden pane; there is no cue elsewhere (status bar, plot titles, exports) of whether Legacy or Budget is in use (read only: the export header may say; not checked). Parameter fields of the unused models are disabled, not hidden."
+- id: errorModeComboBox
+  kind: combo
+  label: "Error model"
+  where: "Errors pane"
+  handler: setErrorModel
+  does: "Legacy (per-pixel monitor term, as before) or Budget (monitor term once per whole sum)"
+  workflows: [session, reflectivity, gid, xfntr, cuts, burn-ref, burn-gid, burn-fluo]
+  needs: ""
+  shown: with errorDock
+  tooltip: true
+  notes: "Recomputes spectra and background-subtracted images on show; others at the next computation (message says so)."
+- id: monitorKindComboBox
+  kind: combo
+  label: "Monitor model"
+  where: "Errors pane"
+  handler: setErrorModel
+  does: "Gaussian, Student t or Counting model of the monitor uncertainty (used by Budget)"
+  workflows: [session]
+  needs: ""
+  shown: with errorDock
+  tooltip: true
+  notes: "Applies only under Budget; enabled under Legacy too (the label says so in text)."
+- id: errorModel_sigma
+  kind: lineedit
+  label: "Monitor sigma (%)"
+  where: "Errors pane"
+  handler: setErrorModel
+  does: "Relative sd of one Monc reading, percent (Gaussian)"
+  workflows: [session]
+  needs: "Monitor model Gaussian"
+  shown: with errorDock
+  tooltip: true
+  notes: "Unit in the label, as it should be everywhere."
+- id: errorModel_sigma_scan
+  kind: lineedit
+  label: "Scan scatter (%)"
+  where: "Errors pane"
+  handler: setErrorModel
+  does: "The scan's own relative Monc scatter, percent (Student t)"
+  workflows: [session]
+  needs: "Monitor model Student t"
+  shown: with errorDock
+  tooltip: true
+  notes: ""
+- id: errorModel_width
+  kind: lineedit
+  label: "t width"
+  where: "Errors pane"
+  handler: setErrorModel
+  does: "Scale of the Student t relative to the scan scatter"
+  workflows: [session]
+  needs: "Monitor model Student t"
+  shown: with errorDock
+  tooltip: true
+  notes: ""
+- id: errorModel_nu
+  kind: lineedit
+  label: "t nu"
+  where: "Errors pane"
+  handler: setErrorModel
+  does: "Degrees of freedom of the Student t (> 2)"
+  workflows: [session]
+  needs: "Monitor model Student t"
+  shown: with errorDock
+  tooltip: true
+  notes: ""
+- id: errorModel_f
+  kind: lineedit
+  label: "Floor f"
+  where: "Errors pane"
+  handler: setErrorModel
+  does: "Fractional monitor uncertainty that does not fall with counts (Counting)"
+  workflows: [session]
+  needs: "Monitor model Counting"
+  shown: with errorDock
+  tooltip: true
+  notes: ""
+- id: errorModel_sigma_dark
+  kind: lineedit
+  label: "Dark sigma"
+  where: "Errors pane"
+  handler: setErrorModel
+  does: "Scatter of the monitor dark counts in one frame (Counting)"
+  workflows: [session]
+  needs: "Monitor model Counting"
+  shown: with errorDock
+  tooltip: true
+  notes: "Unit (counts) only in the tooltip."
+- id: errorModel_g
+  kind: lineedit
+  label: "Quanta per count g"
+  where: "Errors pane"
+  handler: setErrorModel
+  does: "True quanta per recorded monitor count (Counting)"
+  workflows: [session]
+  needs: "Monitor model Counting"
+  shown: with errorDock
+  tooltip: true
+  notes: ""
+- id: errorModelLabel
+  kind: label
+  label: "legacy (per-pixel I/M^2 + I^2/M^3) ..."
+  where: "Errors pane"
+  handler: showErrorModel
+  does: "Describes the model in use in words"
+  workflows: [session]
+  needs: ""
+  shown: with errorDock
+  tooltip: false
+  notes: "Long wrapped text on screen, against rule 9."
+- id: commandLineEdit
+  kind: lineedit
+  label: "Command:"
+  where: "Main window, under the left panel and tabs"
+  handler: ""
+  does: "Shows a one-line legacy description of the last reduction (e.g. 'Ref Patch, scans=[...], slits=[...]'), which is also written as the header line of exported files"
+  workflows: [session, reflectivity, gid, xfntr, burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Measured: empty after selecting scans and frames and after a line cut; filled only by Ref Patch, GID, GIOXS, burn tests and MCA sums/fits (read only). Editable but typing does nothing (no signal; exports use self.command, not the field) (read only). Duplicates the Script pane in an older, non-runnable form; a full-width row for a rarely filled field."
+- id: statusBar
+  kind: pane
+  label: ""
+  where: "Bottom of the window"
+  handler: "statusBar.showMessage (many places)"
+  does: "Short transient messages: 'Done', 'Plotting....Wait!!', 'Live: ...', 'Saved automatically to <workbook>: R0002 line cut ... v2'"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Measured: the automatic-save notice appears here only (and disappears). No permanent indicators: no live-mode badge, error-model badge, monitor normalisation (/gain, /photon), absorber factor in use, output folder or workbook name."

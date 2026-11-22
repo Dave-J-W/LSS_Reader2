@@ -67,6 +67,11 @@ def save_png(img, name, shows, state):
     path = os.path.join(OUT, name)
     if not isinstance(img, Image.Image):
         img = qimage_to_pil(img)
+    # 256 colours without dithering: the labels stay sharp, the colour maps
+    # band a little, and the folder is about 6 MB instead of 13.5 MB, which
+    # matters because the screenshots are regenerated (and committed) often.
+    img = img.convert('RGB').quantize(colors=256, method=Image.Quantize.MEDIANCUT,
+                                      dither=Image.Dither.NONE)
     img.save(path, optimize=True)
     ENTRIES.append((name, shows, state))
     log('saved %s (%dx%d)' % (name, img.width, img.height))
@@ -109,6 +114,11 @@ def settle(app, n=3):
 def grab_window(w, app):
     settle(app)
     return qimage_to_pil(w.grab())
+
+
+def getw(w, name):
+    """A control of the window: on the generated ``ui`` or on the window itself."""
+    return getattr(w.ui, name, None) or getattr(w, name)
 
 
 def rect_in(win, widget):
@@ -281,11 +291,11 @@ def annotated_overview(w, app, img, name, shows, state):
         areas.append((label, rect, colour))
 
     add('menu bar', rect_in(w, ui.menuBar), (200, 0, 0))
-    left = union(*[rect_in(w, x) for x in (ui.scanListWidget, w.seriesComboBox, ui.imageListWidget,
-                                            ui.backgroundListWidget, w.removePushButton, w.speUpSpeFilePushButton)])
+    left = union(*[rect_in(w, x) for x in (ui.scanListWidget, getw(w, 'seriesComboBox'), ui.imageListWidget,
+                                            ui.backgroundListWidget, getw(w, 'removePushButton'), getw(w, 'speUpSpeFilePushButton'))])
     add('left panel: series, scan list, frame list, background list', left, (0, 110, 0))
     add('scan list', rect_in(w, ui.scanListWidget), (0, 150, 0))
-    add('series chooser', rect_in(w, w.seriesComboBox), (0, 150, 0))
+    add('series chooser', rect_in(w, getw(w, 'seriesComboBox')), (0, 150, 0))
     add('frame (detector) list', rect_in(w, ui.imageListWidget), (0, 150, 0))
     add('background list', rect_in(w, ui.backgroundListWidget), (0, 150, 0))
     add('tab bar (8 tabs)', rect_in(w, ui.PlotWidget.tabBar()), (0, 0, 200))
@@ -297,19 +307,34 @@ def annotated_overview(w, app, img, name, shows, state):
         if dock.isVisible():
             add('bottom dock area (tabs: Messages / Script / Errors)', rect_in(w, dock), (0, 130, 130))
             break
-    for label, (x0, y0, x1, y1), c in areas:
+    # numbered badges on the window; the key is in a margin added at the right
+    # (labels written over the window would hide the controls they name)
+    from PIL import Image
+    margin = 780
+    canvas = Image.new('RGB', (img.width + margin, img.height), (255, 255, 255))
+    canvas.paste(img, (0, 0))
+    d = ImageDraw.Draw(canvas, 'RGBA')
+    d.text((img.width + 20, 14), 'Key', fill=(0, 0, 0, 255), font=font)
+    for k, (label, (x0, y0, x1, y1), c) in enumerate(areas, start=1):
         d.rectangle((x0, y0, x1 - 1, y1 - 1), outline=c + (255,), width=3)
-        tw, th = d.textbbox((0, 0), label, font=font)[2:]
-        tx, ty = x0 + 6, y0 + 4
-        d.rectangle((tx - 3, ty - 2, tx + tw + 3, ty + th + 4), fill=(255, 255, 255, 215))
-        d.text((tx, ty), label, fill=c + (255,), font=font)
+        r = 15
+        cx, cy = min(x1 - r - 2, max(x0 + r + 2, x0 + r + 2 + 40 * (k % 3))) if k not in (1, 9) else x0 + r + 2, y0 + r + 2
+        if k == 1:
+            cx, cy = x1 - r - 2, y0 + r
+        d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=c + (255,))
+        d.text((cx, cy), str(k), fill=(255, 255, 255, 255), font=font, anchor='mm')
+        ky = 60 + 44 * (k - 1)
+        d.ellipse((img.width + 20, ky - r, img.width + 20 + 2 * r, ky + r), fill=c + (255,))
+        d.text((img.width + 20 + r, ky), str(k), fill=(255, 255, 255, 255), font=font, anchor='mm')
+        d.text((img.width + 64, ky), label, fill=(0, 0, 0, 255), font=font, anchor='lm')
+    img = canvas
     save_png(img, name, shows, state)
 
 
 # ---- the steps ----------------------------------------------------------
 
 def _series_row(w, text):
-    c = w.seriesComboBox
+    c = getw(w, 'seriesComboBox')
     for i in range(c.count()):
         if text in c.itemText(i):
             return i
@@ -364,23 +389,23 @@ def run_nx(app, ctx, skip_slow):
     @step('left panel')
     def left_panel():
         sr = _series_row(w, 'reflectivity 4/?')
-        w.seriesComboBox.setCurrentIndex(sr)
-        w.seriesComboBox.activated.emit(sr)
+        getw(w, 'seriesComboBox').setCurrentIndex(sr)
+        getw(w, 'seriesComboBox').activated.emit(sr)
         settle(app)
         img = grab_window(w, app)
-        r = union(*[rect_in(w, x) for x in (w.ui.scanListWidget, w.seriesComboBox, w.ui.imageListWidget,
-                                             w.ui.backgroundListWidget, w.removePushButton, w.speUpSpeFilePushButton)])
+        r = union(*[rect_in(w, x) for x in (w.ui.scanListWidget, getw(w, 'seriesComboBox'), w.ui.imageListWidget,
+                                             w.ui.backgroundListWidget, getw(w, 'removePushButton'), getw(w, 'speUpSpeFilePushButton'))])
         save_png(crop(img, r, 12), '10_leftpanel_series_chosen.png',
                  'Left panel: series chooser, scan list, frame list, background list, buttons',
                  'NX opened; series "reflectivity 4/?: S# 6-9" chosen in the series chooser (its scans become the selection)')
         # the series dropdown, open
-        w.seriesComboBox.showPopup()
+        getw(w, 'seriesComboBox').showPopup()
         settle(app)
-        v = w.seriesComboBox.view()
+        v = getw(w, 'seriesComboBox').view()
         if v.isVisible():
             save_png(v.window().grab(), '10b_leftpanel_series_dropdown.png', 'The series chooser list opened',
                      'NX opened; the five series entries')
-        w.seriesComboBox.hidePopup()
+        getw(w, 'seriesComboBox').hidePopup()
         settle(app)
     left_panel()
 
@@ -549,33 +574,41 @@ def run_nx(app, ctx, skip_slow):
             w.cutFitDialog.close()
         tab(w, app, 'Pilatus')
         w.ui.pilCutDirComboBox.setCurrentIndex(1)
-        w.ui.pilIntRangeLineEdit.setText('1.40:1.50')
+        w.ui.pilIntRangeLineEdit.setText('1.25:1.35')
         w.ui.pilLineAreaPushButton.click()
         settle(app)
         tab(w, app, 'Line/Area Cuts')
         save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '63_cuts_gid_qxy_rod.png',
-                 'Line/Area Cuts with a second cut added (Qxy 1.40:1.50 vs Qz, the Bragg rod)', 'Same map; second cut added to the plot')
+                 'Line/Area Cuts with a second cut added (Qxy 1.25:1.35 vs Qz, the Bragg rod)', 'Same map; second cut added to the plot')
     if not skip_slow:
         cuts()
 
     # --- GISAXS dialog
     @step('gisaxs')
     def gisaxs():
-        select_scans(w, app, [5])
+        select_scans(w, app, [11])                  # scan 12 frame 1 as the background
         select_frames(w, app, [0])
         tab(w, app, 'Pilatus')
+        w.ui.backgroundPushButton.click()
+        settle(app)
+        bl = w.ui.backgroundListWidget
+        if bl.count():
+            bl.item(0).setSelected(True)
+            bl.itemSelectionChanged.emit()
+        select_scans(w, app, [10])
+        select_frames(w, app, [0])
         before = visible_tops(app)
-        arm(ctx, '90_dialog_gioxs.png', 'GIOXS window (Pilatus > GIOXS)', 'Scan 6, frame 1')
+        arm(ctx, '90_dialog_gioxs.png', 'GIOXS window (Pilatus > GIOXS)', 'Scan 11 frame 1 as data, scan 12 frame 1 as background')
         w.ui.pilGioxsPushButton.click()
         settle(app)
         disarm(ctx)
-        grab_toplevels(app, before, '90_dialog_gioxs.png', 'GIOXS window (Pilatus > GIOXS)', 'Scan 6, frame 1', skip=[w])
+        grab_toplevels(app, before, '90_dialog_gioxs.png', 'GIOXS window (Pilatus > GIOXS)', 'Scan 11 frame 1 as data, scan 12 frame 1 as background', skip=[w])
         for t in list(visible_tops(app)):
             if t is not w:
                 t.close()
         combo_do(w, app, w.ui.gisaxsComboBox, 'Show GISAXS')
         save_png(grab_window(w, app), '91_gisaxs_show.png', 'Whole window after GISAXS drop-down > Show GISAXS',
-                 'Scan 6, frame 1; tab: %s' % w.ui.PlotWidget.tabText(w.ui.PlotWidget.currentIndex()))
+                 'Scan 11 frame 1 with a background; tab: %s' % w.ui.PlotWidget.tabText(w.ui.PlotWidget.currentIndex()))
     gisaxs()
 
     # --- burn tests
@@ -861,6 +894,12 @@ def run_plot_tabs(app, ctx, plot_files):
         settle(app)
         save_png(grab_window(w, app), '80b_plot_two_files.png', 'Plot tab, whole window, two files from disk plotted',
                  'Files: a patched NX reflectivity export (if available) and a synthetic peak (Qz, I, error)')
+        lw.blockSignals(True)
+        lw.clearSelection()
+        lw.item(lw.count() - 1).setSelected(True)
+        lw.blockSignals(False)
+        lw.itemSelectionChanged.emit()
+        settle(app)
         before = visible_tops(app)
         arm(ctx, '81_plot_peak_fit_window.png', 'Plot > Peak Fit window', 'Plot tab with the synthetic peak file selected')
         w.ui.plotPFPushButton.click()
