@@ -119,7 +119,11 @@ Each stage ends with the checks green and something the user can see.
 - Fitting improvements inside the reader (F22); fluorescence line markers,
   escape peaks and element identification using XrayDB/Larch (F47).
 - Half-cut scans for beam size (F43), when data exists.
-- GUI reorganisation (R4), informed by everything above.
+- GUI reorganisation (R4), informed by everything above. **Planning started
+  2026-11-22** (D58): phase 1a assessment and workflow map (F67), 1b regrouping
+  with one visual language and one line-cut interface (F68), 2 raw-image display
+  (F69–F71), later faster log plotting (F72), 3 contextual GUIs (F73, F60).
+  Plan and schema: `docs/gui/README.md`.
 
 ## Order and dependencies
 

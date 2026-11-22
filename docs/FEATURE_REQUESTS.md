@@ -9,7 +9,7 @@ As stated by the project owner. Status is updated as work lands.
 | R1 | Verification tests preserve the physical and mathematical behaviour through debugging and refactoring. | 2026-11-14 | Scaffolding in place; see `TESTING.md`. |
 | R2 | Finish the Python 2 → 3 migration, which is incomplete and has caused problems. | 2026-11-14 | Known leftovers listed in `ASSESSMENT.md` section 4; Stage 1 fixed defects 1–7, 14 and D14 (2026-11-17). |
 | R3 | The interface never crashes, whichever files are selected and whichever controls are used afterwards. *(Stage 0 done 2026-11-17: a failing action no longer closes the program; the individual failures remain to be repaired.)* | 2026-11-14 | Measured by `pytest -m sweep`: 0 failing controls and 0 crash sites since 2026-11-17 (420 combinations raised before Stage 1); the sweep passes on every GUI change since. |
-| R4 | Better GUI organisation. | 2026-11-14 | Not started. |
+| R4 | Better GUI organisation. | 2026-11-14 | **Planning started 2026-11-22** (D58, F67–F73): assessment and workflow map in `docs/gui/`; no code changed yet. |
 
 ## Feature requests
 
@@ -343,6 +343,23 @@ priority than the lists above.
 | D38 | `#A` 52 and 63 are real absorber settings (owner, 2026-11-18). | F50 |
 | D39 | Monitor-gain reference S_ref = 5 µA/V, the usual gain (owner, 2026-11-18). | F52 |
 | D36 | GID sub-project order (owner, 2026-11-18): the worksheet (F61) first; the main improvement is the pinhole-geometry correction (F45) before patching, so more columns of each image can be used without smearing the instrumental resolution; then flexible overlaps (F62). | F23, F45, F61, F62 |
+
+### GUI overhaul (2026-11-22)
+
+The owner started the GUI reorganisation (R4) as planning only ("no coding
+yet"), in phases. Working files: `docs/gui/` (plan and schema in
+`docs/gui/README.md`).
+
+| # | Request | Notes |
+|---|---|---|
+| D58 | **GUI overhaul in phases, planning first** (owner, 2026-11-22). Phase 1 massages what exists: most functionality on each panel (tab: Pilatus, Reflectivity, …) is kept; what improves is the organisation, the grouping of functionality, a consistent UI design and visual clues/cues. Its first step is an assessment of every function and the workflow it belongs to, asking "is this functionality missing here?" and "what is the typical workflow with each data type/experiment?". Screenshots of each GUI area, often, so the owner is reminded what each area looks like. The orchestrating session uses subagents and acts as project manager. | `docs/gui/` |
+| F67 | **A maintainable workflow map** (owner, 2026-11-22: "a key deliverable"): every workflow as steps with the controls they use, so alternative, more contextual and automatic GUIs can be designed by data type (with F60). Priority: burn tests (reflectivity, GID, fluorescence), reflectivity, GID, XFNTR, then EXAFS. | `docs/gui/workflows.yaml`, checked and rendered by `tests/tools/gui_map.py` (in progress) |
+| F68 | **One line-cut interface on every image plot** (owner, 2026-11-22): consistent interface, defaults that may depend on the scan kind. | With F59 (diffuse cuts); `docs/gui/image_display.md` |
+| F69 | **Frames as a movie by default, with a sticky zoom** (owner, 2026-11-22), preferred to showing more than 6 frames at once ("select all" is common and shows too many small pictures). Alternatives: a sequential sampling (first, middles, last; up to a selectable number, default 4) or the first n frames. | Phase 2; `docs/gui/image_display.md` |
+| F70 | **Sticky plotting preferences and intelligent colour scales and defaults** for raw data, especially images (owner, 2026-11-22). | Phase 2 |
+| F71 | **ROI close-up for reflectivity** (owner, 2026-11-22), and other visual analysis of raw frames. | Phase 2 |
+| F72 | **Faster log-scale plotting** (owner, 2026-11-22); outside the first deliverables. | later |
+| F73 | **Alternative, contextual GUIs** (owner, 2026-11-22): interface and workflow chosen by data type, designed from the workflow map (F67). | Phase 3, with F60 |
 
 ### Status of built items
 

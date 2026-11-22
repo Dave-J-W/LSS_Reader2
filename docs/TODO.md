@@ -11,7 +11,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 3 Saved state per SPEC file; live refresh | **largely built** 2026-11-19 to 22: series read and guessed, Series list and whole-series selection; per-SPEC workbook (F66) with automatic saving (D56), series ties and stale flags; live updates (D57: file and data folders watched, remakes in a worker thread, open plots redrawn, no reset). Open: reopening a file with its workbook's settings, D1–D3, dropped points as masks, the owner's answers on the series format |
 | 4 Detectors and inputs | not started |
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
-| 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); **fitting done** 2026-11-21 (peak module D52, MCA lines, scan shapes, burn trends D54); beam size (half-cut fit built, no data), GUI not started |
+| 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); **fitting done** 2026-11-21 (peak module D52, MCA lines, scan shapes, burn trends D54); beam size (half-cut fit built, no data); **GUI planning started** 2026-11-22 (D58: assessment, workflow map, screenshots in `docs/gui/`; no code yet) |
 
 ## Remaining work by area (regrouped 2026-11-21, review `docs/reviews/2026-11-21-todo-review.md`)
 
@@ -113,7 +113,21 @@ working list, one table per area, each row with its source. Rows marked
 models (F33), ME7 tab (F34, F35), new-format SPEC (F28), HDF5 (F29). All
 wait on input 3.
 
-**I. GUI, speed, packaging**: ~~make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load~~ done 2026-11-22 (waits up to 3 s for the one draw); GUI reorganisation (R4) with redraw in place
+**I. GUI, speed, packaging**
+
+GUI overhaul (R4, D58; plan `docs/gui/README.md`), planning only until the owner says otherwise:
+
+| Item | Source |
+|---|---|
+| Phase 1a: inventory of every control and the workflow it serves; findings per tab (grouping, consistency, visual cues, missing functions); screenshots of every area; questions for the owner (in progress 2026-11-22) | D58 |
+| The workflow map, checked and rendered by a tool (burn tests, reflectivity, GID, XFNTR first, then EXAFS) | F67 |
+| A test that runs the map's check, so the map cannot drift from the window (after the inventory is complete) | F67 |
+| Phase 1b: regrouping, one visual language, state cues; one line-cut interface on every image plot with defaults by scan kind | D58, F68, F59 |
+| Phase 2: frames as a movie with sticky zoom (≤ 6 tiles; sampling first/middles/last, default 4; first n), sticky plot preferences, intelligent colour scales, ROI close-up for reflectivity | F69–F71 |
+| Faster log-scale plotting (outside the first deliverables) | F72 |
+| Phase 3: contextual GUIs by data type | F73, F60 |
+
+Other items: ~~make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load~~ done 2026-11-22 (waits up to 3 s for the one draw); GUI reorganisation (R4) with redraw in place
 and diffuse cuts (F59); slow-file-system timing; `timings.md` regenerated;
 build workflow and macOS signing (input 12); sample-data hosting.
 - [ ] **Make the crash sweep fast enough to run after every GUI change (new
