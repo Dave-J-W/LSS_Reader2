@@ -87,6 +87,13 @@ Each line: feature — where — default — script — notes entry (date).
   "Calibrated foils in the reader"; P29 (Monc at narrow slits).
 - Outputs `_ref.txt`, `_rrf.txt` (columns: see `lss_core/reflectivity.py`
   `finish` and the xmodfit contract in `docs/handoff/`).
+- "+ covariance" box beside Export/Save (2026-11-22, off by default):
+  Export also writes `<name>_ref.cov.json` / `_rrf.cov.json` for XModFit
+  (σ_meas, W, Σ). The text files are unchanged. Why a fit needs it, how
+  to use it, and what the numbers show:
+  `docs/reports/downstream_covariance.md`. Nothing is written if the
+  patch on show cannot be replayed (message). Terms to define: counting-only
+  error, region weights, scan-scale covariance, pull.
 
 ### Fluorescence (MCA tab)
 - Window sum ("Sum All"), calibration, normalisation, absorber per MCA

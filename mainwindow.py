@@ -5371,6 +5371,10 @@ class MainWindow (QMainWindow):
         self.uirefpatch.knownRatioCheckBox,self.uirefpatch.knownRatioLabel=box,lab
         box.toggled.connect(self.pilRefPatchKnownToggled)
         self.refScale={self.pilrefsort[0]:1.0}   # scale already applied to each scan's data
+        # unscaled copies of the scans as the joins start (the joins scale them in place, trap T3):
+        # the covariance export replays the patch from these
+        self.refPatchInput={k:np.array(v,dtype=float) for k,v in self.scanqzframe.items()}
+        self.refPatchOrder=list(self.pilrefsort)
         self.refInfoShown=None
         self.pilRefPatchPlot()
 
@@ -5794,7 +5798,81 @@ class MainWindow (QMainWindow):
                 np.savetxt(rrffile,self.RrfData,fmt='%.4e\t%.4e\t%.4e')
             except:
                 print ('No rrf data available!')
+            if self.refCovarianceCheckBox.isChecked():
+                self.saveRefCovariance(self.saveFileName)
             self.scriptLine(self.reflectivityScript(self.saveFileName))
+
+    def setupRefCovarianceBox(self):
+        """The Ref Patch export's "+ covariance" option, just after its Save button."""
+        from PyQt5.QtWidgets import QCheckBox
+        box=QCheckBox('+ covariance',self)
+        box.setObjectName('refCovarianceCheckBox')
+        box.setChecked(False)
+        box.setToolTip('Off by default (the owner decides, TODO area B2). On: Export also writes <name>_ref.cov.json '
+                       'and <name>_rrf.cov.json beside the text files, for XModFit or any fitter that can use a '
+                       'covariance (format: docs/handoff/19, schema v1). The text files do not change. Each sidecar '
+                       'holds, point for point, the counting-only error, which scan(s) each point came from, and the '
+                       'covariance of the scans\' scale factors: a factor\'s error is shared by every point of its '
+                       'scan and of every later scan, so the errors are correlated, and a fit that treats them as '
+                       'independent is overconfident (synthetic film fits: parameter pull SDs up to 4 instead of 1). The factors '
+                       'are the legacy patch\'s; their errors are recomputed from counting errors, inflated when the '
+                       'overlap scatters. Only for a Ref Patch reduction; nothing is written if the patch cannot be '
+                       'replayed exactly (a message says why).')
+        exp=self.ui.refExportPushButton
+        save=self.saveButtons.get('ref')
+        anchor=save if save is not None else exp
+
+        def find(layout):
+            for k in range(layout.count()):
+                it=layout.itemAt(k)
+                if it.widget() is anchor:
+                    return layout,k
+                if it.layout() is not None:
+                    r=find(it.layout())
+                    if r:
+                        return r
+            return None
+        top=anchor.parentWidget().layout() if anchor.parentWidget() is not None else None
+        found=find(top) if top is not None else None
+        if found:
+            found[0].insertWidget(found[1]+1,box)
+        self.refCovarianceCheckBox=box
+
+    def saveRefCovariance(self,name):
+        """Write <name>_ref.cov.json (and _rrf.cov.json) for the files just
+        saved (lss_core.covariance_export): the patch is replayed from the
+        unscaled scans with the same drops and known factors, and nothing
+        is written unless the replay equals the saved arrays (hand-off T10)."""
+        from lss_core import covariance_export as ce
+        title='Covariance'
+        inp=getattr(self,'refPatchInput',None)
+        if self.refpatchindex!=1 or inp is None or len(getattr(self,'refPatchOrder',[]))<2:
+            self.notify('No covariance written: it exists only for a Ref Patch of two or more scans.',title=title)
+            return
+        try:
+            chain=ce.legacy_chain(inp,self.refPatchOrder,self.refDrops,getattr(self,'refFactors',None))
+            shown=np.asarray(self.refData,dtype=float)
+            if shown.ndim!=2 or shown[:,:3].shape!=chain.data.shape or not np.array_equal(shown[:,:3],chain.data):
+                self.notify('No covariance written: the patch on show is not the one the last Ref Patch made.',title=title)
+                return
+            nf=float(self.ui.refNormLineEdit.text()) if self.ui.refNormFacCheckBox.checkState()>0 else None
+            rrf=self.ui.refRRFCheckBox.checkState()!=0
+            ref,rrfcd=ce.finish(chain.covdata('legacy'),self.refQc,self.refQoff,nf,rrf)
+            written=[]
+            if np.array_equal(ref.array(),np.asarray(self.normRefData,dtype=float)[:,:3]):
+                written.append(ce.write_sidecar(name+'_ref.cov.json',ref,name+'_ref.txt'))
+            else:
+                self.notify('No covariance written for %s_ref.txt: it does not match the reduction.' % name,title=title)
+            if rrfcd is not None and getattr(self,'RrfData',None) is not None:
+                if np.array_equal(rrfcd.array(),np.asarray(self.RrfData,dtype=float)[:,:3]):
+                    written.append(ce.write_sidecar(name+'_rrf.cov.json',rrfcd,name+'_rrf.txt'))
+                else:
+                    self.notify('No covariance written for %s_rrf.txt: it does not match the reduction.' % name,title=title)
+        except Exception as e:
+            self.notify('No covariance written: %s' % e,title=title)
+            return
+        if written:
+            self.notify('Covariance written: '+', '.join(os.path.basename(p) for p in written),title=title,level='info')
     
     def reflectivityScript(self,name):
         """The lss_core call that reproduces the last patched reflectivity."""
@@ -6094,6 +6172,7 @@ class MainWindow (QMainWindow):
                                     ('cut',self.ui.cutExportPushButton,self.saveCutsToWorkbook),
                                     ('mca',self.ui.mcaExportIntPushButton,self.saveMcaToWorkbook)):
             self.saveButtons[name]=self.addSaveButton(export,handler,name)
+        self.setupRefCovarianceBox()
 
     def cutCurves(self):
         """The plotted cuts as (label, x, y, sigma, scale): scale is the
