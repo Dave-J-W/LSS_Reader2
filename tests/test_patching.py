@@ -126,8 +126,8 @@ def test_chain_covariance_is_a_random_walk_and_matches_the_recursion():
 
 def test_global_fit_equals_the_chain_with_disjoint_windows():
     scans, _ = _scans(seed=3)
-    c = patching.chain(scans, likelihood='log', guard_p=0, inflate=False)
-    g = patching.global_fit(scans, inflate=False)
+    c = patching.chain(scans, likelihood='log', guard_p=0, inflate=False, n_ext=4)   # the same window
+    g = patching.global_fit(scans, inflate=False, n_ext=4)
     assert np.allclose(g.phi, c.phi, atol=1e-10)
     assert np.allclose(g.Sigma, c.Sigma, atol=1e-12)
 
@@ -229,3 +229,49 @@ def test_nx_school_scans_6_to_9():
     pr = patching.chain(scans, prior=prior, monitor_ratios=[1.005, 4.35, 1.32])
     assert [j.prior_used for j in pr.joins] == [True, False, False]
     assert 'Monc/Monp changed' in pr.joins[1].why
+
+
+def _fringe_minimum_join():
+    """Join 3 of a 100 Å film at low counts (the gauntlet's film100_lowcounts,
+    seed 1000): four coinciding points at a fringe minimum."""
+    from synthetic import xrr, xrr_scans as xs
+    bl = xs.Beamline(flux=2.5e11, **xs.REAL_MONITOR)
+    r = xs.measure(xrr.film(100.0), xs.standard_plan(4, grid='coincide'), beamline=bl, seed=1000,
+                   errors='counting+monitor')
+    sc = [patching.Scan(r.per_scan[k][:, 0], r.per_scan[k][:, 1], r.per_scan[k][:, 2]) for k in r.order]
+    truth = [math.log(v) for v in r.true_steps().values()]
+    return sc[2], sc[3], truth[2]
+
+
+def test_the_guard_raises_the_order_where_no_quadratic_fits():
+    """2026-11-22, the gauntlet: the old ladder ended at order 2 on the
+    overlap, which fits no fringe minimum (χ²/dof ≈ 280), and inflated the
+    error about ×17 although δ was right. The ladder now raises the order."""
+    a, b, truth = _fringe_minimum_join()
+    old = patching.joint_factor(a, b, order=2, n_ext=0, guard_p=0)
+    assert old.chi2 / old.dof > 50
+    j = patching.joint_factor(a, b)
+    assert j.err < 2 * j.err_counting            # not inflated by an inadequate model
+    assert abs(j.delta - truth) < 3 * j.err
+    assert scipy_chi2_sf(j.chi2, j.dof) >= patching.GUARD_P or j.n_ext == 0
+
+
+def scipy_chi2_sf(x, k):
+    from scipy.stats import chi2
+    return chi2.sf(x, k)
+
+
+def test_the_guard_ladder_keeps_the_offset_identifiable():
+    """Without a shared Qz, a polynomial through every position would absorb
+    the factor: the ladder stops one order lower there."""
+    q = np.linspace(0.03, 0.08, 26)
+    a = patching.Scan(q[:16], np.exp(-40 * q[:16]), 1e-3 * np.ones(16))
+    qb = q[11:] + 0.001                     # staggered: no Qz shared
+    b = patching.Scan(qb, np.exp(-40 * qb), 1e-3 * np.ones(len(qb)))
+    ladder = patching.guard_ladder(a, b)
+    assert len(ladder) > 3
+    for o, e in ladder:
+        ia, ib = patching.window(a.q, b.q, e)
+        n_pos = len(np.unique(np.round(np.concatenate([a.q[ia], b.q[ib]]), 9)))
+        assert o <= n_pos - 2 and o <= len(ia) + len(ib) - 4
+    assert patching.guard_ladder(a, b)[0] == (4, patching.N_EXT)

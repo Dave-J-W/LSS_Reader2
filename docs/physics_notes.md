@@ -3698,3 +3698,60 @@ every window estimator under-reads a peak fading on a shoulder. Recorded;
 the estimator choice is hand-off 07's item 3. P36 and P37 are now strict
 xfails on the three-level set.
 
+### 2026-11-22 — The patching gauntlet; the joint fit becomes the default
+
+**Owner:** "Reflectivity patching: make new method the default if it passes
+the gauntlet." Then, while it ran: "to be clear we dont need to patch across
+critical edge. There's really no reason to patch early in Qz (change
+absorbers) until counting statistics drop off by more than 100x, since we
+start from a place of 'plenty', with 1e6 counts per second in the ROI at
+total reflection (low Qz)." And: "monc doesn't have poisson noise, it's more
+like a strict 0.05% uncertainty, you can see the xray_fluxor public repo for
+more on that."
+
+**The gauntlet** (`tests/tools/ref_patch_gauntlet.py`; outputs in
+`docs/comparisons_data/ref_patch_gauntlet/`; C36). Hand-off 08's rule at
+every join: |mean pull| < 0.2 and pull SD within 0.9–1.15, over 400 noise
+replicates of synthetic scans with known factors: water, DPPC, 100 Å and
+250 Å films (Kiessig fringes), coinciding, staggered and NX-like grids, a
+low-count set. The private `bu` data hold no reflectivity series (checked
+with `series.all_series`: GID, energy and fluorescence only), so real data
+gave only NX scans 6–9 (3 joins; the split test there has n = 3, too few
+for a pull SD). Monc is modelled as the owner says (no Poisson noise,
+0.05 %: `xrr_scans.REAL_MONITOR`); with Poisson Monc noise (0.2–0.3 % per
+point) the χ² test was blunter and the verdict the same in kind. The plan
+across the critical edge is kept as information only.
+
+**Measured** (18 judged joins): legacy passes 0 (its errors are 1.1–4.8 ×
+too small; +5.5 % at a thick film's last join); the joint fit as built
+earlier today (4 points either side, guard p ≥ 0.01) passes 6; after two
+fixes, 17 with 2 points either side (16 with 4). The fixes:
+1. *The guard could only shrink the window, ending at order 2.* Four
+   coinciding points at a fringe minimum fit no quadratic (χ²/dof 282) and
+   the error was inflated × 17 (δ itself was right); a 250 Å film's fringes
+   biased the factor by −2 to −4 %. Now `guard_ladder` tries the largest
+   window first with the order rising to what the points carry, then
+   smaller windows, and keeps the first adequate fit.
+2. *p ≥ 0.01 let model bias through.* Noise-free, the joint fit with 4
+   points either side is 0.23 % (0.4 σ) low at water's first join, where
+   legacy is exact (the points coincide); χ² accepted it in 75 % of
+   replicates. The guard now asks p ≥ 0.3, and the default window is 2
+   points either side.
+The remaining failure is fail-safe: the 250 Å film's third join, +0.44 %
+inside an error inflated by its χ² (pull SD 0.19). Across the critical edge
+every method is biased (joint +1.35 %, legacy −10.4 %), which per the owner
+does not arise.
+
+**Changed output** (deliberate): the window's Ref Patch and
+`Experiment.reflectivity` fit the factor with the joint fit
+(`reflectivity.join_factor`; preference `ref_patch_method`, 'legacy' for
+the old files byte for byte; the legacy export fixtures are compared under
+'legacy'). NX 6–9: factors +0.20 %, +0.13 %, +0.14 % (within 1σ); no point
+moves by more than 0.2 %. The synthetic two-scan set's last point: 0.982 →
+0.994 of the truth (`test_gui_workflows`). Verified: tests and the tool
+(measured), not reading only.
+
+**Not yet:** the larger real data set (hand-off 08), whether the foil prior
+is used by default (TODO B2), and the export of the covariance (the
+covariance agent's branch, merged next).
+

@@ -79,6 +79,8 @@ class ReflectivityResult:
     ref: np.ndarray
     rrf: np.ndarray = None
     beam_offsets: list = field(default_factory=list)  # (scan, point, dx, dy)
+    method: str = refl.DEFAULT_PATCH_METHOD           # how the patch factors were fitted
+    notes: list = field(default_factory=list)         # (join, note) left by the fit
 
     def save(self, name):
         refl.save(name, self.ref, self.rrf)
@@ -214,7 +216,8 @@ class Experiment:
     def reflectivity(self, scans, slit=(21, 11), bg_offset=0.5, direction='H',
                      qc=0.0217, qoff=0.0, norm_factor=None, rrf=True,
                      drops=None, merge_repeats=False, merge=None, low_qz_slit=False, points=None,
-                     bad_pixel_iterations=0, bad_pixel_factor=1, errors=None, factors=None):
+                     bad_pixel_iterations=0, bad_pixel_factor=1, errors=None, factors=None,
+                     method=refl.DEFAULT_PATCH_METHOD):
         """Specular reflectivity of ``scans``, as the window's Ref Patch with
         the same settings (defaults are the window's defaults for Pilatus
         data). ``drops``: {join number: [indices]} as typed into the patch
@@ -224,7 +227,10 @@ class Experiment:
         ``errors``: error model, 'legacy' (default: the window's numbers) or
         'budget' or an lss_core.errors.ErrorModel. ``factors``: {join number:
         (factor, error)} used instead of the fitted patch factor there, as
-        when the window uses the known absorber ratio."""
+        when the window uses the known absorber ratio. ``method``: how the
+        patch factors are fitted, 'joint' (default since 2026-11-22) or
+        'legacy' (the window's files before then, byte for byte;
+        ``lss_core.reflectivity.join_factor``)."""
         from TwoDDetector import TwoDDetector
         det = TwoDDetector('Pilatus')
         det.errors = as_model(errors)
@@ -249,10 +255,11 @@ class Experiment:
         for group in merge or []:          # groups merged by hand, as in the window
             refl.merge_identical(per_scan, list(group))
         order = refl.order_scans(per_scan)
-        patched = refl.patch(per_scan, order, drops, factors)
+        notes = []
+        patched = refl.patch(per_scan, order, drops, factors, method=method, notes=notes)
         ref, out_rrf = refl.finish(patched[:, :3] if patched.shape[1] > 3 else patched,
                                    qc, qoff, norm_factor, rrf)
-        return ReflectivityResult(per_scan, order, patched, ref, out_rrf, offsets)
+        return ReflectivityResult(per_scan, order, patched, ref, out_rrf, offsets, method, notes)
 
     def cut(self, scans, direction, range, axes='Pixels', summed=False, points=None,
             absfac=ABSFAC_10KEV, errors=None, monitor_gain=False, distance=None, db_pos=None,

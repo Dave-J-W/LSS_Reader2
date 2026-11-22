@@ -277,6 +277,7 @@ destination SPEC file is empty until the first `advance`.
 | Diffuse background, Yoneda wings, sh scans, Qz offset | F42, F59 | `xrr_images` background is flat |
 | Bad pixels, cosmic rays, multiple exposures, stray light | F40, P40 | |
 | Monitor noise with heavy tails (Student t, drifts) | `reports/monitor_noise.md` | `Beamline.monitor_jitter` is Gaussian |
+| **Monc as it is** (owner, 2026-11-22): "monc doesn't have poisson noise, it's more like a strict 0.05% uncertainty" (xray_fluxor) | `xrr_scans.REAL_MONITOR` = `Beamline(monitor_poisson=False, monitor_jitter=0.0005)`; `errors='counting+monitor'` then adds (net × 0.0005)² | the default stays Poisson so that older tests keep their numbers; use `REAL_MONITOR` for anything that judges error models (the gauntlet does) |
 | GISAXS, GIOXS, calibration fits (g_l2, g_l3) | R5 benchmarks | |
 | The covariance contract's acceptance tests 2–6 | hand-off 19 §5 | the generator provides K = 3–5 and the non-one-hot case; the tests belong to the patching work |
 
@@ -302,7 +303,34 @@ destination SPEC file is empty until the first `advance`.
 - **Live mode**: `growing.Growing` over any data set, instead of cutting
   SPEC files by hand.
 
-## 7. Rules for adding generators
+## 7. The fit demonstrator (every method on these generators, with a window)
+
+`tests/demonstrator/` (2026-11-22; report `docs/reports/patch_demo.md`)
+wraps the reflectivity and burn generators with every method that fits
+them, GUI-free, so tests, figure scripts and the window share one code
+path:
+
+```python
+from demonstrator import refl, burnmode as bm        # tests/ on sys.path, as in the suite
+rep = refl.replicate(refl.Config(truth='film', plan='nx', thickness=100, counts=1.0), seed=3)
+rep.scans, rep.expected, rep.true_steps, rep.prior    # noisy and noise-free Scans, truth, foil prior
+res = refl.run_all(rep)                               # every patching method + the legacy chain
+clean = refl.run_all(refl.denoised(rep))              # the same on the expected counts: bias alone
+summary, rows = refl.survey(refl.Config(plan='staggered'), range(200))   # bias, SD, pulls per method/join
+b = bm.replicate(bm.Config(change='broaden'), 1)     # burn profiles, noisy and clean, truth per frame
+r = bm.run_all(b); bm.frame_curve(b, r['template'], 20)   # each estimator's curve on a frame's line cut
+```
+
+`refl.Config`: truth `water`/`dppc`/`film` (thickness), plan `nx`,
+`standard`, `staggered`, `edge` (the P1 overlap across Qc), `counts`
+(beam and monitors scaled together), `foil_error` (true foil steps drawn
+from the prior's covariance per replicate, default on). Plots:
+`demonstrator.draw.refl_figure` / `burn_figure` into any matplotlib
+Figure. Window: `python tests/tools/patch_demo.py` (space bar: new
+replicate); figures: `--save DIR` (headless). Tests:
+`tests/test_patch_demo.py`.
+
+## 8. Rules for adding generators
 
 - New generators go in `tests/synthetic/`, with a test file
   `tests/test_synthetic_<name>.py` asserting physics invariants (not only

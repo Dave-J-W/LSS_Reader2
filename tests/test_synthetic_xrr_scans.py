@@ -33,8 +33,8 @@ def test_legacy_chain_with_the_true_factors_gives_the_truth_where_points_coincid
     joined = refl.patch(d.per_scan, d.order, factors={j: (f, 0.0) for j, f in d.true_join_factors().items()})
     s0 = d.scans[d.order[0]].scale
     assert joined[:, 1] * s0 == pytest.approx(d.truth(joined[:, 0]), rel=1e-10)
-    # the fitted factors are the true ones (no noise, shared points)
-    fitted = refl.patch(d.per_scan, d.order)
+    # the legacy fitted factors are the true ones (no noise, shared points)
+    fitted = refl.patch(d.per_scan, d.order, method='legacy')
     assert fitted[:, 1] * s0 == pytest.approx(d.truth(fitted[:, 0]), rel=1e-9)
 
 
