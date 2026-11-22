@@ -217,6 +217,7 @@ class MainWindow (QMainWindow):
         self.initMonitorGainOption()
         self.initAbsFacFromEnergy()
         self.initPreferences()
+        self.setupToolsMenu()
         self.gidParams=gidmod.GIDParams()     # GID patch settings (worksheet, F61)
         self.gidJoinLog=[]
         self.gidLevels=[]
@@ -2632,6 +2633,26 @@ class MainWindow (QMainWindow):
         for item in selectedmcafiles:
             self.selectedmcafiles_rows.append(self.ui.mcaFileListWidget.row(item))
         self.updateMcaIntPlot()
+
+    def setupToolsMenu(self):
+        """The Tools menu: the repository's demonstrations, figure and data
+        generators and checks (lss_tools.registry; docs/TOOLS.md)."""
+        from lss_tools import gui as toolsgui
+        self.toolsMenu=toolsgui.build_menu(self)
+
+    def buildToolDialog(self,tool_id):
+        """The dialog of one generator or check, not shown (tests, tooltips dump)."""
+        from lss_tools import gui as toolsgui, registry as toolsreg
+        return toolsgui.ToolDialog(self,toolsreg.by_id(tool_id))
+
+    def closeEvent(self,event):
+        """Stop running tools and close the demonstrations with the window."""
+        try:
+            from lss_tools import gui as toolsgui
+            toolsgui.stop_all(self)
+        except Exception as e:
+            self.log.info('tools not stopped: %s',e)
+        QMainWindow.closeEvent(self,event)
 
     def initMessagePane(self):
         """A dock at the bottom of the window that collects messages.

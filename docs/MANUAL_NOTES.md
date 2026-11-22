@@ -266,6 +266,29 @@ Each line: feature — where — default — script — notes entry (date).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.
 
+### Tools menu (2026-11-22)
+
+- **Tools** (between Calculations and Help) lists every demonstration,
+  figure and data generator and check of the repository, in four submenus:
+  Demonstrations, Figures, Data and surveys, Checks (owner, 2026-11-22).
+  The list is `lss_tools/registry.py`; `docs/TOOLS.md` is its table.
+- A demonstration (the fit demonstrator, reflectivity or burn mode) opens
+  its own window at once; the reader stays usable, and the window closes
+  with the reader.
+- Any other entry opens a small dialog; nothing runs until **Run**. Run:
+  a documented job (its outputs are committed documentation, rewritten in
+  place) or "Your own arguments"; Arguments (`{out}` = the output
+  folder); Output folder (never `sample_data/`, except
+  `sample_data/private/figures/` for private data); the command shown is
+  the one a shell would run. The tool runs as its own process: its output
+  in the dialog and the status bar, the result (time, files written, the
+  log file) in the Messages pane. Run becomes **Stop** while it runs;
+  closing the dialog does not stop it; closing the reader does.
+- "Documentation outputs: check and regenerate" runs
+  `python -m lss_tools.regenerate` (default `--check`, read only).
+- A packaged build shows the generators and checks disabled (they need a
+  source checkout and Python); the demonstrations work there.
+
 ## Terms a manual must define
 
 Monc, Monp, Monb (monitors; Monc is the normaliser, upstream of the

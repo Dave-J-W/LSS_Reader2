@@ -17,6 +17,7 @@ disabled, and the demonstrations work if their modules were bundled
 (``packaging/lss_reader.spec``).
 """
 import os
+import re
 import shlex
 import sys
 import time
@@ -116,19 +117,15 @@ def open_demo(window, tool):
     window.ui.statusBar.showMessage('Tools: opening %s...' % tool.title)
     QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
     try:
-        cls = getattr(__import__(mod, fromlist=[name]), name)
-        w = cls(**tool.demo_kwargs)
+        build = getattr(__import__(mod, fromlist=[name]), name)
+        w = build(parent=window, **tool.demo_kwargs)       # shown; deletes itself when closed
     except Exception as e:
         window.notify('Tools: %s could not be opened: %s: %s' % (tool.title, type(e).__name__, e), title='Tools')
         return None
     finally:
         QtWidgets.QApplication.restoreOverrideCursor()
         window.ui.statusBar.clearMessage()
-    w.setParent(window, Qt.Window)                   # its own window, closed with the reader
-    w.setAttribute(Qt.WA_DeleteOnClose)
-    w.setObjectName('toolWindow_' + tool.id)
-    w.resize(1500, 950)
-    w.show()
+    w.setObjectName('toolWindow_' + tool.id)        # a QMainWindow: its own window, owned by the reader
     window.toolWindows = [x for x in window.toolWindows if _alive(x)] + [w]
     window.notify('Tools: %s opened (synthetic data; the space bar draws a new replicate).' % tool.title,
                   title='Tools', level='info')
@@ -213,7 +210,7 @@ class ToolRun(QtCore.QObject):
                                 else [os.path.join(ROOT, self.tool.script)]) + self.argv
 
     def command_text(self):
-        cmd = ' '.join(shlex.quote(a) for a in [self.tool.command] + self.argv)
+        cmd = ' '.join([self.tool.command] + [_q(a) for a in self.argv])
         return cmd + (' > ' + self.stdout_file if getattr(self, 'stdout_file', None) else '')
 
     def start(self):
@@ -391,7 +388,8 @@ class ToolDialog(QtWidgets.QDialog):
         if self.preset is not None:
             self.choosePreset(0)
         else:
-            self.args.setText(' '.join(shlex.quote(a) for a in tool.args))
+            self.args.setText(' '.join(_q(a) for a in tool.args))
+        self.showCommand()
         run = window.toolRuns.get(tool.id)
         if run is not None:
             self.attach(run)
@@ -409,7 +407,7 @@ class ToolDialog(QtWidgets.QDialog):
             if self.out is not None and not self.out.text():
                 self.out.setText(default_out(self.tool))
             return
-        self.args.setText(' '.join(shlex.quote(a) for a in job.args))
+        self.args.setText(' '.join(_q(a) for a in job.args))
         if self.out is not None:
             self.out.setText(os.path.join(ROOT, *job.out.split('/')) if job.out else '')
 
@@ -446,7 +444,7 @@ class ToolDialog(QtWidgets.QDialog):
     def showCommand(self, *_):
         try:
             argv = self.argv()
-            cmd = ' '.join(shlex.quote(a) for a in [self.tool.command] + [_short(a) for a in argv])
+            cmd = ' '.join([self.tool.command] + [_q(_short(a)) for a in argv])
             out = self.stdoutFile()
             self.commandLabel.setText(cmd + (' > ' + _short(out) if out else ''))
         except ValueError as e:
@@ -512,6 +510,13 @@ def job_default(job, out):
     """True when ``out`` is the job's documented folder (nothing to pass)."""
     return job is not None and bool(job.out) and \
         os.path.normcase(os.path.abspath(out)) == os.path.normcase(os.path.join(ROOT, *job.out.split('/')))
+
+
+def _q(a):
+    """Quote an argument for the command line only when it needs it."""
+    if re.fullmatch(r'[\w@%+=:,./{}-]+', a):
+        return a
+    return '"%s"' % a if os.name == 'nt' else shlex.quote(a)
 
 
 def _short(path):

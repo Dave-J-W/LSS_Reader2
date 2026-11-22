@@ -65,7 +65,7 @@ def run_job(tool, job, log=print):
     """Run one job; return its manifest entry, or raise RuntimeError."""
     tmp = tempfile.mkdtemp(prefix='lss_regen_')
     backup = os.path.join(tmp, 'old')
-    old = fr.owned_files(job)
+    old = [f for f in fr.owned_files(job) if not fr._matches(f, job.keep)]
     for f in old:                                    # set aside: a file it no longer writes must not stay
         dst = os.path.join(backup, *f.split('/'))
         os.makedirs(os.path.dirname(dst), exist_ok=True)

@@ -69,7 +69,8 @@ def main():
     w = MainWindow()
     found = rows(w, 'Main window')
     for build, title in ((w.buildPreferences, 'Preferences'), (w.buildGIDWorksheet, 'GID worksheet'),
-                         (w.buildBurnDialog, 'Burn test')):
+                         (w.buildBurnDialog, 'Burn test'),
+                         (lambda: w.buildToolDialog('gid_compare_figures'), 'Tools dialog')):
         try:
             d = build()
         except Exception as e:                       # report, do not stop

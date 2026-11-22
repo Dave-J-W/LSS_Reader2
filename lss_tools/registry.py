@@ -36,6 +36,7 @@ class Job:
     out: str = ''                 # output folder the documented command writes into
     outputs: tuple = ()           # globs (relative to the root) of the files this job owns
     ignore: tuple = ()            # globs it also writes that are not committed (large; git-ignored)
+    keep: tuple = ()              # outputs it updates in place (reads, then rewrites): not set aside before a run
     stdout: str = ''              # the job's standard output is this file
     private: bool = False
     requires: tuple = ()          # files that must exist to run it
@@ -87,7 +88,7 @@ TOOLS = (
          'beside it; space bar: a new noise replicate.',
          'Opens a window (it does not block the reader). Synthetic data only. Report: '
          'docs/reports/patch_demo.md; the same window: python tests/tools/patch_demo.py.',
-         script='tests/tools/patch_demo.py', demo='demonstrator.window:DemoWindow',
+         script='tests/tools/patch_demo.py', demo='demonstrator.window:open_demo',
          demo_kwargs={'mode': 'refl'}, data='synthetic', seconds='1-2 s to open',
          sources=('tests/demonstrator/',), doc='docs/reports/patch_demo.md'),
     Tool('demo_burn', 'Fit demonstrator: burn line cuts', 'demo',
@@ -95,7 +96,7 @@ TOOLS = (
          'truth; space bar: a new replicate.',
          'Opens a window (it does not block the reader). Synthetic data only. The same window: '
          'python tests/tools/patch_demo.py --mode burn.',
-         script='tests/tools/patch_demo.py', demo='demonstrator.window:DemoWindow',
+         script='tests/tools/patch_demo.py', demo='demonstrator.window:open_demo',
          demo_kwargs={'mode': 'burn'}, data='synthetic', seconds='2-3 s to open',
          sources=('tests/demonstrator/',), doc='docs/reports/patch_demo.md'),
 
@@ -103,7 +104,7 @@ TOOLS = (
     Tool('patch_demo', 'Fit demonstrator report figures', 'figures',
          'The six figures, summary CSVs and numbers.json of the fit demonstrator report '
          '(reflectivity patching methods, burn estimators) on synthetic replicates.',
-         'Synthetic data only. --quick: a smoke run with few replicates; --rows DIR2: also the '
+         'Synthetic data only; about 2.5 min (--quick: 16 s, few replicates). --rows DIR2: also the '
          'per-replicate CSVs (large, not committed). Comparison C34.',
          script='tests/tools/patch_demo.py', data='synthetic', out_flag='--save',
          jobs=(Job('patch_demo', 'Report figures (docs/figures/patch_demo)', ('--save', '{out}'),
@@ -200,7 +201,8 @@ TOOLS = (
          script='tests/tools/compare_methods.py', out_flag='--out',
          jobs=(_nx_job('compare_methods', 'NX school', (), 'docs/comparisons_data',
                        ('docs/comparisons_data/C*.csv', 'docs/comparisons_data/manifest.json'),
-                       ignore=('docs/comparisons_data/*_map.csv',)),),
+                       ignore=('docs/comparisons_data/*_map.csv',),
+                       keep=('docs/comparisons_data/manifest.json',)),),
          doc='docs/COMPARISONS.md'),
     Tool('gid_method_survey', 'GID method survey', 'data',
          'Every GID patching method at the header and the calibrated distance, the distance '
@@ -226,14 +228,14 @@ TOOLS = (
          doc='docs/handoff_out/08-ref-patch-comparison.md'),
     Tool('ref_patch_gauntlet', 'Reflectivity patching gauntlet', 'data',
          'The judging rules of hand-off 08 (mean pull, pull SD per join) on many noise replicates of '
-         'synthetic reflectivity with known truth, for every patching method.',
-         'Synthetic data only. pulls.csv (about 14 MB) is written but not committed. '
-         '--replicates, --scenarios. Comparison C36.',
-         script='tests/tools/ref_patch_gauntlet.py', data='synthetic', out_flag='--out',
-         jobs=(Job('ref_patch_gauntlet', '400 replicates', ('--out', '{out}', '--replicates', '400'),
+         'synthetic reflectivity with known truth, for every patching method and the reader\'s own path, '
+         'over designed and random conditions.',
+         'Synthetic data only. Long: the full design (--design all) takes 15-30 min; --design core about a '
+         'minute. pulls.csv (every replicate, large) only with --rows, not committed. Comparison C36.',
+         script='tests/tools/ref_patch_gauntlet.py', data='synthetic', out_flag='--out', seconds='15-30 min',
+         jobs=(Job('ref_patch_gauntlet', 'Every design (core, grid, random)', ('--out', '{out}', '--design', 'all'),
                    'docs/comparisons_data/ref_patch_gauntlet',
-                   ('docs/comparisons_data/ref_patch_gauntlet/levels.csv',
-                    'docs/comparisons_data/ref_patch_gauntlet/verdict.csv',
+                   ('docs/comparisons_data/ref_patch_gauntlet/*.csv',
                     'docs/comparisons_data/ref_patch_gauntlet/summary.md'),
                    ignore=('docs/comparisons_data/ref_patch_gauntlet/pulls.csv',)),),
          doc='docs/COMPARISONS.md C36'),
@@ -316,6 +318,14 @@ EXTERNAL = {
     'docs/handoff_out/03-answer/': "made by the owner-side analysis (tools/absorber_steps.py, "
                                    "tools/absorber_review.py in another repository, private data)",
     'docs/timings.md': 'written by pytest -m bench: a measurement of this machine, not documentation code',
+}
+
+# Committed outputs made once and kept as a record (they cannot be remade by
+# today's code): not owned by any job, exempt from the unclaimed check.
+FROZEN = {
+    'docs/comparisons_data/C21_*.csv': 'C21 per-axis against exact pinhole angles, made once with the commit '
+                                       'before the change (34c33c8) and after it; compare_methods.py keeps their '
+                                       'entries in manifest.json',
 }
 
 # Folders whose every file (but README.md and the manifest) must belong to a job.

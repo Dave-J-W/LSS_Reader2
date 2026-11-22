@@ -22,6 +22,16 @@ On your own machine (same platform as the build you want):
 - `packaging/lss_reader.spec`: every `.ui` file and the four icons; the
   custom widget modules the `.ui` files import (`mplwidget`,
   `mpl2dwidget`). No machine-specific paths.
+- The Tools menu (`docs/TOOLS.md`): the fit demonstrator
+  (`tests/demonstrator/`, with `tests/synthetic/`) is bundled and opens in
+  a build. The figure/data generators and checks stay in `tests/tools/`
+  and are not bundled: they run as Python processes and write the
+  repository's documentation (`docs/`) from its data and sources, none of
+  which a build has, so a build shows them disabled with that reason.
+  Moving them into a package would change nothing for the user of a
+  build and would break every documented command; their entries in
+  `lss_tools/registry.py` are the single place they are listed.
+  (Not yet checked in a build: the recipe change of 2026-11-22.)
 - `packaging/requirements-build.txt`: library versions pinned to the
   ones the test suite passed with. Change them only with a full test run.
 - `LSS_Reader --self-test SPEC PREFIX`: opens the window (so the `.ui`

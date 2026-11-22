@@ -136,7 +136,8 @@ def owned_files(job):
     for g in job.outputs:
         for p in glob.glob(abspath(g)):
             r = rel(p)
-            if os.path.isfile(p) and not _matches(r, job.ignore) and os.path.basename(r) != 'README.md' \
+            if os.path.isfile(p) and not _matches(r, tuple(job.ignore) + tuple(reg.FROZEN)) and \
+                    os.path.basename(r) != 'README.md' \
                     and r not in (MANIFEST, PRIVATE_MANIFEST):
                 found.add(r)
     return sorted(found)
@@ -253,7 +254,7 @@ def unclaimed():
         for dirpath, _, names in os.walk(abspath(d)):
             for n in names:
                 r = rel(os.path.join(dirpath, n))
-                if n == 'README.md' or r == MANIFEST or r in owned or _matches(r, ignored):
+                if n == 'README.md' or r == MANIFEST or r in owned or _matches(r, ignored + list(reg.FROZEN)):
                     continue
                 out.append(r)
     return sorted(out)

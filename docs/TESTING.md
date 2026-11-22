@@ -20,6 +20,7 @@ library changes a number, record it in `physics_notes.md`.
 |---|---|---|
 | `pytest` | fast suite: unit tests and GUI workflows on synthetic data | ~10 min (625 tests, 2026-11-22) |
 | `pytest -m slow` | regressions on real data in `sample_data/` | ~25 min (584 tests, 2026-11-22) |
+| `python -m lss_tools.regenerate` | rerun the documentation figures and data whose inputs changed (`--check`: report only; `docs/TOOLS.md`) | the stale jobs' time (s to 30 min) |
 | `pytest -m bench -s` | timing table, rewrites `docs/timings.md` | ~30 s |
 | `pytest -m sweep` | crash inventory (see below) | ~3 h in one process (2026-11-22; was ~30 min on 2026-11-18); ~80 min in three shards, below |
 | `LSS_UPDATE_CRASHES=1 pytest -m sweep` | regenerate the crash baselines | as above |

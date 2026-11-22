@@ -14,7 +14,8 @@ a folder outside the repository; never commit what it writes.
 Comparisons written:
 - C2/C3 error models on a reflectivity: Qz, R, σ for legacy, budget
   (Gaussian 0.04 %, default) and budget (Student t); the values are the
-  same to < 5e-6 relative, the errors differ.
+  same to < 1.2e-5 relative (2026-11-22; < 5e-6 with the legacy patch), the
+  errors differ.
 - C10/C14 GID legacy 3-column patch vs pinhole geometry: Qxy and Qz
   integrals of each map, and each map (Qxy, Qz, I, σ) on its own grid
   (maps are large and not committed). On NX school use scan 11 alone for a

@@ -16,9 +16,15 @@ datas += [(os.path.join(ROOT, name), '.') for name in ('logo.png', 'stop.png', '
 
 # .ui files name their custom widgets by module; uic imports them at run time
 hidden = ['mplwidget', 'mpl2dwidget', 'matplotlib.backends.backend_qt5agg']
+# Tools menu (lss_tools, docs/TOOLS.md): the demonstrations run inside the program, so the
+# demonstrator and the synthetic-data modules it uses (tests/demonstrator, tests/synthetic) are
+# bundled; lss_tools.gui imports them by name. The figure generators and checks are not bundled:
+# they run as Python processes and write the repository's documentation, so a build shows them
+# disabled (they need a source checkout).
+hidden += ['lss_tools.gui', 'lss_tools.registry', 'demonstrator.window']
 
 a = Analysis([os.path.join(ROOT, 'LSS_Reader.py')],
-             pathex=[ROOT],
+             pathex=[ROOT, os.path.join(ROOT, 'tests')],
              datas=datas,
              hiddenimports=hidden,
              excludes=['tkinter', 'PyQt6', 'PySide2', 'PySide6', 'IPython', 'pytest'],

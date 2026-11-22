@@ -14,6 +14,7 @@ dist/
 # private data the owner shared for testing: kept locally, never pushed
 sample_data/private/
 docs/comparisons_data/*_map.csv
+docs/comparisons_data/ref_patch_gauntlet/pulls.csv
 
 # subagents' git worktrees (Claude Code)
 .claude/worktrees/
