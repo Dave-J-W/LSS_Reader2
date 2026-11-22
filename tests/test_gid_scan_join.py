@@ -88,3 +88,39 @@ def test_physical_response_scan_join_recovers_a_scale_between_scans(scan11):
     ratio = (_factor(_split(frames, 0.8), det, True, 'physical') /
              _factor(_split(frames, 1.0), det, True, 'physical'))
     assert ratio == pytest.approx(1.25, rel=0.01)
+
+
+def _chain(frames, s, cut=(3, 2, 32, 31)):
+    """NX scan 11 as three scans: A = frames 0–2, B = 2–31, C = 31–40 (Det_Th
+    of A and C 2.9° apart; a frame spans about 2.7° of 2θ through the
+    pinhole, so A and C share no 2θ bin); C's counts × s."""
+    a_end, b_start, b_end, c_start = cut
+    a = frames[:a_end]
+    b = [dataclasses.replace(f, scan=f.scan + 1000) for f in frames[b_start:b_end]]
+    c = [dataclasses.replace(f, scan=f.scan + 2000, data=np.asarray(f.data, float) * s,
+                             error=np.asarray(f.error, float) * s) for f in frames[c_start:]]
+    return a + b + c
+
+
+def _joins(frames):
+    log = []
+    gm.pinhole_patch(frames, gm.GIDParams(), log=log)
+    return {j['scan']: j for j in log if j.get('kind') == 'horizontal (2theta)'}
+
+
+def test_a_chain_of_scans_is_joined_through_the_middle_one(scan11):
+    """P41 fixed (2026-11-22): a scan that overlaps only the scan before it
+    is joined against everything joined so far. Before, every scan was
+    fitted against the first, and C (no bin shared with A) got no factor.
+    The scale put on C is recovered through B."""
+    frames, det = scan11
+    one, eight = _joins(_chain(frames, 1.0)), _joins(_chain(frames, 0.8))
+    c = 11 + 2000
+    assert one[c]['points'] > 0 and np.isfinite(one[c]['factor'])
+    assert eight[c]['factor'] / one[c]['factor'] == pytest.approx(1.25, rel=0.01)
+    # B barely moves (0.2 %): the column response is fitted with every scan's scale (P42), so C's scale
+    # nudges it
+    assert eight[11 + 1000]['factor'] == pytest.approx(one[11 + 1000]['factor'], rel=0.005)
+    # A and C really share no bin: C alone against A finds nothing
+    alone = _joins(frames[:3] + [dataclasses.replace(f, scan=f.scan + 2000) for f in frames[31:]])
+    assert alone[c]['points'] == 0 and not alone[c]['applied'] and 'overlaps no scan' in alone[c]['message']

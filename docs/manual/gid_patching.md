@@ -203,7 +203,7 @@ artefact, and diagram 8 now shows the fixed join.
 
 | | Advantages | Disadvantages |
 |---|---|---|
-| Pinhole scan join | Many shared 2θ bins; no interpolation; counts conserved; recovers a scale between scans (P42 fixed). | P41: every scan is fitted against the level's first scan only. |
+| Pinhole scan join | Many shared 2θ bins; no interpolation; counts conserved; recovers a scale between scans (P42 fixed). | (P41, fixed 2026-11-22: each scan is joined against everything joined before it.) |
 | Legacy scan join | Recovers a scale between scans exactly (above). | Few shared values (the Det_Th both scans have); interpolates; averages the overlap (smoothing, correlated errors); needs Det_Th overlap, not just 2θ overlap. |
 
 ## 3b. The column response
@@ -473,7 +473,7 @@ the label in GID > Worksheet; `name` is the `GIDParams` field.
 
 | Option | Values (default) | Advantages | Disadvantages |
 |---|---|---|---|
-| Scan join (within a level) | pinhole: one factor per scan on the 2θ-overlap profiles, applied to W; legacy: interpolated ratio fit, then the overlap averaged | Pinhole: no interpolation, counts conserved. | Pinhole: each scan's scale is fitted together with the column response, so a scale between scans is recovered (1.2565 of an injected 1.25; P42, fixed 2026-11-20; before: 1.173). Each further scan is fitted against the **first** scan of the level, so every scan must overlap the first; scans that overlap only in a chain (A–B, B–C) leave the factor undefined (P41, read only). Legacy: a scan with no overlap is placed unscaled, with a warning. |
+| Scan join (within a level) | pinhole: one factor per scan on the 2θ-overlap profiles, applied to W; legacy: interpolated ratio fit, then the overlap averaged | Pinhole: no interpolation, counts conserved. | Pinhole: each scan's scale is fitted together with the column response, so a scale between scans is recovered (1.2565 of an injected 1.25; P42, fixed 2026-11-20; before: 1.173). Each further scan is fitted against **everything joined so far** (the joined scans' profiles, their factors applied), the scan overlapping it most taken next, so scans that overlap only in a chain (A–B, B–C) are joined through the middle one (P41, fixed 2026-11-22; before, every scan was fitted against the first and a chain stopped the patch). A scan that overlaps nothing joined is left unscaled and the join table says so. Legacy: a scan with no overlap is placed unscaled, with a warning. |
 | Level join (between levels) | pinhole: one factor per level on the β overlap, equal weight per cell (figure 6); legacy: β-integrated profiles, interpolated (`vjoin_kind`: cubic) | Equal weight per cell avoids the 2.6 % bias of summed counts, which weight a 2θ feature differently in each level (measured on synthetic data). The factor's error is carried into the map's errors (its relative error × the level's share of the weight). | The factor depends on the columns used when the illumination changed between the levels' scans (section 3); the β overlap is short (NX: β 6.1–7.6°, 84 β bins), at the lower level's top rows and the upper level's bottom rows, where stray light (P40) lies. |
 | 2θ range across levels (`transverse`) | intersection / union (intersection) | **intersection**: every 2θ bin has every level, as the IDL code (IMG_JOIN). **union**: keeps all measured 2θ. | **intersection**: a short level (NX scan 12: 4 frames, 2θ 13.4–15.8°) cuts the whole map to its range. **union**: NaN where a level is missing at that β. |
 | Apply join factors (`apply_joins`) | on / off (on) | **off**: the data as collected; every factor still fitted and shown ("not applied"); disagreements stay visible. | **off**: the map keeps any real step between scans or levels (e.g. 5 % between two repeats of one range in the owner's data); with the response 'fit', whose level scale is arbitrary, it makes little sense: use it with 'physical' or 'none'. |
@@ -511,8 +511,8 @@ the label in GID > Worksheet; `name` is the `GIDParams` field.
 P5 (area correction asymmetry), P16 (bad-pixel replacement), P31/P36/P37
 (legacy, three levels), P33 (legacy edge copies, relaxed fill), P38 (per-axis
 angles still used in cuts and image axes), P39 (fixed: exact window), P40
-(stray light; raised-arm exception), P41 (pinhole scan join against the
-first scan only), P42 (pinhole scan join biased by the response fit), and the open assumptions in
+(stray light; raised-arm exception), P41 (fixed: pinhole scan join against
+everything joined so far), P42 (pinhole scan join biased by the response fit), and the open assumptions in
 `docs/OUTPUT_DECISIONS.md` (minimum frames per bin, β step, ΣN/ΣW vs IDL
 weights, the 1° raised-arm threshold). Comparisons behind the numbers above:
 `docs/COMPARISONS.md` C10, C11, C14, C21–C24; figures of the geometry:

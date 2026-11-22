@@ -70,6 +70,7 @@ Each is also in `physics_notes.md` under its date.
 
 | Date | Change | Before → after | Who decided |
 |---|---|---|---|
+| 2026-11-22 | Pinhole scan join against everything joined so far (P41) | levels of one or two scans unchanged (NX maps bit for bit); three or more scans: a scan overlapping several joined scans is fitted on all their overlap (before: the first scan's only); a chain that stopped the patch now joins (NX 11 as a chain: C's ×0.8 recovered as 1.253) | owner ("go ahead with the P41 fix") |
 | 2026-11-22 | Points of a scan counted as frames or spectra on disk (≤ SPEC points) for the stale check, live updates and remakes; the Pilatus folder and the latest MCA file watched | a burn scan with 21 SPEC lines and 8 images: saved as 8 points, remade at 21 when the images arrive (before: 21 at once, and never noticed when the images came later) | owner |
 | 2026-11-22 | Live remakes keep the point selection (Saved gains scan_points) and run in a worker thread; Update Specfile and live updates no longer reset the window | remade burn of NX-like synthetic scan with frame 3 left out: 20 of 21 frames (before this change: all 21) | owner |
 | 2026-11-22 | Live mode; Saved gains series_points (stale when a scan gains points) | new rows only when Live is on | owner |

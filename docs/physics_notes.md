@@ -3576,3 +3576,45 @@ are the measured ones recorded there):
 
 Verified: reading only (the issue table and the measurements it cites).
 
+### 2026-11-22 — P41 fixed: the pinhole scan join against everything joined so far
+
+**Owner:** "go ahead with the P41 fix and documented explanation."
+
+**What was wrong.** Within one Qz level, the pinhole patch puts each
+scan on a common scale with one factor, fitted on the 2θ bins it shares
+with the reference. The reference was always the level's **first** scan.
+Picture three scans along 2θ:
+
+    A  |=====|
+    B       |===========|
+    C                  |=====|
+
+B overlaps A and is joined. C overlaps B but not A; fitted against A it
+shares no bin, and the code (taking the overlap's smallest 2θ) stopped the
+whole patch with an error (measured: NX scan 11 split as A = frames 0–2,
+B = 2–31, C = 31–40; a frame spans about 2.7° of 2θ through the pinhole,
+so A and C must be about 3° apart in Det_Th not to overlap). With more
+scans, a scan overlapping both A and B was fitted on A's overlap only,
+throwing away the rest.
+
+**The fix.** The reference grows: after a scan is joined, its rows-summed
+profile, divided by its factor, is added to the reference. The next scan
+joined is the one sharing the most bins with the reference, so the order
+follows the overlaps, not the scan numbers; each factor is fitted on
+everything it overlaps (the same weighted ratio, Poisson errors from the
+summed counts, as before). This is what `join_levels` already does for
+Qz levels (IDL's IMG_JOIN chain). A scan that overlaps nothing joined is
+left unscaled, its factor NaN, and the join table says so.
+
+**Measured** (`tests/test_gid_scan_join.py`): the chain now joins (B 0.966
+± 0.006 on 67 bins; C 1.083 ± 0.005 on 77 bins); a ×0.8 put on C's counts
+is recovered as 1.357 / 1.083 = 1.253 (the P42 fit couples the column
+response to every scale, so B moves by 0.2 %). Levels of one or two scans
+are unchanged, so every NX map is bit for bit as before; the other scan-
+join tests pass unchanged.
+
+**What it does not change.** The factor between two scans is still a
+scale fitted on the overlap; a scan measured later can differ for real
+(the halves of NX 11 differ by 5 %, sample height), and the fix does not
+hide that.
+

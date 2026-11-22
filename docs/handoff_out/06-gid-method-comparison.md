@@ -124,8 +124,10 @@ channel only (rule below), and the proposed default changes as rows for
 - **Stray light (P40):** light beyond the footprint is seen at both arm
   heights, and a sharp streak past S5 at the raised arm ("junk", owner). It
   affects frames-agree χ² and level joins near β ≈ β0.
-- **Scan join against the first scan only (P41):** scans that overlap only
-  in a chain get no factor; check `joins.csv` for NaN.
+- **Scan join (P41, fixed 2026-11-22):** each scan is joined against
+  everything joined so far, so chains of scans join; a scan that overlaps
+  nothing joined gets NaN (with a message) and is left unscaled: check
+  `joins.csv` for NaN.
 - **Single-frame fits are per column**, each column at its own mean 2θ. An
   earlier version binned on a fixed 2θ grid and aliased the columns
   (±0.02° in the centre, χ²/dof 5 instead of 1.4 on NX); do not

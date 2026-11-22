@@ -1240,15 +1240,34 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     scans = sorted(set(f.scan for f in frames))
     factors = {scans[0]: (1.0, 0.0)}
     if len(scans) > 1:
-        sel = [np.array([f.scan == sc for f in frames]) for sc in scans]
-        _, _, ref_n, ref_w = bin_counts_2d(theta[sel[0]], beta_px[sel[0]], n[sel[0]], w[sel[0]], edges, bedges)
-        prof0 = ref_n.sum(axis=1), ref_w.sum(axis=1)
-        for sc, m in zip(scans[1:], sel[1:]):
-            _, _, sn, sw = bin_counts_2d(theta[m], beta_px[m], n[m], w[m], edges, bedges)
-            a, b = sn.sum(axis=1), sw.sum(axis=1)
-            ok = (prof0[1] > 0) & (b > 0) & (prof0[0] > 0) & (a > 0)
-            ratio = (prof0[0][ok] / prof0[1][ok]) / (a[ok] / b[ok])
-            err = ratio * np.sqrt(1 / prof0[0][ok] + 1 / a[ok])
+        # P41 fix (2026-11-22): each scan is joined against everything joined so far (the rows-summed
+        # profile of the joined scans, their factors applied), taking next the scan that overlaps it
+        # most, as join_levels does for levels. Before, every scan was fitted against the first
+        # scan only, so a chain (A-B, B-C, A and C apart) left C's factor undefined.
+        sel = {sc: np.array([f.scan == sc for f in frames]) for sc in scans}
+        prof = {}
+        for sc in scans:
+            _, _, sn_, sw_ = bin_counts_2d(theta[sel[sc]], beta_px[sel[sc]], n[sel[sc]], w[sel[sc]], edges, bedges)
+            prof[sc] = (sn_.sum(axis=1), sw_.sum(axis=1))
+        ref_n, ref_w = prof[scans[0]][0].copy(), prof[scans[0]][1].copy()
+        left = list(scans[1:])
+        while left:
+            def overlap(sc):
+                a, b = prof[sc]
+                return int(np.sum((ref_w > 0) & (b > 0) & (ref_n > 0) & (a > 0)))
+            sc = max(left, key=lambda k: (overlap(k), -scans.index(k)))
+            left.remove(sc)
+            a, b = prof[sc]
+            ok = (ref_w > 0) & (b > 0) & (ref_n > 0) & (a > 0)
+            if not ok.any():
+                factors[sc] = (math.nan, math.nan)
+                if log is not None:
+                    log.append(dict(kind='horizontal (2theta)', x_from=math.nan, x_to=math.nan, points=0,
+                                    factor=math.nan, error=math.nan, chi2=math.nan, applied=False, scan=sc,
+                                    message='scan %d overlaps no scan joined before it: not joined' % sc))
+                continue
+            ratio = (ref_n[ok] / ref_w[ok]) / (a[ok] / b[ok])
+            err = ratio * np.sqrt(1 / ref_n[ok] + 1 / a[ok])
             wt = 1 / err ** 2
             fac = float(np.sum(wt * ratio) / np.sum(wt))
             ferr = float(np.sum(wt) ** -0.5)
@@ -1257,9 +1276,12 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
             if log is not None:
                 x = 0.5 * (edges[:-1] + edges[1:])[ok]
                 log.append(dict(kind='horizontal (2theta)', x_from=float(x.min()), x_to=float(x.max()),
-                                points=int(ok.sum()), factor=fac, error=ferr, chi2=chi2, applied=bool(apply_joins)))
+                                points=int(ok.sum()), factor=fac, error=ferr, chi2=chi2, applied=bool(apply_joins),
+                                scan=sc))
             if apply_joins:
-                w[m] = w[m] / fac
+                w[sel[sc]] = w[sel[sc]] / fac
+            ref_n = ref_n + a                       # the joined scan joins the reference, on its scale
+            ref_w = ref_w + b / fac
     i, s, sn, sw = bin_counts_2d(theta, beta_px, n, w, edges, bedges)
     consistency = frame_consistency(theta, n, w, edges)
     bidx = np.digitize(theta, edges) - 1

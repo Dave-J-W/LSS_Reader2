@@ -24,7 +24,7 @@ working list, one table per area, each row with its source. Rows marked
 | Item | Source |
 |---|---|
 | Final defaults from many data sets (distance, response, joins) | hand-off 06; input 19 |
-| Scan join against everything joined so far (a chain of scans gets no factor now; remedy known) — **new** | P41 |
+| ~~Scan join against everything joined so far~~ **done 2026-11-22** (P41) | P41 |
 | Stray light, streak mask, background frames | P40; input 17 |
 | Exact angles for cut axes, display, distance fit | P38 remainder |
 | Legacy three-level map (synthetic three-level set) | P36, P37 (= P14, P15, P31) |
@@ -47,6 +47,16 @@ working list, one table per area, each row with its source. Rows marked
 | ORSO, HDF5 export; steps and parameters recorded — **new** (F30) | F25, F30, R7 |
 | Synthetic K = 3–5 generator; hand-off tests 2–6 | hand-off §5; input 4 |
 | Tell users which old reductions to redo (non-zero absorbers before P24; bu files at 6.21/7.51/9.9 keV before F49): a release note and a manual line — **new** | TODO Stage 2 list; P24, F49 |
+
+**B2. Decisions on export and saving left to the owner (2026-11-22: "Leave decisions about export and saving in the to-dos")**
+
+| Decision | Options | Source |
+|---|---|---|
+| Which reflectivity patching method is the default (legacy spline factor, joint fit at each join, global fit, with or without the absorber prior) | after the method comparison on the larger data set (hand-off 08) | owner 2026-11-22; `reports/ref_patch_joint_fit.md` |
+| How the stitch factors' correlated uncertainty is exported: folded into each point's error (legacy), a covariance sidecar beside `_ref.txt` (F24), or a combined JSON (F24c) | xmodfit hand-off contract | F24, F24a, F24c; P4 |
+| Whether the legacy export stays the default once corrected outputs exist, and the file names of the corrected ones | | F24a |
+| Which error model the export uses by default (legacy, budget) | | P2, input 5 |
+| What the workbook stores for a reflectivity: factors and their covariance, the joint-fit model per join, both methods side by side | | F66 |
 
 **C. Fluorescence, MCA, EXAFS**
 
