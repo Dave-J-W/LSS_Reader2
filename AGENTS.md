@@ -60,10 +60,10 @@ Application code may now be changed, under these conditions:
 ## Commands
 
     pip install -r requirements-dev.txt
-    pytest                 # fast suite, ~25 s; run before every commit
-    pytest -m slow         # real-data regressions, ~15 s (+30 s with bu data)
+    pytest                 # fast suite, ~10 min; run before every commit
+    pytest -m slow         # real-data regressions, ~25 min
     pytest -m bench -s     # rewrites docs/timings.md
-    pytest -m sweep        # crash inventory, ~30 min; run after GUI-facing changes
+    pytest -m sweep        # crash inventory, ~3 h (shards: docs/TESTING.md); run after GUI-facing changes
 
 No display is needed. Run from the repository root.
 

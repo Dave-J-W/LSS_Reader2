@@ -18,14 +18,29 @@ library changes a number, record it in `physics_notes.md`.
 
 | Command | What | Time |
 |---|---|---|
-| `pytest` | fast suite: unit tests and GUI workflows on synthetic data | ~25 s |
-| `pytest -m slow` | regressions on real data in `sample_data/` | ~15 s, +30 s with `bu` |
+| `pytest` | fast suite: unit tests and GUI workflows on synthetic data | ~10 min (625 tests, 2026-11-22) |
+| `pytest -m slow` | regressions on real data in `sample_data/` | ~25 min (584 tests, 2026-11-22) |
 | `pytest -m bench -s` | timing table, rewrites `docs/timings.md` | ~30 s |
-| `pytest -m sweep` | crash inventory (see below) | ~30 min |
-| `LSS_UPDATE_CRASHES=1 pytest -m sweep` | regenerate the crash baselines | ~30 min |
+| `pytest -m sweep` | crash inventory (see below) | ~3 h in one process (2026-11-22; was ~30 min on 2026-11-18); ~80 min in three shards, below |
+| `LSS_UPDATE_CRASHES=1 pytest -m sweep` | regenerate the crash baselines | as above |
 | `LSS_SWEEP_TIMES=FILE pytest -m sweep` | also append each control's time (state, control, seconds) to FILE, to find a slow one | |
 
 `slow`, `bench` and `sweep` are deselected by default (`pyproject.toml`).
+
+**The sweep in shards.** The sweep grew with the window: every control and
+every dialog child gets a fresh window in its state, about 1 to 1.7 s each
+(mostly matplotlib drawing the new window's plots and first frame; the
+controls themselves took 16 s of a 295 s test, measured with
+`LSS_SWEEP_TIMES`), and the pilatus states now hold about 260 of them. Its
+tests are independent, so they can run as separate processes, about 2 GB
+each at most (measured 2026-11-22: shards of 67, 78 and 29 min, all on one
+4-core machine):
+
+    python -m pytest -m sweep --collect-only -q | grep :: > ids.txt
+    for k in 0 1 2; do awk -v k=$k 'NR%3==k' ids.txt > shard$k.txt; done
+    for k in 0 1 2; do python -m pytest -q -m sweep $(cat shard$k.txt) > shard$k.log 2>&1 & done; wait
+
+Do not run the shards beside another heavy suite (memory).
 Tests on `sample_data/bu` skip themselves when that private folder is
 absent, so a fresh clone passes without it.
 
