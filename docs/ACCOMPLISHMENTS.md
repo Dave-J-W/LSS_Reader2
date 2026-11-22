@@ -136,6 +136,13 @@ how to regenerate them), `MANUAL_NOTES.md` and `manual/controls.md` (every
 control's tooltip), `SCRIPTING.md`, a review of the to-do lists
 (`reviews/2026-11-21-todo-review.md`).
 
+Tools (2026-11-22, `TOOLS.md`): every demonstration, figure and data
+generator and check of the repository is listed in `lss_tools/registry.py`
+and reachable from the window's Tools menu; each committed figure and data
+file is recorded in `figures/MANIFEST.json` with hashes of the code and data
+that made it, `python -m lss_tools.regenerate` reruns exactly the stale
+ones, and a quick test fails while one is stale.
+
 ## Not done yet (the main items; all in `TODO.md`)
 
 Final GID defaults from the larger data set; which reflectivity patching

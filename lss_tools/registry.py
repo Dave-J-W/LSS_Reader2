@@ -230,14 +230,19 @@ TOOLS = (
          'The judging rules of hand-off 08 (mean pull, pull SD per join) on many noise replicates of '
          'synthetic reflectivity with known truth, for every patching method and the reader\'s own path, '
          'over designed and random conditions.',
-         'Synthetic data only. Long: the full design (--design all) takes 15-30 min; --design core about a '
-         'minute. pulls.csv (every replicate, large) only with --rows, not committed. Comparison C36.',
-         script='tests/tools/ref_patch_gauntlet.py', data='synthetic', out_flag='--out', seconds='15-30 min',
+         'Synthetic data only. Long: the full design (--design all) takes about 25 min; --design core '
+         '--methods all about 3 min. pulls.csv (every replicate, large) only with --rows, not committed. Comparison C36.',
+         script='tests/tools/ref_patch_gauntlet.py', data='synthetic', out_flag='--out', seconds='3-25 min',
          jobs=(Job('ref_patch_gauntlet', 'Every design (core, grid, random)', ('--out', '{out}', '--design', 'all'),
                    'docs/comparisons_data/ref_patch_gauntlet',
-                   ('docs/comparisons_data/ref_patch_gauntlet/*.csv',
-                    'docs/comparisons_data/ref_patch_gauntlet/summary.md'),
-                   ignore=('docs/comparisons_data/ref_patch_gauntlet/pulls.csv',)),),
+                   ('docs/comparisons_data/ref_patch_gauntlet/*.csv', 'docs/comparisons_data/ref_patch_gauntlet/summary.md', 'docs/comparisons_data/ref_patch_gauntlet/log.txt'),
+                   ignore=('docs/comparisons_data/ref_patch_gauntlet/pulls.csv',), seconds=1500),
+               Job('ref_patch_gauntlet_core_all', 'Core conditions, every method',
+                   ('--out', '{out}', '--design', 'core', '--methods', 'all'),
+                   'docs/comparisons_data/ref_patch_gauntlet/core_all_methods',
+                   ('docs/comparisons_data/ref_patch_gauntlet/core_all_methods/*.csv', 'docs/comparisons_data/ref_patch_gauntlet/core_all_methods/summary.md',
+                    'docs/comparisons_data/ref_patch_gauntlet/core_all_methods/log.txt'),
+                   ignore=('docs/comparisons_data/ref_patch_gauntlet/core_all_methods/pulls.csv',), seconds=180)),
          doc='docs/COMPARISONS.md C36'),
     Tool('dump_tooltips', 'Controls and tooltips (manual)', 'data',
          "Every control of the window and its dialogs with its tooltip, as Markdown: the manual's "

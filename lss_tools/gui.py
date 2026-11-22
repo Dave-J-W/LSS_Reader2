@@ -229,7 +229,14 @@ class ToolRun(QtCore.QObject):
             self.proc.waitForFinished(3000)
         else:
             self.proc.terminate()                    # regenerate stops its own job on SIGTERM
-            QtCore.QTimer.singleShot(5000, lambda: self.running() and self.proc.kill())
+            QtCore.QTimer.singleShot(5000, self._kill_late)
+
+    def _kill_late(self):
+        try:
+            if self.running():
+                self.proc.kill()
+        except RuntimeError:                         # the window, and this run, are gone
+            pass
 
     def _read(self):
         data = self.proc.readAllStandardError() if self.stdout_file else self.proc.readAllStandardOutput()

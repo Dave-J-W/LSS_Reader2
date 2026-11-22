@@ -117,6 +117,13 @@ wait on input 3.
 **I. GUI, speed, packaging**: ~~make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load~~ done 2026-11-22 (waits up to 3 s for the one draw); GUI reorganisation (R4) with redraw in place
 and diffuse cuts (F59); slow-file-system timing; `timings.md` regenerated;
 build workflow and macOS signing (input 12); sample-data hosting.
+- [x] **Tools menu and fresh documentation outputs (owner, 2026-11-22)**: done
+      2026-11-22 (`docs/TOOLS.md`): every demonstration, generator and check in
+      the Tools menu; `docs/figures/MANIFEST.json`, `python -m lss_tools.regenerate`
+      and a quick test keep committed outputs fresh. Open: check the packaged
+      build's Tools menu (the demonstrator bundled; recipe changed, not built);
+      run the private jobs (`regenerate --private`) on the owner's machine once
+      to record them.
 - [ ] **Make the crash sweep fast enough to run after every GUI change (new
       2026-11-22).** It takes about 3 h in one process (80 min in three shards,
       `TESTING.md`), because each of about 260 controls per state gets a fresh

@@ -2,7 +2,7 @@
  "about": "Written by python -m lss_tools.regenerate; do not edit by hand. For every job (lss_tools/registry.py): its command, the hash of each input (code by syntax tree, data by content) and of each output. docs/TOOLS.md explains.",
  "jobs": {
   "burn_figures": {
-   "command": "\"python tests/tools/burn_figures.py\"",
+   "command": "python tests/tools/burn_figures.py",
    "commit": "41189b0-dirty",
    "inputs": {
     "TwoDDetector.py": "79512ef7de965c3e",
@@ -94,7 +94,7 @@
    "tool": "burn_figures"
   },
   "compare_methods": {
-   "command": "\"python tests/tools/compare_methods.py\"",
+   "command": "python tests/tools/compare_methods.py",
    "commit": "41189b0-dirty",
    "inputs": {
     "TwoDDetector.py": "79512ef7de965c3e",
@@ -298,7 +298,7 @@
    "tool": "compare_methods"
   },
   "gid_compare_S11": {
-   "command": "\"python tests/tools/gid_compare_figures.py\" --scans 11 --out docs/figures/gid_compare",
+   "command": "python tests/tools/gid_compare_figures.py --scans 11 --out docs/figures/gid_compare",
    "commit": "41189b0-dirty",
    "inputs": {
     "TwoDDetector.py": "79512ef7de965c3e",
@@ -384,7 +384,7 @@
    "tool": "gid_compare_figures"
   },
   "gid_compare_S11+12": {
-   "command": "\"python tests/tools/gid_compare_figures.py\" --scans 11,12 --peak none --note \"not like for like: scan 12 stopped after 4 frames\" --out docs/figures/gid_compare",
+   "command": "python tests/tools/gid_compare_figures.py --scans 11,12 --peak none --note \"not like for like: scan 12 stopped after 4 frames\" --out docs/figures/gid_compare",
    "commit": "41189b0-dirty",
    "inputs": {
     "TwoDDetector.py": "79512ef7de965c3e",
@@ -475,7 +475,7 @@
    "tool": "gid_compare_figures"
   },
   "gid_patching_diagrams": {
-   "command": "\"python tests/tools/gid_patching_diagrams.py\"",
+   "command": "python tests/tools/gid_patching_diagrams.py",
    "commit": "41189b0-dirty",
    "inputs": {
     "TwoDDetector.py": "79512ef7de965c3e",
@@ -570,7 +570,7 @@
    "tool": "gid_patching_diagrams"
   },
   "gid_stray_light": {
-   "command": "\"python tests/tools/gid_stray_light.py\"",
+   "command": "python tests/tools/gid_stray_light.py",
    "commit": "41189b0-dirty",
    "inputs": {
     "TwoDDetector.py": "79512ef7de965c3e",
@@ -658,7 +658,7 @@
    "tool": "gid_stray_light"
   },
   "gid_survey_nx": {
-   "command": "\"python tests/tools/gid_method_survey.py\" --spec sample_data/NX_school/2026sep/20260923 --out docs/comparisons_data/gid_survey_nx --split",
+   "command": "python tests/tools/gid_method_survey.py --spec sample_data/NX_school/2026sep/20260923 --out docs/comparisons_data/gid_survey_nx --split",
    "commit": "41189b0-dirty",
    "inputs": {
     "TwoDDetector.py": "79512ef7de965c3e",
@@ -752,7 +752,7 @@
    "tool": "gid_method_survey"
   },
   "patch_demo": {
-   "command": "\"python tests/tools/patch_demo.py\" --save docs/figures/patch_demo",
+   "command": "python tests/tools/patch_demo.py --save docs/figures/patch_demo",
    "commit": "41189b0-dirty",
    "inputs": {
     "lss_core/__init__.py": "ad2e13b69c4fc1fd",
@@ -801,7 +801,7 @@
    "tool": "patch_demo"
   },
   "pinhole_beam_figure": {
-   "command": "\"python tests/tools/pinhole_beam_figure.py\"",
+   "command": "python tests/tools/pinhole_beam_figure.py",
    "commit": "41189b0-dirty",
    "inputs": {
     "TwoDDetector.py": "79512ef7de965c3e",
@@ -884,7 +884,7 @@
    "tool": "pinhole_beam_figure"
   },
   "pinhole_figures": {
-   "command": "\"python tests/tools/pinhole_figures.py\"",
+   "command": "python tests/tools/pinhole_figures.py",
    "commit": "41189b0-dirty",
    "inputs": {
     "lss_core/__init__.py": "ad2e13b69c4fc1fd",
@@ -977,7 +977,7 @@
    "tool": "pinhole_figures"
   },
   "ref_patch_nx": {
-   "command": "\"python tests/tools/ref_patch_survey.py\" --spec sample_data/NX_school/2026sep/20260923 --out docs/comparisons_data/ref_patch_nx --split --repeats",
+   "command": "python tests/tools/ref_patch_survey.py --spec sample_data/NX_school/2026sep/20260923 --out docs/comparisons_data/ref_patch_nx --split --repeats",
    "commit": "41189b0-dirty",
    "inputs": {
     "TwoDDetector.py": "79512ef7de965c3e",

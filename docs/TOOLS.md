@@ -123,7 +123,7 @@ the freshness test checks only public jobs.
 Kinds: 2 demonstrations, 7 figure generators, 5 data generators and
 surveys, 11 checks: 25 entries for 23 programs (22 scripts in
 `tests/tools/` and `lss_tools.regenerate`; `patch_demo.py` serves both
-demonstrations and the report figures); 13 public jobs and 6 private
+demonstrations and the report figures); 14 public jobs and 6 private
 ones; one helper module (`tests/tools/pinhole_frames.py`). Run times:
 measured by `regenerate` on this 4-core machine, 2026-11-22 (also in the
 manifest, per job).
@@ -139,22 +139,23 @@ manifest, per job).
 
 | Tool | Job | Command | Data | Committed outputs | Time |
 |---|---|---|---|---|---|
-| `patch_demo` | `patch_demo` | `python tests/tools/patch_demo.py --save docs/figures/patch_demo` | synthetic | `docs/figures/patch_demo/` (6 PNG, summary CSVs, `numbers.json`) | TIME_patch_demo |
-| `burn_figures` | `burn_figures` | `python tests/tools/burn_figures.py` | NX 14, 15 | `docs/figures/burn_trends/*.png`, `docs/comparisons_data/burn_nx/*.csv` | TIME_burn_figures |
-| `gid_compare_figures` | `gid_compare_S11` | `python tests/tools/gid_compare_figures.py --scans 11 --out docs/figures/gid_compare` | NX 11 | `docs/figures/gid_compare/nx_S11_*` | TIME_gid_compare_S11 |
-| | `gid_compare_S11+12` | `... --scans 11,12 --peak none --note "not like for like: scan 12 stopped after 4 frames" --out docs/figures/gid_compare` | NX 11, 12 | `docs/figures/gid_compare/nx_S11+12_*` | TIME_gid_compare_S11+12 |
+| `patch_demo` | `patch_demo` | `python tests/tools/patch_demo.py --save docs/figures/patch_demo` | synthetic | `docs/figures/patch_demo/` (6 PNG, summary CSVs, `numbers.json`) | 3 min |
+| `burn_figures` | `burn_figures` | `python tests/tools/burn_figures.py` | NX 14, 15 | `docs/figures/burn_trends/*.png`, `docs/comparisons_data/burn_nx/*.csv` | 6 s |
+| `gid_compare_figures` | `gid_compare_S11` | `python tests/tools/gid_compare_figures.py --scans 11 --out docs/figures/gid_compare` | NX 11 | `docs/figures/gid_compare/nx_S11_*` | 11 s |
+| | `gid_compare_S11+12` | `... --scans 11,12 --peak none --note "not like for like: scan 12 stopped after 4 frames" --out docs/figures/gid_compare` | NX 11, 12 | `docs/figures/gid_compare/nx_S11+12_*` | 11 s |
 | | `gid_compare_private_163+165`, `gid_compare_private_386-389` | `... --spec sample_data/private/gid_scans_136-146/gid --scans … --out sample_data/private/figures/gid_compare` | private | (not committed) | |
-| `gid_patching_diagrams` | `gid_patching_diagrams` | `python tests/tools/gid_patching_diagrams.py` | NX 11, 12 | `docs/manual/figures/gid_patching/*.png` | TIME_gid_patching_diagrams |
-| `gid_stray_light` | `gid_stray_light` | `python tests/tools/gid_stray_light.py` | NX 11, 12 | `docs/figures/gid_stray_light/*.png` | TIME_gid_stray_light |
+| `gid_patching_diagrams` | `gid_patching_diagrams` | `python tests/tools/gid_patching_diagrams.py` | NX 11, 12 | `docs/manual/figures/gid_patching/*.png` | 49 s |
+| `gid_stray_light` | `gid_stray_light` | `python tests/tools/gid_stray_light.py` | NX 11, 12 | `docs/figures/gid_stray_light/*.png` | 4 s |
 | | `gid_stray_light_private_163_165`, `gid_stray_light_private_386_389` | `... --spec … --scans … --out sample_data/private/figures/slit_scatter` | private | (not committed) | |
-| `pinhole_beam_figure` | `pinhole_beam_figure` | `python tests/tools/pinhole_beam_figure.py` | NX 11 | `docs/figures/pinhole_beam/*.png` | TIME_pinhole_beam_figure |
-| `pinhole_figures` | `pinhole_figures` | `python tests/tools/pinhole_figures.py` | NX 11, 12 | `docs/figures/pinhole/case*.png` | TIME_pinhole_figures |
+| `pinhole_beam_figure` | `pinhole_beam_figure` | `python tests/tools/pinhole_beam_figure.py` | NX 11 | `docs/figures/pinhole_beam/*.png` | 11 s |
+| `pinhole_figures` | `pinhole_figures` | `python tests/tools/pinhole_figures.py` | NX 11, 12 | `docs/figures/pinhole/case*.png` | 21 s |
 | | `pinhole_figures_private` | `... --spec … --low 163 --high 165 --label "private GID file" --out sample_data/private/figures/pinhole` | private | (not committed) | |
-| `compare_methods` | `compare_methods` | `python tests/tools/compare_methods.py` | NX | `docs/comparisons_data/C*.csv`, `manifest.json` (the `*_map.csv` maps are git-ignored) | TIME_compare_methods |
-| `gid_method_survey` | `gid_survey_nx` | `python tests/tools/gid_method_survey.py --spec sample_data/NX_school/2026sep/20260923 --out docs/comparisons_data/gid_survey_nx --split` | NX | `docs/comparisons_data/gid_survey_nx/` | TIME_gid_survey_nx |
+| `compare_methods` | `compare_methods` | `python tests/tools/compare_methods.py` | NX | `docs/comparisons_data/C*.csv`, `manifest.json` (the `*_map.csv` maps are git-ignored) | 70 s |
+| `gid_method_survey` | `gid_survey_nx` | `python tests/tools/gid_method_survey.py --spec sample_data/NX_school/2026sep/20260923 --out docs/comparisons_data/gid_survey_nx --split` | NX | `docs/comparisons_data/gid_survey_nx/` | 3 min |
 | | `gid_survey_private` | `... --spec … --out sample_data/private/figures/gid_survey --split` | private | (not committed) | |
-| `ref_patch_survey` | `ref_patch_nx` | `python tests/tools/ref_patch_survey.py --spec sample_data/NX_school/2026sep/20260923 --out docs/comparisons_data/ref_patch_nx --split --repeats` | NX | `docs/comparisons_data/ref_patch_nx/` | TIME_ref_patch_nx |
-| `ref_patch_gauntlet` | `ref_patch_gauntlet` | `python tests/tools/ref_patch_gauntlet.py --out docs/comparisons_data/ref_patch_gauntlet --design all` | synthetic | `docs/comparisons_data/ref_patch_gauntlet/*.csv`, `summary.md` (`pulls.csv` only with `--rows`, git-ignored) | 15–30 min |
+| `ref_patch_survey` | `ref_patch_nx` | `python tests/tools/ref_patch_survey.py --spec sample_data/NX_school/2026sep/20260923 --out docs/comparisons_data/ref_patch_nx --split --repeats` | NX | `docs/comparisons_data/ref_patch_nx/` | 3 s |
+| `ref_patch_gauntlet` | `ref_patch_gauntlet` | `python tests/tools/ref_patch_gauntlet.py --out docs/comparisons_data/ref_patch_gauntlet --design all` | synthetic | `docs/comparisons_data/ref_patch_gauntlet/*.csv`, `summary.md`, `log.txt` (`pulls.csv` only with `--rows`, git-ignored) | about 25 min |
+| | `ref_patch_gauntlet_core_all` | `... --out docs/comparisons_data/ref_patch_gauntlet/core_all_methods --design core --methods all` | synthetic | `docs/comparisons_data/ref_patch_gauntlet/core_all_methods/` | about 3 min |
 | `dump_tooltips` | `controls` | `python tests/tools/dump_tooltips.py > docs/manual/controls.md` | code | `docs/manual/controls.md` | TIME_controls |
 
 ### Checks (print only; nothing committed)

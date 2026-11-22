@@ -15,6 +15,7 @@ dist/
 sample_data/private/
 docs/comparisons_data/*_map.csv
 docs/comparisons_data/ref_patch_gauntlet/pulls.csv
+docs/comparisons_data/ref_patch_gauntlet/*/pulls.csv
 
 # subagents' git worktrees (Claude Code)
 .claude/worktrees/

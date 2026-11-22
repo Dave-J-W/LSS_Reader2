@@ -203,7 +203,7 @@ def entry(tool, job, record, seconds):
     """The manifest entry of a finished run."""
     ins = inputs_from_trace(job, record)
     outs = {f: file_hash(f) for f in owned_files(job)}
-    cmd = ' '.join(_quote(a) for a in [tool.command] + job.argv())
+    cmd = ' '.join([tool.command] + [_quote(a) for a in job.argv()])
     if job.stdout:
         cmd += ' > ' + job.stdout
     return {'tool': tool.id, 'command': cmd, 'inputs': ins, 'inputs_hash': combined(ins),
