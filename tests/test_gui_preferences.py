@@ -41,10 +41,12 @@ def test_settings_are_saved_and_read_back(window, qapp, recorder):
     d.prefPatchAutoCheckBox.setChecked(False)
     assert not d.prefPatchThresholdSpinBox.isEnabled()
     d.prefCalibratedCheckBox.setChecked(False)
+    d.prefPatchMethodComboBox.setCurrentIndex(d.prefPatchMethodComboBox.findData('legacy'))
     with open(os.environ[preferences.ENV]) as f:
         stored = json.load(f)
     assert stored == {'calibrated_foils': False, 'patch_auto_known_ratio': False,
                       'patch_threshold_percent': 5.5, 'mca_channels': [],   # mca_channels: 2026-11-19
+                      'ref_patch_method': 'legacy',                         # 2026-11-22 (default 'joint')
                       # fitting options and saving (owner, 2026-11-21)
                       'peak_fit': {}, 'mca_fit': {'background': 'quadratic', 'n_peaks': 1}, 'save_asks_note': True, 'auto_save': True, 'live_interval_s': 5.0, 'burn': {},
                       'select_whole_series': True}

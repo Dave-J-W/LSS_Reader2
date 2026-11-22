@@ -40,7 +40,7 @@ working list, one table per area, each row with its source. Rows marked
 | Item | Source |
 |---|---|
 | Two-file export, covariance sidecar; Budget then the default (the covariance itself is computed since 2026-11-22: `lss_core.uncertainty`; what to export: area B2) | F24, F24a, F24c; P4; input 5 |
-| Stitch-factor bias, measured on real overlaps, then remedied: remedy built as an option 2026-11-22 (`lss_core.patching`, joint fit); measuring on the larger data set: hand-off 08 | P1, D13 |
+| Stitch-factor bias, measured on real overlaps, then remedied: remedy built 2026-11-22 (`lss_core.patching`, joint fit), **the default since 2026-11-22** after the synthetic gauntlet (C36); confirming on the larger data set: hand-off 08 (the private `bu` set holds no reflectivity) | P1, D13 |
 | Same-absorber scans share a factor: send the question to the hand-off author — **new** | F41 |
 | Qz offset from sh-scan images — **new** | F42 |
 | Per-second option — **new** | F20 |
@@ -52,7 +52,7 @@ working list, one table per area, each row with its source. Rows marked
 
 | Decision | Options | Source |
 |---|---|---|
-| Which reflectivity patching method is the default (legacy spline factor, joint fit at each join, global fit, with or without the absorber prior) | after the method comparison on the larger data set (hand-off 08) | owner 2026-11-22; `reports/ref_patch_joint_fit.md` |
+| ~~Which reflectivity patching method is the default~~ **decided 2026-11-22**: the joint fit, because it passed the gauntlet (owner: "make new method the default if it passes the gauntlet"; C36, OUTPUT_DECISIONS); still open: whether the foil prior is used by default (the gauntlet's prior variant is conservative on synthetic foils, pull SD 0.25–0.9) | hand-off 08; C36 |
 | How the stitch factors' correlated uncertainty is exported: folded into each point's error (legacy), a covariance sidecar beside `_ref.txt` (F24), or a combined JSON (F24c) | xmodfit hand-off contract | F24, F24a, F24c; P4 |
 | Whether the legacy export stays the default once corrected outputs exist, and the file names of the corrected ones | | F24a |
 | Which error model the export uses by default (legacy, budget) | | P2, input 5 |

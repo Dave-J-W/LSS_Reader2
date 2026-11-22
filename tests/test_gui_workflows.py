@@ -76,7 +76,12 @@ def test_reflectivity_per_scan_is_proportional_to_true_curve(
         assert np.all(d[:, 2] >= d[:, 4])
 
 
-def test_reflectivity_patch_end_to_end(loaded, qapp, dataset, recorder):
+@pytest.mark.parametrize('method,last', [
+    ('legacy', 0.982),   # the legacy fit's staggered-grid bias (test_stitching.py)
+    ('joint', 0.994),    # the default since 2026-11-22 (as coded; truth 1): physics_notes, same date
+])
+def test_reflectivity_patch_end_to_end(loaded, qapp, dataset, recorder, method, last):
+    loaded.setPreference('ref_patch_method', method)
     _patch(loaded, qapp, dataset)
     loaded.uirefpatch.nextPushButton.click()      # "Finish!"
     qapp.processEvents()
@@ -89,9 +94,9 @@ def test_reflectivity_patch_end_to_end(loaded, qapp, dataset, recorder):
     # normalised to the plateau below Qc
     assert norm[norm[:, 0] < synth.QC, 1] == pytest.approx(1.0)
     # R / R_F stays within 2 % of 1; the shortfall beyond the overlap is the
-    # staggered-grid bias documented in test_stitching.py
+    # staggered-grid bias documented in test_stitching.py (legacy fit)
     assert norm[:, 1] / synth.reflectivity(norm[:, 0]) == pytest.approx(1.0, abs=0.02)
-    assert norm[-1, 1] / synth.reflectivity(norm[-1, 0]) == pytest.approx(0.982, abs=2e-3)
+    assert norm[-1, 1] / synth.reflectivity(norm[-1, 0]) == pytest.approx(last, abs=2e-3)
 
 
 def test_mca_frames_are_normalised(loaded, qapp, dataset, recorder):

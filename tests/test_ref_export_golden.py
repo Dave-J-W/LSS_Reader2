@@ -30,12 +30,16 @@ pytestmark = pytest.mark.gui
 
 
 def reduce_and_save(w, qapp, recorder, out, scan_rows, drops=(), rrf=True,
-                    qz2=False, norm=None, qoff=None):
+                    qz2=False, norm=None, qoff=None, method='legacy'):
     """Patch the given scans, apply display options, press Export.
 
     ``drops`` holds one text per join (as typed into the patch dialog's drop
-    box, e.g. '0,-1'), '' for none. Returns the two file paths.
+    box, e.g. '0,-1'), '' for none. ``method``: the patch fit preference;
+    'legacy' (the fixtures were written with it), or None for the default.
+    Returns the two file paths.
     """
+    if method is not None:
+        w.setPreference('ref_patch_method', method)
     sweep._select_scans(w, qapp, scan_rows)
     sweep._select_images(w, qapp)
     w.ui.pilRefPatchPushButton.click()

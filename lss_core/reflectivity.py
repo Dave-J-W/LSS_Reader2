@@ -103,12 +103,48 @@ def apply_drops(data1, data2, drops):
     return data1, data2
 
 
-def patch(per_scan, order, drops=None, factors=None):
-    """Join the scans in ``order`` (legacy chain). ``drops`` maps the join
-    number (0 for the first pair) to a list of drop indices, or to a list
-    of such lists for several successive "Drop" presses. ``factors`` maps a
-    join number to the (factor, error) to use there instead of the fitted
-    one (the known absorber ratio, see ``patch_choice``)."""
+PATCH_METHODS = ('joint', 'legacy')
+DEFAULT_PATCH_METHOD = 'joint'     # 2026-11-22, the gauntlet (OUTPUT_DECISIONS, COMPARISONS C34)
+
+
+def join_factor(old, new, method=DEFAULT_PATCH_METHOD):
+    """(factor, error, note) for scan ``new`` against the curve ``old``
+    (columns Qz, R, σ): what ``patch`` uses at a join. 'legacy': the
+    window's original fit (``stitching.fitted_factor``: scan b spline-
+    interpolated at a's overlap points, one ratio fitted). 'joint' (the
+    default since 2026-11-22): one smooth curve in ln(R/R_F) fitted through
+    both scans with the factor (``lss_core.patching.joint_factor``; the
+    guard tries larger windows first and raises the order until χ² is
+    adequate). Where the joint fit is impossible (too few usable points),
+    the legacy fit is used and ``note`` says so; ``note`` is '' otherwise,
+    or the joint fit's flags."""
+    old, new = np.atleast_2d(np.asarray(old, float)), np.atleast_2d(np.asarray(new, float))
+    if method == 'legacy':
+        f, e = stitching.fitted_factor(old, new)
+        return float(f), float(e), ''
+    if method != 'joint':
+        raise ValueError('patch method %r: one of %s' % (method, ', '.join(PATCH_METHODS)))
+    from . import patching
+    try:
+        j = patching.joint_factor(patching.Scan(old[:, 0], old[:, 1], old[:, 2]),
+                                  patching.Scan(new[:, 0], new[:, 1], new[:, 2]))
+    except (ValueError, np.linalg.LinAlgError) as err:
+        f, e = stitching.fitted_factor(old, new)
+        return float(f), float(e), 'joint fit impossible (%s): the legacy fit used' % err
+    return j.factor, j.factor * j.err, '; '.join(j.flags)
+
+
+def patch(per_scan, order, drops=None, factors=None, method=DEFAULT_PATCH_METHOD, notes=None):
+    """Join the scans in ``order`` (legacy chain: each scan against
+    everything joined so far, the overlap averaged, the factor's error
+    folded into the points, P4). ``drops`` maps the join number (0 for the
+    first pair) to a list of drop indices, or to a list of such lists for
+    several successive "Drop" presses. ``factors`` maps a join number to
+    the (factor, error) to use there instead of the fitted one (the known
+    absorber ratio, see ``patch_choice``). ``method``: how the factor is
+    fitted where ``factors`` gives none (``join_factor``; 'legacy'
+    reproduces the window's files before 2026-11-22 byte for byte).
+    ``notes``: a list that receives (join, note) where the fit left one."""
     drops = drops or {}
     factors = factors or {}
     data = np.array(per_scan[order[0]], dtype=float)
@@ -120,7 +156,13 @@ def patch(per_scan, order, drops=None, factors=None):
                 actions = [actions]
             for action in actions:
                 data, new = apply_drops(data, new, action)
-        data = stitching.join(data, new, mtype='merge', factor=factors.get(j))
+        factor = factors.get(j)
+        if factor is None and method != 'legacy':
+            f, e, note = join_factor(data[:, :3], new[:, :3], method)
+            factor = (f, e)
+            if note and notes is not None:
+                notes.append((j, note))
+        data = stitching.join(data, new, mtype='merge', factor=factor)
     return data
 
 

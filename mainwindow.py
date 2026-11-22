@@ -1974,6 +1974,20 @@ class MainWindow (QMainWindow):
         spin.setToolTip('Relative error of the fitted patch factor above which the known ratio is used')
         hl.addWidget(auto)
         hl.addWidget(spin)
+        meth=QComboBox(g2)
+        meth.setObjectName('prefPatchMethodComboBox')
+        meth.addItem('Joint fit','joint')
+        meth.addItem('Legacy fit','legacy')
+        meth.setCurrentIndex(max(0,meth.findData(self.refPatchMethod())))
+        meth.setToolTip('How the scale factor at a join is fitted. Joint fit (default since 2026-11-22): one smooth '
+                        'curve in ln(R/R_F) through both scans, the factor fitted with it, from the overlap and up to '
+                        '2 points either side; where its chi-squared is poor (p < 0.3) the window shrinks and the '
+                        'order rises until it fits, otherwise its error is inflated. Unbiased where the legacy fit '
+                        'is not (+5.5 % on a thick film\'s fringes, P1) and with honest errors (the legacy ones are '
+                        '1.1-4.8 times too small), measured on synthetic scans '
+                        '(tests/tools/ref_patch_gauntlet.py). Legacy fit: scan b interpolated at the overlap points '
+                        'and one ratio fitted, as before; it reproduces older files exactly.')
+        hl.addWidget(meth)
         lay.addWidget(g2)
         g3=QGroupBox('Fluorescence detector',d)
         g3.setToolTip('Multi-element detector (7-element Xspress3): the elements summed into one spectrum per '
@@ -2052,7 +2066,9 @@ class MainWindow (QMainWindow):
         cal.toggled.connect(lambda on:self.setPreference('calibrated_foils',bool(on)))
         auto.toggled.connect(lambda on:(spin.setEnabled(on),self.setPreference('patch_auto_known_ratio',bool(on))))
         spin.valueChanged.connect(lambda v:self.setPreference('patch_threshold_percent',float(v)))
+        meth.currentIndexChanged.connect(lambda i:self.setPreference('ref_patch_method',str(meth.itemData(i))))
         d.prefCalibratedCheckBox,d.prefFoilTable,d.prefPatchAutoCheckBox,d.prefPatchThresholdSpinBox=cal,t,auto,spin
+        d.prefPatchMethodComboBox=meth
         return d
 
     def mcaChannels(self):
@@ -5242,6 +5258,7 @@ class MainWindow (QMainWindow):
         self.refpatchindex=1
         self.refDrops={}       # join number -> list of drop actions, for the script console
         self.refFactors={}     # join number -> (factor, error) used instead of the fitted one
+        self.refMethodUsed=self.refPatchMethod()   # one method for the whole patch (the script line says it)
         self.refKnownOverride={}   # join number -> the user's choice in the patch window
         self.refMerged=[]      # groups merged in the identical-scans dialog
         self.refDroppedScans=[]   # scans dropped in the identical-scans dialog
@@ -5382,13 +5399,24 @@ class MainWindow (QMainWindow):
         except (KeyError,TypeError,IndexError):
             return None
 
+    def refPatchMethod(self):
+        """How Ref Patch fits the factor at a join: 'joint' or 'legacy' (preference)."""
+        m=self.prefs.get('ref_patch_method',reflectivity.DEFAULT_PATCH_METHOD)
+        return m if m in reflectivity.PATCH_METHODS else reflectivity.DEFAULT_PATCH_METHOD
+
+    def refActiveMethod(self):
+        """The method of the patch in progress (set when it starts), else the preference."""
+        return getattr(self,'refMethodUsed',None) or self.refPatchMethod()
+
     def refJoinInfo(self):
         """Fitted factor, known absorber ratio and the choice for the join on show."""
         j=self.pilreforder
         a,b=self.pilrefsort[j],self.pilrefsort[j+1]
         old=self.scanqzframe[a] if j==0 else self.pilrefdata
+        note=''
         try:
-            patch=stitching.fitted_factor(old,self.scanqzframe[b])
+            f,e,note=reflectivity.join_factor(old,self.scanqzframe[b],self.refActiveMethod())
+            patch=(f,e)
         except Exception:
             patch=None
         known=None
@@ -5408,7 +5436,15 @@ class MainWindow (QMainWindow):
         choice=None if patch is None else reflectivity.patch_choice(
             patch,known,mon,auto=self.prefs['patch_auto_known_ratio'],
             threshold=self.prefs['patch_threshold_percent']/100.0)
-        return dict(join=j,a=a,b=b,patch=patch,known=known,monitor=mon,choice=choice)
+        return dict(join=j,a=a,b=b,patch=patch,known=known,monitor=mon,choice=choice,note=note)
+
+    def refPreviewFactor(self):
+        """The factor the join on show will use when it is fitted (None: the
+        legacy preview's own, as before 2026-11-22)."""
+        info=self.refInfoShown
+        if self.refActiveMethod()=='legacy' or not info or info.get('patch') is None:
+            return None
+        return info['patch'][0]
 
     def refShowKnown(self):
         """Set the patch window's known-ratio box for the join on show;
@@ -5545,7 +5581,9 @@ class MainWindow (QMainWindow):
 
                 #print self.scanqzframe[self.pilrefsort[self.pilreforder]],self.scanqzframe[self.pilrefsort[self.pilreforder+1]]                
                 kfac=self.refShowKnown()
-                if kfac is not None and fac:     # preview with the known ratio
+                if kfac is None:
+                    kfac=self.refPreviewFactor()
+                if kfac is not None and fac:     # preview with the known ratio or the joint fit's factor
                     ymin,ymax=min(ymin,ymin*kfac/fac),max(ymax,ymax*kfac/fac)
                     fac=kfac
                 self.uirefpatch.plotWidget.canvas.ax.clear()
@@ -5578,7 +5616,9 @@ class MainWindow (QMainWindow):
                     self.uirefpatch.close()
                     return
                 kfac=self.refShowKnown()
-                if kfac is not None and fac:     # preview with the known ratio
+                if kfac is None:
+                    kfac=self.refPreviewFactor()
+                if kfac is not None and fac:     # preview with the known ratio or the joint fit's factor
                     ymin,ymax=min(ymin,ymin*kfac/fac),max(ymax,ymax*kfac/fac)
                     fac=kfac
                 self.uirefpatch.plotWidget.canvas.ax.clear()
@@ -5628,8 +5668,8 @@ class MainWindow (QMainWindow):
             self.messageBox('Scans '+str(self.pilrefsort[self.pilreforder])+' and '+str(self.pilrefsort[self.pilreforder+1])+' do not overlap in Qz; they cannot be patched. Select frames that overlap.')
             return
         info=self.refInfoShown
-        if info is None or info['join']!=self.pilreforder:
-            info=self.refJoinInfo()
+        if info is None or info['join']!=self.pilreforder or self.refActiveMethod()!='legacy':
+            info=self.refJoinInfo()     # the joint fit: always on the data as they are now (drops)
         a,b=self.pilrefsort[self.pilreforder],self.pilrefsort[self.pilreforder+1]
         factor=None
         if info['known'] is not None and self.uirefpatch.knownRatioCheckBox.isChecked():
@@ -5642,6 +5682,10 @@ class MainWindow (QMainWindow):
                         title='Ref Patch',level='info')
         else:
             self.refFactors.pop(self.pilreforder,None)
+            if self.refActiveMethod()!='legacy' and info['patch'] is not None:
+                factor=info['patch']       # the joint fit's factor (the legacy one is fitted by join itself)
+                if 'legacy fit used' in info.get('note',''):
+                    self.notify('Scans %d and %d: %s.' % (a,b,info['note']),title='Ref Patch',level='warning')
         if factor is not None:
             self.pilrefdata=stitching.join(old,new,mtype='merge',factor=factor)
         elif self.pilreforder==0:
@@ -5825,6 +5869,8 @@ class MainWindow (QMainWindow):
             kw.append('bad_pixel_iterations=%d, bad_pixel_factor=%d' % (int(self.ui.pilBPCiteSpinBox.value()),int(self.ui.pilBPCfacSpinBox.value())))
         if script_kw(getattr(self,'refErrorModel',self.errorModel)):
             kw.append(script_kw(getattr(self,'refErrorModel',self.errorModel)))
+        if getattr(self,'refMethodUsed',reflectivity.DEFAULT_PATCH_METHOD)!=reflectivity.DEFAULT_PATCH_METHOD:
+            kw.append('method=%r' % self.refMethodUsed)
         lines=['ref = exp.reflectivity(%r, %s)' % (scans,', '.join(kw)),'ref.save(%r)' % name]
         if len(self.ui.backgroundListWidget.selectedItems())>0:
             lines.insert(0,'# note: background images were subtracted in the window; scripts cannot do that yet')
