@@ -13,12 +13,13 @@ else is how the code is built.
 
 | | |
 |---|---|
-| Commits on this fork | about 190 (2026-11-14 to 2026-11-22) |
-| Tests | 549 quick, 581 slow (real data), 67 crash-sweep tests (1,198 collected in all) |
+| Commits on this fork | about 230 (2026-11-14 to 2026-11-22) |
+| Tests | 624 quick, 584 slow (real data), 67 crash-sweep tests |
 | Crash inventory | 420 failing control/state combinations on 2026-11-14 → 0 since Stage 1 (2026-11-17) |
-| GUI-free core (`lss_core/`) | 26 modules, about 7,000 lines; every reduction scriptable |
-| Analysis tools (`tests/tools/`) | 20, each the source of a figure or a measured number |
-| Hand-offs | 7 written for other agents or the owner's data (`docs/handoff_out/`), 3 answered |
+| GUI-free core (`lss_core/`) | 28 modules, about 7,700 lines; every reduction scriptable |
+| Analysis tools (`tests/tools/`) | 21, each the source of a figure or a measured number |
+| Synthetic data (`tests/synthetic/`) | reflectivity with Kiessig fringes and the water–air interface, scans with known factors and planted faults, Pilatus frames, GID levels, burn profiles, XFNTR, growing files (`SYNTHETIC_DATA.md`) |
+| Hand-offs | 8 written for other agents or the owner's data (`docs/handoff_out/`), 3 answered |
 
 ## By stage (`SCOPE.md`)
 
@@ -63,7 +64,9 @@ started.
 - Exact per-pixel angles (Mati Meron's IMG_COO_CONV ported); pinhole mode
   the default; Qz levels joined on a shared 2θ grid without interpolation;
   the patch's hidden numbers editable in a worksheet with a table of joins,
-  updated live.
+  updated live; within a level each scan is joined against everything
+  joined so far, so a chain of scans whose ends do not overlap is patched
+  (P41 fixed, 2026-11-22).
 - The exact footprint window (P39), column responses fitted, along the
   beam, or physical (rays through pixel and S4 with a Gaussian beam), and
   joins "as collected" as an option; scan scales fitted with the response
@@ -127,16 +130,18 @@ started.
 ## Records kept for others
 
 `physics_notes.md` (every question with its answer, dated, and 26
-invariants with their tests), `PHYSICS_ISSUES.md` (43 issues with sizes
-and status), `OUTPUT_DECISIONS.md`, `COMPARISONS.md` (31 comparisons with
+invariants with their tests), `PHYSICS_ISSUES.md` (44 issues with sizes
+and status), `OUTPUT_DECISIONS.md`, `COMPARISONS.md` (33 comparisons with
 how to regenerate them), `MANUAL_NOTES.md` and `manual/controls.md` (every
 control's tooltip), `SCRIPTING.md`, a review of the to-do lists
 (`reviews/2026-11-21-todo-review.md`).
 
 ## Not done yet (the main items; all in `TODO.md`)
 
-Final GID defaults from the larger data set; the stitching-bias remedy and
-the two-file export with covariances (Stage 5); detectors and new formats
+Final GID defaults from the larger data set; which reflectivity patching
+method becomes the default, and the two-file export with covariances
+(Stage 5, owner's decisions in TODO B2); the burn intensity estimator
+(P44); detectors and new formats
 (Stage 4: Pilatus 1M, HDF5); the GUI reorganisation; answers from the
 owner on the series format, the batch of physics questions, and more burn
 data.
