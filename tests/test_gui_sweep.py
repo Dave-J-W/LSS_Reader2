@@ -108,6 +108,83 @@ def test_no_new_crashes(state, dialogs, qapp, recorder, dataset, tmp_path,
                        'from known_crashes.json: %s' % (key, fixed))
 
 
+@pytest.mark.gui
+@pytest.mark.skipif(not sweep.fork_available(), reason='no fork on this platform')
+def test_every_forked_copy_starts_from_the_state(qapp, recorder, dataset, make_window):
+    """The sweep runs each control in a forked copy of one window built in
+    the state (sweep._ForkDriver). A copy must start exactly where a window
+    freshly built in that state starts, whatever an earlier copy did: its
+    controls, its selection, its output folder and the preferences file."""
+    drv = sweep._ForkDriver(make_window, qapp, recorder, dataset, 'pilatus_one_frame')
+    try:
+        assert drv.build(), drv.broken
+        assert drv.out_dir, 'the state has an output folder of its own'
+        start = sweep.fingerprint(drv.w)
+
+        def meddle(w):
+            w.setPreference('auto_save', False)              # writes the preferences file
+            with open(os.path.join(w.directory, 'left_behind.txt'), 'w') as f:
+                f.write('x')
+            for name in os.listdir(w.directory):              # and the workbook the state saved into
+                p = os.path.join(w.directory, name)
+                if os.path.isfile(p) and name != 'left_behind.txt':
+                    with open(p, 'ab') as f:
+                        f.write(b'junk')
+            w.ui.scanListWidget.clearSelection()
+            w.ui.spLogYCheckBox.toggle()
+            qapp.processEvents()
+            return [repr(x) for x in sweep.fingerprint(w)]
+
+        changed = drv.run(meddle)
+        assert changed != [repr(x) for x in start]
+        again = drv.run(lambda w: [repr(x) for x in sweep.fingerprint(w)])
+        assert again == [repr(x) for x in start]
+        assert sweep.fingerprint(drv.w) == start           # the parent's window was never touched
+        # and the state window is what a new window put into the state looks like
+        fresh = make_window()
+        sweep.STATES['pilatus_one_frame'](fresh, qapp, dataset)
+        assert sweep.fingerprint(fresh) == start
+        sweep.dispose(fresh, qapp, recorder)
+    finally:
+        drv.close()
+    assert recorder.exceptions == []
+
+
+@pytest.mark.gui
+@pytest.mark.skipif(not sweep.fork_available(), reason='no fork on this platform')
+def test_a_child_that_dies_is_an_inventory_entry(qapp, recorder, dataset, make_window):
+    """A control that kills the process (a segmentation fault in Qt or
+    NumPy) used to end the whole sweep; in a forked copy it is reported."""
+    import signal
+    drv = sweep._ForkDriver(make_window, qapp, recorder, dataset, 'empty')
+    try:
+        assert drv.build()
+        assert drv.run(lambda w: os.kill(os.getpid(), signal.SIGKILL)) == {'err': 'Signal9 @ child'}
+        assert drv.run(lambda w: {'ok': True}) == {'ok': True}          # and the next copy runs
+    finally:
+        drv.close()
+
+
+@pytest.mark.gui
+@pytest.mark.sweep
+@pytest.mark.skipif(not sweep.fork_available(), reason='no fork on this platform')
+def test_fork_and_rebuild_trigger_the_same_controls(qapp, recorder, dataset, tmp_path, make_window,
+                                                    monkeypatch, clean_root):
+    """Forking a copy of the state window per control (the default) and
+    building a new window per control (LSS_SWEEP_FORK=0, the sweep before
+    2026-11-22) trigger the same controls and dialog children, in the same
+    order, with the same result."""
+    _answer_dialogs(recorder, dataset, tmp_path)
+    forked, rebuilt = [], []
+    found_fork = sweep.run_state(make_window, qapp, recorder, dataset, 'spec_loaded', forked)
+    monkeypatch.setenv('LSS_SWEEP_FORK', '0')
+    found_rebuild = sweep.run_state(make_window, qapp, recorder, dataset, 'spec_loaded', rebuilt)
+    recorder.exceptions.clear()
+    assert len(forked) > 200
+    assert forked == rebuilt
+    assert found_fork == found_rebuild
+
+
 WALK_STEPS = 150
 WALK_SEEDS = (1, 2, 3, 4, 5, 6)
 
