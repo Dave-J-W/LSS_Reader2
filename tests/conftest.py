@@ -138,6 +138,8 @@ def window(qapp, recorder, tmp_path):
     w.close()
     w.deleteLater()
     qapp.processEvents()
+    from PyQt5 import QtCore
+    qapp.sendPostedEvents(None, QtCore.QEvent.DeferredDelete)
 
 
 @pytest.fixture
