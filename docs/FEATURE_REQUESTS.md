@@ -359,6 +359,7 @@ yet"), in phases. Working files: `docs/gui/` (plan and schema in
 | F70 | **Sticky plotting preferences and intelligent colour scales and defaults** for raw data, especially images (owner, 2026-11-22). | Phase 2 |
 | F71 | **ROI close-up for reflectivity** (owner, 2026-11-22), and other visual analysis of raw frames. | Phase 2 |
 | F72 | **Faster log-scale plotting** (owner, 2026-11-22); outside the first deliverables. | later |
+| D59 | **The Script pane is hidden by default and does not compete with data selection** (owner, 2026-11-22: "The 'script' terminal panel shouldn't compete with data selection and it should be hidden by default"). | Today (read, and seen in a screenshot): `initScriptPane` hides the dock at start, but it shows itself with its first line, and opening a SPEC file writes one, so it is in practice always visible; as a bottom dock (tabbed with Messages and Errors) it spans the whole window width and takes height from the left selection panel (the scan list shows about two rows in a 1000 px window). Needs: no self-raising (View menu only, remembered), and a place that leaves the selection panel its height (under the tab area, a side dock or a floating window). Phase 1b. |
 | F73 | **Alternative, contextual GUIs** (owner, 2026-11-22): interface and workflow chosen by data type, designed from the workflow map (F67). | Phase 3, with F60 |
 
 ### Status of built items

@@ -24,6 +24,13 @@ F67–F73 in `docs/FEATURE_REQUESTS.md`):
 | later | Faster log-scale plotting | outside the first deliverables (owner) |
 | 3 Contextual GUIs | Alternative layouts driven by data type and series kind (F60): offer or run the obvious reduction, show the controls the workflow needs | designed from the workflow map |
 
+## Decisions by the owner so far
+
+| # | Decision | Date |
+|---|---|---|
+| D58 | Planning first, in phases; phase 1 keeps each tab's functions and improves organisation, grouping, consistent design and visual cues | 2026-11-22 |
+| D59 | The Script pane is hidden by default (never raises itself) and does not take room from data selection | 2026-11-22 |
+
 Workflow priority (owner): **burn tests (reflectivity, GID, fluorescence),
 reflectivity, GID, XFNTR**, then EXAFS.
 
