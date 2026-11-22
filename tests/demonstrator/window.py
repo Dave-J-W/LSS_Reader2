@@ -35,13 +35,24 @@ def _check(label, on, tip):
     return b
 
 
+def open_demo(parent=None, mode='refl', seed=0):
+    """Create and show the demonstrator window (the entry point for a Tools
+    menu): ``parent`` a QWidget or None; returns the window. It deletes
+    itself when closed."""
+    w = DemoWindow(mode=mode, seed=seed, parent=parent)
+    w.resize(1500, 950)
+    w.show()
+    return w
+
+
 class DemoWindow(QtWidgets.QMainWindow):
-    """Mode 'refl' or 'burn'. ``seed``: the replicate shown; the space bar
+    """Mode 'refl' or 'burn'; ``parent`` may be the reader's main window. ``seed``: the replicate shown; the space bar
     (or the button) draws the next one. ``self.rep``/``self.results`` hold
     what is drawn (tests read them)."""
 
-    def __init__(self, mode='refl', seed=0, refl_config=None, burn_config=None):
-        super().__init__()
+    def __init__(self, mode='refl', seed=0, refl_config=None, burn_config=None, parent=None):
+        super().__init__(parent)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle('Fit demonstrator (synthetic data)')
         self.seed = int(seed)
         self.refl_config = refl_config or refl.Config()
@@ -116,10 +127,16 @@ class DemoWindow(QtWidgets.QMainWindow):
         self.plan = _combo([(k, refl.PLAN_LABELS[k]) for k in refl.PLANS], c.plan,
                            'How the curve is cut into scans (tests/synthetic/xrr_scans.py): NX school grids 6–9; four '
                            'scans sharing 4 points; the same with the shared points moved by half a step (none '
-                           'coincide); a staggered overlap that straddles the critical edge (P1).')
+                           'coincide); NX-like ranges with every overlap staggered; and, as an aside, a staggered overlap '
+                           'across the critical edge (P1; the owner does not patch there: the counts are plenty '
+                           'until they fall 100×).')
         self.counts = _combo([(v, '×%g' % v) for v in COUNTS], c.counts if c.counts in COUNTS else 1.0,
                              'Beam and monitors scaled together: ×1 is the NX school rate (about 4e5 counts/s at '
                              'each scan\'s first point). The absorbers chosen do not change; errors scale as 1/√counts.')
+        self.monc = _combo([(k, refl.MONITOR_LABELS[k]) for k in refl.MONITORS], c.monitor,
+                           'How Monc is drawn. Owner (2026-11-22): "monc doesn\'t have poisson noise, it\'s more like '
+                           'a strict 0.05% uncertainty" (tests/synthetic/xrr_scans.REAL_MONITOR, the default). '
+                           'Poisson: Monc as counts (the generator\'s older model).')
         self.foil = _check('foils off calibration', c.foil_error,
                            'Each replicate draws the true foil steps from the prior\'s covariance (the prior is right '
                            'on average, with the error it claims). Off: the prior is exact.')
@@ -129,7 +146,8 @@ class DemoWindow(QtWidgets.QMainWindow):
         self.join.setRange(1, 6)
         self.join.setToolTip('Which join the close-up shows (1: the first pair of scans).')
         for lab, wid in (('Truth', self.truth), ('Film', self.thickness), ('Scans', self.plan),
-                         ('Counts', self.counts), ('', self.foil), ('View', self.view), ('Join', self.join)):
+                         ('Counts', self.counts), ('Monitor', self.monc), ('', self.foil), ('View', self.view),
+                         ('Join', self.join)):
             f.addRow(lab, wid)
         box = QtWidgets.QGroupBox('Methods')
         bl = QtWidgets.QVBoxLayout(box)
@@ -147,7 +165,7 @@ class DemoWindow(QtWidgets.QMainWindow):
             self.refl_items[key] = b
             bl.addWidget(b)
         f.addRow(box)
-        for wid in (self.truth, self.plan, self.counts):
+        for wid in (self.truth, self.plan, self.counts, self.monc):
             wid.currentIndexChanged.connect(self.refresh)
         self.thickness.valueChanged.connect(self.refresh)
         self.foil.toggled.connect(self.refresh)
@@ -233,7 +251,7 @@ class DemoWindow(QtWidgets.QMainWindow):
     def _configs(self):
         rc = refl.Config(truth=self.truth.currentData(), plan=self.plan.currentData(),
                          counts=float(self.counts.currentData()), thickness=float(self.thickness.value()),
-                         foil_error=self.foil.isChecked())
+                         foil_error=self.foil.isChecked(), monitor=self.monc.currentData())
         bc = bm.Config(change=self.change.currentData(), amount=float(self.amount.value()),
                        monitor=float(self.monitor.currentData()))
         return rc, bc
@@ -297,25 +315,28 @@ class DemoWindow(QtWidgets.QMainWindow):
 
 
 _METHOD_TIPS = {
-    'legacy': 'The reader\'s legacy chain (lss_core.reflectivity.patch): scan b interpolated by a cubic spline in '
-              'linear intensity at the merged data\'s overlap points (P1), its own error, no inheritance (P4).',
-    'interp': 'patching.interp_factor: the same spline ratio against the previous scan, counting errors, '
-              'inflate-only, Σ carried along the chain.',
+    'legacy': 'The reader\'s chain (lss_core.reflectivity.patch, method=\'legacy\'): scan b interpolated by a cubic '
+              'spline in linear intensity at the merged data\'s overlap points (P1), its own error, no inheritance (P4).',
+    'reader': 'The reader\'s chain with its default factor since 2026-11-22 (reflectivity.join_factor, method=\'joint\'): '
+              'the joint fit against the merged data; the overlap still averaged and the error folded in as before.',
+    'interp': 'patching.interp_factor: the spline ratio against the previous scan, counting errors, inflate-only, '
+              'Σ carried along the chain.',
     'interp_log': 'patching.interp_factor(log=True): the spline in ln y (10× less P1 bias).',
     'coincident': 'patching.coincident_factor: ratios at Qz measured in both scans only (fails on staggered grids).',
-    'joint_o2_e0': 'patching.joint_factor, order 2, overlap only.',
-    'joint_o2_e4': 'patching.joint_factor, order 2, 4 points either side (known to be biased near fringes; the χ² '
-                   'guard may step the window down).',
-    'joint_o3_e2': 'patching.joint_factor, order 3, 2 points either side.',
-    'joint_o4_e2': 'patching.joint_factor, order 4, 2 points either side.',
-    'joint_o4_e4': 'patching.joint_factor defaults: one polynomial of order 4 in ln(R/R_F) through both scans, 4 '
-                   'points either side, Poisson-like likelihood, χ² guard.',
-    'joint_o4_e4_raw': 'The default joint fit in ln R instead of ln(R/R_F).',
-    'joint_o4_e4_log': 'The default joint fit by weighted least squares in ln y (closed form; biased at low counts).',
-    'joint_o4_e4_prior': 'patching.chain(prior=known_steps(...)): the default joint fit combined with the calibrated '
-                         'foil ratios (correlated), where Monc/Monp shows no slit change and |z| ≤ 3.',
-    'global': 'patching.global_fit: all factors in one least-squares fit in ln y (one polynomial per join, no guard, '
-              'one χ² inflation for all).',
+    'joint': 'patching.joint_factor with its defaults: one polynomial in ln(R/R_F) through both scans, 2 points '
+             'either side (N_EXT); the guard ladder (largest window first, the order rising to what the points '
+             'carry) keeps the first fit with χ² p ≥ 0.3, else the most adequate with its error inflated.',
+    'joint_e4': 'The default joint fit with 4 points either side (the default before 2026-11-22), with the ladder.',
+    'joint_raw': 'The default joint fit in ln R instead of ln(R/R_F).',
+    'joint_log': 'The default joint fit by weighted least squares in ln y (closed form; biased at low counts).',
+    'joint_prior': 'patching.chain(prior=known_steps(...)): the default joint fit combined with the calibrated foil '
+                   'ratios (correlated), where Monc/Monp shows no slit change and |z| ≤ 3.',
+    'fixed_o2_e0': 'One joint fit, order 2, overlap only, no guard.',
+    'fixed_o2_e4': 'One joint fit, order 2, 4 points either side, no guard (biased near fringes and at high Qz).',
+    'fixed_o4_e2': 'One joint fit, order 4, 2 points either side, no guard.',
+    'fixed_o4_e4': 'One joint fit, order 4, 4 points either side, no guard (the old default window without the guard).',
+    'global': 'patching.global_fit: all factors in one least-squares fit in ln y (order 4, 4 either side per join, '
+              'no guard, one χ² inflation for all).',
 }
 _ESTIMATOR_TIPS = {
     'template': 'burn.measure_gid default: each frame fitted as A × the mean frame\'s shape, shifted and stretched, '

@@ -6,8 +6,9 @@ L. G. Parratt, Phys. Rev. 95, 359 (1954), https://doi.org/10.1103/PhysRev.95.359
 with Névot–Croce roughness, L. Névot and P. Croce, Rev. Phys. Appl. 15, 761
 (1980), https://doi.org/10.1051/rphysap:01980001503076100; ``synthetic.xrr``),
 measured as overlapping scans through calibrated absorber foils
-(``synthetic.xrr_scans``: Poisson counts in the reader's ROI boxes, Poisson
-monitor). The truth kept beside it: the noise-free scans (the same plan at
+(``synthetic.xrr_scans``: Poisson counts in the reader's ROI boxes; Monc
+by default as the owner describes it, no Poisson noise and a 0.05 %
+relative uncertainty, ``xrr_scans.REAL_MONITOR``). The truth kept beside it: the noise-free scans (the same plan at
 the expected counts), the true scale of every scan and so the true factor of
 every join.
 
@@ -17,14 +18,16 @@ prior's own covariance (``patching.known_steps``), so the foil prior is
 right on average with the error it claims, as it would be on real data. With
 ``foil_error=False`` the prior is exact (its mean is the truth).
 
-**Methods** (``METHODS``; the names of ``tests/tools/ref_patch_survey.py``
-plus a few): the legacy chain (``lss_core.reflectivity.patch``, each factor
-from ``stitching.fitted_factor`` against everything joined so far, its own
-error, no inheritance), the spline ratio in linear and log intensity
-(``patching.interp_factor``), coinciding points only, the joint fit
-(``patching.joint_factor``) at orders 2–4 with 0–4 points either side, in
-R/R_F or raw, Poisson-like or log likelihood, the joint fit with the
-correlated foil prior (``patching.chain(prior=...)``) and the global fit.
+**Methods** (``METHODS``): the reader's chain (``reflectivity.patch``,
+each factor against everything joined so far, its own error, no
+inheritance) with the legacy spline-ratio factor and with the joint factor
+(the reader's default since 2026-11-22); the spline ratio in linear and log
+intensity (``patching.interp_factor``), coinciding points only; the joint
+fit (``patching.joint_factor``) with its defaults (the guard ladder,
+``N_EXT`` points either side), with 4 either side, raw, log likelihood, and
+with the correlated foil prior (``patching.chain(prior=...)``); single
+fits of fixed order and window without the guard (``fixed_*``); the global
+fit.
 Every non-legacy method gives a ``PatchResult`` (φ, Σ) and the stitched
 points (``Stitched``: σ_meas, σ_total, covariance).
 
@@ -52,31 +55,39 @@ from synthetic import xrr, xrr_scans as xs
 # ---- configuration -------------------------------------------------------------
 
 TRUTHS = ('water', 'dppc', 'film')
-PLANS = ('nx', 'standard', 'staggered', 'edge')
-PLAN_LABELS = {'nx': 'NX-like grids (6–9)', 'standard': '4 scans, coinciding', 'staggered': '4 scans, staggered',
-               'edge': 'staggered across Qc (P1)'}
+PLANS = ('nx', 'nx_staggered', 'standard', 'staggered', 'edge')
+PLAN_LABELS = {'nx': 'NX-like grids (6–9)', 'nx_staggered': 'NX-like, staggered overlaps',
+               'standard': '4 scans, coinciding', 'staggered': '4 scans, staggered',
+               'edge': 'aside: staggered across Qc (P1)'}
 TRUTH_LABELS = {'water': 'bare water', 'dppc': 'DPPC monolayer', 'film': 'film (Kiessig fringes)'}
+MONITORS = ('real', 'poisson')
+MONITOR_LABELS = {'real': 'Monc ±0.05 % (owner)', 'poisson': 'Monc Poisson'}
 
+# 'joint' is patching.joint_factor with its defaults (since 2026-11-22: order 4 rising, N_EXT = 2
+# points either side, the guard ladder keeping the first fit with chi2 p >= GUARD_P = 0.3);
+# 'fixed_*' are single fits without the guard, to show what the guard protects against.
 METHODS = {
-    'legacy': dict(kind='legacy', label='legacy (spline ratio, merged)'),
+    'legacy': dict(kind='legacy', method='legacy', label='legacy chain (spline ratio, merged)'),
+    'reader': dict(kind='legacy', method='joint', label="reader's chain (joint factor, merged)"),
     'interp': dict(kind='interp', label='spline ratio'),
     'interp_log': dict(kind='interp', log=True, label='spline ratio, ln y'),
     'coincident': dict(kind='coincident', label='coinciding points'),
-    'joint_o2_e0': dict(kind='joint', order=2, n_ext=0, label='joint o2, overlap'),
-    'joint_o2_e4': dict(kind='joint', order=2, n_ext=4, label='joint o2, 4 either side'),
-    'joint_o3_e2': dict(kind='joint', order=3, n_ext=2, label='joint o3, 2 either side'),
-    'joint_o4_e2': dict(kind='joint', order=4, n_ext=2, label='joint o4, 2 either side'),
-    'joint_o4_e4': dict(kind='joint', order=4, n_ext=4, label='joint o4, 4 either side (default)'),
-    'joint_o4_e4_raw': dict(kind='joint', order=4, n_ext=4, space='raw', label='joint o4 e4, raw'),
-    'joint_o4_e4_log': dict(kind='joint', order=4, n_ext=4, likelihood='log', label='joint o4 e4, ln-y LSQ'),
-    'joint_o4_e4_prior': dict(kind='prior', label='joint o4 e4 + foil prior'),
-    'global': dict(kind='global', label='global fit (one LSQ)'),
+    'joint': dict(kind='joint', label='joint fit (default: o4+, 2 either side, ladder)'),
+    'joint_e4': dict(kind='joint', n_ext=4, label='joint fit, 4 either side, ladder'),
+    'joint_raw': dict(kind='joint', space='raw', label='joint fit in ln R (raw)'),
+    'joint_log': dict(kind='joint', likelihood='log', label='joint fit, ln-y LSQ'),
+    'joint_prior': dict(kind='prior', label='joint fit + foil prior'),
+    'fixed_o2_e0': dict(kind='joint', order=2, n_ext=0, guard_p=0, label='fixed o2, overlap, no guard'),
+    'fixed_o2_e4': dict(kind='joint', order=2, n_ext=4, guard_p=0, label='fixed o2, 4 either side, no guard'),
+    'fixed_o4_e2': dict(kind='joint', order=4, n_ext=2, guard_p=0, label='fixed o4, 2 either side, no guard'),
+    'fixed_o4_e4': dict(kind='joint', order=4, n_ext=4, guard_p=0, label='fixed o4, 4 either side, no guard'),
+    'global': dict(kind='global', label='global fit (one LSQ, no guard)'),
 }
-DEFAULT_METHODS = ('legacy', 'interp', 'joint_o4_e4', 'joint_o4_e4_prior')
-COLOURS = {'legacy': '#d62728', 'interp': '#ff7f0e', 'interp_log': '#bcbd22', 'coincident': '#8c564b',
-           'joint_o2_e0': '#9467bd', 'joint_o2_e4': '#e377c2', 'joint_o3_e2': '#17becf', 'joint_o4_e2': '#2ca02c',
-           'joint_o4_e4': '#1f77b4', 'joint_o4_e4_raw': '#7f7f7f', 'joint_o4_e4_log': '#393b79',
-           'joint_o4_e4_prior': '#006d2c', 'global': '#637939'}
+DEFAULT_METHODS = ('legacy', 'interp', 'joint', 'joint_prior')
+COLOURS = {'legacy': '#d62728', 'reader': '#ff9896', 'interp': '#ff7f0e', 'interp_log': '#bcbd22',
+           'coincident': '#8c564b', 'joint': '#1f77b4', 'joint_e4': '#17becf', 'joint_raw': '#7f7f7f',
+           'joint_log': '#393b79', 'joint_prior': '#006d2c', 'fixed_o2_e0': '#9467bd', 'fixed_o2_e4': '#e377c2',
+           'fixed_o4_e2': '#2ca02c', 'fixed_o4_e4': '#aec7e8', 'global': '#637939'}
 
 
 @dataclass
@@ -85,13 +96,17 @@ class Config:
     monitors together (1: the NX school rates, about 4e5 counts/s in the
     ROI at each scan's first point; the absorbers chosen are the same at any
     value, the counting error scales as 1/√counts). ``thickness``: of the
-    film (Å). ``foil_error``: true foils drawn from the prior's covariance."""
+    film (Å). ``foil_error``: true foils drawn from the prior's covariance.
+    ``monitor``: 'real' (default; the owner, 2026-11-22: "monc doesn't have
+    poisson noise, it's more like a strict 0.05% uncertainty":
+    ``xrr_scans.REAL_MONITOR``) or 'poisson' (Monc as Poisson counts)."""
     truth: str = 'film'
     plan: str = 'nx'
     counts: float = 1.0
     thickness: float = 100.0
     foil_error: bool = True
     errors: str = 'counting+monitor'
+    monitor: str = 'real'
 
     def profile(self):
         if self.truth == 'film':
@@ -105,6 +120,9 @@ class Config:
     def plan_specs(self):
         if self.plan == 'nx':
             return xs.nx_like_plan()
+        if self.plan == 'nx_staggered':
+            plan = xs.chain_plan(xs.NX_RANGES, overlap=4, grid='staggered', slit_gain=xs.NX_SLIT_GAINS)
+            return [replace(p, seconds=t) for p, t in zip(plan, xs.NX_SECONDS)]
         if self.plan == 'standard':
             return xs.standard_plan(4, 0.5, overlap=4, grid='coincide')
         if self.plan == 'staggered':
@@ -116,6 +134,10 @@ class Config:
 
     def beamline(self):
         b = xs.Beamline()
+        if self.monitor == 'real':
+            b = replace(b, **xs.REAL_MONITOR)
+        elif self.monitor != 'poisson':
+            raise ValueError("monitor %r: one of %s" % (self.monitor, ', '.join(MONITORS)))
         c = float(self.counts)
         return replace(b, flux=b.flux * c, max_rate=b.max_rate * c, monc_rate=b.monc_rate * c,
                        monp_rate=b.monp_rate * c)
@@ -234,18 +256,25 @@ class MethodResult:
 
 
 def _legacy(rep, name):
+    """The reader's chain (``reflectivity.patch``): each scan against
+    everything joined so far, the overlap averaged, the factor's own error
+    folded into the points (no inheritance). Its factor by
+    ``reflectivity.join_factor`` with ``METHODS[name]['method']``: 'legacy'
+    (the spline ratio, the window's files before 2026-11-22) or 'joint' (the
+    reader's default since then)."""
+    method = METHODS[name]['method']
     per_scan = {k: rep.data.per_scan[k][:, :3].copy() for k in rep.order}
     phi, err = [0.0], [0.0]
     for m in range(1, len(rep.order)):
-        merged = refl.patch(per_scan, rep.order[:m])
-        f, e = stitching.fitted_factor(merged, per_scan[rep.order[m]])
+        merged = refl.patch(per_scan, rep.order[:m], method=method)
+        f, e, _ = refl.join_factor(merged[:, :3], per_scan[rep.order[m]], method)
         phi.append(math.log(f))
         err.append(e / f)
-    curve = refl.patch(per_scan, rep.order)
+    curve = refl.patch(per_scan, rep.order, method=method)
     phi = np.array(phi)
-    Sigma = np.diag(np.array(err) ** 2)          # the legacy's own claim: each factor alone, no inheritance
+    Sigma = np.diag(np.array(err) ** 2)          # the chain's own claim: each factor alone, no inheritance
     steps = np.diff(phi)
-    step_err = np.array(err[1:])                 # each join's own fit against the data so far, as legacy claims
+    step_err = np.array(err[1:])                 # each join's own fit against the data so far
     return MethodResult(name, METHODS[name]['label'], steps, step_err, phi, Sigma, None, None,
                         (curve[:, 0], curve[:, 1], curve[:, 2]), curve[:, 2])
 
@@ -256,6 +285,7 @@ def run_method(rep, name):
     spec = dict(METHODS[name])
     kind = spec.pop('kind')
     spec.pop('label')
+    spec.pop('method', None)
     try:
         if kind == 'legacy':
             return _legacy(rep, name)
