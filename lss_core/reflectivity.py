@@ -104,7 +104,7 @@ def apply_drops(data1, data2, drops):
 
 
 PATCH_METHODS = ('joint', 'legacy')
-DEFAULT_PATCH_METHOD = 'joint'     # 2026-11-22, the gauntlet (OUTPUT_DECISIONS, COMPARISONS C34)
+DEFAULT_PATCH_METHOD = 'joint'     # 2026-11-22, the gauntlet (OUTPUT_DECISIONS, COMPARISONS C36)
 
 
 def join_factor(old, new, method=DEFAULT_PATCH_METHOD):
