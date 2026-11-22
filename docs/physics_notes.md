@@ -3830,3 +3830,19 @@ unchanged. Hand-off tests 5 and 6 use stand-ins: an oracle written from
 the hand-off's text, and XModFit's checks reimplemented. XModJointFit's
 `lss_reference.py` and `covariance_core.py` are still to be supplied
 (D13 note).
+
+### 2026-11-22 — P45: the known ratio at the third join was off by the first factor
+
+Found by reading `pilRefPatchNext` while building the covariance export,
+then measured with four synthetic scans of bare water rendered as frames
+(`tests/synthetic/xrr_images`). At the third join the window offered a
+known ratio of 1.72e-8, where the foils chained give 1.64e-6 and the fit
+gives 1.64e-6. The offered ratio was off by ×0.0105, the first join's
+factor. The window recorded each scan's level as the previous level ×
+the factor used, but the factor is fitted against the curve joined so
+far, so it is already the level. Fixed (`refScale[b] = used`), with
+`test_known_ratio_is_right_at_every_join` (both patch methods). The
+legacy export fixtures are unchanged. Output changes only where the
+known ratio was used at the third join or later: the automatic choice
+had rejected it there, as "N sigma from the patch".
+

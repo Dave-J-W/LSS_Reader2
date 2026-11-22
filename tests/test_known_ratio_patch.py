@@ -155,3 +155,37 @@ def test_legacy_data_without_monp_are_unchanged(loaded, qapp, recorder, tmp_path
     assert w.refFactors == {}
     assert 'factors=' not in w.reflectivityScript('x')
     assert recorder.exceptions == []
+
+
+@pytest.mark.parametrize('method', ['joint', 'legacy'])
+def test_known_ratio_is_right_at_every_join(method, window, qapp, recorder, tmp_path):
+    """The known ratio offered at join j is the level of scan j (the factor
+    already applied to it, relative to the first scan) times the foil step.
+    Every join's factor is fitted against the curve joined so far, so it is
+    already relative to the first scan; multiplying it by the previous
+    scan's level again (as coded until 2026-11-22) put the third join's
+    ratio off by the first join's factor (×0.0105 here). Four synthetic
+    scans of bare water, foils as calibrated, Monc following the slits."""
+    from synthetic import xrr, xrr_images as xi, xrr_scans as xs
+    plan = xs.chain_plan([(0.015, 0.045, 0.0025), (0.04, 0.12, 0.005), (0.10, 0.30, 0.01), (0.27, 0.5, 0.02)],
+                         overlap=3)
+    d = xs.measure(xrr.bare_water(), plan, seed=4)
+    spec = xi.render(d, tmp_path / 'data', 'xrr')
+    window.openSpecFile(fname=spec)
+    window.directory = str(tmp_path)
+    qapp.processEvents()
+    window.setPreference('ref_patch_method', method)
+    window.setPreference('patch_auto_known_ratio', False)
+    sweep._select_scans(window, qapp, [0, 1, 2, 3])
+    sweep._select_images(window, qapp)
+    window.ui.pilRefPatchPushButton.click()
+    qapp.processEvents()
+    nominal = d.nominal_join_factors()
+    for j in range(3):
+        info = window.refInfoShown
+        assert info['join'] == j and info['known'] is not None
+        assert info['known'][0] == pytest.approx(nominal[j][0], rel=0.03), j        # the foils' chained ratio
+        assert info['known'][0] == pytest.approx(info['patch'][0], rel=0.05), j     # and the fit agrees
+        window.uirefpatch.nextPushButton.click()
+        qapp.processEvents()
+    assert recorder.exceptions == []

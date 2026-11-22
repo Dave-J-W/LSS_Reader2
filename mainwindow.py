@@ -5697,7 +5697,7 @@ class MainWindow (QMainWindow):
         else:
             self.pilrefdata=self.oneDjoin(self.pilrefdata,self.scanqzframe[self.pilrefsort[self.pilreforder+1]],mtype='merge')
         used=factor[0] if factor is not None else (info['patch'][0] if info['patch'] else 1.0)
-        self.refScale[b]=self.refScale.get(a,1.0)*used
+        self.refScale[b]=used     # fitted against the curve joined so far: already relative to the first scan
         self.pilreforder=self.pilreforder+1
         self.pilRefPatchPlot()
         
