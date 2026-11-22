@@ -42,7 +42,7 @@ cannot run on a current SciPy.
 | File | Purpose |
 |---|---|
 | `conftest.py` | Fixtures (below). Sets offscreen Qt and the working directory. |
-| `synth.py` | Writes synthetic SPEC, Pilatus TIFF and MCA files. |
+| `synth.py` | Writes synthetic SPEC, Pilatus TIFF and MCA files (outputs must not change; new generators go in `synthetic/`, see `docs/SYNTHETIC_DATA.md`). |
 | `sweep.py` | Drives the window: application states, control enumeration, fresh-window driver, random walks, `dispose`. |
 | `test_fresnel.py`, `test_twod_detector.py`, `test_parsers.py`, `test_stitching.py`, `test_gid_area.py` | Unit tests of the numerics, including the analytic invariants in `physics_notes.md`. |
 | `test_gui_workflows.py`, `test_gui_cuts.py` | Reduce the synthetic data set through the real widgets and compare with the curve it was generated from. |
@@ -76,6 +76,7 @@ Not listed above until 2026-11-22, by area:
 | `test_patching.py` | Joint-fit reflectivity patching and `lss_core.uncertainty`: P1 removed on the staggered grid, exact quartic data, scaling rules, sensitivities, chain covariance, global = chain, prior combination and guard, stitched covariance, Monte Carlo pulls (slow), NX 6–9 (slow). |
 | `test_live.py`, `test_gui_live.py` | Live updates: recipes parsed not executed, point selections carried over, remakes in a worker thread, open displays redrawn, new images and spectra picked up, no reset. |
 | `test_packaging.py` | Packaged builds: the recipe bundles what the program loads; the self-test passes from source. |
+| `synthetic/` (package), `test_synthetic_xrr.py`, `test_synthetic_xrr_scans.py`, `test_synthetic_xrr_images.py`, `test_synthetic_gid_levels.py`, `test_synthetic_burn_profiles.py`, `test_synthetic_xfntr.py`, `test_synthetic_growing.py` | Generators with known truth (2026-11-22; `docs/SYNTHETIC_DATA.md`): reflectivity of water, DPPC and films (Fresnel, Parratt, Névot–Croce, Kiessig), reduced scans as measured with true factors and faults, frames that reduce to them exactly, the Ref Patch GUI path against the truth; three-level legacy GID (P36, P37 as strict xfails); GID burn profiles; XFNTR yields and spectra; growing files for live mode. |
 
 Note (2026-11-22): `test_gui_workflows.py::test_rapid_clicks_in_the_image_list_are_drawn_once`
 waits 100 ms for a selection timer and has failed three times when the
@@ -131,8 +132,12 @@ those that do need the `window` fixture (`test_stitching.py`,
 
 **A check against known truth.** `synth.make_dataset` builds peaks whose
 height follows `synth.reflectivity`; compare reduced values with that
-(`test_gui_workflows.py`). To test a new reduction path, extend `synth.py`
-so the expected answer is known analytically, rather than freezing output.
+(`test_gui_workflows.py`). For reflectivity with a physical curve (water,
+DPPC, Kiessig fringes) and known join factors, use `synthetic.xrr_scans`
+(reduced rows) and `synthetic.xrr_images` (frames); see
+`docs/SYNTHETIC_DATA.md`. To test a new reduction path, add a generator
+under `tests/synthetic/` so the expected answer is known analytically,
+rather than freezing output.
 
 **A real-data regression.** Open the SPEC file, set
 `window.directory = str(tmp_path)`, run the workflow, compare with a file in
