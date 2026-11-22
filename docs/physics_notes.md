@@ -3541,3 +3541,38 @@ paragraph and the file map in `AGENTS.md`; the stage table in `TODO.md`
 load-sensitive timing test); `SCRIPTING.md` (series, stale results,
 remakes, maps); `MANUAL_NOTES.md`'s sources; the README.
 
+### 2026-11-22 — The three physics issues most in need of resolution
+
+**Q.** (owner) "Remind of the top 3 physics issues that need resolution."
+
+**A.** Chosen by size of the effect on outputs people use, and by whether
+the way to resolve it is known (reading `PHYSICS_ISSUES.md`; the numbers
+are the measured ones recorded there):
+
+1. **P29, `Monc` does not always follow a slit change.** At joins where
+   S1 (and S4) opened, the beam at the detector rose ×2.2–2.3 but
+   `Monc/Monp` only ×1.55–1.62 in one configuration (measured, the owner's
+   joins): anything normalised to `Monc` across a slit change without a
+   patch is off by up to ×1.47 (direct-beam normalisation at other slits,
+   fluorescence against reflectivity). Ref Patch hides it by fitting the
+   factor. Mechanism unknown; needs the owner (which scan of a pair is off;
+   input 9).
+2. **Reflectivity uncertainties: P4 with P1 and P2.** The stitch-factor
+   uncertainty is folded into per-point errors as if independent, so fits
+   are overconfident (hand-off: a roughness pull with SD 5.3 instead of 1);
+   stitch factors are 1.2–1.3 % low when overlap points do not coincide
+   (synthetic; not yet measured on real overlaps; the "do not forget" of
+   D13); and the default (legacy) errors understate the monitor term ×1.4
+   to ×6.5 (fixed in the budget model, which is not yet the default). One
+   remedy for all three: Stage 5, the two-file export with covariances
+   (F24) and the budget model as the default.
+3. **GID geometry defaults: P43 with P40 and P41.** At the header's
+   S4–detector distance (271 mm) a Bragg peak's 2θ is off by up to
+   ±0.02–0.05° by column and the patched peak is 14 % broader than in single
+   frames (owner's scan 163); the calibration exists (265.7 ± 1.1 mm on NX)
+   but is not automatic. Stray light near β0 (P40) and the scan join of
+   chained scans (P41, remedy known) affect the same maps. Resolution: the
+   method survey on the larger data set (hand-off 06), then defaults.
+
+Verified: reading only (the issue table and the measurements it cites).
+
