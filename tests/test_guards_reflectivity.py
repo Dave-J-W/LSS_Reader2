@@ -201,3 +201,26 @@ def test_export_with_data_still_writes_files(loaded, qapp, recorder, tmp_path):
     ref, rrf = reduce_and_save(loaded, qapp, recorder, str(tmp_path / 'out'), [0, 1])
     assert os.path.getsize(ref) > 0
     assert os.path.getsize(rrf) > 0
+
+
+def test_stale_qz_list_after_the_image_selection_changed(loaded, qapp, recorder, dataset):
+    """The Qz list is built when Ref is pressed; selecting other scans afterwards
+    leaves it pointing at frames no longer loaded. Found by the sweep's random
+    walk (pilatus_one_frame, seed 4; 2026-11-22): KeyError in
+    refQzListSelectionChanged. Now one message per action and nothing analysed."""
+    sweep.state_pilatus_one_frame(loaded, qapp, dataset)
+    loaded.ui.pilRefPushButton.click()
+    qapp.processEvents()
+    assert loaded.ui.refQzListWidget.count() == 1
+    assert recorder.exceptions == []
+    sweep._select_scans(loaded, qapp, [1, 3])     # as in the walk: no frames loaded
+    assert loaded.ui.refQzListWidget.selectedItems()
+    for act in (lambda: loaded.ui.refBGOffLineEdit.returnPressed.emit(),
+                loaded.ui.refAnalyzePushButton.click,
+                loaded.ui.refAnalyzeAllPushButton.click):
+        recorder.messages.clear()
+        act()
+        qapp.processEvents()
+        assert recorder.exceptions == []
+        assert len(recorder.messages) == 1
+        assert 'out of date' in str(recorder.messages[0])

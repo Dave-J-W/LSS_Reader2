@@ -5033,9 +5033,31 @@ class MainWindow (QMainWindow):
         self.ui.refQzListWidget.itemSelectionChanged.connect(self.refQzListSelectionChanged)
         self.ui.refQzListWidget.item(0).setSelected(True)
         
+    def refFramesGone(self,rows=None):
+        """True (with one message) when frames behind the Qz list are no longer loaded.
+
+        The list is built when Ref is pressed; changing the image selection afterwards
+        leaves it pointing at frames that are not in memory (sweep walk, 2026-11-22:
+        KeyError in refQzListSelectionChanged). ``rows``: list rows to check, the
+        selected ones by default.
+        """
+        if getattr(self,'det',None)!='Pilatus':
+            return False
+        if rows is None:
+            rows=[self.ui.refQzListWidget.row(it) for it in self.ui.refQzListWidget.selectedItems()]
+        data=getattr(self,'pilData',None) or {}
+        errors=getattr(self,'pilErrorData',None) or {}
+        frames=getattr(self,'refSortedFrameNums',{})
+        if all(i in data and i in errors for r in rows for i in frames.get(r,[])):
+            return False
+        self.messageBox('The Qz list is out of date: its frames are no longer selected. Select them and press Ref again.')
+        return True
+
     def refQzListSelectionChanged(self):
         if len(self.ui.refQzListWidget.selectedItems())==0:
             return   #nothing selected in the Qz list, nothing to redraw
+        if self.refFramesGone():
+            return False
         self.ui.refADDataPlotWidget.canvas.fig.clf()
         cmap=str(self.ui.pilCMapComboBox.currentText())
         self.refQzSelectedItems=self.ui.refQzListWidget.selectedItems()        
@@ -5106,7 +5128,8 @@ class MainWindow (QMainWindow):
         if len(self.ui.refQzListWidget.selectedItems())==0:
             self.messageBox('Please select a Qz in the list first')
             return
-        self.refQzListSelectionChanged()
+        if self.refQzListSelectionChanged() is False:
+            return False   #the frames of the list are gone; refFramesGone said so
         cmap=str(self.ui.gixCMapComboBox.currentText())
         if self.det=='Pilatus':
             self.ui.refBadPixListWidget.clear()
@@ -5170,6 +5193,8 @@ class MainWindow (QMainWindow):
     def refAnalyzeAll(self):
         if len(self.ui.refQzListWidget.selectedItems())==0:
             self.messageBox('Please select a Qz in the list first')
+            return
+        if self.refFramesGone(range(self.ui.refQzListWidget.count())):
             return
         self.refAnalyze()
         self.updateRefDataList()
