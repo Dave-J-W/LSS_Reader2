@@ -29,6 +29,7 @@ def test_save_buttons_sit_beside_every_export(loaded):
 
 
 def test_cut_and_its_fit_are_saved_tied_to_the_scan(loaded, qapp, dataset, recorder):
+    loaded.prefs['auto_save'] = False           # the Save button alone (automatic saving: tests below)
     sweep.state_pilatus_one_frame(loaded, qapp, dataset)
     loaded.ui.pilCutDirComboBox.setCurrentIndex(2)
     loaded.ui.pilIntRangeLineEdit.setText('90:110')
@@ -156,4 +157,62 @@ def test_a_saved_result_goes_stale_when_its_series_grows(window, qapp, recorder,
     assert not any('more than once' in m for m in recorder.messages)   # the update re-reads scan 2: not a repeat
     assert window.specData['ScanNums'] == [1, 2, 3]
     assert _book(window).stale()[0]['id'] == r['id']
+    assert recorder.exceptions == []
+
+
+# ---- automatic saving (owner, 2026-11-22) ------------------------------------------
+
+def _cut(w, qapp, rng='90:110'):
+    w.ui.pilCutDirComboBox.setCurrentIndex(2)
+    w.ui.pilIntRangeLineEdit.setText(rng)
+    w.ui.pilLineAreaPushButton.click()
+    qapp.processEvents()
+    qapp.processEvents()
+
+
+def test_a_finished_reduction_is_saved_automatically(loaded, qapp, dataset, recorder, monkeypatch):
+    """Owner, 2026-11-22: "make saving in the excel file automatic once a
+    reduction/processing has been carried through"."""
+    asked = []
+    monkeypatch.setattr('PyQt5.QtWidgets.QInputDialog.getMultiLineText',
+                        staticmethod(lambda *a, **k: asked.append(1) or ('by hand', True)))
+    sweep.state_pilatus_one_frame(loaded, qapp, dataset)
+    _cut(loaded, qapp)
+    res = _book(loaded).results(kind='line cut')
+    assert len(res) == 1 and res[0]['origin'] == 'auto' and asked == []      # no question for an automatic save
+    assert res[0]['recipe'] and res[0]['content']
+    _cut(loaded, qapp)                                                          # the same cut again: not stored twice
+    assert len(_book(loaded).results(kind='line cut')) == 1
+    _cut(loaded, qapp, '80:120')                                                # a different cut: a new version
+    loaded.cutFitPushButton.click()                                             # its fit: a new version with the fit
+    qapp.processEvents()
+    qapp.processEvents()
+    res = _book(loaded).results(kind='line cut')
+    assert len(res) == 3 and all(r['origin'] == 'auto' for r in res)   # versions count per label (the range is in it)
+    assert [r['version'] for r in res] == [1, 1, 2]
+    assert _book(loaded).fits(rid=res[-1]['id'])
+    loaded.saveButtons['cut'].click()                                          # the Save button: a version with a note
+    r = _book(loaded).results(kind='line cut')[-1]
+    assert r['origin'] == 'user' and r['note'] == 'by hand' and asked == [1]
+    assert not any('Saved automatically' in m for m in recorder.messages)     # quiet: status bar and log only
+    assert recorder.exceptions == []
+
+
+def test_automatic_saving_can_be_turned_off(loaded, qapp, dataset, recorder):
+    loaded.buildPreferences().prefAutoSaveCheckBox.setChecked(False)
+    assert loaded.prefs['auto_save'] is False
+    sweep.state_pilatus_one_frame(loaded, qapp, dataset)
+    _cut(loaded, qapp)
+    assert not os.path.exists(loaded.workbookPath())
+    assert recorder.exceptions == []
+
+
+def test_a_burn_test_and_mca_sum_are_saved_when_done(loaded, qapp, dataset, recorder):
+    sweep.state_mca_frames(loaded, qapp, dataset)
+    qapp.processEvents()
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    qapp.processEvents()
+    kinds = {r['kind'] for r in _book(loaded).results()}
+    assert 'fluorescence' in kinds
     assert recorder.exceptions == []

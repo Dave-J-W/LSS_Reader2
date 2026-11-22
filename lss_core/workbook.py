@@ -23,7 +23,11 @@ Saved      one row per saved result: id (R0001…), time, kind, scans, first
            the time of saving), the lss_core call that remakes it
            (``recipe``, when the reduction is scriptable) and ``stale``:
            why it is out of date when its series has changed since
-           (``mark_stale``; the step towards live updates, F1–F5)
+           (``mark_stale``; the step towards live updates, F1–F5);
+           ``origin``: 'user' (a Save button) or 'auto' (saved when the
+           reduction finished, owner 2026-11-22); ``content``: a digest
+           of the result, so that an identical result is not stored twice
+           by the automatic saving
 Data       the reduced data vectors, one row per point: result id, kind,
            first scan, scans, label, version, point, then the values
            (columns named in Saved)
@@ -34,8 +38,14 @@ Trends     quantities over time (burn tests, lss_core.trends): one row
            per quantity and model: χ²/dof, AICc (or QAICc), Δ, Akaike
            weight, parameters, best, stable, the time to a 5 % change
            and its confident lower bound
-Maps       two-dimensional results (GID maps), one row per cell: result
-           id, kind, scans, x, y, value, error
+Maps       two-dimensional results (GID maps) as grids, so that Excel can
+           show them (a colour scale on the block) and a map costs few
+           cells: per map an 'x' row (the x values across), then one
+           'value' row per y and one 'error' row per y; every row carries
+           id, kind, scans, label and version, so the filter picks a map.
+           Maps that are not on a grid are stored as 'cell' rows (y, x,
+           value, error). (Until 2026-11-22 one row per cell: 5 × the
+           cells and 6 s per later save for one NX map.)
 Settings   the current settings (section, key, value, time), the fitting
            preferences among them
 =========  ================================================================
@@ -54,7 +64,8 @@ SHEETS = ('Scans', 'Saved', 'Data', 'Fits', 'Trends', 'Maps', 'Settings')
 HEADERS = {
     'Scans': ['scan', 'kind', 'command', 'points', 'series', 'series_position', 'role', 'status'],
     'Saved': ['id', 'saved', 'kind', 'first_scan', 'scans', 'label', 'version', 'note', 'points', 'columns',
-              'settings', 'program', 'series', 'series_kind', 'series_scans', 'series_status', 'recipe', 'stale'],
+              'settings', 'program', 'series', 'series_kind', 'series_scans', 'series_status', 'recipe', 'stale',
+              'origin', 'content'],
     'Data': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'point', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6',
              'v7', 'v8'],
     'Fits': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'curve', 'peak', 'centre', 'centre_err',
@@ -63,7 +74,7 @@ HEADERS = {
     'Trends': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'quantity', 'model', 'k', 'points',
                'chi2_dof', 'criterion', 'value', 'delta', 'weight', 'best', 'stable', 'params', 'change',
                'change_time', 'change_time_confident', 'confidence', 'time_axis', 'saved'],
-    'Maps': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'x', 'y', 'value', 'error'],
+    'Maps': ['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'part', 'y', 'values (x across)'],
     'Settings': ['section', 'key', 'value', 'updated'],
 }
 KINDS = ('reflectivity', 'gid map', 'gid cut', 'line cut', 'fluorescence', 'scan', 'peak fit', 'burn test',
@@ -120,6 +131,8 @@ class Workbook:
             for name in SHEETS:
                 if name not in self.wb.sheetnames:
                     self._new_sheet(name)
+                elif name == 'Maps' and [c.value for c in self.wb[name][1]][6:10] == ['x', 'y', 'value', 'error']:
+                    self._convert_old_maps()
                 else:
                     self._extend_header(name)
             for i, name in enumerate(SHEETS):          # a sheet added later goes to its place
@@ -138,6 +151,19 @@ class Workbook:
         for c in ws[1]:
             c.font = Font(bold=True)
         return ws
+
+    def _convert_old_maps(self):
+        """A Maps sheet of one row per cell (2026-11-21 format) becomes
+        'cell' rows of the present layout, values kept."""
+        ws = self.wb['Maps']
+        old = [list(r) for r in ws.iter_rows(min_row=2, values_only=True) if any(v is not None for v in r)]
+        ws.delete_rows(1, ws.max_row)
+        ws.append(HEADERS['Maps'])
+        from openpyxl.styles import Font
+        for c in ws[1]:
+            c.font = Font(bold=True)
+        for r in old:
+            ws.append(r[:6] + ['cell', r[7], r[6], r[8], r[9]])
 
     def _extend_header(self, name):
         """Add the header names a workbook from an earlier version lacks
@@ -219,7 +245,7 @@ class Workbook:
                        if r['kind'] == kind and str(r['scans']) == st and (r['label'] or '') == (label or ''))
 
     def add_result(self, kind, scans, data=None, columns=(), label='', note='', settings=None, fits=(),
-                   map_xyz=None, program=None, trends=(), time_axis='', series=None, recipe=''):
+                   map_xyz=None, program=None, trends=(), time_axis='', series=None, recipe='', origin='user'):
         """Store one result and return its id. ``kind``: one of ``KINDS``
         (or another short text); ``scans``: the scan numbers it comes from;
         ``data``: (N, k ≤ 6) array, named by ``columns``; ``fits``: (curve
@@ -243,10 +269,11 @@ class Workbook:
             raise ValueError('at most %d columns per data vector' % MAX_VALUES)
         npts = 0 if data is None else len(data)
         se = series or {}
+        digest = content_key(kind, scans, data, columns, label, settings, fits, map_xyz, trends)
         self.wb['Saved'].append([rid, now, kind, first, st, label, version, note, npts, ', '.join(columns),
                                  json.dumps(settings or {}, default=str), program or program_version(),
                                  se.get('id'), se.get('kind'), _scans_text(se['scans']) if se.get('scans') else None,
-                                 se.get('status'), recipe or None, None])
+                                 se.get('status'), recipe or None, None, origin, digest])
         if data is not None:
             ws = self.wb['Data']
             for i, row in enumerate(data):
@@ -258,12 +285,52 @@ class Workbook:
         for quantity, comp in trends:
             self._add_trend(rid, kind, first, st, label, version, quantity, comp, time_axis, now)
         if map_xyz is not None:
-            X, Y, V, E = (np.asarray(a, float) for a in map_xyz)
-            ws = self.wb['Maps']
-            for x, y, v, e in zip(X.ravel(), Y.ravel(), V.ravel(), E.ravel()):
-                if np.isfinite(v):
-                    ws.append([rid, kind, first, st, label, version, _clean(x), _clean(y), _clean(v), _clean(e)])
+            self._add_map(rid, [rid, kind, first, st, label, version], *map_xyz)
         return rid
+
+    def _add_map(self, rid, ident, X, Y, V, E):
+        X, Y, V, E = (np.asarray(a, float) for a in (X, Y, V, E))
+        ws = self.wb['Maps']
+        grid = (V.ndim == 2 and X.shape == V.shape and Y.shape == V.shape
+                and np.allclose(X, X[0:1, :], equal_nan=True) and np.allclose(Y, Y[:, 0:1], equal_nan=True))
+        if grid:
+            ws.append(ident + ['x', None] + [_clean(v) for v in X[0]])
+            for part, A in (('value', V), ('error', E)):
+                for k in range(A.shape[0]):
+                    ws.append(ident + [part, _clean(Y[k, 0])] + [_clean(v) for v in A[k]])
+            return
+        for x, y, v, e in zip(X.ravel(), Y.ravel(), V.ravel(), E.ravel()):
+            if np.isfinite(v):
+                ws.append(ident + ['cell', _clean(y), _clean(x), _clean(v), _clean(e)])
+
+    def map(self, rid):
+        """A saved map: (X, Y, value, error) as 2-D arrays for a grid (NaN
+        where nothing was measured), or 1-D arrays for 'cell' rows."""
+        ws = self.wb['Maps']
+        xs, rows, cells = None, {'value': [], 'error': []}, []
+        for r in ws.iter_rows(min_row=2, values_only=True):
+            if r[0] != rid:
+                continue
+            part = r[6]
+            if part == 'x':
+                xs = [np.nan if v is None else v for v in r[8:]]
+            elif part in rows:
+                rows[part].append((r[7], [np.nan if v is None else v for v in r[8:]]))
+            elif part == 'cell':
+                cells.append(r[7:11])
+        if xs is not None:
+            n = len(xs)
+            while n and np.isnan(xs[n - 1]):
+                n -= 1
+            ys = np.array([y for y, _ in rows['value']], float)
+            V = np.array([(v + [np.nan] * n)[:n] for _, v in rows['value']], float)
+            E = np.array([(v + [np.nan] * n)[:n] for _, v in rows['error']], float)
+            X, Y = np.meshgrid(np.array(xs[:n], float), ys)
+            return X, Y, V, E
+        if not cells:
+            raise KeyError('no map %s' % rid)
+        a = np.array([[np.nan if v is None else v for v in c] for c in cells], float)
+        return a[:, 1], a[:, 0], a[:, 2], a[:, 3]
 
     def _add_fit(self, rid, kind, first, st, label, version, curve, r, now):
         ws = self.wb['Fits']
@@ -346,6 +413,13 @@ class Workbook:
                 out[row[col['id']].value] = reason
         return out
 
+    def find_content(self, digest):
+        """The id of a saved result with this ``content`` digest, or None."""
+        for r in self._rows('Saved'):
+            if r.get('content') == digest:
+                return r['id']
+        return None
+
     def stale(self):
         """Saved rows (dicts) whose ``stale`` says why they are out of date."""
         return [r for r in self._rows('Saved') if r.get('stale')]
@@ -380,6 +454,28 @@ class Workbook:
                 continue
             out.append(r)
         return out
+
+
+def content_key(kind, scans, data=None, columns=(), label='', settings=None, fits=(), map_xyz=None, trends=(),
+                **ignored):
+    """A short digest of a result's content (kind, scans, label, columns,
+    values, settings, fits, map, trends): equal for a result redrawn
+    without change, different as soon as anything that was computed
+    differs."""
+    import hashlib
+    h = hashlib.sha1()
+    h.update(json.dumps([kind, [int(x) for x in scans], label or '', list(columns)], default=str).encode())
+    for arr in ([data] if data is not None else []) + (list(map_xyz) if map_xyz is not None else []):
+        a = np.ascontiguousarray(np.asarray(arr, float))
+        h.update(str(a.shape).encode())
+        h.update(np.round(a, 12).tobytes())
+    h.update(json.dumps(settings or {}, sort_keys=True, default=str).encode())
+    for curve, res in fits:
+        for r in (res if isinstance(res, (list, tuple)) else [res]):
+            h.update(('%s|%s' % (curve, r.summary() if hasattr(r, 'summary') else r)).encode())
+    for q, comp in trends:
+        h.update(('%s|%s' % (q, json.dumps(comp.table(), default=str))).encode())
+    return h.hexdigest()[:16]
 
 
 def series_for(scans, current):

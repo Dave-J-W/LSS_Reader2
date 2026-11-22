@@ -197,6 +197,7 @@ class MainWindow (QMainWindow):
         self.ui.plotMoveUpPushButton.setIcon(QIcon(resource('arrow_up.png')))
         self.ui.plotMoveDownPushButton.setIcon(QIcon(resource('arrow_down.png')))
         self.prefs=prefs_store.load()           # before the signals: the fit controls read their options from it
+        self.wrapReductionsForAutoSave()        # before the signals: every connection reaches the wrapped method
         self.init_signals()
         self.log=reader_log.get_logger()
         self.initMessagePane()
@@ -1639,8 +1640,19 @@ class MainWindow (QMainWindow):
                            'sheet); Shift-click a Save button to save without asking. Off: never asks; Shift-click asks.')
         asknote.toggled.connect(lambda on:self.setPreference('save_asks_note',bool(on)))
         l4.addWidget(asknote)
+        autos=QCheckBox('Save every reduction automatically',g4)
+        autos.setObjectName('prefAutoSaveCheckBox')
+        autos.setChecked(bool(self.prefs.get('auto_save',True)))
+        autos.setToolTip('On (default; owner, 2026-11-22): whenever a reduction is carried through (reflectivity '
+                         'patch, line cut or its fit, GID map or GID cut, MCA sum, line fit or merge, burn test) its '
+                         'result is saved into the workbook without a question, marked "auto" in the Saved sheet\'s '
+                         'origin column; an identical result is not stored twice. The Save buttons still save a '
+                         'version with a note. Off: only the Save buttons save.')
+        autos.toggled.connect(lambda on:self.setPreference('auto_save',bool(on)))
+        l4.addWidget(autos)
         lay.addWidget(g4)
         d.prefSaveNoteCheckBox=asknote
+        d.prefAutoSaveCheckBox=autos
         close=QPushButton('Close',d)
         close.setObjectName('prefClosePushButton')
         close.clicked.connect(d.close)
@@ -3432,15 +3444,15 @@ class MainWindow (QMainWindow):
     def saveBurnToWorkbook(self):
         res=getattr(self,'burnResult',None)
         if res is None:
-            self.messageBox('Analyse a burn test first.')
+            self.saveNotice('Analyse a burn test first.')
             return
         cols,arr=res.data()
         o=self.burnOptions()
-        ids=self.saveToWorkbook('burn test',[dict(scans=[res.scan],data=arr,columns=cols,
+        ids=self.saveToWorkbook('burn test',auto=getattr(self,'autoSaving',False),items=[dict(scans=[res.scan],data=arr,columns=cols,
                                                   label=res.kind,settings=dict(o,window=res.window,notes=res.notes),
                                                   trends=list(res.trends.items()),time_axis=res.time,
                                                   recipe=getattr(self,'burnScript','') or '')])
-        if ids and getattr(self,'burnScript',None):
+        if ids and getattr(self,'burnScript',None) and not getattr(self,'autoSaving',False):
             self.scriptLine(self.burnScript)
         
     def expdecay(self, x, a,b):  #define exponential decay
@@ -5886,25 +5898,35 @@ class MainWindow (QMainWindow):
     def workbookPath(self):
         return workbookmod.path_for(self.specFileName,self.directory)
 
-    def saveToWorkbook(self,kind,items):
+    def saveToWorkbook(self,kind,items,auto=False):
         """Store ``items`` (dicts for lss_core.workbook.Workbook.add_result)
-        in the workbook, with a note when asked for; returns the ids."""
+        in the workbook, with a note when asked for; returns the ids.
+        ``auto``: saved because a reduction finished (owner, 2026-11-22): no
+        note, no message when there is nothing, and a result identical to
+        one already stored is not stored again."""
         if not getattr(self,'specFileName',None):
-            self.messageBox('Open a SPEC file first.')
+            if not auto:
+                self.messageBox('Open a SPEC file first.')
             return []
         if not items:
-            self.messageBox('There is nothing to save here yet.')
+            if not auto:
+                self.messageBox('There is nothing to save here yet.')
             return []
         from PyQt5.QtWidgets import QInputDialog, QApplication
         from PyQt5.QtCore import Qt as QtC
         note=''
-        shift=bool(QApplication.keyboardModifiers() & QtC.ShiftModifier)
-        if bool(self.prefs.get('save_asks_note',True)) != shift:   # owner 2026-11-21: ask every time, Shift skips
-            note,ok=QInputDialog.getMultiLineText(self,'Note','A note for this saved version (optional):','')
-            if not ok:
-                return []
+        if not auto:
+            shift=bool(QApplication.keyboardModifiers() & QtC.ShiftModifier)
+            if bool(self.prefs.get('save_asks_note',True)) != shift:   # owner 2026-11-21: ask every time, Shift skips
+                note,ok=QInputDialog.getMultiLineText(self,'Note','A note for this saved version (optional):','')
+                if not ok:
+                    return []
         try:
-            wb=workbookmod.Workbook(self.workbookPath())
+            wb=self.openWorkbook()
+            if auto:
+                items=[it for it in items if wb.find_content(workbookmod.content_key(kind,**it)) is None]
+                if not items:
+                    return []
             wb.set_scans(workbookmod.scan_rows(self.specData,self.specPar))
             wb.set_settings('peak_fit',peaks.options_to_dict(self.peakFitOptions))
             wb.set_settings('mca_fit',peaks.options_to_dict(self.mcaFitOptions))
@@ -5912,16 +5934,99 @@ class MainWindow (QMainWindow):
             for it in items:
                 if 'series' not in it:
                     it['series']=workbookmod.series_for(it.get('scans',[]),getattr(self,'seriesAll',[]))
-            ids=[wb.add_result(kind,note=note,**it) for it in items]
-            wb.save()
+            ids=[wb.add_result(kind,note=note,origin='auto' if auto else 'user',**it) for it in items]
+            self.saveWorkbook(wb)
         except Exception as e:
+            self.workbookCache=None             # what was added in memory but not written is dropped
             self.notify('Could not save to the workbook %s: %s' % (self.workbookPath(),e),title='Save')
             return []
         rows={r['id']:r for r in wb.results()}
-        self.notify('Saved to %s: %s' % (os.path.basename(self.workbookPath()),'; '.join(
-            '%s %s, scans %s, %s v%d' % (i,rows[i]['kind'],rows[i]['scans'],rows[i]['label'] or '',rows[i]['version'])
-            for i in ids)),title='Save',level='info')
+        text='%s to %s: %s' % ('Saved automatically' if auto else 'Saved',os.path.basename(self.workbookPath()),
+            '; '.join('%s %s, scans %s, %s v%d' % (i,rows[i]['kind'],rows[i]['scans'],rows[i]['label'] or '',
+                                                   rows[i]['version']) for i in ids))
+        if auto:                        # quiet: the status bar and the log, not the Messages pane
+            self.ui.statusBar.showMessage(text,8000)
+            self.log.info(text)
+        else:
+            self.notify(text,title='Save',level='info')
         return ids
+
+    AUTO_SAVE_AFTER={'updateRefPlotData':'ref','updatePilCutData':'cut','updatePilGIDCutData':'cut','fitCuts':'cut',
+                     'gidFinishMap':'gid','mcaSumAll':'mca','mcaFitLines':'mca','mcaIntMerge':'mca','burnTrends':'burn'}
+
+    def wrapReductionsForAutoSave(self):
+        """Each method that finishes a reduction (AUTO_SAVE_AFTER) is wrapped
+        before the signals are connected, so that every way of reaching it
+        schedules an automatic save; saves are made once the event loop is
+        idle, one per kind however many of the methods ran."""
+        import functools
+        import inspect
+        self.autoSavePending=[]
+        for name,which in self.AUTO_SAVE_AFTER.items():
+            real=getattr(self,name)
+            params=inspect.signature(real).parameters.values()
+            nargs=None if any(p.kind==p.VAR_POSITIONAL for p in params) else \
+                sum(1 for p in params if p.kind in (p.POSITIONAL_ONLY,p.POSITIONAL_OR_KEYWORD))
+
+            @functools.wraps(real)
+            def wrapped(*a,_real=real,_which=which,_n=nargs,**k):
+                # a signal may pass arguments the method does not take (clicked's "checked")
+                out=_real(*(a if _n is None else a[:_n]),**k)
+                self.scheduleAutoSave(_which)
+                return out
+            setattr(self,name,wrapped)
+
+    def scheduleAutoSave(self,which):
+        if not bool(self.prefs.get('auto_save',True)):
+            return
+        if which not in self.autoSavePending:
+            self.autoSavePending.append(which)
+            if len(self.autoSavePending)==1:
+                QTimer.singleShot(0,self.flushAutoSave)
+
+    def flushAutoSave(self):
+        pending,self.autoSavePending=self.autoSavePending,[]
+        for which in pending:
+            self.autoSave(which)
+
+    def openWorkbook(self):
+        """The workbook of the open SPEC file, kept in memory between saves
+        (opening one costs about 0.6 s per GID map in it); read again when
+        the file changed outside the reader (Excel) or is another file."""
+        path=self.workbookPath()
+        mtime=os.path.getmtime(path) if os.path.exists(path) else None
+        cached=getattr(self,'workbookCache',None)
+        if cached is not None and cached[0]==path and cached[1]==mtime and mtime is not None:
+            return cached[2]
+        wb=workbookmod.Workbook(path)
+        self.workbookCache=(path,mtime,wb)
+        return wb
+
+    def saveWorkbook(self,wb):
+        wb.save()
+        self.workbookCache=(wb.path,os.path.getmtime(wb.path),wb)
+
+    def autoSave(self,which):
+        """Save what a reduction has just made into the workbook (owner,
+        2026-11-22: "make saving in the excel file automatic once a
+        reduction/processing has been carried through"); Preferences >
+        Saving turns it off. ``which``: 'ref', 'cut', 'mca', 'gid', 'burn'."""
+        if not bool(self.prefs.get('auto_save',True)) or not getattr(self,'specFileName',None):
+            return
+        handler={'ref':self.saveRefToWorkbook,'cut':self.saveCutsToWorkbook,'mca':self.saveMcaToWorkbook,
+                 'gid':self.saveGIDToWorkbook,'burn':self.saveBurnToWorkbook}[which]
+        self.autoSaving=True
+        try:
+            handler()
+        except Exception as e:                  # saving must never break the reduction it follows
+            self.log.info('automatic save (%s) failed: %s',which,e)
+        finally:
+            self.autoSaving=False
+
+    def saveNotice(self,text):
+        """A save handler's "nothing to save" message: silent when saving automatically."""
+        if not getattr(self,'autoSaving',False):
+            self.messageBox(text)
 
     def checkStaleResults(self):
         """After the SPEC file is read or updated: saved results whose series
@@ -5934,13 +6039,14 @@ class MainWindow (QMainWindow):
         if not os.path.exists(path):
             return
         try:
-            wb=workbookmod.Workbook(path)
+            wb=self.openWorkbook()
             before={r['id']:r.get('stale') for r in wb.results()}
             stale=wb.mark_stale(getattr(self,'seriesAll',[]))
             after={r['id']:r.get('stale') for r in wb.results()}
             if after!=before:
-                wb.save()
+                self.saveWorkbook(wb)
         except Exception as e:
+            self.workbookCache=None
             self.log.info('workbook %s not checked: %s',path,e)
             return
         new={k:v for k,v in stale.items() if before.get(k)!=v}
@@ -5977,7 +6083,7 @@ class MainWindow (QMainWindow):
 
     def saveSpecToWorkbook(self):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
-            self.messageBox('Please select a scan with data to save first!')
+            self.saveNotice('Please select a scan with data to save first!')
             return
         xc,yc,nc=(str(c.currentText()) for c in (self.ui.spXComboBox,self.ui.spYComboBox,self.ui.spNComboBox))
         norm=self.ui.spNCheckBox.checkState()!=0
@@ -5998,11 +6104,11 @@ class MainWindow (QMainWindow):
             fits=[('%s vs %s' % (yc,xc),self.specFit)] if i==self.selectedScanNums[-1] and getattr(self,'specFit',None) is not None else []
             items.append(dict(scans=[i],data=np.column_stack([x,y,yerr]),columns=cols,label='%s vs %s%s' % (yc,xc,' / '+nc if norm else ''),
                               fits=fits,settings=dict(x=xc,y=yc,monitor=nc if norm else None)))
-        self.saveToWorkbook('scan',items)
+        self.saveToWorkbook('scan',items,auto=getattr(self,'autoSaving',False))
 
     def saveRefToWorkbook(self):
         if self.det!='Pilatus' or len(getattr(self,'refData',[]))==0 or getattr(self,'normRefData',None) is None:
-            self.messageBox('There is no reflectivity data to save yet')
+            self.saveNotice('There is no reflectivity data to save yet')
             return
         scans=sorted(int(n) for n in self.selectedScanNums)
         d=np.asarray(self.normRefData,float)
@@ -6013,12 +6119,12 @@ class MainWindow (QMainWindow):
         if rrf is not None and len(rrf):
             r=np.asarray(rrf,float)
             items.append(dict(scans=scans,data=r,columns=['Qz','R/RF','d(R/RF)','dQz'][:r.shape[1]],label='R/RF'))
-        self.saveToWorkbook('reflectivity',items)
+        self.saveToWorkbook('reflectivity',items,auto=getattr(self,'autoSaving',False))
 
     def saveCutsToWorkbook(self):
         curves=self.cutCurves()
         if not curves:
-            self.messageBox('Make a line cut first.')
+            self.saveNotice('Make a line cut first.')
             return
         cd=self.cutData
         keys=[-1] if isinstance(cd,dict) and -1 in cd else ([i for i in getattr(self,'selectedPilFramesNums',[]) if isinstance(cd,dict) and i in cd])
@@ -6039,12 +6145,12 @@ class MainWindow (QMainWindow):
                               label='%s, %s %s' % (label,direction,settings['range']),settings=settings,
                               fits=[(label,fits[label])] if label in fits else [],
                               recipe='' if label=='GID cut' else self.recipe(self.cutScript)))
-        self.saveToWorkbook('gid cut' if curves[0][0]=='GID cut' else 'line cut',items)
+        self.saveToWorkbook('gid cut' if curves[0][0]=='GID cut' else 'line cut',items,auto=getattr(self,'autoSaving',False))
 
     def saveMcaToWorkbook(self):
         rows=getattr(self,'mcaIntData',None)
         if not rows:
-            self.messageBox('Sum or fit the fluorescence first (Sum All or Fit lines).')
+            self.saveNotice('Sum or fit the fluorescence first (Sum All or Fit lines).')
             return
         scans=sorted(int(n) for n in self.selectedScanNums)
         fits=[]
@@ -6054,18 +6160,18 @@ class MainWindow (QMainWindow):
         items=[dict(scans=scans,data=np.asarray(rows,float),columns=['frame','Qz','energy','I','dI'],
                     label=str(getattr(self,'command','')),fits=fits,settings=dict(command=str(getattr(self,'command',''))),
                     recipe='' if fits else self.recipe(self.fluorescenceScript))]
-        self.saveToWorkbook('fluorescence',items)
+        self.saveToWorkbook('fluorescence',items,auto=getattr(self,'autoSaving',False))
 
     def saveGIDToWorkbook(self):
         if getattr(self,'pilGIDData',None) is None or not getattr(self,'gidLevels',None):
-            self.messageBox('Patch a GID map first.')
+            self.saveNotice('Patch a GID map first.')
             return
         scans=sorted({int(n) for lv in self.gidLevels for n in lv[1]})
         from dataclasses import asdict
         items=[dict(scans=scans,map_xyz=(self.pilGIDXAxs,self.pilGIDYAxs,self.pilGIDData,self.pilGIDDataErr),
                     label='2theta, beta (deg)',settings=asdict(self.gidParams),
                     recipe=self.recipe(lambda name:self.gidScript(name,'Q')))]
-        self.saveToWorkbook('gid map',items)
+        self.saveToWorkbook('gid map',items,auto=getattr(self,'autoSaving',False))
 
     def mcaFitLines(self):
         """Fit the selected spectra's lines (lss_core.peaks.fit_series)."""

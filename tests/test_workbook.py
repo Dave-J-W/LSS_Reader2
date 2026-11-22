@@ -65,7 +65,15 @@ def test_maps_and_too_many_columns(tmp_path):
     V[0, 0] = np.nan
     rid = wb.add_result('gid map', [11, 12], map_xyz=(X, Y, V, V * 0.1), program='test')
     rows = [r for r in wb._rows('Maps') if r['id'] == rid]
-    assert len(rows) == 5                                         # NaN cells are not stored
+    # a grid (2026-11-22): an 'x' row, then a 'value' and an 'error' row per y (was one row per cell)
+    assert [r['part'] for r in rows] == ['x', 'value', 'value', 'error', 'error']
+    X2, Y2, V2, E2 = wb.map(rid)
+    assert np.allclose(X2, X) and np.allclose(Y2, Y) and np.allclose(V2, V, equal_nan=True)
+    assert np.isnan(V2[0, 0]) and np.allclose(E2, V * 0.1, equal_nan=True)
+    irregular = wb.add_result('gid map', [13], map_xyz=(np.array([0.1, 0.3]), np.array([1.0, 2.0]),
+                                                        np.array([5.0, np.nan]), np.array([0.5, 0.1])))
+    xs, ys, vs, es = wb.map(irregular)                             # not a grid: 'cell' rows, NaN cells not stored
+    assert xs.tolist() == [0.1] and vs.tolist() == [5.0]
     assert workbook.MAX_VALUES == 8                               # 6 until the burn tests (2026-11-21): time + 3 × (value, error)
     with pytest.raises(ValueError):
         wb.add_result('other', [1], np.zeros((3, workbook.MAX_VALUES + 1)))
@@ -161,3 +169,23 @@ def test_results_tied_to_their_series_and_marked_stale(tmp_path):
     moved = Series('inferred-5', 'reflectivity', None, {1: 5, 2: 6, 3: 7}, status='complete', inferred=True)
     assert 'gained scans 5' in wb.mark_stale([moved, done])[r1]
     assert 'no longer found' in wb.mark_stale([done])[r1]
+
+
+
+def test_a_maps_sheet_of_the_first_format_is_converted(tmp_path):
+    """Workbooks of 2026-11-21 stored maps one row per cell; opened now,
+    those rows become 'cell' rows with their values kept."""
+    import openpyxl
+    p = str(tmp_path / 'old_reader.xlsx')
+    book = openpyxl.Workbook()
+    book.remove(book.active)
+    for name in ('Scans', 'Saved', 'Data', 'Fits', 'Maps', 'Settings'):
+        ws = book.create_sheet(name)
+        ws.append(['id', 'kind', 'first_scan', 'scans', 'label', 'version', 'x', 'y', 'value', 'error']
+                  if name == 'Maps' else workbook.HEADERS[name][:12])
+    book['Maps'].append(['R0001', 'gid map', 11, '11', '', 1, 16.5, 0.2, 7.0, 0.7])
+    book.save(p)
+    wb = workbook.Workbook(p)
+    assert [c.value for c in wb.wb['Maps'][1] if c.value is not None] == workbook.HEADERS['Maps']
+    x, y, v, e = wb.map('R0001')
+    assert (x.tolist(), y.tolist(), v.tolist(), e.tolist()) == ([16.5], [0.2], [7.0], [0.7])

@@ -269,7 +269,8 @@ def test_reflectivity_and_gid_map_are_saved_to_the_workbook(nx, qapp, recorder):
     assert len(wb.data(ref[0]['id'])) == len(nx.normRefData)
     gid = wb.results(kind='gid map')
     assert gid and gid[0]['scans'] == '11'
-    cells = [r for r in wb._rows('Maps') if r['id'] == gid[0]['id']]
-    assert len(cells) == int(np.isfinite(nx.pilGIDData).sum())
+    X, Y, V, E = wb.map(gid[0]['id'])                     # stored as a grid (2026-11-22; was one row per cell)
+    assert int(np.isfinite(V).sum()) == int(np.isfinite(nx.pilGIDData).sum())
+    assert np.allclose(V, nx.pilGIDData, equal_nan=True)
     kinds = {r['scan']: r['kind'] for r in wb._rows('Scans')}
     assert kinds[6] == 'reflectivity' and kinds[11] == 'gid'

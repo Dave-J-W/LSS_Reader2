@@ -3374,3 +3374,34 @@ Verified: `test_workbook.py::test_results_tied_to_their_series_and_marked_stale`
 (a SPEC file grows by the next scan of the series; Update Specfile marks
 the saved result and says so), `test_series.py::test_an_update_lists_each_scan_once`.
 
+### 2026-11-22 — Automatic saving into the workbook (D56)
+
+**Owner:** "Before you do those live update Ls, make saving in the excel
+file automatic once a reduction/processing has been carried through."
+
+**Done.** The methods that finish a reduction (Ref plot after a patch,
+line cut, cut fit, GID map, GID cut, MCA sum, Fit lines, merge, burn
+analysis) are wrapped once, before the signals are connected, so every
+way of reaching them schedules a save; saves run when the event loop is
+idle, one per kind. An automatic save asks nothing, is marked 'auto', is
+skipped when a result with the same content digest is already stored,
+and reports in the status bar and the log only (the Messages pane stays
+for Save buttons and problems; existing tests that a reduction is silent
+still hold). Preferences > Saving turns it off. SpecPlot curves (raw
+data) are saved only by Save.
+
+**Measured, and changed because of it:** with one NX GID map (807 × 66
+cells) stored one row per cell, every later save took 6.4 s (opening 3.9
+s) and the file was 2.7 MB. Maps are now grids (an 'x' row, then a value
+and an error row per y): 1.1 s per later save, 1.3 MB, values unchanged
+(round trip tested); a first-format Maps sheet is converted on opening.
+The window also keeps the open workbook in memory between saves and reads
+it again only when the file changed outside the reader.
+
+Verified: `test_gui_workbook.py` (a cut saved without a question; the same
+cut again not stored; a new range and its fit stored; Save still makes a
+'user' version with a note; off in Preferences: no workbook; MCA Fit lines
+saved), `test_workbook.py` (grid round trip, irregular maps, conversion of
+the first format), `test_real_nx_school.py` (the NX map read back equals
+the window's).
+

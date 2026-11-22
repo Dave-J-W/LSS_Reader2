@@ -166,6 +166,21 @@ Each line: feature — where — default — script — notes entry (date).
 - "Scan i of N" lines and how cancelled runs are shown: proposal
   `docs/handoff_out/05-scan-series-syntax.md`; code `lss_core/series.py`.
 
+### Automatic saving (2026-11-22)
+
+- Every reduction carried through is saved into the workbook by itself:
+  reflectivity patch, line cut and its fit, GID map and GID cut, MCA sum,
+  line fit and merge, burn test. No note is asked; the Saved sheet's
+  `origin` says 'auto'; a result identical to one already stored is not
+  stored again (`content` digest), so redrawing does not pile up rows.
+  The status bar says what was saved; the Messages pane stays quiet.
+- The Save buttons still save a version with a note ('user').
+- Preferences > Saving > "Save every reduction automatically" turns it off.
+- SpecPlot curves are raw data, not a reduction: saved only by Save.
+- GID maps are stored as grids in the Maps sheet (x across, a value and an
+  error row per y): select the value block in Excel and add a colour scale
+  to see the map.
+
 ### Saved results and their series (2026-11-22)
 
 - Each Save records the series of its scans (id, kind, the series' data

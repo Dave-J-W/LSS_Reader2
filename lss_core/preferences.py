@@ -26,6 +26,8 @@ DEFAULTS = {
     'mca_fit': {'background': 'quadratic', 'n_peaks': 1},
     # the per-SPEC workbook (lss_core.workbook): ask for a note on every Save
     'save_asks_note': True,
+    # save every finished reduction into the workbook (owner, 2026-11-22)
+    'auto_save': True,
     # burn tests (lss_core.burn, lss_core.trends): models compared, estimator, time axis,
     # the change that matters (%), automatic peak
     'burn': {},
