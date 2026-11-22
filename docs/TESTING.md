@@ -78,8 +78,9 @@ Not listed above until 2026-11-22, by area:
 
 Note (2026-11-22): `test_gui_workflows.py::test_rapid_clicks_in_the_image_list_are_drawn_once`
 waits 100 ms for a selection timer and has failed three times when the
-suite ran beside the crash sweep on a busy machine; it passes alone. A
-to-do (TODO, area I) is to make it independent of load.
+suite ran beside the crash sweep on a busy machine; it passes alone. Since
+2026-11-22 it waits up to 3 s for the one draw and then checks that no
+second one follows.
 
 ## Fixtures (`conftest.py`)
 

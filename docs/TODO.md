@@ -103,7 +103,7 @@ working list, one table per area, each row with its source. Rows marked
 models (F33), ME7 tab (F34, F35), new-format SPEC (F28), HDF5 (F29). All
 wait on input 3.
 
-**I. GUI, speed, packaging**: make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load (it fails beside the sweep, passes alone); GUI reorganisation (R4) with redraw in place
+**I. GUI, speed, packaging**: ~~make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load~~ done 2026-11-22 (waits up to 3 s for the one draw); GUI reorganisation (R4) with redraw in place
 and diffuse cuts (F59); slow-file-system timing; `timings.md` regenerated;
 build workflow and macOS signing (input 12); sample-data hosting.
 

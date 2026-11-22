@@ -186,7 +186,11 @@ def test_rapid_clicks_in_the_image_list_are_drawn_once(loaded, qapp, dataset,
         lw.item(r).setSelected(True)
         qapp.processEvents()
     assert calls == []                       # nothing drawn while clicking
-    QTest.qWait(300)
+    import time
+    deadline = time.monotonic() + 3.0        # the 100 ms timer, however busy the machine (it failed at 300 ms
+    while not calls and time.monotonic() < deadline:   # beside the sweep and once on a busy container)
+        QTest.qWait(20)
+    QTest.qWait(250)                         # and no second draw after it
     assert len(calls) == 1
     assert list(loaded.selectedPilFramesNums) == list(range(9))
     assert recorder.exceptions == []
