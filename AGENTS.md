@@ -51,6 +51,7 @@ Application code may now be changed, under these conditions:
 | `lss_core/peaks.py`, `trends.py`, `burn.py` | Peak finding and fitting; trends over time; burn tests |
 | `lss_core/pinhole.py`, `gid.py` | Pinhole GID geometry, responses, joins, distance calibration; the GID patch |
 | `tests/` | The suite; `synth.py` (synthetic data), `sweep.py` (GUI driver) |
+| `docs/SYNTHETIC_DATA.md`, `tests/synthetic/` | Catalogue of every synthetic-data generator, how to use them (known truth for reflectivity, GID, burn, XFNTR, live files), unmet needs |
 | `sample_data/NX_school/` | Real, public data set (committed) |
 | `sample_data/bu/` | Real, private data set: git-ignored, never commit or push it |
 | `sample_data/private/` | The owner's private files (GID, XFNTR, macros): git-ignored. Owner, 2026-11-19: a few derived numbers in docs are acceptable, but **never peak locations, raw data or images**; private figures stay under this folder |
