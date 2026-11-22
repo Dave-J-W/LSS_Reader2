@@ -3758,6 +3758,44 @@ moves by more than 0.2 %. The synthetic two-scan set's last point: 0.982 →
 is used by default (TODO B2), and the export of the covariance (the
 covariance agent's branch, merged next).
 
+### 2026-11-22 — The gauntlet over many conditions
+
+**Owner:** "The gauntlet also requires using the synthetic data
+capabilities and lots of replicates under diff conditions."
+
+**Done** (`tests/tools/ref_patch_gauntlet.py --design all`, outputs in
+`docs/comparisons_data/ref_patch_gauntlet/`, C36). The generators' range
+was used one factor at a time from a baseline (a 100 Å film, four scans,
+NX flux, the owner's monitor), 400 replicates each: the layer (water, DPPC,
+films 50–400 Å), roughness, the grid (coinciding, staggered, NX-like,
+reaching back), 3–5 scans and the Qz range, overlaps of 3–6 points,
+counts ×0.03–1 and time ×0.3, background ×10–100, monitor noise 0.05–0.2 %
+or Poisson, resolution, 8/10/15 keV, and planted faults (slits opened ×2
+that Monc misses; a foil 2 % thicker than calibrated). Then 150 random
+mixtures of all of these, 60 replicates each, judged with two standard
+errors' allowance and pooled.
+
+**Measured.** Designed conditions, joins passed (of 155): the default joint
+fit 139, legacy 1. Random (of 463): default 415, the spline ratio 375,
+legacy 118. The default's failures in the random set are where the scans
+do not resolve the Kiessig fringes: with ≥ 6 points per fringe period it
+passes 259 of 261 joins (pooled pull mean ≈ 0, SD 0.91–0.99), with 3–6
+points 75 of 80, with fewer than 3 only 81 of 122, and there every method
+that models the curve fails (the spline ratio, the joint fit with any
+window, legacy); only the ratio of coinciding points stays honest, where
+points coincide. Undersampled fringes come from the synthetic standard plan
+doubling its step scan by scan (0.02–0.04 Å⁻¹ on a 200–330 Å film), not
+from a plan anyone would measure; recorded as a limit, with a to-do
+(TODO B: fall back to the coinciding points where χ² is marginal and three
+or more points coincide). The reader's own path (``reflectivity.patch``):
+the default's last-scan level within 0.1 % of the truth in every judged
+condition; legacy −14 % across the critical edge and +4 % on a 250 Å
+film's staggered joins. The foil-prior variant is conservative on
+synthetic foils (pull SD 0.7–0.9: the synthetic attenuation is exactly
+nominal, the prior's stated error is the calibration's), so it says
+nothing yet about real foils. The default stands. Verified: measured with
+the tool, not reading only.
+
 ### 2026-11-22 — What does a model fit need from the covariance?
 
 **Owner:** "Have another subagent think about what is needed on

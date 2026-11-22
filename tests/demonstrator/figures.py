@@ -21,12 +21,20 @@ from . import burnmode as bm
 from . import draw, refl
 
 FIG1 = dict(config=refl.Config(truth='film', plan='nx', thickness=100.0), seed=1, join=3,
-            methods=('legacy', 'interp', 'interp_log', 'joint_o2_e4', 'joint_o4_e4', 'joint_o4_e4_prior'))
+            methods=('legacy', 'reader', 'interp_log', 'fixed_o4_e4', 'joint', 'joint_prior'))
 SURVEYS = {'film100_nx': refl.Config(truth='film', plan='nx', thickness=100.0),
+           'film100_nx_staggered': refl.Config(truth='film', plan='nx_staggered', thickness=100.0),
            'water_nx': refl.Config(truth='water', plan='nx')}
-EDGE = refl.Config(truth='water', plan='edge')
-EDGE_METHODS = ('legacy', 'interp', 'interp_log', 'joint_o4_e4', 'joint_o4_e4_raw')
-BANDS = dict(config=refl.Config(truth='dppc', plan='nx'), seed=1, method='joint_o4_e4')
+SURVEY_TITLES = {'film100_nx': '100 Å film, NX-like grids', 'film100_nx_staggered': '100 Å film, staggered overlaps',
+                 'water_nx': 'water, NX-like grids'}
+# figure 3: realistic joins, and the critical edge as an aside (owner, 2026-11-22: no patching there)
+WATER_J1 = dict(config=refl.Config(truth='water', plan='standard'), join=1,
+                methods=('legacy', 'joint', 'joint_e4', 'fixed_o4_e4'))
+FILM_STAG = dict(config=refl.Config(truth='film', plan='nx_staggered', thickness=100.0), join=3,
+                 methods=('legacy', 'joint', 'joint_e4', 'fixed_o2_e4', 'fixed_o4_e4'))
+EDGE = dict(config=refl.Config(truth='water', plan='edge'), join=1,
+            methods=('legacy', 'interp_log', 'joint', 'joint_raw'))
+BANDS = dict(config=refl.Config(truth='dppc', plan='nx'), seed=1, method='joint')
 BURN = dict(config=bm.Config(change='broaden'), seed=1, frame=20)
 BURN_CHANGES = ('none', 'fade', 'broaden', 'shift', 'shoulder', 'background')
 
@@ -85,8 +93,9 @@ def figure1(out, numbers):
 # ---- figure 2: factors over many replicates ----------------------------------------------
 
 def figure2(out, numbers, replicates, rows_out=None):
-    fig = Figure(figsize=(12.5, 8.5))
+    fig = Figure(figsize=(15, 9))
     names = list(refl.METHODS)
+    ncol = len(SURVEYS)
     allres = {}
     for col, (key, cfg) in enumerate(SURVEYS.items()):
         summ, rows = refl.survey(cfg, range(replicates), names)
@@ -103,8 +112,8 @@ def figure2(out, numbers, replicates, rows_out=None):
                 w = csv.DictWriter(fh, ['seed', 'method', 'join', 'delta', 'err', 'true'])
                 w.writeheader()
                 w.writerows(rows)
-        axb = fig.add_subplot(2, 2, 1 + col)
-        axp = fig.add_subplot(2, 2, 3 + col, sharey=axb)
+        axb = fig.add_subplot(2, ncol, 1 + col)
+        axp = fig.add_subplot(2, ncol, 1 + ncol + col, sharey=axb)
         y = np.arange(len(names))[::-1]
         joins = sorted(next(iter(summ.values()))['joins'])
         for k, j in enumerate(joins):
@@ -118,22 +127,21 @@ def figure2(out, numbers, replicates, rows_out=None):
         axb.axvline(0, color='k', lw=0.6)
         axp.axvline(1, color='k', lw=0.6)
         axb.set_yticks(y)
-        axb.set_yticklabels([refl.METHODS[n]['label'] for n in names], fontsize=6.5)
+        axb.set_yticklabels([refl.METHODS[n]['label'] if col == 0 else '' for n in names], fontsize=6.5)
         axp.set_yticks(y)
-        axp.set_yticklabels([refl.METHODS[n]['label'] for n in names], fontsize=6.5)
+        axp.set_yticklabels([refl.METHODS[n]['label'] if col == 0 else '' for n in names], fontsize=6.5)
         axb.set_xlabel('bias of f̂ ± SD over replicates [%]', fontsize=8)
-        axp.set_xlabel('pull SD: SD of (δ̂ − δ)/σ_reported (1 = honest errors)', fontsize=8)
+        axp.set_xlabel('pull SD of (δ̂ − δ)/σ_reported (1 = honest)', fontsize=8)
         axp.set_xscale('log')
         axb.tick_params(labelsize=7)
         axp.tick_params(labelsize=7)
-        axb.set_title('%s: %d replicates' % (key.replace('_', ', ').replace('film100', '100 Å film'), replicates),
-                      fontsize=8)
+        axb.set_title('%s: %d replicates' % (SURVEY_TITLES[key], replicates), fontsize=8)
         axb.legend(fontsize=6, frameon=False, loc='lower right')
         lim = max(abs(v) for v in axb.get_xlim())
         axb.set_xlim(-min(lim, 8), min(lim, 8))
     fig.suptitle('Factor of each join over many noise replicates: bias, scatter and honesty of the reported error',
                  fontsize=9)
-    fig.subplots_adjust(left=0.17, right=0.98, wspace=0.75, hspace=0.3)
+    fig.subplots_adjust(left=0.15, right=0.98, wspace=0.12, hspace=0.3)
     _save(fig, os.path.join(out, '02_factor_survey.png'))
     numbers['figure2'] = {key: {n: {str(j): dict(bias_pct=_pct(v['bias']), sd_pct=_pct(v['sd']),
                                                  pull_sd=_r(v['pull_sd'], 3), coverage68=_r(v['coverage68'], 3))
@@ -146,73 +154,61 @@ def figure2(out, numbers, replicates, rows_out=None):
 
 # ---- figure 3: join close-ups ---------------------------------------------------------------
 
-def figure3(out, numbers, replicates, film_survey):
-    fig = Figure(figsize=(13, 5.2))
-    gs = fig.add_gridspec(1, 3, width_ratios=[1.0, 1.0, 0.9], wspace=0.3)
-    ax1, ax2, ax3 = (fig.add_subplot(gs[0, i]) for i in range(3))
-    edge = refl.denoised(refl.replicate(EDGE, 0))
-    er = {n: refl.run_method(edge, n) for n in EDGE_METHODS}
-    draw._join(ax1, edge, er, list(EDGE_METHODS), {'join', 'truth'}, 'r', 1)
-    ax1.set_title('P1 case: staggered overlap across Qc (water, no noise)\njoin 1, overlap %.4g–%.4g Å⁻¹'
-                  % (edge.scans[1].q.min(), edge.scans[0].q.max()), fontsize=7.5)
-    ax1.axvline(patching.QC, color='0.6', lw=0.8, ls=':')
-    ax1.set_xlim(0.0185, 0.031)
-    ax1.set_ylim(0.0, 4.2)
-    film = refl.denoised(refl.replicate(FIG1['config'], 0))
-    fm = ('legacy', 'joint_o2_e4', 'joint_o4_e4')
-    fr = {n: refl.run_method(film, n) for n in fm}
-    draw._join(ax2, film, fr, list(fm), {'join', 'truth'}, 'rrf', 3)
-    a, b = film.scans[2], film.scans[3]
-    ng = patching.joint_factor(a, b, guard_p=0)
-    cur = refl.join_curve(a, b, ng)
-    ax2.plot(cur[0], cur[1] / patching.fresnel(cur[0]), ':', color=refl.COLOURS['joint_o4_e4'], lw=1.6,
-             label='joint o4 e4 without guard (%+.2f %%)' % (100 * (ng.factor / film.true_steps[2] - 1)))
-    ax2.legend(fontsize=5.5, frameon=False, loc='upper right')
-    ax2.set_title('100 Å film, NX-like grid (no noise): join 3, the window spans a fringe\n'
-                  'final windows: %s' % ', '.join('%s o%d e%d' % (n, fr[n].joins[2].order, fr[n].joins[2].n_ext)
-                                                   for n in fm if fr[n].joins), fontsize=7)
-    summ, rows = refl.survey(EDGE, range(replicates), list(EDGE_METHODS))
-    labels, nf, mean, sd = [], [], [], []
-    for n in EDGE_METHODS:
-        labels.append('edge: ' + n)
-        nf.append(100 * (er[n].factors[0] / edge.true_steps[0] - 1))
-        mean.append(100 * summ[n]['joins'][1]['bias'])
-        sd.append(100 * summ[n]['joins'][1]['sd'])
-    for n in fm:
-        labels.append('film j3: ' + n)
-        nf.append(100 * (fr[n].factors[2] / film.true_steps[2] - 1))
-        mean.append(100 * film_survey[n]['joins'][3]['bias'])
-        sd.append(100 * film_survey[n]['joins'][3]['sd'])
-    labels.append('film j3: o4 e4 no guard')
-    nf.append(100 * (ng.factor / film.true_steps[2] - 1))
-    mean.append(math.nan)
-    sd.append(math.nan)
+def _close_up(ax, case, view, title):
+    rep = refl.denoised(refl.replicate(case['config'], 0))
+    res = {n: refl.run_method(rep, n) for n in case['methods']}
+    draw._join(ax, rep, res, list(case['methods']), {'join', 'truth'}, view, case['join'])
+    m = case['join']
+    ax.set_title('%s\njoin %d, overlap %.4g–%.4g Å⁻¹ (no noise)' % (title, m, rep.scans[m].q.min(),
+                                                                    rep.scans[m - 1].q.max()), fontsize=7.5)
+    dev = {n: res[n].factors[m - 1] / rep.true_steps[m - 1] - 1 for n in case['methods']}
+    win = {n: (res[n].joins[m - 1].order, res[n].joins[m - 1].n_ext) for n in case['methods'] if res[n].joins}
+    return rep, dev, win, {n: [x for x in res[n].notes if x.startswith('join %d' % m)] for n in case['methods']}
+
+
+def figure3(out, numbers, replicates):
+    fig = Figure(figsize=(13, 9.5))
+    gs = fig.add_gridspec(2, 2, wspace=0.28, hspace=0.38)
+    ax1, ax2, ax3, ax4 = (fig.add_subplot(gs[i // 2, i % 2]) for i in range(4))
+    cases = [('water_j1', WATER_J1, ax1, 'rrf', 'Water, first join, coinciding points (standard plan)'),
+             ('film_staggered_j3', FILM_STAG, ax2, 'rrf', '100 Å film, staggered overlap on the fringes'),
+             ('edge_aside', EDGE, ax3, 'r', 'Aside: a staggered overlap across Qc (not done in practice)')]
+    out_n, labels, nf, mean, sd = {}, [], [], [], []
+    for key, case, ax, view, title in cases:
+        rep, dev, win, notes = _close_up(ax, case, view, title)
+        if key == 'edge_aside':
+            ax.axvline(patching.QC, color='0.6', lw=0.8, ls=':')
+            ax.set_xlim(0.0185, 0.031)
+            ax.set_ylim(0.0, 4.2)
+        summ, _ = refl.survey(case['config'], range(replicates), list(case['methods']))
+        m = case['join']
+        out_n[key] = dict(config=repr(case['config']), join=m, noise_free_dev_pct={n: _pct(v) for n, v in dev.items()},
+                          final_window=win, notes=notes, replicates=replicates,
+                          noisy_bias_pct={n: _pct(summ[n]['joins'][m]['bias']) for n in case['methods']},
+                          noisy_sd_pct={n: _pct(summ[n]['joins'][m]['sd']) for n in case['methods']},
+                          pull_sd={n: _r(summ[n]['joins'][m]['pull_sd'], 3) for n in case['methods']})
+        for n in case['methods']:
+            labels.append('%s: %s' % ({'water_j1': 'water j1', 'film_staggered_j3': 'film j3',
+                                       'edge_aside': 'edge (aside)'}[key], n))
+            nf.append(100 * dev[n])
+            mean.append(100 * summ[n]['joins'][m]['bias'])
+            sd.append(100 * summ[n]['joins'][m]['sd'])
     y = np.arange(len(labels))[::-1]
-    ax3.barh(y, nf, color='0.75', label='no noise')
-    ax3.errorbar(mean, y, xerr=sd, fmt='o', ms=3.5, color='k', lw=0.8, capsize=2,
+    ax4.barh(y, nf, color='0.75', label='no noise')
+    ax4.errorbar(mean, y, xerr=sd, fmt='o', ms=3.5, color='k', lw=0.8, capsize=2,
                  label='mean ± SD, %d replicates' % replicates)
-    ax3.axvline(0, color='k', lw=0.6)
-    ax3.set_yticks(y)
-    ax3.set_yticklabels(labels, fontsize=6.5)
-    ax3.set_xlabel('f̂ / f$_{true}$ − 1 [%]', fontsize=8)
-    ax3.tick_params(labelsize=7)
-    ax3.legend(fontsize=6, frameon=False, loc='lower left')
-    fig.subplots_adjust(left=0.05, right=0.98, bottom=0.12, top=0.86)
-    fig.suptitle('Join close-ups: the legacy spline (linear intensity) against the joint fit\'s one curve through '
-                 'both scans', fontsize=9)
+    ax4.axvline(0, color='k', lw=0.6)
+    ax4.set_yticks(y)
+    ax4.set_yticklabels(labels, fontsize=6.5)
+    ax4.set_xlabel('f̂ / f$_{true}$ − 1 [%] (edge bars clipped at ±6 %)', fontsize=8)
+    ax4.set_xlim(-6, 6)
+    ax4.tick_params(labelsize=7)
+    ax4.legend(fontsize=6, frameon=False, loc='lower left')
+    fig.subplots_adjust(left=0.06, right=0.98, bottom=0.06, top=0.92)
+    fig.suptitle('Join close-ups: the legacy spline against the joint fit\'s one curve through both scans '
+                 '(default: 2 points either side, guard ladder; fixed = one fit, no guard)', fontsize=9)
     _save(fig, os.path.join(out, '03_join_closeups.png'))
-    numbers['figure3'] = dict(
-        edge=dict(config=repr(EDGE), overlap=[float(edge.scans[1].q.min()), float(edge.scans[0].q.max())],
-                  noise_free_dev_pct={n: _pct(er[n].factors[0] / edge.true_steps[0] - 1) for n in EDGE_METHODS},
-                  noisy_bias_pct={n: _pct(summ[n]['joins'][1]['bias']) for n in EDGE_METHODS},
-                  noisy_sd_pct={n: _pct(summ[n]['joins'][1]['sd']) for n in EDGE_METHODS},
-                  pull_sd={n: _r(summ[n]['joins'][1]['pull_sd'], 3) for n in EDGE_METHODS},
-                  flags={n: er[n].notes for n in EDGE_METHODS}, replicates=replicates),
-        film_join3=dict(noise_free_dev_pct={n: _pct(fr[n].factors[2] / film.true_steps[2] - 1) for n in fm},
-                        no_guard_dev_pct=_pct(ng.factor / film.true_steps[2] - 1),
-                        no_guard_chi2_dof=_r(ng.chi2 / ng.dof, 2),
-                        final_window={n: (fr[n].joins[2].order, fr[n].joins[2].n_ext) for n in fm if fr[n].joins},
-                        flags={n: fr[n].notes for n in fm}))
+    numbers['figure3'] = out_n
 
 
 # ---- figure 4: error bands, diagonal vs full covariance -------------------------------------
@@ -396,9 +392,9 @@ def report(out, replicates=200, burn_replicates=30, log=None, rows_out=None):
     numbers = {}
     figure1(out, numbers)
     log('figure 1 done')
-    surveys = figure2(out, numbers, replicates, rows_out)
+    figure2(out, numbers, replicates, rows_out)
     log('figure 2 done')
-    figure3(out, numbers, max(replicates // 2, 3), surveys['film100_nx'])
+    figure3(out, numbers, max(replicates // 2, 3))
     log('figure 3 done')
     figure4(out, numbers, replicates)
     log('figure 4 done')
