@@ -3476,3 +3476,29 @@ burn test stays out after the scan grows 8 → 21: 20 frames, and the
 recipe lists them; tab 1, the Monc y axis and frames 2, 5 kept after an
 update; new scans elsewhere: no redraw).
 
+### 2026-11-22 — The open display redrawn from remakes
+
+**Owner:** "go ahead with redrawing the open plot from remakes if that's a
+good approach."
+
+**A. It is, for displays that only show a result**, which all four
+remade kinds are: the window remembers which saved result each display
+shows (every reduction is saved automatically, so the latest of its kind
+is the one on screen), and when that result is remade the new numbers are
+put into the window's state and the display redrawn, without saving it a
+third time: the Reflectivity tab (the patched curve, then the window's own
+normalisation, R/R_F and list), the MCA integral plot, the open burn
+dialog, and the GID map (map arrays, levels, join information). The
+alternative, re-running the window's own reduction, would block the window
+and go through dialogs (the patch dialog asks at each join). A GID map on
+screen now also stays on screen through an update (re-selecting the frames
+had drawn the frames over it).
+
+Verified: `test_gui_live.py`: the open burn dialog shows the remade 21
+frames; a patched reflectivity of scans 1–2 becomes that of 1–3 when scan 3
+arrives (Qz to 0.15, the series selection followed, the stored 'live' row
+the same length); NX GID scan 11's map becomes the remade map of 11 + 12
+(slow; equal to the stored map; narrower in 2θ, as two Qz levels share a
+grid and scan 12 has 4 frames). The MCA redraw is not tested on a
+fluorescence series yet (no synthetic XFNTR series with a recipe).
+

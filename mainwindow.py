@@ -73,7 +73,7 @@ def runRemake(job):
     exp=Experiment(job['spec'])
     call,res,used,pts=livemod.remake(job['recipe'],job['scans'],exp,job['then'],job['now'])
     kind,items=livemod.item_for(call,res,used)
-    return kind,items,livemod.with_scans(job['recipe'],used,pts)
+    return kind,items,livemod.with_scans(job['recipe'],used,pts),res
 
 
 def scanRanges(values):
@@ -1076,6 +1076,7 @@ class MainWindow (QMainWindow):
         il=self.ui.imageListWidget
         frames=[it.text() for it in il.selectedItems()]
         all_frames=il.count()>0 and len(frames)==il.count()
+        gid_shown=getattr(self,'pilGIDshow',0)==1 and getattr(self,'pilGIDData',None) is not None
         new,grown=self.liveRead()
         now=None
         if followed is not None:
@@ -1107,6 +1108,9 @@ class MainWindow (QMainWindow):
                 il.blockSignals(False)
                 il.itemSelectionChanged.emit()
                 self.flushPendingSelection()            # drawn now, so that the tab can be put back after it
+            if gid_shown:                               # a GID map was on screen: it stays (a remake replaces it)
+                self.pilGIDshow=1
+                self.gidShowMap()
             self.ui.PlotWidget.setCurrentIndex(tab)
         if new or grown:
             self.ui.statusBar.showMessage('Live: %s%s' % ('new scans %s' % scanRanges(new) if new else '',
@@ -1163,12 +1167,12 @@ class MainWindow (QMainWindow):
         self.remakeJobs=[(f,job) for f,job in self.remakeJobs if not f.done()]
         if not self.remakeJobs:
             self.remakeTimer.stop()
-        made,left=[],[]
+        made,left,shown=[],[],[]
         try:
             wb=self.openWorkbook()
             for f,job in done:
                 try:
-                    kind,items,new_recipe=f.result()
+                    kind,items,new_recipe,res=f.result()
                 except Exception as e:
                     left+=[(rid,str(e)) for rid,_,_ in job['members']]
                     continue
@@ -1182,12 +1186,19 @@ class MainWindow (QMainWindow):
                     nid=wb.add_result(kind,note='remade from %s: %s' % (rid,why),origin='live',recipe=new_recipe,**it)
                     wb.supersede(rid,nid)
                     made.append((rid,nid))
+                    if getattr(self,'shownResults',{}).get(kind)==rid:
+                        shown.append((kind,res,nid))
             if made:
                 self.saveWorkbook(wb)
         except Exception as e:
             self.workbookCache=None
             self.notify('Live: could not store the remade results: %s' % e,title='Live')
             return
+        for kind,res,nid in shown:            # the display showing the old result now shows the remade one
+            try:
+                self.showRemade(kind,res,nid)
+            except Exception as e:
+                self.log.info('remade %s not shown: %s',nid,e)
         if made or left:
             self.notify('Live: %s%s' % ('; '.join('%s remade as %s' % d for d in made),
                         ('; not remade: '+'; '.join('%s (%s)' % l for l in left)) if left else ''),
@@ -4475,6 +4486,10 @@ class MainWindow (QMainWindow):
         """Map arrays, colour limits and the plot from self.pilPatchData
         (the end of the GID patch, both geometries)."""
         self.pilGIDXAxs,self.pilGIDYAxs,self.pilGIDData,self.pilGIDDataErr=gidmod.map_arrays(self.pilPatchData)
+        self.gidShowMap()
+
+    def gidShowMap(self):
+        """Colour limits, the plot and the worksheet's results for the map arrays."""
         self.imageMax=np.nanmax(self.pilGIDData)     # nan-aware: the pinhole 'all' range leaves cells empty
         self.imageMin=np.nanmin(self.pilGIDData[np.nonzero(np.nan_to_num(self.pilGIDData))])
         self.ui.pilMaxLineEdit.setText(str(self.imageMax)) #set the vmax/vmin in the lineedit and slider 
@@ -6211,7 +6226,14 @@ class MainWindow (QMainWindow):
         try:
             wb=self.openWorkbook()
             if auto:
-                items=[it for it in items if wb.find_content(workbookmod.content_key(kind,**it)) is None]
+                kept=[]
+                for it in items:
+                    same=wb.find_content(workbookmod.content_key(kind,**it))
+                    if same is None:
+                        kept.append(it)
+                    elif self.isShownItem(kind,it):
+                        self.shownResults[kind]=same      # on screen: the result already stored
+                items=kept
                 if not items:
                     return []
             wb.set_scans(workbookmod.scan_rows(self.specData,self.specPar))
@@ -6224,6 +6246,9 @@ class MainWindow (QMainWindow):
                                                         getattr(self,'scanPoints',None))
             ids=[wb.add_result(kind,note=note,origin='auto' if auto else 'user',**it) for it in items]
             self.saveWorkbook(wb)
+            for it,i in zip(items,ids):
+                if self.isShownItem(kind,it):
+                    self.shownResults[kind]=i
         except Exception as e:
             self.workbookCache=None             # what was added in memory but not written is dropped
             self.notify('Could not save to the workbook %s: %s' % (self.workbookPath(),e),title='Save')
@@ -6250,6 +6275,7 @@ class MainWindow (QMainWindow):
         import functools
         import inspect
         self.autoSavePending=[]
+        self.shownResults={}          # workbook kind -> id of the saved result a display shows
         for name,which in self.AUTO_SAVE_AFTER.items():
             real=getattr(self,name)
             params=inspect.signature(real).parameters.values()
@@ -6265,7 +6291,7 @@ class MainWindow (QMainWindow):
             setattr(self,name,wrapped)
 
     def scheduleAutoSave(self,which):
-        if not bool(self.prefs.get('auto_save',True)):
+        if not bool(self.prefs.get('auto_save',True)) or getattr(self,'suppressAutoSave',False):
             return
         if which not in self.autoSavePending:
             self.autoSavePending.append(which)
@@ -6293,6 +6319,41 @@ class MainWindow (QMainWindow):
     def saveWorkbook(self,wb):
         wb.save()
         self.workbookCache=(wb.path,os.path.getmtime(wb.path),wb)
+
+    def isShownItem(self,kind,item):
+        """Whether a saved item is what a display shows (a reflectivity's 'R',
+        not its 'R/RF'; the other kinds have one item)."""
+        return kind!='reflectivity' or item.get('label')=='R'
+
+    def showRemade(self,kind,res,nid):
+        """Put a remade result (lss_core objects from the worker) into the
+        window and redraw the display that showed the old one (owner,
+        2026-11-22); not saved again (it is stored already)."""
+        self.suppressAutoSave=True
+        try:
+            if kind=='reflectivity' and getattr(self,'refpatchindex',0)!=0:
+                self.refData=[list(r[:3]) for r in np.asarray(res.patched,float)]
+                self.updateRefPlotData()
+            elif kind=='fluorescence':
+                self.mcaIntData=[list(r) for r in res.rows]
+                self.updateMcaIntPlot()
+            elif kind=='burn test' and getattr(self,'uipdburn',None) is not None and self.uipdburn.isVisible():
+                self.burnResult=res
+                self.plotBurnTrends(res)
+                self.uipdburn.burnResultLabel.setText(self.burnShortText(res))
+                self.uipdburn.burnResultLabel.setToolTip(self.burnLongText(res))
+            elif kind=='gid map' and getattr(self,'pilGIDshow',0)==1:
+                self.pilGIDXAxs,self.pilGIDYAxs,self.pilGIDData,self.pilGIDDataErr=res.x,res.y,res.data,res.err
+                self.gidLevels=list(res.levels)
+                if res.info:
+                    self.gidPinholeInfo,self.gidJoinInfo=res.info.get('levels'),res.info.get('join')
+                self.gidShowMap()
+            else:
+                return
+            self.shownResults[kind]=nid
+            self.ui.statusBar.showMessage('Live: the %s shown is now %s' % (kind,nid),8000)
+        finally:
+            self.suppressAutoSave=False
 
     def autoSave(self,which):
         """Save what a reduction has just made into the workbook (owner,

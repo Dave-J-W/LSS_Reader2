@@ -51,6 +51,10 @@ def test_a_growing_burn_scan_is_remade_live(window, qapp, recorder, tmp_path):
     assert wb.data(rows[1]['id']).shape[0] == synth.BURN_FRAMES
     assert window.selectedScanNums == [1]                     # the selection kept
     assert any('remade as' in m for m in recorder.messages)
+    # the open burn dialog shows the remade result, and it is not saved a third time
+    assert len(window.burnResult.t) == synth.BURN_FRAMES and window.shownResults['burn test'] == rows[1]['id']
+    qapp.processEvents()
+    assert len(workbook.Workbook(window.workbookPath()).results(kind='burn test')) == 2
     window.liveCheckBox.setChecked(False)
     assert not window.liveTimer.isActive()
     assert recorder.exceptions == []
@@ -151,5 +155,104 @@ def test_nothing_moves_when_the_new_scans_are_elsewhere(window, qapp, recorder, 
     assert window.ui.scanListWidget.count() == 3 and window.selectedScanNums == [2]
     assert calls == []                                          # no redraw: the selection did not change
     assert 'new scans 5' in window.ui.statusBar.currentMessage()
+    window.liveCheckBox.setChecked(False)
+    assert recorder.exceptions == []
+
+
+def _ref_scan(root, name, num, qz, absorber):
+    """A reflectivity scan's SPEC text and its frames (as synth.make_dataset)."""
+    import numpy as np
+    for j, q in enumerate(qz):
+        amp = synth.PEAK_AMPLITUDE * synth.reflectivity(q) / synth.ABSFAC ** absorber
+        synth.write_pilatus_tif(os.path.join(root, 'pilatus', '%s_SCAN-%d_%04d.tif' % (name, num, j)),
+                                synth.pilatus_image(peak=(synth.PIL_H - synth.DB_X - 1, synth.DB_Y), amplitude=amp))
+    return synth.spec_scan(num, name, synth.REF_COLUMNS, synth.ref_rows(qz), absorber=absorber)
+
+
+def test_the_open_reflectivity_follows_its_series(window, qapp, recorder, tmp_path):
+    """Owner, 2026-11-22: redraw the open plot from remakes. A patched
+    reflectivity of scans 1-2 is on screen; scan 3 of the series arrives;
+    the remade curve (scans 1-3) replaces it in the Reflectivity tab."""
+    import numpy as np
+    root = str(tmp_path / 'ref')
+    os.makedirs(os.path.join(root, 'pilatus'))
+    s1 = _ref_scan(root, 'r', 1, np.linspace(0.01, 0.05, 9), 0)
+    s2 = _ref_scan(root, 'r', 2, np.linspace(0.04, 0.10, 7), 1)
+    spec = synth.write_spec(os.path.join(root, 'r'), [s1, s2])
+    window.openSpecFile(fname=spec)
+    window.directory = str(tmp_path)
+    qapp.processEvents()
+    sweep._select_scans(window, qapp, [0, 1])
+    sweep._select_images(window, qapp)
+    window.ui.pilRefPatchPushButton.click()
+    qapp.processEvents()
+    window.uirefpatch.nextPushButton.click()                  # "Finish!"
+    qapp.processEvents()
+    qapp.processEvents()
+    shown = window.shownResults['reflectivity']
+    assert window.normRefData[:, 0].max() == pytest.approx(0.10)
+    window.liveCheckBox.setChecked(True)
+    s3 = _ref_scan(root, 'r', 3, np.linspace(0.09, 0.15, 7), 2)
+    with open(spec, 'a') as f:
+        f.write(s3)
+    window.liveTick()
+    window.finishRemakes()
+    qapp.processEvents()
+    assert sorted(window.selectedScanNums) == [1, 2, 3]       # the series selection followed
+    assert window.normRefData[:, 0].max() == pytest.approx(0.15)
+    new = window.shownResults['reflectivity']
+    assert new != shown
+    wb = workbook.Workbook(window.workbookPath())
+    row = next(r for r in wb.results() if r['id'] == new)
+    assert row['origin'] == 'live' and row['scans'] == '1,2,3' and row['label'] == 'R'
+    assert len(wb.data(new)) == len(window.normRefData)
+    window.liveCheckBox.setChecked(False)
+    assert recorder.exceptions == []
+
+
+NX = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                  'sample_data', 'NX_school', '2026sep', '20260923')
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not os.path.exists(NX), reason='NX_school data not present')
+def test_the_open_gid_map_follows_its_series(window, qapp, recorder, tmp_path):
+    """NX school GID scans 11 and 12 (one series): the file is cut before
+    scan 12 (a copy; the frames are linked); the map of scan 11 is on
+    screen; scan 12 arrives; the remade map of 11 + 12 replaces it."""
+    import numpy as np
+    text = open(NX).read()
+    cut = text.index('#S 12 ')
+    spec = str(tmp_path / '20260923')
+    with open(spec, 'w') as f:
+        f.write(text[:cut])
+    os.symlink(os.path.join(os.path.dirname(NX), 'pilatus'), str(tmp_path / 'pilatus'))
+    window.openSpecFile(fname=spec)
+    window.directory = str(tmp_path)
+    qapp.processEvents()
+    sweep._select_scans(window, qapp, [10])
+    sweep._select_images(window, qapp)
+    i = window.ui.gidComboBox.findText('GID Patch')
+    window.ui.gidComboBox.setCurrentIndex(i)
+    window.ui.gidComboBox.activated.emit(i)
+    qapp.processEvents()
+    qapp.processEvents()
+    first = window.shownResults['gid map']
+    width = np.nanmax(window.pilGIDXAxs) - np.nanmin(window.pilGIDXAxs)
+    window.liveCheckBox.setChecked(True)
+    with open(spec, 'a') as f:
+        f.write(text[cut:text.index('#S 13 ')])
+    window.liveTick()
+    window.finishRemakes(timeout=300)
+    qapp.processEvents()
+    new = window.shownResults['gid map']
+    assert new != first
+    row = next(r for r in workbook.Workbook(window.workbookPath()).results() if r['id'] == new)
+    assert row['scans'] == '11,12' and row['origin'] == 'live'
+    X, Y, V, E = workbook.Workbook(window.workbookPath()).map(new)
+    assert np.allclose(window.pilGIDData, V, equal_nan=True)         # the map on screen is the remade one
+    # two Qz levels share a narrower 2theta grid than scan 11 alone (scan 12 has 4 frames)
+    assert np.nanmax(window.pilGIDXAxs) - np.nanmin(window.pilGIDXAxs) < width
+    assert sorted({int(n) for lv in window.gidLevels for n in lv[1]}) == [11, 12]
     window.liveCheckBox.setChecked(False)
     assert recorder.exceptions == []

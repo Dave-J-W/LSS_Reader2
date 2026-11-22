@@ -21,7 +21,7 @@ As stated by the project owner. Status is updated as work lands.
 | F2 | Refresh automatically as SPEC appends to the file; no "refresh" button press. | **Built 2026-11-22**: the "Live" box beside Update Specfile watches the file (every `live_interval_s`, 5 s) and updates when it grows (L1). |
 | F3 | New raw data (images, MCA files) is picked up as soon as it is written. | Partly: in live mode the scan list and series update and the selection is re-applied, so frame lists are rebuilt for the selected scans; images written after the selection appear at the next update. |
 | F4 | New points appear automatically in the preview pane, with one or several scans selected. | Built 2026-11-22: the scans and frames being looked at are redrawn when they gain points; a whole-series selection grows with the series; tab, axes and frame selection kept. |
-| F5 | Reduced X-ray reflectivity plots update the same way. | Partly built 2026-11-22: saved results whose series grew are remade from their recipes and saved as new versions (L2: reflectivity, fluorescence sums, GID maps, burn tests); the open Ref plot is not yet redrawn from the remade result. |
+| F5 | Reduced X-ray reflectivity plots update the same way. | **Built 2026-11-22** (live mode): a saved result whose series grows is remade (reflectivity, fluorescence sums, GID maps, burn tests) and, when its display is open, shown there: the Reflectivity tab's curve and list, the MCA integral plot, the open burn dialog, the GID map. |
 
 Design points to settle before building: a partially written last line or
 image must be tolerated and retried; the scan being written must be re-read

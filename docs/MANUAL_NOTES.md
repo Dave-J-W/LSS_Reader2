@@ -182,6 +182,10 @@ Each line: feature — where — default — script — notes entry (date).
   frames selected in the image list are kept (all frames selected: the new
   frames join); nothing is redrawn when the new scans are elsewhere.
   "Update Specfile" works the same way (no reset).
+- When the result being remade is the one on screen (the Reflectivity
+  tab's curve, the MCA integrals, an open burn dialog, the GID map), the
+  remade one replaces it there; it is not saved again. A GID map on screen
+  stays on screen through an update until its remake replaces it.
 - Remakes run in the background; the window stays usable. Frames left out
   of a result (its point selection) stay out of its remakes; frames and
   scans written since are added.
