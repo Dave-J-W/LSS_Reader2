@@ -70,3 +70,19 @@ def test_specplot_log_scale_with_limits_at_or_below_zero(loaded, qapp, recorder,
     qapp.processEvents()
     assert recorder.exceptions == []
     assert loaded.ui.specPlotMplWidget.canvas.ax.get_yscale() == 'linear'
+
+
+def test_pilatus_display_with_an_empty_distance_field(loaded, qapp, recorder, dataset):
+    """With the SPEC box unticked, the typed distance and direct-beam
+    position were read with float(): an empty field raised. Now one message
+    and the SPEC values for that redraw; the typed fields are left alone."""
+    sweep.state_pilatus_one_frame(loaded, qapp, dataset)
+    loaded.ui.pilSpecCheckBox.setChecked(False)
+    loaded.ui.pilSDDistLineEdit.setText('')
+    recorder.messages.clear()
+    loaded.updatePilPlotData()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert len(recorder.messages) == 1 and 'SPEC values' in recorder.messages[0]
+    assert loaded.ui.pilSDDistLineEdit.text() == ''
+    assert np.allclose(loaded.distance, loaded.pilSelected_Dist)

@@ -3320,6 +3320,22 @@ class MainWindow (QMainWindow):
             self.updatePilPlotData()
 
             
+    def typedPilGeometry(self):
+        """(distance, x centre, y centre) per selected frame from the typed
+        fields (SPEC box unticked), or None after one message when they do
+        not read as numbers: an empty field raised ValueError (found by the
+        sweep's random walk, 2026-11-23). The callers then use the SPEC
+        values for that redraw; the fields are left as typed."""
+        try:
+            d=float(self.ui.pilSDDistLineEdit.text())
+            t=self.ui.pilDBPosLineEdit.text().split(',')
+            x,y=float(t[0]),float(t[-1])
+        except (ValueError,IndexError):
+            self.notify('Distance or direct-beam position is not a number: the SPEC values are used.')
+            return None
+        one=np.ones_like(self.selectedPilFramesNums)
+        return d*one,x*one,y*one
+
     def updatePilPlotData(self):
         aspect=str(self.ui.pilAspectComboBox.currentText())
         if self.pilGIDshow==0 and self.pilGISAXSshow==0 and len(self.selectedPilFramesNums)!=0:
@@ -3360,9 +3376,13 @@ class MainWindow (QMainWindow):
                 except:
                     pass
             else:   #if this CB is unchecked, use input value   
-                self.distance=float(self.ui.pilSDDistLineEdit.text())*np.ones_like(self.selectedPilFramesNums)
-                self.xcenter=float(self.ui.pilDBPosLineEdit.text().split(',')[0])*np.ones_like(self.selectedPilFramesNums)
-                self.ycenter=float(self.ui.pilDBPosLineEdit.text().split(',')[-1])*np.ones_like(self.selectedPilFramesNums)
+                typed=self.typedPilGeometry()
+                if typed is not None:
+                    self.distance,self.xcenter,self.ycenter=typed
+                else:                                       # the SPEC values, as with the box ticked
+                    self.distance=np.array(self.pilSelected_Dist)
+                    self.xcenter=np.array(pilXMax[0]-self.pilSelectedX)
+                    self.ycenter=np.array(self.pilSelectedY)
                 #self.ui.pilSDDistLineEdit.setText(str(self.pilSelected_Dist[0]))
                 #self.ui.pilDBPosLineEdit.setText(str(self.pilSelectedX[0])+','+str(self.pilSelectedY[0]))
                 #if self.ui.pilPinholeCheckBox.checkState()!=0:
@@ -4099,9 +4119,13 @@ class MainWindow (QMainWindow):
                 except:
                     pass
             else:  # if this CB is unchecked, use input value
-                self.distance = float(self.ui.pilSDDistLineEdit.text()) * np.ones_like(self.selectedPilFramesNums)
-                self.xcenter = float(self.ui.pilDBPosLineEdit.text().split(',')[0]) * np.ones_like(self.selectedPilFramesNums)
-                self.ycenter = float(self.ui.pilDBPosLineEdit.text().split(',')[-1]) * np.ones_like(self.selectedPilFramesNums)
+                typed = self.typedPilGeometry()
+                if typed is not None:
+                    self.distance, self.xcenter, self.ycenter = typed
+                else:                                       # the SPEC values, as with the box ticked
+                    self.distance = np.array(self.pilSelected_Dist)
+                    self.xcenter = np.array(self.pilatus.NCOLS - self.pilSelectedX)
+                    self.ycenter = np.array(self.pilSelectedY)
             self.ui.pilMplWidget.canvas.fig.clf()
             cmap = str(self.ui.pilCMapComboBox.currentText())
             vmax = float(self.ui.pilMaxLineEdit.text())
