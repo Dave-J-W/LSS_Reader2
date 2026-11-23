@@ -84,7 +84,7 @@ def test_every_page_builds_from_its_script(tools, recorder):
     for t in catalog.TOOLS:
         p = tools.show_item(t.id)
         if not t.runnable:
-            assert not p.settingsBox.isVisible() and p.fileList.count() > 0      # committed figures shown
+            assert not p.settingsBox.isVisibleTo(p) and p.fileList.count() > 0      # committed figures shown
             continue
         spec = runner.effective(window.cached_parser(t.script), t.subcommand)
         assert len(p.fields) == len(spec.get('actions', [])), t.id

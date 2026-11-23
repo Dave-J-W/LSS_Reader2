@@ -9,7 +9,10 @@ import traceback
 
 from PyQt5 import QtWidgets
 
-SKIP_ACTION_WORDS = ('quit', 'exit', 'close')
+# 'actiontool_': the Tools menu's per-item actions (lss_toolbox) all open the
+# same window at another page, and the pages are tested on their own
+# (test_toolbox_gui.py); 'All tools…' (actionToolsWindow) stays in the sweep.
+SKIP_ACTION_WORDS = ('quit', 'exit', 'close', 'actiontool_')
 
 
 # ---- application states -------------------------------------------------
