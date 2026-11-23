@@ -43,12 +43,17 @@ def state_empty(w, app, spec):
 
 def state_spec_loaded(w, app, spec):
     if w.specFileName != spec:
+        parent = w.directory if os.path.isdir(w.directory or '') else None   # the test's tmp_path
+        if parent and 'sample_data' in os.path.abspath(parent).split(os.sep):
+            parent = None                                  # never write beside the sample data (AGENTS.md rule 7)
         w.openSpecFile(fname=spec)
         # an output folder of its own (2026-11-22): every reduction is saved into the workbook there,
         # and a folder shared by the hundreds of windows of one sweep test grew one workbook that each
-        # new window had to open again (the sweep slowed down and its memory grew to gigabytes)
+        # new window had to open again (the sweep slowed down and its memory grew to gigabytes).
+        # Inside the test's tmp_path (2026-11-23), so that pytest removes it with the test's folder;
+        # before, hundreds of them stayed in the system's temporary folder after every sweep.
         import tempfile
-        w.directory = tempfile.mkdtemp(prefix='lss-sweep-out-')
+        w.directory = tempfile.mkdtemp(prefix='lss-sweep-out-', dir=parent)
     w.ui.scanListWidget.clearSelection()
     app.processEvents()
 

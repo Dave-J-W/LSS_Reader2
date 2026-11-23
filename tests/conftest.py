@@ -11,16 +11,30 @@ import sys
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 os.environ.setdefault('MPLBACKEND', 'Agg')
-# keep every log the program writes out of the repository and sample data
+# keep every log the program writes out of the repository and sample data;
+# the three temporary folders made here are removed when the process ends
+import atexit  # noqa: E402
+import shutil  # noqa: E402
 import tempfile  # noqa: E402
-os.environ['LSS_READER_LOG_DIR'] = tempfile.mkdtemp(prefix='lss_reader_test_logs_')
+
+
+def _temp_folder(prefix):
+    path = tempfile.mkdtemp(prefix=prefix)
+    atexit.register(shutil.rmtree, path, ignore_errors=True)
+    return path
+
+
+os.environ['LSS_READER_LOG_DIR'] = _temp_folder('lss_reader_test_logs_')
 # draw image-list selections at once (the 150 ms merge of rapid clicks is
 # tested on its own in test_lss_core.py)
 os.environ['LSS_READER_SELECTION_DELAY_MS'] = '0'
 # preferences go to a temporary file, never to ~/.lss_reader
-os.environ['LSS_READER_PREFS'] = os.path.join(tempfile.mkdtemp(prefix='lss_reader_test_prefs_'), 'preferences.json')
+os.environ['LSS_READER_PREFS'] = os.path.join(_temp_folder('lss_reader_test_prefs_'), 'preferences.json')
 # never write to the user's disk cache from the tests
-os.environ['LSS_READER_DISK_CACHE'] = tempfile.mkdtemp(prefix='lss_reader_test_cache_')
+os.environ['LSS_READER_DISK_CACHE'] = _temp_folder('lss_reader_test_cache_')
+# the image cache's default budget is a quarter of the machine's memory (4 GB
+# here) in every test process; each test's data are new files, never hit again
+os.environ.setdefault('LSS_READER_RAM_CACHE_MB', '512')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -29,12 +43,54 @@ os.chdir(ROOT)
 
 import pytest  # noqa: E402
 
-
 @pytest.fixture(scope='session')
 def qapp():
+    import gc
     from PyQt5.QtWidgets import QApplication
     app = QApplication.instance() or QApplication(['lss-reader-tests'])
+    import mainwindow  # noqa: F401  (imported once, then frozen:)
+    gc.collect()
+    gc.freeze()        # import-time objects skip every later collection (115 -> 3-16 ms)
     yield app
+
+
+def free_windows(app):
+    """Delete every top-level window and dialog still open, and free them.
+
+    A window closed with close() + deleteLater() is not deleted when no
+    event loop runs (processEvents does not handle deferred deletes), and
+    the window's own signal connections keep its Python side alive: each
+    test leaked a whole window (about 110 MB with data). Exceptions raised
+    by slots meanwhile are collected and returned, not left to abort the
+    process (PyQt5 aborts on an unhandled slot exception).
+    """
+    import gc
+    from PyQt5 import QtCore
+    raised = []
+    hook = sys.excepthook
+    sys.excepthook = lambda t, v, tb: raised.append((t, v, tb))
+    try:
+        for w in app.topLevelWidgets():
+            if w.windowType() != QtCore.Qt.Desktop:
+                w.close()
+                w.deleteLater()
+        app.sendPostedEvents(None, QtCore.QEvent.DeferredDelete)
+        app.processEvents()
+        app.sendPostedEvents(None, QtCore.QEvent.DeferredDelete)
+    finally:
+        sys.excepthook = hook
+    if 'matplotlib.pyplot' in sys.modules:
+        sys.modules['matplotlib.pyplot'].close('all')
+    gc.collect()
+    return raised
+
+
+@pytest.fixture(autouse=True)
+def _free_windows_after_qt_tests(request):
+    """After a test that used Qt, nothing of it stays in memory."""
+    yield
+    if 'qapp' in request.fixturenames:
+        free_windows(request.getfixturevalue('qapp'))
 
 
 @pytest.fixture(autouse=True)
@@ -135,9 +191,7 @@ def window(qapp, recorder, tmp_path):
     w.show()
     qapp.processEvents()
     yield w
-    w.close()
-    w.deleteLater()
-    qapp.processEvents()
+    free_windows(qapp)
 
 
 @pytest.fixture
