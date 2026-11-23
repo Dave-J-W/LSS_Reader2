@@ -26,23 +26,26 @@ comparison, not the reader's estimator).
 
 | columns (level 1 / level 2) | factor | pooled | 2θ of the overlap | counts per β bin (lower / upper) |
 |---|---|---|---|---|
-| all 28–107 / 28–91 | 1.068 ± 0.013 | 1.088 | 13.40–15.80° | 646 / 124 |
-| group 1: 28–54 / 28–54 | 0.951 ± 0.020 | 1.022 | 13.40–14.46° | 83 / 44 |
-| group 2: 55–80 / 55–80 | 1.067 ± 0.017 | 1.107 | 14.40–15.31° | 142 / 62 |
-| group 3: 81–107 / 81–91 | 0.396 ± 0.027 | 0.741 | 15.49–15.67° | 6 / 6 |
+| all 28–107 / 28–91 | 1.088 ± 0.014 | 1.088 | 13.40–15.80° | 646 / 124 |
+| group 1: 28–54 / 28–54 | 1.021 ± 0.022 | 1.022 | 13.40–14.46° | 83 / 44 |
+| group 2: 55–80 / 55–80 | 1.107 ± 0.018 | 1.107 | 14.40–15.31° | 142 / 62 |
+| group 3: 81–107 / 81–91 | 0.745 ± 0.040 | 0.741 | 15.49–15.67° | 6 / 6 |
+
+The factor is the reader's (by likelihood since 2026-11-23, P46). Before,
+its estimator was the inverse-variance mean of the per-β-bin ratios, and
+this figure found it biased low where β bins hold few counts: 1.068,
+0.951, 1.067 and 0.396 on the same cells, 2 %, 7 %, 4 % and 47 % below
+the pooled ratio (ratios whose errors grow with the ratio pull such a mean
+low). Panel (b) shows both.
 
 What the numbers show:
 
 - The factor depends on the columns used, but on these data mostly for
-  two reasons other than the light per column:
+  a reason other than the light per column:
   - **2θ.** With 4 frames at level 2, each group's overlap is its own 2θ
     strip. The all-columns cells alone, pooled over each group's strip,
     give 0.930, 1.064 and 1.351: the all-columns ratio rises with 2θ
     across the overlap (panel d, first plot).
-  - **Few counts.** The reader's factor (inverse-variance mean of the
-    per-β-bin ratios) is below the pooled ratio by 2 % for all columns and
-    by 7 %, 4 % and 47 % for the groups, the more the fewer counts a β bin
-    holds. Ratios whose errors grow with the ratio pull such a mean low.
 - Pooled, the factor of groups 1 and 2 equals, to 0.2 % and 1.2 %, the
   all-columns ratio on their strip times the ratio of their maps' scales
   (level 1 × 1.161 and × 1.176, level 2 × 1.054 and × 1.144 of the
@@ -51,9 +54,9 @@ What the numbers show:
   explained here). At level 1 it includes columns 92–107, which level 2
   does not have.
 - With `--columns common` (groups inside 28–91, the columns both levels
-  have) the pooled factors are 1.024 ± 0.026, 1.009 ± 0.019 and
-  0.985 ± 0.026: the three groups agree within their errors. The reader's
-  factors are 0.926, 0.970 and 0.808.
+  have) the reader's factors are 1.024 ± 0.026, 1.009 ± 0.019 and
+  0.981 ± 0.026 (pooled 1.024, 1.009, 0.985): the three groups agree
+  within their errors (before P46 the reader gave 0.926, 0.970, 0.808).
 
 ## Caveats
 

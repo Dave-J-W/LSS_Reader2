@@ -113,7 +113,7 @@ without interpolation (figure 6).
 | 2θ per column: bins one column wide (0.036° on NX), true resolution 2.2 columns, set by S4's opening (measured). | Needs a column response (relative sensitivity and illumination of each column), estimated from the data; with a narrow beam it varies with Det_Th (see "Column response"). |
 | Exact angles: on NX β per row was off by up to 0.41° (arm level) and 0.74° (arm raised) inside the usable columns; joining with exact angles took the NX level join's χ²/dof from 1.31 to 0.83 (measured, P38). | Only valid where there is a pinhole: at Det_Th ≤ 1° the reader uses no pinhole (IDL's rule). |
 | No interpolation: overlap cells hold summed counts, errors stay Poisson (ΣN). Counts are conserved (invariant I21, tested). | Light that does not come from the footprint through the pinhole (beam-path scattering, slit scattering, P40) is treated as signal; the exact window and the raised arm interact with a stray-light streak (see "Footprint window"). |
-| NX Bragg peak: σ/I 1.02 % per own bin against 2.55 % legacy; level join 1.068 ± 0.013, χ²/dof 0.93 (measured). | The level join factor depends on which columns each level uses when the illumination along the beam changes between the levels' scans (sample height drift of a few µm moves the footprint by mm at α = 0.09°; owner, 2026-11-19). The joined map stays consistent; the factor's value is a normalisation. |
+| NX Bragg peak: σ/I 1.02 % per own bin against 2.55 % legacy; level join 1.088 ± 0.014, χ²/dof 0.89 (measured; 1.068 ± 0.013 with the estimator before 2026-11-23, P46). | The level join factor depends on which columns each level uses when the illumination along the beam changes between the levels' scans (sample height drift of a few µm moves the footprint by mm at α = 0.09°; owner, 2026-11-19). The joined map stays consistent; the factor's value is a normalisation. |
 
 ## 3a. Joining across 2θ (Det_Th): within a scan, and between scans
 
@@ -162,8 +162,11 @@ they overlap in 2θ (figure 8).
   and in the overlap the two scans are **averaged** (each interpolated onto
   the finer grid). The overlap is the Det_Th values both scans have.
 - **Pinhole** (`pinhole.level_map`): the rows-summed ΣN/ΣW of the first scan
-  and of each further scan per shared 2θ bin; the ratios' inverse-variance
-  mean is the factor, applied to that scan's weights; then all pixels are
+  and of each further scan per shared 2θ bin; the factor is the one that
+  best explains how each bin's counts split between the scans (likelihood,
+  `pinhole.ratio_ml`, since 2026-11-23; before, the ratios' inverse-variance
+  mean, biased low when bins hold few counts: P46), applied to that scan's
+  weights; then all pixels are
   binned together. No interpolation, no averaging of two maps. The overlap
   is every 2θ bin both scans' usable columns reach (many more than the
   shared Det_Th values: 87 bins against 6 frames in the example below).
@@ -195,7 +198,9 @@ exactly, but from 6 shared Det_Th values and with interpolation. The
 remedy, built the same day (2026-11-20): every response now estimates each
 scan's scale together with itself (alternating, as the response itself is
 estimated). Measured again on these splits: 'fit' 1.2565, 'beam' 1.2567,
-'physical+fit' 1.2530, 'physical' 1.2549 for 1.25 (P42 fixed). The two
+'physical+fit' 1.2530, 'physical' 1.2549 for 1.25 (P42 fixed); with the
+scan factor by likelihood (P46, 2026-11-23) 1.2572, 1.2574, 1.2535,
+1.2558. The two
 halves of one scan still join at 0.95–0.96 under every column model ('fit'
 0.951): that is a change along the scan itself (measured one after the
 other; the sample height drifts by microns in half an hour), not a model
@@ -264,7 +269,7 @@ response and 21 % with 'fit'.
   level's own scale, so the levels must then be joined by a fitted factor.
   As collected, with no response, NX's two levels (same absorbers, slits,
   gain and monitor) differ by 22 %; with 'fit' the fitted level factor is
-  1.068, with 'beam' 1.139: the empirical response hides part of a real
+  1.088, with 'beam' 1.163 (1.068 and 1.139 before P46, 2026-11-23): the empirical response hides part of a real
   difference (physics_notes 2026-11-20).
 - **Scale between scans.** R is fitted on all frames of a level before the
   scans are joined, so it absorbs part of a real scale difference between
@@ -296,8 +301,9 @@ Measured (2026-11-20):
 - P42 split of NX scan 11 (B × 0.8): 'physical' recovers 1.2549 for 1.25
   ('fit' 1.173); with the beam typed, 1.2496.
 - NX 11 + 12: beam centre 5.7 / 3.6 mm downstream, vertical FWHM 65 / 57 µm
-  (levels 1 / 2; fit χ²/dof 5.0 / 7.6); level join 1.107 ± 0.014 ('fit'
-  1.068, as collected with no response 1.217).
+  (levels 1 / 2; fit χ²/dof 5.0 / 7.6); level join 1.127 ± 0.014 ('fit'
+  1.088, as collected with no response 1.236; before P46, 2026-11-23:
+  1.107, 1.068, 1.217).
 - The two halves of NX scan 11 still differ by 2–6 % under it (0.935 with
   the beam fitted, 0.978 typed): something changes along a scan that one
   beam per level does not describe (the beyond-footprint light, P40a, and
@@ -351,7 +357,7 @@ recovered on the NX split (true 1.25):**
 | owner's 137 + 139 (same range twice) | 5.23 | **4.60** | 6.29 | 4.75 | 36.5 |
 | owner's 163 + 164 + 165 | 3.65 / 2.17 | 4.71 / 3.31 | 6.73 / 4.87 | **3.50 / 1.92** | 51 / 44 |
 | owner's 386–389 (Det_Th 9–17°) | **1.67 / 2.24** | 4.61 / 4.50 | 7.04 / 7.26 | 4.62 / 3.17 | 23 / 31 |
-| scan scale recovered (true 1.25) | 1.2565 | 1.2567 | 1.2549 | 1.2530 | 1.240 |
+| scan scale recovered (true 1.25; by likelihood since 2026-11-23, P46) | 1.2572 (1.2565 before) | 1.2574 (1.2567) | 1.2558 (1.2549) | 1.2535 (1.2530) | 1.239 (1.240) |
 
 **The decision: 'fit' stays the default** (with joins applied): it is the
 best or close to the best on every data set, assumes nothing about the
@@ -448,7 +454,7 @@ the label in GID > Worksheet; `name` is the `GIDParams` field.
 |---|---|---|---|
 | Pinhole: angle per column (`pinhole`) | on / off (on, D40) | See section 3. | See section 3. |
 | Columns per frame (`columns`, legacy only) | integer (3) | A wider band gives more counts. | Blurs 2θ by the band's width (the band is placed at one angle); the area correction must follow (it does, through the band width). |
-| Footprint window (`footprint`, pinhole) | exact / IDL (exact, D51) | **Exact**: uses every column that sees the footprint through the whole S4 opening: on NX +3.3 % counts, 2θ to 19.93° (IDL: 19.82°), Bragg peak unmoved (measured). **IDL's**: reproduces earlier maps and the IDL code exactly. | **Exact**: on raised-arm frames (β0 > 1°) the high edge stays at IDL's, because the extra 3–4 columns there catch a stray-light streak (P40b; NX: 2.4× brighter in rows 60–150 than lower rows, against 1.5× in the old edge columns; measured). So only the lower level gains the edge columns, which shifts the NX level factor from 1.097 to 1.068 ± 0.013 (a normalisation, not an error of the map). **IDL's**: drops a few lit columns at the high-2θ edge (P39). |
+| Footprint window (`footprint`, pinhole) | exact / IDL (exact, D51) | **Exact**: uses every column that sees the footprint through the whole S4 opening: on NX +3.3 % counts, 2θ to 19.93° (IDL: 19.82°), Bragg peak unmoved (measured). **IDL's**: reproduces earlier maps and the IDL code exactly. | **Exact**: on raised-arm frames (β0 > 1°) the high edge stays at IDL's, because the extra 3–4 columns there catch a stray-light streak (P40b; NX: 2.4× brighter in rows 60–150 than lower rows, against 1.5× in the old edge columns; measured). So only the lower level gains the edge columns, which shifts the NX level factor from 1.115 to 1.088 ± 0.014 (1.097 to 1.068 before P46, 2026-11-23; a normalisation, not an error of the map). **IDL's**: drops a few lit columns at the high-2θ edge (P39). |
 | S4–detector (mm) (`pinhole_distance_mm`; section 3d) | number (0 = header, 271 on NX) | A typed value overrides a wrong header. "Fit" estimates it from a feature's drift (diagnostic). | The fit depends on the column response by several mm (258–280 on NX); use it to check, not to set. |
 | Arm correction (`arm_correction`) | on / off (on) | Includes the arm's own offset (`g_l3`) in the sample–detector distance used for β. | — (off only to compare with older maps). |
 
@@ -563,8 +569,10 @@ the rest of its 2θ range filled by edge copies (P33).
 ![Levels and overlaps](figures/gid_patching/05_levels_and_overlaps.png)
 
 **6. A level join factor.** Cells both levels have, equal weight per cell,
-a ratio per β bin, and the weighted mean: NX 11 + 12, 1.068 ± 0.013,
-χ²/dof 0.93 over 84 β bins (the tool recomputes it as `join_levels` does
+a ratio per β bin, and the factor that best explains how each β bin's
+counts split between the levels (likelihood, P46; before 2026-11-23 the
+ratios' weighted mean, biased low with few counts): NX 11 + 12,
+1.088 ± 0.014, χ²/dof 0.89 over 84 β bins (1.068 ± 0.013 before) (the tool recomputes it as `join_levels` does
 and checks it against the reader's value). The scan join fits its factor
 the same way along 2θ, on rows-summed profiles.
 
