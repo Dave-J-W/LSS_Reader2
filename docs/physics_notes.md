@@ -4482,3 +4482,7 @@ Verified by: reading `mainwindow.py` (the current averaging); nothing run.
 - **Greying out** tool groups that do not fit the series kind, with tooltips.
 - **GIOXS, 2D_Plot, Calculations, background block:** all stay; each needs more thought.
 - **Movie colour scale:** shared, absorber-corrected, per monitor.
+
+### 2026-11-23 — GUI questions answered, batch 5 (Q-IMG-11, 8, 14, 15; Q-GID-1, 5)
+
+Verified by: reading only. Default cuts by kind accepted; nearest-pixel and viridis/magma defaults; the GID map gets its own cached view; GID Patch Relax becomes an option beside the worksheet. **Follow-up for a coding session (not done here):** read what "GID Patch Relax" does differently from "GID Patch" (the larger Q grid, per Q-GID-5's "why") and state it as one option.
