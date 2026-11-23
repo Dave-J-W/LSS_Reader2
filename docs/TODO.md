@@ -139,6 +139,7 @@ GUI overhaul (R4, D58; plan `docs/gui/README.md`), planning only until the owner
 | Phase 2: frames as a movie with sticky zoom (≤ 6 tiles; sampling first/middles/last, default 4; first n), sticky plot preferences, intelligent colour scales, ROI close-up for reflectivity | F69–F71 |
 | Faster log-scale plotting (outside the first deliverables) | F72 |
 | Residuals panel above every fit plot (about 15 % of the height, own scale, χ²/dof in the legend; can be hidden, hidden by default for now); for later | F74 |
+| Prototype of the new layout (a sketch, off by default; Preferences): design `docs/gui/prototype.md`; window built from a layout table covering every inventoried control — **in progress** 2026-11-23 | F82 |
 | Phase 3: contextual GUIs by data type | F73, F60 |
 
 **Defects found by the GUI assessment (2026-11-22)**, to fix one per commit with its test when coding resumes (details in `docs/gui/assessment_a.md`, `assessment_b.md`, `image_display.md`; "seen" = in an offscreen window, "measured" = a number taken, "read" = code only):
