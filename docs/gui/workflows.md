@@ -1164,6 +1164,10 @@ flowchart TD
 | `prefSaveNoteCheckBox` Ask for a note on every Save |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `prefAutoSaveCheckBox` Save every reduction automatically |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `prefNguiCheckBox` ngui (new layout, prototype) |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `prefSumAllLegacyCheckBox` Sum All: average of normalised frames (legacy) |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefGisaxsRawCheckBox` GISAXS: raw counts (legacy) |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefMcaFitLegacyCheckBox` Fluorescence fit: legacy Fit dialog |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefBurnLegacyCheckBox` Burn test: show the Legacy tab |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `prefBadgesComboBox` State badges: on / when not default / off |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `prefClosePushButton` Close |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 

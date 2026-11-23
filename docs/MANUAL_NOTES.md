@@ -297,6 +297,19 @@ Each line: feature — where — default — script — notes entry (date).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.
 
+### Reduction options (F86, 2026-11-23)
+- **Preferences > Reduction options** (first on the page) chooses, for each
+  action that has a legacy and a new path, which one it takes; nothing is
+  removed (owner, 2026-11-23). **Reflectivity patch**: joint or legacy fit
+  (moved here from the Ref Patch group). **Sum All**: counts and monitors
+  summed then normalised (default) or the old average. **GISAXS**: per Monc
+  (default) or raw counts. **Fluorescence fit**: the MCA tab's one Fit action
+  runs the line fit (default) or, when on, the legacy Fit dialog, and then
+  also shows the legacy Fit, Fit All and Accept buttons. **Burn test**: shows
+  the dialog's Legacy tab.
+- **Ctrl+click** on Ref Patch or on Fit lines runs the other path once and
+  writes a line in the Messages pane saying so; no dialog.
+
 ### State badges (F85, 2026-11-23)
 - At the right of the status bar, three short labels show the settings that
   change numbers everywhere: the **error model** (legacy or budget errors),

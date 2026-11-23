@@ -2042,8 +2042,8 @@ class MainWindow (QMainWindow):
                         'is not (+5.5 % on a thick film\'s fringes, P1) and with honest errors (the legacy ones are '
                         '1.1-4.8 times too small), measured on synthetic scans '
                         '(tests/tools/ref_patch_gauntlet.py). Legacy fit: scan b interpolated at the overlap points '
-                        'and one ratio fitted, as before; it reproduces older files exactly.')
-        hl.addWidget(meth)
+                        'and one ratio fitted, as before; it reproduces older files exactly. Ctrl+click on Ref Patch '
+                        'uses the other fit once.')
         lay.addWidget(g2)
         g3=QGroupBox('Fluorescence detector',d)
         g3.setToolTip('Multi-element detector (7-element Xspress3): the elements summed into one spectrum per '
@@ -2140,6 +2140,38 @@ class MainWindow (QMainWindow):
         badges.currentIndexChanged.connect(lambda i:self.setPreference('state_badges',badges.itemData(i)))
         l5.addWidget(badges)
         lay.addWidget(g5)
+        g0=QGroupBox('Reduction options',d)
+        g0.setObjectName('prefReductionGroup')
+        g0.setToolTip('Which path an action takes where the program has a legacy one and a new one (owner, 2026-11-23, '
+                      'Q13: nothing is removed). Ctrl+click on Ref Patch or on Fit lines runs the other path once and '
+                      'says so in the Messages pane (F86).')
+        f0=QFormLayout(g0)
+        f0.addRow('Reflectivity patch',meth)
+        legacy={}
+        for key,name,text,tip in (
+                ('sum_all_legacy_average','prefSumAllLegacyCheckBox','Sum All: average of normalised frames (legacy)',
+                 'Off (default): Sum All adds the counts and the monitors, then normalises once, Sigma N / Sigma M '
+                 '(owner, 2026-11-23; F91). On: the mean of the frames each normalised alone, as before.'),
+                ('gisaxs_raw_counts','prefGisaxsRawCheckBox','GISAXS: raw counts (legacy)',
+                 'Off (default): GISAXS sums frames per Monc (Sigma N / Sigma M, F91). On: the raw counts, as before.'),
+                ('mca_fit_legacy','prefMcaFitLegacyCheckBox','Fluorescence fit: legacy Fit dialog',
+                 'Off (default): the MCA tab\'s Fit lines runs the line fit (lss_core.peaks), and the legacy Fit, Fit All '
+                 'and Accept buttons are hidden. On: Fit runs the legacy fit dialog, and those buttons show (owner, '
+                 '2026-11-23: one Fit action, the switch picks).'),
+                ('burn_legacy_tab','prefBurnLegacyCheckBox','Burn test: show the Legacy tab',
+                 'Off (default): the burn dialog shows its Trends tab only. On: also its Legacy tab, the original plots '
+                 '(owner, 2026-11-23, Q-BURN-4). The REF button and the GID list still open it.')):
+            box=QCheckBox(text,g0)
+            box.setObjectName(name)
+            box.setChecked(bool(self.prefs.get(key,False)))
+            box.setToolTip(tip)
+            box.toggled.connect(lambda on,k=key:self.setPreference(k,bool(on)))
+            f0.addRow(box)
+            legacy[name]=box
+        lay.insertWidget(0,g0)
+        d.prefReductionGroup=g0
+        for name,box in legacy.items():
+            setattr(d,name,box)
         d.prefNguiCheckBox=ngui
         d.prefBadgesComboBox=badges
         close=QPushButton('Close',d)
@@ -2241,6 +2273,12 @@ class MainWindow (QMainWindow):
         self.prefs[key]=value
         if key in ('ref_patch_method','state_badges'):
             self.updateBadges()
+        if key=='mca_fit_legacy':
+            self.applyMcaFitMode()
+        if key=='burn_legacy_tab' and getattr(self,'uipdburn',None) is not None:
+            tabs=getattr(self.uipdburn,'burnTabWidget',None)
+            if tabs is not None:
+                tabs.setTabVisible(1,bool(value))
         err=prefs_store.save(self.prefs)
         if err and not getattr(self,'prefsSaveNoted',False):
             self.prefsSaveNoted=True
@@ -3990,8 +4028,12 @@ class MainWindow (QMainWindow):
         tabs.addTab(u.plotWidget,'Legacy')
         tabs.setTabToolTip(1,'The program\'s original burn plots (REF button, GID list): raw counts against count time '
                              '× frame (P30), one quantity at a time, an exponential for the intensity only.')
-        u.refPushButton.clicked.connect(lambda: tabs.setCurrentIndex(1))
-        u.gidComboBox.activated.connect(lambda i: i and tabs.setCurrentIndex(1))
+        tabs.setTabVisible(1,bool(self.prefs.get('burn_legacy_tab',False)))   # behind the Reduction options (Q-BURN-4)
+        def legacyTab():
+            tabs.setTabVisible(1,True)
+            tabs.setCurrentIndex(1)
+        u.refPushButton.clicked.connect(legacyTab)
+        u.gidComboBox.activated.connect(lambda i: i and legacyTab())
         u.burnTabWidget,u.burnEstimatorComboBox,u.burnTimeComboBox,u.burnErrorsComboBox=tabs,est,tim,err
         u.burnThresholdSpinBox,u.burnAutoPeakCheckBox,u.burnAnalysePushButton=thr,auto,run
         u.burnPositionLimitCheckBox=poslim
@@ -5573,7 +5615,12 @@ class MainWindow (QMainWindow):
         self.refpatchindex=1
         self.refDrops={}       # join number -> list of drop actions, for the script console
         self.refFactors={}     # join number -> (factor, error) used instead of the fitted one
-        self.refMethodUsed=self.refPatchMethod()   # one method for the whole patch (the script line says it)
+        method=self.refPatchMethod()
+        if self.ctrlClicked():    # F86: Ctrl+click runs the other path once
+            method='legacy' if method=='joint' else 'joint'
+            self.notify('Ctrl+click: this Ref Patch uses the %s fit (Reduction options: %s).' % (method,self.refPatchMethod()),
+                        title='Ref Patch',level='info')
+        self.refMethodUsed=method   # one method for the whole patch (the script line says it)
         self.refKnownOverride={}   # join number -> the user's choice in the patch window
         self.refMerged=[]      # groups merged in the identical-scans dialog
         self.refDroppedScans=[]   # scans dropped in the identical-scans dialog
@@ -6532,7 +6579,9 @@ class MainWindow (QMainWindow):
         fo.setToolTip('Shape, background, number of lines or their energies, sensitivity, for "Fit lines".')
         self.ui.horizontalLayout_37.addWidget(fl)
         self.ui.horizontalLayout_37.addWidget(fo)
-        fl.clicked.connect(self.mcaFitLines)
+        fl.clicked.connect(self.mcaFitAction)
+        self.mcaFitLinesPushButton=fl
+        self.applyMcaFitMode()
         fo.clicked.connect(self.showMcaFitOptions)
         self.mcaFitLinesPushButton,self.mcaFitOptionsPushButton=fl,fo
         # one-click Save into the SPEC file's workbook beside every Export (owner, 2026-11-21)
@@ -7091,6 +7140,31 @@ class MainWindow (QMainWindow):
                     label='2theta, beta (deg)',settings=asdict(self.gidParams),
                     recipe=self.recipe(lambda name:self.gidScript(name,'Q')))]
         self.saveToWorkbook('gid map',items,auto=getattr(self,'autoSaving',False))
+
+    def ctrlClicked(self):
+        """True when Ctrl is held: a Ctrl+click runs an action's other path once (F86)."""
+        from PyQt5.QtWidgets import QApplication
+        return bool(QApplication.keyboardModifiers() & Qt.ControlModifier)
+
+    def applyMcaFitMode(self):
+        """The MCA tab's fit buttons for the Reduction options' choice (F86; owner, 2026-11-23: one Fit
+        action per tab, the switch picks; nothing removed)."""
+        legacy=bool(self.prefs.get('mca_fit_legacy',False))
+        for b in (self.ui.mcaFitPushButton,self.ui.mcaFitAllPushButton,self.ui.mcaAcceptPushButton):
+            b.setVisible(legacy)
+        fl=getattr(self,'mcaFitLinesPushButton',None)
+        if fl is not None:
+            fl.setText('Fit (legacy)' if legacy else 'Fit lines')
+
+    def mcaFitAction(self):
+        """Fit lines, or the legacy fit when the Reduction options say so; Ctrl+click: the other, once."""
+        legacy=bool(self.prefs.get('mca_fit_legacy',False))
+        if self.ctrlClicked():
+            legacy=not legacy
+            self.notify('Ctrl+click: this fit uses the %s (Reduction options: %s).'
+                        % ('legacy Fit dialog' if legacy else 'line fit',
+                           'legacy' if self.prefs.get('mca_fit_legacy',False) else 'line fit'),title='Fit',level='info')
+        return self.mcaPeakFit() if legacy else self.mcaFitLines()
 
     def mcaFitLines(self):
         """Fit the selected spectra's lines (lss_core.peaks.fit_series)."""

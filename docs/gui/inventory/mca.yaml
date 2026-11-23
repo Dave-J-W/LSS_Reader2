@@ -199,7 +199,7 @@
   does: "Opens the legacy Peak Fit Panel (peakfit.ui) on the one selected spectrum"
   workflows: [mca-look, xfntr]
   needs: "exactly one spectrum selected"
-  shown: always
+  shown: "only when Preferences > Reduction options > Fluorescence fit: legacy is on (F86, 2026-11-23)"
   tooltip: false
   notes: "Legacy fitter beside the new 'Fit lines'; two fit systems with different options and dialogs on one tab."
 - id: mcaFitAllPushButton
@@ -210,7 +210,7 @@
   does: "Opens the legacy Peak Fit Panel; its Fit then fits every selected spectrum and accepts each into the integral list"
   workflows: [xfntr]
   needs: "spectra selected"
-  shown: always
+  shown: "only when Preferences > Reduction options > Fluorescence fit: legacy is on (F86, 2026-11-23)"
   tooltip: false
   notes: "Overlaps 'Fit lines' (the owner's rule, F22a)."
 - id: mcaFitLinesPushButton
@@ -223,7 +223,7 @@
   needs: "spectra selected with one energy axis"
   shown: always
   tooltip: true
-  notes: "Uses the Range field as its fit range unless Fit options gives one: two places set it."
+  notes: "Since 2026-11-23 (F86): the tab's one Fit action, the line fit by default, the legacy fit (label 'Fit (legacy)') when the Reduction options say so; Ctrl+click runs the other once. Uses the Range field as its fit range unless Fit options gives one: two places set it."
 - id: mcaFitOptionsPushButton
   kind: button
   label: "Fit options..."
@@ -265,7 +265,7 @@
   does: "Adds the legacy fit's first peak area (height x width) to the integral list"
   workflows: [xfntr]
   needs: "a legacy Fit done"
-  shown: always
+  shown: "only when Preferences > Reduction options > Fluorescence fit: legacy is on (F86, 2026-11-23)"
   tooltip: false
   notes: "Belongs to the legacy Fit dialog but sits on the tab; same word as the Reflectivity tab's Accept."
 - id: mcaXAxisComboBox

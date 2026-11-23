@@ -50,6 +50,9 @@ DEFAULTS = {
     'panes_shown': [],
     # status-bar state badges (F85, owner 2026-11-23): 'on', 'when_not_default' or 'off'
     'state_badges': 'on',
+    # Reduction options (F86, owner 2026-11-23): legacy paths, off by default
+    'mca_fit_legacy': False,
+    'burn_legacy_tab': False,
 }
 
 
