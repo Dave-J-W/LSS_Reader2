@@ -39,6 +39,23 @@
    "note": "exp.reflectivity([6, 7, 8, 9], errors={'mode': 'budget', 'kind': 'student_t'})"
   },
   {
+   "file": "C43_incidence_nx_S6-7-8-9.csv",
+   "comparison": "C43",
+   "method": "true incidence: header In_Rot (old) vs cuts.true_incidence (new)",
+   "data": "nx scans [6, 7, 8, 9]",
+   "columns": [
+    "scan",
+    "point",
+    "L (1/A)",
+    "alpha from L (deg)",
+    "old alpha_true (deg)",
+    "new alpha_true (deg)",
+    "reflected-row beta old (deg)",
+    "reflected-row beta new (deg)"
+   ],
+   "note": "beta = arcsin(2 sin(alpha) - sin(alpha_true)); equal to alpha only when alpha_true = alpha (specular)"
+  },
+  {
    "file": "C10_gid_nx_S11_legacy_qxy.csv",
    "comparison": "C10/C14",
    "method": "GID legacy",

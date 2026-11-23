@@ -311,7 +311,7 @@ and dark rate, photons-in, half-cuts and an sh scan beside each GID level,
 | Assumption | What breaks | Evidence | Fix |
 |---|---|---|---|
 | ~~Every data row of a scan has as many numbers as `#L` has labels~~ **fixed 2026-11-23** (`spec_routines.complete_rows`, `test_spec_partial_line.py`) | one half-written last line (a file SPEC is still writing, i.e. live updates) lost **every column** of that scan | M: synthetic, the last line cut to two numbers → no columns | a line of another width is left out, noted (`DroppedRows`) and said once |
-| The header's `In_Rot` is each frame's incidence | β of reflectivity frames (cuts, GISAXS) | M: P47 | P47 |
+| ~~The header's `In_Rot` is each frame's incidence~~ **fixed 2026-11-23** (P47, `cuts.true_incidence`) | β of reflectivity frames (cuts, GISAXS) | M: P47, C43 | α from L in specular scans |
 | A frame's scan and frame numbers are read back from the list's text (`imageListWidget` 13 places, `scanListWidget` `split()[1]` 8, the Ref Qz list) | any change of the displayed text (the GUI overhaul) breaks frame and scan lookups silently | R | keep them as item data (`Qt.UserRole`); GUI manager |
 | Pilatus 100K sizes: default cut ranges `0:485`, `0:194`; GID last row 486; columns spin box max 195; 0.172 mm written 22 times in `mainwindow.py` (one constant exists, `cuts.PIXEL_MM`) | defaults and limits wrong for the 1M (area H) | R | from `pilatus.NROWS`/`NCOLS` and one pixel constant |
 | File names cut at `/` (`specFileName.split('/')[-1]` makes the image and MCA prefixes) | a path with backslashes (Windows, `os.path`) gives a wrong prefix: no images; plot-file legends show the whole path | R | `os.path.basename` |

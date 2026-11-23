@@ -43,6 +43,7 @@ exists.
 | I30 | A figure tool is deterministic: rerun with the settings of its committed figures on unchanged code and inputs, it gives them back pixel for pixel (the measured test of staleness; a provenance stamp, where a tool prints its git revision, differs inside one small box) | `test_toolbox_gui.py::test_a_figure_tool_reproduces_its_committed_figures` (burn trends, 4 of 4); measured 2026-11-23: the ngui prototype screenshots 23 of 23, the fit demonstrator figures 6 of 6 |
 | I31 | A pinhole join factor (scans of a level, or Qz levels) is unbiased whatever the counts per bin: the likelihood of how each bin's counts split between the two sides (`pinhole.ratio_ml`, P46) gives back a known factor within ±0.1 % down to 0.026 counts per pixel; equal to the pooled ratio of a single bin | `test_pinhole.py::test_level_factor_is_unbiased_at_low_counts`, `test_ratio_ml_is_the_pooled_ratio_for_one_bin_and_recovers_a_scale` |
 | I32 | "Sum All" of Poisson frames (y = N·A/(M·g), σ = √N·A/(M·g)) equals ΣN/Σ(M/A·g) with σ = √ΣN/Σ(M/A·g), exactly; it is the mean of the per-frame values weighted by M/(A·g), and with equal monitors and absorbers the plain mean | `test_monc_normalised.py` (`test_sum_frames_is_the_counts_over_the_monitors`, `test_frames_with_absorbers_are_summed_by_their_effective_monitors`, `test_the_scripted_summed_cut_is_the_counts_over_the_monitors`, `test_the_windows_summed_cut_is_the_counts_over_the_monitors`) |
+| I33 | On the Angles axis of a 'Pix V' cut through the reflected beam's columns, the reflected peak of a specular frame is at β = α (α = arcsin(Qz λ/4π)); NX school scans 6, 8, 9 to 2e-4° | `test_true_incidence.py::test_the_reflected_beam_sits_at_beta_equal_alpha` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -4743,3 +4744,42 @@ header.)
 Verified as marked: items marked measured were run on NX school or on
 synthetic files today; the rest come from reading the code. None is
 fixed yet. The first two change results; the rest are latent.
+
+### 2026-11-23 — P47 fixed: each frame's own incidence angle
+
+From the fragility audit above, item 2.
+- **The cause.** The scan header's In_Rot is written before the scan
+  moves. Every frame took it as its true incidence, so in specular scans
+  the exit angle of the reflected beam, β = arcsin(2 sin α − sin α_true),
+  was not α.
+- **The rule now** (`lss_core.cuts.true_incidence`):
+  - a scan with H = K = 0 throughout (|H|, |K| < 1e-4; NX's largest is
+    4.2e-7) and L not constant is specular, and takes α = arcsin(L λ/4π)
+    per frame;
+  - every other scan keeps the header's value: GID and ih scans, and
+    height scans;
+  - an In_Rot column, if a macro ever writes one, wins.
+- **Where it applies.** The window (`pilTrueAlpha`), `Experiment.cut` and
+  the GID frames use it.
+
+**Measured on NX school, β at the reflected peak, old → new:**
+
+| Frame | α | Old | New |
+|---|---|---|---|
+| Scan 6, first | 0.0989° | 0.1073° | 0.0989° |
+| Scan 6, last | 0.2261° | 0.3616° | 0.2261° |
+| Scan 7, last | 0.5653° | 0.9469° | 0.5653° |
+| Scan 8, last | 1.0741° | 1.6679° | 1.0741° |
+| Scan 9, last | 2.5447° | 4.1870° | 2.5447° |
+
+- The β values are from an Angles cut through the beam's columns.
+- **Qz axes barely move.** Qz = k(sin α_true + sin β) cancels α_true at
+  the reflected row: scan 6's Q V cut range goes from −0.0438…0.7185 to
+  −0.0438…0.7186.
+- **Fixed-incidence scans are identical to the last bit.** C10 was
+  regenerated without a change.
+- **Not measured:** GISAXS maps of specular frames, whose Qxy goes through
+  cos α_true.
+
+Verified by tests (I33, `test_true_incidence.py`) and measured (C43,
+`docs/comparisons_data/C43_incidence_nx_S6-7-8-9.csv`).

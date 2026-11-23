@@ -167,9 +167,9 @@ TOOLS = (
          data='public', defaults={'--out': OUT}, spec_option='--spec',
          variations=(
              V('Scan 14 only', 'One burn scan: absorber 12, the lower dose of the pair.',
-               'docs/physics_notes.md:3965', scans='14'),
+               'docs/physics_notes.md:3966', scans='14'),
              V('Scan 15 only', 'The second scan of the spot at absorber 8 (4.1x the flux of scan 14): dose against '
-               'time, beam damage or a changing sample.', 'docs/physics_notes.md:3965', scans='15'),
+               'time, beam damage or a changing sample.', 'docs/physics_notes.md:3966', scans='15'),
          ),
          seconds=5.4),
 
@@ -179,11 +179,11 @@ TOOLS = (
          'transmission): a beam-driven change coincides against dose, a sample changing by itself against time.',
          committed=('docs/figures/burn_dose',),
          docs=('docs/figures/burn_dose/README.md', 'docs/handoff_out/07-burn-trends.md:102',
-               'docs/physics_notes.md:3966'),
+               'docs/physics_notes.md:3967'),
          data='any', defaults={'--out': OUT}, spec_option='--spec',
          variations=(
              V('Nominal foils (1.4247 per unit)', 'The flux ratio of the docs\' "4.1x" instead of the calibrated '
-               '4.68: the dose ratio of the drifts moves from 0.79 to 0.90.', 'docs/physics_notes.md:3241',
+               '4.68: the dose ratio of the drifts moves from 0.79 to 0.90.', 'docs/physics_notes.md:3242',
                absorbers='nominal'),
              V('One spot measured twice', 'Scan 15\'s dose and time follow scan 14\'s: 15 starts where 14 '
                'ended, as one spot would.', 'docs/handoff_out/07-burn-trends.md:104', join=True),
@@ -265,17 +265,17 @@ TOOLS = (
                'added since (hybrid, other orders and windows).', 'docs/COMPARISONS.md:89', design='all',
                methods='all', replicates='400'),
              V('Poisson monitor', 'Monc with Poisson noise: the χ² test is blunter, the verdict the same.',
-               'docs/physics_notes.md:3724', monitor='poisson'),
+               'docs/physics_notes.md:3725', monitor='poisson'),
              V('Counting errors only', 'The monitor\'s 0.05 % left out of the per-point errors: pulls wider than 1 '
                'above about 3e5 counts.', 'docs/SYNTHETIC_DATA.md:188', errors='counting'),
              V('Grid: films and roughness', 'One factor at a time from the baseline: film thickness and roughness.',
-               'docs/physics_notes.md:3769', design='grid', methods='key',
+               'docs/physics_notes.md:3770', design='grid', methods='key',
                conditions='layer_film50,layer_film250,layer_film400,rough_film_2.5,rough_film_6'),
              V('Grid: planted faults', 'A slit change the monitor misses and a foil 2 % off: where the foil prior '
-               'misleads.', 'docs/physics_notes.md:3769', design='grid', methods='all',
+               'misleads.', 'docs/physics_notes.md:3770', design='grid', methods='all',
                conditions='fault_slits_missed,fault_foil_2pc'),
              V('Grid: low flux', 'Flux x0.3 to x0.03: how the methods degrade as counts fall.',
-               'docs/physics_notes.md:3769', design='grid', methods='key',
+               'docs/physics_notes.md:3770', design='grid', methods='key',
                conditions='flux_x0.3,flux_x0.1,flux_x0.03'),
          ),
          committed_with={'--design': 'all', '--methods': 'legacy,interp,coincident,joint_o4_e2,joint_o4_e2_prior,joint_o4_e4,joint_o4_e4_g01', '--replicates': '400'},
@@ -313,10 +313,12 @@ TOOLS = (
          'tests/tools/compare_methods.py',
          'Old and new methods side by side on the same data, as CSV files with a manifest: error models, '
          'legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, the footprint window, '
-         'absorber factors, "Sum All" as the counts over the monitors vs the mean of the normalised frames.',
+         'absorber factors, "Sum All" as the counts over the monitors vs the mean of the normalised frames, '
+         'each frame\'s true incidence (header In_Rot vs α from L).',
          committed=('docs/comparisons_data/manifest.json', 'docs/comparisons_data/C2_*',
                     'docs/comparisons_data/C6_*', 'docs/comparisons_data/C10_*', 'docs/comparisons_data/C11_*',
-                    'docs/comparisons_data/C21_*', 'docs/comparisons_data/C24_*', 'docs/comparisons_data/C41_*'),
+                    'docs/comparisons_data/C21_*', 'docs/comparisons_data/C24_*', 'docs/comparisons_data/C41_*',
+                    'docs/comparisons_data/C43_*'),
          docs=('docs/COMPARISONS.md',), data='any',
          defaults={'--out': OUT, '--spec': NX}, spec_option='--spec',
          variations=(
@@ -343,9 +345,9 @@ TOOLS = (
          inputs=('docs/handoff_out/03-answer/joins.csv',),
          variations=(
              V('Strict cuts', 'Monc/Monp within 1 %, χ²/dof < 5, no error floor: each foil moves by at most '
-               '0.9 µm (the fit is robust to its cuts).', 'docs/physics_notes.md:1627',
+               '0.9 µm (the fit is robust to its cuts).', 'docs/physics_notes.md:1628',
                monc_tol='0.01', chi2_max='5', floor='0'),
-             V('Loose cuts', 'Monc/Monp within 3 %, no χ² cut, 1 % floor.', 'docs/physics_notes.md:1627',
+             V('Loose cuts', 'Monc/Monp within 3 %, no χ² cut, 1 % floor.', 'docs/physics_notes.md:1628',
                chi2_max='inf', floor='0.01'),
              V('Less clipping', 'Clip at 10 robust SDs instead of 5: outlying joins pull the foils.',
                'tests/tools/foil_fit_from_joins.py', clip='10'),
@@ -404,20 +406,20 @@ TOOLS = (
          'The beam profile the "beam" response measures along the beam axis, and the beam height it implies '
          '(about 52 µm on NX scan 11).',
          committed=('docs/figures/pinhole_beam',), docs=('docs/figures/pinhole_beam/README.md',
-                                                         'docs/physics_notes.md:2894'),
+                                                         'docs/physics_notes.md:2895'),
          data='any', defaults={'--out': OUT}, spec_option='--spec', inputs=(NX,), seconds=7.2),
     Tool('pinhole_beam_profile', 'Gaussian beam vs uniform footprint', 'gid', 'text',
          'tests/tools/pinhole_beam_profile.py',
          'What a Gaussian beam does to the pinhole patch, which assumes a uniform footprint: the column '
          'response it predicts and the bias left in a map.',
-         docs=('docs/physics_notes.md:2654', 'docs/COMPARISONS.md:76'), data='public',
+         docs=('docs/physics_notes.md:2655', 'docs/COMPARISONS.md:76'), data='public',
          variations=(
              V('Beam 60 µm', 'A wider beam: bias inside the map 0.97-1.03 (against 0.93-1.04 at 30 µm), edges '
-               '0.91-1.37 (against 0.71-2.8).', 'docs/physics_notes.md:2676', fwhm_v='0.060'),
+               '0.91-1.37 (against 0.71-2.8).', 'docs/physics_notes.md:2677', fwhm_v='0.060'),
              V('Beam 52 µm (as NX implies)', 'The beam height NX scan 11\'s data imply.',
-               'docs/physics_notes.md:2710', fwhm_v='0.052'),
+               'docs/physics_notes.md:2711', fwhm_v='0.052'),
              V('Narrow horizontal beam (0.1 mm)', 'The horizontal width smears which point of the beam axis a '
-               'column sees, never its 2θ.', 'docs/physics_notes.md:2656', fwhm_h='0.1'),
+               'column sees, never its 2θ.', 'docs/physics_notes.md:2657', fwhm_h='0.1'),
          ),
          inputs=(NX,), seconds=10.6),
     Tool('gid_stray_light', 'Stray light in pinhole GID frames', 'gid', 'figures',
@@ -461,15 +463,15 @@ TOOLS = (
          'The pinhole patch of each Qz level made from groups of detector columns, and the level join\'s factor '
          'per group with the cells of the β overlap: why the factor depends on which columns are used.',
          committed=('docs/figures/gid_column_groups',),
-         docs=('docs/figures/gid_column_groups/README.md', 'docs/physics_notes.md:2725'), data='any',
+         docs=('docs/figures/gid_column_groups/README.md', 'docs/physics_notes.md:2726'), data='any',
          defaults={'--out': OUT}, spec_option='--spec',
          variations=(
              V('The same columns at both levels', 'Groups inside the columns every level has: the pooled group '
-               'factors then agree within errors (1.024, 1.009, 0.985).', 'docs/physics_notes.md:2754',
+               'factors then agree within errors (1.024, 1.009, 0.985).', 'docs/physics_notes.md:2755',
                columns='common'),
              V('Beam response', 'The response along the beam axis instead of one factor per column: the column '
-               'dependence remains.', 'docs/physics_notes.md:2722', response='beam'),
-             V('No response', 'Each group\'s map keeps its columns\' own light.', 'docs/physics_notes.md:2746',
+               'dependence remains.', 'docs/physics_notes.md:2723', response='beam'),
+             V('No response', 'Each group\'s map keeps its columns\' own light.', 'docs/physics_notes.md:2747',
                response='none'),
              V('Angle maps (faster)', 'The maps of the cells themselves, in (2θ, β), without the regridding to Q.',
                'tests/tools/gid_column_groups.py', axes='Angles'),
@@ -510,15 +512,15 @@ TOOLS = (
          'tests/tools/monitor_distribution.py',
          'Frame-to-frame deviations of Monc pooled over the sample SPEC files: Gaussian, Student t or Laplace; '
          'drift or noise; what share of each point\'s variance the monitor takes.',
-         docs=('docs/physics_notes.md:972', 'docs/COMPARISONS.md:56'),
+         docs=('docs/physics_notes.md:973', 'docs/COMPARISONS.md:56'),
          data='any', defaults={'paths': NX}, spec_option='paths',
          variations=(ALL_SAMPLE_DATA('paths', 'Part A pooled over every SPEC file the reader can see.',
-                                        'docs/physics_notes.md:972'),),
+                                        'docs/physics_notes.md:973'),),
          inputs=(NX,), seconds=1.9),
     Tool('monitor_ratio', 'Monc/Monp: beam variation or noise', 'monitor', 'text',
          'tests/tools/monitor_ratio.py',
          'The two monitors\' common scatter (beam variation, cancels in the ratio) against each one\'s own '
-         'noise, per scan.', docs=('docs/reports/monitor_noise.md', 'docs/physics_notes.md:602'), data='any',
+         'noise, per scan.', docs=('docs/reports/monitor_noise.md', 'docs/physics_notes.md:603'), data='any',
          free=NX, free_help='a SPEC file (default: NX school)', spec_option='free', seconds=0.1),
     Tool('monitor_witness', 'Monc jumps: the detector as witness', 'monitor', 'text',
          'tests/tools/monitor_witness.py',
@@ -536,10 +538,10 @@ TOOLS = (
     Tool('spec_epoch', 'What the SPEC Epoch column measures', 'monitor', 'text',
          'tests/tools/spec_epoch.py',
          'Epoch of each scan\'s first point against its header time: seconds since the file\'s #E, plus the '
-         'local-time offset of #D.', docs=('docs/physics_notes.md:697',), data='any',
+         'local-time offset of #D.', docs=('docs/physics_notes.md:698',), data='any',
          defaults={'specs': NX}, spec_option='specs',
          variations=(ALL_SAMPLE_DATA('specs', 'The nine sample files of the 2026-11-16 answer: NX and the bu '
-                                              'files.', 'docs/physics_notes.md:697'),),
+                                              'files.', 'docs/physics_notes.md:698'),),
          seconds=0.1),
 
     Tool('fit_scan_survey', 'Scan-shape fits of every column (survey)', 'monitor', 'data',
@@ -581,7 +583,7 @@ TOOLS = (
              V('Rough interfaces (6 Å)', 'R/R_F falls as exp(−Qz²σ²): twice the roughness, four times the '
                'decay rate.', 'docs/SYNTHETIC_DATA.md:48', roughness='6'),
              V('Background ×100', 'A diffuse background a hundred times NX\'s: the ROI background boxes earn '
-               'their keep at high Qz.', 'docs/physics_notes.md:3774', background='100'),
+               'their keep at high Qz.', 'docs/physics_notes.md:3775', background='100'),
              V('XFNTR series', 'Fluorescence near total reflection: one MCA file per Qz, a surface and a bulk ion.',
                'docs/SYNTHETIC_DATA.md:55', kind='xfntr'),
              V('Burn series', 'One spot measured 21 times, the peak decaying with τ = 400 s.',

@@ -376,7 +376,7 @@ class Experiment:
                 xc, yc = float(det.NCOLS) - 1 - p['DBPos'][1], p['DBPos'][0]
             else:
                 xc, yc = float(db_pos[0]), float(db_pos[1])
-            geoms.append(cutmod.Geometry(wl, alpha, p['In_Rot'] * np.pi / 180.0, dth,
+            geoms.append(cutmod.Geometry(wl, alpha, cutmod.true_incidence(cols, f.index, wl, p['In_Rot']), dth,
                                          -p['g_l2'] * np.tan(alpha), dist, p['S2D_Dist'], xc, yc))
             labels.append('S# %d_F# %d' % (f.scan, f.index))
         if summed:
@@ -424,7 +424,8 @@ class Experiment:
             else:
                 centre = (float(db_pos[0]), float(db_pos[1]))
             out.append(gidmod.GIDFrame(np.array(det.imageData), np.array(det.errorData), f.monitor, f.absorber,
-                                       f.scan, f.qz, np.arcsin(f.qz * wl / 4.0 / np.pi), p['In_Rot'] * np.pi / 180.0,
+                                       f.scan, f.qz, np.arcsin(f.qz * wl / 4.0 / np.pi),
+                                       cutmod.true_incidence(cols, f.index, wl, p['In_Rot']),
                                        dth, wl, centre, p['S2D_Dist'], p['S7D_Dist'], p['Sample_H'],
                                        (p['S1L'] + p['S1R'], p['S1T'] + p['S1B'], p['S4L'] + p['S4R'], p['S5L'] + p['S5R']),
                                        p))

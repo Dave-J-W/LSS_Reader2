@@ -3141,7 +3141,9 @@ class MainWindow (QMainWindow):
                     self.pilFileQxs.append(self.specData[i]['H'][j])
                     self.pilFileQys.append(self.specData[i]['K'][j])
                     self.pilAlpha.append(np.arcsin(self.pilFileQzs[-1]*self.specPar[i]['Wavelength']/4.0/np.pi))
-                    self.pilTrueAlpha.append(self.specPar[i]['In_Rot']*np.pi/180.0)
+                    # per frame: the header's In_Rot predates the scan's moves, so a specular scan takes
+                    # each frame's from its L (P47, 2026-11-23; lss_core.cuts.true_incidence)
+                    self.pilTrueAlpha.append(cuts.true_incidence(self.specData[i],j,self.specPar[i]['Wavelength'],self.specPar[i]['In_Rot']))
                     self.pilX.append(self.specPar[i]['DBPos'][1])
                     self.pil_Wavelength.append(self.specPar[i]['Wavelength'])
                     self.pilY.append(self.specPar[i]['DBPos'][0])

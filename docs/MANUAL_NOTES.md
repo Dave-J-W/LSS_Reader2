@@ -138,6 +138,9 @@ Each line: feature — where — default — script — notes entry (date).
   default ranges are a known gap (F59, docket). A user complained (2026-11-18)
   that cuts in Qz/Qxy and I vs β are not documented: I vs β works today as
   "Pix V" with axes "Angles"; write this part of the manual first.
+  Since 2026-11-23 each frame of a reflectivity scan has its own incidence
+  angle (from its Qz; the scan header's In_Rot is the position before the
+  scan moved, P47), so the reflected beam sits at β = α on that axis.
 - Background images and background-subtracted frames (not scriptable yet).
 - Everything shown is per Monc (2026-11-23, owner: "all data is default
   normalized by monc, even gisaxs"): the image and its colour range, the
