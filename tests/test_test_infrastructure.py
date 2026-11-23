@@ -1,5 +1,5 @@
 """The test suite's own machinery: windows freed after every test, nothing
-left on disk (2026-11-23, docs/TESTING.md).
+left on disk, parallel by default (2026-11-23, docs/TESTING.md).
 
 Measured before these: a quick run held about 10 GB in its one process
 (every window of every test stayed alive), took 9 min 44 s, and left
@@ -75,3 +75,28 @@ def test_sweep_output_folders_are_inside_the_tests_tmp_path(window, qapp, datase
     sweep.state_spec_loaded(window, qapp, dataset)
     assert os.path.commonpath([window.directory, str(tmp_path)]) == str(tmp_path)
     assert os.path.basename(window.directory).startswith('lss-sweep-out-')
+
+
+def test_parallel_unless_benchmarking_or_regenerating(monkeypatch, pytestconfig):
+    class Config:
+        def __init__(self, mark):
+            self.mark = mark
+
+        def getoption(self, name, default=None):
+            return self.mark
+    for k in conftest.SERIAL_ENV:
+        monkeypatch.delenv(k, raising=False)
+    assert not conftest._wants_serial(Config("not sweep and not slow and not bench"))
+    assert not conftest._wants_serial(Config('slow'))
+    assert conftest._wants_serial(Config('bench'))
+    monkeypatch.setenv('LSS_UPDATE_CRASHES', '1')
+    assert conftest._wants_serial(Config('sweep'))
+
+
+def test_auto_workers_fit_the_cpus_and_the_memory(monkeypatch):
+    cpus = len(os.sched_getaffinity(0))
+    assert 1 <= conftest.pytest_xdist_auto_num_workers(None) <= cpus
+    monkeypatch.setattr(conftest, '_available_memory_mb', lambda: 3 * conftest.WORKER_MEMORY_MB)
+    assert conftest.pytest_xdist_auto_num_workers(None) == min(cpus, 3)
+    monkeypatch.setattr(conftest, '_available_memory_mb', lambda: 100)
+    assert conftest.pytest_xdist_auto_num_workers(None) == 1

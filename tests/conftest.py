@@ -43,6 +43,65 @@ os.chdir(ROOT)
 
 import pytest  # noqa: E402
 
+# ---- parallel by default (2026-11-23) ---------------------------------------
+# With pytest-xdist installed (requirements-dev.txt), a plain `pytest` runs on
+# one worker per CPU, as many as memory allows; give -n yourself to choose
+# (-n0: in this process, e.g. to use a debugger). Without pytest-xdist
+# everything runs here as before. These stay in one process: the timing
+# benchmarks (-m bench), and regenerating stored results (LSS_UPDATE_CRASHES,
+# LSS_UPDATE_GOLDEN), whose tests rewrite shared files.
+SERIAL_ENV = ('LSS_UPDATE_CRASHES', 'LSS_UPDATE_GOLDEN')
+WORKER_MEMORY_MB = 2048          # a worker of the quick suite peaks near 1 GB (2026-11-23)
+
+
+def _wants_serial(config):
+    import re
+    mark = config.getoption('markexpr', '') or ''
+    return (any(os.environ.get(k) for k in SERIAL_ENV)
+            or re.search(r'(?<!not )\bbench\b', mark) is not None)
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_cmdline_main(config):
+    if not hasattr(config.option, 'numprocesses'):        # pytest-xdist not installed
+        return None
+    if os.environ.get('PYTEST_XDIST_WORKER') or hasattr(config, 'workerinput'):
+        return None    # a worker: xdist resets its -n to None, and a default here would start workers of workers
+    if config.option.numprocesses is None:                 # no -n given
+        if _wants_serial(config):
+            config.option.numprocesses = 0
+        else:
+            config.option.numprocesses = 'auto'
+            if config.option.dist == 'no':
+                config.option.dist = 'worksteal'           # tests of very unequal length
+    return None
+
+
+def _available_memory_mb():
+    try:
+        with open('/proc/meminfo') as f:
+            info = dict(line.split(':', 1) for line in f)
+        return int(info['MemAvailable'].split()[0]) // 1024
+    except (OSError, KeyError, ValueError):
+        try:
+            return os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_AVPHYS_PAGES') // 2 ** 20
+        except (AttributeError, ValueError, OSError):
+            return None
+
+
+@pytest.hookimpl(optionalhook=True)                   # a known hook only when pytest-xdist is installed
+def pytest_xdist_auto_num_workers(config):
+    """-n auto: the CPUs this process may use, at most one worker per
+    WORKER_MEMORY_MB of available memory, at least one."""
+    try:
+        cpus = len(os.sched_getaffinity(0))
+    except AttributeError:
+        cpus = os.cpu_count() or 1
+    mem = _available_memory_mb()
+    by_memory = cpus if mem is None else max(1, mem // WORKER_MEMORY_MB)
+    return max(1, min(cpus, by_memory))
+
+
 @pytest.fixture(scope='session')
 def qapp():
     import gc
