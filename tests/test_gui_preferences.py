@@ -49,7 +49,8 @@ def test_settings_are_saved_and_read_back(window, qapp, recorder):
                       'ref_patch_method': 'legacy',                         # 2026-11-22 (default 'joint')
                       # fitting options and saving (owner, 2026-11-21)
                       'peak_fit': {}, 'mca_fit': {'background': 'quadratic', 'n_peaks': 1}, 'save_asks_note': True, 'auto_save': True, 'live_interval_s': 5.0, 'burn': {},
-                      'select_whole_series': True}
+                      'select_whole_series': True,
+                      'ngui': False}                                        # the ngui prototype, off (F82, 2026-11-23)
     assert preferences.load() == stored
     assert recorder.exceptions == []
 
