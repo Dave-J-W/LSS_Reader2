@@ -128,6 +128,12 @@ def controls(w):
         if isinstance(b, (QtWidgets.QCheckBox, QtWidgets.QRadioButton)):
             out['toggle:' + name] = b.toggle
         elif isinstance(b, QtWidgets.QPushButton):
+            if b.menu() is not None:
+                # a button with a popup menu (the ngui prototype's provenance
+                # strip): click() runs the menu's own event loop, which nothing
+                # closes offscreen, so the walk hung (found 2026-11-23); its
+                # actions are QActions, triggered as such
+                continue
             out['click:' + name] = b.click
     for a in w.findChildren(QtWidgets.QAction):
         name = a.objectName()
