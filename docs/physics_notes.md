@@ -4673,7 +4673,8 @@ the same way (C42).
    first join of the downstream-covariance study (`TODO.md` B). **Next**,
    after F90.
 5. A fallback to the coinciding-points ratio where fringes are
-   undersampled. **Dropped**. The owner, 2026-11-23, through Main:
-   "fringes will rarely be undersampled, or even be sampled close to
-   nyquist, that is not an important case to consider."
+   undersampled. **Dropped** by the owner on 2026-11-23. Main recorded
+   the owner's words at the end of its F91 entry ("Owner, same day:
+   undersampled fringes are not a case to consider"), and `TODO.md` B
+   strikes the row.
 6. and 7. **Parked** by Main.
