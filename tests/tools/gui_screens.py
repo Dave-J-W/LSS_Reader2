@@ -35,15 +35,32 @@ import time
 import traceback
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+_TMP_COUNT = {}
+
+
+def fixed_tmp(prefix):
+    """A fresh empty folder whose name is the same on every run
+    (<tmp>/lss_screens/<prefix><n>, n counting the calls with that prefix):
+    paths appear in plot titles, legends and the status bar, and random
+    names made unchanged screenshots differ on every rerun (2026-11-23)."""
+    import shutil
+    n = _TMP_COUNT[prefix] = _TMP_COUNT.get(prefix, 0) + 1
+    path = os.path.join(tempfile.gettempdir(), 'lss_screens', '%s%d' % (prefix, n))
+    shutil.rmtree(path, ignore_errors=True)
+    os.makedirs(path)
+    return path
+
 os.chdir(ROOT)
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, 'tests'))
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 os.environ.setdefault('MPLBACKEND', 'Agg')
-os.environ['LSS_READER_LOG_DIR'] = tempfile.mkdtemp(prefix='lss_screens_logs_')
-os.environ['LSS_READER_PREFS'] = os.path.join(tempfile.mkdtemp(prefix='lss_screens_prefs_'), 'p.json')
+os.environ['LSS_READER_LOG_DIR'] = fixed_tmp('lss_screens_logs_')
+os.environ['LSS_READER_PREFS'] = os.path.join(fixed_tmp('lss_screens_prefs_'), 'p.json')
 os.environ['LSS_READER_SELECTION_DELAY_MS'] = '0'
-os.environ['LSS_READER_DISK_CACHE'] = tempfile.mkdtemp(prefix='lss_screens_cache_')
+os.environ['LSS_READER_DISK_CACHE'] = fixed_tmp('lss_screens_cache_')
 
 NX = os.path.join(ROOT, 'sample_data', 'NX_school', '2026sep', '20260923')
 WIN_W, WIN_H = 2300, 1400
@@ -144,7 +161,7 @@ def new_window(app, spec=None, directory=None):
     w.show()
     if spec:
         w.openSpecFile(fname=spec)
-        w.directory = directory or tempfile.mkdtemp(prefix='lss_screens_out_')   # rule 7
+        w.directory = directory or fixed_tmp('lss_screens_out_')   # rule 7
     settle(app)
     return w
 
@@ -264,9 +281,13 @@ def disarm(ctx):
 
 
 def grab_toplevels(app, before, prefix, shows, state, ctx=None, skip=()):
-    """Save every top-level widget that became visible since ``before``."""
+    """Save every top-level widget that became visible since ``before``.
+    Progress windows are left out: a finished 'Reading Scan #1, 100%' window
+    from an earlier step sometimes appears late and was caught instead of
+    the window wanted (2026-11-23; TODO area I)."""
+    from PyQt5.QtWidgets import QProgressDialog
     settle(app)
-    new = [t for t in visible_tops(app) if t not in before and t not in skip]
+    new = [t for t in visible_tops(app) if t not in before and t not in skip and not isinstance(t, QProgressDialog)]
     k = 0
     for t in new:
         name = prefix if k == 0 else prefix.replace('.png', '%s.png' % chr(ord('a') + k))
@@ -344,7 +365,7 @@ def _series_row(w, text):
 def run_nx(app, ctx, skip_slow):
     import numpy as np
     from PyQt5.QtCore import QPoint
-    tmp = tempfile.mkdtemp(prefix='lss_screens_files_')
+    tmp = fixed_tmp('lss_screens_files_')
 
     # --- empty window
     @step('empty window')
@@ -750,7 +771,7 @@ MENUS = []
 
 def run_xfntr(app, ctx):
     import synth
-    tmp = tempfile.mkdtemp(prefix='lss_screens_xf_')
+    tmp = fixed_tmp('lss_screens_xf_')
     spec, truth = synth.make_xfntr_dataset(os.path.join(tmp, 'xf'))
     w = new_window(app, spec)
 
@@ -844,7 +865,7 @@ def run_xfntr(app, ctx):
 
 def run_burn_ref(app, ctx):
     import synth
-    tmp = tempfile.mkdtemp(prefix='lss_screens_burn_')
+    tmp = fixed_tmp('lss_screens_burn_')
 
     @step('reflectivity burn')
     def b():
@@ -872,7 +893,7 @@ def run_burn_ref(app, ctx):
 def run_plot_tabs(app, ctx, plot_files):
     import numpy as np
     import synth
-    tmp = tempfile.mkdtemp(prefix='lss_screens_plot_')
+    tmp = fixed_tmp('lss_screens_plot_')
     w = new_window(app, NX)
 
     @step('plot tab')

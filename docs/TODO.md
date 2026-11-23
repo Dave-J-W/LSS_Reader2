@@ -151,6 +151,7 @@ GUI overhaul (R4, D58; plan `docs/gui/README.md`), planning only until the owner
 | GIOXS uses a variable before assignment when the frame count is not a multiple of "ave frames" | read |
 | The Plot tab still opens a blocking QMessageBox (rule: `notify`) | read |
 | The crash sweep never exercises actions behind a file chooser that returns a file (e.g. 2D_Plot add file): extend it | read |
+| A finished "Reading Scan #1, 100 %" progress window sometimes appears late, after the reading it belongs to; the SPEC reader keeps it referenced (`spec_routines.py:236`), so Qt's show-if-slow timer may show it (cause guessed). Seen twice in four screenshot runs; not reproduced by opening the NX file and waiting 6 s | seen (intermittent) |
 
 Other items: ~~make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load~~ done 2026-11-22 (waits up to 3 s for the one draw); GUI reorganisation (R4) with redraw in place
 and diffuse cuts (F59); slow-file-system timing; `timings.md` regenerated;
