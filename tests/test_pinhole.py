@@ -203,6 +203,26 @@ def test_a_sharp_line_lands_in_one_bin_whatever_the_column():
     assert info['counts_used'] > 20 * sum(f.counts[15:487, 46:49].sum() for f in fr) / 3 / 10
 
 
+def test_per_axis_angles_are_kept_for_comparison_c21():
+    """``level_map(angles='per_axis')`` (2026-11-23, comparison C21) bins on
+    the column's 2θ and the row's β, the method before 2026-11-19: the same
+    counts are used as with exact angles (only where they land differs), the
+    line still lands at its 2θ on the direct-beam row, and the β axis is
+    the per-axis one."""
+    t0 = 16.65
+    step = math.degrees(ph.PIXEL_MM / 271)
+    line = lambda t: np.where(np.abs(t - t0) < step / 2, 1e-2, 1e-5)
+    fr = _frames(np.arange(14, 18.01, 0.1), line)
+    exact = ph.level_map(fr, 15, 486, response='none', area=False, pol=False)
+    axis = ph.level_map(fr, 15, 486, response='none', area=False, pol=False, angles='per_axis')
+    assert axis[4]['counts_used'] == pytest.approx(exact[4]['counts_used'], rel=1e-9)
+    prof = np.nansum(axis[2], axis=1)
+    assert axis[0][int(np.argmax(prof))] == pytest.approx(t0, abs=step / 2 + 1e-9)
+    assert not np.array_equal(np.nan_to_num(exact[2]), np.nan_to_num(axis[2]))
+    with pytest.raises(ValueError):
+        ph.level_map(fr, 15, 486, angles='sideways')
+
+
 def test_wrong_distance_smears_the_line():
     t0 = 16.65
     step = math.degrees(ph.PIXEL_MM / 271)
@@ -324,6 +344,38 @@ def test_join_recovers_the_factor_and_the_ranges():
     mean_m = 1e6
     rel = (I / mean_m) / truth(tt[:, None], beta[None, :])            # the joined map is the truth
     assert np.nanmean(rel) == pytest.approx(1.0, abs=0.01)
+
+
+def test_level_factor_is_unbiased_at_low_counts():
+    """P46 (2026-11-23): the level factor by likelihood stays on the truth
+    (1.25) when β bins hold few counts; the inverse-variance mean of the
+    bins' ratios, the estimator before, falls below it (weights 1/err²
+    with err ∝ each bin's own ratio favour the bins that came out low).
+    Measured over 16 seeds: −0.03 % against −1.0 % at monitor 500, +0.1 %
+    against −4.9 % at monitor 100."""
+    truth = lambda t, b: 2e-4 * (1 + 2 * np.exp(-((t - 16.5) / 0.3) ** 2)) * (1 + 0.1 * b)
+    got = {'ml': [], 'ivw': []}
+    for seed in range(4):
+        rng = np.random.default_rng(seed)
+        a = _level(np.arange(14.0, 17.01, 0.1), 0.09, 1.0, truth, rng, monitor=100)
+        b = _level(np.arange(15.0, 18.51, 0.1), 3.0, 0.8, truth, rng, monitor=100)
+        edges = ph.shared_edges(a + b)
+        infos = [ph.level_map(x, 15, 486, response='none', area=False, pol=False, edges=edges)[4] for x in (a, b)]
+        for k in got:
+            factors = ph.join_levels(infos, estimator=k)[4]['factors']
+            got[k].append(list(factors.values())[1][0])
+    assert np.mean(got['ml']) == pytest.approx(1.25, rel=0.006)
+    assert np.mean(got['ivw']) < 1.25 * 0.97
+
+
+def test_ratio_ml_is_the_pooled_ratio_for_one_bin_and_recovers_a_scale():
+    f, e = ph.ratio_ml([400.0], [2.0], [100.0], [1.0])
+    assert f == pytest.approx((400 / 2) / (100 / 1)) and e == pytest.approx(f * math.sqrt(1 / 400 + 1 / 100), rel=1e-6)
+    rng = np.random.default_rng(3)
+    wa, wb = rng.uniform(1, 3, 50), rng.uniform(1, 3, 50)
+    lam = rng.uniform(1, 5, 50)
+    fs = [ph.ratio_ml(rng.poisson(lam * wa), wa, rng.poisson(lam * wb / 1.3), wb)[0] for _ in range(200)]
+    assert np.mean(fs) == pytest.approx(1.3, rel=0.01)                 # about 3 counts per bin and side
 
 
 def test_join_conserves_counts():

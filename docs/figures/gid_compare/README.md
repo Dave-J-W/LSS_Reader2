@@ -31,7 +31,9 @@ refuses to write private data into the repository).
 Regenerated 2026-11-20 after the P39 fix (exact footprint window, D51):
 the pinhole map of scan 11 reaches 2θ 19.93° (was 19.82°), 177 Qxy bins
 (was 174), 5.65e5 raw counts (was 5.47e5), peak FWHM 0.0155 (was 0.0157);
-the 11 + 12 Qz join is 1.068 ± 0.013 (was 1.097).
+the 11 + 12 Qz join is 1.068 ± 0.013 (was 1.097). Regenerated 2026-11-23
+after P46 (the join factor by likelihood): the 11 + 12 join is
+1.088 ± 0.014; the scan-11 figures are unchanged.
 
 ## How to read them
 

@@ -10,6 +10,10 @@ truth beside them. Report: docs/reports/patch_demo.md.
     python tests/tools/patch_demo.py --set truth=water --set plan=edge      # a documented variation
     python tests/tools/patch_demo.py --mode burn --set change=fade --set monitor=1e5
 
+``--survey N`` prints a survey over N replicates instead of opening the
+window (reflectivity: every method's pull mean and SD per join; burn:
+every estimator's bias, scatter and stable fraction per quantity).
+
 ``--set KEY=VALUE`` (repeatable) sets a field of the demonstration's
 settings before the window opens or the views are drawn: reflectivity
 fields of ``demonstrator.refl.Config`` (truth, plan, counts, thickness,
@@ -69,6 +73,34 @@ def configs(pairs, mode='refl'):
     return cfgs['refl'], cfgs['burn']
 
 
+def survey(a, rc, bc):
+    """The demonstrator's survey over replicates, as a table (2026-11-23:
+    the documents' "refl.survey(Config(plan='staggered'), range(200))" and
+    "lower monitor until each estimator fails" as command lines)."""
+    seeds = range(a.seed, a.seed + a.survey)
+    if a.mode == 'refl':
+        from demonstrator import refl
+        names = (list(refl.DEFAULT_METHODS) if a.methods == 'default' else
+                 list(refl.METHODS) if a.methods == 'all' else [m.strip() for m in a.methods.split(',')])
+        out, _ = refl.survey(rc, seeds, names)
+        print('reflectivity survey: %d replicates (seeds %d..%d), %s' % (a.survey, seeds[0], seeds[-1], rc))
+        print('%-22s %4s %8s %8s %8s %6s' % ('method', 'join', 'bias', 'pull', 'pull SD', 'failed'))
+        for n in names:
+            for j, p in sorted(out[n]['joins'].items()):
+                print('%-22s %4d %+8.4f %+8.3f %8.3f %6d' % (n, j, p['bias'], p['pull_mean'], p['pull_sd'],
+                                                            out[n]['failed']))
+    else:
+        from demonstrator import burnmode as bm
+        out, _ = bm.survey(bc, seeds)
+        print('burn survey: %d replicates (seeds %d..%d), %s' % (a.survey, seeds[0], seeds[-1], bc))
+        print('%-10s %-10s %10s %10s %10s %10s %7s' % ('estimator', 'quantity', 'true', 'mean', 'bias', 'sd', 'stable'))
+        for n, per in out.items():
+            for q, d in per.items():
+                print('%-10s %-10s %+10.4g %+10.4g %+10.4g %10.4g %7.2f' % (n, q, d['true'], d['mean'], d['bias'],
+                                                                         d['sd'], d['stable']))
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--mode', choices=('refl', 'burn'), default='refl')
@@ -79,11 +111,19 @@ def main(argv=None):
     ap.add_argument('--burn-replicates', type=int, default=30, help='replicates per burn survey (--save)')
     ap.add_argument('--rows', metavar='DIR2', help='also write the per-replicate CSVs (large) into DIR2 (--save)')
     ap.add_argument('--quick', action='store_true', help='few replicates (smoke run)')
+    ap.add_argument('--survey', type=int, default=0, metavar='N',
+                    help='print a survey over N replicates (from --seed) instead of opening the window: '
+                         'reflectivity, every method\'s pull mean and SD per join; burn, every estimator\'s '
+                         'bias, scatter and stable fraction per quantity')
+    ap.add_argument('--methods', default='default',
+                    help="--survey, reflectivity: 'default' (the window's four), 'all', or a comma-separated list")
     ap.add_argument('--set', action='append', default=[], metavar='KEY=VALUE',
                     help='a setting of the window or of --views, e.g. truth=water, plan=edge, '
                          'counts=100, monitor=poisson, change=fade (repeatable)')
     a = ap.parse_args(argv)
     rc, bc = configs(a.set, a.mode)
+    if a.survey:
+        return survey(a, rc, bc)
     if a.save or a.views:
         import matplotlib
         matplotlib.use('Agg')

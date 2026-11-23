@@ -88,5 +88,14 @@ def main(argv):
     return rows
 
 
+def cli(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description="List the '#M Monc Gain' lines the reader cannot interpret (F52).")
+    ap.add_argument('paths', nargs='*', help='SPEC files or folders (default: everything under sample_data/, '
+                                             'the private sets included when present)')
+    main(ap.parse_args(argv).paths)
+    return 0
+
+
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    sys.exit(cli())

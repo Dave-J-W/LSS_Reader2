@@ -75,7 +75,7 @@ def _args_text(args):
             for x in v:
                 out += [k, shlex.quote(str(x))]
         elif k.startswith('-'):
-            out += [k, shlex.quote(str(v))]
+            out += ['%s=%s' % (k, shlex.quote(str(v)))] if str(v).startswith('-') else [k, shlex.quote(str(v))]
         else:
             out.append(shlex.quote(str(v)))
     return ' '.join(out)

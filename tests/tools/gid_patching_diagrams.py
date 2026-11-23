@@ -754,11 +754,9 @@ def join_ratios(levels):
         vb = np.where(cells, nbb / sb ** 2, 0.0).sum(axis=0) / np.maximum(m, 1) ** 2
     ok = (m > 0) & (pa > 0) & (pb > 0)
     ratio = pa[ok] / pb[ok]
-    err = ratio * np.sqrt(va[ok] / pa[ok] ** 2 + vb[ok] / pb[ok] ** 2)
-    wt = 1 / err ** 2
-    fac = float(np.sum(wt * ratio) / np.sum(wt))
-    ferr = float(np.sum(wt) ** -0.5)
-    chi2 = float(np.sum(wt * (ratio - fac) ** 2) / max(ok.sum() - 1, 1))
+    fac, ferr = ph.level_factor_ml(na, wa, nbb, wb, cells)      # the reader's estimator since 2026-11-23 (P46)
+    err = fac * np.sqrt(va[ok] / pa[ok] ** 2 + vb[ok] / pb[ok] ** 2)
+    chi2 = float(np.sum((ratio - fac) ** 2 / err ** 2) / max(ok.sum() - 1, 1))
     bc = 0.5 * (bedges[:-1] + bedges[1:])[ok]
     return dict(beta=bc, pa=pa[ok], pb=pb[ok], sa=np.sqrt(va[ok]), sb=np.sqrt(vb[ok]), ratio=ratio, err=err,
                 factor=fac, error=ferr, chi2=chi2, cells=m[ok], bstep=bstep)
@@ -830,7 +828,7 @@ def fig_join_factor(out):
     axr.errorbar(j['beta'], j['ratio'], j['err'], fmt='o', ms=3.5, color=OVL, lw=0.8, label='r(β) per β bin ± σ')
     axr.axhspan(j['factor'] - j['error'], j['factor'] + j['error'], color=LV2, alpha=0.25, lw=0)
     axr.axhline(j['factor'], color=LV2, lw=1.8,
-                label='level join factor = weighted mean = %.3f ± %.3f' % (j['factor'], j['error']))
+                label='level join factor (likelihood of the counts\' split) = %.3f ± %.3f' % (j['factor'], j['error']))
     axr.axhline(1.0, color=MUTED, lw=0.8, ls=':')
     axr.set_xlabel('β (deg)')
     axr.set_ylabel('r(β) = ⟨I_A⟩ / ⟨I_B⟩')
@@ -927,7 +925,8 @@ def pinhole_scan_join(frames, response):
     """The pinhole scan join of a level of two scans, recomputed as
     lss_core.pinhole.level_map does it: column response on all frames
     first (fitted with each scan's own scale, the P42 fix), then the rows-summed ΣN, ΣW per 2θ bin of each scan, their ratio
-    per shared bin and its inverse-variance mean."""
+    per shared bin, and the factor by the likelihood of how each bin's
+    counts split between the scans (``pinhole.ratio_ml``, P46)."""
     gp = GIDParams(response=response)
     level = pinhole_frames(frames, gp)
     assert len(level) == 1
@@ -947,14 +946,13 @@ def pinhole_scan_join(frames, response):
     (na, wa), (nb, wb) = prof
     ok = (wa > 0) & (wb > 0) & (na > 0) & (nb > 0)
     ratio = (na[ok] / wa[ok]) / (nb[ok] / wb[ok])
-    err = ratio * np.sqrt(1 / na[ok] + 1 / nb[ok])
-    wt = 1 / err ** 2
-    fac = float(np.sum(wt * ratio) / np.sum(wt))
+    fac, ferr = ph.ratio_ml(na[ok], wa[ok], nb[ok], wb[ok])     # the reader's estimator since 2026-11-23 (P46)
+    err = fac * np.sqrt(1 / na[ok] + 1 / nb[ok])
     centres = 0.5 * (edges[:-1] + edges[1:])
     with np.errstate(invalid='ignore', divide='ignore'):
         ia, ib = np.where(wa > 0, na / wa, np.nan), np.where(wb > 0, nb / wb, np.nan)
-    return dict(x=centres[ok], ratio=ratio, err=err, factor=fac, error=float(np.sum(wt) ** -0.5),
-                chi2=float(np.sum(wt * (ratio - fac) ** 2) / max(ok.sum() - 1, 1)), centres=centres, ia=ia, ib=ib,
+    return dict(x=centres[ok], ratio=ratio, err=err, factor=fac, error=ferr,
+                chi2=float(np.sum((ratio - fac) ** 2 / err ** 2) / max(ok.sum() - 1, 1)), centres=centres, ia=ia, ib=ib,
                 sa=np.sqrt(na) / np.where(wa > 0, wa, np.nan), sb=np.sqrt(nb) / np.where(wb > 0, wb, np.nan),
                 mean_monitor=float(np.mean([f.monitor for f in level])))
 
@@ -1217,7 +1215,7 @@ def fig_scan_join(out):
     axq.grid(color=GRID, lw=0.5)
     axq.legend(loc='upper right', fontsize=7.5, ncol=1, handlelength=1.6)
     fig.text(0.08, 0.245, 'Legacy: B interpolated onto A\'s Det_Th, one ratio per Det_Th, weighted mean; B scaled; '
-             'the overlap averaged.\nPinhole: one ratio per shared 2θ bin, inverse-variance mean; B\'s weights '
+             'the overlap averaged.\nPinhole: one ratio per shared 2θ bin, the factor by likelihood (P46); B\'s weights '
              'divided by it; then all pixels\nbinned together (ΣN/ΣW): no averaging, no interpolation. Every '
              'further scan is fitted against the first (P41).', fontsize=8.8, color=INK, ha='left', va='top',
              linespacing=1.45)

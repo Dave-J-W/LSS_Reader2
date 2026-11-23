@@ -110,6 +110,16 @@ def V(label, shows, source='', **args):
 
 UI = ('mainwindow.ui', 'mainwindow.py')
 
+
+def ALL_SAMPLE_DATA(key, shows, source):
+    """The variation that clears an NX-only default: the script's own
+    default, which includes the private sets when they are on this machine
+    (2026-11-23: the pages default to the public file, so that a page never
+    shows private counts unasked)."""
+    return Variation('All sample data (private sets too, when present)', {key: ''},
+                     shows + ' Prints counts of private files when they are present; never write them into docs.',
+                     source)
+
 TOOLS = (
     # ------------------------------------------------------------ burn tests
     Tool('patch_demo_burn', 'Burn line-cut demonstrator (window)', 'burn', 'window',
@@ -133,6 +143,21 @@ TOOLS = (
                'docs/SYNTHETIC_DATA.md:232', mode='burn', set='change=none'),
          ),
          repo_ok=False, seconds=None),
+    Tool('patch_demo_burn_survey', 'Burn estimators: survey over replicates', 'burn', 'text',
+         'tests/tools/patch_demo.py',
+         'Every burn estimator over many noise replicates of a synthetic burn: the change it reads against the '
+         'truth (bias, scatter) and how often it calls a quantity stable.',
+         docs=('docs/reports/patch_demo.md', 'docs/handoff_out/07-burn-trends.md:89'),
+         defaults={'--mode': 'burn', '--survey': '20'},
+         variations=(
+             V('Low counts (monitor 1e5)', '"Lower monitor until each estimator fails": the counts at which each '
+               'estimator\'s scatter swamps the change.', 'docs/SYNTHETIC_DATA.md:302', set='burn.monitor=1e5'),
+             V('Fade under a shoulder', 'A peak fading under a broad shoulder: where moments mislead.',
+               'docs/SYNTHETIC_DATA.md:232', set='change=shoulder'),
+             V('No change', 'A stable spot: how often each estimator calls it stable (false alarms).',
+               'docs/SYNTHETIC_DATA.md:232', set='change=none'),
+         ),
+         seconds=19.0, repo_ok=False),
     Tool('burn_figures', 'Burn trends of NX scans 14 and 15', 'burn', 'figures',
          'tests/tools/burn_figures.py',
          'Burn tests over time as the Trends tab draws them (every model, the confident 5 % time) for the '
@@ -147,6 +172,25 @@ TOOLS = (
                'time, beam damage or a changing sample.', 'docs/physics_notes.md:3964', scans='15'),
          ),
          seconds=5.4),
+
+    Tool('burn_dose_figure', 'Burns against dose: damage or a changing sample?', 'burn', 'figures',
+         'tests/tools/burn_dose_figure.py',
+         'NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil '
+         'transmission): a beam-driven change coincides against dose, a sample changing by itself against time.',
+         committed=('docs/figures/burn_dose',),
+         docs=('docs/figures/burn_dose/README.md', 'docs/handoff_out/07-burn-trends.md:102',
+               'docs/physics_notes.md:3965'),
+         data='any', defaults={'--out': OUT}, spec_option='--spec',
+         variations=(
+             V('Nominal foils (1.4247 per unit)', 'The flux ratio of the docs\' "4.1x" instead of the calibrated '
+               '4.68: the dose ratio of the drifts moves from 0.79 to 0.90.', 'docs/physics_notes.md:3240',
+               absorbers='nominal'),
+             V('One spot measured twice', 'Scan 15\'s dose and time follow scan 14\'s: 15 starts where 14 '
+               'ended, as one spot would.', 'docs/handoff_out/07-burn-trends.md:104', join=True),
+             V('Moments estimator', 'The legacy moments instead of the template.', 'docs/handoff_out/07-burn-trends.md',
+               estimator='moments'),
+         ),
+         inputs=(NX,), seconds=3.1),
 
     # ------------------------------------------------------------ reflectivity
     Tool('patch_demo', 'Fit demonstrator (window)', 'refl', 'window',
@@ -171,6 +215,22 @@ TOOLS = (
                'legacy pull SD 1.3-1.4.', 'docs/reports/patch_demo.md:113', set='monitor=poisson'),
          ),
          repo_ok=False),
+    Tool('patch_demo_survey', 'Fit demonstrator: survey over replicates', 'refl', 'text',
+         'tests/tools/patch_demo.py',
+         'Every patching method over many noise replicates of the demonstrator\'s synthetic scans: bias, pull '
+         'mean and pull SD per join, failures (the numbers behind the window\'s single replicate).',
+         docs=('docs/reports/patch_demo.md', 'docs/SYNTHETIC_DATA.md:320'),
+         defaults={'--survey': '50'},
+         variations=(
+             V('Staggered overlaps (200)', 'No coinciding points at any join: the documents\' '
+               'refl.survey(Config(plan=\'staggered\'), range(200)).', 'docs/SYNTHETIC_DATA.md:320',
+               survey='200', set='plan=staggered'),
+             V('Poisson monitor', 'Monc as Poisson counts: the legacy method\'s pull SD 1.3-1.4.',
+               'docs/reports/patch_demo.md:113', set='monitor=poisson'),
+             V('Every method', 'All 15 methods, not only the window\'s four.', 'docs/reports/patch_demo.md',
+               methods='all'),
+         ),
+         seconds=3.5, repo_ok=False),
     Tool('patch_demo_figures', 'Fit demonstrator report figures', 'refl', 'figures',
          'tests/tools/patch_demo.py',
          'The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per '
@@ -252,9 +312,11 @@ TOOLS = (
     Tool('compare_methods', 'Old and new methods as CSV (C2, C10, C11, ...)', 'refl', 'data',
          'tests/tools/compare_methods.py',
          'Old and new methods side by side on the same data, as CSV files with a manifest: error models, '
-         'legacy vs pinhole GID, pinhole distance, absorber factors.',
+         'legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, the footprint window, '
+         'absorber factors.',
          committed=('docs/comparisons_data/manifest.json', 'docs/comparisons_data/C2_*',
-                    'docs/comparisons_data/C6_*', 'docs/comparisons_data/C10_*', 'docs/comparisons_data/C11_*'),
+                    'docs/comparisons_data/C6_*', 'docs/comparisons_data/C10_*', 'docs/comparisons_data/C11_*',
+                    'docs/comparisons_data/C21_*', 'docs/comparisons_data/C24_*'),
          docs=('docs/COMPARISONS.md',), data='any',
          defaults={'--out': OUT, '--spec': NX}, spec_option='--spec',
          variations=(
@@ -262,7 +324,7 @@ TOOLS = (
                'docs/COMPARISONS.md:93', no_maps=True),
              V('Reflectivity only', 'Only the error-model comparison of scans 6-9 (C2/C3).',
                'docs/COMPARISONS.md:56', gid=''),
-             V('GID only, one level', 'Only scan 11 (C10, C11).', 'docs/COMPARISONS.md:63', ref='', gid='11'),
+             V('GID only, one level', 'Only scan 11 (C10, C11, C21).', 'docs/COMPARISONS.md:63', ref='', gid='11'),
          ),
          repo_out='docs/comparisons_data', seconds=39.0),
     Tool('absorber_steps', 'Absorber steps measured between scans', 'refl', 'text',
@@ -303,7 +365,13 @@ TOOLS = (
                  (4, 'β depends on the column, not only on the row.'),
                  (7, 'Footprint and usable columns; the second module reached only below α ≈ 0.037°.'),
                  (8, 'The S4 opening swept 0.05-1.0 mm: 2θ acceptance, edge ramps, counts proportional to the '
-                     'opening; Det_Th 14/16/18°.')))),
+                     'opening; Det_Th 14/16/18°.'))) + (
+             V('Case 8 at Det_Th 14°', 'The S4 figure for the frame at Det_Th 14° instead of 16°: the footprint '
+               'seen per column grows (2.1 -> 2.4 mm).', 'docs/figures/pinhole/README.md:256',
+               only='8', case8_dth='14'),
+             V('Case 8 with S4 0.05, 0.2 and 1.0 mm', 'The 2θ acceptance of one column for a pinhole four times '
+               'narrower and five times wider than NX\'s 0.2 mm.', 'docs/figures/pinhole/README.md:261',
+               only='8', case8_openings='0.05,0.2,1.0'))),
     Tool('gid_patching_diagrams', 'GID patching diagrams (manual)', 'gid', 'figures',
          'tests/tools/gid_patching_diagrams.py',
          'The manual\'s eight diagrams of GID patching: frame anatomy, columns to 2θ, frames covering 2θ, '
@@ -328,7 +396,7 @@ TOOLS = (
          variations=(
              V('Two Qz levels (11 + 12)', 'The level join as well; not like for like (scan 12 stopped after 4 '
                'frames).', 'docs/figures/gid_compare/README.md:15',
-               scans='11,12', peak='none', note='scan 12 has 4 frames: not like for like'),
+               scans='11,12', peak='none', note='not like for like: scan 12 stopped after 4 frames'),
          ),
          inputs=(NX,), seconds=7.3),
     Tool('pinhole_beam_figure', 'Beam profile from GID data', 'gid', 'figures',
@@ -371,6 +439,42 @@ TOOLS = (
                'docs/manual/gid_patching.md:388', distances='260:273:1'),
          ),
          inputs=(NX,), seconds=74.3),
+    Tool('gid_movie', 'GID movie on one 2θ axis', 'gid', 'figures',
+         'tests/tools/gid_movie.py',
+         'GID frames played on a common 2θ axis with the zoom and the colour scale fixed: a real Bragg peak '
+         'stands still while the detector window and anything fixed on it slide (M7, F69).',
+         committed=('docs/figures/gid_movie',),
+         docs=('docs/figures/gid_movie/README.md', 'docs/gui/image_display.md:313'), data='any',
+         defaults={'--out': OUT}, spec_option='--spec',
+         variations=(
+             V('Also on detector pixels', 'The opposite view: the peak walks across the columns, detector-fixed '
+               'features stay put.', 'docs/gui/image_display.md:320', pixels=True),
+             V('Zoomed on the peak', 'The zoom held in angle while the frames play (no change of zoom or colour '
+               'between frames).', 'docs/gui/image_display.md:324', window='15.5,18', beta='-0.5,3'),
+             V('Calibrated S4-detector distance', 'At 265.7 mm the peak stands stiller: the drift with Det_Th '
+               '(+0.018 °/° at the header 271 mm) vanishes.', 'docs/manual/gid_patching.md:417',
+               pinhole_mm='265.7'),
+         ),
+         inputs=(NX,), seconds=6.8),
+    Tool('gid_column_groups', 'GID level join from groups of columns', 'gid', 'figures',
+         'tests/tools/gid_column_groups.py',
+         'The pinhole patch of each Qz level made from groups of detector columns, and the level join\'s factor '
+         'per group with the cells of the β overlap: why the factor depends on which columns are used.',
+         committed=('docs/figures/gid_column_groups',),
+         docs=('docs/figures/gid_column_groups/README.md', 'docs/physics_notes.md:2724'), data='any',
+         defaults={'--out': OUT}, spec_option='--spec',
+         variations=(
+             V('The same columns at both levels', 'Groups inside the columns every level has: the pooled group '
+               'factors then agree within errors (1.024, 1.009, 0.985).', 'docs/physics_notes.md:2753',
+               columns='common'),
+             V('Beam response', 'The response along the beam axis instead of one factor per column: the column '
+               'dependence remains.', 'docs/physics_notes.md:2721', response='beam'),
+             V('No response', 'Each group\'s map keeps its columns\' own light.', 'docs/physics_notes.md:2745',
+               response='none'),
+             V('Angle maps (faster)', 'The maps of the cells themselves, in (2θ, β), without the regridding to Q.',
+               'tests/tools/gid_column_groups.py', axes='Angles'),
+         ),
+         inputs=(NX,), seconds=25.6),
     Tool('gid_method_survey', 'GID patching methods (survey)', 'gid', 'data',
          'tests/tools/gid_method_survey.py',
          'Every GID patching method on every GID set of SPEC files: frames-agree χ², distance calibration, '
@@ -393,14 +497,24 @@ TOOLS = (
          'derived formula; mean of ratios against ratio of sums; the NX monitors\' scatter.',
          docs=('docs/reports/monitor_noise.md', 'docs/COMPARISONS.md:57'), data='public',
          variations=(V('Simulation only', 'Parts 1 and 2 without the real-data look.',
-                       'docs/reports/monitor_noise.md:159', no_real=True),),
+                       'docs/reports/monitor_noise.md:159', no_real=True),
+                     V('Bright regimes, Poisson vs noiseless monitor', 'Regimes A and C2: the reader\'s error is '
+                       'too small with a Poisson monitor and 3.5 % too large with a noiseless one.',
+                       'docs/reports/monitor_noise.md:180', regimes='A,C2', monitors='poisson,exact', no_real=True),
+                     V('High Qz (regime B)', 'Few counts: every formula agrees, the monitor term does not matter.',
+                       'docs/reports/monitor_noise.md:184', regimes='B', no_real=True),
+                     V('Quick look (5000 trials)', 'The same tables from fewer trials (±1 % on each σ).',
+                       'tests/tools/monitor_noise_mc.py', trials='5000', no_real=True)),
          seconds=16.3),
     Tool('monitor_distribution', 'Monitor scatter: its distribution', 'monitor', 'text',
          'tests/tools/monitor_distribution.py',
          'Frame-to-frame deviations of Monc pooled over the sample SPEC files: Gaussian, Student t or Laplace; '
          'drift or noise; what share of each point\'s variance the monitor takes.',
          docs=('docs/physics_notes.md:971', 'docs/COMPARISONS.md:56'),
-         data='public', inputs=(NX,), seconds=1.9),
+         data='any', defaults={'paths': NX}, spec_option='paths',
+         variations=(ALL_SAMPLE_DATA('paths', 'Part A pooled over every SPEC file the reader can see.',
+                                        'docs/physics_notes.md:971'),),
+         inputs=(NX,), seconds=1.9),
     Tool('monitor_ratio', 'Monc/Monp: beam variation or noise', 'monitor', 'text',
          'tests/tools/monitor_ratio.py',
          'The two monitors\' common scatter (beam variation, cancels in the ratio) against each one\'s own '
@@ -414,15 +528,19 @@ TOOLS = (
     Tool('monitor_gains', 'Monitor gain lines the reader cannot read', 'monitor', 'text',
          'tests/tools/monitor_gains.py',
          'Every #M Monc Gain line that is not a number with a known unit, and the scans without one (F52).',
-         docs=('docs/reports/monitor_gains.md',), data='any',
-         free='', free_help='SPEC files or folders (default: everything under sample_data/)', spec_option='free',
+         docs=('docs/reports/monitor_gains.md',), data='any', defaults={'paths': NX}, spec_option='paths',
+         variations=(ALL_SAMPLE_DATA('paths', 'Every gain line the reader cannot read, in every SPEC file it '
+                                              'can see (the report\'s table was made this way).',
+                                     'docs/reports/monitor_gains.md:15'),),
          seconds=0.1),
     Tool('spec_epoch', 'What the SPEC Epoch column measures', 'monitor', 'text',
          'tests/tools/spec_epoch.py',
          'Epoch of each scan\'s first point against its header time: seconds since the file\'s #E, plus the '
          'local-time offset of #D.', docs=('docs/physics_notes.md:696',), data='any',
-         free='', free_help='SPEC files (default: NX school and, when present, the private bu files)',
-         spec_option='free', seconds=0.1),
+         defaults={'specs': NX}, spec_option='specs',
+         variations=(ALL_SAMPLE_DATA('specs', 'The nine sample files of the 2026-11-16 answer: NX and the bu '
+                                              'files.', 'docs/physics_notes.md:696'),),
+         seconds=0.1),
 
     Tool('fit_scan_survey', 'Scan-shape fits of every column (survey)', 'monitor', 'data',
          'tests/tools/fit_scan_survey.py',
@@ -460,6 +578,10 @@ TOOLS = (
                'docs/SYNTHETIC_DATA.md:160', fault='slits'),
              V('Low counts (x0.1)', 'One tenth of the NX rates: the joins\' errors grow by √10.',
                'docs/SYNTHETIC_DATA.md:42', counts='0.1'),
+             V('Rough interfaces (6 Å)', 'R/R_F falls as exp(−Qz²σ²): twice the roughness, four times the '
+               'decay rate.', 'docs/SYNTHETIC_DATA.md:48', roughness='6'),
+             V('Background ×100', 'A diffuse background a hundred times NX\'s: the ROI background boxes earn '
+               'their keep at high Qz.', 'docs/physics_notes.md:3773', background='100'),
              V('XFNTR series', 'Fluorescence near total reflection: one MCA file per Qz, a surface and a bulk ion.',
                'docs/SYNTHETIC_DATA.md:55', kind='xfntr'),
              V('Burn series', 'One spot measured 21 times, the peak decaying with τ = 400 s.',

@@ -98,7 +98,8 @@ def test_every_page_builds_from_its_script(tools, recorder):
                 elif isinstance(value, str) and value and runner.OUT not in value and key.startswith('-'):
                     a = runner.action_for(spec, key)
                     if value != runner.default_text(a):
-                        assert ' %s %s' % (key, value.split()[0]) in cmd or ' %s %r' % (key, value) in cmd, \
+                        assert (' %s %s' % (key, value.split()[0]) in cmd or ' %s %r' % (key, value) in cmd
+                                or ' %s=%s' % (key, value) in cmd), \
                             (t.id, v.label, cmd)
         p.variationCombo.setCurrentIndex(0)
         assert p.at_defaults(), t.id

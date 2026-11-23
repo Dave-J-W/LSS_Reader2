@@ -27,9 +27,20 @@ from monitor_ratio import scans, column   # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def spec_files():
+def spec_files(paths=None):
+    """SPEC files among ``paths`` (files, or folders searched below), by
+    default every file two levels under sample_data/ (the private sets
+    included when present)."""
     out = []
-    for p in sorted(glob.glob(os.path.join(ROOT, 'sample_data', '*', '*', '*'))):
+    cands = []
+    for p in paths or []:
+        if os.path.isdir(p):
+            cands += sorted(os.path.join(d, n) for d, _, ns in os.walk(p) for n in ns)
+        else:
+            cands.append(p)
+    if not paths:
+        cands = sorted(glob.glob(os.path.join(ROOT, 'sample_data', '*', '*', '*')))
+    for p in cands:
         if os.path.isfile(p):
             with open(p, 'rb') as f:
                 if f.read(2) == b'#F':
@@ -42,9 +53,9 @@ def detrend(y, order=2):
     return y / np.polyval(np.polyfit(x, y, order), x) - 1.0
 
 
-def part_a():
+def part_a(paths=None):
     dev, lag1, per_scan = [], [], []
-    for path in spec_files():
+    for path in spec_files(paths):
         for s in scans(path):
             if len(s['rows']) < 10:
                 continue
@@ -146,6 +157,17 @@ def part_b(candidates):
                                               np.sum(u ** 2 / (u ** 2 + rel_count ** 2) > 0.1)))
 
 
-if __name__ == '__main__':
-    typical, tail = part_a()
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description='The scatter of the monitor (Monc) and how much it matters.')
+    ap.add_argument('paths', nargs='*', help='SPEC files or folders for part A (default: every SPEC file '
+                                             'under sample_data/, the private sets included when present); '
+                                             'part B always uses NX school scans 6-9')
+    a = ap.parse_args(argv)
+    typical, tail = part_a(a.paths)
     part_b([typical, 0.00136, 1 / np.sqrt(2.2e5)])
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

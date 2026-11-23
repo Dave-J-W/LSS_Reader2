@@ -24,6 +24,13 @@ Comparisons written:
   rest with copies of scan 12's edge (P33).
 - C11 pinhole distance: the pinhole map's Qxy integral at 258, 271 (header)
   and 280 mm, the range the distance fit gave on NX scan 11.
+- C21 the pinhole map binned on exact per-pixel angles (the default) vs
+  per-axis angles (the column's 2θ, the row's β: the method before
+  2026-11-19), ``GIDParams(angles=...)``: Qxy and Qz integrals (written by
+  hand once on 2026-11-20; by this tool since 2026-11-23).
+- C24 the usable columns' footprint window, exact (fully lit through S4,
+  the default) vs IDL's (centred on c0), ``GIDParams(footprint=...)``: Qxy
+  and Qz integrals (since 2026-11-23).
 - C6 absorber factor per setting n = 0…63 at 10 keV: nominal 1.4247^n vs
   calibrated foils, with the calibrated error.
 """
@@ -75,6 +82,27 @@ def gid(exp, scans, label, out, manifest, maps=True):
                    '%s scans %s' % (label, scans), ['Qxy (1/A)', 'Qz (1/A)', 'I', 'sigma'], rows,
                    call + '; NaN where the map has no data')
         if name == 'pinhole':
+            for kind in ('exact', 'per_axis'):              # C21: the map's angles exact per pixel vs per axis
+                p = exp.gid(scans, params=GIDParams(angles=kind)).products('Q')
+                what = ('exact per-pixel angles (IMG_COO_CONV)' if kind == 'exact'
+                        else 'per-axis angles (the method before 2026-11-19)')
+                tag = kind.replace('_', '')
+                _write(out, manifest, 'C21_gid_%s_pinhole_%s_qxy.csv' % (label, tag), 'C21', what,
+                       '%s scans %s' % (label, scans), ['Qxy (1/A)', 'I integrated over Qz', 'sigma'], p['h'],
+                       'GIDParams(angles=%r)' % kind)
+                _write(out, manifest, 'C21_gid_%s_pinhole_%s_qz.csv' % (label, tag), 'C21', what,
+                       '%s scans %s' % (label, scans), ['Qz (1/A)', 'I integrated over Qxy', 'sigma'], p['v'],
+                       'GIDParams(angles=%r)' % kind)
+            for kind in ('exact', 'idl'):                   # C24: the usable columns' footprint window (P39)
+                p = exp.gid(scans, params=GIDParams(footprint=kind)).products('Q')
+                what = ('footprint window exact (fully lit through S4; the default)' if kind == 'exact'
+                        else "footprint window IDL's (centred on c0)")
+                _write(out, manifest, 'C24_gid_%s_footprint_%s_qxy.csv' % (label, kind), 'C24', what,
+                       '%s scans %s' % (label, scans), ['Qxy (1/A)', 'I integrated over Qz', 'sigma'], p['h'],
+                       'GIDParams(footprint=%r)' % kind)
+                _write(out, manifest, 'C24_gid_%s_footprint_%s_qz.csv' % (label, kind), 'C24', what,
+                       '%s scans %s' % (label, scans), ['Qz (1/A)', 'I integrated over Qxy', 'sigma'], p['v'],
+                       'GIDParams(footprint=%r)' % kind)
             for d in (258.0, 271.0, 280.0):
                 p = exp.gid(scans, params=GIDParams(pinhole_distance_mm=d)).products('Q')
                 _write(out, manifest, 'C11_gid_%s_pinhole_%dmm_qxy.csv' % (label, d), 'C11',
@@ -116,7 +144,7 @@ def main():
         gid(exp, [int(s) for s in group.split(',')], label, a.out, manifest, maps=not a.no_maps)
     absorbers(a.out, manifest)
     path = os.path.join(a.out, 'manifest.json')
-    if os.path.exists(path):                     # keep entries for files written otherwise (e.g. C21)
+    if os.path.exists(path):                     # keep entries for files written otherwise
         mine = set(m['file'] for m in manifest)
         with open(path) as f:
             manifest += [m for m in json.load(f).get('files', [])
