@@ -20,9 +20,9 @@
   does: "Collects every message to the user (warnings, fit results, absorber notes) with the time; nothing blocks"
   workflows: [session, general]
   needs: ""
-  shown: "hidden until the first message; each message makes it visible"
+  shown: "hidden at start; shows itself and comes to the front on a warning or error only (owner Q11, 2026-11-23); View > Messages otherwise"
   tooltip: false
-  notes: "Each message calls show(), which does not bring it to the front of the dock tab group: measured, after a fit message the Script tab stayed in front and the result was behind the Messages tab. Shows time and text; the title (Warning, Absorbers, Peak fit) goes to the log only. As a bottom dock it spans the full width and takes height from the left panel (Q-UI-A1 asks whether D59 applies here too). Messages of all levels look the same (no colour for warnings vs info)."
+  notes: "Since 2026-11-23 (D59): under the tabs only, in an inner window beside the selection panel, which keeps the full height. Before: Each message calls show(), which does not bring it to the front of the dock tab group: measured, after a fit message the Script tab stayed in front and the result was behind the Messages tab. Shows time and text; the title (Warning, Absorbers, Peak fit) goes to the log only. As a bottom dock it spans the full width and takes height from the left panel (Q-UI-A1 asks whether D59 applies here too). Messages of all levels look the same (no colour for warnings vs info)."
 - id: messageView
   kind: pane
   label: ""
@@ -42,9 +42,9 @@
   does: "Shows, for actions that have one, the lss_core Python that does the same thing, ready to copy (F48)"
   workflows: [session]
   needs: ""
-  shown: "hidden at start, but shows itself with the first line; opening a SPEC file writes one, so in practice always visible"
+  shown: "hidden at start; View > Script only, never by itself (D59, 2026-11-23); the View-menu choice is kept between sessions"
   tooltip: false
-  notes: "Measured: after opening the NX file the Script dock is visible and about 200 px tall at a 1000 px window, spanning the full width; the scan list above it is 100 px tall and shows two scans. Decided requirement D59 (owner, 2026-11-22): 'The script terminal panel shouldn't compete with data selection and it should be hidden by default' -> hidden by default, never raises itself (scriptLine must not call show()), opened from View, and placed so it takes no room from the left panel. Layout constraint: the left panel is part of the central widget (splitter_3), not a dock, so any bottom dock spans under it; options are confining docks to the right column (make the left panel a left dock and setCorner(BottomLeft, LeftDockWidgetArea)), a right dock, a floating window, or a splitter under the tab area inside the central widget."
+  notes: "Since 2026-11-23 (D59): under the tabs only, in an inner window beside the selection panel, which keeps the full height. Before: Measured: after opening the NX file the Script dock is visible and about 200 px tall at a 1000 px window, spanning the full width; the scan list above it is 100 px tall and shows two scans. Decided requirement D59 (owner, 2026-11-22): 'The script terminal panel shouldn't compete with data selection and it should be hidden by default' -> hidden by default, never raises itself (scriptLine must not call show()), opened from View, and placed so it takes no room from the left panel. Layout constraint: the left panel is part of the central widget (splitter_3), not a dock, so any bottom dock spans under it; options are confining docks to the right column (make the left panel a left dock and setCorner(BottomLeft, LeftDockWidgetArea)), a right dock, a floating window, or a splitter under the tab area inside the central widget."
 - id: scriptView
   kind: pane
   label: ""
@@ -66,7 +66,7 @@
   needs: ""
   shown: "hidden; View > Errors"
   tooltip: false
-  notes: "A setting that changes every error bar lives in a hidden pane; there is no cue elsewhere (status bar, plot titles, exports) of whether Legacy or Budget is in use (read only: the export header may say; not checked). Parameter fields of the unused models are disabled, not hidden."
+  notes: "Since 2026-11-23 (D59): under the tabs only, in an inner window beside the selection panel, which keeps the full height. Before: A setting that changes every error bar lives in a hidden pane; there is no cue elsewhere (status bar, plot titles, exports) of whether Legacy or Budget is in use (read only: the export header may say; not checked). Parameter fields of the unused models are disabled, not hidden."
 - id: errorModeComboBox
   kind: combo
   label: "Error model"

@@ -283,6 +283,16 @@ Each line: feature — where — default — script — notes entry (date).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.
 
+### The bottom panes (D59, 2026-11-23)
+- **Messages, Script, Errors** sit under the tabs only, so the scan and
+  frame lists on the left keep the window's full height. All three are
+  hidden at start and shown from the **View** menu, which remembers the
+  choice between sessions. The Script pane never shows itself; Messages
+  shows itself (and comes to the front) only for a warning or an error.
+  Notices that are not warnings ("Saved to the workbook", "Covariance
+  written") go to the Messages pane without opening it and are shown for a
+  few seconds in the status bar.
+
 ### Menus (2026-11-23)
 - **File > Quit** (Ctrl+Q) closes the reader; results are already in the
   workbook. **Help > Documentation** opens the scripting guide

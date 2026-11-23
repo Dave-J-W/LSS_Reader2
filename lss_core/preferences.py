@@ -41,6 +41,8 @@ DEFAULTS = {
     # ngui: a second window sketching the proposed layout (non-functional prototype, F82;
     # docs/gui/prototype.md); off by default (owner, 2026-11-23)
     'ngui': False,
+    # the bottom panes the user showed from the View menu (D59: all hidden by default, owner 2026-11-23)
+    'panes_shown': [],
 }
 
 

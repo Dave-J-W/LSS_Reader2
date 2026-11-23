@@ -210,6 +210,7 @@ class MainWindow (QMainWindow):
         self.wrapReductionsForAutoSave()        # before the signals: every connection reaches the wrapped method
         self.init_signals()
         self.log=reader_log.get_logger()
+        self.initPaneHost()
         self.initMessagePane()
         self.initScriptPane()
         self.initErrorPane()
@@ -2711,6 +2712,24 @@ class MainWindow (QMainWindow):
             self.selectedmcafiles_rows.append(self.ui.mcaFileListWidget.row(item))
         self.updateMcaIntPlot()
 
+    def initPaneHost(self):
+        """The tab area and the bottom panes in one inner window (D59, owner
+        2026-11-22/23): the panes sit under the tabs only, so the selection
+        panel on the left keeps the window's full height. The tab widget moves
+        out of the main splitter into the inner window, which takes its place."""
+        pw=self.ui.PlotWidget
+        split=pw.parentWidget()
+        at=split.indexOf(pw)
+        host=QMainWindow(self)
+        host.setObjectName('paneHost')
+        host.setWindowFlags(Qt.Widget)
+        host.setDockOptions(QMainWindow.AnimatedDocks|QMainWindow.AllowTabbedDocks)
+        host.setCentralWidget(pw)
+        split.insertWidget(at,host)
+        for k in range(split.count()):           # the tab area takes the extra width, as the tab widget did
+            split.setStretchFactor(k,1 if k==at else 0)
+        self.paneHost=host
+
     def initMessagePane(self):
         """A dock at the bottom of the window that collects messages.
 
@@ -2728,8 +2747,8 @@ class MainWindow (QMainWindow):
         self.messageView.setMaximumBlockCount(2000)
         self.messageView.setMinimumHeight(60)
         self.messageDock.setWidget(self.messageView)
-        self.addDockWidget(Qt.BottomDockWidgetArea,self.messageDock)
-        self.messageDock.hide()   # appears with the first message
+        self.paneHost.addDockWidget(Qt.BottomDockWidgetArea,self.messageDock)
+        self.messageDock.hide()   # appears with the first warning (owner, Q11: raises only on warnings)
 
     def initScriptPane(self):
         """A dock showing, for actions that have one, the Python that does the
@@ -2741,9 +2760,9 @@ class MainWindow (QMainWindow):
         self.scriptView.setReadOnly(True)
         self.scriptView.setPlainText('from lss_core.experiment import Experiment\n')
         self.scriptDock.setWidget(self.scriptView)
-        self.addDockWidget(Qt.BottomDockWidgetArea,self.scriptDock)
-        self.tabifyDockWidget(self.messageDock,self.scriptDock)
-        self.scriptDock.hide()   # View it from the dock area's context menu, or it appears with the first line
+        self.paneHost.addDockWidget(Qt.BottomDockWidgetArea,self.scriptDock)
+        self.paneHost.tabifyDockWidget(self.messageDock,self.scriptDock)
+        self.scriptDock.hide()   # View > Script only; it never shows itself (D59)
 
     def initErrorPane(self):
         """A dock with the error model (lss_core.errors). 'Legacy' gives the
@@ -2798,14 +2817,27 @@ class MainWindow (QMainWindow):
         self.errorModeComboBox.currentIndexChanged.connect(self.setErrorModel)
         self.monitorKindComboBox.currentIndexChanged.connect(self.setErrorModel)
         self.errorDock.setWidget(w)
-        self.addDockWidget(Qt.BottomDockWidgetArea,self.errorDock)
-        self.tabifyDockWidget(self.messageDock,self.errorDock)
+        self.paneHost.addDockWidget(Qt.BottomDockWidgetArea,self.errorDock)
+        self.paneHost.tabifyDockWidget(self.messageDock,self.errorDock)
         self.errorDock.hide()
         view=self.ui.menuBar.addMenu('View')
         view.setObjectName('menuView')
+        shown=set(self.prefs.get('panes_shown',[]) or [])
         for dock in (self.messageDock,self.scriptDock,self.errorDock):
-            view.addAction(dock.toggleViewAction())
+            act=dock.toggleViewAction()
+            act.setToolTip('Show or hide the %s pane, under the tabs. Hidden by default; the choice is kept '
+                           'between sessions. Messages also appears by itself on a warning.' % dock.windowTitle())
+            act.triggered.connect(lambda on,d=dock: self.rememberPane(d,on))   # the user's choice only
+            view.addAction(act)
+            if dock.objectName() in shown:
+                dock.show()
         self.showErrorModel()
+
+    def rememberPane(self,dock,on):
+        """Keep the panes the user showed from the View menu (D59)."""
+        shown=set(self.prefs.get('panes_shown',[]) or [])
+        (shown.add if on else shown.discard)(dock.objectName())
+        self.setPreference('panes_shown',sorted(shown))
 
     def showErrorModel(self):
         """Enable the fields the chosen monitor model uses; describe the model."""
@@ -2884,26 +2916,34 @@ class MainWindow (QMainWindow):
         """Append Python to the Script pane and the log."""
         self.log.info('script: %s',text.replace('\n',' | '))
         try:
-            self.scriptView.appendPlainText(text)
-            self.scriptDock.show()
+            self.scriptView.appendPlainText(text)   # the pane does not show itself (D59)
         except RuntimeError:
             pass
 
-    def notify(self,text,title='Warning',level='warning'):
-        """Tell the user something without stopping them, and log it."""
+    def notify(self,text,title='Warning',level='warning',show=None):
+        """Tell the user something without stopping them, and log it. The
+        Messages pane shows itself (and comes to the front) only for warnings
+        and errors (owner, 2026-11-23, Q11); an 'info' notice is kept in the
+        pane and shown in the status bar. ``show`` overrides."""
         text=str(text)
         stamp=time.strftime('%H:%M:%S')
         self.messages.append((stamp,title,text))
         getattr(self.log,level,self.log.warning)('%s: %s',title,text.replace('\n',' | '))
+        if show is None:
+            show=level in ('warning','error','critical')
         try:
             self.messageView.appendPlainText(stamp+'  '+text.replace('\n','\n          '))
-            self.messageDock.show()
+            if show:
+                self.messageDock.show()
+                self.messageDock.raise_()
+            else:
+                self.ui.statusBar.showMessage(text.split('\n')[0],8000)
         except RuntimeError:   # window already being destroyed
             pass
 
     def reportFailure(self,text):
         """Called by the process-wide exception handler (reader_log)."""
-        self.notify(text,title='Error',level='info')   # the traceback is logged separately
+        self.notify(text,title='Error',level='info',show=True)   # the traceback is logged separately; an error shows the pane
         try:
             self.ui.statusBar.showMessage(text.split('. Details')[0])
         except RuntimeError:
