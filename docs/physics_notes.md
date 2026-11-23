@@ -4270,3 +4270,32 @@ fail on main since 2026-11-22 were found and bisected (TODO area I).
 **Left to the owner:** the cloud environment's setup script should run
 `cd LSS_Reader2 && pip install -r requirements-dev.txt`, so that a new
 session can test at once.
+### 2026-11-23 — Plotting and image display: where the time goes
+
+**Owner:** "please take a look at all the plotting and image display for
+speedups. Displaying many MCA spectra on a log scale was a notorious
+slowdown. So was log scale image display."
+
+**Measured** (`tests/tools/plot_speed.py`, the real window offscreen;
+standalone matplotlib for the variants; C39):
+- **MCA spectra.** Each spectrum was drawn with `errorbar`, which makes one
+  path per channel's error bar: 100 spectra of 2048 channels, 205 000
+  paths, each sent through the log transform on its own on a log axis.
+  Plotting them with log y took 4.21 s, switching log y on 2.37 s, and
+  every pan, zoom or resize redrew for about 2.4 s. Now each spectrum's bars
+  are one path with breaks between bars (`mplwidget.errorbars`): the same
+  bar ends, colour and width; 0.76 s, 0.54 s and about 1.0 s. What is left
+  is drawing 200 000 points; markers are a fifth of it.
+- **Log-scale maps.** The legacy GID patch map used `pcolor` (a polygon per
+  cell) in log scale only, `imshow` in linear, which is why log was the
+  slow one; the 2D_Plot tab used `pcolor` in both. Now `pcolormesh`
+  (`mplwidget.mesh`), the same cells: 500 × 500 cells redrawn 0.52 → 0.09 s.
+  `pcolor` stays for grids with non-finite coordinates, which `pcolormesh`
+  refuses.
+- **Pilatus frames** (`imshow`, bicubic): fast with today's matplotlib, about
+  0.2 s for a Pilatus 1M frame, log or linear; a different interpolation
+  would gain 1.5 × and change the look, so it is left. The first log axis
+  of a session also parses its tick labels as mathtext once.
+
+Verified: measured and tested (`test_plot_speed.py`; the GUI manager's
+`test_gui_2dplot.py` passes on the mesh).
