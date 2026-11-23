@@ -130,7 +130,7 @@ second one follows.
 | Fixture | Gives you |
 |---|---|
 | `qapp` | The one `QApplication` (session scope); also imports the main window once and freezes the garbage collector's view of everything imported (`gc.freeze`), which makes the collection after each test cheap. |
-| `recorder` | Makes modal dialogs return at once and records `messages` (message-box texts), `dialogs`, and `exceptions` raised in Qt slots. Controls what file dialogs return: `open_name`, `open_names`, `save_name`, `directory` (empty means "cancelled"). |
+| `recorder` | Makes modal dialogs and menus return at once (a menu Qt opens itself, such as a button's, is closed as soon as it is shown) and records `messages` (message-box texts), `dialogs`, `menus`, and `exceptions` raised in Qt slots. Controls what file dialogs return: `open_name`, `open_names`, `save_name`, `directory` (empty means "cancelled"). |
 | `window` | A fresh `MainWindow` (uses `recorder`), output directory set to `tmp_path`; deleted afterwards with `free_windows`. |
 | (automatic) | After any test that used `qapp`: `free_windows(qapp)`. A test that creates windows of its own need not close them. |
 | `dataset` | Path of a synthetic SPEC file with `pilatus/` and `vortex/` beside it: scans 1–2 reflectivity (scan 2 through one absorber), 3 fluorescence, 4 a motor scan. |
