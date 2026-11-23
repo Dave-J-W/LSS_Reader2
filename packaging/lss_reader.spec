@@ -16,6 +16,8 @@ datas += [(os.path.join(ROOT, name), '.') for name in ('logo.png', 'stop.png', '
 
 # .ui files name their custom widgets by module; uic imports them at run time
 hidden = ['mplwidget', 'mpl2dwidget', 'matplotlib.backends.backend_qt5agg']
+# the ngui prototype window (F82), imported inside MainWindow.setNgui only
+hidden += ['ngui', 'ngui.window', 'ngui.layout', 'ngui.theme', 'ngui.inventory_text']
 
 a = Analysis([os.path.join(ROOT, 'LSS_Reader.py')],
              pathex=[ROOT],

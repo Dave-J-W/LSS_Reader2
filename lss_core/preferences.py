@@ -38,6 +38,9 @@ DEFAULTS = {
     'burn': {},
     # the scan list: clicking a scan selects its whole series (owner, 2026-11-21)
     'select_whole_series': True,
+    # ngui: a second window sketching the proposed layout (non-functional prototype, F82;
+    # docs/gui/prototype.md); off by default (owner, 2026-11-23)
+    'ngui': False,
 }
 
 
