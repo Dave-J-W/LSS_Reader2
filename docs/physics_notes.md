@@ -3884,3 +3884,118 @@ legacy export fixtures are unchanged. Output changes only where the
 known ratio was used at the third join or later: the automatic choice
 had rejected it there, as "N sigma from the patch".
 
+
+### 2026-11-23 — A typical reflectivity day at the beamline (owner's answer to GUI question Q-GEN-2)
+
+**Q** (GUI assessment, `docs/gui/questions.md` no. 1): a typical day at the
+beamline, in order: which scans, reductions and checks for one sample?
+
+**A** (owner, 2026-11-23; a day of reflectivity only, GID and fluorescence
+"will have to wait for another account"), in order:
+
+1. **Rough alignment** with a half-cut; this will become a sample height
+   scan with a horizontal beam, which also measures the beam profile. The
+   sample-height offset is set to read zero on that scale.
+2. **Sample height scan**: at a fixed incident angle, sample and detector
+   rise together, to judge how flat the liquid surface is. Scans taken at a
+   few places or sample conditions are reviewed together on one plot (by
+   selecting them together in the scan list).
+3. **Burn tests** with the relevant conditions and detectors: click the
+   burn scan, Select All, Burn Test and its dialog. From the first, decide
+   which absorber to change to and repeat. Sometimes the sample is changing
+   and is not being burnt at all. Plotting the Langmuir barrier position and
+   the tensiometer reading beside the detector data would help (these will
+   be written to the SPEC file for every point in future) (F75); an
+   analysis across the burns at different absorbers would help tell a
+   changing sample from beam damage (F76).
+4. **Burn criterion**: effectively no change over about 400 s, "proven, not
+   predicted". Once an absorber level is established, burn tests are not
+   repeated, so they do not always precede the real data. Predicting a safe
+   absorber from a shorter test at higher flux "would be interesting" (F77).
+5. **First data set** from the macro of the main experiment (reflectivity,
+   GID or XFNTR). Reduced today by selecting the scans by hand, Select All,
+   Ref Patch, and reviewing.
+6. **R/R_F**: the critical angle of water at the energy is assumed, and
+   Qoff is tweaked by hand until R/R_F looks continuous, or has one or two
+   outliers but is otherwise smooth; Qc is changed for samples lighter or
+   denser than water (F79).
+7. **Macros tuned** from the results: counting times for reflectivity,
+   which angles to search for GID.
+8. **After 30 min or more, or a large sx change**: another sample height
+   scan, viewed in the reader to decide whether to continue. Wide enough,
+   and more like a super-Gaussian with a flat-ish top? One well described by
+   a Gaussian is possibly unusable. A sample height scan is the surface
+   curvature convolved with the beam profile (read as the reflected-beam
+   ROI on the Pilatus), so it has real width and smoothness; the default
+   motor range is chosen to capture most of it (F78).
+9. **Stability**: reflectivity goes on; reduced curves from different
+   places, or over time, are compared in the reader (F80).
+10. **Sample change**: the chamber is opened (the oxygen level in the trough
+    enclosure rises; some chambers have no oxygen sensor), the shutter is
+    closed and the hutch opened, tensiometer readings taken, the barrier
+    moved; then rough alignment again, and the cycle restarts.
+
+*How verified*: the owner's words (reading only). Recorded in the workflow
+map (`docs/gui/workflows.yaml`: `day-ref`, and the alignment, burn-ref and
+reflectivity workflows), as F75–F80 in `FEATURE_REQUESTS.md`, and in the
+answers table of `docs/gui/questions.md`. It settles Q-GEN-2 and Q-BURN-1,
+and answers parts of Q-REF-1 (Ref Patch is the routine path), Q-REF-4,
+Q-REF-5, Q-GEN-1 and Q-GEN-4.
+
+Physics that goes with it (this project, not the owner's words):
+
+- **Qc in Qz does not depend on the X-ray energy; the critical angle does.**
+  Qc = 4√(π r_e ρ_e), with r_e the classical electron radius and ρ_e the
+  electron density, away from absorption edges, where the dispersion
+  correction f′ is small (Als-Nielsen and McMorrow, *Elements of Modern
+  X-ray Physics*, 2nd ed., Wiley 2011, ch. 3,
+  https://doi.org/10.1002/9781119998365; link not opened in this session).
+  For water at 25 °C, ρ_e = 0.3333 e/Å³ and Qc = 0.02173 Å⁻¹ (computed,
+  r_e = 2.8179 × 10⁻⁵ Å, 0.99705 g/cm³); the reader's preset 0.0217 is
+  this. The critical angle, α_c = arcsin(Qc λ/4π), is 0.1535° at 8 keV,
+  0.1228° at 10 keV, 0.0819° at 15 keV and 0.0614° at 20 keV (computed). So
+  "the critical angle of water for the energy" is a single Qc for every
+  energy. For a lighter or denser subphase Qc scales as √ρ_e: 10 % denser
+  gives 0.0228 Å⁻¹, 10 % lighter 0.0206 Å⁻¹ (computed).
+- **A constant Qoff is the right first-order correction for an angle
+  offset.** Qz = (4π/λ) sin α, so an offset δα in the incident angle shifts
+  Qz by (4π/λ) cos α δα, which is constant to better than 0.2 % below
+  α = 3° (cos 3° = 0.9986). Derivation only, not tested.
+- **Damage or a changing sample (F76), and prediction (F77).** A change
+  caused by the beam should follow the absorbed dose, flux × time; a
+  sample changing by itself follows time alone. Burns at two absorbers
+  with flux ratio r (from the absorber ratio) should coincide against dose
+  in the first case and against time in the second. Predicting a safe
+  absorber from a short high-flux test assumes the change depends on the
+  dose alone, whatever the rate: the reciprocity, or Bunsen–Roscoe, law of
+  photochemistry (https://en.wikipedia.org/wiki/Bunsen%E2%80%93Roscoe_law;
+  not opened in this session). It can fail through dose-rate effects or,
+  at a liquid surface, through molecules exchanging into the illuminated
+  footprint. Derivation only; no burn pairs are in the public data.
+- **A super-Gaussian for the sample height scan (F78).** The owner's
+  criterion is a flat-topped profile, not a Gaussian. A form that covers
+  both is I(h) = A exp(−|(h − h₀)/w|^p) + b: p = 2 is a Gaussian, larger p
+  flatter. Proposal only; the thresholds of a verdict on w and p are for
+  the owner.
+
+Open (for the owner, later): once an absorber is "established", is that per
+kind of sample, per subphase, per energy, or per beamtime? The scans were
+selected by hand for Ref Patch: is the Series list (D55, one action selects
+a whole series) not offered for your files, or not yet known?
+
+Added the same day (owner): the frame-by-frame ROI check of reflectivity
+"does happen, but mostly when something is weird and we need to verify the
+data are ok"; a slick movie, on a log or other nonlinear scale, would make
+it more frequent, and "showing people the raw data helps them avoid
+mistakes". GID frames are often watched as a movie, "since real GID peaks
+stay at the same two-theta and other junk does not as the detector angle
+changes". The geometry behind it (this project): a Bragg rod scatters at a
+fixed 2θ (fixed Qxy), so as the detector arm steps, its image moves across
+the pixels with the arm; anything fixed relative to the detector or the
+slits (hot pixels, stray light, window or slit scattering) stays on the
+same pixels and so moves in 2θ. A movie drawn on a common 2θ axis, the zoom
+held in angle, shows the real peaks standing still (`docs/gui/image_display.md`
+M7). In every case the zoom (for reflectivity, the region around the ROI)
+and the colour mode must not change while the frames play (F69). *How
+verified*: the owner's words; the geometry is a reading of the pinhole and
+legacy GID geometry, not tested.

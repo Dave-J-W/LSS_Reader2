@@ -55,8 +55,10 @@ import yaml
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 GUI = os.path.join(ROOT, 'docs', 'gui')
 
-WORKFLOW_IDS = ('burn-ref', 'burn-gid', 'burn-fluo', 'reflectivity', 'gid', 'xfntr', 'exafs', 'gisaxs',
+WORKFLOW_IDS = ('day-ref', 'burn-ref', 'burn-gid', 'burn-fluo', 'reflectivity', 'gid', 'xfntr', 'exafs', 'gisaxs',
                 'cuts', 'alignment', 'mca-look', 'flex-plot', 'session', 'general')
+# 'day-*' entries are days at the beamline (the order of workflows, owner 2026-11-23), not workflows that
+# controls belong to: they are rendered as flowcharts but left out of the control x workflow matrices.
 STEP_FIELDS = ('do', 'where', 'controls', 'user_decides', 'automatic', 'could_be_automatic', 'known_from', 'issues')
 
 
@@ -404,7 +406,7 @@ def render_workflows(inv, entries, shared, flows, missing):
             for c in s['controls']:
                 got = match_control(str(c), inv)[0] or str(c)
                 named.setdefault(got, set()).add(f.get('id'))
-    cols = [w for w in WORKFLOW_IDS]
+    cols = [w for w in WORKFLOW_IDS if not w.startswith('day-')]
     groups = {}
     for e in entries:
         groups.setdefault(str(e.get('where') or e['_file']).split('>')[0].strip() or e['_file'], []).append(e)

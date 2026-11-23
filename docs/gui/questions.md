@@ -39,4 +39,15 @@ recorded beside its question with the date.
 
 | Date | Question | Answer | Recorded where |
 |---|---|---|---|
-| | | | |
+| 2026-11-23 | 1 (Q-GEN-2) A typical day | For a reflectivity day: half-cut (later an sh scan with a horizontal beam), height offset to zero; sample height scans, several compared on one plot; burn tests, absorber changed and repeated until no change over about 400 s, skipped once a safe absorber is established; the macro's first data set reduced (scans by hand, Select All, Ref Patch), Qc of water unless the subphase differs, Qoff tweaked until R/R_F is continuous; macro tuned; a new sh scan after 30 min or a large sx move, judged by width and flat top (super-Gaussian good, Gaussian possibly unusable); reduced curves compared over places and time; then the sample change. | `physics_notes.md` 2026-11-23; map `day-ref`, `alignment`, `burn-ref`, `reflectivity`; F75–F80 |
+| 2026-11-23 | 3 (Q-BURN-1) What follows a burn verdict | Change the absorber and repeat until effectively no change over about 400 s; once an absorber is established, no more burn tests; sometimes the sample changes by itself (not burning) | as above; F76, F77 |
+| 2026-11-23 | 4, in part (Q-REF-1) ROI frame by frame? | Done, but mostly when something is weird and the data must be verified; the routine path is Ref Patch. A slick movie, on a log or other nonlinear scale, would make it more frequent; showing people the raw data helps them avoid mistakes. What is looked at in each join (Q-REF-2) is still open | as above; F71; `image_display.md` (owner note under §2.1) |
+| 2026-11-23 | 7, 9, in part (Q-IMG-1, Q-IMG-3, Q-IMG-5) Movie, stickiness, scale | GID frames are often watched as a movie: real peaks stay at the same 2θ as the detector angle changes, junk does not. In all cases: zoom on the raw data (for reflectivity, the region around the ROI) and play the frames without the zoom, colour mode or anything else changing. Log or another nonlinear scale for the movie. Still open: movie above which number of frames, session or saved zoom, units | F69; `image_display.md` M2, M7 |
+| 2026-11-23 | Q-REF-4, in part: Qc and Qoff | Qc of water assumed, changed for lighter or denser subphases; Qoff tweaked by hand until R/R_F is continuous (one or two outliers acceptable) | as above; F79 |
+| 2026-11-23 | Q-REF-5, in part: comparisons | Reduced curves are compared in the reader across places and over time, for stability (which tab: open) | as above; F80 |
+| 2026-11-23 | Q-GEN-4, in part: alignment scans in the reader | Sample height scans are viewed and compared in the reader (several selected together); the Calculations menu is still open | as above; F78 |
+
+Still open from these: what "established" covers for a safe absorber (kind of
+sample, subphase, energy, beamtime?); thresholds for judging a sample height
+scan; whether the Series list (one action selects a series) works for your
+files, since the scans were selected by hand.

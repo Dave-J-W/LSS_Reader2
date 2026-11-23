@@ -20,6 +20,8 @@ again. Answers go beside each question, dated.
 | Elements of the 7-element detector | EXAFS sums all seven; XFNTR uses the central one, element 1 | D49 |
 | Saving | Automatic once a reduction is carried through; Save adds a note | D53, D56 |
 | Whole-series selection | The default, with a box to turn it off | D55 |
+| A typical reflectivity day (Q-GEN-2) | Answered 2026-11-23: alignment, sh scans, burn tests unless a safe absorber is known, first data set, Qc/Qoff, macro tuning, sh scan again after 30 min or a large sx move, stability comparisons, sample change | physics_notes 2026-11-23; map `day-ref`; F75–F80 |
+| What follows a burn verdict (Q-BURN-1) | Answered 2026-11-23: change the absorber and repeat until no change over about 400 s; not repeated once an absorber is established | same |
 
 ## Burn tests
 
