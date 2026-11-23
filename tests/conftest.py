@@ -175,6 +175,7 @@ class Recorder:
         self.messages = []      # text of every message shown to the user
         self.failures = []      # 'Operation failed' reports (real program only)
         self.dialogs = []       # QDialog instances whose exec_ was called
+        self.menus = []         # QMenu instances (or action lists) whose exec_ was called
         self.exceptions = []    # (type, value, traceback) from Qt slots
         self.open_name = ''     # returned by QFileDialog.getOpenFileName
         self.open_names = []    # returned by QFileDialog.getOpenFileNames
@@ -185,7 +186,7 @@ class Recorder:
 
 @pytest.fixture
 def recorder(qapp, monkeypatch):
-    from PyQt5 import QtWidgets
+    from PyQt5 import QtCore, QtWidgets
     rec = Recorder()
 
     def box_exec(self, *a, **k):
@@ -222,6 +223,21 @@ def recorder(qapp, monkeypatch):
         monkeypatch.setattr(QtWidgets.QMessageBox, name, staticmethod(static_box))
     monkeypatch.setattr(QtWidgets.QDialog, 'exec_', dialog_exec)
     monkeypatch.setattr(QtWidgets.QDialog, 'exec', dialog_exec)
+    # a menu shown with exec waits for a click that never comes offscreen: the
+    # crash sweep's random walk hung on a QPushButton with setMenu (2026-11-23).
+    # Like a dialog, it returns at once with no action chosen: exec called from
+    # Python (also the static QMenu.exec(actions, pos)) is replaced, and a menu
+    # that Qt opens itself (a button's menu: QMenu::exec in C++) is closed as
+    # soon as it is shown.
+    monkeypatch.setattr(QtWidgets.QMenu, 'exec_', lambda *a, **k: rec.menus.append(a[0] if a else None))
+    monkeypatch.setattr(QtWidgets.QMenu, 'exec', lambda *a, **k: rec.menus.append(a[0] if a else None))
+    real_show = QtWidgets.QMenu.showEvent
+
+    def menu_shown(self, event):
+        rec.menus.append(self)
+        QtCore.QTimer.singleShot(0, self.close)
+        return real_show(self, event)
+    monkeypatch.setattr(QtWidgets.QMenu, 'showEvent', menu_shown)
     monkeypatch.setattr(QtWidgets.QFileDialog, 'getOpenFileName',
                         staticmethod(lambda *a, **k: (rec.open_name, '')))
     monkeypatch.setattr(QtWidgets.QFileDialog, 'getOpenFileNames',
