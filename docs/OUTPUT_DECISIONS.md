@@ -80,6 +80,8 @@ Each is also in `physics_notes.md` under its date.
 
 | Date | Change | Before → after | Who decided |
 |---|---|---|---|
+| 2026-11-23 | SpecPlot scan shape of a sample-height scan (`ascan`/`a2scan`/`dscan`/`d2scan` of sh over a range, plotted against sh): not fitted when (highest − lowest)/lowest of the 3-point smoothed curve < 2 (`kind` 'weak'); shapes narrower than 0.020 mm dropped | NX school: the height scans' Pilatus fits (scans 5, 10, 13: plateaus 81–82 µm, signal/background 6.8–8.5) unchanged, bit for bit; their Monc columns (signal/background ≪ 1) no longer fitted; scan 4 (stopped, noise) not fitted, as by the flat test. Synthetic: a significant bump at signal/background 0.44 'weak'; a single hot point no longer a "peak" 4 µm wide | owner (2026-11-23: "we always get good signal, and the FWHM is always greater than 20 microns"); the threshold 2 and sh in mm are assumptions (A) |
+| 2026-11-23 | SpecPlot scan shape: a scan its background alone fits (χ² p-value > `FLAT_P` = 0.05) is "flat" and not fitted (`peaks.is_flat`) | NX school, every (scan, column): 17 of 26 become flat, all straight lines (Epoch, Out_Ht, H, K), monitors within their counting error, or noise (scan 4 Pilatus, 7–19 counts: was "peak at −2.2304", its one 19-count point); the other 9 unchanged, bit for bit (C37). The window then shows the highest point and no fit line, as for any failed fit. Measured on synthetic data: a 4σ peak on 12 counts is never called flat in 200 noise draws, a 3.5σ one once; pure noise is called flat 92 % of the time | owner (2026-11-23: "no point hammering it with fits"); threshold 0.05 an assumption (A) |
 | 2026-11-23 | SpecPlot scan shape: the final edge or box fit allowed `SHAPE_FIT_MAX_NFEV` = 2000 evaluations (was 20000) | none on the NX school fits (26; the most any converged fit used: 166); a fit needing 2000–20000 would now report "did not converge". The box fitted to a Gaussian motor scan failed either way, after 400 442 model calls (12 s) → 112 456 (3.8 s) | this project, for speed (the sweep and the window); M, T `test_peaks.py` |
 | 2026-11-22 | Ref Patch known ratio from the third join on (P45 fix) | the ratio offered at join ≥ 3 was too small by the first join's factor (synthetic: 1.72e-8 → 1.64e-6, fit 1.64e-6); outputs change only if that ratio was used | defect fix (the coordinator asked for it once confirmed) |
 | 2026-11-22 | Reflectivity patch factor: legacy spline-ratio fit → joint fit (order 4, 2 points either side, the guard ladder with p ≥ 0.3) | NX 6–9 cumulative factors 0.0229337 → 0.0229796 (+0.20 %), 0.00147973 → 0.00148164 (+0.13 %), 0.000153367 → 0.000153587 (+0.14 %); errors 0.36/0.80/0.46 % → 0.43/0.62/0.48 %; synthetic two-scan set (`test_gui_workflows`) last point 0.982 → 0.994 of the truth (truth 1). The legacy export fixtures unchanged under `method='legacy'` | owner (conditional on the gauntlet), 2026-11-22 |
@@ -119,6 +121,13 @@ Each is also in `physics_notes.md` under its date.
 
 ## Open assumptions (A) to confirm with the owner
 
+- SpecPlot flat-scan threshold `FLAT_P` = 0.05 (2026-11-23): a feature
+  needs only weak (5 %) evidence against the background alone to be
+  fitted. 0.01 would skip 99 % of flat scans but more weak peaks.
+- Sample-height scans (2026-11-23): signal/background at least 2 (the NX
+  scans give 6.8–8.5); sh in mm, so 20 µm = 0.020; recognised by the
+  command alone (first motor sh). Other beamline motor names for the
+  sample height, if any, are not known.
 
 - Burn tests: the position's change shown as % of the FWHM (the owner
   leaves its judgment to the user; it does not set the limit by default).

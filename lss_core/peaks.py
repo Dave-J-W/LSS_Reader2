@@ -613,16 +613,105 @@ def fit_box(x, y, sigma=None, background='linear'):
     return res
 
 
-def fit_scan(x, y, sigma=None, background='linear'):
+# A scan whose background alone fits it this well (χ² p-value above FLAT_P)
+# shows no peak, edge or plateau, and fit_scan does not look for one. 0.05:
+# a feature needs only weak evidence (5 %) to be fitted; 95 % of truly flat
+# scans skip the fits (owner, 2026-11-23; OUTPUT_DECISIONS).
+FLAT_P = 0.05
+
+
+def is_flat(x, y, s, background='linear'):
+    """(flat, χ², dof) of the background polynomial alone, fitted by
+    weighted linear least squares to (x, y) with errors ``s``; ``flat``
+    when its χ² p-value exceeds FLAT_P. Too few points: never flat."""
+    from scipy.stats import chi2 as chi2_dist
+    x, y, s = np.asarray(x, float), np.asarray(y, float), np.asarray(s, float)
+    order = BACKGROUNDS[background]
+    dof = len(x) - (order + 1)
+    good = np.isfinite(x) & np.isfinite(y) & np.isfinite(s) & (s > 0)
+    if dof < 3 or not good.all():
+        return False, float('nan'), max(dof, 1)
+    if order < 0:
+        r = y / s
+    else:
+        x0, xs = 0.5 * (x.min() + x.max()), max(0.5 * (x.max() - x.min()), 1e-300)
+        u = (x - x0) / xs
+        A = np.vander(u, order + 1, increasing=True) / s[:, None]
+        coef = np.linalg.lstsq(A, y / s, rcond=None)[0]
+        r = y / s - A @ coef
+    chi2 = float(np.sum(r ** 2))
+    return bool(chi2_dist.sf(chi2, dof) > FLAT_P), chi2, dof
+
+
+# Sample-height scans (owner, 2026-11-23): "not a tough scan to do, we always
+# get good signal, and the FWHM is always greater than 20 microns". sh is in
+# mm (NX school: 8 µm steps, fitted widths 47-82 µm).
+HEIGHT_SCAN_MIN_FWHM = 0.020
+# (highest - lowest) / lowest of the 3-point smoothed curve: the NX school
+# height scans give 7-10, the stopped scan 4 (noise) 0.6.
+HEIGHT_SCAN_MIN_SIGNAL_TO_BACKGROUND = 2.0
+
+
+def is_height_scan(command):
+    """True for a sample-height scan: ascan, a2scan, dscan or d2scan whose
+    first motor is sh, over a range (start != end). ``command`` with or
+    without its leading '#S n'."""
+    w = str(command).split()
+    if w and w[0] == '#S':
+        w = w[2:]
+    return len(w) > 3 and w[0] in ('ascan', 'a2scan', 'dscan', 'd2scan') and w[1] == 'sh' and w[2] != w[3]
+
+
+def height_scan_options():
+    """The keyword arguments of fit_scan for a sample-height scan."""
+    return dict(min_fwhm=HEIGHT_SCAN_MIN_FWHM, min_signal_to_background=HEIGHT_SCAN_MIN_SIGNAL_TO_BACKGROUND)
+
+
+def signal_to_background(y):
+    """(highest - lowest) / lowest of y smoothed over 3 points: a peak, a
+    plateau and an edge alike, and one spike does not count. Infinite when
+    the lowest level is not positive (background-subtracted data)."""
+    y = np.asarray(y, float)
+    ys = np.convolve(y, np.ones(3) / 3, 'valid') if len(y) >= 3 else y
+    lo, hi = float(np.min(ys)), float(np.max(ys))
+    return (hi - lo) / lo if lo > 0 else float('inf')
+
+
+def fit_scan(x, y, sigma=None, background='linear', min_fwhm=None, min_signal_to_background=None):
     """The shape of an alignment or half-cut scan: a peak (Gaussian), an
     edge (``fit_edge``) or a box (``fit_box``), whichever the data support
     best by the Akaike criterion (χ² + 2 × parameters); returns the
     FitResult with ``kind`` 'peak', 'edge' or 'box' and ``candidates``
     (kind → FitResult) for the others. Replaces the window's tanh box model
-    (P9), which reported 0.406 for a Gaussian of FWHM 0.471."""
+    (P9), which reported 0.406 for a Gaussian of FWHM 0.471.
+
+    A scan with no structure above its noise (``is_flat``: the background
+    alone fits it, χ² p-value above FLAT_P) is not fitted: ``kind`` 'flat',
+    ``ok`` False (owner, 2026-11-23: no point hammering a flat noisy line
+    with fits).
+
+    ``min_signal_to_background``: below it (``signal_to_background``) the
+    scan is not fitted either, ``kind`` 'weak'. ``min_fwhm``: shapes
+    narrower than this (in x units) are dropped as implausible. The window
+    passes both for sample-height scans (``height_scan_options``)."""
     x, y = np.asarray(x, float), np.asarray(y, float)
     weighted = sigma is not None and np.any(np.asarray(sigma, float) > 0)
     s = noise_sigma(y, sigma)
+    flat, chi2, dof = is_flat(x, y, s, background)
+    if flat:
+        res = FitResult([], np.zeros(0), 0.0, 1.0, chi2 / dof, (float(np.nanmin(x)), float(np.nanmax(x))), len(x),
+                        False, 'flat: the %s background alone fits it (χ²/dof %.2f)' % (background, chi2 / dof),
+                        FitOptions(background=background))
+        res.kind, res.rss, res.npar, res.candidates = 'flat', chi2, BACKGROUNDS[background] + 1, {}
+        return res
+    if min_signal_to_background is not None:
+        sb = signal_to_background(y)
+        if not sb >= min_signal_to_background:
+            res = FitResult([], np.zeros(0), 0.0, 1.0, float('nan'), (float(np.nanmin(x)), float(np.nanmax(x))),
+                            len(x), False, 'weak: signal/background %.2g, below %g' % (sb, min_signal_to_background),
+                            FitOptions(background=background))
+            res.kind, res.rss, res.npar, res.candidates = 'weak', float('nan'), 0, {}
+            return res
     out = {}
     span = float(np.nanmax(x) - np.nanmin(x)) if len(x) else 1.0
     pk = fit(x, y, sigma, FitOptions(n_peaks=1, background=background, window=span, min_prominence=3.0))
@@ -634,9 +723,12 @@ def fit_scan(x, y, sigma=None, background='linear'):
         r = f(x, y, sigma, background)
         if r.ok:
             out[kind] = r
+    if min_fwhm is not None:
+        out = {k: r for k, r in out.items() if r.peaks and r.peaks[0].fwhm >= min_fwhm}
     if not out:
         return FitResult([], np.zeros(0), 0.0, 1.0, float('nan'), (float('nan'),) * 2, len(x), False,
-                         'no peak, edge or plateau could be fitted', FitOptions(background=background))
+                         'no peak, edge or plateau could be fitted' +
+                         ('' if min_fwhm is None else ' wider than %g' % min_fwhm), FitOptions(background=background))
     n = len(x)
 
     def aic(r):

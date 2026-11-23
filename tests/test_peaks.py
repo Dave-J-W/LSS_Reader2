@@ -174,6 +174,66 @@ def test_a_box_that_cannot_converge_gives_up_early(monkeypatch):
     assert calls[0] < 150000, calls[0]                         # 112 456 with the cap of 2000
 
 
+def test_a_flat_noisy_scan_is_not_fitted(monkeypatch):
+    """Owner, 2026-11-23: no point hammering a flat noisy line with fits.
+    NX school scan 4's Pilatus column (7-19 counts around 12) used to be
+    reported as a peak at -2.2304, its one 19-count point; a ramp (Epoch,
+    Out_Ht) as a peak or an edge. Both are 'flat' now, and no fit runs."""
+    def must_not_run(*a, **k):
+        raise AssertionError('a flat scan was fitted')
+    for name in ('fit', 'fit_edge', 'fit_box'):
+        monkeypatch.setattr(peaks, name, must_not_run)
+    x = np.linspace(-2.2785, -2.1665, 15)
+    y = np.array([10, 17, 13, 13, 14, 10, 19, 10, 10, 9, 10, 15, 12, 7, 10], float)
+    res = peaks.fit_scan(x, y, np.sqrt(y))
+    assert res.kind == 'flat' and not res.ok and res.peaks == [] and res.candidates == {}
+    assert 'flat' in res.message
+    ramp = peaks.fit_scan(x, 1.795e9 + 1.2 * np.arange(15.0), None)      # a clock column
+    assert ramp.kind == 'flat'
+
+
+def test_a_weak_real_peak_is_still_fitted():
+    """A 4 sigma Gaussian on 12 counts (41 points): never called flat in
+    200 noise draws (2026-11-23); one 3.5 sigma peak in 200 was."""
+    x = np.linspace(-1, 1, 41)
+    y = _poisson(12 + _gauss(x, 0.0, 0.3, 25), 0)
+    res = peaks.fit_scan(x, y, np.sqrt(np.maximum(y, 1)))
+    assert res.ok and res.kind != 'flat'          # which shape wins (box, here) is the Akaike choice's, as before
+    assert res.candidates['peak'].peaks[0].centre == pytest.approx(0.0, abs=0.05)
+
+
+def test_height_scans_are_recognised():
+    """Owner, 2026-11-23: sample-height scans have good signal and a FWHM
+    over 20 µm. Recognised by the command: a scan of sh over a range."""
+    for c in ('#S 4  a2scan  sh -2.2785 -2.1185  oh -1.37117 -1.05117  20 1\n', 'ascan  sh -1 1 20 1',
+              'dscan sh -0.1 0.1 20 1', 'd2scan sh -0.1 0.1 oh -0.2 0.2 20 1'):
+        assert peaks.is_height_scan(c), c
+    for c in ('ascan ih -0.994512 -0.994512  20 10', 'ascan  dth 14 18  40 7', 'ascan sh 1 1 10 1',
+              'hklscan  0 0  0 0  0.0175 0.04  18 2', 'a2scan oh -1 1 sh -2 2 20 1', ''):
+        assert not peaks.is_height_scan(c), c
+
+
+def test_a_height_scan_needs_good_signal_and_a_width_over_20_microns():
+    x = np.linspace(-2.2785, -2.1185, 21)             # sh in mm, 8 µm steps, as at the beamline
+    hs = peaks.height_scan_options()
+    assert hs == {'min_fwhm': 0.020, 'min_signal_to_background': 2.0}
+    # NX school scan 5, Pilatus: unchanged by the height rules (a plateau 82 µm wide)
+    y5 = np.array([536, 605, 878, 1347, 2213, 3126, 3870, 4178, 4259, 4429, 4230, 4292, 4088, 3539,
+                   2910, 1888, 1117, 755, 530, 450, 391], float)
+    a, b = peaks.fit_scan(x, y5, np.sqrt(y5)), peaks.fit_scan(x, y5, np.sqrt(y5), **hs)
+    assert a.kind == b.kind == 'box' and a.peaks[0].fwhm == b.peaks[0].fwhm == pytest.approx(0.0819, abs=5e-4)
+    assert peaks.signal_to_background(y5) > 6
+    # a real but weak bump (S/B 0.44, far above the noise): fitted in general, not as a height scan
+    weak = _poisson(1000 + _gauss(x, -2.2, 0.07, 500), 4)
+    assert peaks.fit_scan(x, weak, np.sqrt(weak)).ok
+    w = peaks.fit_scan(x, weak, np.sqrt(weak), **hs)
+    assert w.kind == 'weak' and not w.ok and 'signal/background' in w.message
+    # one hot point: every shape narrower than 20 µm, so none is reported
+    spike = _poisson(np.where(np.arange(21) == 10, 3000.0, 30.0), 3)
+    sp = peaks.fit_scan(x, spike, np.sqrt(np.maximum(spike, 1)), **hs)
+    assert not sp.ok and sp.peaks == [] and 'wider than 0.02' in sp.message
+
+
 def test_scan_shape_picks_peak_edge_or_box():
     x = np.linspace(-1, 1, 121)
     from scipy.special import erf

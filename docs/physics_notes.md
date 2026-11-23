@@ -3928,3 +3928,66 @@ The agents' unpushed progress can be recovered only from the other
 account: when its credits return, ask each session to commit and push to a
 branch (for example `wip/test-speed` and `wip/tools-menu`), so that it can
 be judged here.
+
+### 2026-11-23 — Speeding up the tests: the motor-scan fit, and flat scans
+
+**Found while timing the crash sweep** (the test-speed work, below).
+Building a window takes 0.1 s, but putting it in the sweep's `motor_scan`
+state took 9.5 s, every time: the window fits the shape of every motor
+scan it plots (`peaks.fit_scan`), and the box candidate, fitted to the
+synthetic motor scan's clean Gaussian (21 points, FWHM 0.471), ran all
+20 000 evaluations allowed (400 442 model calls) and then failed, as it
+must: a box cannot converge on a peak. The sweep gives about 260 controls
+a fresh window in that state, twice; about 80 of its 180 minutes. A user
+plotting such a scan waited the same.
+
+**Owner:** "I think there's a motor scan with bad data; it's basically a
+flat noisy line. There's no point hammering it with fits."
+
+**Measured on NX school** (`tests/tools/fit_scan_survey.py`, C37): the
+real scans' converged edge and box fits used at most 166 evaluations, and
+the slowest real fits were flat lines: scan 4's Monc (2.8 s) and its
+Pilatus column, 7–19 counts of noise around 12, which `fit_scan` reported
+as a peak at −2.2304 (its one 19-count point). Two changes:
+- The final edge or box fit stops at 2000 evaluations
+  (`SHAPE_FIT_MAX_NFEV`): no NX fit changes; the Gaussian motor scan
+  12 s → 3.8 s, same answer (a peak, FWHM 0.471).
+- A scan its background alone fits (weighted least squares, χ² p-value >
+  0.05; `peaks.is_flat`) is reported as `kind` 'flat' and not fitted. On
+  NX, 17 of 26 (scan, column) pairs: ramps (Epoch, Out_Ht, H, K), monitors
+  within counting error, scan 4's Pilatus. On synthetic data a 4σ peak on
+  12 counts was never called flat in 200 noise draws, a 3.5σ one once in
+  200, a 2.9σ one 8 times; pure Poisson noise is called flat 92 % of the
+  time (95 % expected; errors taken from the data bias χ² up a little).
+  Scan 4's Monc is not flat by this test (its 2 % drift is far above its
+  counting error), so it is still fitted.
+
+Verified: measured (survey, both rule sets) and tested
+(`test_peaks.py::test_a_box_that_cannot_converge_gives_up_early`,
+`test_a_flat_noisy_scan_is_not_fitted`, `test_a_weak_real_peak_is_still_fitted`).
+Where the model choice was close, a weak noisy Gaussian (4σ, 41 points)
+is chosen as a box by the Akaike criterion, as before this change; not
+looked into.
+
+**Owner, later the same day:** "if you know what constitutes a sample
+height scan (which motors and what scan type) then you can limit fitting
+on those scans to decent signal to background ratios; it's not a tough
+scan to do, we always get good signal, and the FWHM is always greater
+than 20 microns."
+
+**Done.** In the NX school file the height scans are `a2scan sh … oh …
+20 1` on the Pilatus (scans 4, 5, 10, 13; sh in mm, 8 µm steps). A scan
+whose first motor is sh, over a range (`ascan`, `a2scan`, `dscan`,
+`d2scan`), plotted against sh, is fitted only when (highest − lowest) /
+lowest of its 3-point smoothed curve is at least 2, and shapes narrower
+than 0.020 mm are dropped. The ratio is taken this way, not against the
+scan's ends, because a half-cut is an sh scan too and its two ends sit on
+different levels. Measured: scans 5, 10, 13 give 8.45, 6.78, 7.23 and the
+same plateaus (81–82 µm) as without the rules, bit for bit; scan 4 gives
+0.48. Over all 26 NX fits, time in `fit_scan` 5.7 → 0.5 s, and 20
+change, every one to no fit (C37). Tested:
+`test_height_scans_are_recognised`,
+`test_a_height_scan_needs_good_signal_and_a_width_over_20_microns`, and in
+the window `test_height_scans_are_fitted_only_with_good_signal`. The
+threshold 2 is this project's choice (OUTPUT_DECISIONS, open
+assumptions).
