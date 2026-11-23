@@ -13,6 +13,15 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
 | 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); **fitting done** 2026-11-21 (peak module D52, MCA lines, scan shapes, burn trends D54); beam size (half-cut fit built, no data); **GUI planning started** 2026-11-22 (D58: assessment, workflow map, screenshots in `docs/gui/`; no code yet); **Tools menu built** 2026-11-23 (F84: every demonstration and figure generator, `docs/TOOLS.md`) |
 
+## Who is on what (kept by Main, D62; 2026-11-23)
+
+| Session | Now | Next |
+|---|---|---|
+| Main (orchestrator) | F91 "Sum All" really sums and F81 repeats summed (both ΣN/ΣM, output changes); F87 burn kind from Det_Th > 2° | F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
+| GUI manager | the main window's unblocked items (area I, "Unblocked 2026-11-23"): removals, F74, F85, F86, F88, F69 movie, Q-GID-5, then F95–F97 display | the timeline tab (F83), then ngui |
+| tools man | what "the gauntlet" is, whether it was wrapped up, its extensions (report to Main) | F90 MCA fit gauntlet, synthetic half |
+| questor | the owner's questions and their answers in `docs/` | (its own order) |
+
 ## Remaining work by area (regrouped 2026-11-21, review `docs/reviews/2026-11-21-todo-review.md`)
 
 The stage lists further down keep the history and the detail; this is the
