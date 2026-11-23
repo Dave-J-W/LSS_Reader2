@@ -183,6 +183,12 @@ build workflow and macOS signing (input 12); sample-data hosting.
       (deferred deletes never ran), a 9.5 s box fit on every motor-scan plot,
       a bisection in the pinhole footprint window, tmp_path kept for three
       runs, temporary folders never removed.
+- [x] **File IO and caches reviewed — 2026-11-23** (physics_notes): MCA
+      files now parsed once per file version (they were re-read on every
+      selection change); the disk cache walks its folder only when it may
+      be full. Open: frames held as int64 halve what the caches hold (an
+      int32 cache would need every reduction re-verified); timing over a
+      slow network drive.
 - [ ] **Three real-data tests fail on main since 2026-11-22 (found
       2026-11-23, bisected)**: `test_patching.py::test_nx_school_scans_6_to_9`
       since 6bb29bf (the joint fit's guard ladder and 2 points either side:
