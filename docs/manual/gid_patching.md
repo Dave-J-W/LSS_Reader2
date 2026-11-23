@@ -201,8 +201,8 @@ estimated). Measured again on these splits: 'fit' 1.2565, 'beam' 1.2567,
 'physical+fit' 1.2530, 'physical' 1.2549 for 1.25 (P42 fixed); with the
 scan factor by likelihood (P46, 2026-11-23) 1.2572, 1.2574, 1.2535,
 1.2558. The two
-halves of one scan still join at 0.95–0.96 under every column model ('fit'
-0.951): that is a change along the scan itself (measured one after the
+halves of one scan still join at 0.96–0.97 under every column model ('fit'
+0.959; 0.951 before P46, 2026-11-23): that is a change along the scan itself (measured one after the
 other; the sample height drifts by microns in half an hour), not a model
 artefact, and diagram 8 now shows the fixed join.
 

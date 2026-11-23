@@ -4482,7 +4482,11 @@ counts split between the two sides (binomial given the bin's total:
 curvature): within ±0.1 % at every count level (invariant I31). On NX
 11 + 12 the level join moves 1.068 ± 0.013 → 1.088 ± 0.014 (1.5σ; the
 upper level has 124 counts per β bin); the scan join of NX 11 split ×0.8
-moves 1.2565 → 1.2572 (true 1.25). `GIDParams(join_estimator='ivw')`
+moves 1.2565 → 1.2572 (true 1.25), and the two halves of NX 11 (×1) join
+at 0.959 instead of 0.951 ('fit'; beam 0.952 → 0.962, physical+fit
+0.962 → 0.970: still not 1, the change along the scan stands; the pinned
+characterisation in `test_gid_scan_join.py` updated with these values).
+`GIDParams(join_estimator='ivw')`
 keeps the old estimator. Every committed GID product was remade and every
 quoted number updated with the old beside it (`OUTPUT_DECISIONS.md`,
 `COMPARISONS.md` C40).

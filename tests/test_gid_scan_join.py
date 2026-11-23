@@ -68,15 +68,17 @@ def test_pinhole_scan_join_recovers_a_scale_between_scans(scan11, response):
 
 
 def test_halves_of_one_scan_differ_under_every_column_model(scan11):
-    """As measured (2026-11-20): the two halves of NX scan 11 (Det_Th 14.0–
-    16.0° and 15.5–18.0°, measured one after the other) join at 0.95–0.96
-    under every column model ('fit' 0.951, 'beam' 0.952, 'physical+fit'
-    0.962), not at 1: a change along the scan (the sample height drifts by
-    microns in half an hour, owner 2026-11-19), not an artefact of one model.
-    A characterisation: it changes only with the method."""
+    """As measured: the two halves of NX scan 11 (Det_Th 14.0–16.0° and
+    15.5–18.0°, measured one after the other) join at 0.96–0.97 under every
+    column model, not at 1: a change along the scan (the sample height
+    drifts by microns in half an hour, owner 2026-11-19), not an artefact of
+    one model. A characterisation: it changes only with the method. Changed
+    with the method on 2026-11-23 (P46, the join factor by likelihood):
+    'fit' 0.951 → 0.959, 'beam' 0.952 → 0.962, 'physical+fit' 0.962 → 0.970
+    (measured 2026-11-20, then 2026-11-23)."""
     frames, det = scan11
     f = {r: _factor(_split(frames, 1.0), det, True, r) for r in ('fit', 'beam', 'physical+fit')}
-    assert f['fit'] == pytest.approx(0.951, abs=0.005)
+    assert f['fit'] == pytest.approx(0.959, abs=0.005)
     assert max(f.values()) - min(f.values()) < 0.02 and max(f.values()) < 0.975
 
 
