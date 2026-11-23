@@ -34,6 +34,36 @@ def test_motor_scan_is_plotted_and_peak_fitted(loaded, qapp, dataset, recorder):
     assert float(loaded.peakFWHM) == pytest.approx(0.471, abs=5e-3)
 
 
+NX = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                  'sample_data', 'NX_school', '2026sep', '20260923')
+
+
+@pytest.mark.skipif(not os.path.exists(NX), reason='NX_school data not present')
+def test_height_scans_are_fitted_only_with_good_signal(window, qapp, recorder, tmp_path, monkeypatch):
+    """NX school scans 4 and 5 are sample-height scans (a2scan sh ... oh ...).
+    Scan 4 stopped after 15 points of noise (7-19 counts): no fit (was a
+    'peak at -2.2304'). Scan 5 is fitted as before, with the height rules
+    (owner, 2026-11-23: good signal, FWHM > 20 µm)."""
+    from lss_core import peaks
+    seen = []
+    real = peaks.fit_scan
+
+    def spy(*a, **k):
+        seen.append(k)
+        return real(*a, **k)
+    monkeypatch.setattr(peaks, 'fit_scan', spy)
+    window.openSpecFile(fname=NX)
+    window.directory = str(tmp_path)
+    sweep._select_scans(window, qapp, [4])                     # scan 5
+    assert window.ui.spXComboBox.currentText() == 'Sample_H'
+    assert seen[-1] == peaks.height_scan_options()
+    assert window.specFit.kind == 'box' and window.specFit.peaks[0].fwhm > 0.02
+    sweep._select_scans(window, qapp, [3])                     # scan 4
+    assert window.specFit.kind in ('flat', 'weak') and window.specFit.peaks == []
+    assert window.peakFWHM == '0'
+    assert recorder.exceptions == []
+
+
 def test_selecting_pilatus_scan_lists_frames(loaded, qapp, dataset, recorder):
     sweep.state_pilatus_scan_no_frames(loaded, qapp, dataset)
     assert loaded.ui.imageListWidget.count() == 9

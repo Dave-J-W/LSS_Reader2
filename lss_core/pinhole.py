@@ -311,10 +311,50 @@ def column_at_source(g, x, row=None, slit_offset=0.0):
     """The (fractional) column whose ray through the S4 slit line (at
     ``slit_offset``, see ``ray_geometry``) starts at ``x`` mm on the beam
     axis; ``row`` defaults to the direct-beam row r0. The inverse of
-    ``ray_geometry``'s source point, by bisection: the source point grows
-    with the column, from −∞ (the column that looks along the beam) to
-    L/cos Det_Th at infinity, L the sample → slit distance. Raises
-    ValueError when no column sees ``x``."""
+    ``ray_geometry``'s source point, in closed form: the plane through the
+    slit line (point L, direction e_v) and the source S = (x, 0, 0) has the
+    normal N = (L − S) × e_v, and a pixel of the row, P = centre + w_x e_h +
+    w_y e_v, lies in it when N·(P − L) = 0, which is linear in w_x (N·e_v =
+    0). The ray to that column is then checked to start at ``x`` and to run
+    forward. Raises ValueError when no column sees ``x`` (beyond L/cos
+    Det_Th, L the sample → slit distance, or behind the column that looks
+    along the beam). Same columns as the bisection it replaced
+    (``_column_at_source_bisection``, kept as the reference) to 1e-9; it
+    took 85 % of a distance calibration (2026-11-23)."""
+    row = g.r0 if row is None else row
+    D, Dp, b, d = vertical_distance(g), pinhole_distance(g), g.beta0, g.dth
+    if D == Dp:                                   # no pinhole: every ray starts at the sample centre
+        return _column_at_source_bisection(g, x, row, slit_offset)
+    n = np.array([math.cos(b) * math.cos(d), math.cos(b) * math.sin(d), math.sin(b)])
+    eh = np.array([math.sin(d), -math.cos(d), 0.0])
+    ev = np.array([-math.sin(b) * math.cos(d), -math.sin(b) * math.sin(d), math.cos(b)])
+    line = (D - Dp) * n - slit_offset * eh
+    normal = np.cross(line - np.array([x, 0.0, 0.0]), ev)
+    ne = normal.dot(eh)
+    if abs(ne) <= 1e-12 * np.linalg.norm(normal):
+        raise ValueError('no column sees x = %g mm' % x)
+    wy = (row - g.r0) * PIXEL_MM
+    wx = -(normal.dot(D * n - line) + wy * normal.dot(ev)) / ne
+    c = g.c0 - wx / PIXEL_MM
+
+    def facing(w):                                 # x component of the pixel's plane normal: 0 at the column
+        return np.cross(D * n + w * eh + wy * ev - line, ev)[0]   # that looks along the beam
+    if not facing(wx) * facing(0.0) > 0:           # the other branch, beyond that column: no ray reaches x
+        raise ValueError('no column sees x = %g mm' % x)
+    try:
+        r = ray_geometry(g, row, c, slit_offset)
+    except ValueError:
+        raise ValueError('no column sees x = %g mm' % x) from None
+    if not (r.direction.dot(r.n) > 0 and abs(r.source[0] - x) <= 1e-6 * max(1.0, abs(x))):
+        raise ValueError('no column sees x = %g mm' % x)
+    return float(c)
+
+
+def _column_at_source_bisection(g, x, row=None, slit_offset=0.0):
+    """``column_at_source`` by bisection (until 2026-11-23): the source
+    point grows with the column, from −∞ (the column that looks along the
+    beam) to L/cos Det_Th at infinity. The reference for the closed form
+    (tests/test_pinhole.py)."""
     row = g.r0 if row is None else row
 
     def src(c):                                   # source x, or None where the ray does not run forward

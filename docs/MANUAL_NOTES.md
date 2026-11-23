@@ -63,6 +63,12 @@ Each line: feature — where — default — script — notes entry (date).
 ### Fitting (F22)
 - SpecPlot: the scan is fitted as a peak, an edge (half-cut: edge width = beam
   FWHM) or a plateau, whichever fits best; the title says which (P9 fixed).
+  A scan that its background alone fits (a flat noisy line, a ramp such as
+  Epoch; χ² p > 0.05) is not fitted: the title shows the highest point
+  only, no fit line (owner, 2026-11-23; `peaks.is_flat`). A sample-height
+  scan (sh, plotted against sh) is fitted only when its signal is at least
+  twice its background and only with a FWHM over 20 µm (owner: "we always
+  get good signal"; `peaks.height_scan_options`).
 - MCA tab: "Fit lines" and "Fit options..." (lines of all selected spectra,
   the sum fixing position and width; intensities like Sum All).
 - Fit options are kept between sessions (preferences) and in the workbook.
