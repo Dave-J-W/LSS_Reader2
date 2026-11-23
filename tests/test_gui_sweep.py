@@ -84,23 +84,35 @@ def _answer_dialogs(recorder, dataset, tmp_path):
     recorder.directory = os.path.dirname(dataset)
 
 
+# Each state's controls are shared by this many tests (every n-th control,
+# with its dialog's controls), so that parallel workers finish together and
+# more CPUs make the sweep faster: as 18 tests, the sweep took 24 min on 4
+# CPUs, its longest test 7.8 min (2026-11-23).
+SWEEP_PARTS = 8
+
+
 @pytest.mark.gui
 @pytest.mark.sweep
+@pytest.mark.parametrize('part', range(SWEEP_PARTS))
 @pytest.mark.parametrize('dialogs', ['cancel', 'paths'])
 @pytest.mark.parametrize('state', list(sweep.STATES))
-def test_no_new_crashes(state, dialogs, qapp, recorder, dataset, tmp_path,
+def test_no_new_crashes(state, dialogs, part, qapp, recorder, dataset, tmp_path,
                         make_window, clean_root):
     if dialogs == 'paths':
         _answer_dialogs(recorder, dataset, tmp_path)
     key = state if dialogs == 'cancel' else state + '+paths'
-    found = sweep.run_state(make_window, qapp, recorder, dataset, state)
+    mine = set(sweep.control_keys(make_window, qapp, recorder, (part, SWEEP_PARTS)))
+
+    def owned(k):                     # this part's controls and their dialogs' ('parent > child')
+        return k == '<setup>' or k.split(' > ')[0] in mine
+    found = sweep.run_state(make_window, qapp, recorder, dataset, state, (part, SWEEP_PARTS))
     recorder.exceptions.clear()
-    if UPDATE:
+    if UPDATE:                        # one process (conftest): the parts rewrite the file in turn
         data = _load()
-        data[key] = found
+        data[key] = {**{k: v for k, v in data.get(key, {}).items() if not owned(k)}, **found}
         _save(BASELINE, data)
         return
-    known = _load().get(key, {})
+    known = {k: v for k, v in _load().get(key, {}).items() if owned(k)}
     new = {k: v for k, v in found.items() if k not in known}
     fixed = sorted(k for k in known if k not in found)
     assert not new, 'controls that newly raise in %r: %s' % (key, new)

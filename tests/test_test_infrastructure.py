@@ -100,3 +100,21 @@ def test_auto_workers_fit_the_cpus_and_the_memory(monkeypatch):
     assert conftest.pytest_xdist_auto_num_workers(None) == min(cpus, 3)
     monkeypatch.setattr(conftest, '_available_memory_mb', lambda: 100)
     assert conftest.pytest_xdist_auto_num_workers(None) == 1
+
+
+@pytest.mark.gui
+def test_sweep_parts_cover_every_control_once(qapp, recorder, tmp_path):
+    """The crash sweep shares each state among SWEEP_PARTS tests: together
+    they trigger every control, none twice."""
+    import test_gui_sweep
+    from mainwindow import MainWindow
+
+    def make():
+        w = MainWindow()
+        w.directory = str(tmp_path)
+        return w
+    n = test_gui_sweep.SWEEP_PARTS
+    every = sweep.control_keys(make, qapp, recorder)
+    parts = [sweep.control_keys(make, qapp, recorder, (i, n)) for i in range(n)]
+    assert sorted(k for p in parts for k in p) == sorted(every) and len(every) > 100
+    assert all(p for p in parts)
