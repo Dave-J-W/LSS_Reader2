@@ -305,3 +305,31 @@ stable (burn tests), the confident 5 % time.
 - **Preferences → Ref Patch → patch factor** (2026-11-22): 'Joint fit' (default) or 'Legacy fit'. The joint fit draws one smooth curve through both scans at a join and fits the factor with it; its errors are honest and it has no interpolation bias (P1). 'Legacy fit' reproduces files made before 2026-11-22 exactly. The patch window's preview shows the factor that Next will use. Where a join has fewer than two points of a scan in the overlap the legacy fit is used and the Messages pane says so. Evidence: `docs/comparisons_data/ref_patch_gauntlet/summary.md`.
 
 - **Preferences → Layout → "ngui (new layout, prototype)"** (2026-11-23, F82): off by default. Ticked, it opens a second window, "LSS Reader — ngui (prototype)", beside the main one: a sketch of the proposed layout (tabs Scans, Frames, Burn, Reflectivity, GID, Fluorescence, Files; the selection panel at full height; Messages, Script and Errors under the tabs). Nothing in it works: every control is a disabled placeholder whose tooltip says where it lives today and what it does; Help > Retired controls lists what the layout drops and why. Unticking closes it; the choice is kept between sessions. Design: `docs/gui/prototype.md`; screenshots: `docs/gui/prototype/screens/`.
+
+## Tools menu and Tools window (2026-11-23, F84)
+
+- **Tools** (menu bar, before Help): every demonstration and figure
+  generator of the repository, by area; **All tools…** opens the Tools
+  window at its overview. The list, the window and `docs/TOOLS.md` come
+  from one catalogue (`lss_toolbox/catalog.py`), so the manual can take
+  `docs/TOOLS.md` as it is: what each item demonstrates, its command line,
+  its documented variations with their sources, the window's controls and
+  their tooltips.
+- A page: what the item demonstrates (the script's docstring in the
+  tooltip), Docs buttons, a line saying whether the committed products are
+  older than their code, **Settings** (Defaults or a documented variation),
+  the script's own options, the **Command** it will run, **Run** (or **Open
+  window** for the demonstrators, **Make and open** for a synthetic data
+  set), **Stop**, **Replace the committed products** (only with the
+  settings that made them). Results: **Show** (a run, or the committed
+  products), **Compare with**, **Differences**, **Compare all** (images
+  pixel for pixel: = same, ≠ different, + new), **Folder**.
+- Runs go to `~/.lss_reader/tools/<item>/<date-time>` (or
+  `$LSS_READER_TOOLS_DIR`) with `run.json` (command, times, exit code, git
+  commit); the reader's logs and preferences of a run stay in that folder.
+- A packaged build lists the items but cannot run them (no tools, no Python
+  inside); the tooltip of Run says so.
+- Manual idea: a page per menu with the figures it makes, taken from a run
+  (the figure agent can use the same window, or `python -m lss_toolbox
+  --audit`, to get current figures).
+

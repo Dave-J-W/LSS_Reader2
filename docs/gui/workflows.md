@@ -1043,6 +1043,8 @@ flowchart TD
 | `actionG_l2` g_l2 |  |  |  |  |  |  |  |  |  | B |  |  |  |  |
 | `actionG_l3` g_l3 |  |  |  |  |  |  |  |  |  | B |  |  |  |  |
 | `actionAbs_ratio` abs ratio |  |  |  | i |  |  |  |  |  | B |  |  |  |  |
+| `menuTools` Tools |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `actionToolsWindow` All tools… |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `menuHelp` Help |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `actionDocumentation` Documentation |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `actionAbout` About |  |  |  |  |  |  |  |  |  |  |  |  | i |  |

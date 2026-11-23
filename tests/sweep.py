@@ -9,7 +9,10 @@ import traceback
 
 from PyQt5 import QtWidgets
 
-SKIP_ACTION_WORDS = ('quit', 'exit', 'close')
+# 'actiontool_': the Tools menu's per-item actions (lss_toolbox) all open the
+# same window at another page, and the pages are tested on their own
+# (test_toolbox_gui.py); 'All tools…' (actionToolsWindow) stays in the sweep.
+SKIP_ACTION_WORDS = ('quit', 'exit', 'close', 'actiontool_')
 
 
 # ---- application states -------------------------------------------------
@@ -125,7 +128,7 @@ def controls(w):
         if isinstance(b, (QtWidgets.QCheckBox, QtWidgets.QRadioButton)):
             out['toggle:' + name] = b.toggle
         elif isinstance(b, QtWidgets.QPushButton):
-            out['click:' + name] = b.click
+            out['click:' + name] = b.click   # a button's popup menu is closed at once by the recorder (#9)
     for a in w.findChildren(QtWidgets.QAction):
         name = a.objectName()
         if not name or any(s in name.lower() or s in a.text().lower()

@@ -40,6 +40,7 @@ exists.
 | I24 | Exact pinhole angles equal an independent ray construction; on the direct-beam column they are exact at any β0 | `test_pinhole.py::test_pixel_angles_are_the_exact_ray_geometry` |
 | I25 | A quantity constant in time is called stable (AICc(constant) − AICc(linear) ≤ 2) in ≥ 85 % of noise draws (measured 95 %); the 95 % confident time to a 5 % change exceeds the true time in ≤ 9 % of draws (measured 5.5 %) | `test_trends.py::test_the_confident_time_is_conservative_at_its_stated_level` |
 | I26 | A burn signal decaying as exp(−t/τ) gives τ from the exponential model and a 5 % time of τ·ln(1/0.95) | `test_burn_trends.py::test_reflectivity_burn_is_monitor_normalised_and_finds_tau` (τ 400 s, 20.5 s) |
+| I30 | A figure tool is deterministic: rerun with the settings of its committed figures on unchanged code and inputs, it gives them back pixel for pixel (the measured test of staleness; a provenance stamp, where a tool prints its git revision, differs inside one small box) | `test_toolbox_gui.py::test_a_figure_tool_reproduces_its_committed_figures` (burn trends, 4 of 4); measured 2026-11-23: the ngui prototype screenshots 23 of 23, the fit demonstrator figures 6 of 6 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -4374,3 +4375,67 @@ of its four arrays, so a patch or a live remake giving the same map in new
 arrays is not regridded again): redraws 0.30–0.35 s, no number changes
 (the kept products equal a fresh computation, bit for bit). Verified:
 measured and tested (`test_gid_redraw.py`).
+
+
+### 2026-11-23 — Which demonstrations and figure generators does the repository hold, and can they be made without staleness? (F84)
+
+**Owner:** include all the demonstrations and figure generators of the
+repository as entries of the reader's Tools menu, generated without
+staleness ("built from what's in the repo and so don't drift"); the
+largest part is recognising and surfacing them all; then homes for them in
+the GUI, and documentation kept up to date, so that "change this parameter
+and regenerate the figure to demonstrate this concept" lines in the docs
+become reality. Later: build and test the menu items and their pages
+separately from the main project.
+
+**Answer (measured by running every tool on 2026-11-23, and by reading
+the documents with a subagent).** The repository holds 31 scripts in
+`tests/tools/` (one is a helper library), the fit demonstrator
+(`tests/demonstrator/`, a window), the synthetic generators
+(`tests/synthetic/`, `tests/synth.py`), and 13 figures made elsewhere
+(hand-off 03's answer). All 30 runnable scripts ran from the current code
+in this container (0.1 s to 104 s with their defaults; the gauntlet's full
+design about 25 min). They are now 36 items of the Tools menu in seven
+menus (`lss_toolbox/catalog.py`, `docs/TOOLS.md`; with `plot_speed.py`,
+added on main later that day, not timed here); the documents name 62
+variations ("change this and rerun"), each an entry with its document
+line. Where a documented parameter was fixed in the code it became an
+option: the foil fit's cuts, the demonstrator's settings (`--set`), and a
+writer of synthetic data sets that the reader opens
+(`tests/tools/synthetic_dataset.py`).
+
+How staleness is kept out: a run executes the repository's script in its
+own process (nothing is copied or cached), with a record of the command
+and the git commit; each page's options are read from the script's own
+parser; the menu, the window and `docs/TOOLS.md` come from one catalogue,
+and `tests/test_toolbox.py` fails when a script is not catalogued, when a
+variation names an option the script does not have, or when a committed
+figure belongs to no item.
+
+**Are the committed figures stale?** Git history (`python -m lss_toolbox
+--stale`) flags most of them, because `lss_core` changed after they were
+committed; it cannot say whether the change touches the figure. Rerunning
+and comparing pixel for pixel can (`--audit`, measured; table in
+`docs/reports/tools_audit.md`): the burn trends (4 figures, 3 tables) and
+the fit demonstrator's report figures (6 figures, 5 tables) come back
+identical; the pinhole figures and the manual's GID diagrams differ only
+inside the one-line box where they print the git revision (0.04–0.12 % of
+pixels); the beam-profile figure (1.6 % of pixels, across the plot) and
+the stray-light figures (4–16 %) really changed; the reflectivity survey's
+committed tables predate the joint fit's guard ladder (rerun: the median
+error of joint_o4_e4 0.00407 → 0.00381, one join flagged per joint
+method); the C2/C3 error-model tables were made with the legacy patch
+before the joint fit became the default, so their σ now differ by up to
+21 % (compared numerically), which confounds the comparison they exist
+for. The gauntlet reproduces every committed row exactly. The C21 tables
+have no generator in the repository. The window's "Compare all" gives the
+same comparison for one item.
+
+**Re-verified by a run:** the foil fit's robustness to its cuts
+(physics_notes 2026-11-19, "each foil moves by at most 0.9 µm"): with
+Monc/Monp within 1 %, χ²/dof < 5 and no error floor, 337 of 963 joins are
+kept (409 by default) and every foil is within 0.4 µm of the default fit.
+
+**Invariant added:** I30 (a figure tool rerun on unchanged code and inputs
+gives its figures back pixel for pixel).
+

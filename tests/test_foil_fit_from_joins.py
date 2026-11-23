@@ -55,3 +55,21 @@ def test_recovers_foils_and_flags_a_monitor_that_missed_a_slit_change(tmp_path):
     assert f['kept'].sum() == 3 * len(PAIRS)
     assert f['res'][-1] == pytest.approx(math.log(2.27 / 1.55) / ff.MU_10KEV, abs=0.5)   # ≈ +54 µm
     assert f['F'][-1] == pytest.approx(2.27, rel=0.005)
+
+
+def test_the_cuts_are_options_and_default_to_the_documented_ones(capsys):
+    """The cuts as command-line options (2026-11-23, so that the Tools menu
+    can rerun physics_notes' sensitivity check): the defaults print exactly
+    what main() prints; the strict cuts keep fewer joins and move each foil
+    by under 1 µm (measured: 409 -> 337 joins, at most 0.4 µm)."""
+    joins = os.path.join(os.path.dirname(HERE), 'docs', 'handoff_out', '03-answer', 'joins.csv')
+    ff.main(joins)
+    plain = capsys.readouterr().out
+    assert ff.cli([joins]) == 0
+    assert capsys.readouterr().out == plain
+    loose = ff.fit(ff.load(joins))
+    strict = ff.fit(ff.load(joins), monc_tol=0.01, chi2_max=5.0, floor=0.0)
+    assert strict['clean'].sum() < loose['clean'].sum()
+    assert np.max(np.abs(strict['t'] - loose['t'])) < 0.9
+    ff.cli([joins, '--monc-tol', '0.01', '--chi2-max', '5', '--floor', '0'])
+    assert 'chi2/dof >= 5)' in capsys.readouterr().out

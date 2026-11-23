@@ -56,6 +56,7 @@ checks; `seed` may be a `numpy.random.Generator` for Monte Carlo loops
 | `burn_profiles` | GID burn profiles over time with a stated change | fade, broaden at constant area, shift, fade under a shoulder, rising floor, none; Poisson on counts | `test_synthetic_burn_profiles.py` |
 | `xfntr` | XFNTR yield curves, MCA spectra and files | \|T\|², penetration depth 1/Im Q_s, surface + bulk ions, escape absorption, footprint seen; Si-detector resolution FWHM(E); Kα/Kβ, elastic, background | `test_synthetic_xfntr.py` |
 | `growing` | A finished data set replayed into another folder line by line, images late | SPEC writes line by line; images lag; MCA files with their scan | `test_synthetic_growing.py` |
+| `tests/tools/synthetic_dataset.py` (2026-11-23, a writer, not a generator) | A data set on disk for the reader to open (Tools > Synthetic data sets): `--kind xrr` (four NX-like scans of `--truth` film/water/DPPC, `--thickness`, `--counts`, `--monitor real\|poisson`, `--fault none\|slits\|foil`, rendered by `xrr_images.render`, with `truth.csv` and `truth.json` holding R(Qz) and the true join factors), `--kind xfntr` (18 spectra, `xfntr.measure`), `--kind burn` (`synth.make_burn_dataset`) | the generators' own; choices made here (assumptions, demonstration only): `slits` = Monc registers 70 % of the slit change at scans 3–4 (P29 measured ×1.55–1.62 for ×2.0–2.3), `foil` = scan 3's foils transmit 2 % less than calibrated | `test_synthetic_dataset.py` |
 
 ### 2.2 Old: `tests/synth.py`
 

@@ -11,7 +11,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 3 Saved state per SPEC file; live refresh | **largely built** 2026-11-19 to 22: series read and guessed, Series list and whole-series selection; per-SPEC workbook (F66) with automatic saving (D56), series ties and stale flags; live updates (D57: file and data folders watched, remakes in a worker thread, open plots redrawn, no reset). Open: reopening a file with its workbook's settings, D1–D3, dropped points as masks, the owner's answers on the series format |
 | 4 Detectors and inputs | not started |
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
-| 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); **fitting done** 2026-11-21 (peak module D52, MCA lines, scan shapes, burn trends D54); beam size (half-cut fit built, no data); **GUI planning started** 2026-11-22 (D58: assessment, workflow map, screenshots in `docs/gui/`; no code yet) |
+| 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); **fitting done** 2026-11-21 (peak module D52, MCA lines, scan shapes, burn trends D54); beam size (half-cut fit built, no data); **GUI planning started** 2026-11-22 (D58: assessment, workflow map, screenshots in `docs/gui/`; no code yet); **Tools menu built** 2026-11-23 (F84: every demonstration and figure generator, `docs/TOOLS.md`) |
 
 ## Remaining work by area (regrouped 2026-11-21, review `docs/reviews/2026-11-21-todo-review.md`)
 
@@ -207,13 +207,70 @@ build workflow and macOS signing (input 12); sample-data hosting.
       proof that a refactor did not change the reduction), and the joint
       fit's own NX factors be re-pinned with before and after values. For
       the owner of patching.
-- [ ] **A Tools menu in the main window (new 2026-11-23)**, first opening
-      the fit demonstrator through `open_demo(parent, mode)`
-      (`tests/demonstrator/window.py`). Its agent (another organisation's
-      account) stopped with nothing pushed. The packaged program needs the
-      demonstrator and the `synthetic` modules it imports in a bundled
-      package (the recipe bundles only `.ui` files and icons), or the item
-      hidden when they are absent.
+- [x] **A Tools menu in the main window (new 2026-11-23) — done 2026-11-23
+      (F84)**: every demonstration and figure generator as an item
+      (`lss_toolbox/`, `docs/TOOLS.md`; 36 items, 62 documented variations),
+      run from the repository's code in its own process; the demonstrators
+      are started as their own process (`patch_demo.py`, which takes the space
+      bar application-wide). A packaged build lists the items and the
+      committed figures it holds but disables Run (no tools, no Python inside).
+- [ ] **Committed products the audit found stale (new 2026-11-23, F84)**:
+      `python -m lss_toolbox --audit` reran every item with the settings of
+      its committed products and compared (`docs/reports/tools_audit.md`).
+      Each needs its rerun into the repository (Tools window, "Replace the
+      committed products") together with a reading of the text that quotes
+      it, by whoever owns the area. Measured stale: the beam-profile figure
+      (1.6 % of pixels), the stray-light figures (4–16 %), the C2/C3
+      error-model tables (made with the legacy patch before the joint fit
+      became the default: σ up to 21 % different), the reflectivity survey
+      (`ref_patch_nx`: guard ladder), probably the GID survey. Measured
+      current despite git flagging them: the burn trends, the fit
+      demonstrator, the gauntlet (every row), the pinhole and GID diagrams
+      (but for their revision stamp). The C21 tables have no generator in
+      the repository (written by one-off code on 2026-11-20): give them one
+      or mark them as such.
+- [x] **Three reader crashes that random walks reach (found 2026-11-23 by
+      the crash sweep of the Tools-menu branch) — fixed 2026-11-23 by the
+      test-speed session (#10, `tests/test_walk_crashes.py`); the walks again
+      include the Tools menu and click popup-menu buttons (the recorder closes
+      menus, #9)**: with one more control in
+      the menu bar, five walks drew other sequences and raised in handlers
+      the per-state sweep never reaches. Not baselined (the walk baseline is
+      empty on main). The defects:
+      (1) `refQzListSelectionChanged` (`mainwindow.py` ≈ line 5179) with
+      `refCenCheckBox` ticked: `'TwoDDetector' object has no attribute
+      'bglcen'` (reached by Ref Patch, Analyze, the slit field);
+      (2) `specPlotSettings`: matplotlib "Data cannot be log-scaled because
+      all values are <= 0" from the SpecPlot log y on a column of zeros
+      (`spNComboBox`); (3) `updatePilPlotData` (≈ line 3357):
+      `float('')` of an empty `pilSDDistLineEdit`.
+- [ ] **`gui_screens.py` no longer captures the g_l2 / g_l3 dialogs (found
+      2026-11-23 by the Tools audit)**: since the scan-fit rules of
+      2026-11-23 (flat or weak scans not fitted) the synthetic motor scan 4
+      has no fitted centre, so Calculations > g_l2 answers "Please plot the
+      selected scans first" instead of opening. `docs/gui/screens/93_*`,
+      `94_*` are kept from the morning's run. Give the screenshot a scan with
+      a peak, or the dialog a way to say why there is no centre.
+- [ ] **Documented variations not yet reachable by an option (new
+      2026-11-23)**: parameters the documents vary that are fixed inside a
+      script: the S4 openings and Det_Th of pinhole case 8 (drawn as a sweep
+      inside the figure), the regimes of `monitor_noise_mc.py`, the footprint
+      choice of C24 (`GIDParams(footprint='idl')`) in `compare_methods.py`,
+      the demonstrator's surveys (`refl.survey(Config(plan='staggered'))`,
+      `bm` monitor sweeps) and the `synthetic` generators' faults beyond the
+      two `synthetic_dataset.py` offers. Each becomes an option and a
+      variation in `lss_toolbox/catalog.py` when needed.
+- [ ] **Figures asked for but never made (found 2026-11-23)**: the dose-axis
+      burn comparison of NX 14 and 15 (07-burn-trends.md, F76), maps from
+      column groups per level and the β-overlap cells of the join
+      (physics_notes 2026-11-19), the movie on a common 2θ axis (M7). Each
+      becomes a tool and a catalogue item when made.
+- [ ] **Tools whose default data include the private sets when present
+      (2026-11-23)**: `spec_epoch.py` (NX and bu), `monitor_distribution.py`
+      (every SPEC file under sample_data/), `monitor_gains.py` (all of
+      sample_data/). Their output is printed only (never written into
+      docs/), but a page run on a machine with the private sets shows
+      private counts: decide whether their defaults should be NX only.
 
 **J. Beamline / SPEC macros**: see "Beamline to-do" at the end (series
 lines, `Tstart`/`Tend`, `#V` flag, Pilatus + Vortex header, gas conditions

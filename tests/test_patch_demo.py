@@ -320,3 +320,27 @@ def test_the_window_opens_from_code_with_a_parent(qapp, recorder):
         w.close()
         host.close()
     assert recorder.exceptions == []
+
+
+def test_set_reaches_the_demonstration_settings():
+    """``patch_demo.py --set KEY=VALUE`` (2026-11-23): the documented
+    variations of the window and of --views as command lines."""
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))
+    import patch_demo
+    r, b = patch_demo.configs(['truth=water', 'plan=edge', 'counts=100', 'monitor=poisson', 'change=fade',
+                               'burn.monitor=1e5', 'foil_error=false'])
+    assert (r.truth, r.plan, r.counts, r.monitor, r.foil_error) == ('water', 'edge', 100.0, 'poisson', False)
+    assert (b.change, b.monitor) == ('fade', 1e5)
+    r, b = patch_demo.configs(['monitor=1e6'], mode='burn')
+    assert b.monitor == 1e6 and r.monitor == 'real'
+    for bad in (['nonsense=1'], ['counts=many'], ['truth']):
+        with pytest.raises(SystemExit):
+            patch_demo.configs(bad)
+
+
+def test_views_take_the_settings(tmp_path):
+    from demonstrator import figures
+    figures.views(str(tmp_path), seed=1, refl_config=refl.Config(truth='water', plan='standard'),
+                  burn_config=bm.Config(change='fade', monitor=1e6))
+    assert sorted(os.listdir(tmp_path)) == ['view_burn.png', 'view_refl.png']

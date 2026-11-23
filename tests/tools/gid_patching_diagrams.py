@@ -2,7 +2,7 @@
 
     python tests/tools/gid_patching_diagrams.py [--out DIR] [--only N ...]
 
-Six 2D diagrams (default folder docs/manual/figures/gid_patching/):
+Eight 2D diagrams (default folder docs/manual/figures/gid_patching/):
 
 1. ``01_frame_anatomy.png``: one frame, its direct-beam pixel, rows used,
    sample horizon, and the column windows (S5, footprint exact and IDL's,

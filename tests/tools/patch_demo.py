@@ -7,6 +7,17 @@ truth beside them. Report: docs/reports/patch_demo.md.
     python tests/tools/patch_demo.py --save docs/figures/patch_demo   # the report's figures, headless (Agg)
     python tests/tools/patch_demo.py --save DIR --quick  # the same with few replicates (a smoke run)
     python tests/tools/patch_demo.py --views DIR         # only the two default views as PNG
+    python tests/tools/patch_demo.py --set truth=water --set plan=edge      # a documented variation
+    python tests/tools/patch_demo.py --mode burn --set change=fade --set monitor=1e5
+
+``--set KEY=VALUE`` (repeatable) sets a field of the demonstration's
+settings before the window opens or the views are drawn: reflectivity
+fields of ``demonstrator.refl.Config`` (truth, plan, counts, thickness,
+foil_error, errors, monitor), burn fields of ``demonstrator.burnmode.Config``
+(change, amount, n, monitor, ctime, shoulder_scale). A key belongs to the
+mode's settings first, then to the other's; ``refl.monitor=poisson`` or
+``burn.monitor=1e5`` names them. The report figures (``--save``) keep
+their own fixed settings.
 
 Run from the repository root (or anywhere: the paths are set from this
 file). The computation is in tests/demonstrator/ (GUI-free, used by the
@@ -24,6 +35,40 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, 'tests'))
 
 
+def configs(pairs, mode='refl'):
+    """(refl.Config, burnmode.Config) with the ``KEY=VALUE`` pairs applied,
+    each value converted to the type of the field's default. A key goes to
+    the settings of ``mode`` when they have it, else to the other's;
+    ``refl.KEY`` or ``burn.KEY`` says which (``monitor`` is in both)."""
+    import dataclasses
+    from demonstrator import burnmode as bm, refl
+    cfgs = {'refl': refl.Config(), 'burn': bm.Config()}
+    for pair in pairs or ():
+        if '=' not in pair:
+            raise SystemExit('--set needs KEY=VALUE, not %r' % pair)
+        key, text = (x.strip() for x in pair.split('=', 1))
+        where, _, name = key.rpartition('.')
+        order = [where] if where else [mode, 'burn' if mode == 'refl' else 'refl']
+        cfg = next((cfgs[k] for k in order if k in cfgs and name in {f.name for f in dataclasses.fields(cfgs[k])}),
+                   None)
+        if cfg is None:
+            raise SystemExit('--set %s: not a setting of the demonstrator (refl.Config or burnmode.Config)' % key)
+        old = getattr(cfg, name)
+        try:
+            if isinstance(old, bool):
+                value = text.lower() in ('1', 'true', 'yes', 'on')
+            elif isinstance(old, int):
+                value = int(float(text))
+            elif isinstance(old, float) or old is None:
+                value = None if text.lower() == 'none' else float(text)
+            else:
+                value = text
+        except ValueError:
+            raise SystemExit('--set %s=%s: the value does not fit the setting' % (key, text))
+        setattr(cfg, name, value)
+    return cfgs['refl'], cfgs['burn']
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--mode', choices=('refl', 'burn'), default='refl')
@@ -34,13 +79,17 @@ def main(argv=None):
     ap.add_argument('--burn-replicates', type=int, default=30, help='replicates per burn survey (--save)')
     ap.add_argument('--rows', metavar='DIR2', help='also write the per-replicate CSVs (large) into DIR2 (--save)')
     ap.add_argument('--quick', action='store_true', help='few replicates (smoke run)')
+    ap.add_argument('--set', action='append', default=[], metavar='KEY=VALUE',
+                    help='a setting of the window or of --views, e.g. truth=water, plan=edge, '
+                         'counts=100, monitor=poisson, change=fade (repeatable)')
     a = ap.parse_args(argv)
+    rc, bc = configs(a.set, a.mode)
     if a.save or a.views:
         import matplotlib
         matplotlib.use('Agg')
         from demonstrator import figures
         if a.views:
-            figures.views(a.views, seed=a.seed)
+            figures.views(a.views, seed=a.seed, refl_config=rc, burn_config=bc)
         if a.save:
             n, nb = (6, 3) if a.quick else (a.replicates, a.burn_replicates)
             figures.report(a.save, replicates=n, burn_replicates=nb, log=print, rows_out=a.rows)
@@ -48,7 +97,7 @@ def main(argv=None):
     from PyQt5 import QtWidgets
     from demonstrator.window import open_demo
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
-    w = open_demo(mode=a.mode, seed=a.seed)     # noqa: F841 (kept alive until the loop ends)
+    w = open_demo(mode=a.mode, seed=a.seed, refl_config=rc, burn_config=bc)  # noqa: F841 (kept alive)
     return app.exec_()
 
 
