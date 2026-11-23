@@ -50,7 +50,7 @@ Application code may now be changed, under these conditions:
 | `lss_core/series.py`, `timing.py` | Scan series (lines and guesses) and per-point times |
 | `lss_core/workbook.py`, `live.py` | The per-SPEC Excel workbook (saved results, series ties, stale flags); remaking results from their recipes (live updates) |
 | `lss_core/peaks.py`, `trends.py`, `burn.py` | Peak finding and fitting; trends over time; burn tests |
-| `lss_core/patching.py`, `uncertainty.py` | Reflectivity patching by joint fit (option beside the legacy `stitching.py`); covariances of chained scale factors and stitched data |
+| `lss_core/patching.py`, `uncertainty.py` | Reflectivity patching by joint fit (the default since 2026-11-22; the legacy `stitching.py` stays a preference); covariances of chained scale factors and stitched data |
 | `lss_core/pinhole.py`, `gid.py` | Pinhole GID geometry, responses, joins, distance calibration; the GID patch |
 | `tests/` | The suite; `synth.py` (synthetic data), `sweep.py` (GUI driver) |
 | `docs/SYNTHETIC_DATA.md`, `tests/synthetic/` | Catalogue of every synthetic-data generator, how to use them (known truth for reflectivity, GID, burn, XFNTR, live files), unmet needs |
