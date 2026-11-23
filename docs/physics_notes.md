@@ -4495,6 +4495,10 @@ Verified by: reading only. Default cuts by kind accepted; nearest-pixel and viri
 
 Verified by: reading only. Elements: dropdown or autocompleting text box (F93). Dropped points: a mask in the config file plus "Restore all" in the patch dialog (F92), closing the open part of Q-REF-2 and D2. The owner also granted standing permission to pull and merge into `main`.
 
+### 2026-11-23 — GUI questions answered, batch 7 (inventory B: B3, B6, B9, B10)
+
+Verified by: reading only. The unwired bad-pixel field and list are wired (corrections shown per Qz; **if the ROI threshold differs from the Pilatus tab's, it changes output numbers and needs an OUTPUT_DECISIONS row when built**). Ref Patch warnings become messages and marks. Save means workbook, Export means text file. Frequent windows are docked. The interview session had asked some questions twice (Q-CUTS, Q-GID-2, Q-GEN-5 against Q-IMG-11 and Q-UI-A7); the owner noticed, so duplicates are checked against the Answers table first.
+
 ### 2026-11-23 — Remedying everything the Tools session put on the to-do list (owner: "if you found it you own it")
 
 **Owner:** with standing merge permission: remedy everything added to the

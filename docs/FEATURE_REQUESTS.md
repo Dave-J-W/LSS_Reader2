@@ -407,6 +407,10 @@ order"), for a day of reflectivity only; the whole answer is in
 | F92 | **Dropped points are masks kept in the per-SPEC config file, with "Restore all" in the patch dialog** (owner, 2026-11-23): replaces typed, unrecoverable indices (F16). Undo of single drops is not asked for; "Restore all" is. Ties to D1–D3 (config beside the SPEC file) and the workbook's masks. |
 | F93 | **Element choice for fluorescence fits** (owner, 2026-11-23): a dropdown or a text entry with autocomplete, for fluorescence burns (F89) and XFNTR line fits (F47). |
 
+| F94 | **Click to drop or restore a point** (owner, 2026-11-23, **low priority**): a mouse click within 2–4 plot-marker diameters of a point's marker toggles its dropped state (the mask of F92). Refines F92's "Restore all". Assumption: the radius is a preference, default 3 diameters. |
+
+| F95 | **Wire the Reflectivity tab's bad-pixel controls; Ref Patch warnings as messages and marks; Save/Export naming; frequent windows docked** (owner, 2026-11-23, Q-UI-B3, B6, B9, B10). |
+
 Also decided (see `docs/gui/questions.md` Answers): movie at 3 or more frames, space pauses, arrows step when paused (F69); weighted residuals (F74); Apex tab, Beamlines menu, `peakfit2`/`peakfitpara` and the Command line row removed; Quit works and Documentation opens `docs/SCRIPTING.md`; Messages, Errors and Script panes follow D59.
 
 ### Status of built items
