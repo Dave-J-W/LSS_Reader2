@@ -456,6 +456,25 @@ TOOLS = (
                pinhole_mm='265.7'),
          ),
          inputs=(NX,), seconds=6.8),
+    Tool('gid_column_groups', 'GID level join from groups of columns', 'gid', 'figures',
+         'tests/tools/gid_column_groups.py',
+         'The pinhole patch of each Qz level made from groups of detector columns, and the level join\'s factor '
+         'per group with the cells of the β overlap: why the factor depends on which columns are used.',
+         committed=('docs/figures/gid_column_groups',),
+         docs=('docs/figures/gid_column_groups/README.md', 'docs/physics_notes.md:2724'), data='any',
+         defaults={'--out': OUT}, spec_option='--spec',
+         variations=(
+             V('The same columns at both levels', 'Groups inside the columns every level has: the pooled group '
+               'factors then agree within errors (1.024, 1.009, 0.985).', 'docs/physics_notes.md:2753',
+               columns='common'),
+             V('Beam response', 'The response along the beam axis instead of one factor per column: the column '
+               'dependence remains.', 'docs/physics_notes.md:2721', response='beam'),
+             V('No response', 'Each group\'s map keeps its columns\' own light.', 'docs/physics_notes.md:2745',
+               response='none'),
+             V('Angle maps (faster)', 'The maps of the cells themselves, in (2θ, β), without the regridding to Q.',
+               'tests/tools/gid_column_groups.py', axes='Angles'),
+         ),
+         inputs=(NX,), seconds=25.6),
     Tool('gid_method_survey', 'GID patching methods (survey)', 'gid', 'data',
          'tests/tools/gid_method_survey.py',
          'Every GID patching method on every GID set of SPEC files: frames-agree χ², distance calibration, '

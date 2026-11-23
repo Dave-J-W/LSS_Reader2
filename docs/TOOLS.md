@@ -73,6 +73,7 @@ container on 2026-11-23 with the defaults shown.
 | [Stray light in pinhole GID frames](#gid-stray-light) | figures | β profiles of column bands inside and outside the usable window, per Qz level: light that cannot have come from the footprint through the pinhole (P40). | NX school by default; any SPEC file | 3 s | `docs/figures/gid_stray_light` |
 | [Single frames as ground truth](#single-frame-truth) | text | Each unpatched frame already puts the Bragg peak at its 2θ: frames must agree, and the patched map must give back their centre and width; the S4-detector distance that makes them agree. | NX school by default; any SPEC file | 74 s | — |
 | [GID movie on one 2θ axis](#gid-movie) | figures | GID frames played on a common 2θ axis with the zoom and the colour scale fixed: a real Bragg peak stands still while the detector window and anything fixed on it slide (M7, F69). | NX school by default; any SPEC file | 7 s | `docs/figures/gid_movie` |
+| [GID level join from groups of columns](#gid-column-groups) | figures | The pinhole patch of each Qz level made from groups of detector columns, and the level join's factor per group with the cells of the β overlap: why the factor depends on which columns are used. | NX school by default; any SPEC file | 26 s | `docs/figures/gid_column_groups` |
 | [GID patching methods (survey)](#gid-method-survey) | data | Every GID patching method on every GID set of SPEC files: frames-agree χ², distance calibration, single frames against patches, scale recovery. | NX school by default; any SPEC file |  | `docs/comparisons_data/gid_survey_nx` |
 
 ### Monitor, scans, SPEC files
@@ -544,6 +545,28 @@ Variations:
 | Also on detector pixels | The opposite view: the peak walks across the columns, detector-fixed features stay put. | `docs/gui/image_display.md:320` | `python tests/tools/gid_movie.py --out '{out}' --pixels` |
 | Zoomed on the peak | The zoom held in angle while the frames play (no change of zoom or colour between frames). | `docs/gui/image_display.md:324` | `python tests/tools/gid_movie.py --out '{out}' --window 15.5,18 --beta=-0.5,3` |
 | Calibrated S4-detector distance | At 265.7 mm the peak stands stiller: the drift with Det_Th (+0.018 °/° at the header 271 mm) vanishes. | `docs/manual/gid_patching.md:417` | `python tests/tools/gid_movie.py --out '{out}' --pinhole-mm 265.7` |
+
+<a id="gid-column-groups"></a>
+
+### GID level join from groups of columns
+
+The pinhole patch of each Qz level made from groups of detector columns, and the level join's factor per group with the cells of the β overlap: why the factor depends on which columns are used.
+
+- Menu: Tools > GID and pinhole geometry; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/gid_column_groups.py`
+- Explained in: `docs/figures/gid_column_groups/README.md`, `docs/physics_notes.md:2724`
+- Committed products: `docs/figures/gid_column_groups`; replaced from the window with the settings that made them
+- Run:
+
+      python tests/tools/gid_column_groups.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| The same columns at both levels | Groups inside the columns every level has: the pooled group factors then agree within errors (1.024, 1.009, 0.985). | `docs/physics_notes.md:2753` | `python tests/tools/gid_column_groups.py --out '{out}' --columns common` |
+| Beam response | The response along the beam axis instead of one factor per column: the column dependence remains. | `docs/physics_notes.md:2721` | `python tests/tools/gid_column_groups.py --out '{out}' --response beam` |
+| No response | Each group's map keeps its columns' own light. | `docs/physics_notes.md:2745` | `python tests/tools/gid_column_groups.py --out '{out}' --response none` |
+| Angle maps (faster) | The maps of the cells themselves, in (2θ, β), without the regridding to Q. | `tests/tools/gid_column_groups.py` | `python tests/tools/gid_column_groups.py --out '{out}' --axes Angles` |
 
 <a id="gid-method-survey"></a>
 

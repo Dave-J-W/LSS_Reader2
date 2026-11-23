@@ -1,0 +1,392 @@
+{
+ "spec": "sample_data/NX_school/2026sep/20260923",
+ "scans": [
+  11,
+  12
+ ],
+ "label": "NX",
+ "response": "fit",
+ "footprint": "exact",
+ "axes": "Q",
+ "columns": "all",
+ "split_range": [
+  28,
+  107
+ ],
+ "groups": [
+  [
+   28,
+   54
+  ],
+  [
+   55,
+   80
+  ],
+  [
+   81,
+   107
+  ]
+ ],
+ "levels": [
+  {
+   "level": 1,
+   "scans": [
+    11
+   ],
+   "frames": 41,
+   "det_th_deg": [
+    14.0,
+    18.0
+   ],
+   "beta0_deg": 0.09060047482887093
+  },
+  {
+   "level": 2,
+   "scans": [
+    12
+   ],
+   "frames": 4,
+   "det_th_deg": [
+    14.0,
+    14.3
+   ],
+   "beta0_deg": 6.499997285038385
+  }
+ ],
+ "caveat": "Level 2 (scan 12) has only 4 frames (Det_Th 14.0–14.3°): there each column group sees its own narrow 2θ strip, so column group and 2θ cannot be separated, and the overlap with the other level is that strip.",
+ "sets": [
+  {
+   "name": "all columns",
+   "columns": [
+    28,
+    107
+   ],
+   "status": "ok",
+   "level_columns": [
+    [
+     28,
+     107
+    ],
+    [
+     28,
+     91
+    ]
+   ],
+   "beam_x_mm": [
+    [
+     -12.787720481230295,
+     34.14887500455833
+    ],
+    [
+     -14.634264081202833,
+     29.094813660097554
+    ]
+   ],
+   "counts": [
+    565181.0,
+    56304.0
+   ],
+   "joins": [
+    {
+     "label": "middle Qz",
+     "factor": 1.0676353741757667,
+     "error": 0.013040115194427045,
+     "core_factor": 1.0676353741757667,
+     "core_error": 0.013040115194427045,
+     "recomputed_factor": 1.0676353741757667,
+     "chi2": 0.9312549576219289,
+     "pooled": 1.0879648221910831,
+     "pooled_error": 0.013265358011586502,
+     "beta_bins": 84,
+     "cells": 5544,
+     "median_counts_per_beta_bin": [
+      646.0,
+      124.0
+     ],
+     "two_theta_range": [
+      13.403432857399693,
+      15.80351289072999
+     ],
+     "beta_range": [
+      6.138131346421391,
+      7.62262048694401
+     ]
+    }
+   ],
+   "against_all_columns": []
+  },
+  {
+   "name": "group 1",
+   "columns": [
+    28,
+    54
+   ],
+   "status": "ok",
+   "level_columns": [
+    [
+     28,
+     54
+    ],
+    [
+     28,
+     54
+    ]
+   ],
+   "beam_x_mm": [
+    [
+     -12.787720481230295,
+     4.444274954422177
+    ],
+    [
+     -14.634264081202833,
+     5.048211601827037
+    ]
+   ],
+   "counts": [
+    240036.0,
+    22844.0
+   ],
+   "joins": [
+    {
+     "label": "middle Qz",
+     "factor": 0.9509206774886302,
+     "error": 0.020271086939697005,
+     "core_factor": 0.9509206774886302,
+     "core_error": 0.020271086939697005,
+     "recomputed_factor": 0.9509206774886302,
+     "chi2": 1.0271027077485437,
+     "pooled": 1.0215205448412346,
+     "pooled_error": 0.02141986643731276,
+     "beta_bins": 100,
+     "cells": 3000,
+     "median_counts_per_beta_bin": [
+      83.0,
+      44.0
+     ],
+     "two_theta_range": [
+      13.403432857399693,
+      14.458013478105428
+     ],
+     "beta_range": [
+      5.862339310006736,
+      7.632995031834921
+     ]
+    }
+   ],
+   "against_all_columns": [
+    {
+     "join": "middle Qz",
+     "two_theta_range": [
+      13.403432857399693,
+      14.458013478105428
+     ],
+     "beta_range": [
+      6.138131346421391,
+      7.62262048694401
+     ],
+     "all_columns_on_range": 0.8734023158503804,
+     "all_columns_on_range_error": 0.019591582806071792,
+     "all_columns_on_range_pooled": 0.9300187167009537,
+     "all_columns_on_range_pooled_error": 0.020565980589164652,
+     "scale_lower": 1.1605767476955455,
+     "scale_upper": 1.0543924635834783,
+     "joined_above_over_below": 1.1393177996953625,
+     "all_columns_above_over_below": 1.4002184341324357,
+     "joined_relative": 0.813671475766047,
+     "beta_windows": [
+      [
+       4.653642205898771,
+       6.120245935089793
+      ],
+      [
+       7.640505898275608,
+       9.10710962746663
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "name": "group 2",
+   "columns": [
+    55,
+    80
+   ],
+   "status": "ok",
+   "level_columns": [
+    [
+     55,
+     80
+    ],
+    [
+     55,
+     80
+    ]
+   ],
+   "beam_x_mm": [
+    [
+     5.068124686777605,
+     19.8279207252153
+    ],
+    [
+     5.755287669241006,
+     22.373845216231096
+    ]
+   ],
+   "counts": [
+    233272.0,
+    28168.0
+   ],
+   "joins": [
+    {
+     "label": "middle Qz",
+     "factor": 1.0671423945118836,
+     "error": 0.01681377189876474,
+     "core_factor": 1.0671423945118836,
+     "core_error": 0.01681377189876474,
+     "recomputed_factor": 1.0671423945118836,
+     "chi2": 0.8936202736903662,
+     "pooled": 1.1065759707458105,
+     "pooled_error": 0.01724329319868839,
+     "beta_bins": 105,
+     "cells": 2730,
+     "median_counts_per_beta_bin": [
+      142.0,
+      62.0
+     ],
+     "two_theta_range": [
+      14.400003521610568,
+      15.309124746356893
+     ],
+     "beta_range": [
+      6.040350057982039,
+      7.900432836468212
+     ]
+    }
+   ],
+   "against_all_columns": [
+    {
+     "join": "middle Qz",
+     "two_theta_range": [
+      14.400003521610568,
+      15.309124746356893
+     ],
+     "beta_range": [
+      6.138131346421391,
+      7.62262048694401
+     ],
+     "all_columns_on_range": 1.0357567894005597,
+     "all_columns_on_range_error": 0.015503046321652319,
+     "all_columns_on_range_pooled": 1.0635491622671827,
+     "all_columns_on_range_pooled_error": 0.0157979230816772,
+     "scale_lower": 1.176336886601361,
+     "scale_upper": 1.1438680056511652,
+     "joined_above_over_below": 1.6498323726178024,
+     "all_columns_above_over_below": 1.7252461203513054,
+     "joined_relative": 0.9562881221155003,
+     "beta_windows": [
+      [
+       4.653642205898771,
+       6.120245935089793
+      ],
+      [
+       7.640505898275608,
+       9.10710962746663
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "name": "group 3",
+   "columns": [
+    81,
+    107
+   ],
+   "status": "ok",
+   "level_columns": [
+    [
+     81,
+     107
+    ],
+    [
+     81,
+     91
+    ]
+   ],
+   "beam_x_mm": [
+    [
+     20.386714246344546,
+     34.14887500455833
+    ],
+    [
+     22.998879779384296,
+     29.094813660097554
+    ]
+   ],
+   "counts": [
+    91873.0,
+    5292.0
+   ],
+   "joins": [
+    {
+     "label": "middle Qz",
+     "factor": 0.3960963839747801,
+     "error": 0.027133449633456673,
+     "core_factor": 0.3960963839747801,
+     "core_error": 0.027133449633456673,
+     "recomputed_factor": 0.3960963839747801,
+     "chi2": 0.9501454792878691,
+     "pooled": 0.7414409262185109,
+     "pooled_error": 0.039628022981251926,
+     "beta_bins": 114,
+     "cells": 684,
+     "median_counts_per_beta_bin": [
+      6.0,
+      6.0
+     ],
+     "two_theta_range": [
+      15.490734925625976,
+      15.67255917057524
+     ],
+     "beta_range": [
+      6.120245935089794,
+      8.141297415560347
+     ]
+    }
+   ],
+   "against_all_columns": [
+    {
+     "join": "middle Qz",
+     "two_theta_range": [
+      15.490734925625976,
+      15.67255917057524
+     ],
+     "beta_range": [
+      6.138131346421391,
+      7.62262048694401
+     ],
+     "all_columns_on_range": 1.061476718324436,
+     "all_columns_on_range_error": 0.0511173501399429,
+     "all_columns_on_range_pooled": 1.3513037473120015,
+     "all_columns_on_range_pooled_error": 0.06179907900219945,
+     "scale_lower": 0.35841871238876116,
+     "scale_upper": 0.5502003479281987,
+     "joined_above_over_below": 0.5617542575245972,
+     "all_columns_above_over_below": 1.2067756493229265,
+     "joined_relative": 0.4655001597353866,
+     "beta_windows": [
+      [
+       4.653642205898771,
+       6.120245935089793
+      ],
+      [
+       7.640505898275608,
+       9.10710962746663
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}
