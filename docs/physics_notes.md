@@ -4031,3 +4031,27 @@ Follow-ups the same day (owner):
 
 *How verified*: the owner's words; the merge reading of `mainwindow.py`;
 the weighting is a derivation.
+
+Two corrections the same day (owner):
+
+- **Qc**: on "rarely the right value", the owner: "it's rarely very wrong,
+  depending on which decimal place you're looking at". Aqueous subphases
+  differ from water in the third significant figure. 1 M NaCl: ρ_e =
+  0.3440 e/Å³ and Qc = 0.02208 Å⁻¹, 1.6 % above water's 0.02173 (computed;
+  density 1.037 g/cm³, from memory, not checked). That digit matters for
+  R/R_F. Far above the edge R_F = (Qc/2Qz)⁴, so a relative error ε in Qc
+  is an error of about 4ε in the level of R/R_F, and more near the edge.
+  Computed with the exact Fresnel formula, assuming water's Qc when the
+  subphase's is 0.0002 Å⁻¹ higher (0.9 %) makes R/R_F 3.7 % too high
+  above Qz = 0.1 Å⁻¹, 4.2 % at 0.05 and 7.8 % at 0.025. For 1 M NaCl
+  (0.02208 against 0.02173) it is 6.6–6.8 % too high above Qz = 0.1,
+  7.4 % at 0.05 and 14 % at 0.025. At
+  high Qz this is a constant factor, which a fit with a free scale
+  absorbs; near the edge it changes the shape.
+- **Sample height scans**: the owner confirmed "at least" about 65 µm FWHM;
+  "They go about as large as 110 microns in the trough 89 mm wide." (The
+  width presumably depends on the trough, through the meniscus; a guess,
+  not the owner's words.)
+
+*How verified*: the owner's words; the R/R_F numbers computed with the
+exact Fresnel reflectivity, R_F = |(Q − √(Q² − Qc²))/(Q + √(Q² − Qc²))|².

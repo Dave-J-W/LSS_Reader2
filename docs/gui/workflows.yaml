@@ -153,7 +153,7 @@ workflows:
         do: "Sample height scan at a fixed incident angle, sample and detector rising together (workflow 'alignment'); scans from a few places or conditions reviewed together by selecting them together"
         where: SpecPlot (several scans selected)
         controls: [scanListWidget, spYComboBox, spNCheckBox]
-        user_decides: "whether the surface is flat enough: FWHM about 65 µm or more, flatter than a Gaussian ('more squashed than a gaussian')"
+        user_decides: "whether the surface is flat enough: FWHM about 65 µm or more (up to about 110 µm in the 89 mm trough), flatter than a Gaussian ('more squashed than a gaussian')"
         automatic: no
         could_be_automatic: a super-Gaussian fit with FWHM and exponent, flagged against 65 µm, beside the sample's earlier sh scans (F78)
         known_from: owner 2026-11-23
@@ -205,7 +205,7 @@ workflows:
         goto: {"no: change Qoff or Qc": day.reduce}
         issues:
           - "The owner selects the scans by hand, then Select All: the Series list (D55) selects a whole series in one action but is new and not yet tried by people (owner 2026-11-23); frames still need Select All"
-          - "Qc is rarely water's: the subphase sets it ('pure water is not very interesting and does not pay the bills', owner 2026-11-23)"
+          - "Qc is the subphase's ('pure water is not very interesting and does not pay the bills'), close to water's ('rarely very wrong, depending on which decimal place'); the third digit still moves the level of R/R_F by about four times its relative size (physics_notes 2026-11-23)"
       - id: day.stats
         do: "Decide whether the statistics are good enough; if not, repeat the macro (several scans) and have the reader sum the repeats' ROIs"
         where: SPEC (the repeat); Ref Patch identical-scans step (the merge)
