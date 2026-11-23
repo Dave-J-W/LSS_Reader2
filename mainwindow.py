@@ -4158,8 +4158,19 @@ class MainWindow (QMainWindow):
             pilX_deg, pilY_deg = np.meshgrid(pilX_deg, pilY_deg)  # mesh x-y corrdinates
             self.pilXbin = 2.0 * np.pi / self.wavelength[0] * np.sqrt(np.cos(self.truealpha[0]) ** 2 + np.cos(pilY_deg) ** 2 - 2 * np.cos(self.truealpha[0]) * np.cos(pilY_deg) * np.cos(pilX_deg))
             self.pilYbin = 2.0 * np.pi / self.wavelength[0] * (np.sin(self.truealpha[0]) + np.sin(pilY_deg))
-            qxyrange = np.linspace(np.min(self.pilXbin), np.max(self.pilXbin), int(len(self.pilXbin[0]) * (np.max(self.pilXbin) - np.min(self.pilXbin)) / (
-                                           self.pilXbin[0][-1] - self.pilXbin[0][0])))
+            # as many Qxy bins as columns, scaled by the whole image's Qxy span over the first
+            # row's (last column - first). |Qxy| folds at the direct beam: with the beam centred
+            # the two ends have the same Qxy (zero: OverflowError), right of the centre the last
+            # the smaller (a negative count: ValueError). Now the size of that difference, and
+            # the row's full span (max - min) when it is zero; unchanged left of the centre
+            row = self.pilXbin[0]
+            row_span = abs(row[-1] - row[0])
+            if not (row_span > 0 and np.isfinite(row_span)):
+                row_span = np.ptp(row)
+            nqxy = len(row)
+            if row_span > 0 and np.isfinite(row_span):
+                nqxy = max(2, int(nqxy * (np.max(self.pilXbin) - np.min(self.pilXbin)) / row_span))
+            qxyrange = np.linspace(np.min(self.pilXbin), np.max(self.pilXbin), nqxy)
             qxy, qz = np.meshgrid(qxyrange, self.pilYbin[:, 0])
             if len(self.selectedPilFramesNums)==1:
                  index = self.selectedPilFramesNums[0]
