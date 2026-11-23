@@ -84,8 +84,13 @@ The judging rules (proposed to Main 2026-11-23; the pull rule is hand-off
 08's):
 
 - **(a) honest**: |mean pull| < 0.2, pull SD within 0.90–1.15, and no
-  failed fit. pull = (estimate − truth) / its error.
-- **(b) accurate**: |mean relative bias| < 1 %, and no failed fit.
+  failed fit. pull = (estimate − truth) / its error, where the truth is
+  what the estimator should find: for the window sums, the Kα photopeak
+  inside the box; for the fits, all of it.
+- **(b) accurate**: |mean relative bias| < 1 %, and no failed fit. The bias,
+  and the RMS error, are taken against the true line (all of its Kα
+  photopeak counts) for every estimator, the window sum included: the
+  owner's question is whether the sum distorts the curve.
 - **(c) series**: the ratio curve's χ²/dof < 1.5 after one free scale,
   and every point with ≥ 100 true counts within 1 % of that scale. The
   mean over replicates is used, allowing two standard errors.
@@ -458,7 +463,12 @@ FIT_SERIES = {                       # methods that are peaks.fit_series with th
 
 
 def estimate(cond, spectra, counts, methods):
-    """{method: [(estimate, error, truth) or None (failed) per spectrum]}."""
+    """{method: [(estimate, error, truth for the pull, the true line) or None
+    (failed) per spectrum]}. The pull's truth is what the estimator should
+    find: the Kα photopeak inside the box for the window sums, all of it for
+    the fits. Accuracy is judged against the true line, all of its
+    photopeak counts, for every estimator (Main, 2026-11-23: "does the sum
+    distort the curve" is answered against the true line)."""
     cal = spectra[0].calib
     data = [normalise(c, cal) for c in counts]
     x = data[0][:, 0]
@@ -537,9 +547,9 @@ def estimate(cond, spectra, counts, methods):
                 out[m] = [(p.area / step * scale(), p.area_err / step * scale(), ka_total[0])]
         except Exception:                      # counted as a failure
             out[m] = fail if m != 'nonlinear' else [None]
-    for m, rows in out.items():
-        out[m] = [r if (r is not None and np.isfinite(r[0]) and np.isfinite(r[1]) and r[1] > 0) else None
-                  for r in rows]
+    for m, rows in out.items():                # + the true line, which accuracy is judged against
+        out[m] = [r + (ka_total[k],) if (r is not None and np.isfinite(r[0]) and np.isfinite(r[1]) and r[1] > 0)
+                  else None for k, r in enumerate(rows)]
     return out
 
 
@@ -607,9 +617,9 @@ def judge(rows, tolerant):
     if len(good) < 3:
         return dict(n=len(rows), failed=n_fail, pull_mean=math.nan, pull_sd=math.nan, rel_bias=math.nan,
                     rel_rmse=math.nan, honest=False, accurate=False)
-    est, err, tru = (np.array([r[k] for r in good]) for k in (-3, -2, -1))
+    est, err, tru, line = (np.array([r[k] for r in good]) for k in (-4, -3, -2, -1))
     pull = (est - tru) / err
-    rel = est / tru - 1
+    rel = est / line - 1
     bias, sd = float(pull.mean()), float(pull.std(ddof=1))
     rb, rmse = float(rel.mean()), float(math.sqrt(np.mean(rel ** 2)))
     n = len(good)
@@ -634,7 +644,7 @@ def verdict(results, conds, methods):
             replaces = '' if m == 'window' or w is None else bool(
                 ok and np.isfinite(r['rel_rmse']) and (not np.isfinite(w['rel_rmse']) or r['rel_rmse'] <= w['rel_rmse']))
             out.append(dict(condition=name, factor=c.factor, method=m, in_range=c.in_range(ka), ka_counts=ka,
-                            **r, passes=ok, replaces_window=replaces, stopped_after=stopped.get(m, '')))
+                            pull_against='Kα in the box' if m in ('window', 'sides') else 'Kα line', **r, passes=ok, replaces_window=replaces, stopped_after=stopped.get(m, '')))
     return out
 
 
@@ -653,8 +663,8 @@ def series_judge(results, sconds, methods):
                 if r[-1] is None:
                     fails += 1
                     continue
-                rep, k, est, err, tru = r
-                by_rep[rep][k] = (est / tru, err / tru)
+                rep, k, est, err, _, line = r
+                by_rep[rep][k] = (est / line, err / line)
             n_pts = len(ka)
             chi2, dev = [], np.full((len(by_rep), n_pts), np.nan)
             for i, (rep, pts) in enumerate(sorted(by_rep.items())):
@@ -757,6 +767,12 @@ def summary(ver, pool, sver, f90, conds, sconds, args, out):
             args.series_replicates if args.design in ('series', 'all') else 0, PULL_BIAS_MAX, *PULL_SD,
             100 * REL_BIAS_MAX, IN_RANGE['counts'], 1000 * IN_RANGE['fwhm'][0], 1000 * IN_RANGE['fwhm'][1],
             IN_RANGE['ratio']), '']
+    kinds = [('the reader\'s', ('window', 'fit', 'fit_fixed')), ('a comparator, not a reader method', ('sides',)),
+             ('candidates, not reader methods and not defaults', ('fit_width', 'fit_strip', 'fit_known', 'fit_irls',
+                                                                  'fit_linear', 'fit_cubic')),
+             ('a diagnostic', ('nonlinear',))]
+    L += ['Estimators: ' + '; '.join('%s: %s' % (k, ', '.join('`%s`' % m for m in ms if m in methods))
+                                     for k, ms in kinds if any(m in methods for m in ms)) + '.', '']
     if f90:
         L += ['## Verdict per method', '',
               '| Method | Designed in range | Designed that fail | Random in range passing | Series that fail | F90 passes |',
@@ -769,8 +785,10 @@ def summary(ver, pool, sver, f90, conds, sconds, args, out):
     des = [n for n, c in conds.items() if c.factor != 'random']
     if des:
         L += ['## Designed conditions', '',
-              'Each cell: mean pull / pull SD / relative bias (%); **bold** where the method neither passes (a) nor (b); '
-              'failures counted in brackets.', '',
+              'Each cell: mean pull / pull SD / relative bias (%). The pull is against what the estimator should find '
+              '(window and sides: the Kα photopeak inside the box; the fits: all of it); the bias is against the true '
+              'line (all of its photopeak counts) for every estimator. **Bold** where the method passes neither (a) nor '
+              '(b); failures counted in brackets.', '',
               '| Condition | In range | Kα counts | ' + ' | '.join(methods) + ' |',
               '|---|---|---|' + '---|' * len(methods)]
         idx = {(r['condition'], r['method']): r for r in ver}
@@ -973,7 +991,7 @@ def main(argv=None):
         rows = []
         for name, (rr, _, _) in results.items():
             for m, lst in rr.items():
-                rows += [dict(condition=name, method=m, rep=r[0], estimate=r[1], error=r[2], truth=r[3])
+                rows += [dict(condition=name, method=m, rep=r[0], estimate=r[1], error=r[2], truth=r[3], line=r[4])
                          if r[-1] is not None and len(r) > 2 else dict(condition=name, method=m, rep=r[0], failed=1)
                          for r in lst]
         write_csv(os.path.join(a.out, 'pulls.csv'), rows)

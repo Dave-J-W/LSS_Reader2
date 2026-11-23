@@ -77,7 +77,8 @@ def test_escape_stripping_removes_the_escapes():
 
 def test_the_window_truth_is_the_photopeak_in_the_box():
     """The window sum's excess over its truth is exactly the rest of the
-    spectrum in the box (expected values)."""
+    spectrum in the box (expected values); its accuracy is judged against the
+    whole line."""
     cond = g.core()['hard']
     s = cond.spectrum()
     lo, hi = cond.box_range()
@@ -85,6 +86,7 @@ def test_the_window_truth_is_the_photopeak_in_the_box():
     box = (s.energy >= lo) & (s.energy <= hi)
     assert r[2] == pytest.approx(s.photopeak('Zn')[box].sum(), rel=1e-12)
     assert r[0] - r[2] == pytest.approx((s.expected - s.photopeak('Zn'))[box].sum(), rel=1e-9)
+    assert r[3] == pytest.approx(s.photopeak('Zn').sum(), rel=1e-12)          # accuracy: against the whole line
 
 
 def test_known_centres_are_where_the_physics_puts_them():
