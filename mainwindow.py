@@ -227,6 +227,9 @@ class MainWindow (QMainWindow):
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
         self.initValidator()
+        self.nguiWindow=None
+        if self.prefs.get('ngui',False):
+            self.setNgui(True)
 
 
     def init_signals(self):
@@ -2064,6 +2067,20 @@ class MainWindow (QMainWindow):
         lay.addWidget(g4)
         d.prefSaveNoteCheckBox=asknote
         d.prefAutoSaveCheckBox=autos
+        g5=QGroupBox('Layout',d)
+        l5=QVBoxLayout(g5)
+        ngui=QCheckBox('ngui (new layout, prototype)',g5)
+        ngui.setObjectName('prefNguiCheckBox')
+        ngui.setChecked(bool(self.prefs.get('ngui',False)))
+        ngui.setToolTip('Opens a second window beside this one: a non-functional sketch of the proposed new layout '
+                        '(tabs by workflow, the selection panel at full height, panes under the tabs). Its controls '
+                        'are disabled placeholders whose tooltips say where each control is today; nothing in it '
+                        'reads or reduces data, and this window is unchanged. Unticking closes it. Off by default '
+                        '(F82; docs/gui/prototype.md).')
+        ngui.toggled.connect(self.setNgui)
+        l5.addWidget(ngui)
+        lay.addWidget(g5)
+        d.prefNguiCheckBox=ngui
         close=QPushButton('Close',d)
         close.setObjectName('prefClosePushButton')
         close.clicked.connect(d.close)
@@ -2075,6 +2092,23 @@ class MainWindow (QMainWindow):
         d.prefCalibratedCheckBox,d.prefFoilTable,d.prefPatchAutoCheckBox,d.prefPatchThresholdSpinBox=cal,t,auto,spin
         d.prefPatchMethodComboBox=meth
         return d
+
+    def setNgui(self,on):
+        """Open (on) or close the ngui prototype window (F82), and keep the choice. The window is a child
+        of this one (Qt.Window), so it closes and is disposed with it."""
+        self.setPreference('ngui',bool(on))
+        w=getattr(self,'nguiWindow',None)
+        if on:
+            if w is None:
+                from ngui.window import open_window      # lazily: the prototype costs nothing when off
+                self.nguiWindow=open_window(self)
+            else:
+                w.show()
+                w.raise_()
+        elif w is not None:
+            w.close()
+            w.deleteLater()
+            self.nguiWindow=None
 
     def mcaChannels(self):
         """Elements of a multi-element fluorescence detector to sum (empty: all)."""

@@ -1268,7 +1268,7 @@ workflows:
       - id: session.prefs
         do: Preferences - foils, Ref Patch method and known ratio, fluorescence elements, saving
         where: File > Preferences
-        controls: [actionPreferences, prefCalibratedCheckBox, prefPatchMethodComboBox, prefPatchAutoCheckBox, prefMcaCentrePushButton, prefSaveNoteCheckBox, prefAutoSaveCheckBox, prefClosePushButton]
+        controls: [actionPreferences, prefCalibratedCheckBox, prefPatchMethodComboBox, prefPatchAutoCheckBox, prefMcaCentrePushButton, prefSaveNoteCheckBox, prefAutoSaveCheckBox, prefNguiCheckBox, prefClosePushButton]
         user_decides: ""
         automatic: no
         could_be_automatic: ""

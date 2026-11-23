@@ -34,6 +34,7 @@ recorded beside its question with the date.
 | `questions/image_display.md` | Q-IMG-1–16 | 16 |
 | `questions/inventory_a.md` | Q-UI-A1–A12 (left panel, menus, panes, SpecPlot, Pilatus, cuts, 2D_Plot, Apex) | 12 |
 | `questions/inventory_b.md` | Q-UI-B1–B10 (Reflectivity, MCA, Plot, dialogs) | 10 |
+| `timeline/research.md` | Q-TL-1–8 (the sample timeline, F83: silent offset changes, a macro line marking a new sample, several SPEC files, sh-scan ROI and thresholds, notes, sx, environment columns) | 8 |
 
 ## Answers
 
