@@ -262,9 +262,10 @@ TOOLS = (
     Tool('compare_methods', 'Old and new methods as CSV (C2, C10, C11, ...)', 'refl', 'data',
          'tests/tools/compare_methods.py',
          'Old and new methods side by side on the same data, as CSV files with a manifest: error models, '
-         'legacy vs pinhole GID, pinhole distance, absorber factors.',
+         'legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, absorber factors.',
          committed=('docs/comparisons_data/manifest.json', 'docs/comparisons_data/C2_*',
-                    'docs/comparisons_data/C6_*', 'docs/comparisons_data/C10_*', 'docs/comparisons_data/C11_*'),
+                    'docs/comparisons_data/C6_*', 'docs/comparisons_data/C10_*', 'docs/comparisons_data/C11_*',
+                    'docs/comparisons_data/C21_*'),
          docs=('docs/COMPARISONS.md',), data='any',
          defaults={'--out': OUT, '--spec': NX}, spec_option='--spec',
          variations=(
@@ -272,7 +273,7 @@ TOOLS = (
                'docs/COMPARISONS.md:93', no_maps=True),
              V('Reflectivity only', 'Only the error-model comparison of scans 6-9 (C2/C3).',
                'docs/COMPARISONS.md:56', gid=''),
-             V('GID only, one level', 'Only scan 11 (C10, C11).', 'docs/COMPARISONS.md:63', ref='', gid='11'),
+             V('GID only, one level', 'Only scan 11 (C10, C11, C21).', 'docs/COMPARISONS.md:63', ref='', gid='11'),
          ),
          repo_out='docs/comparisons_data', seconds=39.0),
     Tool('absorber_steps', 'Absorber steps measured between scans', 'refl', 'text',

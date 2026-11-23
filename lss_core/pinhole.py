@@ -1189,7 +1189,7 @@ def frame_consistency(theta, n, w, edges):
 
 def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_step_deg=0.0, log=None,
               min_frames=2, edges=None, beam_centre_mm=None, beam_fwhm_um=None, beam_h_fwhm_mm=BEAM_H_FWHM_MM,
-              apply_joins=True):
+              apply_joins=True, angles='exact'):
     """Pinhole map of one Qz level: every usable column at its own 2θ,
     binned as ΣN/ΣW; scans of the level joined by one factor each (fitted on
     the rows-summed profiles over their common bins, as the window's
@@ -1206,7 +1206,14 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     ``beam_fwhm_um``), its horizontal FWHM ``beam_h_fwhm_mm``; it includes the
     area correction (``area`` is then not applied) and keeps the level's
     absolute scale. ``apply_joins`` False: the scans' factors are fitted and
-    logged but not applied (the data as collected)."""
+    logged but not applied (the data as collected). ``angles`` 'exact'
+    (the default since 2026-11-19): each pixel's (2θ, β) from
+    ``pixel_angles``; 'per_axis': the column's 2θ and the row's β
+    (``column_two_theta``, ``row_beta``), as the map was binned before, kept
+    for comparison C21 (the columns, footprint and response are found with
+    the exact angles either way)."""
+    if angles not in ('exact', 'per_axis'):
+        raise ValueError("angles: 'exact' or 'per_axis', not %r" % (angles,))
     ncols = frames[0].counts.shape[1]
     nrows = frames[0].counts.shape[0]
     g0 = frames[0].geom
@@ -1215,7 +1222,11 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     theta, beta_px, n, w = [], [], [], []
     for f in frames:
         cols = frame_columns(f, ncols)
-        tt, bb = pixel_angles(f.geom, rows, np.arange(ncols))          # exact, per pixel (IMG_COO_CONV)
+        if angles == 'per_axis':                                         # before 2026-11-19 (C21)
+            tt = np.repeat(column_two_theta(ncols, f.geom)[None, :], len(rows), axis=0)
+            bb = np.repeat(row_beta(nrows, f.geom)[rows][:, None], ncols, axis=1)
+        else:
+            tt, bb = pixel_angles(f.geom, rows, np.arange(ncols))      # exact, per pixel (IMG_COO_CONV)
         use = np.zeros(ncols, bool)
         use[cols] = True
         theta.append(np.where(use[None, :], np.degrees(tt), np.nan))

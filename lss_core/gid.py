@@ -34,7 +34,9 @@ the GID worksheet (F61). Where each one acts:
   from the geometry and the beam, with ``beam_centre_mm`` and
   ``beam_fwhm_um`` fitted unless given and ``beam_h_fwhm_mm``;
   ``apply_joins`` False: join factors fitted and reported, not applied
-  (the data as collected).
+  (the data as collected); ``angles``: the pinhole map binned on each
+  pixel's exact (2θ, β) ('exact', the default) or on the column's 2θ and
+  the row's β ('per_axis', as before 2026-11-19; comparison C21).
 """
 from dataclasses import dataclass, fields
 
@@ -61,6 +63,7 @@ class GIDParams:
     beam_fwhm_um: float = 0.0         # response 'physical': vertical FWHM (0: fitted), e.g. from a half-cut
     beam_h_fwhm_mm: float = 1.0       # response 'physical': horizontal FWHM (owner's estimate, 2026-11-19)
     apply_joins: bool = True          # False: scan and level factors fitted and reported, not applied (as collected)
+    angles: str = 'exact'             # pinhole map binning: 'exact' per pixel, or 'per_axis' (before 2026-11-19; C21)
 
     def changed(self):
         """Names of the settings that differ from the defaults."""
@@ -466,7 +469,8 @@ def pinhole_patch(frames, params, log=None):
                                                  area=gp.area_correction, pol=gp.polarisation, log=log,
                                                  min_frames=gp.min_frames, edges=edges,
                                                  beam_centre_mm=gp.beam_centre_mm, beam_fwhm_um=gp.beam_fwhm_um or None,
-                                                 beam_h_fwhm_mm=gp.beam_h_fwhm_mm, apply_joins=gp.apply_joins)
+                                                 beam_h_fwhm_mm=gp.beam_h_fwhm_mm, apply_joins=gp.apply_joins,
+                                                 angles=gp.angles)
         for e in log:
             e.setdefault('label', LEVEL_NAMES[k])
         level_info.append(dict(level=LEVEL_NAMES[k], **info))

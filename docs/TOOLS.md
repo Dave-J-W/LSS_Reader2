@@ -54,7 +54,7 @@ container on 2026-11-23 with the defaults shown.
 | [Patching gauntlet (synthetic, judged)](#ref-patch-gauntlet) | data | Every patching method on many noise replicates of synthetic reflectivity under many conditions, judged by hand-off 08's rules (\|mean pull\| < 0.2, pull SD 0.9-1.15). | synthetic (public) |  | `docs/comparisons_data/ref_patch_gauntlet` |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
 | [Downstream fits with and without the covariance](#covariance-pulls) | data | Synthetic NX-like scans of a 25 Å film reduced by each patch method and fitted for thickness, density and roughness under four error treatments: pull SD is 1 only with the full covariance. | synthetic (public) | 3 s | `docs/comparisons_data/downstream_covariance` |
-| [Old and new methods as CSV (C2, C10, C11, ...)](#compare-methods) | data | Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, absorber factors. | NX school by default; any SPEC file | 39 s | `docs/comparisons_data/manifest.json`<br>`docs/comparisons_data/C2_*`<br>`docs/comparisons_data/C6_*`<br>`docs/comparisons_data/C10_*`<br>`docs/comparisons_data/C11_*` |
+| [Old and new methods as CSV (C2, C10, C11, ...)](#compare-methods) | data | Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, absorber factors. | NX school by default; any SPEC file | 39 s | `docs/comparisons_data/manifest.json`<br>`docs/comparisons_data/C2_*`<br>`docs/comparisons_data/C6_*`<br>`docs/comparisons_data/C10_*`<br>`docs/comparisons_data/C11_*`<br>`docs/comparisons_data/C21_*` |
 | [Absorber steps measured between scans](#absorber-steps) | text | Measured absorber steps between overlapping reflectivity scans against the nominal absfac^-Δn, and the extra Al thickness each implies (P28). | NX school by default; any SPEC file | 1 s | — |
 | [Foil thicknesses from the joins table](#foil-fit-from-joins) | text | Six binary foil thicknesses fitted to the owner's 963 measured joins (hand-off 03), and every join's residual: a foil effect separated from a monitor that missed a slit change. | public (NX school or committed tables) | < 1 s | — |
 
@@ -275,11 +275,11 @@ Variations:
 
 ### Old and new methods as CSV (C2, C10, C11, ...)
 
-Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, absorber factors.
+Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, absorber factors.
 
 - Menu: Tools > Reflectivity patching; kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/compare_methods.py`
 - Explained in: `docs/COMPARISONS.md`
-- Committed products: `docs/comparisons_data/manifest.json`, `docs/comparisons_data/C2_*`, `docs/comparisons_data/C6_*`, `docs/comparisons_data/C10_*`, `docs/comparisons_data/C11_*`; replaced from the window with the settings that made them (into `docs/comparisons_data`)
+- Committed products: `docs/comparisons_data/manifest.json`, `docs/comparisons_data/C2_*`, `docs/comparisons_data/C6_*`, `docs/comparisons_data/C10_*`, `docs/comparisons_data/C11_*`, `docs/comparisons_data/C21_*`; replaced from the window with the settings that made them (into `docs/comparisons_data`)
 - Run:
 
       python tests/tools/compare_methods.py --out '{out}' --spec sample_data/NX_school/2026sep/20260923
@@ -290,7 +290,7 @@ Variations:
 |---|---|---|---|
 | Without the 2D maps | Skips the large GID maps (the CSVs of profiles only). | `docs/COMPARISONS.md:93` | `python tests/tools/compare_methods.py --out '{out}' --spec sample_data/NX_school/2026sep/20260923 --no-maps` |
 | Reflectivity only | Only the error-model comparison of scans 6-9 (C2/C3). | `docs/COMPARISONS.md:56` | `python tests/tools/compare_methods.py --out '{out}' --spec sample_data/NX_school/2026sep/20260923` |
-| GID only, one level | Only scan 11 (C10, C11). | `docs/COMPARISONS.md:63` | `python tests/tools/compare_methods.py --out '{out}' --spec sample_data/NX_school/2026sep/20260923 --gid 11` |
+| GID only, one level | Only scan 11 (C10, C11, C21). | `docs/COMPARISONS.md:63` | `python tests/tools/compare_methods.py --out '{out}' --spec sample_data/NX_school/2026sep/20260923 --gid 11` |
 
 <a id="absorber-steps"></a>
 

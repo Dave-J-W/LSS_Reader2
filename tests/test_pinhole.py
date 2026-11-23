@@ -203,6 +203,26 @@ def test_a_sharp_line_lands_in_one_bin_whatever_the_column():
     assert info['counts_used'] > 20 * sum(f.counts[15:487, 46:49].sum() for f in fr) / 3 / 10
 
 
+def test_per_axis_angles_are_kept_for_comparison_c21():
+    """``level_map(angles='per_axis')`` (2026-11-23, comparison C21) bins on
+    the column's 2θ and the row's β, the method before 2026-11-19: the same
+    counts are used as with exact angles (only where they land differs), the
+    line still lands at its 2θ on the direct-beam row, and the β axis is
+    the per-axis one."""
+    t0 = 16.65
+    step = math.degrees(ph.PIXEL_MM / 271)
+    line = lambda t: np.where(np.abs(t - t0) < step / 2, 1e-2, 1e-5)
+    fr = _frames(np.arange(14, 18.01, 0.1), line)
+    exact = ph.level_map(fr, 15, 486, response='none', area=False, pol=False)
+    axis = ph.level_map(fr, 15, 486, response='none', area=False, pol=False, angles='per_axis')
+    assert axis[4]['counts_used'] == pytest.approx(exact[4]['counts_used'], rel=1e-9)
+    prof = np.nansum(axis[2], axis=1)
+    assert axis[0][int(np.argmax(prof))] == pytest.approx(t0, abs=step / 2 + 1e-9)
+    assert not np.array_equal(np.nan_to_num(exact[2]), np.nan_to_num(axis[2]))
+    with pytest.raises(ValueError):
+        ph.level_map(fr, 15, 486, angles='sideways')
+
+
 def test_wrong_distance_smears_the_line():
     t0 = 16.65
     step = math.degrees(ph.PIXEL_MM / 271)
