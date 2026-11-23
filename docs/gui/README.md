@@ -50,10 +50,15 @@ reflectivity, GID, XFNTR**, then EXAFS.
 | `screens/` | Screenshots of every tab, area and dialog on the public NX school data (and synthetic MCA data); index in `screens/README.md` | `python tests/tools/gui_screens.py` |
 
 The map lives in YAML so that it can be edited by hand, checked by a tool
-(every control named in a workflow exists in the inventory, and every
-inventory entry exists in the window) and rendered. When a control is
-added, moved or removed, update its inventory entry and rerun the tool;
-the check fails until the map agrees with the window.
+(every control named in a workflow exists in the inventory, every
+inventory entry exists in the window, and every named control of the
+window is in the inventory) and rendered. When a control is added, moved
+or removed, update its inventory entry and rerun the tool; the check fails
+until the map agrees with the window. Since 2026-11-23 the quick suite runs
+the check (`tests/test_gui_map.py`), so a control added without an entry
+fails there; the first was the Reflectivity tab's "+ covariance" box,
+added by the covariance work after the inventory was written and found
+only by reading the merge.
 
 ## Schema
 

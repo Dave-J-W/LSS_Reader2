@@ -19,7 +19,11 @@ The map (``docs/gui/workflows.yaml``) and the inventory
     for the purpose), to an attribute of ``window.ui`` or the window, or to
     an objectName in a ``.ui`` file (``<stem>.<widget>`` against
     ``<stem>.ui``); an id found only in ``mainwindow.py`` text is reported
-    as such;
+    as such; and, the other way, every named interactive control of that
+    window (buttons, check boxes, combos, line edits, spin boxes, sliders,
+    lists, text boxes) is in the inventory, so a control added to the
+    window without an entry is a problem (``tests/test_gui_map.py`` runs
+    this check in the quick suite);
 * **renders** ``docs/gui/workflows.md`` (per workflow: a summary, a steps
   table and a Mermaid ``flowchart TD``; then a control x workflow matrix per
   tab) and ``docs/gui/inventory.md`` (one table per area).
@@ -273,7 +277,42 @@ def check_window(entries, report):
         else:
             report.problem('--window: inventory id %s (%s) is not in the window, its dialogs or a .ui file' % (cid, e['_file']))
     report.note('--window: %d of %d inventory ids resolved; %d in code text only' % (found, len(entries), code_only))
+    unlisted = uninventoried_controls(w, entries)
+    for kind, name in unlisted:
+        report.problem('--window: control %s (%s) is in the window but not in the inventory: add an entry to '
+                       'docs/gui/inventory/<area>.yaml (schema: docs/gui/README.md)' % (name, kind))
+    report.note('--window: every named control of the main window is inventoried' if not unlisted else
+                '--window: %d named control(s) of the main window not inventoried' % len(unlisted))
     w.close()
+
+
+# Qt's own children (tab-bar scroll arrows and the like), never the reader's
+QT_INTERNAL = ('ScrollLeftButton', 'ScrollRightButton')
+
+
+def uninventoried_controls(w, entries):
+    """(class name, objectName) of every named interactive control of the
+    window and its code-built dialogs that no inventory id names, exactly or
+    as the widget part of ``<dialog>.<widget>``. This is the direction that
+    catches a control added to the window without a map entry (2026-11-23:
+    the covariance box added on 2026-11-22 went unnoticed by the other
+    checks)."""
+    from PyQt5.QtWidgets import (QAbstractButton, QComboBox, QLineEdit, QAbstractSpinBox, QAbstractSlider,
+                                 QAbstractItemView, QTextEdit, QPlainTextEdit, QScrollBar)
+    known = set()
+    for e in entries:
+        cid = str(e['id'])
+        known.update((cid, cid.split('.')[-1]))
+    kinds = (QAbstractButton, QComboBox, QLineEdit, QAbstractSpinBox, QAbstractSlider, QAbstractItemView,
+             QTextEdit, QPlainTextEdit)
+    out = set()
+    for o in w.findChildren(kinds):
+        name = o.objectName()
+        if (not name or name.startswith('qt_') or name in QT_INTERNAL or isinstance(o, QScrollBar)
+                or name in known):
+            continue
+        out.add((type(o).__name__, name))
+    return sorted(out, key=lambda t: t[1])
 
 
 # ---------------------------------------------------------------- rendering

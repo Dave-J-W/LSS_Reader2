@@ -19,7 +19,9 @@ in the code only.
 
 402 controls inventoried in 12 files (`inventory/`), 399 found in a live
 window (the other 3 are built only with data); 13 workflows with 9 shared
-steps; 72 questions for the owner (`questions.md`).
+steps; 72 questions for the owner (`questions.md`). On 2026-11-23, after
+the covariance work was merged: 403 controls, 400 found (the Reflectivity
+tab's "+ covariance" box added); the findings below are unchanged by it.
 
 ## Themes
 

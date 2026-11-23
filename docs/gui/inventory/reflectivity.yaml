@@ -321,6 +321,17 @@
   shown: always
   tooltip: false
   notes: "_rrf.txt is the R/RF of the last plot with R/RF ticked; if never ticked it is silently skipped (print only)."
+- id: refCovarianceCheckBox
+  kind: checkbox
+  label: "+ covariance"
+  where: "Reflectivity > bottom, after Save"
+  handler: saveRefCovariance
+  does: "When ticked, Export also writes <name>_ref.cov.json and <name>_rrf.cov.json (the stitch factors' covariance, hand-off 19 schema v1) beside the unchanged text files"
+  workflows: [reflectivity]
+  needs: "a Ref Patch of two or more scans; the patch on show is the one the last Ref Patch made"
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-22 by the covariance work (merged after the assessment; built in code by setupRefCovarianceBox, not in the .ui). Off by default; the default is the owner's (TODO B2). A modifier of Export placed after Save: one more 'Export or Save?' ambiguity for phase 1b to resolve. Refuses with a message when the shown patch cannot be replayed exactly."
 - id: refSaveWorkbookPushButton
   kind: button
   label: "Save"

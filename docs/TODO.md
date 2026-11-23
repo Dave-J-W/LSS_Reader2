@@ -124,9 +124,9 @@ GUI overhaul (R4, D58; plan `docs/gui/README.md`), planning only until the owner
 
 | Item | Source |
 |---|---|
-| Phase 1a: inventory of every control and the workflow it serves; findings per tab (grouping, consistency, visual cues, missing functions); screenshots of every area; questions for the owner (in progress 2026-11-22) | D58 |
+| Phase 1a: inventory of every control and the workflow it serves; findings per tab (grouping, consistency, visual cues, missing functions); screenshots of every area; questions for the owner: **delivered 2026-11-22** (`docs/gui/assessment.md`, `questions.md`); waiting on the owner's answers (15 first) | D58 |
 | The workflow map, checked and rendered by a tool (burn tests, reflectivity, GID, XFNTR first, then EXAFS) | F67 |
-| A test that runs the map's check, so the map cannot drift from the window (after the inventory is complete) | F67 |
+| ~~A test that runs the map's check, so the map cannot drift from the window~~ **done 2026-11-23**: `tests/test_gui_map.py` (quick suite, about 5 s) runs `gui_map.py --check --window`, which now also checks the other direction (every named control of the window is inventoried); AGENTS.md rule 11 asks for the entry | F67 |
 | Phase 1b: regrouping, one visual language, state cues; one line-cut interface on every image plot with defaults by scan kind | D58, F68, F59 |
 | Phase 2: frames as a movie with sticky zoom (≤ 6 tiles; sampling first/middles/last, default 4; first n), sticky plot preferences, intelligent colour scales, ROI close-up for reflectivity | F69–F71 |
 | Faster log-scale plotting (outside the first deliverables) | F72 |

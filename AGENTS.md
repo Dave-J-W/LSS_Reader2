@@ -115,8 +115,11 @@ No display is needed. Run from the repository root.
      `docs/OUTPUT_DECISIONS.md` with its rationale and evidence (owner,
      test, measurement, literature, or marked as an assumption);
    - a user-visible control: a tooltip (rule 9), a line in
-     `docs/MANUAL_NOTES.md`, and `python tests/tools/dump_tooltips.py >
-     docs/manual/controls.md`.
+     `docs/MANUAL_NOTES.md`, `python tests/tools/dump_tooltips.py >
+     docs/manual/controls.md`, and an entry in the GUI inventory
+     (`docs/gui/inventory/<area>.yaml`; its id in the workflow step that
+     uses it, `docs/gui/workflows.yaml`). `tests/test_gui_map.py` fails
+     on a named control the inventory lacks (2026-11-23).
    - figures that a change makes stale (they show the old method or old
      numbers): regenerate them, public ones in the repository and private
      ones under `sample_data/private/figures/`, in the same tranche (owner,

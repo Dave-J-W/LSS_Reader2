@@ -500,13 +500,13 @@ workflows:
       - id: ref.export
         do: Export - <name>_ref.txt and <name>_rrf.txt (Q, R, sigma); the Script pane records exp.reflectivity(...)
         where: Reflectivity tab > Export
-        controls: [refExportPushButton]
-        user_decides: file name
+        controls: [refExportPushButton, refCovarianceCheckBox]
+        user_decides: file name; whether to write the covariance sidecars (+ covariance, off by default)
         automatic: no
         could_be_automatic: name from the sample and series (guess)
-        known_from: code (saveRefData); tests/test_ref_export_golden.py; docs docs/SCRIPTING.md
+        known_from: code (saveRefData, saveRefCovariance); tests/test_ref_export_golden.py, tests/test_gui_covariance_export.py; docs docs/SCRIPTING.md
         issues:
-          - "No covariance sidecar or corrected/legacy pair yet (F24, TODO B)"
+          - "The covariance sidecars (F24) exist since 2026-11-22 behind '+ covariance', which sits after the workbook Save although it modifies Export; the contract's corrected/legacy pair is for scripts only (TODO B2)"
       - id: ref.save
         uses: shared.workbook
         controls: [refSaveWorkbookPushButton]
