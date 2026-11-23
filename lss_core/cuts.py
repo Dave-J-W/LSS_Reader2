@@ -77,12 +77,47 @@ def frame_cut(det, data, error, direction, lo, hi, g, axes='Pixels', absfac=1, a
 
 
 def mean_frame(data, errors):
-    """The window's "Sum": mean of normalised frames, errors in quadrature / N."""
+    """The window's "Sum" until 2026-11-23 (the legacy average, kept as an
+    option): mean of normalised frames, errors in quadrature / N."""
     total, var = data[0], errors[0] ** 2
     for d, e in zip(data[1:], errors[1:]):
         total, var = total + d, var + e ** 2
     n = len(data)
     return total / n, np.sqrt(var) / n
+
+
+def sum_frames(data, errors, normalisers):
+    """"Sum All" as the owner asked (2026-11-23, F91: "sum the signals, sum
+    the monitor/normalizer, then do the normalization"): the normalised
+    frames ``data`` (errors ``errors``) weighted by their ``normalisers``,
+    Σ w_i d_i / Σ w_i with errors √Σ(w_i σ_i)² / Σ w_i. With w_i a frame's
+    monitor divided by the factors it was multiplied by (absorber, monitor
+    gain), w_i d_i is its counts, so the result is ΣN / ΣM for equal factors
+    (the pooled estimate); with equal monitors it is the mean."""
+    w = np.asarray(normalisers, dtype=float)
+    if len(w) != len(data) or not len(w) or not np.all(np.isfinite(w)) or np.any(w <= 0):
+        raise ValueError('every summed frame needs a positive monitor')
+    W = float(w.sum())
+    total = sum(wi * d for wi, d in zip(w, data)) / W
+    var = sum((wi * e) ** 2 for wi, e in zip(w, errors)) / W ** 2
+    return total, np.sqrt(var)
+
+
+def sum_weights(normalisers, legacy=False):
+    """Each frame's share of the sum: w_i / Σw (sum_frames), or 1/N for the
+    legacy mean. For the budget model's monitor terms."""
+    n = len(normalisers)
+    if legacy:
+        return [1.0 / n] * n
+    w = np.asarray(normalisers, dtype=float)
+    return list(w / w.sum())
+
+
+def frame_normaliser(monitor, absfac, absnum, gain=1.0):
+    """The monitor of a frame divided by the factors normalise_frame
+    multiplied it by: the weight of that frame in sum_frames."""
+    from .normalise import attenuation
+    return float(monitor) / (float(attenuation(absfac, absnum)) * float(gain))
 
 
 def save(name, cuts, labels, summed_label=None):

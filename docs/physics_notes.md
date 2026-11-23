@@ -42,6 +42,7 @@ exists.
 | I26 | A burn signal decaying as exp(−t/τ) gives τ from the exponential model and a 5 % time of τ·ln(1/0.95) | `test_burn_trends.py::test_reflectivity_burn_is_monitor_normalised_and_finds_tau` (τ 400 s, 20.5 s) |
 | I30 | A figure tool is deterministic: rerun with the settings of its committed figures on unchanged code and inputs, it gives them back pixel for pixel (the measured test of staleness; a provenance stamp, where a tool prints its git revision, differs inside one small box) | `test_toolbox_gui.py::test_a_figure_tool_reproduces_its_committed_figures` (burn trends, 4 of 4); measured 2026-11-23: the ngui prototype screenshots 23 of 23, the fit demonstrator figures 6 of 6 |
 | I31 | A pinhole join factor (scans of a level, or Qz levels) is unbiased whatever the counts per bin: the likelihood of how each bin's counts split between the two sides (`pinhole.ratio_ml`, P46) gives back a known factor within ±0.1 % down to 0.026 counts per pixel; equal to the pooled ratio of a single bin | `test_pinhole.py::test_level_factor_is_unbiased_at_low_counts`, `test_ratio_ml_is_the_pooled_ratio_for_one_bin_and_recovers_a_scale` |
+| I32 | "Sum All" of Poisson frames (y = N·A/(M·g), σ = √N·A/(M·g)) equals ΣN/Σ(M/A·g) with σ = √ΣN/Σ(M/A·g), exactly; it is the mean of the per-frame values weighted by M/(A·g), and with equal monitors and absorbers the plain mean | `test_monc_normalised.py` (`test_sum_frames_is_the_counts_over_the_monitors`, `test_frames_with_absorbers_are_summed_by_their_effective_monitors`, `test_the_scripted_summed_cut_is_the_counts_over_the_monitors`, `test_the_windows_summed_cut_is_the_counts_over_the_monitors`) |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -4589,3 +4590,91 @@ burns either way, and every burn test, quick and real-data, passes
 unchanged. When the macros write a role indicator it is to take precedence
 (an assumption until it exists). Verified: tested
 (`test_burn_kind_follows_det_th_above_two_degrees`).
+
+### 2026-11-23 — Is "Sum All" as ΣN/ΣM right? (a second opinion), and F91 built with every view per Monc
+
+**Question (owner):** "I did want a second opinion on 'sums as
+sigmaN/sigmaM' - it seems right to me but i haven't thought deeply on
+it." Then: "finish f91 and make sure that all data is default normalized
+by monc, even gisaxs."
+
+**Answer: yes, it is the right estimator for frames that share one rate.**
+Let frame i have counts N_i ~ Poisson(λ m_i) in a pixel or a region, with
+m_i = M_i/(A_i g_i) its effective monitor (Monc over the absorber factor
+and the monitor gain). The log-likelihood Σ_i [N_i ln(λ m_i) − λ m_i] is
+largest at λ̂ = ΣN_i / Σm_i, with variance λ/Σm_i, estimated as
+ΣN/(Σm)²: the error is √ΣN/Σm. The old "Sum All", the mean of the
+normalised frames (1/n) Σ N_i/m_i, is unbiased too, but its variance is
+(λ/n²) Σ 1/m_i. Since the arithmetic mean of the m_i is at least their
+harmonic mean, that variance is never below λ/Σm_i, and equals it only
+when every m_i is the same. ΣN/Σm is the mean of the normalised frames
+weighted by m_i/Σm. That is the inverse-variance weighting when the
+variances come from the expected counts λ m_i. Weighting by the observed
+counts N_i instead would bias low counts downwards. It is the same
+estimator as the MCA Merge (I22, notes 2026-11-19) and the pinhole bins
+(I21). References: the Poisson likelihood and its maximum, e.g. Cowan,
+*Statistical Data Analysis* (Oxford, 1998), ch. 6 (maximum likelihood)
+(https://www.pp.rhul.ac.uk/~cowan/sda/); the AM–HM inequality,
+https://en.wikipedia.org/wiki/Inequality_of_arithmetic_and_geometric_means.
+
+Caveats, none of which changes the choice:
+1. It assumes one rate. Frames that truly differ (beam drift, a burn, a
+   wrong absorber factor) are weighted towards the frame with the larger
+   effective monitor, not equally. With different absorbers that is
+   nearly all of the weight (below).
+2. With a background selected, the frames are normalised and subtracted
+   first, then weighted by m_i: the same estimator for the signal.
+3. The monitor's own noise (0.04 %, D22) is negligible next to the counts
+   of summed frames.
+
+**Built (2026-11-23).**
+- `lss_core.cuts.sum_frames`, `sum_weights` and `frame_normaliser`.
+- `Experiment.cut(summed=True, sum_mode='monitors')` is the default;
+  `'mean'` gives the legacy mean.
+- In the window, "Sum All" in cuts, the summed image and GISAXS. The
+  error budget's monitor terms take the same weights.
+- The owner's second request, every view per Monc:
+  - the image display and its colour range: they were raw counts unless
+    a background was selected;
+  - GISAXS single frames and their `_gisaxs.txt`: raw counts before;
+  - the SpecPlot normaliser picks Monc by name (it was the column before
+    the last).
+- Cuts, Ref and the GID maps were per Monc already. Ref's close-up goes
+  through `TwoDDetector.setROI`, which divides by Monc. Burn tests do not
+  read "Sum All".
+- The legacy behaviour stays as two preferences for F86's Reduction
+  options page: `sum_all_legacy_average` and `gisaxs_raw_counts`.
+
+**Measured on NX school** (C41, `python tests/tools/compare_methods.py`;
+a 'Pix V' cut over the whole width, new vs old):
+
+| Frames | Total | Peak row | σ at the peak, new/old |
+|---|---|---|---|
+| Scan 11, 41 repeats at Qz 0.016 (monitors within 1.5 %) | +0.032 % | −0.020 % | 0.9998 |
+| Scan 12, 4 repeats | −0.000 % | −0.002 % | — |
+| Scans 7 + 8 at Qz 0.09 | +1.2 % | +19.7 % | 0.36 |
+| Scans 8 + 9 at Qz 0.17 | +4.0 % | +5.0 % | 0.39 |
+| Scans 6 + 7 at Qz 0.035 | +10.9 % | +10.7 % | 0.47 |
+
+- The cross-scan pairs are at different absorbers, with the default
+  factor of 1.4247 per unit.
+- The two frames of a pair disagree with each other by 2.5 %, 9.0 % and
+  26 %. The new sum gives the less-attenuated frame 96–98 % of the
+  weight.
+- For repeats, the usual use, the change is below 0.04 %.
+
+**Also found:** "Show GISAXS" raised with the direct beam at the
+detector's centre (OverflowError) or right of it (ValueError). The
+cause was the Qxy bin count, from (last − first) of a row whose |Qxy|
+folds at the beam. It is fixed, and left of the centre it is unchanged
+(`test_gisaxs_display.py`).
+
+**Owner, same day: undersampled fringes are not a case to consider.**
+"fringes will rarely be undersampled, or even be sampled close to
+nyquist, that is not an important case to consider." The to-do item to
+fall back to the coinciding-points ratio at undersampled joins (from
+the gauntlet, C36) is dropped.
+
+Verified by tests (I32; `test_monc_normalised.py`,
+`test_gisaxs_display.py`) and measured (the table above). That the
+display, GISAXS and SpecPlot were raw before is from reading the code.

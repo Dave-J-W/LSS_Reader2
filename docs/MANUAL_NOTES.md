@@ -92,7 +92,8 @@ Each line: feature — where — default — script — notes entry (date).
 - Log x or log y with nothing positive to show on that axis (all values
   <= 0, or infinite after dividing by a zero monitor) leaves the axis
   linear, with a note in the status bar (2026-11-23).
-- Plot any column against any other, normalised; "Point #" labels (on) —
+- Plot any column against any other, normalised (by Monc when the scan has
+  it, since 2026-11-23; the column before the last otherwise); "Point #" labels (on) —
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
@@ -133,6 +134,15 @@ Each line: feature — where — default — script — notes entry (date).
   that cuts in Qz/Qxy and I vs β are not documented: I vs β works today as
   "Pix V" with axes "Angles"; write this part of the manual first.
 - Background images and background-subtracted frames (not scriptable yet).
+- Everything shown is per Monc (2026-11-23, owner: "all data is default
+  normalized by monc, even gisaxs"): the image and its colour range, the
+  cuts, GISAXS. "Sum All" sums the frames' counts and monitors and divides
+  once, ΣN/ΣM (F91; tooltip): frames with more monitor count weigh more,
+  which is the most likely common rate. The old average (and GISAXS in raw
+  counts) are preferences, `sum_all_legacy_average` and `gisaxs_raw_counts`,
+  for the Reduction options page (F86). Scripts: `exp.cut(..., summed=True,
+  sum_mode='mean')` for the old average. Terms to define: effective monitor
+  (Monc over absorber factor and gain).
 - 2D_Plot tab (x y z text files, e.g. exported maps): Add File, select it, then CMap, Log Int, Min/Max, interpolation. It works again since 2026-11-23 (adding a file had raised an error with matplotlib 3.9 or later). The colour map once listed as 'spectral' is listed as 'nipy_spectral', the same map under the name matplotlib has used since version 2.0; the hidden Apex tab's list, which colours the Reflectivity ROI image, changed the same way.
 
 ### GID

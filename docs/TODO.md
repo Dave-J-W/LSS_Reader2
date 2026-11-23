@@ -17,7 +17,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 
 | Session | Now | Next |
 |---|---|---|
-| Main (orchestrator) | F91 "Sum All" really sums and F81 repeats summed (both ΣN/ΣM, output changes); ~~F87 burn kind from Det_Th > 2°~~ done 2026-11-23 | F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
+| Main (orchestrator) | F81 repeats summed (ΣN/ΣM, output change); ~~F91 "Sum All" really sums, every view per Monc~~ done 2026-11-23; ~~F87 burn kind from Det_Th > 2°~~ done 2026-11-23 | F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
 | GUI manager | the main window's unblocked items (area I, "Unblocked 2026-11-23"): removals, F74, F85, F86, F88, F69 movie, Q-GID-5, then F95–F97 display | the timeline tab (F83), then ngui |
 | tools man | what "the gauntlet" is, whether it was wrapped up, its extensions (report to Main) | F90 MCA fit gauntlet, synthetic half |
 | questor | the owner's questions and their answers in `docs/` | (its own order) |
@@ -51,7 +51,7 @@ working list, one table per area, each row with its source. Rows marked
 | Two-file export, covariance sidecar; Budget then the default (the covariance itself is computed since 2026-11-22: `lss_core.uncertainty`; what to export: area B2). **Built 2026-11-22 as options** (`lss_core.covariance_export`, `lss_core.gls`, `reports/downstream_covariance.md`): sidecars beside the legacy files (window "+ covariance", off; scripts `save(covariance='sidecar')`), the contract's two outputs and the combined file (scripts `covariance='contract'`, `combined=True`). Open: the defaults (B2); hand-off tests 5–6 with XModJointFit's own `lss_reference.py` / `covariance_core.py` when supplied; the GUI path for a joint-fit patch, if the window gets one | F24, F24a, F24c; P4; input 5 |
 | Stitch-factor bias, measured on real overlaps, then remedied: remedy built 2026-11-22 (`lss_core.patching`, joint fit), **the default since 2026-11-22** after the synthetic gauntlet (C36); confirming on the larger data set: hand-off 08 (the private `bu` set holds no reflectivity) | P1, D13 |
 | The joint fit's error at the first join of NX-like scans of a 25 Å film: pull SD 1.13 over 300 seeds through the reader's chain (covariance agent, `docs/reports/downstream_covariance.md` §6.1), while the gauntlet's NX-grid first joins give 0.98–1.04 on pairs of scans. Find which differs (the film, the chain, the seeds) and whether the guard's choice of window after seeing χ² (p ≥ 0.3) narrows the error; inside hand-off 08's band, so not yet a failure — **new** 2026-11-22 | C35, C36 |
-| Undersampled fringes at a join (fewer than 3 points per Kiessig period of the coarser scan): every curve model fails there in the gauntlet, the coinciding-points ratio alone stays honest. Fall back to it where the joint fit's χ² is marginal and three or more Qz coincide, and test it with the gauntlet — **new** 2026-11-22 | C36; physics_notes 2026-11-22 |
+| ~~Undersampled fringes at a join (fewer than 3 points per Kiessig period of the coarser scan)~~ **not to be done** (owner, 2026-11-23: "fringes will rarely be undersampled, or even be sampled close to nyquist, that is not an important case to consider"); the gauntlet's finding stays in C36 | C36; physics_notes 2026-11-22, 2026-11-23 |
 | Same-absorber scans share a factor: send the question to the hand-off author — **new** | F41 |
 | Qz offset from sh-scan images — **new** | F42 |
 | Per-second option — **new** | F20 |

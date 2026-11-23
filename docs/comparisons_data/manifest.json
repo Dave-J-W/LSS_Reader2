@@ -451,6 +451,76 @@
    "note": "GIDParams(pinhole_distance_mm=280)"
   },
   {
+   "file": "C41_sum_all_nx_S11-0-40.csv",
+   "comparison": "C41",
+   "method": "Sum All: sum N / sum (M/A) (default) vs mean of normalised frames",
+   "data": "nx 11:0-40",
+   "columns": [
+    "row (pixel)",
+    "sum value",
+    "sum sigma",
+    "mean value",
+    "mean sigma"
+   ],
+   "note": "Experiment.cut(scans, 'Pix V', (0, 194), summed=True, points=..., sum_mode='monitors'|'mean')"
+  },
+  {
+   "file": "C41_sum_all_nx_S12-0-3.csv",
+   "comparison": "C41",
+   "method": "Sum All: sum N / sum (M/A) (default) vs mean of normalised frames",
+   "data": "nx 12:0-3",
+   "columns": [
+    "row (pixel)",
+    "sum value",
+    "sum sigma",
+    "mean value",
+    "mean sigma"
+   ],
+   "note": "Experiment.cut(scans, 'Pix V', (0, 194), summed=True, points=..., sum_mode='monitors'|'mean')"
+  },
+  {
+   "file": "C41_sum_all_nx_S7-22_S8-0.csv",
+   "comparison": "C41",
+   "method": "Sum All: sum N / sum (M/A) (default) vs mean of normalised frames",
+   "data": "nx 7:22+8:0",
+   "columns": [
+    "row (pixel)",
+    "sum value",
+    "sum sigma",
+    "mean value",
+    "mean sigma"
+   ],
+   "note": "Experiment.cut(scans, 'Pix V', (0, 194), summed=True, points=..., sum_mode='monitors'|'mean')"
+  },
+  {
+   "file": "C41_sum_all_nx_S8-16_S9-0.csv",
+   "comparison": "C41",
+   "method": "Sum All: sum N / sum (M/A) (default) vs mean of normalised frames",
+   "data": "nx 8:16+9:0",
+   "columns": [
+    "row (pixel)",
+    "sum value",
+    "sum sigma",
+    "mean value",
+    "mean sigma"
+   ],
+   "note": "Experiment.cut(scans, 'Pix V', (0, 194), summed=True, points=..., sum_mode='monitors'|'mean')"
+  },
+  {
+   "file": "C41_sum_all_nx_S6-14_S7-0.csv",
+   "comparison": "C41",
+   "method": "Sum All: sum N / sum (M/A) (default) vs mean of normalised frames",
+   "data": "nx 6:14+7:0",
+   "columns": [
+    "row (pixel)",
+    "sum value",
+    "sum sigma",
+    "mean value",
+    "mean sigma"
+   ],
+   "note": "Experiment.cut(scans, 'Pix V', (0, 194), summed=True, points=..., sum_mode='monitors'|'mean')"
+  },
+  {
    "file": "C6_absorber_factors_10keV.csv",
    "comparison": "C6",
    "method": "nominal 50 um Al vs calibrated foils",
