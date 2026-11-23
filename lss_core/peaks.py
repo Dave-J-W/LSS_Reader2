@@ -487,6 +487,13 @@ def _step(x, c, fwhm):
     return 0.5 * (1 + erf((x - c) / (max(abs(fwhm), 1e-300) / _G * math.sqrt(2))))
 
 
+# Evaluations allowed to the final edge or box fit. Converged fits on the NX
+# school scans used at most 166 (2026-11-23); a box fitted to a Gaussian (any
+# alignment peak) cannot converge, and the former 20000 took 9.5 s for
+# 21 points on every plot of such a scan before failing all the same.
+SHAPE_FIT_MAX_NFEV = 2000
+
+
 def _shape_fit(x, y, s, weighted, model, p0, lo, hi, kind, unpack, background_n):
     """Shared least squares for edges and boxes; ``unpack`` turns the fitted
     parameters (and their errors) into (Peak, background)."""
@@ -498,7 +505,7 @@ def _shape_fit(x, y, s, weighted, model, p0, lo, hi, kind, unpack, background_n)
             except (RuntimeError, ValueError):
                 pass
         popt, pcov = curve_fit(model, x, y, p0=p0, sigma=s, absolute_sigma=bool(weighted), bounds=(lo, hi),
-                               x_scale='jac', max_nfev=20000)
+                               x_scale='jac', max_nfev=SHAPE_FIT_MAX_NFEV)
     except (RuntimeError, ValueError) as e:
         return None, 'the %s fit did not converge (%s)' % (kind, str(e).split('\n')[0][:60])
     perr = np.sqrt(np.clip(np.diag(pcov), 0, None)) if np.all(np.isfinite(pcov)) else np.full(len(popt), np.nan)

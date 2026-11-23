@@ -153,6 +153,27 @@ def test_edge_gives_the_beam_size_of_a_half_cut():
     assert 0.6 < res.chi2_dof < 1.6
 
 
+def test_a_box_that_cannot_converge_gives_up_early(monkeypatch):
+    """The window fits the shape of every motor scan it plots. A box fitted
+    to a Gaussian (the synthetic motor scan: 21 points, FWHM 0.471) cannot
+    converge; with 20000 evaluations allowed it took 400 442 model calls
+    (12 s) before failing all the same (2026-11-23). Capped at
+    SHAPE_FIT_MAX_NFEV, the answer is unchanged and the cost bounded."""
+    calls = [0]
+    real = peaks._step
+
+    def counting(*a, **k):
+        calls[0] += 1
+        return real(*a, **k)
+    monkeypatch.setattr(peaks, '_step', counting)
+    x = np.linspace(-1, 1, 21)
+    y = 1000 * np.exp(-x ** 2 / 2 / 0.2 ** 2) + 10
+    res = peaks.fit_scan(x, y, np.sqrt(y))
+    assert res.kind == 'peak' and res.peaks[0].fwhm == pytest.approx(0.471, abs=5e-3)
+    assert sorted(res.candidates) == ['edge', 'peak']          # the box failed, as before
+    assert calls[0] < 150000, calls[0]                         # 112 456 with the cap of 2000
+
+
 def test_scan_shape_picks_peak_edge_or_box():
     x = np.linspace(-1, 1, 121)
     from scipy.special import erf
