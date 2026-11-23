@@ -120,7 +120,7 @@ working list, one table per area, each row with its source. Rows marked
 | Sample-environment readings (barrier, tensiometer, oxygen) as extra panels beside burn trends; synthetic columns until the macros write them — **new** 2026-11-23 | F75 |
 | Burns at several absorbers on dose and time axes: beam damage or a changing sample — **new** 2026-11-23 | F76; physics_notes 2026-11-23 |
 | Predicting a safe absorber from a short high-flux burn (research; needs burn pairs at two fluxes) — **new** 2026-11-23 | F77 |
-| Sample height scan: super-Gaussian fit (width, exponent) beside the sample's earlier sh scans; verdict thresholds from the owner. Check first what the "Main" session's commit 35f41c3 (flat and weak sh scans not fitted) already does — **new** 2026-11-23 | F78; F43 |
+| Sample height scan: super-Gaussian fit (width, exponent) beside the sample's earlier sh scans; verdict thresholds from the owner. The test-speed session's commit 35f41c3 (on main) skips flat and weak sh scans and fits a sample height scan only when its FWHM is above 20 µm, the owner's plausibility floor; the 65 µm here is the quality verdict, so they do not conflict — **new** 2026-11-23 | F78; F43 |
 
 **H. Detectors and inputs (Stage 4)**: 1M (F17–F19, F38, D11), 100K/200K
 models (F33), ME7 tab (F34, F35), new-format SPEC (F28), HDF5 (F29). All
