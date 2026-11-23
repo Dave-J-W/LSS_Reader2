@@ -3924,13 +3924,6 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionDocumentation"/>
     <addaction name="actionAbout"/>
    </widget>
-   <widget class="QMenu" name="menuBeamlines">
-    <property name="title">
-     <string>Beamlines</string>
-    </property>
-    <addaction name="actionAPS_15IDC"/>
-    <addaction name="actionAPS_9IDC"/>
-   </widget>
    <widget class="QMenu" name="menuCalculations">
     <property name="title">
      <string>Calculations</string>
@@ -3940,7 +3933,6 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionAbs_ratio"/>
    </widget>
    <addaction name="menuFile"/>
-   <addaction name="menuBeamlines"/>
    <addaction name="menuCalculations"/>
    <addaction name="menuHelp"/>
   </widget>
@@ -3963,25 +3955,6 @@ p, li { white-space: pre-wrap; }
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
-   </property>
-  </action>
-  <action name="actionAPS_15IDC">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>APS-15IDC</string>
-   </property>
-  </action>
-  <action name="actionAPS_9IDC">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>APS-9IDC</string>
    </property>
   </action>
   <action name="actionG_l2">

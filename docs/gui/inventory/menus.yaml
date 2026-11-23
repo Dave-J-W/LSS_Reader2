@@ -46,6 +46,7 @@
   tooltip: false
   notes: "Measured: triggering it leaves the window open; no .connect for actionQuit in mainwindow.py or LSS_Reader.py. Dead control."
 - id: menuBeamlines
+  removed: "2026-11-23, owner Q14: one beamline only, nothing to choose; the beamline stays APS-15IDC"
   kind: menu
   label: "Beamlines"
   where: "Menu bar"
@@ -57,6 +58,7 @@
   tooltip: false
   notes: "A whole top-level menu for a choice that cannot change (owner, 2026-11-17: 9-ID-C not supported)."
 - id: actionAPS_15IDC
+  removed: "2026-11-23, owner Q14: one beamline only, nothing to choose; the beamline stays APS-15IDC"
   kind: action
   label: "APS-15IDC"
   where: "Menu bar > Beamlines"
@@ -68,6 +70,7 @@
   tooltip: false
   notes: "No effect; candidate for removal or for Help > About."
 - id: actionAPS_9IDC
+  removed: "2026-11-23, owner Q14: one beamline only, nothing to choose; the beamline stays APS-15IDC"
   kind: action
   label: "APS-9IDC"
   where: "Menu bar > Beamlines"

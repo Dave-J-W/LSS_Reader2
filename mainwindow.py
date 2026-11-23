@@ -240,9 +240,6 @@ class MainWindow (QMainWindow):
         self.ui.actionOpen_Spec_File.triggered.connect(lambda x:self.openSpecFile(fname=None))
         # self.connect(self.ui.speUpSpeFilePushButton, SIGNAL('clicked()'),self.readSpecFile)
         self.ui.speUpSpeFilePushButton.clicked.connect(self.updateSpecFile)
-        # self.connect(self.ui.actionAPS_15IDC, SIGNAL('triggered()'),self.selectAPS_15IDC)
-        self.ui.actionAPS_15IDC.triggered.connect(self.selectAPS_15IDC)
-        self.ui.actionAPS_9IDC.setVisible(False)   # 9-ID-C is not supported (owner, 2026-11-17)
         # self.connect(self.ui.actionG_l2, SIGNAL('triggered()'), self.calg_l2)
         self.ui.actionG_l2.triggered.connect(self.calg_l2)
         # self.connect(self.ui.actionG_l3, SIGNAL('triggered()'), self.calg_l3)
@@ -569,13 +566,6 @@ class MainWindow (QMainWindow):
 
 
 
-    def selectAPS_15IDC(self):
-        # 15-ID-C is the only beamline; the menu entry stays checked
-        self.ui.statusBar.clearMessage()
-        self.beamline='APS-15IDC'
-        self.ui.actionAPS_15IDC.setChecked(True)
-        self.ui.statusBar.showMessage('APS-15IDC Selected')
-        
     def showAbout(self):
         cwd=os.path.dirname(resource('mainwindow.py'))
         files=['mainwindow.py','mainwindow.ui','LSS_Reader.py','mca_routines.py','mpl2dwidget.py','mplwidget.py','spec_routines.py','TwoDDetector.py','logo.png']

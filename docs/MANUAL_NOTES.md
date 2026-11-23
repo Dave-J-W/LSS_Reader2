@@ -283,6 +283,10 @@ Each line: feature — where — default — script — notes entry (date).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.
 
+### Removed from the window (owner, 2026-11-23, question 14)
+- **Beamlines menu** (APS-15IDC, APS-9IDC): removed. The reader supports one
+  beamline, 15-ID-C, which is always used; there was nothing to choose.
+
 ## Terms a manual must define
 
 Monc, Monp, Monb (monitors; Monc is the normaliser, upstream of the
