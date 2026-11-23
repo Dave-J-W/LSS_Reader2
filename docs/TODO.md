@@ -716,6 +716,7 @@ reruns the quick, real-data and export-fixture checks, and commits.
       the subphase) at the same Qz and counting time: the synthetic half (C41)
       shows the scatter's shape under the line decides F90. Mark private files as such (they stay under
       `sample_data/private/`).
+- [ ] **All data needs are listed in `docs/DATA_NEEDS.md` (2026-11-23)**: read it before asking the owner for data; the owner's non-cloud agent will supply the large private sets (reflectivity series for hand-off 08 "not soon"; GISAXS and GIOXS examples later).
 - [ ] Decide how sample data should be hosted (`bu` is 1.7 GB, local to the
       session only, git-ignored; NX school is committed at 104 MB).
 - [ ] Questions in `ASSESSMENT.md` sections 6 and 7 still open: reference
