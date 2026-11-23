@@ -42,6 +42,7 @@ exists.
 | I26 | A burn signal decaying as exp(−t/τ) gives τ from the exponential model and a 5 % time of τ·ln(1/0.95) | `test_burn_trends.py::test_reflectivity_burn_is_monitor_normalised_and_finds_tau` (τ 400 s, 20.5 s) |
 | I30 | A figure tool is deterministic: rerun with the settings of its committed figures on unchanged code and inputs, it gives them back pixel for pixel (the measured test of staleness; a provenance stamp, where a tool prints its git revision, differs inside one small box) | `test_toolbox_gui.py::test_a_figure_tool_reproduces_its_committed_figures` (burn trends, 4 of 4); measured 2026-11-23: the ngui prototype screenshots 23 of 23, the fit demonstrator figures 6 of 6 |
 | I31 | A pinhole join factor (scans of a level, or Qz levels) is unbiased whatever the counts per bin: the likelihood of how each bin's counts split between the two sides (`pinhole.ratio_ml`, P46) gives back a known factor within ±0.1 % down to 0.026 counts per pixel; equal to the pooled ratio of a single bin | `test_pinhole.py::test_level_factor_is_unbiased_at_low_counts`, `test_ratio_ml_is_the_pooled_ratio_for_one_bin_and_recovers_a_scale` |
+| I32 | "Sum All" of Poisson frames (y = N·A/(M·g), σ = √N·A/(M·g)) equals ΣN/Σ(M/A·g) with σ = √ΣN/Σ(M/A·g), exactly; it is the mean of the per-frame values weighted by M/(A·g), and with equal monitors and absorbers the plain mean | `test_monc_normalised.py` (`test_sum_frames_is_the_counts_over_the_monitors`, `test_frames_with_absorbers_are_summed_by_their_effective_monitors`, `test_the_scripted_summed_cut_is_the_counts_over_the_monitors`, `test_the_windows_summed_cut_is_the_counts_over_the_monitors`) |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -4577,6 +4578,171 @@ Verified by: reading only. **F99:** χ² of the difference. For two scans on one
 ### 2026-11-23 — GUI questions answered, batch 13 (hand-off 08 data, GISAXS and GIOXS)
 
 Verified by: reading only. The real reflectivity series for hand-off 08 are "not soon"; all data needs are now gathered in `docs/DATA_NEEDS.md` for the owner's non-cloud agent. GISAXS upgrade: cuts, refraction-corrected q mapping and background/beam-stop masking, after a research step. GIOXS is grazing-incidence off-specular scattering (the acronym was not explained anywhere in the window); XmodFit is gaining analysis for it. Examples of both will come later.
+
+### 2026-11-23 — F87 built: the burn kind from Det_Th > 2°
+
+The owner's answer to Q10 (recorded above, batch of the day): "Det_Th >
+2° → GID", not the 1° proposed. The code had used 0.001°
+(`lss_core.burn.is_gid`): any detector angle off zero made a GID burn.
+Now `GID_BURN_MIN_DTH_DEG = 2.0`. A burn between 0.001° and 2° is now a
+reflectivity burn. None is on hand: NX school burns 14 and 15 are GID
+burns either way, and every burn test, quick and real-data, passes
+unchanged. When the macros write a role indicator it is to take precedence
+(an assumption until it exists). Verified: tested
+(`test_burn_kind_follows_det_th_above_two_degrees`).
+
+### 2026-11-23 — Is "Sum All" as ΣN/ΣM right? (a second opinion), and F91 built with every view per Monc
+
+**Question (owner):** "I did want a second opinion on 'sums as
+sigmaN/sigmaM' - it seems right to me but i haven't thought deeply on
+it." Then: "finish f91 and make sure that all data is default normalized
+by monc, even gisaxs."
+
+**Answer: yes, it is the right estimator for frames that share one rate.**
+Let frame i have counts N_i ~ Poisson(λ m_i) in a pixel or a region, with
+m_i = M_i/(A_i g_i) its effective monitor (Monc over the absorber factor
+and the monitor gain). The log-likelihood Σ_i [N_i ln(λ m_i) − λ m_i] is
+largest at λ̂ = ΣN_i / Σm_i, with variance λ/Σm_i, estimated as
+ΣN/(Σm)²: the error is √ΣN/Σm. The old "Sum All", the mean of the
+normalised frames (1/n) Σ N_i/m_i, is unbiased too, but its variance is
+(λ/n²) Σ 1/m_i. Since the arithmetic mean of the m_i is at least their
+harmonic mean, that variance is never below λ/Σm_i, and equals it only
+when every m_i is the same. ΣN/Σm is the mean of the normalised frames
+weighted by m_i/Σm. That is the inverse-variance weighting when the
+variances come from the expected counts λ m_i. Weighting by the observed
+counts N_i instead would bias low counts downwards. It is the same
+estimator as the MCA Merge (I22, notes 2026-11-19) and the pinhole bins
+(I21). References: the Poisson likelihood and its maximum, e.g. Cowan,
+*Statistical Data Analysis* (Oxford, 1998), ch. 6 (maximum likelihood)
+(https://www.pp.rhul.ac.uk/~cowan/sda/); the AM–HM inequality,
+https://en.wikipedia.org/wiki/Inequality_of_arithmetic_and_geometric_means.
+
+Caveats, none of which changes the choice:
+1. It assumes one rate. Frames that truly differ (beam drift, a burn, a
+   wrong absorber factor) are weighted towards the frame with the larger
+   effective monitor, not equally. With different absorbers that is
+   nearly all of the weight (below).
+2. With a background selected, the frames are normalised and subtracted
+   first, then weighted by m_i: the same estimator for the signal.
+3. The monitor's own noise (0.04 %, D22) is negligible next to the counts
+   of summed frames.
+
+**Built (2026-11-23).**
+- `lss_core.cuts.sum_frames`, `sum_weights` and `frame_normaliser`.
+- `Experiment.cut(summed=True, sum_mode='monitors')` is the default;
+  `'mean'` gives the legacy mean.
+- In the window, "Sum All" in cuts, the summed image and GISAXS. The
+  error budget's monitor terms take the same weights.
+- The owner's second request, every view per Monc:
+  - the image display and its colour range: they were raw counts unless
+    a background was selected;
+  - GISAXS single frames and their `_gisaxs.txt`: raw counts before;
+  - the SpecPlot normaliser picks Monc by name (it was the column before
+    the last).
+- Cuts, Ref and the GID maps were per Monc already. Ref's close-up goes
+  through `TwoDDetector.setROI`, which divides by Monc. Burn tests do not
+  read "Sum All".
+- The legacy behaviour stays as two preferences for F86's Reduction
+  options page: `sum_all_legacy_average` and `gisaxs_raw_counts`.
+
+**Measured on NX school** (C41, `python tests/tools/compare_methods.py`;
+a 'Pix V' cut over the whole width, new vs old):
+
+| Frames | Total | Peak row | σ at the peak, new/old |
+|---|---|---|---|
+| Scan 11, 41 repeats at Qz 0.016 (monitors within 1.5 %) | +0.032 % | −0.020 % | 0.9998 |
+| Scan 12, 4 repeats | −0.000 % | −0.002 % | — |
+| Scans 7 + 8 at Qz 0.09 | +1.2 % | +19.7 % | 0.36 |
+| Scans 8 + 9 at Qz 0.17 | +4.0 % | +5.0 % | 0.39 |
+| Scans 6 + 7 at Qz 0.035 | +10.9 % | +10.7 % | 0.47 |
+
+- The cross-scan pairs are at different absorbers, with the default
+  factor of 1.4247 per unit.
+- The two frames of a pair disagree with each other by 2.5 %, 9.0 % and
+  26 %. The new sum gives the less-attenuated frame 96–98 % of the
+  weight.
+- For repeats, the usual use, the change is below 0.04 %.
+
+**Also found:** "Show GISAXS" raised with the direct beam at the
+detector's centre (OverflowError) or right of it (ValueError). The
+cause was the Qxy bin count, from (last − first) of a row whose |Qxy|
+folds at the beam. It is fixed, and left of the centre it is unchanged
+(`test_gisaxs_display.py`).
+
+**Owner, same day: undersampled fringes are not a case to consider.**
+"fringes will rarely be undersampled, or even be sampled close to
+nyquist, that is not an important case to consider." The to-do item to
+fall back to the coinciding-points ratio at undersampled joins (from
+the gauntlet, C36) is dropped.
+
+Verified by tests (I32; `test_monc_normalised.py`,
+`test_gisaxs_display.py`) and measured (the table above). That the
+display, GISAXS and SpecPlot were raw before is from reading the code.
+
+### 2026-11-23 — The fragility audit: column positions and other hard-coded assumptions
+
+**Question (owner), after the SpecPlot normaliser turned out to be "the
+column before the last":** "any other column position lookups or similar
+hard-coded and fragile issues in the code?"
+
+**Answer.** The full list, with fixes, is in `TODO.md` area L. Ranked by
+harm:
+
+1. **A half-written last data line loses the whole scan.** Every data row
+   of a scan must have as many numbers as `#L` has labels. If the last
+   line is cut short, every column of that scan becomes None. This
+   happens whenever SPEC is still writing the file, which is exactly the
+   live-update case.
+   - Measured: a synthetic file with its last line cut after two numbers
+     reads as a scan with no columns.
+2. **Stale incidence angle (P47).** The incidence angle of every frame is
+   the scan header's `In_Rot`, which is written before the scan moves.
+   For specular hklscans that is wrong for every frame.
+   - Measured on NX school scan 6: the header gives 0.0906°, while α from
+     L runs 0.0989–0.2261°.
+   - So the specular pixel's β comes out as 0.107–0.362° instead of
+     equal to α. In scan 7 it comes out as up to 0.947° instead of
+     0.565°.
+   - This affects cut axes and GISAXS of such frames, not the Ref Patch
+     sums. GID (dth) scans are right.
+3. **Data read back from list text.** Frame and scan numbers are parsed
+   from the text of the list widgets: 13 places in the image list, 8 in
+   the scan list, and the Ref Qz list. Any change to the displayed text
+   in the GUI overhaul breaks them silently. (Read only.)
+4. **Pilatus 100K sizes are hard-coded.** The default cut ranges are
+   0:485 and 0:194, the last GID row is 486, the column spin box stops at
+   195, and 0.172 mm is written 22 times in `mainwindow.py`. All of this
+   is wrong for the 1M. (Read only.)
+5. **Path and name parsing.**
+   - Image and MCA file prefixes are made with `split('/')`, so a path
+     with backslashes (Windows) gives the wrong prefix. (Read only.)
+   - The `#B0` extension check fails for a SPEC name containing a dot,
+     and the scan is then read as a monitor scan without images.
+     (Measured.)
+6. **Fragile but right for the current macros.**
+   - **`#L` labels are split on any space, with no count check.** NX
+     writes "PSD Seconds" with a single space, and its rows do have 18
+     values, so the split is right. A label with a space would shift
+     every later column silently. (Measured on NX.)
+   - **Motor names are the macro's 8-character truncations**
+     (`Two_Thet`, `Sample_T`), and the full names in `#O` are unused.
+     (Read; NX headers.)
+   - **`#A` and the `Absorber` motor both set the absorber**, and the
+     later line wins; in NX that is `#A`. (Read; NX order.)
+   - **SpecPlot's default x is column 2 (L) for every hklscan**, and its
+     default y is the last column. (Read only.)
+   - **L is taken as Qz in Å⁻¹, and H as Qx.** This holds for the
+     beamline's SPEC lattice: on NX scan 11 (fixed α), L = 4π sin(In_Rot)/λ
+     to 0.06 %. A changed lattice would scale every Qz silently. (Measured
+     on one scan.)
+
+One worry was checked and dropped: `#P10` and later motor lines. The
+parser's `line[4:]` handles indices up to 99. (Tested on a synthetic
+header.)
+
+Verified as marked: items marked measured were run on NX school or on
+synthetic files today; the rest come from reading the code. None is
+fixed yet. The first two change results; the rest are latent.
 
 ### 2026-11-23 — NX 6–9 under today's patch default: join 2 flagged (tools man, for Main)
 

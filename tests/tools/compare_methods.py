@@ -33,6 +33,12 @@ Comparisons written:
   and Qz integrals (since 2026-11-23).
 - C6 absorber factor per setting n = 0…63 at 10 keV: nominal 1.4247^n vs
   calibrated foils, with the calibrated error.
+- C41 "Sum All": frames at one Qz summed, counts and monitors summed and
+  normalised once, ΣN/Σ(M/A) (the default since 2026-11-23, F91) vs the
+  mean of the normalised frames (``sum_mode='mean'``): the summed 'Pix V'
+  cut over the whole width, value and σ per row. NX school (``--sums``):
+  repeats within scans 11 and 12, and three overlaps of two scans at
+  different absorbers.
 """
 import argparse
 import json
@@ -111,6 +117,33 @@ def gid(exp, scans, label, out, manifest, maps=True):
                        'GIDParams(pinhole_distance_mm=%g)' % d)
 
 
+# NX school frames at one Qz (C41): scan:points, '+' joins scans, ';' separates groups
+NX_SUMS = '11:0-40;12:0-3;7:22+8:0;8:16+9:0;6:14+7:0'
+
+
+def _points(group):
+    pts = {}
+    for part in group.split('+'):
+        scan, sel = part.split(':')
+        lo, _, hi = sel.partition('-')
+        pts[int(scan)] = list(range(int(lo), int(hi or lo) + 1))
+    return pts
+
+
+def sums(exp, groups, label, out, manifest):
+    for group in filter(None, groups.split(';')):
+        pts = _points(group)
+        cut = {m: exp.cut(sorted(pts), 'Pix V', (0, 194), summed=True, points=pts, sum_mode=m).cuts[0]
+               for m in ('monitors', 'mean')}
+        tag = '_'.join('S%d-%s' % (s, ('%d-%d' % (p[0], p[-1])) if len(p) > 1 else p[0]) for s, p in sorted(pts.items()))
+        rows = np.column_stack([cut['monitors'][:, 0], cut['monitors'][:, 1], cut['monitors'][:, 2],
+                                cut['mean'][:, 1], cut['mean'][:, 2]])
+        _write(out, manifest, 'C41_sum_all_%s_%s.csv' % (label, tag), 'C41',
+               'Sum All: sum N / sum (M/A) (default) vs mean of normalised frames', '%s %s' % (label, group),
+               ['row (pixel)', 'sum value', 'sum sigma', 'mean value', 'mean sigma'], rows,
+               "Experiment.cut(scans, 'Pix V', (0, 194), summed=True, points=..., sum_mode='monitors'|'mean')")
+
+
 def absorbers(out, manifest):
     from lss_core import absorbers as ab
     cal = ab.calibrated(10.0)
@@ -132,6 +165,9 @@ def main():
     ap.add_argument('--ref', default='6,7,8,9', help='reflectivity scans ("" to skip)')
     ap.add_argument('--gid', default='11;11,12', help='GID scan sets, separated by ";" ("" to skip)')
     ap.add_argument('--no-maps', action='store_true', help='skip the 2D GID maps (large)')
+    ap.add_argument('--sums', default=None,
+                    help='frame groups for "Sum All" (C41), e.g. "11:0-40;7:22+8:0" (default: NX school\'s; '
+                         'none for other files; "" to skip)')
     a = ap.parse_args()
     from lss_core.experiment import Experiment
     os.makedirs(a.out, exist_ok=True)
@@ -142,6 +178,8 @@ def main():
         reflectivity(exp, [int(s) for s in a.ref.split(',')], label, a.out, manifest)
     for group in filter(None, a.gid.split(';')):
         gid(exp, [int(s) for s in group.split(',')], label, a.out, manifest, maps=not a.no_maps)
+    groups = a.sums if a.sums is not None else (NX_SUMS if os.path.abspath(a.spec) == os.path.abspath(NX) else '')
+    sums(exp, groups, label, a.out, manifest)
     absorbers(a.out, manifest)
     path = os.path.join(a.out, 'manifest.json')
     if os.path.exists(path):                     # keep entries for files written otherwise
