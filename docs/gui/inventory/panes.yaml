@@ -178,6 +178,7 @@
   tooltip: false
   notes: "Long wrapped text on screen, against rule 9."
 - id: commandLineEdit
+  removed: "2026-11-23, owner Q14: the Command line row goes; the command it showed is still written into the export header (self.command)"
   kind: lineedit
   label: "Command:"
   where: "Main window, under the left panel and tabs"

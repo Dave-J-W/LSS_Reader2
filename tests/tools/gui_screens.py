@@ -322,7 +322,6 @@ def annotated_overview(w, app, img, name, shows, state):
     add('tab bar (8 tabs)', rect_in(w, ui.PlotWidget.tabBar()), (0, 0, 200))
     cur = ui.PlotWidget.currentWidget()
     add('tab page: controls and plot', rect_in(w, cur), (150, 0, 150))
-    add('command line', rect_in(w, ui.commandLineEdit), (200, 110, 0))
     add('status bar', rect_in(w, ui.statusBar), (90, 90, 90))
     for dock, label in ((w.messageDock, 'Messages pane'), (w.scriptDock, 'Script pane'), (w.errorDock, 'Errors pane')):
         if dock.isVisible():

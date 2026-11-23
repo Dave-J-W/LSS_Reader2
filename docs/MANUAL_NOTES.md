@@ -288,6 +288,10 @@ Each line: feature — where — default — script — notes entry (date).
   beamline, 15-ID-C, which is always used; there was nothing to choose.
 - **`peakfit2.ui`, `peakfitpara.ui`**: deleted. No code loaded them; the
   peak fit in use is `peakfit.ui` (Plot tab > Peak Fit).
+- **The Command line row** (bottom of the window): removed. It showed, and
+  let one edit to no effect, a summary of the last reduction (e.g. "Ref
+  Patch, scans=[6–9], slits=…"). That summary is still written as the first
+  header line of exported files; the Script pane holds the runnable form.
 
 ## Terms a manual must define
 

@@ -2500,7 +2500,6 @@ class MainWindow (QMainWindow):
                                len(self.selectedMcaScanNums)==self.ui.imageListWidget.count())
             self.mcaMerges=[]       # Merge actions since this Sum All, for the Script pane
             self.command='Flu Sum, scans=['+listText(np.sort(self.selectedScanNums))+'], energy range=['+str(ini)+':'+str(fin)+']'
-            self.ui.commandLineEdit.setText(self.command)
         except:
             self.messageBox('Please input the proper sum range in the format of "min:max"!')
             self.ui.mcaRanLineEdit.setText('1:1000')
@@ -3617,7 +3616,6 @@ class MainWindow (QMainWindow):
         self.uipdgioxs.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums))+'\nbg S# '+listText(np.unique(np.sort(self.selectedBgScanNum))))
         self.uipdgioxs.plotWidget.canvas.draw()
         self.command='GIOXS, singal scans=['+listText(np.sort(self.selectedScanNums))+'], bg scans=['+listText(np.unique(np.sort(self.selectedBgScanNum)))+'], ave_frames='+str(aveframe)+', ave_points='+str(avepoint)
-        self.ui.commandLineEdit.setText(self.command)                
         
     def pilGioxsSub(self, data1, data2): #for Gioxs 1d data substration
         data1x=data1[:,0]
@@ -4000,7 +3998,6 @@ class MainWindow (QMainWindow):
                 self.uipdburn.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
                 self.uipdburn.plotWidget.canvas.draw()
                 self.command='REF Burn, scan='+str(self.selectedScanNums)
-                self.ui.commandLineEdit.setText(self.command)
             except:
                 self.messageBox('Warning: It seems there is not enough data points for burn test fitting (min: 3 points)!')
                 return
@@ -4079,7 +4076,6 @@ class MainWindow (QMainWindow):
                     self.uipdburn.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
                     self.uipdburn.plotWidget.canvas.draw()
                     self.command='GID Burn, scan='+str(self.selectedScanNums)+', Qz range=['+str(self.uipdburn.rangeLineEdit.text())+'], mode='+str(self.uipdburn.gidComboBox.currentText())
-                    self.ui.commandLineEdit.setText(self.command)
                 except:
                     self.messageBox('Warning: It seems there is either not enough data points for burn test fitting (min: 3 points) or selected Qxy range is not correct!')
                     return
@@ -4895,7 +4891,6 @@ class MainWindow (QMainWindow):
         self.ui.pilMplWidget.canvas.fig.subplots_adjust(top=0.9)
         self.ui.pilMplWidget.canvas.draw()
         self.command=str(self.ui.gidComboBox.currentText())+', scans=['+listText(np.sort(self.selectedScanNums))+'], sli=['+self.ui.pilHSlitLineEdit.text()+'], /'+self.ui.pilAxesComboBox.currentText()
-        self.ui.commandLineEdit.setText(self.command)
         
     def saveGIDData(self):
         axes=str(self.ui.pilAxesComboBox.currentText())
@@ -5391,7 +5386,6 @@ class MainWindow (QMainWindow):
         self.dir=str(self.ui.refBGDirComboBox.currentText()) #get the background offset direction
         bg=float(self.ui.refBGOffLineEdit.text())  #get the background offset
         self.command='Ref Patch, scans=['+listText(np.sort(self.selectedScanNums))+'], slits=['+listText(self.slit)+'], bg_angle='+str(bg)+', bg_direction='+str(self.dir)
-        self.ui.commandLineEdit.setText(self.command)         #update the command lineedit
         self.scanqzframe={}  #build a dictionary for all scans with their qz ranges and data for sorting the scans.
         self.pilRefPeakCen=[]
         self.pilBadPixInf = []  # build a list for the detailed info for corrected bad pix in RF signal ROI, which is shown for users
@@ -6936,7 +6930,6 @@ class MainWindow (QMainWindow):
         p=ref.peaks[0]
         self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background' % (
             listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background)
-        self.ui.commandLineEdit.setText(self.command)
         self.notify('Fit lines: sum of %d spectra: %s. Intensities of the line at %.4g (area / channel width) in the '
                     'integral plot.' % (len(each),ref.summary(),p.centre),title='Fit lines',level='info')
         if self.mcaFitDialog is not None:
