@@ -43,6 +43,7 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [Burn line-cut demonstrator (window)](#patch-demo-burn) | window | GID line cuts of one spot over time: every burn estimator (template, moments, fit) against the known change; space bar for a new noise replicate. | synthetic (public) |  | — |
+| [Burn estimators: survey over replicates](#patch-demo-burn-survey) | text | Every burn estimator over many noise replicates of a synthetic burn: the change it reads against the truth (bias, scatter) and how often it calls a quantity stable. | synthetic (public) | 19 s | — |
 | [Burn trends of NX scans 14 and 15](#burn-figures) | figures | Burn tests over time as the Trends tab draws them (every model, the confident 5 % time) for the template and legacy moments estimators, and the three estimators compared. | public (NX school or committed tables) | 5 s | `docs/figures/burn_trends`<br>`docs/comparisons_data/burn_nx` |
 | [Burns against dose: damage or a changing sample?](#burn-dose-figure) | figures | NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil transmission): a beam-driven change coincides against dose, a sample changing by itself against time. | NX school by default; any SPEC file | 3 s | `docs/figures/burn_dose` |
 
@@ -51,6 +52,7 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [Fit demonstrator (window)](#patch-demo) | window | Reflectivity patching on synthetic scans with known truth: every method, the denoised data, pulls, factors, error bands; space bar for a new noise replicate. | synthetic (public) |  | — |
+| [Fit demonstrator: survey over replicates](#patch-demo-survey) | text | Every patching method over many noise replicates of the demonstrator's synthetic scans: bias, pull mean and pull SD per join, failures (the numbers behind the window's single replicate). | synthetic (public) | 4 s | — |
 | [Fit demonstrator report figures](#patch-demo-figures) | figures | The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per survey). | synthetic (public) |  | `docs/figures/patch_demo` |
 | [Patching gauntlet (synthetic, judged)](#ref-patch-gauntlet) | data | Every patching method on many noise replicates of synthetic reflectivity under many conditions, judged by hand-off 08's rules (\|mean pull\| < 0.2, pull SD 0.9-1.15). | synthetic (public) |  | `docs/comparisons_data/ref_patch_gauntlet` |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
@@ -135,6 +137,26 @@ Variations:
 | Low counts (monitor 1e5) | "Lower monitor until each estimator fails": the counts per frame at which each estimator becomes unusable. | `docs/handoff_out/07-burn-trends.md:89` | `python tests/tools/patch_demo.py --mode burn --set monitor=1e5` |
 | No change | A stable spot: the trends should find no significant change (false alarms). | `docs/SYNTHETIC_DATA.md:232` | `python tests/tools/patch_demo.py --mode burn --set change=none` |
 
+<a id="patch-demo-burn-survey"></a>
+
+### Burn estimators: survey over replicates
+
+Every burn estimator over many noise replicates of a synthetic burn: the change it reads against the truth (bias, scatter) and how often it calls a quantity stable.
+
+- Menu: Tools > Burn tests; kind: text (a printed report (tables in the output pane)); script: `tests/tools/patch_demo.py`
+- Explained in: `docs/reports/patch_demo.md`, `docs/handoff_out/07-burn-trends.md:89`
+- Run:
+
+      python tests/tools/patch_demo.py --mode burn --survey 20
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Low counts (monitor 1e5) | "Lower monitor until each estimator fails": the counts at which each estimator's scatter swamps the change. | `docs/SYNTHETIC_DATA.md:302` | `python tests/tools/patch_demo.py --mode burn --survey 20 --set burn.monitor=1e5` |
+| Fade under a shoulder | A peak fading under a broad shoulder: where moments mislead. | `docs/SYNTHETIC_DATA.md:232` | `python tests/tools/patch_demo.py --mode burn --survey 20 --set change=shoulder` |
+| No change | A stable spot: how often each estimator calls it stable (false alarms). | `docs/SYNTHETIC_DATA.md:232` | `python tests/tools/patch_demo.py --mode burn --survey 20 --set change=none` |
+
 <a id="burn-figures"></a>
 
 ### Burn trends of NX scans 14 and 15
@@ -199,6 +221,26 @@ Variations:
 | Critical-edge aside | A staggered overlap across Qc (P1): the legacy factor is 16.7 % low; the owner does not patch there. | `docs/reports/patch_demo.md:347` | `python tests/tools/patch_demo.py --set truth=water --set plan=edge` |
 | Counts x100 | Every method within 0.15 % of the truth: what remains is bias, not noise. | `docs/reports/patch_demo.md:379` | `python tests/tools/patch_demo.py --set counts=100` |
 | Poisson monitor | Monc as Poisson counts (the older model) instead of the owner's strict 0.05 %: legacy pull SD 1.3-1.4. | `docs/reports/patch_demo.md:113` | `python tests/tools/patch_demo.py --set monitor=poisson` |
+
+<a id="patch-demo-survey"></a>
+
+### Fit demonstrator: survey over replicates
+
+Every patching method over many noise replicates of the demonstrator's synthetic scans: bias, pull mean and pull SD per join, failures (the numbers behind the window's single replicate).
+
+- Menu: Tools > Reflectivity patching; kind: text (a printed report (tables in the output pane)); script: `tests/tools/patch_demo.py`
+- Explained in: `docs/reports/patch_demo.md`, `docs/SYNTHETIC_DATA.md:320`
+- Run:
+
+      python tests/tools/patch_demo.py --survey 50
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Staggered overlaps (200) | No coinciding points at any join: the documents' refl.survey(Config(plan='staggered'), range(200)). | `docs/SYNTHETIC_DATA.md:320` | `python tests/tools/patch_demo.py --survey 200 --set plan=staggered` |
+| Poisson monitor | Monc as Poisson counts: the legacy method's pull SD 1.3-1.4. | `docs/reports/patch_demo.md:113` | `python tests/tools/patch_demo.py --survey 50 --set monitor=poisson` |
+| Every method | All 15 methods, not only the window's four. | `docs/reports/patch_demo.md` | `python tests/tools/patch_demo.py --survey 50 --methods all` |
 
 <a id="patch-demo-figures"></a>
 
@@ -369,6 +411,8 @@ Variations:
 | Case 4 only | β depends on the column, not only on the row. | `docs/figures/pinhole/README.md` | `python tests/tools/pinhole_figures.py --out '{out}' --only 4` |
 | Case 7 only | Footprint and usable columns; the second module reached only below α ≈ 0.037°. | `docs/figures/pinhole/README.md` | `python tests/tools/pinhole_figures.py --out '{out}' --only 7` |
 | Case 8 only | The S4 opening swept 0.05-1.0 mm: 2θ acceptance, edge ramps, counts proportional to the opening; Det_Th 14/16/18°. | `docs/figures/pinhole/README.md` | `python tests/tools/pinhole_figures.py --out '{out}' --only 8` |
+| Case 8 at Det_Th 14° | The S4 figure for the frame at Det_Th 14° instead of 16°: the footprint seen per column grows (2.1 -> 2.4 mm). | `docs/figures/pinhole/README.md:256` | `python tests/tools/pinhole_figures.py --out '{out}' --only 8 --case8-dth 14` |
+| Case 8 with S4 0.05, 0.2 and 1.0 mm | The 2θ acceptance of one column for a pinhole four times narrower and five times wider than NX's 0.2 mm. | `docs/figures/pinhole/README.md:261` | `python tests/tools/pinhole_figures.py --out '{out}' --only 8 --case8-openings 0.05,0.2,1.0` |
 
 <a id="gid-patching-diagrams"></a>
 
@@ -538,6 +582,9 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Simulation only | Parts 1 and 2 without the real-data look. | `docs/reports/monitor_noise.md:159` | `python tests/tools/monitor_noise_mc.py --no-real` |
+| Bright regimes, Poisson vs noiseless monitor | Regimes A and C2: the reader's error is too small with a Poisson monitor and 3.5 % too large with a noiseless one. | `docs/reports/monitor_noise.md:180` | `python tests/tools/monitor_noise_mc.py --regimes A,C2 --monitors poisson,exact --no-real` |
+| High Qz (regime B) | Few counts: every formula agrees, the monitor term does not matter. | `docs/reports/monitor_noise.md:184` | `python tests/tools/monitor_noise_mc.py --regimes B --no-real` |
+| Quick look (5000 trials) | The same tables from fewer trials (±1 % on each σ). | `tests/tools/monitor_noise_mc.py` | `python tests/tools/monitor_noise_mc.py --trials 5000 --no-real` |
 
 <a id="monitor-distribution"></a>
 
@@ -672,6 +719,8 @@ Variations:
 | Thick film (250 Å) | Kiessig fringes of period 2π/d: check the period in Ref Patch. | `docs/SYNTHETIC_DATA.md:130` | `python tests/tools/synthetic_dataset.py --out '{out}' --thickness 250` |
 | Missed slit change (P29) | The monitor misses a slit change: the foil prior misleads at that join. | `docs/SYNTHETIC_DATA.md:160` | `python tests/tools/synthetic_dataset.py --out '{out}' --fault slits` |
 | Low counts (x0.1) | One tenth of the NX rates: the joins' errors grow by √10. | `docs/SYNTHETIC_DATA.md:42` | `python tests/tools/synthetic_dataset.py --out '{out}' --counts 0.1` |
+| Rough interfaces (6 Å) | R/R_F falls as exp(−Qz²σ²): twice the roughness, four times the decay rate. | `docs/SYNTHETIC_DATA.md:48` | `python tests/tools/synthetic_dataset.py --out '{out}' --roughness 6` |
+| Background ×100 | A diffuse background a hundred times NX's: the ROI background boxes earn their keep at high Qz. | `docs/physics_notes.md:3773` | `python tests/tools/synthetic_dataset.py --out '{out}' --background 100` |
 | XFNTR series | Fluorescence near total reflection: one MCA file per Qz, a surface and a bulk ion. | `docs/SYNTHETIC_DATA.md:55` | `python tests/tools/synthetic_dataset.py --out '{out}' --kind xfntr` |
 | Burn series | One spot measured 21 times, the peak decaying with τ = 400 s. | `docs/SYNTHETIC_DATA.md:68` | `python tests/tools/synthetic_dataset.py --out '{out}' --kind burn` |
 

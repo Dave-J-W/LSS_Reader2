@@ -1353,10 +1353,13 @@ def plan_s4(ax, st, g, s4, blade=1.0, lw=3.0):
         st.line(ax, [pt(a), pt(b)], color=FILL['slit'], lw=lw, solid_capstyle='butt', zorder=5)
 
 
+CASE8 = {'dth': 16.0, 'openings': (0.1, 0.2, 0.4)}   # set by --case8-dth, --case8-openings
+
+
 def case8(out):
     """What S4's finite opening does: each column's acceptance, the ramps at
     the footprint window's edges, and a wider or narrower S4."""
-    f = frame(11, 16.0)
+    f = frame(11, CASE8['dth'])
     g = f.geom
     s1v, s1h, s1s = f.areainfo[1], f.areainfo[0], f.s1_to_sample_mm
     s4 = s4_open(f)
@@ -1435,9 +1438,11 @@ def case8(out):
 
     # (b) one column's 2θ acceptance for several S4 openings
     bx = fig.add_axes([0.07, 0.375, 0.38, 0.185])
-    widths = (0.1, 0.2, 0.4)
-    greys = {0.1: '#9A9A9A', 0.2: C['ray'], 0.4: '#5A5A5A'}
-    styles = {0.1: (0, (2, 1)), 0.2: '-', 0.4: (0, (5, 2))}
+    widths = tuple(CASE8['openings'])
+    palette = ('#9A9A9A', C['ray'], '#5A5A5A', '#3A3A3A', '#BDBDBD')
+    dashes = ((0, (2, 1)), '-', (0, (5, 2)), (0, (1, 1.5)), (0, (3, 1, 1, 1)))
+    greys = {w: palette[k % len(palette)] for k, w in enumerate(widths)}
+    styles = {w: dashes[k % len(dashes)] for k, w in enumerate(widths)}
     bins = np.arange(-0.12, 0.12 + 1e-9, col_deg / 12)
     bx.axvspan(-col_deg / 2, col_deg / 2, color=FILL['detector'], lw=0)
     tc = deg(ph.ray_geometry(g, g.r0, g.c0).two_theta)
@@ -1564,7 +1569,12 @@ def main(argv=None):
     p.add_argument('--low', type=int, default=11, help='its low-Qz GID scan (stands in for NX 11)')
     p.add_argument('--high', type=int, default=12, help='its high-Qz GID scan (stands in for NX 12)')
     p.add_argument('--label', default=None, help='name of the data in the figure headers')
+    p.add_argument('--case8-dth', type=float, default=16.0,
+                   help='case 8: Det_Th (deg) of the scan-11 frame whose geometry it draws (default %(default)s)')
+    p.add_argument('--case8-openings', default='0.1,0.2,0.4',
+                   help="case 8 (b): S4 openings (mm) whose 2θ acceptance is drawn (default %(default)s)")
     args = p.parse_args(argv)
+    CASE8.update(dth=args.case8_dth, openings=tuple(float(x) for x in args.case8_openings.split(',')))
     if args.spec:
         spec = os.path.abspath(args.spec)
         DATA.update(spec=spec, label=args.label or os.path.basename(spec), scans={11: args.low, 12: args.high})

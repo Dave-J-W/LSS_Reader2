@@ -300,3 +300,29 @@ def test_a_run_records_its_environment(tmp_path):
     assert env['python'] and env['matplotlib'] and env['numpy']
     assert runner.read_record(str(tmp_path))['environment'] == env
 
+
+
+def test_every_demonstrator_setting_a_variation_names_exists():
+    """``patch_demo.py --set KEY=VALUE`` takes free text, so the option test
+    above cannot check it: each catalogued setting must be a field of the
+    demonstrator's configs, with a value its own lists allow."""
+    import sys
+    sys.path.insert(0, TOOLS_DIR)
+    import patch_demo
+    from demonstrator import burnmode as bm, refl
+    allowed = {'truth': refl.TRUTHS, 'plan': refl.PLANS, 'change': bm.CHANGES}
+    for t in catalog.TOOLS:
+        if t.script != 'tests/tools/patch_demo.py':
+            continue
+        for label, args in [('defaults', t.defaults)] + [(v.label, v.args) for v in t.variations]:
+            pairs = args.get('--set', [])
+            pairs = [pairs] if isinstance(pairs, str) else list(pairs)
+            mode = args.get('--mode', t.defaults.get('--mode', 'refl'))
+            r, b = patch_demo.configs(pairs, mode)            # raises SystemExit on an unknown key or value type
+            for pair in pairs:
+                key, value = pair.split('=', 1)
+                name = key.rpartition('.')[2]
+                if name in allowed:
+                    assert value in allowed[name], (t.id, label, pair)
+                if name == 'monitor' and mode == 'refl' and not key.startswith('burn.'):
+                    assert value in refl.MONITORS, (t.id, label, pair)

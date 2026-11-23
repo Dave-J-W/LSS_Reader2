@@ -143,6 +143,21 @@ TOOLS = (
                'docs/SYNTHETIC_DATA.md:232', mode='burn', set='change=none'),
          ),
          repo_ok=False, seconds=None),
+    Tool('patch_demo_burn_survey', 'Burn estimators: survey over replicates', 'burn', 'text',
+         'tests/tools/patch_demo.py',
+         'Every burn estimator over many noise replicates of a synthetic burn: the change it reads against the '
+         'truth (bias, scatter) and how often it calls a quantity stable.',
+         docs=('docs/reports/patch_demo.md', 'docs/handoff_out/07-burn-trends.md:89'),
+         defaults={'--mode': 'burn', '--survey': '20'},
+         variations=(
+             V('Low counts (monitor 1e5)', '"Lower monitor until each estimator fails": the counts at which each '
+               'estimator\'s scatter swamps the change.', 'docs/SYNTHETIC_DATA.md:302', set='burn.monitor=1e5'),
+             V('Fade under a shoulder', 'A peak fading under a broad shoulder: where moments mislead.',
+               'docs/SYNTHETIC_DATA.md:232', set='change=shoulder'),
+             V('No change', 'A stable spot: how often each estimator calls it stable (false alarms).',
+               'docs/SYNTHETIC_DATA.md:232', set='change=none'),
+         ),
+         seconds=19.0, repo_ok=False),
     Tool('burn_figures', 'Burn trends of NX scans 14 and 15', 'burn', 'figures',
          'tests/tools/burn_figures.py',
          'Burn tests over time as the Trends tab draws them (every model, the confident 5 % time) for the '
@@ -200,6 +215,22 @@ TOOLS = (
                'legacy pull SD 1.3-1.4.', 'docs/reports/patch_demo.md:113', set='monitor=poisson'),
          ),
          repo_ok=False),
+    Tool('patch_demo_survey', 'Fit demonstrator: survey over replicates', 'refl', 'text',
+         'tests/tools/patch_demo.py',
+         'Every patching method over many noise replicates of the demonstrator\'s synthetic scans: bias, pull '
+         'mean and pull SD per join, failures (the numbers behind the window\'s single replicate).',
+         docs=('docs/reports/patch_demo.md', 'docs/SYNTHETIC_DATA.md:320'),
+         defaults={'--survey': '50'},
+         variations=(
+             V('Staggered overlaps (200)', 'No coinciding points at any join: the documents\' '
+               'refl.survey(Config(plan=\'staggered\'), range(200)).', 'docs/SYNTHETIC_DATA.md:320',
+               survey='200', set='plan=staggered'),
+             V('Poisson monitor', 'Monc as Poisson counts: the legacy method\'s pull SD 1.3-1.4.',
+               'docs/reports/patch_demo.md:113', set='monitor=poisson'),
+             V('Every method', 'All 15 methods, not only the window\'s four.', 'docs/reports/patch_demo.md',
+               methods='all'),
+         ),
+         seconds=3.5, repo_ok=False),
     Tool('patch_demo_figures', 'Fit demonstrator report figures', 'refl', 'figures',
          'tests/tools/patch_demo.py',
          'The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per '
@@ -334,7 +365,13 @@ TOOLS = (
                  (4, 'β depends on the column, not only on the row.'),
                  (7, 'Footprint and usable columns; the second module reached only below α ≈ 0.037°.'),
                  (8, 'The S4 opening swept 0.05-1.0 mm: 2θ acceptance, edge ramps, counts proportional to the '
-                     'opening; Det_Th 14/16/18°.')))),
+                     'opening; Det_Th 14/16/18°.'))) + (
+             V('Case 8 at Det_Th 14°', 'The S4 figure for the frame at Det_Th 14° instead of 16°: the footprint '
+               'seen per column grows (2.1 -> 2.4 mm).', 'docs/figures/pinhole/README.md:256',
+               only='8', case8_dth='14'),
+             V('Case 8 with S4 0.05, 0.2 and 1.0 mm', 'The 2θ acceptance of one column for a pinhole four times '
+               'narrower and five times wider than NX\'s 0.2 mm.', 'docs/figures/pinhole/README.md:261',
+               only='8', case8_openings='0.05,0.2,1.0'))),
     Tool('gid_patching_diagrams', 'GID patching diagrams (manual)', 'gid', 'figures',
          'tests/tools/gid_patching_diagrams.py',
          'The manual\'s eight diagrams of GID patching: frame anatomy, columns to 2θ, frames covering 2θ, '
@@ -441,7 +478,14 @@ TOOLS = (
          'derived formula; mean of ratios against ratio of sums; the NX monitors\' scatter.',
          docs=('docs/reports/monitor_noise.md', 'docs/COMPARISONS.md:57'), data='public',
          variations=(V('Simulation only', 'Parts 1 and 2 without the real-data look.',
-                       'docs/reports/monitor_noise.md:159', no_real=True),),
+                       'docs/reports/monitor_noise.md:159', no_real=True),
+                     V('Bright regimes, Poisson vs noiseless monitor', 'Regimes A and C2: the reader\'s error is '
+                       'too small with a Poisson monitor and 3.5 % too large with a noiseless one.',
+                       'docs/reports/monitor_noise.md:180', regimes='A,C2', monitors='poisson,exact', no_real=True),
+                     V('High Qz (regime B)', 'Few counts: every formula agrees, the monitor term does not matter.',
+                       'docs/reports/monitor_noise.md:184', regimes='B', no_real=True),
+                     V('Quick look (5000 trials)', 'The same tables from fewer trials (±1 % on each σ).',
+                       'tests/tools/monitor_noise_mc.py', trials='5000', no_real=True)),
          seconds=16.3),
     Tool('monitor_distribution', 'Monitor scatter: its distribution', 'monitor', 'text',
          'tests/tools/monitor_distribution.py',
@@ -515,6 +559,10 @@ TOOLS = (
                'docs/SYNTHETIC_DATA.md:160', fault='slits'),
              V('Low counts (x0.1)', 'One tenth of the NX rates: the joins\' errors grow by √10.',
                'docs/SYNTHETIC_DATA.md:42', counts='0.1'),
+             V('Rough interfaces (6 Å)', 'R/R_F falls as exp(−Qz²σ²): twice the roughness, four times the '
+               'decay rate.', 'docs/SYNTHETIC_DATA.md:48', roughness='6'),
+             V('Background ×100', 'A diffuse background a hundred times NX\'s: the ROI background boxes earn '
+               'their keep at high Qz.', 'docs/physics_notes.md:3773', background='100'),
              V('XFNTR series', 'Fluorescence near total reflection: one MCA file per Qz, a surface and a bulk ion.',
                'docs/SYNTHETIC_DATA.md:55', kind='xfntr'),
              V('Burn series', 'One spot measured 21 times, the peak decaying with τ = 400 s.',

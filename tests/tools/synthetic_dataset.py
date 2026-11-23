@@ -44,9 +44,12 @@ sys.path.insert(0, os.path.join(ROOT, 'tests'))
 FAULTS = ('none', 'slits', 'foil')
 
 
-def xrr_dataset(out, truth='film', thickness=100.0, counts=1.0, monitor='real', fault='none', seed=0):
+def xrr_dataset(out, truth='film', thickness=100.0, counts=1.0, monitor='real', fault='none', seed=0,
+                roughness=None, background=1.0):
     from synthetic import xrr, xrr_scans as xs, xrr_images as xi
-    profile = {'film': lambda: xrr.film(thickness), 'water': xrr.bare_water, 'dppc': xrr.dppc}[truth]()
+    sig = {} if roughness is None else {'sigma': float(roughness)}
+    profile = {'film': lambda: xrr.film(thickness, **sig), 'water': lambda: xrr.bare_water(**sig),
+               'dppc': lambda: xrr.dppc(**sig)}[truth]()
     faults = {}
     if fault == 'slits':        # slits open x2.7 and x3.2 for scans 3 and 4; Monc registers 70 % of it (P29)
         faults['monitor_gain'] = [1.0, 1.0, 0.7 * xs.NX_SLIT_GAINS[2], 0.7 * xs.NX_SLIT_GAINS[3]]
@@ -56,7 +59,7 @@ def xrr_dataset(out, truth='film', thickness=100.0, counts=1.0, monitor='real', 
     if monitor == 'real':
         bl = replace(bl, **xs.REAL_MONITOR)
     bl = replace(bl, flux=bl.flux * counts, max_rate=bl.max_rate * counts, monc_rate=bl.monc_rate * counts,
-                 monp_rate=bl.monp_rate * counts)
+                 monp_rate=bl.monp_rate * counts, background=bl.background * background)
     data = xs.measure(profile, xs.nx_like_plan(**faults), beamline=bl, errors='counting+monitor', seed=seed)
     spec = xi.render(data, out, 'xrr', seed=seed)
     qz = np.linspace(0.01, 0.5, 981)
@@ -64,6 +67,7 @@ def xrr_dataset(out, truth='film', thickness=100.0, counts=1.0, monitor='real', 
                header='true reflectivity of the synthetic data set: Qz (1/A), R', comments='# ')
     info = dict(kind='xrr', truth=truth, thickness_A=thickness if truth == 'film' else None, counts=counts,
                 monitor=monitor, fault=fault, seed=seed, scans=sorted(data.scans),
+                roughness_A=roughness if roughness is not None else xrr.SIGMA_WATER, background_scale=background,
                 true_join_factors={str(k): float(v) for k, v in data.true_join_factors().items()},
                 kiessig_period=xrr.kiessig_period(thickness) if truth == 'film' else None)
     return spec, info
@@ -97,11 +101,17 @@ def main(argv=None):
                     help="xrr: Monc with the owner's 0.05 %% (real) or as Poisson counts")
     ap.add_argument('--fault', choices=FAULTS, default='none',
                     help='xrr: slits = Monc misses the slit change at scans 3-4; foil = scan 3\'s foils 2 %% off')
+    ap.add_argument('--roughness', type=float, default=None,
+                    help='xrr: every interface\'s roughness σ (Å; default the generator\'s, 3 Å): R/R_F falls as '
+                         'exp(-Qz²σ²)')
+    ap.add_argument('--background', type=float, default=1.0,
+                    help='xrr: the diffuse background scaled (1: the NX school level)')
     ap.add_argument('--seed', type=int, default=0, help='noise replicate')
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
     if a.kind == 'xrr':
-        spec, info = xrr_dataset(a.out, a.truth, a.thickness, a.counts, a.monitor, a.fault, a.seed)
+        spec, info = xrr_dataset(a.out, a.truth, a.thickness, a.counts, a.monitor, a.fault, a.seed,
+                                 a.roughness, a.background)
     elif a.kind == 'xfntr':
         spec, info = xfntr_dataset(a.out, a.seed)
     else:

@@ -258,8 +258,14 @@ build workflow and macOS signing (input 12); sample-data hosting.
       selected scans first" instead of opening. `docs/gui/screens/93_*`,
       `94_*` are kept from the morning's run. Give the screenshot a scan with
       a peak, or the dialog a way to say why there is no centre.
-- [ ] **Documented variations not yet reachable by an option (new
-      2026-11-23)**: parameters the documents vary that are fixed inside a
+- [x] **Documented variations not yet reachable by an option (new
+      2026-11-23) — done 2026-11-23**: pinhole case 8 (`--case8-dth`,
+      `--case8-openings`), `monitor_noise_mc.py` (`--regimes`, `--monitors`,
+      `--trials`, `--seed`), the C24 footprint and C21 angle comparisons as
+      tables of `compare_methods.py`, the demonstrator's surveys
+      (`patch_demo.py --survey N`, two Tools items), `synthetic_dataset.py`
+      (`--roughness`, `--background`); each a catalogue variation with its
+      document line (`tests/test_tool_options.py`). Before: parameters the documents vary that are fixed inside a
       script: the S4 openings and Det_Th of pinhole case 8 (drawn as a sweep
       inside the figure), the regimes of `monitor_noise_mc.py`, the footprint
       choice of C24 (`GIDParams(footprint='idl')`) in `compare_methods.py`,
