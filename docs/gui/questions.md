@@ -47,7 +47,4 @@ recorded beside its question with the date.
 | 2026-11-23 | Q-REF-5, in part: comparisons | Reduced curves are compared in the reader across places and over time, for stability (which tab: open) | as above; F80 |
 | 2026-11-23 | Q-GEN-4, in part: alignment scans in the reader | Sample height scans are viewed and compared in the reader (several selected together); the Calculations menu is still open | as above; F78 |
 
-Still open from these: what "established" covers for a safe absorber (kind of
-sample, subphase, energy, beamtime?); thresholds for judging a sample height
-scan; whether the Series list (one action selects a series) works for your
-files, since the scans were selected by hand.
+| 2026-11-23 | Follow-ups to the day | Established safe absorbers depend heavily on the sample, the subphase and the energy, but do not change within a beamtime. A good sample height scan has a FWHM of about 65 µm or more ("better than about 65 microns") and is flatter than a Gaussian. Scans are selected one by one because the Series list is new and not yet tried by people. Qc depends on the subphase, which is rarely pure water. The day also includes deciding whether the statistics suffice, and if not repeating the macro and having the reader sum the repeats' ROIs | `physics_notes.md` 2026-11-23; F78, F79, F81; map `day-ref` (`day.stats`) |

@@ -48,6 +48,7 @@ working list, one table per area, each row with its source. Rows marked
 | Per-second option — **new** | F20 |
 | Qoff proposed from the continuity of R/R_F across the joins (robust to one or two outliers); Qc from a subphase list or typed electron density — **new** 2026-11-23 | F79; F42 |
 | Saved reflectivities of the workbook overlaid by series, time or sx, with ratios, to check stability — **new** 2026-11-23 | F80 |
+| Repeated macros summed by counts and monitors (the identical-scans merge averages with equal weights today) — **new** 2026-11-23 | F81; physics_notes 2026-11-23 |
 | ORSO, HDF5 export; steps and parameters recorded — **new** (F30) | F25, F30, R7 |
 | Synthetic K = 3–5 generator; hand-off tests 2–6 | hand-off §5; input 4 |
 | Tell users which old reductions to redo (non-zero absorbers before P24; bu files at 6.21/7.51/9.9 keV before F49): a release note and a manual line — **new** | TODO Stage 2 list; P24, F49 |
@@ -92,6 +93,7 @@ working list, one table per area, each row with its source. Rows marked
 |---|---|
 | ~~Fix `series.infer`: `#V` hklscans as xfntr, `escan` as energy; series lines and inference together; `SeriesMacro` attached~~ **done 2026-11-21** (`series.all_series`) | review §3, §4 R1 |
 | ~~Series in the scan list; select a series as one action~~ **done 2026-11-21** (Series list; whole series selected on a click by default, D55) | F39; Stage 3; review R2 |
+| The Series list has not yet been tried by people (owner, 2026-11-23: reflectivity scans are selected one by one because it "is a new feature and hasn't been known or tested by humans yet"): a first trial at the beamline, then its questions — **new** | D55; owner 2026-11-23 |
 | Contextual reduction from `kind` (offer, not run); the burn test for burn scans | F60; review R4 |
 | ~~Automatic saving of every finished reduction~~ **done 2026-11-22** (D56), the prerequisite the owner set before L1–L4 | owner |
 | ~~Live refresh L1–L4~~ **built 2026-11-22** (D57): Live box (L1), remake from recipes (L2: reflectivity, fluorescence, GID map, burn), selection follows a whole series (L3), stop at a lined series' end (L4). Done since: remakes in a worker thread, point selections carried over, updates without a reset (2026-11-22). Done since: the open display redrawn from a remade result (Reflectivity, MCA integrals, burn dialog, GID map; 2026-11-22). Remaining: recipes for cuts, fitted MCA lines and SpecPlot curves; stop after a quiet spell for guessed series; a test of the MCA redraw on a fluorescence series | F1–F5 |

@@ -153,9 +153,9 @@ workflows:
         do: "Sample height scan at a fixed incident angle, sample and detector rising together (workflow 'alignment'); scans from a few places or conditions reviewed together by selecting them together"
         where: SpecPlot (several scans selected)
         controls: [scanListWidget, spYComboBox, spNCheckBox]
-        user_decides: whether the surface is flat enough - wide, flat-topped (super-Gaussian), not Gaussian-like
+        user_decides: "whether the surface is flat enough: FWHM about 65 µm or more, flatter than a Gaussian ('more squashed than a gaussian')"
         automatic: no
-        could_be_automatic: a super-Gaussian fit with width and exponent, beside the sample's earlier sh scans (F78)
+        could_be_automatic: a super-Gaussian fit with FWHM and exponent, flagged against 65 µm, beside the sample's earlier sh scans (F78)
         known_from: owner 2026-11-23
         decision: "Surface flat enough?"
         goto: {"no: another place or a new preparation": day.rough}
@@ -167,7 +167,7 @@ workflows:
         controls: []
         user_decides: whether to burn-test
         automatic: no
-        could_be_automatic: the workbook's earlier burn verdicts for this kind of sample, shown when a new sample starts (needs Q on what 'established' covers)
+        could_be_automatic: "the safe absorbers established earlier in the beamtime, kept per sample, subphase and energy (owner 2026-11-23: they 'depend heavily on the sample and the subphase and energy but per beamtime there is no change'), offered when a new sample starts"
         known_from: owner 2026-11-23
         decision: "Burn test needed?"
         goto: {"no: a safe absorber is known": day.macro}
@@ -204,7 +204,20 @@ workflows:
         decision: "R/R_F continuous?"
         goto: {"no: change Qoff or Qc": day.reduce}
         issues:
-          - "The owner selects the scans by hand, then Select All: the Series list (D55) selects a whole series in one action, but frames still need Select All"
+          - "The owner selects the scans by hand, then Select All: the Series list (D55) selects a whole series in one action but is new and not yet tried by people (owner 2026-11-23); frames still need Select All"
+          - "Qc is rarely water's: the subphase sets it ('pure water is not very interesting and does not pay the bills', owner 2026-11-23)"
+      - id: day.stats
+        do: "Decide whether the statistics are good enough; if not, repeat the macro (several scans) and have the reader sum the repeats' ROIs"
+        where: SPEC (the repeat); Ref Patch identical-scans step (the merge)
+        controls: [refpatchsamescan.mergePushButton]
+        user_decides: whether to repeat, and whether to sum the repeats
+        automatic: no
+        could_be_automatic: repeats recognised and summed by counts and monitors by default, the choice shown (F81)
+        known_from: owner 2026-11-23
+        decision: "Statistics good enough?"
+        goto: {"no: repeat the macro": day.macro}
+        issues:
+          - "The merge of identical scans averages the per-monitor curves with equal weights (code, pilRefSSMerge), rather than summing counts and monitors"
       - id: day.tune
         do: "Tune the macro from the result: counting times for reflectivity, which angles to search for GID"
         where: SPEC
@@ -575,7 +588,7 @@ workflows:
         do: "Choose the reflectivity series ('reflectivity 4/?: S# 6-9') or click one of its scans"
         known_from: run 2026-11-22; test tests/test_gui_series.py; owner 2026-11-23 (selects the scans by hand today)
         issues:
-          - "The owner selects the scans one by one (2026-11-23); the Series list does it in one action (D55): not known, or not offered for those files?"
+          - "The owner selects the scans one by one: the Series list (D55) does it in one action but is new and not yet tried by people (owner 2026-11-23)"
       - id: ref.frames
         uses: shared.frames
         do: Select all frames of the series (NX 6-9 - 96 frames) with Select All

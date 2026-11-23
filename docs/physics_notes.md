@@ -3999,3 +3999,35 @@ M7). In every case the zoom (for reflectivity, the region around the ROI)
 and the colour mode must not change while the frames play (F69). *How
 verified*: the owner's words; the geometry is a reading of the pinhole and
 legacy GID geometry, not tested.
+
+Follow-ups the same day (owner):
+
+- **Statistics.** The day includes "getting data and deciding if we need
+  better statistics (repeat the macro (multiple scans) and have reader
+  handle summing the ROIs if we want it to" (F81). As coded, Ref Patch's
+  identical-scans step merges repeats as the plain mean of their
+  per-monitor curves with equal weights, the error √(Σσ_i²)/n
+  (`pilRefSSMerge`; read). Summing the ROIs and the monitors,
+  R = ΣS_i / ΣM_i, weights each repeat by its monitor M_i. In the counting
+  limit σ_i² ≈ R/M_i, so the inverse-variance weighted mean of the R_i,
+  Σ(R_i M_i)/ΣM_i, is the ratio of sums. The two merges agree when the
+  monitors are equal and differ when the beam decays between repeats.
+  Derivation only; not tested.
+- **Sample height scan.** "A good sample height scan has a FWHM better than
+  about 65 microns, and some flat 'quality' to it, like i said it should be
+  more squashed than a gaussian" (F78). Read with "wide enough" (above) as
+  a FWHM of about 65 µm or more; in the super-Gaussian form above, an
+  exponent p > 2. No threshold on p given.
+- **Safe absorbers.** Established safe absorbers "depend heavily on the
+  sample and the subphase and energy but per beamtime there is no change".
+- **Qc.** "Qc does not depend on x-ray energy, fine; but it does depend on
+  the sample being something besides pure water (pure water is not very
+  interesting and does not pay the bills)." Qc is that of the subphase,
+  the bulk below the film: Qc = 4√(π r_e ρ_e) with ρ_e from the subphase's
+  composition and mass density, ρ_e = (ρ N_A / M) ΣZ per formula unit. So
+  water's 0.0217 is a placeholder, rarely the value (F79).
+- **Series list.** Scans are selected one by one because the Series list
+  "is a new feature and hasn't been known or tested by humans yet".
+
+*How verified*: the owner's words; the merge reading of `mainwindow.py`;
+the weighting is a derivation.
