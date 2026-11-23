@@ -4465,3 +4465,11 @@ Verified by: reading only; decisions, not measurements.
 - **Q5 XFNTR:** fitted lines by default, from the element; the sum retires if a gauntlet against Rayleigh and Compton scatter (Zn Kα 8637 eV at 10 keV) passes; real data offered by the owner (F90).
 
 **Physics to check when F90 is built:** Zn Kα (8.637 keV) sits below a 10 keV excitation, so the elastic (Rayleigh) peak at 10 keV and its Compton shoulder (10 keV minus 0 to about 0.38 keV, the maximum at 180°; shift ΔE ≈ E²(1−cosθ)/(m_ec² + E(1−cosθ)), Compton 1923, doi:10.1103/PhysRev.21.483) lie 1.4 keV from the line: the detector resolution (about 150–250 eV FWHM for a silicon drift detector) and its tail determine the risk. Not yet measured.
+
+### 2026-11-23 — GUI questions answered, batch 3 (6, 4, EXAFS-2)
+
+Verified by: reading only.
+
+- **Q6 EXAFS:** low priority; Athena/Larch spline above the edge and the usual k-weighted EXAFS plot, hosted in a "process EXAFS" dialog; also an energy-axis line-intensity file, dead-time and absorber corrections, μ(E) normalisation and edge step. Reference for the method: Newville, *J. Synchrotron Rad.* 8, 322 (2001), doi:10.1107/S0909049500016964 (Larch/Athena's background removal, AUTOBK: Newville et al., *Phys. Rev. B* 47, 14126 (1993), doi:10.1103/PhysRevB.47.14126), cited from memory.
+- **Q-REF-2 joins:** the owner looks at every join; a bad join with good statistics usually means sample damage. Design consequence: suspect joins are flagged and stay reviewable; no silent auto-accept.
+- **Q-EXAFS-2:** unanswered; the owner asked what data would answer it; the request is in `TODO.md`.

@@ -670,6 +670,17 @@ reruns the quick, real-data and export-fixture checks, and commits.
       window? Open points on the 1M are listed under F17–F19. Owner, 2026-11-19: yes (F53).
 - [x] Bruker/Apex CCD is defunct (D8): no fix; remove the code later.
 - [x] Link sharing off on `bu.zip` (owner, 2026-11-19).
+- [ ] **Data request for Q-EXAFS-2 and F89/F90 (2026-11-23; owner: "tell me what example real data would answer it"):**
+      one SPEC file plus its folders for a single energy scan (`MCAscanpt escan_14`
+      or another `escan`) *and* one fluorescence burn (`ascan ih` with spectra),
+      with whatever MCA files sit beside them (the `vortex/` folder of per-point
+      files, `<date>_<scan>_mca`, if present). What answers the question is
+      whether the scan's block in the SPEC file has a `#V` line with spectra, or
+      only `mca_save_point Point:p Scan:s` entries and separate files. Also for
+      F90: one spectrum with a strong elastic peak and Compton shoulder beside a
+      weak line (the Zn 8637 eV at 10 keV excitation case) and a note of the
+      detector's energy calibration. Mark private files as such (they stay under
+      `sample_data/private/`).
 - [ ] Decide how sample data should be hosted (`bu` is 1.7 GB, local to the
       session only, git-ignored; NX school is committed at 104 MB).
 - [ ] Questions in `ASSESSMENT.md` sections 6 and 7 still open: reference
