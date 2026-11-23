@@ -234,7 +234,7 @@ class PlotSketch(QWidget):
             for sx in (-1, 1):
                 p.drawRect(int(cx - w / 2 + sx * w * 1.25), int(cy - h / 2), int(w), int(h))
             p.setPen(QColor('#d8d8f0'))
-            p.drawText(int(a.left()) + 4, int(a.bottom()) - 4, 'ROI + background zones, margin kept')
+            p.drawText(int(a.left()) + 4, int(a.bottom()) - 4, 'ROI + bkg zones + margin')
             return
         if s == 'frame':
             for rad, col in ((0.30, '#3b528b'), (0.18, '#21918c'), (0.09, '#5ec962'), (0.04, '#fde725')):
@@ -321,6 +321,8 @@ class NguiWindow(QMainWindow):
         if kind in ('button', 'action'):
             w = QPushButton(label or key, parent)
             w.setMinimumWidth(w.fontMetrics().horizontalAdvance(w.text()) + 22)   # Fusion's 80 px floor is too wide
+            if key.startswith('movie_') or key == 'pilMoviePushButton':
+                w.setMaximumWidth(40)
             if key in L.PRIMARY:
                 w.setProperty('nguiPrimary', True)
         elif kind == 'checkbox':
@@ -635,6 +637,8 @@ class NguiWindow(QMainWindow):
             b.setObjectName(_oname(key + '_provenance'))
             b.setProperty('nguiProvenance', True)
             b.setFlat(True)
+            b.setMinimumWidth(80)
+            b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)    # clipped, never widening the window
             m = QMenu(b)
             for t in ('Add a note…', 'Show the recipe…', 'Versions of this result…'):
                 a = m.addAction(t)
@@ -759,7 +763,8 @@ class NguiWindow(QMainWindow):
         holder = self._plot_card(dict(sp['plot'], provenance=sp.get('provenance'),
                                       note_button=sp.get('note_button')), w, card=False)
         v.addWidget(holder, 1)
-        self._add_items([{'row': sp['options']}], v, w)
+        half = (len(sp['options']) + 1) // 2
+        self._add_items([{'row': sp['options'][:half]}, {'row': sp['options'][half:]}], v, w)
         return w
 
     def _special_frame_viewer(self, sp, parent):
@@ -815,6 +820,9 @@ class NguiWindow(QMainWindow):
         movie.addWidget(self._widget({'new': 'movie_slider', 'label': '', 'kind': 'slider',
                                       'note': 'Moves through the frames; the list follows'}, raw)[0], 1)
         movie.addWidget(QLabel('14 / 41', raw))
+        rv.addLayout(movie)
+        movie = QHBoxLayout()           # second line: speed, loop, colour scale, then the frame's metadata
+        movie.setSpacing(4)
         movie.addWidget(self._widget({'new': 'movie_speed', 'label': '', 'kind': 'combo',
                                       'items': ['2 fps', '0.5 fps', '1 fps', '5 fps', '10 fps'],
                                       'note': 'Movie speed'}, raw)[0])
@@ -823,13 +831,15 @@ class NguiWindow(QMainWindow):
         movie.addWidget(self._widget({'new': 'movie_colour', 'label': 'colour', 'kind': 'combo',
                                       'items': ['shared', 'per frame', 'locked'],
                                       'note': 'Colour scale across the movie (M4)'}, raw)[0])
-        rv.addLayout(movie)
         meta = QLabel('S# 11 · pt 13 · Qz 0.215 1/Å · 2θ 18.40° · t 412 s · abs 2 · Monc 1.2e5', raw)
         meta.setObjectName('ngui_frames_metadata')
         meta.setProperty('nguiCaption', True)
         meta.setToolTip('The frame shown: scan, point, Qz or 2θ, time from the first frame, absorber, monitor '
                         '(M3). New in ngui. ' + NOT_FUNCTIONAL)
-        rv.addWidget(meta)
+        meta.setWordWrap(True)
+        meta.setMinimumWidth(60)
+        movie.addWidget(meta, 1)
+        rv.addLayout(movie)
 
         cuts = self._special_cut_panel(sp['cuts'], f)
 
@@ -895,6 +905,8 @@ class NguiWindow(QMainWindow):
             v = QVBoxLayout(w)
             v.setContentsMargins(6, 6, 6, 6)
             self._add_items(p['items'], v, w)
+            if p['title'] == 'Errors':
+                v.addStretch(1)
             d.setWidget(w)
             d.setToolTip('Under the tab area only, hidden by default, never raising itself (D59). '
                          'View > %s shows it.' % p['title'])
@@ -1028,6 +1040,7 @@ class NguiWindow(QMainWindow):
         self.dialogs['retired'] = d
         d.show()
         d.raise_()
+        t.resizeRowsToContents()          # the reasons wrap once the columns have their widths
         return d
 
 

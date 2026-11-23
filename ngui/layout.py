@@ -368,7 +368,7 @@ REFLECTIVITY = {
         [PLOT('refRefDataPlotwidget', 'R / R_F vs Qz', 'ref', residuals=True, provenance=PROV_REF, stretch=3,
               note_button=SAVE('refSaveWorkbookPushButton'))],
         [SPECIAL('tabs', name='ref_roiTabs', pages=[
-            ('ROI close-up', [PLOT('refADDataPlotWidget', 'ROI movie (log, ROI + background zones)', 'roi',
+            ('ROI close-up', [PLOT('refADDataPlotWidget', 'ROI movie (log)', 'roi',
                   note='Opens on log scale, zoomed to a box holding the ROI and both background zones with a margin of '
                        'diffuse scattering around them: a healthy zoom, not too close (owner 2026-11-23; F71)')]),
             ('Checks', [C('pilPeakCenDialog.peakCenTextBrowser', 'Beam centre off', kind='list',
@@ -622,12 +622,12 @@ STATE_BAR = [
 
 # Settings that keep their dialog for now (prototype.md: "Preferences keep their dialog for now").
 PREFERENCES = [
-    G('Absorber foils', 'Preferences', [
+    G('Absorber foils', '', [
         C('prefCalibratedCheckBox', 'Calibrated foils'),
         C('prefFoilTable', 'Foil thicknesses'),
         C('prefFoilRangeLabel', '9.70–10.30 keV'),
     ]),
-    G('Window', 'Preferences', [
+    G('Window', '', [
         C('prefNguiCheckBox', 'ngui (new layout, prototype)', note='This window; unticking closes it'),
         C('prefClosePushButton', 'Close'),
     ]),
@@ -638,17 +638,17 @@ PREFERENCES_REPLACES = ['preferencesDialog']
 # dialog: choose a result saved in the workbook, the format, and what to write. Every Export button of today
 # becomes one entry of "Contents" (offered according to the kind of the chosen result).
 EXPORT = [
-    G('Result', 'Input', [
+    G('Result', '', [
         NEW('export_result', 'Saved result', 'combo', 'Every result the workbook holds, newest first',
             items=['R0007 v2 · reflectivity S# 6–9', 'G0002 v1 · GID map S# 22–31', 'B0003 v1 · burn S# 40',
                    'F0004 v1 · XFNTR S# 50–58', 'C0005 v1 · line cut S# 22', 'S0011 v1 · scans S# 12–14']),
     ]),
-    G('Format', 'Reduce', [
+    G('Format', '', [
         NEW('export_format', 'Format', 'combo', 'Text files as today (xmodfit contract) or HDF5',
             items=['Text (as today)', 'HDF5', 'CSV']),
         C('refCovarianceCheckBox', '+ covariance', note='Reflectivity: the covariance matrix of the points too'),
     ]),
-    G('Contents', 'Display', [
+    G('Contents', '', [
         C('refExportPushButton', 'Reflectivity (_ref.txt, _rrf.txt)', kind='radio'),
         C('spExportPushButton', 'Scan columns', kind='radio'),
         C('cutExportPushButton', 'Line cuts', kind='radio'),
@@ -670,34 +670,34 @@ EXPORT = [
 
 # ---------------------------------------------------------------- retired
 
-Q14 = 'Dead today; retired pending owner question 14'
-INLINE = 'Closes a window whose contents are now inline; nothing to close'
+Q14 = 'dead today; retired pending owner question 14'
+INLINE = 'nothing to close: the window\'s contents are now inline'
 RETIRED = {
     # the Apex tab (Bruker Apex CCD, hidden at start)
-    'apexTab': Q14 + ' (Apex tab, hidden since the CCD left)',
-    **{cid: Q14 + ' (Apex tab, unconnected or a copy of a Pilatus control)' for cid in (
+    'apexTab': 'Apex tab, hidden since the CCD left: ' + Q14,
+    **{cid: 'Apex tab, unconnected or a copy of a Pilatus control: ' + Q14 for cid in (
         'gixSpecCheckBox', 'gixDBPosLineEdit', 'gixSDDistLineEdit', 'gixCcd_OffLineEdit', 'gixBPCfacLineEdit',
         'gixAxesComboBox', 'gixCMapComboBox', 'gixMplWidget', 'gixLogIntCheckBox', 'gixMinHorizontalSlider',
         'gixMinLineEdit', 'gixMaxHorizontalSlider', 'gixMaxLineEdit', 'gixMergeSameQzCheckBox',
         'gixRefPushButton', 'gixCutDirComboBox', 'gixIntRangeLineEdit', 'gixLineAreaPushButton')},
     # the Beamlines menu
-    'menuBeamlines': Q14 + ' (one beamline is supported)',
-    'actionAPS_15IDC': Q14 + ' (the only beamline; nothing to choose)',
-    'actionAPS_9IDC': Q14 + ' (9-ID-C is not supported, owner 2026-11-17; hidden)',
+    'menuBeamlines': 'One beamline is supported: ' + Q14,
+    'actionAPS_15IDC': 'The only beamline; nothing to choose: ' + Q14,
+    'actionAPS_9IDC': '9-ID-C is not supported, owner 2026-11-17; hidden: ' + Q14,
     # unconnected pieces
-    'commandLineEdit': Q14 + ' (the Command line is not connected to anything)',
-    'peakfit2': Q14 + ' (dialog never shown)',
-    'peakfitpara': Q14 + ' (dialog never shown)',
+    'commandLineEdit': 'The Command line is not connected to anything: ' + Q14,
+    'peakfit2': 'Dialog never shown: ' + Q14,
+    'peakfitpara': 'Dialog never shown: ' + Q14,
     'refBPCFacLineEdit': 'Defunct: read and never used (inventory); bad pixels are set in Frames > Reduce',
     'refBadPixListWidget': 'Defunct: only ever cleared (inventory); the bad-pixel report is Reflectivity > Checks',
     # dialog chrome made unnecessary by inline groups
-    'pdburn.closePushButton': INLINE + ' (Burn test dialog, now the Burn tab)',
-    'gidClosePushButton': INLINE + ' (GID worksheet, now GID tab groups)',
-    'pdformfac.okPushButton': INLINE + ' (form factor, now GID > Tools)',
-    'pdgioxs.closePushButton': INLINE + ' (GIOXS, now Frames > Views)',
-    'mcamerge.okPushButton': INLINE + ' (Merge window; the Merge button acts at once)',
-    'mcamerge.cancelPushButton': INLINE + ' (Merge window; the Merge button acts at once)',
-    'plotscale.closePB': INLINE + ' (Plot Scale Setup, now Files > 1-D plot)',
+    'pdburn.closePushButton': 'Burn test dialog, now the Burn tab: ' + INLINE,
+    'gidClosePushButton': 'GID worksheet, now GID tab groups: ' + INLINE,
+    'pdformfac.okPushButton': 'Form factor, now GID > Tools: ' + INLINE,
+    'pdgioxs.closePushButton': 'GIOXS, now Frames > Views: ' + INLINE,
+    'mcamerge.okPushButton': 'Merge window; the Merge button acts at once: ' + INLINE,
+    'mcamerge.cancelPushButton': 'Merge window; the Merge button acts at once: ' + INLINE,
+    'plotscale.closePB': 'Plot Scale Setup, now Files > 1-D plot: ' + INLINE,
     # saving is automatic (D56, D61); notes go with Save… or the provenance strip
     'prefSaveNoteCheckBox': 'In ngui Save… always takes a note and automatic saves never ask (D61); a note can '
                             'also be added from the provenance strip',
