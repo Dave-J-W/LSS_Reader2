@@ -28,6 +28,9 @@ Comparisons written:
   per-axis angles (the column's 2θ, the row's β: the method before
   2026-11-19), ``GIDParams(angles=...)``: Qxy and Qz integrals (written by
   hand once on 2026-11-20; by this tool since 2026-11-23).
+- C24 the usable columns' footprint window, exact (fully lit through S4,
+  the default) vs IDL's (centred on c0), ``GIDParams(footprint=...)``: Qxy
+  and Qz integrals (since 2026-11-23).
 - C6 absorber factor per setting n = 0…63 at 10 keV: nominal 1.4247^n vs
   calibrated foils, with the calibrated error.
 """
@@ -90,6 +93,16 @@ def gid(exp, scans, label, out, manifest, maps=True):
                 _write(out, manifest, 'C21_gid_%s_pinhole_%s_qz.csv' % (label, tag), 'C21', what,
                        '%s scans %s' % (label, scans), ['Qz (1/A)', 'I integrated over Qxy', 'sigma'], p['v'],
                        'GIDParams(angles=%r)' % kind)
+            for kind in ('exact', 'idl'):                   # C24: the usable columns' footprint window (P39)
+                p = exp.gid(scans, params=GIDParams(footprint=kind)).products('Q')
+                what = ('footprint window exact (fully lit through S4; the default)' if kind == 'exact'
+                        else "footprint window IDL's (centred on c0)")
+                _write(out, manifest, 'C24_gid_%s_footprint_%s_qxy.csv' % (label, kind), 'C24', what,
+                       '%s scans %s' % (label, scans), ['Qxy (1/A)', 'I integrated over Qz', 'sigma'], p['h'],
+                       'GIDParams(footprint=%r)' % kind)
+                _write(out, manifest, 'C24_gid_%s_footprint_%s_qz.csv' % (label, kind), 'C24', what,
+                       '%s scans %s' % (label, scans), ['Qz (1/A)', 'I integrated over Qxy', 'sigma'], p['v'],
+                       'GIDParams(footprint=%r)' % kind)
             for d in (258.0, 271.0, 280.0):
                 p = exp.gid(scans, params=GIDParams(pinhole_distance_mm=d)).products('Q')
                 _write(out, manifest, 'C11_gid_%s_pinhole_%dmm_qxy.csv' % (label, d), 'C11',

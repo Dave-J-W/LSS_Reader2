@@ -57,16 +57,16 @@ did not write (other settings, or files written by hand).
 | gui_screens | current, except clocks | regenerated in this branch; a second run differs in 5 of 73 (the messages pane's times, a fit window, the GISAXS view, a burn view by 0.002 %): screenshots carry times, so they never reproduce exactly |
 | pinhole_beam_figure | **stale** | 1.6 % of pixels across the plot: the beam response changed after the figure was made |
 | gid_stray_light | **stale** | 4.4 % and 16 % of pixels across both figures |
-| compare_methods | **C2 tables stale** | the three C2/C3 error-model tables were made with the legacy patch; since b51bae2 the default patch is the joint fit, so R moves by up to 0.1 % and σ by up to 21 % (Qz = 0.035 Å⁻¹, compared numerically): the error-model comparison is confounded by the patch change until rerun. `manifest.json` differs only in its "command" field (the output folder); C6, C10, C11 identical |
+| compare_methods | **C2 tables stale** (remade 2026-11-23) | the three C2/C3 error-model tables were made with the legacy patch; since b51bae2 the default patch is the joint fit, so R moves by up to 0.1 % and σ by up to 21 % (Qz = 0.035 Å⁻¹, compared numerically). Remade the same day: the error models' ratios hardly move (Gaussian/legacy 0.861–1.002 before and after, Student t/legacy 0.893–1.004 → 0.893–1.005), so the comparison was not confounded, only its curves out of date. `manifest.json` differs only in its "command" field (the output folder); C6, C10, C11 identical |
 | ref_patch_survey | **stale** | values changed, not only the timing column: median error of joint_o4_e4 0.00407 → 0.00381, one join flagged per joint method (the guard ladder of 6bb29bf came after the survey, 46256cd) |
 | gid_method_survey | probably stale | calibration.csv, methods.csv, truth.csv differ (not examined; lss_core's pinhole code changed since, including the closed-form footprint window) |
 | fit_scan_survey | not judged | the table has a timing column (seconds per fit), so it never reproduces byte for byte; the old-rules table needs its variation |
 
-**C21 tables have no generator.** `docs/comparisons_data/C21_*.csv`
-(pinhole angles per axis vs exact; commit ab33063, 2026-11-20) are written
-by no script in the repository (`compare_methods.py` keeps their manifest
-entries "for files written otherwise"). They can be shown but not
-regenerated (TODO).
+**C21 tables had no generator.** `docs/comparisons_data/C21_*.csv`
+(pinhole angles per axis vs exact; commit ab33063, 2026-11-20) were written
+by no script in the repository. Since 2026-11-23 `compare_methods.py`
+writes them (`GIDParams(angles=...)`), and the C24 footprint tables too,
+which `COMPARISONS.md` said it wrote but it did not.
 
 ## How to act on it
 

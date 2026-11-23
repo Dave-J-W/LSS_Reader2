@@ -262,10 +262,11 @@ TOOLS = (
     Tool('compare_methods', 'Old and new methods as CSV (C2, C10, C11, ...)', 'refl', 'data',
          'tests/tools/compare_methods.py',
          'Old and new methods side by side on the same data, as CSV files with a manifest: error models, '
-         'legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, absorber factors.',
+         'legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, the footprint window, '
+         'absorber factors.',
          committed=('docs/comparisons_data/manifest.json', 'docs/comparisons_data/C2_*',
                     'docs/comparisons_data/C6_*', 'docs/comparisons_data/C10_*', 'docs/comparisons_data/C11_*',
-                    'docs/comparisons_data/C21_*'),
+                    'docs/comparisons_data/C21_*', 'docs/comparisons_data/C24_*'),
          docs=('docs/COMPARISONS.md',), data='any',
          defaults={'--out': OUT, '--spec': NX}, spec_option='--spec',
          variations=(

@@ -4427,7 +4427,10 @@ error of joint_o4_e4 0.00407 → 0.00381, one join flagged per joint
 method); the C2/C3 error-model tables were made with the legacy patch
 before the joint fit became the default, so their σ now differ by up to
 21 % (compared numerically), which confounds the comparison they exist
-for. The gauntlet reproduces every committed row exactly. The C21 tables
+for. *Correction, later the same day (measured on the remade tables):* the
+error models' ratios hardly moved (Gaussian/legacy 0.861–1.002 before and
+after, Student t 0.893–1.004 → 0.893–1.005), so the comparison was not
+confounded; only its curves were out of date. The gauntlet reproduces every committed row exactly. The C21 tables
 have no generator in the repository. The window's "Compare all" gives the
 same comparison for one item.
 

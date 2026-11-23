@@ -113,6 +113,102 @@
    "note": "exp.gid([11], params=GIDParams(pinhole=True)).products(\"Q\"); NaN where the map has no data"
   },
   {
+   "file": "C21_gid_nx_S11_pinhole_exact_qxy.csv",
+   "comparison": "C21",
+   "method": "exact per-pixel angles (IMG_COO_CONV)",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(angles='exact')"
+  },
+  {
+   "file": "C21_gid_nx_S11_pinhole_exact_qz.csv",
+   "comparison": "C21",
+   "method": "exact per-pixel angles (IMG_COO_CONV)",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "GIDParams(angles='exact')"
+  },
+  {
+   "file": "C21_gid_nx_S11_pinhole_peraxis_qxy.csv",
+   "comparison": "C21",
+   "method": "per-axis angles (the method before 2026-11-19)",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(angles='per_axis')"
+  },
+  {
+   "file": "C21_gid_nx_S11_pinhole_peraxis_qz.csv",
+   "comparison": "C21",
+   "method": "per-axis angles (the method before 2026-11-19)",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "GIDParams(angles='per_axis')"
+  },
+  {
+   "file": "C24_gid_nx_S11_footprint_exact_qxy.csv",
+   "comparison": "C24",
+   "method": "footprint window exact (fully lit through S4; the default)",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(footprint='exact')"
+  },
+  {
+   "file": "C24_gid_nx_S11_footprint_exact_qz.csv",
+   "comparison": "C24",
+   "method": "footprint window exact (fully lit through S4; the default)",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "GIDParams(footprint='exact')"
+  },
+  {
+   "file": "C24_gid_nx_S11_footprint_idl_qxy.csv",
+   "comparison": "C24",
+   "method": "footprint window IDL's (centred on c0)",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(footprint='idl')"
+  },
+  {
+   "file": "C24_gid_nx_S11_footprint_idl_qz.csv",
+   "comparison": "C24",
+   "method": "footprint window IDL's (centred on c0)",
+   "data": "nx_S11 scans [11]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "GIDParams(footprint='idl')"
+  },
+  {
    "file": "C11_gid_nx_S11_pinhole_258mm_qxy.csv",
    "comparison": "C11",
    "method": "pinhole distance 258 mm",
@@ -223,6 +319,102 @@
    "note": "exp.gid([11, 12], params=GIDParams(pinhole=True)).products(\"Q\"); NaN where the map has no data"
   },
   {
+   "file": "C21_gid_nx_S11-12_pinhole_exact_qxy.csv",
+   "comparison": "C21",
+   "method": "exact per-pixel angles (IMG_COO_CONV)",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(angles='exact')"
+  },
+  {
+   "file": "C21_gid_nx_S11-12_pinhole_exact_qz.csv",
+   "comparison": "C21",
+   "method": "exact per-pixel angles (IMG_COO_CONV)",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "GIDParams(angles='exact')"
+  },
+  {
+   "file": "C21_gid_nx_S11-12_pinhole_peraxis_qxy.csv",
+   "comparison": "C21",
+   "method": "per-axis angles (the method before 2026-11-19)",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(angles='per_axis')"
+  },
+  {
+   "file": "C21_gid_nx_S11-12_pinhole_peraxis_qz.csv",
+   "comparison": "C21",
+   "method": "per-axis angles (the method before 2026-11-19)",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "GIDParams(angles='per_axis')"
+  },
+  {
+   "file": "C24_gid_nx_S11-12_footprint_exact_qxy.csv",
+   "comparison": "C24",
+   "method": "footprint window exact (fully lit through S4; the default)",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(footprint='exact')"
+  },
+  {
+   "file": "C24_gid_nx_S11-12_footprint_exact_qz.csv",
+   "comparison": "C24",
+   "method": "footprint window exact (fully lit through S4; the default)",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "GIDParams(footprint='exact')"
+  },
+  {
+   "file": "C24_gid_nx_S11-12_footprint_idl_qxy.csv",
+   "comparison": "C24",
+   "method": "footprint window IDL's (centred on c0)",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qxy (1/A)",
+    "I integrated over Qz",
+    "sigma"
+   ],
+   "note": "GIDParams(footprint='idl')"
+  },
+  {
+   "file": "C24_gid_nx_S11-12_footprint_idl_qz.csv",
+   "comparison": "C24",
+   "method": "footprint window IDL's (centred on c0)",
+   "data": "nx_S11-12 scans [11, 12]",
+   "columns": [
+    "Qz (1/A)",
+    "I integrated over Qxy",
+    "sigma"
+   ],
+   "note": "GIDParams(footprint='idl')"
+  },
+  {
    "file": "C11_gid_nx_S11-12_pinhole_258mm_qxy.csv",
    "comparison": "C11",
    "method": "pinhole distance 258 mm",
@@ -270,102 +462,6 @@
     "calibrated sigma (low Qz)"
    ],
    "note": "lss_core.absorbers.calibrated(10.0); step error from Foils.step(0, n)"
-  },
-  {
-   "file": "C21_gid_nx_S11-12_pinhole_exact_qxy.csv",
-   "comparison": "C21",
-   "method": "exact per-pixel angles (IMG_COO_CONV)",
-   "data": "NX school",
-   "columns": [
-    "Qxy (1/A)",
-    "I integrated over Qz",
-    "sigma"
-   ],
-   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
-  },
-  {
-   "file": "C21_gid_nx_S11-12_pinhole_exact_qz.csv",
-   "comparison": "C21",
-   "method": "exact per-pixel angles (IMG_COO_CONV)",
-   "data": "NX school",
-   "columns": [
-    "Qz (1/A)",
-    "I integrated over Qxy",
-    "sigma"
-   ],
-   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
-  },
-  {
-   "file": "C21_gid_nx_S11-12_pinhole_peraxis_qxy.csv",
-   "comparison": "C21",
-   "method": "per-axis angles (before 2026-11-19, commit 34c33c8)",
-   "data": "NX school",
-   "columns": [
-    "Qxy (1/A)",
-    "I integrated over Qz",
-    "sigma"
-   ],
-   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
-  },
-  {
-   "file": "C21_gid_nx_S11-12_pinhole_peraxis_qz.csv",
-   "comparison": "C21",
-   "method": "per-axis angles (before 2026-11-19, commit 34c33c8)",
-   "data": "NX school",
-   "columns": [
-    "Qz (1/A)",
-    "I integrated over Qxy",
-    "sigma"
-   ],
-   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
-  },
-  {
-   "file": "C21_gid_nx_S11_pinhole_exact_qxy.csv",
-   "comparison": "C21",
-   "method": "exact per-pixel angles (IMG_COO_CONV)",
-   "data": "NX school",
-   "columns": [
-    "Qxy (1/A)",
-    "I integrated over Qz",
-    "sigma"
-   ],
-   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
-  },
-  {
-   "file": "C21_gid_nx_S11_pinhole_exact_qz.csv",
-   "comparison": "C21",
-   "method": "exact per-pixel angles (IMG_COO_CONV)",
-   "data": "NX school",
-   "columns": [
-    "Qz (1/A)",
-    "I integrated over Qxy",
-    "sigma"
-   ],
-   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
-  },
-  {
-   "file": "C21_gid_nx_S11_pinhole_peraxis_qxy.csv",
-   "comparison": "C21",
-   "method": "per-axis angles (before 2026-11-19, commit 34c33c8)",
-   "data": "NX school",
-   "columns": [
-    "Qxy (1/A)",
-    "I integrated over Qz",
-    "sigma"
-   ],
-   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
-  },
-  {
-   "file": "C21_gid_nx_S11_pinhole_peraxis_qz.csv",
-   "comparison": "C21",
-   "method": "per-axis angles (before 2026-11-19, commit 34c33c8)",
-   "data": "NX school",
-   "columns": [
-    "Qz (1/A)",
-    "I integrated over Qxy",
-    "sigma"
-   ],
-   "note": "made once with the commit before the change (per axis) and after (exact); not by compare_methods.py"
   }
  ]
 }
