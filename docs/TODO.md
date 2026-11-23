@@ -107,7 +107,7 @@ working list, one table per area, each row with its source. Rows marked
 | ~~Workbook results tied to series id and scans used; stale flag when a series gains scans~~ **done 2026-11-22**: Saved gains series, series_kind, series_scans, series_status, recipe, stale; "Update Specfile" marks changed results | F66; review R3 |
 | Reopen a SPEC file with its workbook's settings | F66 |
 | The workbook and D1–D3 (config beside the SPEC file, read-only second instance, yellow light): record how they relate — **new** | D1–D3, D53 |
-| Dropped points as masks, undo | F16, D2 |
+| Dropped points as masks in the config file, "Restore all" in the patch dialog (owner, 2026-11-23: F92) | F16, D2, F92 |
 | Disk-cache settings dialog with the per-SPEC state — **new** in the Stage 3 list | Stage 2 list |
 
 **G. Fitting, burn tests, beam**
@@ -132,6 +132,8 @@ GUI overhaul (R4, D58; plan `docs/gui/README.md`), planning only until the owner
 
 | Item | Source |
 |---|---|
+| **Unblocked 2026-11-23** by the owner's answers (`docs/gui/questions.md`, Answers): 1–15 of the priority list are answered or part-answered. Ready to build: F74 residuals (weighted); removal of the Apex tab (move its colour map first), Beamlines menu, `peakfit2`/`peakfitpara`, Command line row; Quit and Help > Documentation; D59 for all panes; F85 status badges; F86 Reduction options page with Ctrl+click; F87 burn kind (Det_Th > 2°); movie at ≥ 3 frames with space/arrow keys, shared absorber-corrected scale, log/linear defaults (F69, Q8); F88 sticky display with Home/Fit all; greyed-out tool groups. Needs a decision first: F91 "Sum All" (an output change, row in OUTPUT_DECISIONS). Still blocked on data: per-point MCA / EXAFS (data request below), F90 gauntlet real spectra. Still open: Q-GEN, Q-GID, Q-CUTS, Q-IMG-7…16 and the rest of inventory B | owner 2026-11-23 |
+| Find what "GID Patch Relax" does that "GID Patch" does not (the question says: a larger Q grid) and write it as an option of the worksheet; then one "GID patch" with a worksheet/options button beside it and on the resulting patch tab (owner, 2026-11-23, Q-GID-5) | `docs/gui/questions.md` |
 | Phase 1a: inventory of every control and the workflow it serves; findings per tab (grouping, consistency, visual cues, missing functions); screenshots of every area; questions for the owner: **delivered 2026-11-22** (`docs/gui/assessment.md`, `questions.md`); waiting on the owner's answers (15 first) | D58 |
 | The workflow map, checked and rendered by a tool (burn tests, reflectivity, GID, XFNTR first, then EXAFS) | F67 |
 | ~~A test that runs the map's check, so the map cannot drift from the window~~ **done 2026-11-23**: `tests/test_gui_map.py` (quick suite, about 5 s) runs `gui_map.py --check --window`, which now also checks the other direction (every named control of the window is inventoried); AGENTS.md rule 11 asks for the entry | F67 |
@@ -670,6 +672,17 @@ reruns the quick, real-data and export-fixture checks, and commits.
       window? Open points on the 1M are listed under F17–F19. Owner, 2026-11-19: yes (F53).
 - [x] Bruker/Apex CCD is defunct (D8): no fix; remove the code later.
 - [x] Link sharing off on `bu.zip` (owner, 2026-11-19).
+- [ ] **Data request for Q-EXAFS-2 and F89/F90 (2026-11-23; owner: "tell me what example real data would answer it"):**
+      one SPEC file plus its folders for a single energy scan (`MCAscanpt escan_14`
+      or another `escan`) *and* one fluorescence burn (`ascan ih` with spectra),
+      with whatever MCA files sit beside them (the `vortex/` folder of per-point
+      files, `<date>_<scan>_mca`, if present). What answers the question is
+      whether the scan's block in the SPEC file has a `#V` line with spectra, or
+      only `mca_save_point Point:p Scan:s` entries and separate files. Also for
+      F90: one spectrum with a strong elastic peak and Compton shoulder beside a
+      weak line (the Zn 8637 eV at 10 keV excitation case) and a note of the
+      detector's energy calibration. Mark private files as such (they stay under
+      `sample_data/private/`).
 - [ ] Decide how sample data should be hosted (`bu` is 1.7 GB, local to the
       session only, git-ignored; NX school is committed at 104 MB).
 - [ ] Questions in `ASSESSMENT.md` sections 6 and 7 still open: reference

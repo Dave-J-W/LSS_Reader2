@@ -4439,3 +4439,54 @@ kept (409 by default) and every foil is within 0.4 µm of the default fit.
 **Invariant added:** I30 (a figure tool rerun on unchanged code and inputs
 gives its figures back pixel for pixel).
 
+### 2026-11-23 — GUI questions answered, batch 1 (15, 14, 11, 12, 13, 10, 7)
+
+Asked by the interview session from `docs/gui/questions.md`; answers verbatim
+in spirit, recorded beside the questions. Verified by: reading only (no code
+changed; these are decisions, not measurements).
+
+- **Q15 residuals:** weighted, (y − fit)/σ. Unblocks F74.
+- **Q14 removal:** Apex tab, Beamlines menu, unused `peakfit2`/`peakfitpara` dialogs and the Command line row may all go; Quit works; Help > Documentation opens `docs/SCRIPTING.md` until a manual exists.
+- **Q11 panes:** Messages and Errors follow the Script pane's rule (D59).
+- **Q12 badges:** yes, in the status bar; a preference with *on / on when not default / off* (F85).
+- **Q13 legacy paths:** all essential; chosen on a Reduction options page; Ctrl+click flips the legacy boolean for one action and prints a message (F86).
+- **Q10 burn kind:** Det_Th > 2° means GID; a macro role indicator is coming from the owner (F87).
+- **Q7 movie:** from 3 frames up; space pauses; arrows pause then step (up/back/left backward in time).
+
+No invariant changes. Open consequence for the figure agent: none.
+
+### 2026-11-23 — GUI questions answered, batch 2 (8, 9, 2, 5)
+
+Verified by: reading only; decisions, not measurements.
+
+- **Q8 image defaults:** accepted as proposed (log / linear by kind, 99.9th-percentile top with the direct beam masked, per monitor and absorber-corrected).
+- **Q9 sticky:** everything sticky across redraws, scans and sessions, reset only by a new SPEC file; Home and Fit all on every axis (F88).
+- **Q2 fluorescence burns:** the burn trend of fitted fluorescence line areas per Monc (F89).
+- **Q5 XFNTR:** fitted lines by default, from the element; the sum retires if a gauntlet against Rayleigh and Compton scatter (Zn Kα 8637 eV at 10 keV) passes; real data offered by the owner (F90).
+
+**Physics to check when F90 is built:** Zn Kα (8.637 keV) sits below a 10 keV excitation, so the elastic (Rayleigh) peak at 10 keV and its Compton shoulder (10 keV minus 0 to about 0.38 keV, the maximum at 180°; shift ΔE ≈ E²(1−cosθ)/(m_ec² + E(1−cosθ)), Compton 1923, doi:10.1103/PhysRev.21.483) lie 1.4 keV from the line: the detector resolution (about 150–250 eV FWHM for a silicon drift detector) and its tail determine the risk. Not yet measured.
+
+### 2026-11-23 — GUI questions answered, batch 3 (6, 4, EXAFS-2)
+
+Verified by: reading only.
+
+- **Q6 EXAFS:** low priority; Athena/Larch spline above the edge and the usual k-weighted EXAFS plot, hosted in a "process EXAFS" dialog; also an energy-axis line-intensity file, dead-time and absorber corrections, μ(E) normalisation and edge step. Reference for the method: Newville, *J. Synchrotron Rad.* 8, 322 (2001), doi:10.1107/S0909049500016964 (Larch/Athena's background removal, AUTOBK: Newville et al., *Phys. Rev. B* 47, 14126 (1993), doi:10.1103/PhysRevB.47.14126), cited from memory.
+- **Q-REF-2 joins:** the owner looks at every join; a bad join with good statistics usually means sample damage. Design consequence: suspect joins are flagged and stay reviewable; no silent auto-accept.
+- **Q-EXAFS-2:** unanswered; the owner asked what data would answer it; the request is in `TODO.md`.
+
+### 2026-11-23 — GUI questions answered, batch 4 (Q-UI-A3, A10, A5–A8, Q-IMG-4)
+
+Verified by: reading `mainwindow.py` (the current averaging); nothing run.
+
+- **"Sum All":** sum counts, sum monitors, normalise once (F91). Statistically, for Poisson counts N_i with monitors M_i the pooled rate ΣN/ΣM is the maximum-likelihood rate when the true rate is common, whereas the mean of N_i/M_i weights low-monitor frames too heavily. Invariant to check when built: for equal monitors the new and old values are identical; the sum of the counts is conserved.
+- **Greying out** tool groups that do not fit the series kind, with tooltips.
+- **GIOXS, 2D_Plot, Calculations, background block:** all stay; each needs more thought.
+- **Movie colour scale:** shared, absorber-corrected, per monitor.
+
+### 2026-11-23 — GUI questions answered, batch 5 (Q-IMG-11, 8, 14, 15; Q-GID-1, 5)
+
+Verified by: reading only. Default cuts by kind accepted; nearest-pixel and viridis/magma defaults; the GID map gets its own cached view; GID Patch Relax becomes an option beside the worksheet. **Follow-up for a coding session (not done here):** read what "GID Patch Relax" does differently from "GID Patch" (the larger Q grid, per Q-GID-5's "why") and state it as one option.
+
+### 2026-11-23 — GUI questions answered, batch 6 (elements, dropped points) and merge permission
+
+Verified by: reading only. Elements: dropdown or autocompleting text box (F93). Dropped points: a mask in the config file plus "Restore all" in the patch dialog (F92), closing the open part of Q-REF-2 and D2. The owner also granted standing permission to pull and merge into `main`.
