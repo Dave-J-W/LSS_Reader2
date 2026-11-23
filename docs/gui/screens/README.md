@@ -6,7 +6,7 @@ and synthetic data from `tests/synth.py` for MCA / fluorescence, the reflectivit
 (NX has no MCA data). Regenerate the whole folder with the command above; the table is rewritten, the
 Observations section is by hand and is kept.
 
-75 images, 5.7 MB, last run took 54 s.
+73 images, 5.7 MB, last run took 46 s.
 
 | File | What it shows | Data and state |
 |---|---|---|
@@ -19,7 +19,6 @@ Observations section is by hand and is kept.
 | `12_specplot_tab_crop.png` | SpecPlot tab page: controls and plot | Scan 4 selected |
 | `13_specplot_two_scans.png` | SpecPlot with two scans selected (legend, N-scan controls) | Scans 4 and 5 selected |
 | `13b_specplot_beam_off_scan.png` | SpecPlot of scan 1 (a motor scan with the beam off) | Scan 1 selected |
-| `14_apex_tab.png` | The Apex tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget; the Apex (Bruker CCD) tab, defunct |
 | `20_pilatus_empty.png` | The Pilatus tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |
 | `20_pilatus_scan_selected_no_frames.png` | Pilatus tab, whole window: a scan with images selected, no frame selected yet | Scan 11 (ascan dth, 40 frames) selected, no frame selected |
 | `21_pilatus_one_frame.png` | Pilatus tab, whole window, one frame | Scan 11, frame 1 selected |
@@ -79,7 +78,6 @@ Observations section is by hand and is kept.
 | `97_pane_script.png` | Script pane (bottom dock) | After the reductions run in this session (the script records them) |
 | `98_pane_errors_legacy.png` | Errors pane (bottom dock), Legacy error model | Defaults |
 | `98b_pane_errors_budget.png` | Errors pane (bottom dock), Budget error model (extra monitor controls appear) | Errors combo set to Budget |
-| `99_menu_beamlines.png` | Menu bar > Beamlines menu | Menu popped up offscreen |
 | `99_menu_calculations.png` | Menu bar > Calculations menu | Menu popped up offscreen |
 | `99_menu_file.png` | Menu bar > File menu | Menu popped up offscreen |
 | `99_menu_help.png` | Menu bar > Help menu | Menu popped up offscreen |
@@ -89,7 +87,6 @@ Observations section is by hand and is kept.
 ### Menus (item lists, from the actions of each menu)
 
 - **File**: Open Spec File, Preferences..., Quit
-- **Beamlines**: APS-15IDC, APS-9IDC
 - **Calculations**: g_l2, g_l3, abs ratio
 - **Tools**: All tools…, -, Burn tests, Reflectivity patching, GID and pinhole geometry, Monitor, scans, SPEC files, Synthetic data sets, The reader's window and manual, Made elsewhere
 - **Help**: Documentation, About
@@ -102,8 +99,8 @@ fonts), where font metrics may differ a little from the owner's desktop.
 
 **Window**
 - Minimum width is about 2266 px (`minimumSizeHint`); on a laptop screen the window cannot be shown whole.
-- The Apex (Bruker CCD) tab is hidden by `setTabVisible(1, False)` (mainwindow.py:143) but still exists with its controls
-  (Reflectivity, Line/Area Cuts, axes, cmap, cut direction); `14_apex_tab.png` shows what is behind it. Defunct.
+- The Apex (Bruker CCD) tab was hidden by `setTabVisible(1, False)` but still existed with its controls (Reflectivity,
+  Line/Area Cuts, axes, cmap, cut direction). **Removed 2026-11-23** (owner, Q14), with `14_apex_tab.png`.
 - The status bar is a single thin line; the bottom dock has tabs Messages / Script, and Errors only once its View entry is ticked.
 - The Script pane, once shown, holds mostly empty space; the two header lines are all it shows before a reduction.
 
@@ -145,7 +142,7 @@ fonts), where font metrics may differ a little from the owner's desktop.
 
 **Dialogs, panes, menus (`9x`)**
 - The absorber-ratio dialog could not be captured (no scan with an Absorber scan variable in NX or in the synthetic sets).
-- Menus have few entries: File (Open Spec File, Preferences, Quit), Beamlines (two checkable entries), Calculations (g_l2, g_l3, abs ratio: three lowercase names), Help, View (panes). Everything else is in the tab strips.
+- Menus have few entries: File (Open Spec File, Preferences, Quit), Beamlines (two checkable entries; **removed 2026-11-23**, owner Q14, with the Command line row), Calculations (g_l2, g_l3, abs ratio: three lowercase names), Help, View (panes). Everything else is in the tab strips.
 
 **Reruns (2026-11-23)**
 - The tool's working folders now have fixed names (`<tmp>/lss_screens/...`): their random names appeared in plot titles, legends and the status bar and changed 11 otherwise identical images on every rerun. Between two reruns only `50b_*`, `91_*` (the Messages strip's clock time) and `96_*` (message timestamps) still differ.
