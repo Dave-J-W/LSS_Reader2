@@ -1590,7 +1590,8 @@ class MainWindow (QMainWindow):
                 self.peakCenter=self.peakPos
                 self.peakFWHM='0'
         self.specPlotSettings()
-        self.ui.statusBar.showMessage('Done')
+        if not getattr(self,'specLogKept',''):          # keep the note about a log axis left linear
+            self.ui.statusBar.showMessage('Done')
         
     def specSaveData(self):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
@@ -1642,10 +1643,28 @@ class MainWindow (QMainWindow):
         else:
             self.ui.specPlotMplWidget.canvas.ax.set_ylabel(str(self.ui.spYComboBox.currentText())+' and '+str(self.ui.spY2ComboBox.currentText()))
         self.ui.specPlotMplWidget.canvas.ax.grid(visible=False)
-        if self.spLogX!=0:
-            self.ui.specPlotMplWidget.canvas.ax.set_xscale('log')
-        if self.spLogY!=0:
-            self.ui.specPlotMplWidget.canvas.ax.set_yscale('log')
+        # a log axis needs a finite positive value to show: without one (all <= 0,
+        # or inf after dividing by a zero monitor) matplotlib's log locator raised
+        # while drawing (found by the sweep's random walk, 2026-11-23); such an
+        # axis stays linear, with a note in the status bar
+        ax=self.ui.specPlotMplWidget.canvas.ax
+
+        def positive(get):
+            for l in ax.lines:
+                v=np.asarray(get(l),dtype=float)
+                if np.any(np.isfinite(v)&(v>0)):
+                    return True
+            return False
+        logx=self.spLogX!=0 and positive(lambda l: l.get_xdata())
+        logy=self.spLogY!=0 and positive(lambda l: l.get_ydata())
+        if logx:
+            ax.set_xscale('log')
+        if logy:
+            ax.set_yscale('log')
+        kept=[n for n,want,got in (('x',self.spLogX!=0,logx),('y',self.spLogY!=0,logy)) if want and not got]
+        self.specLogKept=('Log %s: nothing positive to show, kept linear' % ' and '.join(kept)) if kept else ''
+        if kept:
+            self.ui.statusBar.showMessage(self.specLogKept,8000)
         if self.spGrid!=0:
             self.ui.specPlotMplWidget.canvas.ax.grid(visible=True,color='r',linestyle='--')
         # point labels where the point cannot be drawn (not finite, or <= 0 on a
@@ -1654,7 +1673,7 @@ class MainWindow (QMainWindow):
         for t in self.ui.specPlotMplWidget.canvas.ax.texts:
             px,py=(float(v) for v in t.get_position())
             t.set_visible(bool(np.isfinite(px) and np.isfinite(py)
-                               and (self.spLogX==0 or px>0) and (self.spLogY==0 or py>0)))
+                               and (not logx or px>0) and (not logy or py>0)))
         if self.ui.spLegendCheckBox.checkState()!=0:
             self.ui.specPlotMplWidget.canvas.ax.legend(loc=self.ui.spLegendLocComboBox.currentIndex()+1,frameon=False,scatterpoints=0,numpoints=1)
         self.ui.specPlotMplWidget.canvas.draw()
@@ -3301,6 +3320,22 @@ class MainWindow (QMainWindow):
             self.updatePilPlotData()
 
             
+    def typedPilGeometry(self):
+        """(distance, x centre, y centre) per selected frame from the typed
+        fields (SPEC box unticked), or None after one message when they do
+        not read as numbers: an empty field raised ValueError (found by the
+        sweep's random walk, 2026-11-23). The callers then use the SPEC
+        values for that redraw; the fields are left as typed."""
+        try:
+            d=float(self.ui.pilSDDistLineEdit.text())
+            t=self.ui.pilDBPosLineEdit.text().split(',')
+            x,y=float(t[0]),float(t[-1])
+        except (ValueError,IndexError):
+            self.notify('Distance or direct-beam position is not a number: the SPEC values are used.')
+            return None
+        one=np.ones_like(self.selectedPilFramesNums)
+        return d*one,x*one,y*one
+
     def updatePilPlotData(self):
         aspect=str(self.ui.pilAspectComboBox.currentText())
         if self.pilGIDshow==0 and self.pilGISAXSshow==0 and len(self.selectedPilFramesNums)!=0:
@@ -3341,9 +3376,13 @@ class MainWindow (QMainWindow):
                 except:
                     pass
             else:   #if this CB is unchecked, use input value   
-                self.distance=float(self.ui.pilSDDistLineEdit.text())*np.ones_like(self.selectedPilFramesNums)
-                self.xcenter=float(self.ui.pilDBPosLineEdit.text().split(',')[0])*np.ones_like(self.selectedPilFramesNums)
-                self.ycenter=float(self.ui.pilDBPosLineEdit.text().split(',')[-1])*np.ones_like(self.selectedPilFramesNums)
+                typed=self.typedPilGeometry()
+                if typed is not None:
+                    self.distance,self.xcenter,self.ycenter=typed
+                else:                                       # the SPEC values, as with the box ticked
+                    self.distance=np.array(self.pilSelected_Dist)
+                    self.xcenter=np.array(pilXMax[0]-self.pilSelectedX)
+                    self.ycenter=np.array(self.pilSelectedY)
                 #self.ui.pilSDDistLineEdit.setText(str(self.pilSelected_Dist[0]))
                 #self.ui.pilDBPosLineEdit.setText(str(self.pilSelectedX[0])+','+str(self.pilSelectedY[0]))
                 #if self.ui.pilPinholeCheckBox.checkState()!=0:
@@ -4080,9 +4119,13 @@ class MainWindow (QMainWindow):
                 except:
                     pass
             else:  # if this CB is unchecked, use input value
-                self.distance = float(self.ui.pilSDDistLineEdit.text()) * np.ones_like(self.selectedPilFramesNums)
-                self.xcenter = float(self.ui.pilDBPosLineEdit.text().split(',')[0]) * np.ones_like(self.selectedPilFramesNums)
-                self.ycenter = float(self.ui.pilDBPosLineEdit.text().split(',')[-1]) * np.ones_like(self.selectedPilFramesNums)
+                typed = self.typedPilGeometry()
+                if typed is not None:
+                    self.distance, self.xcenter, self.ycenter = typed
+                else:                                       # the SPEC values, as with the box ticked
+                    self.distance = np.array(self.pilSelected_Dist)
+                    self.xcenter = np.array(self.pilatus.NCOLS - self.pilSelectedX)
+                    self.ycenter = np.array(self.pilSelectedY)
             self.ui.pilMplWidget.canvas.fig.clf()
             cmap = str(self.ui.pilCMapComboBox.currentText())
             vmax = float(self.ui.pilMaxLineEdit.text())
@@ -5187,12 +5230,14 @@ class MainWindow (QMainWindow):
                 self.ax[1].set_ylabel('w/o Corr')
                 self.ax[1].format_coord=self.format_coord_ref
             else:
-                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], self.pilatus.bgucen-slit[0], self.pilatus.bgdcen+slit[0]+1]
+                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], max(0,self.pilatus.bgucen-slit[0]), self.pilatus.bgdcen+slit[0]+1]
                 self.ax[1]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(1,2,1)            
-                self.vmax=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
+                # the region shown: the vertical background's centres (bglcen/bgrcen are the horizontal
+                # one's, set only for 'H': AttributeError or a stale region; 2026-11-23)
+                self.vmax=np.max(self.pilatus.imageData[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1])
                 #self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
                 self.refZdata=self.pilatus.imageData
-                p=self.ax[1].imshow(self.pilatus.imageROI[self.pilatus.bgucen-slit[0]:self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
+                p=self.ax[1].imshow(self.pilatus.imageROI[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
                 self.ax[1].set_ylabel('w/o Corr')
                 self.ax[1].format_coord=self.format_coord_ref
             self.ui.refADDataPlotWidget.canvas.fig.colorbar(p)
@@ -5238,12 +5283,14 @@ class MainWindow (QMainWindow):
                 self.ax[2].set_ylabel('w Corr')
                 self.ax[2].format_coord=self.format_coord_ref
             else:
-                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], self.pilatus.bgucen-slit[0], self.pilatus.bgdcen+slit[0]+1]
+                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], max(0,self.pilatus.bgucen-slit[0]), self.pilatus.bgdcen+slit[0]+1]
                 self.ax[2]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(1,2,2)            
-                self.vmax=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
+                # the region shown: the vertical background's centres (bglcen/bgrcen are the horizontal
+                # one's, set only for 'H': AttributeError or a stale region; 2026-11-23)
+                self.vmax=np.max(self.pilatus.imageData[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1])
                 #self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
                 self.refZdata=self.pilatus.imageData
-                p=self.ax[2].imshow(self.pilatus.imageROI[self.pilatus.bgucen-slit[0]:self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
+                p=self.ax[2].imshow(self.pilatus.imageROI[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
                 self.ax[2].set_ylabel('w Corr')
                 self.ax[2].format_coord=self.format_coord_ref
         self.ui.refADDataPlotWidget.canvas.fig.colorbar(p)
