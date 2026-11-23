@@ -69,6 +69,7 @@ container on 2026-11-23 with the defaults shown.
 | [Gaussian beam vs uniform footprint](#pinhole-beam-profile) | text | What a Gaussian beam does to the pinhole patch, which assumes a uniform footprint: the column response it predicts and the bias left in a map. | public (NX school or committed tables) | 11 s | — |
 | [Stray light in pinhole GID frames](#gid-stray-light) | figures | β profiles of column bands inside and outside the usable window, per Qz level: light that cannot have come from the footprint through the pinhole (P40). | NX school by default; any SPEC file | 3 s | `docs/figures/gid_stray_light` |
 | [Single frames as ground truth](#single-frame-truth) | text | Each unpatched frame already puts the Bragg peak at its 2θ: frames must agree, and the patched map must give back their centre and width; the S4-detector distance that makes them agree. | NX school by default; any SPEC file | 74 s | — |
+| [GID movie on one 2θ axis](#gid-movie) | figures | GID frames played on a common 2θ axis with the zoom and the colour scale fixed: a real Bragg peak stands still while the detector window and anything fixed on it slide (M7, F69). | NX school by default; any SPEC file | 7 s | `docs/figures/gid_movie` |
 | [GID patching methods (survey)](#gid-method-survey) | data | Every GID patching method on every GID set of SPEC files: frames-agree χ², distance calibration, single frames against patches, scale recovery. | NX school by default; any SPEC file |  | `docs/comparisons_data/gid_survey_nx` |
 
 ### Monitor, scans, SPEC files
@@ -456,6 +457,27 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Fine distance scan | Distances 260-272 mm in 1 mm steps around the calibrated 265 mm. | `docs/manual/gid_patching.md:388` | `python tests/tools/single_frame_truth.py --scans 11 --peak 16.63 --distances 260:273:1` |
+
+<a id="gid-movie"></a>
+
+### GID movie on one 2θ axis
+
+GID frames played on a common 2θ axis with the zoom and the colour scale fixed: a real Bragg peak stands still while the detector window and anything fixed on it slide (M7, F69).
+
+- Menu: Tools > GID and pinhole geometry; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/gid_movie.py`
+- Explained in: `docs/figures/gid_movie/README.md`, `docs/gui/image_display.md:313`
+- Committed products: `docs/figures/gid_movie`; replaced from the window with the settings that made them
+- Run:
+
+      python tests/tools/gid_movie.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Also on detector pixels | The opposite view: the peak walks across the columns, detector-fixed features stay put. | `docs/gui/image_display.md:320` | `python tests/tools/gid_movie.py --out '{out}' --pixels` |
+| Zoomed on the peak | The zoom held in angle while the frames play (no change of zoom or colour between frames). | `docs/gui/image_display.md:324` | `python tests/tools/gid_movie.py --out '{out}' --window 15.5,18 --beta=-0.5,3` |
+| Calibrated S4-detector distance | At 265.7 mm the peak stands stiller: the drift with Det_Th (+0.018 °/° at the header 271 mm) vanishes. | `docs/manual/gid_patching.md:417` | `python tests/tools/gid_movie.py --out '{out}' --pinhole-mm 265.7` |
 
 <a id="gid-method-survey"></a>
 

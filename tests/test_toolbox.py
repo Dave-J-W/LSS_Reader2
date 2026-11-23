@@ -260,6 +260,8 @@ def test_build_args():
     with pytest.raises(KeyError):
         runner.values_from(spec, {'--nope': 1})
     assert runner.build_args({'actions': []}, {}, '/r', free='a "b c" {out}') == ['a', 'b c', '/r']
+    # a value starting with '-' goes as --opt=value (argparse would read it as an option)
+    assert runner.build_args(spec, {'--seeds': '-3'}, None) == ['--seeds=-3']
 
 
 def test_a_run_writes_its_record_and_output(parsers, tmp_path):

@@ -138,7 +138,10 @@ def build_args(spec, values, out_dir, free=''):
             for it in items:
                 args += [key, it]
         else:
-            args += [key] + items
+            if len(items) == 1 and items[0].startswith('-') and key.startswith('--'):
+                args.append('%s=%s' % (key, items[0]))      # '--beta=-0.5,3': argparse reads '-0.5,3' as an option
+            else:
+                args += [key] + items
     if free:
         positional += shlex.split(free.replace(OUT, out_dir or ''))
     head = [spec['command']] if spec.get('command') else []

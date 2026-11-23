@@ -383,6 +383,23 @@ TOOLS = (
                'docs/manual/gid_patching.md:388', distances='260:273:1'),
          ),
          inputs=(NX,), seconds=74.3),
+    Tool('gid_movie', 'GID movie on one 2θ axis', 'gid', 'figures',
+         'tests/tools/gid_movie.py',
+         'GID frames played on a common 2θ axis with the zoom and the colour scale fixed: a real Bragg peak '
+         'stands still while the detector window and anything fixed on it slide (M7, F69).',
+         committed=('docs/figures/gid_movie',),
+         docs=('docs/figures/gid_movie/README.md', 'docs/gui/image_display.md:313'), data='any',
+         defaults={'--out': OUT}, spec_option='--spec',
+         variations=(
+             V('Also on detector pixels', 'The opposite view: the peak walks across the columns, detector-fixed '
+               'features stay put.', 'docs/gui/image_display.md:320', pixels=True),
+             V('Zoomed on the peak', 'The zoom held in angle while the frames play (no change of zoom or colour '
+               'between frames).', 'docs/gui/image_display.md:324', window='15.5,18', beta='-0.5,3'),
+             V('Calibrated S4-detector distance', 'At 265.7 mm the peak stands stiller: the drift with Det_Th '
+               '(+0.018 °/° at the header 271 mm) vanishes.', 'docs/manual/gid_patching.md:417',
+               pinhole_mm='265.7'),
+         ),
+         inputs=(NX,), seconds=6.8),
     Tool('gid_method_survey', 'GID patching methods (survey)', 'gid', 'data',
          'tests/tools/gid_method_survey.py',
          'Every GID patching method on every GID set of SPEC files: frames-agree χ², distance calibration, '
