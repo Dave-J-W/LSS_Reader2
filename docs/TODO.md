@@ -306,6 +306,22 @@ lines, `Tstart`/`Tend`, `#V` flag, Pilatus + Vortex header, gas conditions
 and dark rate, photons-in, half-cuts and an sh scan beside each GID level,
 `#A` always written; `getandsave_mca` `#A`/gain low priority).
 
+**L. Hard-coded and fragile assumptions — new 2026-11-23** (the owner asked for "column position lookups or similar hard-coded and fragile issues"; physics_notes 2026-11-23, "the fragility audit"). M measured, R read only.
+
+| Assumption | What breaks | Evidence | Fix |
+|---|---|---|---|
+| Every data row of a scan has as many numbers as `#L` has labels | one half-written last line (a file SPEC is still writing, i.e. live updates) loses **every column** of that scan | M: synthetic, the last line cut to two numbers → no columns | drop a short last row with a note; check widths per row (`spec_routines.py`) |
+| The header's `In_Rot` is each frame's incidence | β of reflectivity frames (cuts, GISAXS) | M: P47 | P47 |
+| A frame's scan and frame numbers are read back from the list's text (`imageListWidget` 13 places, `scanListWidget` `split()[1]` 8, the Ref Qz list) | any change of the displayed text (the GUI overhaul) breaks frame and scan lookups silently | R | keep them as item data (`Qt.UserRole`); GUI manager |
+| Pilatus 100K sizes: default cut ranges `0:485`, `0:194`; GID last row 486; columns spin box max 195; 0.172 mm written 22 times in `mainwindow.py` (one constant exists, `cuts.PIXEL_MM`) | defaults and limits wrong for the 1M (area H) | R | from `pilatus.NROWS`/`NCOLS` and one pixel constant |
+| File names cut at `/` (`specFileName.split('/')[-1]` makes the image and MCA prefixes) | a path with backslashes (Windows, `os.path`) gives a wrong prefix: no images; plot-file legends show the whole path | R | `os.path.basename` |
+| `#B0` file extension from `split('.')[1]` | a SPEC name with a dot (`run.v2`) hides the scan's images (detector read as "Monitor") | M: synthetic | `os.path.splitext` |
+| `#L` labels split on any space, no count check | right for these macros (NX writes "PSD Seconds" with one space; its rows have 18 values); a label with a space (standard SPEC, "Two Theta") shifts every later column by one silently | M: NX labels vs row widths | compare label and row counts, say so |
+| Motor names as the macro truncates them to 8 characters (`Two_Thet`, `Sample_T`; the code looks up `Two_Thet`); `#O` full names unused | a macro writing full names breaks the lookups | R; NX headers | map `#P` to `#O` names, accept both |
+| `#A` and the `Absorber` motor of `#P4` both set the absorber; the later line wins (`#A`, in NX) | a macro writing `#A` first would make the motor's value win | R; NX order | prefer `#A` explicitly |
+| SpecPlot's default x: column 2 (L) whenever the first column is H; default y: the last column | an hklscan along H or K is plotted against a constant L | R | the column that varies, or the `#S` command |
+| L is Qz in Å⁻¹, H is Qx (the beamline's SPEC lattice) | a changed lattice scales every Qz silently | M: NX scan 11, L = 4π sin(In_Rot)/λ to 0.06 % | document; check at load on fixed-α scans |
+
 **K. Questions for the owner in one batch — new**: P10–P12, P19, P35
 ("may be intended" behaviours never put to the owner), P21 (dark offset),
 the open assumptions in `OUTPUT_DECISIONS.md`, and F41 (to the hand-off

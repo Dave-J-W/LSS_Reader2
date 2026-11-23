@@ -4678,3 +4678,68 @@ the gauntlet, C36) is dropped.
 Verified by tests (I32; `test_monc_normalised.py`,
 `test_gisaxs_display.py`) and measured (the table above). That the
 display, GISAXS and SpecPlot were raw before is from reading the code.
+
+### 2026-11-23 — The fragility audit: column positions and other hard-coded assumptions
+
+**Question (owner), after the SpecPlot normaliser turned out to be "the
+column before the last":** "any other column position lookups or similar
+hard-coded and fragile issues in the code?"
+
+**Answer.** The full list, with fixes, is in `TODO.md` area L. Ranked by
+harm:
+
+1. **A half-written last data line loses the whole scan.** Every data row
+   of a scan must have as many numbers as `#L` has labels. If the last
+   line is cut short, every column of that scan becomes None. This
+   happens whenever SPEC is still writing the file, which is exactly the
+   live-update case.
+   - Measured: a synthetic file with its last line cut after two numbers
+     reads as a scan with no columns.
+2. **Stale incidence angle (P47).** The incidence angle of every frame is
+   the scan header's `In_Rot`, which is written before the scan moves.
+   For specular hklscans that is wrong for every frame.
+   - Measured on NX school scan 6: the header gives 0.0906°, while α from
+     L runs 0.0989–0.2261°.
+   - So the specular pixel's β comes out as 0.107–0.362° instead of
+     equal to α. In scan 7 it comes out as up to 0.947° instead of
+     0.565°.
+   - This affects cut axes and GISAXS of such frames, not the Ref Patch
+     sums. GID (dth) scans are right.
+3. **Data read back from list text.** Frame and scan numbers are parsed
+   from the text of the list widgets: 13 places in the image list, 8 in
+   the scan list, and the Ref Qz list. Any change to the displayed text
+   in the GUI overhaul breaks them silently. (Read only.)
+4. **Pilatus 100K sizes are hard-coded.** The default cut ranges are
+   0:485 and 0:194, the last GID row is 486, the column spin box stops at
+   195, and 0.172 mm is written 22 times in `mainwindow.py`. All of this
+   is wrong for the 1M. (Read only.)
+5. **Path and name parsing.**
+   - Image and MCA file prefixes are made with `split('/')`, so a path
+     with backslashes (Windows) gives the wrong prefix. (Read only.)
+   - The `#B0` extension check fails for a SPEC name containing a dot,
+     and the scan is then read as a monitor scan without images.
+     (Measured.)
+6. **Fragile but right for the current macros.**
+   - **`#L` labels are split on any space, with no count check.** NX
+     writes "PSD Seconds" with a single space, and its rows do have 18
+     values, so the split is right. A label with a space would shift
+     every later column silently. (Measured on NX.)
+   - **Motor names are the macro's 8-character truncations**
+     (`Two_Thet`, `Sample_T`), and the full names in `#O` are unused.
+     (Read; NX headers.)
+   - **`#A` and the `Absorber` motor both set the absorber**, and the
+     later line wins; in NX that is `#A`. (Read; NX order.)
+   - **SpecPlot's default x is column 2 (L) for every hklscan**, and its
+     default y is the last column. (Read only.)
+   - **L is taken as Qz in Å⁻¹, and H as Qx.** This holds for the
+     beamline's SPEC lattice: on NX scan 11 (fixed α), L = 4π sin(In_Rot)/λ
+     to 0.06 %. A changed lattice would scale every Qz silently. (Measured
+     on one scan.)
+
+One worry was checked and dropped: `#P10` and later motor lines. The
+parser's `line[4:]` handles indices up to 99. (Tested on a synthetic
+header.)
+
+Verified as marked: items marked measured were run on NX school or on
+synthetic files today; the rest come from reading the code. None is
+fixed yet. The first two change results; the rest are latent.
