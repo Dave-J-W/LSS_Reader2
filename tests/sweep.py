@@ -128,15 +128,7 @@ def controls(w):
         if isinstance(b, (QtWidgets.QCheckBox, QtWidgets.QRadioButton)):
             out['toggle:' + name] = b.toggle
         elif isinstance(b, QtWidgets.QPushButton):
-            if b.menu() is not None:
-                # a button with a popup menu (the ngui prototype's provenance
-                # strip): click() runs the menu's own event loop, which nothing
-                # closes offscreen, so the walk hung (found 2026-11-23). The key
-                # stays (a no-op), so that random walks draw what they drew
-                # before; the menu's actions are QActions, triggered as such
-                out['click:' + name] = lambda: None
-                continue
-            out['click:' + name] = b.click
+            out['click:' + name] = b.click   # a button's popup menu is closed at once by the recorder (#9)
     for a in w.findChildren(QtWidgets.QAction):
         name = a.objectName()
         if not name or any(s in name.lower() or s in a.text().lower()
@@ -338,10 +330,7 @@ def run_walk(make_window, app, recorder, spec, state, seed, steps):
     recorder.exceptions.clear()
     raised = []
     for step in range(steps):
-        # the Tools menu's actions (lss_toolbox) open a separate window and are
-        # covered by the per-state sweep and test_toolbox_gui.py; leaving them
-        # out keeps each seed's walk what it was before the menu (2026-11-23)
-        pool = {k: f for k, f in controls(w).items() if not k.startswith('action:actionTool')}
+        pool = dict(controls(w))
         for d in _visible_dialogs(w):
             pool.update(('dlg:' + k, f) for k, f in controls(d).items())
         # list selections are part of "whichever files are selected"
