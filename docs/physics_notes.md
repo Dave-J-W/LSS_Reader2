@@ -4035,3 +4035,49 @@ the calibration 30 → 6.6 s (the rest is the 818 peak fits). Every pinhole
 and GID test passes, real-data references included. Verified: measured
 and tested (C38). The bisection stays in the code as the reference
 (`_column_at_source_bisection`).
+
+### 2026-11-23 — Keeping cloud sessions fast, so that agents need not manage testing
+
+**Owner:** "Looks like you're the speedup testing agent now. Start from
+scratch and figure out how to keep these cloud sessions running fast and
+freely, so agents don't need to manage testing." (The first test-speed
+agent stopped when its credits ran out, with nothing pushed; entry above.)
+
+**Measured first** (a 4-CPU, 16 GB cloud container; `pytest --durations`,
+a sampler of memory and /tmp every 5 s). The quick suite took 9 min 44 s
+in one process, grew to about 10 GB, and left 1.2 GB and 121 folders in
+/tmp; the real-data suite about 25 min; the crash sweep about 3 h. A
+fresh session also lacks PyQt5, matplotlib, SciPy, lmfit and sympy
+(installing them takes about 10 s).
+
+**Causes found, and what was done** (one commit each, every one tested):
+- Every test's window stayed in memory (about 110 MB each with data):
+  `close()` + `deleteLater()` never deletes it without an event loop, and
+  the window's own signal connections keep its Python side alive.
+  `conftest.free_windows` runs after every Qt test (collections made cheap
+  by `gc.freeze()`); the image cache is capped at 512 MB per test process.
+- Disk: `tmp_path` kept only for failing tests and only from the latest
+  run; the temporary folders conftest and the sweep make are removed.
+- One process: `pytest-xdist` is in the dev requirements, and a plain
+  `pytest` runs on one worker per CPU (at most one per 2 GB available),
+  except benchmarks and baseline regeneration. A first version made each
+  worker start workers of its own until the container ran out of memory;
+  workers now never take the default.
+- The program itself was slow in two places the tests exercised: the box
+  fit on every motor-scan plot (9.5 s; now capped, and flat or weak scans
+  not fitted at all, at the owner's word) and the pinhole footprint window
+  (a bisection, now closed form; entries above).
+
+**Result** (measured, same container): quick suite ~2 min (761 tests),
+peak 3.4 GB over four workers, nothing left behind; real-data suite
+~4 min; crash sweep ~20 min (193 tests: each state now shared by 8
+tests, so that workers finish together; 24 min as 18 tests, about 3 h in
+one process). Agents run the quick and real-data suites in the
+foreground with a plain command (a session's foreground command may run
+10 min) and start the sweep in the background; AGENTS.md and TESTING.md
+say so. Three real-data tests that
+fail on main since 2026-11-22 were found and bisected (TODO area I).
+
+**Left to the owner:** the cloud environment's setup script should run
+`cd LSS_Reader2 && pip install -r requirements-dev.txt`, so that a new
+session can test at once.

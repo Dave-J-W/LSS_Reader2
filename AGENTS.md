@@ -59,13 +59,17 @@ Application code may now be changed, under these conditions:
 
 ## Commands
 
-    pip install -r requirements-dev.txt
-    pytest                 # fast suite, ~10 min; run before every commit
-    pytest -m slow         # real-data regressions, ~25 min
+    pip install -r requirements-dev.txt   # a fresh cloud session lacks PyQt5 etc.: ~10 s
+    pytest                 # fast suite, ~2 min; run before every commit
+    pytest -m slow         # real-data regressions, ~4 min
     pytest -m bench -s     # rewrites docs/timings.md
-    pytest -m sweep        # crash inventory, ~3 h (shards: docs/TESTING.md); run after GUI-facing changes
+    pytest -m sweep        # crash inventory, ~20 min: start it in the background; run after GUI-facing changes
 
-No display is needed. Run from the repository root.
+No display is needed. Run from the repository root. Every suite runs in
+parallel by itself (pytest-xdist: one worker per CPU, as memory allows)
+and cleans up after itself: run the quick and real-data suites in the
+foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by default").
+`-n0` runs in one process, for a debugger.
 
 ## Rules of the house
 
@@ -142,9 +146,14 @@ No display is needed. Run from the repository root.
 - Selecting list rows one at a time fires the selection handler once per
   row, and the image handler re-reads every selected frame each time. Use
   `sweep._select_scans` / `sweep._select_images`, which select as one action.
-- Windows are heavy (several matplotlib canvases plus images). In loops,
-  free them with `sweep.dispose(window, qapp, recorder)`, or memory grows by
-  tens of megabytes per window.
+- Windows are heavy (several matplotlib canvases plus images, about
+  110 MB with data). `close()` + `deleteLater()` does not delete one in a
+  test (no event loop runs); `conftest.free_windows` does, and runs by
+  itself after every test that used Qt. Inside a loop of one test, free
+  them with `sweep.dispose(window, qapp, recorder)`.
+- Tests run in parallel, in separate processes and in any order: write
+  only under `tmp_path`, never to fixed paths, and do not depend on what
+  another test left behind.
 - Some save handlers write files into the working directory even when the
   dialog is cancelled. If stray `_*.txt` files appear in the repository
   root after a sweep, delete them; do not commit them.

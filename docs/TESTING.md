@@ -8,6 +8,11 @@ the reference for how the suite is built and how to add to it.
     python -m venv .venv
     .venv/bin/pip install -r requirements-dev.txt
 
+`requirements-dev.txt` includes `pytest-xdist`, which makes the suite run
+in parallel (below). A cloud session (claude.ai/code) starts without the
+program's libraries: install them first (about 10 s), or put that line in
+the environment's setup script so that every new session has them.
+
 No display is needed; the tests run Qt on its `offscreen` platform. Verified
 from a fresh clone on 2026-11-14 with Python 3.13, PyQt5 5.15.11,
 NumPy 2.5.4, SciPy 1.18.1, Matplotlib 3.11.2, Pillow 13.0.0, lmfit 1.3.4,
@@ -16,31 +21,44 @@ library changes a number, record it in `physics_notes.md`.
 
 ## Running
 
+Times measured 2026-11-23 on a 4-CPU, 16 GB cloud container, parallel
+(the default):
+
 | Command | What | Time |
 |---|---|---|
-| `pytest` | fast suite: unit tests and GUI workflows on synthetic data | ~10 min (625 tests, 2026-11-22) |
-| `pytest -m slow` | regressions on real data in `sample_data/` | ~25 min (584 tests, 2026-11-22) |
-| `pytest -m bench -s` | timing table, rewrites `docs/timings.md` | ~30 s |
-| `pytest -m sweep` | crash inventory (see below) | ~3 h in one process (2026-11-22; was ~30 min on 2026-11-18); ~80 min in three shards, below |
-| `LSS_UPDATE_CRASHES=1 pytest -m sweep` | regenerate the crash baselines | as above |
+| `pytest` | fast suite: unit tests and GUI workflows on synthetic data | ~2 min (761 tests; 9 min 44 s in one process before 2026-11-23) |
+| `pytest -m slow` | regressions on real data in `sample_data/` | ~4 min (487 tests; ~25 min in one process) |
+| `pytest -m bench -s` | timing table, rewrites `docs/timings.md` (always in one process) | ~30 s |
+| `pytest -m sweep` | crash inventory (see below); each state shared by 8 tests (`SWEEP_PARTS`), so more CPUs finish it sooner | ~20 min (193 tests; ~3 h in one process before 2026-11-23): longer than a foreground command may run, so start it in the background |
+| `LSS_UPDATE_CRASHES=1 pytest -m sweep` | regenerate the crash baselines (always in one process) | longer: one process |
 | `LSS_SWEEP_TIMES=FILE pytest -m sweep` | also append each control's time (state, control, seconds) to FILE, to find a slow one | |
+| `pytest -n0 …` | in this one process (debuggers, `--pdb`) | |
 
 `slow`, `bench` and `sweep` are deselected by default (`pyproject.toml`).
 
-**The sweep in shards.** The sweep grew with the window: every control and
-every dialog child gets a fresh window in its state, about 1 to 1.7 s each
-(mostly matplotlib drawing the new window's plots and first frame; the
-controls themselves took 16 s of a 295 s test, measured with
-`LSS_SWEEP_TIMES`), and the pilatus states now hold about 260 of them. Its
-tests are independent, so they can run as separate processes, about 2 GB
-each at most (measured 2026-11-22: shards of 67, 78 and 29 min, all on one
-4-core machine):
+**Parallel by default (2026-11-23).** With `pytest-xdist` installed, a
+plain `pytest` starts one worker per CPU this process may use, at most one
+per 2 GB of available memory (`conftest.pytest_xdist_auto_num_workers`),
+and hands tests out by work stealing. `-n N` chooses; `-n0` runs in one
+process. These stay in one process by themselves: `-m bench` (timings) and
+`LSS_UPDATE_CRASHES` / `LSS_UPDATE_GOLDEN` (they rewrite shared files).
+Without `pytest-xdist` everything runs in one process, as before. There is
+no need to shard by hand, to run suites in the background, or to clean up
+after a run.
 
-    python -m pytest -m sweep --collect-only -q | grep :: > ids.txt
-    for k in 0 1 2; do awk -v k=$k 'NR%3==k' ids.txt > shard$k.txt; done
-    for k in 0 1 2; do python -m pytest -q -m sweep $(cat shard$k.txt) > shard$k.log 2>&1 & done; wait
+**What this asks of a test.** Workers are separate processes, and tests
+run in any order: write only under `tmp_path` (never fixed names in the
+temporary folder, the repository or `sample_data/`), and do not rely on
+state another test left behind.
 
-Do not run the shards beside another heavy suite (memory).
+**Memory and disk (2026-11-23).** After every test that used Qt,
+`conftest.free_windows` deletes every window and dialog still open, closes
+pyplot figures and collects garbage: before, every window of every test
+stayed alive (a quick run held about 10 GB). A passing test's `tmp_path`
+is removed when it ends; failing tests' folders are kept from the latest
+run only (`tmp_path_retention_policy`). The image cache is capped at
+512 MB per test process. Nothing is left in the temporary folder after a
+run (before: 1.2 GB and 121 folders per quick run).
 Tests on `sample_data/bu` skip themselves when that private folder is
 absent, so a fresh clone passes without it.
 
@@ -60,6 +78,7 @@ cannot run on a current SciPy.
 | `conftest.py` | Fixtures (below). Sets offscreen Qt and the working directory. |
 | `synth.py` | Writes synthetic SPEC, Pilatus TIFF and MCA files (outputs must not change; new generators go in `synthetic/`, see `docs/SYNTHETIC_DATA.md`). |
 | `sweep.py` | Drives the window: application states, control enumeration, fresh-window driver, random walks, `dispose`. |
+| `test_test_infrastructure.py` | The suite's own machinery: windows really freed, nothing left on disk, the parallel defaults. |
 | `test_fresnel.py`, `test_twod_detector.py`, `test_parsers.py`, `test_stitching.py`, `test_gid_area.py` | Unit tests of the numerics, including the analytic invariants in `physics_notes.md`. |
 | `test_gui_workflows.py`, `test_gui_cuts.py` | Reduce the synthetic data set through the real widgets and compare with the curve it was generated from. |
 | `test_real_nx_school.py`, `reference/` | Real NX school data: SPEC inventory, reflectivity scans 6–9 and GID scan 11 against stored curves produced by this program. |
@@ -104,9 +123,10 @@ second one follows.
 
 | Fixture | Gives you |
 |---|---|
-| `qapp` | The one `QApplication` (session scope). |
+| `qapp` | The one `QApplication` (session scope); also imports the main window once and freezes the garbage collector's view of everything imported (`gc.freeze`), which makes the collection after each test cheap. |
 | `recorder` | Makes modal dialogs return at once and records `messages` (message-box texts), `dialogs`, and `exceptions` raised in Qt slots. Controls what file dialogs return: `open_name`, `open_names`, `save_name`, `directory` (empty means "cancelled"). |
-| `window` | A fresh `MainWindow` (uses `recorder`), output directory set to `tmp_path`. |
+| `window` | A fresh `MainWindow` (uses `recorder`), output directory set to `tmp_path`; deleted afterwards with `free_windows`. |
+| (automatic) | After any test that used `qapp`: `free_windows(qapp)`. A test that creates windows of its own need not close them. |
 | `dataset` | Path of a synthetic SPEC file with `pilatus/` and `vortex/` beside it: scans 1–2 reflectivity (scan 2 through one absorber), 3 fluorescence, 4 a motor scan. |
 | `loaded` | `window` with `dataset` opened. |
 

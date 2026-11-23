@@ -121,18 +121,34 @@ wait on input 3.
 **I. GUI, speed, packaging**: ~~make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load~~ done 2026-11-22 (waits up to 3 s for the one draw); GUI reorganisation (R4) with redraw in place
 and diffuse cuts (F59); slow-file-system timing; `timings.md` regenerated;
 build workflow and macOS signing (input 12); sample-data hosting.
-- [ ] **Make the crash sweep fast enough to run after every GUI change (new
-      2026-11-22).** It takes about 3 h in one process (80 min in three shards,
-      `TESTING.md`), because each of about 260 controls per state gets a fresh
-      window built and drawn (1–1.7 s), against 30 min on 2026-11-18. Options:
-      build each state once and restore it cheaply, skip drawing in sweep windows
-      (Agg canvas, no first-frame redraw), or add pytest-xdist to the dev
-      requirements; any of them must keep the fresh-window guarantee.
-- [ ] **The test suite's RAM and disk (new 2026-11-23).** A test-speed agent
-      (another organisation's account) stopped when its credits ran out,
-      with nothing pushed (physics_notes 2026-11-23). Starting points, read
-      but not measured: the log folder `conftest.py` makes on every run is
-      never removed; pytest keeps `tmp_path` for the last three runs.
+- [x] **Make the crash sweep fast enough to run after every GUI change —
+      done 2026-11-23**: ~3 h → ~20 min on 4 CPUs (parallel workers, each
+      state shared by 8 tests, the motor-scan fit no longer 9.5 s), the
+      fresh-window guarantee kept; more CPUs make it faster. Left, if
+      wanted: the box candidate still runs its 2000 evaluations (about
+      1.5 s) on every Gaussian motor scan before failing; not fitting it
+      when the peak fit is already adequate would change which shape is
+      chosen in rare cases, so it is a fitting decision for the owner.
+- [x] **The test suite's time, RAM and disk — done 2026-11-23** (this
+      session took over from the stalled agent; physics_notes 2026-11-23,
+      TESTING.md "Parallel by default"). Quick suite 9 min 44 s, ~10 GB,
+      1.2 GB left in /tmp → ~2 min, 3.4 GB over four workers, nothing left;
+      real-data suite ~25 → ~4 min. Causes found: every test's window leaked
+      (deferred deletes never ran), a 9.5 s box fit on every motor-scan plot,
+      a bisection in the pinhole footprint window, tmp_path kept for three
+      runs, temporary folders never removed.
+- [ ] **Three real-data tests fail on main since 2026-11-22 (found
+      2026-11-23, bisected)**: `test_patching.py::test_nx_school_scans_6_to_9`
+      since 6bb29bf (the joint fit's guard ladder and 2 points either side:
+      factors 0.023004, 0.064516, 0.103604 → 0.02298, 0.064474, 0.103695);
+      `test_real_nx_school.py::test_reflectivity_scans_6_to_9_match_reference`
+      and `test_packaging.py::test_self_test_passes_from_source` since
+      b51bae2 (the joint fit made the window's default; the stored NX 6–9
+      curve is the legacy method's). Not weakened: the reference tests
+      probably should choose the legacy method explicitly (they are the
+      proof that a refactor did not change the reduction), and the joint
+      fit's own NX factors be re-pinned with before and after values. For
+      the owner of patching.
 - [ ] **A Tools menu in the main window (new 2026-11-23)**, first opening
       the fit demonstrator through `open_demo(parent, mode)`
       (`tests/demonstrator/window.py`). Its agent (another organisation's
