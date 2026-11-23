@@ -5187,12 +5187,14 @@ class MainWindow (QMainWindow):
                 self.ax[1].set_ylabel('w/o Corr')
                 self.ax[1].format_coord=self.format_coord_ref
             else:
-                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], self.pilatus.bgucen-slit[0], self.pilatus.bgdcen+slit[0]+1]
+                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], max(0,self.pilatus.bgucen-slit[0]), self.pilatus.bgdcen+slit[0]+1]
                 self.ax[1]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(1,2,1)            
-                self.vmax=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
+                # the region shown: the vertical background's centres (bglcen/bgrcen are the horizontal
+                # one's, set only for 'H': AttributeError or a stale region; 2026-11-23)
+                self.vmax=np.max(self.pilatus.imageData[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1])
                 #self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
                 self.refZdata=self.pilatus.imageData
-                p=self.ax[1].imshow(self.pilatus.imageROI[self.pilatus.bgucen-slit[0]:self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
+                p=self.ax[1].imshow(self.pilatus.imageROI[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
                 self.ax[1].set_ylabel('w/o Corr')
                 self.ax[1].format_coord=self.format_coord_ref
             self.ui.refADDataPlotWidget.canvas.fig.colorbar(p)
@@ -5238,12 +5240,14 @@ class MainWindow (QMainWindow):
                 self.ax[2].set_ylabel('w Corr')
                 self.ax[2].format_coord=self.format_coord_ref
             else:
-                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], self.pilatus.bgucen-slit[0], self.pilatus.bgdcen+slit[0]+1]
+                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], max(0,self.pilatus.bgucen-slit[0]), self.pilatus.bgdcen+slit[0]+1]
                 self.ax[2]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(1,2,2)            
-                self.vmax=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
+                # the region shown: the vertical background's centres (bglcen/bgrcen are the horizontal
+                # one's, set only for 'H': AttributeError or a stale region; 2026-11-23)
+                self.vmax=np.max(self.pilatus.imageData[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1])
                 #self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
                 self.refZdata=self.pilatus.imageData
-                p=self.ax[2].imshow(self.pilatus.imageROI[self.pilatus.bgucen-slit[0]:self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
+                p=self.ax[2].imshow(self.pilatus.imageROI[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
                 self.ax[2].set_ylabel('w Corr')
                 self.ax[2].format_coord=self.format_coord_ref
         self.ui.refADDataPlotWidget.canvas.fig.colorbar(p)
