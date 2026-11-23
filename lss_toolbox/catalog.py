@@ -110,6 +110,16 @@ def V(label, shows, source='', **args):
 
 UI = ('mainwindow.ui', 'mainwindow.py')
 
+
+def ALL_SAMPLE_DATA(key, shows, source):
+    """The variation that clears an NX-only default: the script's own
+    default, which includes the private sets when they are on this machine
+    (2026-11-23: the pages default to the public file, so that a page never
+    shows private counts unasked)."""
+    return Variation('All sample data (private sets too, when present)', {key: ''},
+                     shows + ' Prints counts of private files when they are present; never write them into docs.',
+                     source)
+
 TOOLS = (
     # ------------------------------------------------------------ burn tests
     Tool('patch_demo_burn', 'Burn line-cut demonstrator (window)', 'burn', 'window',
@@ -400,7 +410,10 @@ TOOLS = (
          'Frame-to-frame deviations of Monc pooled over the sample SPEC files: Gaussian, Student t or Laplace; '
          'drift or noise; what share of each point\'s variance the monitor takes.',
          docs=('docs/physics_notes.md:971', 'docs/COMPARISONS.md:56'),
-         data='public', inputs=(NX,), seconds=1.9),
+         data='any', defaults={'paths': NX}, spec_option='paths',
+         variations=(ALL_SAMPLE_DATA('paths', 'Part A pooled over every SPEC file the reader can see.',
+                                        'docs/physics_notes.md:971'),),
+         inputs=(NX,), seconds=1.9),
     Tool('monitor_ratio', 'Monc/Monp: beam variation or noise', 'monitor', 'text',
          'tests/tools/monitor_ratio.py',
          'The two monitors\' common scatter (beam variation, cancels in the ratio) against each one\'s own '
@@ -414,15 +427,19 @@ TOOLS = (
     Tool('monitor_gains', 'Monitor gain lines the reader cannot read', 'monitor', 'text',
          'tests/tools/monitor_gains.py',
          'Every #M Monc Gain line that is not a number with a known unit, and the scans without one (F52).',
-         docs=('docs/reports/monitor_gains.md',), data='any',
-         free='', free_help='SPEC files or folders (default: everything under sample_data/)', spec_option='free',
+         docs=('docs/reports/monitor_gains.md',), data='any', defaults={'paths': NX}, spec_option='paths',
+         variations=(ALL_SAMPLE_DATA('paths', 'Every gain line the reader cannot read, in every SPEC file it '
+                                              'can see (the report\'s table was made this way).',
+                                     'docs/reports/monitor_gains.md:15'),),
          seconds=0.1),
     Tool('spec_epoch', 'What the SPEC Epoch column measures', 'monitor', 'text',
          'tests/tools/spec_epoch.py',
          'Epoch of each scan\'s first point against its header time: seconds since the file\'s #E, plus the '
          'local-time offset of #D.', docs=('docs/physics_notes.md:696',), data='any',
-         free='', free_help='SPEC files (default: NX school and, when present, the private bu files)',
-         spec_option='free', seconds=0.1),
+         defaults={'specs': NX}, spec_option='specs',
+         variations=(ALL_SAMPLE_DATA('specs', 'The nine sample files of the 2026-11-16 answer: NX and the bu '
+                                              'files.', 'docs/physics_notes.md:696'),),
+         seconds=0.1),
 
     Tool('fit_scan_survey', 'Scan-shape fits of every column (survey)', 'monitor', 'data',
          'tests/tools/fit_scan_survey.py',

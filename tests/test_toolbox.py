@@ -142,7 +142,8 @@ def test_parsers_are_read_from_the_scripts(parsers):
     spec = parsers['tests/tools/ref_patch_gauntlet.py']
     assert runner.action_for(spec, '--design')['choices'] == ['core', 'grid', 'random', 'all']
     assert runner.action_for(spec, '--out')['required']
-    assert parsers['tests/tools/spec_epoch.py'] == {'error': 'no argparse parser'}
+    assert parsers['tests/tools/absorber_steps.py'] == {'error': 'no argparse parser'}
+    assert runner.action_for(parsers['tests/tools/spec_epoch.py'], 'specs')['nargs'] == '*'
 
 
 def test_capture_never_runs_a_script_past_its_parser(tmp_path):

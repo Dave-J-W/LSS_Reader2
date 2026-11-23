@@ -76,7 +76,7 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [Monitor normalisation: Monte Carlo](#monitor-noise-mc) | text | The error the reader propagates for monitor-normalised counts, checked by Monte Carlo against the derived formula; mean of ratios against ratio of sums; the NX monitors' scatter. | public (NX school or committed tables) | 16 s | — |
-| [Monitor scatter: its distribution](#monitor-distribution) | text | Frame-to-frame deviations of Monc pooled over the sample SPEC files: Gaussian, Student t or Laplace; drift or noise; what share of each point's variance the monitor takes. | public (NX school or committed tables) | 2 s | — |
+| [Monitor scatter: its distribution](#monitor-distribution) | text | Frame-to-frame deviations of Monc pooled over the sample SPEC files: Gaussian, Student t or Laplace; drift or noise; what share of each point's variance the monitor takes. | NX school by default; any SPEC file | 2 s | — |
 | [Monc/Monp: beam variation or noise](#monitor-ratio) | text | The two monitors' common scatter (beam variation, cancels in the ratio) against each one's own noise, per scan. | NX school by default; any SPEC file | < 1 s | — |
 | [Monc jumps: the detector as witness](#monitor-witness) | text | Whether Monc's large jumps are real flux (the detector follows) or monitor errors (it does not), from second differences along each scan. | public (NX school or committed tables) | < 1 s | — |
 | [Monitor gain lines the reader cannot read](#monitor-gains) | text | Every #M Monc Gain line that is not a number with a known unit, and the scans without one (F52). | NX school by default; any SPEC file | < 1 s | — |
@@ -505,8 +505,13 @@ Frame-to-frame deviations of Monc pooled over the sample SPEC files: Gaussian, S
 - Explained in: `docs/physics_notes.md:971`, `docs/COMPARISONS.md:56`
 - Run:
 
-      python tests/tools/monitor_distribution.py
+      python tests/tools/monitor_distribution.py sample_data/NX_school/2026sep/20260923
 
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| All sample data (private sets too, when present) | Part A pooled over every SPEC file the reader can see. Prints counts of private files when they are present; never write them into docs. | `docs/physics_notes.md:971` | `python tests/tools/monitor_distribution.py` |
 
 <a id="monitor-ratio"></a>
 
@@ -544,8 +549,13 @@ Every #M Monc Gain line that is not a number with a known unit, and the scans wi
 - Explained in: `docs/reports/monitor_gains.md`
 - Run:
 
-      python tests/tools/monitor_gains.py
+      python tests/tools/monitor_gains.py sample_data/NX_school/2026sep/20260923
 
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| All sample data (private sets too, when present) | Every gain line the reader cannot read, in every SPEC file it can see (the report's table was made this way). Prints counts of private files when they are present; never write them into docs. | `docs/reports/monitor_gains.md:15` | `python tests/tools/monitor_gains.py` |
 
 <a id="spec-epoch"></a>
 
@@ -557,8 +567,13 @@ Epoch of each scan's first point against its header time: seconds since the file
 - Explained in: `docs/physics_notes.md:696`
 - Run:
 
-      python tests/tools/spec_epoch.py
+      python tests/tools/spec_epoch.py sample_data/NX_school/2026sep/20260923
 
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| All sample data (private sets too, when present) | The nine sample files of the 2026-11-16 answer: NX and the bu files. Prints counts of private files when they are present; never write them into docs. | `docs/physics_notes.md:696` | `python tests/tools/spec_epoch.py` |
 
 <a id="fit-scan-survey"></a>
 

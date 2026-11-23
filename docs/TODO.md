@@ -265,12 +265,12 @@ build workflow and macOS signing (input 12); sample-data hosting.
       column groups per level and the β-overlap cells of the join
       (physics_notes 2026-11-19), the movie on a common 2θ axis (M7). Each
       becomes a tool and a catalogue item when made.
-- [ ] **Tools whose default data include the private sets when present
-      (2026-11-23)**: `spec_epoch.py` (NX and bu), `monitor_distribution.py`
-      (every SPEC file under sample_data/), `monitor_gains.py` (all of
-      sample_data/). Their output is printed only (never written into
-      docs/), but a page run on a machine with the private sets shows
-      private counts: decide whether their defaults should be NX only.
+- [x] **Tools whose default data include the private sets when present
+      (2026-11-23) — done 2026-11-23**: `spec_epoch.py`, `monitor_gains.py`
+      and `monitor_distribution.py` take their files as arguments (argparse;
+      with none, the same output as before), and their Tools pages default
+      to the public NX file; the variation "All sample data" gives the
+      scripts' own default, private sets included when present.
 
 **J. Beamline / SPEC macros**: see "Beamline to-do" at the end (series
 lines, `Tstart`/`Tend`, `#V` flag, Pilatus + Vortex header, gas conditions
