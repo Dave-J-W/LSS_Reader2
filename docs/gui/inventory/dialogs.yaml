@@ -1599,6 +1599,7 @@
   tooltip: false
   notes: ""
 - id: peakfit2
+  removed: "2026-11-23, owner Q14: never loaded by any code; the file is deleted"
   kind: dialog
   label: "Dialog"
   where: "(never shown)"
@@ -1610,6 +1611,7 @@
   tooltip: false
   notes: "Defunct (read only: no reference in any .py). Candidate for removal."
 - id: peakfitpara
+  removed: "2026-11-23, owner Q14: never loaded by any code; the file is deleted"
   kind: dialog
   label: "Dialog"
   where: "(never shown)"

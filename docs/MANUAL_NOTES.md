@@ -286,6 +286,8 @@ Each line: feature — where — default — script — notes entry (date).
 ### Removed from the window (owner, 2026-11-23, question 14)
 - **Beamlines menu** (APS-15IDC, APS-9IDC): removed. The reader supports one
   beamline, 15-ID-C, which is always used; there was nothing to choose.
+- **`peakfit2.ui`, `peakfitpara.ui`**: deleted. No code loaded them; the
+  peak fit in use is `peakfit.ui` (Plot tab > Peak Fit).
 
 ## Terms a manual must define
 
