@@ -4616,3 +4616,64 @@ where the model (a smooth curve under the overlap) is never exact, is
 for the owner to weigh. The gauntlet chose it on synthetic data (C36).
 The real-series comparison of hand-off 08 (DATA_NEEDS row 1) is the test
 that would decide. Nothing was changed.
+
+### 2026-11-23 — What "the gauntlet" is, whether it is wrapped up, what it needs (owner, through Main)
+
+Verified by: M = measured (a run or a test), R = reading only, marked
+per statement.
+
+**Question (owner, through Main):** "what 'the gauntlet' is, whether it
+got wrapped up and what extensions it needs".
+
+**What it is (R).** `tests/tools/ref_patch_gauntlet.py` runs every
+reflectivity patching method on many noise replicates of synthetic
+reflectivity with known truth (`tests/synthetic`):
+- Parratt reflectivity with water's critical edge and Kiessig fringes;
+- the reader's ROI boxes, foils, monitors and planted faults.
+
+It has three designs:
+- seven core conditions;
+- a grid, one factor at a time from a 100 Å film on water;
+- 150 random conditions.
+
+It judges every join by hand-off 08's rule: |mean pull| < 0.2, pull SD
+0.90–1.15, no failed fit. It also follows the reader's own path
+(`reflectivity.patch`). It is what made the joint fit the default
+(owner, 2026-11-22: "make new method the default if it passes the
+gauntlet"; C36, OUTPUT_DECISIONS). F90's MCA line-fit gauntlet is built
+the same way (C42).
+
+**Wrapped up: yes; the records were not quite right.**
+- (M) Rerunning the committed run, `--design all --methods key`, gives
+  every committed table back, row for row.
+- (M) The default (`joint_o4_e2`) passes 139 of 155 designed joins. Of
+  the 16 that fail, 5 fail by bias (|mean pull| ≥ 0.2). It passes 415 of
+  463 random joins.
+- (R) Three records gave a command that does not make those tables. C36
+  and the entry of 2026-11-22 gave `--design all` alone, whose default
+  `--methods all` adds rows. The Tools catalogue named a method that does
+  not exist. All are corrected, and the summary's header now prints its
+  `--methods`.
+- (M) Three real-data tests had failed since the default changed. They
+  are fixed; the slow suite gives 484 passed.
+
+**Extensions, ranked, with their status:**
+1. The three failing real-data tests. **Done** 2026-11-23, without
+   weakening any:
+   - the reference test and the self-test choose the legacy patch, whose
+     output their fixtures are (rule 3);
+   - `test_patching` pins both the §6.1 settings and today's default.
+   - Finding (M): today's default flags join 2 of NX 6–9 (the entry
+     above).
+2. The record defects. **Done** 2026-11-23 (above).
+3. Hand-off 08 on the owner's real reflectivity series with many joins,
+   the real test of the default. **Waits on data** (`DATA_NEEDS.md` row
+   1; questor asks the owner).
+4. Explain the five biased designed joins, and the pull SD of 1.13 at the
+   first join of the downstream-covariance study (`TODO.md` B). **Next**,
+   after F90.
+5. A fallback to the coinciding-points ratio where fringes are
+   undersampled. **Dropped**. The owner, 2026-11-23, through Main:
+   "fringes will rarely be undersampled, or even be sampled close to
+   nyquist, that is not an important case to consider."
+6. and 7. **Parked** by Main.
