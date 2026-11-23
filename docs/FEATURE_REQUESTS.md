@@ -404,6 +404,9 @@ order"), for a day of reflectivity only; the whole answer is in
 
 | F91 | **"Sum All" really sums** (owner, 2026-11-23, Q-UI-A3): counts and monitors summed, then normalised once (ΣN/ΣM); changes summed cuts, GISAXS and burn when monitors differ. OUTPUT_DECISIONS row written, code not changed. The legacy-mode switch of F86 can keep the old average. |
 
+| F92 | **Dropped points are masks kept in the per-SPEC config file, with "Restore all" in the patch dialog** (owner, 2026-11-23): replaces typed, unrecoverable indices (F16). Undo of single drops is not asked for; "Restore all" is. Ties to D1–D3 (config beside the SPEC file) and the workbook's masks. |
+| F93 | **Element choice for fluorescence fits** (owner, 2026-11-23): a dropdown or a text entry with autocomplete, for fluorescence burns (F89) and XFNTR line fits (F47). |
+
 Also decided (see `docs/gui/questions.md` Answers): movie at 3 or more frames, space pauses, arrows step when paused (F69); weighted residuals (F74); Apex tab, Beamlines menu, `peakfit2`/`peakfitpara` and the Command line row removed; Quit works and Documentation opens `docs/SCRIPTING.md`; Messages, Errors and Script panes follow D59.
 
 ### Status of built items

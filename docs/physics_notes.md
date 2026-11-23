@@ -4486,3 +4486,7 @@ Verified by: reading `mainwindow.py` (the current averaging); nothing run.
 ### 2026-11-23 — GUI questions answered, batch 5 (Q-IMG-11, 8, 14, 15; Q-GID-1, 5)
 
 Verified by: reading only. Default cuts by kind accepted; nearest-pixel and viridis/magma defaults; the GID map gets its own cached view; GID Patch Relax becomes an option beside the worksheet. **Follow-up for a coding session (not done here):** read what "GID Patch Relax" does differently from "GID Patch" (the larger Q grid, per Q-GID-5's "why") and state it as one option.
+
+### 2026-11-23 — GUI questions answered, batch 6 (elements, dropped points) and merge permission
+
+Verified by: reading only. Elements: dropdown or autocompleting text box (F93). Dropped points: a mask in the config file plus "Restore all" in the patch dialog (F92), closing the open part of Q-REF-2 and D2. The owner also granted standing permission to pull and merge into `main`.
