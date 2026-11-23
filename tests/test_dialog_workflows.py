@@ -146,6 +146,24 @@ def test_drop_after_the_last_join_says_so(patch, qapp, recorder):
     assert any('no next scan' in m for m in recorder.messages)
 
 
+def test_a_one_scan_patch_exports_three_columns(loaded, qapp, recorder, tmp_path):
+    """Found by the crash sweep's random walk (2026-11-23): a Ref Patch of one
+    scan keeps extra columns (signal and backgrounds apart), and Export's
+    three-column format raised ValueError. The _ref.txt format is Qz, R, dR."""
+    sweep._select_scans(loaded, qapp, [0])
+    sweep._select_images(loaded, qapp)
+    loaded.ui.pilRefPatchPushButton.click()
+    qapp.processEvents()
+    assert np.asarray(loaded.normRefData).shape[1] > 3
+    recorder.save_name = str(tmp_path / 'one')
+    loaded.ui.refExportPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    got = np.loadtxt(str(tmp_path / 'one_ref.txt'))
+    assert got.shape == (len(loaded.normRefData), 3)
+    assert got[:, :3] == pytest.approx(np.asarray(loaded.normRefData)[:, :3], rel=1e-4)
+
+
 # ---- information dialogs opened by Ref Patch --------------------------------
 
 def test_peak_centre_dialog_when_the_beam_is_off_its_recorded_position(

@@ -6085,9 +6085,11 @@ class MainWindow (QMainWindow):
         if self.det=='Pilatus':
             reffile=self.saveFileName+'_ref.txt'
             rrffile=self.saveFileName+'_rrf.txt'
-            np.savetxt(reffile,self.normRefData,fmt='%.4e\t%.4e\t%.4e')
+            # Qz, R, dR: a one-scan patch keeps more columns (signal and background apart), which the
+            # three-column format could not write (found by the crash sweep's random walk, 2026-11-23)
+            np.savetxt(reffile,np.asarray(self.normRefData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
             try:
-                np.savetxt(rrffile,self.RrfData,fmt='%.4e\t%.4e\t%.4e')
+                np.savetxt(rrffile,np.asarray(self.RrfData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
             except:
                 print ('No rrf data available!')
             if self.refCovarianceCheckBox.isChecked():
