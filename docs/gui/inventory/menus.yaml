@@ -43,8 +43,8 @@
   workflows: [session]
   needs: ""
   shown: always
-  tooltip: false
-  notes: "Measured: triggering it leaves the window open; no .connect for actionQuit in mainwindow.py or LSS_Reader.py. Dead control."
+  tooltip: true
+  notes: "Connected 2026-11-23 (owner, Q-UI-A12): closes the window, Ctrl+Q; tests/test_gui_menus.py. Before: triggering it left the window open (no .connect)."
 - id: menuBeamlines
   removed: "2026-11-23, owner Q14: one beamline only, nothing to choose; the beamline stays APS-15IDC"
   kind: menu
@@ -167,8 +167,8 @@
   workflows: [session]
   needs: ""
   shown: always
-  tooltip: false
-  notes: "Measured: triggering it opens nothing; no .connect. Could open docs/manual or docs/SCRIPTING.md once the manual exists."
+  tooltip: true
+  notes: "Connected 2026-11-23 (owner, Q-UI-A12): opens docs/SCRIPTING.md, or its GitHub page when the docs folder is absent (packaged build); the manual when it exists. Before: opened nothing (no .connect)."
 - id: actionAbout
   kind: action
   label: "About"

@@ -283,6 +283,12 @@ Each line: feature — where — default — script — notes entry (date).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.
 
+### Menus (2026-11-23)
+- **File > Quit** (Ctrl+Q) closes the reader; results are already in the
+  workbook. **Help > Documentation** opens the scripting guide
+  (`docs/SCRIPTING.md`) until the manual exists, or its GitHub page from a
+  packaged build. Both were in the menus before but did nothing.
+
 ### Removed from the window (owner, 2026-11-23, question 14)
 - **Beamlines menu** (APS-15IDC, APS-9IDC): removed. The reader supports one
   beamline, 15-ID-C, which is always used; there was nothing to choose.

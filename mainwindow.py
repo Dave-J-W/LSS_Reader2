@@ -235,6 +235,14 @@ class MainWindow (QMainWindow):
     def init_signals(self):
         # self.connect(self.ui.actionAbout, SIGNAL('triggered()'),self.showAbout)
         self.ui.actionAbout.triggered.connect(self.showAbout)
+        # File > Quit and Help > Documentation were not connected (owner, 2026-11-23, Q-UI-A12)
+        from PyQt5.QtGui import QKeySequence
+        self.ui.actionQuit.setShortcut(QKeySequence('Ctrl+Q'))   # explicit: Windows has no standard Quit key
+        self.ui.actionQuit.setToolTip('Close the reader (Ctrl+Q). Results are already saved in the workbook.')
+        self.ui.actionQuit.triggered.connect(self.close)
+        self.ui.actionDocumentation.setToolTip('Open the scripting guide (docs/SCRIPTING.md) until the manual exists; '
+                                               'from a packaged build without the docs folder, its page on GitHub.')
+        self.ui.actionDocumentation.triggered.connect(self.showDocumentation)
         # self.connect(self.ui.actionOpen_Spec_File, SIGNAL('triggered()'),self.openSpecFile)
         self.ui.actionOpen_Spec_File.triggered.connect(lambda x:self.openSpecFile(fname=None))
         # self.connect(self.ui.speUpSpeFilePushButton, SIGNAL('clicked()'),self.readSpecFile)
@@ -564,6 +572,19 @@ class MainWindow (QMainWindow):
         self.ui.mcaOffsetLineEdit.setValidator(qdoublevalidator0)
 
 
+
+    DOCS_URL='https://github.com/Dave-J-W/LSS_Reader2/blob/main/docs/SCRIPTING.md'
+
+    def showDocumentation(self):
+        """Help > Documentation: the scripting guide for now, the manual when it
+        exists (owner, 2026-11-23, Q-UI-A12). The local file when present, else
+        its page on GitHub (a packaged build carries no docs folder)."""
+        from PyQt5.QtGui import QDesktopServices
+        from PyQt5.QtCore import QUrl
+        path=resource(os.path.join('docs','SCRIPTING.md'))
+        url=QUrl.fromLocalFile(path) if os.path.exists(path) else QUrl(self.DOCS_URL)
+        if not QDesktopServices.openUrl(url):
+            self.notify('Could not open the documentation; it is at %s' % url.toString(),title='Documentation')
 
     def showAbout(self):
         cwd=os.path.dirname(resource('mainwindow.py'))
