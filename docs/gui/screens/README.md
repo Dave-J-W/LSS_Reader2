@@ -6,7 +6,7 @@ and synthetic data from `tests/synth.py` for MCA / fluorescence, the reflectivit
 (NX has no MCA data). Regenerate the whole folder with the command above; the table is rewritten, the
 Observations section is by hand and is kept.
 
-73 images, 5.7 MB, last run took 46 s.
+73 images, 5.8 MB, last run took 48 s.
 
 | File | What it shows | Data and state |
 |---|---|---|
@@ -24,7 +24,7 @@ Observations section is by hand and is kept.
 | `21_pilatus_one_frame.png` | Pilatus tab, whole window, one frame | Scan 11, frame 1 selected |
 | `21b_pilatus_tab_controls.png` | Pilatus tab page (controls above, image below) | Scan 11, frame 1 |
 | `22_pilatus_three_frames.png` | Pilatus tab with three frames selected | Scan 11, frames 1, 11, 21 selected |
-| `23_pilatus_all_frames_of_a_scan.png` | Pilatus tab with ALL frames of a long scan selected (the many-small-images problem) | Scan 11: all 40 frames selected (drawing took 0.7 s offscreen) |
+| `23_pilatus_all_frames_of_a_scan.png` | Pilatus tab with ALL frames of a long scan selected (the many-small-images problem) | Scan 11: all 40 frames selected (drawing took 0.6 s offscreen) |
 | `23b_pilatus_all_frames_reflectivity_series.png` | Pilatus tab with all frames of the four reflectivity scans selected | Scans 6-9: all 96 frames selected |
 | `30_reflectivity_empty.png` | The Reflectivity tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |
 | `31_refpatch_dialog_first_join.png` | Ref Patch window (opened by Pilatus > Ref Patch), first join | Scans 6-9 all frames; Ref Patch clicked |
