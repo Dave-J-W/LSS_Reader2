@@ -3991,3 +3991,47 @@ change, every one to no fit (C37). Tested:
 the window `test_height_scans_are_fitted_only_with_good_signal`. The
 threshold 2 is this project's choice (OUTPUT_DECISIONS, open
 assumptions).
+
+### 2026-11-23 — Is the pinhole calculation a floor? Can it be done with matrices?
+
+**Owner:** "tell me more about the pinhole calculation. is this really a
+floor? can it be calculated with matrices or something?" (The slowest
+quick test, `test_pinhole.py::test_calibrate_distance_recovers_the_true_distance`,
+took 30 s and set the parallel suite's floor.)
+
+**What it computes.** `pinhole.calibrate_distance` finds the S4-detector
+distance at which single frames agree on a Bragg line's 2θ: it tries 47
+distances, and for each, fits the line in every one of 41 frames, using
+only each frame's usable columns. The footprint window of those columns
+(`_exact_window`) needs, for both ends of the footprint and both edges of
+the S4 opening, the column whose ray through the slit starts at that end
+of the footprint (`column_at_source`).
+
+**Where the time went (profiled).** 85 % in `column_at_source`, which
+inverted `ray_geometry` by bisection: about 48 one-ray evaluations per
+answer (a cross product and a 3 × 2 least-squares solve each), 378 310 in
+all.
+
+**Not a floor: there is a closed form**, linear algebra in three
+dimensions. The source point S = (x, 0, 0) and the slit line (point L,
+direction e_v) span a plane with normal N = (L − S) × e_v. A pixel of the
+row is P = centre + w_x e_h + w_y e_v, and it lies in the plane when
+N·(P − L) = 0; since N·e_v = 0 this is linear in w_x:
+w_x = −N·(centre − L + w_y e_v) / N·e_h, and the column is c0 − w_x/pixel.
+The plane meets the row in one point, so the answer is unique on the side
+of the column that looks along the beam where the direct beam lies (the
+other side is the bisection's "no column": e.g. a point beyond the slit's
+projection, L/cos Det_Th); one ray is then traced to check that it starts
+at x and runs forward.
+
+**Measured.** Over 33 600 geometries the closed form gives the bisection's
+column to 6.8e-9 of a column, and finds a column wherever the bisection
+did; in 240 cases, all footprint ends 2 m upstream beside the column that
+looks along the beam, only the closed form finds one (checked by tracing
+its ray; the bisection's bracket gave up there; such columns lie far off
+the detector at GID angles). NX school scans 11 and 12, 180 frame windows
+at four pinhole distances: identical, bit for bit. Per call 24 × faster;
+the calibration 30 → 6.6 s (the rest is the 818 peak fits). Every pinhole
+and GID test passes, real-data references included. Verified: measured
+and tested (C38). The bisection stays in the code as the reference
+(`_column_at_source_bisection`).
