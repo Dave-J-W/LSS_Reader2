@@ -1,0 +1,213 @@
+# Inventory A: the defunct Apex (Bruker CCD) tab, hidden at start.
+# Schema: docs/gui/README.md. Hidden state measured in a running window;
+# connections read in mainwindow.py (none for any gix* control except
+# gixSumCheckBox, which is the left panel's "Sum All", see left_panel.yaml).
+- id: apexTab
+  kind: tab
+  label: "Apex"
+  where: "Apex"
+  handler: ""
+  does: "Tab for the defunct Bruker Apex CCD; hidden at start (setTabVisible(1, False))"
+  workflows: [general]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Owner 2026-11-15: the Bruker CCD is defunct. Measured: tab not visible. Opening a Bruker scan only gives a message (.sfrm not supported). Everything below is unconnected except two lines of code: gixCMapComboBox (still read by refAnalyze) and gixMplWidget (cleared in clearAll)."
+- id: gixSpecCheckBox
+  kind: checkbox
+  label: "DB Pos[x,y]:"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected); Pilatus counterpart pilSpecCheckBox"
+  workflows: [gid]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixDBPosLineEdit
+  kind: lineedit
+  label: ""
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [gid]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixSDDistLineEdit
+  kind: lineedit
+  label: "SD Dist(mm):"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [gid]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixCcd_OffLineEdit
+  kind: lineedit
+  label: "CCD_Pos[x,y](mm):"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [gid]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead; CCD-specific."
+- id: gixBPCfacLineEdit
+  kind: lineedit
+  label: "Bad Pix Corr:"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [gid]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixAxesComboBox
+  kind: combo
+  label: "Axes:"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [gid]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixCMapComboBox
+  kind: combo
+  label: "CMap:"
+  where: "Apex"
+  handler: ""
+  does: "Hidden, but its current text (jet) is the colour map of the Reflectivity tab ROI image (refAnalyze)"
+  workflows: [reflectivity]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Hidden live dependency (read only): the Reflectivity ROI plot cannot change colour map; should read pilCMapComboBox or its own control before the tab is removed."
+- id: gixMplWidget
+  kind: plot
+  label: ""
+  where: "Apex"
+  handler: ""
+  does: "Empty canvas, cleared when a file is opened"
+  workflows: [general]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead apart from clearAll."
+- id: gixLogIntCheckBox
+  kind: checkbox
+  label: "Log Int"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [gid]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixMinHorizontalSlider
+  kind: slider
+  label: "Min (%):"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [gid]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixMinLineEdit
+  kind: lineedit
+  label: ""
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [gid]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixMaxHorizontalSlider
+  kind: slider
+  label: "Max (%):"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [gid]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixMaxLineEdit
+  kind: lineedit
+  label: ""
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [gid]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixMergeSameQzCheckBox
+  kind: checkbox
+  label: "Merge Same Qzs"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [reflectivity]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixRefPushButton
+  kind: button
+  label: "Reflectivity"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [reflectivity]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixCutDirComboBox
+  kind: combo
+  label: ""
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected); items H Cut, V Cut, Qz Cut, Qxy Cut"
+  workflows: [cuts]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixIntRangeLineEdit
+  kind: lineedit
+  label: "Int Range:"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [cuts]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."
+- id: gixLineAreaPushButton
+  kind: button
+  label: "Line/Area Cuts"
+  where: "Apex"
+  handler: ""
+  does: "Nothing (unconnected)"
+  workflows: [cuts]
+  needs: ""
+  shown: "never (tab hidden)"
+  tooltip: false
+  notes: "Dead."

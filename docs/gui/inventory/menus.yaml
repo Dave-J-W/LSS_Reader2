@@ -1,0 +1,201 @@
+# Inventory A: the menu bar. Schema: docs/gui/README.md.
+# Menus and items seen in a running window (offscreen, 2026-11-22);
+# effects of Calculations items read only.
+- id: menuFile
+  kind: menu
+  label: "File"
+  where: "Menu bar"
+  handler: ""
+  does: "Open Spec File, Preferences..., Quit"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No recent files, no 'Open output folder', no 'Export all', no workbook entry; the per-SPEC workbook is reachable only through Save buttons."
+- id: actionOpen_Spec_File
+  kind: action
+  label: "Open Spec File"
+  where: "Menu bar > File"
+  handler: "openSpecFile(fname=None)"
+  does: "Asks for a SPEC file, reads it, lists its scans and series, opens its log"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No keyboard shortcut (no Ctrl+O). The left panel has no Open button although Update Specfile and Live sit there."
+- id: actionPreferences
+  kind: action
+  label: "Preferences..."
+  where: "Menu bar > File"
+  handler: showPreferences
+  does: "Opens the Preferences dialog (calibrated absorber foils, Ref Patch, fitting and saving options), kept between sessions"
+  workflows: [session, reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Code-built (initPreferences). The dialog itself is in inventory B. The calibrated foils it holds drive the left panel's 'cal' absorber value, two levels away."
+- id: actionQuit
+  kind: action
+  label: "Quit"
+  where: "Menu bar > File"
+  handler: ""
+  does: "Nothing: not connected"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Measured: triggering it leaves the window open; no .connect for actionQuit in mainwindow.py or LSS_Reader.py. Dead control."
+- id: menuBeamlines
+  kind: menu
+  label: "Beamlines"
+  where: "Menu bar"
+  handler: ""
+  does: "Holds the one beamline the reader supports"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "A whole top-level menu for a choice that cannot change (owner, 2026-11-17: 9-ID-C not supported)."
+- id: actionAPS_15IDC
+  kind: action
+  label: "APS-15IDC"
+  where: "Menu bar > Beamlines"
+  handler: selectAPS_15IDC
+  does: "Re-selects 15-ID-C (always checked) and says so in the status bar"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No effect; candidate for removal or for Help > About."
+- id: actionAPS_9IDC
+  kind: action
+  label: "APS-9IDC"
+  where: "Menu bar > Beamlines"
+  handler: ""
+  does: "Hidden; 9-ID-C is not supported"
+  workflows: [session]
+  needs: ""
+  shown: never (setVisible(False))
+  tooltip: false
+  notes: "Defunct; still in the .ui."
+- id: menuCalculations
+  kind: menu
+  label: "Calculations"
+  where: "Menu bar"
+  handler: ""
+  does: "Beamline geometry and absorber calibrations from selected scans"
+  workflows: [alignment, reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "All three items need scans selected and (g_l) plotted in SpecPlot first; nothing in the menu says so. Lower-case, cryptic item names."
+- id: actionG_l2
+  kind: action
+  label: "g_l2"
+  where: "Menu bar > Calculations"
+  handler: calg_l2
+  does: "Fits sh centres of the selected scans vs incidence angle to get the crystal-sample distance g_l2 and an offset (dialog)"
+  workflows: [alignment]
+  needs: "two or more sh scans at different alpha, plotted in SpecPlot (centres from its fit)"
+  shown: always
+  tooltip: false
+  notes: "Uses the SpecPlot fit centres, so it belongs beside the SpecPlot fit result. Dialog in inventory B."
+- id: actionG_l3
+  kind: action
+  label: "g_l3"
+  where: "Menu bar > Calculations"
+  handler: calg_l3
+  does: "Same fit for the sample-detector distance g_l3 (dialog)"
+  workflows: [alignment]
+  needs: "two or more scans plotted in SpecPlot"
+  shown: always
+  tooltip: false
+  notes: "As g_l2."
+- id: actionAbs_ratio
+  kind: action
+  label: "abs ratio"
+  where: "Menu bar > Calculations"
+  handler: calabsrat
+  does: "Measures the absorber transmission ratio from an absorber scan (dialog)"
+  workflows: [reflectivity, alignment]
+  needs: "an absorber scan selected"
+  shown: always
+  tooltip: false
+  notes: "Result is not fed to the left panel's absorber field (read only); belongs beside it or in Preferences with the calibrated foils."
+- id: menuHelp
+  kind: menu
+  label: "Help"
+  where: "Menu bar"
+  handler: ""
+  does: "Documentation, About"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Placed before View in the bar (View is appended in code), against the usual order (Help last)."
+- id: actionDocumentation
+  kind: action
+  label: "Documentation"
+  where: "Menu bar > Help"
+  handler: ""
+  does: "Nothing: not connected"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Measured: triggering it opens nothing; no .connect. Could open docs/manual or docs/SCRIPTING.md once the manual exists."
+- id: actionAbout
+  kind: action
+  label: "About"
+  where: "Menu bar > Help"
+  handler: showAbout
+  does: "Modal box with version 1.1, last-update date and authors"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "The only deliberate modal message box."
+- id: menuView
+  kind: menu
+  label: "View"
+  where: "Menu bar"
+  handler: ""
+  does: "Show or hide the Messages, Script and Errors panes"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Code-built in initErrorPane, so it lands after Help. Only way to open the Errors pane (error model: legacy vs budget)."
+- id: messageDock_toggleViewAction
+  kind: action
+  label: "Messages"
+  where: "Menu bar > View"
+  handler: "QDockWidget.toggleViewAction"
+  does: "Shows or hides the Messages pane"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No objectName (Qt's toggle action); id is the attribute path."
+- id: scriptDock_toggleViewAction
+  kind: action
+  label: "Script"
+  where: "Menu bar > View"
+  handler: "QDockWidget.toggleViewAction"
+  does: "Shows or hides the Script pane"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "D59 (owner, 2026-11-22): the Script pane is opened from here only; hidden by default."
+- id: errorDock_toggleViewAction
+  kind: action
+  label: "Errors"
+  where: "Menu bar > View"
+  handler: "QDockWidget.toggleViewAction"
+  does: "Shows or hides the Errors pane (error model)"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "The error model changes every error bar; hiding its only control in View leaves no cue of which model is in use."

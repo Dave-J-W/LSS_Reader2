@@ -11,7 +11,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 3 Saved state per SPEC file; live refresh | **largely built** 2026-11-19 to 22: series read and guessed, Series list and whole-series selection; per-SPEC workbook (F66) with automatic saving (D56), series ties and stale flags; live updates (D57: file and data folders watched, remakes in a worker thread, open plots redrawn, no reset). Open: reopening a file with its workbook's settings, D1–D3, dropped points as masks, the owner's answers on the series format |
 | 4 Detectors and inputs | not started |
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
-| 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); **fitting done** 2026-11-21 (peak module D52, MCA lines, scan shapes, burn trends D54); beam size (half-cut fit built, no data), GUI not started |
+| 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); **fitting done** 2026-11-21 (peak module D52, MCA lines, scan shapes, burn trends D54); beam size (half-cut fit built, no data); **GUI planning started** 2026-11-22 (D58: assessment, workflow map, screenshots in `docs/gui/`; no code yet) |
 
 ## Remaining work by area (regrouped 2026-11-21, review `docs/reviews/2026-11-21-todo-review.md`)
 
@@ -46,6 +46,9 @@ working list, one table per area, each row with its source. Rows marked
 | Same-absorber scans share a factor: send the question to the hand-off author — **new** | F41 |
 | Qz offset from sh-scan images — **new** | F42 |
 | Per-second option — **new** | F20 |
+| Qoff proposed from the continuity of R/R_F across the joins (robust to one or two outliers); Qc from a subphase list or typed electron density — **new** 2026-11-23 | F79; F42 |
+| Saved reflectivities of the workbook overlaid by series, time or sx, with ratios, to check stability — **new** 2026-11-23 | F80 |
+| Repeated macros summed by counts and monitors (the identical-scans merge averages with equal weights today) — **new** 2026-11-23 | F81; physics_notes 2026-11-23 |
 | ORSO, HDF5 export; steps and parameters recorded — **new** (F30) | F25, F30, R7 |
 | Synthetic K = 3–5 generator; hand-off tests 2–6 | hand-off §5; input 4 |
 | Tell users which old reductions to redo (non-zero absorbers before P24; bu files at 6.21/7.51/9.9 keV before F49): a release note and a manual line — **new** | TODO Stage 2 list; P24, F49 |
@@ -90,6 +93,7 @@ working list, one table per area, each row with its source. Rows marked
 |---|---|
 | ~~Fix `series.infer`: `#V` hklscans as xfntr, `escan` as energy; series lines and inference together; `SeriesMacro` attached~~ **done 2026-11-21** (`series.all_series`) | review §3, §4 R1 |
 | ~~Series in the scan list; select a series as one action~~ **done 2026-11-21** (Series list; whole series selected on a click by default, D55) | F39; Stage 3; review R2 |
+| The Series list has not yet been tried by people (owner, 2026-11-23: reflectivity scans are selected one by one because it "is a new feature and hasn't been known or tested by humans yet"): a first trial at the beamline, then its questions — **new** | D55; owner 2026-11-23 |
 | Contextual reduction from `kind` (offer, not run); the burn test for burn scans | F60; review R4 |
 | ~~Automatic saving of every finished reduction~~ **done 2026-11-22** (D56), the prerequisite the owner set before L1–L4 | owner |
 | ~~Live refresh L1–L4~~ **built 2026-11-22** (D57): Live box (L1), remake from recipes (L2: reflectivity, fluorescence, GID map, burn), selection follows a whole series (L3), stop at a lined series' end (L4). Done since: remakes in a worker thread, point selections carried over, updates without a reset (2026-11-22). Done since: the open display redrawn from a remade result (Reflectivity, MCA integrals, burn dialog, GID map; 2026-11-22). Remaining: recipes for cuts, fitted MCA lines and SpecPlot curves; stop after a quiet spell for guessed series; a test of the MCA redraw on a fluorescence series | F1–F5 |
@@ -113,12 +117,51 @@ working list, one table per area, each row with its source. Rows marked
 | Burn trends: tests and extensions (ten items) | hand-off 07, Stage 2 list |
 | Half-cut fit for the beam profile on real data | F43; input 16 |
 | Remaining characterisation tests: GISAXS, g_l2/g_l3, absorber-ratio fits, legacy peak-fit dialog, 2D plot tab | Carried-over list |
+| Sample-environment readings (barrier, tensiometer, oxygen) as extra panels beside burn trends; synthetic columns until the macros write them — **new** 2026-11-23 | F75 |
+| Burns at several absorbers on dose and time axes: beam damage or a changing sample — **new** 2026-11-23 | F76; physics_notes 2026-11-23 |
+| Predicting a safe absorber from a short high-flux burn (research; needs burn pairs at two fluxes) — **new** 2026-11-23 | F77 |
+| Sample height scan: super-Gaussian fit (width, exponent) beside the sample's earlier sh scans; verdict thresholds from the owner. Check first what the "Main" session's commit 35f41c3 (flat and weak sh scans not fitted) already does — **new** 2026-11-23 | F78; F43 |
 
 **H. Detectors and inputs (Stage 4)**: 1M (F17–F19, F38, D11), 100K/200K
 models (F33), ME7 tab (F34, F35), new-format SPEC (F28), HDF5 (F29). All
 wait on input 3.
 
-**I. GUI, speed, packaging**: ~~make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load~~ done 2026-11-22 (waits up to 3 s for the one draw); GUI reorganisation (R4) with redraw in place
+**I. GUI, speed, packaging**
+
+GUI overhaul (R4, D58; plan `docs/gui/README.md`), planning only until the owner says otherwise:
+
+| Item | Source |
+|---|---|
+| Phase 1a: inventory of every control and the workflow it serves; findings per tab (grouping, consistency, visual cues, missing functions); screenshots of every area; questions for the owner: **delivered 2026-11-22** (`docs/gui/assessment.md`, `questions.md`); waiting on the owner's answers (15 first) | D58 |
+| The workflow map, checked and rendered by a tool (burn tests, reflectivity, GID, XFNTR first, then EXAFS) | F67 |
+| ~~A test that runs the map's check, so the map cannot drift from the window~~ **done 2026-11-23**: `tests/test_gui_map.py` (quick suite, about 5 s) runs `gui_map.py --check --window`, which now also checks the other direction (every named control of the window is inventoried); AGENTS.md rule 11 asks for the entry | F67 |
+| Phase 1b: regrouping, one visual language, state cues; one line-cut interface on every image plot with defaults by scan kind | D58, F68, F59 |
+| Phase 2: frames as a movie with sticky zoom (≤ 6 tiles; sampling first/middles/last, default 4; first n), sticky plot preferences, intelligent colour scales, ROI close-up for reflectivity | F69–F71 |
+| Faster log-scale plotting (outside the first deliverables) | F72 |
+| Residuals panel above every fit plot (about 15 % of the height, own scale, χ²/dof in the legend; can be hidden, hidden by default for now); for later | F74 |
+| Phase 3: contextual GUIs by data type | F73, F60 |
+
+**Defects found by the GUI assessment (2026-11-22)**, to fix one per commit with its test when coding resumes (details in `docs/gui/assessment_a.md`, `assessment_b.md`, `image_display.md`; "seen" = in an offscreen window, "measured" = a number taken, "read" = code only):
+
+| Defect | How known |
+|---|---|
+| **Workbook Save records the scans selected at the time of saving, not the scans behind the result** (a scan-6 curve saved after selecting scan 11 is stored as scan 11; the plot title too). Cause read: `saveRefToWorkbook` and `saveMcaToWorkbook` take `selectedScanNums` when Save is clicked; the recipe is right, so the scans column, series tie, stale flag and live remake disagree with it. For whoever owns Stage 3 | seen; **reproduced 2026-11-23** on synthetic data (curve of scans 1, 2 saved after selecting scan 1: stored as '1'), pinned by the strict xfail `test_gui_workbook.py::test_a_reflectivity_is_saved_tied_to_the_scans_it_was_made_from` |
+| **The point-by-point path (Analyze/Accept) saves one workbook version per Accept** (each Accept calls `updateRefPlotData`, one of the automatic-save points). Not pinned by a test: what counts as finished in this path depends on the owner's answer to question 13 (is Analyze/Accept kept?) | seen; **measured 2026-11-23**: synthetic scan 1, three Accepts → R0001, R0002, R0003 (versions 1–3, automatic) |
+| ~~2D_Plot: adding a file raises AttributeError (`matplotlib.cm.get_cmap`, removed in matplotlib 3.9), `update2dPlotPlot`; its colour-map list offers `spectral`, not valid now. The crash sweep misses it because its file chooser returns no file~~ **fixed 2026-11-23**: a colour-map name is passed instead (works on every matplotlib); `spectral` offered as `nipy_spectral` in both lists; `tests/test_gui_2dplot.py` adds a file through the real button | seen |
+| Log Int on frames with a negative bad pixel: typed Min −2, log10 gives NaN, the colour range collapses to ±0.1 decades | measured |
+| Cursor readout over tiled frames shows the last frame's value; the ROI close-up's readout swaps rows and columns | measured |
+| The drawn right background box of the reflectivity ROI is 2 px from the one summed | measured |
+| Movie: blocking loop (0.5 s per frame, no stop); switches the Axes box to Q and leaves it there | measured |
+| File > Quit and Help > Documentation are not connected | seen |
+| Legend-position lists (Reflectivity, MCA): "lower right" twice, no "lower left" | seen |
+| MCA default Range 1:1000 is in channels on a keV axis; Sum All clips it silently | seen |
+| A new message shows the Messages pane but does not raise it above Script/Errors | seen |
+| GIOXS uses a variable before assignment when the frame count is not a multiple of "ave frames" | read |
+| The Plot tab still opens a blocking QMessageBox (rule: `notify`) | read |
+| The crash sweep never exercises actions behind a file chooser that returns a file (e.g. 2D_Plot add file): extend it | read |
+| A finished "Reading Scan #1, 100 %" progress window sometimes appears late, after the reading it belongs to; the SPEC reader keeps it referenced (`spec_routines.py:236`), so Qt's show-if-slow timer may show it (cause guessed). Seen twice in four screenshot runs; not reproduced by opening the NX file and waiting 6 s | seen (intermittent) |
+
+Other items: ~~make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load~~ done 2026-11-22 (waits up to 3 s for the one draw); GUI reorganisation (R4) with redraw in place
 and diffuse cuts (F59); slow-file-system timing; `timings.md` regenerated;
 build workflow and macOS signing (input 12); sample-data hosting.
 - [x] **Make the crash sweep fast enough to run after every GUI change —

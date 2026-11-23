@@ -4945,7 +4945,7 @@ class MainWindow (QMainWindow):
             self.pil_ylabel=r'$Q_z$'+' '+r'$[\AA^{-1}]$'
         self.gidax=self.ui.pilMplWidget.canvas.fig.add_subplot(1,1,1)
         if self.ui.pilLogIntCheckBox.checkState()!=0:
-            self.gid_p=self.gidax.pcolor(self.pilXAxs, self.pilYAxs, np.log10(self.pilhintData),cmap=pl.cm.get_cmap(cmap),vmin=np.log10(vmin), vmax=np.log10(vmax))
+            self.gid_p=self.gidax.pcolor(self.pilXAxs, self.pilYAxs, np.log10(self.pilhintData),cmap=cmap,vmin=np.log10(vmin), vmax=np.log10(vmax))
         else:
             fint=interp1d(self.pilXAxs[0], self.pilhintData, kind='cubic')
             #print self.pilXAxs[0], self.pilhintData, len(self.pilhintData), len(self.pilhintData[0])
@@ -4953,7 +4953,7 @@ class MainWindow (QMainWindow):
             inter_pilhitData=fint(newpilXAxis)
             self.extent=[self.pilXAxs[0][0],self.pilXAxs[0][-1],self.pilYAxs[0][0],self.pilYAxs[-1][-1]]
             self.gid_p=self.gidax.imshow(inter_pilhitData,interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower')            
-            #self.gid_p=self.gidax.pcolor(self.pilXAxs, self.pilYAxs, self.pilhintData,cmap=pl.cm.get_cmap(cmap),vmin=vmin, vmax=vmax)           
+            #self.gid_p=self.gidax.pcolor(self.pilXAxs, self.pilYAxs, self.pilhintData,cmap=cmap,vmin=vmin, vmax=vmax)           
         #self.gidax.set_xlim((np.min(self.pilXAxs),np.max(self.pilXAxs)))
         #self.gidax.set_ylim((np.min(self.pilYAxs),np.max(self.pilYAxs)))
         self.gidax.set_aspect(aspect)
@@ -7799,9 +7799,9 @@ class MainWindow (QMainWindow):
         self.plot2dax.set_ylabel(r'$Q_{z}$'+' '+r'$[\AA^{-1}]$', fontsize=labelsize)
         if self.plot2dindex==0:
             if self.ui.twodLogIntCheckBox.checkState()!=0:
-                self.plot2d_p=self.plot2dax.pcolor(self.data2dx, self.data2dy, np.log10(self.data2dint),cmap=pl.cm.get_cmap(cmap),vmin=np.log10(vmin), vmax=np.log10(vmax))
+                self.plot2d_p=self.plot2dax.pcolor(self.data2dx, self.data2dy, np.log10(self.data2dint),cmap=cmap,vmin=np.log10(vmin), vmax=np.log10(vmax))
             else:
-                self.plot2d_p=self.plot2dax.pcolor(self.data2dx, self.data2dy, self.data2dint, cmap=pl.cm.get_cmap(cmap), vmin=vmin, vmax=vmax)
+                self.plot2d_p=self.plot2dax.pcolor(self.data2dx, self.data2dy, self.data2dint, cmap=cmap, vmin=vmin, vmax=vmax)
             self.plot2dax.set_xlim((np.min(self.data2dx),np.max(self.data2dx)))
             self.plot2dax.set_ylim((np.min(self.data2dy),np.max(self.data2dy)))
         else:

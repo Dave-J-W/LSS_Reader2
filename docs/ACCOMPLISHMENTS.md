@@ -9,12 +9,12 @@ the measurements are in `physics_notes.md` (dated), `OUTPUT_DECISIONS.md`
 new). "Measured" below means a test or a run gave the number; everything
 else is how the code is built.
 
-## In numbers (2026-11-22)
+## In numbers (2026-11-22; tests recounted 2026-11-23)
 
 | | |
 |---|---|
 | Commits on this fork | about 230 (2026-11-14 to 2026-11-22) |
-| Tests | 624 quick, 584 slow (real data), 67 crash-sweep tests |
+| Tests | 764 quick, 487 slow (real data), 67 crash-sweep, 1 timing (collected 2026-11-23 after the covariance merge; the line said 624 quick and 584 slow, while the tree it was written for collected 637 and 483) |
 | Crash inventory | 420 failing control/state combinations on 2026-11-14 → 0 since Stage 1 (2026-11-17) |
 | GUI-free core (`lss_core/`) | 28 modules, about 7,700 lines; every reduction scriptable |
 | Analysis tools (`tests/tools/`) | 21, each the source of a figure or a measured number |
@@ -44,8 +44,10 @@ the window did; packaged builds (recipe and self-test).
 of it built).** See "Series, saving and live updates" below.
 
 **Stage 6, sub-projects.** GID patching and fitting built (below); beam
-size: the half-cut fit exists, waiting for data; GUI reorganisation not
-started.
+size: the half-cut fit exists, waiting for data; GUI reorganisation:
+planning only (2026-11-22, D58: inventory of 403 controls, workflow map
+checked against the window by the quick suite, screenshots, questions for
+the owner, in `docs/gui/`); no GUI code changed for it yet.
 
 ## Normalisation, errors, absorbers
 
@@ -104,8 +106,18 @@ started.
   % more precise on synthetic data (measured); the known absorber ratio as
   a correlated prior where the monitor shows it applies; the stitched
   curve's full covariance (P4), as reusable code (`lss_core.uncertainty`).
-  An option beside the unchanged legacy patch; the comparison on the
-  owner's larger data set is handed off (`handoff_out/08`).
+  **The default patch since 2026-11-22**, after passing the synthetic
+  gauntlet (C36, measured: designed conditions, 139 of 155 joins pass,
+  legacy 1; random mixtures, 415 of 463, and 41 of the 48 failures are
+  joins sampling fewer than 3 points per fringe, where every curve model
+  fails); the legacy fit stays
+  a preference and still reproduces the old files byte for byte. The
+  comparison on the owner's larger data set is handed off
+  (`handoff_out/08`).
+- A fit demonstrator (`tests/demonstrator/`, report
+  `reports/patch_demo.md`): synthetic replicates, their fits by every
+  patching method and the burn line-cut fits, in a small window that steps
+  through replicates.
 - The covariance exported for model fits (the xmodfit sidecar,
   `lss_core.covariance_export`) and a reference fitter that uses it
   (`lss_core.gls`). Scripts can write it with any patch method
@@ -145,10 +157,10 @@ control's tooltip), `SCRIPTING.md`, a review of the to-do lists
 
 ## Not done yet (the main items; all in `TODO.md`)
 
-Final GID defaults from the larger data set; which reflectivity patching
-method becomes the default, and the two-file export with covariances
-(Stage 5, owner's decisions in TODO B2); the burn intensity estimator
+Final GID defaults from the larger data set; the export defaults now
+that the covariance files exist (Stage 5, owner's decisions in TODO B2); the burn intensity estimator
 (P44); detectors and new formats
-(Stage 4: Pilatus 1M, HDF5); the GUI reorganisation; answers from the
+(Stage 4: Pilatus 1M, HDF5); the GUI reorganisation (planned, waiting
+on the owner's answers in `gui/questions.md`); answers from the
 owner on the series format, the batch of physics questions, and more burn
 data.

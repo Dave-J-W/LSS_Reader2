@@ -726,7 +726,7 @@
              </item>
              <item>
               <property name="text">
-               <string>spectral</string>
+               <string>nipy_spectral</string>
               </property>
              </item>
             </widget>
@@ -3721,7 +3721,7 @@ p, li { white-space: pre-wrap; }
                  </item>
                  <item>
                   <property name="text">
-                   <string>spectral</string>
+                   <string>nipy_spectral</string>
                   </property>
                  </item>
                 </widget>

@@ -1,0 +1,190 @@
+# Inventory A: the 2D_Plot tab (x y z text files from disk, e.g. the
+# reader's own *_q2d_gid.txt or *_gisaxs.txt). Schema: docs/gui/README.md.
+# Seen empty in a running window; behaviour read only (no 2D file loaded).
+- id: tab_4
+  kind: tab
+  label: "2D_Plot"
+  where: "2D_Plot"
+  handler: ""
+  does: "Plots a 2D map from a three-column text file (x, y, z on a full grid)"
+  workflows: [flex-plot, gid, gisaxs]
+  needs: "a 2D text file added"
+  shown: always
+  tooltip: false
+  notes: "Object name tab_4. Only the first selected file is drawn. No cut, no export of the (interpolated) map, no axis labels from the file. No tooltip on any control."
+- id: twodPlotMplWidget
+  kind: plot
+  label: ""
+  where: "2D_Plot"
+  handler: ""
+  does: "The map with optional colour bar; matplotlib toolbar below"
+  workflows: [flex-plot, gid, gisaxs]
+  needs: "a 2D file selected"
+  shown: always
+  tooltip: false
+  notes: "No line-cut interface although these maps are exactly what one cuts (F68)."
+- id: twodMinHorizontalSlider
+  kind: slider
+  label: "Min (%):"
+  where: "2D_Plot"
+  handler: "update2dPlotPlot; update2dMinSlider"
+  does: "Lower colour limit as a percentage of the range"
+  workflows: [flex-plot]
+  needs: "a 2D file selected"
+  shown: always
+  tooltip: false
+  notes: "Connected to two slots, so each release redraws twice (read only)."
+- id: twodMinLineEdit
+  kind: lineedit
+  label: ""
+  where: "2D_Plot"
+  handler: update2dPlotPlot
+  does: "Lower colour limit as a value"
+  workflows: [flex-plot]
+  needs: "a 2D file selected"
+  shown: always
+  tooltip: false
+  notes: "Value under a '%' label, as on Pilatus."
+- id: twodMaxHorizontalSlider
+  kind: slider
+  label: "Max (%):"
+  where: "2D_Plot"
+  handler: "update2dPlotPlot; update2dMaxSlider"
+  does: "Upper colour limit as a percentage of the range"
+  workflows: [flex-plot]
+  needs: "a 2D file selected"
+  shown: always
+  tooltip: false
+  notes: "Shares self.imageMax/imageMin with the Pilatus tab (read only): switching tabs can rescale the other's sliders."
+- id: twodMaxLineEdit
+  kind: lineedit
+  label: ""
+  where: "2D_Plot"
+  handler: update2dPlotPlot
+  does: "Upper colour limit as a value"
+  workflows: [flex-plot]
+  needs: "a 2D file selected"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: twodPlotAddFilePushButton
+  kind: button
+  label: "Add Files"
+  where: "2D_Plot"
+  handler: add2dPlotFile
+  does: "Adds text files to the list (file chooser)"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No way to send the GID or GISAXS map just computed to this tab without saving and re-adding it."
+- id: twodPlotRemoveFilePushButton
+  kind: button
+  label: "Remove Files"
+  where: "2D_Plot"
+  handler: remove2dPlotFile
+  does: "Removes the selected files from the list"
+  workflows: [flex-plot]
+  needs: "files selected"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: twodPlotFileListWidget
+  kind: list
+  label: ""
+  where: "2D_Plot"
+  handler: updateSelected2dPlotFile
+  does: "The added files; selecting one plots it"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Multi-selection allowed, only the first is used."
+- id: twodLogIntCheckBox
+  kind: checkbox
+  label: "Log Int"
+  where: "2D_Plot"
+  handler: update2dPlotPlot
+  does: "Log colour scale"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: twodColBarCheckBox
+  kind: checkbox
+  label: "Show Color Bar"
+  where: "2D_Plot"
+  handler: update2dPlotPlot
+  does: "Shows the colour bar"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Pilatus always draws one per frame; no switch there."
+- id: twodCMapComboBox
+  kind: combo
+  label: "CMap:"
+  where: "2D_Plot"
+  handler: update2dPlotPlot
+  does: "Colour map (jet, gray, hot, summer, winter, nipy_spectral)"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Offered 'spectral' until 2026-11-23, a name matplotlib 2.0 changed to 'nipy_spectral' and later removed (choosing it raised); now 'nipy_spectral'. Adding a file raised AttributeError (matplotlib.cm.get_cmap, removed in 3.9) until 2026-11-23 (tests/test_gui_2dplot.py). Pilatus has 'rainbow' instead."
+- id: twodLabelSizeSpinBox
+  kind: spin
+  label: "Label Size"
+  where: "2D_Plot"
+  handler: update2dPlotPlot
+  does: "Axis label font size"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Only 2D_Plot and Plot have font sizes; image and cut plots do not."
+- id: twodTickSizeSpinBox
+  kind: spin
+  label: "Tick Size"
+  where: "2D_Plot"
+  handler: update2dPlotData
+  does: "Tick label font size"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Connected to update2dPlotData (reloads the file and resets the colour limits), unlike Label Size (update2dPlotPlot) (read only)."
+- id: twodDenFacSpinBox
+  kind: spin
+  label: "Point Density Factor:"
+  where: "2D_Plot"
+  handler: ""
+  does: "Factor by which Update Interpolation multiplies the number of x points"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Used only by the button."
+- id: twodIntPolComboBox
+  kind: combo
+  label: "Image Interpolation:"
+  where: "2D_Plot"
+  handler: update2dPlotPlot
+  does: "Matplotlib image interpolation (none, nearest, bilinear, bicubic)"
+  workflows: [flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Display smoothing vs data interpolation (the button) look alike on screen."
+- id: twodUpdatePlotPushButton
+  kind: button
+  label: "Updata Interpolation"
+  where: "2D_Plot"
+  handler: update2dIntPolData
+  does: "Re-samples the map along x by the point density factor (linear interpolation) and redraws"
+  workflows: [flex-plot]
+  needs: "a 2D file selected"
+  shown: always
+  tooltip: false
+  notes: "Typo 'Updata'. Interpolated data cannot be exported."

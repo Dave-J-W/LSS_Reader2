@@ -1,0 +1,213 @@
+# Inventory A: the left panel of the main window (file, scans, absorbers,
+# frames, background). Schema: docs/gui/README.md.
+# Seen in a running window (offscreen, 2026-11-22, NX school 20260923 at
+# 1600x1000 logical px) unless a note says "read only".
+- id: specFileLabel
+  kind: label
+  label: "SpecFile: <name>"
+  where: "Left panel"
+  handler: ""
+  does: "Shows the name of the open SPEC file ('No Opened File' before)"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Name only, no folder; the output folder (where exports and the workbook go) is shown nowhere. No cue for live mode or a file that has grown."
+- id: speUpSpeFilePushButton
+  kind: button
+  label: "Update Specfile"
+  where: "Left panel"
+  handler: updateSpecFile
+  does: "Reads the scans the SPEC file gained since it was opened, without resetting the window, and marks saved results stale"
+  workflows: [session]
+  needs: "a SPEC file open (else it reads the file in full)"
+  shown: always
+  tooltip: false
+  notes: "Same step as one tick of Live; the two sit side by side but only Live has a tooltip. The stale check it triggers has no cue in the window beyond a message."
+- id: liveCheckBox
+  kind: checkbox
+  label: "Live"
+  where: "Left panel"
+  handler: liveToggled
+  does: "Watches the SPEC file, Pilatus folder and latest MCA file every few seconds and reads what is new; remakes saved results of a growing series"
+  workflows: [session, burn-ref, burn-gid, burn-fluo]
+  needs: "a SPEC file open"
+  shown: always
+  tooltip: true
+  notes: "Code-built (setupLive). Only cue that live mode is on is the tick and a 5 s status-bar message; nothing shows that it stopped by itself (series complete). Live interval is a preference with no control in the window."
+- id: scansLineEdit
+  kind: lineedit
+  label: "Scans:"
+  where: "Left panel"
+  handler: scanListInputChanged
+  does: "Type scan numbers (e.g. 3,6-9) and press Enter to select them in the scan list; echoes the current selection"
+  workflows: [general]
+  needs: "a SPEC file open"
+  shown: always
+  tooltip: false
+  notes: "Range syntax undocumented on screen and without a tooltip. Typed numbers are never widened to a whole series (seriesWholeCheckBox tooltip says so)."
+- id: seriesComboBox
+  kind: combo
+  label: "Series: choose to select its scans"
+  where: "Left panel"
+  handler: selectSeries
+  does: "Lists the scan series of the file (kind, count, status) and selects the data scans of the one chosen"
+  workflows: [session, general, reflectivity, gid, xfntr, burn-ref, burn-gid, burn-fluo, exafs]
+  needs: "a SPEC file with series (disabled when none)"
+  shown: always
+  tooltip: true
+  notes: "Code-built (setupSeriesBox). Observed items: 'reflectivity 4/?: S# 6-9', 'gid 2/? (partial): S# 11-12', 'burn 1/?: S# 14'. Shows the chosen series while the selection equals it and falls back to the prompt otherwise (syncSeriesBox, read only); a series selected by clicking a scan with 'Whole series' on does not show here (seriesChosen is set only from the combo, read only). Natural hook for contextual GUIs (F60/F73)."
+- id: seriesWholeCheckBox
+  kind: checkbox
+  label: "Whole series"
+  where: "Left panel"
+  handler: "setPreference('select_whole_series')"
+  does: "When on, clicking one scan of a series selects all data scans of that series"
+  workflows: [session, general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Code-built; kept between sessions."
+- id: scanListWidget
+  kind: list
+  label: ""
+  where: "Left panel"
+  handler: "scanListChanged; displayScanInfo (double-click); syncSeriesBox"
+  does: "Lists every scan (#S line); selecting scans plots them in SpecPlot and fills the frame list; double-click opens the scan header dialog"
+  workflows: [general]
+  needs: "a SPEC file open"
+  shown: always
+  tooltip: true
+  notes: "Rows tinted by series kind (blue ref, green GID, orange XFNTR, purple energy, red burn, grey alignment) with a tooltip per row; no legend for the tints. Observed: each row carries the #S line's trailing newline, so every scan takes two text lines; at 1000 px window height the list is 100 px tall and shows two scans (the Script dock below takes the height, D59). Double-click scan info is undiscoverable. The list-level tooltip is the .ui's 'Spec Scans', overridden per row."
+- id: AbsFacLineEdit
+  kind: lineedit
+  label: "Absorber Ratio:"
+  where: "Left panel"
+  handler: absFacChanged
+  does: "The transmission factor per absorber unit used to scale frames by absfac^n; shows 'cal' when the calibrated foils are in use"
+  workflows: [reflectivity, gid, xfntr, burn-ref, cuts]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Label says 'Absorber Ratio', tooltip and messages say 'absorber factor'. Read-only while 'from E' is ticked (no visual difference from an editable field). Observed 1.4247 after loading, 'cal' after selecting a 10 keV scan. Related controls are scattered: File > Preferences (calibrated foils), Calculations > abs ratio (measure the ratio), Ref Patch (measures the scale instead)."
+- id: absFacEnergyCheckBox
+  kind: checkbox
+  label: "from E"
+  where: "Left panel"
+  handler: setAbsFacFromEnergy
+  does: "Sets the absorber factor from the energy of the selected scans (calibrated foils near 10 keV, else 50 um Al per unit)"
+  workflows: [reflectivity, gid, xfntr, burn-ref]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Code-built (F49), on by default."
+- id: imagesLabel
+  kind: label
+  label: "Detector: / Pilatus: / Vortex:"
+  where: "Left panel"
+  handler: ""
+  does: "Says which detector the frames in the list below come from"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "The only cue of the detector of the selected scan. Observed 'Pilatus:' for scans 3, 4, 11."
+- id: imageSelectAllCheckBox
+  kind: checkbox
+  label: "Select All"
+  where: "Left panel"
+  handler: "selectAllImages; unticked by unSelectedAllImages when a row is clicked"
+  does: "Selects every frame (or spectrum) of the selected scans"
+  workflows: [general]
+  needs: "a scan with frames selected"
+  shown: always
+  tooltip: false
+  notes: "A checkbox used as an action button; unticks itself on the next click in the list. Same name and look as the background 'Select All' a few rows below. With more than 10 frames the Pilatus tab silently draws only the first 10 (observed: 11 selected, F#0-F#9 drawn)."
+- id: gixSumCheckBox
+  kind: checkbox
+  label: "Sum All"
+  where: "Left panel"
+  handler: update2dPlots
+  does: "Averages the selected frames into one image (frames must share one Qz); cuts, GISAXS and burn use the sum"
+  workflows: [gid, gisaxs, cuts, burn-ref, burn-gid]
+  needs: "Pilatus frames at one Qz selected"
+  shown: always
+  tooltip: false
+  notes: "Name says sum, code averages (divides by N) (read only). Observed: on reflectivity frames it gives 'Error:: The selected frames have different qz values!!' in Messages. Object name gix* is a relic of the Apex tab. Belongs with image display/cuts rather than frame selection; not used for MCA spectra (read only). Reset to off whenever the scan selection changes."
+- id: imageListWidget
+  kind: list
+  label: ""
+  where: "Left panel"
+  handler: "imageSelectedScanChanged (150 ms delay); unSelectedAllImages (click)"
+  does: "Lists the frames (Pilatus) or spectra (Vortex) of the selected scans with S#, F#, Qz, Qx, Abs; selecting draws them"
+  workflows: [general]
+  needs: "a scan with frames selected"
+  shown: always
+  tooltip: false
+  notes: "Observed row 'S# 3  F# 0  Qz=0.0175  Qx=0.0000  Abs=52': the Abs column is cut off at the default width (horizontal scroll). Selecting frames switches to the Pilatus tab; selecting a scan switches back to SpecPlot. No cue of which frames are also used as background."
+- id: backgroundPushButton
+  kind: button
+  label: "Background"
+  where: "Left panel"
+  handler: addBGImagestoList
+  does: "Copies the selected frames into the background list (replacing what was there)"
+  workflows: [cuts, gisaxs, gid]
+  needs: "Pilatus frames selected"
+  shown: always
+  tooltip: false
+  notes: "Label reads as a title, not an action ('Use as background' would say what it does). Pilatus only (read only). Replaces rather than adds."
+- id: bgFacLineEdit
+  kind: lineedit
+  label: "Fac:"
+  where: "Left panel"
+  handler: imageSelectedScanChanged
+  does: "Scale factor applied to the background before it is subtracted; Enter re-reads the frames"
+  workflows: [cuts, gisaxs, gid]
+  needs: "background frames selected"
+  shown: always
+  tooltip: false
+  notes: "Unlabelled meaning ('Fac'); no tooltip."
+- id: bgIgnoreNegCheckBox
+  kind: checkbox
+  label: "Ignore -ve"
+  where: "Left panel"
+  handler: ""
+  does: "Sets negative pixels to zero after background subtraction"
+  workflows: [cuts, gisaxs, gid]
+  needs: "background frames selected"
+  shown: always
+  tooltip: false
+  notes: "Not connected: takes effect only at the next frame selection (read only). Abbreviation '-ve'."
+- id: backgroundListWidget
+  kind: list
+  label: ""
+  where: "Left panel"
+  handler: bgSelectionChanged
+  does: "Background frames; the selected ones are averaged and subtracted from every displayed frame"
+  workflows: [cuts, gisaxs, gid]
+  needs: "frames added with Background"
+  shown: always
+  tooltip: false
+  notes: "Listed but unselected frames are not subtracted; the list keeps frames of an earlier scan after the scan selection changes (observed: S# 3 F# 0 still listed while S# 11 was shown). No cue on the image that a background is subtracted. Takes about a third of the panel height while empty for most workflows."
+- id: bgSelectAllCheckBox
+  kind: checkbox
+  label: "Select All"
+  where: "Left panel"
+  handler: bgSelectAll
+  does: "Selects (subtracts) every frame of the background list"
+  workflows: [cuts, gisaxs, gid]
+  needs: "frames in the background list"
+  shown: always
+  tooltip: false
+  notes: "Checkbox used as an action; same label as the frame list's Select All."
+- id: removePushButton
+  kind: button
+  label: "Remove"
+  where: "Left panel"
+  handler: removeBGImages
+  does: "Removes the selected frames from the background list"
+  workflows: [cuts, gisaxs, gid]
+  needs: "background frames selected"
+  shown: always
+  tooltip: false
+  notes: "Generic label; sits far right of the background 'Select All'."
