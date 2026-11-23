@@ -44,13 +44,14 @@ compared over ranges, never cell by cell.
 overlap (2θ bin × β bin that both levels have) are recomputed from the level
 infos the core returns (``all_counts``, ``all_weights``, ``keep``, ``beta``,
 ``edges``) with ``join_levels``' own rules (one β grid, nearest bin, equal
-weight per cell); the tool stops unless their inverse-variance mean equals
-the core's factor to 1e-9. From those cells: the ratio per cell, per β bin
-and per 2θ bin; the *pooled* ratio Σ⟨I_lower⟩ / Σ⟨I_upper⟩ over the β bins
-(the same cells and the same per-β-bin means, summed instead of weighted;
-not the reader's estimator: the inverse-variance mean of ratios whose
-errors scale with the ratio is biased low when a β bin holds few counts,
-and the pooled ratio shows by how much); and the all-columns cells' pooled
+weight per cell); the tool stops unless the factor from them
+(``pinhole.level_factor_ml``) equals the core's to 1e-9. From those cells:
+the ratio per cell, per β bin and per 2θ bin; the *pooled* ratio
+Σ⟨I_lower⟩ / Σ⟨I_upper⟩ over the β bins (the same cells and the same
+per-β-bin means, summed instead of weighted; a comparison); the
+inverse-variance mean of the β bins' ratios, the core's estimator before
+2026-11-23, which this tool showed to be biased low when a β bin holds few
+counts (P46: errors scaling with the ratio); and the all-columns cells' pooled
 ratio on the 2θ range of a group's overlap (to tell a column effect from a
 2θ effect). Scales between maps are means of the cell intensities ΣN/ΣW
 over a range: the group's map over the all-columns map, same 2θ and β
@@ -286,7 +287,9 @@ def overlap_factor(J, tmask=None):
     intensities of the two sides over the same cells, their ratio, and the
     inverse-variance mean of the ratios. Also the pooled ratio (sum of the
     per-β-bin means of one side over the other's), and the ratio per cell and
-    per 2θ bin."""
+    per 2θ bin. The factor is the core's likelihood estimate
+    (``pinhole.level_factor_ml``, since 2026-11-23); ``factor_ivw`` the
+    inverse-variance mean of the bins' ratios it replaced (P46)."""
     cells = J['cells'] if tmask is None else J['cells'] & np.asarray(tmask)[:, None]
     m = cells.sum(axis=0)
     with np.errstate(invalid='ignore', divide='ignore'):
@@ -300,9 +303,14 @@ def overlap_factor(J, tmask=None):
         return dict(factor=math.nan, error=math.nan, chi2=math.nan, points=0, ncells=0, pooled=math.nan,
                     pooled_error=math.nan)
     ratio = pa[ok] / pb[ok]
-    err = ratio * np.sqrt(va[ok] / pa[ok] ** 2 + vb[ok] / pb[ok] ** 2)
-    wt = 1 / err ** 2
-    fac = float(np.sum(wt * ratio) / np.sum(wt))
+    err_ivw = ratio * np.sqrt(va[ok] / pa[ok] ** 2 + vb[ok] / pb[ok] ** 2)
+    wt = 1 / err_ivw ** 2
+    fac_ivw = float(np.sum(wt * ratio) / np.sum(wt))          # the estimator before 2026-11-23 (P46)
+    try:
+        fac, ferr = ph.level_factor_ml(J['na'], J['wa'], J['nb'], J['wb'], cells)     # the core's, since then
+    except ValueError:
+        fac, ferr = math.nan, math.nan
+    err = fac * np.sqrt(va[ok] / pa[ok] ** 2 + vb[ok] / pb[ok] ** 2)
     pooled = float(np.sum(pa[ok]) / np.sum(pb[ok]))
     perr = pooled * math.sqrt(float(np.sum(va[ok])) / float(np.sum(pa[ok])) ** 2
                               + float(np.sum(vb[ok])) / float(np.sum(pb[ok])) ** 2)
@@ -320,8 +328,8 @@ def overlap_factor(J, tmask=None):
         terr = tr * np.sqrt(tva[tok] / ta[tok] ** 2 + tvb[tok] / tb[tok] ** 2)
     na_b = np.where(used, J['na'], 0.0).sum(axis=0)[ok]
     nb_b = np.where(used, J['nb'], 0.0).sum(axis=0)[ok]
-    return dict(factor=fac, error=float(np.sum(wt) ** -0.5),
-                chi2=float(np.sum(wt * (ratio - fac) ** 2) / max(int(ok.sum()) - 1, 1)),
+    return dict(factor=fac, error=ferr, factor_ivw=fac_ivw, error_ivw=float(np.sum(wt) ** -0.5),
+                chi2=float(np.sum((ratio - fac) ** 2 / err ** 2) / max(int(ok.sum()) - 1, 1)),
                 points=int(ok.sum()), ncells=int(used.sum()), pooled=pooled, pooled_error=perr,
                 counts_per_beta_bin=(float(np.median(na_b)), float(np.median(nb_b))),
                 beta_bins=J['beta'][ok], beta_ratio=ratio, beta_err=err,

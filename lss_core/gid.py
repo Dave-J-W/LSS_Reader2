@@ -36,7 +36,10 @@ the GID worksheet (F61). Where each one acts:
   ``apply_joins`` False: join factors fitted and reported, not applied
   (the data as collected); ``angles``: the pinhole map binned on each
   pixel's exact (2θ, β) ('exact', the default) or on the column's 2θ and
-  the row's β ('per_axis', as before 2026-11-19; comparison C21).
+  the row's β ('per_axis', as before 2026-11-19; comparison C21);
+  ``join_estimator``: the scans' and levels' factors by likelihood ('ml',
+  the default since 2026-11-23, P46) or as the inverse-variance mean of the
+  bins' ratios ('ivw', before; biased low when bins hold few counts).
 """
 from dataclasses import dataclass, fields
 
@@ -64,6 +67,7 @@ class GIDParams:
     beam_h_fwhm_mm: float = 1.0       # response 'physical': horizontal FWHM (owner's estimate, 2026-11-19)
     apply_joins: bool = True          # False: scan and level factors fitted and reported, not applied (as collected)
     angles: str = 'exact'             # pinhole map binning: 'exact' per pixel, or 'per_axis' (before 2026-11-19; C21)
+    join_estimator: str = 'ml'        # scan and level factors: 'ml' (likelihood, P46, 2026-11-23) or 'ivw' (before)
 
     def changed(self):
         """Names of the settings that differ from the defaults."""
@@ -470,7 +474,7 @@ def pinhole_patch(frames, params, log=None):
                                                  min_frames=gp.min_frames, edges=edges,
                                                  beam_centre_mm=gp.beam_centre_mm, beam_fwhm_um=gp.beam_fwhm_um or None,
                                                  beam_h_fwhm_mm=gp.beam_h_fwhm_mm, apply_joins=gp.apply_joins,
-                                                 angles=gp.angles)
+                                                 angles=gp.angles, join_estimator=gp.join_estimator)
         for e in log:
             e.setdefault('label', LEVEL_NAMES[k])
         level_info.append(dict(level=LEVEL_NAMES[k], **info))
@@ -479,7 +483,7 @@ def pinhole_patch(frames, params, log=None):
     try:
         tt, beta, I, S, jinfo = pinhole.join_levels(infos, transverse=gp.transverse, log=log,
                                                     labels=[LEVEL_NAMES[k] for k in range(len(byqz))],
-                                                    apply=gp.apply_joins)
+                                                    apply=gp.apply_joins, estimator=gp.join_estimator)
     except ValueError as e:
         raise GIDError('The Qz levels could not be joined: %s.' % e)
     patch = [np.vstack((np.full(len(beta), t), beta, I[b], S[b])).T for b, t in enumerate(tt)]

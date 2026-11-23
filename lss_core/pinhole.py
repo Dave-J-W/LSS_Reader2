@@ -1189,7 +1189,7 @@ def frame_consistency(theta, n, w, edges):
 
 def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_step_deg=0.0, log=None,
               min_frames=2, edges=None, beam_centre_mm=None, beam_fwhm_um=None, beam_h_fwhm_mm=BEAM_H_FWHM_MM,
-              apply_joins=True, angles='exact'):
+              apply_joins=True, angles='exact', join_estimator='ml'):
     """Pinhole map of one Qz level: every usable column at its own 2θ,
     binned as ΣN/ΣW; scans of the level joined by one factor each (fitted on
     the rows-summed profiles over their common bins, as the window's
@@ -1211,9 +1211,14 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     ``pixel_angles``; 'per_axis': the column's 2θ and the row's β
     (``column_two_theta``, ``row_beta``), as the map was binned before, kept
     for comparison C21 (the columns, footprint and response are found with
-    the exact angles either way)."""
+    the exact angles either way). ``join_estimator`` 'ml' (the default
+    since 2026-11-23, P46): the scans' factors by ``ratio_ml``; 'ivw': the
+    inverse-variance mean of the bins' ratios, as before (biased low when
+    bins hold few counts)."""
     if angles not in ('exact', 'per_axis'):
         raise ValueError("angles: 'exact' or 'per_axis', not %r" % (angles,))
+    if join_estimator not in ('ml', 'ivw'):
+        raise ValueError("join_estimator: 'ml' or 'ivw', not %r" % (join_estimator,))
     ncols = frames[0].counts.shape[1]
     nrows = frames[0].counts.shape[0]
     g0 = frames[0].geom
@@ -1318,11 +1323,15 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
                                     message='scan %d overlaps no scan joined before it: not joined' % sc))
                 continue
             ratio = (ref_n[ok] / ref_w[ok]) / (a[ok] / b[ok])
-            err = ratio * np.sqrt(1 / ref_n[ok] + 1 / a[ok])
-            wt = 1 / err ** 2
-            fac = float(np.sum(wt * ratio) / np.sum(wt))
-            ferr = float(np.sum(wt) ** -0.5)
-            chi2 = float(np.sum(wt * (ratio - fac) ** 2) / max(ok.sum() - 1, 1))
+            if join_estimator == 'ml':                                  # P46 (2026-11-23)
+                fac, ferr = ratio_ml(ref_n[ok], ref_w[ok], a[ok], b[ok])
+                err = fac * np.sqrt(1 / ref_n[ok] + 1 / a[ok])
+            else:
+                err = ratio * np.sqrt(1 / ref_n[ok] + 1 / a[ok])
+                wt = 1 / err ** 2
+                fac = float(np.sum(wt * ratio) / np.sum(wt))
+                ferr = float(np.sum(wt) ** -0.5)
+            chi2 = float(np.sum((ratio - fac) ** 2 / err ** 2) / max(ok.sum() - 1, 1))
             factors[sc] = (fac, ferr)
             if log is not None:
                 x = 0.5 * (edges[:-1] + edges[1:])[ok]
@@ -1365,7 +1374,53 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     return centres[keep], bcentres[bkeep], i[keep][:, bkeep] * mean_m, s[keep][:, bkeep] * mean_m, info
 
 
-def join_levels(levels, transverse='intersection', log=None, labels=None, apply=True):
+def ratio_ml(Na, Wa, Nb, Wb):
+    """The common ratio f = I_a / I_b of two sets of counts over shared bins
+    (E[Na] = I·Wa, E[Nb] = I·Wb / f, I free per bin) that maximises the
+    likelihood of how each bin's counts split between them (binomial, given
+    the bin's total), and its error from the curvature. Unlike the
+    inverse-variance mean of the bins' ratios (weights falling as each bin's
+    own ratio rises), it is not biased when bins hold few counts (P46:
+    measured on synthetic levels, true factor 1.25: −0.03 % against −1.0 %
+    at 0.13 counts per pixel, +0.1 % against −4.9 % at 0.026)."""
+    from scipy.optimize import brentq
+    Na, Wa, Nb, Wb = (np.asarray(x, float) for x in (Na, Wa, Nb, Wb))
+    use = (Na + Nb > 0) & (Wa > 0) & (Wb > 0)
+    Na, Wa, Nb, Wb = Na[use], Wa[use], Nb[use], Wb[use]
+    if Na.sum() <= 0 or Nb.sum() <= 0:
+        raise ValueError('no counts in the overlap')
+
+    def score(f):
+        return float(np.sum(Na / f - (Na + Nb) * Wa / (f * Wa + Wb)))
+    f0 = (Na.sum() / Wa.sum()) / (Nb.sum() / Wb.sum())
+    lo, hi = f0 / 4, f0 * 4
+    while score(lo) < 0:
+        lo /= 4
+    while score(hi) > 0:
+        hi *= 4
+    f = brentq(score, lo, hi, xtol=1e-14, rtol=1e-13)
+    curv = float(np.sum(Na / f ** 2 - (Na + Nb) * Wa ** 2 / (f * Wa + Wb) ** 2))
+    return f, (curv ** -0.5 if curv > 0 else float('nan'))
+
+
+def level_factor_ml(nc, wc, n, w, cells):
+    """``ratio_ml`` for the β bins of a level join: each level's β bin
+    enters with the effective counts and exposure of an equal-weight mean
+    over its cells (N = p·W, W = m² / Σ 1/w_cell), as the bins' ratios are
+    formed."""
+    m = cells.sum(axis=0)
+    sa = np.where(cells, wc, 1.0)
+    sb = np.where(cells, w, 1.0)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        pa = np.where(cells, nc / sa, 0.0).sum(axis=0) / np.maximum(m, 1)
+        pb = np.where(cells, n / sb, 0.0).sum(axis=0) / np.maximum(m, 1)
+        Wa = m ** 2 / np.where(cells, 1.0 / sa, 0.0).sum(axis=0)
+        Wb = m ** 2 / np.where(cells, 1.0 / sb, 0.0).sum(axis=0)
+    ok = (m > 0) & np.isfinite(Wa) & np.isfinite(Wb)
+    return ratio_ml(pa[ok] * Wa[ok], Wa[ok], pb[ok] * Wb[ok], Wb[ok])
+
+
+def join_levels(levels, transverse='intersection', log=None, labels=None, apply=True, estimator='ml'):
     """Join the maps of several Qz levels (``level_map`` infos on one shared
     2θ grid) into one map (F62; the review's §7.2 step 8, after IDL's
     IMG_JOIN):
@@ -1444,11 +1499,15 @@ def join_levels(levels, transverse='intersection', log=None, labels=None, apply=
         if not ok.any():
             raise ValueError('%s does not overlap in beta with the levels below it' % labels[k])
         ratio = pa[ok] / pb[ok]
-        err = ratio * np.sqrt(va[ok] / pa[ok] ** 2 + vb[ok] / pb[ok] ** 2)
-        wt = 1 / err ** 2
-        fac = float(np.sum(wt * ratio) / np.sum(wt))
-        ferr = float(np.sum(wt) ** -0.5)
-        chi2 = float(np.sum(wt * (ratio - fac) ** 2) / max(ok.sum() - 1, 1))
+        if estimator == 'ml':
+            fac, ferr = level_factor_ml(nc, wc, n, w, cells)
+            err = fac * np.sqrt(va[ok] / pa[ok] ** 2 + vb[ok] / pb[ok] ** 2)     # χ² about f, errors at f
+        else:
+            err = ratio * np.sqrt(va[ok] / pa[ok] ** 2 + vb[ok] / pb[ok] ** 2)
+            wt = 1 / err ** 2
+            fac = float(np.sum(wt * ratio) / np.sum(wt))
+            ferr = float(np.sum(wt) ** -0.5)
+        chi2 = float(np.sum((ratio - fac) ** 2 / err ** 2) / max(ok.sum() - 1, 1))
         factors[labels[k]] = (fac, ferr)
         if log is not None:
             x = 0.5 * (bedges[:-1] + bedges[1:])[ok]

@@ -346,6 +346,38 @@ def test_join_recovers_the_factor_and_the_ranges():
     assert np.nanmean(rel) == pytest.approx(1.0, abs=0.01)
 
 
+def test_level_factor_is_unbiased_at_low_counts():
+    """P46 (2026-11-23): the level factor by likelihood stays on the truth
+    (1.25) when β bins hold few counts; the inverse-variance mean of the
+    bins' ratios, the estimator before, falls below it (weights 1/err²
+    with err ∝ each bin's own ratio favour the bins that came out low).
+    Measured over 16 seeds: −0.03 % against −1.0 % at monitor 500, +0.1 %
+    against −4.9 % at monitor 100."""
+    truth = lambda t, b: 2e-4 * (1 + 2 * np.exp(-((t - 16.5) / 0.3) ** 2)) * (1 + 0.1 * b)
+    got = {'ml': [], 'ivw': []}
+    for seed in range(4):
+        rng = np.random.default_rng(seed)
+        a = _level(np.arange(14.0, 17.01, 0.1), 0.09, 1.0, truth, rng, monitor=100)
+        b = _level(np.arange(15.0, 18.51, 0.1), 3.0, 0.8, truth, rng, monitor=100)
+        edges = ph.shared_edges(a + b)
+        infos = [ph.level_map(x, 15, 486, response='none', area=False, pol=False, edges=edges)[4] for x in (a, b)]
+        for k in got:
+            factors = ph.join_levels(infos, estimator=k)[4]['factors']
+            got[k].append(list(factors.values())[1][0])
+    assert np.mean(got['ml']) == pytest.approx(1.25, rel=0.006)
+    assert np.mean(got['ivw']) < 1.25 * 0.97
+
+
+def test_ratio_ml_is_the_pooled_ratio_for_one_bin_and_recovers_a_scale():
+    f, e = ph.ratio_ml([400.0], [2.0], [100.0], [1.0])
+    assert f == pytest.approx((400 / 2) / (100 / 1)) and e == pytest.approx(f * math.sqrt(1 / 400 + 1 / 100), rel=1e-6)
+    rng = np.random.default_rng(3)
+    wa, wb = rng.uniform(1, 3, 50), rng.uniform(1, 3, 50)
+    lam = rng.uniform(1, 5, 50)
+    fs = [ph.ratio_ml(rng.poisson(lam * wa), wa, rng.poisson(lam * wb / 1.3), wb)[0] for _ in range(200)]
+    assert np.mean(fs) == pytest.approx(1.3, rel=0.01)                 # about 3 counts per bin and side
+
+
 def test_join_conserves_counts():
     truth, infos, edges = _two_levels(seed=5)
     tu, bu, Iu, Su, iu = ph.join_levels(infos, 'union')

@@ -81,7 +81,7 @@ def default_text(action):
     """An action's default as the text a form field shows."""
     d = action['default']
     if action['kind'] in ('flag', 'flag_false', 'const'):
-        return bool(d) if action['kind'] != 'flag_false' else not d
+        return False                                   # a flag's field is "given or not"; not given by default
     if d is None:
         return ''
     if isinstance(d, list):
@@ -119,8 +119,8 @@ def build_args(spec, values, out_dir, free=''):
             if v is True or v == 'true':
                 args.append(key)
             continue
-        if a['kind'] == 'flag_false':
-            if v is False:
+        if a['kind'] == 'flag_false':                 # a store_false option: ticked means given, as any flag
+            if v is True or v == 'true':
                 args.append(key)
             continue
         text = str(v).strip()
