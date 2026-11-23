@@ -263,7 +263,7 @@ INVENTORY = {
     'actionG_l2': ('action', 'g_l2', 'Menu bar > Calculations', 'Fits sh centres of the selected scans vs incidence angle to get the crystal-sample distance g_l2 and an offset (dialog)'),
     'actionG_l3': ('action', 'g_l3', 'Menu bar > Calculations', 'Same fit for the sample-detector distance g_l3 (dialog)'),
     'actionAbs_ratio': ('action', 'abs ratio', 'Menu bar > Calculations', 'Measures the absorber transmission ratio from an absorber scan (dialog)'),
-    'menuTools': ('menu', 'Tools', 'Menu bar', 'Every demonstration and figure generator of the repository, by area (burn tests, reflectivity patching, GID and pinhole geometry, monitor and scans, synthetic data sets, the window and manual, made elsewhere); each item opens its page in the Tools window'),
+    'menuTools': ('menu', 'Tools', 'Menu bar', 'Every demonstration and figure generator of the repository, by area (burn tests, reflectivity patching, GID and pinhole geometry, monitor and scans, fluorescence spectra, synthetic data sets, the window and manual, made elsewhere); each item opens its page in the Tools window'),
     'actionToolsWindow': ('action', 'All tools…', 'Menu bar > Tools', "Opens the Tools window at its overview (the rendered docs/TOOLS.md); a page per item: the documented variations, the script's own options, Run into a run folder, results compared pixel by pixel with the committed products"),
     'menuHelp': ('menu', 'Help', 'Menu bar', 'Documentation, About'),
     'actionDocumentation': ('action', 'Documentation', 'Menu bar > Help', 'Nothing: not connected'),

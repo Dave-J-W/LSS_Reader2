@@ -127,7 +127,7 @@
   label: "Tools"
   where: "Menu bar"
   handler: "lss_toolbox.menu.install (initToolsMenu)"
-  does: "Every demonstration and figure generator of the repository, by area (burn tests, reflectivity patching, GID and pinhole geometry, monitor and scans, synthetic data sets, the window and manual, made elsewhere); each item opens its page in the Tools window"
+  does: "Every demonstration and figure generator of the repository, by area (burn tests, reflectivity patching, GID and pinhole geometry, monitor and scans, fluorescence spectra, synthetic data sets, the window and manual, made elsewhere); each item opens its page in the Tools window"
   workflows: [general]
   needs: "a source checkout to run anything (a packaged build lists the items but cannot run them)"
   shown: always

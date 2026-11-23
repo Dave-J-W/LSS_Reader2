@@ -146,9 +146,11 @@ def measure(qz, sample=Sample(), line=Line(), photons=4e4, elastic=2e3, monitor=
     return counts, XfntrTruth(qz, n_line, exp, lines, monitor, real, live, sample, line)
 
 
-def write_dataset(root, counts, truth, name='xf', absorber=0, energy_kev=10.0):
+def write_dataset(root, counts, truth, name='xf', absorber=0, energy_kev=10.0, calib=CALIB):
     """SPEC file with one getandsave_mca scan per spectrum and vortex/ beside
-    it, as ``synth.make_xfntr_dataset`` writes them. Returns the SPEC path."""
+    it, as ``synth.make_xfntr_dataset`` writes them (``calib``: the
+    calibration written, keV = a + b·channel + c·channel²). Returns the SPEC
+    path."""
     root = str(root)
     os.makedirs(os.path.join(root, 'vortex'), exist_ok=True)
     scans = []
@@ -160,7 +162,7 @@ def write_dataset(root, counts, truth, name='xf', absorber=0, energy_kev=10.0):
             f.write('#F %s\n\n#S 1  getandsave_mca %g\n' % (os.path.basename(path), truth.real))
             f.write('#@CTIME %g %g %g\n' % (truth.real, truth.real, truth.live))
             f.write('#Monc %g\n#Q 0 0 %.6g\n' % (truth.monitor, q))
-            f.write('#@CALIB %g %g %g\n#Energy %g\n' % (CALIB + (energy_kev,)))
+            f.write('#@CALIB %g %g %g\n#Energy %g\n' % (tuple(calib) + (energy_kev,)))
             vals = ['%d' % v if float(v).is_integer() else '%.6f' % v for v in y]
             chunks = [vals[k:k + 16] for k in range(0, len(vals), 16)]
             for k, c in enumerate(chunks):
