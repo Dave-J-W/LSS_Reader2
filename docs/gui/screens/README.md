@@ -6,7 +6,7 @@ and synthetic data from `tests/synth.py` for MCA / fluorescence, the reflectivit
 (NX has no MCA data). Regenerate the whole folder with the command above; the table is rewritten, the
 Observations section is by hand and is kept.
 
-73 images, 5.6 MB, last run took 45 s (plus 93 and 94, kept from the previous run).
+75 images, 5.7 MB, last run took 54 s.
 
 | File | What it shows | Data and state |
 |---|---|---|
@@ -72,8 +72,8 @@ Observations section is by hand and is kept.
 | `90_dialog_gioxs.png` | GIOXS window (Pilatus > GIOXS) | Scan 11 frame 1 as data, scan 12 frame 1 as background |
 | `91_gisaxs_show.png` | Whole window after GISAXS drop-down > Show GISAXS | Scan 11 frame 1 with a background; tab: Pilatus |
 | `92_dialog_scan_info.png` | Scan info window (double-click a scan in the scan list) | Scan 11 selected |
-| `93_dialog_g_l2.png` | Calculations > G_l2 window | Scan 4 selected on SpecPlot (kept from the run of 2026-11-23 morning: since the scan-fit rules of 2026-11-23 the synthetic scan 4 is not fitted, so the tool gets a message instead of the dialog; TODO area I) |
-| `94_dialog_g_l3.png` | Calculations > G_l3 window | Scan 4 selected on SpecPlot (kept from the run of 2026-11-23 morning: since the scan-fit rules of 2026-11-23 the synthetic scan 4 is not fitted, so the tool gets a message instead of the dialog; TODO area I) |
+| `93_dialog_g_l2.png` | Calculations > G_l2 window | Scans 5 and 13 (sample height) fitted on SpecPlot |
+| `94_dialog_g_l3.png` | Calculations > G_l3 window | Scans 5 and 13 (sample height) fitted on SpecPlot |
 | `95_dialog_preferences.png` | File > Preferences window | Defaults |
 | `96_pane_messages.png` | Messages pane (bottom dock) | Two example messages posted (not from a real action) |
 | `97_pane_script.png` | Script pane (bottom dock) | After the reductions run in this session (the script records them) |

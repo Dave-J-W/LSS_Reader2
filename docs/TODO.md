@@ -244,8 +244,11 @@ build workflow and macOS signing (input 12); sample-data hosting.
       all values are <= 0" from the SpecPlot log y on a column of zeros
       (`spNComboBox`); (3) `updatePilPlotData` (≈ line 3357):
       `float('')` of an empty `pilSDDistLineEdit`.
-- [ ] **`gui_screens.py` no longer captures the g_l2 / g_l3 dialogs (found
-      2026-11-23 by the Tools audit)**: since the scan-fit rules of
+- [x] **`gui_screens.py` no longer captures the g_l2 / g_l3 dialogs (found
+      2026-11-23 by the Tools audit) — done 2026-11-23**: the step plots the
+      sample-height scans 5 and 13 one by one (each gets its fitted centre),
+      then selects both; the screenshot also showed the dialogs listing
+      scans 5 and 13 as "6, 14", fixed (`test_known_defects`). Before: since the scan-fit rules of
       2026-11-23 (flat or weak scans not fitted) the synthetic motor scan 4
       has no fitted centre, so Calculations > g_l2 answers "Please plot the
       selected scans first" instead of opening. `docs/gui/screens/93_*`,
