@@ -33,7 +33,7 @@ import traceback
 import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
-from lss_core import cuts
+from lss_core import cuts, mcafiles
 from lss_core import gid as gidmod
 from lss_core import pinhole
 from lss_core import peaks
@@ -1734,9 +1734,8 @@ class MainWindow (QMainWindow):
         start=0
         try:
             for i in range(len(self.mcaFileNames)):
-                self.mcaread=mcaread(self.mcaFileNames[i],beamline=self.beamline)
-                data=self.mcaread.Data
-                par=self.mcaread.Par
+                # parsed once per file version (lss_core.mcafiles): a selection change re-read every selected file
+                data,par=mcafiles.read_mca(self.mcaFileNames[i],beamline=self.beamline)
                 spar=self.specPar.get(self.selectedScanNums[i],{})
                 n=spar.get('Absorber')
                 abstext='' if n is None else '\tAbs=%g' % n + ('' if 'AbsorberFrom' not in spar else ' (#A of S%d)' % spar['AbsorberFrom'])

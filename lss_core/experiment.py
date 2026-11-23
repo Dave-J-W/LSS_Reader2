@@ -522,12 +522,12 @@ class Experiment:
         fluorescence scans ``scans``, in the window's list order. Files of a
         multi-element detector give one spectrum per point, the elements in
         ``channels`` summed (None: all; lss_core.fluorescence.combine_channels)."""
-        from mca_routines import mcaread
+        from .mcafiles import read_mca
         out = []
         name = os.path.basename(self.specfile)
         for n in scans:
-            m = mcaread(os.path.join(self.mca_folder, '%s_%d_mca' % (name, n)))
-            spec = fluo.combine_channels([(m.Data[j], m.Par[j]) for j in range(m.Data['NumOfScans'])], channels)
+            data, par = read_mca(os.path.join(self.mca_folder, '%s_%d_mca' % (name, n)))   # parsed once per file version
+            spec = fluo.combine_channels([(data[j], par[j]) for j in range(data['NumOfScans'])], channels)
             for j, (d, p) in enumerate(spec):
                 out.append((n, j + 1, d, p))
         return out
