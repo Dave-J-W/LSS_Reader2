@@ -4473,3 +4473,12 @@ Verified by: reading only.
 - **Q6 EXAFS:** low priority; Athena/Larch spline above the edge and the usual k-weighted EXAFS plot, hosted in a "process EXAFS" dialog; also an energy-axis line-intensity file, dead-time and absorber corrections, μ(E) normalisation and edge step. Reference for the method: Newville, *J. Synchrotron Rad.* 8, 322 (2001), doi:10.1107/S0909049500016964 (Larch/Athena's background removal, AUTOBK: Newville et al., *Phys. Rev. B* 47, 14126 (1993), doi:10.1103/PhysRevB.47.14126), cited from memory.
 - **Q-REF-2 joins:** the owner looks at every join; a bad join with good statistics usually means sample damage. Design consequence: suspect joins are flagged and stay reviewable; no silent auto-accept.
 - **Q-EXAFS-2:** unanswered; the owner asked what data would answer it; the request is in `TODO.md`.
+
+### 2026-11-23 — GUI questions answered, batch 4 (Q-UI-A3, A10, A5–A8, Q-IMG-4)
+
+Verified by: reading `mainwindow.py` (the current averaging); nothing run.
+
+- **"Sum All":** sum counts, sum monitors, normalise once (F91). Statistically, for Poisson counts N_i with monitors M_i the pooled rate ΣN/ΣM is the maximum-likelihood rate when the true rate is common, whereas the mean of N_i/M_i weights low-monitor frames too heavily. Invariant to check when built: for equal monitors the new and old values are identical; the sum of the counts is conserved.
+- **Greying out** tool groups that do not fit the series kind, with tooltips.
+- **GIOXS, 2D_Plot, Calculations, background block:** all stay; each needs more thought.
+- **Movie colour scale:** shared, absorber-corrected, per monitor.

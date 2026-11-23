@@ -402,6 +402,8 @@ order"), for a day of reflectivity only; the whole answer is in
 | F89 | **Fluorescence burn test** (owner, 2026-11-23, Q2): the burn analysis fed by one or two fitted fluorescence lines (area on a background, per Monc) from repeated MCA spectra at one Qz, through the same trend models. Open: element(s), `#V` or per-point files. |
 | F90 | **MCA fit gauntlet; the window sum retires if it passes** (owner, 2026-11-23, Q5): fitted lines are the default, placed from the element, fit range shown as an editable box. A gauntlet of true MCA spectra (synthetic, plus real data the owner can provide) must show the fit holds against the direct-beam scatter (Rayleigh, Compton), the hard case being Zn Kα (8637 eV) under 10 keV excitation. If it passes, summing windows is no longer needed. |
 
+| F91 | **"Sum All" really sums** (owner, 2026-11-23, Q-UI-A3): counts and monitors summed, then normalised once (ΣN/ΣM); changes summed cuts, GISAXS and burn when monitors differ. OUTPUT_DECISIONS row written, code not changed. The legacy-mode switch of F86 can keep the old average. |
+
 Also decided (see `docs/gui/questions.md` Answers): movie at 3 or more frames, space pauses, arrows step when paused (F69); weighted residuals (F74); Apex tab, Beamlines menu, `peakfit2`/`peakfitpara` and the Command line row removed; Quit works and Documentation opens `docs/SCRIPTING.md`; Messages, Errors and Script panes follow D59.
 
 ### Status of built items
