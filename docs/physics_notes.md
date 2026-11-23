@@ -4362,3 +4362,15 @@ Two-level maps, which is all the real data on hand, do not change: the 38
 real-data GID tests pass (NX school scans 11, 12 against stored curves).
 The two strict xfails became ordinary tests, and the "as coded" test that
 pinned P36's wrong value was removed with the fix. Verified: tested.
+
+**Addendum, the same day: the GID map's redraws (G1).** The GUI-planning
+session measured that a redraw of the GID map in Q (a colour map or Log
+Int changed) took 2.7–3.0 s, most of it regridding the patched map with
+`griddata` again (`docs/gui/image_display.md`, G1), and handed the item
+over. Measured here on NX school scans 11 + 12: a redraw took 1.0 s
+(legacy patch) to 1.4 s (pinhole patch), 70–77 % of it the two `griddata`
+calls. The regridded map is now kept, keyed on the map's content (a hash
+of its four arrays, so a patch or a live remake giving the same map in new
+arrays is not regridded again): redraws 0.30–0.35 s, no number changes
+(the kept products equal a fresh computation, bit for bit). Verified:
+measured and tested (`test_gid_redraw.py`).

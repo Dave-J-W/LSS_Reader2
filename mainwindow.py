@@ -4651,9 +4651,35 @@ class MainWindow (QMainWindow):
 
     def gidProducts(self,axes):
         """What is plotted and saved for the current map in ``axes``
-        (lss_core.gid.products)."""
-        return gidmod.products(self.pilGIDXAxs,self.pilGIDYAxs,self.pilGIDData,self.pilGIDDataErr,axes,
-                               self.truealpha[0],self.wavelength[0],relax=getattr(self,'pilGIDRelax',0)!=0)
+        (lss_core.gid.products).
+
+        The map regridded to Q is kept (G1, docs/gui/image_display.md;
+        2026-11-23): regridding was 70-77 % of every redraw of the map, also
+        when only the colour map, the scale or the limits changed. The key
+        is the map's content (a hash of its four arrays, a few ms) with the
+        angle, wavelength and Relax, so a patch, or a live remake that gives
+        the same map in new arrays, is regridded only when the map changed.
+        The kept arrays are read-only."""
+        import hashlib
+        args=(self.pilGIDXAxs,self.pilGIDYAxs,self.pilGIDData,self.pilGIDDataErr)
+        relax=getattr(self,'pilGIDRelax',0)!=0
+        if axes!='Q':
+            return gidmod.products(*args,axes,self.truealpha[0],self.wavelength[0],relax=relax)
+        h=hashlib.blake2b(digest_size=16)
+        for a in args:
+            a=np.ascontiguousarray(a)
+            h.update(repr((a.shape,a.dtype.str)).encode())
+            h.update(a.data)
+        key=(h.hexdigest(),float(self.truealpha[0]),float(self.wavelength[0]),relax)
+        kept=getattr(self,'gidProductsKept',None)
+        if kept is not None and kept[0]==key:
+            return kept[1]
+        prod=gidmod.products(*args,axes,self.truealpha[0],self.wavelength[0],relax=relax)
+        for v in list(prod.values())+list(prod['vc'].values()):
+            if isinstance(v,np.ndarray):
+                v.setflags(write=False)
+        self.gidProductsKept=(key,prod)
+        return prod
 
     def gidFitPinholeDistance(self):
         """S4 -> detector distance calibrated from single frames of the first

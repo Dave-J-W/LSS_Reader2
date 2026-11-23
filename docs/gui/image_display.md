@@ -574,7 +574,7 @@ Size: **L** (widget, geometry unification, defaults); geometry alone
 | V1 | Difference/ratio, projections, overlays, readout, integral trace | partial ("Sum All") | M |
 | W1 | `ImageView` widget shared by views A–F; `display.py` core | copy-pasted blocks | L |
 | B1 | Fix wrong cursor values (tiles, ROI close-up) | defects | S |
-| G1 | Cache GID products per axes kind (3 s → < 1 s per redraw) | regrid every redraw | S |
+| G1 | Cache GID products per axes kind (3 s → < 1 s per redraw) | **done 2026-11-23** (test-speed session): the Q regridding kept per map, keyed on its content (`MainWindow.gidProducts`); NX 11 + 12 redraws 1.0–1.4 → 0.30–0.35 s on a 4-CPU container; `tests/test_gid_redraw.py` | S |
 
 Suggested order: W1 skeleton + B1 + C1/C2/C5/C6/C7 → M1–M6 → P1–P4 →
 R1–R6 → X2 → X1/X3 → V1. Defects B1, C2 (NaN log), the `spectral` entry
