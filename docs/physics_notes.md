@@ -4454,3 +4454,14 @@ changed; these are decisions, not measurements).
 - **Q7 movie:** from 3 frames up; space pauses; arrows pause then step (up/back/left backward in time).
 
 No invariant changes. Open consequence for the figure agent: none.
+
+### 2026-11-23 — GUI questions answered, batch 2 (8, 9, 2, 5)
+
+Verified by: reading only; decisions, not measurements.
+
+- **Q8 image defaults:** accepted as proposed (log / linear by kind, 99.9th-percentile top with the direct beam masked, per monitor and absorber-corrected).
+- **Q9 sticky:** everything sticky across redraws, scans and sessions, reset only by a new SPEC file; Home and Fit all on every axis (F88).
+- **Q2 fluorescence burns:** the burn trend of fitted fluorescence line areas per Monc (F89).
+- **Q5 XFNTR:** fitted lines by default, from the element; the sum retires if a gauntlet against Rayleigh and Compton scatter (Zn Kα 8637 eV at 10 keV) passes; real data offered by the owner (F90).
+
+**Physics to check when F90 is built:** Zn Kα (8.637 keV) sits below a 10 keV excitation, so the elastic (Rayleigh) peak at 10 keV and its Compton shoulder (about 10 keV − 0.0 to 0.2 keV at large angles; shift ΔE ≈ E²(1−cosθ)/(m_ec² + E(1−cosθ)), Compton 1923, doi:10.1103/PhysRev.21.483) lie 1.4 keV from the line: the detector resolution (about 150–250 eV FWHM for a silicon drift detector) and its tail determine the risk. Not yet measured.
