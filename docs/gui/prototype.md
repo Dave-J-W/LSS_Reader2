@@ -41,13 +41,15 @@ the map's `day-ref`).
    order: **Input** (what is reduced), **Reduce** (the settings that change
    numbers), **Display** (what changes only the picture). The plots are on
    the right. One meaning per word.
-4. **Saving is automatic; no Save or Export buttons** (D61, owner
-   2026-11-23). Every result is saved to the workbook (Excel, later HDF5)
-   once it is made. Each result has one small **Note…** button, where Save
-   is today, which attaches a note to the version already saved (the owner
-   keeps notes: "I did like the ability to save notes when saving a
-   reduction"). Exporting text files is a less used option, under File >
-   Export… (choose a saved result, the format and options such as
+4. **Saving is automatic; one Save… per result; no Export buttons** (D61,
+   owner 2026-11-23). Every result is saved to the workbook (Excel, later
+   HDF5) once it is made. Each result keeps one small **Save…** button: it
+   saves the result as a version with the user's note. If the result is the
+   one just saved automatically, the note goes on that version instead of
+   a copy. Changing the parameters and pressing Save… again gives a new
+   version: the owner's case, "when people change reduction parameters and
+   save again". Exporting text files is a less used option, under File >
+   Export… (choose a saved result, the format, options such as
    "+ covariance").
 5. **Provenance on every result.** A one-line strip under each result
    plot, e.g. "S# 6–9 · joint fit · budget errors · / Monc · saved R0007 v2",
@@ -76,8 +78,11 @@ the map's `day-ref`).
      frames play and when the selection changes (owner 2026-11-23; F70).
    - Axes in pixels, angles or Q; a "fixed in 2θ" switch for GID movies
      (M7).
-   - Reflectivity opens zoomed on the ROI, on log scale, with the box drawn
-     (F71).
+   - Reflectivity opens on log scale, zoomed to the ROI and both
+     background zones with a margin, the boxes drawn: "not too close, we do
+     want to see the diffuse scattering around it, and the background zones
+     to the sides. But still a healthy zoom compared to the full image"
+     (owner 2026-11-23; F71).
    - The Line cuts sub-tab is the same for every image (F68).
 10. **Residuals panel** above every fit plot, about 15 % of the height,
    hidden by default (F74).
@@ -163,7 +168,7 @@ outline. Controls are named by their inventory id.
   - A 1-D plot: scale, gradient, Legacy… peak fit.
   - A 2-D map: colour, log, limits, interpolation.
 
-Every result above has its Note… button and provenance strip (principles
+Every result above has its Save… button and provenance strip (principles
 4 and 5); File > Export… writes text files, with "+ covariance" for a
 reflectivity. Preferences keep their dialog for now; settings that change numbers also
 appear where they act (the patch method in Reflectivity > Patch, the

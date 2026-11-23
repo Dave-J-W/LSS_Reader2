@@ -139,6 +139,7 @@ GUI overhaul (R4, D58; plan `docs/gui/README.md`), planning only until the owner
 | Phase 2: frames as a movie with sticky zoom (≤ 6 tiles; sampling first/middles/last, default 4; first n), sticky plot preferences, intelligent colour scales, ROI close-up for reflectivity | F69–F71 |
 | Faster log-scale plotting (outside the first deliverables) | F72 |
 | Residuals panel above every fit plot (about 15 % of the height, own scale, χ²/dof in the legend; can be hidden, hidden by default for now); for later | F74 |
+| Sample timeline tab (sh-scan thumbnails, sx moves, new samples from 'set sh 0', tensiometer, barrier, reduction thumbnails, note boxes): research first — **in progress** 2026-11-23 | F83 |
 | Prototype of the new layout (a sketch, off by default; Preferences): design `docs/gui/prototype.md`; window built from a layout table covering every inventoried control — **in progress** 2026-11-23 | F82 |
 | Phase 3: contextual GUIs by data type | F73, F60 |
 
@@ -160,6 +161,7 @@ GUI overhaul (R4, D58; plan `docs/gui/README.md`), planning only until the owner
 | GIOXS uses a variable before assignment when the frame count is not a multiple of "ave frames" | read |
 | The Plot tab still opens a blocking QMessageBox (rule: `notify`) | read |
 | The crash sweep never exercises actions behind a file chooser that returns a file (e.g. 2D_Plot add file): extend it | read |
+| Each Qc or Qoff Enter and each R/R_F toggle saves a new automatic workbook version (they call `updateRefPlotData`, one of the automatic-save points), so tweaking Qoff by trial stores a version per try; the same class as the per-Accept saves | read 2026-11-23 (owner's Save… question) |
 | A finished "Reading Scan #1, 100 %" progress window sometimes appears late, after the reading it belongs to; the SPEC reader keeps it referenced (`spec_routines.py:236`), so Qt's show-if-slow timer may show it (cause guessed). Seen twice in four screenshot runs; not reproduced by opening the NX file and waiting 6 s | seen (intermittent) |
 
 Other items: ~~make `test_rapid_clicks_in_the_image_list_are_drawn_once` independent of machine load~~ done 2026-11-22 (waits up to 3 s for the one draw); GUI reorganisation (R4) with redraw in place
