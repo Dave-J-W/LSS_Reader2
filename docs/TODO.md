@@ -140,7 +140,7 @@ GUI overhaul (R4, D58; plan `docs/gui/README.md`), planning only until the owner
 | Faster log-scale plotting (outside the first deliverables) | F72 |
 | Residuals panel above every fit plot (about 15 % of the height, own scale, χ²/dof in the legend; can be hidden, hidden by default for now); for later | F74 |
 | Sample timeline tab (sh-scan thumbnails, sx moves, new samples from 'set sh 0', tensiometer, barrier, reduction thumbnails, note boxes): research first — **in progress** 2026-11-23 | F83 |
-| Prototype of the new layout, **ngui** (a sketch, off by default; Preferences > Layout): design `docs/gui/prototype.md`; **built** 2026-11-23: `ngui/` (layout table placing all 404 inventoried controls or retiring 42 with reasons, theme, window), `tests/test_ngui.py`, screenshots `docs/gui/prototype/screens/` (`tests/tools/ngui_screens.py`); next: the owner's reactions | F82 |
+| Prototype of the new layout, **ngui** (a sketch, off by default; Preferences > Layout): design `docs/gui/prototype.md`; **built** 2026-11-23: `ngui/` (layout table placing all 404 inventoried controls or retiring 40 with reasons, theme, window), `tests/test_ngui.py`, screenshots `docs/gui/prototype/screens/` (`tests/tools/ngui_screens.py`); next: the owner's reactions | F82 |
 | Phase 3: contextual GUIs by data type | F73, F60 |
 
 **Defects found by the GUI assessment (2026-11-22)**, to fix one per commit with its test when coding resumes (details in `docs/gui/assessment_a.md`, `assessment_b.md`, `image_display.md`; "seen" = in an offscreen window, "measured" = a number taken, "read" = code only):

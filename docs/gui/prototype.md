@@ -188,7 +188,7 @@ the main window, as its child, and closes with it; unticking closes it.
   its plots; the selection dock; menus; panes; status and state bar;
   File > Export… (D61: no Export buttons in the tabs); the Preferences that
   stay in their dialog; a `RETIRED` dict with reasons. All 404 inventoried
-  controls are placed once (362) or retired (42). Each result plot has its
+  controls are placed once (364) or retired (40; the two saving preferences were kept as settings by the orchestrator, since the owner did not ask to remove them). Each result plot has its
   provenance strip and one "Save…" button (today's Save, a version with a
   note; results are also saved automatically, D56). The Frames viewer has
   "Raw frames" (movie bar, metadata line, "Fixed in 2θ") and "Line cuts"

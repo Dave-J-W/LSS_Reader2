@@ -627,6 +627,12 @@ PREFERENCES = [
         C('prefFoilTable', 'Foil thicknesses'),
         C('prefFoilRangeLabel', '9.70–10.30 keV'),
     ]),
+    # kept (orchestrator, 2026-11-23): the owner asked for automatic saving and a Save… with a note (D61),
+    # not for removing the off switch or the note question; retiring them waits on the owner
+    G('Saving', '', [
+        C('prefAutoSaveCheckBox', 'Save results automatically', note='On by default (D56); off for quick looks'),
+        C('prefSaveNoteCheckBox', 'Save… asks for a note', note='Shift-click skips the question'),
+    ]),
     G('Window', '', [
         C('prefNguiCheckBox', 'ngui (new layout, prototype)', note='This window; unticking closes it'),
         C('prefClosePushButton', 'Close'),
@@ -698,10 +704,6 @@ RETIRED = {
     'mcamerge.okPushButton': 'Merge window; the Merge button acts at once: ' + INLINE,
     'mcamerge.cancelPushButton': 'Merge window; the Merge button acts at once: ' + INLINE,
     'plotscale.closePB': 'Plot Scale Setup, now Files > 1-D plot: ' + INLINE,
-    # saving is automatic (D56, D61); notes go with Save… or the provenance strip
-    'prefSaveNoteCheckBox': 'In ngui Save… always takes a note and automatic saves never ask (D61); a note can '
-                            'also be added from the provenance strip',
-    'prefAutoSaveCheckBox': 'Saving is always automatic in ngui (D61); nothing to switch',
     'refpatchsamescan.nextPushButton': 'One choice (Sum, Drop, Patch) applies to every identical pair; no stepping',
     # duplicates merged
     'cutFitNowPushButton': 'Duplicate of "Fit peaks" once the fit options are inline (Frames > Peak fit)',
