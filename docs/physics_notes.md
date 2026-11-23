@@ -3765,7 +3765,7 @@ covariance agent's branch, merged next).
 **Owner:** "The gauntlet also requires using the synthetic data
 capabilities and lots of replicates under diff conditions."
 
-**Done** (`tests/tools/ref_patch_gauntlet.py --design all`, outputs in
+**Done** (`tests/tools/ref_patch_gauntlet.py --design all --methods key`, outputs in
 `docs/comparisons_data/ref_patch_gauntlet/`, C36). The generators' range
 was used one factor at a time from a baseline (a 100 Å film, four scans,
 NX flux, the owner's monitor), 400 replicates each: the layer (water, DPPC,

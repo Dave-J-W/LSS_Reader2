@@ -279,14 +279,14 @@ Every patching method on many noise replicates of synthetic reflectivity under m
 
 - The committed products were made with:
 
-      python tests/tools/ref_patch_gauntlet.py --out '{out}' --design all --methods legacy,interp,coincident,joint_o4_e2,joint_o4_e2_prior,joint_o4_e4,joint_o4_e4_g01 --replicates 400
+      python tests/tools/ref_patch_gauntlet.py --out '{out}' --design all --methods key --replicates 400
 
 Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Core, all methods | The seven core conditions with every method (about 3 min). | `docs/COMPARISONS.md:89` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design core --methods all --replicates 400` |
-| Full gauntlet (as committed) | Core, grid and random designs with the seven methods judged: the run behind the default (about 25 min; every committed row reproduced exactly, 2026-11-23). | `docs/COMPARISONS.md:89` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design all --methods legacy,interp,coincident,joint_o4_e2,joint_o4_e2_prior,joint_o4_e4,joint_o4_e4_g01 --replicates 400` |
+| Full gauntlet (as committed) | Core, grid and random designs with the key methods (the six of --methods key and the default with the foil prior, computed always): the run behind the default (about 25 min; every committed row reproduced exactly, 2026-11-23). | `docs/COMPARISONS.md:89` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design all --methods key --replicates 400` |
 | Full gauntlet, every method | The same designs with every method of the tool, including those added since (hybrid, other orders and windows). | `docs/COMPARISONS.md:89` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design all --methods all --replicates 400` |
 | Poisson monitor | Monc with Poisson noise: the χ² test is blunter, the verdict the same. | `docs/physics_notes.md:3723` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design core --methods key --replicates 100 --monitor poisson` |
 | Counting errors only | The monitor's 0.05 % left out of the per-point errors: pulls wider than 1 above about 3e5 counts. | `docs/SYNTHETIC_DATA.md:188` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design core --methods key --replicates 100 --errors counting` |

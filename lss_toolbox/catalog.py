@@ -258,9 +258,10 @@ TOOLS = (
          variations=(
              V('Core, all methods', 'The seven core conditions with every method (about 3 min).',
                'docs/COMPARISONS.md:89', design='core', methods='all', replicates='400'),
-             V('Full gauntlet (as committed)', 'Core, grid and random designs with the seven methods judged: the '
-               'run behind the default (about 25 min; every committed row reproduced exactly, 2026-11-23).',
-               'docs/COMPARISONS.md:89', design='all', methods='legacy,interp,coincident,joint_o4_e2,joint_o4_e2_prior,joint_o4_e4,joint_o4_e4_g01', replicates='400'),
+             V('Full gauntlet (as committed)', 'Core, grid and random designs with the key methods (the six of '
+               '--methods key and the default with the foil prior, computed always): the run behind the default '
+               '(about 25 min; every committed row reproduced exactly, 2026-11-23).',
+               'docs/COMPARISONS.md:89', design='all', methods='key', replicates='400'),
              V('Full gauntlet, every method', 'The same designs with every method of the tool, including those '
                'added since (hybrid, other orders and windows).', 'docs/COMPARISONS.md:89', design='all',
                methods='all', replicates='400'),
@@ -278,7 +279,7 @@ TOOLS = (
                'docs/physics_notes.md:3768', design='grid', methods='key',
                conditions='flux_x0.3,flux_x0.1,flux_x0.03'),
          ),
-         committed_with={'--design': 'all', '--methods': 'legacy,interp,coincident,joint_o4_e2,joint_o4_e2_prior,joint_o4_e4,joint_o4_e4_g01', '--replicates': '400'},
+         committed_with={'--design': 'all', '--methods': 'key', '--replicates': '400'},
          repo_out='docs/comparisons_data/ref_patch_gauntlet', repo_ok=False, seconds=None),
     Tool('ref_patch_survey', 'Patching methods on real scans (survey)', 'refl', 'data',
          'tests/tools/ref_patch_survey.py',
