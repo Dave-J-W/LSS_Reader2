@@ -1590,7 +1590,8 @@ class MainWindow (QMainWindow):
                 self.peakCenter=self.peakPos
                 self.peakFWHM='0'
         self.specPlotSettings()
-        self.ui.statusBar.showMessage('Done')
+        if not getattr(self,'specLogKept',''):          # keep the note about a log axis left linear
+            self.ui.statusBar.showMessage('Done')
         
     def specSaveData(self):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
@@ -1642,10 +1643,28 @@ class MainWindow (QMainWindow):
         else:
             self.ui.specPlotMplWidget.canvas.ax.set_ylabel(str(self.ui.spYComboBox.currentText())+' and '+str(self.ui.spY2ComboBox.currentText()))
         self.ui.specPlotMplWidget.canvas.ax.grid(visible=False)
-        if self.spLogX!=0:
-            self.ui.specPlotMplWidget.canvas.ax.set_xscale('log')
-        if self.spLogY!=0:
-            self.ui.specPlotMplWidget.canvas.ax.set_yscale('log')
+        # a log axis needs a finite positive value to show: without one (all <= 0,
+        # or inf after dividing by a zero monitor) matplotlib's log locator raised
+        # while drawing (found by the sweep's random walk, 2026-11-23); such an
+        # axis stays linear, with a note in the status bar
+        ax=self.ui.specPlotMplWidget.canvas.ax
+
+        def positive(get):
+            for l in ax.lines:
+                v=np.asarray(get(l),dtype=float)
+                if np.any(np.isfinite(v)&(v>0)):
+                    return True
+            return False
+        logx=self.spLogX!=0 and positive(lambda l: l.get_xdata())
+        logy=self.spLogY!=0 and positive(lambda l: l.get_ydata())
+        if logx:
+            ax.set_xscale('log')
+        if logy:
+            ax.set_yscale('log')
+        kept=[n for n,want,got in (('x',self.spLogX!=0,logx),('y',self.spLogY!=0,logy)) if want and not got]
+        self.specLogKept=('Log %s: nothing positive to show, kept linear' % ' and '.join(kept)) if kept else ''
+        if kept:
+            self.ui.statusBar.showMessage(self.specLogKept,8000)
         if self.spGrid!=0:
             self.ui.specPlotMplWidget.canvas.ax.grid(visible=True,color='r',linestyle='--')
         # point labels where the point cannot be drawn (not finite, or <= 0 on a
@@ -1654,7 +1673,7 @@ class MainWindow (QMainWindow):
         for t in self.ui.specPlotMplWidget.canvas.ax.texts:
             px,py=(float(v) for v in t.get_position())
             t.set_visible(bool(np.isfinite(px) and np.isfinite(py)
-                               and (self.spLogX==0 or px>0) and (self.spLogY==0 or py>0)))
+                               and (not logx or px>0) and (not logy or py>0)))
         if self.ui.spLegendCheckBox.checkState()!=0:
             self.ui.specPlotMplWidget.canvas.ax.legend(loc=self.ui.spLegendLocComboBox.currentIndex()+1,frameon=False,scatterpoints=0,numpoints=1)
         self.ui.specPlotMplWidget.canvas.draw()

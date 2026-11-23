@@ -29,3 +29,44 @@ def test_ref_close_up_with_vertical_background(loaded, qapp, recorder, dataset):
     s, c = loaded.slit, loaded.cen
     shown = d.imageData[max(0, d.bgucen - s[1]):d.bgdcen + s[1] + 1, c[0] - s[0]:c[0] + s[0] + 1]
     assert loaded.vmax == pytest.approx(np.max(shown))
+
+
+def test_specplot_log_scale_with_nothing_positive(loaded, qapp, recorder, dataset):
+    """specPlotSettings set a log axis whatever the data; with no finite
+    positive value (here, normalised by a monitor column of zeros: all inf)
+    matplotlib raised while drawing. Now the axis stays linear, with a note
+    in the status bar."""
+    sweep.state_motor_scan(loaded, qapp, dataset)
+    for d in loaded.specData.values():
+        if isinstance(d, dict) and 'Monc' in d:
+            d['Monc'] = np.zeros_like(np.asarray(d['Monc'], float))
+    loaded.ui.spYComboBox.setCurrentIndex(loaded.ui.spYComboBox.findText('Apex2'))
+    loaded.ui.spNComboBox.setCurrentIndex(loaded.ui.spNComboBox.findText('Monc'))
+    loaded.ui.spNCheckBox.setChecked(True)
+    loaded.ui.spLogYCheckBox.setChecked(True)
+    loaded.updateSpecPlotData()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert loaded.ui.specPlotMplWidget.canvas.ax.get_yscale() == 'linear'
+    assert 'log' in loaded.ui.statusBar.currentMessage().lower()
+
+
+def test_specplot_log_scale_with_limits_at_or_below_zero(loaded, qapp, recorder, dataset):
+    """The raising case itself: limits fixed at or below zero (autoscale off)
+    and no positive data, then log y: matplotlib's log locator raised
+    'Data cannot be log-scaled because all values are <= 0' while drawing."""
+    sweep.state_motor_scan(loaded, qapp, dataset)
+    for d in loaded.specData.values():
+        if isinstance(d, dict) and 'Apex2' in d:
+            d['Apex2'] = -np.abs(np.asarray(d['Apex2'], float))
+    loaded.ui.spYComboBox.setCurrentIndex(loaded.ui.spYComboBox.findText('Apex2'))
+    loaded.ui.spNCheckBox.setChecked(False)
+    loaded.updateSpecPlotData()
+    loaded.ui.specPlotMplWidget.canvas.ax.set_ylim(-1200, -5)
+    loaded.ui.spLogYCheckBox.blockSignals(True)
+    loaded.ui.spLogYCheckBox.setChecked(True)
+    loaded.ui.spLogYCheckBox.blockSignals(False)
+    loaded.specPlotSettings()                               # on the plot as it is (no replot)
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert loaded.ui.specPlotMplWidget.canvas.ax.get_yscale() == 'linear'
