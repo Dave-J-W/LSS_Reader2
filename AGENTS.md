@@ -22,6 +22,36 @@ Application code may now be changed, under these conditions:
   crash sweep pass before a stage is called done;
 - the legacy export fixtures stay byte-identical (rule 3 below).
 
+## Where to commit (D60, 2026-11-23) — read before your first commit
+
+- **`main` of `github.com/Dave-J-W/LSS_Reader2` is the master**: the one
+  place the project lives. Every finished piece of work ends up there. Its
+  history restarts on 2026-11-20; a clone older than that shares no history
+  with it and must be made again. `chemmatcars/LSS_Reader` is the original
+  this fork came from: never push there.
+- **Start from it**: `git fetch origin && git log -1 --oneline origin/main`,
+  and work on top of that commit.
+- **A session that can push to `main`** commits there, small and often
+  (rule 8).
+- **A session that may push only to its own branch** (cloud sessions get a
+  `claude/<name>` branch, and GitHub refuses their pushes elsewhere): before
+  every push, `git fetch origin main && git merge origin/main`, so that the
+  branch always contains `main` and `main` can be fast-forwarded to it; its
+  report to the owner ends with the commands below. Once `main` contains
+  the branch, the branch is deleted.
+
+      git fetch origin
+      git checkout main
+      git pull --ff-only
+      git merge --ff-only origin/claude/<name>
+      git push origin main
+      git push origin --delete claude/<name>
+
+  `--ff-only` refuses instead of making a merge when `main` has moved on;
+  the session then merges `main` in again and the owner repeats the merge.
+- **No other branches** (no `wip/`, no personal ones): work that is not
+  ready stays uncommitted or in the session's own branch.
+
 ## Where things are
 
 | Path | What it is |
@@ -96,7 +126,8 @@ No display is needed. Run from the repository root.
    a SPEC file (the `window`/`loaded` fixtures and `tests/test_real_*.py`
    show how).
 8. Commit small and push often to `main` of this fork; the owner asked for
-   that. Do not open pull requests unless asked.
+   that. A session that may push only to its own branch follows "Where to
+   commit" above. Do not open pull requests unless asked.
 9. **Explain in tooltips, not on screen** (owner, 2026-11-18). Labels,
    group titles and messages in the window stay short; the why, the
    provenance of numbers and the caveats go in tooltips. Prefer this to

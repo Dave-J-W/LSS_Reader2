@@ -363,6 +363,12 @@ yet"), in phases. Working files: `docs/gui/` (plan and schema in
 | F74 | **A small residuals plot above every plot that shows a fit** (owner, 2026-11-22; for later). The style of fluorescence-decay fitting: the main plot keeps most of the height, about 15 % of it shows the residuals on their own scale, and the legend carries the χ² annotation. Can be hidden; **hidden by default for now**. | Where fits are drawn today (read only, 2026-11-22): SpecPlot scan shapes (`specPeakFit`, `peaks.fit_scan`), cut "Fit peaks" (`fitCuts`), MCA "Fit lines" (`mcaFitLines`) and the older MCA and Plot-tab peak-fit dialogs (`mcaPeakFit`, `peakFit`, lmfit `redchi`), burn trends (four models, chi2/dof and AICc already computed), the Ref Patch join preview (joint-fit polynomial), the GID distance fit, the absorber-ratio and g_l2/g_l3 fits. χ²/dof is already computed in most of them; residuals are not drawn anywhere. Assumed until the owner says otherwise: residuals weighted by the point errors, (y − fit)/σ, as in decay fitting (e.g. Lakowicz, *Principles of Fluorescence Spectroscopy*, 3rd ed., Springer 2006, ch. 4, from memory), and χ²/dof in the legend. One shared plot helper, so every fit plot gets the same panel and the same switch. |
 | F73 | **Alternative, contextual GUIs** (owner, 2026-11-22): interface and workflow chosen by data type, designed from the workflow map (F67). | Phase 3, with F60 |
 
+### Where work is committed (2026-11-23)
+
+| Id | Decision |
+|---|---|
+| D60 | **`main` of `Dave-J-W/LSS_Reader2` is the master; nothing else is** (owner, 2026-11-23: "I'm concerned that I no longer know what the master repository is. I would like you to take responsibility for that decision now so we don't get confused with where and how to commit"; decided by the GUI-planning session). Why `main`: it is the repository's default branch, the other agents push there (rule 8), and its history is the one restarted on 2026-11-20. Sessions that may push only to their own `claude/<name>` branch (GitHub refuses their other pushes: HTTP 403 when this session tried to delete a branch, 2026-11-23) keep that branch merged up from `main` before every push, so that the owner can fast-forward `main` to it; the branch is then deleted. No other long-lived branches: the `wip/pinhole-figures` branch (2026-11-19, from before the restart, its work already in `main`) is to be deleted. The procedure and commands are in `AGENTS.md`, "Where to commit". |
+
 ### Status of built items
 
 | # | Built | Where | Checked by |
