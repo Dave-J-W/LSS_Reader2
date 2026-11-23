@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QFileDialog, QProgressDialog, QMessageBox
 from PyQt5.Qt import *
 from spec_routines import specread, is_spec_file
 from mca_routines import mcaread
-from mplwidget import MplWidget
+from mplwidget import MplWidget, errorbars, mesh
 from matplotlib.widgets import MultiCursor
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.gridspec as gridspec
@@ -2355,7 +2355,8 @@ class MainWindow (QMainWindow):
         if a!=1.0:      # absorber factor absfac**n
             y,yerr=y*a,yerr*a
         self.mcaMax=max(self.mcaMax,max(y+yerr))
-        self.ui.mcaPlotMplWidget.canvas.ax.errorbar(x,fact*y,fact*yerr,label=self.mcaLabel,fmt='o-')
+        # one path for all the bars (mplwidget.errorbars): many spectra on a log axis were slow to draw (2026-11-23)
+        errorbars(self.ui.mcaPlotMplWidget.canvas.ax,x,fact*y,fact*yerr,fmt='o-',label=self.mcaLabel)
 
         
     def updateMCAPlotVline(self):
@@ -4979,7 +4980,8 @@ class MainWindow (QMainWindow):
             self.pil_ylabel=r'$Q_z$'+' '+r'$[\AA^{-1}]$'
         self.gidax=self.ui.pilMplWidget.canvas.fig.add_subplot(1,1,1)
         if self.ui.pilLogIntCheckBox.checkState()!=0:
-            self.gid_p=self.gidax.pcolor(self.pilXAxs, self.pilYAxs, np.log10(self.pilhintData),cmap=cmap,vmin=np.log10(vmin), vmax=np.log10(vmax))
+            # one mesh, not a polygon per cell (mplwidget.mesh): the log map was the slow one (2026-11-23)
+            self.gid_p=mesh(self.gidax,self.pilXAxs, self.pilYAxs, np.log10(self.pilhintData),cmap=cmap,vmin=np.log10(vmin), vmax=np.log10(vmax))
         else:
             fint=interp1d(self.pilXAxs[0], self.pilhintData, kind='cubic')
             #print self.pilXAxs[0], self.pilhintData, len(self.pilhintData), len(self.pilhintData[0])
@@ -7633,7 +7635,7 @@ class MainWindow (QMainWindow):
             self.updateMcaPlotData()
         else:
             self.ui.mcaPlotMplWidget.canvas.ax.clear()
-            self.ui.mcaPlotMplWidget.canvas.ax.errorbar(data[:,0],data[:,1],data[:,2],fmt='o-', label=self.mcaLabelOne)
+            errorbars(self.ui.mcaPlotMplWidget.canvas.ax,data[:,0],data[:,1],data[:,2],fmt='o-',label=self.mcaLabelOne)
             self.ui.mcaPlotMplWidget.canvas.ax.plot(x0,self.peakfitdatay,'r-')
             fit=np.array(self.peakfitdata)
             xran=np.abs(fit[:,0][-1]-fit[:,0][0])
@@ -7833,9 +7835,9 @@ class MainWindow (QMainWindow):
         self.plot2dax.set_ylabel(r'$Q_{z}$'+' '+r'$[\AA^{-1}]$', fontsize=labelsize)
         if self.plot2dindex==0:
             if self.ui.twodLogIntCheckBox.checkState()!=0:
-                self.plot2d_p=self.plot2dax.pcolor(self.data2dx, self.data2dy, np.log10(self.data2dint),cmap=cmap,vmin=np.log10(vmin), vmax=np.log10(vmax))
+                self.plot2d_p=mesh(self.plot2dax,self.data2dx, self.data2dy, np.log10(self.data2dint),cmap=cmap,vmin=np.log10(vmin), vmax=np.log10(vmax))
             else:
-                self.plot2d_p=self.plot2dax.pcolor(self.data2dx, self.data2dy, self.data2dint, cmap=cmap, vmin=vmin, vmax=vmax)
+                self.plot2d_p=mesh(self.plot2dax,self.data2dx, self.data2dy, self.data2dint, cmap=cmap, vmin=vmin, vmax=vmax)
             self.plot2dax.set_xlim((np.min(self.data2dx),np.max(self.data2dx)))
             self.plot2dax.set_ylim((np.min(self.data2dy),np.max(self.data2dy)))
         else:
