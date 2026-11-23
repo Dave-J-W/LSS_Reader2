@@ -217,6 +217,7 @@ class MainWindow (QMainWindow):
         self.initMonitorGainOption()
         self.initAbsFacFromEnergy()
         self.initPreferences()
+        self.initToolsMenu()
         self.gidParams=gidmod.GIDParams()     # GID patch settings (worksheet, F61)
         self.gidJoinLog=[]
         self.gidLevels=[]
@@ -1892,6 +1893,18 @@ class MainWindow (QMainWindow):
         a=self.absorberModel()
         return ('the calibrated foils (File > Preferences)' if isinstance(a,absorbers.Foils)
                 else 'absfac^n with absfac %s (the Absorber factor field)' % a)
+
+    # ---- Tools menu (lss_toolbox; docs/TOOLS.md) ----------------------------
+
+    def initToolsMenu(self):
+        """Tools menu: every demonstration and figure generator of the
+        repository, run from its current code in its own process (the
+        catalogue is lss_toolbox/catalog.py; the window is built when first
+        asked for: self.toolsWindow)."""
+        from lss_toolbox import menu as toolsmenu
+        self.ui.menuTools=toolsmenu.install(self,spec_file=lambda:self.specFileName,
+                                            open_spec=lambda path:self.openSpecFile(fname=path),
+                                            notify=lambda text:self.notify(text,'Tools','info'))
 
     # ---- preferences (File > Preferences) ---------------------------------
 

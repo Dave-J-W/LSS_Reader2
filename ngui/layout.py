@@ -586,6 +586,10 @@ MENUS = [
         C('scriptDock_toggleViewAction', 'Script'),
         C('errorDock_toggleViewAction', 'Errors'),
     ]},
+    {'title': 'Tools', 'replaces': ['menuTools'], 'items': [
+        C('actionToolsWindow', 'All tools…', note='The Tools collection (F84, lss_toolbox): every demonstration and '
+          'figure generator, one submenu per area, generated from lss_toolbox/catalog.py as in the reader today'),
+    ]},
     {'title': 'Help', 'replaces': ['menuHelp'], 'items': [
         C('actionDocumentation', 'Documentation'),
         C('actionAbout', 'About'),
