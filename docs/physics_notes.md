@@ -4569,3 +4569,15 @@ Verified by: reading only. Burn analysis opens by itself with dose-axis and othe
 ### 2026-11-23 — GUI questions answered, batch 11 (Q-XFNTR-4, 5; Q-EXAFS-3, 4)
 
 Verified by: reading only. XFNTR scan points are never deleted. `_flu.txt` is read by xmodfit and its format is to be frozen (F100). Energy scans are not merged by default. Absorbers are sometimes in during escans, so the absorber factor must be evaluated at each point's energy (F101); today it uses the header energy, which is wrong by up to about a factor 1.7 across 100 eV at n = 52 (the figure from the question, not remeasured here). **Misread question:** Q-XFNTR-4 asked about the MCA spectra, not the Qz scan, so the spectrum browser question is still open.
+
+### 2026-11-23 — F87 built: the burn kind from Det_Th > 2°
+
+The owner's answer to Q10 (recorded above, batch of the day): "Det_Th >
+2° → GID", not the 1° proposed. The code had used 0.001°
+(`lss_core.burn.is_gid`): any detector angle off zero made a GID burn.
+Now `GID_BURN_MIN_DTH_DEG = 2.0`. A burn between 0.001° and 2° is now a
+reflectivity burn. None is on hand: NX school burns 14 and 15 are GID
+burns either way, and every burn test, quick and real-data, passes
+unchanged. When the macros write a role indicator it is to take precedence
+(an assumption until it exists). Verified: tested
+(`test_burn_kind_follows_det_th_above_two_degrees`).

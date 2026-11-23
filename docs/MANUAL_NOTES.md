@@ -84,6 +84,10 @@ Each line: feature — where — default — script — notes entry (date).
 - Errors pane: Legacy / Budget, monitor model — `errors=` — Notes
   2026-11-17 "The error budget, built".
 
+### Burn tests
+- A burn test is analysed as a GID burn when Det_Th > 2°, otherwise as a
+  reflectivity burn (owner, 2026-11-23; F87).
+
 ### SpecPlot
 - Log x or log y with nothing positive to show on that axis (all values
   <= 0, or infinite after dividing by a zero monitor) leaves the axis

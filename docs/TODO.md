@@ -17,7 +17,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 
 | Session | Now | Next |
 |---|---|---|
-| Main (orchestrator) | F91 "Sum All" really sums and F81 repeats summed (both ΣN/ΣM, output changes); F87 burn kind from Det_Th > 2° | F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
+| Main (orchestrator) | F91 "Sum All" really sums and F81 repeats summed (both ΣN/ΣM, output changes); ~~F87 burn kind from Det_Th > 2°~~ done 2026-11-23 | F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
 | GUI manager | the main window's unblocked items (area I, "Unblocked 2026-11-23"): removals, F74, F85, F86, F88, F69 movie, Q-GID-5, then F95–F97 display | the timeline tab (F83), then ngui |
 | tools man | what "the gauntlet" is, whether it was wrapped up, its extensions (report to Main) | F90 MCA fit gauntlet, synthetic half |
 | questor | the owner's questions and their answers in `docs/` | (its own order) |
