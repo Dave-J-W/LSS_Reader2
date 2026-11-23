@@ -228,6 +228,7 @@ class MainWindow (QMainWindow):
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
         self.initValidator()
+        self.initStateBadges()
         self.nguiWindow=None
         if self.prefs.get('ngui',False):
             self.setNgui(True)
@@ -2119,8 +2120,21 @@ class MainWindow (QMainWindow):
                         '(F82; docs/gui/prototype.md).')
         ngui.toggled.connect(self.setNgui)
         l5.addWidget(ngui)
+        badges=QComboBox(g5)
+        badges.setObjectName('prefBadgesComboBox')
+        for text,key in (('State badges: on','on'),('State badges: when not default','when_not_default'),
+                         ('State badges: off','off')):
+            badges.addItem(text,key)
+        badges.setCurrentIndex(max(0,badges.findData(self.prefs.get('state_badges','on'))))
+        badges.setToolTip('The badges at the right of the status bar: error model, monitor normalisation and '
+                          'reflectivity patch method (F85). "When not default" shows only those changed from '
+                          'their defaults; a changed one is drawn amber either way. Clicking a badge opens its '
+                          'setting.')
+        badges.currentIndexChanged.connect(lambda i:self.setPreference('state_badges',badges.itemData(i)))
+        l5.addWidget(badges)
         lay.addWidget(g5)
         d.prefNguiCheckBox=ngui
+        d.prefBadgesComboBox=badges
         close=QPushButton('Close',d)
         close.setObjectName('prefClosePushButton')
         close.clicked.connect(d.close)
@@ -2155,10 +2169,71 @@ class MainWindow (QMainWindow):
         ch=self.prefs.get('mca_channels',[])
         return [int(c) for c in ch if isinstance(c,int) and not isinstance(c,bool)]
 
+    BADGE_STYLE='QLabel { border: 1px solid #8a8f98; border-radius: 8px; padding: 0px 6px; }'
+    BADGE_CHANGED_STYLE='QLabel { border: 1px solid #b35c00; border-radius: 8px; padding: 0px 6px; background: #fff1e0; }'
+
+    def initStateBadges(self):
+        """State badges at the right of the status bar (F85; owner, 2026-11-23,
+        Q12): the settings that change numbers everywhere, as short labels
+        with the detail in their tooltips (rule 9). A setting away from its
+        default is drawn amber. Preferences > Display chooses on, on when not
+        default, or off. Clicking a badge opens its setting."""
+        self.badges={}
+        for key in ('errors','norm','patch'):
+            lab=QLabel(self.ui.statusBar)
+            lab.setObjectName('%sBadgeLabel' % key)
+            lab.setCursor(Qt.PointingHandCursor)
+            lab.mousePressEvent=lambda ev,k=key: self.badgeClicked(k)
+            self.ui.statusBar.addPermanentWidget(lab)
+            self.badges[key]=lab
+        self.updateBadges()
+
+    def badgeStates(self):
+        """badge -> (text, is the default, tooltip)."""
+        budget=self.errorModeComboBox.currentIndex()==1
+        mode=self.monitorMode()
+        patch=str(self.prefs.get('ref_patch_method',reflectivity.DEFAULT_PATCH_METHOD))
+        return {
+            'errors':('budget errors' if budget else 'legacy errors',not budget,
+                      'Error model: %s. Budget adds the monitor\'s scatter to the counting errors; legacy gives the '
+                      'numbers the program always gave. Applies to what is computed from now on. Default: legacy '
+                      '(the owner decides, TODO B2). Click: the Errors pane.' % ('budget' if budget else 'legacy')),
+            'norm':({'photons':'/ photon','gain':'/ Monc / gain'}.get(mode,'/ Monc'),mode is False,
+                    'Monitor normalisation: %s. Default: Monc counts. Set with "/ gain" and "/ photon" on the SpecPlot '
+                    'and MCA tabs (one setting). Click: the SpecPlot tab.'
+                    % {'photons':'per incident photon','gain':'Monc current (counts x gain)'}.get(mode,'Monc counts')),
+            'patch':('%s patch' % patch,patch==reflectivity.DEFAULT_PATCH_METHOD,
+                     'Reflectivity patch factor: %s fit (default: %s). Click: Preferences.'
+                     % (patch,reflectivity.DEFAULT_PATCH_METHOD)),
+        }
+
+    def updateBadges(self):
+        if not getattr(self,'badges',None):
+            return
+        mode=self.prefs.get('state_badges','on')
+        for key,(text,default,tip) in self.badgeStates().items():
+            lab=self.badges[key]
+            lab.setText(text)
+            lab.setToolTip(tip)
+            lab.setStyleSheet(self.BADGE_STYLE if default else self.BADGE_CHANGED_STYLE)
+            lab.setVisible(mode=='on' or (mode=='when_not_default' and not default))
+
+    def badgeClicked(self,key):
+        if key=='errors':
+            self.errorDock.show()
+            self.errorDock.raise_()
+        elif key=='norm':
+            self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
+            self.spGainCheckBox.setFocus()
+        else:
+            self.showPreferences()
+
     def setPreference(self,key,value):
         if self.prefs.get(key)==value:
             return
         self.prefs[key]=value
+        if key in ('ref_patch_method','state_badges'):
+            self.updateBadges()
         err=prefs_store.save(self.prefs)
         if err and not getattr(self,'prefsSaveNoted',False):
             self.prefsSaveNoted=True
@@ -2201,6 +2276,7 @@ class MainWindow (QMainWindow):
         if (gain,photons)==(self.monitorGain,self.monitorPhotons):
             return
         self.monitorGain,self.monitorPhotons=gain,photons
+        self.updateBadges()
         what=('per incident photon, N = (M - D t) q(E) S/(500 nA/V) (xray_fluxor route D)' if photons else
               'Monc current, M x S/(5 uA/V), S from "#M Monc Gain"' if gain else 'Monc counts M (gain not used)')
         self.notify('Monitor normalisation: '+what
@@ -2879,6 +2955,7 @@ class MainWindow (QMainWindow):
             self.showErrorModel()
             return
         self.errorModel=new
+        self.updateBadges()
         self.pilatus.errors=new
         self.showErrorModel()
         self.notify('Error model: '+new.describe()+'. Spectra and background-subtracted images on show are '

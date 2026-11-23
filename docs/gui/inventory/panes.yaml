@@ -189,6 +189,39 @@
   shown: always
   tooltip: false
   notes: "Measured: empty after selecting scans and frames and after a line cut; filled only by Ref Patch, GID, GIOXS, burn tests and MCA sums/fits (read only). Editable but typing does nothing (no signal; exports use self.command, not the field) (read only). Duplicates the Script pane in an older, non-runnable form; a full-width row for a rarely filled field."
+- id: errorsBadgeLabel
+  kind: badge
+  label: "legacy errors | budget errors"
+  where: "Status bar, right"
+  handler: badgeClicked('errors')
+  does: "Shows the error model in use; click opens the Errors pane"
+  workflows: [general]
+  needs: ""
+  shown: "per Preferences > State badges"
+  tooltip: true
+  notes: "Added 2026-11-23 (F85, owner Q12). Amber when not the default (legacy)."
+- id: normBadgeLabel
+  kind: badge
+  label: "/ Monc | / Monc / gain | / photon"
+  where: "Status bar, right"
+  handler: badgeClicked('norm')
+  does: "Shows the monitor normalisation in use; click goes to the SpecPlot tab, where / gain and / photon are"
+  workflows: [general]
+  needs: ""
+  shown: "per Preferences > State badges"
+  tooltip: true
+  notes: "Added 2026-11-23 (F85). Amber when / gain or / photon is on."
+- id: patchBadgeLabel
+  kind: badge
+  label: "joint patch | legacy patch"
+  where: "Status bar, right"
+  handler: badgeClicked('patch')
+  does: "Shows the reflectivity patch method; click opens Preferences"
+  workflows: [reflectivity, general]
+  needs: ""
+  shown: "per Preferences > State badges"
+  tooltip: true
+  notes: "Added 2026-11-23 (F85). Amber when the legacy fit is chosen."
 - id: statusBar
   kind: pane
   label: ""

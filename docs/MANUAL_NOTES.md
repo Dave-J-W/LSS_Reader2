@@ -283,6 +283,16 @@ Each line: feature — where — default — script — notes entry (date).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.
 
+### State badges (F85, 2026-11-23)
+- At the right of the status bar, three short labels show the settings that
+  change numbers everywhere: the **error model** (legacy or budget errors),
+  the **monitor normalisation** (/ Monc, / Monc / gain, / photon) and the
+  **reflectivity patch method** (joint or legacy). A setting changed from
+  its default is drawn amber. Hover for the detail; click to open the
+  setting (the Errors pane, the SpecPlot tab, Preferences).
+  **Preferences > Layout > State badges** shows them always, only when not
+  at the default, or never.
+
 ### The bottom panes (D59, 2026-11-23)
 - **Messages, Script, Errors** sit under the tabs only, so the scan and
   frame lists on the left keep the window's full height. All three are

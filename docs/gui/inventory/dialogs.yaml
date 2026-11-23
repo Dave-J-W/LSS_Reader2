@@ -217,6 +217,17 @@
   shown: always
   tooltip: true
   notes: "Added 2026-11-23 (F82). Off by default. The ngui window's own widgets are named ngui_* and are not inventoried (they are placeholders of the controls below)."
+- id: prefBadgesComboBox
+  kind: combo
+  label: "State badges: on / when not default / off"
+  where: "Preferences > Layout"
+  handler: setPreference('state_badges')
+  does: "Chooses whether the status-bar state badges are shown always, only when a setting differs from its default, or never"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F85, owner Q12: three modes). Default 'on'."
 - id: prefClosePushButton
   kind: button
   label: "Close"

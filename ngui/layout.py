@@ -615,12 +615,13 @@ PANES = [
 STATUS = [
     C('statusBar', '', kind='pane'),
     C('progressDialog', '', kind='progress', note='Progress in the status bar, with Abort, instead of a window'),
+    # the main window's state badges (F85, built there 2026-11-23); STATUS[2:] are drawn as badges
+    C('errorsBadgeLabel', 'legacy errors', kind='badge'),
+    C('normBadgeLabel', '/ Monc', kind='badge'),
+    C('patchBadgeLabel', 'joint patch', kind='badge'),
 ]
 
 STATE_BAR = [
-    ('budget errors', 'Error model (Errors pane). Click: open the Errors pane.'),
-    ('/ Monc', 'Normalisation everywhere: / Monc; / gain off; / photon off. Click: open the setting.'),
-    ('joint patch', 'Reflectivity patch method (Reflectivity > Patch). Click: go there.'),
     ('Live off', 'Watching the SPEC file for new scans (the panel\'s Live box).'),
 ]
 
@@ -639,6 +640,7 @@ PREFERENCES = [
     ]),
     G('Window', '', [
         C('prefNguiCheckBox', 'ngui (new layout, prototype)', note='This window; unticking closes it'),
+        C('prefBadgesComboBox', 'State badges', items=['on', 'when not default', 'off']),
         C('prefClosePushButton', 'Close'),
     ]),
 ]

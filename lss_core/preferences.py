@@ -43,6 +43,8 @@ DEFAULTS = {
     'ngui': False,
     # the bottom panes the user showed from the View menu (D59: all hidden by default, owner 2026-11-23)
     'panes_shown': [],
+    # status-bar state badges (F85, owner 2026-11-23): 'on', 'when_not_default' or 'off'
+    'state_badges': 'on',
 }
 
 

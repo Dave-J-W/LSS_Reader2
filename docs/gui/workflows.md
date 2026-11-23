@@ -1164,6 +1164,7 @@ flowchart TD
 | `prefSaveNoteCheckBox` Ask for a note on every Save |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `prefAutoSaveCheckBox` Save every reduction automatically |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `prefNguiCheckBox` ngui (new layout, prototype) |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `prefBadgesComboBox` State badges: on / when not default / off |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `prefClosePushButton` Close |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 
 ### Reflectivity
@@ -1282,6 +1283,14 @@ flowchart TD
 | `spLegendLocComboBox`  |  |  |  |  |  |  |  |  |  | i |  |  |  | i |
 | `spExportPushButton` Export |  |  |  |  |  |  |  |  |  | B |  |  |  | i |
 | `specSaveWorkbookPushButton` Save |  |  |  |  |  |  |  |  |  | B |  |  | i |  |
+
+### Status bar, right
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `errorsBadgeLabel` legacy errors \| budget errors |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `normBadgeLabel` / Monc \| / Monc / gain \| / photon |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `patchBadgeLabel` joint patch \| legacy patch |  |  |  | i |  |  |  |  |  |  |  |  |  | i |
 
 ### Wait
 
