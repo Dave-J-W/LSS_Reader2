@@ -94,6 +94,7 @@ sessions do not edit the same lines.
 | `docs/SCOPE.md` | The plan: target structure and stages, with every request placed |
 | `docs/PHYSICS_ISSUES.md` | Numbered list of physics and mathematics issues, with sizes and how each is known |
 | `docs/TODO.md` | What to do next, what is waiting on the owner, what is done |
+| `docs/DATA_NEEDS.md` | Every dataset a work item waits for, what it must answer, where it goes, who supplies it (the owner's non-cloud agent for large private sets) |
 | `docs/TESTING.md` | How the test suite works and how to extend it |
 | `docs/physics_notes.md` | Invariants table and a dated question-and-answer log |
 | `docs/timings.md` | Timing baseline written by `pytest -m bench` |
