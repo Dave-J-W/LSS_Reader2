@@ -79,7 +79,7 @@ cannot run on a current SciPy.
 | `synth.py` | Writes synthetic SPEC, Pilatus TIFF and MCA files (outputs must not change; new generators go in `synthetic/`, see `docs/SYNTHETIC_DATA.md`). |
 | `sweep.py` | Drives the window: application states, control enumeration, fresh-window driver, random walks, `dispose`. |
 | `test_test_infrastructure.py` | The suite's own machinery: windows really freed, nothing left on disk, the parallel defaults. |
-| `test_plot_speed.py`, `test_mcafiles.py` | Plots drawn fast and the same (MCA error bars as one path, `pcolor` maps as one mesh); MCA files parsed once per file version (2026-11-23). |
+| `test_plot_speed.py`, `test_mcafiles.py`, `test_gid_redraw.py` | Plots drawn fast and the same (MCA error bars as one path, `pcolor` maps as one mesh); MCA files parsed once per file version; the GID map regridded to Q once per map, not on every redraw (2026-11-23). |
 | `test_fresnel.py`, `test_twod_detector.py`, `test_parsers.py`, `test_stitching.py`, `test_gid_area.py` | Unit tests of the numerics, including the analytic invariants in `physics_notes.md`. |
 | `test_gui_workflows.py`, `test_gui_cuts.py` | Reduce the synthetic data set through the real widgets and compare with the curve it was generated from. |
 | `test_real_nx_school.py`, `reference/` | Real NX school data: SPEC inventory, reflectivity scans 6–9 and GID scan 11 against stored curves produced by this program. |

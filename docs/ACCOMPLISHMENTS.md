@@ -163,7 +163,8 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   not fitted at all); the pinhole footprint window in closed form (the
   distance calibration 30 → 6.6 s, columns identical; C38); MCA spectra
   with log y (100 spectra: 4.2 → 0.8 s) and `pcolor` maps (5–7 × faster;
-  C39); MCA files parsed once per file version instead of on every
+  C39); the GID map in Q regridded once per map instead of on every
+  redraw (redraws 1.0–1.4 → 0.3 s, G1); MCA files parsed once per file version instead of on every
   selection change (0.38 s → 8 ms per click for a 20-scan series); the
   disk cache no longer walks its folder for every new frame.
 - Three real-data tests failing on `main` since 2026-11-22 found and
