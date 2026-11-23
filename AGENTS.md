@@ -100,6 +100,7 @@ Application code may now be changed, under these conditions:
 | `lss_core/patching.py`, `uncertainty.py` | Reflectivity patching by joint fit (the default since 2026-11-22; the legacy `stitching.py` stays a preference); covariances of chained scale factors and stitched data |
 | `lss_core/pinhole.py`, `gid.py` | Pinhole GID geometry, responses, joins, distance calibration; the GID patch |
 | `tests/` | The suite; `synth.py` (synthetic data), `sweep.py` (GUI driver) |
+| `lss_toolbox/`, `docs/TOOLS.md` | The Tools collection (F84): every demonstration and figure generator of `tests/tools/` as an item of the reader's Tools menu and of its own window (`python -m lss_toolbox`); the catalogue (`catalog.py`) with the documented variations; staleness of committed products (`--stale`, from git) and the audit (`--audit`: rerun and compare pixel for pixel, `docs/reports/tools_audit.md`). `TOOLS.md` is generated (`--render`) |
 | `docs/SYNTHETIC_DATA.md`, `tests/synthetic/` | Catalogue of every synthetic-data generator, how to use them (known truth for reflectivity, GID, burn, XFNTR, live files), unmet needs |
 | `sample_data/NX_school/` | Real, public data set (committed) |
 | `sample_data/bu/` | Real, private data set: git-ignored, never commit or push it |
@@ -112,6 +113,7 @@ Application code may now be changed, under these conditions:
     pytest -m slow         # real-data regressions, ~4 min
     pytest -m bench -s     # rewrites docs/timings.md
     pytest -m sweep        # crash inventory, ~20 min: start it in the background; run after GUI-facing changes
+    python -m lss_toolbox  # the Tools window on its own; --render rewrites docs/TOOLS.md, --stale, --audit
 
 No display is needed. Run from the repository root. Every suite runs in
 parallel by itself (pytest-xdist: one worker per CPU, as memory allows)
@@ -176,7 +178,17 @@ foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by
      numbers): regenerate them, public ones in the repository and private
      ones under `sample_data/private/figures/`, in the same tranche (owner,
      2026-11-20). Every figure is made by a tool in `tests/tools/`, so this
-     is a rerun, not a redraw.
+     is a rerun, not a redraw: `python -m lss_toolbox --stale` lists the
+     candidates from git history, `--audit` reruns them and compares pixel
+     for pixel, and the Tools window's "Replace the committed products"
+     reruns one into the repository.
+   - a new figure generator or demonstration: an item in
+     `lss_toolbox/catalog.py` with the variations the documents describe
+     (a "change this and regenerate to see that" sentence becomes a
+     variation with its document line), then `python -m lss_toolbox
+     --render`. `tests/test_toolbox.py` fails on a script in `tests/tools/`
+     that is not an item, on a variation naming an option its script lacks,
+     and on a committed figure no item claims (2026-11-23, F84).
 
 ## Things that will bite you
 

@@ -33,6 +33,7 @@ shows realistic joins. Every figure and number below was regenerated.
     python tests/tools/patch_demo.py --save docs/figures/patch_demo   # this report's figures, headless (2.5 min)
     python tests/tools/patch_demo.py --save DIR --quick   # smoke run, few replicates (16 s)
     python tests/tools/patch_demo.py --views DIR      # the window's two default views as PNG
+    python tests/tools/patch_demo.py --set truth=water --set plan=edge   # start from other settings (2026-11-23)
 
 The window (PyQt5 with an embedded matplotlib canvas and its toolbar):
 
@@ -69,7 +70,7 @@ The window (PyQt5 with an embedded matplotlib canvas and its toolbar):
 | `tests/demonstrator/burnmode.py` | `Config`, `replicate`, `run_estimator`, `run_all`, `frame_curve` (each estimator's curve on a frame), `true_change`, `measured_change`, `survey` |
 | `tests/demonstrator/draw.py` | `refl_figure(fig, rep, results, show, ...)`, `burn_figure(...)`, the item lists |
 | `tests/demonstrator/figures.py` | this report's figures and `numbers.json` |
-| `tests/demonstrator/window.py` | the window: `open_demo(parent=None, mode='refl', seed=0)` creates and shows it (the entry point for a Tools menu; it deletes itself on close); `DemoWindow(mode, seed, refl_config, burn_config, parent)` |
+| `tests/demonstrator/window.py` | the window: `open_demo(parent=None, mode='refl', seed=0, refl_config=None, burn_config=None)` creates and shows it (it deletes itself on close); `DemoWindow(mode, seed, refl_config, burn_config, parent)`. The reader's Tools menu (2026-11-23, F84) starts it as its own process through `patch_demo.py`, because the window takes the space bar application-wide; the report's variations are its menu entries (`docs/TOOLS.md`) |
 | `tests/tools/patch_demo.py` | the command line |
 | `tests/test_patch_demo.py` | 21 tests (one slow), 14 s |
 

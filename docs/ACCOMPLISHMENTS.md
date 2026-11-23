@@ -17,7 +17,7 @@ else is how the code is built.
 | Tests | 764 quick, 487 slow (real data), 67 crash-sweep, 1 timing (collected 2026-11-23 after the covariance merge; the line said 624 quick and 584 slow, while the tree it was written for collected 637 and 483) |
 | Crash inventory | 420 failing control/state combinations on 2026-11-14 → 0 since Stage 1 (2026-11-17) |
 | GUI-free core (`lss_core/`) | 28 modules, about 7,700 lines; every reduction scriptable |
-| Analysis tools (`tests/tools/`) | 21, each the source of a figure or a measured number |
+| Analysis tools (`tests/tools/`) | 31 (recounted 2026-11-23), each the source of a figure or a measured number; 30 are items of the reader's Tools menu (34 items, 59 documented variations; `docs/TOOLS.md`), one is a helper |
 | Synthetic data (`tests/synthetic/`) | reflectivity with Kiessig fringes and the water–air interface, scans with known factors and planted faults, Pilatus frames, GID levels, burn profiles, XFNTR, growing files (`SYNTHETIC_DATA.md`) |
 | Hand-offs | 8 written for other agents or the owner's data (`docs/handoff_out/`), 3 answered |
 
@@ -145,6 +145,32 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   (parsed, never executed), with the user's frame selection kept, saved as
   new versions and shown in the open plot; live mode stops at the end of a
   series written with series lines.
+
+## The Tools menu (2026-11-23, F84)
+
+- Every demonstration and figure generator of the repository is an item of
+  the reader's **Tools** menu and of the Tools window (`lss_toolbox/`,
+  also `python -m lss_toolbox`): 34 items in seven menus (burn tests,
+  reflectivity patching, GID and pinhole geometry, monitor and scans,
+  synthetic data sets, the window and manual, made elsewhere).
+- Nothing drifts: a run executes the script as it is in the repository, in
+  its own process, into a run folder with a record of the command and the
+  commit; each page's options are read from the script's own parser; the
+  page `docs/TOOLS.md` is generated from the same catalogue; tests fail on
+  an uncatalogued script, on a variation naming a missing option, on a
+  committed figure no item claims.
+- The documents' "change this and regenerate to see that" sentences are 59
+  variations, each with its document line, one click from a run. Where a
+  documented parameter was hard-coded it became an option (the foil fit's
+  cuts; the demonstrator's settings, `patch_demo.py --set`).
+- Committed products: possibly stale from git history (`--stale`);
+  measured by rerunning and comparing pixel for pixel (`--audit`, in the
+  window "Compare all"): `docs/reports/tools_audit.md`.
+- A synthetic data set with known truth opens in the reader from the menu
+  (`tests/tools/synthetic_dataset.py`: reflectivity with frames, XFNTR,
+  burn; faults P29 and a foil 2 % off).
+- Built and tested apart from the main window (owner's suggestion): the
+  reader gains one call, `initToolsMenu`.
 
 ## Records kept for others
 
