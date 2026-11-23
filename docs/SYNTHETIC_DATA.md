@@ -322,13 +322,19 @@ r = bm.run_all(b); bm.frame_curve(b, r['template'], 20)   # each estimator's cur
 ```
 
 `refl.Config`: truth `water`/`dppc`/`film` (thickness), plan `nx`,
-`standard`, `staggered`, `edge` (the P1 overlap across Qc), `counts`
-(beam and monitors scaled together), `foil_error` (true foil steps drawn
-from the prior's covariance per replicate, default on). Plots:
-`demonstrator.draw.refl_figure` / `burn_figure` into any matplotlib
-Figure. Window: `python tests/tools/patch_demo.py` (space bar: new
-replicate); figures: `--save DIR` (headless). Tests:
-`tests/test_patch_demo.py`.
+`nx_staggered` (NX ranges, every overlap staggered), `standard`,
+`staggered`, `edge` (an aside: the P1 overlap across Qc, which the owner
+does not patch), `counts` (beam and monitors scaled together), `monitor`
+(`'real'`, the default: `xrr_scans.REAL_MONITOR`, no Poisson, 0.05 %;
+`'poisson'`), `foil_error` (true foil steps drawn from the prior's
+covariance per replicate, default on). Methods: `refl.METHODS` (`joint` =
+`patching.joint_factor` defaults, `reader` = the reader's chain with the
+joint factor, `legacy`, `fixed_*` = one fit without the guard, ...).
+Plots: `demonstrator.draw.refl_figure` / `burn_figure` into any
+matplotlib Figure. Window: `python tests/tools/patch_demo.py` (space bar:
+new replicate), or from code `demonstrator.window.open_demo(parent, mode)`;
+figures: `--save DIR` (headless). Tests: `tests/test_patch_demo.py`. The
+burn profiles are normalised by a fixed monitor (no monitor noise).
 
 ## 8. Rules for adding generators
 

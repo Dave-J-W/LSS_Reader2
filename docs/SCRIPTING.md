@@ -214,6 +214,32 @@ hand-off 08); `lss_core.uncertainty` holds the method-free pieces
 `stitched_covariance`, `pulls`). The legacy patch and export are
 unchanged.
 
+### Exporting the covariance for model fits (2026-11-22)
+
+```python
+r = exp.reflectivity([6, 7, 8, 9], errors='budget')
+r.save('dppc')                                   # unchanged: dppc_ref.txt, dppc_rrf.txt
+r.save('dppc', covariance='sidecar')             # + dppc_ref.cov.json, dppc_rrf.cov.json (the files byte for byte)
+r.save('dppc', covariance='contract')            # hand-off §2.5: error column √diag C + sidecars + *_legacy.txt
+r.save('dppc', covariance='contract', method='stitched', combined=True)   # points as measured; + dppc_ref.json (§2.6)
+ref, rrf = r.covariance()                        # CovData of the patch r was made with (r.method: 'joint' by default)
+                                                 # .take/.cut/.scale/.average/.concat; methods 'legacy', 'corrected', 'stitched'
+
+from lss_core import gls
+sc = gls.load('dppc_rrf.cov.json')               # refuses what XModFit refuses (hand-off §2.3)
+d = np.loadtxt('dppc_rrf.txt'); assert not sc.match_problems(d[:, 0], d[:, 1])
+fit = gls.fit(sc, model, p0)                     # model(q, *p) -> R/R_F; log space, free overall scale
+fit.params, fit.errors, fit.chi2 / fit.dof, fit.shifts['stitch']     # shifts: each scan's fitted level error
+gls.fit(sc, model, p0, mode='diagonal', yerr=d[:, 2])   # the same fit with the file's errors, to compare
+gls.chi2(sc, model_curve)                         # GLS chi2 of a curve (Woodbury)
+```
+
+Without Experiment: `covariance_export.tracked_chain(per_scan, order,
+drops, factors, method)` (the patch replayed: 'joint' or 'legacy'),
+`corrected_chain(...)`, `joint_covdata(...)` (stitched points), then
+`finish(cd.covdata(), qc, qoff, norm_factor, rrf)` and `save(name, ref,
+rrf)`. Why and what it changes: `docs/reports/downstream_covariance.md`.
+
 ## Cuts (2026-11-18)
 
     cut = exp.cut([1, 2], 'Pix H', (90, 110))            # one cut per frame

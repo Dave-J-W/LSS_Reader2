@@ -95,7 +95,7 @@ def refl_figure(fig, rep, results, show=REFL_DEFAULT, methods=None, view='rrf', 
             sm = r.stitched.sigma_meas * rep.scale0
             ax.fill_between(q, _yview(q, y - sm, view), _yview(q, y + sm, view), color=col, alpha=0.35, lw=0,
                             hatch='///')
-        if r.stitched is not None and (first_ok is None or name == 'joint_o4_e4'):
+        if r.stitched is not None and (first_ok is None or name == 'joint'):
             first_ok = name
         if 'pulls' in show:
             axr.plot(q, (y - rep.truth(q)) / st, '.', color=col, ms=4, label=r.label)

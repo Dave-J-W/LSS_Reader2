@@ -1,0 +1,7 @@
+water_coincide: 400 replicates, 27 s
+water_staggered: 400 replicates, 29 s
+dppc_nx: 400 replicates, 33 s
+film100_nx: 400 replicates, 37 s
+film250_staggered: 400 replicates, 51 s
+edge_staggered: 400 replicates, 30 s
+film100_lowcounts: 400 replicates, 38 s
