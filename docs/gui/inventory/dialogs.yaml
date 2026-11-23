@@ -206,6 +206,17 @@
   shown: always
   tooltip: true
   notes: "Observed: in the Analyze path each Accept is a reduction, so one version per point is stored. Cue: status-bar text for 8 s only."
+- id: prefNguiCheckBox
+  kind: checkbox
+  label: "ngui (new layout, prototype)"
+  where: "Preferences > Layout"
+  handler: setNgui
+  does: "Opens (ticked) or closes the ngui window, a non-functional sketch of the proposed new layout, and keeps the choice"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F82). Off by default. The ngui window's own widgets are named ngui_* and are not inventoried (they are placeholders of the controls below)."
 - id: prefClosePushButton
   kind: button
   label: "Close"

@@ -328,6 +328,10 @@ frames, N = 4 → 0, 13, 27, 40.
   a log or other nonlinear scale, we might do it more often. Showing people
   the raw data helps them avoid mistakes." So the reflectivity movie opens
   zoomed to the region around the ROI (R1–R6) on log or asinh (C2, C3).
+  The zoom (owner, 2026-11-23): "not too close, we do want to see the
+  diffuse scattering around it, and the background zones to the sides. But
+  still a healthy zoom compared to the full image": the default view holds
+  the ROI and both background zones with a margin.
 - Movie export (GIF/MP4) is out of scope; Q-IMG-9.
 
 Today vs needed: the movie exists but blocks (B); tiling caps at 10; no

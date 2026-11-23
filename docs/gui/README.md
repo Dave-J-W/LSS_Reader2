@@ -47,6 +47,7 @@ reflectivity, GID, XFNTR**, then EXAFS.
 | `assessment.md` | Findings per tab: grouping, consistency, visual cues, missing functions; proposals for phase 1b | by hand |
 | `image_display.md` | Assessment of every image plot and the requirements for phase 2 | by hand |
 | `questions.md` | Questions for the owner, numbered, grouped by workflow; answers dated beside them | by hand |
+| `prototype.md`, `prototype/` | The prototype of the new layout (F82): design, and its screenshots | by hand; `gui_proto/`, `python tests/tools/gui_proto_screens.py` |
 | `screens/` | Screenshots of every tab, area and dialog on the public NX school data (and synthetic MCA data); index in `screens/README.md` | `python tests/tools/gui_screens.py` |
 
 The map lives in YAML so that it can be edited by hand, checked by a tool
