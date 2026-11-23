@@ -207,9 +207,16 @@ build workflow and macOS signing (input 12); sample-data hosting.
       its committed products and compared (`docs/reports/tools_audit.md`).
       Each needs its rerun into the repository (Tools window, "Replace the
       committed products") together with a reading of the text that quotes
-      it, by whoever owns the area: see the report for the list. Measured
-      current despite git flagging them: the burn trends, the six fit
-      demonstrator figures.
+      it, by whoever owns the area. Measured stale: the beam-profile figure
+      (1.6 % of pixels), the stray-light figures (4–16 %), the C2/C3
+      error-model tables (made with the legacy patch before the joint fit
+      became the default: σ up to 21 % different), the reflectivity survey
+      (`ref_patch_nx`: guard ladder), probably the GID survey. Measured
+      current despite git flagging them: the burn trends, the fit
+      demonstrator, the gauntlet (every row), the pinhole and GID diagrams
+      (but for their revision stamp). The C21 tables have no generator in
+      the repository (written by one-off code on 2026-11-20): give them one
+      or mark them as such.
 - [ ] **`gui_screens.py` no longer captures the g_l2 / g_l3 dialogs (found
       2026-11-23 by the Tools audit)**: since the scan-fit rules of
       2026-11-23 (flat or weak scans not fitted) the synthetic motor scan 4

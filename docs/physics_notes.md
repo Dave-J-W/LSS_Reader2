@@ -4318,7 +4318,12 @@ pixels); the beam-profile figure (1.6 % of pixels, across the plot) and
 the stray-light figures (4–16 %) really changed; the reflectivity survey's
 committed tables predate the joint fit's guard ladder (rerun: the median
 error of joint_o4_e4 0.00407 → 0.00381, one join flagged per joint
-method). The window's "Compare all" gives the same comparison for one item.
+method); the C2/C3 error-model tables were made with the legacy patch
+before the joint fit became the default, so their σ now differ by up to
+21 % (compared numerically), which confounds the comparison they exist
+for. The gauntlet reproduces every committed row exactly. The C21 tables
+have no generator in the repository. The window's "Compare all" gives the
+same comparison for one item.
 
 **Re-verified by a run:** the foil fit's robustness to its cuts
 (physics_notes 2026-11-19, "each foil moves by at most 0.9 µm"): with
