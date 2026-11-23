@@ -4338,3 +4338,27 @@ fixtures. The speed over a slow network drive cannot be measured here
 
 Verified: measured (scripts in this session; `tests/tools/plot_speed.py`
 for the plots) and tested (`test_mcafiles.py`, `test_lss_core.py`).
+
+### 2026-11-23 — P36 and P37 fixed: legacy GID maps with three Qz levels
+
+A to-do of long standing (TODO: "fix with a synthetic three-level GID data
+set; outputs change only for such maps"), taken up because it lies outside
+the GUI work. In `lss_core.gid.legacy_patch` (the window's code since
+2026-11-19):
+- **P36** (= P14, defect 11): every frame is put back to counts with its
+  scan's mean monitor, except that the first frame of each high-Qz scan was
+  not, leaving it per monitor, about 1/M of its neighbours. Measured on the
+  synthetic three-level set (`tests/synthetic/gid_levels.py`): where only
+  the high level covers β, scan 5's first frame was 1/1.03e5 of the truth.
+  Fixed: that frame is treated like the others, and every point of the map
+  is within 5 % of the truth.
+- **P37** (= P15, defect 12): a high level of one scan took the middle
+  level's first scan key: a KeyError when the scans differ (the patch
+  stopped with a message), the right data only when one scan had frames at
+  both levels. Fixed: a level's one scan is its own; the map comes back
+  within 5 % of the truth.
+
+Two-level maps, which is all the real data on hand, do not change: the 38
+real-data GID tests pass (NX school scans 11, 12 against stored curves).
+The two strict xfails became ordinary tests, and the "as coded" test that
+pinned P36's wrong value was removed with the fix. Verified: tested.

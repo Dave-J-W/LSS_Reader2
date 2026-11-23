@@ -27,7 +27,7 @@ working list, one table per area, each row with its source. Rows marked
 | ~~Scan join against everything joined so far~~ **done 2026-11-22** (P41) | P41 |
 | Stray light, streak mask, background frames | P40; input 17 |
 | Exact angles for cut axes, display, distance fit | P38 remainder |
-| Legacy three-level map (synthetic three-level set) | P36, P37 (= P14, P15, P31) |
+| ~~Legacy three-level map (synthetic three-level set)~~ **fixed 2026-11-23** | P36, P37 (= P14, P15, P31) |
 | Second 200K module | F63, D43; input 3 |
 | ΣN/ΣW vs IDL error weights | input 18 |
 | Multiple exposures, cosmic rays | F40 |
@@ -387,8 +387,8 @@ stated assumption until the answer arrives.
       SpecPlot already has `Time_s`.
 - [ ] Backlog (owner, 2026-11-19): F65's edge estimator (steps 3, 4, 6: steepest rise of
       ln(Vortex/Monc), outlier check against the group median, alignment).
-- [ ] P36, P37 (legacy GID with three Qz levels): fix with a synthetic
-      three-level GID data set; outputs change only for such maps.
+- [x] P36, P37 (legacy GID with three Qz levels): fixed 2026-11-23 with the
+      synthetic three-level GID data set; outputs change only for such maps.
 - [ ] Docket (2026-11-18): F59 cuts for diffuse scattering (I vs β, β − α;
       the Q cuts' default ranges miss the detector and plot zeros silently),
       F60 contextual/automatic reduction. Not to be built yet.
