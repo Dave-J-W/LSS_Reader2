@@ -1562,7 +1562,12 @@ class MainWindow (QMainWindow):
                 # the shape of the scan (lss_core.peaks.fit_scan, owner 2026-11-21; P9 fixed): a peak, an
                 # edge (a half-cut: the edge width is the beam size) or a plateau, whichever the data support
                 yerr_=np.asarray(yerr,float)
-                res=peaks.fit_scan(x,y,yerr_ if np.all(yerr_>0) else None)
+                # a sample-height scan against its own motor: good signal and FWHM > 20 µm or no fit (owner, 2026-11-23)
+                last=self.specData[self.selectedScanNums[-1]]
+                first=next((k for k,v in last.items() if isinstance(v,np.ndarray)),None)
+                kw=peaks.height_scan_options() if (peaks.is_height_scan(last.get('ScanLine',''))
+                                                   and str(self.ui.spXComboBox.currentText())==first) else {}
+                res=peaks.fit_scan(x,y,yerr_ if np.all(yerr_>0) else None,**kw)
                 self.specFit=res
                 self.peakPos='%.4f'%x[np.argmax(y)]
                 if not res.peaks:

@@ -394,6 +394,34 @@ def test_column_at_source_inverts_ray_geometry(dth, beta0):
         ph.column_at_source(g, 1e5)                               # beyond L / cos Det_Th: no column
 
 
+def test_column_at_source_closed_form_matches_the_bisection():
+    """The closed form (2026-11-23) against the bisection it replaced, over
+    angles, raised arms, distances, slit offsets, rows and footprint ends:
+    the same columns to 1e-8, and no column where the bisection found none,
+    except next to the column that looks along the beam (x far upstream),
+    where the bisection's bracket gave up and the closed form's column is
+    checked to be a forward ray from x. The NX school GID frames' windows
+    (scans 11, 12, four pinhole distances) are identical, bit for bit."""
+    import itertools
+    worst, n = 0.0, 0
+    for dth, b0, dp, x, t, row in itertools.product((8.0, 16.0, 25.0), (0.09, 6.5), (262.0, 400.0),
+                                                     (-400.0, -31.6, 0.0, 31.6, 150.0, 400.0, 1e5),
+                                                     (-0.25, 0.0, 0.1), (None, 10.0)):
+        g = ph.FrameGeometry(**{**_geom(dth, d_p=dp).__dict__, 'beta0': math.radians(b0)})
+        try:
+            a = ph._column_at_source_bisection(g, x, row, t)
+        except ValueError:
+            a = None
+        try:
+            c = ph.column_at_source(g, x, row, t)
+        except ValueError:
+            c = None
+        assert (a is None) == (c is None), (dth, b0, dp, x, t, row, a, c)
+        if a is not None:
+            worst, n = max(worst, abs(a - c)), n + 1
+    assert n > 100 and worst < 1e-8
+
+
 def test_exact_footprint_window_has_the_reader_width_but_not_its_centre():
     """P39, as coded: footprint_window (PD_PIN_RANGE) is centred on c0, the
     exact window is not (NX geometry, measured 2026-11-19)."""

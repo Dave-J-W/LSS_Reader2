@@ -4070,3 +4070,203 @@ new sample is not in the file: the NX file's one `set sh 0` is probably the
 same sample after a scan that found no beam (read from context). *How
 verified*: fits and parsing run on the NX file by the research subagent;
 the meaning of the NX reset is a reading.
+
+### 2026-11-23 — Can the stalled test-speed and Tools-menu agents' work be used?
+
+**Owner:** two agents stopped when their usage credits ran out: the
+test-speed agent (the tests took too long and used too much RAM and disk)
+and the Tools-menu agent. How much of their in-progress work can be used
+and built on?
+
+**Answer (reading git refs and GitHub's event feed, not a run).** None of
+their own work reached GitHub. They ran under another organisation's
+account, so their sessions, and anything they had not pushed, cannot be
+reached from this one. GitHub holds three branches: `main` (ends at
+9b81910, 2026-11-22 23:57), `claude/funny-noether-09opxa` (the GUI
+manager) and `wip/pinhole-figures` (2026-11-19). The event feed since
+2026-11-19 shows pushes to these alone, and no branch created or deleted.
+
+What `main` holds for each task, all from the session that launched them
+(commit trailer `…B43N3sPHf2MNUrW8`):
+- Test speed: the per-control sweep timing log `LSS_SWEEP_TIMES`
+  (b1c90e7); measured suite times and the three-shard recipe in
+  `TESTING.md` (ed6b6f0); the TODO row in area I with three options
+  (7adf3e2). Nothing for RAM or disk. Two causes of disk growth, read but
+  not measured: `tests/conftest.py` makes a new `lss_reader_test_logs_*`
+  folder in the system temp folder on every run and never removes it, and
+  pytest 9.1 keeps the `tmp_path` folders of the last three runs
+  (`tmp_path_retention_count = 3`, policy `all`), which hold synthetic data
+  sets, workbooks and screenshots.
+- Tools menu: only the entry point, `open_demo(parent, mode, seed)` and
+  `DemoWindow(parent=…)` in `tests/demonstrator/window.py` (3611855), with
+  `test_patch_demo.py::test_the_window_opens_from_code_with_a_parent`.
+  There is no Tools menu in `mainwindow.ui` or `mainwindow.py`. What the
+  agent was to build is inferred from that commit and
+  `docs/reports/patch_demo.md` (its brief is in the other account): a Tools
+  menu in the main window that opens the fit demonstrator (reflectivity
+  patching and burn line cuts on synthetic data). One obstacle, read:
+  the demonstrator imports `synthetic` from `tests/`, and the PyInstaller
+  recipe bundles only the `.ui` files and icons. A menu item in the
+  packaged program therefore needs those modules moved into a bundled
+  package, or must be hidden when they are missing.
+
+The agents' unpushed progress can be recovered only from the other
+account: when its credits return, ask each session to commit and push to a
+branch (for example `wip/test-speed` and `wip/tools-menu`), so that it can
+be judged here.
+
+### 2026-11-23 — Speeding up the tests: the motor-scan fit, and flat scans
+
+**Found while timing the crash sweep** (the test-speed work, below).
+Building a window takes 0.1 s, but putting it in the sweep's `motor_scan`
+state took 9.5 s, every time: the window fits the shape of every motor
+scan it plots (`peaks.fit_scan`), and the box candidate, fitted to the
+synthetic motor scan's clean Gaussian (21 points, FWHM 0.471), ran all
+20 000 evaluations allowed (400 442 model calls) and then failed, as it
+must: a box cannot converge on a peak. The sweep gives about 260 controls
+a fresh window in that state, twice; about 80 of its 180 minutes. A user
+plotting such a scan waited the same.
+
+**Owner:** "I think there's a motor scan with bad data; it's basically a
+flat noisy line. There's no point hammering it with fits."
+
+**Measured on NX school** (`tests/tools/fit_scan_survey.py`, C37): the
+real scans' converged edge and box fits used at most 166 evaluations, and
+the slowest real fits were flat lines: scan 4's Monc (2.8 s) and its
+Pilatus column, 7–19 counts of noise around 12, which `fit_scan` reported
+as a peak at −2.2304 (its one 19-count point). Two changes:
+- The final edge or box fit stops at 2000 evaluations
+  (`SHAPE_FIT_MAX_NFEV`): no NX fit changes; the Gaussian motor scan
+  12 s → 3.8 s, same answer (a peak, FWHM 0.471).
+- A scan its background alone fits (weighted least squares, χ² p-value >
+  0.05; `peaks.is_flat`) is reported as `kind` 'flat' and not fitted. On
+  NX, 17 of 26 (scan, column) pairs: ramps (Epoch, Out_Ht, H, K), monitors
+  within counting error, scan 4's Pilatus. On synthetic data a 4σ peak on
+  12 counts was never called flat in 200 noise draws, a 3.5σ one once in
+  200, a 2.9σ one 8 times; pure Poisson noise is called flat 92 % of the
+  time (95 % expected; errors taken from the data bias χ² up a little).
+  Scan 4's Monc is not flat by this test (its 2 % drift is far above its
+  counting error), so it is still fitted.
+
+Verified: measured (survey, both rule sets) and tested
+(`test_peaks.py::test_a_box_that_cannot_converge_gives_up_early`,
+`test_a_flat_noisy_scan_is_not_fitted`, `test_a_weak_real_peak_is_still_fitted`).
+Where the model choice was close, a weak noisy Gaussian (4σ, 41 points)
+is chosen as a box by the Akaike criterion, as before this change; not
+looked into.
+
+**Owner, later the same day:** "if you know what constitutes a sample
+height scan (which motors and what scan type) then you can limit fitting
+on those scans to decent signal to background ratios; it's not a tough
+scan to do, we always get good signal, and the FWHM is always greater
+than 20 microns."
+
+**Done.** In the NX school file the height scans are `a2scan sh … oh …
+20 1` on the Pilatus (scans 4, 5, 10, 13; sh in mm, 8 µm steps). A scan
+whose first motor is sh, over a range (`ascan`, `a2scan`, `dscan`,
+`d2scan`), plotted against sh, is fitted only when (highest − lowest) /
+lowest of its 3-point smoothed curve is at least 2, and shapes narrower
+than 0.020 mm are dropped. The ratio is taken this way, not against the
+scan's ends, because a half-cut is an sh scan too and its two ends sit on
+different levels. Measured: scans 5, 10, 13 give 8.45, 6.78, 7.23 and the
+same plateaus (81–82 µm) as without the rules, bit for bit; scan 4 gives
+0.48. Over all 26 NX fits, time in `fit_scan` 5.7 → 0.5 s, and 20
+change, every one to no fit (C37). Tested:
+`test_height_scans_are_recognised`,
+`test_a_height_scan_needs_good_signal_and_a_width_over_20_microns`, and in
+the window `test_height_scans_are_fitted_only_with_good_signal`. The
+threshold 2 is this project's choice (OUTPUT_DECISIONS, open
+assumptions). The 20 µm is a plausibility floor (narrower is not a height
+scan at all); the owner's "a good sample height scan has a FWHM better than
+about 65 microns" (up to 110 µm, flat-topped; entry above, F78) is the
+verdict on a scan that was fitted, a separate to-do (TODO area I/F78).
+
+### 2026-11-23 — Is the pinhole calculation a floor? Can it be done with matrices?
+
+**Owner:** "tell me more about the pinhole calculation. is this really a
+floor? can it be calculated with matrices or something?" (The slowest
+quick test, `test_pinhole.py::test_calibrate_distance_recovers_the_true_distance`,
+took 30 s and set the parallel suite's floor.)
+
+**What it computes.** `pinhole.calibrate_distance` finds the S4-detector
+distance at which single frames agree on a Bragg line's 2θ: it tries 47
+distances, and for each, fits the line in every one of 41 frames, using
+only each frame's usable columns. The footprint window of those columns
+(`_exact_window`) needs, for both ends of the footprint and both edges of
+the S4 opening, the column whose ray through the slit starts at that end
+of the footprint (`column_at_source`).
+
+**Where the time went (profiled).** 85 % in `column_at_source`, which
+inverted `ray_geometry` by bisection: about 48 one-ray evaluations per
+answer (a cross product and a 3 × 2 least-squares solve each), 378 310 in
+all.
+
+**Not a floor: there is a closed form**, linear algebra in three
+dimensions. The source point S = (x, 0, 0) and the slit line (point L,
+direction e_v) span a plane with normal N = (L − S) × e_v. A pixel of the
+row is P = centre + w_x e_h + w_y e_v, and it lies in the plane when
+N·(P − L) = 0; since N·e_v = 0 this is linear in w_x:
+w_x = −N·(centre − L + w_y e_v) / N·e_h, and the column is c0 − w_x/pixel.
+The plane meets the row in one point, so the answer is unique on the side
+of the column that looks along the beam where the direct beam lies (the
+other side is the bisection's "no column": e.g. a point beyond the slit's
+projection, L/cos Det_Th); one ray is then traced to check that it starts
+at x and runs forward.
+
+**Measured.** Over 33 600 geometries the closed form gives the bisection's
+column to 6.8e-9 of a column, and finds a column wherever the bisection
+did; in 240 cases, all footprint ends 2 m upstream beside the column that
+looks along the beam, only the closed form finds one (checked by tracing
+its ray; the bisection's bracket gave up there; such columns lie far off
+the detector at GID angles). NX school scans 11 and 12, 180 frame windows
+at four pinhole distances: identical, bit for bit. Per call 24 × faster;
+the calibration 30 → 6.6 s (the rest is the 818 peak fits). Every pinhole
+and GID test passes, real-data references included. Verified: measured
+and tested (C38). The bisection stays in the code as the reference
+(`_column_at_source_bisection`).
+
+### 2026-11-23 — Keeping cloud sessions fast, so that agents need not manage testing
+
+**Owner:** "Looks like you're the speedup testing agent now. Start from
+scratch and figure out how to keep these cloud sessions running fast and
+freely, so agents don't need to manage testing." (The first test-speed
+agent stopped when its credits ran out, with nothing pushed; entry above.)
+
+**Measured first** (a 4-CPU, 16 GB cloud container; `pytest --durations`,
+a sampler of memory and /tmp every 5 s). The quick suite took 9 min 44 s
+in one process, grew to about 10 GB, and left 1.2 GB and 121 folders in
+/tmp; the real-data suite about 25 min; the crash sweep about 3 h. A
+fresh session also lacks PyQt5, matplotlib, SciPy, lmfit and sympy
+(installing them takes about 10 s).
+
+**Causes found, and what was done** (one commit each, every one tested):
+- Every test's window stayed in memory (about 110 MB each with data):
+  `close()` + `deleteLater()` never deletes it without an event loop, and
+  the window's own signal connections keep its Python side alive.
+  `conftest.free_windows` runs after every Qt test (collections made cheap
+  by `gc.freeze()`); the image cache is capped at 512 MB per test process.
+- Disk: `tmp_path` kept only for failing tests and only from the latest
+  run; the temporary folders conftest and the sweep make are removed.
+- One process: `pytest-xdist` is in the dev requirements, and a plain
+  `pytest` runs on one worker per CPU (at most one per 2 GB available),
+  except benchmarks and baseline regeneration. A first version made each
+  worker start workers of its own until the container ran out of memory;
+  workers now never take the default.
+- The program itself was slow in two places the tests exercised: the box
+  fit on every motor-scan plot (9.5 s; now capped, and flat or weak scans
+  not fitted at all, at the owner's word) and the pinhole footprint window
+  (a bisection, now closed form; entries above).
+
+**Result** (measured, same container): quick suite ~2 min (761 tests),
+peak 3.4 GB over four workers, nothing left behind; real-data suite
+~4 min; crash sweep ~20 min (193 tests: each state now shared by 8
+tests, so that workers finish together; 24 min as 18 tests, about 3 h in
+one process). Agents run the quick and real-data suites in the
+foreground with a plain command (a session's foreground command may run
+10 min) and start the sweep in the background; AGENTS.md and TESTING.md
+say so. Three real-data tests that
+fail on main since 2026-11-22 were found and bisected (TODO area I).
+
+**Left to the owner:** the cloud environment's setup script should run
+`cd LSS_Reader2 && pip install -r requirements-dev.txt`, so that a new
+session can test at once.

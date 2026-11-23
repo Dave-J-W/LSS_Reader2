@@ -43,12 +43,17 @@ def state_empty(w, app, spec):
 
 def state_spec_loaded(w, app, spec):
     if w.specFileName != spec:
+        parent = w.directory if os.path.isdir(w.directory or '') else None   # the test's tmp_path
+        if parent and 'sample_data' in os.path.abspath(parent).split(os.sep):
+            parent = None                                  # never write beside the sample data (AGENTS.md rule 7)
         w.openSpecFile(fname=spec)
         # an output folder of its own (2026-11-22): every reduction is saved into the workbook there,
         # and a folder shared by the hundreds of windows of one sweep test grew one workbook that each
-        # new window had to open again (the sweep slowed down and its memory grew to gigabytes)
+        # new window had to open again (the sweep slowed down and its memory grew to gigabytes).
+        # Inside the test's tmp_path (2026-11-23), so that pytest removes it with the test's folder;
+        # before, hundreds of them stayed in the system's temporary folder after every sweep.
         import tempfile
-        w.directory = tempfile.mkdtemp(prefix='lss-sweep-out-')
+        w.directory = tempfile.mkdtemp(prefix='lss-sweep-out-', dir=parent)
     w.ui.scanListWidget.clearSelection()
     app.processEvents()
 
@@ -247,19 +252,27 @@ def _log_time(state, key, t0):
             f.write('%s\t%s\t%.3f\n' % (name, key, time.perf_counter() - t0))
 
 
-def run_state(make_window, app, recorder, spec, state):
+def control_keys(make_window, app, recorder, part=None):
+    """The window's control keys (a fresh window's ``controls``), or only
+    part ``i`` of ``n`` (every n-th from the i-th) when ``part`` = (i, n)."""
+    probe = make_window()
+    keys = list(controls(probe))
+    dispose(probe, app, recorder)
+    return keys if part is None else keys[part[0]::part[1]]
+
+
+def run_state(make_window, app, recorder, spec, state, part=None):
     """Trigger every control once in ``state``; return {key: 'Type @ where'}.
 
     Every control gets a fresh window in that state. When a control opens a
     dialog, every control of that dialog is triggered too (one level deep),
     reopening the dialog each time; those keys read 'parent > child'.
+    ``part`` = (i, n): only the controls ``control_keys`` gives for that
+    part, and their dialogs' (the sweep's tests share a state this way).
     """
     drv = _Driver(make_window, app, recorder, spec, state)
     failures = {}
-    probe = make_window()
-    keys = list(controls(probe))
-    dispose(probe, app, recorder)
-    del probe
+    keys = control_keys(make_window, app, recorder, part)
     for key in keys:
         if not drv.reset():
             failures['<setup>'] = drv.broken
