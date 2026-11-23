@@ -83,15 +83,35 @@ def load(key, reader):
         with open(tmp, 'wb') as f:
             np.save(f, value, allow_pickle=False)
         os.replace(tmp, entry)             # atomic: never a half-written entry
-        _trim(folder)
+        _added(folder, os.path.getsize(entry))
     except OSError:
         pass
     return value
 
 
-def _trim(folder):
-    """Remove least recently used entries above the size limit."""
-    limit = limit_bytes()
+# Bytes this process knows to be in each cache folder. The folder is walked
+# once, then only when the running total passes the limit, and then trimmed
+# to TRIM_TO of the limit: walking it after every new entry cost 16 ms per
+# frame at 6600 entries on a local disk (2026-11-23), more on Windows. Other
+# processes' additions are seen at the next walk, so the limit is soft.
+_KNOWN = {}
+TRIM_TO = 0.9
+
+
+def _added(folder, nbytes):
+    known = _KNOWN.get(folder)
+    if known is None:
+        _KNOWN[folder] = _trim(folder)
+    elif known + nbytes > limit_bytes():
+        _KNOWN[folder] = _trim(folder, TRIM_TO * limit_bytes())
+    else:
+        _KNOWN[folder] = known + nbytes
+
+
+def _trim(folder, target=None):
+    """Remove least recently used entries until the cache holds at most
+    ``target`` bytes (default: the size limit); return what it holds."""
+    limit = limit_bytes() if target is None else target
     entries = []
     total = 0
     for root, _dirs, files in os.walk(folder):
@@ -112,10 +132,12 @@ def _trim(folder):
             total -= size
         except OSError:
             pass
+    return total
 
 
 def clear():
     folder = cache_dir()
+    _KNOWN.pop(folder, None)
     if folder and os.path.isdir(folder):
         for root, _dirs, files in os.walk(folder):
             for name in files:
