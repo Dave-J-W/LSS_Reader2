@@ -69,6 +69,20 @@ Application code may now be changed, under these conditions:
 - **No other branches** (no `wip/`, no personal ones): work that is not
   ready stays uncommitted or in the session's own branch.
 
+## Sessions (D62, owner, 2026-11-23)
+
+Several Claude sessions work on this repository at once. **Main** (the
+session that was "test speed") orchestrates: it hands out work and the
+others report to it. **questor** asks the owner questions and records the
+answers in `docs/`, and takes small fetch and edit tasks. **tools man**
+(the Tools-menu session) is general purpose. **GUI manager** works on
+workflows and the interface. GUI priorities: the main window first, then
+the sample timeline tab (F83), then the new layout prototype (`ngui/`);
+ideas proven in ngui are carried into the main window, not built twice.
+A session that wants to change a large part of `mainwindow.py`,
+`tests/conftest.py` or `tests/sweep.py` tells Main first, so that two
+sessions do not edit the same lines.
+
 ## Where things are
 
 | Path | What it is |
