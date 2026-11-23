@@ -51,7 +51,10 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
 
 ## Normalisation, errors, absorbers
 
-- Line and area cuts normalised by the monitor (they were raw).
+- Line and area cuts normalised by the monitor (they were raw); since
+  2026-11-23 every view of the detector data too (image display, GISAXS,
+  SpecPlot's normaliser by name), and "Sum All" sums counts and monitors
+  and divides once, ΣN/ΣM (F91; C41).
 - A budget error model beside the legacy one: the monitor's uncertainty
   applied once to each whole sum (the legacy errors understate it, ×1.4 to
   ×6.5, measured).

@@ -164,3 +164,12 @@ def test_burn_scans_are_ih_scans_that_do_not_move():
     assert not series.is_burn('ascan  oh 0 0  20 1')                  # another motor
     assert not series.is_burn('ascan  ih 0 0  1 1')                   # two points: not a trend
     assert not series.is_burn('hklscan 0 0 0 0 0.01 0.5 40 1')
+
+
+def test_burn_kind_follows_det_th_above_two_degrees():
+    """Owner, 2026-11-23 (Q10, F87): a GID burn when Det_Th > 2 degrees, else a
+    reflectivity burn; the threshold was 0.001 degree."""
+    from lss_core import burn as burnmod
+    assert burnmod.GID_BURN_MIN_DTH_DEG == 2.0
+    assert not burnmod.is_gid(0.0) and not burnmod.is_gid(0.5) and not burnmod.is_gid(2.0) and not burnmod.is_gid(-1.9)
+    assert burnmod.is_gid(2.01) and burnmod.is_gid(16.0) and burnmod.is_gid(-3.0)

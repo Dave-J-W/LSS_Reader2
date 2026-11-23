@@ -50,6 +50,7 @@ def test_settings_are_saved_and_read_back(window, qapp, recorder):
                       # fitting options and saving (owner, 2026-11-21)
                       'peak_fit': {}, 'mca_fit': {'background': 'quadratic', 'n_peaks': 1}, 'save_asks_note': True, 'auto_save': True, 'live_interval_s': 5.0, 'burn': {},
                       'select_whole_series': True,
+                      'sum_all_legacy_average': False, 'gisaxs_raw_counts': False,   # per Monc, ΣN/ΣM (F91, 2026-11-23)
                       'ngui': False}                                        # the ngui prototype, off (F82, 2026-11-23)
     assert preferences.load() == stored
     assert recorder.exceptions == []
