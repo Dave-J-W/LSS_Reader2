@@ -319,7 +319,7 @@ def annotated_overview(w, app, img, name, shows, state):
     add('series chooser', rect_in(w, getw(w, 'seriesComboBox')), (0, 150, 0))
     add('frame (detector) list', rect_in(w, ui.imageListWidget), (0, 150, 0))
     add('background list', rect_in(w, ui.backgroundListWidget), (0, 150, 0))
-    add('tab bar (8 tabs)', rect_in(w, ui.PlotWidget.tabBar()), (0, 0, 200))
+    add('tab bar (7 tabs)', rect_in(w, ui.PlotWidget.tabBar()), (0, 0, 200))
     cur = ui.PlotWidget.currentWidget()
     add('tab page: controls and plot', rect_in(w, cur), (150, 0, 150))
     add('status bar', rect_in(w, ui.statusBar), (90, 90, 90))
@@ -373,14 +373,14 @@ def run_nx(app, ctx, skip_slow):
         img = grab_window(w, app)
         save_png(img, '01_window_empty.png', 'Whole window, nothing opened', 'No SPEC file; SpecPlot tab (first tab) shown')
         tw = w.ui.PlotWidget
-        for t in ('Apex', 'Pilatus', 'Reflectivity', 'Line/Area Cuts', 'MCA', 'Plot', '2D_Plot'):
+        for t in ('Pilatus', 'Reflectivity', 'Line/Area Cuts', 'MCA', 'Plot', '2D_Plot'):
             tab(w, app, t)
-            sl = {'Apex': '14_apex_tab', 'Pilatus': '20_pilatus_empty', 'Reflectivity': '30_reflectivity_empty',
+            sl = {'Pilatus': '20_pilatus_empty', 'Reflectivity': '30_reflectivity_empty',
                   'Line/Area Cuts': '60_cuts_empty', 'MCA': '70_mca_empty', 'Plot': '80_plot_empty',
                   '2D_Plot': '82_2dplot_empty'}[t]
             save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), sl + '.png',
                      'The %s tab (page and its controls) with nothing loaded' % t,
-                     'No SPEC file; crop of the tab widget' + ('; the Apex (Bruker CCD) tab, defunct' if t == 'Apex' else ''))
+                     'No SPEC file; crop of the tab widget')
         free(w, app)
     empty()
 

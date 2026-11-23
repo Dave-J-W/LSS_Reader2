@@ -140,7 +140,6 @@ class MainWindow (QMainWindow):
         QMainWindow.__init__(self, parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.ui.PlotWidget.setTabVisible(self.ui.PlotWidget.indexOf(self.ui.apexTab), False)   # the Apex (CCD) tab: that detector is defunct
         self.pilatus=TwoDDetector('Pilatus')
         np.seterr(invalid='ignore',divide='ignore')
         self.mcaDirName='vortex'
@@ -648,8 +647,6 @@ class MainWindow (QMainWindow):
         self.ui.refBadPixListWidget.clear()
         self.ui.cutPlotMplWidget.canvas.ax.clear()
         self.ui.cutPlotMplWidget.canvas.draw()
-        self.ui.gixMplWidget.canvas.ax.clear()
-        self.ui.gixMplWidget.canvas.draw()
         self.ui.refADDataPlotWidget.canvas.ax.clear()
         self.ui.refADDataPlotWidget.canvas.draw()
         self.ui.refQzListWidget.clear() 
@@ -5255,7 +5252,7 @@ class MainWindow (QMainWindow):
             return
         if self.refQzListSelectionChanged() is False:
             return False   #the frames of the list are gone; refFramesGone said so
-        cmap=str(self.ui.gixCMapComboBox.currentText())
+        cmap=str(self.ui.pilCMapComboBox.currentText())   # the Pilatus colour map (was the hidden Apex tab's; owner Q14)
         if self.det=='Pilatus':
             self.ui.refBadPixListWidget.clear()
             fac=float(self.ui.refSeaWinLineEdit.text())

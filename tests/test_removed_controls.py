@@ -46,3 +46,27 @@ def test_removed_controls_are_not_in_the_window(window, recorder):
         assert not hasattr(window.ui, cid), cid
         assert window.findChild(QObject, cid) is None, cid
     assert recorder.exceptions == []
+
+
+@pytest.mark.gui
+def test_the_apex_tab_is_gone_and_the_roi_image_uses_the_pilatus_colour_map(loaded, qapp, dataset, recorder):
+    """The Apex (Bruker CCD) tab went (owner, 2026-11-23, Q14). Its colour
+    map had coloured the corrected Reflectivity ROI image; that image now
+    follows the Pilatus tab's colour map."""
+    import sweep
+    tabs = [loaded.ui.PlotWidget.tabText(i) for i in range(loaded.ui.PlotWidget.count())]
+    assert 'Apex' not in tabs and tabs[:3] == ['SpecPlot', 'Pilatus', 'Reflectivity']
+    assert not hasattr(loaded.ui, 'apexTab') and not hasattr(loaded.ui, 'gixCMapComboBox')
+    sweep._select_scans(loaded, qapp, [0])
+    sweep._select_images(loaded, qapp)
+    cmap = loaded.ui.pilCMapComboBox
+    cmap.setCurrentIndex(cmap.findText('gray'))
+    loaded.ui.pilRefPushButton.click()                      # the frame-by-frame reflectivity view
+    qapp.processEvents()
+    loaded.ui.refQzListWidget.setCurrentRow(0)
+    qapp.processEvents()
+    loaded.ui.refAnalyzePushButton.click()
+    qapp.processEvents()
+    images = [im for ax in loaded.ui.refADDataPlotWidget.canvas.fig.axes for im in ax.get_images()]
+    assert images and all(im.get_cmap().name == 'gray' for im in images)
+    assert recorder.exceptions == []

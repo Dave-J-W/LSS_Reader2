@@ -6,7 +6,7 @@
   label: "SpecPlot | Pilatus | Reflectivity | Line/Area Cuts | MCA | Plot | 2D_Plot"
   where: "Main window (right of the left panel)"
   handler: ""
-  does: "The tabs of the window; the Apex tab (index 1) is hidden"
+  does: "The tabs of the window (the hidden Apex tab was removed 2026-11-23, owner Q14)"
   workflows: [general]
   needs: ""
   shown: always

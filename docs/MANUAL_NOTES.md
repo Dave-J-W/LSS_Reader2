@@ -292,6 +292,10 @@ Each line: feature — where — default — script — notes entry (date).
   let one edit to no effect, a summary of the last reduction (e.g. "Ref
   Patch, scans=[6–9], slits=…"). That summary is still written as the first
   header line of exported files; the Script pane holds the runnable form.
+- **The Apex tab** (the Bruker CCD, a defunct detector; hidden since
+  2026-11-17): removed with its 18 controls. Its colour map had silently
+  coloured the Reflectivity ROI image; that image now follows the Pilatus
+  tab's colour map (CMap), the same default (jet).
 
 ## Terms a manual must define
 
