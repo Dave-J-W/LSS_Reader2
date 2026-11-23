@@ -390,6 +390,16 @@ order"), for a day of reflectivity only; the whole answer is in
 | F80 | **Stability across places and time** (owner, 2026-11-23: "We continue to take reflect data and compare the processed/reduced data together in reader from different sample areas or just as time goes by, to check stability of sample"). Needs: the reflectivities saved in the open SPEC file's workbook overlaid by series, time or sx in one action, with their ratios to the first; today this means exporting and adding the files back. |
 | F84 | **A Tools menu holding every demonstration and figure generator, generated without staleness** (owner, 2026-11-23: "Look at including all the demonstrations and figure generators in this repo into entries in reader's tools menu. Make sure they are generated without staleness, meaning they are built from what's in the repo and so don't drift. The repo is where the documentation is strongest and where those figure generator products also live. The largest part of this task is recognizing and surfacing all the demonstrations and figures in the repo. Then comes building homes for them in reader's gui, and keeping the documentation up to date with what you're doing, so that 'change this parameter and regenerate the figure to demonstrate this particular concept' lines in the docs become reality."; and "you can build and test all the menu items and their interactive GUI pages separate from the main project"). **Built 2026-11-23**: `lss_toolbox/` (catalogue of 36 items, the Tools window, the menu; `python -m lss_toolbox`), `docs/TOOLS.md`, `tests/test_toolbox*.py`; the reader gains one call (`initToolsMenu`). |
 
+### From the GUI questions, batch 1 (2026-11-23)
+
+| Id | Request |
+|---|---|
+| F85 | **State badges in the status bar** (owner, 2026-11-23, Q12): error model, / gain, / photon and patch method, short labels with the detail in tooltips. A visual preference with three modes: on, on when not default, off. |
+| F86 | **A Reduction options preferences page, and Ctrl+click to flip a legacy mode** (owner, 2026-11-23, Q13): legacy paths (Analyze/Accept, MCA Fit/Fit All/Accept, Plot-tab Peak Fit) all stay; the page chooses legacy or new for each, with the other maths options. Ctrl+click on the GUI action flips that boolean for the one action and prints a Messages-pane line saying so, never a dialog. |
+| F87 | **Burn kind from Det_Th > 2°** (owner, 2026-11-23, Q10): GID burn when Det_Th > 2°, else reflectivity burn; a macro role indicator will follow from the owner and then takes precedence (assumption: it does, once it exists). |
+
+Also decided (see `docs/gui/questions.md` Answers): movie at 3 or more frames, space pauses, arrows step when paused (F69); weighted residuals (F74); Apex tab, Beamlines menu, `peakfit2`/`peakfitpara` and the Command line row removed; Quit works and Documentation opens `docs/SCRIPTING.md`; Messages, Errors and Script panes follow D59.
+
 ### Status of built items
 
 | # | Built | Where | Checked by |

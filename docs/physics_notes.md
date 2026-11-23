@@ -4439,3 +4439,18 @@ kept (409 by default) and every foil is within 0.4 µm of the default fit.
 **Invariant added:** I30 (a figure tool rerun on unchanged code and inputs
 gives its figures back pixel for pixel).
 
+### 2026-11-23 — GUI questions answered, batch 1 (15, 14, 11, 12, 13, 10, 7)
+
+Asked by the interview session from `docs/gui/questions.md`; answers verbatim
+in spirit, recorded beside the questions. Verified by: reading only (no code
+changed; these are decisions, not measurements).
+
+- **Q15 residuals:** weighted, (y − fit)/σ. Unblocks F74.
+- **Q14 removal:** Apex tab, Beamlines menu, unused `peakfit2`/`peakfitpara` dialogs and the Command line row may all go; Quit works; Help > Documentation opens `docs/SCRIPTING.md` until a manual exists.
+- **Q11 panes:** Messages and Errors follow the Script pane's rule (D59).
+- **Q12 badges:** yes, in the status bar; a preference with *on / on when not default / off* (F85).
+- **Q13 legacy paths:** all essential; chosen on a Reduction options page; Ctrl+click flips the legacy boolean for one action and prints a message (F86).
+- **Q10 burn kind:** Det_Th > 2° means GID; a macro role indicator is coming from the owner (F87).
+- **Q7 movie:** from 3 frames up; space pauses; arrows pause then step (up/back/left backward in time).
+
+No invariant changes. Open consequence for the figure agent: none.
