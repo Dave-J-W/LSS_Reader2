@@ -44,3 +44,14 @@ Run: `python tests/tools/ref_patch_biased_joins.py --out DIR`, 400 replicates on
 1. Record item 4: physics_notes entry, update TODO B's row 53, a COMPARISONS note under C36, and commit `bj/` outputs to `docs/comparisons_data/ref_patch_biased_joins/` with a `committed=` line in the catalogue.
 2. Quick suite, merge main, PR, merge (D60), report to Main.
 3. No default changes. Possible proposal: report the error over the ladder's choices, or apply a post-selection correction.
+
+## Main's reply (21:14 UTC): updates the Next list
+
+1. Extension 4: approved as planned (above).
+2. Then **P5 is a defect**. "Fit lines" must report the element's line, not `r.peaks[0]` (`mainwindow.mcaFitLines`). Fix it with its test and an OUTPUT_DECISIONS row.
+3. Send **P1–P4 and the guard question** to questor (session_017UNj95VQdNdKBGwLQWYfq2) as one batch, with the numbers. These are the owner's decisions; change no default.
+   - Recommend P5 now and P1 on the evidence (90 counts: −21 → +3.6 %; 270 counts: −5.8 → +0.6 %).
+   - Say that P2 and P3 wait for the blank spectra (F105).
+   - The guard: join 7→8 of NX 6–9 is flagged at p 0.3 and passes at 0.01; the factors agree to 0.1 %.
+4. Extensions 6 and 7 stay "parked by Main"; no names needed.
+5. The GUI manager holds updatePilPlotData, pilMovieShow, update2dPlots and the pilMin/Max slider handlers. Stay out of those.
