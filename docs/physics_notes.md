@@ -42,7 +42,7 @@ exists.
 | I26 | A burn signal decaying as exp(−t/τ) gives τ from the exponential model and a 5 % time of τ·ln(1/0.95) | `test_burn_trends.py::test_reflectivity_burn_is_monitor_normalised_and_finds_tau` (τ 400 s, 20.5 s) |
 | I30 | A figure tool is deterministic: rerun with the settings of its committed figures on unchanged code and inputs, it gives them back pixel for pixel (the measured test of staleness; a provenance stamp, where a tool prints its git revision, differs inside one small box) | `test_toolbox_gui.py::test_a_figure_tool_reproduces_its_committed_figures` (burn trends, 4 of 4); measured 2026-11-23: the ngui prototype screenshots 23 of 23, the fit demonstrator figures 6 of 6 |
 | I31 | A pinhole join factor (scans of a level, or Qz levels) is unbiased whatever the counts per bin: the likelihood of how each bin's counts split between the two sides (`pinhole.ratio_ml`, P46) gives back a known factor within ±0.1 % down to 0.026 counts per pixel; equal to the pooled ratio of a single bin | `test_pinhole.py::test_level_factor_is_unbiased_at_low_counts`, `test_ratio_ml_is_the_pooled_ratio_for_one_bin_and_recovers_a_scale` |
-| I32 | "Sum All" of Poisson frames (y = N·A/(M·g), σ = √N·A/(M·g)) equals ΣN/Σ(M/A·g) with σ = √ΣN/Σ(M/A·g), exactly; it is the mean of the per-frame values weighted by M/(A·g), and with equal monitors and absorbers the plain mean | `test_monc_normalised.py` (`test_sum_frames_is_the_counts_over_the_monitors`, `test_frames_with_absorbers_are_summed_by_their_effective_monitors`, `test_the_scripted_summed_cut_is_the_counts_over_the_monitors`, `test_the_windows_summed_cut_is_the_counts_over_the_monitors`) |
+| I32 | "Sum All" of Poisson frames (y = N·A/(M·g), σ = √N·A/(M·g)) equals ΣN/Σ(M/A·g) with σ = √ΣN/Σ(M/A·g), exactly; it is the mean of the per-frame values weighted by M/(A·g), and with equal monitors and absorbers the plain mean | `test_monc_normalised.py` (`test_sum_frames_is_the_counts_over_the_monitors`, `test_frames_with_absorbers_are_summed_by_their_effective_monitors`, `test_the_scripted_summed_cut_is_the_counts_over_the_monitors`, `test_the_windows_summed_cut_is_the_counts_over_the_monitors`); the identical-scans merge the same per point, also one repeat at a time (`test_repeats_merge.py::test_merge_identical_is_the_counts_over_the_monitors`) |
 | I33 | On the Angles axis of a 'Pix V' cut through the reflected beam's columns, the reflected peak of a specular frame is at β = α (α = arcsin(Qz λ/4π)); NX school scans 6, 8, 9 to 2e-4° | `test_true_incidence.py::test_the_reflected_beam_sits_at_beta_equal_alpha` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
@@ -4783,3 +4783,35 @@ From the fragility audit above, item 2.
 
 Verified by tests (I33, `test_true_incidence.py`) and measured (C43,
 `docs/comparisons_data/C43_incidence_nx_S6-7-8-9.csv`).
+
+### 2026-11-23 — F81 built: repeats merged as counts over monitors
+
+The owner's workflow (F81): "getting data and deciding if we need better
+statistics (repeat the macro (multiple scans) and have reader handle
+summing the ROIs if we want it to".
+
+**What changed.** The identical-scans "Merge" and
+`exp.reflectivity(merge=..., merge_repeats=True)` now sum each point's
+counts and monitors, then normalise once:
+- R = Σ M R / Σ M;
+- σ = √Σ(M σ)² / Σ M.
+
+This is ΣN/ΣM per point, for the same reasons as "Sum All" (the entry
+above, I32).
+- The first scan of a group keeps the summed monitors, so merging one
+  repeat at a time gives the same result as merging them all at once
+  (tested).
+- The old equal-weight mean stays: `repeats='mean'` in scripts and the
+  preference `repeats_legacy_average`. The Script pane shows it when it
+  was used.
+- Repeats are still found as before, by the same Qz range and the same
+  number of points.
+- An open caveat: repeats taken at different absorbers would be merged
+  without a check, as before.
+
+**Not measured on real data.** The public data hold no repeated
+reflectivity scans. With equal monitors the result is the old average;
+otherwise each repeat weighs by its monitor.
+
+Verified by tests (`test_repeats_merge.py`: the core function, the
+script, the window and the legacy preference). Measured: none.

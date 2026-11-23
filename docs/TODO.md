@@ -17,7 +17,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 
 | Session | Now | Next |
 |---|---|---|
-| Main (orchestrator) | F81 repeats summed (ΣN/ΣM, output change); ~~F91 "Sum All" really sums, every view per Monc~~ done 2026-11-23; ~~F87 burn kind from Det_Th > 2°~~ done 2026-11-23 | F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
+| Main (orchestrator) | ~~F81 repeats summed (ΣN/ΣM)~~ done 2026-11-23; ~~F91 "Sum All" really sums, every view per Monc~~ done 2026-11-23; ~~F87 burn kind from Det_Th > 2°~~ done 2026-11-23 | F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
 | GUI manager | the main window's unblocked items (area I, "Unblocked 2026-11-23"): removals, F74, F85, F86, F88, F69 movie, Q-GID-5, then F95–F97 display | the timeline tab (F83), then ngui |
 | tools man | what "the gauntlet" is, whether it was wrapped up, its extensions (report to Main) | F90 MCA fit gauntlet, synthetic half |
 | questor | the owner's questions and their answers in `docs/` | (its own order) |
@@ -57,7 +57,7 @@ working list, one table per area, each row with its source. Rows marked
 | Per-second option — **new** | F20 |
 | Qoff proposed from the continuity of R/R_F across the joins (robust to one or two outliers); Qc from a subphase list or typed electron density — **new** 2026-11-23 | F79; F42 |
 | Saved reflectivities of the workbook overlaid by series, time or sx, with ratios, to check stability — **new** 2026-11-23 | F80 |
-| Repeated macros summed by counts and monitors (the identical-scans merge averages with equal weights today) — **new** 2026-11-23 | F81; physics_notes 2026-11-23 |
+| ~~Repeated macros summed by counts and monitors (the identical-scans merge averages with equal weights today)~~ **done 2026-11-23** (F81, `test_repeats_merge.py`) | F81; physics_notes 2026-11-23 |
 | ORSO, HDF5 export; steps and parameters recorded — **new** (F30) | F25, F30, R7 |
 | Synthetic K = 3–5 generator; hand-off tests 2–6 | hand-off §5; input 4 |
 | Tell users which old reductions to redo (non-zero absorbers before P24; bu files at 6.21/7.51/9.9 keV before F49): a release note and a manual line — **new** | TODO Stage 2 list; P24, F49 |

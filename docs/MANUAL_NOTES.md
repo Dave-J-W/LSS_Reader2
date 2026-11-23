@@ -102,6 +102,12 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- Identical scans (repeats of a macro): "Merge" sums each point's counts
+  and monitors and divides once, ΣN/ΣM (F81, 2026-11-23; tooltip), so a
+  repeat with more monitor counts weighs more; with equal monitors it is
+  the old average, which stays as a preference (`repeats_legacy_average`).
+  Scripts: `exp.reflectivity(..., merge=[[2, 3]])`, `repeats='mean'` for
+  the old average.
 - Patch window: fitted factor per join, known-ratio box and line,
   automatic choice — `exp.reflectivity(factors=...)` — Notes 2026-11-18
   "Calibrated foils in the reader"; P29 (Monc at narrow slits).
