@@ -4577,3 +4577,42 @@ Verified by: reading only. **F99:** χ² of the difference. For two scans on one
 ### 2026-11-23 — GUI questions answered, batch 13 (hand-off 08 data, GISAXS and GIOXS)
 
 Verified by: reading only. The real reflectivity series for hand-off 08 are "not soon"; all data needs are now gathered in `docs/DATA_NEEDS.md` for the owner's non-cloud agent. GISAXS upgrade: cuts, refraction-corrected q mapping and background/beam-stop masking, after a research step. GIOXS is grazing-incidence off-specular scattering (the acronym was not explained anywhere in the window); XmodFit is gaining analysis for it. Examples of both will come later.
+
+### 2026-11-23 — NX 6–9 under today's patch default: join 2 flagged (tools man, for Main)
+
+Verified by: run (`patching.chain` on `Experiment(NX).reflectivity([6, 7,
+8, 9], errors='budget')`) and test (`test_patching.py::test_nx_school_scans_6_to_9`,
+which now pins both sets of numbers).
+
+The test pinned report §6.1 (2026-11-22). That report used `n_ext=4,
+guard_p=0.01`. The gauntlet of the same day then made `n_ext=2,
+guard_p=0.3` the default, and the test has failed since. It now passes
+the old settings explicitly, and it pins today's default beside them:
+
+| | §6.1 settings (n_ext 4, guard p 0.01) | today's default (n_ext 2, guard p 0.3) |
+|---|---|---|
+| factors 6→7, 7→8, 8→9 | 0.023004, 0.064516, 0.103604 | 0.022980, 0.064474, 0.103695 |
+| level of scan 9 / scan 6, relative error √Σ₃₃ | 0.75 % | 0.85 % |
+| join 1: order, points either side, χ²/dof | 4, 4, 0.88 | 4, 2, 0.68 |
+| join 2 | 4, 4, 1.10; error 0.00501 (counting 0.00479) | 4, 2, 1.37; **flagged**, error 0.00616 (counting 0.00527, ×1.17) |
+| join 3 | 4, 4, 1.37 | 4, 2, 0.83 |
+| with 6 points either side, join 8→9 | window stepped down (χ²/dof 60, before the ladder raised orders) | order raised to 6, 6 either side (χ²/dof 1.15), "the first adequate fit" |
+| foil prior (monitor ratios 1.005, 4.35, 1.32) | used at join 1 only; join 2 "Monc/Monp changed ×4.350" | the same |
+
+**For the owner:** on the one real series in the repository, the default
+patch flags join 2 (scans 7→8). The flag reads "no adequate fit (χ² p <
+0.3 everywhere): order 4, 2 either side, χ²/dof 1.37, error inflated".
+
+- At the guard's p of 0.3, no window or order the ladder tries fits
+  well enough, so the join's error is inflated by √(χ²/dof), ×1.17.
+- At the old p of 0.01 the same join passes (χ²/dof 1.10 with 4 points
+  either side).
+- The factors agree to 0.1 % between the two settings (0.064474 against
+  0.064516, inside either error).
+
+So the flag is the stricter guard showing a modest misfit. It does not
+signal a wrong factor. Whether p = 0.3 is too strict for real data,
+where the model (a smooth curve under the overlap) is never exact, is
+for the owner to weigh. The gauntlet chose it on synthetic data (C36).
+The real-series comparison of hand-off 08 (DATA_NEEDS row 1) is the test
+that would decide. Nothing was changed.
