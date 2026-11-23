@@ -384,7 +384,7 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| Two Qz levels (11 + 12) | The level join as well; not like for like (scan 12 stopped after 4 frames). | `docs/figures/gid_compare/README.md:15` | `python tests/tools/gid_compare_figures.py --scans 11,12 --out '{out}' --peak none --note 'scan 12 has 4 frames: not like for like'` |
+| Two Qz levels (11 + 12) | The level join as well; not like for like (scan 12 stopped after 4 frames). | `docs/figures/gid_compare/README.md:15` | `python tests/tools/gid_compare_figures.py --scans 11,12 --out '{out}' --peak none --note 'not like for like: scan 12 stopped after 4 frames'` |
 
 <a id="pinhole-beam-figure"></a>
 

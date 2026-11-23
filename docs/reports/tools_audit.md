@@ -82,3 +82,25 @@ regenerated numbers can contradict that text. Rerun this audit with
 
 and then rewrite the "What it means" section by hand (about 45 min; the
 full gauntlet is 25 of them; `--max-seconds 60` leaves out the slow items).
+
+## Remedied, later on 2026-11-23 (measured)
+
+Each item the table flagged was rerun with the settings that made it and
+compared again; where images differed, the products' own commit was run in
+this environment as well (`--audit` does this since then: column "Why
+images differ").
+
+| Item | Outcome |
+|---|---|
+| pinhole_beam_figure, gid_stray_light | **Not stale: environment.** Their own commit (ab33063), run here, gives the same pixels as today's code; the committed figures had been drawn in another environment. Redrawn in the pinned one (`packaging/requirements-build.txt`); every quoted number unchanged |
+| compare_methods | C2/C3 remade (joint-fit patch; the error-model ratios unchanged in substance); C21 remade by the tool (`GIDParams(angles=...)`, new), C24 written for the first time (`COMPARISONS.md` had named the command, which did not write it); C6, C10, C11 identical. New numbers beside the old in `COMPARISONS.md` |
+| ref_patch_survey | Remade: o4 e4's third join at order 5 (0.103604 → 0.103423), the default o4 e2 flags join 2, median error 0.00407 → 0.00381 (`COMPARISONS.md` C33) |
+| gid_method_survey | Current in substance: only timings and floating-point-level values moved (distance 265.77406 → 265.77386 mm); remade |
+| gid_compare_figures (S11+12) | Current: identical with the documented command (the catalogue's variation had another `--note`, corrected) |
+| fit_scan_survey | Current: the C37 table identical apart from its timing column |
+| gui_screens | The g_l2/g_l3 dialogs captured again (and their off-by-one fixed); the MCA screenshots follow main's faster plotting |
+
+Two lessons for the tool, built in: a pixel difference can come from the
+environment, so run records name the libraries; and a table with a timing
+column needs comparing without it.
+

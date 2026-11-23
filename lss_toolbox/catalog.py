@@ -340,7 +340,7 @@ TOOLS = (
          variations=(
              V('Two Qz levels (11 + 12)', 'The level join as well; not like for like (scan 12 stopped after 4 '
                'frames).', 'docs/figures/gid_compare/README.md:15',
-               scans='11,12', peak='none', note='scan 12 has 4 frames: not like for like'),
+               scans='11,12', peak='none', note='not like for like: scan 12 stopped after 4 frames'),
          ),
          inputs=(NX,), seconds=7.3),
     Tool('pinhole_beam_figure', 'Beam profile from GID data', 'gid', 'figures',

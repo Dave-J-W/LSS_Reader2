@@ -214,7 +214,11 @@ build workflow and macOS signing (input 12); sample-data hosting.
       are started as their own process (`patch_demo.py`, which takes the space
       bar application-wide). A packaged build lists the items and the
       committed figures it holds but disables Run (no tools, no Python inside).
-- [ ] **Committed products the audit found stale (new 2026-11-23, F84)**:
+- [x] **Committed products the audit found stale (new 2026-11-23, F84) —
+      remedied 2026-11-23** (`docs/reports/tools_audit.md`, "Remedied"):
+      the two figures were an environment difference, not stale code; the
+      C2/C3, C21 and survey tables remade with their text; C24 and C21 now
+      written by `compare_methods.py`. Before:
       `python -m lss_toolbox --audit` reran every item with the settings of
       its committed products and compared (`docs/reports/tools_audit.md`).
       Each needs its rerun into the repository (Tools window, "Replace the
