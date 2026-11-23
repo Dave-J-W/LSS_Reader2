@@ -85,6 +85,9 @@ Each line: feature — where — default — script — notes entry (date).
   2026-11-17 "The error budget, built".
 
 ### SpecPlot
+- Log x or log y with nothing positive to show on that axis (all values
+  <= 0, or infinite after dividing by a zero monitor) leaves the axis
+  linear, with a note in the status bar (2026-11-23).
 - Plot any column against any other, normalised; "Point #" labels (on) —
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 

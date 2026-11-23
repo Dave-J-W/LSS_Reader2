@@ -189,6 +189,12 @@ build workflow and macOS signing (input 12); sample-data hosting.
       be full. Open: frames held as int64 halve what the caches hold (an
       int32 cache would need every reduction re-verified); timing over a
       slow network drive.
+- [x] **Three crashes reached by the sweep's random walks — fixed
+      2026-11-23** (found by the Tools-menu session when its new control
+      shifted the walks' draws; latent on main): the Ref Patch close-up
+      with vertical background (bglcen), SpecPlot's log scale with nothing
+      positive to show, an empty typed Pilatus distance
+      (`tests/test_walk_crashes.py`).
 - [ ] **Three real-data tests fail on main since 2026-11-22 (found
       2026-11-23, bisected)**: `test_patching.py::test_nx_school_scans_6_to_9`
       since 6bb29bf (the joint fit's guard ladder and 2 points either side:

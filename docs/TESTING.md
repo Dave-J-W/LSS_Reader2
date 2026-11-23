@@ -78,6 +78,7 @@ cannot run on a current SciPy.
 | `conftest.py` | Fixtures (below). Sets offscreen Qt and the working directory. |
 | `synth.py` | Writes synthetic SPEC, Pilatus TIFF and MCA files (outputs must not change; new generators go in `synthetic/`, see `docs/SYNTHETIC_DATA.md`). |
 | `sweep.py` | Drives the window: application states, control enumeration, fresh-window driver, random walks, `dispose`. |
+| `test_walk_crashes.py` | Three crashes the sweep's random walks reached (2026-11-23), each fixed: the Ref Patch close-up with vertical background, SpecPlot's log scale with nothing positive, an empty typed Pilatus distance. |
 | `test_test_infrastructure.py` | The suite's own machinery: windows really freed, nothing left on disk, the parallel defaults. |
 | `test_plot_speed.py`, `test_mcafiles.py`, `test_gid_redraw.py` | Plots drawn fast and the same (MCA error bars as one path, `pcolor` maps as one mesh); MCA files parsed once per file version; the GID map regridded to Q once per map, not on every redraw (2026-11-23). |
 | `test_fresnel.py`, `test_twod_detector.py`, `test_parsers.py`, `test_stitching.py`, `test_gid_area.py` | Unit tests of the numerics, including the analytic invariants in `physics_notes.md`. |
