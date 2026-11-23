@@ -409,6 +409,8 @@ order"), for a day of reflectivity only; the whole answer is in
 
 | F94 | **Click to drop or restore a point** (owner, 2026-11-23, **low priority**): a mouse click within 2–4 plot-marker diameters of a point's marker toggles its dropped state (the mask of F92). Refines F92's "Restore all". Assumption: the radius is a preference, default 3 diameters. |
 
+| F95 | **Wire the Reflectivity tab's bad-pixel controls; Ref Patch warnings as messages and marks; Save/Export naming; frequent windows docked** (owner, 2026-11-23, Q-UI-B3, B6, B9, B10). |
+
 Also decided (see `docs/gui/questions.md` Answers): movie at 3 or more frames, space pauses, arrows step when paused (F69); weighted residuals (F74); Apex tab, Beamlines menu, `peakfit2`/`peakfitpara` and the Command line row removed; Quit works and Documentation opens `docs/SCRIPTING.md`; Messages, Errors and Script panes follow D59.
 
 ### Status of built items

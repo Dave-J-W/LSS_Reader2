@@ -78,3 +78,8 @@ recorded beside its question with the date.
 | 2026-11-23 | Standing permission | The owner grants this session permission to pull and merge to keep `main` up to date, as the other agents do (pull request merged at once with "Create a merge commit", then `main` merged back into the branch) | `AGENTS.md` "Where to commit" |
 | 2026-11-23 | Q-REF-2 (rest) Dropping by mouse | Dropping and restoring should be mouse-interactive: a click within 2–4 marker diameters of a point toggles it. Low priority | F94 |
 | 2026-11-23 | Order of the remaining questions | The timeline questions (Q-TL-1–8) go last | this file |
+| 2026-11-23 | Q-UI-B3 Bad-pixel field and list (Reflectivity tab) | Wire them: a separate threshold for the ROI and a list of corrected pixels per Qz, shown with the result; the modal box goes | `physics_notes.md` 2026-11-23 (batch 7); `OUTPUT_DECISIONS.md` if the threshold changes numbers |
+| 2026-11-23 | Q-UI-B6 Modal boxes in Ref Patch | Messages in the Messages pane plus a mark on the affected points; no blocking box | as above |
+| 2026-11-23 | Q-UI-B9 One meaning for Save | Yes: text-file writers are "Export", workbook writers "Save", both beside every result (burn tests get an Export; the Plot tab and spectra a Save) | as above; D61 |
+| 2026-11-23 | Q-UI-B10 Windows | Dock the frequent ones (burn, worksheet, fit options as docks or side panels) | as above |
+| 2026-11-23 | Already covered, not asked again | B1, B2 by Q13 (legacy paths kept, switched on the Reduction options page); B8 by Q14; B5 in part by Q12 (badges); B7 in part by F92 (Restore all). Still open: B4 (patch method and elements: Preferences or tab), the one-line provenance under each result (B5), Back/Cancel and a join table in the patch window (B7) | this file |
