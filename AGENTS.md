@@ -51,7 +51,11 @@ Application code may now be changed, under these conditions:
   the session then merges `main` in again and the owner repeats the merge.
   A session the owner has given standing permission (so far the GUI-planning
   session, 2026-11-23) brings its own branch into `main` itself once the
-  quick suite passes.
+  quick suite passes: a cloud session cannot move `main` directly (HTTP
+  403), so it opens a pull request from its branch and merges it at once
+  with "Create a merge commit" (owner's choice, 2026-11-23), then merges
+  `main` back into its branch. Those pull requests are records, never left
+  open.
   **Or, by button**: if the branch has a pull request into `main` (it
   shows the branch's latest state and updates with every push), merging it
   with **"Create a merge commit"** does the same. Never "Squash and merge"
