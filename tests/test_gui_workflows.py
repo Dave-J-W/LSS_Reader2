@@ -24,7 +24,7 @@ def test_open_spec_file_lists_scans(loaded, recorder):
 def test_motor_scan_is_plotted_and_peak_fitted(loaded, qapp, dataset, recorder):
     sweep.state_motor_scan(loaded, qapp, dataset)
     assert recorder.exceptions == []
-    assert loaded.ui.PlotWidget.currentIndex() == 0
+    assert loaded.ui.PlotWidget.currentWidget() is loaded.ui.specPlotTab
     assert float(loaded.peakPos) == pytest.approx(0.0, abs=1e-6)
     assert float(loaded.peakCenter) == pytest.approx(0.0, abs=2e-3)
     # P9 fixed (2026-11-21, owner: close F22): the scan's shape is chosen by
@@ -74,7 +74,7 @@ def test_selecting_pilatus_scan_lists_frames(loaded, qapp, dataset, recorder):
 def test_selecting_frame_shows_image(loaded, qapp, dataset, recorder):
     sweep.state_pilatus_one_frame(loaded, qapp, dataset)
     assert recorder.exceptions == []
-    assert loaded.ui.PlotWidget.currentIndex() == 2
+    assert loaded.ui.PlotWidget.currentWidget() is loaded.ui.pilatusTab
     img = loaded.pilData[0]
     assert img.shape == (synth.PIL_W, synth.PIL_H)
     # direct-beam column is mirrored: col = NCOLS - X - 1
@@ -116,7 +116,7 @@ def test_reflectivity_patch_end_to_end(loaded, qapp, dataset, recorder, method, 
     loaded.uirefpatch.nextPushButton.click()      # "Finish!"
     qapp.processEvents()
     assert recorder.exceptions == []
-    assert loaded.ui.PlotWidget.currentIndex() == 3
+    assert loaded.ui.PlotWidget.currentWidget() is loaded.ui.refTab
     d = np.array(loaded.refData)
     assert d[:, 0] == pytest.approx(
         np.union1d(np.linspace(0.01, 0.05, 9), np.linspace(0.04, 0.10, 7)))
@@ -132,7 +132,7 @@ def test_reflectivity_patch_end_to_end(loaded, qapp, dataset, recorder, method, 
 def test_mca_frames_are_normalised(loaded, qapp, dataset, recorder):
     sweep.state_mca_frames(loaded, qapp, dataset)
     assert recorder.exceptions == []
-    assert loaded.ui.PlotWidget.currentIndex() == 5
+    assert loaded.ui.PlotWidget.currentWidget() is loaded.ui.mcaTab
     assert sorted(loaded.nomMcaData) == [0, 1]
     x, y, e = loaded.nomMcaData[0].T
     counts = round(500 * 1.0 + 5)                 # channel 120 of synth data

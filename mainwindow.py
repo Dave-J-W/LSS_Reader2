@@ -140,7 +140,7 @@ class MainWindow (QMainWindow):
         QMainWindow.__init__(self, parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.ui.PlotWidget.setTabVisible(1, False)   # the Apex (CCD) tab: that detector is defunct
+        self.ui.PlotWidget.setTabVisible(self.ui.PlotWidget.indexOf(self.ui.apexTab), False)   # the Apex (CCD) tab: that detector is defunct
         self.pilatus=TwoDDetector('Pilatus')
         np.seterr(invalid='ignore',divide='ignore')
         self.mcaDirName='vortex'
@@ -183,7 +183,7 @@ class MainWindow (QMainWindow):
         self.selectedPilFramesNums=[]
         self.pilScanNum=[]
         self.selectedplotfiles_rows=[]
-        self.ui.PlotWidget.setCurrentIndex(0)
+        self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
         self.directory=os.getcwd()
         self.pilGIDshow=0
         self.pilGISAXSshow=0
@@ -1416,12 +1416,12 @@ class MainWindow (QMainWindow):
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Vortex':
                 self.updateMcaImageList()
                 self.ui.imagesLabel.setText('Vortex:')
-                self.ui.PlotWidget.setCurrentIndex(0)
+                self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Unsupported':
                 self.messageBox('Bruker CCD images (.sfrm) are no longer supported by this reader.')
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Pilatus':
                 self.updatePilImageList()
-                self.ui.PlotWidget.setCurrentIndex(0)
+                self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
                 self.ui.imagesLabel.setText('Pilatus:')
         self.ui.statusBar.showMessage('Done')
             
@@ -1520,7 +1520,7 @@ class MainWindow (QMainWindow):
             return
         self.ui.statusBar.clearMessage()
         self.ui.specPlotMplWidget.canvas.ax.clear()
-        self.ui.PlotWidget.setCurrentIndex(0)
+        self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
         self.specData['YCol']=str(self.ui.spYComboBox.currentText())
         self.specData['NCol']=str(self.ui.spNComboBox.currentText())
         title='File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums))
@@ -2283,7 +2283,7 @@ class MainWindow (QMainWindow):
         self.selectedMcaScanNums=[self.ui.imageListWidget.row(items) for items in self.selectedMcaScans]
         self.mcafitplotstatus=0
         try:
-            self.ui.PlotWidget.setCurrentIndex(5)
+            self.ui.PlotWidget.setCurrentWidget(self.ui.mcaTab)
             self.updateMcaPlotData()
         except:
             self.ui.statusBar.showMessage('Warning:: Some scans maybe missing!')
@@ -3208,7 +3208,7 @@ class MainWindow (QMainWindow):
         self.ui.pilMinHorizontalSlider.setValue(0)
         self.ui.pilMaxHorizontalSlider.setValue(100)
 #        try:
-        self.ui.PlotWidget.setCurrentIndex(2)
+        self.ui.PlotWidget.setCurrentWidget(self.ui.pilatusTab)
         self.updatePilPlotData()
 #        except:
 #            self.messageBox('Warning:: Some scans maybe missing')
@@ -5103,7 +5103,7 @@ class MainWindow (QMainWindow):
         if self.det!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]))==0:
             self.messageBox('Please load a scan and select its images before opening the reflectivity analysis')
             return
-        self.ui.PlotWidget.setCurrentIndex(3)
+        self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
         self.ui.refCenCheckBox.setCheckState(0)
         self.ui.refComLineEdit.clear()
         if self.refpatchindex==1:
@@ -5430,7 +5430,7 @@ class MainWindow (QMainWindow):
         elif len(self.pilrefsort)==1:
             self.refData=list(np.atleast_2d(self.scanqzframe[self.pilrefsort[0]]))   #a single frame is a 1-D row
            #print self.refData
-            self.ui.PlotWidget.setCurrentIndex(3)
+            self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
             self.updateRefDataList()
         else:
             self.pilrefscanrag={}  #find the identical scans
@@ -5611,7 +5611,7 @@ class MainWindow (QMainWindow):
                 self.messageBox('All scans were dropped; there is no reflectivity to patch.')
             elif len(self.pilrefsort)==1:   # one scan left: nothing to patch, use it as it is
                 self.refData=list(np.atleast_2d(self.scanqzframe[self.pilrefsort[0]]))
-                self.ui.PlotWidget.setCurrentIndex(3)
+                self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
                 self.updateRefDataList()
             else:
                 self.pilRefPatch()
@@ -5674,7 +5674,7 @@ class MainWindow (QMainWindow):
         if self.pilreforder==len(self.pilrefsort)-1:
             self.uirefpatch.close()
             self.refData=list(self.pilrefdata)
-            self.ui.PlotWidget.setCurrentIndex(3)
+            self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
           #  print self.pilrefdata
             self.updateRefDataList()
         elif self.pilreforder==0:
@@ -6950,7 +6950,7 @@ class MainWindow (QMainWindow):
     def updateCutPlotData(self):
         if self.det!='Pilatus':   # no cut plotted: display options do nothing
             return
-        self.ui.PlotWidget.setCurrentIndex(4) 
+        self.ui.PlotWidget.setCurrentWidget(self.ui.cutAreaTab) 
         self.cutLogX=self.ui.cutLogXCheckBox.checkState()
         self.cutLogY=self.ui.cutLogYCheckBox.checkState()
         self.cutGrid=self.ui.cutGridCheckBox.checkState()

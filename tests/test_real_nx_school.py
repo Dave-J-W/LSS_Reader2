@@ -70,7 +70,7 @@ def test_reflectivity_scans_6_to_9_match_reference(nx, qapp, recorder):
         nx.uirefpatch.nextPushButton.click()
         qapp.processEvents()
     assert recorder.exceptions == []
-    assert nx.ui.PlotWidget.currentIndex() == 3
+    assert nx.ui.PlotWidget.currentWidget() is nx.ui.refTab
     got = nx.normRefData
     ref = np.loadtxt(REFERENCE)
     assert got.shape == ref.shape == (87, 3)

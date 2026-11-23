@@ -62,7 +62,7 @@ def test_merge_then_patch(same, qapp, recorder):
     same.uirefpatch.nextPushButton.click()
     qapp.processEvents()
     assert recorder.exceptions == []
-    assert same.ui.PlotWidget.currentIndex() == 3
+    assert same.ui.PlotWidget.currentWidget() is same.ui.refTab
     # 9 + 7 points; the new scan's 2 points inside the overlap are averaged in
     assert len(same.refData) == 9 + 7 - 2
 
@@ -91,7 +91,7 @@ def test_dropping_both_repeats_leaves_one_scan(same, qapp, recorder):
     assert recorder.exceptions == []
     assert sorted(same.scanqzframe) == [1]
     # one scan left: no patch dialog, its data become the reflectivity
-    assert same.ui.PlotWidget.currentIndex() == 3
+    assert same.ui.PlotWidget.currentWidget() is same.ui.refTab
     assert np.array(same.refData)[:, 0] == pytest.approx(np.linspace(0.01, 0.05, 9))
 
 
