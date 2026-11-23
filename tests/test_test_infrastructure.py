@@ -118,3 +118,27 @@ def test_sweep_parts_cover_every_control_once(qapp, recorder, tmp_path):
     parts = [sweep.control_keys(make, qapp, recorder, (i, n)) for i in range(n)]
     assert sorted(k for p in parts for k in p) == sorted(every) and len(every) > 100
     assert all(p for p in parts)
+
+
+@pytest.mark.gui
+def test_a_menu_shown_with_exec_returns_at_once(qapp, recorder):
+    """A QPushButton with a menu opens it with QMenu.exec, which waited
+    forever offscreen (the sweep's random walk hung on the prototype
+    window's button, 2026-11-23). The recorder makes it return, like a
+    dialog; a timer closes any real menu after 2 s so that a missing stub
+    fails here instead of hanging."""
+    import time
+    from PyQt5 import QtCore, QtWidgets
+    button = QtWidgets.QPushButton('provenance')
+    menu = QtWidgets.QMenu(button)
+    menu.addAction('one')
+    button.setMenu(menu)
+    button.show()
+    QtCore.QTimer.singleShot(2000, menu.close)
+    t = time.perf_counter()
+    button.click()
+    qapp.processEvents()
+    assert time.perf_counter() - t < 1.0
+    assert recorder.menus and recorder.menus[-1] is menu
+    assert QtWidgets.QMenu.exec([menu.actions()[0]], QtCore.QPoint(0, 0)) is None    # the static form
+    assert recorder.exceptions == []
