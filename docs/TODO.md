@@ -223,6 +223,21 @@ build workflow and macOS signing (input 12); sample-data hosting.
       (but for their revision stamp). The C21 tables have no generator in
       the repository (written by one-off code on 2026-11-20): give them one
       or mark them as such.
+- [ ] **Three reader crashes that random walks reach (found 2026-11-23 by
+      the crash sweep of the Tools-menu branch)**: with one more control in
+      the menu bar, five walks drew other sequences and raised in handlers
+      the per-state sweep never reaches. Not baselined (the walk baseline is
+      empty on main); the walks now leave the Tools actions out, so they are
+      what they were on main. The defects, for whoever owns these handlers:
+      (1) `refQzListSelectionChanged` (`mainwindow.py` ≈ line 5179) with
+      `refCenCheckBox` ticked: `'TwoDDetector' object has no attribute
+      'bglcen'` (reached by Ref Patch, Analyze, the slit field);
+      (2) `specPlotSettings`: matplotlib "Data cannot be log-scaled because
+      all values are <= 0" from the SpecPlot log y on a column of zeros
+      (`spNComboBox`); (3) `updatePilPlotData` (≈ line 3357):
+      `float('')` of an empty `pilSDDistLineEdit`. Reproduce:
+      `pytest -m sweep -k random_walk` with the Tools actions left in the
+      walk's pool (`tests/sweep.py`, `run_walk`).
 - [ ] **`gui_screens.py` no longer captures the g_l2 / g_l3 dialogs (found
       2026-11-23 by the Tools audit)**: since the scan-fit rules of
       2026-11-23 (flat or weak scans not fitted) the synthetic motor scan 4
