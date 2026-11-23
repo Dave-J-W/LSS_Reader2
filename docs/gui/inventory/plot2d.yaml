@@ -127,12 +127,12 @@
   label: "CMap:"
   where: "2D_Plot"
   handler: update2dPlotPlot
-  does: "Colour map (jet, gray, hot, summer, winter, spectral)"
+  does: "Colour map (jet, gray, hot, summer, winter, nipy_spectral)"
   workflows: [flex-plot]
   needs: ""
   shown: always
   tooltip: false
-  notes: "'spectral' is not a matplotlib name in current versions ('Spectral'); choosing it may fail (read only, not run). Pilatus has 'rainbow' instead."
+  notes: "Offered 'spectral' until 2026-11-23, a name matplotlib 2.0 changed to 'nipy_spectral' and later removed (choosing it raised); now 'nipy_spectral'. Adding a file raised AttributeError (matplotlib.cm.get_cmap, removed in 3.9) until 2026-11-23 (tests/test_gui_2dplot.py). Pilatus has 'rainbow' instead."
 - id: twodLabelSizeSpinBox
   kind: spin
   label: "Label Size"

@@ -222,7 +222,7 @@ states: `10_leftpanel_series_chosen.png`, `21b_pilatus_tab_controls.png`,
   - Two action menus are combo boxes (GID, GISAXS). They keep the last action as their text
     (observed "Show GISAXS"), so they look like modes **[seen]**.
   - "Reflectivity" and "Line/Area Cuts" buttons carry the names of the tabs they open.
-  - Colour-map lists differ from 2D_Plot and Apex ("rainbow" vs "spectral").
+  - Colour-map lists differ from 2D_Plot and Apex ("rainbow" vs "spectral", now "nipy_spectral").
   - Only Pinhole has a tooltip.
 - **Visual cues:**
   - **Frame grid [seen]:** at most 10 frames are drawn, without notice. Titles, labels and
@@ -292,7 +292,7 @@ states: `10_leftpanel_series_chosen.png`, `21b_pilatus_tab_controls.png`,
 - Typo "Updata Interpolation" **[seen]**.
 - **Wiring [read]:** the sliders are connected twice. Tick Size reloads the file and resets
   the limits. `imageMax`/`imageMin` are shared with Pilatus.
-- "spectral" is not a current matplotlib colour-map name. It was not run.
+- "spectral" is not a current matplotlib colour-map name. It was not run. (fixed 2026-11-23: offered as `nipy_spectral`, the same map under its current name; `tests/test_gui_2dplot.py`)
 - **Proposals:**
   - Same Display box as Pilatus.
   - "Send to 2D_Plot" from GID and GISAXS results instead of save and re-add.

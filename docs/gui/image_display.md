@@ -161,7 +161,7 @@ good. Zoom is lost on every frame (`clf`).
   gray, hot, summer, winter, **spectral**), label and tick size,
   interpolation density and method.
 - **`spectral` is not a valid colour map in matplotlib ≥ 2.2** [M:
-  `KeyError` on 3.11]. Choosing it raises.
+  `KeyError` on 3.11]. Choosing it raises. (fixed 2026-11-23: offered as `nipy_spectral`, the same map under its current name; `tests/test_gui_2dplot.py`)
 - Axes are always labelled Qxy and Qz.
 
 ### 1.7 Line cuts today (for F68)

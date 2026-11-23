@@ -6,7 +6,7 @@ and synthetic data from `tests/synth.py` for MCA / fluorescence, the reflectivit
 (NX has no MCA data). Regenerate the whole folder with the command above; the table is rewritten, the
 Observations section is by hand and is kept.
 
-74 images, 5.7 MB, last run took 42 s.
+74 images, 5.7 MB, last run took 44 s.
 
 | File | What it shows | Data and state |
 |---|---|---|
@@ -25,7 +25,7 @@ Observations section is by hand and is kept.
 | `21_pilatus_one_frame.png` | Pilatus tab, whole window, one frame | Scan 11, frame 1 selected |
 | `21b_pilatus_tab_controls.png` | Pilatus tab page (controls above, image below) | Scan 11, frame 1 |
 | `22_pilatus_three_frames.png` | Pilatus tab with three frames selected | Scan 11, frames 1, 11, 21 selected |
-| `23_pilatus_all_frames_of_a_scan.png` | Pilatus tab with ALL frames of a long scan selected (the many-small-images problem) | Scan 11: all 40 frames selected (drawing took 0.6 s offscreen) |
+| `23_pilatus_all_frames_of_a_scan.png` | Pilatus tab with ALL frames of a long scan selected (the many-small-images problem) | Scan 11: all 40 frames selected (drawing took 0.8 s offscreen) |
 | `23b_pilatus_all_frames_reflectivity_series.png` | Pilatus tab with all frames of the four reflectivity scans selected | Scans 6-9: all 96 frames selected |
 | `30_reflectivity_empty.png` | The Reflectivity tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |
 | `31_refpatch_dialog_first_join.png` | Ref Patch window (opened by Pilatus > Ref Patch), first join | Scans 6-9 all frames; Ref Patch clicked |
@@ -137,7 +137,7 @@ fonts), where font metrics may differ a little from the owner's desktop.
 - The integral plot shows a legend "#0" with an errorbar sample that is not one of the points plotted.
 
 **Plot, 2D_Plot (`8x`)**
-- 2D_Plot raises `AttributeError: module 'matplotlib.cm' has no attribute 'get_cmap'` at `update2dPlotPlot` (mainwindow.py:7718 on 2026-11-22, 7799 after the covariance merge) with matplotlib 3.11.2 (removed in 3.9), so the plot stays empty (`83_*`). Real bug in this environment; requirements pin should be checked.
+- 2D_Plot raises `AttributeError: module 'matplotlib.cm' has no attribute 'get_cmap'` at `update2dPlotPlot` (mainwindow.py:7718 on 2026-11-22, 7799 after the covariance merge) with matplotlib 3.11.2 (removed in 3.9), so the plot stays empty (`83_*`). Real bug in this environment; requirements pin should be checked. **Fixed 2026-11-23** (`83_*` retaken: the map is drawn).
 - 2D_Plot has Label Size, Tick Size, Point Density Factor and an "Updata Interpolation" button (typo).
 - Min/Max fields clipped here too.
 

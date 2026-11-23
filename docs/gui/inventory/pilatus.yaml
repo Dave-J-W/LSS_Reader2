@@ -90,7 +90,7 @@
   needs: ""
   shown: always
   tooltip: false
-  notes: "List differs from 2D_Plot and Apex ('spectral' there, 'rainbow' here). The Reflectivity ROI image uses the hidden Apex tab's colour map instead of this one (refAnalyze reads gixCMapComboBox; read only). Not kept between sessions (F70)."
+  notes: "List differs from 2D_Plot and Apex ('nipy_spectral' there, formerly 'spectral'; 'rainbow' here). The Reflectivity ROI image uses the hidden Apex tab's colour map instead of this one (refAnalyze reads gixCMapComboBox; read only). Not kept between sessions (F70)."
 - id: pilAspectComboBox
   kind: combo
   label: "Aspect:"
