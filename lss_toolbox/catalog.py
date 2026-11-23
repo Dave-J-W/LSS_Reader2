@@ -158,6 +158,25 @@ TOOLS = (
          ),
          seconds=5.4),
 
+    Tool('burn_dose_figure', 'Burns against dose: damage or a changing sample?', 'burn', 'figures',
+         'tests/tools/burn_dose_figure.py',
+         'NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil '
+         'transmission): a beam-driven change coincides against dose, a sample changing by itself against time.',
+         committed=('docs/figures/burn_dose',),
+         docs=('docs/figures/burn_dose/README.md', 'docs/handoff_out/07-burn-trends.md:102',
+               'docs/physics_notes.md:3965'),
+         data='any', defaults={'--out': OUT}, spec_option='--spec',
+         variations=(
+             V('Nominal foils (1.4247 per unit)', 'The flux ratio of the docs\' "4.1x" instead of the calibrated '
+               '4.68: the dose ratio of the drifts moves from 0.79 to 0.90.', 'docs/physics_notes.md:3240',
+               absorbers='nominal'),
+             V('One spot measured twice', 'Scan 15\'s dose and time follow scan 14\'s: 15 starts where 14 '
+               'ended, as one spot would.', 'docs/handoff_out/07-burn-trends.md:104', join=True),
+             V('Moments estimator', 'The legacy moments instead of the template.', 'docs/handoff_out/07-burn-trends.md',
+               estimator='moments'),
+         ),
+         inputs=(NX,), seconds=3.1),
+
     # ------------------------------------------------------------ reflectivity
     Tool('patch_demo', 'Fit demonstrator (window)', 'refl', 'window',
          'tests/tools/patch_demo.py',

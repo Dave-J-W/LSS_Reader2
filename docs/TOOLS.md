@@ -44,6 +44,7 @@ container on 2026-11-23 with the defaults shown.
 |---|---|---|---|---|---|
 | [Burn line-cut demonstrator (window)](#patch-demo-burn) | window | GID line cuts of one spot over time: every burn estimator (template, moments, fit) against the known change; space bar for a new noise replicate. | synthetic (public) |  | — |
 | [Burn trends of NX scans 14 and 15](#burn-figures) | figures | Burn tests over time as the Trends tab draws them (every model, the confident 5 % time) for the template and legacy moments estimators, and the three estimators compared. | public (NX school or committed tables) | 5 s | `docs/figures/burn_trends`<br>`docs/comparisons_data/burn_nx` |
+| [Burns against dose: damage or a changing sample?](#burn-dose-figure) | figures | NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil transmission): a beam-driven change coincides against dose, a sample changing by itself against time. | NX school by default; any SPEC file | 3 s | `docs/figures/burn_dose` |
 
 ### Reflectivity patching
 
@@ -153,6 +154,27 @@ Variations:
 |---|---|---|---|
 | Scan 14 only | One burn scan: absorber 12, the lower dose of the pair. | `docs/physics_notes.md:3964` | `python tests/tools/burn_figures.py --out '{out}' --scans 14` |
 | Scan 15 only | The second scan of the spot at absorber 8 (4.1x the flux of scan 14): dose against time, beam damage or a changing sample. | `docs/physics_notes.md:3964` | `python tests/tools/burn_figures.py --out '{out}' --scans 15` |
+
+<a id="burn-dose-figure"></a>
+
+### Burns against dose: damage or a changing sample?
+
+NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil transmission): a beam-driven change coincides against dose, a sample changing by itself against time.
+
+- Menu: Tools > Burn tests; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/burn_dose_figure.py`
+- Explained in: `docs/figures/burn_dose/README.md`, `docs/handoff_out/07-burn-trends.md:102`, `docs/physics_notes.md:3965`
+- Committed products: `docs/figures/burn_dose`; replaced from the window with the settings that made them
+- Run:
+
+      python tests/tools/burn_dose_figure.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Nominal foils (1.4247 per unit) | The flux ratio of the docs' "4.1x" instead of the calibrated 4.68: the dose ratio of the drifts moves from 0.79 to 0.90. | `docs/physics_notes.md:3240` | `python tests/tools/burn_dose_figure.py --out '{out}' --absorbers nominal` |
+| One spot measured twice | Scan 15's dose and time follow scan 14's: 15 starts where 14 ended, as one spot would. | `docs/handoff_out/07-burn-trends.md:104` | `python tests/tools/burn_dose_figure.py --out '{out}' --join` |
+| Moments estimator | The legacy moments instead of the template. | `docs/handoff_out/07-burn-trends.md` | `python tests/tools/burn_dose_figure.py --out '{out}' --estimator moments` |
 
 <a id="patch-demo"></a>
 
