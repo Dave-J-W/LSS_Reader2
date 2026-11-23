@@ -722,6 +722,11 @@ class MainWindow (QMainWindow):
             repeated=sorted(set(n for n in self.specData['ScanNums'] if self.specData['ScanNums'].count(n)>1))
             if len(repeated)>0:
                 self.messageBox('Scan number(s) '+listText(repeated)+' appear more than once in this SPEC file. The last scan with each number is shown.')
+            short=[n for n in scannums if isinstance(self.specPar.get(n),dict) and self.specPar[n].get('DroppedRows')]
+            if short:   # spec_routines.complete_rows: one short line used to lose the whole scan
+                self.notify('Scan(s) %s: a data line with a different number of values was left out (in a file '
+                            'SPEC is still writing, usually the line being written).' % listText(short),
+                            title='SPEC file',level='info')
             self.scanlines=[self.specData[i]['ScanLine'] for i in scannums]
             self.ui.scanListWidget.addItems(self.scanlines)
             if np.any([self.specPar[i]['Detector']=='Vortex' for i in scannums]):

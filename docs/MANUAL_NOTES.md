@@ -38,6 +38,11 @@ Each line: feature — where — default — script — notes entry (date).
   File > Preferences — `lss_core/preferences.py`; Notes 2026-11-18
   "Calibrated foils in the reader".
 
+- A data line with a different number of values from the rest of its scan
+  (in a file SPEC is still writing, the line being written) is left out,
+  with one message in the Messages pane (2026-11-23); the scan's other
+  lines are read as usual. Before, such a scan read as empty.
+
 ### Fluorescence detector
 - File > Preferences > Fluorescence detector: elements 1–7 of the
   multi-element detector summed into one spectrum per point (default all,
