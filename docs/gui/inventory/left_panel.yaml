@@ -128,12 +128,12 @@
   label: "Sum All"
   where: "Left panel"
   handler: update2dPlots
-  does: "Averages the selected frames into one image (frames must share one Qz); cuts, GISAXS and burn use the sum"
+  does: "Sums the selected frames into one image (frames must share one Qz): counts and monitors summed, then normalised once (ΣN/ΣM, F91, 2026-11-23); cuts and GISAXS use the sum"
   workflows: [gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "Pilatus frames at one Qz selected"
   shown: always
-  tooltip: false
-  notes: "Name says sum, code averages (divides by N) (read only). Observed: on reflectivity frames it gives 'Error:: The selected frames have different qz values!!' in Messages. Object name gix* is a relic of the Apex tab. Belongs with image display/cuts rather than frame selection; not used for MCA spectra (read only). Reset to off whenever the scan selection changes."
+  tooltip: true
+  notes: "Until 2026-11-23 it averaged the normalised frames (divided by N); the average stays as the preference sum_all_legacy_average (F86). Burn tests do not read it (read only). Observed: on reflectivity frames it gives 'Error:: The selected frames have different qz values!!' in Messages. Object name gix* is a relic of the Apex tab. Belongs with image display/cuts rather than frame selection; not used for MCA spectra (read only). Reset to off whenever the scan selection changes."
 - id: imageListWidget
   kind: list
   label: ""

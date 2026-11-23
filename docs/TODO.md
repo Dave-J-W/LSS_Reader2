@@ -17,7 +17,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 
 | Session | Now | Next |
 |---|---|---|
-| Main (orchestrator) | F91 "Sum All" really sums and F81 repeats summed (both ΣN/ΣM, output changes); F87 burn kind from Det_Th > 2° | F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
+| Main (orchestrator) | F81 repeats summed (ΣN/ΣM, output change); ~~F91 "Sum All" really sums, every view per Monc~~ done 2026-11-23; ~~F87 burn kind from Det_Th > 2°~~ done 2026-11-23 | F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
 | GUI manager | the main window's unblocked items (area I, "Unblocked 2026-11-23"): removals, F74, F85, F86, F88, F69 movie, Q-GID-5, then F95–F97 display | the timeline tab (F83), then ngui |
 | tools man | what "the gauntlet" is, whether it was wrapped up, its extensions (report to Main) | F90 MCA fit gauntlet, synthetic half |
 | questor | the owner's questions and their answers in `docs/` | (its own order) |
@@ -51,7 +51,7 @@ working list, one table per area, each row with its source. Rows marked
 | Two-file export, covariance sidecar; Budget then the default (the covariance itself is computed since 2026-11-22: `lss_core.uncertainty`; what to export: area B2). **Built 2026-11-22 as options** (`lss_core.covariance_export`, `lss_core.gls`, `reports/downstream_covariance.md`): sidecars beside the legacy files (window "+ covariance", off; scripts `save(covariance='sidecar')`), the contract's two outputs and the combined file (scripts `covariance='contract'`, `combined=True`). Open: the defaults (B2); hand-off tests 5–6 with XModJointFit's own `lss_reference.py` / `covariance_core.py` when supplied; the GUI path for a joint-fit patch, if the window gets one | F24, F24a, F24c; P4; input 5 |
 | Stitch-factor bias, measured on real overlaps, then remedied: remedy built 2026-11-22 (`lss_core.patching`, joint fit), **the default since 2026-11-22** after the synthetic gauntlet (C36); confirming on the larger data set: hand-off 08 (the private `bu` set holds no reflectivity) | P1, D13 |
 | The joint fit's error at the first join of NX-like scans of a 25 Å film: pull SD 1.13 over 300 seeds through the reader's chain (covariance agent, `docs/reports/downstream_covariance.md` §6.1), while the gauntlet's NX-grid first joins give 0.98–1.04 on pairs of scans. Find which differs (the film, the chain, the seeds) and whether the guard's choice of window after seeing χ² (p ≥ 0.3) narrows the error; inside hand-off 08's band, so not yet a failure — **new** 2026-11-22 | C35, C36 |
-| Undersampled fringes at a join (fewer than 3 points per Kiessig period of the coarser scan): every curve model fails there in the gauntlet, the coinciding-points ratio alone stays honest. Fall back to it where the joint fit's χ² is marginal and three or more Qz coincide, and test it with the gauntlet — **new** 2026-11-22 | C36; physics_notes 2026-11-22 |
+| ~~Undersampled fringes at a join (fewer than 3 points per Kiessig period of the coarser scan)~~ **not to be done** (owner, 2026-11-23: "fringes will rarely be undersampled, or even be sampled close to nyquist, that is not an important case to consider"); the gauntlet's finding stays in C36 | C36; physics_notes 2026-11-22, 2026-11-23 |
 | Same-absorber scans share a factor: send the question to the hand-off author — **new** | F41 |
 | Qz offset from sh-scan images — **new** | F42 |
 | Per-second option — **new** | F20 |
@@ -305,6 +305,22 @@ build workflow and macOS signing (input 12); sample-data hosting.
 lines, `Tstart`/`Tend`, `#V` flag, Pilatus + Vortex header, gas conditions
 and dark rate, photons-in, half-cuts and an sh scan beside each GID level,
 `#A` always written; `getandsave_mca` `#A`/gain low priority).
+
+**L. Hard-coded and fragile assumptions — new 2026-11-23** (the owner asked for "column position lookups or similar hard-coded and fragile issues"; physics_notes 2026-11-23, "the fragility audit"). M measured, R read only.
+
+| Assumption | What breaks | Evidence | Fix |
+|---|---|---|---|
+| Every data row of a scan has as many numbers as `#L` has labels | one half-written last line (a file SPEC is still writing, i.e. live updates) loses **every column** of that scan | M: synthetic, the last line cut to two numbers → no columns | drop a short last row with a note; check widths per row (`spec_routines.py`) |
+| The header's `In_Rot` is each frame's incidence | β of reflectivity frames (cuts, GISAXS) | M: P47 | P47 |
+| A frame's scan and frame numbers are read back from the list's text (`imageListWidget` 13 places, `scanListWidget` `split()[1]` 8, the Ref Qz list) | any change of the displayed text (the GUI overhaul) breaks frame and scan lookups silently | R | keep them as item data (`Qt.UserRole`); GUI manager |
+| Pilatus 100K sizes: default cut ranges `0:485`, `0:194`; GID last row 486; columns spin box max 195; 0.172 mm written 22 times in `mainwindow.py` (one constant exists, `cuts.PIXEL_MM`) | defaults and limits wrong for the 1M (area H) | R | from `pilatus.NROWS`/`NCOLS` and one pixel constant |
+| File names cut at `/` (`specFileName.split('/')[-1]` makes the image and MCA prefixes) | a path with backslashes (Windows, `os.path`) gives a wrong prefix: no images; plot-file legends show the whole path | R | `os.path.basename` |
+| `#B0` file extension from `split('.')[1]` | a SPEC name with a dot (`run.v2`) hides the scan's images (detector read as "Monitor") | M: synthetic | `os.path.splitext` |
+| `#L` labels split on any space, no count check | right for these macros (NX writes "PSD Seconds" with one space; its rows have 18 values); a label with a space (standard SPEC, "Two Theta") shifts every later column by one silently | M: NX labels vs row widths | compare label and row counts, say so |
+| Motor names as the macro truncates them to 8 characters (`Two_Thet`, `Sample_T`; the code looks up `Two_Thet`); `#O` full names unused | a macro writing full names breaks the lookups | R; NX headers | map `#P` to `#O` names, accept both |
+| `#A` and the `Absorber` motor of `#P4` both set the absorber; the later line wins (`#A`, in NX) | a macro writing `#A` first would make the motor's value win | R; NX order | prefer `#A` explicitly |
+| SpecPlot's default x: column 2 (L) whenever the first column is H; default y: the last column | an hklscan along H or K is plotted against a constant L | R | the column that varies, or the `#S` command |
+| L is Qz in Å⁻¹, H is Qx (the beamline's SPEC lattice) | a changed lattice scales every Qz silently | M: NX scan 11, L = 4π sin(In_Rot)/λ to 0.06 % | document; check at load on fixed-α scans |
 
 **K. Questions for the owner in one batch — new**: P10–P12, P19, P35
 ("may be intended" behaviours never put to the owner), P21 (dark offset),
@@ -710,6 +726,7 @@ reruns the quick, real-data and export-fixture checks, and commits.
       weak line (the Zn 8637 eV at 10 keV excitation case) and a note of the
       detector's energy calibration. Mark private files as such (they stay under
       `sample_data/private/`).
+- [ ] **All data needs are listed in `docs/DATA_NEEDS.md` (2026-11-23)**: read it before asking the owner for data; the owner's non-cloud agent will supply the large private sets (reflectivity series for hand-off 08 "not soon"; GISAXS and GIOXS examples later).
 - [ ] Decide how sample data should be hosted (`bu` is 1.7 GB, local to the
       session only, git-ignored; NX school is committed at 104 MB).
 - [ ] Questions in `ASSESSMENT.md` sections 6 and 7 still open: reference

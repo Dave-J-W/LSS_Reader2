@@ -307,6 +307,10 @@ class MainWindow (QMainWindow):
         self.ui.mcaRanLineEdit.returnPressed.connect(self.updateMCAPlotVline)
      #    self.connect(self.ui.gixSumCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
         self.ui.gixSumCheckBox.stateChanged.connect(self.update2dPlots)
+        self.ui.gixSumCheckBox.setToolTip('Sum the selected frames (same Qz): counts and monitors summed, then '
+                                          'normalised once, ΣN/ΣM (the pooled estimate; owner, 2026-11-23, F91). With '
+                                          'unequal monitors it weights each frame by its monitor, over its absorber and '
+                                          'gain factors. The legacy mean of the normalised frames is a Reduction option.')
      #   self.connect(self.ui.pilBPCiteSpinBox, SIGNAL('valueChanged(int)'), self.imageSelectedScanChanged)
         self.ui.pilBPCiteSpinBox.valueChanged.connect(self.imageSelectedScanChanged)
      #   self.connect(self.ui.pilBPCfacSpinBox, SIGNAL('valueChanged(int)'), self.imageSelectedScanChanged)
@@ -1413,7 +1417,10 @@ class MainWindow (QMainWindow):
                     self.ui.spXComboBox.setCurrentIndex(0)
                 self.ui.spYComboBox.setCurrentIndex(len(self.specData[self.selectedScanNums[0]]['ScanVar'])-1)
                 self.ui.spY2ComboBox.setCurrentIndex(0)
-                self.ui.spNComboBox.setCurrentIndex(len(self.specData[self.selectedScanNums[0]]['ScanVar'])-2)
+                cols=list(self.specData[self.selectedScanNums[0]]['ScanVar'])
+                # normalised by Monc by default (owner, 2026-11-23: "all data is default normalized
+                # by monc"); the column before the last only when the scan has no Monc (as before)
+                self.ui.spNComboBox.setCurrentIndex(cols.index('Monc') if 'Monc' in cols else len(cols)-2)
 
             except:   #for getandsave_mca, which doesn't have any 'ScanVar'
                 pass
@@ -2324,6 +2331,60 @@ class MainWindow (QMainWindow):
                             title='Monitor',level='warning')
             return 1.0
         return gain_factor(spar['MoncGain'])
+
+    def sumAllLegacy(self):
+        """True when "Sum All" keeps the legacy mean of the normalised frames
+        (the Reduction options page, F86; preference 'sum_all_legacy_average',
+        off by default since 2026-11-23, F91)."""
+        return bool(self.prefs.get('sum_all_legacy_average',False))
+
+    def gisaxsRawCounts(self):
+        """True when GISAXS keeps the raw counts it showed until 2026-11-23
+        (preference 'gisaxs_raw_counts', for the Reduction options page, F86;
+        off: GISAXS is per Monc like every other reduction)."""
+        return bool(self.prefs.get('gisaxs_raw_counts',False))
+
+    def pilFrameNormalised(self,i):
+        """(value, error) of frame ``i`` per monitor (Monc), absorber and gain:
+        what every reduction, the image display and GISAXS use (owner,
+        2026-11-23: "all data is default normalized by monc, even gisaxs").
+        Background-subtracted frames are normalised already (sumFiles);
+        self.pilData keeps the frames as read, for the reductions that
+        normalise them themselves (Ref Patch)."""
+        if len(self.ui.backgroundListWidget.selectedItems())!=0:
+            return self.pilData[i],self.pilErrorData[i]
+        g=self.pilGains([self.pilScanNum[i]])
+        return normalise.normalise_frame(self.pilData[i],self.pilErrorData[i],self.pilMonc[i],self.absfac,
+                                         self.pil_AbsNum[i],model=self.errorModel,gain=1.0 if g is None else g[0])
+
+    def pilSumNormalised(self,frames):
+        """"Sum All" of the normalised frames: counts and monitors summed and
+        normalised once, ΣN/ΣM (F91), or their mean ('sum_all_legacy_average')."""
+        d,e=zip(*[self.pilFrameNormalised(i) for i in frames])
+        if self.sumAllLegacy():
+            return cuts.mean_frame(list(d),list(e))
+        return cuts.sum_frames(list(d),list(e),[self.pilNormaliser(i) for i in frames])
+
+    def gisaxsData(self,frames):
+        """(value, error) GISAXS is made from: per Monc, ΣN/ΣM when several
+        frames are summed; with 'gisaxs_raw_counts' the raw counts, and their
+        mean when summed, as until 2026-11-23."""
+        if self.gisaxsRawCounts():
+            if len(frames)==1:
+                return self.pilData[frames[0]],self.pilErrorData[frames[0]]
+            d,e=self.pilData[frames[0]],self.pilErrorData[frames[0]]**2
+            for i in frames[1:]:
+                d,e=d+self.pilData[i],e+self.pilErrorData[i]**2
+            return d/float(len(frames)),np.sqrt(e)/float(len(frames))
+        if len(frames)==1:
+            return self.pilFrameNormalised(frames[0])
+        return self.pilSumNormalised(frames)
+
+    def pilNormaliser(self,i):
+        """Frame ``i``'s weight in "Sum All": its monitor over the absorber and
+        gain factors it is normalised with (lss_core.cuts.frame_normaliser)."""
+        g=self.pilGains([self.pilScanNum[i]])
+        return cuts.frame_normaliser(self.pilMonc[i],self.absfac,self.pil_AbsNum[i],1.0 if g is None else g[0])
 
     def pilGains(self,scans):
         """Monitor-gain factors for Pilatus frames of ``scans`` (Pilatus
@@ -3328,11 +3389,13 @@ class MainWindow (QMainWindow):
                 self.pilFrameNumsWithSameQz[float(format(self.pilFileQzs[i],'.4f'))]=[i]
                 self.pilFrameAbsWithSameQz[float(format(self.pilFileQzs[i],'.4f'))]=[self.pil_AbsNum[i]]
         try:
-            self.imageMax=np.max(self.pilData[self.selectedPilFramesNums[0]])
-            if self.imageMax<1:
+            # the range of what is drawn: the first frame per Monc (owner, 2026-11-23); a range
+            # below 1 is normal now, so only a frame without any positive value falls back to 1
+            first=self.pilFrameNormalised(self.selectedPilFramesNums[0])[0]
+            self.imageMax=np.max(first)
+            if not self.imageMax>0:
                 self.imageMax=1
-            #self.imageMin=np.max([1e-10,np.min(self.pilData[self.selectedPilFramesNums[0]])])
-            self.imageMin=np.min(self.pilData[self.selectedPilFramesNums[0]][np.nonzero(self.pilData[self.selectedPilFramesNums[0]])])
+            self.imageMin=np.min(first[np.nonzero(first)])
         except:
             self.imageMax=100
             self.imageMin=0
@@ -3555,6 +3618,10 @@ class MainWindow (QMainWindow):
                 pilXMax=4.0*np.pi*np.sin((self.dth+(pilXMax-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
                 pilXCen=4.0*np.pi*np.sin(self.dth/2.0)/self.wavelength
                 
+            # what is drawn: every frame per monitor (Monc), absorber and gain, as every reduction
+            # is (owner, 2026-11-23: "all data is default normalized by monc"); pilData stays as read
+            disp={i:self.pilFrameNormalised(i)[0] for i in self.selectedPilFramesNums}
+            dlog={i:np.log10(np.where(d<=0,1e-10,d)) for i,d in disp.items()}
             if self.pilmovieindex==1:
                 for j,i in enumerate(self.selectedPilFramesNums):   # j: position in the selection, i: frame number
                     self.ui.pilMplWidget.canvas.fig.clf()
@@ -3564,11 +3631,11 @@ class MainWindow (QMainWindow):
                     ax.set_title('F #'+str(i),fontsize=16)
                     self.extent=[pilXMin[j],pilXMax[j],pilYMin[j],pilYMax[j]]
                     if self.ui.pilLogIntCheckBox.checkState()!=0:
-                        p=ax.imshow(self.pilLogData[i],interpolation='bicubic',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect=aspect,origin='lower')
-                        self.Zdata=self.pilLogData[i] 
+                        p=ax.imshow(dlog[i],interpolation='bicubic',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect=aspect,origin='lower')
+                        self.Zdata=dlog[i] 
                     else:
-                        p=ax.imshow(self.pilData[i],interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower')
-                        self.Zdata=self.pilData[i]
+                        p=ax.imshow(disp[i],interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower')
+                        self.Zdata=disp[i]
                     ax.format_coord=self.format_pil_coord
                     ax.autoscale(False)
                     ax.plot([pilXCen[j],pilXCen[j]], [pilYMin[j],pilYMax[j]], 'w--', linewidth=2.0)
@@ -3583,10 +3650,8 @@ class MainWindow (QMainWindow):
             else:
                 if self.ui.gixSumCheckBox.checkState()!=0:   #if "Sum All" is checked; merge the frames having the same qz
                     if self.checkSameQzs(self.pilSelectedQzs)==True: # check if qz are same in selected frames
-                        self.sumData=self.pilData[self.selectedPilFramesNums[0]]   #self.pilData only has pixel and intensity;  
-                        for i in self.selectedPilFramesNums[1:]:
-                            self.sumData=self.sumData+self.pilData[i]
-                        self.sumData=self.sumData/float(len(self.selectedPilFramesNums)) # average the intensity
+                        # ΣN/ΣM of the frames per Monc (F91; the mean with 'sum_all_legacy_average')
+                        self.sumData=self.pilSumNormalised(list(self.selectedPilFramesNums))[0]
                         self.logData=np.log10(np.where(self.sumData<=0,1e-10,self.sumData))
                         ax=self.ui.pilMplWidget.canvas.fig.add_subplot(1,1,1)
                         ax.set_xlabel(xlabel)
@@ -3618,11 +3683,11 @@ class MainWindow (QMainWindow):
                         ax[i].set_title('F #'+str(i),fontsize=16)
                         self.extent=[pilXMin[num-1],pilXMax[num-1],pilYMin[num-1],pilYMax[num-1]]
                         if self.ui.pilLogIntCheckBox.checkState()!=0:
-                            p=ax[i].imshow(self.pilLogData[i],interpolation='bicubic',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect=aspect,origin='lower')
-                            self.Zdata=self.pilLogData[i] 
+                            p=ax[i].imshow(dlog[i],interpolation='bicubic',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect=aspect,origin='lower')
+                            self.Zdata=dlog[i] 
                         else:
-                            p=ax[i].imshow(self.pilData[i],interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower')
-                            self.Zdata=self.pilData[i]
+                            p=ax[i].imshow(disp[i],interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower')
+                            self.Zdata=disp[i]
                         ax[i].format_coord=self.format_pil_coord
                         self.ui.pilMplWidget.canvas.fig.colorbar(p,format="%.1e")
                         num=num+1
@@ -4228,13 +4293,8 @@ class MainWindow (QMainWindow):
             self.messageBox('Warning: Please select only one frame or use summed frames')
         else:
             if self.ui.gixSumCheckBox.checkState() != 0:  # if "Sum All" is checked; merge the frames having the same qz
-                self.sumData = self.pilData[self.selectedPilFramesNums[0]]  # self.pilData only has pixel and intensity;
-                self.sumErrData = self.pilErrorData[self.selectedPilFramesNums[0]] ** 2
-                for i in self.selectedPilFramesNums[1:]:
-                    self.sumData = self.sumData + self.pilData[i]
-                    self.sumErrData = self.sumErrData + self.pilErrorData[i] ** 2
-                self.sumData = self.sumData / float(len(self.selectedPilFramesNums))  # average the intensity
-                self.sumErrData = np.sqrt(self.sumErrData) / float(len(self.selectedPilFramesNums))  # average the error bar
+                # per Monc, ΣN/ΣM (owner, 2026-11-23; F91); the raw mean with 'gisaxs_raw_counts'
+                self.sumData, self.sumErrData = self.gisaxsData(list(self.selectedPilFramesNums))
             if str(self.ui.pilAxesComboBox.currentText())!='Q':
                 # self.disconnect(self.ui.pilAxesComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
                 self.ui.pilAxesComboBox.currentIndexChanged.disconnect(self.update2dPlots)
@@ -4279,13 +4339,22 @@ class MainWindow (QMainWindow):
             pilX_deg, pilY_deg = np.meshgrid(pilX_deg, pilY_deg)  # mesh x-y corrdinates
             self.pilXbin = 2.0 * np.pi / self.wavelength[0] * np.sqrt(np.cos(self.truealpha[0]) ** 2 + np.cos(pilY_deg) ** 2 - 2 * np.cos(self.truealpha[0]) * np.cos(pilY_deg) * np.cos(pilX_deg))
             self.pilYbin = 2.0 * np.pi / self.wavelength[0] * (np.sin(self.truealpha[0]) + np.sin(pilY_deg))
-            qxyrange = np.linspace(np.min(self.pilXbin), np.max(self.pilXbin), int(len(self.pilXbin[0]) * (np.max(self.pilXbin) - np.min(self.pilXbin)) / (
-                                           self.pilXbin[0][-1] - self.pilXbin[0][0])))
+            # as many Qxy bins as columns, scaled by the whole image's Qxy span over the first
+            # row's (last column - first). |Qxy| folds at the direct beam: with the beam centred
+            # the two ends have the same Qxy (zero: OverflowError), right of the centre the last
+            # the smaller (a negative count: ValueError). Now the size of that difference, and
+            # the row's full span (max - min) when it is zero; unchanged left of the centre
+            row = self.pilXbin[0]
+            row_span = abs(row[-1] - row[0])
+            if not (row_span > 0 and np.isfinite(row_span)):
+                row_span = np.ptp(row)
+            nqxy = len(row)
+            if row_span > 0 and np.isfinite(row_span):
+                nqxy = max(2, int(nqxy * (np.max(self.pilXbin) - np.min(self.pilXbin)) / row_span))
+            qxyrange = np.linspace(np.min(self.pilXbin), np.max(self.pilXbin), nqxy)
             qxy, qz = np.meshgrid(qxyrange, self.pilYbin[:, 0])
             if len(self.selectedPilFramesNums)==1:
-                 index = self.selectedPilFramesNums[0]
-                 self.sumData=self.pilData[index]
-                 self.sumErrData=self.pilErrorData[index]
+                 self.sumData, self.sumErrData = self.gisaxsData([self.selectedPilFramesNums[0]])   # per Monc (owner, 2026-11-23)
             self.pilDataBin = griddata((self.pilXbin.ravel(), self.pilYbin.ravel()), self.sumData.ravel(), (qxy, qz), method='linear', fill_value=1e-10)
             self.pilErrorDataBin = griddata((self.pilXbin.ravel(), self.pilYbin.ravel()), self.sumErrData.ravel(), (qxy, qz), method='linear', fill_value=1e-10)
             self.pilXbin=qxy
@@ -6269,10 +6338,7 @@ class MainWindow (QMainWindow):
             if len(self.ui.backgroundListWidget.selectedItems())==0:
                 # frames are counts: normalise by monitor and absorber first, like
                 # every other reduction (PHYSICS_ISSUES P23; owner, 2026-11-17)
-                g=self.pilGains([self.pilScanNum[i]])
-                self.selCutPilData[i],self.selCutPilErrorData[i]=normalise.normalise_frame(
-                    self.pilData[i],self.pilErrorData[i],self.pilMonc[i],self.absfac,self.pil_AbsNum[i],model=self.errorModel,
-                    gain=1.0 if g is None else g[0])
+                self.selCutPilData[i],self.selCutPilErrorData[i]=self.pilFrameNormalised(i)
                 if budget:
                     self.selCutTerms[i]=normalise.frame_terms(('',i),self.selCutPilData[i],self.pilMonc[i],self.errorModel)
             else:   # background-subtracted frames are already normalised
@@ -6282,18 +6348,22 @@ class MainWindow (QMainWindow):
                     self.selCutTerms[i]=getattr(self,'pilMonitorTerms',{}).get(i)
         if self.ui.gixSumCheckBox.checkState()!=0 and len(self.ui.backgroundListWidget.selectedItems())==0:
             self.noteMixedAbsorbers([self.pil_AbsNum[i] for i in self.selectedPilFramesNums],'The summed cut')
+        legacy=self.sumAllLegacy()
+        norms=[self.pilNormaliser(i) for i in self.selectedPilFramesNums]
         if budget and self.ui.gixSumCheckBox.checkState()!=0:
             self.selCutTerms[-1]=MonitorTerms()
-            for i in self.selectedPilFramesNums:
+            for i,wk in zip(self.selectedPilFramesNums,cuts.sum_weights(norms,legacy)):
                 if self.selCutTerms.get(i) is not None:
-                    self.selCutTerms[-1].extend(self.selCutTerms[i],1.0/len(self.selectedPilFramesNums))
+                    self.selCutTerms[-1].extend(self.selCutTerms[i],wk)
         # the cut itself is lss_core.cuts.frame_cut, shared with Experiment.cut
         direction=self.ui.pilCutDirComboBox.currentIndex()
         axes=str(self.ui.pilAxesComboBox.currentText())
         if self.ui.gixSumCheckBox.checkState()!=0:
             frames=self.selectedPilFramesNums
-            self.selCutPilData[-1],self.selCutPilErrorData[-1]=cuts.mean_frame(
-                [self.selCutPilData[i] for i in frames],[self.selCutPilErrorData[i] for i in frames])
+            d,e=[self.selCutPilData[i] for i in frames],[self.selCutPilErrorData[i] for i in frames]
+            # F91 (owner, 2026-11-23): counts and monitors summed, normalised once (ΣN/ΣM);
+            # the legacy mean of the normalised frames when the Reduction options say so
+            self.selCutPilData[-1],self.selCutPilErrorData[-1]=cuts.mean_frame(d,e) if legacy else cuts.sum_frames(d,e,norms)
             self.cutData[-1]=cuts.frame_cut(self.pilatus,self.selCutPilData[-1],self.selCutPilErrorData[-1],direction,ini,fin,
                                             self.cutGeometry(0),axes=axes,absfac=self.absfac,
                                             absnum=self.pilSelected_AbsNum[0],terms=self.selCutTerms.get(-1))
@@ -6347,6 +6417,8 @@ class MainWindow (QMainWindow):
             kw.append('axes=%r' % axes)
         if self.ui.gixSumCheckBox.checkState()!=0:
             kw.append('summed=True')
+            if self.sumAllLegacy():
+                kw.append("sum_mode='mean'")
         if points:
             kw.append('points=%r' % points)
         absfac=self.absorberModel()
