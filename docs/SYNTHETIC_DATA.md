@@ -55,6 +55,7 @@ checks; `seed` may be a `numpy.random.Generator` for Monte Carlo loops
 | `gid_levels` | Legacy GID frames (in memory) with 1–3+ Qz levels and known map T(2θ, β) | the legacy patch's geometry, area and polarisation corrections put in so the patch can divide them out | `test_synthetic_gid_levels.py` (P36, P37 strict xfails) |
 | `burn_profiles` | GID burn profiles over time with a stated change | fade, broaden at constant area, shift, fade under a shoulder, rising floor, none; Poisson on counts | `test_synthetic_burn_profiles.py` |
 | `xfntr` | XFNTR yield curves, MCA spectra and files | \|T\|², penetration depth 1/Im Q_s, surface + bulk ions, escape absorption, footprint seen; Si-detector resolution FWHM(E); Kα/Kβ, elastic, background | `test_synthetic_xfntr.py` |
+| `mca` (2026-11-23, F90) | MCA spectra of fluorescence lines with the beam's scatter under them, every part kept apart per channel, with known truth; MCA files for the reader (`write_dataset`) | Kα1/Kα2/Kβ1 at X-ray Data Booklet energies (Fe, Ni, Cu, Zn, Ga, Br), excited above their K edges; Rayleigh; Compton at E0/(1+(E0/mc²)(1−cos 2θ)) with a hydrogenic Doppler profile (valence) and an O 1s core wing cut off at E0 − 0.532 keV (impulse approximation); Si-detector photopeak (Fano), exponential tail and shelf (Hypermet), Si K escape peaks at E − 1.740 keV (Reed's fraction, 0.10 % at 10 keV); background; calibration offset and gain error; Poisson | `test_synthetic_mca.py` |
 | `growing` | A finished data set replayed into another folder line by line, images late | SPEC writes line by line; images lag; MCA files with their scan | `test_synthetic_growing.py` |
 | `tests/tools/synthetic_dataset.py` (2026-11-23, a writer, not a generator) | A data set on disk for the reader to open (Tools > Synthetic data sets): `--kind xrr` (four NX-like scans of `--truth` film/water/DPPC, `--thickness`, `--counts`, `--monitor real\|poisson`, `--fault none\|slits\|foil`, rendered by `xrr_images.render`, with `truth.csv` and `truth.json` holding R(Qz) and the true join factors), `--kind xfntr` (18 spectra, `xfntr.measure`), `--kind burn` (`synth.make_burn_dataset`) | the generators' own; choices made here (assumptions, demonstration only): `slits` = Monc registers 70 % of the slit change at scans 3–4 (P29 measured ×1.55–1.62 for ×2.0–2.3), `foil` = scan 3's foils transmit 2 % less than calibrated | `test_synthetic_dataset.py` |
 
@@ -259,6 +260,48 @@ escape))`, `transmission`, `penetration_depth`, `fwhm_kev(E)`,
 corrected) to 1e-6. Detector noise 0.12 keV FWHM, Kβ/Kα 0.13, Fe lines by
 default: assumptions.
 
+**MCA spectra with the beam's scatter** (`synthetic.mca`, F90):
+`spectrum(lines, elastic, beam=Beam(...), detector=Detector(...),
+background, slope, calib, channels, offset, gain, kb_scale)` returns a
+`Spectrum`:
+- `energy`, the nominal keV per channel; `energy_true`;
+- `expected`;
+- `parts[(source, kind)]`, with source 'Zn Ka1', …, 'Rayleigh', 'Compton'
+  or 'background', and kind 'peak', 'tail', 'shelf', 'escape' or 'flat';
+- `photopeak(element, 'Ka' | 'Kb')`, the truth a line fit should find;
+- `part(sources, kinds)`;
+- `draw(rng)`, Poisson counts.
+
+Also in the module:
+- `line_energy(element)`, intensity-weighted (Zn Kα 8.631 keV);
+- `compton_energy(e0, angle)`;
+- `reed_escape(e)`;
+- `write_dataset(root, spectra, counts, qz, monitor)`, SPEC + `vortex/`
+  through `xfntr.write_dataset`, which now takes the calibration.
+
+Tested:
+- every photon lands in exactly one part (photopeak + tail + shelf +
+  escape = the photons, to 0.2 %);
+- Kβ/Kα = 17/151;
+- the Compton centroid is at 9.808 keV (10 keV, 90°);
+- the core part is zero above E0 − B;
+- the escape peaks sit 1.740 keV below their parents, with Reed's
+  fraction;
+- the shelf is flat;
+- a calibration offset or gain moves the lines on the nominal axis;
+- the reader's window sums of written files equal the counts written.
+
+Assumptions, all from memory:
+- intensities 100 : 51 : 17;
+- the hydrogenic profile shapes;
+- the O 1s Z_eff of 7.7 (core FWHM 0.8 keV);
+- Reed's constants (ω_K 0.050, μ(Si Kα) 350 cm²/g, μ(E) ∝ E^−2.75);
+- noise 0.12 keV FWHM.
+
+With E0 = 10 keV, the elastic and Compton escapes (8.26 and 8.07 keV) and
+the core wing fall under Zn Kα: the hard case of F90. The gauntlet that
+uses it is `tests/tools/mca_fit_gauntlet.py` (COMPARISONS C41).
+
 **Growing files** (`synthetic.growing.Growing(src_spec, dst_dir,
 image_lag)`): `advance(n)`, `advance_to(scan, points)`, `flush_images()`,
 `finish()` (the copy then equals the source byte for byte), `points`,
@@ -275,6 +318,8 @@ destination SPEC file is empty until the first `advance`.
 | Three-level GID through the window | P36, P37 fixes | `gid_levels` is in memory; writing its frames needs a GID SPEC header (`Det_Th`, slits, g_l) |
 | GID burn as frames (images), reflectivity burn with noise | burn dialog, hand-off 07 | profiles and `synth.make_burn_dataset` only |
 | XFNTR series with a `#U Series` recipe; energy scans across an edge | live series, F65 | |
+| MCA spectra with the beam's scatter as a data set the reader opens (an XFNTR series of `mca.spectrum` through `mca.write_dataset`, a Tools item) | F90 in the window | `mca.write_dataset` exists; no `synthetic_dataset.py --kind` uses it yet |
+| Compton profiles from tables (Biggs, Mendelsohn and Mann 1975) instead of the hydrogenic shapes; multiple scattering; pile-up; a measured detector response | F90 against real spectra | the gauntlet's hard case rests on the hydrogenic O 1s wing |
 | Diffuse background, Yoneda wings, sh scans, Qz offset | F42, F59 | `xrr_images` background is flat |
 | Bad pixels, cosmic rays, multiple exposures, stray light | F40, P40 | |
 | Monitor noise with heavy tails (Student t, drifts) | `reports/monitor_noise.md` | `Beamline.monitor_jitter` is Gaussian |
