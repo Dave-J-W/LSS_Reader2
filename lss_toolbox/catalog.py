@@ -282,6 +282,12 @@ TOOLS = (
          ),
          committed_with={'--design': 'all', '--methods': 'key', '--replicates': '400'},
          repo_out='docs/comparisons_data/ref_patch_gauntlet', repo_ok=False, seconds=None),
+    Tool('ref_patch_biased_joins', 'Why five gauntlet joins are biased (extension 4)', 'refl', 'data',
+         'tests/tools/ref_patch_biased_joins.py',
+         'The default joint fit\'s five biased designed joins and the covariance study\'s first join, redrawn '
+         'with the gauntlet\'s seeds and fitted with the guard off, other orders and windows, noise-free.',
+         docs=('docs/comparisons_data/ref_patch_gauntlet/summary.md',),
+         defaults={'--out': OUT}, repo_ok=False),
     Tool('ref_patch_survey', 'Patching methods on real scans (survey)', 'refl', 'data',
          'tests/tools/ref_patch_survey.py',
          'Every patching method at every join of a SPEC file\'s reflectivity series; split scans give known '

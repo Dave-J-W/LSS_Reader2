@@ -55,6 +55,7 @@ container on 2026-11-23 with the defaults shown.
 | [Fit demonstrator: survey over replicates](#patch-demo-survey) | text | Every patching method over many noise replicates of the demonstrator's synthetic scans: bias, pull mean and pull SD per join, failures (the numbers behind the window's single replicate). | synthetic (public) | 4 s | — |
 | [Fit demonstrator report figures](#patch-demo-figures) | figures | The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per survey). | synthetic (public) |  | `docs/figures/patch_demo` |
 | [Patching gauntlet (synthetic, judged)](#ref-patch-gauntlet) | data | Every patching method on many noise replicates of synthetic reflectivity under many conditions, judged by hand-off 08's rules (\|mean pull\| < 0.2, pull SD 0.9-1.15). | synthetic (public) |  | `docs/comparisons_data/ref_patch_gauntlet` |
+| [Why five gauntlet joins are biased (extension 4)](#ref-patch-biased-joins) | data | The default joint fit's five biased designed joins and the covariance study's first join, redrawn with the gauntlet's seeds and fitted with the guard off, other orders and windows, noise-free. | synthetic (public) |  | — |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
 | [Downstream fits with and without the covariance](#covariance-pulls) | data | Synthetic NX-like scans of a 25 Å film reduced by each patch method and fitted for thickness, density and roughness under four error treatments: pull SD is 1 only with the full covariance. | synthetic (public) | 3 s | `docs/comparisons_data/downstream_covariance` |
 | [Old and new methods as CSV (C2, C10, C11, ...)](#compare-methods) | data | Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, the footprint window, absorber factors, "Sum All" as the counts over the monitors vs the mean of the normalised frames. | NX school by default; any SPEC file | 39 s | `docs/comparisons_data/manifest.json`<br>`docs/comparisons_data/C2_*`<br>`docs/comparisons_data/C6_*`<br>`docs/comparisons_data/C10_*`<br>`docs/comparisons_data/C11_*`<br>`docs/comparisons_data/C21_*`<br>`docs/comparisons_data/C24_*`<br>`docs/comparisons_data/C41_*` |
@@ -299,6 +300,19 @@ Variations:
 | Grid: films and roughness | One factor at a time from the baseline: film thickness and roughness. | `docs/physics_notes.md:3769` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design grid --methods key --replicates 100 --conditions layer_film50,layer_film250,layer_film400,rough_film_2.5,rough_film_6` |
 | Grid: planted faults | A slit change the monitor misses and a foil 2 % off: where the foil prior misleads. | `docs/physics_notes.md:3769` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design grid --methods all --replicates 100 --conditions fault_slits_missed,fault_foil_2pc` |
 | Grid: low flux | Flux x0.3 to x0.03: how the methods degrade as counts fall. | `docs/physics_notes.md:3769` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design grid --methods key --replicates 100 --conditions flux_x0.3,flux_x0.1,flux_x0.03` |
+
+<a id="ref-patch-biased-joins"></a>
+
+### Why five gauntlet joins are biased (extension 4)
+
+The default joint fit's five biased designed joins and the covariance study's first join, redrawn with the gauntlet's seeds and fitted with the guard off, other orders and windows, noise-free.
+
+- Menu: Tools > Reflectivity patching; kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/ref_patch_biased_joins.py`
+- Explained in: `docs/comparisons_data/ref_patch_gauntlet/summary.md`
+- Run:
+
+      python tests/tools/ref_patch_biased_joins.py --out '{out}'
+
 
 <a id="ref-patch-survey"></a>
 
