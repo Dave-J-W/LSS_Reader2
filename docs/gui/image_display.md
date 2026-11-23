@@ -318,7 +318,11 @@ frames, N = 4 → 0, 13, 27, 40.
   geometry), a real peak stands still while the detector window slides;
   anything fixed on the detector (stray light, hot pixels, slit or window
   scattering) moves. A switch to pixel axes gives the opposite view (junk
-  still, peaks moving). Needs the per-pixel geometry of X2.
+  still, peaks moving). Needs the per-pixel geometry of X2. A figure of it
+  exists since 2026-11-23: `tests/tools/gid_movie.py` (Tools > GID and
+  pinhole geometry), `docs/figures/gid_movie/` (NX 11: the DPPC peak's
+  brightest column stays within 0.78 of a 2θ bin while it walks 49
+  columns); the window's movie mode is still to build.
 - Owner, 2026-11-23, for every kind: "we often want to zoom on the raw
   data (or zoom to some region around the ROI for reflectivity) and have
   the frames play in movie mode without changing the zoom or color mode or

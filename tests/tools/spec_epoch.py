@@ -51,8 +51,18 @@ def analyse(path):
              len(rows) - len(odd), odd[:5] or 'none'))
 
 
-if __name__ == '__main__':
-    targets = sys.argv[1:] or (['sample_data/NX_school/2026sep/20260923']
-                               + sorted(glob.glob('sample_data/bu/*/2026*')))
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description='What the SPEC "Epoch" column measures.')
+    ap.add_argument('specs', nargs='*', help='SPEC files (default: NX school and, when present, the private '
+                                             'bu files under sample_data/bu)')
+    a = ap.parse_args(argv)
+    targets = a.specs or (['sample_data/NX_school/2026sep/20260923']
+                          + sorted(glob.glob('sample_data/bu/*/2026*')))
     for t in targets:
         analyse(t)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

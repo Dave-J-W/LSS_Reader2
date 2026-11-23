@@ -216,7 +216,11 @@ build workflow and macOS signing (input 12); sample-data hosting.
       are started as their own process (`patch_demo.py`, which takes the space
       bar application-wide). A packaged build lists the items and the
       committed figures it holds but disables Run (no tools, no Python inside).
-- [ ] **Committed products the audit found stale (new 2026-11-23, F84)**:
+- [x] **Committed products the audit found stale (new 2026-11-23, F84) —
+      remedied 2026-11-23** (`docs/reports/tools_audit.md`, "Remedied"):
+      the two figures were an environment difference, not stale code; the
+      C2/C3, C21 and survey tables remade with their text; C24 and C21 now
+      written by `compare_methods.py`. Before:
       `python -m lss_toolbox --audit` reran every item with the settings of
       its committed products and compared (`docs/reports/tools_audit.md`).
       Each needs its rerun into the repository (Tools window, "Replace the
@@ -246,15 +250,24 @@ build workflow and macOS signing (input 12); sample-data hosting.
       all values are <= 0" from the SpecPlot log y on a column of zeros
       (`spNComboBox`); (3) `updatePilPlotData` (≈ line 3357):
       `float('')` of an empty `pilSDDistLineEdit`.
-- [ ] **`gui_screens.py` no longer captures the g_l2 / g_l3 dialogs (found
-      2026-11-23 by the Tools audit)**: since the scan-fit rules of
+- [x] **`gui_screens.py` no longer captures the g_l2 / g_l3 dialogs (found
+      2026-11-23 by the Tools audit) — done 2026-11-23**: the step plots the
+      sample-height scans 5 and 13 one by one (each gets its fitted centre),
+      then selects both; the screenshot also showed the dialogs listing
+      scans 5 and 13 as "6, 14", fixed (`test_known_defects`). Before: since the scan-fit rules of
       2026-11-23 (flat or weak scans not fitted) the synthetic motor scan 4
       has no fitted centre, so Calculations > g_l2 answers "Please plot the
       selected scans first" instead of opening. `docs/gui/screens/93_*`,
       `94_*` are kept from the morning's run. Give the screenshot a scan with
       a peak, or the dialog a way to say why there is no centre.
-- [ ] **Documented variations not yet reachable by an option (new
-      2026-11-23)**: parameters the documents vary that are fixed inside a
+- [x] **Documented variations not yet reachable by an option (new
+      2026-11-23) — done 2026-11-23**: pinhole case 8 (`--case8-dth`,
+      `--case8-openings`), `monitor_noise_mc.py` (`--regimes`, `--monitors`,
+      `--trials`, `--seed`), the C24 footprint and C21 angle comparisons as
+      tables of `compare_methods.py`, the demonstrator's surveys
+      (`patch_demo.py --survey N`, two Tools items), `synthetic_dataset.py`
+      (`--roughness`, `--background`); each a catalogue variation with its
+      document line (`tests/test_tool_options.py`). Before: parameters the documents vary that are fixed inside a
       script: the S4 openings and Det_Th of pinhole case 8 (drawn as a sweep
       inside the figure), the regimes of `monitor_noise_mc.py`, the footprint
       choice of C24 (`GIDParams(footprint='idl')`) in `compare_methods.py`,
@@ -262,17 +275,22 @@ build workflow and macOS signing (input 12); sample-data hosting.
       `bm` monitor sweeps) and the `synthetic` generators' faults beyond the
       two `synthetic_dataset.py` offers. Each becomes an option and a
       variation in `lss_toolbox/catalog.py` when needed.
-- [ ] **Figures asked for but never made (found 2026-11-23)**: the dose-axis
+- [x] **Figures asked for but never made (found 2026-11-23) — done
+      2026-11-23**: `tests/tools/burn_dose_figure.py` (NX 14/15 against dose:
+      the position drifts 3.70× apart against time, 0.79× against dose),
+      `tests/tools/gid_column_groups.py` (maps and the level join per column
+      group; it found P46), `tests/tools/gid_movie.py` (M7: the DPPC peak
+      still in 2θ while it walks 49 columns); each a Tools item. Before: the dose-axis
       burn comparison of NX 14 and 15 (07-burn-trends.md, F76), maps from
       column groups per level and the β-overlap cells of the join
       (physics_notes 2026-11-19), the movie on a common 2θ axis (M7). Each
       becomes a tool and a catalogue item when made.
-- [ ] **Tools whose default data include the private sets when present
-      (2026-11-23)**: `spec_epoch.py` (NX and bu), `monitor_distribution.py`
-      (every SPEC file under sample_data/), `monitor_gains.py` (all of
-      sample_data/). Their output is printed only (never written into
-      docs/), but a page run on a machine with the private sets shows
-      private counts: decide whether their defaults should be NX only.
+- [x] **Tools whose default data include the private sets when present
+      (2026-11-23) — done 2026-11-23**: `spec_epoch.py`, `monitor_gains.py`
+      and `monitor_distribution.py` take their files as arguments (argparse;
+      with none, the same output as before), and their Tools pages default
+      to the public NX file; the variation "All sample data" gives the
+      scripts' own default, private sets included when present.
 
 **J. Beamline / SPEC macros**: see "Beamline to-do" at the end (series
 lines, `Tstart`/`Tend`, `#V` flag, Pilatus + Vortex header, gas conditions

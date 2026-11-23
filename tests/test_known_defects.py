@@ -104,6 +104,22 @@ def test_g_l2_dialog_accepts_typed_centres(loaded, qapp, dataset, recorder):
 
 
 @pytest.mark.gui
+@pytest.mark.parametrize('which', ['g_l2', 'g_l3'])
+def test_g_l_dialogs_name_the_selected_scans(loaded, qapp, recorder, which):
+    """The dialogs list the scans they use by their numbers: the scan
+    list's numbers, not those plus one (found 2026-11-23 by the Tools
+    session's screenshot of the dialog: scans 5 and 13 shown as 6, 14)."""
+    import sweep
+    sweep._select_scans(loaded, qapp, [0, 1])       # scans 1 and 2
+    assert loaded.selectedScanNums == [1, 2]
+    loaded.scanCenter = {1: 0.0, 2: 0.0}
+    getattr(loaded, 'cal' + which)()
+    ui = getattr(loaded, 'ui' + which)
+    assert getattr(ui, which + 'ScanLineEdit').text() == '1, 2'
+    assert recorder.exceptions == []
+
+
+@pytest.mark.gui
 def test_g_l2_dialog_with_one_scan_asks_for_more(loaded, qapp, dataset,
                                                  recorder):
     """One scan cannot determine two unknowns; the user is told, nothing

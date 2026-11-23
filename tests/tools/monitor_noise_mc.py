@@ -119,6 +119,9 @@ def one_frame(rng, label, S0, L0, R0, M0, npix, kind, model, g=10.0, jitter=0.0)
     return out
 
 
+CHOSEN = {'regimes': None, 'monitors': None}     # --regimes, --monitors (None: all)
+
+
 def part1(rng):
     # name, S0, L0, R0, M0, npix, profile
     regimes = [
@@ -130,6 +133,10 @@ def part1(rng):
         ('C2 MCA 81 ch S=1e6 L=R=5e4 M=2.2e5  ', 1.0e6, 5.0e4, 5.0e4, 2.2e5, 81, 'peak'),
     ]
     monitors = [('poisson', 'Poisson u2=1/M '), ('gain', 'g=10 u2=1/(10M)'), ('exact', 'noiseless u=0 ')]
+    if CHOSEN['regimes']:
+        regimes = [r for r in regimes if r[0].split()[0] in CHOSEN['regimes']]
+    if CHOSEN['monitors']:
+        monitors = [m for m in monitors if m[0] in CHOSEN['monitors']]
     print('PART 1  one frame, one shared monitor reading; %d trials, seed %d' % (NTRIAL, SEED))
     print('  emp     = empirical std of the normalised quantity over the trials')
     print('  code    = reader today: sum_i (I_i/M^2 + I_i^2/M^3), bg in quadrature')
@@ -149,7 +156,10 @@ def part1(rng):
                   % (name, mlabel, r['emp_S'], r['code_S'] / r['emp_S'], r['new_S'] / r['emp_S'],
                      r['pois_S'] / r['emp_S'], r['emp_N'], r['code_N'] / r['emp_N'],
                      r['new_N'] / r['emp_N'], r['pois_N'] / r['emp_N'], r['indep_N'] / r['emp_N']))
-    # beam jitter: both detector and monitor follow the beam
+    # beam jitter: both detector and monitor follow the beam (regime A, the gain monitor)
+    if (CHOSEN['regimes'] and 'A' not in CHOSEN['regimes']) or (CHOSEN['monitors'] and 'gain' not in CHOSEN['monitors']):
+        print()
+        return
     r = one_frame(rng, 'A + 2% beam jitter', 7.9e5, 4.0e3, 4.0e3, 2.2e5, 121, 'peak', 'gain', jitter=0.02)
     print('%-37s %-15s | %10.3e %7.3f %7.3f %7.3f | %10.3e %7.3f %7.3f %7.3f %7.3f'
           % ('A + 2 % real beam jitter (tracked)  ', 'g=10 u2=1/(10M)', r['emp_S'], r['code_S'] / r['emp_S'],
@@ -286,9 +296,19 @@ def part3():
 
 
 def main(argv=None):
+    global NTRIAL, SEED
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--no-real', action='store_true', help='skip the look at the real SPEC file')
+    ap.add_argument('--trials', type=int, default=NTRIAL, help='trials per configuration (default %(default)s)')
+    ap.add_argument('--seed', type=int, default=SEED, help='random seed (default %(default)s)')
+    ap.add_argument('--regimes', default='', help='part 1: only these regimes, comma-separated (A, A2, A3, B, C, C2; '
+                                                  'default all)')
+    ap.add_argument('--monitors', default='', help="part 1: only these monitor models, comma-separated (poisson, gain, "
+                                                   "exact; default all)")
     args = ap.parse_args(argv)
+    NTRIAL, SEED = args.trials, args.seed
+    CHOSEN.update(regimes=[x.strip() for x in args.regimes.split(',') if x.strip()] or None,
+                  monitors=[x.strip() for x in args.monitors.split(',') if x.strip()] or None)
     np.set_printoptions(linewidth=200)
     rng = np.random.default_rng(SEED)
     part1(rng)

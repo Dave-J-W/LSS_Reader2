@@ -682,12 +682,17 @@ def run_dialogs_on(w, app, ctx):
     @step('g_l2 g_l3 abs_ratio')
     def calcs():
         # an absorber scan is needed for the ratio; none in NX. Open the other two and the ratio's refusal.
-        select_scans(w, app, [3])
+        # The g_l dialogs need a fitted centre for every selected scan, and SpecPlot fits the last one
+        # selected: plot the sample-height scans 5 and 13 one by one, then select both (scan 4 is flat:
+        # since the fit rules of 2026-11-23 a flat scan is not fitted, so it has no centre).
         tab(w, app, 'SpecPlot')
-        arm(ctx, '93_dialog_g_l2.png', 'Calculations > G_l2 window', 'Scan 4 selected on SpecPlot')
+        for row in (4, 12):
+            select_scans(w, app, [row])
+        select_scans(w, app, [4, 12])
+        arm(ctx, '93_dialog_g_l2.png', 'Calculations > G_l2 window', 'Scans 5 and 13 (sample height) fitted on SpecPlot')
         w.ui.actionG_l2.trigger()
         disarm(ctx)
-        arm(ctx, '94_dialog_g_l3.png', 'Calculations > G_l3 window', 'Scan 4 selected on SpecPlot')
+        arm(ctx, '94_dialog_g_l3.png', 'Calculations > G_l3 window', 'Scans 5 and 13 (sample height) fitted on SpecPlot')
         w.ui.actionG_l3.trigger()
         disarm(ctx)
         settle(app)

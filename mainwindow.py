@@ -7077,7 +7077,7 @@ class MainWindow (QMainWindow):
         Dialog=QDialog(self)
         self.uig_l2=uic.loadUi(resource('g_l2Dialog.ui'), Dialog)
         self.uig_l2.show()
-        scannum=[item+1 for item in self.selectedScanNums]
+        scannum=list(self.selectedScanNums)   # scan numbers already (the list's text), not row indices
        # self.g_l2alpha=[self.specPar[i]['In_Rot'] for i in self.selectedScanNums]
         self.g_l2alpha = [round(np.arctan(round(self.specPar[i]['Q'][2], 3) * self.specPar[i]['Wavelength'] / 4 / np.pi) * 180 / np.pi, 5) for i in self.selectedScanNums]
         self.g_l2center=[self.scanCenter[i] for i in self.selectedScanNums]
@@ -7131,7 +7131,7 @@ class MainWindow (QMainWindow):
         Dialog=QDialog(self)
         self.uig_l3=uic.loadUi(resource('g_l3Dialog.ui'), Dialog)
         self.uig_l3.show()
-        scannum=[item+1 for item in self.selectedScanNums]
+        scannum=list(self.selectedScanNums)   # scan numbers already (the list's text), not row indices
         #self.g_l3alpha=[self.specPar[i]['In_Rot'] for i in self.selectedScanNums]
         self.g_l3alpha = [round(np.arctan(round(self.specPar[i]['Q'][2], 3) * self.specPar[i]['Wavelength'] / 4 / np.pi) * 180 / np.pi, 5) for i in self.selectedScanNums]
         self.g_l3center=[self.scanCenter[i] for i in self.selectedScanNums]

@@ -81,7 +81,7 @@ def default_text(action):
     """An action's default as the text a form field shows."""
     d = action['default']
     if action['kind'] in ('flag', 'flag_false', 'const'):
-        return bool(d) if action['kind'] != 'flag_false' else not d
+        return False                                   # a flag's field is "given or not"; not given by default
     if d is None:
         return ''
     if isinstance(d, list):
@@ -119,8 +119,8 @@ def build_args(spec, values, out_dir, free=''):
             if v is True or v == 'true':
                 args.append(key)
             continue
-        if a['kind'] == 'flag_false':
-            if v is False:
+        if a['kind'] == 'flag_false':                 # a store_false option: ticked means given, as any flag
+            if v is True or v == 'true':
                 args.append(key)
             continue
         text = str(v).strip()
@@ -138,7 +138,10 @@ def build_args(spec, values, out_dir, free=''):
             for it in items:
                 args += [key, it]
         else:
-            args += [key] + items
+            if len(items) == 1 and items[0].startswith('-') and key.startswith('--'):
+                args.append('%s=%s' % (key, items[0]))      # '--beta=-0.5,3': argparse reads '-0.5,3' as an option
+            else:
+                args += [key] + items
     if free:
         positional += shlex.split(free.replace(OUT, out_dir or ''))
     head = [spec['command']] if spec.get('command') else []
@@ -194,10 +197,82 @@ def write_record(run_dir, item_id, script, args, started, finished=None, code=No
         'commit': staleness.head(),
         'modified_sources': staleness.modified(staleness.dependencies_of_script(script)) if script else [],
         'into_repository': bool(into_repo),
+        'environment': environment_versions(),
     }
     with open(os.path.join(run_dir, RECORD), 'w', encoding='utf-8') as f:
         json.dump(rec, f, indent=1)
     return rec
+
+
+LIBRARIES = ('numpy', 'scipy', 'matplotlib', 'PIL', 'PyQt5', 'lmfit')
+
+
+def environment_versions():
+    """Python, the platform and the versions of the libraries that draw and
+    compute the products: a figure can differ from a committed one because
+    of these alone (measured 2026-11-23: the stray-light and beam figures,
+    same code, other environment)."""
+    import importlib
+    import platform
+    out = {'python': platform.python_version(), 'platform': platform.platform()}
+    for name in LIBRARIES:
+        try:
+            mod = importlib.import_module(name)
+            if name == 'PyQt5':
+                from PyQt5.QtCore import PYQT_VERSION_STR, QT_VERSION_STR
+                out[name] = '%s (Qt %s)' % (PYQT_VERSION_STR, QT_VERSION_STR)
+            else:
+                out[name] = getattr(mod, '__version__', '?')
+        except Exception:                      # noqa: BLE001 (absent library: not recorded)
+            continue
+    return out
+
+
+def run_item_at(item, commit, out_dir, args, timeout=3600):
+    """Run ``item``'s script as it was at ``commit`` (a temporary git
+    worktree; the public sample data are tracked, so they are there) with
+    ``args`` (``{out}`` already replaced by ``out_dir``), in this
+    environment. Returns the exit code, or None when the worktree cannot be
+    made. Used by the audit to tell a change of code from a change of
+    environment."""
+    import subprocess
+    import tempfile
+    wt = tempfile.mkdtemp(prefix='lss_toolbox_wt_')
+    os.rmdir(wt)
+    r = subprocess.run(['git', 'worktree', 'add', '--detach', '-q', wt, commit], cwd=ROOT, capture_output=True,
+                       text=True)
+    if r.returncode != 0:
+        return None
+    try:
+        os.makedirs(out_dir, exist_ok=True)
+        with open(os.path.join(out_dir, STDOUT), 'w', encoding='utf-8') as f:
+            try:
+                p = subprocess.run([interpreter(), os.path.join(wt, item.script)] + list(args), cwd=wt,
+                                   env=environment(out_dir), stdout=f, stderr=subprocess.STDOUT, timeout=timeout)
+                return p.returncode
+            except subprocess.TimeoutExpired:
+                return -9
+    finally:
+        subprocess.run(['git', 'worktree', 'remove', '--force', wt], cwd=ROOT, capture_output=True)
+
+
+def classify(new_vs_committed, old_here_vs_committed, new_vs_old_here):
+    """Why a product differs from the committed one, from three comparisons
+    (each True when identical): the run now, the run of the products' own
+    commit in this environment, the committed product. 'current' (no
+    difference); 'environment' (the old code here gives what the new code
+    gives: the committed one was drawn elsewhere); 'code' (the old code here
+    gives the committed one: the code changed it); 'both'; 'unknown' (the
+    old code could not be run)."""
+    if new_vs_committed:
+        return 'current'
+    if old_here_vs_committed is None:
+        return 'unknown'
+    if new_vs_old_here and not old_here_vs_committed:
+        return 'environment'
+    if old_here_vs_committed and not new_vs_old_here:
+        return 'code'
+    return 'both'
 
 
 def read_record(run_dir):

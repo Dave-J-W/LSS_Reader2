@@ -43,18 +43,21 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [Burn line-cut demonstrator (window)](#patch-demo-burn) | window | GID line cuts of one spot over time: every burn estimator (template, moments, fit) against the known change; space bar for a new noise replicate. | synthetic (public) |  | — |
+| [Burn estimators: survey over replicates](#patch-demo-burn-survey) | text | Every burn estimator over many noise replicates of a synthetic burn: the change it reads against the truth (bias, scatter) and how often it calls a quantity stable. | synthetic (public) | 19 s | — |
 | [Burn trends of NX scans 14 and 15](#burn-figures) | figures | Burn tests over time as the Trends tab draws them (every model, the confident 5 % time) for the template and legacy moments estimators, and the three estimators compared. | public (NX school or committed tables) | 5 s | `docs/figures/burn_trends`<br>`docs/comparisons_data/burn_nx` |
+| [Burns against dose: damage or a changing sample?](#burn-dose-figure) | figures | NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil transmission): a beam-driven change coincides against dose, a sample changing by itself against time. | NX school by default; any SPEC file | 3 s | `docs/figures/burn_dose` |
 
 ### Reflectivity patching
 
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [Fit demonstrator (window)](#patch-demo) | window | Reflectivity patching on synthetic scans with known truth: every method, the denoised data, pulls, factors, error bands; space bar for a new noise replicate. | synthetic (public) |  | — |
+| [Fit demonstrator: survey over replicates](#patch-demo-survey) | text | Every patching method over many noise replicates of the demonstrator's synthetic scans: bias, pull mean and pull SD per join, failures (the numbers behind the window's single replicate). | synthetic (public) | 4 s | — |
 | [Fit demonstrator report figures](#patch-demo-figures) | figures | The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per survey). | synthetic (public) |  | `docs/figures/patch_demo` |
 | [Patching gauntlet (synthetic, judged)](#ref-patch-gauntlet) | data | Every patching method on many noise replicates of synthetic reflectivity under many conditions, judged by hand-off 08's rules (\|mean pull\| < 0.2, pull SD 0.9-1.15). | synthetic (public) |  | `docs/comparisons_data/ref_patch_gauntlet` |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
 | [Downstream fits with and without the covariance](#covariance-pulls) | data | Synthetic NX-like scans of a 25 Å film reduced by each patch method and fitted for thickness, density and roughness under four error treatments: pull SD is 1 only with the full covariance. | synthetic (public) | 3 s | `docs/comparisons_data/downstream_covariance` |
-| [Old and new methods as CSV (C2, C10, C11, ...)](#compare-methods) | data | Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, absorber factors. | NX school by default; any SPEC file | 39 s | `docs/comparisons_data/manifest.json`<br>`docs/comparisons_data/C2_*`<br>`docs/comparisons_data/C6_*`<br>`docs/comparisons_data/C10_*`<br>`docs/comparisons_data/C11_*` |
+| [Old and new methods as CSV (C2, C10, C11, ...)](#compare-methods) | data | Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, the footprint window, absorber factors. | NX school by default; any SPEC file | 39 s | `docs/comparisons_data/manifest.json`<br>`docs/comparisons_data/C2_*`<br>`docs/comparisons_data/C6_*`<br>`docs/comparisons_data/C10_*`<br>`docs/comparisons_data/C11_*`<br>`docs/comparisons_data/C21_*`<br>`docs/comparisons_data/C24_*` |
 | [Absorber steps measured between scans](#absorber-steps) | text | Measured absorber steps between overlapping reflectivity scans against the nominal absfac^-Δn, and the extra Al thickness each implies (P28). | NX school by default; any SPEC file | 1 s | — |
 | [Foil thicknesses from the joins table](#foil-fit-from-joins) | text | Six binary foil thicknesses fitted to the owner's 963 measured joins (hand-off 03), and every join's residual: a foil effect separated from a monitor that missed a slit change. | public (NX school or committed tables) | < 1 s | — |
 
@@ -69,6 +72,8 @@ container on 2026-11-23 with the defaults shown.
 | [Gaussian beam vs uniform footprint](#pinhole-beam-profile) | text | What a Gaussian beam does to the pinhole patch, which assumes a uniform footprint: the column response it predicts and the bias left in a map. | public (NX school or committed tables) | 11 s | — |
 | [Stray light in pinhole GID frames](#gid-stray-light) | figures | β profiles of column bands inside and outside the usable window, per Qz level: light that cannot have come from the footprint through the pinhole (P40). | NX school by default; any SPEC file | 3 s | `docs/figures/gid_stray_light` |
 | [Single frames as ground truth](#single-frame-truth) | text | Each unpatched frame already puts the Bragg peak at its 2θ: frames must agree, and the patched map must give back their centre and width; the S4-detector distance that makes them agree. | NX school by default; any SPEC file | 74 s | — |
+| [GID movie on one 2θ axis](#gid-movie) | figures | GID frames played on a common 2θ axis with the zoom and the colour scale fixed: a real Bragg peak stands still while the detector window and anything fixed on it slide (M7, F69). | NX school by default; any SPEC file | 7 s | `docs/figures/gid_movie` |
+| [GID level join from groups of columns](#gid-column-groups) | figures | The pinhole patch of each Qz level made from groups of detector columns, and the level join's factor per group with the cells of the β overlap: why the factor depends on which columns are used. | NX school by default; any SPEC file | 26 s | `docs/figures/gid_column_groups` |
 | [GID patching methods (survey)](#gid-method-survey) | data | Every GID patching method on every GID set of SPEC files: frames-agree χ², distance calibration, single frames against patches, scale recovery. | NX school by default; any SPEC file |  | `docs/comparisons_data/gid_survey_nx` |
 
 ### Monitor, scans, SPEC files
@@ -76,7 +81,7 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [Monitor normalisation: Monte Carlo](#monitor-noise-mc) | text | The error the reader propagates for monitor-normalised counts, checked by Monte Carlo against the derived formula; mean of ratios against ratio of sums; the NX monitors' scatter. | public (NX school or committed tables) | 16 s | — |
-| [Monitor scatter: its distribution](#monitor-distribution) | text | Frame-to-frame deviations of Monc pooled over the sample SPEC files: Gaussian, Student t or Laplace; drift or noise; what share of each point's variance the monitor takes. | public (NX school or committed tables) | 2 s | — |
+| [Monitor scatter: its distribution](#monitor-distribution) | text | Frame-to-frame deviations of Monc pooled over the sample SPEC files: Gaussian, Student t or Laplace; drift or noise; what share of each point's variance the monitor takes. | NX school by default; any SPEC file | 2 s | — |
 | [Monc/Monp: beam variation or noise](#monitor-ratio) | text | The two monitors' common scatter (beam variation, cancels in the ratio) against each one's own noise, per scan. | NX school by default; any SPEC file | < 1 s | — |
 | [Monc jumps: the detector as witness](#monitor-witness) | text | Whether Monc's large jumps are real flux (the detector follows) or monitor errors (it does not), from second differences along each scan. | public (NX school or committed tables) | < 1 s | — |
 | [Monitor gain lines the reader cannot read](#monitor-gains) | text | Every #M Monc Gain line that is not a number with a known unit, and the scans without one (F52). | NX school by default; any SPEC file | < 1 s | — |
@@ -133,6 +138,26 @@ Variations:
 | Low counts (monitor 1e5) | "Lower monitor until each estimator fails": the counts per frame at which each estimator becomes unusable. | `docs/handoff_out/07-burn-trends.md:89` | `python tests/tools/patch_demo.py --mode burn --set monitor=1e5` |
 | No change | A stable spot: the trends should find no significant change (false alarms). | `docs/SYNTHETIC_DATA.md:232` | `python tests/tools/patch_demo.py --mode burn --set change=none` |
 
+<a id="patch-demo-burn-survey"></a>
+
+### Burn estimators: survey over replicates
+
+Every burn estimator over many noise replicates of a synthetic burn: the change it reads against the truth (bias, scatter) and how often it calls a quantity stable.
+
+- Menu: Tools > Burn tests; kind: text (a printed report (tables in the output pane)); script: `tests/tools/patch_demo.py`
+- Explained in: `docs/reports/patch_demo.md`, `docs/handoff_out/07-burn-trends.md:89`
+- Run:
+
+      python tests/tools/patch_demo.py --mode burn --survey 20
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Low counts (monitor 1e5) | "Lower monitor until each estimator fails": the counts at which each estimator's scatter swamps the change. | `docs/SYNTHETIC_DATA.md:302` | `python tests/tools/patch_demo.py --mode burn --survey 20 --set burn.monitor=1e5` |
+| Fade under a shoulder | A peak fading under a broad shoulder: where moments mislead. | `docs/SYNTHETIC_DATA.md:232` | `python tests/tools/patch_demo.py --mode burn --survey 20 --set change=shoulder` |
+| No change | A stable spot: how often each estimator calls it stable (false alarms). | `docs/SYNTHETIC_DATA.md:232` | `python tests/tools/patch_demo.py --mode burn --survey 20 --set change=none` |
+
 <a id="burn-figures"></a>
 
 ### Burn trends of NX scans 14 and 15
@@ -152,6 +177,27 @@ Variations:
 |---|---|---|---|
 | Scan 14 only | One burn scan: absorber 12, the lower dose of the pair. | `docs/physics_notes.md:3964` | `python tests/tools/burn_figures.py --out '{out}' --scans 14` |
 | Scan 15 only | The second scan of the spot at absorber 8 (4.1x the flux of scan 14): dose against time, beam damage or a changing sample. | `docs/physics_notes.md:3964` | `python tests/tools/burn_figures.py --out '{out}' --scans 15` |
+
+<a id="burn-dose-figure"></a>
+
+### Burns against dose: damage or a changing sample?
+
+NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil transmission): a beam-driven change coincides against dose, a sample changing by itself against time.
+
+- Menu: Tools > Burn tests; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/burn_dose_figure.py`
+- Explained in: `docs/figures/burn_dose/README.md`, `docs/handoff_out/07-burn-trends.md:102`, `docs/physics_notes.md:3965`
+- Committed products: `docs/figures/burn_dose`; replaced from the window with the settings that made them
+- Run:
+
+      python tests/tools/burn_dose_figure.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Nominal foils (1.4247 per unit) | The flux ratio of the docs' "4.1x" instead of the calibrated 4.68: the dose ratio of the drifts moves from 0.79 to 0.90. | `docs/physics_notes.md:3240` | `python tests/tools/burn_dose_figure.py --out '{out}' --absorbers nominal` |
+| One spot measured twice | Scan 15's dose and time follow scan 14's: 15 starts where 14 ended, as one spot would. | `docs/handoff_out/07-burn-trends.md:104` | `python tests/tools/burn_dose_figure.py --out '{out}' --join` |
+| Moments estimator | The legacy moments instead of the template. | `docs/handoff_out/07-burn-trends.md` | `python tests/tools/burn_dose_figure.py --out '{out}' --estimator moments` |
 
 <a id="patch-demo"></a>
 
@@ -176,6 +222,26 @@ Variations:
 | Critical-edge aside | A staggered overlap across Qc (P1): the legacy factor is 16.7 % low; the owner does not patch there. | `docs/reports/patch_demo.md:347` | `python tests/tools/patch_demo.py --set truth=water --set plan=edge` |
 | Counts x100 | Every method within 0.15 % of the truth: what remains is bias, not noise. | `docs/reports/patch_demo.md:379` | `python tests/tools/patch_demo.py --set counts=100` |
 | Poisson monitor | Monc as Poisson counts (the older model) instead of the owner's strict 0.05 %: legacy pull SD 1.3-1.4. | `docs/reports/patch_demo.md:113` | `python tests/tools/patch_demo.py --set monitor=poisson` |
+
+<a id="patch-demo-survey"></a>
+
+### Fit demonstrator: survey over replicates
+
+Every patching method over many noise replicates of the demonstrator's synthetic scans: bias, pull mean and pull SD per join, failures (the numbers behind the window's single replicate).
+
+- Menu: Tools > Reflectivity patching; kind: text (a printed report (tables in the output pane)); script: `tests/tools/patch_demo.py`
+- Explained in: `docs/reports/patch_demo.md`, `docs/SYNTHETIC_DATA.md:320`
+- Run:
+
+      python tests/tools/patch_demo.py --survey 50
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Staggered overlaps (200) | No coinciding points at any join: the documents' refl.survey(Config(plan='staggered'), range(200)). | `docs/SYNTHETIC_DATA.md:320` | `python tests/tools/patch_demo.py --survey 200 --set plan=staggered` |
+| Poisson monitor | Monc as Poisson counts: the legacy method's pull SD 1.3-1.4. | `docs/reports/patch_demo.md:113` | `python tests/tools/patch_demo.py --survey 50 --set monitor=poisson` |
+| Every method | All 15 methods, not only the window's four. | `docs/reports/patch_demo.md` | `python tests/tools/patch_demo.py --survey 50 --methods all` |
 
 <a id="patch-demo-figures"></a>
 
@@ -275,11 +341,11 @@ Variations:
 
 ### Old and new methods as CSV (C2, C10, C11, ...)
 
-Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, absorber factors.
+Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, the footprint window, absorber factors.
 
 - Menu: Tools > Reflectivity patching; kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/compare_methods.py`
 - Explained in: `docs/COMPARISONS.md`
-- Committed products: `docs/comparisons_data/manifest.json`, `docs/comparisons_data/C2_*`, `docs/comparisons_data/C6_*`, `docs/comparisons_data/C10_*`, `docs/comparisons_data/C11_*`; replaced from the window with the settings that made them (into `docs/comparisons_data`)
+- Committed products: `docs/comparisons_data/manifest.json`, `docs/comparisons_data/C2_*`, `docs/comparisons_data/C6_*`, `docs/comparisons_data/C10_*`, `docs/comparisons_data/C11_*`, `docs/comparisons_data/C21_*`, `docs/comparisons_data/C24_*`; replaced from the window with the settings that made them (into `docs/comparisons_data`)
 - Run:
 
       python tests/tools/compare_methods.py --out '{out}' --spec sample_data/NX_school/2026sep/20260923
@@ -290,7 +356,7 @@ Variations:
 |---|---|---|---|
 | Without the 2D maps | Skips the large GID maps (the CSVs of profiles only). | `docs/COMPARISONS.md:93` | `python tests/tools/compare_methods.py --out '{out}' --spec sample_data/NX_school/2026sep/20260923 --no-maps` |
 | Reflectivity only | Only the error-model comparison of scans 6-9 (C2/C3). | `docs/COMPARISONS.md:56` | `python tests/tools/compare_methods.py --out '{out}' --spec sample_data/NX_school/2026sep/20260923` |
-| GID only, one level | Only scan 11 (C10, C11). | `docs/COMPARISONS.md:63` | `python tests/tools/compare_methods.py --out '{out}' --spec sample_data/NX_school/2026sep/20260923 --gid 11` |
+| GID only, one level | Only scan 11 (C10, C11, C21). | `docs/COMPARISONS.md:63` | `python tests/tools/compare_methods.py --out '{out}' --spec sample_data/NX_school/2026sep/20260923 --gid 11` |
 
 <a id="absorber-steps"></a>
 
@@ -346,6 +412,8 @@ Variations:
 | Case 4 only | β depends on the column, not only on the row. | `docs/figures/pinhole/README.md` | `python tests/tools/pinhole_figures.py --out '{out}' --only 4` |
 | Case 7 only | Footprint and usable columns; the second module reached only below α ≈ 0.037°. | `docs/figures/pinhole/README.md` | `python tests/tools/pinhole_figures.py --out '{out}' --only 7` |
 | Case 8 only | The S4 opening swept 0.05-1.0 mm: 2θ acceptance, edge ramps, counts proportional to the opening; Det_Th 14/16/18°. | `docs/figures/pinhole/README.md` | `python tests/tools/pinhole_figures.py --out '{out}' --only 8` |
+| Case 8 at Det_Th 14° | The S4 figure for the frame at Det_Th 14° instead of 16°: the footprint seen per column grows (2.1 -> 2.4 mm). | `docs/figures/pinhole/README.md:256` | `python tests/tools/pinhole_figures.py --out '{out}' --only 8 --case8-dth 14` |
+| Case 8 with S4 0.05, 0.2 and 1.0 mm | The 2θ acceptance of one column for a pinhole four times narrower and five times wider than NX's 0.2 mm. | `docs/figures/pinhole/README.md:261` | `python tests/tools/pinhole_figures.py --out '{out}' --only 8 --case8-openings 0.05,0.2,1.0` |
 
 <a id="gid-patching-diagrams"></a>
 
@@ -384,7 +452,7 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| Two Qz levels (11 + 12) | The level join as well; not like for like (scan 12 stopped after 4 frames). | `docs/figures/gid_compare/README.md:15` | `python tests/tools/gid_compare_figures.py --scans 11,12 --out '{out}' --peak none --note 'scan 12 has 4 frames: not like for like'` |
+| Two Qz levels (11 + 12) | The level join as well; not like for like (scan 12 stopped after 4 frames). | `docs/figures/gid_compare/README.md:15` | `python tests/tools/gid_compare_figures.py --scans 11,12 --out '{out}' --peak none --note 'not like for like: scan 12 stopped after 4 frames'` |
 
 <a id="pinhole-beam-figure"></a>
 
@@ -457,6 +525,49 @@ Variations:
 |---|---|---|---|
 | Fine distance scan | Distances 260-272 mm in 1 mm steps around the calibrated 265 mm. | `docs/manual/gid_patching.md:388` | `python tests/tools/single_frame_truth.py --scans 11 --peak 16.63 --distances 260:273:1` |
 
+<a id="gid-movie"></a>
+
+### GID movie on one 2θ axis
+
+GID frames played on a common 2θ axis with the zoom and the colour scale fixed: a real Bragg peak stands still while the detector window and anything fixed on it slide (M7, F69).
+
+- Menu: Tools > GID and pinhole geometry; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/gid_movie.py`
+- Explained in: `docs/figures/gid_movie/README.md`, `docs/gui/image_display.md:313`
+- Committed products: `docs/figures/gid_movie`; replaced from the window with the settings that made them
+- Run:
+
+      python tests/tools/gid_movie.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Also on detector pixels | The opposite view: the peak walks across the columns, detector-fixed features stay put. | `docs/gui/image_display.md:320` | `python tests/tools/gid_movie.py --out '{out}' --pixels` |
+| Zoomed on the peak | The zoom held in angle while the frames play (no change of zoom or colour between frames). | `docs/gui/image_display.md:324` | `python tests/tools/gid_movie.py --out '{out}' --window 15.5,18 --beta=-0.5,3` |
+| Calibrated S4-detector distance | At 265.7 mm the peak stands stiller: the drift with Det_Th (+0.018 °/° at the header 271 mm) vanishes. | `docs/manual/gid_patching.md:417` | `python tests/tools/gid_movie.py --out '{out}' --pinhole-mm 265.7` |
+
+<a id="gid-column-groups"></a>
+
+### GID level join from groups of columns
+
+The pinhole patch of each Qz level made from groups of detector columns, and the level join's factor per group with the cells of the β overlap: why the factor depends on which columns are used.
+
+- Menu: Tools > GID and pinhole geometry; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/gid_column_groups.py`
+- Explained in: `docs/figures/gid_column_groups/README.md`, `docs/physics_notes.md:2724`
+- Committed products: `docs/figures/gid_column_groups`; replaced from the window with the settings that made them
+- Run:
+
+      python tests/tools/gid_column_groups.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| The same columns at both levels | Groups inside the columns every level has: the pooled group factors then agree within errors (1.024, 1.009, 0.985). | `docs/physics_notes.md:2753` | `python tests/tools/gid_column_groups.py --out '{out}' --columns common` |
+| Beam response | The response along the beam axis instead of one factor per column: the column dependence remains. | `docs/physics_notes.md:2721` | `python tests/tools/gid_column_groups.py --out '{out}' --response beam` |
+| No response | Each group's map keeps its columns' own light. | `docs/physics_notes.md:2745` | `python tests/tools/gid_column_groups.py --out '{out}' --response none` |
+| Angle maps (faster) | The maps of the cells themselves, in (2θ, β), without the regridding to Q. | `tests/tools/gid_column_groups.py` | `python tests/tools/gid_column_groups.py --out '{out}' --axes Angles` |
+
 <a id="gid-method-survey"></a>
 
 ### GID patching methods (survey)
@@ -494,6 +605,9 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Simulation only | Parts 1 and 2 without the real-data look. | `docs/reports/monitor_noise.md:159` | `python tests/tools/monitor_noise_mc.py --no-real` |
+| Bright regimes, Poisson vs noiseless monitor | Regimes A and C2: the reader's error is too small with a Poisson monitor and 3.5 % too large with a noiseless one. | `docs/reports/monitor_noise.md:180` | `python tests/tools/monitor_noise_mc.py --regimes A,C2 --monitors poisson,exact --no-real` |
+| High Qz (regime B) | Few counts: every formula agrees, the monitor term does not matter. | `docs/reports/monitor_noise.md:184` | `python tests/tools/monitor_noise_mc.py --regimes B --no-real` |
+| Quick look (5000 trials) | The same tables from fewer trials (±1 % on each σ). | `tests/tools/monitor_noise_mc.py` | `python tests/tools/monitor_noise_mc.py --trials 5000 --no-real` |
 
 <a id="monitor-distribution"></a>
 
@@ -505,8 +619,13 @@ Frame-to-frame deviations of Monc pooled over the sample SPEC files: Gaussian, S
 - Explained in: `docs/physics_notes.md:971`, `docs/COMPARISONS.md:56`
 - Run:
 
-      python tests/tools/monitor_distribution.py
+      python tests/tools/monitor_distribution.py sample_data/NX_school/2026sep/20260923
 
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| All sample data (private sets too, when present) | Part A pooled over every SPEC file the reader can see. Prints counts of private files when they are present; never write them into docs. | `docs/physics_notes.md:971` | `python tests/tools/monitor_distribution.py` |
 
 <a id="monitor-ratio"></a>
 
@@ -544,8 +663,13 @@ Every #M Monc Gain line that is not a number with a known unit, and the scans wi
 - Explained in: `docs/reports/monitor_gains.md`
 - Run:
 
-      python tests/tools/monitor_gains.py
+      python tests/tools/monitor_gains.py sample_data/NX_school/2026sep/20260923
 
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| All sample data (private sets too, when present) | Every gain line the reader cannot read, in every SPEC file it can see (the report's table was made this way). Prints counts of private files when they are present; never write them into docs. | `docs/reports/monitor_gains.md:15` | `python tests/tools/monitor_gains.py` |
 
 <a id="spec-epoch"></a>
 
@@ -557,8 +681,13 @@ Epoch of each scan's first point against its header time: seconds since the file
 - Explained in: `docs/physics_notes.md:696`
 - Run:
 
-      python tests/tools/spec_epoch.py
+      python tests/tools/spec_epoch.py sample_data/NX_school/2026sep/20260923
 
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| All sample data (private sets too, when present) | The nine sample files of the 2026-11-16 answer: NX and the bu files. Prints counts of private files when they are present; never write them into docs. | `docs/physics_notes.md:696` | `python tests/tools/spec_epoch.py` |
 
 <a id="fit-scan-survey"></a>
 
@@ -613,6 +742,8 @@ Variations:
 | Thick film (250 Å) | Kiessig fringes of period 2π/d: check the period in Ref Patch. | `docs/SYNTHETIC_DATA.md:130` | `python tests/tools/synthetic_dataset.py --out '{out}' --thickness 250` |
 | Missed slit change (P29) | The monitor misses a slit change: the foil prior misleads at that join. | `docs/SYNTHETIC_DATA.md:160` | `python tests/tools/synthetic_dataset.py --out '{out}' --fault slits` |
 | Low counts (x0.1) | One tenth of the NX rates: the joins' errors grow by √10. | `docs/SYNTHETIC_DATA.md:42` | `python tests/tools/synthetic_dataset.py --out '{out}' --counts 0.1` |
+| Rough interfaces (6 Å) | R/R_F falls as exp(−Qz²σ²): twice the roughness, four times the decay rate. | `docs/SYNTHETIC_DATA.md:48` | `python tests/tools/synthetic_dataset.py --out '{out}' --roughness 6` |
+| Background ×100 | A diffuse background a hundred times NX's: the ROI background boxes earn their keep at high Qz. | `docs/physics_notes.md:3773` | `python tests/tools/synthetic_dataset.py --out '{out}' --background 100` |
 | XFNTR series | Fluorescence near total reflection: one MCA file per Qz, a surface and a bulk ion. | `docs/SYNTHETIC_DATA.md:55` | `python tests/tools/synthetic_dataset.py --out '{out}' --kind xfntr` |
 | Burn series | One spot measured 21 times, the peak decaying with τ = 400 s. | `docs/SYNTHETIC_DATA.md:68` | `python tests/tools/synthetic_dataset.py --out '{out}' --kind burn` |
 
