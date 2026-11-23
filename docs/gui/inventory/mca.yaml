@@ -1,0 +1,380 @@
+# Inventory B: the MCA tab (objectName mcaTab). Schema: docs/gui/README.md.
+# Observed offscreen on synthetic data (tests/synth.py make_dataset, scan 3, two spectra), 2026-11-22,
+# unless a note says "read only". No group boxes: "where" names the visual area (top = spectrum
+# controls, right = reduction column, bottom = integral plot). Spectra are chosen in the left
+# panel's image list (inventory A), which switches to this tab.
+
+- id: mcaTab
+  kind: tab
+  label: "MCA"
+  where: "MCA"
+  handler: ""
+  does: "Shows normalised fluorescence spectra and reduces them to an intensity per point (window sum or line fit) vs frame, Qz or energy"
+  workflows: [xfntr, exafs, mca-look]
+  needs: "a Vortex/MCA scan selected and its spectra selected in the left panel"
+  shown: always
+  tooltip: false
+  notes: "One tab for looking at spectra and for the XFNTR/EXAFS reduction; no fluorescence burn test anywhere (burn-fluo not built)."
+- id: mcaPlotMplWidget
+  kind: plot
+  label: ""
+  where: "MCA > top"
+  handler: ""
+  does: "The selected spectra, normalised (monitor, live time, absorber, gain), with the Range markers and line fits"
+  workflows: [xfntr, exafs, mca-look]
+  needs: "spectra selected"
+  shown: always
+  tooltip: false
+  notes: "Observed: the default Range 1:1000 is in channels but the axis is calibrated (keV), so the marker at 1000 squeezes the spectrum to the left edge. Title clipped. Has a matplotlib toolbar."
+- id: mcaCalibCheckBox
+  kind: checkbox
+  label: "Calib="
+  where: "MCA > right"
+  handler: updateMcaPlotData
+  does: "Uses the calibration from the MCA file (fills the three fields) instead of the typed one"
+  workflows: [xfntr, exafs, mca-look]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Ticked on observed load. Fields overwritten each replot while ticked."
+- id: mcaCalibConLineEdit
+  kind: lineedit
+  label: "0"
+  where: "MCA > right"
+  handler: updateMcaPlotData
+  does: "Calibration constant term (energy = a + b x + c x^2)"
+  workflows: [xfntr, exafs, mca-look]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No unit shown (keV)."
+- id: mcaCalibLinLineEdit
+  kind: lineedit
+  label: "1"
+  where: "MCA > right"
+  handler: updateMcaPlotData
+  does: "Calibration linear term"
+  workflows: [xfntr, exafs, mca-look]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: mcaCalibQuaLineEdit
+  kind: lineedit
+  label: "0"
+  where: "MCA > right"
+  handler: updateMcaPlotData
+  does: "Calibration quadratic term"
+  workflows: [xfntr, exafs, mca-look]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: mcaOffsetCheckBox
+  kind: checkbox
+  label: "Offset Factor:"
+  where: "MCA > right"
+  handler: updateMcaPlotData
+  does: "Multiplies each successive spectrum by the factor so they are stacked apart"
+  workflows: [mca-look]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Display only (a waterfall), but named like a data correction."
+- id: mcaOffsetLineEdit
+  kind: lineedit
+  label: "1.0"
+  where: "MCA > right"
+  handler: updateMcaPlotData
+  does: "The stacking factor"
+  workflows: [mca-look]
+  needs: "Offset Factor ticked"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: mcaNormComboBox
+  kind: combo
+  label: "Normalized by"
+  where: "MCA > right"
+  handler: updateMcaPlotData
+  does: "Monitor to divide by (Monc, Monb, Mond) or None for raw counts"
+  workflows: [xfntr, exafs, mca-look]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Fixed list, not taken from the file's columns; SpecPlot chooses its monitor from the scan's columns."
+- id: mcaGainCheckBox
+  kind: checkbox
+  label: "/ gain"
+  where: "MCA > right"
+  handler: setMonitorGain
+  does: "Also divides by the Monc SR570 gain (relative to 5 uA/V)"
+  workflows: [xfntr, exafs, mca-look]
+  needs: "Monc chosen"
+  shown: always
+  tooltip: true
+  notes: "One shared setting with SpecPlot's box (and cuts, GID, frames). Enabled whatever monitor is chosen."
+- id: mcaPhotonCheckBox
+  kind: checkbox
+  label: "/ photon"
+  where: "MCA > right"
+  handler: setMonitorPhotons
+  does: "Divides by the incident photons per second from Monc (includes the gain)"
+  workflows: [xfntr, exafs, mca-look]
+  needs: "Monc chosen; known gain and energy"
+  shown: always
+  tooltip: true
+  notes: "Shared with SpecPlot. Y label stays 'Intensity' whatever the normalisation (read only)."
+- id: mcaLogXCheckBox
+  kind: checkbox
+  label: "LogX"
+  where: "MCA > right"
+  handler: mcaPlotSettings
+  does: "Log x axis of the spectrum plot"
+  workflows: [mca-look, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Applies to the spectrum plot only; the integral plot has no log option."
+- id: mcaLogYCheckBox
+  kind: checkbox
+  label: "LogY"
+  where: "MCA > right"
+  handler: mcaPlotSettings
+  does: "Log y axis of the spectrum plot"
+  workflows: [mca-look, xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: mcaGridCheckBox
+  kind: checkbox
+  label: "Grid"
+  where: "MCA > right"
+  handler: mcaPlotSettings
+  does: "Grid on the spectrum plot"
+  workflows: [mca-look]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: mcaLegendCheckBox
+  kind: checkbox
+  label: "Legend"
+  where: "MCA > right"
+  handler: mcaPlotSettings
+  does: "Legend on the spectrum plot"
+  workflows: [mca-look]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: mcaLegendLocComboBox
+  kind: combo
+  label: ""
+  where: "MCA > right"
+  handler: mcaPlotSettings
+  does: "Legend position"
+  workflows: [mca-look]
+  needs: "Legend ticked"
+  shown: always
+  tooltip: false
+  notes: "Same 'lower right' twice / no 'lower left' defect as the Reflectivity tab."
+- id: mcaExportPushButton
+  kind: button
+  label: "Export Spectrum"
+  where: "MCA > right"
+  handler: saveMcaData
+  does: "Writes each selected normalised spectrum to <name><S#>_<mS#>_<Qz>_mca.txt"
+  workflows: [mca-look, xfntr, exafs]
+  needs: "spectra plotted"
+  shown: always
+  tooltip: false
+  notes: "No Save-to-workbook counterpart for spectra (only for the integral)."
+- id: mcaFitPushButton
+  kind: button
+  label: "Fit"
+  where: "MCA > right"
+  handler: mcaPeakFit
+  does: "Opens the legacy Peak Fit Panel (peakfit.ui) on the one selected spectrum"
+  workflows: [mca-look, xfntr]
+  needs: "exactly one spectrum selected"
+  shown: always
+  tooltip: false
+  notes: "Legacy fitter beside the new 'Fit lines'; two fit systems with different options and dialogs on one tab."
+- id: mcaFitAllPushButton
+  kind: button
+  label: "Fit All"
+  where: "MCA > right"
+  handler: mcaPeakFitAll
+  does: "Opens the legacy Peak Fit Panel; its Fit then fits every selected spectrum and accepts each into the integral list"
+  workflows: [xfntr]
+  needs: "spectra selected"
+  shown: always
+  tooltip: false
+  notes: "Overlaps 'Fit lines' (the owner's rule, F22a)."
+- id: mcaFitLinesPushButton
+  kind: button
+  label: "Fit lines"
+  where: "MCA > right"
+  handler: mcaFitLines
+  does: "Fits the line(s) of the summed spectra, then every spectrum with positions and widths fixed; the strongest line's intensity goes to the integral list"
+  workflows: [xfntr, exafs]
+  needs: "spectra selected with one energy axis"
+  shown: always
+  tooltip: true
+  notes: "Uses the Range field as its fit range unless Fit options gives one: two places set it."
+- id: mcaFitOptionsPushButton
+  kind: button
+  label: "Fit options..."
+  where: "MCA > right"
+  handler: showMcaFitOptions
+  does: "Opens the Fluorescence line fit options dialog"
+  workflows: [xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: mcaSumAllPushButton
+  kind: button
+  label: "Sum All"
+  where: "MCA > right"
+  handler: mcaSumAll
+  does: "Sums every selected spectrum over the Range window and lists the intensities with errors"
+  workflows: [xfntr, exafs]
+  needs: "spectra plotted; a min:max range"
+  shown: always
+  tooltip: false
+  notes: "Observed: range 1:1000 on a keV axis is silently clipped to the data (command shows 1.0:2.56). A bad range resets the field to 1:1000."
+- id: mcaRanLineEdit
+  kind: lineedit
+  label: "Range:"
+  where: "MCA > right"
+  handler: updateMCAPlotVline
+  does: "Window min:max (in the x units of the spectrum) for Sum All, Fit lines and the markers"
+  workflows: [xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No unit; default suits channels, not the calibrated axis shown by default. Window cannot be dragged on the plot."
+- id: mcaAcceptPushButton
+  kind: button
+  label: "Accept"
+  where: "MCA > right"
+  handler: mcaAcceptPeak
+  does: "Adds the legacy fit's first peak area (height x width) to the integral list"
+  workflows: [xfntr]
+  needs: "a legacy Fit done"
+  shown: always
+  tooltip: false
+  notes: "Belongs to the legacy Fit dialog but sits on the tab; same word as the Reflectivity tab's Accept."
+- id: mcaXAxisComboBox
+  kind: combo
+  label: "X-axis"
+  where: "MCA > right"
+  handler: updateMcaInt
+  does: "x of the integral list, plot, merge and export: Frame, Qz or Energy"
+  workflows: [xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Label truncated to 'X-axi' in the observed window. Decides the exported column; Frame is the default although XFNTR needs Qz and EXAFS energy."
+- id: mcaDelPushButton
+  kind: button
+  label: "Delete"
+  where: "MCA > right"
+  handler: mcaDelIntData
+  does: "Removes the selected rows of the integral list"
+  workflows: [xfntr, exafs]
+  needs: "rows selected"
+  shown: always
+  tooltip: false
+  notes: "No undo; makes the result non-scriptable."
+- id: mcaMergePushButton
+  kind: button
+  label: "Merge"
+  where: "MCA > right"
+  handler: mcaIntMergeDia
+  does: "Opens the merge dialog: points closer than a window on the x axis are merged as one measurement"
+  workflows: [xfntr]
+  needs: "an integral list"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: mcaExportIntPushButton
+  kind: button
+  label: "Export Integral"
+  where: "MCA > right"
+  handler: mcaSaveIntData
+  does: "Writes <name>_flu.txt (x, I, dI with the command as header) and the lss_core line to the Script pane"
+  workflows: [xfntr, exafs]
+  needs: "an integral list"
+  shown: always
+  tooltip: false
+  notes: "Export/Save sit by the integral; Export Spectrum sits in another row."
+- id: mcaSaveWorkbookPushButton
+  kind: button
+  label: "Save"
+  where: "MCA > right"
+  handler: saveMcaToWorkbook
+  does: "Saves the integral (all three x columns) and any line fits into the workbook, asking for a note"
+  workflows: [xfntr, exafs, session]
+  needs: "an integral list"
+  shown: always
+  tooltip: true
+  notes: "Scans taken from the left-panel selection at save time (as on the Reflectivity tab)."
+- id: mcaDataListWidget
+  kind: list
+  label: ""
+  where: "MCA > right"
+  handler: ""
+  does: "The integral rows: x, intensity, error"
+  workflows: [xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No header; no cue whether rows came from Sum All, Fit lines or legacy fits, or were merged/deleted."
+- id: mcaIntPlotMplWidget
+  kind: plot
+  label: ""
+  where: "MCA > bottom"
+  handler: ""
+  does: "Integral intensity vs the chosen x, with selected files from disk"
+  workflows: [xfntr, exafs]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Legend '#0' always on; no log, grid or legend controls (spectrum plot has them). Has a matplotlib toolbar."
+- id: mcaAddFilePushButton
+  kind: button
+  label: "Add Files"
+  where: "MCA > right > files"
+  handler: addMcaFiles
+  does: "Adds integral files (_flu.txt) from disk to the overlay list"
+  workflows: [xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No filter, unlike the Reflectivity tab's (Ref files)."
+- id: mcaRemoveFilePushButton
+  kind: button
+  label: "Remove Files"
+  where: "MCA > right > files"
+  handler: removeMcaFiles
+  does: "Removes the selected files from the overlay list"
+  workflows: [xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: mcaFileListWidget
+  kind: list
+  label: ""
+  where: "MCA > right > files"
+  handler: updateSelectedMcaFiles
+  does: "Files from disk; selected ones are overlaid on the integral plot"
+  workflows: [xfntr, flex-plot]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "No label."

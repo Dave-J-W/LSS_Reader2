@@ -120,6 +120,7 @@ Each line: feature — where — default — script — notes entry (date).
   that cuts in Qz/Qxy and I vs β are not documented: I vs β works today as
   "Pix V" with axes "Angles"; write this part of the manual first.
 - Background images and background-subtracted frames (not scriptable yet).
+- 2D_Plot tab (x y z text files, e.g. exported maps): Add File, select it, then CMap, Log Int, Min/Max, interpolation. It works again since 2026-11-23 (adding a file had raised an error with matplotlib 3.9 or later). The colour map once listed as 'spectral' is listed as 'nipy_spectral', the same map under the name matplotlib has used since version 2.0; the hidden Apex tab's list, which colours the Reflectivity ROI image, changed the same way.
 
 ### GID
 - GID worksheet (GID menu > Worksheet): every patch parameter, Patch,

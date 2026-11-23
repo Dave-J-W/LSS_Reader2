@@ -1,0 +1,190 @@
+# Inventory A: the SpecPlot tab. Schema: docs/gui/README.md.
+# Seen in a running window (offscreen, 2026-11-22; motor scan S# 4 of the NX
+# school file) unless a note says "read only".
+- id: specPlotTab
+  kind: tab
+  label: "SpecPlot"
+  where: "SpecPlot"
+  handler: ""
+  does: "Plots SPEC counter columns of the selected scans, with an automatic peak/edge fit for one scan"
+  workflows: [alignment, general]
+  needs: "scans selected"
+  shown: always
+  tooltip: false
+  notes: "Selecting any scan (even a Pilatus one) brings this tab to the front."
+- id: spXComboBox
+  kind: combo
+  label: "X:"
+  where: "SpecPlot"
+  handler: updateSpecPlotData
+  does: "Column used as x"
+  workflows: [alignment, general]
+  needs: "scans selected"
+  shown: always
+  tooltip: false
+  notes: "Observed narrow: shows 'Sample_' (truncated). X, Y1, Y2 and N are spread across the whole width with large gaps."
+- id: spYComboBox
+  kind: combo
+  label: "Y1:"
+  where: "SpecPlot"
+  handler: updateSpecPlotData
+  does: "Column plotted on the left axis (default the detector counter, e.g. Pilatus)"
+  workflows: [alignment, general]
+  needs: "scans selected"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: spY2ComboBox
+  kind: combo
+  label: "Y2:"
+  where: "SpecPlot"
+  handler: updateSpecPlotData
+  does: "Optional second column (None by default), also written by Export"
+  workflows: [alignment, general]
+  needs: "scans selected"
+  shown: always
+  tooltip: false
+  notes: "Whether Y2 has its own axis not checked (read only)."
+- id: spNCheckBox
+  kind: checkbox
+  label: ""
+  where: "SpecPlot"
+  handler: updateSpecPlotData
+  does: "Normalise Y by the column chosen in N (on by default)"
+  workflows: [alignment, general]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Checkbox without text; its label 'N:' is a separate QLabel after it. 'N' is cryptic (monitor)."
+- id: spNComboBox
+  kind: combo
+  label: "N:"
+  where: "SpecPlot"
+  handler: updateSpecPlotData
+  does: "Normalisation column (default Monc)"
+  workflows: [alignment, general]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "The MCA tab has the same choice as 'Normalized by' with a fixed list; different wording for one concept."
+- id: spGainCheckBox
+  kind: checkbox
+  label: "/ gain"
+  where: "SpecPlot"
+  handler: setMonitorGain
+  does: "Divides by the Monc current (gain-corrected) instead of counts; one global setting shared with the MCA tab"
+  workflows: [alignment, xfntr, general]
+  needs: "N = Monc"
+  shown: always
+  tooltip: true
+  notes: "Code-built (F52). Global: also applies to Pilatus cuts, GID and frames (message says so) but no copy on the Pilatus tab, so the state is invisible while working with images."
+- id: spPhotonCheckBox
+  kind: checkbox
+  label: "/ photon"
+  where: "SpecPlot"
+  handler: setMonitorPhotons
+  does: "Normalises per incident photon (includes the gain); global, shared with the MCA tab"
+  workflows: [alignment, xfntr, general]
+  needs: "N = Monc, known gain and energy"
+  shown: always
+  tooltip: true
+  notes: "Code-built (F54). Same placement issue as / gain."
+- id: specPlotMplWidget
+  kind: plot
+  label: ""
+  where: "SpecPlot"
+  handler: ""
+  does: "The scan plot with error bars, point numbers, and for one scan a dashed fit whose result (Peak, Cen, FWHM or edge widths) is the plot title"
+  workflows: [alignment, general]
+  needs: "scans selected"
+  shown: always
+  tooltip: false
+  notes: "Matplotlib toolbar under it (Home, Back, Forward, Pan, Zoom, Subplots, Customize, Save). Observed: the two-line title is clipped at the top (file path line half hidden). The fit result is only in the title: not copyable, not in Messages, though Calculations > g_l2/g_l3 depend on these centres. Fit kind (peak/edge/plateau) chosen automatically, no control to force it (read only)."
+- id: spLogXCheckBox
+  kind: checkbox
+  label: "LogX"
+  where: "SpecPlot"
+  handler: updateSpecPlotData
+  does: "Log x axis"
+  workflows: [alignment, general]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Log/Grid/Legend row is under the plot here, as on Cuts, MCA and Plot; the Pilatus tab's 'Log Int' is also below, but the 2D_Plot tab's is at the side."
+- id: spLogYCheckBox
+  kind: checkbox
+  label: "LogY"
+  where: "SpecPlot"
+  handler: updateSpecPlotData
+  does: "Log y axis"
+  workflows: [alignment, general]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: spGridCheckBox
+  kind: checkbox
+  label: "Grid"
+  where: "SpecPlot"
+  handler: updateSpecPlotData
+  does: "Grid lines"
+  workflows: [alignment, general]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: spLegendCheckBox
+  kind: checkbox
+  label: "Legend"
+  where: "SpecPlot"
+  handler: updateSpecPlotData
+  does: "Show the legend"
+  workflows: [alignment, general]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: spPointLabelsCheckBox
+  kind: checkbox
+  label: "Point #"
+  where: "SpecPlot"
+  handler: updateSpecPlotData
+  does: "Labels each point with its index in the scan (on by default)"
+  workflows: [alignment, general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Code-built (F55), placed between Legend and the legend-location combo, splitting the pair."
+- id: spLegendLocComboBox
+  kind: combo
+  label: ""
+  where: "SpecPlot"
+  handler: updateSpecPlotData
+  does: "Legend position"
+  workflows: [alignment, general]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Item list in the .ui has 'lower right' twice and no 'lower left' (same on Cuts, Reflectivity and MCA; Plot has it right)."
+- id: spExportPushButton
+  kind: button
+  label: "Export"
+  where: "SpecPlot"
+  handler: specSaveData
+  does: "Writes one text file per selected scan (x, y, error; y2 and normalised variants) named after the columns"
+  workflows: [alignment, general]
+  needs: "scans plotted"
+  shown: always
+  tooltip: false
+  notes: "Bottom right, as on Cuts (top right there) and Reflectivity; positions differ per tab."
+- id: specSaveWorkbookPushButton
+  kind: button
+  label: "Save"
+  where: "SpecPlot"
+  handler: saveSpecToWorkbook
+  does: "Saves the plotted curves (and fit) into the SPEC file's workbook as a new version, asking for a note"
+  workflows: [alignment, session]
+  needs: "scans plotted"
+  shown: always
+  tooltip: true
+  notes: "Code-built beside Export (F66). 'Save' vs 'Export' distinction only in the tooltip. SpecPlot results are not saved automatically (cuts, GID, ref, MCA, burn are)."

@@ -1,0 +1,170 @@
+# Inventory A: the Line/Area Cuts tab. Schema: docs/gui/README.md.
+# Seen in a running window (offscreen, 2026-11-22; Pix H cut of S# 3 F# 1,
+# Fit peaks) unless a note says "read only". The cut itself is defined on
+# the Pilatus tab (pilCutDirComboBox, pilIntRangeLineEdit,
+# pilLineAreaPushButton in pilatus.yaml).
+- id: cutAreaTab
+  kind: tab
+  label: "Line/Area Cuts"
+  where: "Line/Area Cuts"
+  handler: ""
+  does: "Plots the 1D cuts made on the Pilatus tab, fits their peaks, exports and saves them"
+  workflows: [cuts, gid]
+  needs: "a cut made on the Pilatus tab"
+  shown: always
+  tooltip: false
+  notes: "The cut definition (direction, band) is on another tab: to change the band the user goes back to Pilatus. Nothing on screen says how an 'area' cut differs from a line cut (every cut integrates a band; read only)."
+- id: cutOffsetCheckBox
+  kind: checkbox
+  label: "Offset Factor:"
+  where: "Line/Area Cuts"
+  handler: updateCutData
+  does: "Offsets successive cuts by multiplying each by the factor beside it"
+  workflows: [cuts]
+  needs: "several cuts"
+  shown: always
+  tooltip: false
+  notes: "Checkbox whose text labels the next field (same pattern as DB Pos, MCA Offset). Multiplicative offset suits log plots only; not said."
+- id: cutOffsetLineEdit
+  kind: lineedit
+  label: "1.0"
+  where: "Line/Area Cuts"
+  handler: updateCutData
+  does: "The offset factor"
+  workflows: [cuts]
+  needs: "Offset ticked"
+  shown: always
+  tooltip: false
+  notes: ""
+- id: cutErrorbarCheckBox
+  kind: checkbox
+  label: "Errorbar"
+  where: "Line/Area Cuts"
+  handler: updateCutData
+  does: "Draws error bars"
+  workflows: [cuts]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Off by default; SpecPlot always draws error bars and has no such switch."
+- id: cutClearGraphPushButton
+  kind: button
+  label: "Clear Graph"
+  where: "Line/Area Cuts"
+  handler: clearCutGraph
+  does: "Clears the plot (the cut data stay and are still exported)"
+  workflows: [cuts]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "Clears the picture, not the data: Export after Clear still writes the cuts (read only)."
+- id: cutExportPushButton
+  kind: button
+  label: "Export"
+  where: "Line/Area Cuts"
+  handler: saveCutData
+  does: "Writes each frame's cut (or the summed cut) as a text file x, I, sigma"
+  workflows: [cuts, gid]
+  needs: "a cut made with the present frame selection"
+  shown: always
+  tooltip: false
+  notes: "Top right here, bottom right on SpecPlot."
+- id: cutSaveWorkbookPushButton
+  kind: button
+  label: "Save"
+  where: "Line/Area Cuts"
+  handler: saveCutsToWorkbook
+  does: "Saves the cuts and their fits into the workbook as a new version, asking for a note"
+  workflows: [cuts, gid, session]
+  needs: "a cut made"
+  shown: always
+  tooltip: true
+  notes: "Measured: cuts are also saved automatically (status bar 'Saved automatically to 20260923_reader.xlsx: R0002 line cut ... v2'), so the button's role next to auto-save is unclear on screen."
+- id: cutPlotMplWidget
+  kind: plot
+  label: ""
+  where: "Line/Area Cuts"
+  handler: ""
+  does: "The cuts, titled by direction and band, with dashed peak fits and dotted centre lines; matplotlib toolbar below"
+  workflows: [cuts, gid]
+  needs: "a cut made"
+  shown: always
+  tooltip: false
+  notes: "Measured: x axis is unlabelled in pixel cuts (only 'Intensity' on y); title 'H Cut   Vint Range[0:485]'."
+- id: cutLogXCheckBox
+  kind: checkbox
+  label: "LogX"
+  where: "Line/Area Cuts"
+  handler: updateCutPlotData
+  does: "Log x axis"
+  workflows: [cuts]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: cutLogYCheckBox
+  kind: checkbox
+  label: "LogY"
+  where: "Line/Area Cuts"
+  handler: updateCutPlotData
+  does: "Log y axis"
+  workflows: [cuts]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: cutGridCheckBox
+  kind: checkbox
+  label: "Grid"
+  where: "Line/Area Cuts"
+  handler: updateCutPlotData
+  does: "Grid lines"
+  workflows: [cuts]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: cutLegendCheckBox
+  kind: checkbox
+  label: "Legend"
+  where: "Line/Area Cuts"
+  handler: updateCutPlotData
+  does: "Show the legend"
+  workflows: [cuts]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""
+- id: cutLegendLocComboBox
+  kind: combo
+  label: ""
+  where: "Line/Area Cuts"
+  handler: updateCutPlotData
+  does: "Legend position"
+  workflows: [cuts]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: "'lower right' twice, no 'lower left' (as on SpecPlot)."
+- id: cutFitPushButton
+  kind: button
+  label: "Fit peaks"
+  where: "Line/Area Cuts"
+  handler: fitCuts
+  does: "Finds and fits the peaks of every plotted cut; draws the fits and lists the results in Messages"
+  workflows: [cuts, gid, burn-gid]
+  needs: "a cut plotted"
+  shown: always
+  tooltip: true
+  notes: "Code-built (setupCutFit). Measured: results go to the Messages tab, which stayed behind the Script tab; nothing in the plot shows the numbers."
+- id: cutFitOptionsPushButton
+  kind: button
+  label: "Fit options..."
+  where: "Line/Area Cuts"
+  handler: showCutFitOptions
+  does: "Opens the cut-fit options dialog (shape, background, number of peaks, range, centres, sensitivity; save results)"
+  workflows: [cuts, gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Code-built; dialog in inventory B. MCA has an identical pair (Fit lines / Fit options...)."

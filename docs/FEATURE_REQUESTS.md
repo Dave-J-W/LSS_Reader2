@@ -9,7 +9,7 @@ As stated by the project owner. Status is updated as work lands.
 | R1 | Verification tests preserve the physical and mathematical behaviour through debugging and refactoring. | 2026-11-14 | Scaffolding in place; see `TESTING.md`. |
 | R2 | Finish the Python 2 → 3 migration, which is incomplete and has caused problems. | 2026-11-14 | Known leftovers listed in `ASSESSMENT.md` section 4; Stage 1 fixed defects 1–7, 14 and D14 (2026-11-17). |
 | R3 | The interface never crashes, whichever files are selected and whichever controls are used afterwards. *(Stage 0 done 2026-11-17: a failing action no longer closes the program; the individual failures remain to be repaired.)* | 2026-11-14 | Measured by `pytest -m sweep`: 0 failing controls and 0 crash sites since 2026-11-17 (420 combinations raised before Stage 1); the sweep passes on every GUI change since. |
-| R4 | Better GUI organisation. | 2026-11-14 | Not started. |
+| R4 | Better GUI organisation. | 2026-11-14 | **Planning started 2026-11-22** (D58, F67–F73): assessment and workflow map in `docs/gui/`; no code changed yet. |
 
 ## Feature requests
 
@@ -343,6 +343,31 @@ priority than the lists above.
 | D38 | `#A` 52 and 63 are real absorber settings (owner, 2026-11-18). | F50 |
 | D39 | Monitor-gain reference S_ref = 5 µA/V, the usual gain (owner, 2026-11-18). | F52 |
 | D36 | GID sub-project order (owner, 2026-11-18): the worksheet (F61) first; the main improvement is the pinhole-geometry correction (F45) before patching, so more columns of each image can be used without smearing the instrumental resolution; then flexible overlaps (F62). | F23, F45, F61, F62 |
+
+### GUI overhaul (2026-11-22)
+
+The owner started the GUI reorganisation (R4) as planning only ("no coding
+yet"), in phases. Working files: `docs/gui/` (plan and schema in
+`docs/gui/README.md`).
+
+| # | Request | Notes |
+|---|---|---|
+| D58 | **GUI overhaul in phases, planning first** (owner, 2026-11-22). Phase 1 massages what exists: most functionality on each panel (tab: Pilatus, Reflectivity, …) is kept; what improves is the organisation, the grouping of functionality, a consistent UI design and visual clues/cues. Its first step is an assessment of every function and the workflow it belongs to, asking "is this functionality missing here?" and "what is the typical workflow with each data type/experiment?". Screenshots of each GUI area, often, so the owner is reminded what each area looks like. The orchestrating session uses subagents and acts as project manager. | `docs/gui/` |
+| F67 | **A maintainable workflow map** (owner, 2026-11-22: "a key deliverable"): every workflow as steps with the controls they use, so alternative, more contextual and automatic GUIs can be designed by data type (with F60). Priority: burn tests (reflectivity, GID, fluorescence), reflectivity, GID, XFNTR, then EXAFS. | `docs/gui/workflows.yaml`, checked and rendered by `tests/tools/gui_map.py` (in progress) |
+| F68 | **One line-cut interface on every image plot** (owner, 2026-11-22): consistent interface, defaults that may depend on the scan kind. | With F59 (diffuse cuts); `docs/gui/image_display.md` |
+| F69 | **Frames as a movie by default, with a sticky zoom** (owner, 2026-11-22), preferred to showing more than 6 frames at once ("select all" is common and shows too many small pictures). Alternatives: a sequential sampling (first, middles, last; up to a selectable number, default 4) or the first n frames. | Phase 2; `docs/gui/image_display.md` |
+| F70 | **Sticky plotting preferences and intelligent colour scales and defaults** for raw data, especially images (owner, 2026-11-22). | Phase 2 |
+| F71 | **ROI close-up for reflectivity** (owner, 2026-11-22), and other visual analysis of raw frames. | Phase 2 |
+| F72 | **Faster log-scale plotting** (owner, 2026-11-22); outside the first deliverables. | later |
+| D59 | **The Script pane is hidden by default and does not compete with data selection** (owner, 2026-11-22: "The 'script' terminal panel shouldn't compete with data selection and it should be hidden by default"). | Today (read, and seen in a screenshot): `initScriptPane` hides the dock at start, but it shows itself with its first line, and opening a SPEC file writes one, so it is in practice always visible; as a bottom dock (tabbed with Messages and Errors) it spans the whole window width and takes height from the left selection panel (the scan list shows about two rows in a 1000 px window). Needs: no self-raising (View menu only, remembered), and a place that leaves the selection panel its height (under the tab area, a side dock or a floating window). Phase 1b. |
+| F74 | **A small residuals plot above every plot that shows a fit** (owner, 2026-11-22; for later). The style of fluorescence-decay fitting: the main plot keeps most of the height, about 15 % of it shows the residuals on their own scale, and the legend carries the χ² annotation. Can be hidden; **hidden by default for now**. | Where fits are drawn today (read only, 2026-11-22): SpecPlot scan shapes (`specPeakFit`, `peaks.fit_scan`), cut "Fit peaks" (`fitCuts`), MCA "Fit lines" (`mcaFitLines`) and the older MCA and Plot-tab peak-fit dialogs (`mcaPeakFit`, `peakFit`, lmfit `redchi`), burn trends (four models, chi2/dof and AICc already computed), the Ref Patch join preview (joint-fit polynomial), the GID distance fit, the absorber-ratio and g_l2/g_l3 fits. χ²/dof is already computed in most of them; residuals are not drawn anywhere. Assumed until the owner says otherwise: residuals weighted by the point errors, (y − fit)/σ, as in decay fitting (e.g. Lakowicz, *Principles of Fluorescence Spectroscopy*, 3rd ed., Springer 2006, ch. 4, from memory), and χ²/dof in the legend. One shared plot helper, so every fit plot gets the same panel and the same switch. |
+| F73 | **Alternative, contextual GUIs** (owner, 2026-11-22): interface and workflow chosen by data type, designed from the workflow map (F67). | Phase 3, with F60 |
+
+### Where work is committed (2026-11-23)
+
+| Id | Decision |
+|---|---|
+| D60 | **`main` of `Dave-J-W/LSS_Reader2` is the master; nothing else is** (owner, 2026-11-23: "I'm concerned that I no longer know what the master repository is. I would like you to take responsibility for that decision now so we don't get confused with where and how to commit"; decided by the GUI-planning session). Why `main`: it is the repository's default branch, the other agents push there (rule 8), and its history is the one restarted on 2026-11-20. Sessions that may push only to their own `claude/<name>` branch (GitHub refuses their other pushes: HTTP 403 when this session tried to delete a branch, 2026-11-23) keep that branch merged up from `main` before every push, so that the owner can fast-forward `main` to it; the branch is then deleted. No other long-lived branches: the `wip/pinhole-figures` branch (2026-11-19, from before the restart, its work already in `main`) is to be deleted. Addendum (owner, 2026-11-23, after asking about the open pull request from this session's branch, [Dave-J-W/LSS_Reader2#1](https://github.com/Dave-J-W/LSS_Reader2/pull/1), opened from the owner's account): merging a session branch's pull request with "Create a merge commit" is the button route and equals the fast-forward; never squash or rebase (different commits in `main`, and squashing loses the one-change-per-commit history); the session keeps the pull request's description current, including the suites it ran, because no workflow tests pull requests. The procedure and commands are in `AGENTS.md`, "Where to commit". |
 
 ### Status of built items
 

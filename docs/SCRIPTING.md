@@ -198,7 +198,7 @@ any series.
 from lss_core import patching, absorbers
 r = exp.reflectivity([6, 7, 8, 9], errors='budget')
 scans = patching.scans_from_reflectivity(r)            # each scan's Qz, net signal, error
-res = patching.chain(scans)                             # joint fit at each join (order 4, R/R_F, 4 points either side)
+res = patching.chain(scans)                             # joint fit at each join (order 4, R/R_F, 2 points either side, the guard ladder)
 [(j.factor, j.err, j.chi2 / j.dof, j.flags) for j in res.joins]
 res.phi, res.Sigma                                      # each scan's log factor to the first, and their covariance
 st = res.stitch(scans)                                  # every point on the first scan's scale

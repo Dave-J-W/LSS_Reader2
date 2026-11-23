@@ -1,0 +1,1084 @@
+# The workflow map (F67; owner, 2026-11-22: "a key deliverable").
+#
+# Source of docs/gui/workflows.md (rendered by `python tests/tools/gui_map.py`).
+# Schema: docs/gui/README.md. Two optional additions used here, both
+# understood by the tool:
+#   - `uses: <shared step id>` in a step: the step repeats a shared step
+#     (top-level `shared_steps:`); fields given in the step override the
+#     shared one's.
+#   - `decision: "<question>"` and `goto: {<answer>: <step id>, ...}` in a
+#     step: a decision point; the flowchart draws a diamond after the step
+#     with one edge per answer (the next step in the list is the default).
+#
+# known_from values: "owner <date>" (the owner's words, cited in
+# FEATURE_REQUESTS / physics_notes), "code" (read in mainwindow.py or
+# lss_core), "test <file>" (a test drives it), "run 2026-11-22" (opened the
+# public NX school file offscreen while writing this map), "docs <file>",
+# "guess" (an inference not checked against the owner or the code).
+# Owner statements and inferences are kept apart (AGENTS.md rules 5-6).
+#
+# Control ids: objectName in mainwindow.ui, the objectName / attribute of
+# code-built widgets, QAction objectNames; widgets of dialogs loaded from a
+# .ui file as <ui file stem>.<objectName> (e.g. refpatch.nextPushButton,
+# pdburn.refPushButton). Code-built widgets (the burn dialog's Trends tab,
+# the GID worksheet, Preferences, the fit dialogs) use their own unique
+# objectNames (e.g. burnAnalysePushButton), as the inventory does.
+
+shared_steps:
+  - id: shared.open
+    do: Open the SPEC file (File > Open Spec File); the scans, the series and the detector folders are read
+    where: File menu
+    controls: [actionOpen_Spec_File]
+    user_decides: which SPEC file
+    automatic: partly
+    could_be_automatic: reopen the last file and its workbook settings (F66 to-do); offer the series' reductions at once (F60)
+    known_from: code; run 2026-11-22
+    issues:
+      - "Opening a file with Pilatus images presets the reflectivity ROI (21,11), the background offset (0.5), Qc (0.0217) and the absorber factor (code, openSpecFile ~l.744); nothing on screen says so"
+      - "A missing detector folder opens a directory chooser (F27)"
+  - id: shared.series
+    do: Choose the series (Series list above the scan list) or click one of its scans; the whole series is selected by default
+    where: left panel
+    controls: [seriesComboBox, seriesWholeCheckBox, scanListWidget, scansLineEdit]
+    user_decides: which series (or scans by number); Whole series on (default) or off
+    automatic: partly
+    could_be_automatic: select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3)
+    known_from: owner 2026-11-21 (D55); test tests/test_gui_series.py; run 2026-11-22
+    issues:
+      - "The Series list is a combo box with a placeholder first item ('Series: choose to select its scans'); the list of series is not visible at a glance (run 2026-11-22)"
+      - "Guessed series have n unknown ('4/?'); the kind is only a guess until the macros write #U Series (handoff_out/05)"
+      - "Selecting a scan always switches to the SpecPlot tab (code, scanListChanged), whatever the workflow"
+  - id: shared.frames
+    do: Select the frames (Pilatus) or spectra (MCA) of the selected scans; Select All for all of them
+    where: left panel (image list, labelled 'Pilatus:' or 'Vortex:')
+    controls: [imageListWidget, imageSelectAllCheckBox]
+    user_decides: all frames (usual) or a subset (left out of the reduction, kept in remakes)
+    automatic: no
+    could_be_automatic: select all frames of a whole-series selection by default; show a movie instead of tiles (F69)
+    known_from: code; test tests/test_gui_workflows.py
+    issues:
+      - "Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)"
+      - "Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code)"
+  - id: shared.absorber
+    do: Check the absorber factor per unit (from the energy by default, calibrated foils at 9.70-10.30 keV)
+    where: left panel; File > Preferences > Absorber foils
+    controls: [AbsFacLineEdit, absFacEnergyCheckBox, actionPreferences, prefCalibratedCheckBox]
+    user_decides: keep 'from E' (default on, D34) or type a factor
+    automatic: yes
+    could_be_automatic: ""
+    known_from: owner 2026-11-17/18 (D23, D25, D34, F56); code
+    issues:
+      - "The field shows 'cal' when calibrated foils are used; what is used where (Ref Patch measures the scale, D21) is only in tooltips"
+  - id: shared.errors
+    do: Choose the error model (Legacy default, or Budget with a monitor model)
+    where: Errors pane (dock)
+    controls: [errorModeComboBox, monitorKindComboBox, errorModel_sigma]
+    user_decides: Legacy (default, byte-identical files) or Budget
+    automatic: yes
+    could_be_automatic: ""
+    known_from: owner 2026-11-17 (D20, D22, D26); code
+    issues:
+      - "A global setting in a dock, far from the reductions it changes; which default the export should use is open (TODO B)"
+  - id: shared.workbook
+    do: The finished reduction is saved into <SPEC file>_reader.xlsx automatically; Save stores a version with a note
+    where: Save button beside each Export; GID menu 'Save to workbook'
+    controls: [prefAutoSaveCheckBox, prefSaveNoteCheckBox]
+    user_decides: whether to add a 'user' version with a note
+    automatic: yes
+    could_be_automatic: ""
+    known_from: owner 2026-11-21/22 (D53, D56); test tests/test_gui_workbook.py
+    issues:
+      - "Automatic saves report in the status bar only; there is no view of the workbook inside the reader"
+  - id: shared.live
+    do: Tick Live while the macro runs (or press Update Specfile); new scans, frames and spectra are read, saved results remade
+    where: left panel, beside Update Specfile
+    controls: [liveCheckBox, speUpSpeFilePushButton]
+    user_decides: live on or off
+    automatic: partly
+    could_be_automatic: turn Live on when the file is still growing (a series 'in progress')
+    known_from: owner 2026-11-22 (D57); test tests/test_gui_live.py
+    issues:
+      - "Live stops by itself only for series with #U Series lines (L4); guessed series need a manual untick"
+  - id: shared.script
+    do: Read or copy the equivalent lss_core call from the Script pane; messages in the Messages pane
+    where: Script and Messages panes (docks), View menu
+    controls: [scriptView, messageView, menuView]
+    user_decides: ""
+    automatic: yes
+    could_be_automatic: ""
+    known_from: code; docs docs/SCRIPTING.md
+    issues: []
+  - id: shared.frames-look
+    do: Look at the frames (colour scale, log, axes, movie)
+    where: Pilatus tab
+    controls: [pilLogIntCheckBox, pilMinLineEdit, pilMaxLineEdit, pilMinHorizontalSlider, pilMaxHorizontalSlider, pilCMapComboBox, pilAxesComboBox, pilAspectComboBox, pilMoviePushButton]
+    user_decides: colour limits, log scale, axes (Pixels, Angles, Q)
+    automatic: partly
+    could_be_automatic: sticky preferences and intelligent colour scales (F70); movie with sticky zoom (F69)
+    known_from: code; owner 2026-11-22 (F69, F70)
+    issues:
+      - "Colour limits are reset on every selection (code, imageSelectedScanChanged); see docs/gui/image_display.md"
+
+workflows:
+
+  # ------------------------------------------------------------------ burn tests
+  - id: burn-ref
+    name: Burn test on a reflectivity frame series
+    priority: 1
+    experiment: >
+      The sample is held at one reflectivity condition (Det_Th 0, one Qz,
+      one absorber setting) and exposed repeatedly; the standard burn scan
+      is `ascan ih a a n t`, a motor scan that does not move (owner,
+      2026-11-21), with one Pilatus frame per point (e.g. 21 frames).
+      Purpose: whether the specular ROI intensity changes with time under
+      the beam, i.e. whether the exposure planned for the reflectivity
+      run damages the film (owner, D54). No real reflectivity burn is in
+      the repository; a synthetic one (tau = 400 s) is.
+    recognised_by: >
+      series kind 'burn' (`series.is_burn`: ascan ih, start = end, >= 3
+      points, owner 2026-11-21) with Pilatus frames; reflectivity geometry
+      when Det_Th is about 0 (`burn.is_gid` false). With macros writing
+      `#U Series kind=burn`, the kind is given, not guessed. Detector
+      Pilatus; all frames at one Qz and one Qxy (the window checks this).
+    known_from: ["owner 2026-11-21 (D54, physics_notes \"Burn tests\")", "code", "tests/test_gui_burn_trends.py", "docs/handoff_out/07-burn-trends.md"]
+    steps:
+      - id: burn-ref.open
+        uses: shared.open
+      - id: burn-ref.series
+        uses: shared.series
+        do: "Choose the burn series ('burn 1/?: S# n') or click the burn scan"
+        user_decides: which burn scan; whether it is a reflectivity or a GID burn is not shown in the list
+        known_from: "run 2026-11-22 (NX file lists 'burn 1/?: S# 14' and 'burn 1/?: S# 15'); code"
+        issues:
+          - "Nothing offers the burn test when a burn series is chosen (TODO: offer it automatically, F60)"
+          - "The list does not say whether the burn is at reflectivity or GID geometry"
+      - id: burn-ref.frames
+        uses: shared.frames
+        user_decides: all frames (usual); leaving frames out is possible
+      - id: burn-ref.roi
+        do: Set the ROI and background used for the burn (the reflectivity ROI) and the direct-beam position
+        where: Reflectivity tab (ROI fields) and Pilatus tab (DB Pos, bad pixels)
+        controls: [refSlitLineEdit, refBGOffLineEdit, refBGDirComboBox, pilSpecCheckBox, pilDBPosLineEdit, pilBPCiteSpinBox, pilBPCfacSpinBox]
+        user_decides: ROI size (default 21,11 px), background offset (0.5 deg) and direction (H); DB position from SPEC (default) or typed
+        automatic: yes
+        could_be_automatic: ROI close-up of the frames with the box drawn (F71), in the burn dialog itself
+        known_from: code (burnArguments reads the Reflectivity tab's fields)
+        issues:
+          - "The burn ROI is set on the Reflectivity tab, which the burn dialog neither shows nor mentions: a hidden dependency across tabs"
+          - "No view of the ROI on the frames before the analysis (F71)"
+      - id: burn-ref.dialog
+        do: Open the burn test; it opens on the Trends tab, already analysed
+        where: Pilatus tab > Burn Test; Burn test dialog
+        controls: [pilBurnPushButton, burnTabWidget, burnTrendPlotWidget, burnResultLabel]
+        user_decides: ""
+        automatic: yes
+        could_be_automatic: open (or offer) it when a burn series is selected (F60)
+        known_from: test tests/test_gui_burn_trends.py; code (pilBurnTest)
+        issues:
+          - "Refused with a message when frames of several scans or several Qz are selected; comparing two burns needs two dialogs one after the other"
+          - "Burn Test sits on the Pilatus tab among GID/GISAXS/cut actions"
+      - id: burn-ref.options
+        do: Choose the models, the time axis, the errors and the change threshold; Analyse re-runs
+        where: Burn test dialog > Trends
+        controls: [burnConstantCheckBox, burnLinearCheckBox, burnExponentialCheckBox, burnDoubleExponentialCheckBox, burnTimeComboBox, burnErrorsComboBox, burnThresholdSpinBox, burnAnalysePushButton]
+        user_decides: models (all four by default), time clock (default, owner 2026-11-21) or exposure, errors auto (counting for reflectivity), threshold 5 %
+        automatic: yes
+        could_be_automatic: ""
+        known_from: "owner 2026-11-21 (D54: four models by AICc, 5 %, wall time); test tests/test_gui_burn_trends.py"
+        issues:
+          - "Options are kept as a preference, so a changed threshold silently carries over to the next burn (code, burnOptions)"
+      - id: burn-ref.judge
+        do: "Read the verdict: stable (a constant fits as well as a line) or changing, the best model, the 95 % confident time to a 5 % change"
+        where: Burn test dialog > Trends (summary beside the panel; details in the label's tooltip)
+        controls: [burnResultLabel, burnTrendPlotWidget]
+        user_decides: whether the planned exposure is acceptable (counting time, absorbers, whether to move the sample)
+        automatic: partly
+        could_be_automatic: state the verdict against the planned reflectivity exposure (needs the plan; F39 macro lines)
+        known_from: owner 2026-11-21 ("flat line as good as a line means a good regime"; "a confident time for < 5 % change")
+        decision: "Stable over the planned exposure?"
+        goto: {"no: change exposure or spot": burn-ref.series}
+        issues:
+          - "No dose axis: burns at different absorbers cannot be put on one curve (TODO, hand-off 07)"
+          - "How the verdict feeds the next measurement is not recorded (see Q-BURN-1)"
+      - id: burn-ref.legacy
+        do: Optionally look at the legacy REF burn plot
+        where: Burn test dialog > Legacy
+        controls: [pdburn.refPushButton]
+        user_decides: ""
+        automatic: no
+        could_be_automatic: ""
+        known_from: code (pilRefBurn); test tests/test_gui_burn_trends.py
+        issues:
+          - "The legacy tab's REF button and GID list are actions on the Legacy tab only; their use today is unknown (Q-BURN-4)"
+      - id: burn-ref.save
+        uses: shared.workbook
+        do: The analysis is saved automatically (kind 'burn test', Data and Trends sheets); Save adds a version with a note
+        controls: [burnSavePushButton]
+        known_from: owner 2026-11-22 (D56); test tests/test_gui_workbook.py (burn saved when done)
+      - id: burn-ref.live
+        uses: shared.live
+        do: With Live on, a burn scan that is still being written is re-analysed as frames arrive (the open dialog follows)
+        known_from: test tests/test_gui_live.py (a growing burn scan is remade live)
+    outputs: ["workbook: Saved (kind 'burn test'), Data (time, quantity +- error), Trends (one row per quantity x model)", "Messages/Script pane: exp.burn(...)"]
+    scripted_as: "Experiment.burn(scan, time='clock', threshold=0.05, slit=(21, 11), bg_offset=0.5, direction='H')"
+    questions: [Q-BURN-1, Q-BURN-2, Q-BURN-4, Q-BURN-5, Q-GEN-1]
+
+  - id: burn-gid
+    name: Burn test on repeated GID frames
+    priority: 1
+    experiment: >
+      The sample is held at one GID condition (one Det_Th, one Qz level)
+      and exposed repeatedly by an `ascan ih a a n t` that does not move
+      (owner, 2026-11-21); one Pilatus frame per point. Public example: NX
+      school scans 14 and 15, 21 frames of 10 s each, same spot and
+      geometry, absorber 12 then 8 (about 4.1 x the flux). Wanted: the
+      strongest Bragg peak's integrated intensity, position and width
+      against time, each on its own panel with a right axis in percent
+      (owner, 2026-11-21); a relative change matters, so absolute sigmas
+      weigh less (owner, same day).
+    recognised_by: >
+      series kind 'burn' (`series.is_burn`) with Pilatus frames at Det_Th > 1
+      deg (`burn.is_gid`); `#U Series kind=burn` once the macros write it.
+      The private GID file lists further burn scans (23, 35, 51, ...;
+      frames not on disk).
+    known_from: ["owner 2026-11-21 (D54, F22a 4)", "code", "tests/test_gui_burn_trends.py", "docs/handoff_out/07-burn-trends.md", "run 2026-11-22"]
+    steps:
+      - id: burn-gid.open
+        uses: shared.open
+      - id: burn-gid.series
+        uses: shared.series
+        do: Choose the burn series or click the burn scan (NX 14 or 15)
+        known_from: run 2026-11-22; test tests/test_gui_burn_trends.py
+        issues:
+          - "Nothing offers the burn test for a burn series (F60, TODO)"
+      - id: burn-gid.frames
+        uses: shared.frames
+      - id: burn-gid.look
+        uses: shared.frames-look
+        do: Look at the frames to see the peak (optional)
+        user_decides: whether the frames look sane (Movie, colour scale)
+        known_from: guess
+      - id: burn-gid.dialog
+        do: Open the burn test; Trends tab, analysed; three panels (intensity, position, FWHM)
+        where: Pilatus tab > Burn Test; Burn test dialog
+        controls: [pilBurnPushButton, burnTabWidget, burnTrendPlotWidget, burnResultLabel]
+        user_decides: ""
+        automatic: yes
+        could_be_automatic: offer it for a burn series (F60)
+        known_from: owner 2026-11-21 (panels, % axes, summary beside); test tests/test_gui_burn_trends.py (slow, NX 15)
+        issues: []
+      - id: burn-gid.peak
+        do: "Choose the peak: Auto peak (strongest peak of the mean frame, 3 FWHM either side, inside the lit columns) or a typed Qxy range"
+        where: Burn test dialog > Trends; range field at the top of the dialog
+        controls: [burnAutoPeakCheckBox, pdburn.rangeLineEdit]
+        user_decides: auto (default) or another Qxy section (owner F22a 4 - override to another section)
+        automatic: yes
+        could_be_automatic: list the peaks found and let the user pick one by clicking
+        known_from: owner 2026-11-19 (F22a 4); test tests/test_gui_burn_trends.py
+        issues:
+          - "The typed range field ('1.4:1.5') belongs to the legacy layout at the top of the dialog; it is used only when Auto peak is off"
+          - "Detector rows are all summed; the row range is not exposed (TODO, hand-off 07)"
+      - id: burn-gid.options
+        do: Choose estimator, models, time, errors, threshold and whether the position counts in the limit
+        where: Burn test dialog > Trends
+        controls: [burnEstimatorComboBox, burnConstantCheckBox, burnLinearCheckBox, burnExponentialCheckBox, burnDoubleExponentialCheckBox, burnTimeComboBox, burnErrorsComboBox, burnThresholdSpinBox, burnPositionLimitCheckBox, burnAnalysePushButton]
+        user_decides: estimator template (default), moments (legacy) or fit; errors auto = scatter for GID; position in limit off (owner - the position judgment is the user's)
+        automatic: yes
+        could_be_automatic: ""
+        known_from: owner 2026-11-21; code; test tests/test_gui_burn_trends.py
+        issues:
+          - "The template estimator reads a broadening at constant area on a shoulder as an intensity gain (P44, measured on synthetic data); the user is not warned"
+      - id: burn-gid.judge
+        do: Read the three verdicts and the 5 % time; compare with the other burn of the same spot
+        where: Burn test dialog > Trends
+        controls: [burnResultLabel, burnTrendPlotWidget]
+        user_decides: whether the GID exposure is acceptable; whether a position drift matters (owner - the user's judgment)
+        automatic: partly
+        could_be_automatic: overlay two burns of one spot against dose (TODO 'Dose axis')
+        known_from: owner 2026-11-21; physics_notes 2026-11-21 (NX 14 vs 15 measured)
+        decision: "Acceptable change in the GID exposure time?"
+        goto: {"no: shorter exposure, more absorbers or a new spot": burn-gid.series}
+        issues:
+          - "Two burns (e.g. NX 14 and 15, different absorbers) cannot be shown together; the user opens the dialog twice"
+      - id: burn-gid.legacy
+        do: Optionally the legacy GID burn plots (constrained Qxy range)
+        where: Burn test dialog > Legacy
+        controls: [pdburn.gidComboBox, pdburn.rangeLineEdit]
+        user_decides: ""
+        automatic: no
+        could_be_automatic: ""
+        known_from: code (pilGidBurn); owner 2026-11-21 ("the legacy GID burn test did well once the fit range was constrained")
+        issues: []
+      - id: burn-gid.save
+        uses: shared.workbook
+        do: Saved automatically; Save adds a version with a note
+        controls: [burnSavePushButton]
+      - id: burn-gid.live
+        uses: shared.live
+        do: A growing burn scan is re-analysed as frames arrive
+        known_from: test tests/test_gui_live.py
+    outputs: ["workbook: Saved (burn test), Data (time; intensity, centre, FWHM +- error), Trends"]
+    scripted_as: "Experiment.burn(scan, estimator='template', time='clock', qxy_range=None, limit=None)"
+    questions: [Q-BURN-1, Q-BURN-2, Q-BURN-4, Q-BURN-6]
+
+  - id: burn-fluo
+    name: Burn test on repeated fluorescence spectra
+    priority: 1
+    experiment: >
+      A fluorescence spectrum is taken repeatedly at one condition by an
+      `ascan ih` that does not move, with one MCA spectrum per point;
+      examples are scans 19 and 20 of the owner's private XFNTR file
+      (docs/handoff_out/07, TODO area C). Wanted (by analogy with the other
+      burns, not stated in these words by the owner): the element line's
+      intensity per monitor against time, compared over the four models.
+    recognised_by: >
+      series kind 'burn' (`series.is_burn`), detector Vortex (a `#V` line)
+      or per-point MCA files (`mca_save_point`). Read in the code: a scan is
+      offered as MCA data only for `getandsave_mca` or a `#V` line; per-point
+      files of scans without `#V` are not reachable (TODO area C).
+    known_from: ["docs/handoff_out/07-burn-trends.md", "docs/TODO.md (Fluorescence burns)", "code", "guess"]
+    steps:
+      - id: burn-fluo.open
+        uses: shared.open
+      - id: burn-fluo.detector
+        do: For the 7-element detector, choose the elements (XFNTR uses the central one, element 1)
+        where: File > Preferences > Fluorescence detector
+        controls: [actionPreferences, prefMcaCentrePushButton, prefMcaAllPushButton, prefMcaChannel1CheckBox]
+        user_decides: elements summed (default all)
+        automatic: no
+        could_be_automatic: choose by series kind (xfntr/burn of an XFNTR sample - centre; energy - all) (D49)
+        known_from: owner 2026-11-19 (D49); code
+        issues:
+          - "A global preference in a dialog; what a burn of fluorescence should use is not stated (Q-BURN-3)"
+      - id: burn-fluo.series
+        uses: shared.series
+        do: Choose the burn scan
+        known_from: code (is_burn does not look at the detector); guess
+        issues:
+          - "If the scan has no #V line its spectra are not listed at all (physics_notes 2026-11-19, checked on the October file)"
+      - id: burn-fluo.spectra
+        uses: shared.frames
+        do: "Select all spectra; the MCA tab plots them normalised (Monc, absorber from the last #A)"
+        controls: [imageListWidget, imageSelectAllCheckBox, mcaNormComboBox, mcaCalibCheckBox]
+        known_from: code (mcaSelectedScanChanged)
+      - id: burn-fluo.line
+        do: Measure the line in each spectrum - Fit lines (sum fixes position and width, each spectrum amplitude and background) or a window Sum All
+        where: MCA tab
+        controls: [mcaRanLineEdit, mcaFitLinesPushButton, mcaFitOptionsPushButton, mcaSumAllPushButton, mcaXAxisComboBox]
+        user_decides: the line window; fitted lines (owner D47 - lines count, not the Vortex counter) or window sum; x axis Frame
+        automatic: no
+        could_be_automatic: a burn dialog for MCA series (TODO - feed fit_series through trends.compare)
+        known_from: code; owner 2026-11-19 (D47); guess (that users do this for burns)
+        issues:
+          - "The Burn Test button refuses MCA scans (it needs Pilatus frames; code, pilBurnTest)"
+          - "The MCA x axis offers Frame, Qz, Energy; no time axis (TODO area E: time axis in MCA)"
+      - id: burn-fluo.judge
+        do: Look at intensity against frame number; no trend models, no 5 % time in the window
+        where: MCA tab (integral plot, list)
+        controls: [mcaDataListWidget]
+        user_decides: whether the line intensity changes
+        automatic: no
+        could_be_automatic: the same Trends panel as the Pilatus burns
+        known_from: code; guess
+        issues:
+          - "This workflow is not supported as a burn test today; the user judges by eye or exports"
+      - id: burn-fluo.export
+        do: Export the intensities (x = frame) and analyse elsewhere; saved to the workbook as a fluorescence sum or line fit
+        where: MCA tab
+        controls: [mcaExportIntPushButton, mcaSaveWorkbookPushButton]
+        user_decides: file name
+        automatic: partly
+        could_be_automatic: ""
+        known_from: code; guess
+        issues: []
+    outputs: ["<name>_flu.txt (frame, I, sigma)", "workbook: fluorescence sum / line fit (not a burn test)"]
+    scripted_as: "exp.fluorescence([scan], window=...) then lss_core.trends.compare(t, I, sigma) by hand (no Experiment.burn for MCA)"
+    questions: [Q-BURN-3, Q-XFNTR-1]
+
+  # ------------------------------------------------------------------ reflectivity
+  - id: reflectivity
+    name: Specular reflectivity
+    priority: 2
+    experiment: >
+      A macro runs a series of `hklscan 0 0 0 0 qz1 qz2 n t` segments in Qz,
+      each at an absorber setting chosen so the ROI does not saturate,
+      with alignment scans (sh/oh a2scan) before and between segments; one
+      Pilatus frame per point (NX school: scans 6-9, 96 frames, alignment
+      4, 5, 10). Absorbers change only when counting statistics have
+      dropped by more than 100 x; overlaps are not placed across the
+      critical edge (owner, 2026-11-22). The reader sums the specular ROI
+      minus background per frame per Monc, patches the segments by
+      fitting a factor at each overlap (joint fit default since
+      2026-11-22), normalises below Qc, and writes R and R/R_F for xmodfit.
+    recognised_by: >
+      series kind 'reflectivity': consecutive hklscans (no `#V`) whose Qz
+      ranges move up and overlap or touch (`series.infer`), alignment scans
+      attached as 'align'; or `#U Series kind=reflectivity`. Detector
+      Pilatus at Det_Th about 0 (beam on the recorded DBPos).
+    known_from: ["owner 2026-11-14/15 (PROJECT_CONTEXT, F24)", "owner 2026-11-22 (absorbers and patching)", "code", "tests/test_gui_workflows.py", "tests/test_real_nx_school.py", "run 2026-11-22"]
+    steps:
+      - id: ref.open
+        uses: shared.open
+        do: Open the SPEC file; with Pilatus images the ROI 21x11, background offset 0.5, Qc 0.0217 and the absorber factor are preset
+        known_from: code; run 2026-11-22 (21,11 and 0.0217 after opening the NX file)
+      - id: ref.series
+        uses: shared.series
+        do: "Choose the reflectivity series ('reflectivity 4/?: S# 6-9') or click one of its scans"
+        known_from: run 2026-11-22; test tests/test_gui_series.py
+      - id: ref.frames
+        uses: shared.frames
+        do: Select all frames of the series (NX 6-9 - 96 frames)
+        known_from: test tests/test_real_nx_school.py
+      - id: ref.check
+        do: Optionally check the ROI frame by frame - Reflectivity opens the Ref tab with the frames by Qz, the ROI image, Analyze / Accept / Analyze All
+        where: Pilatus tab > Reflectivity; Reflectivity tab
+        controls: [pilRefPushButton, refQzListWidget, refSlitLineEdit, refBGOffLineEdit, refBGDirComboBox, refCenCheckBox, refCenLineEdit, refSeaWinLineEdit, refBPCFacLineEdit, refAnalyzePushButton, refAcceptPushButton, refAnalyzeAllPushButton]
+        user_decides: ROI size, background offset and direction, centre (from SPEC or typed), search window
+        automatic: no
+        could_be_automatic: ROI close-up of every frame with the box and background boxes drawn, flags on frames whose beam is off by > 2 px (F71)
+        known_from: code (refPlotWin, refAnalyze); guess (how often it is used)
+        issues:
+          - "Two entry points with similar names: 'Reflectivity' (frame-by-frame analysis) and 'Ref Patch' (the reduction); the ROI fields used by both live on the Reflectivity tab"
+          - "The ROI default in the .ui is 61,31 and is overwritten to 21,11 when a Pilatus file opens (code); the script default is 21,11"
+      - id: ref.options
+        do: Set the options that change the per-frame signal (low-Qz slit correction, merge same Qz, bad-pixel correction, DB position)
+        where: Pilatus tab
+        controls: [pilLowQzCorCheckBox, pilMergeSameQzCheckBox, pilBPCiteSpinBox, pilBPCfacSpinBox, pilSpecCheckBox, pilDBPosLineEdit]
+        user_decides: usually the defaults (guess)
+        automatic: yes
+        could_be_automatic: ""
+        known_from: code
+        issues:
+          - "Low Qz Corr. is applied to the first frame of each scan regardless of the box (P18, as coded)"
+      - id: ref.errors
+        uses: shared.errors
+      - id: ref.patch
+        do: Ref Patch - one point per frame (ROI minus background per Monc), scans sorted by Qz; pop-ups for beams > 2 px off and bad pixels in the ROI
+        where: Pilatus tab > Ref Patch
+        controls: [pilRefPatchPushButton, commandLineEdit]
+        user_decides: ""
+        automatic: yes
+        could_be_automatic: offer Ref Patch when a reflectivity series is selected (F60)
+        known_from: code (pilRefPatchData); test tests/test_real_nx_school.py
+        issues:
+          - "The beam-offset and bad-pixel tables are modal dialogs (pilPeakCenDialog, pilBadPixDialog) that interrupt the patch"
+      - id: ref.same
+        do: When identical scans (same Qz range and points) are found - merge them, drop some, or patch them regularly
+        where: identical-scans dialog
+        controls: [refpatchsamescan.mergePushButton, refpatchsamescan.dropPushButton, refpatchsamescan.dropLineEdit, refpatchsamescan.nextPushButton]
+        user_decides: merge (repeats), drop, or patch (default)
+        automatic: no
+        could_be_automatic: merge repeats by default when they agree within errors
+        known_from: code (pilRefPatchData, pilRefSameScan)
+        decision: "Identical scans found?"
+        goto: {"no": ref.join}
+        issues:
+          - "Announced by a message, then a dialog; the default ('regular patch') is stated only in the message"
+      - id: ref.join
+        do: "For each join: the overlap plotted with the factor that Next will use (joint fit), the known foil ratio offered; drop points; Next / Finish!"
+        where: Ref Patch dialog (one per join)
+        controls: [refpatch.nextPushButton, refpatch.dropPushButton, refpatch.dropLineEdit, refpatch.knownRatioCheckBox, refpatch.knownRatioLabel, prefPatchMethodComboBox, prefPatchAutoCheckBox, prefPatchThresholdSpinBox]
+        user_decides: accept the fitted factor or use the known ratio; which points to drop (typed indices)
+        automatic: partly
+        could_be_automatic: accept every join whose fit passes its guard and agrees with the foils, and show only the doubtful ones (owner 2026-11-18 F58 - known ratio automatic where plainly better)
+        known_from: owner 2026-11-18 (F58), owner 2026-11-22 (joint fit default); test tests/test_gui_workflows.py, tests/test_known_ratio_patch.py
+        decision: "Factor acceptable at this join?"
+        goto: {"drop points": ref.join, "use known ratio": ref.join}
+        issues:
+          - "One dialog per join (3 for NX 6-9); the method preference is in File > Preferences, not in the dialog"
+          - "Dropped points are typed as indices, deleted from the arrays, not drawn, no undo (F16, D2)"
+      - id: ref.view
+        do: The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files
+        where: Reflectivity tab (Ref / Norm Ref lists, plot)
+        controls: [refDataListWidget, refNormRefListWidget, refRRFCheckBox, refQcLineEdit, refQoffLineEdit, refLogYCheckBox, refQzSqrCheckBox, refNormFacCheckBox, refNormLineEdit, refDelPushButton, refRefFileListWidget, refAddFilePushButton, refRemoveFilePushButton, refLegendCheckBox]
+        user_decides: Qc (0.0217 preset, i.e. water), Qoff (hand-typed, F42), reference curves to compare
+        automatic: partly
+        could_be_automatic: Qoff from the sh-scan images before the run (F42); Qc from the subphase
+        known_from: code (updateRefPlotData); test tests/test_gui_workflows.py (tab 3 after Finish)
+        issues:
+          - "Qc and Qoff change the R/R_F file but are typed fields among display options"
+      - id: ref.export
+        do: Export - <name>_ref.txt and <name>_rrf.txt (Q, R, sigma); the Script pane records exp.reflectivity(...)
+        where: Reflectivity tab > Export
+        controls: [refExportPushButton, refCovarianceCheckBox]
+        user_decides: file name; whether to write the covariance sidecars (+ covariance, off by default)
+        automatic: no
+        could_be_automatic: name from the sample and series (guess)
+        known_from: code (saveRefData, saveRefCovariance); tests/test_ref_export_golden.py, tests/test_gui_covariance_export.py; docs docs/SCRIPTING.md
+        issues:
+          - "The covariance sidecars (F24) exist since 2026-11-22 behind '+ covariance', which sits after the workbook Save although it modifies Export; the contract's corrected/legacy pair is for scripts only (TODO B2)"
+      - id: ref.save
+        uses: shared.workbook
+        controls: [refSaveWorkbookPushButton]
+        known_from: test tests/test_real_nx_school.py (reflectivity saved to the workbook)
+      - id: ref.live
+        uses: shared.live
+        do: With Live on, the open Reflectivity curve follows its series as segments arrive (remade from the recipe)
+        known_from: test tests/test_gui_live.py (the open reflectivity follows its series)
+      - id: ref.downstream
+        do: Fit the exported curve in xmodfit
+        where: outside the reader
+        controls: []
+        user_decides: ""
+        automatic: no
+        could_be_automatic: ""
+        known_from: owner 2026-11-14 (PROJECT_CONTEXT - fitting in xmodfit)
+        issues: []
+    outputs: ["<name>_ref.txt", "<name>_rrf.txt", "workbook: Saved (reflectivity), Data", "Script pane: exp.reflectivity(...)"]
+    scripted_as: "Experiment.reflectivity([6, 7, 8, 9], slit=(21, 11), bg_offset=0.5, direction='H', qc=0.0217, drops=..., factors=...).save(name)"
+    questions: [Q-REF-1, Q-REF-2, Q-REF-3, Q-REF-4, Q-REF-5, Q-REF-6, Q-GEN-2]
+
+  # ------------------------------------------------------------------ GID
+  - id: gid
+    name: Grazing-incidence diffraction map (pinhole default, or legacy patch)
+    priority: 3
+    experiment: >
+      `ascan dth a b n t` scans of the detector angle at a fixed incidence
+      angle below the critical angle, one scan per Qz level (low, middle,
+      high), one Pilatus frame per point; the pinhole (S4) in front of the
+      detector defines 2theta per column (NX school: scans 11 and 12, 41
+      and 4 frames, the second aborted; the owner's private pairs have
+      complete levels). One absorber setting per GID scan (worksheet: the
+      absorber factor is not applied; joins absorb differences). The reader
+      bins each column at its own 2theta (exact IMG_COO_CONV geometry,
+      default since 2026-11-18), joins levels and scans, and saves the
+      map and its Qxy/Qz projections.
+    recognised_by: >
+      series kind 'gid': consecutive `ascan dth` scans with Pilatus frames
+      (`series.infer`), or `#U Series kind=gid level=k`. Det_Th > 1 deg;
+      `#B1` gives the S4-detector distance (pinhole).
+    known_from: ["owner 2026-11-18 (D36, D40, F45, F61, F62)", "owner 2026-11-19 (D51)", "code", "tests/test_gid_worksheet.py", "tests/test_real_nx_school.py", "docs/manual/gid_patching.md", "run 2026-11-22"]
+    steps:
+      - id: gid.open
+        uses: shared.open
+      - id: gid.series
+        uses: shared.series
+        do: "Choose the GID series ('gid 2/? (partial): S# 11-12')"
+        known_from: run 2026-11-22
+      - id: gid.frames
+        uses: shared.frames
+        do: Select all frames of the levels
+      - id: gid.look
+        uses: shared.frames-look
+        do: Look at single frames (optional); the Pinhole box gives display and cuts the pinhole geometry
+        controls: [pilAxesComboBox, pilLogIntCheckBox, pilMinLineEdit, pilMaxLineEdit, pilCMapComboBox, pilPinholeCheckBox, pilMoviePushButton]
+        known_from: code; owner 2026-11-18 (D40)
+        issues:
+          - "Two pinhole switches: the Pilatus tab's 'Pinhole' (display and cuts) and the worksheet's 'Pinhole: angle per column' (the patch)"
+      - id: gid.background
+        do: Optionally subtract background frames (add selected frames to the background list, factor, ignore negatives)
+        where: left panel (background list)
+        controls: [backgroundPushButton, backgroundListWidget, bgFacLineEdit, bgIgnoreNegCheckBox, bgSelectAllCheckBox, removePushButton]
+        user_decides: which frames are background, the factor
+        automatic: no
+        could_be_automatic: ""
+        known_from: code; guess (whether it is used for GID)
+        issues:
+          - "Background-subtracted maps are not scriptable (gidScript says so)"
+      - id: gid.settings
+        do: Open the worksheet (GID menu > Worksheet) and check the settings - pinhole on, response, footprint window, S4-detector distance (Fit), rows, columns
+        where: Pilatus tab > GID menu > Worksheet (separate window)
+        controls: [gidComboBox, gidPinholeCheckBox, gidPinholeDistSpinBox, gidFitDistancePushButton, gidResponseComboBox, gidFootprintComboBox, gidTransverseComboBox, gidRowMinSpinBox, gidRowMaxSpinBox, gidColumnsSpinBox, pilHSlitLineEdit, gidAreaCheckBox, gidPolCheckBox, gidApplyJoinsCheckBox, gidMinFramesSpinBox, gidArmCheckBox, gidDefaultsPushButton]
+        user_decides: usually the defaults (pinhole, exact footprint, response fit); the distance from Fit when reliable
+        automatic: partly
+        could_be_automatic: calibrate the distance automatically on the first patch and say so (P43 built as a button)
+        known_from: owner 2026-11-18/19 (D40, D51); test tests/test_gid_worksheet.py; docs docs/manual/gid_patching.md
+        issues:
+          - "Actions are items of a combo box whose first item 'GID' is a title; choosing the same item again needs a re-selection (code, activated)"
+          - "'Columns per frame' (worksheet) and the H slit field on the Pilatus tab are one setting in two places"
+      - id: gid.patch
+        do: GID Patch (or GID Patch Relax for the larger Q grid) - the map is drawn on the Pilatus tab in Q
+        where: Pilatus tab > GID menu
+        controls: [gidComboBox, gidPatchPushButton]
+        user_decides: Patch or Patch Relax
+        automatic: partly
+        could_be_automatic: patch when a complete GID series is selected (F60)
+        known_from: code (pilGID, pilGIDpatchData); test tests/test_gid_worksheet.py, tests/test_real_nx_school.py
+        issues:
+          - "Axes switch from Pixels to Q by themselves on the first patch (code)"
+      - id: gid.inspect
+        do: Inspect the joins and levels - join table (overlap, points, factor +- error, chi2/dof), levels line with 'frames agree' chi2/dof; change a setting and the map updates
+        where: GID worksheet
+        controls: [gidJoinTable, gidLevelsLabel, gidLiveCheckBox, gidFitLabel]
+        user_decides: whether the patch is honest; which method to keep
+        automatic: partly
+        could_be_automatic: flag joins whose chi2 or factor is out of line
+        known_from: owner 2026-11-18 (F61); owner 2026-11-20 (honest presentation); test tests/test_gid_worksheet.py
+        decision: "Joins and levels acceptable?"
+        goto: {"no: change settings": gid.settings}
+        issues: []
+      - id: gid.colour
+        do: Adjust the colour scale and log of the map; optionally overlay form-factor minima (Form Factor)
+        where: Pilatus tab; GID menu > Form Factor
+        controls: [pilMinLineEdit, pilMaxLineEdit, pilLogIntCheckBox, pilCMapComboBox, pdformfac.sphCheckBox, pdformfac.updatePushButton]
+        user_decides: colour limits
+        automatic: partly
+        could_be_automatic: intelligent colour scale for maps (F70)
+        known_from: code
+        issues: []
+      - id: gid.cuts
+        do: Cuts of the map - Q H or Q V with a range, Line/Area Cuts; fit the peaks; export
+        where: Pilatus tab (cut direction and range) > Line/Area Cuts tab
+        controls: [pilCutDirComboBox, pilIntRangeLineEdit, pilLineAreaPushButton, cutFitPushButton, cutFitOptionsPushButton, cutExportPushButton, cutSaveWorkbookPushButton]
+        user_decides: direction and range (Qz range for a Bragg rod profile, Qxy range for a rod)
+        automatic: no
+        could_be_automatic: Qxy profile and Bragg-rod cut of the strongest peak by default (F68 - defaults by scan kind)
+        known_from: test tests/test_real_nx_school.py (GID line cuts; pixel cuts refused with a message)
+        issues:
+          - "Pixel cuts are offered but refused on a map; the cut range has no sensible default for the map (F59)"
+      - id: gid.save
+        do: Save GID (axes Angles or Q) - the map and its projections; Script pane records exp.gid(...)
+        where: Pilatus tab > GID menu > Save GID
+        controls: [gidComboBox, pilAxesComboBox]
+        user_decides: file name; axes Angles or Q (set on the display combo box)
+        automatic: no
+        could_be_automatic: ""
+        known_from: code (saveGIDData); test tests/test_gid_script.py
+        issues:
+          - "Save GID refuses Pixels axes; the axes for the file are chosen on the display combo box"
+      - id: gid.workbook
+        uses: shared.workbook
+        do: The map is saved automatically (Maps sheet, as a grid); GID menu > Save to workbook adds a version with a note
+        controls: [gidComboBox]
+        known_from: test tests/test_real_nx_school.py (GID map saved to the workbook)
+      - id: gid.live
+        uses: shared.live
+        do: The open GID map follows its series as levels arrive
+        known_from: test tests/test_gui_live.py (the open GID map follows its series)
+      - id: gid.downstream
+        do: Fit the Qxy and Qz profiles downstream
+        where: outside the reader
+        controls: []
+        user_decides: ""
+        automatic: no
+        could_be_automatic: ""
+        known_from: owner 2026-11-14 (PROJECT_CONTEXT); guess (which program)
+        issues: []
+    outputs: ["<name>_qxy_gid.txt, <name>_qz_gid.txt, <name>_q2d_gid.txt (PROJECT_CONTEXT)", "workbook: Saved (GID map), Maps", "Script pane: exp.gid(...)"]
+    scripted_as: "Experiment.gid([11, 12], params=GIDParams(...), axes='Q').save(name)"
+    questions: [Q-GID-1, Q-GID-2, Q-GID-3, Q-GID-4, Q-GID-5]
+
+  # ------------------------------------------------------------------ XFNTR
+  - id: xfntr
+    name: X-ray fluorescence near total reflection
+    priority: 4
+    experiment: >
+      The usual XFNTR scan is the macro `fluo_p time abs`: S1 set, the
+      detector arm moved out of the way, then `MCAscanpt lscan 0.015 0.03
+      15 time`, an hklscan in Qz across the critical angle with one MCA
+      spectrum per point (single-element Dante, or the 7-element Xspress3
+      of which XFNTR uses the central element 1). Repeats of one scan are
+      merged on target Qz (owner's rule F65). The spectra are dominated by
+      the elastic line; the element lines are weaker; what counts is the
+      fitted line normalised by Monc, not the SPEC Vortex counter (owner
+      D47). No absorber setting is written by `getandsave_mca` scans (the
+      last #A above is taken, D24).
+    recognised_by: >
+      series kind 'xfntr': consecutive L scans with a `#V` line (detector
+      Vortex), alignment scans attached (`series.infer`); or `#U Series
+      kind=xfntr`. MCA files in `vortex/`, per-point (`mca_save_point`).
+    known_from: ["owner 2026-11-19 (F65, D45, D47, D49, fluo.mac received)", "code", "tests/test_xfntr.py", "tests/test_mca_merge.py", "docs/SCRIPTING.md"]
+    steps:
+      - id: xfntr.open
+        uses: shared.open
+      - id: xfntr.detector
+        do: For the 7-element detector choose the central element (Centre = element 1)
+        where: File > Preferences > Fluorescence detector
+        controls: [actionPreferences, prefMcaCentrePushButton, prefMcaAllPushButton, prefMcaChannel1CheckBox]
+        user_decides: element(s); default all
+        automatic: no
+        could_be_automatic: centre element by default for xfntr series, all for energy series (D49)
+        known_from: owner 2026-11-19 (D49, "the central element is 1"); code
+        issues:
+          - "The default (all elements) suits EXAFS, not XFNTR; switching kinds means visiting Preferences each time"
+      - id: xfntr.series
+        uses: shared.series
+        do: Choose the XFNTR series - the repeats of one run, which the user decides to merge
+        user_decides: which repeats (one run, wavelength, sample, signal shape - the user's choice, owner 2026-11-19)
+        known_from: owner 2026-11-19 (F65 steps 1, 7 left to the user); code
+        issues:
+          - "Repeats whose line amplitude changes from repeat to repeat are merged without warning (physics_notes 2026-11-19, private data)"
+      - id: xfntr.spectra
+        uses: shared.frames
+        do: Select all spectra; the MCA tab overlays them, normalised by Monc x real/live time x absfac^n
+        controls: [imageListWidget, imageSelectAllCheckBox, mcaNormComboBox, mcaGainCheckBox, mcaPhotonCheckBox, mcaLogYCheckBox, mcaOffsetCheckBox, mcaOffsetLineEdit]
+        known_from: code; test tests/test_xfntr.py
+        issues:
+          - "Dozens of spectra are overlaid in one plot; Offset Factor is the only separation"
+      - id: xfntr.calib
+        do: Check the energy calibration (from the file, or typed)
+        where: MCA tab
+        controls: [mcaCalibCheckBox, mcaCalibConLineEdit, mcaCalibLinLineEdit, mcaCalibQuaLineEdit]
+        user_decides: file calibration (usual) or typed
+        automatic: yes
+        could_be_automatic: ""
+        known_from: code
+        issues: []
+      - id: xfntr.window
+        do: Choose the line window (range field; Enter draws it on the spectra)
+        where: MCA tab
+        controls: [mcaRanLineEdit]
+        user_decides: the window around the element line (default 1:1000, the whole spectrum)
+        automatic: no
+        could_be_automatic: line markers and a proposed window from the element (F47, xraydb); remember the window per sample
+        known_from: code; guess (how users place it)
+        issues:
+          - "The default window is the whole spectrum, dominated by the elastic line"
+      - id: xfntr.measure
+        do: Sum All (window sum) or Fit lines (Gaussian on a background; the sum fixes position and width)
+        where: MCA tab
+        controls: [mcaSumAllPushButton, mcaFitLinesPushButton, mcaFitOptionsPushButton, mcaFitPushButton, mcaFitAllPushButton, mcaAcceptPushButton]
+        user_decides: window sum or fitted lines (owner D47 - fitted lines are what count); fit options (background order)
+        automatic: no
+        could_be_automatic: Fit lines as the default for xfntr (D47)
+        known_from: owner 2026-11-19 (D47, F22a 6); code; test tests/test_xfntr.py, tests/test_gui_workbook.py (Fit lines)
+        issues:
+          - "Three fitting paths side by side: Fit / Fit All / Accept (legacy dialog), Fit lines (new) and Sum All"
+      - id: xfntr.axis
+        do: Put the intensities on the Qz axis
+        where: MCA tab
+        controls: [mcaXAxisComboBox, mcaDataListWidget]
+        user_decides: Qz (Frame is the default)
+        automatic: no
+        could_be_automatic: Qz by default for xfntr series, Energy for energy series
+        known_from: code; test tests/test_xfntr.py (export against Qz)
+        issues:
+          - "The x axis also decides the exported column and the merge axis; the default is Frame"
+      - id: xfntr.merge
+        do: Merge repeated points (default window 0.1 x the Qz grid step; Qz jitter added to the errors); delete bad points
+        where: MCA tab > Merge (dialog); Delete
+        controls: [mcaMergePushButton, mcamerge.resLineEdit, mcamerge.okPushButton, mcaDelPushButton]
+        user_decides: accept the default window or type one; which points to delete
+        automatic: partly
+        could_be_automatic: merge on Sum All when the selection holds repeats (the edge check, F65 steps 3-4, is backlog)
+        known_from: owner 2026-11-19 (F65 steps 2, 5); test tests/test_mca_merge.py
+        decision: "Repeats to merge?"
+        goto: {"no": xfntr.export}
+        issues:
+          - "Deleted points are gone (no mask, no undo; F16)"
+      - id: xfntr.export
+        do: Export Integral - <name>_flu.txt (x, I, sigma); the Script pane records exp.fluorescence(...)
+        where: MCA tab > Export Integral
+        controls: [mcaExportIntPushButton]
+        user_decides: file name
+        automatic: no
+        could_be_automatic: ""
+        known_from: code (mcaSaveIntData); test tests/test_xfntr.py
+        issues:
+          - "Written with full float precision, unlike the reflectivity files (physics_notes 2026-11-15)"
+      - id: xfntr.save
+        uses: shared.workbook
+        controls: [mcaSaveWorkbookPushButton]
+        known_from: test tests/test_gui_workbook.py (MCA sum and Fit lines saved)
+      - id: xfntr.live
+        uses: shared.live
+        do: With Live on, spectra appended to the latest MCA file are picked up and the MCA integrals remade
+        known_from: test tests/test_gui_live.py (spectra appended are picked up); docs TODO (the MCA redraw on a fluorescence series is untested)
+      - id: xfntr.downstream
+        do: Fit the fluorescence curve downstream
+        where: outside the reader
+        controls: []
+        user_decides: ""
+        automatic: no
+        could_be_automatic: ""
+        known_from: guess (xmodfit or another program; Q-XFNTR-5)
+        issues: []
+    outputs: ["<name>_flu.txt", "workbook: Saved (fluorescence sum / line fit / merge)", "Script pane: exp.fluorescence(...)"]
+    scripted_as: "flu = Experiment.fluorescence(scans, window=(lo, hi), channels=[1]); flu.merge(); flu.save(name, x='qz')"
+    questions: [Q-XFNTR-1, Q-XFNTR-2, Q-XFNTR-3, Q-XFNTR-4, Q-XFNTR-5]
+
+  # ------------------------------------------------------------------ EXAFS
+  - id: exafs
+    name: Energy scans of fluorescence (EXAFS / XANES)
+    priority: 5
+    experiment: >
+      `<element>_exafs` macros call `MCAscanpt escan_14 edge e_before
+      e_after ...` around an absorption edge with a k-space part; `*_edge`
+      macros scan +- dE around the edge; one spectrum per energy point,
+      all seven elements summed (owner, 2026-11-19, D49; macros read).
+      Optional deliberate dose with `eb_expose time abs`. The bu September
+      file has 24 escan scans. What the reader should output for EXAFS is
+      not scoped (F36).
+    recognised_by: >
+      series kind 'energy': consecutive `escan` scans (`series.infer`), or
+      `#U Series kind=energy`. Spectra per point in `vortex/`; whether these
+      scans carry a `#V` line (needed for the window to list the spectra)
+      is not confirmed here (private data not on this machine).
+    known_from: ["owner 2026-11-19 (EXAFS macros, D48, D49)", "code", "guess"]
+    steps:
+      - id: exafs.open
+        uses: shared.open
+      - id: exafs.detector
+        do: All seven elements summed (the default)
+        where: File > Preferences > Fluorescence detector
+        controls: [actionPreferences, prefMcaAllPushButton]
+        user_decides: all elements (default) or a subset
+        automatic: yes
+        could_be_automatic: ""
+        known_from: owner 2026-11-19 (D49)
+        issues: []
+      - id: exafs.series
+        uses: shared.series
+        do: Choose the energy series (one edge scan or several repeats)
+        known_from: code (series kind 'energy'); guess
+      - id: exafs.spectra
+        uses: shared.frames
+        do: Select all spectra; MCA tab
+        known_from: guess (not run on an escan here)
+      - id: exafs.line
+        do: Window or Fit lines on the element line; x axis Energy; Sum All
+        where: MCA tab
+        controls: [mcaRanLineEdit, mcaFitLinesPushButton, mcaSumAllPushButton, mcaXAxisComboBox]
+        user_decides: line window; x axis Energy
+        automatic: no
+        could_be_automatic: line fit per point with the sum fixing the shape (fit_series), Energy axis by default
+        known_from: owner 2026-11-19 (F22a 6 - fit the sum, then each spectrum); code; guess
+        issues:
+          - "The absorber factor uses the energy in the scan header; along an escan it changes (physics_notes 2026-11-18, escan caveat)"
+          - "No EXAFS output (normalisation, edge step, k space) - F36 not scoped"
+      - id: exafs.export
+        do: Export Integral against energy
+        where: MCA tab
+        controls: [mcaExportIntPushButton, mcaSaveWorkbookPushButton]
+        user_decides: file name
+        automatic: no
+        could_be_automatic: ""
+        known_from: code; guess
+        issues: []
+      - id: exafs.downstream
+        do: Analyse the spectrum downstream (Athena/Larch presumably)
+        where: outside the reader
+        controls: []
+        user_decides: ""
+        automatic: no
+        could_be_automatic: ""
+        known_from: guess
+        issues: []
+    outputs: ["<name>_flu.txt against energy", "workbook: fluorescence sum / line fit"]
+    scripted_as: "exp.fluorescence(scans, window=(lo, hi)) (all elements), x='energy' in save"
+    questions: [Q-EXAFS-1, Q-EXAFS-2, Q-EXAFS-3, Q-EXAFS-4]
+
+  # ------------------------------------------------------------------ the rest
+  - id: gisaxs
+    name: GISAXS view of Pilatus frames
+    priority: 6
+    experiment: >
+      Pilatus frames at small angles away from the specular (reading only;
+      no GISAXS series in the public data). The GIOXS dialog (pdgioxs) works
+      on frames and points of an off-specular measurement.
+    recognised_by: "series kind 'gisaxs' exists in series.KINDS (from #U Series only; not inferred)"
+    known_from: ["code", "guess"]
+    steps:
+      - id: gisaxs.select
+        uses: shared.frames
+      - id: gisaxs.show
+        do: GISAXS menu > Show GISAXS; then Save GISAXS
+        where: Pilatus tab > GISAXS menu
+        controls: [gisaxsComboBox, pilAxesComboBox, backgroundPushButton]
+        user_decides: axes; background frames
+        automatic: no
+        could_be_automatic: ""
+        known_from: code (pilGISAXS)
+        issues:
+          - "Actions in a combo box, like the GID menu"
+      - id: gisaxs.gioxs
+        do: GIOXS dialog (frame and point fields, Run, Save)
+        where: Pilatus tab > GIOXS
+        controls: [pilGioxsPushButton, pdgioxs.frameLineEdit, pdgioxs.pointLineEdit, pdgioxs.runPushButton, pdgioxs.savePushButton]
+        user_decides: frames and points
+        automatic: no
+        could_be_automatic: ""
+        known_from: code; guess (purpose)
+        issues: []
+    outputs: ["GISAXS text files (Save GISAXS)"]
+    scripted_as: "not scriptable (docs/SCRIPTING.md)"
+    questions: [Q-GEN-3]
+
+  - id: cuts
+    name: Line and area cuts of frames
+    priority: 6
+    experiment: >
+      Cuts of reflectivity or diffuse frames (I against beta, beta - alpha,
+      Qz, Qxy; a user's request F59), beam profiles, cuts of GID maps.
+    recognised_by: "any Pilatus frame; defaults could depend on the series kind (F68)"
+    known_from: ["owner 2026-11-18 (F59 via a user)", "owner 2026-11-22 (F68)", "code", "tests/test_gui_cuts.py", "tests/test_gui_peak_fit.py"]
+    steps:
+      - id: cuts.frames
+        uses: shared.frames
+      - id: cuts.define
+        do: Choose the direction (Q H, Q V, Pix H, Pix V), the range, the axes and Sum All; Line/Area Cuts
+        where: Pilatus tab
+        controls: [pilCutDirComboBox, pilIntRangeLineEdit, pilAxesComboBox, gixSumCheckBox, pilPinholeCheckBox, pilLineAreaPushButton]
+        user_decides: direction, range, axes (Angles for I vs beta), summed or per frame
+        automatic: no
+        could_be_automatic: one cut interface on every image plot with defaults by scan kind (F68); a range on the detector by default (F59)
+        known_from: code; test tests/test_gui_cuts.py; owner 2026-11-18 (F59)
+        issues:
+          - "Q V default range lies off a reflectivity frame: zeros, no message (F59, measured)"
+          - "The cut is defined on the Pilatus tab and shown on another tab"
+      - id: cuts.view
+        do: Look at the cuts; errorbars, offset, log; Fit peaks
+        where: Line/Area Cuts tab
+        controls: [cutErrorbarCheckBox, cutOffsetCheckBox, cutOffsetLineEdit, cutLogYCheckBox, cutClearGraphPushButton, cutFitPushButton, cutFitOptionsPushButton]
+        user_decides: fit options
+        automatic: partly
+        could_be_automatic: ""
+        known_from: test tests/test_gui_peak_fit.py
+        issues: []
+      - id: cuts.export
+        do: Export (cut files; Script pane records exp.cut) and Save
+        where: Line/Area Cuts tab
+        controls: [cutExportPushButton, cutSaveWorkbookPushButton]
+        user_decides: file name
+        automatic: partly
+        could_be_automatic: ""
+        known_from: code; tests/test_cut_script.py; test tests/test_gui_workbook.py
+        issues: []
+    outputs: ["<name>S# n_F# m_cut.txt or <name>S# n_sumcut.txt", "workbook: line cut and fits"]
+    scripted_as: "Experiment.cut(scans, 'Pix V', (lo, hi), axes='Angles').save(name)"
+    questions: [Q-CUTS-1, Q-CUTS-2, Q-CUTS-3]
+
+  - id: alignment
+    name: SpecPlot of motor scans (alignment)
+    priority: 6
+    experiment: "sh / oh / ih / chi / th scans, slit scans, half-cuts (F43, planned); counters against a motor"
+    recognised_by: "role 'align' in a series (#U Series role=align) or an alignment scan attached to a guessed series; any scan with columns"
+    known_from: ["code", "owner 2026-11-18 (F55)", "owner 2026-11-19 (F43, F22a 5)", "tests/test_gui_workflows.py"]
+    steps:
+      - id: align.select
+        uses: shared.series
+        do: Click the scan (alignment scans are selected alone)
+      - id: align.plot
+        do: Choose X, Y, Y2 and the normaliser; log, grid, legend, point labels; the fit (peak, edge or plateau) is in the title
+        where: SpecPlot tab
+        controls: [spXComboBox, spYComboBox, spY2ComboBox, spNCheckBox, spNComboBox, spGainCheckBox, spPhotonCheckBox, spLogYCheckBox, spPointLabelsCheckBox]
+        user_decides: columns and normaliser
+        automatic: partly
+        could_be_automatic: remember the columns per scan command (sh scan - Pilatus/Monc)
+        known_from: code; test tests/test_gui_workflows.py (motor scan plotted and fitted)
+        issues: []
+      - id: align.export
+        do: Export or Save
+        where: SpecPlot tab
+        controls: [spExportPushButton, specSaveWorkbookPushButton]
+        user_decides: file name
+        automatic: no
+        could_be_automatic: ""
+        known_from: code
+        issues: []
+      - id: align.calc
+        do: Calculations menu - g_l2, g_l3, absorber ratio from scans
+        where: Calculations menu
+        controls: [actionG_l2, actionG_l3, actionAbs_ratio]
+        user_decides: scans
+        automatic: no
+        could_be_automatic: ""
+        known_from: code; guess (when used)
+        issues: []
+    outputs: ["<name>_<scan>_<x>_<y>[_<monitor>].txt", "workbook: SpecPlot curve (Save only)"]
+    scripted_as: "none for SpecPlot curves; peaks.fit_scan(x, y, sigma)"
+    questions: [Q-GEN-4]
+
+  - id: mca-look
+    name: Looking at MCA spectra
+    priority: 6
+    experiment: "Single spectra or files from disk: calibration, line identification"
+    recognised_by: "Vortex scans; MCA files added from disk"
+    known_from: ["code"]
+    steps:
+      - id: mca.select
+        uses: shared.frames
+      - id: mca.view
+        do: Spectra with calibration, log, offset; legacy peak fit dialog; add files from disk
+        where: MCA tab
+        controls: [mcaCalibCheckBox, mcaLogYCheckBox, mcaOffsetCheckBox, mcaFitPushButton, mcaAddFilePushButton, mcaRemoveFilePushButton, mcaFileListWidget]
+        user_decides: ""
+        automatic: no
+        could_be_automatic: element line markers (F47)
+        known_from: code
+        issues: []
+      - id: mca.export
+        do: Export Spectrum
+        where: MCA tab
+        controls: [mcaExportPushButton]
+        user_decides: file name
+        automatic: no
+        could_be_automatic: ""
+        known_from: code
+        issues: []
+    outputs: ["spectrum text file"]
+    scripted_as: "exp.spectra(scans, channels)"
+    questions: []
+
+  - id: flex-plot
+    name: Plot and 2D_Plot tabs on files from disk
+    priority: 6
+    experiment: "Files written earlier (reduced curves, maps) plotted for comparison"
+    recognised_by: "files, not scans"
+    known_from: ["code"]
+    steps:
+      - id: flex.plot
+        do: Add files, plot, rescale, peak fit, gradient
+        where: Plot tab
+        controls: [plotAddFilePushButton, plotRemoveFilePushButton, plotFileListWidget, plotRSPushButton, plotPFPushButton, graPushButton, savegraPushButton, plotLogYCheckBox]
+        user_decides: files
+        automatic: no
+        could_be_automatic: ""
+        known_from: code
+        issues: []
+      - id: flex.plot2d
+        do: Add 2D files, colour map, interpolation
+        where: 2D_Plot tab
+        controls: [twodPlotAddFilePushButton, twodPlotFileListWidget, twodCMapComboBox, twodLogIntCheckBox, twodIntPolComboBox, twodUpdatePlotPushButton]
+        user_decides: files
+        automatic: no
+        could_be_automatic: ""
+        known_from: code
+        issues: []
+    outputs: ["gradient file (Save Gradient)"]
+    scripted_as: "none"
+    questions: [Q-GEN-5]
+
+  - id: session
+    name: Session - open, update, live, series, workbook, preferences, logs, panes
+    priority: 6
+    experiment: "-"
+    recognised_by: "-"
+    known_from: ["code", "owner 2026-11-21/22"]
+    steps:
+      - id: session.open
+        uses: shared.open
+      - id: session.info
+        do: Double-click a scan for its header (scan info dialog)
+        where: scan list
+        controls: [scanListWidget, scanInfoDialog.scanInfoTextBrowser]
+        user_decides: ""
+        automatic: no
+        could_be_automatic: ""
+        known_from: code (displayScanInfo)
+        issues: []
+      - id: session.series
+        uses: shared.series
+      - id: session.live
+        uses: shared.live
+      - id: session.prefs
+        do: Preferences - foils, Ref Patch method and known ratio, fluorescence elements, saving
+        where: File > Preferences
+        controls: [actionPreferences, prefCalibratedCheckBox, prefPatchMethodComboBox, prefPatchAutoCheckBox, prefMcaCentrePushButton, prefSaveNoteCheckBox, prefAutoSaveCheckBox, prefClosePushButton]
+        user_decides: ""
+        automatic: no
+        could_be_automatic: ""
+        known_from: code
+        issues:
+          - "Settings that belong to one workflow (Ref Patch method, MCA elements) sit in a global dialog"
+      - id: session.absorber
+        uses: shared.absorber
+      - id: session.errors
+        uses: shared.errors
+      - id: session.panes
+        uses: shared.script
+      - id: session.workbook
+        uses: shared.workbook
+    outputs: ["<SPEC file>.reader.log", "<SPEC file>_reader.xlsx"]
+    scripted_as: "Experiment(specfile); lss_core.workbook.Workbook(...)"
+    questions: [Q-GEN-1, Q-GEN-2]
