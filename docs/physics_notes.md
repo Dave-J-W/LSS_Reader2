@@ -3884,3 +3884,47 @@ legacy export fixtures are unchanged. Output changes only where the
 known ratio was used at the third join or later: the automatic choice
 had rejected it there, as "N sigma from the patch".
 
+
+### 2026-11-23 — Can the stalled test-speed and Tools-menu agents' work be used?
+
+**Owner:** two agents stopped when their usage credits ran out: the
+test-speed agent (the tests took too long and used too much RAM and disk)
+and the Tools-menu agent. How much of their in-progress work can be used
+and built on?
+
+**Answer (reading git refs and GitHub's event feed, not a run).** None of
+their own work reached GitHub. They ran under another organisation's
+account, so their sessions, and anything they had not pushed, cannot be
+reached from this one. GitHub holds three branches: `main` (ends at
+9b81910, 2026-11-22 23:57), `claude/funny-noether-09opxa` (the GUI
+manager) and `wip/pinhole-figures` (2026-11-19). The event feed since
+2026-11-19 shows pushes to these alone, and no branch created or deleted.
+
+What `main` holds for each task, all from the session that launched them
+(commit trailer `…B43N3sPHf2MNUrW8`):
+- Test speed: the per-control sweep timing log `LSS_SWEEP_TIMES`
+  (b1c90e7); measured suite times and the three-shard recipe in
+  `TESTING.md` (ed6b6f0); the TODO row in area I with three options
+  (7adf3e2). Nothing for RAM or disk. Two causes of disk growth, read but
+  not measured: `tests/conftest.py` makes a new `lss_reader_test_logs_*`
+  folder in the system temp folder on every run and never removes it, and
+  pytest 9.1 keeps the `tmp_path` folders of the last three runs
+  (`tmp_path_retention_count = 3`, policy `all`), which hold synthetic data
+  sets, workbooks and screenshots.
+- Tools menu: only the entry point, `open_demo(parent, mode, seed)` and
+  `DemoWindow(parent=…)` in `tests/demonstrator/window.py` (3611855), with
+  `test_patch_demo.py::test_the_window_opens_from_code_with_a_parent`.
+  There is no Tools menu in `mainwindow.ui` or `mainwindow.py`. What the
+  agent was to build is inferred from that commit and
+  `docs/reports/patch_demo.md` (its brief is in the other account): a Tools
+  menu in the main window that opens the fit demonstrator (reflectivity
+  patching and burn line cuts on synthetic data). One obstacle, read:
+  the demonstrator imports `synthetic` from `tests/`, and the PyInstaller
+  recipe bundles only the `.ui` files and icons. A menu item in the
+  packaged program therefore needs those modules moved into a bundled
+  package, or must be hidden when they are missing.
+
+The agents' unpushed progress can be recovered only from the other
+account: when its credits return, ask each session to commit and push to a
+branch (for example `wip/test-speed` and `wip/tools-menu`), so that it can
+be judged here.

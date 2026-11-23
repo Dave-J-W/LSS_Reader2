@@ -128,6 +128,18 @@ build workflow and macOS signing (input 12); sample-data hosting.
       build each state once and restore it cheaply, skip drawing in sweep windows
       (Agg canvas, no first-frame redraw), or add pytest-xdist to the dev
       requirements; any of them must keep the fresh-window guarantee.
+- [ ] **The test suite's RAM and disk (new 2026-11-23).** A test-speed agent
+      (another organisation's account) stopped when its credits ran out,
+      with nothing pushed (physics_notes 2026-11-23). Starting points, read
+      but not measured: the log folder `conftest.py` makes on every run is
+      never removed; pytest keeps `tmp_path` for the last three runs.
+- [ ] **A Tools menu in the main window (new 2026-11-23)**, first opening
+      the fit demonstrator through `open_demo(parent, mode)`
+      (`tests/demonstrator/window.py`). Its agent (another organisation's
+      account) stopped with nothing pushed. The packaged program needs the
+      demonstrator and the `synthetic` modules it imports in a bundled
+      package (the recipe bundles only `.ui` files and icons), or the item
+      hidden when they are absent.
 
 **J. Beamline / SPEC macros**: see "Beamline to-do" at the end (series
 lines, `Tstart`/`Tend`, `#V` flag, Pilatus + Vortex header, gas conditions
