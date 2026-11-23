@@ -4055,3 +4055,18 @@ Two corrections the same day (owner):
 
 *How verified*: the owner's words; the R/R_F numbers computed with the
 exact Fresnel reflectivity, R_F = |(Q − √(Q² − Qc²))/(Q + √(Q² − Qc²))|².
+
+Measured the same day (timeline research, F83; `docs/gui/timeline/research.md`):
+the three sample height scans of the public NX file (`a2scan sh … oh …`, SPEC's
+`Pilatus` ROI column) fitted by a super-Gaussian give FWHM 82.1, 81.1 and
+81.4 µm with exponents p = 3.36, 3.38 and 3.53 (χ²/dof 2.6–5.2, against
+28–34 for a Gaussian). They meet the owner's criterion: at least about
+65 µm, flatter than a Gaussian. A scan that saw no reflected beam must be
+refused first (peak at least 10σ); otherwise it "fits" with a meaningless p.
+SPEC's `set sh 0` is written as a dated comment, `#C <date>.  Sample_H reset
+from <old> to <new>.` (the motor name, not the mnemonic); `#P` keeps the
+nominal position, so the comment is the only trace. Whether a reset means a
+new sample is not in the file: the NX file's one `set sh 0` is probably the
+same sample after a scan that found no beam (read from context). *How
+verified*: fits and parsing run on the NX file by the research subagent;
+the meaning of the NX reset is a reading.
