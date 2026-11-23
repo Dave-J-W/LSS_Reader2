@@ -232,9 +232,7 @@ def test_the_open_gid_map_follows_its_series(window, qapp, recorder, tmp_path):
     qapp.processEvents()
     sweep._select_scans(window, qapp, [10])
     sweep._select_images(window, qapp)
-    i = window.ui.gidComboBox.findText('GID Patch')
-    window.ui.gidComboBox.setCurrentIndex(i)
-    window.ui.gidComboBox.activated.emit(i)
+    window.gidPatchPushButton.click()
     qapp.processEvents()
     qapp.processEvents()
     first = window.shownResults['gid map']

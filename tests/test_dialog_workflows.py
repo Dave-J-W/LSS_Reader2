@@ -222,6 +222,10 @@ def test_burn_dialog_bad_range_and_mode(window, qapp, recorder, tmp_path):
 # ---- GID: form-factor dialog -------------------------------------------------
 
 def _gid(w, qapp, name):
+    if name in ('GID Patch', 'Worksheet'):          # buttons since 2026-11-23 (Q-GID-5)
+        (w.gidPatchPushButton if name == 'GID Patch' else w.gidWorksheetPushButton).click()
+        qapp.processEvents()
+        return
     i = w.ui.gidComboBox.findText(name)
     w.ui.gidComboBox.setCurrentIndex(i)
     w.ui.gidComboBox.activated.emit(i)

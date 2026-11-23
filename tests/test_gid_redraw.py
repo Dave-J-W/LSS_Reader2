@@ -22,9 +22,7 @@ pytestmark = [pytest.mark.gui, pytest.mark.slow,
 
 
 def _patch(window, qapp):
-    i = window.ui.gidComboBox.findText('GID Patch')
-    window.ui.gidComboBox.setCurrentIndex(i)
-    window.ui.gidComboBox.activated.emit(i)
+    window.gidPatchPushButton.click()
     qapp.processEvents()
 
 

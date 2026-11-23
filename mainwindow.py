@@ -222,8 +222,8 @@ class MainWindow (QMainWindow):
         self.gidJoinLog=[]
         self.gidLevels=[]
         self.gidWorksheet=None
-        self.ui.gidComboBox.addItem('Worksheet')
         self.ui.gidComboBox.addItem('Save to workbook')
+        self.initGIDButtons()
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
@@ -4431,19 +4431,39 @@ class MainWindow (QMainWindow):
         except:
             self.messageBox("Warning: No GISAXS data available!")
 
+    def initGIDButtons(self):
+        """GID Patch as a button, with the worksheet beside it (owner, 2026-11-23, Q-GID-1, Q-GID-5: GID Patch
+        is the common action; the worksheet/options sit next to it). The GID drop-down keeps the rarer actions."""
+        lay=self.ui.horizontalLayout_29
+        at=lay.indexOf(self.ui.gidComboBox)
+        patch=QPushButton('GID Patch',self)
+        patch.setObjectName('gidPatchPushButton')
+        patch.setToolTip('Patch the GID levels of the selected scans into a map (pinhole geometry by default, D40), '
+                         'with the settings of the worksheet beside it. The map is shown here and saved automatically.')
+        sheet=QPushButton('Worksheet...',self)
+        sheet.setObjectName('gidWorksheetPushButton')
+        sheet.setToolTip('The GID patching worksheet: the patch\'s settings (geometry, response, joins), editable, and '
+                         'what each join did (F61).')
+        lay.insertWidget(at+1,patch)
+        lay.insertWidget(at+2,sheet)
+        patch.clicked.connect(self.gidPatch)
+        sheet.clicked.connect(self.showGIDWorksheet)
+        self.gidPatchPushButton,self.gidWorksheetPushButton=patch,sheet
+        self.ui.gidComboBox.setToolTip('More GID actions: GID Patch Relax, Save GID, Form Factor, Save to workbook. '
+                                       'GID Patch and the worksheet are the buttons beside it.')
+
+    def gidPatch(self):
+        self.pilGIDRelax=0
+        self.pilGIDpatchData()
+
     def pilGID(self):
-        if str(self.ui.gidComboBox.currentText())=='GID Patch': 
-            self.pilGIDRelax=0
-            self.pilGIDpatchData()
-        elif str(self.ui.gidComboBox.currentText())=='GID Patch Relax':
+        if str(self.ui.gidComboBox.currentText())=='GID Patch Relax':
             self.pilGIDRelax=1
             self.pilGIDpatchData()
         elif str(self.ui.gidComboBox.currentText())=='Save GID':
             self.saveGIDData()
         elif str(self.ui.gidComboBox.currentText())=='Form Factor':
             self.setGIDFormFactor()
-        elif str(self.ui.gidComboBox.currentText())=='Worksheet':
-            self.showGIDWorksheet()
         elif str(self.ui.gidComboBox.currentText())=='Save to workbook':
             self.saveGIDToWorkbook()
             
@@ -5136,7 +5156,7 @@ class MainWindow (QMainWindow):
         self.ui.pilMplWidget.canvas.fig.tight_layout()
         self.ui.pilMplWidget.canvas.fig.subplots_adjust(top=0.9)
         self.ui.pilMplWidget.canvas.draw()
-        self.command=str(self.ui.gidComboBox.currentText())+', scans=['+listText(np.sort(self.selectedScanNums))+'], sli=['+self.ui.pilHSlitLineEdit.text()+'], /'+self.ui.pilAxesComboBox.currentText()
+        self.command=('GID Patch Relax' if getattr(self,'pilGIDRelax',0) else 'GID Patch')+', scans=['   # as the drop-down's text gave it (Q-GID-5)+listText(np.sort(self.selectedScanNums))+'], sli=['+self.ui.pilHSlitLineEdit.text()+'], /'+self.ui.pilAxesComboBox.currentText()
         
     def saveGIDData(self):
         axes=str(self.ui.pilAxesComboBox.currentText())

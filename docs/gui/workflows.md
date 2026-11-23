@@ -1116,6 +1116,8 @@ flowchart TD
 | `pilCutDirComboBox`  |  |  |  |  | B |  |  |  | B |  |  |  |  |  |
 | `pilIntRangeLineEdit` Int Range: min:max |  |  |  |  | B |  |  |  | B |  |  |  |  |  |
 | `pilLineAreaPushButton` Line/Area Cuts |  |  |  |  | B |  |  |  | B |  |  |  |  |  |
+| `gidPatchPushButton` GID Patch |  |  |  |  | B |  |  |  |  |  |  |  |  |  |
+| `gidWorksheetPushButton` Worksheet... |  |  |  |  | i |  |  |  |  |  |  |  |  |  |
 
 ### Plot
 

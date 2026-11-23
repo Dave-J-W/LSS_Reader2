@@ -322,3 +322,25 @@
   shown: always
   tooltip: false
   notes: "Same label as the target tab. Only image plot with a cut interface; Reflectivity ROI, 2D_Plot and GID-worksheet maps have none (F68)."
+- id: gidPatchPushButton
+  kind: button
+  label: "GID Patch"
+  where: "Pilatus > bottom, after the GID drop-down"
+  handler: gidPatch
+  does: "Patches the GID levels of the selected scans into a map (was the drop-down's GID Patch)"
+  workflows: [gid]
+  needs: "GID scans with frames"
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (owner, Q-GID-1, Q-GID-5: GID Patch is the common action, worksheet beside it). The drop-down keeps GID Patch Relax, Save GID, Form Factor, Save to workbook."
+- id: gidWorksheetPushButton
+  kind: button
+  label: "Worksheet..."
+  where: "Pilatus > bottom, after GID Patch"
+  handler: showGIDWorksheet
+  does: "Opens the GID patching worksheet (was the drop-down's Worksheet)"
+  workflows: [gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (owner, Q-GID-5)."

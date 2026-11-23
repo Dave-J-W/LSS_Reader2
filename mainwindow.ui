@@ -996,11 +996,6 @@
              </item>
              <item>
               <property name="text">
-               <string>GID Patch</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
                <string>GID Patch Relax</string>
               </property>
              </item>

@@ -539,7 +539,7 @@ def run_nx(app, ctx, skip_slow):
             save_png(v.window().grab(), '40b_gid_dropdown.png', 'The GID drop-down opened', 'Pilatus tab, scans 11-12')
         w.ui.gidComboBox.hidePopup()
         before = visible_tops(app)
-        combo_do(w, app, w.ui.gidComboBox, 'GID Patch')
+        w.gidPatchPushButton.click(); settle(app)
         settle(app)
         img = grab_window(w, app)
         save_png(img, '41_gid_patch_pinhole.png', 'Whole window after GID Patch of scans 11-12 (pinhole mode, the default)',
@@ -550,7 +550,7 @@ def run_nx(app, ctx, skip_slow):
             tab(w, app, t)
         tab(w, app, 'Pilatus')
         before = visible_tops(app)
-        combo_do(w, app, w.ui.gidComboBox, 'Worksheet')
+        w.gidWorksheetPushButton.click(); settle(app)
         settle(app)
         grab_toplevels(app, before, '42_gid_worksheet_window.png', 'GID worksheet window (GID drop-down > Worksheet)',
                        'After GID Patch of scans 11-12', skip=[w])

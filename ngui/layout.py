@@ -444,7 +444,8 @@ GID = {
             ROW(C('pdformfac.ellCheckBox', 'Ellipsoid'), C('pdformfac.ellXYLineEdit', 'r_xy (Å)')),
             C('pdformfac.ellZLineEdit', 'r_z (Å)'),
             ROW(C('pdformfac.updatePushButton', 'Draw form factor'),
-                NEW('gid_patchRelax', 'Patch relax', 'button', 'Was an item of the GID combo')),
+                NEW('gid_patchRelax', 'Patch relax', 'button', 'Was an item of the GID combo'),
+                C('gidWorksheetPushButton', 'Worksheet…', kind='button')),
         ], fold=True),
     ],
     'right': [

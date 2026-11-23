@@ -92,9 +92,7 @@ def _gid_patch(nx, qapp, rows):
     nx.gidParams = GIDParams(pinhole=False)
     sweep._select_scans(nx, qapp, rows)
     sweep._select_images(nx, qapp)
-    i = nx.ui.gidComboBox.findText('GID Patch')
-    nx.ui.gidComboBox.setCurrentIndex(i)
-    nx.ui.gidComboBox.activated.emit(i)
+    nx.gidPatchPushButton.click()
     qapp.processEvents()
 
 
@@ -254,9 +252,7 @@ def test_reflectivity_and_gid_map_are_saved_to_the_workbook(nx, qapp, recorder):
     nx.saveButtons['ref'].click()
     sweep._select_scans(nx, qapp, [10])
     sweep._select_images(nx, qapp)
-    i = nx.ui.gidComboBox.findText('GID Patch')
-    nx.ui.gidComboBox.setCurrentIndex(i)
-    nx.ui.gidComboBox.activated.emit(i)
+    nx.gidPatchPushButton.click()
     qapp.processEvents()
     i = nx.ui.gidComboBox.findText('Save to workbook')
     nx.ui.gidComboBox.setCurrentIndex(i)

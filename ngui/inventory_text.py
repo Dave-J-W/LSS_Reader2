@@ -327,6 +327,7 @@ INVENTORY = {
     'pilCutDirComboBox': ('combo', '', 'Pilatus', 'Cut direction: Q H, Q V, Pix H, Pix V; resets the range field to a default'),
     'pilIntRangeLineEdit': ('lineedit', 'Int Range: min:max', 'Pilatus', 'Integration band of the cut, typed as min:max (Enter recuts)'),
     'pilLineAreaPushButton': ('button', 'Line/Area Cuts', 'Pilatus', 'Makes the cut of each selected frame (or of the sum/map) and switches to the Line/Area Cuts tab'),
+    'gidWorksheetPushButton': ('button', 'Worksheet...', 'Pilatus > bottom, after GID Patch', "Opens the GID patching worksheet (was the drop-down's Worksheet)"),
     'tab_3': ('tab', 'Plot', 'Plot', 'Overlays x, y, (error) columns of any text files, with scaling, a derivative and the legacy peak fit'),
     'PlotMplWidget': ('plot', '', 'Plot', 'The selected files (scaled), any derivative or legacy fit'),
     'plotAddFilePushButton': ('button', 'Add Files', 'Plot', 'Adds text files to the list'),
@@ -424,7 +425,7 @@ INVENTORY = {
 
 COMBO_ITEMS = {
     'cutLegendLocComboBox': ['upper right', 'upper left', 'lower right', 'lower right', 'right', 'center left', 'center right', 'lower center', 'upper center', 'center'],
-    'gidComboBox': ['GID', 'GID Patch', 'GID Patch Relax', 'Save GID', 'Form Factor'],
+    'gidComboBox': ['GID', 'GID Patch Relax', 'Save GID', 'Form Factor'],
     'gisaxsComboBox': ['GISAXS', 'Show GISAXS', 'Save GISAXS'],
     'mcaLegendLocComboBox': ['upper right', 'upper left', 'lower right', 'lower right', 'right', 'center left', 'center right', 'lower center', 'upper center', 'center'],
     'mcaNormComboBox': ['Monc', 'Monb', 'Mond', 'None'],
