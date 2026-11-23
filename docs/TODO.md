@@ -85,6 +85,10 @@ working list, one table per area, each row with its source. Rows marked
 | Pilatus and Vortex in one scan | F53 |
 | Line markers, escape peaks — **new** (only in SCOPE's text) | F47, I14 |
 | Fluorescence burns (XFNTR 19, 20) | hand-off 07 |
+| F90, real-data half: the gauntlet's estimators on the owner's spectra (a strong elastic and Compton beside a weak line, plus a blank, pure water or subphase, at the same Qz and time); the synthetic half's verdict (C41) rests on the modelled O 1s Compton wing and Si escape — **new** | F90; C41 |
+| F90 candidates found by the synthetic half, none a default yet: line width fixed from the detector's resolution (calibrated on the elastic peak), Si escape stripping, a Poisson (model-weighted) per-spectrum step, a box short on the Compton side, a Compton-tail background term or a measured blank as a template — **new** | C41 |
+| "Fit lines" reports the tallest fitted peak (`mcaFitLines`: `r.peaks[0]`); once several lines are placed (escapes, neighbours, F93) it must report the element's line — **new** | C41 (read in `mainwindow.py`) |
+| A synthetic MCA series the reader opens (`synthetic_dataset.py --kind mca`, from `synthetic.mca`) — **new** | SYNTHETIC_DATA §5 |
 
 **D. Monitor, absorbers, normalisation**
 
@@ -708,7 +712,9 @@ reruns the quick, real-data and export-fixture checks, and commits.
       only `mca_save_point Point:p Scan:s` entries and separate files. Also for
       F90: one spectrum with a strong elastic peak and Compton shoulder beside a
       weak line (the Zn 8637 eV at 10 keV excitation case) and a note of the
-      detector's energy calibration. Mark private files as such (they stay under
+      detector's energy calibration, and if there is one a blank (pure water or
+      the subphase) at the same Qz and counting time: the synthetic half (C41)
+      shows the scatter's shape under the line decides F90. Mark private files as such (they stay under
       `sample_data/private/`).
 - [ ] Decide how sample data should be hosted (`bu` is 1.7 GB, local to the
       session only, git-ignored; NX school is committed at 104 MB).

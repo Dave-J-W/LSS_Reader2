@@ -89,6 +89,12 @@ container on 2026-11-23 with the defaults shown.
 | [Scan-shape fits of every column (survey)](#fit-scan-survey) | data | The scan-shape fit the SpecPlot shows (peak, edge, box, flat, weak) on every scan and column of a SPEC file, as CSV: what the fit rules decide and how long they take. | NX school by default; any SPEC file |  | `docs/comparisons_data/C37_fit_scan_new_nx.csv`<br>`docs/comparisons_data/C37_fit_scan_old_nx.csv` |
 | [Sample timeline: what a SPEC file holds](#timeline-survey) | text | Counts only, safe for private files: scans and their kinds, sample-height scans, motor redefinitions, sx changes, sample-environment columns (research for the timeline tab, F83). | NX school by default; any SPEC file |  | — |
 
+### Fluorescence (MCA)
+
+| Item | Kind | What it demonstrates | Data | Time | Committed products |
+|---|---|---|---|---|---|
+| [MCA line-fit gauntlet (synthetic, judged)](#mca-fit-gauntlet) | data | Fitted fluorescence lines against the window sum on synthetic MCA spectra with the beam's Rayleigh and Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), judged by hand-off 08's pull rule and a 1 % bias rule. | synthetic (public) |  | — |
+
 ### Synthetic data sets
 
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
@@ -720,6 +726,30 @@ Counts only, safe for private files: scans and their kinds, sample-height scans,
 
       python tests/tools/timeline_mock.py survey sample_data/NX_school/2026sep/20260923
 
+
+<a id="mca-fit-gauntlet"></a>
+
+### MCA line-fit gauntlet (synthetic, judged)
+
+Fitted fluorescence lines against the window sum on synthetic MCA spectra with the beam's Rayleigh and Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), judged by hand-off 08's pull rule and a 1 % bias rule.
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/mca_fit_gauntlet.py`
+- Explained in: `docs/FEATURE_REQUESTS.md:404`, `docs/SYNTHETIC_DATA.md:263`
+- Run:
+
+      python tests/tools/mca_fit_gauntlet.py --out '{out}' --design core --replicates 50
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Full gauntlet (as committed) | Core, grid, random and series designs with the key estimators: the run behind C41 (about 25 min on 4 CPUs). | `docs/FEATURE_REQUESTS.md:404` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design all --replicates 200` |
+| Every estimator | The core conditions with the other backgrounds (linear, cubic) and a spectrum fitted alone with its own error. | `tests/tools/mca_fit_gauntlet.py` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design core --replicates 50 --methods all` |
+| Grid: the box | The fit range from ±1.5 to ±4 FWHM and short on the Compton side: the valence Compton tail curves across a wide box and a quadratic cannot follow it. | `tests/tools/mca_fit_gauntlet.py` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions box_1.5,box_3,box_4,box_3_1.5` |
+| Grid: the O 1s Compton wing | The core electrons' Compton wing at 2 to 20 % of the Compton photons: what breaks the fit first. | `tests/tools/mca_fit_gauntlet.py` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions compton_core_0.02,compton_core_0.05,compton_core_0.1,compton_core_0.2` |
+| Grid: Si escapes and stripping | Escape peaks at 0.3 to 5 × Reed's fraction, and stripping with the fraction half or twice the true one. | `tests/tools/mca_fit_gauntlet.py` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions escape_x0.3,escape_x1,escape_x5,escape_assumed_x0.5,escape_assumed_x2` |
+| Grid: counts and line/elastic | From 1e-2 to 1e-4 of the elastic and from 0.03 to 10 times the counts. | `tests/tools/mca_fit_gauntlet.py` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions ratio_0.01,ratio_0.003,ratio_0.0003,ratio_0.0001,counts_x0.1,counts_x10` |
+| XFNTR series | Whole XFNTR curves, smooth and hard: does each estimator keep the curve's shape where the elastic grows above Qc? | `tests/tools/mca_fit_gauntlet.py` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design series --replicates 50` |
 
 <a id="synthetic-dataset"></a>
 
