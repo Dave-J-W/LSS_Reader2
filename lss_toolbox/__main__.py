@@ -37,23 +37,34 @@ SKIP_TEXT = ('output.txt', 'log.txt', 'run.json')     # run logs, timings: diffe
 
 
 def audit(only=None, max_seconds=None, report=None):
-    """Rerun each item that has committed products with its defaults (into
-    run folders) and compare: every image with its committed counterpart,
-    pixel for pixel, and every table or text file byte for byte. The
-    measured staleness (git history only says what might have changed)."""
+    """Rerun each item that has committed products with the settings that
+    made them (into run folders) and compare: every image with its committed
+    counterpart, pixel for pixel, and every table or text file byte for
+    byte. Where images differ, the products' own commit is run here too (a
+    temporary git worktree), so that a change of code ('code') is told from
+    a committed figure drawn in another environment ('environment': the old
+    code here gives what the new code gives). The measured staleness; git
+    history only says what might have changed."""
     from . import compare, introspect, runner, staleness
     items = [t for t in catalog.TOOLS if t.runnable and t.committed and t.kind in ('figures', 'data')
              and (not only or t.id in only)
              and (max_seconds is None or (t.seconds is not None and t.seconds <= max_seconds))]
     specs = introspect.capture_parsers([t.script for t in items])
     lines = ['| Item | git says | Exit | Images same / differ / not made | Tables same / differ / not made | '
-             'Differences |', '|---|---|---|---|---|---|']
+             'Why images differ | Differences |', '|---|---|---|---|---|---|---|']
+
+    def same_file(a, b):
+        if os.path.splitext(a)[1].lower() in runner.IMAGES:
+            return compare.compare(a, b).state == 'same'
+        with open(a, 'rb') as fa, open(b, 'rb') as fb:
+            return fa.read() == fb.read()
+
     for t in items:
         st = staleness.product_status(t)
         run_dir, code = runner.run_item(t, specs[t.script], committed=True)
         new = runner.product_files(t, run_dir)
         old = runner.product_files(t, 'committed')
-        counts, notes = {}, []
+        counts, notes, differing = {}, [], []
         for kind in ('image', 'text'):
             def pick(d):
                 return {n: p for n, p in d.items() if (os.path.splitext(n)[1].lower() in runner.IMAGES) ==
@@ -65,17 +76,32 @@ def audit(only=None, max_seconds=None, report=None):
                     d = compare.compare(a[n], b[n])
                     ok = d.state == 'same'
                     text = d.text()
+                    if not ok:
+                        differing.append(n)
                 else:
-                    with open(a[n], 'rb') as fa, open(b[n], 'rb') as fb:
-                        ok = fa.read() == fb.read()
+                    ok = same_file(a[n], b[n])
                     text = 'differs'
                 same += ok
                 differ += not ok
                 if not ok:
                     notes.append('%s: %s' % (n, text))
             counts[kind] = '%d / %d / %d' % (same, differ, len(set(b) - set(a)))
-        lines.append('| %s | %s | %d | %s | %s | %s |' % (t.id, st.state, code, counts['image'], counts['text'],
-                                                         '; '.join(notes) or '—'))
+        why = '—'
+        if differing and st.products_commit:
+            # the products' own commit, run here: separates a change of code from a change of environment
+            old_dir = run_dir + '-at-' + st.products_commit[0][:7]
+            rec = runner.read_record(run_dir) or {}
+            args = [x.replace(run_dir, old_dir) for x in rec.get('args', [])]
+            rc = runner.run_item_at(t, st.products_commit[0], old_dir, args)
+            here = runner.product_files(t, old_dir) if rc == 0 else {}
+            kinds = {}
+            for n in differing:
+                k = runner.classify(False, same_file(here[n], old[n]) if n in here else None,
+                                    same_file(new[n], here[n]) if n in here else False)
+                kinds[k] = kinds.get(k, 0) + 1
+            why = ', '.join('%s %d' % kv for kv in sorted(kinds.items()))
+        lines.append('| %s | %s | %d | %s | %s | %s | %s |' % (t.id, st.state, code, counts['image'], counts['text'],
+                                                              why, '; '.join(notes) or '—'))
         print(lines[-1], flush=True)
         print('    run folder: %s' % run_dir, flush=True)
     if report:

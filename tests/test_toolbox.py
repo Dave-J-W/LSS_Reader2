@@ -278,3 +278,23 @@ def test_a_run_writes_its_record_and_output(parsers, tmp_path):
     env = runner.environment(run_dir)
     assert env['QT_QPA_PLATFORM'] == 'offscreen' and env['LSS_READER_LOG_DIR'].startswith(run_dir)
     assert 'QT_QPA_PLATFORM' not in runner.environment(run_dir, base={}, gui=True)
+
+
+def test_why_a_product_differs():
+    """The audit's verdict from three comparisons (2026-11-23: the
+    stray-light and beam figures differed only because they had been drawn
+    in another environment; the products' own commit, run here, gave what
+    the new code gives)."""
+    assert runner.classify(True, None, False) == 'current'
+    assert runner.classify(False, False, True) == 'environment'
+    assert runner.classify(False, True, False) == 'code'
+    assert runner.classify(False, False, False) == 'both'
+    assert runner.classify(False, None, False) == 'unknown'
+
+
+def test_a_run_records_its_environment(tmp_path):
+    rec = runner.write_record(str(tmp_path), 'x', 'tests/tools/spec_epoch.py', [], 'now')
+    env = rec['environment']
+    assert env['python'] and env['matplotlib'] and env['numpy']
+    assert runner.read_record(str(tmp_path))['environment'] == env
+
