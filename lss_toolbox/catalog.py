@@ -597,30 +597,33 @@ TOOLS = (
          'Fitted fluorescence lines against the window sum on synthetic MCA spectra with the beam\'s Rayleigh and '
          'Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), '
          'judged by hand-off 08\'s pull rule and a 1 % bias rule.',
-         docs=('docs/FEATURE_REQUESTS.md:404', 'docs/SYNTHETIC_DATA.md:263'),
+         committed=('docs/comparisons_data/mca_fit_gauntlet',),
+         docs=('docs/FEATURE_REQUESTS.md:404', 'docs/comparisons_data/mca_fit_gauntlet/summary.md',
+               'docs/COMPARISONS.md:95', 'docs/SYNTHETIC_DATA.md:263', 'docs/physics_notes.md:4849'),
          defaults={'--out': OUT, '--design': 'core', '--replicates': '50'},
          variations=(
              V('Full gauntlet (as committed)', 'Core, grid, random and series designs with the key estimators: the '
-               'run behind C41 (about 25 min on 4 CPUs).', 'docs/FEATURE_REQUESTS.md:404', design='all',
+               'run behind C42 (about 10 min on 4 CPUs).', 'docs/COMPARISONS.md:95', design='all',
                replicates='200'),
              V('Every estimator', 'The core conditions with the other backgrounds (linear, cubic) and a spectrum '
                'fitted alone with its own error.', 'tests/tools/mca_fit_gauntlet.py', methods='all'),
              V('Grid: the box', 'The fit range from ±1.5 to ±4 FWHM and short on the Compton side: the valence '
-               'Compton tail curves across a wide box and a quadratic cannot follow it.', 'tests/tools/mca_fit_gauntlet.py',
+               'Compton tail curves across a wide box and a quadratic cannot follow it.', 'docs/physics_notes.md:4899',
                design='grid', conditions='box_1.5,box_3,box_4,box_3_1.5'),
              V('Grid: the O 1s Compton wing', 'The core electrons\' Compton wing at 2 to 20 % of the Compton photons: '
-               'what breaks the fit first.', 'tests/tools/mca_fit_gauntlet.py', design='grid',
+               'what breaks the fit first.', 'docs/physics_notes.md:4894', design='grid',
                conditions='compton_core_0.02,compton_core_0.05,compton_core_0.1,compton_core_0.2'),
              V('Grid: Si escapes and stripping', 'Escape peaks at 0.3 to 5 × Reed\'s fraction, and stripping with '
-               'the fraction half or twice the true one.', 'tests/tools/mca_fit_gauntlet.py', design='grid',
+               'the fraction half or twice the true one.', 'docs/physics_notes.md:4916', design='grid',
                conditions='escape_x0.3,escape_x1,escape_x5,escape_assumed_x0.5,escape_assumed_x2'),
              V('Grid: counts and line/elastic', 'From 1e-2 to 1e-4 of the elastic and from 0.03 to 10 times the '
-               'counts.', 'tests/tools/mca_fit_gauntlet.py', design='grid',
+               'counts.', 'docs/physics_notes.md:4897', design='grid',
                conditions='ratio_0.01,ratio_0.003,ratio_0.0003,ratio_0.0001,counts_x0.1,counts_x10'),
              V('XFNTR series', 'Whole XFNTR curves, smooth and hard: does each estimator keep the curve\'s shape '
-               'where the elastic grows above Qc?', 'tests/tools/mca_fit_gauntlet.py', design='series'),
+               'where the elastic grows above Qc?', 'docs/physics_notes.md:4881', design='series'),
          ),
-         repo_ok=False, seconds=None),
+         committed_with={'--design': 'all', '--replicates': '200'},
+         repo_out='docs/comparisons_data/mca_fit_gauntlet', repo_ok=False, seconds=None),
 
     # ------------------------------------------------------------ the reader's window
     Tool('gui_screens', 'Screenshots of every area of the window', 'gui', 'figures',

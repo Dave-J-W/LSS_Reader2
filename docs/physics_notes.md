@@ -43,6 +43,7 @@ exists.
 | I30 | A figure tool is deterministic: rerun with the settings of its committed figures on unchanged code and inputs, it gives them back pixel for pixel (the measured test of staleness; a provenance stamp, where a tool prints its git revision, differs inside one small box) | `test_toolbox_gui.py::test_a_figure_tool_reproduces_its_committed_figures` (burn trends, 4 of 4); measured 2026-11-23: the ngui prototype screenshots 23 of 23, the fit demonstrator figures 6 of 6 |
 | I31 | A pinhole join factor (scans of a level, or Qz levels) is unbiased whatever the counts per bin: the likelihood of how each bin's counts split between the two sides (`pinhole.ratio_ml`, P46) gives back a known factor within ±0.1 % down to 0.026 counts per pixel; equal to the pooled ratio of a single bin | `test_pinhole.py::test_level_factor_is_unbiased_at_low_counts`, `test_ratio_ml_is_the_pooled_ratio_for_one_bin_and_recovers_a_scale` |
 | I32 | "Sum All" of Poisson frames (y = N·A/(M·g), σ = √N·A/(M·g)) equals ΣN/Σ(M/A·g) with σ = √ΣN/Σ(M/A·g), exactly; it is the mean of the per-frame values weighted by M/(A·g), and with equal monitors and absorbers the plain mean | `test_monc_normalised.py` (`test_sum_frames_is_the_counts_over_the_monitors`, `test_frames_with_absorbers_are_summed_by_their_effective_monitors`, `test_the_scripted_summed_cut_is_the_counts_over_the_monitors`, `test_the_windows_summed_cut_is_the_counts_over_the_monitors`) |
+| I33 | Every photon of a synthetic MCA spectrum lands in exactly one part: photopeak + tail + shelf + escape = the photons of each source (`synthetic.mca`, to 0.2 % where the channels cover everything); the gauntlet's truths rest on it (F90) | `test_synthetic_mca.py::test_every_photon_lands_in_one_part` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -4844,3 +4845,92 @@ the same way (C42).
    undersampled fringes are not a case to consider"), and `TODO.md` B
    strikes the row.
 6. and 7. **Parked** by Main.
+
+### 2026-11-23 — F90, the MCA line-fit gauntlet: synthetic half (tools man, for Main)
+
+Verified by: runs on synthetic spectra, `tests/tools/mca_fit_gauntlet.py
+--design all --replicates 200`, outputs in
+`docs/comparisons_data/mca_fit_gauntlet/`, C42; tests for the pieces,
+`test_mca_fit_gauntlet.py` and `test_synthetic_mca.py`. The generator's
+physics (`tests/synthetic/mca.py`) is textbook. Two of its sizes are from
+memory and are marked so there: the O 1s Compton wing (a hydrogenic
+impulse-approximation profile with p0 = Z_eff = 7.7 a.u., cut off at
+E0 − 0.532 keV) and Reed's escape fraction (0.10 % at 10 keV, 0.15 % at
+8.6 keV).
+
+**Question (owner, F90):** does a fitted line hold against the
+direct-beam scatter (Rayleigh, Compton), the hard case being Zn Kα under
+10 keV excitation? If it does, the window sum retires.
+
+**What lies under Zn Kα** (8.631 keV intensity-weighted, box ±2 FWHM =
+8.26–9.00 keV; 1e3 Zn photons on 1e6 elastic):
+- the valence Compton tail, rising as ΔE⁻⁶ toward the Compton peak at
+  9.81 keV (90°);
+- the elastic's Si escape at 8.26 keV, about as large as the line itself
+  (1015 counts against 887), and the Compton's broad escape at 8.07 keV;
+- the O 1s wing, which in a ±3 FWHM box gives about 14k counts, 16 times
+  the line;
+- shelves and tails;
+- with copper about, Cu Kα (8.048 keV) and Kβ (8.905 keV, inside the box).
+
+**Answer, synthetic.** Judged by hand-off 08's pull rule, or |bias| < 1 %
+against the true line.
+
+- **The window sum never holds once scatter lies under the box.** It
+  reads +21 % on the smooth baseline and +886 % in the hard case. It
+  distorts XFNTR curves: in the hard series the ratio to the truth runs
+  from 0.76 below Qc to over 1.5 above it. Side-band subtraction does
+  worse, because the bands sit on the curved Compton tail (about −60 %).
+- **The reader's "Fit lines" holds on a smooth background.** On the
+  smooth baseline it reads −0.4 %, with pull −0.1 / 1.03, and the smooth
+  XFNTR curve stays within 0.8 %. It also holds at FWHM 130–220 eV,
+  line/elastic down to 3e-3, Compton/Rayleigh 0.3, a 60° angle, Kβ ×1.25,
+  and series of 1 to 30 spectra.
+- **It does not hold against** (bias against the true line):
+
+  | Factor | Bias of the reader's fit |
+  |---|---|
+  | the elastic's Si escape at Reed's 0.1 % | +45 % (the free width trades off against it); with the centre fixed, −0.6 % |
+  | O 1s Compton wing at 2 % | −3.7 % |
+  | O 1s Compton wing at 20 % | −31 % |
+  | valence Doppler width 0.3 keV | −10 % |
+  | Neyman bias, 270 counts | −5.8 % |
+  | Neyman bias, 90 counts | −21 % |
+  | ±3 FWHM box (the Compton tail curves across it) | −3 % |
+  | calibration offset ±30 eV | ∓3 % |
+  | gain ±0.5 % | −3 % / +5.5 % |
+  | detector tail 3 % | −3.8 % |
+
+  None of the candidates handles the core wing either. The fixed width,
+  stripping and placed peaks all give −1.6 % at 2 % and −12 % at 20 %.
+- **Candidates** (not defaults; for Main to take to the owner):
+  - (1) **A Poisson (model-weighted) per-spectrum step**, which is
+    `fit_series`' linear step iterated with σ² ∝ the model, i.e. the
+    Poisson maximum likelihood. It removes the Neyman bias: −21 % → +3.6 %
+    at 90 counts, −5.8 % → +0.6 % at 270, and the weak XFNTR curve's
+    worst point 12.9 % → 1.4 %.
+  - (2) **The width fixed from the detector's resolution.** Calibrate the
+    noise on the elastic peak; the Fano term gives the rest. It passes
+    1 % tails, shelves, backgrounds and offsets up to 10 eV, which the
+    free width fails. A 3 % error in the assumed width costs 2.5 %.
+  - (3) **Si escape stripping** (subtract f(E + 1.740)·y(E + 1.740)), or
+    placing the escape peaks. Either cuts the escape bias to 3–4 %.
+    Stripping plus the fixed width passes both hard XFNTR curves (worst
+    points 0.74 % and 0.49 %), where every other estimator fails.
+  - (4) **A box of ±2 FWHM**, not ±3, when F90's editable box gets its
+    default.
+  - (5) **"Fit lines" must report the element's line**, not the tallest
+    peak (`mcaFitLines` takes `r.peaks[0]`), once several lines are
+    placed.
+- **Overall:** no estimator passes F90 on synthetic data. Of the
+  in-range random conditions (all features at once), the window passes
+  1 %, the reader's fit 28 %, the best candidate (stripping + fixed
+  width) 38 %.
+
+**What decides it on real data:** how large the elastic's escape peak and
+the Compton wing under the line really are. A blank (pure water or the
+subphase) at the same Qz measures both. It is passed to questor for
+`DATA_NEEDS.md` row 3 together with the owner's offered spectra. No
+default was changed.
+
+**Invariant:** I33 (the invariants table).

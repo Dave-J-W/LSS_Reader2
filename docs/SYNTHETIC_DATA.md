@@ -300,7 +300,7 @@ Assumptions, all from memory:
 
 With E0 = 10 keV, the elastic and Compton escapes (8.26 and 8.07 keV) and
 the core wing fall under Zn Kα: the hard case of F90. The gauntlet that
-uses it is `tests/tools/mca_fit_gauntlet.py` (COMPARISONS C41).
+uses it is `tests/tools/mca_fit_gauntlet.py` (COMPARISONS C42).
 
 **Growing files** (`synthetic.growing.Growing(src_spec, dst_dir,
 image_lag)`): `advance(n)`, `advance_to(scan, points)`, `flush_images()`,
