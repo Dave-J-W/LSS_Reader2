@@ -66,6 +66,7 @@ only by reading the merge.
 
 | id | Workflow |
 |---|---|
+| `day-ref` | A day of reflectivity at the beamline, in order (owner, 2026-11-23): the order of the workflows below and the decisions between them; not used in inventory entries |
 | `burn-ref` | Burn test on a reflectivity frame series (Pilatus ROI vs time) |
 | `burn-gid` | Burn test on repeated GID frames (intensity, position, width vs time) |
 | `burn-fluo` | Burn test on repeated fluorescence spectra (line intensity vs time) |

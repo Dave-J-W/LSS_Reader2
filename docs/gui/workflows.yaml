@@ -120,6 +120,148 @@ shared_steps:
       - "Colour limits are reset on every selection (code, imageSelectedScanChanged); see docs/gui/image_display.md"
 
 workflows:
+  - id: day-ref
+    name: A day of reflectivity at the beamline (the order of the workflows)
+    priority: 0
+    experiment: >
+      The owner's answer to Q-GEN-2 (2026-11-23), for a day of reflectivity
+      only: align the sample, check that its surface is flat, burn-test
+      unless a safe absorber is already known, measure, reduce, tune the
+      macro, recheck the surface every 30 min or after a large sx move,
+      compare the reduced curves for stability, and start again with the
+      next sample. Days with GID or fluorescence are still to be described.
+      Each step names the workflow of this map that carries it out.
+    recognised_by: >
+      not a series: the order of series in a SPEC file (half-cut or sh scans,
+      burn scans, reflectivity series, sh scans again) and the time between
+      them. Phase 3 (contextual GUIs, F73) would use it to offer the next
+      reduction.
+    known_from: ["owner 2026-11-23 (physics_notes, 'A typical reflectivity day'; F75-F80)"]
+    steps:
+      - id: day.open
+        uses: shared.open
+      - id: day.rough
+        do: "Rough alignment with a half-cut (workflow 'alignment'); to become a sample height scan with a horizontal beam, which also measures the beam profile. The sample-height offset is set to read zero on that scale"
+        where: SPEC (the scan); SpecPlot (looking at it)
+        controls: [scanListWidget, spXComboBox, spYComboBox]
+        user_decides: the height offset (set in SPEC)
+        automatic: no
+        could_be_automatic: the half-cut's edge and beam size fitted and shown (F43; lss_core half-cut fit built, no data yet)
+        known_from: owner 2026-11-23
+        issues: []
+      - id: day.sh
+        do: "Sample height scan at a fixed incident angle, sample and detector rising together (workflow 'alignment'); scans from a few places or conditions reviewed together by selecting them together"
+        where: SpecPlot (several scans selected)
+        controls: [scanListWidget, spYComboBox, spNCheckBox]
+        user_decides: "whether the surface is flat enough: FWHM about 65 µm or more (up to about 110 µm in the 89 mm trough), flatter than a Gaussian ('more squashed than a gaussian')"
+        automatic: no
+        could_be_automatic: a super-Gaussian fit with FWHM and exponent, flagged against 65 µm, beside the sample's earlier sh scans (F78)
+        known_from: owner 2026-11-23
+        decision: "Surface flat enough?"
+        goto: {"no: another place or a new preparation": day.rough}
+        issues:
+          - "Only the shape is judged today, by eye; no number is given for width or flatness"
+      - id: day.burn-known
+        do: "Is a safe absorber already established (effectively no change over about 400 s, proven, not predicted)? Then no burn test"
+        where: the user's knowledge (no record in the reader)
+        controls: []
+        user_decides: whether to burn-test
+        automatic: no
+        could_be_automatic: "the safe absorbers established earlier in the beamtime, kept per sample, subphase and energy (owner 2026-11-23: they 'depend heavily on the sample and the subphase and energy but per beamtime there is no change'), offered when a new sample starts"
+        known_from: owner 2026-11-23
+        decision: "Burn test needed?"
+        goto: {"no: a safe absorber is known": day.macro}
+        issues: []
+      - id: day.burn
+        do: "Burn test (workflow 'burn-ref'): click the burn scan, Select All, Burn Test; change the absorber and repeat until there is effectively no change over about 400 s; tell a changing sample from beam damage"
+        where: left panel; Pilatus tab > Burn Test; Burn test dialog
+        controls: [scanListWidget, imageSelectAllCheckBox, pilBurnPushButton, burnResultLabel]
+        user_decides: the next absorber; whether the sample is changing by itself
+        automatic: partly
+        could_be_automatic: burns at several absorbers compared on dose and time axes (F76); barrier, tensiometer and oxygen beside the trend (F75); a safe absorber predicted from a short high-flux test (F77, research)
+        known_from: owner 2026-11-23
+        decision: "No change over about 400 s?"
+        goto: {"no: change the absorber, repeat": day.burn}
+        issues:
+          - "Three actions in three places (scan list, Select All, a Pilatus-tab button) before any result"
+      - id: day.macro
+        do: "Run the macro of the main experiment (reflectivity here; GID or XFNTR on other days) for a first data set"
+        where: SPEC
+        controls: []
+        user_decides: the macro and its parameters
+        automatic: no
+        could_be_automatic: ""
+        known_from: owner 2026-11-23
+        issues: []
+      - id: day.reduce
+        do: "Reduce (workflow 'reflectivity'): select the scans, Select All, Ref Patch, review the joins; Qc of water unless the subphase is lighter or denser; Qoff tweaked until R/R_F is continuous apart from one or two outliers"
+        where: left panel; Pilatus tab > Ref Patch; Ref Patch window; Reflectivity tab
+        controls: [scanListWidget, seriesComboBox, imageSelectAllCheckBox, pilRefPatchPushButton, refpatch.nextPushButton, refQcLineEdit, refQoffLineEdit, refRRFCheckBox]
+        user_decides: Qc, Qoff, the joins
+        automatic: partly
+        could_be_automatic: the whole series and its frames taken in one action (D55 Series list exists); Qoff proposed from continuity, Qc from the subphase (F79)
+        known_from: owner 2026-11-23
+        decision: "R/R_F continuous?"
+        goto: {"no: change Qoff or Qc": day.reduce}
+        issues:
+          - "The owner selects the scans by hand, then Select All: the Series list (D55) selects a whole series in one action but is new and not yet tried by people (owner 2026-11-23); frames still need Select All"
+          - "Qc is the subphase's ('pure water is not very interesting and does not pay the bills'), close to water's ('rarely very wrong, depending on which decimal place'); the third digit still moves the level of R/R_F by about four times its relative size (physics_notes 2026-11-23)"
+      - id: day.stats
+        do: "Decide whether the statistics are good enough; if not, repeat the macro (several scans) and have the reader sum the repeats' ROIs"
+        where: SPEC (the repeat); Ref Patch identical-scans step (the merge)
+        controls: [refpatchsamescan.mergePushButton]
+        user_decides: whether to repeat, and whether to sum the repeats
+        automatic: no
+        could_be_automatic: repeats recognised and summed by counts and monitors by default, the choice shown (F81)
+        known_from: owner 2026-11-23
+        decision: "Statistics good enough?"
+        goto: {"no: repeat the macro": day.macro}
+        issues:
+          - "The merge of identical scans averages the per-monitor curves with equal weights (code, pilRefSSMerge), rather than summing counts and monitors"
+      - id: day.tune
+        do: "Tune the macro from the result: counting times for reflectivity, which angles to search for GID"
+        where: SPEC
+        controls: []
+        user_decides: counting times, angles
+        automatic: no
+        could_be_automatic: counting time per segment proposed from the counts and errors of the first data set (guess)
+        known_from: owner 2026-11-23
+        issues: []
+      - id: day.recheck
+        do: "After 30 min or more, or a large sx change: another sample height scan, judged as before"
+        where: SPEC; SpecPlot
+        controls: [scanListWidget, spYComboBox]
+        user_decides: whether to continue on this place
+        automatic: no
+        could_be_automatic: a reminder from the time since the last sh scan or a large sx change (live mode)
+        known_from: owner 2026-11-23
+        decision: "Surface checked recently enough?"
+        goto: {"no: 30 min or more, or a large sx move": day.sh}
+        issues: []
+      - id: day.compare
+        do: "Keep measuring; compare reduced curves from different places and over time to check that the sample is stable"
+        where: Reflectivity tab (Add Files) or the workbook
+        controls: [refAddFilePushButton, refRefFileListWidget]
+        user_decides: whether the sample is stable
+        automatic: no
+        could_be_automatic: the workbook's saved reflectivities overlaid by series, time or sx in one action, with ratios (F80)
+        known_from: owner 2026-11-23
+        issues: []
+      - id: day.change
+        do: "Sample change: the chamber is opened (the oxygen in the trough enclosure rises; some chambers have no sensor), the shutter closed and the hutch opened, tensiometer readings taken, the barrier moved"
+        where: the hutch
+        controls: []
+        user_decides: when to change
+        automatic: no
+        could_be_automatic: oxygen, tensiometer and barrier read from the SPEC file once written per point (F75)
+        known_from: owner 2026-11-23
+        decision: "Next sample?"
+        goto: {"yes: start again": day.rough}
+        issues: []
+    outputs: ["the workbook: burn tests, reflectivities and sh scans of the day, in time order"]
+    scripted_as: "none (an order of workflows)"
+    questions: [Q-GEN-2]
+
 
   # ------------------------------------------------------------------ burn tests
   - id: burn-ref
@@ -133,7 +275,12 @@ workflows:
       Purpose: whether the specular ROI intensity changes with time under
       the beam, i.e. whether the exposure planned for the reflectivity
       run damages the film (owner, D54). No real reflectivity burn is in
-      the repository; a synthetic one (tau = 400 s) is.
+      the repository; a synthetic one (tau = 400 s) is. Owner 2026-11-23:
+      after the first burn, the absorber is changed and the test repeated
+      until there is effectively no change over about 400 s (proven, not
+      predicted); once an absorber level is established, burn tests are not
+      repeated, so they do not always precede the real data. Sometimes the
+      sample changes by itself and is not being burnt.
     recognised_by: >
       series kind 'burn' (`series.is_burn`: ascan ih, start = end, >= 3
       points, owner 2026-11-21) with Pilatus frames; reflectivity geometry
@@ -154,7 +301,9 @@ workflows:
           - "The list does not say whether the burn is at reflectivity or GID geometry"
       - id: burn-ref.frames
         uses: shared.frames
+        do: "Select All frames of the burn scan (owner 2026-11-23: click the burn scan, Select All, then Burn Test)"
         user_decides: all frames (usual); leaving frames out is possible
+        known_from: owner 2026-11-23; code
       - id: burn-ref.roi
         do: Set the ROI and background used for the burn (the reflectivity ROI) and the direct-beam position
         where: Reflectivity tab (ROI fields) and Pilatus tab (DB Pos, bad pixels)
@@ -191,15 +340,25 @@ workflows:
         do: "Read the verdict: stable (a constant fits as well as a line) or changing, the best model, the 95 % confident time to a 5 % change"
         where: Burn test dialog > Trends (summary beside the panel; details in the label's tooltip)
         controls: [burnResultLabel, burnTrendPlotWidget]
-        user_decides: whether the planned exposure is acceptable (counting time, absorbers, whether to move the sample)
+        user_decides: "which absorber to change to and repeat, until no change over about 400 s (owner 2026-11-23); whether the sample is changing by itself rather than being damaged"
         automatic: partly
         could_be_automatic: state the verdict against the planned reflectivity exposure (needs the plan; F39 macro lines)
         known_from: owner 2026-11-21 ("flat line as good as a line means a good regime"; "a confident time for < 5 % change")
-        decision: "Stable over the planned exposure?"
-        goto: {"no: change exposure or spot": burn-ref.series}
+        decision: "No change over about 400 s?"
+        goto: {"no: change the absorber and repeat": burn-ref.series}
         issues:
-          - "No dose axis: burns at different absorbers cannot be put on one curve (TODO, hand-off 07)"
-          - "How the verdict feeds the next measurement is not recorded (see Q-BURN-1)"
+          - "No dose axis: burns at different absorbers cannot be put on one curve (TODO, hand-off 07; F76)"
+          - "The barrier position, tensiometer and oxygen readings are not shown beside the trend (F75)"
+      - id: burn-ref.compare
+        do: "Compare the burns at different absorbers: a change that follows the dose is beam damage, one that follows time is the sample itself"
+        where: not in the reader (one burn dialog at a time)
+        controls: []
+        user_decides: damage or a changing sample; which absorber is safe
+        automatic: no
+        could_be_automatic: the burns of a sample on dose and time axes in one view (F76); a safe absorber predicted from a short high-flux test (F77, research)
+        known_from: owner 2026-11-23 (the need); physics_notes 2026-11-23 (dose versus time, a derivation)
+        issues:
+          - "Needs several burn scans in one analysis; the dialog refuses frames of several scans"
       - id: burn-ref.legacy
         do: Optionally look at the legacy REF burn plot
         where: Burn test dialog > Legacy
@@ -406,7 +565,10 @@ workflows:
       Pilatus frame per point (NX school: scans 6-9, 96 frames, alignment
       4, 5, 10). Absorbers change only when counting statistics have
       dropped by more than 100 x; overlaps are not placed across the
-      critical edge (owner, 2026-11-22). The reader sums the specular ROI
+      critical edge (owner, 2026-11-22). The first data set follows the
+      burn test (or a known safe absorber); the macro is then tuned
+      (counting times), and reduced curves from different places and over
+      time are compared for stability (owner, 2026-11-23). The reader sums the specular ROI
       minus background per frame per Monc, patches the segments by
       fitting a factor at each overlap (joint fit default since
       2026-11-22), normalises below Qc, and writes R and R/R_F for xmodfit.
@@ -424,19 +586,22 @@ workflows:
       - id: ref.series
         uses: shared.series
         do: "Choose the reflectivity series ('reflectivity 4/?: S# 6-9') or click one of its scans"
-        known_from: run 2026-11-22; test tests/test_gui_series.py
+        known_from: run 2026-11-22; test tests/test_gui_series.py; owner 2026-11-23 (selects the scans by hand today)
+        issues:
+          - "The owner selects the scans one by one: the Series list (D55) does it in one action but is new and not yet tried by people (owner 2026-11-23)"
       - id: ref.frames
         uses: shared.frames
-        do: Select all frames of the series (NX 6-9 - 96 frames)
-        known_from: test tests/test_real_nx_school.py
+        do: Select all frames of the series (NX 6-9 - 96 frames) with Select All
+        known_from: test tests/test_real_nx_school.py; owner 2026-11-23
+        could_be_automatic: Ref Patch takes every frame of the selected scans itself (one action fewer)
       - id: ref.check
         do: Optionally check the ROI frame by frame - Reflectivity opens the Ref tab with the frames by Qz, the ROI image, Analyze / Accept / Analyze All
         where: Pilatus tab > Reflectivity; Reflectivity tab
         controls: [pilRefPushButton, refQzListWidget, refSlitLineEdit, refBGOffLineEdit, refBGDirComboBox, refCenCheckBox, refCenLineEdit, refSeaWinLineEdit, refBPCFacLineEdit, refAnalyzePushButton, refAcceptPushButton, refAnalyzeAllPushButton]
         user_decides: ROI size, background offset and direction, centre (from SPEC or typed), search window
         automatic: no
-        could_be_automatic: ROI close-up of every frame with the box and background boxes drawn, flags on frames whose beam is off by > 2 px (F71)
-        known_from: code (refPlotWin, refAnalyze); guess (how often it is used)
+        could_be_automatic: "a movie of the frames zoomed to the region around the ROI, on a log or other nonlinear scale, keeping zoom and colour mode while it plays (owner 2026-11-23: 'If there was a slick way to show a movie of it ... we might do it more often'); ROI close-up with the box and background boxes drawn, flags on frames whose beam is off by > 2 px (F71)"
+        known_from: "code (refPlotWin, refAnalyze); owner 2026-11-23 (done, but mostly when something is weird and the data must be verified; the routine path is Ref Patch)"
         issues:
           - "Two entry points with similar names: 'Reflectivity' (frame-by-frame analysis) and 'Ref Patch' (the reduction); the ROI fields used by both live on the Reflectivity tab"
           - "The ROI default in the .ui is 61,31 and is overwritten to 21,11 when a Pilatus file opens (code); the script default is 21,11"
@@ -491,12 +656,15 @@ workflows:
         do: The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files
         where: Reflectivity tab (Ref / Norm Ref lists, plot)
         controls: [refDataListWidget, refNormRefListWidget, refRRFCheckBox, refQcLineEdit, refQoffLineEdit, refLogYCheckBox, refQzSqrCheckBox, refNormFacCheckBox, refNormLineEdit, refDelPushButton, refRefFileListWidget, refAddFilePushButton, refRemoveFilePushButton, refLegendCheckBox]
-        user_decides: Qc (0.0217 preset, i.e. water), Qoff (hand-typed, F42), reference curves to compare
+        user_decides: "Qc (0.0217 preset: water, the same Qc at every energy, physics_notes 2026-11-23; changed for lighter or denser subphases); Qoff tweaked until R/R_F is continuous apart from one or two outliers (owner 2026-11-23); reference curves to compare"
         automatic: partly
-        could_be_automatic: Qoff from the sh-scan images before the run (F42); Qc from the subphase
-        known_from: code (updateRefPlotData); test tests/test_gui_workflows.py (tab 3 after Finish)
+        could_be_automatic: Qoff proposed from the continuity of R/R_F across the joins, Qc from the subphase (F79); Qoff from the sh-scan images (F42)
+        known_from: code (updateRefPlotData); test tests/test_gui_workflows.py (tab 3 after Finish); owner 2026-11-23
+        decision: "R/R_F continuous?"
+        goto: {"no: change Qoff or Qc": ref.view}
         issues:
           - "Qc and Qoff change the R/R_F file but are typed fields among display options"
+          - "Qoff is found by trial: type, press Enter, look, repeat"
       - id: ref.export
         do: Export - <name>_ref.txt and <name>_rrf.txt (Q, R, sigma); the Script pane records exp.reflectivity(...)
         where: Reflectivity tab > Export
@@ -511,6 +679,16 @@ workflows:
         uses: shared.workbook
         controls: [refSaveWorkbookPushButton]
         known_from: test tests/test_real_nx_school.py (reflectivity saved to the workbook)
+      - id: ref.compare
+        do: "Compare reduced curves from different places on the sample and over time, to check that it is stable"
+        where: "Reflectivity tab (Add Files: the exported _ref.txt files)"
+        controls: [refAddFilePushButton, refRefFileListWidget, refRemoveFilePushButton]
+        user_decides: whether the sample is stable
+        automatic: no
+        could_be_automatic: the workbook's saved reflectivities overlaid by series, time or sx in one action, with ratios to the first (F80)
+        known_from: owner 2026-11-23 (the need; which tab is used is a guess)
+        issues:
+          - "Comparing means exporting, then adding the files back"
       - id: ref.live
         uses: shared.live
         do: With Live on, the open Reflectivity curve follows its series as segments arrive (remade from the recipe)
@@ -560,10 +738,13 @@ workflows:
         do: Select all frames of the levels
       - id: gid.look
         uses: shared.frames-look
-        do: Look at single frames (optional); the Pinhole box gives display and cuts the pinhole geometry
+        do: "Watch the raw frames as a movie (often, owner 2026-11-23): real GID peaks stay at the same 2θ as the detector angle changes, other junk does not; zoomed, with zoom and colour mode kept while the frames play. The Pinhole box gives display and cuts the pinhole geometry"
         controls: [pilAxesComboBox, pilLogIntCheckBox, pilMinLineEdit, pilMaxLineEdit, pilCMapComboBox, pilPinholeCheckBox, pilMoviePushButton]
-        known_from: code; owner 2026-11-18 (D40)
+        user_decides: which features are real peaks (fixed in 2θ) and which are junk
+        could_be_automatic: a movie drawn on a common 2θ axis with the zoom fixed in angle, so real peaks stand still and detector-fixed junk moves (image_display M7); sticky zoom and scale (M2, F69, F70)
+        known_from: code; owner 2026-11-18 (D40); owner 2026-11-23 (the movie and why)
         issues:
+          - "Movie today blocks the window (0.5 s per frame), cannot be paused, resets the zoom and leaves the Axes box at Q (image_display.md)"
           - "Two pinhole switches: the Pilatus tab's 'Pinhole' (display and cuts) and the worksheet's 'Pinhole: angle per column' (the patch)"
       - id: gid.background
         do: Optionally subtract background frames (add selected frames to the background list, factor, ignore negatives)
@@ -941,13 +1122,24 @@ workflows:
   - id: alignment
     name: SpecPlot of motor scans (alignment)
     priority: 6
-    experiment: "sh / oh / ih / chi / th scans, slit scans, half-cuts (F43, planned); counters against a motor"
+    experiment: >
+      sh / oh / ih / chi / th scans, slit scans, half-cuts; counters against a
+      motor. Owner 2026-11-23: each sample starts with a rough alignment by a
+      half-cut (to become a sample height scan with a horizontal beam, which
+      also measures the beam profile), the height offset set to read zero;
+      then a sample height scan at a fixed incident angle, sample and
+      detector rising together, judges how flat the surface is. It is the
+      surface curvature convolved with the beam profile (the reflected-beam
+      ROI on the Pilatus): wide and smooth, flat-topped (super-Gaussian) when
+      good, Gaussian-like when possibly unusable. Repeated after 30 min or
+      more, or a large sx change.
     recognised_by: "role 'align' in a series (#U Series role=align) or an alignment scan attached to a guessed series; any scan with columns"
-    known_from: ["code", "owner 2026-11-18 (F55)", "owner 2026-11-19 (F43, F22a 5)", "tests/test_gui_workflows.py"]
+    known_from: ["code", "owner 2026-11-18 (F55)", "owner 2026-11-19 (F43, F22a 5)", "owner 2026-11-23 (the typical day)", "tests/test_gui_workflows.py"]
     steps:
       - id: align.select
         uses: shared.series
-        do: Click the scan (alignment scans are selected alone)
+        do: "Click the scan; several sample height scans (places, conditions) are selected together to compare them on one plot (owner 2026-11-23)"
+        known_from: owner 2026-11-23; code
       - id: align.plot
         do: Choose X, Y, Y2 and the normaliser; log, grid, legend, point labels; the fit (peak, edge or plateau) is in the title
         where: SpecPlot tab
@@ -957,6 +1149,18 @@ workflows:
         could_be_automatic: remember the columns per scan command (sh scan - Pilatus/Monc)
         known_from: code; test tests/test_gui_workflows.py (motor scan plotted and fitted)
         issues: []
+      - id: align.sh-judge
+        do: "Judge a sample height scan: wide enough, flat-topped (super-Gaussian) rather than Gaussian-like; compare with the sample's earlier sh scans"
+        where: SpecPlot
+        controls: [spYComboBox, spNCheckBox]
+        user_decides: whether to continue at this place, move, or prepare a new sample
+        automatic: no
+        could_be_automatic: a super-Gaussian fit (width, exponent) beside the earlier sh scans of the sample (F78); for a half-cut, the edge and beam size (F43)
+        known_from: owner 2026-11-23
+        decision: "Surface flat enough?"
+        goto: {"no: move or re-prepare": align.select}
+        issues:
+          - "The title shows the fit chosen by fit_scan (peak, edge or plateau), not a flatness measure"
       - id: align.export
         do: Export or Save
         where: SpecPlot tab

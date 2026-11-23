@@ -46,6 +46,9 @@ working list, one table per area, each row with its source. Rows marked
 | Same-absorber scans share a factor: send the question to the hand-off author — **new** | F41 |
 | Qz offset from sh-scan images — **new** | F42 |
 | Per-second option — **new** | F20 |
+| Qoff proposed from the continuity of R/R_F across the joins (robust to one or two outliers); Qc from a subphase list or typed electron density — **new** 2026-11-23 | F79; F42 |
+| Saved reflectivities of the workbook overlaid by series, time or sx, with ratios, to check stability — **new** 2026-11-23 | F80 |
+| Repeated macros summed by counts and monitors (the identical-scans merge averages with equal weights today) — **new** 2026-11-23 | F81; physics_notes 2026-11-23 |
 | ORSO, HDF5 export; steps and parameters recorded — **new** (F30) | F25, F30, R7 |
 | Synthetic K = 3–5 generator; hand-off tests 2–6 | hand-off §5; input 4 |
 | Tell users which old reductions to redo (non-zero absorbers before P24; bu files at 6.21/7.51/9.9 keV before F49): a release note and a manual line — **new** | TODO Stage 2 list; P24, F49 |
@@ -90,6 +93,7 @@ working list, one table per area, each row with its source. Rows marked
 |---|---|
 | ~~Fix `series.infer`: `#V` hklscans as xfntr, `escan` as energy; series lines and inference together; `SeriesMacro` attached~~ **done 2026-11-21** (`series.all_series`) | review §3, §4 R1 |
 | ~~Series in the scan list; select a series as one action~~ **done 2026-11-21** (Series list; whole series selected on a click by default, D55) | F39; Stage 3; review R2 |
+| The Series list has not yet been tried by people (owner, 2026-11-23: reflectivity scans are selected one by one because it "is a new feature and hasn't been known or tested by humans yet"): a first trial at the beamline, then its questions — **new** | D55; owner 2026-11-23 |
 | Contextual reduction from `kind` (offer, not run); the burn test for burn scans | F60; review R4 |
 | ~~Automatic saving of every finished reduction~~ **done 2026-11-22** (D56), the prerequisite the owner set before L1–L4 | owner |
 | ~~Live refresh L1–L4~~ **built 2026-11-22** (D57): Live box (L1), remake from recipes (L2: reflectivity, fluorescence, GID map, burn), selection follows a whole series (L3), stop at a lined series' end (L4). Done since: remakes in a worker thread, point selections carried over, updates without a reset (2026-11-22). Done since: the open display redrawn from a remade result (Reflectivity, MCA integrals, burn dialog, GID map; 2026-11-22). Remaining: recipes for cuts, fitted MCA lines and SpecPlot curves; stop after a quiet spell for guessed series; a test of the MCA redraw on a fluorescence series | F1–F5 |
@@ -113,6 +117,10 @@ working list, one table per area, each row with its source. Rows marked
 | Burn trends: tests and extensions (ten items) | hand-off 07, Stage 2 list |
 | Half-cut fit for the beam profile on real data | F43; input 16 |
 | Remaining characterisation tests: GISAXS, g_l2/g_l3, absorber-ratio fits, legacy peak-fit dialog, 2D plot tab | Carried-over list |
+| Sample-environment readings (barrier, tensiometer, oxygen) as extra panels beside burn trends; synthetic columns until the macros write them — **new** 2026-11-23 | F75 |
+| Burns at several absorbers on dose and time axes: beam damage or a changing sample — **new** 2026-11-23 | F76; physics_notes 2026-11-23 |
+| Predicting a safe absorber from a short high-flux burn (research; needs burn pairs at two fluxes) — **new** 2026-11-23 | F77 |
+| Sample height scan: super-Gaussian fit (width, exponent) beside the sample's earlier sh scans; verdict thresholds from the owner. Check first what the "Main" session's commit 35f41c3 (flat and weak sh scans not fitted) already does — **new** 2026-11-23 | F78; F43 |
 
 **H. Detectors and inputs (Stage 4)**: 1M (F17–F19, F38, D11), 100K/200K
 models (F33), ME7 tab (F34, F35), new-format SPEC (F28), HDF5 (F29). All

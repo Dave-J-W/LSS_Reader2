@@ -6,26 +6,102 @@ In the flowcharts, rounded green boxes are steps that are automatic today; diamo
 
 | Workflow | Priority | Steps | Automatic today (yes / partly / no) | Issues |
 |---|---|---|---|---|
-| [burn-ref](#burn-ref) | 1 | 10 | 4 / 4 / 2 | 16 |
+| [day-ref](#day-ref) | 0 | 12 | 0 / 3 / 9 | 7 |
+| [burn-ref](#burn-ref) | 1 | 11 | 4 / 4 / 3 | 17 |
 | [burn-gid](#burn-gid) | 1 | 11 | 4 / 5 / 2 | 12 |
 | [burn-fluo](#burn-fluo) | 1 | 7 | 0 / 3 / 4 | 9 |
-| [reflectivity](#reflectivity) | 2 | 14 | 4 / 5 / 5 | 19 |
-| [gid](#gid) | 3 | 14 | 1 / 8 / 5 | 16 |
+| [reflectivity](#reflectivity) | 2 | 15 | 4 / 5 / 6 | 19 |
+| [gid](#gid) | 3 | 14 | 1 / 8 / 5 | 17 |
 | [xfntr](#xfntr) | 4 | 13 | 2 / 4 / 7 | 12 |
 | [exafs](#exafs) | 5 | 7 | 1 / 2 / 4 | 9 |
 | [gisaxs](#gisaxs) | 6 | 3 | 0 / 0 / 3 | 3 |
 | [cuts](#cuts) | 6 | 4 | 0 / 2 / 2 | 4 |
-| [alignment](#alignment) | 6 | 4 | 0 / 2 / 2 | 3 |
+| [alignment](#alignment) | 6 | 5 | 0 / 2 / 3 | 4 |
 | [mca-look](#mca-look) | 6 | 3 | 0 / 0 / 3 | 2 |
 | [flex-plot](#flex-plot) | 6 | 2 | 0 / 0 / 2 | 0 |
 | [session](#session) | 6 | 9 | 4 / 3 / 2 | 10 |
+
+<a id="day-ref"></a>
+## day-ref — A day of reflectivity at the beamline (the order of the workflows)
+
+**Priority** 0. **Known from:** owner 2026-11-23 (physics_notes, 'A typical reflectivity day'; F75-F80).
+
+**Experiment.** The owner's answer to Q-GEN-2 (2026-11-23), for a day of reflectivity only: align the sample, check that its surface is flat, burn-test unless a safe absorber is already known, measure, reduce, tune the macro, recheck the surface every 30 min or after a large sx move, compare the reduced curves for stability, and start again with the next sample. Days with GID or fluorescence are still to be described. Each step names the workflow of this map that carries it out.
+
+**Recognised by.** not a series: the order of series in a SPEC file (half-cut or sh scans, burn scans, reflectivity series, sh scans again) and the time between them. Phase 3 (contextual GUIs, F73) would use it to offer the next reduction.
+
+**Outputs:** the workbook: burn tests, reflectivities and sh scans of the day, in time order. **Script:** `none (an order of workflows)`. **Questions:** Q-GEN-2.
+
+```mermaid
+flowchart TD
+    day_open["open: Open the SPEC file (File &gt; Open Spec File); the scans, the…"]
+    day_rough["rough: Rough alignment with a half-cut (workflow 'alignment'); to…"]
+    day_sh["sh: Sample height scan at a fixed incident angle, sample and de…"]
+    day_sh_d{"Surface flat enough?"}
+    day_burn_known["burn-known: Is a safe absorber already established (effectively no chan…"]
+    day_burn_known_d{"Burn test needed?"}
+    day_burn["burn: Burn test (workflow 'burn-ref'): click the burn scan, Selec…"]
+    day_burn_d{"No change over about 400 s?"}
+    day_macro["macro: Run the macro of the main experiment (reflectivity here; GI…"]
+    day_reduce["reduce: Reduce (workflow 'reflectivity'): select the scans, Select…"]
+    day_reduce_d{"R/R_F continuous?"}
+    day_stats["stats: Decide whether the statistics are good enough; if not, repe…"]
+    day_stats_d{"Statistics good enough?"}
+    day_tune["tune: Tune the macro from the result: counting times for reflecti…"]
+    day_recheck["recheck: After 30 min or more, or a large sx change: another sample…"]
+    day_recheck_d{"Surface checked recently enough?"}
+    day_compare["compare: Keep measuring; compare reduced curves from different place…"]
+    day_change["change: Sample change: the chamber is opened (the oxygen in the tro…"]
+    day_change_d{"Next sample?"}
+    day_open --> day_rough
+    day_rough --> day_sh
+    day_sh --> day_sh_d
+    day_sh_d -- "no: another place or a new preparation" --> day_rough
+    day_sh_d -- "yes" --> day_burn_known
+    day_burn_known --> day_burn_known_d
+    day_burn_known_d -- "no: a safe absorber is known" --> day_macro
+    day_burn_known_d -- "yes" --> day_burn
+    day_burn --> day_burn_d
+    day_burn_d -- "no: change the absorber, repeat" --> day_burn
+    day_burn_d -- "yes" --> day_macro
+    day_macro --> day_reduce
+    day_reduce --> day_reduce_d
+    day_reduce_d -- "no: change Qoff or Qc" --> day_reduce
+    day_reduce_d -- "yes" --> day_stats
+    day_stats --> day_stats_d
+    day_stats_d -- "no: repeat the macro" --> day_macro
+    day_stats_d -- "yes" --> day_tune
+    day_tune --> day_recheck
+    day_recheck --> day_recheck_d
+    day_recheck_d -- "no: 30 min or more, or a large sx move" --> day_sh
+    day_recheck_d -- "yes" --> day_compare
+    day_compare --> day_change
+    day_change --> day_change_d
+    day_change_d -- "yes: start again" --> day_rough
+    classDef auto fill:#e6f4ea,stroke:#4a8;
+```
+
+| Step | Do | Where | Controls | User decides | Automatic | Could be automatic | Known from | Issues |
+|---|---|---|---|---|---|---|---|---|
+| day.open (shared.open) | Open the SPEC file (File > Open Spec File); the scans, the series and the detector folders are read | File menu | `actionOpen_Spec_File` | which SPEC file | partly | reopen the last file and its workbook settings (F66 to-do); offer the series' reductions at once (F60) | code; run 2026-11-22 | Opening a file with Pilatus images presets the reflectivity ROI (21,11), the background offset (0.5), Qc (0.0217) and the absorber factor (code, openSpecFile ~l.744); nothing on screen says so<br>A missing detector folder opens a directory chooser (F27) |
+| day.rough | Rough alignment with a half-cut (workflow 'alignment'); to become a sample height scan with a horizontal beam, which also measures the beam profile. The sample-height offset is set to read zero on that scale | SPEC (the scan); SpecPlot (looking at it) | `scanListWidget`, `spXComboBox`, `spYComboBox` | the height offset (set in SPEC) | no | the half-cut's edge and beam size fitted and shown (F43; lss_core half-cut fit built, no data yet) | owner 2026-11-23 |  |
+| day.sh | Sample height scan at a fixed incident angle, sample and detector rising together (workflow 'alignment'); scans from a few places or conditions reviewed together by selecting them together | SpecPlot (several scans selected) | `scanListWidget`, `spYComboBox`, `spNCheckBox` | whether the surface is flat enough: FWHM about 65 µm or more (up to about 110 µm in the 89 mm trough), flatter than a Gaussian ('more squashed than a gaussian') | no | a super-Gaussian fit with FWHM and exponent, flagged against 65 µm, beside the sample's earlier sh scans (F78) | owner 2026-11-23 | Only the shape is judged today, by eye; no number is given for width or flatness |
+| day.burn-known | Is a safe absorber already established (effectively no change over about 400 s, proven, not predicted)? Then no burn test | the user's knowledge (no record in the reader) |  | whether to burn-test | no | the safe absorbers established earlier in the beamtime, kept per sample, subphase and energy (owner 2026-11-23: they 'depend heavily on the sample and the subphase and energy but per beamtime there is no change'), offered when a new sample starts | owner 2026-11-23 |  |
+| day.burn | Burn test (workflow 'burn-ref'): click the burn scan, Select All, Burn Test; change the absorber and repeat until there is effectively no change over about 400 s; tell a changing sample from beam damage | left panel; Pilatus tab > Burn Test; Burn test dialog | `scanListWidget`, `imageSelectAllCheckBox`, `pilBurnPushButton`, `burnResultLabel` | the next absorber; whether the sample is changing by itself | partly | burns at several absorbers compared on dose and time axes (F76); barrier, tensiometer and oxygen beside the trend (F75); a safe absorber predicted from a short high-flux test (F77, research) | owner 2026-11-23 | Three actions in three places (scan list, Select All, a Pilatus-tab button) before any result |
+| day.macro | Run the macro of the main experiment (reflectivity here; GID or XFNTR on other days) for a first data set | SPEC |  | the macro and its parameters | no |  | owner 2026-11-23 |  |
+| day.reduce | Reduce (workflow 'reflectivity'): select the scans, Select All, Ref Patch, review the joins; Qc of water unless the subphase is lighter or denser; Qoff tweaked until R/R_F is continuous apart from one or two outliers | left panel; Pilatus tab > Ref Patch; Ref Patch window; Reflectivity tab | `scanListWidget`, `seriesComboBox`, `imageSelectAllCheckBox`, `pilRefPatchPushButton`, `refpatch.nextPushButton`, `refQcLineEdit`, `refQoffLineEdit`, `refRRFCheckBox` | Qc, Qoff, the joins | partly | the whole series and its frames taken in one action (D55 Series list exists); Qoff proposed from continuity, Qc from the subphase (F79) | owner 2026-11-23 | The owner selects the scans by hand, then Select All: the Series list (D55) selects a whole series in one action but is new and not yet tried by people (owner 2026-11-23); frames still need Select All<br>Qc is the subphase's ('pure water is not very interesting and does not pay the bills'), close to water's ('rarely very wrong, depending on which decimal place'); the third digit still moves the level of R/R_F by about four times its relative size (physics_notes 2026-11-23) |
+| day.stats | Decide whether the statistics are good enough; if not, repeat the macro (several scans) and have the reader sum the repeats' ROIs | SPEC (the repeat); Ref Patch identical-scans step (the merge) | `refpatchsamescan.mergePushButton` | whether to repeat, and whether to sum the repeats | no | repeats recognised and summed by counts and monitors by default, the choice shown (F81) | owner 2026-11-23 | The merge of identical scans averages the per-monitor curves with equal weights (code, pilRefSSMerge), rather than summing counts and monitors |
+| day.tune | Tune the macro from the result: counting times for reflectivity, which angles to search for GID | SPEC |  | counting times, angles | no | counting time per segment proposed from the counts and errors of the first data set (guess) | owner 2026-11-23 |  |
+| day.recheck | After 30 min or more, or a large sx change: another sample height scan, judged as before | SPEC; SpecPlot | `scanListWidget`, `spYComboBox` | whether to continue on this place | no | a reminder from the time since the last sh scan or a large sx change (live mode) | owner 2026-11-23 |  |
+| day.compare | Keep measuring; compare reduced curves from different places and over time to check that the sample is stable | Reflectivity tab (Add Files) or the workbook | `refAddFilePushButton`, `refRefFileListWidget` | whether the sample is stable | no | the workbook's saved reflectivities overlaid by series, time or sx in one action, with ratios (F80) | owner 2026-11-23 |  |
+| day.change | Sample change: the chamber is opened (the oxygen in the trough enclosure rises; some chambers have no sensor), the shutter closed and the hutch opened, tensiometer readings taken, the barrier moved | the hutch |  | when to change | no | oxygen, tensiometer and barrier read from the SPEC file once written per point (F75) | owner 2026-11-23 |  |
 
 <a id="burn-ref"></a>
 ## burn-ref — Burn test on a reflectivity frame series
 
 **Priority** 1. **Known from:** owner 2026-11-21 (D54, physics_notes "Burn tests"); code; tests/test_gui_burn_trends.py; docs/handoff_out/07-burn-trends.md.
 
-**Experiment.** The sample is held at one reflectivity condition (Det_Th 0, one Qz, one absorber setting) and exposed repeatedly; the standard burn scan is `ascan ih a a n t`, a motor scan that does not move (owner, 2026-11-21), with one Pilatus frame per point (e.g. 21 frames). Purpose: whether the specular ROI intensity changes with time under the beam, i.e. whether the exposure planned for the reflectivity run damages the film (owner, D54). No real reflectivity burn is in the repository; a synthetic one (tau = 400 s) is.
+**Experiment.** The sample is held at one reflectivity condition (Det_Th 0, one Qz, one absorber setting) and exposed repeatedly; the standard burn scan is `ascan ih a a n t`, a motor scan that does not move (owner, 2026-11-21), with one Pilatus frame per point (e.g. 21 frames). Purpose: whether the specular ROI intensity changes with time under the beam, i.e. whether the exposure planned for the reflectivity run damages the film (owner, D54). No real reflectivity burn is in the repository; a synthetic one (tau = 400 s) is. Owner 2026-11-23: after the first burn, the absorber is changed and the test repeated until there is effectively no change over about 400 s (proven, not predicted); once an absorber level is established, burn tests are not repeated, so they do not always precede the real data. Sometimes the sample changes by itself and is not being burnt.
 
 **Recognised by.** series kind 'burn' (`series.is_burn`: ascan ih, start = end, >= 3 points, owner 2026-11-21) with Pilatus frames; reflectivity geometry when Det_Th is about 0 (`burn.is_gid` false). With macros writing `#U Series kind=burn`, the kind is given, not guessed. Detector Pilatus; all frames at one Qz and one Qxy (the window checks this).
 
@@ -35,12 +111,13 @@ In the flowcharts, rounded green boxes are steps that are automatic today; diamo
 flowchart TD
     burn_ref_open["open: Open the SPEC file (File &gt; Open Spec File); the scans, the…"]
     burn_ref_series["series: Choose the burn series ('burn 1/?: S# n') or click the burn…"]
-    burn_ref_frames["frames: Select the frames (Pilatus) or spectra (MCA) of the selecte…"]
+    burn_ref_frames["frames: Select All frames of the burn scan (owner 2026-11-23: click…"]
     burn_ref_roi(["roi: Set the ROI and background used for the burn (the reflectiv…"])
     burn_ref_dialog(["dialog: Open the burn test; it opens on the Trends tab, already ana…"])
     burn_ref_options(["options: Choose the models, the time axis, the errors and the change…"])
     burn_ref_judge["judge: Read the verdict: stable (a constant fits as well as a line…"]
-    burn_ref_judge_d{"Stable over the planned exposure?"}
+    burn_ref_judge_d{"No change over about 400 s?"}
+    burn_ref_compare["compare: Compare the burns at different absorbers: a change that fol…"]
     burn_ref_legacy["legacy: Optionally look at the legacy REF burn plot"]
     burn_ref_save(["save: The analysis is saved automatically (kind 'burn test', Data…"])
     burn_ref_live["live: With Live on, a burn scan that is still being written is re…"]
@@ -51,8 +128,9 @@ flowchart TD
     burn_ref_dialog --> burn_ref_options
     burn_ref_options --> burn_ref_judge
     burn_ref_judge --> burn_ref_judge_d
-    burn_ref_judge_d -- "no: change exposure or spot" --> burn_ref_series
-    burn_ref_judge_d -- "yes" --> burn_ref_legacy
+    burn_ref_judge_d -- "no: change the absorber and repeat" --> burn_ref_series
+    burn_ref_judge_d -- "yes" --> burn_ref_compare
+    burn_ref_compare --> burn_ref_legacy
     burn_ref_legacy --> burn_ref_save
     burn_ref_save --> burn_ref_live
     classDef auto fill:#e6f4ea,stroke:#4a8;
@@ -63,11 +141,12 @@ flowchart TD
 |---|---|---|---|---|---|---|---|---|
 | burn-ref.open (shared.open) | Open the SPEC file (File > Open Spec File); the scans, the series and the detector folders are read | File menu | `actionOpen_Spec_File` | which SPEC file | partly | reopen the last file and its workbook settings (F66 to-do); offer the series' reductions at once (F60) | code; run 2026-11-22 | Opening a file with Pilatus images presets the reflectivity ROI (21,11), the background offset (0.5), Qc (0.0217) and the absorber factor (code, openSpecFile ~l.744); nothing on screen says so<br>A missing detector folder opens a directory chooser (F27) |
 | burn-ref.series (shared.series) | Choose the burn series ('burn 1/?: S# n') or click the burn scan | left panel | `seriesComboBox`, `seriesWholeCheckBox`, `scanListWidget`, `scansLineEdit` | which burn scan; whether it is a reflectivity or a GID burn is not shown in the list | partly | select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3) | run 2026-11-22 (NX file lists 'burn 1/?: S# 14' and 'burn 1/?: S# 15'); code | Nothing offers the burn test when a burn series is chosen (TODO: offer it automatically, F60)<br>The list does not say whether the burn is at reflectivity or GID geometry |
-| burn-ref.frames (shared.frames) | Select the frames (Pilatus) or spectra (MCA) of the selected scans; Select All for all of them | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual); leaving frames out is possible | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | code; test tests/test_gui_workflows.py | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
+| burn-ref.frames (shared.frames) | Select All frames of the burn scan (owner 2026-11-23: click the burn scan, Select All, then Burn Test) | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual); leaving frames out is possible | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | owner 2026-11-23; code | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
 | burn-ref.roi | Set the ROI and background used for the burn (the reflectivity ROI) and the direct-beam position | Reflectivity tab (ROI fields) and Pilatus tab (DB Pos, bad pixels) | `refSlitLineEdit`, `refBGOffLineEdit`, `refBGDirComboBox`, `pilSpecCheckBox`, `pilDBPosLineEdit`, `pilBPCiteSpinBox`, `pilBPCfacSpinBox` | ROI size (default 21,11 px), background offset (0.5 deg) and direction (H); DB position from SPEC (default) or typed | yes | ROI close-up of the frames with the box drawn (F71), in the burn dialog itself | code (burnArguments reads the Reflectivity tab's fields) | The burn ROI is set on the Reflectivity tab, which the burn dialog neither shows nor mentions: a hidden dependency across tabs<br>No view of the ROI on the frames before the analysis (F71) |
 | burn-ref.dialog | Open the burn test; it opens on the Trends tab, already analysed | Pilatus tab > Burn Test; Burn test dialog | `pilBurnPushButton`, `burnTabWidget`, `burnTrendPlotWidget`, `burnResultLabel` |  | yes | open (or offer) it when a burn series is selected (F60) | test tests/test_gui_burn_trends.py; code (pilBurnTest) | Refused with a message when frames of several scans or several Qz are selected; comparing two burns needs two dialogs one after the other<br>Burn Test sits on the Pilatus tab among GID/GISAXS/cut actions |
 | burn-ref.options | Choose the models, the time axis, the errors and the change threshold; Analyse re-runs | Burn test dialog > Trends | `burnConstantCheckBox`, `burnLinearCheckBox`, `burnExponentialCheckBox`, `burnDoubleExponentialCheckBox`, `burnTimeComboBox`, `burnErrorsComboBox`, `burnThresholdSpinBox`, `burnAnalysePushButton` | models (all four by default), time clock (default, owner 2026-11-21) or exposure, errors auto (counting for reflectivity), threshold 5 % | yes |  | owner 2026-11-21 (D54: four models by AICc, 5 %, wall time); test tests/test_gui_burn_trends.py | Options are kept as a preference, so a changed threshold silently carries over to the next burn (code, burnOptions) |
-| burn-ref.judge | Read the verdict: stable (a constant fits as well as a line) or changing, the best model, the 95 % confident time to a 5 % change | Burn test dialog > Trends (summary beside the panel; details in the label's tooltip) | `burnResultLabel`, `burnTrendPlotWidget` | whether the planned exposure is acceptable (counting time, absorbers, whether to move the sample) | partly | state the verdict against the planned reflectivity exposure (needs the plan; F39 macro lines) | owner 2026-11-21 ("flat line as good as a line means a good regime"; "a confident time for < 5 % change") | No dose axis: burns at different absorbers cannot be put on one curve (TODO, hand-off 07)<br>How the verdict feeds the next measurement is not recorded (see Q-BURN-1) |
+| burn-ref.judge | Read the verdict: stable (a constant fits as well as a line) or changing, the best model, the 95 % confident time to a 5 % change | Burn test dialog > Trends (summary beside the panel; details in the label's tooltip) | `burnResultLabel`, `burnTrendPlotWidget` | which absorber to change to and repeat, until no change over about 400 s (owner 2026-11-23); whether the sample is changing by itself rather than being damaged | partly | state the verdict against the planned reflectivity exposure (needs the plan; F39 macro lines) | owner 2026-11-21 ("flat line as good as a line means a good regime"; "a confident time for < 5 % change") | No dose axis: burns at different absorbers cannot be put on one curve (TODO, hand-off 07; F76)<br>The barrier position, tensiometer and oxygen readings are not shown beside the trend (F75) |
+| burn-ref.compare | Compare the burns at different absorbers: a change that follows the dose is beam damage, one that follows time is the sample itself | not in the reader (one burn dialog at a time) |  | damage or a changing sample; which absorber is safe | no | the burns of a sample on dose and time axes in one view (F76); a safe absorber predicted from a short high-flux test (F77, research) | owner 2026-11-23 (the need); physics_notes 2026-11-23 (dose versus time, a derivation) | Needs several burn scans in one analysis; the dialog refuses frames of several scans |
 | burn-ref.legacy | Optionally look at the legacy REF burn plot | Burn test dialog > Legacy | `pdburn.refPushButton` |  | no |  | code (pilRefBurn); test tests/test_gui_burn_trends.py | The legacy tab's REF button and GID list are actions on the Legacy tab only; their use today is unknown (Q-BURN-4) |
 | burn-ref.save (shared.workbook) | The analysis is saved automatically (kind 'burn test', Data and Trends sheets); Save adds a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `burnSavePushButton` | whether to add a 'user' version with a note | yes |  | owner 2026-11-22 (D56); test tests/test_gui_workbook.py (burn saved when done) | Automatic saves report in the status bar only; there is no view of the workbook inside the reader |
 | burn-ref.live (shared.live) | With Live on, a burn scan that is still being written is re-analysed as frames arrive (the open dialog follows) | left panel, beside Update Specfile | `liveCheckBox`, `speUpSpeFilePushButton` | live on or off | partly | turn Live on when the file is still growing (a series 'in progress') | test tests/test_gui_live.py (a growing burn scan is remade live) | Live stops by itself only for series with #U Series lines (L4); guessed series need a manual untick |
@@ -171,7 +250,7 @@ flowchart TD
 
 **Priority** 2. **Known from:** owner 2026-11-14/15 (PROJECT_CONTEXT, F24); owner 2026-11-22 (absorbers and patching); code; tests/test_gui_workflows.py; tests/test_real_nx_school.py; run 2026-11-22.
 
-**Experiment.** A macro runs a series of `hklscan 0 0 0 0 qz1 qz2 n t` segments in Qz, each at an absorber setting chosen so the ROI does not saturate, with alignment scans (sh/oh a2scan) before and between segments; one Pilatus frame per point (NX school: scans 6-9, 96 frames, alignment 4, 5, 10). Absorbers change only when counting statistics have dropped by more than 100 x; overlaps are not placed across the critical edge (owner, 2026-11-22). The reader sums the specular ROI minus background per frame per Monc, patches the segments by fitting a factor at each overlap (joint fit default since 2026-11-22), normalises below Qc, and writes R and R/R_F for xmodfit.
+**Experiment.** A macro runs a series of `hklscan 0 0 0 0 qz1 qz2 n t` segments in Qz, each at an absorber setting chosen so the ROI does not saturate, with alignment scans (sh/oh a2scan) before and between segments; one Pilatus frame per point (NX school: scans 6-9, 96 frames, alignment 4, 5, 10). Absorbers change only when counting statistics have dropped by more than 100 x; overlaps are not placed across the critical edge (owner, 2026-11-22). The first data set follows the burn test (or a known safe absorber); the macro is then tuned (counting times), and reduced curves from different places and over time are compared for stability (owner, 2026-11-23). The reader sums the specular ROI minus background per frame per Monc, patches the segments by fitting a factor at each overlap (joint fit default since 2026-11-22), normalises below Qc, and writes R and R/R_F for xmodfit.
 
 **Recognised by.** series kind 'reflectivity': consecutive hklscans (no `#V`) whose Qz ranges move up and overlap or touch (`series.infer`), alignment scans attached as 'align'; or `#U Series kind=reflectivity`. Detector Pilatus at Det_Th about 0 (beam on the recorded DBPos).
 
@@ -181,7 +260,7 @@ flowchart TD
 flowchart TD
     ref_open["open: Open the SPEC file; with Pilatus images the ROI 21x11, back…"]
     ref_series["series: Choose the reflectivity series ('reflectivity 4/?: S# 6-9')…"]
-    ref_frames["frames: Select all frames of the series (NX 6-9 - 96 frames)"]
+    ref_frames["frames: Select all frames of the series (NX 6-9 - 96 frames) with S…"]
     ref_check["check: Optionally check the ROI frame by frame - Reflectivity open…"]
     ref_options(["options: Set the options that change the per-frame signal (low-Qz sl…"])
     ref_errors(["errors: Choose the error model (Legacy default, or Budget with a mo…"])
@@ -191,8 +270,10 @@ flowchart TD
     ref_join["join: For each join: the overlap plotted with the factor that Nex…"]
     ref_join_d{"Factor acceptable at this join?"}
     ref_view["view: The patched curve on the Reflectivity tab - R or R/R_F, Qc,…"]
+    ref_view_d{"R/R_F continuous?"}
     ref_export["export: Export - &lt;name&gt;_ref.txt and &lt;name&gt;_rrf.txt (Q, R, sigma); t…"]
     ref_save(["save: The finished reduction is saved into &lt;SPEC file&gt;_reader.xls…"])
+    ref_compare["compare: Compare reduced curves from different places on the sample…"]
     ref_live["live: With Live on, the open Reflectivity curve follows its serie…"]
     ref_downstream["downstream: Fit the exported curve in xmodfit"]
     ref_open --> ref_series
@@ -209,9 +290,12 @@ flowchart TD
     ref_join_d -- "drop points" --> ref_join
     ref_join_d -- "use known ratio" --> ref_join
     ref_join_d -- "yes" --> ref_view
-    ref_view --> ref_export
+    ref_view --> ref_view_d
+    ref_view_d -- "no: change Qoff or Qc" --> ref_view
+    ref_view_d -- "yes" --> ref_export
     ref_export --> ref_save
-    ref_save --> ref_live
+    ref_save --> ref_compare
+    ref_compare --> ref_live
     ref_live --> ref_downstream
     classDef auto fill:#e6f4ea,stroke:#4a8;
     class ref_options,ref_errors,ref_patch,ref_save auto;
@@ -220,17 +304,18 @@ flowchart TD
 | Step | Do | Where | Controls | User decides | Automatic | Could be automatic | Known from | Issues |
 |---|---|---|---|---|---|---|---|---|
 | ref.open (shared.open) | Open the SPEC file; with Pilatus images the ROI 21x11, background offset 0.5, Qc 0.0217 and the absorber factor are preset | File menu | `actionOpen_Spec_File` | which SPEC file | partly | reopen the last file and its workbook settings (F66 to-do); offer the series' reductions at once (F60) | code; run 2026-11-22 (21,11 and 0.0217 after opening the NX file) | Opening a file with Pilatus images presets the reflectivity ROI (21,11), the background offset (0.5), Qc (0.0217) and the absorber factor (code, openSpecFile ~l.744); nothing on screen says so<br>A missing detector folder opens a directory chooser (F27) |
-| ref.series (shared.series) | Choose the reflectivity series ('reflectivity 4/?: S# 6-9') or click one of its scans | left panel | `seriesComboBox`, `seriesWholeCheckBox`, `scanListWidget`, `scansLineEdit` | which series (or scans by number); Whole series on (default) or off | partly | select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3) | run 2026-11-22; test tests/test_gui_series.py | The Series list is a combo box with a placeholder first item ('Series: choose to select its scans'); the list of series is not visible at a glance (run 2026-11-22)<br>Guessed series have n unknown ('4/?'); the kind is only a guess until the macros write #U Series (handoff_out/05)<br>Selecting a scan always switches to the SpecPlot tab (code, scanListChanged), whatever the workflow |
-| ref.frames (shared.frames) | Select all frames of the series (NX 6-9 - 96 frames) | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual) or a subset (left out of the reduction, kept in remakes) | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | test tests/test_real_nx_school.py | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
-| ref.check | Optionally check the ROI frame by frame - Reflectivity opens the Ref tab with the frames by Qz, the ROI image, Analyze / Accept / Analyze All | Pilatus tab > Reflectivity; Reflectivity tab | `pilRefPushButton`, `refQzListWidget`, `refSlitLineEdit`, `refBGOffLineEdit`, `refBGDirComboBox`, `refCenCheckBox`, `refCenLineEdit`, `refSeaWinLineEdit`, `refBPCFacLineEdit`, `refAnalyzePushButton`, `refAcceptPushButton`, `refAnalyzeAllPushButton` | ROI size, background offset and direction, centre (from SPEC or typed), search window | no | ROI close-up of every frame with the box and background boxes drawn, flags on frames whose beam is off by > 2 px (F71) | code (refPlotWin, refAnalyze); guess (how often it is used) | Two entry points with similar names: 'Reflectivity' (frame-by-frame analysis) and 'Ref Patch' (the reduction); the ROI fields used by both live on the Reflectivity tab<br>The ROI default in the .ui is 61,31 and is overwritten to 21,11 when a Pilatus file opens (code); the script default is 21,11 |
+| ref.series (shared.series) | Choose the reflectivity series ('reflectivity 4/?: S# 6-9') or click one of its scans | left panel | `seriesComboBox`, `seriesWholeCheckBox`, `scanListWidget`, `scansLineEdit` | which series (or scans by number); Whole series on (default) or off | partly | select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3) | run 2026-11-22; test tests/test_gui_series.py; owner 2026-11-23 (selects the scans by hand today) | The owner selects the scans one by one: the Series list (D55) does it in one action but is new and not yet tried by people (owner 2026-11-23) |
+| ref.frames (shared.frames) | Select all frames of the series (NX 6-9 - 96 frames) with Select All | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual) or a subset (left out of the reduction, kept in remakes) | no | Ref Patch takes every frame of the selected scans itself (one action fewer) | test tests/test_real_nx_school.py; owner 2026-11-23 | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
+| ref.check | Optionally check the ROI frame by frame - Reflectivity opens the Ref tab with the frames by Qz, the ROI image, Analyze / Accept / Analyze All | Pilatus tab > Reflectivity; Reflectivity tab | `pilRefPushButton`, `refQzListWidget`, `refSlitLineEdit`, `refBGOffLineEdit`, `refBGDirComboBox`, `refCenCheckBox`, `refCenLineEdit`, `refSeaWinLineEdit`, `refBPCFacLineEdit`, `refAnalyzePushButton`, `refAcceptPushButton`, `refAnalyzeAllPushButton` | ROI size, background offset and direction, centre (from SPEC or typed), search window | no | a movie of the frames zoomed to the region around the ROI, on a log or other nonlinear scale, keeping zoom and colour mode while it plays (owner 2026-11-23: 'If there was a slick way to show a movie of it ... we might do it more often'); ROI close-up with the box and background boxes drawn, flags on frames whose beam is off by > 2 px (F71) | code (refPlotWin, refAnalyze); owner 2026-11-23 (done, but mostly when something is weird and the data must be verified; the routine path is Ref Patch) | Two entry points with similar names: 'Reflectivity' (frame-by-frame analysis) and 'Ref Patch' (the reduction); the ROI fields used by both live on the Reflectivity tab<br>The ROI default in the .ui is 61,31 and is overwritten to 21,11 when a Pilatus file opens (code); the script default is 21,11 |
 | ref.options | Set the options that change the per-frame signal (low-Qz slit correction, merge same Qz, bad-pixel correction, DB position) | Pilatus tab | `pilLowQzCorCheckBox`, `pilMergeSameQzCheckBox`, `pilBPCiteSpinBox`, `pilBPCfacSpinBox`, `pilSpecCheckBox`, `pilDBPosLineEdit` | usually the defaults (guess) | yes |  | code | Low Qz Corr. is applied to the first frame of each scan regardless of the box (P18, as coded) |
 | ref.errors (shared.errors) | Choose the error model (Legacy default, or Budget with a monitor model) | Errors pane (dock) | `errorModeComboBox`, `monitorKindComboBox`, `errorModel_sigma` | Legacy (default, byte-identical files) or Budget | yes |  | owner 2026-11-17 (D20, D22, D26); code | A global setting in a dock, far from the reductions it changes; which default the export should use is open (TODO B) |
 | ref.patch | Ref Patch - one point per frame (ROI minus background per Monc), scans sorted by Qz; pop-ups for beams > 2 px off and bad pixels in the ROI | Pilatus tab > Ref Patch | `pilRefPatchPushButton`, `commandLineEdit` |  | yes | offer Ref Patch when a reflectivity series is selected (F60) | code (pilRefPatchData); test tests/test_real_nx_school.py | The beam-offset and bad-pixel tables are modal dialogs (pilPeakCenDialog, pilBadPixDialog) that interrupt the patch |
 | ref.same | When identical scans (same Qz range and points) are found - merge them, drop some, or patch them regularly | identical-scans dialog | `refpatchsamescan.mergePushButton`, `refpatchsamescan.dropPushButton`, `refpatchsamescan.dropLineEdit`, `refpatchsamescan.nextPushButton` | merge (repeats), drop, or patch (default) | no | merge repeats by default when they agree within errors | code (pilRefPatchData, pilRefSameScan) | Announced by a message, then a dialog; the default ('regular patch') is stated only in the message |
 | ref.join | For each join: the overlap plotted with the factor that Next will use (joint fit), the known foil ratio offered; drop points; Next / Finish! | Ref Patch dialog (one per join) | `refpatch.nextPushButton`, `refpatch.dropPushButton`, `refpatch.dropLineEdit`, `refpatch.knownRatioCheckBox`, `refpatch.knownRatioLabel`, `prefPatchMethodComboBox`, `prefPatchAutoCheckBox`, `prefPatchThresholdSpinBox` | accept the fitted factor or use the known ratio; which points to drop (typed indices) | partly | accept every join whose fit passes its guard and agrees with the foils, and show only the doubtful ones (owner 2026-11-18 F58 - known ratio automatic where plainly better) | owner 2026-11-18 (F58), owner 2026-11-22 (joint fit default); test tests/test_gui_workflows.py, tests/test_known_ratio_patch.py | One dialog per join (3 for NX 6-9); the method preference is in File > Preferences, not in the dialog<br>Dropped points are typed as indices, deleted from the arrays, not drawn, no undo (F16, D2) |
-| ref.view | The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files | Reflectivity tab (Ref / Norm Ref lists, plot) | `refDataListWidget`, `refNormRefListWidget`, `refRRFCheckBox`, `refQcLineEdit`, `refQoffLineEdit`, `refLogYCheckBox`, `refQzSqrCheckBox`, `refNormFacCheckBox`, `refNormLineEdit`, `refDelPushButton`, `refRefFileListWidget`, `refAddFilePushButton`, `refRemoveFilePushButton`, `refLegendCheckBox` | Qc (0.0217 preset, i.e. water), Qoff (hand-typed, F42), reference curves to compare | partly | Qoff from the sh-scan images before the run (F42); Qc from the subphase | code (updateRefPlotData); test tests/test_gui_workflows.py (tab 3 after Finish) | Qc and Qoff change the R/R_F file but are typed fields among display options |
+| ref.view | The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files | Reflectivity tab (Ref / Norm Ref lists, plot) | `refDataListWidget`, `refNormRefListWidget`, `refRRFCheckBox`, `refQcLineEdit`, `refQoffLineEdit`, `refLogYCheckBox`, `refQzSqrCheckBox`, `refNormFacCheckBox`, `refNormLineEdit`, `refDelPushButton`, `refRefFileListWidget`, `refAddFilePushButton`, `refRemoveFilePushButton`, `refLegendCheckBox` | Qc (0.0217 preset: water, the same Qc at every energy, physics_notes 2026-11-23; changed for lighter or denser subphases); Qoff tweaked until R/R_F is continuous apart from one or two outliers (owner 2026-11-23); reference curves to compare | partly | Qoff proposed from the continuity of R/R_F across the joins, Qc from the subphase (F79); Qoff from the sh-scan images (F42) | code (updateRefPlotData); test tests/test_gui_workflows.py (tab 3 after Finish); owner 2026-11-23 | Qc and Qoff change the R/R_F file but are typed fields among display options<br>Qoff is found by trial: type, press Enter, look, repeat |
 | ref.export | Export - <name>_ref.txt and <name>_rrf.txt (Q, R, sigma); the Script pane records exp.reflectivity(...) | Reflectivity tab > Export | `refExportPushButton`, `refCovarianceCheckBox` | file name; whether to write the covariance sidecars (+ covariance, off by default) | no | name from the sample and series (guess) | code (saveRefData, saveRefCovariance); tests/test_ref_export_golden.py, tests/test_gui_covariance_export.py; docs docs/SCRIPTING.md | The covariance sidecars (F24) exist since 2026-11-22 behind '+ covariance', which sits after the workbook Save although it modifies Export; the contract's corrected/legacy pair is for scripts only (TODO B2) |
 | ref.save (shared.workbook) | The finished reduction is saved into <SPEC file>_reader.xlsx automatically; Save stores a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `refSaveWorkbookPushButton` | whether to add a 'user' version with a note | yes |  | test tests/test_real_nx_school.py (reflectivity saved to the workbook) | Automatic saves report in the status bar only; there is no view of the workbook inside the reader |
+| ref.compare | Compare reduced curves from different places on the sample and over time, to check that it is stable | Reflectivity tab (Add Files: the exported _ref.txt files) | `refAddFilePushButton`, `refRefFileListWidget`, `refRemoveFilePushButton` | whether the sample is stable | no | the workbook's saved reflectivities overlaid by series, time or sx in one action, with ratios to the first (F80) | owner 2026-11-23 (the need; which tab is used is a guess) | Comparing means exporting, then adding the files back |
 | ref.live (shared.live) | With Live on, the open Reflectivity curve follows its series as segments arrive (remade from the recipe) | left panel, beside Update Specfile | `liveCheckBox`, `speUpSpeFilePushButton` | live on or off | partly | turn Live on when the file is still growing (a series 'in progress') | test tests/test_gui_live.py (the open reflectivity follows its series) | Live stops by itself only for series with #U Series lines (L4); guessed series need a manual untick |
 | ref.downstream | Fit the exported curve in xmodfit | outside the reader |  |  | no |  | owner 2026-11-14 (PROJECT_CONTEXT - fitting in xmodfit) |  |
 
@@ -250,7 +335,7 @@ flowchart TD
     gid_open["open: Open the SPEC file (File &gt; Open Spec File); the scans, the…"]
     gid_series["series: Choose the GID series ('gid 2/? (partial): S# 11-12')"]
     gid_frames["frames: Select all frames of the levels"]
-    gid_look["look: Look at single frames (optional); the Pinhole box gives dis…"]
+    gid_look["look: Watch the raw frames as a movie (often, owner 2026-11-23):…"]
     gid_background["background: Optionally subtract background frames (add selected frames…"]
     gid_settings["settings: Open the worksheet (GID menu &gt; Worksheet) and check the set…"]
     gid_patch["patch: GID Patch (or GID Patch Relax for the larger Q grid) - the…"]
@@ -286,7 +371,7 @@ flowchart TD
 | gid.open (shared.open) | Open the SPEC file (File > Open Spec File); the scans, the series and the detector folders are read | File menu | `actionOpen_Spec_File` | which SPEC file | partly | reopen the last file and its workbook settings (F66 to-do); offer the series' reductions at once (F60) | code; run 2026-11-22 | Opening a file with Pilatus images presets the reflectivity ROI (21,11), the background offset (0.5), Qc (0.0217) and the absorber factor (code, openSpecFile ~l.744); nothing on screen says so<br>A missing detector folder opens a directory chooser (F27) |
 | gid.series (shared.series) | Choose the GID series ('gid 2/? (partial): S# 11-12') | left panel | `seriesComboBox`, `seriesWholeCheckBox`, `scanListWidget`, `scansLineEdit` | which series (or scans by number); Whole series on (default) or off | partly | select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3) | run 2026-11-22 | The Series list is a combo box with a placeholder first item ('Series: choose to select its scans'); the list of series is not visible at a glance (run 2026-11-22)<br>Guessed series have n unknown ('4/?'); the kind is only a guess until the macros write #U Series (handoff_out/05)<br>Selecting a scan always switches to the SpecPlot tab (code, scanListChanged), whatever the workflow |
 | gid.frames (shared.frames) | Select all frames of the levels | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual) or a subset (left out of the reduction, kept in remakes) | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | code; test tests/test_gui_workflows.py | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
-| gid.look (shared.frames-look) | Look at single frames (optional); the Pinhole box gives display and cuts the pinhole geometry | Pilatus tab | `pilAxesComboBox`, `pilLogIntCheckBox`, `pilMinLineEdit`, `pilMaxLineEdit`, `pilCMapComboBox`, `pilPinholeCheckBox`, `pilMoviePushButton` | colour limits, log scale, axes (Pixels, Angles, Q) | partly | sticky preferences and intelligent colour scales (F70); movie with sticky zoom (F69) | code; owner 2026-11-18 (D40) | Two pinhole switches: the Pilatus tab's 'Pinhole' (display and cuts) and the worksheet's 'Pinhole: angle per column' (the patch) |
+| gid.look (shared.frames-look) | Watch the raw frames as a movie (often, owner 2026-11-23): real GID peaks stay at the same 2θ as the detector angle changes, other junk does not; zoomed, with zoom and colour mode kept while the frames play. The Pinhole box gives display and cuts the pinhole geometry | Pilatus tab | `pilAxesComboBox`, `pilLogIntCheckBox`, `pilMinLineEdit`, `pilMaxLineEdit`, `pilCMapComboBox`, `pilPinholeCheckBox`, `pilMoviePushButton` | which features are real peaks (fixed in 2θ) and which are junk | partly | a movie drawn on a common 2θ axis with the zoom fixed in angle, so real peaks stand still and detector-fixed junk moves (image_display M7); sticky zoom and scale (M2, F69, F70) | code; owner 2026-11-18 (D40); owner 2026-11-23 (the movie and why) | Movie today blocks the window (0.5 s per frame), cannot be paused, resets the zoom and leaves the Axes box at Q (image_display.md)<br>Two pinhole switches: the Pilatus tab's 'Pinhole' (display and cuts) and the worksheet's 'Pinhole: angle per column' (the patch) |
 | gid.background | Optionally subtract background frames (add selected frames to the background list, factor, ignore negatives) | left panel (background list) | `backgroundPushButton`, `backgroundListWidget`, `bgFacLineEdit`, `bgIgnoreNegCheckBox`, `bgSelectAllCheckBox`, `removePushButton` | which frames are background, the factor | no |  | code; guess (whether it is used for GID) | Background-subtracted maps are not scriptable (gidScript says so) |
 | gid.settings | Open the worksheet (GID menu > Worksheet) and check the settings - pinhole on, response, footprint window, S4-detector distance (Fit), rows, columns | Pilatus tab > GID menu > Worksheet (separate window) | `gidComboBox`, `gidPinholeCheckBox`, `gidPinholeDistSpinBox`, `gidFitDistancePushButton`, `gidResponseComboBox`, `gidFootprintComboBox`, `gidTransverseComboBox`, `gidRowMinSpinBox`, `gidRowMaxSpinBox`, `gidColumnsSpinBox`, `pilHSlitLineEdit`, `gidAreaCheckBox`, `gidPolCheckBox`, `gidApplyJoinsCheckBox`, `gidMinFramesSpinBox`, `gidArmCheckBox`, `gidDefaultsPushButton` | usually the defaults (pinhole, exact footprint, response fit); the distance from Fit when reliable | partly | calibrate the distance automatically on the first patch and say so (P43 built as a button) | owner 2026-11-18/19 (D40, D51); test tests/test_gid_worksheet.py; docs docs/manual/gid_patching.md | Actions are items of a combo box whose first item 'GID' is a title; choosing the same item again needs a re-selection (code, activated)<br>'Columns per frame' (worksheet) and the H slit field on the Pilatus tab are one setting in two places |
 | gid.patch | GID Patch (or GID Patch Relax for the larger Q grid) - the map is drawn on the Pilatus tab in Q | Pilatus tab > GID menu | `gidComboBox`, `gidPatchPushButton` | Patch or Patch Relax | partly | patch when a complete GID series is selected (F60) | code (pilGID, pilGIDpatchData); test tests/test_gid_worksheet.py, tests/test_real_nx_school.py | Axes switch from Pixels to Q by themselves on the first patch (code) |
@@ -459,9 +544,9 @@ flowchart TD
 <a id="alignment"></a>
 ## alignment — SpecPlot of motor scans (alignment)
 
-**Priority** 6. **Known from:** code; owner 2026-11-18 (F55); owner 2026-11-19 (F43, F22a 5); tests/test_gui_workflows.py.
+**Priority** 6. **Known from:** code; owner 2026-11-18 (F55); owner 2026-11-19 (F43, F22a 5); owner 2026-11-23 (the typical day); tests/test_gui_workflows.py.
 
-**Experiment.** sh / oh / ih / chi / th scans, slit scans, half-cuts (F43, planned); counters against a motor
+**Experiment.** sh / oh / ih / chi / th scans, slit scans, half-cuts; counters against a motor. Owner 2026-11-23: each sample starts with a rough alignment by a half-cut (to become a sample height scan with a horizontal beam, which also measures the beam profile), the height offset set to read zero; then a sample height scan at a fixed incident angle, sample and detector rising together, judges how flat the surface is. It is the surface curvature convolved with the beam profile (the reflected-beam ROI on the Pilatus): wide and smooth, flat-topped (super-Gaussian) when good, Gaussian-like when possibly unusable. Repeated after 30 min or more, or a large sx change.
 
 **Recognised by.** role 'align' in a series (#U Series role=align) or an alignment scan attached to a guessed series; any scan with columns
 
@@ -469,20 +554,26 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    align_select["select: Click the scan (alignment scans are selected alone)"]
+    align_select["select: Click the scan; several sample height scans (places, condit…"]
     align_plot["plot: Choose X, Y, Y2 and the normaliser; log, grid, legend, poin…"]
+    align_sh_judge["sh-judge: Judge a sample height scan: wide enough, flat-topped (super…"]
+    align_sh_judge_d{"Surface flat enough?"}
     align_export["export: Export or Save"]
     align_calc["calc: Calculations menu - g_l2, g_l3, absorber ratio from scans"]
     align_select --> align_plot
-    align_plot --> align_export
+    align_plot --> align_sh_judge
+    align_sh_judge --> align_sh_judge_d
+    align_sh_judge_d -- "no: move or re-prepare" --> align_select
+    align_sh_judge_d -- "yes" --> align_export
     align_export --> align_calc
     classDef auto fill:#e6f4ea,stroke:#4a8;
 ```
 
 | Step | Do | Where | Controls | User decides | Automatic | Could be automatic | Known from | Issues |
 |---|---|---|---|---|---|---|---|---|
-| align.select (shared.series) | Click the scan (alignment scans are selected alone) | left panel | `seriesComboBox`, `seriesWholeCheckBox`, `scanListWidget`, `scansLineEdit` | which series (or scans by number); Whole series on (default) or off | partly | select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3) | owner 2026-11-21 (D55); test tests/test_gui_series.py; run 2026-11-22 | The Series list is a combo box with a placeholder first item ('Series: choose to select its scans'); the list of series is not visible at a glance (run 2026-11-22)<br>Guessed series have n unknown ('4/?'); the kind is only a guess until the macros write #U Series (handoff_out/05)<br>Selecting a scan always switches to the SpecPlot tab (code, scanListChanged), whatever the workflow |
+| align.select (shared.series) | Click the scan; several sample height scans (places, conditions) are selected together to compare them on one plot (owner 2026-11-23) | left panel | `seriesComboBox`, `seriesWholeCheckBox`, `scanListWidget`, `scansLineEdit` | which series (or scans by number); Whole series on (default) or off | partly | select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3) | owner 2026-11-23; code | The Series list is a combo box with a placeholder first item ('Series: choose to select its scans'); the list of series is not visible at a glance (run 2026-11-22)<br>Guessed series have n unknown ('4/?'); the kind is only a guess until the macros write #U Series (handoff_out/05)<br>Selecting a scan always switches to the SpecPlot tab (code, scanListChanged), whatever the workflow |
 | align.plot | Choose X, Y, Y2 and the normaliser; log, grid, legend, point labels; the fit (peak, edge or plateau) is in the title | SpecPlot tab | `spXComboBox`, `spYComboBox`, `spY2ComboBox`, `spNCheckBox`, `spNComboBox`, `spGainCheckBox`, `spPhotonCheckBox`, `spLogYCheckBox`, `spPointLabelsCheckBox` | columns and normaliser | partly | remember the columns per scan command (sh scan - Pilatus/Monc) | code; test tests/test_gui_workflows.py (motor scan plotted and fitted) |  |
+| align.sh-judge | Judge a sample height scan: wide enough, flat-topped (super-Gaussian) rather than Gaussian-like; compare with the sample's earlier sh scans | SpecPlot | `spYComboBox`, `spNCheckBox` | whether to continue at this place, move, or prepare a new sample | no | a super-Gaussian fit (width, exponent) beside the earlier sh scans of the sample (F78); for a half-cut, the edge and beam size (F43) | owner 2026-11-23 | The title shows the fit chosen by fit_scan (peak, edge or plateau), not a flatness measure |
 | align.export | Export or Save | SpecPlot tab | `spExportPushButton`, `specSaveWorkbookPushButton` | file name | no |  | code |  |
 | align.calc | Calculations menu - g_l2, g_l3, absorber ratio from scans | Calculations menu | `actionG_l2`, `actionG_l3`, `actionAbs_ratio` | scans | no |  | code; guess (when used) |  |
 

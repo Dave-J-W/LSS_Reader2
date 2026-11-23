@@ -310,6 +310,24 @@ frames, N = 4 → 0, 13, 27, 40.
   tiles.
 - **M6 (S): remembering the mode.** The last mode and N are a global
   preference, optionally per kind (Q-IMG-2).
+- **M7 (M): a movie fixed in 2θ for GID** (owner, 2026-11-23: "For GID
+  data we often watch the raw data frames in a 'movie' mode, since real
+  GID peaks stay at the same two-theta and other junk does not as the
+  detector angle changes"). With the frames drawn on a common 2θ (and β)
+  axis and the zoom held in angle (M2's conversion by each frame's
+  geometry), a real peak stands still while the detector window slides;
+  anything fixed on the detector (stray light, hot pixels, slit or window
+  scattering) moves. A switch to pixel axes gives the opposite view (junk
+  still, peaks moving). Needs the per-pixel geometry of X2.
+- Owner, 2026-11-23, for every kind: "we often want to zoom on the raw
+  data (or zoom to some region around the ROI for reflectivity) and have
+  the frames play in movie mode without changing the zoom or color mode or
+  anything" (M2, M4, and §2.2); and for reflectivity, the frame-by-frame
+  ROI check happens "mostly when something is weird and we need to verify
+  the data are ok. If there was a slick way to show a movie of it, maybe on
+  a log or other nonlinear scale, we might do it more often. Showing people
+  the raw data helps them avoid mistakes." So the reflectivity movie opens
+  zoomed to the region around the ROI (R1–R6) on log or asinh (C2, C3).
 - Movie export (GIF/MP4) is out of scope; Q-IMG-9.
 
 Today vs needed: the movie exists but blocks (B); tiling caps at 10; no
@@ -536,6 +554,7 @@ Size: **L** (widget, geometry unification, defaults); geometry alone
 | M4 | Shared / per-frame / locked colour scale | first-frame limits | S |
 | M5 | Select All → movie; ≤ 6 tiles | 10 tiles | S |
 | M6 | Sampled (default 4) and first-n modes | first 10 | S |
+| M7 | GID movie on a common 2θ axis, zoom fixed in angle (real peaks still, junk moving); pixel view as the switch (owner 2026-11-23) | pixels only, zoom lost | M (needs X2) |
 | P1–P4 | Sticky display preferences (global, per kind, per SPEC), reset, no hidden Axes changes | none | M |
 | C1 | Robust limits with masks | max/min of first frame | S–M |
 | C2 | Log with floor (LogNorm) | broken by negative pixels | S |
