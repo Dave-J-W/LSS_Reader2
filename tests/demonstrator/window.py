@@ -35,11 +35,13 @@ def _check(label, on, tip):
     return b
 
 
-def open_demo(parent=None, mode='refl', seed=0):
-    """Create and show the demonstrator window (the entry point for a Tools
-    menu): ``parent`` a QWidget or None; returns the window. It deletes
-    itself when closed."""
-    w = DemoWindow(mode=mode, seed=seed, parent=parent)
+def open_demo(parent=None, mode='refl', seed=0, refl_config=None, burn_config=None):
+    """Create and show the demonstrator window: ``parent`` a QWidget or
+    None; ``refl_config``/``burn_config`` the starting settings (None: the
+    defaults); returns the window. It deletes itself when closed. The
+    reader's Tools menu starts it as its own process (``patch_demo.py``),
+    because the window takes the space bar application-wide."""
+    w = DemoWindow(mode=mode, seed=seed, refl_config=refl_config, burn_config=burn_config, parent=parent)
     w.resize(1500, 950)
     w.show()
     return w

@@ -52,15 +52,16 @@ def _r(x, n=4):
     return None if x is None or not np.isfinite(x) else round(float(x), n)
 
 
-def views(out, seed=0):
-    """The window's two default views as PNG."""
+def views(out, seed=0, refl_config=None, burn_config=None):
+    """The window's two views as PNG, for the default settings or the
+    configs given (``tests/tools/patch_demo.py --views DIR --set ...``)."""
     os.makedirs(out, exist_ok=True)
-    rep = refl.replicate(refl.Config(), seed)
+    rep = refl.replicate(refl_config or refl.Config(), seed)
     fig = Figure(figsize=(12, 8))
     draw.refl_figure(fig, rep, refl.run_all(rep), draw.REFL_DEFAULT, list(refl.DEFAULT_METHODS), 'rrf', 1,
                      refl.run_all(refl.denoised(rep)))
     _save(fig, os.path.join(out, 'view_refl.png'))
-    brep = bm.replicate(bm.Config(), seed)
+    brep = bm.replicate(burn_config or bm.Config(), seed)
     fig = Figure(figsize=(12, 8))
     draw.burn_figure(fig, brep, bm.run_all(brep), draw.BURN_DEFAULT)
     _save(fig, os.path.join(out, 'view_burn.png'))
