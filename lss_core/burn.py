@@ -160,8 +160,16 @@ def frame_times(columns, point_times, points, time='clock'):
     return np.concatenate([[0.0], np.cumsum(s)[:-1]]) + s / 2, note
 
 
+# A burn test is a GID burn above this detector angle, a reflectivity burn
+# at or below it (owner, 2026-11-23, Q10/F87: "Det_Th > 2°", not the 1°
+# proposed; until then any Det_Th above 0.001° counted as GID). A macro role
+# indicator, when the beamline macros write one, is to take precedence.
+GID_BURN_MIN_DTH_DEG = 2.0
+
+
 def is_gid(dth_deg):
-    return abs(float(dth_deg)) > 0.001
+    """A GID burn: Det_Th (degrees) above GID_BURN_MIN_DTH_DEG."""
+    return abs(float(dth_deg)) > GID_BURN_MIN_DTH_DEG
 
 
 ESTIMATORS = ('template', 'moments', 'fit')

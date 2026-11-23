@@ -320,7 +320,7 @@ class Experiment:
                                   dict(qc=qc, qoff=qoff, norm_factor=norm_factor, rrf=rrf, drops=drops,
                                        factors=factors, method=method))
 
-    def cut(self, scans, direction, range, axes='Pixels', summed=False, points=None,
+    def cut(self, scans, direction, range, axes='Pixels', summed=False, points=None, sum_mode='monitors',
             absfac=ABSFAC_10KEV, errors=None, monitor_gain=False, distance=None, db_pos=None,
             pinhole=True, bad_pixel_iterations=0, bad_pixel_factor=1, per_photon=False):
         """Line cuts of the frames of ``scans``, as the window's Line/Area
@@ -337,7 +337,10 @@ class Experiment:
         ``pinhole`` (default, as the window): frames at Det_Th > 1° take the
         S4-detector distance (S7D_Dist) for the horizontal Angles/Q axis. ``errors``,
         ``monitor_gain``, ``per_photon``: as for ``fluorescence`` (the
-        monitor rate for the dark term is the scan's median Monc/Seconds)."""
+        monitor rate for the dark term is the scan's median Monc/Seconds).
+        ``sum_mode`` (with ``summed``): 'monitors', the frames summed and
+        normalised once, ΣN/ΣM (F91, the default since 2026-11-23); 'mean', the
+        legacy mean of the normalised frames."""
         from TwoDDetector import TwoDDetector
         from .errors import MonitorTerms
         det = TwoDDetector('Pilatus')
@@ -347,7 +350,7 @@ class Experiment:
                   if points is None or f.scan not in points or f.index in points[f.scan]]
         if not frames:
             raise ValueError('no frames with images in scans %s' % list(scans))
-        data, errs, terms, geoms, labels = [], [], [], [], []
+        data, errs, terms, geoms, labels, norms = [], [], [], [], [], []
         for k, f in enumerate(frames):
             det.openFile(f.path, bad_pix=bad_pixel_iterations, bad_fac=bad_pixel_factor)
             p = self.scans[f.scan].parameters
@@ -358,6 +361,7 @@ class Experiment:
                                         model=model, gain=g)
             data.append(d)
             errs.append(e)
+            norms.append(cutmod.frame_normaliser(f.monitor, absfac, f.absorber, g))
             terms.append(norm.frame_terms(('', k), d, f.monitor, model) if model.budget else None)
             wl = p['Wavelength']
             alpha = np.arcsin(f.qz * wl / 4.0 / np.pi)
@@ -376,13 +380,17 @@ class Experiment:
                                          -p['g_l2'] * np.tan(alpha), dist, p['S2D_Dist'], xc, yc))
             labels.append('S# %d_F# %d' % (f.scan, f.index))
         if summed:
+            if sum_mode not in ('monitors', 'mean'):
+                raise ValueError("sum_mode must be 'monitors' or 'mean'")
+            share = cutmod.sum_weights(norms, legacy=sum_mode == 'mean')
             t = None
             if model.budget:
                 t = MonitorTerms()
-                for x in terms:
+                for x, wk in zip(terms, share):
                     if x is not None:
-                        t.extend(x, 1.0 / len(frames))
-            d, e = cutmod.mean_frame(data, errs)
+                        t.extend(x, wk)
+            d, e = (cutmod.mean_frame(data, errs) if sum_mode == 'mean'
+                    else cutmod.sum_frames(data, errs, norms))
             out = cutmod.frame_cut(det, d, e, direction, lo, hi, geoms[0], axes, absfac=absfac,
                                    absnum=frames[0].absorber, terms=t)
             return CutResult([out], labels, 'S# %d' % min(scans))

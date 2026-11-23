@@ -210,7 +210,7 @@ INVENTORY = {
     'absFacEnergyCheckBox': ('checkbox', 'from E', 'Left panel', 'Sets the absorber factor from the energy of the selected scans (calibrated foils near 10 keV, else 50 um Al per unit)'),
     'imagesLabel': ('label', 'Detector: / Pilatus: / Vortex:', 'Left panel', 'Says which detector the frames in the list below come from'),
     'imageSelectAllCheckBox': ('checkbox', 'Select All', 'Left panel', 'Selects every frame (or spectrum) of the selected scans'),
-    'gixSumCheckBox': ('checkbox', 'Sum All', 'Left panel', 'Averages the selected frames into one image (frames must share one Qz); cuts, GISAXS and burn use the sum'),
+    'gixSumCheckBox': ('checkbox', 'Sum All', 'Left panel', 'Sums the selected frames into one image (frames must share one Qz): counts and monitors summed, then normalised once (ΣN/ΣM, F91, 2026-11-23); cuts and GISAXS use the sum'),
     'imageListWidget': ('list', '', 'Left panel', 'Lists the frames (Pilatus) or spectra (Vortex) of the selected scans with S#, F#, Qz, Qx, Abs; selecting draws them'),
     'backgroundPushButton': ('button', 'Background', 'Left panel', 'Copies the selected frames into the background list (replacing what was there)'),
     'bgFacLineEdit': ('lineedit', 'Fac:', 'Left panel', 'Scale factor applied to the background before it is subtracted; Enter re-reads the frames'),
