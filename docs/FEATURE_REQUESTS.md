@@ -411,6 +411,8 @@ order"), for a day of reflectivity only; the whole answer is in
 
 | F95 | **Wire the Reflectivity tab's bad-pixel controls; Ref Patch warnings as messages and marks; Save/Export naming; frequent windows docked** (owner, 2026-11-23, Q-UI-B3, B6, B9, B10). |
 
+| F96 | **Reflectivity tab choices and provenance** (owner, 2026-11-23, Q-UI-B4, B5, B7, Q-IMG-7): detector elements mirrored on the tab, patch method kept in Preferences; a one-line provenance under every result plot; the patch window gets Back, a safe Cancel and a join table kept with the result; **accepted joins persist until the reduction is executed again, and live data only asks for a decision on a new join that must be decided before plotting** (ties to L1–L4 live updates, D57); ROI close-up as a side panel. |
+
 Also decided (see `docs/gui/questions.md` Answers): movie at 3 or more frames, space pauses, arrows step when paused (F69); weighted residuals (F74); Apex tab, Beamlines menu, `peakfit2`/`peakfitpara` and the Command line row removed; Quit works and Documentation opens `docs/SCRIPTING.md`; Messages, Errors and Script panes follow D59.
 
 ### Status of built items
