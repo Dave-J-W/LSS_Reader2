@@ -289,3 +289,22 @@ def test_disk_cache_size_limit_and_local_files(tmp_path, monkeypatch):
     assert len(glob.glob(str(tmp_path / 'cache' / '*' / '*.npy'))) == 1
     monkeypatch.setenv('LSS_READER_DISK_CACHE', 'off')
     assert read_pilatus(p)[0, 0] == 2
+
+
+def test_disk_cache_walks_its_folder_only_when_it_may_be_full(tmp_path, monkeypatch):
+    """2026-11-23: the folder was walked after every new entry (16 ms per
+    frame at 6600 entries); now once, then when the running total passes the
+    limit, trimming to 90 % of it."""
+    import lss_core.images as images
+    from lss_core import diskcache
+    monkeypatch.setenv('LSS_READER_DISK_CACHE', str(tmp_path / 'cache'))
+    monkeypatch.setenv('LSS_READER_DISK_CACHE_ALL', '1')
+    monkeypatch.setenv('LSS_READER_DISK_CACHE_MB', '4')            # five 100K frames of ~0.76 MB
+    monkeypatch.setattr(images, 'CACHE', cachemod.MemoryCache(budget_bytes=0))
+    walks = []
+    real = diskcache._trim
+    monkeypatch.setattr(diskcache, '_trim', lambda *a, **k: walks.append(a) or real(*a, **k))
+    for i in range(8):
+        read_pilatus(synth.write_pilatus_tif(str(tmp_path / ('f%d.tif' % i)), synth.pilatus_image(background=i)))
+    n = len(glob.glob(str(tmp_path / 'cache' / '*' / '*.npy')))
+    assert len(walks) < 8 and n * 0.76 <= 4 * 0.9 + 0.1 and n >= 4

@@ -14,10 +14,10 @@ else is how the code is built.
 | | |
 |---|---|
 | Commits on this fork | about 230 (2026-11-14 to 2026-11-22) |
-| Tests | 764 quick, 487 slow (real data), 67 crash-sweep, 1 timing (collected 2026-11-23 after the covariance merge; the line said 624 quick and 584 slow, while the tree it was written for collected 637 and 483) |
+| Tests | 796 quick (~2 min on 4 CPUs, parallel), 487 slow (real data, ~3.5 min), 193 crash-sweep (~20 min), 1 timing (2026-11-23; before that day 9 min 44 s, ~25 min and ~3 h in one process) |
 | Crash inventory | 420 failing control/state combinations on 2026-11-14 → 0 since Stage 1 (2026-11-17) |
-| GUI-free core (`lss_core/`) | 28 modules, about 7,700 lines; every reduction scriptable |
-| Analysis tools (`tests/tools/`) | 21, each the source of a figure or a measured number |
+| GUI-free core (`lss_core/`) | 30 modules, about 9,300 lines; every reduction scriptable |
+| Analysis tools (`tests/tools/`) | 31, each the source of a figure or a measured number |
 | Synthetic data (`tests/synthetic/`) | reflectivity with Kiessig fringes and the water–air interface, scans with known factors and planted faults, Pilatus frames, GID levels, burn profiles, XFNTR, growing files (`SYNTHETIC_DATA.md`) |
 | Hand-offs | 8 written for other agents or the owner's data (`docs/handoff_out/`), 3 answered |
 
@@ -88,7 +88,9 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   polynomial background, misfits flagged; "Fit peaks" and "Fit options…"
   beside the cut plot; "Fit lines" for MCA series (the sum fixes position
   and width); SpecPlot recognises a peak, an edge (the half-cut beam) or a
-  plateau (P9 fixed: 0.471, was 0.406).
+  plateau (P9 fixed: 0.471, was 0.406); a flat scan (the background alone
+  fits it) is not fitted, nor a sample-height scan with poor signal or
+  narrower than 20 µm (owner, 2026-11-23; C37).
 - Burn tests as trends over time (`lss_core.trends`, `lss_core.burn`):
   constant, linear, exponential and double exponential compared by AICc;
   "stable" when a flat line fits as well as a line; the 95 % confident time
@@ -146,16 +148,40 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   new versions and shown in the open plot; live mode stops at the end of a
   series written with series lines.
 
+## Testing and speed (2026-11-23)
+
+- **The suites** (`TESTING.md`, "Parallel by default"): parallel by
+  default (pytest-xdist, one worker per CPU as memory allows); quick suite
+  9 min 44 s → ~2 min, real data ~25 → ~3.5 min, crash sweep ~3 h →
+  ~20 min (each state shared by 8 tests). Every test's window used to stay
+  in memory (~10 GB per quick run, now 3.4 GB over four workers);
+  `tmp_path` and temporary folders are cleaned up (1.2 GB left per run
+  before, nothing now). Agents run the suites with a plain command
+  (`AGENTS.md`).
+- **The program, where the tests showed it slow:** the motor-scan shape fit
+  (9.5 s on every plot of a Gaussian scan → under 2 s, flat and weak scans
+  not fitted at all); the pinhole footprint window in closed form (the
+  distance calibration 30 → 6.6 s, columns identical; C38); MCA spectra
+  with log y (100 spectra: 4.2 → 0.8 s) and `pcolor` maps (5–7 × faster;
+  C39); MCA files parsed once per file version instead of on every
+  selection change (0.38 s → 8 ms per click for a 20-scan series); the
+  disk cache no longer walks its folder for every new frame.
+- Three real-data tests failing on `main` since 2026-11-22 found and
+  bisected (TODO area I).
+
 ## Records kept for others
 
 `physics_notes.md` (every question with its answer, dated, and 26
 invariants with their tests), `PHYSICS_ISSUES.md` (44 issues with sizes
-and status), `OUTPUT_DECISIONS.md`, `COMPARISONS.md` (33 comparisons with
+and status), `OUTPUT_DECISIONS.md`, `COMPARISONS.md` (39 comparisons with
 how to regenerate them), `MANUAL_NOTES.md` and `manual/controls.md` (every
 control's tooltip), `SCRIPTING.md`, a review of the to-do lists
 (`reviews/2026-11-21-todo-review.md`).
 
 ## Not done yet (the main items; all in `TODO.md`)
+
+Three real-data tests fail since 2026-11-22 (the joint fit became the
+default; bisected, TODO area I).
 
 Final GID defaults from the larger data set; the export defaults now
 that the covariance files exist (Stage 5, owner's decisions in TODO B2); the burn intensity estimator

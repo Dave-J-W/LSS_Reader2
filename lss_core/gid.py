@@ -378,12 +378,10 @@ def legacy_patch(frames, params, det, log=None, warn=None):
             k = 1
         else:
             k = 2
-        if k == 2 and ckey not in dic[2]:
-            # as coded: the first frame of each high-Qz scan is not multiplied
-            # by the scan's mean monitor (P36)
-            dic[2][ckey] = [np.vstack((dth, h[:, 0], h[:, 1], h[:, 2])).transpose()]
-        else:
-            dic[k].setdefault(ckey, []).append(np.vstack((dth, h[:, 0], h[:, 1] * m, h[:, 2] * m)).transpose())
+        # every frame back to counts with its scan's mean monitor; the first
+        # frame of each high-Qz scan was left per monitor, ~1/M of its
+        # neighbours (P36, fixed 2026-11-23)
+        dic[k].setdefault(ckey, []).append(np.vstack((dth, h[:, 0], h[:, 1] * m, h[:, 2] * m)).transpose())
     keys = [sorted_scans(d) for d in dic]
     levels = []
     for name, ks, d in zip(LEVEL_NAMES, keys, dic):
@@ -407,9 +405,10 @@ def legacy_patch(frames, params, det, log=None, warn=None):
             except Exception:
                 raise GIDError('Warning: One or more of selected scans do not have enough points for the horizontal patching!')
         elif len(ks) == 1:
-            # as coded: a single high-Qz scan takes the middle level's first
-            # scan key (P37); with one scan at every level they coincide
-            data = d[ks[0]] if k < 2 else dic[2][keys[1][0]]
+            # a level's one scan is its own (P37, fixed 2026-11-23: the high
+            # level took the middle level's first key, a KeyError or the
+            # wrong data unless the same scan had frames at both levels)
+            data = d[ks[0]]
         elif k == 0:
             data = d[ks[0]]                  # no frame at all: IndexError, as the window
         else:

@@ -4299,3 +4299,66 @@ standalone matplotlib for the variants; C39):
 
 Verified: measured and tested (`test_plot_speed.py`; the GUI manager's
 `test_gui_2dplot.py` passes on the mesh).
+
+### 2026-11-23 — File IO, RAM and disk caching reviewed
+
+**Owner:** "Then review all the file IO, ram and disk caching plans."
+
+**The plans** (FEATURE_REQUESTS F6–F9): faster MCA parsing (F6), faster
+Pilatus 1M frames (F7), a local disk cache for the production network
+drive (F8), a RAM cache sized to the host (F9); entries keyed by path,
+size and modification time, LRU, the disk cache with a size cap and a
+location. All four were built in Stage 2; this review measured them again
+on this container (local disk) and looked for what they missed.
+
+**Measured, fine as it is:** reading a SPEC file is linear, 0.5 ms per
+scan (3000 scans, 10.6 MB: 1.4 s; the window opens it in 3.4 s, most of it
+parsing numbers); a Pilatus 100K TIFF decodes in 1.7 ms, a 1M frame in
+9.6 ms; bad-pixel correction of a 1M frame takes 0.04 s (one iteration)
+to 0.08 s (three), so F7's worry is gone. The RAM cache (a quarter of the
+memory, at most 4 GB) and the disk cache (only files on another file
+system, 5 GB, writes atomic) are keyed as planned, so a file still being
+written is read again.
+
+**Found and fixed:**
+- MCA files were parsed again for every selected scan on every change of
+  the scan selection (whole-series selection makes that every click):
+  20 files of 30 spectra, 0.38 s per click locally, more over the network
+  drive, which the disk cache does not cover for MCA files. Now parsed
+  once per file version in the memory cache (`lss_core.mcafiles`): 8 ms.
+- The disk cache walked its whole folder after every new entry (16 ms per
+  frame at 6600 entries locally): now once per process and when its
+  running total passes the limit, trimming to 90 %.
+
+**Options, not taken:** frames are held as int64 (bit-identical with the
+old reader), twice the TIFF's int32, which halves what both caches hold;
+storing int32 would need every reduction re-verified against the legacy
+fixtures. The speed over a slow network drive cannot be measured here
+(TODO area I, "slow-file-system timing").
+
+Verified: measured (scripts in this session; `tests/tools/plot_speed.py`
+for the plots) and tested (`test_mcafiles.py`, `test_lss_core.py`).
+
+### 2026-11-23 — P36 and P37 fixed: legacy GID maps with three Qz levels
+
+A to-do of long standing (TODO: "fix with a synthetic three-level GID data
+set; outputs change only for such maps"), taken up because it lies outside
+the GUI work. In `lss_core.gid.legacy_patch` (the window's code since
+2026-11-19):
+- **P36** (= P14, defect 11): every frame is put back to counts with its
+  scan's mean monitor, except that the first frame of each high-Qz scan was
+  not, leaving it per monitor, about 1/M of its neighbours. Measured on the
+  synthetic three-level set (`tests/synthetic/gid_levels.py`): where only
+  the high level covers β, scan 5's first frame was 1/1.03e5 of the truth.
+  Fixed: that frame is treated like the others, and every point of the map
+  is within 5 % of the truth.
+- **P37** (= P15, defect 12): a high level of one scan took the middle
+  level's first scan key: a KeyError when the scans differ (the patch
+  stopped with a message), the right data only when one scan had frames at
+  both levels. Fixed: a level's one scan is its own; the map comes back
+  within 5 % of the truth.
+
+Two-level maps, which is all the real data on hand, do not change: the 38
+real-data GID tests pass (NX school scans 11, 12 against stored curves).
+The two strict xfails became ordinary tests, and the "as coded" test that
+pinned P36's wrong value was removed with the fix. Verified: tested.

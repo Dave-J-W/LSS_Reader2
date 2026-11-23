@@ -27,7 +27,7 @@ working list, one table per area, each row with its source. Rows marked
 | ~~Scan join against everything joined so far~~ **done 2026-11-22** (P41) | P41 |
 | Stray light, streak mask, background frames | P40; input 17 |
 | Exact angles for cut axes, display, distance fit | P38 remainder |
-| Legacy three-level map (synthetic three-level set) | P36, P37 (= P14, P15, P31) |
+| ~~Legacy three-level map (synthetic three-level set)~~ **fixed 2026-11-23** | P36, P37 (= P14, P15, P31) |
 | Second 200K module | F63, D43; input 3 |
 | ΣN/ΣW vs IDL error weights | input 18 |
 | Multiple exposures, cosmic rays | F40 |
@@ -183,6 +183,12 @@ build workflow and macOS signing (input 12); sample-data hosting.
       (deferred deletes never ran), a 9.5 s box fit on every motor-scan plot,
       a bisection in the pinhole footprint window, tmp_path kept for three
       runs, temporary folders never removed.
+- [x] **File IO and caches reviewed — 2026-11-23** (physics_notes): MCA
+      files now parsed once per file version (they were re-read on every
+      selection change); the disk cache walks its folder only when it may
+      be full. Open: frames held as int64 halve what the caches hold (an
+      int32 cache would need every reduction re-verified); timing over a
+      slow network drive.
 - [ ] **Three real-data tests fail on main since 2026-11-22 (found
       2026-11-23, bisected)**: `test_patching.py::test_nx_school_scans_6_to_9`
       since 6bb29bf (the joint fit's guard ladder and 2 points either side:
@@ -381,8 +387,8 @@ stated assumption until the answer arrives.
       SpecPlot already has `Time_s`.
 - [ ] Backlog (owner, 2026-11-19): F65's edge estimator (steps 3, 4, 6: steepest rise of
       ln(Vortex/Monc), outlier check against the group median, alignment).
-- [ ] P36, P37 (legacy GID with three Qz levels): fix with a synthetic
-      three-level GID data set; outputs change only for such maps.
+- [x] P36, P37 (legacy GID with three Qz levels): fixed 2026-11-23 with the
+      synthetic three-level GID data set; outputs change only for such maps.
 - [ ] Docket (2026-11-18): F59 cuts for diffuse scattering (I vs β, β − α;
       the Q cuts' default ranges miss the detector and plot zeros silently),
       F60 contextual/automatic reduction. Not to be built yet.
