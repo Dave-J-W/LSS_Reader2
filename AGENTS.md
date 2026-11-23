@@ -49,6 +49,16 @@ Application code may now be changed, under these conditions:
 
   `--ff-only` refuses instead of making a merge when `main` has moved on;
   the session then merges `main` in again and the owner repeats the merge.
+  **Or, by button**: if the branch has a pull request into `main` (it
+  shows the branch's latest state and updates with every push), merging it
+  with **"Create a merge commit"** does the same. Never "Squash and merge"
+  or "Rebase and merge": both give `main` different commits from the
+  branch, and squashing also loses the one-change-per-commit history
+  (rule: one defect or feature per commit). A session keeps its pull
+  request's title and description up to date when it pushes something the
+  description does not cover. No GitHub workflow tests pull requests (the
+  build runs on version tags only), so the description says which suites
+  the session ran and their results.
 - **No other branches** (no `wip/`, no personal ones): work that is not
   ready stays uncommitted or in the session's own branch.
 
