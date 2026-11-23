@@ -4557,3 +4557,7 @@ Two scans cannot prove it (they also differ in time).
 ### 2026-11-23 — GUI questions answered, batch 8 (B4, B5, B7, Q-IMG-7)
 
 Verified by: reading only. **Invariant to protect when built (live updates):** a join the user accepted must not change when more scans arrive; only a new join may prompt. This is not yet an invariant with a test; it belongs in the invariants table when the join table exists. Open from Q-IMG-7: the cue thresholds (off-centre beyond 25 % of the half-width; clipped above 1 % of the integral at the box edge; background box within 2 px of the signal box) are unconfirmed.
+
+### 2026-11-23 — GUI questions answered, batch 9 (Q-IMG-7, 10, 12, 16)
+
+Verified by: reading only. The saturation limits are per pixel in counts per second (soft 1e5, hard 1.5e5, the owner's figures); the reader must divide a frame's counts by its exposure time, which is not yet checked against the header. For β − α the owner chose the specular angle from Qz: for a specular ray the exit angle equals the incidence angle (α_f = α_i), so β − α measures the diffuse offset from the specular condition even if the sample is tilted, which In_Rot would not.
