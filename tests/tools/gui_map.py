@@ -295,7 +295,9 @@ QT_INTERNAL = ('ScrollLeftButton', 'ScrollRightButton')
 def uninventoried_controls(w, entries):
     """(class name, objectName) of every named interactive control of the
     window and its code-built dialogs that no inventory id names, exactly or
-    as the widget part of ``<dialog>.<widget>``. This is the direction that
+    as the widget part of ``<dialog>.<widget>``. Widgets of the ngui prototype
+    window (objectNames ``ngui_*``, a child of the main window when the
+    preference is on) are placeholders of inventoried controls, not controls. This is the direction that
     catches a control added to the window without a map entry (2026-11-23:
     the covariance box added on 2026-11-22 went unnoticed by the other
     checks)."""
@@ -310,7 +312,7 @@ def uninventoried_controls(w, entries):
     out = set()
     for o in w.findChildren(kinds):
         name = o.objectName()
-        if (not name or name.startswith('qt_') or name in QT_INTERNAL or isinstance(o, QScrollBar)
+        if (not name or name.startswith('qt_') or name.startswith('ngui_') or name in QT_INTERNAL or isinstance(o, QScrollBar)
                 or name in known):
             continue
         out.add((type(o).__name__, name))
