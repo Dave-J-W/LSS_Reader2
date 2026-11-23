@@ -628,6 +628,7 @@ PREFERENCES = [
         C('prefFoilRangeLabel', '9.70–10.30 keV'),
     ]),
     G('Window', 'Preferences', [
+        C('prefNguiCheckBox', 'ngui (new layout, prototype)', note='This window; unticking closes it'),
         C('prefClosePushButton', 'Close'),
     ]),
 ]

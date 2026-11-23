@@ -58,6 +58,7 @@ INVENTORY = {
     'prefMcaCentrePushButton': ('button', 'Centre', 'Preferences > Fluorescence detector', 'Ticks element 1 only (XFNTR)'),
     'prefSaveNoteCheckBox': ('checkbox', 'Ask for a note on every Save', 'Preferences > Saving', 'Every Save button asks for a note (Shift-click inverts)'),
     'prefAutoSaveCheckBox': ('checkbox', 'Save every reduction automatically', 'Preferences > Saving', 'Saves each finished reduction into the workbook without asking'),
+    'prefNguiCheckBox': ('checkbox', 'ngui (new layout, prototype)', 'Preferences > Layout', 'Opens (ticked) or closes the ngui window, a non-functional sketch of the proposed new layout, and keeps the choice'),
     'prefClosePushButton': ('button', 'Close', 'Preferences', 'Closes the dialog'),
     'refpatchsamescan': ('dialog', 'Dialog', 'Dialog (identical scans)', 'Shown before patching when scans with the same Qz range and length are found: merge, drop, or keep each group'),
     'refpatchsamescan.mergePushButton': ('button', 'Merge', 'Dialog (identical scans)', 'Averages the scans of the group into one'),

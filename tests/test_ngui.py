@@ -123,3 +123,60 @@ def test_window_builds_with_every_placed_control(qapp, recorder):
         w.close()
         w.deleteLater()
         qapp.processEvents()
+
+
+# ---------------------------------------------------------------- the preference
+
+
+def test_preference_is_off_by_default():
+    from lss_core import preferences
+    assert preferences.DEFAULTS['ngui'] is False
+    assert preferences.load()['ngui'] is False
+
+
+@pytest.mark.gui
+def test_no_ngui_window_after_a_normal_start(window, qapp, recorder):
+    from ngui.window import NguiWindow
+    assert window.nguiWindow is None
+    assert window.findChildren(NguiWindow) == []
+    assert not any(isinstance(w, NguiWindow) for w in qapp.topLevelWidgets() if w.isVisible())
+    assert recorder.exceptions == []
+
+
+@pytest.mark.gui
+def test_preferences_box_opens_and_closes_the_window(window, qapp, recorder):
+    from lss_core import preferences
+    from ngui.window import NguiWindow, TITLE
+    d = window.buildPreferences()
+    box = d.prefNguiCheckBox
+    assert not box.isChecked() and box.toolTip()
+    box.setChecked(True)
+    qapp.processEvents()
+    w = window.nguiWindow
+    assert isinstance(w, NguiWindow) and w.isVisible() and w.windowTitle() == TITLE
+    assert w.parent() is window and w.isWindow()
+    assert preferences.load()['ngui'] is True
+    box.setChecked(False)
+    qapp.processEvents()
+    assert window.nguiWindow is None and not w.isVisible()
+    assert preferences.load()['ngui'] is False
+    assert recorder.exceptions == []
+
+
+@pytest.mark.gui
+def test_window_opens_at_start_when_the_preference_is_on(qapp, recorder, tmp_path):
+    from lss_core import preferences
+    from mainwindow import MainWindow
+    p = preferences.load()
+    p['ngui'] = True
+    assert preferences.save(p) is None
+    w = MainWindow()
+    w.directory = str(tmp_path)
+    try:
+        assert w.nguiWindow is not None and w.nguiWindow.isVisible()
+        assert w.buildPreferences().prefNguiCheckBox.isChecked()
+    finally:
+        w.close()
+        w.deleteLater()
+        qapp.processEvents()
+    assert recorder.exceptions == []
