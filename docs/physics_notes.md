@@ -4743,3 +4743,7 @@ header.)
 Verified as marked: items marked measured were run on NX school or on
 synthetic files today; the rest come from reading the code. None is
 fixed yet. The first two change results; the rest are latent.
+
+### 2026-11-23 — GUI questions answered, batch 14 (Q-REF-5, 6; Q-BURN-4, 6; blank spectra)
+
+Verified by: reading only. Comparisons of reduced curves move toward a workbook-fed tab that auto-updates (F105, F80). Export proposes a name and hands over to xmodfit. The burn Legacy tab goes behind the Reduction options; GID-burn rows default from the mean frame. **Data:** no zinc spectra will exist; other elements and blank spectra will come, so the F90 gauntlet's hard case (Zn Kα under 10 keV scatter) can only be tested on a nearby real case plus the synthetic generator, with a blank used to check the generator's escape-peak and Compton profiles.
