@@ -273,7 +273,12 @@ build workflow and macOS signing (input 12); sample-data hosting.
       `bm` monitor sweeps) and the `synthetic` generators' faults beyond the
       two `synthetic_dataset.py` offers. Each becomes an option and a
       variation in `lss_toolbox/catalog.py` when needed.
-- [ ] **Figures asked for but never made (found 2026-11-23)**: the dose-axis
+- [x] **Figures asked for but never made (found 2026-11-23) — done
+      2026-11-23**: `tests/tools/burn_dose_figure.py` (NX 14/15 against dose:
+      the position drifts 3.70× apart against time, 0.79× against dose),
+      `tests/tools/gid_column_groups.py` (maps and the level join per column
+      group; it found P46), `tests/tools/gid_movie.py` (M7: the DPPC peak
+      still in 2θ while it walks 49 columns); each a Tools item. Before: the dose-axis
       burn comparison of NX 14 and 15 (07-burn-trends.md, F76), maps from
       column groups per level and the β-overlap cells of the join
       (physics_notes 2026-11-19), the movie on a common 2θ axis (M7). Each

@@ -41,6 +41,7 @@ exists.
 | I25 | A quantity constant in time is called stable (AICc(constant) − AICc(linear) ≤ 2) in ≥ 85 % of noise draws (measured 95 %); the 95 % confident time to a 5 % change exceeds the true time in ≤ 9 % of draws (measured 5.5 %) | `test_trends.py::test_the_confident_time_is_conservative_at_its_stated_level` |
 | I26 | A burn signal decaying as exp(−t/τ) gives τ from the exponential model and a 5 % time of τ·ln(1/0.95) | `test_burn_trends.py::test_reflectivity_burn_is_monitor_normalised_and_finds_tau` (τ 400 s, 20.5 s) |
 | I30 | A figure tool is deterministic: rerun with the settings of its committed figures on unchanged code and inputs, it gives them back pixel for pixel (the measured test of staleness; a provenance stamp, where a tool prints its git revision, differs inside one small box) | `test_toolbox_gui.py::test_a_figure_tool_reproduces_its_committed_figures` (burn trends, 4 of 4); measured 2026-11-23: the ngui prototype screenshots 23 of 23, the fit demonstrator figures 6 of 6 |
+| I31 | A pinhole join factor (scans of a level, or Qz levels) is unbiased whatever the counts per bin: the likelihood of how each bin's counts split between the two sides (`pinhole.ratio_ml`, P46) gives back a known factor within ±0.1 % down to 0.026 counts per pixel; equal to the pooled ratio of a single bin | `test_pinhole.py::test_level_factor_is_unbiased_at_low_counts`, `test_ratio_ml_is_the_pooled_ratio_for_one_bin_and_recovers_a_scale` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -4441,4 +4442,55 @@ kept (409 by default) and every foil is within 0.4 µm of the default fit.
 
 **Invariant added:** I30 (a figure tool rerun on unchanged code and inputs
 gives its figures back pixel for pixel).
+
+### 2026-11-23 — Remedying everything the Tools session put on the to-do list (owner: "if you found it you own it")
+
+**Owner:** with standing merge permission: remedy everything added to the
+to-dos and report, regardless of whose area it is.
+
+**What was done, and how it was verified (all measured on 2026-11-23):**
+
+- **Stale committed products.** The beam-profile and stray-light figures
+  were *not* stale: their own commit (ab33063), run in this environment,
+  gives exactly today's pixels; the committed figures had been drawn in
+  another environment (library builds, fonts). The audit now tells the two
+  apart (`runner.run_item_at`, `classify`) and runs record their library
+  versions. Remade with their text: the C2/C3 tables (the error-model
+  ratios unchanged in substance, so not confounded as first written), C21
+  (now by `compare_methods.py`, `GIDParams(angles=...)`), C24 (written for
+  the first time; `COMPARISONS.md` had named a command that did not write
+  it), the reflectivity survey (the guard ladder's choices), the GID survey
+  (current in substance).
+- **g_l2 / g_l3 screenshots** captured again; the dialogs listed scans
+  5 and 13 as "6, 14" (an off-by-one since the original program), fixed.
+- **Private defaults:** three tools take their files as arguments; their
+  pages default to NX.
+- **Variations reachable:** pinhole case 8, the monitor Monte Carlo, the
+  demonstrator's surveys, synthetic roughness and background.
+- **Figures asked for:** burns against dose (F76), the GID level join per
+  column group, the GID movie on one 2θ axis (M7).
+
+**Found on the way (P46), and fixed.** The column-group figure showed the
+pinhole join factor below the pooled ratio wherever β bins hold few
+counts. The estimator was the inverse-variance mean of the bins' ratios,
+with each bin's error proportional to its own ratio, so bins that came out
+low weighed more. Synthetic two-level sets with a true factor 1.25 (16
+seeds): −0.03 % at 2.6 counts per pixel, −1.0 % at 0.13, −4.9 % at 0.026.
+Replaced by the factor that maximises the likelihood of how each bin's
+counts split between the two sides (binomial given the bin's total:
+Σ_b [N_a/f − (N_a+N_b)·W_a/(f·W_a + W_b)] = 0; error from the
+curvature): within ±0.1 % at every count level (invariant I31). On NX
+11 + 12 the level join moves 1.068 ± 0.013 → 1.088 ± 0.014 (1.5σ; the
+upper level has 124 counts per β bin); the scan join of NX 11 split ×0.8
+moves 1.2565 → 1.2572 (true 1.25). `GIDParams(join_estimator='ivw')`
+keeps the old estimator. Every committed GID product was remade and every
+quoted number updated with the old beside it (`OUTPUT_DECISIONS.md`,
+`COMPARISONS.md` C40).
+
+**Burn: damage or a changing sample (F76), measured on NX 14 and 15.** The
+position drifts 3.70× faster in scan 15 against clock time but 0.79× as
+fast against dose (Σ Monc × foil transmission; flux ratio 4.68 with the
+calibrated foils, 0.90× with the nominal 4.12): nearly coincident against
+dose, as a beam-driven change would be; and scan 15 starts where 14 ended.
+Two scans cannot prove it (they also differ in time).
 
