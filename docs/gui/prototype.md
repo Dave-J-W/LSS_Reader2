@@ -6,7 +6,7 @@ at reorganizing the contents and theme of all the tabs, such as Pilatus,
 reflectivity, 2D plot etc. You don't have to build anything functional at
 first, you can just sketch it out."
 
-The owner calls the new GUI **ngui** (2026-11-23).
+The owner calls the new GUI **ngui** (2026-11-23). **Parked** the same day: the main window is the priority, then the timeline tab, then ngui; its ideas that the main window should take are listed in `ngui_candidates.md`.
 
 **What it is.** A second window, "LSS Reader — ngui (prototype)",
 built in code from a layout table. Every control is a disabled placeholder
