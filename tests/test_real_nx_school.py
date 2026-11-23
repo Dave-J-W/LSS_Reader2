@@ -60,6 +60,9 @@ def test_every_scan_opens_and_shows_its_first_frame(nx, qapp, recorder):
 
 
 def test_reflectivity_scans_6_to_9_match_reference(nx, qapp, recorder):
+    """The legacy patch reproduces the reference made with it (the default
+    is the joint fit since 2026-11-22, C36; test_patching pins that one)."""
+    nx.setPreference('ref_patch_method', 'legacy')
     sweep._select_scans(nx, qapp, [5, 6, 7, 8])
     sweep._select_images(nx, qapp)
     assert len(nx.selectedPilFramesNums) == 96

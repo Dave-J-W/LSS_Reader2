@@ -25,7 +25,8 @@ On your own machine (same platform as the build you want):
 - `packaging/requirements-build.txt`: library versions pinned to the
   ones the test suite passed with. Change them only with a full test run.
 - `LSS_Reader --self-test SPEC PREFIX`: opens the window (so the `.ui`
-  files and icons are found inside the build), reduces scans 6–9 and
+  files and icons are found inside the build), reduces scans 6–9 with
+  the legacy patch (the reference files are the legacy reduction, rule 3) and
   compares `_ref.txt`/`_rrf.txt` with `PREFIX_ref.txt`/`_rrf.txt` byte for
   byte. Exit code 0 when both match. `$LSS_SELFTEST_REPORT` also writes
   the report to a file (a Windows build has no console).
