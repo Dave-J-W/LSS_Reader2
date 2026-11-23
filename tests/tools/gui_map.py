@@ -226,12 +226,24 @@ def check(inv, entries, shared, flows, report):
     return missing
 
 
+def _temp_dir(prefix):
+    """A temporary folder removed when the process ends (2026-11-23: the
+    quick suite runs this tool, and each run left two folders in /tmp)."""
+    import atexit
+    import shutil
+    path = tempfile.mkdtemp(prefix=prefix)
+    atexit.register(shutil.rmtree, path, ignore_errors=True)
+    return path
+
+
 def check_window(entries, report):
     """Resolve every inventory id in a live offscreen MainWindow or a .ui file."""
     os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
     os.environ.setdefault('MPLBACKEND', 'Agg')
-    os.environ.setdefault('LSS_READER_LOG_DIR', tempfile.mkdtemp(prefix='lss_guimap_logs_'))
-    os.environ.setdefault('LSS_READER_PREFS', os.path.join(tempfile.mkdtemp(prefix='lss_guimap_prefs_'), 'p.json'))
+    if 'LSS_READER_LOG_DIR' not in os.environ:
+        os.environ['LSS_READER_LOG_DIR'] = _temp_dir('lss_guimap_logs_')
+    if 'LSS_READER_PREFS' not in os.environ:
+        os.environ['LSS_READER_PREFS'] = os.path.join(_temp_dir('lss_guimap_prefs_'), 'p.json')
     sys.path.insert(0, ROOT)
     from PyQt5.QtWidgets import QApplication, QWidget, QAction
     from PyQt5.QtCore import QObject

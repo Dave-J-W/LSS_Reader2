@@ -95,6 +95,8 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [Screenshots of every area of the window](#gui-screens) | figures | Screenshots of every tab, area and dialog of the reader on the NX school data and synthetic MCA and burn data, with an index. | public (NX school or committed tables) |  | `docs/gui/screens` |
+| [Plot speed: MCA spectra](#plot-speed-mca) | text | How long the real window takes to plot N MCA spectra (linear and log y, and switching log y on) on synthetic data: where plotting time goes. | synthetic (public) |  | — |
+| [Plot speed: Pilatus frames](#plot-speed-images) | text | How long the real window takes to show N Pilatus frames at once, linear or log scale, on synthetic frames. | synthetic (public) |  | — |
 | [Every control and its tooltip (manual)](#dump-tooltips) | text | Every control of the window and its dialogs with its tooltip, as Markdown: the raw material for the manual (the "why" lives in tooltips). | synthetic (public) | 4 s | `docs/manual/controls.md` |
 | [Check the workflow map against the window](#gui-map) | check | The GUI workflow map and control inventory checked against each other and against a live window; rendered as workflows.md and inventory.md. | synthetic (public) | < 1 s | `docs/gui/workflows.md`<br>`docs/gui/inventory.md` |
 | [Screenshots of the new-layout prototype](#ngui-screens) | figures | The prototype of the new layout (ngui, F82) on each tab, its panes and sketch dialogs, at 1440 x 900, with an index; placeholders only, no data. | synthetic (public) |  | `docs/gui/prototype/screens` |
@@ -632,6 +634,42 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Quick (skip the slow areas) | Leaves out Ref Patch, GID patch, cuts and burn on the real data. | `tests/tools/gui_screens.py` | `python tests/tools/gui_screens.py --out '{out}' --skip-slow` |
+
+<a id="plot-speed-mca"></a>
+
+### Plot speed: MCA spectra
+
+How long the real window takes to plot N MCA spectra (linear and log y, and switching log y on) on synthetic data: where plotting time goes.
+
+- Menu: Tools > The reader's window and manual; kind: text (a printed report (tables in the output pane)); script: `tests/tools/plot_speed.py`
+- Explained in: `docs/COMPARISONS.md`
+- Run:
+
+      python tests/tools/plot_speed.py mca
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Many spectra (200, 4096 channels) | A long fluorescence series with a fine MCA: the log-scale cost grows with the points drawn. | `tests/tools/plot_speed.py` | `python tests/tools/plot_speed.py mca --spectra 200 --channels 4096` |
+
+<a id="plot-speed-images"></a>
+
+### Plot speed: Pilatus frames
+
+How long the real window takes to show N Pilatus frames at once, linear or log scale, on synthetic frames.
+
+- Menu: Tools > The reader's window and manual; kind: text (a printed report (tables in the output pane)); script: `tests/tools/plot_speed.py`
+- Explained in: `docs/COMPARISONS.md`
+- Run:
+
+      python tests/tools/plot_speed.py images
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Log scale | The same frames on a log colour scale. | `tests/tools/plot_speed.py` | `python tests/tools/plot_speed.py images --log` |
 
 <a id="dump-tooltips"></a>
 

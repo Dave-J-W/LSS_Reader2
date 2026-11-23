@@ -4271,6 +4271,99 @@ fail on main since 2026-11-22 were found and bisected (TODO area I).
 **Left to the owner:** the cloud environment's setup script should run
 `cd LSS_Reader2 && pip install -r requirements-dev.txt`, so that a new
 session can test at once.
+### 2026-11-23 — Plotting and image display: where the time goes
+
+**Owner:** "please take a look at all the plotting and image display for
+speedups. Displaying many MCA spectra on a log scale was a notorious
+slowdown. So was log scale image display."
+
+**Measured** (`tests/tools/plot_speed.py`, the real window offscreen;
+standalone matplotlib for the variants; C39):
+- **MCA spectra.** Each spectrum was drawn with `errorbar`, which makes one
+  path per channel's error bar: 100 spectra of 2048 channels, 205 000
+  paths, each sent through the log transform on its own on a log axis.
+  Plotting them with log y took 4.21 s, switching log y on 2.37 s, and
+  every pan, zoom or resize redrew for about 2.4 s. Now each spectrum's bars
+  are one path with breaks between bars (`mplwidget.errorbars`): the same
+  bar ends, colour and width; 0.76 s, 0.54 s and about 1.0 s. What is left
+  is drawing 200 000 points; markers are a fifth of it.
+- **Log-scale maps.** The legacy GID patch map used `pcolor` (a polygon per
+  cell) in log scale only, `imshow` in linear, which is why log was the
+  slow one; the 2D_Plot tab used `pcolor` in both. Now `pcolormesh`
+  (`mplwidget.mesh`), the same cells: 500 × 500 cells redrawn 0.52 → 0.09 s.
+  `pcolor` stays for grids with non-finite coordinates, which `pcolormesh`
+  refuses.
+- **Pilatus frames** (`imshow`, bicubic): fast with today's matplotlib, about
+  0.2 s for a Pilatus 1M frame, log or linear; a different interpolation
+  would gain 1.5 × and change the look, so it is left. The first log axis
+  of a session also parses its tick labels as mathtext once.
+
+Verified: measured and tested (`test_plot_speed.py`; the GUI manager's
+`test_gui_2dplot.py` passes on the mesh).
+
+### 2026-11-23 — File IO, RAM and disk caching reviewed
+
+**Owner:** "Then review all the file IO, ram and disk caching plans."
+
+**The plans** (FEATURE_REQUESTS F6–F9): faster MCA parsing (F6), faster
+Pilatus 1M frames (F7), a local disk cache for the production network
+drive (F8), a RAM cache sized to the host (F9); entries keyed by path,
+size and modification time, LRU, the disk cache with a size cap and a
+location. All four were built in Stage 2; this review measured them again
+on this container (local disk) and looked for what they missed.
+
+**Measured, fine as it is:** reading a SPEC file is linear, 0.5 ms per
+scan (3000 scans, 10.6 MB: 1.4 s; the window opens it in 3.4 s, most of it
+parsing numbers); a Pilatus 100K TIFF decodes in 1.7 ms, a 1M frame in
+9.6 ms; bad-pixel correction of a 1M frame takes 0.04 s (one iteration)
+to 0.08 s (three), so F7's worry is gone. The RAM cache (a quarter of the
+memory, at most 4 GB) and the disk cache (only files on another file
+system, 5 GB, writes atomic) are keyed as planned, so a file still being
+written is read again.
+
+**Found and fixed:**
+- MCA files were parsed again for every selected scan on every change of
+  the scan selection (whole-series selection makes that every click):
+  20 files of 30 spectra, 0.38 s per click locally, more over the network
+  drive, which the disk cache does not cover for MCA files. Now parsed
+  once per file version in the memory cache (`lss_core.mcafiles`): 8 ms.
+- The disk cache walked its whole folder after every new entry (16 ms per
+  frame at 6600 entries locally): now once per process and when its
+  running total passes the limit, trimming to 90 %.
+
+**Options, not taken:** frames are held as int64 (bit-identical with the
+old reader), twice the TIFF's int32, which halves what both caches hold;
+storing int32 would need every reduction re-verified against the legacy
+fixtures. The speed over a slow network drive cannot be measured here
+(TODO area I, "slow-file-system timing").
+
+Verified: measured (scripts in this session; `tests/tools/plot_speed.py`
+for the plots) and tested (`test_mcafiles.py`, `test_lss_core.py`).
+
+### 2026-11-23 — P36 and P37 fixed: legacy GID maps with three Qz levels
+
+A to-do of long standing (TODO: "fix with a synthetic three-level GID data
+set; outputs change only for such maps"), taken up because it lies outside
+the GUI work. In `lss_core.gid.legacy_patch` (the window's code since
+2026-11-19):
+- **P36** (= P14, defect 11): every frame is put back to counts with its
+  scan's mean monitor, except that the first frame of each high-Qz scan was
+  not, leaving it per monitor, about 1/M of its neighbours. Measured on the
+  synthetic three-level set (`tests/synthetic/gid_levels.py`): where only
+  the high level covers β, scan 5's first frame was 1/1.03e5 of the truth.
+  Fixed: that frame is treated like the others, and every point of the map
+  is within 5 % of the truth.
+- **P37** (= P15, defect 12): a high level of one scan took the middle
+  level's first scan key: a KeyError when the scans differ (the patch
+  stopped with a message), the right data only when one scan had frames at
+  both levels. Fixed: a level's one scan is its own; the map comes back
+  within 5 % of the truth.
+
+Two-level maps, which is all the real data on hand, do not change: the 38
+real-data GID tests pass (NX school scans 11, 12 against stored curves).
+The two strict xfails became ordinary tests, and the "as coded" test that
+pinned P36's wrong value was removed with the fix. Verified: tested.
+
 
 ### 2026-11-23 — Which demonstrations and figure generators does the repository hold, and can they be made without staleness? (F84)
 
@@ -4290,8 +4383,9 @@ the documents with a subagent).** The repository holds 31 scripts in
 (`tests/synthetic/`, `tests/synth.py`), and 13 figures made elsewhere
 (hand-off 03's answer). All 30 runnable scripts ran from the current code
 in this container (0.1 s to 104 s with their defaults; the gauntlet's full
-design about 25 min). They are now 34 items of the Tools menu in seven
-menus (`lss_toolbox/catalog.py`, `docs/TOOLS.md`); the documents name 59
+design about 25 min). They are now 36 items of the Tools menu in seven
+menus (`lss_toolbox/catalog.py`, `docs/TOOLS.md`; with `plot_speed.py`,
+added on main later that day, not timed here); the documents name 62
 variations ("change this and rerun"), each an entry with its document
 line. Where a documented parameter was fixed in the code it became an
 option: the foil fit's cuts, the demonstrator's settings (`--set`), and a

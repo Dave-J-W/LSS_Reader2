@@ -477,6 +477,22 @@ TOOLS = (
          variations=(V('Quick (skip the slow areas)', 'Leaves out Ref Patch, GID patch, cuts and burn on the real '
                        'data.', 'tests/tools/gui_screens.py', skip_slow=True),),
          inputs=UI + ('docs/gui/screens/README.md',), seconds=None),
+    Tool('plot_speed_mca', 'Plot speed: MCA spectra', 'gui', 'text',
+         'tests/tools/plot_speed.py',
+         'How long the real window takes to plot N MCA spectra (linear and log y, and switching log y on) on '
+         'synthetic data: where plotting time goes.',
+         docs=('docs/COMPARISONS.md',), data='synthetic', subcommand='mca',
+         variations=(V('Many spectra (200, 4096 channels)', 'A long fluorescence series with a fine MCA: the '
+                       'log-scale cost grows with the points drawn.', 'tests/tools/plot_speed.py',
+                       spectra='200', channels='4096'),),
+         inputs=UI),
+    Tool('plot_speed_images', 'Plot speed: Pilatus frames', 'gui', 'text',
+         'tests/tools/plot_speed.py',
+         'How long the real window takes to show N Pilatus frames at once, linear or log scale, on synthetic '
+         'frames.', docs=('docs/COMPARISONS.md',), data='synthetic', subcommand='images',
+         variations=(V('Log scale', 'The same frames on a log colour scale.', 'tests/tools/plot_speed.py',
+                       log=True),),
+         inputs=UI),
     Tool('dump_tooltips', 'Every control and its tooltip (manual)', 'gui', 'text',
          'tests/tools/dump_tooltips.py',
          'Every control of the window and its dialogs with its tooltip, as Markdown: the raw material for the '

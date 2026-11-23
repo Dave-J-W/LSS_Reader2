@@ -27,7 +27,7 @@ working list, one table per area, each row with its source. Rows marked
 | ~~Scan join against everything joined so far~~ **done 2026-11-22** (P41) | P41 |
 | Stray light, streak mask, background frames | P40; input 17 |
 | Exact angles for cut axes, display, distance fit | P38 remainder |
-| Legacy three-level map (synthetic three-level set) | P36, P37 (= P14, P15, P31) |
+| ~~Legacy three-level map (synthetic three-level set)~~ **fixed 2026-11-23** | P36, P37 (= P14, P15, P31) |
 | Second 200K module | F63, D43; input 3 |
 | ΣN/ΣW vs IDL error weights | input 18 |
 | Multiple exposures, cosmic rays | F40 |
@@ -120,7 +120,7 @@ working list, one table per area, each row with its source. Rows marked
 | Sample-environment readings (barrier, tensiometer, oxygen) as extra panels beside burn trends; synthetic columns until the macros write them — **new** 2026-11-23 | F75 |
 | Burns at several absorbers on dose and time axes: beam damage or a changing sample — **new** 2026-11-23 | F76; physics_notes 2026-11-23 |
 | Predicting a safe absorber from a short high-flux burn (research; needs burn pairs at two fluxes) — **new** 2026-11-23 | F77 |
-| Sample height scan: super-Gaussian fit (width, exponent) beside the sample's earlier sh scans; verdict thresholds from the owner. Check first what the "Main" session's commit 35f41c3 (flat and weak sh scans not fitted) already does — **new** 2026-11-23 | F78; F43 |
+| Sample height scan: super-Gaussian fit (width, exponent) beside the sample's earlier sh scans; verdict thresholds from the owner. The test-speed session's commit 35f41c3 (on main) skips flat and weak sh scans and fits a sample height scan only when its FWHM is above 20 µm, the owner's plausibility floor; the 65 µm here is the quality verdict, so they do not conflict — **new** 2026-11-23 | F78; F43 |
 
 **H. Detectors and inputs (Stage 4)**: 1M (F17–F19, F38, D11), 100K/200K
 models (F33), ME7 tab (F34, F35), new-format SPEC (F28), HDF5 (F29). All
@@ -183,6 +183,12 @@ build workflow and macOS signing (input 12); sample-data hosting.
       (deferred deletes never ran), a 9.5 s box fit on every motor-scan plot,
       a bisection in the pinhole footprint window, tmp_path kept for three
       runs, temporary folders never removed.
+- [x] **File IO and caches reviewed — 2026-11-23** (physics_notes): MCA
+      files now parsed once per file version (they were re-read on every
+      selection change); the disk cache walks its folder only when it may
+      be full. Open: frames held as int64 halve what the caches hold (an
+      int32 cache would need every reduction re-verified); timing over a
+      slow network drive.
 - [ ] **Three real-data tests fail on main since 2026-11-22 (found
       2026-11-23, bisected)**: `test_patching.py::test_nx_school_scans_6_to_9`
       since 6bb29bf (the joint fit's guard ladder and 2 points either side:
@@ -197,7 +203,7 @@ build workflow and macOS signing (input 12); sample-data hosting.
       the owner of patching.
 - [x] **A Tools menu in the main window (new 2026-11-23) — done 2026-11-23
       (F84)**: every demonstration and figure generator as an item
-      (`lss_toolbox/`, `docs/TOOLS.md`; 34 items, 59 documented variations),
+      (`lss_toolbox/`, `docs/TOOLS.md`; 36 items, 62 documented variations),
       run from the repository's code in its own process; the demonstrators
       are started as their own process (`patch_demo.py`, which takes the space
       bar application-wide). A packaged build lists the items and the
@@ -423,8 +429,8 @@ stated assumption until the answer arrives.
       SpecPlot already has `Time_s`.
 - [ ] Backlog (owner, 2026-11-19): F65's edge estimator (steps 3, 4, 6: steepest rise of
       ln(Vortex/Monc), outlier check against the group median, alignment).
-- [ ] P36, P37 (legacy GID with three Qz levels): fix with a synthetic
-      three-level GID data set; outputs change only for such maps.
+- [x] P36, P37 (legacy GID with three Qz levels): fixed 2026-11-23 with the
+      synthetic three-level GID data set; outputs change only for such maps.
 - [ ] Docket (2026-11-18): F59 cuts for diffuse scattering (I vs β, β − α;
       the Q cuts' default ranges miss the detector and plot zeros silently),
       F60 contextual/automatic reduction. Not to be built yet.
