@@ -4554,3 +4554,6 @@ calibrated foils, 0.90× with the nominal 4.12): nearly coincident against
 dose, as a beam-driven change would be; and scan 15 starts where 14 ended.
 Two scans cannot prove it (they also differ in time).
 
+### 2026-11-23 — GUI questions answered, batch 8 (B4, B5, B7, Q-IMG-7)
+
+Verified by: reading only. **Invariant to protect when built (live updates):** a join the user accepted must not change when more scans arrive; only a new join may prompt. This is not yet an invariant with a test; it belongs in the invariants table when the join table exists. Open from Q-IMG-7: the cue thresholds (off-centre beyond 25 % of the half-width; clipped above 1 % of the integral at the box edge; background box within 2 px of the signal box) are unconfirmed.
