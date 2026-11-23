@@ -4570,6 +4570,14 @@ Verified by: reading only. Burn analysis opens by itself with dose-axis and othe
 
 Verified by: reading only. XFNTR scan points are never deleted. `_flu.txt` is read by xmodfit and its format is to be frozen (F100). Energy scans are not merged by default. Absorbers are sometimes in during escans, so the absorber factor must be evaluated at each point's energy (F101); today it uses the header energy, which is wrong by up to about a factor 1.7 across 100 eV at n = 52 (the figure from the question, not remeasured here). **Misread question:** Q-XFNTR-4 asked about the MCA spectra, not the Qz scan, so the spectrum browser question is still open.
 
+### 2026-11-23 — GUI questions answered, batch 12 (F99 test, Q-GEN-1, Q-GEN-3, Q-GID-3, Q-GID-4)
+
+Verified by: reading only. **F99:** χ² of the difference. For two scans on one grid, T = Σ(y1 − y2)²/(s1² + s2²) has N degrees of freedom if the scans are the same and the errors are right and independent; the p-value is the survival function of χ²_N at T. Not yet built or tested; when built, test it on synthetic identical pairs (p-values uniform) and on pairs with a known offset. **Q-GEN-1:** ROI and background size sweep through the scripting API (F102); selection stops jumping to SpecPlot (F103). **Q-GEN-3:** GISAXS and GIOXS are both in use and need an upgrade (F104); a follow-up interview is needed. **Q-GID-3/4:** background frames and Form Factor stay, though often unused; the owner ticked both "used" and "not used", and the note resolves it as capability wanted, rarely used.
+
+### 2026-11-23 — GUI questions answered, batch 13 (hand-off 08 data, GISAXS and GIOXS)
+
+Verified by: reading only. The real reflectivity series for hand-off 08 are "not soon"; all data needs are now gathered in `docs/DATA_NEEDS.md` for the owner's non-cloud agent. GISAXS upgrade: cuts, refraction-corrected q mapping and background/beam-stop masking, after a research step. GIOXS is grazing-incidence off-specular scattering (the acronym was not explained anywhere in the window); XmodFit is gaining analysis for it. Examples of both will come later.
+
 ### 2026-11-23 — F87 built: the burn kind from Det_Th > 2°
 
 The owner's answer to Q10 (recorded above, batch of the day): "Det_Th >
