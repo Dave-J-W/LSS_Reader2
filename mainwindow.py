@@ -5888,6 +5888,9 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.draw()
     
     def pilRefPatchDrop(self):
+        if self.pilreforder>=len(self.pilrefsort)-1:     # no join left (found by the crash sweep, 2026-11-23)
+            self.notify('Every join is done: there is no next scan to drop points from.',title='Ref Patch')
+            return
         try:
             dropnumbers=[int(t) for t in str(self.uirefpatch.dropLineEdit.text()).split(',')]
         except ValueError:

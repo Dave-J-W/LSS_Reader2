@@ -132,6 +132,20 @@ def test_patch_dialog_drop_then_finish(patch, qapp, recorder):
     assert len(patch.refData) == 9 + 6 - 1
 
 
+def test_drop_after_the_last_join_says_so(patch, qapp, recorder):
+    """Found by the crash sweep's random walk (2026-11-23): Drop with no join
+    left raised IndexError (pilreforder + 1 past the scans)."""
+    d = patch.uirefpatch
+    d.nextPushButton.click()                  # the only join: Finish
+    qapp.processEvents()
+    recorder.messages.clear()
+    d.dropLineEdit.setText('0')
+    d.dropPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert any('no next scan' in m for m in recorder.messages)
+
+
 # ---- information dialogs opened by Ref Patch --------------------------------
 
 def test_peak_centre_dialog_when_the_beam_is_off_its_recorded_position(
