@@ -25,10 +25,9 @@ def _series(cond, n, seed):
 
 @pytest.mark.parametrize('weights, step', [('poisson', 'model'), ('data', 'data')])
 def test_the_linear_step_is_the_readers(weights, step):
-    """linear_step gives fit_series' per-spectrum heights and errors, with
-    model weights its default (Poisson, since 2026-11-24) and with data
-    weights its legacy one, so fit_known differs from the reader only where
-    it says."""
+    """linear_step gives fit_series' per-spectrum heights and errors: data
+    weights its default, model weights its Poisson option (F90 P1), so
+    fit_known and fit_irls differ from the reader only where they say."""
     cond = g.core()['smooth']
     s, data, x, Y, S = _series(cond, 5, 1)
     o = g.fit_options(cond, [cond.line])
@@ -42,22 +41,21 @@ def test_the_linear_step_is_the_readers(weights, step):
 
 def test_model_weights_remove_neymans_bias_at_low_counts():
     """A clean line of ~300 counts on 1 count per channel: weights from the
-    data (the legacy step) pull the area low (Neyman's χ²); the Poisson
-    step, the reader's default since 2026-11-24, does not (measured,
-    2026-11-23: about −2.5 % against −0.1 %)."""
+    data pull the area low (Neyman's χ²); the Poisson step does not
+    (measured, 2026-11-23: about −2.5 % against −0.1 %)."""
     cond = g.replace(g.core()['clean'], photons=340.0)
-    est = {'fit_legacy': [], 'fit': []}
+    est = {'fit': [], 'fit_irls': []}
     for seed in range(30):
         s = cond.spectrum()
         rng = np.random.default_rng([4, seed])
         counts = [s.draw(rng) for _ in range(cond.series)]
-        r = g.estimate(cond, [s] * cond.series, counts, ['fit_legacy', 'fit'])
+        r = g.estimate(cond, [s] * cond.series, counts, ['fit', 'fit_irls'])
         for m in est:
             est[m] += [v[0] / v[2] - 1 for v in r[m] if v is not None]
-    legacy, poisson = np.mean(est['fit_legacy']), np.mean(est['fit'])
-    se = np.std(est['fit_legacy']) / np.sqrt(len(est['fit_legacy']))
-    assert legacy < -3 * se and legacy < -0.01
-    assert abs(poisson) < max(3 * se, 0.005)
+    fit, irls = np.mean(est['fit']), np.mean(est['fit_irls'])
+    se = np.std(est['fit']) / np.sqrt(len(est['fit']))
+    assert fit < -3 * se and fit < -0.01
+    assert abs(irls) < max(3 * se, 0.005)
 
 
 def test_escape_stripping_removes_the_escapes():

@@ -20,12 +20,13 @@ def test_bruker_detector_is_refused():
     assert TwoDDetector('Pilatus').pix_size == 0.172
 
 
-def test_apex_tab_is_hidden_and_pilatus_tab_unchanged(window):
+def test_apex_tab_is_gone_and_pilatus_tab_unchanged(window):
+    # the hidden Apex (CCD) tab was removed (owner, 2026-11-23, Q14); before,
+    # it sat hidden at index 1 with Pilatus at 2
     pw = window.ui.PlotWidget
-    assert pw.tabText(1) == 'Apex'
-    assert not pw.isTabVisible(1)
-    assert pw.tabText(2) == 'Pilatus'
-    assert pw.isTabVisible(2)
+    assert 'Apex' not in [pw.tabText(i) for i in range(pw.count())]
+    assert pw.tabText(1) == 'Pilatus'
+    assert pw.isTabVisible(1)
 
 
 def test_sfrm_scan_is_unsupported_with_one_message(window, qapp, recorder, tmp_path):

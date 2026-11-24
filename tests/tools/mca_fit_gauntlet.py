@@ -46,12 +46,10 @@ Estimators of the line's counts (``--methods``; ``key`` is the first eight):
   lines (when the detector has escapes) and the K lines of the other
   elements present. All share the fixed width. Their own flags (no height
   when absent) do not fail the line's result.
-- ``fit_legacy``: ``fit`` with each spectrum's linear step weighted by
-  the data's σ (``fit_series(weights='data')``), the reader's default
-  until 2026-11-24. Weights from the data (Neyman's χ²) pull areas low at
-  low counts; the reader's default is now the Poisson maximum likelihood
-  of that step (F90 P1, the owner's decision on this gauntlet's
-  evidence).
+- ``fit_irls``: ``fit`` with each spectrum's linear step weighted by the
+  model instead of the data (σ² ∝ the fitted counts; iterated). This is
+  the Poisson maximum likelihood of that step: weights from the data
+  (Neyman's χ²) pull areas low at low counts.
 - ``fit_linear``, ``fit_cubic``: ``fit`` with another background.
 - ``nonlinear``: one spectrum fitted alone (``peaks.fit_lines``), its own
   area and error. Diagnostic: that error leaves out the height–width
@@ -145,7 +143,7 @@ RANDOM_PASS = 0.95
 STOP = dict(after=20, fails=10, fraction=0.05)
 MONITOR = 1e7                # Monc of every spectrum: its N²/M term is negligible under the line
 TIME = (10.0, 10.0)          # real, live (s)
-KEY_METHODS = ('window', 'sides', 'fit', 'fit_fixed', 'fit_width', 'fit_strip', 'fit_known', 'fit_legacy')
+KEY_METHODS = ('window', 'sides', 'fit', 'fit_fixed', 'fit_width', 'fit_strip', 'fit_known', 'fit_irls')
 METHODS = KEY_METHODS + ('fit_linear', 'fit_cubic', 'nonlinear')
 
 SMOOTH_BEAM = mca.Beam(energy=10.0, angle=90.0, compton_ratio=1.0, compton_fwhm=0.19, compton_core=0.0)
@@ -460,7 +458,7 @@ def known_centres(cond):
 
 FIT_SERIES = {                       # methods that are peaks.fit_series with these options
     'fit': {}, 'fit_fixed': dict(fix_centres=True), 'fit_width': 'width', 'fit_strip': 'width',
-    'fit_linear': dict(background='linear'), 'fit_cubic': dict(background='cubic'), 'fit_legacy': {},
+    'fit_linear': dict(background='linear'), 'fit_cubic': dict(background='cubic'),
 }
 
 
@@ -503,7 +501,7 @@ def estimate(cond, spectra, counts, methods):
                         stripped = ([d[:, 1] for d in sd], [d[:, 2] for d in sd])
                     YY, SS = stripped
                 o = fit_options(cond, [cond.line], **kw)
-                ref, each = peaks.fit_series(x, YY, SS, o, weights='data' if m == 'fit_legacy' else 'poisson')
+                ref, each = peaks.fit_series(x, YY, SS, o)
                 refs[m] = (ref, o)
                 if not each:
                     out[m] = fail
@@ -511,6 +509,17 @@ def estimate(cond, spectra, counts, methods):
                 j = _ka_index(ref, cond.line)
                 out[m] = [(r.peaks[j].area / step * scale(), r.peaks[j].area_err / step * scale(), t)
                           for r, t in zip(each, ka_total)]
+            elif m == 'fit_irls':
+                if 'fit' not in refs:
+                    o = fit_options(cond, [cond.line])
+                    refs['fit'] = (peaks.fit_series(x, Y, S, o)[0], o)
+                ref, o = refs['fit']
+                if not (ref.ok and ref.peaks):
+                    out[m] = fail
+                    continue
+                j = _ka_index(ref, cond.line)
+                got = _from_heights(ref, j, linear_step(x, Y, S, ref, o, 'model'), step)
+                out[m] = [g + (t,) for g, t in zip(got, ka_total)]
             elif m == 'fit_known':
                 o = fit_options(cond, known_centres(cond), fwhm=cond.assumed_fwhm)
                 tot = np.sum(Y, axis=0)
@@ -526,7 +535,7 @@ def estimate(cond, spectra, counts, methods):
                 if p.height <= 0 or p.centre - lo_w < tol or hi_w - p.centre < tol or abs(p.centre - cond.line) > cond.fwhm:
                     out[m] = fail
                     continue
-                got = _from_heights(ref, j, linear_step(x, Y, S, ref, o, 'model'), step)
+                got = _from_heights(ref, j, linear_step(x, Y, S, ref, o, 'data'), step)
                 out[m] = [g + (t,) for g, t in zip(got, ka_total)]
             elif m == 'nonlinear':
                 o = fit_options(cond, [cond.line])
@@ -758,9 +767,9 @@ def summary(ver, pool, sver, f90, conds, sconds, args, out):
             args.series_replicates if args.design in ('series', 'all') else 0, PULL_BIAS_MAX, *PULL_SD,
             100 * REL_BIAS_MAX, IN_RANGE['counts'], 1000 * IN_RANGE['fwhm'][0], 1000 * IN_RANGE['fwhm'][1],
             IN_RANGE['ratio']), '']
-    kinds = [('the reader\'s', ('window', 'fit', 'fit_fixed')), ('the reader\'s until 2026-11-24', ('fit_legacy',)),
-             ('a comparator, not a reader method', ('sides',)),
-             ('candidates, not defaults', ('fit_width', 'fit_strip', 'fit_known', 'fit_linear', 'fit_cubic')),
+    kinds = [('the reader\'s', ('window', 'fit', 'fit_fixed')), ('a comparator, not a reader method', ('sides',)),
+             ('candidates, not reader methods and not defaults', ('fit_width', 'fit_strip', 'fit_known', 'fit_irls',
+                                                                  'fit_linear', 'fit_cubic')),
              ('a diagnostic', ('nonlinear',))]
     L += ['Estimators: ' + '; '.join('%s: %s' % (k, ', '.join('`%s`' % m for m in ms if m in methods))
                                      for k, ms in kinds if any(m in methods for m in ms)) + '.', '']

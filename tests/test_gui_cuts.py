@@ -41,7 +41,7 @@ def test_cut_types_offered(frame):
 def test_pixel_horizontal_cut_sums_rows(frame, qapp, recorder):
     cut = _cut(frame, qapp, 2, '90:110')
     assert recorder.exceptions == [] and recorder.messages == []
-    assert frame.ui.PlotWidget.currentIndex() == 4
+    assert frame.ui.PlotWidget.currentWidget() is frame.ui.cutAreaTab
     # cuts are of monitor-normalised frames (since 2026-11-17, P23)
     img = frame.pilData[0] / synth.MONITOR
     var = frame.pilData[0] / synth.MONITOR ** 2 + frame.pilData[0] ** 2 / synth.MONITOR ** 3

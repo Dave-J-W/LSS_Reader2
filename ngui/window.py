@@ -925,6 +925,11 @@ class NguiWindow(QMainWindow):
         sb.showMessage('ngui prototype: a sketch of the layout; nothing is read or reduced here')
         w, _ = self._widget(L.STATUS[1], sb)
         sb.addPermanentWidget(w)
+        for item in L.STATUS[2:]:                  # the state badges, as built in the main window (F85)
+            b, _ = self._widget(item, sb)
+            b.setWordWrap(False)
+            b.setProperty('nguiState', True)
+            sb.addPermanentWidget(b)
         for text, tip in L.STATE_BAR:
             lab = QLabel(text, sb)
             lab.setObjectName(_oname('state_' + text.replace(' ', '_').replace('/', '')))

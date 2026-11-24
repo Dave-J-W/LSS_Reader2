@@ -453,7 +453,7 @@ WEIGHTS = ('poisson', 'data')
 
 def _poisson_step(A, y, s, coef, iters=20):
     """The per-spectrum linear fit by Poisson maximum likelihood (F90 P1,
-    the owner, 2026-11-24): least squares iterated with σ² = k·model, where
+    an option until the owner's study, 2026-11-24): least squares iterated with σ² = k·model, where
     k = σ²/y is the spectrum's own scale (τ/M for a normalised MCA
     spectrum). At convergence Σ (y/μ − 1) ∂μ/∂a = 0, the Poisson condition
     (W. Cash, ApJ 228, 939, 1979). Weights from the data, σ² ∝ y, give
@@ -472,14 +472,14 @@ def _poisson_step(A, y, s, coef, iters=20):
     return coef, np.sqrt(k * np.maximum(A @ coef, floor))
 
 
-def fit_series(x, spectra, sigmas=None, options=None, weights='poisson'):
+def fit_series(x, spectra, sigmas=None, options=None, weights='data'):
     """A series of spectra with the same lines (MCA, EXAFS, XFNTR): the sum
     of all spectra is fitted (``fit``) for the centres, widths and shape;
     each spectrum is then fitted with those fixed, its heights and
-    background linear. With σ given, ``weights`` 'poisson' (the default
-    since 2026-11-24, F90 P1) fits each spectrum by Poisson maximum
-    likelihood (``_poisson_step``); 'data' is the legacy least squares
-    weighted by the given σ. Without σ the fit is unweighted, errors scaled
+    background linear. With σ given, ``weights`` 'data' (the default)
+    is least squares weighted by the given σ; 'poisson' fits each spectrum
+    by Poisson maximum likelihood (``_poisson_step``; F90 P1, an option
+    until the owner's study, 2026-11-24). Without σ the fit is unweighted, errors scaled
     by the residual, either way. Returns (the sum's FitResult, [FitResult
     per spectrum])."""
     if weights not in WEIGHTS:

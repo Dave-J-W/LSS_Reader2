@@ -11,7 +11,6 @@ import sweep
 from test_ref_export_golden import reduce_and_save
 
 PAIRS = [
-    ('empty', 'click:gixRefPushButton'),
     ('empty', 'click:pilRefPatchPushButton'),
     ('empty', 'click:pilRefPushButton'),
     ('empty', 'click:refAcceptPushButton'),
@@ -25,7 +24,6 @@ PAIRS = [
     ('empty', 'enter:refCenLineEdit'),
     ('empty', 'enter:refSeaWinLineEdit'),
     ('empty', 'enter:refSlitLineEdit'),
-    ('mca_frames', 'click:gixRefPushButton'),
     ('mca_frames', 'click:pilRefPatchPushButton'),
     ('mca_frames', 'click:pilRefPushButton'),
     ('mca_frames', 'click:refAcceptPushButton'),
@@ -39,7 +37,6 @@ PAIRS = [
     ('mca_frames', 'enter:refCenLineEdit'),
     ('mca_frames', 'enter:refSeaWinLineEdit'),
     ('mca_frames', 'enter:refSlitLineEdit'),
-    ('motor_scan', 'click:gixRefPushButton'),
     ('motor_scan', 'click:pilRefPatchPushButton'),
     ('motor_scan', 'click:pilRefPushButton'),
     ('motor_scan', 'click:refAcceptPushButton'),
@@ -65,7 +62,6 @@ PAIRS = [
     ('pilatus_one_frame', 'enter:refCenLineEdit'),
     ('pilatus_one_frame', 'enter:refSeaWinLineEdit'),
     ('pilatus_one_frame', 'enter:refSlitLineEdit'),
-    ('pilatus_scan_no_frames', 'click:gixRefPushButton'),
     ('pilatus_scan_no_frames', 'click:pilRefPatchPushButton'),
     ('pilatus_scan_no_frames', 'click:pilRefPushButton'),
     ('pilatus_scan_no_frames', 'click:refAcceptPushButton'),
@@ -90,7 +86,6 @@ PAIRS = [
     ('pilatus_two_scans_all_frames', 'enter:refCenLineEdit'),
     ('pilatus_two_scans_all_frames', 'enter:refSeaWinLineEdit'),
     ('pilatus_two_scans_all_frames', 'enter:refSlitLineEdit'),
-    ('spec_loaded', 'click:gixRefPushButton'),
     ('spec_loaded', 'click:pilRefPatchPushButton'),
     ('spec_loaded', 'click:pilRefPushButton'),
     ('spec_loaded', 'click:refAcceptPushButton'),
@@ -107,7 +102,7 @@ PAIRS = [
 ]
 
 
-@pytest.mark.slow          # 93 fresh windows; the sweep covers the same ground
+@pytest.mark.slow          # 88 fresh windows (93 before the Apex tab went, 2026-11-23); the sweep covers the same ground
 @pytest.mark.parametrize('state,control', PAIRS)
 def test_control_does_not_raise(qapp, recorder, dataset, tmp_path, state, control):
     from mainwindow import MainWindow

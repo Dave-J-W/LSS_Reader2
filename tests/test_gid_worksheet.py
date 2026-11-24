@@ -36,6 +36,10 @@ def nx(window, qapp, tmp_path):
 
 
 def _menu(w, qapp, text):
+    if text in ('GID Patch', 'Worksheet'):          # buttons since 2026-11-23 (Q-GID-5)
+        (w.gidPatchPushButton if text == 'GID Patch' else w.gidWorksheetPushButton).click()
+        qapp.processEvents()
+        return
     i = w.ui.gidComboBox.findText(text)
     assert i >= 0, text
     w.ui.gidComboBox.setCurrentIndex(i)
