@@ -52,6 +52,7 @@ exists.
 | I39 | The dose of a point is what the reduction already divides by: in monitor counts it is the point's weight in "Sum All", M/(A·g) (`cuts.frame_normaliser`); in photons, the flux route's photons/s × its seconds / A (`flux.photons_per_second`); a scan's dose is the sum of its points'; at a constant monitor rate and absorber the dose axis is the exposure axis × that rate, so a burn's dose limit is its time limit × the rate | `test_dose.py` (every test; the last on the synthetic burn, to 1e-6) | 2026-11-24 |
 | I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
 | I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own` | 2026-11-24 |
+| I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5879,3 +5880,79 @@ line near 8 keV on the Compton and elastic escapes, fitted with the reader's
 Verified: measured (fits to the private spectra; the reader's own
 `fit_series` for C53). The model recovers a known wing, escape and tail on
 synthetic data (`tests/test_mca_scatter.py`, slow).
+
+### 2026-11-24 — The beam's vertical size at the sample, from height scans (DATA_NEEDS row 9, F43, OQ-2)
+
+Verified by: measurement on private data by the non-cloud agent (spec files and Pilatus images of 21 runs);
+the geometry argument is derived, not measured. Study: `docs/studies/sh_beam_size/summary.md`.
+
+- **The question** (OQ-2, F43): can the vertical beam size at the sample come from half-cut or sh scans, and
+  what should the dose per mm² (`lss_core.dose`, `beam_mm=(width, height)`) take?
+- **Half-cuts leave no data.** They are done by hand on the live view; the files hold only the `set sh 0`
+  (526 times) and three scans at incidence 0, one fine enough to use.
+- **The rising edge of every height scan is a knife edge.** The incident beam slopes down at α; a ray clears
+  the liquid's dome exactly when it passes above the tangent point where the surface's slope equals the
+  beam's, the same point for every ray of a nearly parallel beam, moving 1 : 1 with `sh`. Distortions
+  (derived): convergence × tangent distance ≤ 1.5 µm; reflection into the direct beam's pixels < 0.3 µm.
+  The falling side is loss on the curved upstream end, not a beam edge. 1995 of 2815 height scans pass the
+  guards (rise scanned from its foot, ≥ 2 points on the edge, rise and fall separated by > 3 σ, χ²/dof ≤ 20).
+- **Two witnesses agree.** The erf σ of the ROI/Monc rise (the spec-only route; `peaks.fit_box`'s rising
+  FWHM / 2.355 matches it, ratio 0.983 on 150 scans) and the direct beam in the Pilatus images (109 scans,
+  18 runs). The images need a core + tail profile (median χ²/dof 2.1 against 30 for one erf): core σ 13.5 µm,
+  tail σ 56 µm, tail fraction 0.29, FWHM 33 µm, inverse peak 43 µm (medians). The S1 slit scans show a tail
+  already at S1 (median fraction 0.23), so it is in the beam.
+- **Numbers.** 10 keV, S1 0.016–0.04 mm: σ_rise 15.3–17.0 µm by class (run medians 14.0–20.0), independent of
+  the gap there; profile FWHM 30–33 µm. 6–8 keV, sample cell: σ_rise 22 µm at 0.05–0.07 mm, 32 µm at 0.2 mm
+  (energy, cell and gap confounded). 30 keV, liquid metal, one half-cut: σ 8.0 ± 0.3 µm (2 points on the
+  edge); a box round the beam on a liquid keeps 4.4 % of the beam 50 µm past the edge (total reflection).
+- **Rule for the dose:** height = √(2π)·σ_rise = 1.064 × `fit_box`'s rising FWHM, the median over the run's
+  height scans: the inverse peak of the profile, i.e. the peak dose per area. Against the images: 1.06 median
+  (10–90 % 0.91–1.24; +25 % too large at S1 0.2 mm). Default without height scans: **0.040 mm** at 10 keV and
+  S1 ≤ 0.04 mm (±15 %, run to run). The S1 gap (0.016 mm) as height overstates the peak dose 2.5×, the FWHM
+  1.3×. `lss_core/dose.py` is not changed here; this is the input it waits for.
+- **Over time, shape, level drift** (main man's questions): σ_rise does not drift within a run (Theil–Sen median
+  +0.001 µm/h, every 10 keV series below 1 µm per day; first to last third −1.8 to +2.1 µm); runs differ more (σ 14–18 µm).
+  Shape: super-Gaussian p = 0.72 (0.69–0.76): peaked with wings, not flat-topped (F78's flat top is the height scan's
+  reflected peak, not the beam). Level drift (±10 µm/h, fastest 26.5) moves the edge by ≤ 0.09 µm while a
+  41 s scan crosses it: no blur.
+- **OQ-1, read only:** the slit macro that sets centre and gap puts the blades at gap/2 ∓ centre, so the
+  header's S1T and S1B are half-openings and the opening is their sum.
+- **Still open for the owner:** whether the peak dose (this rule) or the footprint-average is the dose meant
+  (OQ-2's last part); the width (not measured here); the upper tail's share of light transmitted through the
+  downstream meniscus.
+
+### 2026-11-24 — The beam's height for the dose, from the height scans (the local data agent's rule, #60)
+
+Verified by: tests (`test_beam_height.py`, I42) on synthetic knife edges; a run on NX school's height scans
+(public). The rule and its numbers are the local data agent's study (`docs/studies/sh_beam_size/summary.md`).
+
+- **What the study found:** the rising edge of a routine height scan is a knife edge of the beam. The
+  dose's height is √(2π)·σ_rise = 1.0645 × `fit_box`'s rising FWHM, which gives the peak dose per area. The
+  default is 0.040 mm (±15 %) at 10 keV with S1 ≤ 0.04 mm.
+- **What the reader does now:** `exp.beam_height(scans=None, near=None)` applies `dose.rising_edge` to every
+  height scan. It uses `peaks.is_height_scan`, the first column as the height and Pilatus/Monc as the signal,
+  with Poisson + 1 % weights.
+  - **The study's guards:** the first point below 25 % of the peak; at least 2 points on the edge; the
+    centre inside the scan; the edges more than 3 σ apart; χ²/dof ≤ 20.
+  - **The height:** 1.0645 × the median rising FWHM of the accepted scans.
+  - **With `near=n`:** only the scans with n's S1 gap count (S1T + S1B; whether these are half-openings is
+    OQ-1), and the nearest `NEAR_SCANS` = 3 of them are used. The 3 is an assumption.
+  - **Without an accepted scan:** the default where its conditions hold, otherwise no height, with the reason.
+- **NX school, run:**
+  - Scans 5, 10 and 13 are accepted: rising FWHM 0.029–0.032 mm, height 0.0333 mm, scatter 3.8 %.
+  - Scan 4 is refused: the stopped scan starts at 54 % of the peak.
+  - At S1 0.016 mm that is a little below the study's run medians, 0.035–0.045 mm.
+  - Burn 14 ran with S1 at 0.100 mm, so `near=14` gives no height. Its height scans were at 0.016 mm, and the
+    default is only for ≤ 0.04 mm. That refusal is the rule working: the beam depends on the gap.
+- **The width is not measured** (the study: about 1.05 mm between the 5 and 95 % points in one earlier
+  image study), so `beam_mm` takes it as typed.
+
+### 2026-11-24 — The owner: sample-height scans from the ROI are unrestricted data
+
+Verified by: the owner's statement in the orchestrator's session ("sample height scans from ROI are
+unrestricted data"). So the ROI counter, monitor and sh columns of sample-height scans, and anything derived
+from them, may be published: per-scan curves, edges, widths, and the inventory behind the beam-height study
+(#60), if the local data agent wishes. Detector images of those scans stay private, as do the other private
+data and their identifiers (names, scan numbers, dates) unless the owner says otherwise. Recorded in
+AGENTS.md's row for `sample_data/private/`.
+

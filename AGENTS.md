@@ -79,12 +79,16 @@ records the answers in `docs/`, and takes small fetch and edit tasks.
 **tools man** (the Tools-menu session) is general purpose. **GUI manager**
 works on workflows and the interface. **Local yokel** runs on the owner's
 own computer and fetches the private data sets (`docs/DATA_NEEDS.md`),
-with helper sessions of its own. A cloud session reaches it, and it
-reaches a cloud session, only by the remote `send_message` tool with the
-session's id (name-based tools do not cross between computers and the
-cloud). main man may message the sessions on the owner's computer (owner,
-2026-11-24: "you have permission to communicate with agents on this
-computer"). GUI priorities: the main window first, then
+with helper sessions of its own. **All sessions talk through GitHub
+issues** (owner, 2026-11-24): issue #55 of this repository, one comment
+per message, beginning `sender → recipient:`, with no private data (the
+issue's body has the rules). Direct session messages are not used: most
+directions are refused, between cloud sessions and the owner's computer
+and into a session the owner has approved for their trusted devices
+(main man's is). main man watches the issues and new `claude/local-data-*`
+pull requests every minute, and reviews and merges the local data agent's
+pull requests (it does not merge them itself); questor reads the issue
+when the owner starts a turn with it. GUI priorities: the main window first, then
 the sample timeline tab (F83), then the new layout prototype (`ngui/`);
 ideas proven in ngui are carried into the main window, not built twice.
 A session that wants to change a large part of `mainwindow.py`,
@@ -127,7 +131,7 @@ sessions do not edit the same lines.
 | `docs/SYNTHETIC_DATA.md`, `tests/synthetic/` | Catalogue of every synthetic-data generator, how to use them (known truth for reflectivity, GID, burn, XFNTR, live files), unmet needs |
 | `sample_data/NX_school/` | Real, public data set (committed) |
 | `sample_data/bu/` | Real, private data set: git-ignored, never commit or push it |
-| `sample_data/private/` | The owner's private files (GID, XFNTR, macros): git-ignored. Owner, 2026-11-19: a few derived numbers in docs are acceptable, but **never peak locations, raw data or images**; private figures stay under this folder |
+| `sample_data/private/` | The owner's private files (GID, XFNTR, macros): git-ignored. Owner, 2026-11-19: a few derived numbers in docs are acceptable, but **never peak locations, raw data or images**; private figures stay under this folder. Owner, 2026-11-24: **sample-height scans from the ROI are unrestricted data** (their ROI counter, monitor and sh columns, and what is derived from them, may be published; their images may not) |
 
 ## Commands
 

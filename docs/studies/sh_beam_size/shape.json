@@ -1,0 +1,52 @@
+{
+ "scan_duration_s": [
+  37.0,
+  41.0,
+  56.0
+ ],
+ "point_interval_s": [
+  2.0,
+  2.0,
+  3.0
+ ],
+ "edge_crossing_s": [
+  7.84395264,
+  8.8952832,
+  12.04412416
+ ],
+ "drift_um_per_h": 10.0,
+ "drift_shift_of_edge_um": 0.03345590044444445,
+ "drift_shift_of_edge_um_fastest_run": 0.08865813617777778,
+ "drift_over_whole_scan_um": 0.15555555555555556,
+ "time": {
+  "n_runs": 21,
+  "slope_median_um_per_h": 0.0014108439453732506,
+  "slope_p10_p90": [
+   -0.015003177869919063,
+   0.0343799701045603
+  ],
+  "runs_slope_excludes_zero": 13,
+  "last_minus_first_third_10keV_um": [
+   -1.781799999999997,
+   0.006349999999999412,
+   2.12805
+  ],
+  "spread_p10_p90_um_median": 2.36975
+ },
+ "shape": {
+  "n_scans": 73,
+  "super_gaussian_p": 0.7238504981027617,
+  "super_gaussian_p_boot_p5_p95": [
+   0.686145914202117,
+   0.7633846402891201
+  ],
+  "rms_resid_super_gaussian": 0.030139752085857483,
+  "rms_resid_gaussian": 0.03504599685893383,
+  "rms_resid_flat_top_p6": 0.04051430547649564,
+  "excess_kurtosis_core_tail": [
+   2.513526168502167,
+   4.553093813809007,
+   7.5676517771924745
+  ]
+ }
+}

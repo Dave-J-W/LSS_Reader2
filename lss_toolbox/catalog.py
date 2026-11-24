@@ -866,6 +866,14 @@ TOOLS = (
          docs=('docs/handoff_out/03-answer/README.md', 'docs/handoff_out/03-answer/HANDOFF.md',
                'docs/handoff_out/03-answer/ABSORBER_RATIOS.md'),
          data='private', repo_ok=False),
+    Tool('sh_beam_size', 'sh-scan beam size (private data)', 'external', 'external',
+         demonstrates='The beam\'s vertical profile at the sample from the rising edge of every height scan and the '
+                      'direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the '
+                      'core + tail profile, the factor to the dose height, a liquid half-cut. Made by the non-cloud '
+                      'agent\'s private generator (sample_data/private/sh_beam/); not regenerable here; the numbers '
+                      'behind the figures are the CSVs beside them.',
+         committed=('docs/studies/sh_beam_size',), docs=('docs/studies/sh_beam_size/summary.md',),
+         data='private', repo_ok=False),
 )
 
 BY_ID = {t.id: t for t in TOOLS}
