@@ -154,9 +154,11 @@ Each dot above is one setting of the guard:
 
 ### Recommendation, cost of being wrong, what would change it
 
-- **Raise p₀ from 0.3 to 0.7.** In the reader that is one constant, with
-  its records and re-pinned tests. On the NX school joins nothing
-  changes.
+- **Raise p₀ from 0.3 to 0.7.** *Done 2026-11-24: it is the default now.*
+  In the reader that was one constant, with its records and re-pinned
+  tests. On the NX school joins the factors are unchanged, and on NX's
+  split test (real scans cut in two with a known factor) the default's
+  RMS pull went from 1.13 to 1.00.
 - **The cost of either choice is small where it counts.** A structural
   fit of the patched curve moves film thickness and roughness by about
   0.001 Å, because it uses every point and the full covariance. The

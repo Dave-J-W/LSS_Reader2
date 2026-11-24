@@ -75,6 +75,12 @@ VARIANTS = {
 COV_TRUTH = (25.0, 0.39, 3.5)                       # covariance_pulls.TRUTH
 
 
+
+def _fell_back(note):
+    """True when no rung reached the guard's p, so its best one was kept. The note reads "no adequate
+    fit" (before 2026-11-24, and below patching.ADEQUATE_P since) or "the best fit of the ladder"."""
+    return 'no adequate' in note or 'best fit of the ladder' in note
+
 def designed():
     """The gauntlet's designed conditions in its own order (``--design all``),
     so that the condition index, and with it the seeds, are the gauntlet's."""
@@ -115,7 +121,7 @@ def study(draw, truth_of, m, n_rep, expected):
                 continue
             rows[name].append(((j.delta - t) / j.err, j.delta - t, j.err))
             if name == 'default':
-                choices[(j.order, j.n_ext, bool(j.flags and 'no adequate' in j.flags[-1]))].append((j.delta - t) / j.err)
+                choices[(j.order, j.n_ext, bool(j.flags and _fell_back(j.flags[-1])))].append((j.delta - t) / j.err)
     r0 = expected()
     sc0 = scans_of(r0)
     t0 = truth_of(r0)[m - 1]
@@ -221,7 +227,7 @@ def summary(results, choices, args, out):
         f.write('\n'.join(L) + '\n')
 
 
-def main(argv=None):
+def _main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--out', required=True)
     ap.add_argument('--replicates', type=int, default=400, help='per gauntlet join (the gauntlet used 400)')
@@ -244,6 +250,21 @@ def main(argv=None):
     write_csv(os.path.join(a.out, 'joins.csv'), [dict(join=k, **r) for k, rows in results.items() for r in rows])
     write_csv(os.path.join(a.out, 'choices.csv'), [dict(join=k, **c) for k, ch in choices.items() for c in ch])
     summary(results, choices, a, a.out)
+
+
+# C45 (the biased joins) as run: the joint fit's guard at p 0.3, the default from 2026-11-22 until 2026-11-24, when it
+# became 0.7 (study A, docs/studies/reflectivity_guard). The committed products are that record, so
+# this tool keeps its run at 0.3; the reader's default is not changed by it (restored afterwards).
+GUARD_P_AS_RUN = 0.3
+
+
+def main(argv=None):
+    from lss_core import patching as _patching
+    saved, _patching.GUARD_P = _patching.GUARD_P, GUARD_P_AS_RUN
+    try:
+        return _main(argv)
+    finally:
+        _patching.GUARD_P = saved
 
 
 if __name__ == '__main__':
