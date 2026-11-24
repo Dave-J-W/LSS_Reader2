@@ -121,6 +121,23 @@ def test_every_committed_figure_belongs_to_an_item():
     assert [p for p in figures if not claimed(p)] == []
 
 
+def test_every_committed_data_file_belongs_to_an_item():
+    """The same for the committed tables and data behind the figures
+    (docs/comparisons_data/, the folders of docs/figures/): a CSV nobody
+    can regenerate would go stale unseen (README files are hand-written)."""
+    out = subprocess.run(['git', 'ls-files', 'docs/comparisons_data', 'docs/figures', 'docs/manual/figures'],
+                         cwd=ROOT, capture_output=True, text=True)
+    if out.returncode != 0:
+        pytest.skip('no git')
+    files = [p for p in out.stdout.split() if os.path.basename(p) != 'README.md']
+    assert files
+    claims = [c for t in catalog.TOOLS for c in t.committed]
+
+    def claimed(p):
+        return any(p == c or p.startswith(c.rstrip('/') + '/') or fnmatch.fnmatch(p, c) for c in claims)
+    assert [p for p in files if not claimed(p)] == []
+
+
 def test_tools_page_is_the_rendering_of_the_catalogue():
     with open(render.PAGE, encoding='utf-8') as f:
         assert f.read() == render.page(), 'run: python -m lss_toolbox --render'
