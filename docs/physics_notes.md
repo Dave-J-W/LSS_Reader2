@@ -5496,3 +5496,10 @@ How it behaves:
 reduced-data and environment lanes, and level of detail for thousands of
 scans (research measured 3,000 bars at 9 ms a redraw).
 
+### 2026-11-24 — The Timeline tab's place (owner)
+
+**Owner:** "Put the timeline tab in main window, furthest to the right."
+It is so: the last tab, after 2D_Plot (seen in a window: SpecPlot,
+Pilatus, Reflectivity, Line/Area Cuts, MCA, Plot, 2D_Plot, Timeline).
+Verified by: test (`test_gui_timeline.py::test_the_tab_is_last_and_says_what_to_do_before_a_file`).
+

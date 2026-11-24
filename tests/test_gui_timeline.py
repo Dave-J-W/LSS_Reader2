@@ -35,6 +35,7 @@ def nx(window, qapp, tmp_path):
 
 
 def test_the_tab_is_last_and_says_what_to_do_before_a_file(window, qapp, recorder):
+    """Owner, 2026-11-24: "Put the timeline tab in main window, furthest to the right"."""
     pw = window.ui.PlotWidget
     assert pw.tabText(pw.count() - 1) == 'Timeline' and pw.widget(pw.count() - 1) is window.timelineTab
     tab = _show(window, qapp)
