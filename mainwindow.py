@@ -3946,10 +3946,11 @@ class MainWindow (QMainWindow):
         bg=len(self.ui.backgroundListWidget.selectedItems())!=0
         self.pilView['cbar'].update_normal(self.pilView['images'][0])
         self.pilView['cbar'].set_label(display.units(bg))
-        title='File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums))
+        # the file's name, not its whole path (a long path ran off the canvas)
+        title=os.path.basename(str(self.specFileName))+'   S# '+listText(np.sort(self.selectedScanNums))
         if mode=='tiles' and display.tiles_title(len(shown),len(frames)):
             title+='   '+display.tiles_title(len(shown),len(frames))
-        fig.suptitle(title)
+        fig.suptitle(title,fontsize='medium')
         canvas.draw()
         if mode!='movie' and hasattr(self,'pilMovieTimer'):
             self.pilMoviePlay(False)

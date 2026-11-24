@@ -162,7 +162,9 @@ def test_select_all_never_draws_more_than_six_tiles(loaded, qapp, recorder):
     axs = _images(w)
     assert len(axs) == 6
     assert [ax.get_title() for ax in axs] == ['S# 1 pt %d' % p for p in display.sample(9, 6)]
-    assert '6 of 9 shown (sampled)' in w.ui.pilMplWidget.canvas.fig._suptitle.get_text()
+    title = w.ui.pilMplWidget.canvas.fig._suptitle.get_text()
+    assert '6 of 9 shown (sampled)' in title
+    assert title.startswith('sample   S# 1') and os.sep not in title        # the file name, not its path
     assert recorder.exceptions == []
 
 
