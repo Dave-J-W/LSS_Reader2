@@ -244,6 +244,19 @@ TOOLS = (
                     'docs/comparisons_data/ref_patch_gauntlet/core_all_methods/log.txt'),
                    ignore=('docs/comparisons_data/ref_patch_gauntlet/core_all_methods/pulls.csv',), seconds=180)),
          doc='docs/COMPARISONS.md C36'),
+    Tool('covariance_pulls', 'Downstream fits with the stitching covariance', 'data',
+         'Model fits (thickness, density, roughness) of synthetic NX-like scans of a film on water, patched by '
+         'each method, under four error treatments (the file\'s column, sqrt(diag C), counting only, the full '
+         'covariance): pull SD, chi2/dof, RMS error.',
+         'Synthetic data; --nx also sqrt(Sigma) of each NX scan 6-9 per method (public). About 10 s per 300 '
+         'seeds and method. --poisson-monitor: the monitor with Poisson noise (before 2026-11-22).',
+         script='tests/tools/covariance_pulls.py', data='public', out_flag='--out',
+         jobs=(Job('covariance_pulls', 'Owner\'s monitor, with NX', ('--seeds', '300', '--nx'), 'docs/comparisons_data/downstream_covariance',
+                   ('docs/comparisons_data/downstream_covariance/pulls_nx_like_plan.csv', 'docs/comparisons_data/downstream_covariance/nx_sigma.csv')),
+               Job('covariance_pulls_poisson', 'Poisson monitor (before 2026-11-22)',
+                   ('--seeds', '300', '--poisson-monitor'), 'docs/comparisons_data/downstream_covariance',
+                   ('docs/comparisons_data/downstream_covariance/pulls_nx_like_plan_poisson_monitor.csv',))),
+         doc='docs/COMPARISONS.md'),
     Tool('dump_tooltips', 'Controls and tooltips (manual)', 'data',
          "Every control of the window and its dialogs with its tooltip, as Markdown: the manual's "
          'raw material (docs/manual/controls.md).',

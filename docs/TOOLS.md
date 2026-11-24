@@ -120,10 +120,10 @@ the freshness test checks only public jobs.
 
 ## Inventory
 
-Kinds: 2 demonstrations, 7 figure generators, 5 data generators and
-surveys, 11 checks: 25 entries for 23 programs (22 scripts in
+Kinds: 2 demonstrations, 7 figure generators, 6 data generators and
+surveys, 11 checks: 26 entries for 24 programs (23 scripts in
 `tests/tools/` and `lss_tools.regenerate`; `patch_demo.py` serves both
-demonstrations and the report figures); 14 public jobs and 6 private
+demonstrations and the report figures); 16 public jobs and 6 private
 ones; one helper module (`tests/tools/pinhole_frames.py`). Run times:
 measured by `regenerate` on this 4-core machine, 2026-11-22 (also in the
 manifest, per job).
@@ -156,6 +156,8 @@ manifest, per job).
 | `ref_patch_survey` | `ref_patch_nx` | `python tests/tools/ref_patch_survey.py --spec sample_data/NX_school/2026sep/20260923 --out docs/comparisons_data/ref_patch_nx --split --repeats` | NX | `docs/comparisons_data/ref_patch_nx/` | 3 s |
 | `ref_patch_gauntlet` | `ref_patch_gauntlet` | `python tests/tools/ref_patch_gauntlet.py --out docs/comparisons_data/ref_patch_gauntlet --design all` | synthetic | `docs/comparisons_data/ref_patch_gauntlet/*.csv`, `summary.md`, `log.txt` (`pulls.csv` only with `--rows`, git-ignored) | about 25 min |
 | | `ref_patch_gauntlet_core_all` | `... --out docs/comparisons_data/ref_patch_gauntlet/core_all_methods --design core --methods all` | synthetic | `docs/comparisons_data/ref_patch_gauntlet/core_all_methods/` | about 3 min |
+| `covariance_pulls` | `covariance_pulls` | `python tests/tools/covariance_pulls.py --seeds 300 --nx` | synthetic; NX 6–9 | `docs/comparisons_data/downstream_covariance/pulls_nx_like_plan.csv`, `nx_sigma.csv` | TIME_covariance_pulls |
+| | `covariance_pulls_poisson` | `python tests/tools/covariance_pulls.py --seeds 300 --poisson-monitor` | synthetic | `docs/comparisons_data/downstream_covariance/pulls_nx_like_plan_poisson_monitor.csv` | TIME_covariance_pulls_poisson |
 | `dump_tooltips` | `controls` | `python tests/tools/dump_tooltips.py > docs/manual/controls.md` | code | `docs/manual/controls.md` | TIME_controls |
 
 ### Checks (print only; nothing committed)
