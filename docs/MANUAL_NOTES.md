@@ -104,6 +104,9 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- A join with only one coinciding point (after a Drop, say) uses that
+  point's ratio as the factor, with the ratio's counting error
+  (2026-11-24; the errors from the join on were infinite before).
 - Identical scans (repeats of a macro): "Merge" sums each point's counts
   and monitors and divides once, ΣN/ΣM (F81, 2026-11-23; tooltip), so a
   repeat with more monitor counts weighs more; with equal monitors it is
