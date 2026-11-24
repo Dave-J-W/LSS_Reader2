@@ -97,3 +97,61 @@ def test_real_sidecars(case, kw, window, qapp, recorder, tmp_path):
     _check(ref, rrf, case)
     sc = gls.load(ref[:-4] + '.cov.json')
     assert sc.term('stitch').labels == ['S6', 'S7', 'S8', 'S9']
+
+
+def _sidecar_arrays(path):
+    sc = gls.load(path)
+    t = sc.term('stitch')
+    return sc.x, sc.y, sc.sigma_meas, t.weights, t.cov
+
+
+@pytest.mark.parametrize('method', [None, 'legacy'])
+def test_script_line_reproduces_the_sidecars(method, loaded, qapp, recorder, tmp_path):
+    """The Script pane's line for an Export with "+ covariance" writes the
+    same sidecars (review 2026-11-24: the line said ref.save(name) only, so
+    a script gave the text files but no covariance)."""
+    from lss_core.experiment import Experiment
+    loaded.refCovarianceCheckBox.setChecked(True)
+    out = str(tmp_path / 'out')
+    reduce_and_save(loaded, qapp, recorder, out, [0, 1], drops=['-1'], method=method)
+    script = loaded.reflectivityScript(str(tmp_path / 'scripted'))
+    assert "covariance='sidecar'" in script
+    exec(compile('exp = Experiment(%r)\n' % loaded.specFileName + script, 'script', 'exec'), {'Experiment': Experiment})
+    for kind in ('ref', 'rrf'):
+        with open('%s_%s.txt' % (out, kind), 'rb') as f, open(str(tmp_path / ('scripted_%s.txt' % kind)), 'rb') as g:
+            assert f.read() == g.read()
+        a = _sidecar_arrays('%s_%s.cov.json' % (out, kind))
+        b = _sidecar_arrays(str(tmp_path / ('scripted_%s.cov.json' % kind)))
+        for u, v in zip(a, b):
+            assert np.array_equal(u, v)
+    loaded.refCovarianceCheckBox.setChecked(False)
+    assert 'covariance=' not in loaded.reflectivityScript('x')
+    assert recorder.exceptions == []
+
+
+def test_back_and_drop_keep_the_sidecar_in_step(loaded, qapp, recorder, tmp_path):
+    """F96's Back undoes a Drop; the replay must follow what is left, so the
+    sidecar still matches the files (trap T10)."""
+    import sweep
+    w = loaded
+    w.refCovarianceCheckBox.setChecked(True)
+    sweep._select_scans(w, qapp, [0, 1])
+    sweep._select_images(w, qapp)
+    w.ui.pilRefPatchPushButton.click()
+    qapp.processEvents()
+    w.uirefpatch.dropLineEdit.setText('-1')
+    w.uirefpatch.dropPushButton.click()
+    qapp.processEvents()
+    w.uirefpatch.backPushButton.click()          # undoes the Drop
+    qapp.processEvents()
+    w.uirefpatch.nextPushButton.click()
+    qapp.processEvents()
+    assert w.ui.PlotWidget.currentWidget() is w.ui.refTab, 'patch did not finish'
+    assert not w.refDrops
+    w.ui.refRRFCheckBox.setChecked(True)
+    qapp.processEvents()
+    recorder.save_name = str(tmp_path / 'out')
+    w.ui.refExportPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    _check(str(tmp_path / 'out_ref.txt'), str(tmp_path / 'out_rrf.txt'))
