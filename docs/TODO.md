@@ -11,7 +11,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | 3 Saved state per SPEC file; live refresh | **largely built** 2026-11-19 to 22: series read and guessed, Series list and whole-series selection; per-SPEC workbook (F66) with automatic saving (D56), series ties and stale flags; live updates (D57: file and data folders watched, remakes in a worker thread, open plots redrawn, no reset). Open: reopening a file with its workbook's settings, D1–D3, dropped points as masks, the owner's answers on the series format |
 | 4 Detectors and inputs | not started |
 | 5 Reflectivity export, uncertainty, ORSO/HDF5 | not started |
-| 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); **fitting done** 2026-11-21 (peak module D52, MCA lines, scan shapes, burn trends D54); beam size (half-cut fit built, no data); **GUI planning started** 2026-11-22 (D58: assessment, workflow map, screenshots in `docs/gui/`; no code yet); **Tools menu built** 2026-11-23 (F84: every demonstration and figure generator, `docs/TOOLS.md`) |
+| 6 Sub-projects (GID patching, fitting, beam size, GUI) | **GID started** 2026-11-18 at the owner's request (D36: pinhole patch, worksheet, joins, beam response); **fitting done** 2026-11-21 (peak module D52, MCA lines, scan shapes, burn trends D54); beam size (half-cut fit built; data answered 2026-11-24, `docs/studies/sh_beam_size/summary.md`); **GUI planning started** 2026-11-22 (D58: assessment, workflow map, screenshots in `docs/gui/`; no code yet); **Tools menu built** 2026-11-23 (F84: every demonstration and figure generator, `docs/TOOLS.md`) |
 
 ## Who is on what (kept by Main, D62; 2026-11-23)
 
@@ -132,7 +132,7 @@ working list, one table per area, each row with its source. Rows marked
 | Item | Source |
 |---|---|
 | Burn trends: tests and extensions (ten items) | hand-off 07, Stage 2 list |
-| Half-cut fit for the beam profile on real data | F43; input 16 |
+| Half-cut fit for the beam profile on real data: the data are in (2026-11-24, `docs/studies/sh_beam_size/summary.md`); left to build: `fit_box` on sh scans with its guards, h = 1.064 × rising FWHM into `lss_core.dose` | F43; input 16 |
 | Remaining characterisation tests: GISAXS, g_l2/g_l3, absorber-ratio fits, legacy peak-fit dialog, 2D plot tab | Carried-over list |
 | Sample-environment readings (barrier, tensiometer, oxygen) as extra panels beside burn trends; synthetic columns until the macros write them — **new** 2026-11-23 | F75 |
 | Burns at several absorbers on dose and time axes: beam damage or a changing sample — **new** 2026-11-23 | F76; physics_notes 2026-11-23 |
@@ -362,7 +362,7 @@ stated assumption until the answer arrives.
 | 13 | ~~`bu.zip` link sharing~~ off (owner, 2026-11-19); where sample data live; ~~resend scan-136 frames~~ received 2026-11-18 | — | — |
 | 14 | P7 Merge: kept as is (owner). Merge window and XFNTR merging: the owner's rule is F65 (match within 0.1 × grid step, jitter 3e-5 1/Å in the errors, grouping, never across runs); its edge estimator is backlog. `S1T + S1T`: fixed. Per-point MCA files: to be handled (owner: yes, 2026-11-19); channels and dead time answered (D48, D49) | F65, per-point MCA | — |
 | 15 | ~~P39~~: decided 2026-11-19 (D51), exact window to the S4 ramps' inner edges; IDL's as an option | — | — |
-| 16 | Half-cut sh scans for the beam's vertical profile (F43; owner, 2026-11-19) | a measured beam for response 'beam' and for P39 | the profile fitted from the GID data |
+| 16 | ~~Half-cut sh scans for the beam's vertical profile (F43; owner, 2026-11-19)~~ answered 2026-11-24 from the height scans' rising edges (`docs/studies/sh_beam_size/summary.md`): dose height 0.040 mm at 10 keV, S1 ≤ 0.04 mm; profile core + tail | a measured beam for response 'beam' and for P39 | the profile fitted from the GID data |
 | 17 | GID frames with little signal (mostly background) at both arm heights (P40; owner offered, 2026-11-19) | stray light and beam-path background in GID maps | P40 open |
 | 18 | GID overlap pixels: ΣN/ΣW (built) vs IDL's error-weighted mean (the owner chose "as the IDL code does", 2026-11-18; the error weights are biased at low counts, IDL review) | GID map values | ΣN/ΣW, to confirm |
 | 19 | ~~S4–detector distance (P43)~~: calibrate from single frames (owner, 2026-11-21): built (5fbebf8), worksheet Fit; automatic calibration and the final GID defaults: large-data survey, `docs/handoff_out/06-gid-method-comparison.md` | — | header value until Fit |
