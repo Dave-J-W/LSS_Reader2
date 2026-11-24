@@ -245,7 +245,18 @@ FRAMES = {
                                  'scattering, much smaller than the full frame (owner 2026-11-23)'),
                  gioxs=PLOT('pdgioxs.plotWidget', 'GIOXS profiles', 'curves'),
                  gisaxs=PLOT(None, 'GISAXS: Qz vs Qy', 'gisaxs', name='frames_gisaxsPlot'),
-                 movie=C('pilMoviePushButton', '▶', note='Play/pause of a non-blocking movie (M1)'),
+                 movie=C('pilMoviePushButton', 'Movie', note='Plays the selection as a movie, also 2 frames (F69)'),
+                 movie_bar={'view': C('pilViewComboBox', '', items=['Movie', 'Tiles: 4', 'Tiles: 6']),
+                            'back': C('pilMovieBackPushButton', '◀'),
+                            'play': C('pilMoviePlayPushButton', '▶', note='Play/pause (space; F69, Q7)'),
+                            'next': C('pilMovieForwardPushButton', '▶|'),
+                            'slider': C('pilMovieSlider', ''),
+                            'counter': C('pilMovieCounterLabel', '14 / 41'),
+                            'speed': C('pilMovieSpeedComboBox', '', items=['2 fps', '0.5 fps', '1 fps', '5 fps',
+                                                                         '10 fps']),
+                            'loop': C('pilMovieLoopCheckBox', 'loop'),
+                            'meta': C('pilMovieInfoLabel', 'S# 11 · pt 13 · 2θ 18.40° · t 412 s · abs 2 · '
+                                                           'Monc 1.2e+05')},
                  split=NEW('frames_split', 'Split', 'toggle', 'Shows Raw frames and Line cuts together, side by '
                            'side or stacked (owner 2026-11-23)'),
                  # the "Line cuts" sub-tab; its band is drawn on the raw image
@@ -755,6 +766,8 @@ def _walk_special(sp, where):
             yield from _walk_items([v], w)
     for key in ('toolbar', 'options', 'controls', 'items', 'footer'):
         yield from _walk_items(sp.get(key) or [], w)
+    if isinstance(sp.get('movie_bar'), dict):
+        yield from _walk_items(list(sp['movie_bar'].values()), w)
     for _name, v in sp.get('views') or []:
         if v:
             yield from _walk_items([v], w)

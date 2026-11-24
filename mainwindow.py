@@ -220,6 +220,7 @@ class MainWindow (QMainWindow):
         self.initPreferences()
         self.initToolsMenu()
         self.initPilDisplay()
+        self.initPilMovie()
         self.gidParams=gidmod.GIDParams()     # GID patch settings (worksheet, F61)
         self.gidJoinLog=[]
         self.gidLevels=[]
@@ -785,6 +786,8 @@ class MainWindow (QMainWindow):
         self.pilErrorData={}
         self.pilGIDshow=0
         self.pilGISAXSshow=0
+        if hasattr(self,'pilMovieTimer'):
+            self.pilMovieTimer.stop()
 
     # ---- scan series in the scan list (F39, review R2; owner, 2026-11-21) ----
 
@@ -897,6 +900,9 @@ class MainWindow (QMainWindow):
         """A mouse press or key press in the scan list is the user's own
         selection: only then is it widened to whole series (expandToSeries)."""
         from PyQt5.QtCore import QEvent
+        if (hasattr(self,'ui') and event.type()==QEvent.KeyPress and hasattr(self.ui,'pilMplWidget')
+                and obj is self.ui.pilMplWidget.canvas and self.pilMovieKey(event)):
+            return True                      # the movie's keys (F69, owner Q7), before matplotlib's
         lw=getattr(self.ui,'scanListWidget',None) if hasattr(self,'ui') else None
         if lw is not None and obj in (lw,lw.viewport()) and event.type() in (QEvent.MouseButtonPress,
                                                                              QEvent.KeyPress):
@@ -3351,6 +3357,10 @@ class MainWindow (QMainWindow):
 
     def pilSelectedScanChanged(self):
         self.pilmovieindex=0
+        self.pilMovieIndex=0             # a new selection: its movie starts at its first frame (F69)
+        self.pilMovieForce=False
+        if hasattr(self,'pilMovieTimer'):
+            self.pilMovieTimer.stop()
         #        self.disconnect=(self.ui.gidComboBox, SIGNAL('currentIndexChanged(int)'), self.pilGID)
 #        self.ui.gidComboBox.setCurrentIndex(0)
 #        self.connect=(self.ui.gidComboBox, SIGNAL('currentIndexChanged(int)'), self.pilGID)
@@ -3435,6 +3445,8 @@ class MainWindow (QMainWindow):
 #        try:
         self.ui.PlotWidget.setCurrentWidget(self.ui.pilatusTab)
         self.updatePilPlotData()
+        if self.pilMovieOn():            # 3 or more frames: the movie plays (owner Q7)
+            self.pilMoviePlay(True)
 #        except:
 #            self.messageBox('Warning:: Some scans maybe missing')
             
@@ -3669,6 +3681,8 @@ class MainWindow (QMainWindow):
             self.pilDisplay={'spec':spec}
             self.pilView=None
             self.pilApplyDisplay()
+            if hasattr(self.ui,'pilViewComboBox'):
+                self.pilApplyMovieSettings()
             self.pilSaveDisplay()
 
     def pilRememberDisplay(self,*args):
@@ -3840,8 +3854,13 @@ class MainWindow (QMainWindow):
             s.blockSignals(False)
 
     def pilViewChoice(self):
-        """'movie' or 'tiles' for 3 or more frames, and the number of tiles."""
-        return 'tiles',display.MAX_TILES
+        """'movie' or 'tiles' for 3 or more frames, and the number of tiles (pilViewComboBox)."""
+        if getattr(self,'pilMovieForce',False):
+            return 'movie',display.MAX_TILES
+        view=self.pilDisplay.get('view','movie')
+        if view in ('tiles4','tiles6'):
+            return 'tiles',int(view[-1])
+        return 'movie',display.MAX_TILES
 
     def pilTitle(self,i):
         try:
@@ -3861,13 +3880,15 @@ class MainWindow (QMainWindow):
         if summed and not self.checkSameQzs(self.pilSelectedQzs):
             self.pilSetRange([disp[i] for i in frames])
             self.messageBox('Error:: The selected frames have different qz values!!')
+            if hasattr(self,'pilMovieTimer'):
+                self.pilMoviePlay(False)
             return
         self.pilGeometry()
         axes=str(self.ui.pilAxesComboBox.currentText())
         view,ntiles=self.pilViewChoice()
         mode=display.mode_for(len(frames),view,summed)
-        if getattr(self,'pilmovieindex',0)==1 and not summed:
-            mode='movie'
+        if getattr(self,'pilMovieForce',False) and not summed and len(frames)>=2:
+            mode='movie'                     # the Movie button: also for 2 frames
         if mode=='sum':
             shown=[0]
             # ΣN/ΣM of the frames per Monc (F91; the mean with 'sum_all_legacy_average')
@@ -3930,6 +3951,10 @@ class MainWindow (QMainWindow):
             title+='   '+display.tiles_title(len(shown),len(frames))
         fig.suptitle(title)
         canvas.draw()
+        if mode!='movie' and hasattr(self,'pilMovieTimer'):
+            self.pilMoviePlay(False)
+        if hasattr(self.ui,'pilMovieSlider'):
+            self.pilMovieUpdateBar()
 
     def pilUpdateImages(self,arrays):
         """The frames ``arrays`` into the images drawn, with the current norm, map, extent and zoom."""
@@ -4087,29 +4112,260 @@ class MainWindow (QMainWindow):
         self.pilDrawFrames()
 
     def pilMovieShow(self):
+        """The Movie button: the selected frames as a movie, also for 2 frames (F69). The movie no
+        longer sets Axes to Q nor ticks Pinhole behind the user's back, and does not block."""
         if self.det!='Pilatus' or len(self.selectedPilFramesNums)==0:
             self.messageBox('Please select Pilatus images first!')
             return
-        #self.disconnect(self.ui.pilAxesComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
-        self.ui.pilAxesComboBox.currentIndexChanged.disconnect(self.update2dPlots)
-        self.ui.pilAxesComboBox.setCurrentIndex(2)
-        #self.connect(self.ui.pilAxesComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
-        self.ui.pilAxesComboBox.currentIndexChanged.connect(self.update2dPlots)
-        self.pilmovieindex=1
-        #self.disconnect(self.ui.pilPinholeCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
-        self.ui.pilPinholeCheckBox.stateChanged.disconnect(self.update2dPlots)
-        was=self.ui.pilPinholeCheckBox.checkState()
-        self.ui.pilPinholeCheckBox.setCheckState(2)
-        for p in range(len(self.selectedPilFramesNums)):   # each frame in turn, drawn in place
-            self.pilMovieIndex=p
-            self.updatePilPlotData()
-            self.ui.pilMplWidget.canvas.flush_events()
-            time.sleep(0.5)
-        self.pilmovieindex=0
-        self.ui.pilPinholeCheckBox.setCheckState(was)      # as it was (it was always left unticked)
-        #self.connect(self.ui.pilPinholeCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
-        self.ui.pilPinholeCheckBox.stateChanged.connect(self.update2dPlots)
-        
+        if len(self.selectedPilFramesNums)<2:
+            self.notify('A movie needs 2 or more frames selected.',level='info')
+            return
+        if self.ui.gixSumCheckBox.checkState()!=0:
+            self.notify('"Sum All" is on: the summed frame is shown, not a movie.',level='info')
+            return
+        self.pilMovieForce=True
+        self.pilMovieIndex=0
+        self.pilGIDshow=0
+        self.pilGISAXSshow=0
+        self.pilDrawFrames()
+        self.pilMoviePlay(True)
+
+    # ---- the movie (F69; owner Q7, 2026-11-23: a movie whenever 3 or more frames are selected;
+    # space pauses or plays; any arrow key pauses, then steps: up, back, left backward in time;
+    # down, forward, right forward) ----
+
+    def initPilMovie(self):
+        from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QSlider, QLabel, QComboBox, QCheckBox
+        self.pilMovieIndex=0
+        self.pilMovieForce=False
+        self.pilMovieTimer=QTimer(self)
+        self.pilMovieTimer.timeout.connect(self.pilMovieTick)
+        host=self.ui.pilMplWidget
+        row=QHBoxLayout()
+        row.setSpacing(4)
+        view=QComboBox(host)
+        view.setObjectName('pilViewComboBox')
+        for text,data in (('Movie','movie'),('Tiles: 4','tiles4'),('Tiles: 6','tiles6')):
+            view.addItem(text,data)
+        view.setToolTip('How 3 or more selected frames are shown: one large frame as a movie (the default, owner '
+                        '2026-11-23, Q7), or 4 or 6 tiles sampled first to last ("4 of 41 shown"). Never more than '
+                        '6 tiles. One or two frames are always tiled; "Sum All" shows their sum. Kept until another '
+                        'SPEC file is opened')
+        back=QPushButton('◀',host)
+        back.setObjectName('pilMovieBackPushButton')
+        back.setToolTip('One frame back (also the Left, Up and Back keys when the image has the focus; any of '
+                        'them pauses first)')
+        play=QPushButton('▶',host)
+        play.setObjectName('pilMoviePlayPushButton')
+        play.setToolTip('Play or pause the movie (also the space bar when the image has the focus). Zoom, colour '
+                        'map and scale stay as they are while it plays; the colour scale is shared by every frame '
+                        'of the selection, per Monc and absorber-corrected (owner, Q-IMG-4)')
+        fwd=QPushButton('▶|',host)
+        fwd.setObjectName('pilMovieForwardPushButton')
+        fwd.setToolTip('One frame forward (also the Right, Down and Forward keys when the image has the focus; '
+                       'any of them pauses first)')
+        for b in (back,play,fwd):
+            b.setMaximumWidth(44)
+        slider=QSlider(Qt.Horizontal,host)
+        slider.setObjectName('pilMovieSlider')
+        slider.setToolTip('The frame shown, in the order of the selection; the image list marks it as the '
+                          'current row (the selection itself does not change)')
+        counter=QLabel('– / –',host)
+        counter.setObjectName('pilMovieCounterLabel')
+        counter.setToolTip('Position of the frame shown in the selection')
+        speed=QComboBox(host)
+        speed.setObjectName('pilMovieSpeedComboBox')
+        for f in display.SPEEDS_FPS:
+            speed.addItem('%g fps' % f,f)
+        speed.setToolTip('Frames per second of the movie (one redraw takes about 0.05 s offscreen on NX school '
+                         'frames, so 10 fps is the practical top). Kept between sessions')
+        loop=QCheckBox('Loop',host)
+        loop.setObjectName('pilMovieLoopCheckBox')
+        loop.setToolTip('Start again from the first frame after the last; off: the movie stops on the last frame '
+                        '(space plays it again). Kept between sessions')
+        info=QLabel('',host)
+        info.setObjectName('pilMovieInfoLabel')
+        info.setToolTip('The frame shown: scan, point number, Qz (reflectivity) or 2θ (GID), time since the first '
+                        'frame of the selection (lss_core.timing), absorber setting and monitor counts')
+        info.setMinimumWidth(60)
+        for wgt in (view,back,play,fwd):
+            row.addWidget(wgt)
+        row.addWidget(slider,1)
+        for wgt in (counter,speed,loop):
+            row.addWidget(wgt)
+        row.addWidget(info,2)
+        host.vbl.insertLayout(1,row)
+        for name,wgt in (('pilViewComboBox',view),('pilMovieBackPushButton',back),('pilMoviePlayPushButton',play),
+                         ('pilMovieForwardPushButton',fwd),('pilMovieSlider',slider),
+                         ('pilMovieCounterLabel',counter),('pilMovieSpeedComboBox',speed),
+                         ('pilMovieLoopCheckBox',loop),('pilMovieInfoLabel',info)):
+            setattr(self.ui,name,wgt)
+        self.pilApplyMovieSettings()
+        view.currentIndexChanged.connect(self.pilViewChanged)
+        back.clicked.connect(lambda *a:self.pilMovieStep(-1))
+        fwd.clicked.connect(lambda *a:self.pilMovieStep(1))
+        play.clicked.connect(lambda *a:self.pilMoviePlay(None))
+        slider.valueChanged.connect(self.pilMovieSliderMoved)
+        speed.currentIndexChanged.connect(self.pilMovieSettingsChanged)
+        loop.stateChanged.connect(self.pilMovieSettingsChanged)
+        canvas=host.canvas
+        canvas.setFocusPolicy(Qt.StrongFocus)
+        canvas.installEventFilter(self)
+        self.pilMovieBar(False)
+
+    def pilApplyMovieSettings(self):
+        d=self.pilDisplay
+        for box,val in ((self.ui.pilViewComboBox,d.get('view','movie')),
+                        (self.ui.pilMovieSpeedComboBox,float(d.get('fps',display.DEFAULT_FPS)))):
+            k=box.findData(val)
+            box.blockSignals(True)
+            box.setCurrentIndex(k if k>=0 else 0 if box is self.ui.pilViewComboBox else
+                                box.findData(display.DEFAULT_FPS))
+            box.blockSignals(False)
+        self.ui.pilMovieLoopCheckBox.blockSignals(True)
+        self.ui.pilMovieLoopCheckBox.setChecked(bool(d.get('loop',False)))
+        self.ui.pilMovieLoopCheckBox.blockSignals(False)
+
+    def pilMovieSettingsChanged(self,*args):
+        self.pilDisplay['fps']=float(self.ui.pilMovieSpeedComboBox.currentData())
+        self.pilDisplay['loop']=self.ui.pilMovieLoopCheckBox.isChecked()
+        if self.pilMovieTimer.isActive():
+            self.pilMovieTimer.start(self.pilMovieInterval())
+        self.pilSaveDisplay()
+
+    def pilViewChanged(self,*args):
+        self.pilDisplay['view']=str(self.ui.pilViewComboBox.currentData())
+        self.pilMovieForce=False
+        self.pilSaveDisplay()
+        self.pilMoviePlay(False)
+        self.update2dPlots()
+
+    def pilMovieInterval(self):
+        try:
+            return int(round(1000.0/float(self.ui.pilMovieSpeedComboBox.currentData())))
+        except (TypeError,ValueError,ZeroDivisionError):
+            return 500
+
+    def pilMovieOn(self):
+        """True while the canvas shows the frames as a movie."""
+        return self.pilFramesShown() and getattr(self,'pilMode','')=='movie'
+
+    def pilMovieBar(self,on):
+        for w in (self.ui.pilMovieBackPushButton,self.ui.pilMoviePlayPushButton,self.ui.pilMovieForwardPushButton,
+                  self.ui.pilMovieSlider):
+            w.setEnabled(on)
+        if not on:
+            self.ui.pilMovieCounterLabel.setText('– / –')
+            self.ui.pilMovieInfoLabel.setText('')
+            self.ui.pilMoviePlayPushButton.setText('▶')
+
+    def pilMoviePlay(self,on=None):
+        """Play (True), pause (False) or toggle (None)."""
+        if on is None:
+            on=not self.pilMovieTimer.isActive()
+        if on and self.pilMovieOn():
+            n=len(self.selectedPilFramesNums)
+            if self.pilMovieIndex>=n-1 and not self.ui.pilMovieLoopCheckBox.isChecked():
+                self.pilMovieShowFrame(0)        # at the end: play from the start
+            self.pilMovieTimer.start(self.pilMovieInterval())
+            self.ui.pilMoviePlayPushButton.setText('❚❚')
+        else:
+            self.pilMovieTimer.stop()
+            self.ui.pilMoviePlayPushButton.setText('▶')
+
+    def pilMovieTick(self):
+        if not self.pilMovieOn():
+            self.pilMoviePlay(False)
+            return
+        n=len(self.selectedPilFramesNums)
+        k=display.step(self.pilMovieIndex,1,n,self.ui.pilMovieLoopCheckBox.isChecked())
+        if k==self.pilMovieIndex:
+            self.pilMoviePlay(False)          # the last frame, no loop: stop there
+            return
+        self.pilMovieShowFrame(k)
+
+    def pilMovieStep(self,delta):
+        """Pause, then one frame back (-1) or forward (+1)."""
+        self.pilMoviePlay(False)
+        if self.pilMovieOn():
+            n=len(self.selectedPilFramesNums)
+            self.pilMovieShowFrame(display.step(self.pilMovieIndex,delta,n,self.ui.pilMovieLoopCheckBox.isChecked()))
+
+    def pilMovieSliderMoved(self,value):
+        if self.pilMovieOn() and value!=self.pilMovieIndex:
+            self.pilMovieShowFrame(value)
+
+    def pilMovieShowFrame(self,k):
+        """Frame ``k`` of the selection into the image drawn: the axes, zoom, norm and map stay."""
+        frames=list(self.selectedPilFramesNums)
+        if not frames:
+            return
+        k=display.step(k,0,len(frames))
+        self.pilMovieIndex=k
+        if self.pilMovieOn():
+            disp=self.pilDisplayData(frames)
+            self.pilShown=[k]
+            self.pilUpdateImages([disp[frames[k]]])
+            self.ui.pilMplWidget.canvas.draw()
+        self.pilMovieUpdateBar()
+
+    def pilMovieUpdateBar(self):
+        frames=list(self.selectedPilFramesNums)
+        on=self.pilMovieOn() and len(frames)>0
+        self.pilMovieBar(on)
+        if not on:
+            return
+        k=self.pilMovieIndex
+        s=self.ui.pilMovieSlider
+        s.blockSignals(True)
+        s.setRange(0,len(frames)-1)
+        s.setValue(k)
+        s.blockSignals(False)
+        self.ui.pilMovieCounterLabel.setText('%d / %d' % (k+1,len(frames)))
+        self.ui.pilMovieInfoLabel.setText(self.pilFrameText(k))
+        lw=self.ui.imageListWidget
+        try:
+            from PyQt5.QtCore import QItemSelectionModel
+            lw.setCurrentRow(int(frames[k]),QItemSelectionModel.NoUpdate)   # marks the row, keeps the selection
+            lw.scrollToItem(lw.item(int(frames[k])))
+        except Exception:
+            pass
+
+    def pilFrameText(self,k):
+        """The metadata line of the frame at position ``k`` of the selection (lss_core.display.frame_text)."""
+        frames=list(self.selectedPilFramesNums)
+        i=frames[k]
+        try:
+            scan,point=self.pilScanNum[i],self.pilFrameNum[i]
+        except IndexError:
+            return ''
+        t=None
+        try:
+            t0=self.scanTimes(self.pilScanNum[frames[0]]).start[self.pilFrameNum[frames[0]]]
+            t=float(self.scanTimes(scan).start[point])-float(t0)
+        except Exception:
+            t=None
+        try:
+            absn=self.specPar[scan].get('Absorber')
+        except Exception:
+            absn=None
+        return display.frame_text(scan,point,self.pilFrameKind(i),qz=self.pilFileQzs[i],
+                                  tth_deg=float(np.degrees(self.pil_Dth[i])),t_s=t,absorber=absn,
+                                  monc=float(self.pilMonc[i]))
+
+    def pilMovieKey(self,event):
+        """Q7 keys on the image; True when the key was used."""
+        names={Qt.Key_Space:'space',Qt.Key_Up:'up',Qt.Key_Left:'left',Qt.Key_Back:'back',Qt.Key_Down:'down',
+               Qt.Key_Right:'right',Qt.Key_Forward:'forward'}
+        act=display.key_action(names.get(event.key(),''))
+        if act is None or not self.pilMovieOn():
+            return False
+        if act=='toggle':
+            self.pilMoviePlay(None)
+        else:
+            self.pilMovieStep(act)
+        return True
+
     def gioxsDisplay(self):
         if len(self.selectedBgFrameNums)==0 or len(self.selectedPilFramesNums)==0:
             self.messageBox('Warning: No GIOXS data or background selected!!')

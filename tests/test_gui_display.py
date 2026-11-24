@@ -155,13 +155,10 @@ def test_sliders_run_from_the_smallest_to_the_largest_value(loaded, qapp, record
 
 def test_select_all_never_draws_more_than_six_tiles(loaded, qapp, recorder):
     w = loaded
-    w.ui.pilViewComboBox.setCurrentIndex(w.ui.pilViewComboBox.findData('tiles6')) \
-        if hasattr(w.ui, 'pilViewComboBox') else None
+    w.ui.pilViewComboBox.setCurrentIndex(w.ui.pilViewComboBox.findData('tiles6'))   # not the movie
     sweep._select_scans(w, qapp, [0])                                 # 9 frames
     sweep._select_images(w, qapp)
     w.flushPendingSelection()
-    if getattr(w, 'pilMode', '') == 'movie':
-        pytest.skip('the movie is the default view for 3 or more frames (tests/test_gui_movie.py)')
     axs = _images(w)
     assert len(axs) == 6
     assert [ax.get_title() for ax in axs] == ['S# 1 pt %d' % p for p in display.sample(9, 6)]

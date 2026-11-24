@@ -809,34 +809,27 @@ class NguiWindow(QMainWindow):
         rv.addWidget(image, 1)
         movie = QHBoxLayout()
         movie.setSpacing(4)
-        for name, text, note in (('first', '|◀', 'First frame'), ('back', '◀', 'Step back (←)')):
-            movie.addWidget(self._widget({'new': 'movie_' + name, 'label': text, 'kind': 'button', 'note': note},
-                                         raw)[0])
-        play, _ = self._widget(sp['movie'], raw)
-        movie.addWidget(play)
-        for name, text, note in (('next', '▶|', 'Step forward (→)'), ('last', '▶▶|', 'Last frame')):
-            movie.addWidget(self._widget({'new': 'movie_' + name, 'label': text, 'kind': 'button', 'note': note},
-                                         raw)[0])
-        movie.addWidget(self._widget({'new': 'movie_slider', 'label': '', 'kind': 'slider',
-                                      'note': 'Moves through the frames; the list follows'}, raw)[0], 1)
-        movie.addWidget(QLabel('14 / 41', raw))
+        mb = sp['movie_bar']           # the main window's movie bar (F69, built 2026-11-24)
+        movie.addWidget(self._widget(mb['view'], raw)[0])
+        movie.addWidget(self._widget(sp['movie'], raw)[0])
+        movie.addWidget(self._widget({'new': 'movie_first', 'label': '|◀', 'kind': 'button', 'note': 'First frame'},
+                                     raw)[0])
+        for key in ('back', 'play', 'next'):
+            movie.addWidget(self._widget(mb[key], raw)[0])
+        movie.addWidget(self._widget({'new': 'movie_last', 'label': '▶▶|', 'kind': 'button', 'note': 'Last frame'},
+                                     raw)[0])
+        movie.addWidget(self._widget(mb['slider'], raw)[0], 1)
+        movie.addWidget(self._widget(mb['counter'], raw)[0])
         rv.addLayout(movie)
         movie = QHBoxLayout()           # second line: speed, loop, colour scale, then the frame's metadata
         movie.setSpacing(4)
-        movie.addWidget(self._widget({'new': 'movie_speed', 'label': '', 'kind': 'combo',
-                                      'items': ['2 fps', '0.5 fps', '1 fps', '5 fps', '10 fps'],
-                                      'note': 'Movie speed'}, raw)[0])
-        movie.addWidget(self._widget({'new': 'movie_loop', 'label': 'loop', 'kind': 'checkbox',
-                                      'note': 'Loop the movie'}, raw)[0])
+        movie.addWidget(self._widget(mb['speed'], raw)[0])
+        movie.addWidget(self._widget(mb['loop'], raw)[0])
         movie.addWidget(self._widget({'new': 'movie_colour', 'label': 'colour', 'kind': 'combo',
                                       'items': ['shared', 'per frame', 'locked'],
                                       'note': 'Colour scale across the movie (M4)'}, raw)[0])
-        meta = QLabel('S# 11 · pt 13 · Qz 0.215 1/Å · 2θ 18.40° · t 412 s · abs 2 · Monc 1.2e5', raw)
-        meta.setObjectName('ngui_frames_metadata')
+        meta = self._widget(mb['meta'], raw)[0]
         meta.setProperty('nguiCaption', True)
-        meta.setToolTip('The frame shown: scan, point, Qz or 2θ, time from the first frame, absorber, monitor '
-                        '(M3). New in ngui. ' + NOT_FUNCTIONAL)
-        meta.setWordWrap(True)
         meta.setMinimumWidth(60)
         movie.addWidget(meta, 1)
         rv.addLayout(movie)
