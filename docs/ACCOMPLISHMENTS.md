@@ -129,6 +129,15 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   and 15 (measured): intensity stable in both; position drifts about 3 ×
   faster at about 4 × the flux; width +19 % in 15. Tests and extensions for
   another agent: `handoff_out/07`.
+- The dose each point gives the sample (`lss_core.dose`, 2026-11-24, F98's
+  core): photons by the owner's counts-to-photons route, or Monc counts with
+  the absorbers taken out, per mm² of footprint when the beam size is given;
+  burns fitted against dose (`exp.burn(axis='dose')`). NX 14 (measured):
+  2.9e13 photons in 210 s through absorber 12.
+- Dropped points as a mask over raw points (`lss_core.masks`, 2026-11-24,
+  F92's core): kept in the workbook, applied by `exp.reflectivity(mask=...)`;
+  the patch dialog's typed drops turned into raw points, and every row of a
+  patched curve traced to its point (`reflectivity.drop_points`).
 
 ## Reflectivity patching and uncertainty (2026-11-22)
 
