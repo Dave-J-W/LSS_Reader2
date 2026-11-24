@@ -172,6 +172,21 @@ Each line: feature — where — default — script — notes entry (date).
   Since 2026-11-23 each frame of a reflectivity scan has its own incidence
   angle (from its Qz; the scan header's In_Rot is the position before the
   scan moved, P47), so the reflected beam sits at β = α on that axis.
+- **Diffuse cuts** (F97, F59; 2026-11-24, core only; the window's choice of
+  axis is to come): the owner's axes are β, β − α, Qz and Qxy. A how-to for
+  the manual, by script today:
+  1. **The specular rod and the diffuse scatter beside it:** a vertical cut
+     over a narrow Qxy band about the beam, `exp.cut([7], 'Q V',
+     cuts.centred_range('Q V', g, 10), axes='beta-alpha')` (±10 columns).
+     The specular sits at β − α = 0, with the diffuse wings either side.
+  2. **Off-specular:** the same cut over a Qxy band away from 0; the
+     detector's range is `cuts.covered_range('Q V', g, shape)`.
+  3. **I vs Qxy at a fixed exit angle:** a horizontal cut, `'Pix H'` over a
+     few rows, `axes='Qxy'`.
+  - **Why the window's Q cuts used to plot nothing:** their default ranges
+    (Qz 0–1, Qxy 1–2) lie off a reflectivity frame (measured: the Q V cut
+    over 1–2 sums zeros).
+  - `lss_core/cuts.py` (its docstring has the formulas); notes 2026-11-24.
 - Background images and background-subtracted frames (not scriptable yet).
 - The frames display is sticky (F88, owner Q9, 2026-11-24): zoom, colour
   map, aspect, Axes, log (per kind of frame) and typed limits (per kind)
