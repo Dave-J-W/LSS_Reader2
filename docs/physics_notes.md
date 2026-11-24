@@ -5595,12 +5595,13 @@ Verified by: reading only. The timeline joins several SPEC files on one axis; th
 
 ### 2026-11-24 — F98's core: the dose each point gives the sample, and burns against dose
 
-Verified by: tests (`test_dose.py`, I39); a run on NX school's burns (the numbers below); reading only for the
-geometry (which side of the absorbers the Monc chamber is on).
+Verified by: tests (`test_dose.py`, I39); a run on NX school's burns (the numbers below); the owner for the
+geometry (Monc upstream of the absorbers, confirmed later the same day: batch 18 below).
 
 - **The beam on the sample during point i** is d_i = M_i/(A_i·g_i) Monc counts at 5 µA/V with the absorbers
   taken out. This is the weight the point already has in "Sum All". The chamber is upstream of the absorbers:
-  the reduction multiplies by A and divides by M (read from `lss_core.normalise`, not checked at the beamline).
+  the reduction multiplies by A and divides by M (read from `lss_core.normalise`; confirmed by the owner,
+  2026-11-24, batch 18).
 - **In photons** (the default unit), the owner's counts-to-photons route D
   ([xray_fluxor](https://github.com/Dave-J-W/xray_fluxor), `docs/handoff/xray_fluxor_counts_to_photons.md`):
   N_i = (M_i − D t_i) q(E) (S/500 nA/V) gas / A_i. Its bounds (±3.6 % below 13 keV) are a common scale. They
@@ -5611,7 +5612,10 @@ geometry (which side of the absorbers the Monc chamber is on).
   half-openings, is asked of the owner (via questor). The header has S0–S3 left/right/top/bottom; NX 14 has
   S1 L/R 1.00 and T/B 0.05.
 - **Cumulative, at the middle of each point**, like the burn's exposure time. The shutter is taken as closed
-  between points (owner, 2026-11-21: the default), so the overhead adds no dose.
+  between points (owner, 2026-11-21: the default), so the overhead adds no dose. **Fast mode** (owner,
+  2026-11-24, batch 18: the shutter held open and short exposures): `shutter='open'` adds the beam between
+  points, each point's counting rate × the time to the next point's start (`test_dose.py::
+  test_fast_mode_adds_the_beam_between_points`). How a file shows fast mode is open (OQ-4), so the caller says.
 - **NX school, run:** burn 14 received 2.89e13 photons in 210 s of exposure through absorber 12 (the
   calibrated foils, 10.00 keV, 5 µA/V): 1.4e11 photons/s on the sample. On burns 14 and 15 the dose axis is
   the exposure axis times the mean rate to 1 %.

@@ -208,6 +208,7 @@ d = exp.dose(14)                               # photons each point gives the sa
 d.per_point, d.cumulative(), d.total(), d.unit, d.notes, d.bounds
 exp.dose(14, unit='monitor')                   # Monc counts at 5 uA/V with the absorbers taken out: M/(A g)
 exp.dose(14, beam_mm=(2.0, 0.1))               # photons/mm2 of footprint, for a beam of that width and height
+exp.dose(14, shutter='open')                   # fast mode: the beam also between points (from the point times)
 burn = exp.burn(14, axis='dose')               # trends against the dose; the limit is a dose
 burn.dose, burn.dose_unit, burn.dose_scale     # the axis: NX 14 in '1e+12 photons' (dose_scale 1e12), 28.9 at the end
 ```

@@ -511,7 +511,7 @@ class Experiment:
              models=None, threshold=0.05, confidence=0.95, slit=(21, 11), bg_offset=0.5, direction='H',
              errors=None, db_pos=None, bad_pixel_iterations=0, bad_pixel_factor=1, overdispersion=True,
              estimator='template', trend_errors=None, limit=('intensity', 'fwhm'), axis='time',
-             dose_unit='photons', beam_mm=None):
+             dose_unit='photons', beam_mm=None, shutter='closed'):
         """Burn test of one Pilatus scan (lss_core.burn): per frame the
         reflected intensity (Det_Th 0; ``slit``, ``bg_offset``,
         ``direction`` as Ref Patch) or the strongest GID peak's intensity,
@@ -535,7 +535,8 @@ class Experiment:
         fitted against, 'time' (default) or 'dose' (F98: the dose received
         since the first frame began, at the middle of each frame,
         lss_core.dose; ``dose_unit`` 'photons' or 'monitor', ``beam_mm``
-        (width, height) for photons/mm²); the limit is then a dose. The dose
+        (width, height) for photons/mm², ``shutter`` 'open' for fast mode);
+        the limit is then a dose. The dose
         is worked out whenever it can be (``res.dose``), whatever the axis."""
         from . import burn as burnmod
         from . import trends
@@ -563,7 +564,7 @@ class Experiment:
         if axis not in burnmod.AXES:
             raise ValueError('axis %r: one of %s' % (axis, ', '.join(burnmod.AXES)))
         try:
-            d = self.dose(scan, idx, unit=dose_unit, beam_mm=beam_mm)
+            d = self.dose(scan, idx, unit=dose_unit, beam_mm=beam_mm, shutter=shutter)
             from . import dose as dosemod
             sc_ = dosemod.engineering_scale(d.total())      # the axis in 1e12 photons etc.: lss_core.dose
             res.dose, res.dose_total, res.dose_scale = d.cumulative() / sc_, d.total() / sc_, sc_
@@ -612,14 +613,16 @@ class Experiment:
                                      errors=te)
         return res
 
-    def dose(self, scan, points=None, unit='photons', beam_mm=None, absfac=None, monitor='Monc'):
+    def dose(self, scan, points=None, unit='photons', beam_mm=None, absfac=None, monitor='Monc', shutter='closed'):
         """The dose each point of ``scan`` gives the sample (lss_core.dose.scan_dose:
         photons, or Monc counts at 5 µA/V with the absorbers taken out; per mm²
-        of footprint with ``beam_mm``, the beam's (width, height))."""
+        of footprint with ``beam_mm``, the beam's (width, height); ``shutter``
+        'open' in fast mode, from the scan's per-point times)."""
         from . import dose as dosemod
         sc = self.scans[scan]
+        pt = self.point_times(scan) if shutter == 'open' else None
         return dosemod.scan_dose(sc.columns, sc.parameters, points, unit=unit, beam_mm=beam_mm, absfac=absfac,
-                                 monitor=monitor, scan=scan)
+                                 monitor=monitor, scan=scan, shutter=shutter, point_times=pt)
 
     def mean_frame(self, frames):
         """The mean of ``frames``' images per monitor count (rows × columns, as
