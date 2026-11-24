@@ -1626,6 +1626,7 @@ class MainWindow (QMainWindow):
         self.ui.statusBar.clearMessage()
         self.ui.specPlotMplWidget.canvas.ax.clear()
         self.specResidualItems=[]       # F74: the fit drawn, for its residual panel
+        self.specHeightFit=None         # F78: the super-Gaussian of a sample-height scan
         self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
         self.specData['YCol']=str(self.ui.spYComboBox.currentText())
         self.specData['NCol']=str(self.ui.spNComboBox.currentText())
@@ -1686,6 +1687,8 @@ class MainWindow (QMainWindow):
                 self.ui.specPlotMplWidget.canvas.ax.plot(xf,res.model(xf),'g--',label=lab)
                 self.specResidualItems=[(x,y,yerr_,res,'g')]
                 self.scanCenter[self.selectedScanNums[-1]]=float(format(p.centre,'.3f'))
+                if kw:              # a sample-height scan against sh: its width and flatness (F78)
+                    self.specHeightFit=self.drawHeightScanFit(x,y,yerr_)
             except:
                 self.peakPos='%.4f'%x[np.argmax(y)]
                 self.peakCenter=self.peakPos
@@ -1695,6 +1698,23 @@ class MainWindow (QMainWindow):
         if not getattr(self,'specLogKept',''):          # keep the note about a log axis left linear
             self.ui.statusBar.showMessage('Done')
         
+    def drawHeightScanFit(self,x,y,yerr):
+        """F78 (owner, 2026-11-23): on a sample-height scan, the
+        super-Gaussian A exp(-|(h-h0)/w|^p) + b (lss_core.peaks.
+        fit_super_gaussian) drawn over the data, and its FWHM in µm (sh is in
+        mm), p and the Gaussian's χ²/dof on the title's last line: wide and
+        flatter than a Gaussian (p > 2) is what a usable scan looks like. No
+        verdict: the thresholds are the owner's to give."""
+        yerr=np.asarray(yerr,float)
+        sg=peaks.fit_super_gaussian(x,y,sigma=yerr if np.all(yerr>0) else None)
+        if not sg.ok:
+            return sg
+        ax=self.ui.specPlotMplWidget.canvas.ax
+        xf=np.linspace(np.min(x),np.max(x),400)
+        ax.plot(xf,sg.model(xf),'-.',color='tab:purple',label='Super-Gaussian (p %.2f)' % sg.p)
+        ax.set_title(ax.get_title()+'\n'+sg.summary('µm',1000.0))
+        return sg
+
     def specSaveData(self):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
             self.messageBox('Please select a scan with data to save first!')
@@ -2246,6 +2266,11 @@ class MainWindow (QMainWindow):
                  'Off (default): the MCA tab\'s Fit lines runs the line fit (lss_core.peaks), and the legacy Fit, Fit All '
                  'and Accept buttons are hidden. On: Fit runs the legacy fit dialog, and those buttons show (owner, '
                  '2026-11-23: one Fit action, the switch picks).'),
+                ('mca_fit_poisson','prefMcaFitPoissonCheckBox','Fit lines: Poisson weights (F90 P1)',
+                 'Off (default): Fit lines fits each spectrum\'s line heights by least squares weighted by its error '
+                 'bars, as always; that reads weak lines low (synthetic, COMPARISONS C42: areas at 90 counts 21 % '
+                 'low). On: by Poisson maximum likelihood, the model weighting the points (synthetic: 3.6 % high at '
+                 '90 counts, 0.6 % at 270). An option until the owner\'s study (tools session, 2026-11-24).'),
                 ('burn_legacy_tab','prefBurnLegacyCheckBox','Burn test: show the Legacy tab',
                  'Off (default): the burn dialog shows its Trends tab only. On: also its Legacy tab, the original plots '
                  '(owner, 2026-11-23, Q-BURN-4). The REF button and the GID list still open it.')):
@@ -3114,7 +3139,7 @@ class MainWindow (QMainWindow):
         act.setObjectName('actionFitResiduals')
         act.setCheckable(True)
         act.setChecked(self.fitResidualsShown())
-        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits): the '
+        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends): the '
                        'residuals (y - fit)/sigma of the fitted points, and chi2/dof in the legend. For a good fit '
                        'with right errors they scatter within about +/-2. Hidden by default; kept between sessions (F74).')
         act.toggled.connect(self.setFitResiduals)
@@ -4928,7 +4953,8 @@ class MainWindow (QMainWindow):
         """Each quantity on its own panel, its right axis in percent, the
         summary to the right (owner, 2026-11-21; lss_core.burn.plot)."""
         canvas=self.uipdburn.burnTrendPlotWidget.canvas
-        burnmod.plot(res,canvas.fig,'%s S# %d' % (os.path.basename(self.specFileName),res.scan))
+        burnmod.plot(res,canvas.fig,'%s S# %d' % (os.path.basename(self.specFileName),res.scan),
+                     residuals=self.fitResidualsShown())     # F74
         try:
             canvas.fig.subplots_adjust(left=0.1,right=0.97,top=0.9,bottom=0.09)
         except Exception:
@@ -7769,6 +7795,9 @@ class MainWindow (QMainWindow):
         if getattr(self,'cutFitResults',None):
             self.drawCutResiduals()
             self.ui.cutPlotMplWidget.canvas.draw()
+        if getattr(self,'burnResult',None) is not None and getattr(self,'uipdburn',None) is not None \
+                and hasattr(self.uipdburn,'burnTrendPlotWidget'):
+            self.plotBurnTrends(self.burnResult)
 
     def fitCuts(self):
         """Fit every plotted cut (the "Fit peaks" button)."""

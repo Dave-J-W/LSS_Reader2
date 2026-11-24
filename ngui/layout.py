@@ -674,6 +674,7 @@ PREFERENCES = [
         C('prefRepeatsLegacyCheckBox', 'Ref Patch repeats: average (legacy)'),
         C('prefGisaxsRawCheckBox', 'GISAXS: raw counts (legacy)'),
         C('prefMcaFitLegacyCheckBox', 'Fluorescence fit: legacy dialog'),
+        C('prefMcaFitPoissonCheckBox', 'Fit lines: Poisson weights', note='F90 P1, an option until the owner\'s study'),
         C('prefBurnLegacyCheckBox', 'Burn: Legacy tab'),
         C('prefClosePushButton', 'Close'),
     ]),

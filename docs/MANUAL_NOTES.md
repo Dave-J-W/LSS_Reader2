@@ -367,9 +367,21 @@ Each line: feature — where — default — script — notes entry (date).
 - The limits are the owner's figures for the Pilatus 100K. Whether the
   detector already corrected its counts for rate is not known here.
 
+### Sample-height scans: width and flatness (F78, 2026-11-24)
+- A sample-height scan (sh, or sh with oh) plotted against sh on the
+  SpecPlot tab gets a second fit: a super-Gaussian, drawn dash-dotted in
+  purple. The title's last line gives its FWHM in µm, the exponent p and,
+  for comparison, how well a plain Gaussian fits (χ²/dof).
+- p = 2 is a Gaussian; a larger p is flatter-topped. A usable scan is wide
+  and flatter than a Gaussian (owner: FWHM of about 65 µm or more, "more
+  squashed than a gaussian"). The program gives the numbers, not a verdict.
+- A scan with no reflected beam (the peak not 10σ above the edges) is not
+  fitted.
+
 ### Residuals above fits (F74, 2026-11-24)
 - **View > Residuals above fits** adds a small panel above each plot that
-  shows a fit: the SpecPlot scan fit and the cut peak fits, so far. It shows
+  shows a fit: the SpecPlot scan fit, the cut peak fits and the burn
+  test's trends (the best model of each quantity), so far. It shows
   the residuals of the fitted points weighted by their errors,
   (y − fit)/σ, and the fit's legend label gains χ²/dof.
 - For a good fit with the right errors the points scatter about zero,
@@ -378,8 +390,8 @@ Each line: feature — where — default — script — notes entry (date).
   model or the errors are wrong.
 - Off by default; the choice is kept between sessions. The plot's title
   moves above the panel while it is shown.
-- Not yet on: MCA line fits, burn trends, the Ref Patch join preview, the
-  older fit dialogs.
+- Not yet on: MCA line fits (the tools session's), the Ref Patch join
+  preview, the older fit dialogs.
 
 ### Ref Patch checks: a message and marks (F95, 2026-11-24, Q-UI-B6, B3)
 - Before joining, Ref Patch checks each frame: is the reflected beam more
@@ -420,7 +432,10 @@ Each line: feature — where — default — script — notes entry (date).
   the old average. **GISAXS**: per Monc (default) or raw counts. **Fluorescence fit**: the MCA tab's one Fit action
   runs the line fit (default) or, when on, the legacy Fit dialog, and then
   also shows the legacy Fit, Fit All and Accept buttons. **Burn test**: shows
-  the dialog's Legacy tab.
+  the dialog's Legacy tab. **Fit lines: Poisson weights** (2026-11-24, F90
+  P1): when on, each spectrum's line heights are fitted by Poisson maximum
+  likelihood instead of least squares weighted by the error bars (which
+  reads weak lines low); off by default until the owner's study.
 - **Ctrl+click** on Ref Patch or on Fit lines runs the other path once and
   writes a line in the Messages pane saying so; no dialog.
 

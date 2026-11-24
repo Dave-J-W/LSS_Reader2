@@ -108,7 +108,7 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
     stripping are proposed to Main; no default was changed.
 
   Real spectra and a blank decide it (`DATA_NEEDS.md` row 3).
-- Study B, MCA line intensities (2026-11-24, C46, `docs/studies/mca_fit/summary.md`). The owner's study of F90's
+- Study B, MCA line intensities (2026-11-24, C47, `docs/studies/mca_fit/summary.md`). The owner's study of F90's
   decisions, with figures B1–B7 from `tests/tools/mca_study.py`; water's Compton scatter is now modelled shell by
   shell. Measured on synthetic data:
   - data weights read weak lines low, and P1 fixes that;

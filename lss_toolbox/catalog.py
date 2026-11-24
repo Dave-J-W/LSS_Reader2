@@ -680,7 +680,7 @@ TOOLS = (
          'rates and the robustness map (B1-B7), from the gauntlet\'s study run.',
          committed=('docs/studies/mca_fit',),
          docs=('docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line', 'docs/studies/mca_fit/summary.md',
-               'docs/COMPARISONS.md#| C46 |'),
+               'docs/COMPARISONS.md#| C47 |'),
          defaults={'--gauntlet': 'docs/studies/mca_fit/gauntlet', '--out': OUT},
          variations=(V('Replicates and anatomy only', 'B1 and B2, which need no gauntlet run (about 20 s).',
                        'docs/studies/2026-11-24_two_decisions_plan.md#B2. Replicates and their fits', only='B1,B2'),),
