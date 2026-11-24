@@ -530,6 +530,16 @@ def run_nx(app, ctx, skip_slow):
     if not skip_slow:
         refpatch()
 
+    @step('compare')
+    def compare_tab():
+        app.processEvents()                      # the patch is saved by itself once the event loop is idle
+        tab(w, app, 'Compare')
+        save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '34_compare_tab.png',
+                 'Compare tab (F80, F105): the reflectivities saved in the workbook, overlaid',
+                 'Scans 6-9 patched and saved automatically; Compare tab shown')
+    if not skip_slow:
+        compare_tab()
+
     # --- GID
     @step('gid patch')
     def gid():

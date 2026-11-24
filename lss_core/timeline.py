@@ -109,6 +109,8 @@ class HeightScan:
     t: float
     fit: peaks.SuperGaussianFit
     sx: float = None
+    x: np.ndarray = None            # sh, as scanned
+    y: np.ndarray = None            # Pilatus / Monc, on the mean monitor's scale (what is fitted)
 
 
 @dataclass
@@ -283,10 +285,82 @@ def build(exp, motors=DEFAULT_MOTORS, gap_minutes=GAP_MINUTES, fit_heights=True)
             continue
         cols = exp.scans[s.scan].columns
         sx = exp.scans[s.scan].parameters.get('Sample_X')
+        x = y = None
         if fit_heights and 'Pilatus' in cols and 'Monc' in cols and cols:
-            x = cols[next(iter(cols))]
+            x = np.asarray(cols[next(iter(cols))], float)
+            m = np.asarray(cols['Monc'], float)
+            with np.errstate(divide='ignore', invalid='ignore'):
+                y = np.asarray(cols['Pilatus'], float) / m * float(np.mean(m))
             fit = peaks.fit_super_gaussian(x, cols['Pilatus'], cols['Monc'])
         else:
             fit = peaks.SuperGaussianFit(False, 'no Pilatus and Monc columns' if fit_heights else 'not fitted')
-        tl.heights.append(HeightScan(s.scan, s.t0, fit, sx if isinstance(sx, (int, float)) else None))
+        tl.heights.append(HeightScan(s.scan, s.t0, fit, sx if isinstance(sx, (int, float)) else None, x, y))
     return tl
+
+
+# ---------------------------------------------------------------- notes (research §5: Saved rows of kind 'note')
+
+NOTE_KIND = 'note'
+ANSWERS = ('new sample', 'same sample')
+
+
+@dataclass
+class Note:
+    """A note on the timeline, or the user's answer to a "set sh 0: new
+    sample?" (``event`` 'set-zero', ``answer`` one of ANSWERS). Stored as a
+    workbook Saved row of kind 'note'; ``rid`` and ``version`` are its."""
+    t0: float
+    label: str
+    text: str = ''
+    t1: float = None
+    event: str = ''
+    answer: str = ''
+    rid: str = ''
+    version: int = 0
+    scans: list = field(default_factory=list)
+
+
+def note_item(t0, label, text='', scans=(), event='', answer='', t1=None):
+    """The workbook item (Workbook.add_result keywords) for a note."""
+    settings = {'t0': float(t0), 'lane': 'events' if event else 'notes'}
+    if t1 is not None:
+        settings['t1'] = float(t1)
+    if event:
+        settings['event'] = event
+    if answer:
+        settings['answer'] = answer
+    return dict(scans=[int(s) for s in scans], label=str(label), note=str(text), settings=settings)
+
+
+def notes_from_rows(rows):
+    """Notes from the workbook's Saved rows of kind 'note' (others and rows
+    without a time are skipped), in time order."""
+    import json
+    out = []
+    for r in rows:
+        if r.get('kind') != NOTE_KIND:
+            continue
+        try:
+            st = json.loads(r.get('settings') or '{}')
+            t0 = float(st['t0'])
+        except (ValueError, KeyError, TypeError):
+            continue
+        scans = [int(s) for s in str(r.get('scans') or '').split(',') if s.strip()]
+        out.append(Note(t0, str(r.get('label') or ''), str(r.get('note') or ''), st.get('t1'), st.get('event', ''),
+                        st.get('answer', ''), str(r.get('id') or ''), int(r.get('version') or 0), scans))
+    return sorted(out, key=lambda n: (n.t0, n.rid))
+
+
+def answers(notes, tolerance=1.0):
+    """{index of a 'set-zero' event: the latest answer}, matched by time
+    within ``tolerance`` s, for a list of events and notes: returns a function
+    of the event (so the view can ask per event)."""
+    given = [n for n in notes if n.event == 'set-zero' and n.answer in ANSWERS]
+
+    def of(event):
+        hits = [n for n in given if abs(n.t0 - event.t) <= tolerance]
+        if not hits:
+            return ''
+        return max(hits, key=lambda n: (n.rid, n.version)).answer
+    return of
+

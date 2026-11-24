@@ -1,0 +1,90 @@
+# Inventory: the Compare tab (F80, F105; 2026-11-24). Schema: docs/gui/README.md.
+# Code-built in MainWindow.initCompareTab (comparetab.py), fed by lss_core.compare.
+- id: compareTab
+  kind: tab
+  label: "Compare"
+  where: "Main window tabs, just left of Timeline"
+  handler: compareTabShown
+  does: "The reflectivities saved in this SPEC file's workbook, overlaid, with their ratios to the first ticked one; refreshed when shown and whenever a result is saved or remade"
+  workflows: [reflectivity]
+  needs: "a SPEC file with a workbook"
+  shown: always
+  tooltip: true
+  notes: "Owner 2026-11-23: F80 (stability across places and time), Q-REF-5 (a tab only for comparing, fed by the workbook, provided the new data auto-update). Files from disk stay on the Reflectivity tab."
+- id: compareListWidget
+  kind: list
+  label: "R0003 v2  S# 6–9"
+  where: "Compare > left"
+  handler: draw
+  does: "The saved curves, checkable; series, time saved, sx and note in each tooltip"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Out-of-date results (their scans grew) are marked."
+- id: comparePlotWidget
+  kind: plot
+  label: ""
+  where: "Compare > right"
+  handler: draw
+  does: "log R against Qz of the ticked curves; with Ratio to the first, a panel below with each over the first"
+  workflows: [reflectivity]
+  needs: "curves ticked"
+  shown: always
+  tooltip: false
+  notes: "Matplotlib toolbar below."
+- id: compareOrderComboBox
+  kind: combo
+  label: "Order by: series | time saved | sx"
+  where: "Compare > top"
+  handler: relist
+  does: "The order of the list and of the colours"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: compareRatioCheckBox
+  kind: checkbox
+  label: "Ratio to the first"
+  where: "Compare > top"
+  handler: draw
+  does: "A panel of each ticked curve over the first ticked one (lss_core.compare.ratio: log R interpolated against log Qz; errors in quadrature)"
+  workflows: [reflectivity]
+  needs: "two curves ticked"
+  shown: always
+  tooltip: true
+  notes: "On by default."
+- id: compareRrfCheckBox
+  kind: checkbox
+  label: "R/R_F"
+  where: "Compare > top"
+  handler: refreshCompare
+  does: "Lists the saved R/R_F curves instead of R"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: compareFollowCheckBox
+  kind: checkbox
+  label: "Follow new"
+  where: "Compare > top"
+  handler: show_entries
+  does: "Ticks each newly saved curve as it arrives, so the comparison updates itself"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "On by default (owner Q-REF-5: provided the new data auto-update)."
+- id: compareInfoLabel
+  kind: label
+  label: "2 saved R curves in 20260923_reader.xlsx"
+  where: "Compare > top"
+  handler: refreshCompare
+  does: "How many curves the workbook holds, or why there are none"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: false
+  notes: ""

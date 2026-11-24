@@ -10,7 +10,7 @@ In the flowcharts, rounded green boxes are steps that are automatic today; diamo
 | [burn-ref](#burn-ref) | 1 | 11 | 4 / 4 / 3 | 17 |
 | [burn-gid](#burn-gid) | 1 | 11 | 4 / 5 / 2 | 13 |
 | [burn-fluo](#burn-fluo) | 1 | 7 | 0 / 3 / 4 | 9 |
-| [reflectivity](#reflectivity) | 2 | 15 | 4 / 5 / 6 | 19 |
+| [reflectivity](#reflectivity) | 2 | 16 | 4 / 6 / 6 | 20 |
 | [gid](#gid) | 3 | 14 | 1 / 8 / 5 | 17 |
 | [xfntr](#xfntr) | 4 | 13 | 2 / 4 / 7 | 12 |
 | [exafs](#exafs) | 5 | 7 | 1 / 2 / 4 | 9 |
@@ -269,6 +269,7 @@ flowchart TD
     ref_same_d{"Identical scans found?"}
     ref_join["join: For each join: the overlap plotted with the factor that Nex…"]
     ref_join_d{"Factor acceptable at this join?"}
+    ref_compare["compare: Compare the saved reflectivities of this file: overlaid by…"]
     ref_view["view: The patched curve on the Reflectivity tab - R or R/R_F, Qc,…"]
     ref_view_d{"R/R_F continuous?"}
     ref_export["export: Export - &lt;name&gt;_ref.txt and &lt;name&gt;_rrf.txt (Q, R, sigma); t…"]
@@ -289,7 +290,8 @@ flowchart TD
     ref_join --> ref_join_d
     ref_join_d -- "drop points" --> ref_join
     ref_join_d -- "use known ratio" --> ref_join
-    ref_join_d -- "yes" --> ref_view
+    ref_join_d -- "yes" --> ref_compare
+    ref_compare --> ref_view
     ref_view --> ref_view_d
     ref_view_d -- "no: change Qoff or Qc" --> ref_view
     ref_view_d -- "yes" --> ref_export
@@ -312,6 +314,7 @@ flowchart TD
 | ref.patch | Ref Patch - one point per frame (ROI minus background per Monc), scans sorted by Qz; pop-ups for beams > 2 px off and bad pixels in the ROI | Pilatus tab > Ref Patch | `pilRefPatchPushButton` |  | yes | offer Ref Patch when a reflectivity series is selected (F60) | code (pilRefPatchData); test tests/test_real_nx_school.py | The beam-offset and bad-pixel tables were modal dialogs that interrupted the patch; since 2026-11-24 (F95) one message, marks on the curve and the Bad Pixels list (refBadPixListWidget) |
 | ref.same | When identical scans (same Qz range and points) are found - merge them, drop some, or patch them regularly | identical-scans dialog | `refpatchsamescan.mergePushButton`, `refpatchsamescan.dropPushButton`, `refpatchsamescan.dropLineEdit`, `refpatchsamescan.nextPushButton` | merge (repeats), drop, or patch (default) | no | merge repeats by default when they agree within errors | code (pilRefPatchData, pilRefSameScan) | Announced by a message, then a dialog; the default ('regular patch') is stated only in the message |
 | ref.join | For each join: the overlap plotted with the factor that Next will use (joint fit), the known foil ratio offered; drop points; Next / Finish! | Ref Patch dialog (one per join) | `refpatch.nextPushButton`, `refpatch.dropPushButton`, `refpatch.dropLineEdit`, `refpatch.knownRatioCheckBox`, `refpatch.knownRatioLabel`, `refpatch.backPushButton`, `refpatch.cancelPushButton`, `refpatch.joinTableWidget`, `prefPatchMethodComboBox`, `prefPatchAutoCheckBox`, `prefPatchThresholdSpinBox` | accept the fitted factor or use the known ratio; which points to drop (typed indices) | partly | accept every join whose fit passes its guard and agrees with the foils, and show only the doubtful ones (owner 2026-11-18 F58 - known ratio automatic where plainly better) | owner 2026-11-18 (F58), owner 2026-11-22 (joint fit default); test tests/test_gui_workflows.py, tests/test_known_ratio_patch.py | One dialog per join (3 for NX 6-9); the method preference is in File > Preferences, not in the dialog<br>Dropped points are typed as indices, deleted from the arrays, not drawn (F16, D2); Back undoes a drop or a join and Cancel says so (F96, 2026-11-24) |
+| ref.compare | Compare the saved reflectivities of this file: overlaid by series, time or sx, with ratios to the first; new ones appear as they are saved | Compare tab | `compareTab`, `compareListWidget`, `comparePlotWidget`, `compareOrderComboBox`, `compareRatioCheckBox`, `compareRrfCheckBox`, `compareFollowCheckBox`, `compareInfoLabel` | which curves to compare; the order | partly | tick every curve of the selected series at once | owner 2026-11-23 (F80, Q-REF-5); test tests/test_gui_compare.py | Export with a proposed name and the hand-over to xmodfit (Q-REF-6) not yet built |
 | ref.view | The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files | Reflectivity tab (Ref / Norm Ref lists, plot) | `refDataListWidget`, `refNormRefListWidget`, `refProvenanceLabel`, `refRRFCheckBox`, `refQcLineEdit`, `refQoffLineEdit`, `refLogYCheckBox`, `refQzSqrCheckBox`, `refNormFacCheckBox`, `refNormLineEdit`, `refDelPushButton`, `refRefFileListWidget`, `refAddFilePushButton`, `refRemoveFilePushButton`, `refLegendCheckBox` | Qc (0.0217 preset: water, the same Qc at every energy, physics_notes 2026-11-23; changed for lighter or denser subphases); Qoff tweaked until R/R_F is continuous apart from one or two outliers (owner 2026-11-23); reference curves to compare | partly | Qoff proposed from the continuity of R/R_F across the joins, Qc from the subphase (F79); Qoff from the sh-scan images (F42) | code (updateRefPlotData); test tests/test_gui_workflows.py (tab 3 after Finish); owner 2026-11-23 | Qc and Qoff change the R/R_F file but are typed fields among display options<br>Qoff is found by trial: type, press Enter, look, repeat |
 | ref.export | Export - <name>_ref.txt and <name>_rrf.txt (Q, R, sigma); the Script pane records exp.reflectivity(...) | Reflectivity tab > Export | `refExportPushButton`, `refCovarianceCheckBox` | file name; whether to write the covariance sidecars (+ covariance, off by default) | no | name from the sample and series (guess) | code (saveRefData, saveRefCovariance); tests/test_ref_export_golden.py, tests/test_gui_covariance_export.py; docs docs/SCRIPTING.md | The covariance sidecars (F24) exist since 2026-11-22 behind '+ covariance', which sits after the workbook Save although it modifies Export; the contract's corrected/legacy pair is for scripts only (TODO B2) |
 | ref.save (shared.workbook) | The finished reduction is saved into <SPEC file>_reader.xlsx automatically; Save stores a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `refSaveWorkbookPushButton` | whether to add a 'user' version with a note | yes |  | test tests/test_real_nx_school.py (reflectivity saved to the workbook) | Automatic saves report in the status bar only; there is no view of the workbook inside the reader |
@@ -755,6 +758,18 @@ flowchart TD
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `statusBar`  |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 
+### Compare
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `compareListWidget` R0003 v2  S# 6–9 |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `comparePlotWidget`  |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `compareOrderComboBox` Order by: series \| time saved \| sx |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `compareRatioCheckBox` Ratio to the first |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `compareRrfCheckBox` R/R_F |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `compareFollowCheckBox` Follow new |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `compareInfoLabel` 2 saved R curves in 20260923_reader.xlsx |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+
 ### Dialog (Burn test)
 
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
@@ -1033,7 +1048,13 @@ flowchart TD
 
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `PlotWidget` SpecPlot \| Pilatus \| Reflectivity \| Line/Area Cuts \| MCA \| Plot \| 2D_Plot \| Timeline |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `PlotWidget` SpecPlot \| Pilatus \| Reflectivity \| Line/Area Cuts \| MCA \| Plot \| 2D_Plot \| Compare \| Timeline |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+
+### Main window tabs, just left of Timeline
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `compareTab` Compare |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 
 ### Main window tabs, last
 

@@ -136,3 +136,24 @@ def test_a_set_zero_of_the_height_is_a_new_sample_guess():
     assert ev.kind == 'reset' and ev.shift == pytest.approx(0.0055)
     assert timeline.comment_event(3, 0.0, 'Scan aborted after 2 points.').kind == 'abort'
     assert timeline.comment_event(3, 0.0, 'something else entirely') is None
+
+
+def test_notes_round_trip_through_saved_rows(tmp_path):
+    """Notes and "new sample?" answers are Saved rows of kind 'note'
+    (research §5); the latest answer to an event wins."""
+    from lss_core import workbook
+    wb = workbook.Workbook(str(tmp_path / 'b.xlsx'))
+    wb.add_result('note', **timeline.note_item(100.0, 'same sample', 'set sh 0 at …', scans=[4],
+                                              event='set-zero', answer='same sample'))
+    wb.add_result('note', **timeline.note_item(100.4, 'new sample', 'set sh 0 at …', scans=[4],
+                                              event='set-zero', answer='new sample'))
+    wb.add_result('note', **timeline.note_item(250.0, 'Trough cleaned', 'Trough cleaned\nwith ethanol', scans=[6],
+                                              t1=400.0))
+    wb.save()
+    notes = timeline.notes_from_rows(workbook.Workbook(str(tmp_path / 'b.xlsx')).results('note'))
+    assert [n.label for n in notes] == ['same sample', 'new sample', 'Trough cleaned']
+    assert notes[2].t1 == 400.0 and notes[2].scans == [6] and 'ethanol' in notes[2].text
+    of = timeline.answers(notes)
+    assert of(timeline.Event(100.0, 'set-zero', 4, '')) == 'new sample'       # the later one
+    assert of(timeline.Event(500.0, 'set-zero', 9, '')) == ''
+    assert timeline.notes_from_rows([{'kind': 'note', 'settings': '{}'}, {'kind': 'reflectivity'}]) == []
