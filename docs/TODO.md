@@ -742,6 +742,7 @@ reruns the quick, real-data and export-fixture checks, and commits.
       for `DATA_NEEDS.md` row 3, 2026-11-23. Mark private files as such (they stay under
       `sample_data/private/`).
 - [ ] **All data needs are listed in `docs/DATA_NEEDS.md` (2026-11-23)**: read it before asking the owner for data; the owner's non-cloud agent will supply the large private sets (reflectivity series for hand-off 08 "not soon"; GISAXS and GIOXS examples later).
+- [ ] **Open beam and shutter questions OQ-1 to OQ-4 (2026-11-24):** slit values half or full openings; the vertical beam size after the mirror focus and before the APS shutdown; how fast mode appears in a SPEC file. Full text and why in `docs/gui/questions.md` ("Open questions added on 2026-11-24"). They block the dose per area of F98 and the sx colouring of F107; until they are answered the beam size stays a typed value.
 - [ ] Decide how sample data should be hosted (`bu` is 1.7 GB, local to the
       session only, git-ignored; NX school is committed at 104 MB).
 - [ ] Questions in `ASSESSMENT.md` sections 6 and 7 still open: reference
