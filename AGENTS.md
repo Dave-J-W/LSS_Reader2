@@ -131,7 +131,7 @@ sessions do not edit the same lines.
 | `docs/SYNTHETIC_DATA.md`, `tests/synthetic/` | Catalogue of every synthetic-data generator, how to use them (known truth for reflectivity, GID, burn, XFNTR, live files), unmet needs |
 | `sample_data/NX_school/` | Real, public data set (committed) |
 | `sample_data/bu/` | Real, private data set: git-ignored, never commit or push it |
-| `sample_data/private/` | The owner's private files (GID, XFNTR, macros): git-ignored. Owner, 2026-11-19: a few derived numbers in docs are acceptable, but **never peak locations, raw data or images**; private figures stay under this folder |
+| `sample_data/private/` | The owner's private files (GID, XFNTR, macros): git-ignored. Owner, 2026-11-19: a few derived numbers in docs are acceptable, but **never peak locations, raw data or images**; private figures stay under this folder. Owner, 2026-11-24: **sample-height scans from the ROI are unrestricted data** (their ROI counter, monitor and sh columns, and what is derived from them, may be published; their images may not) |
 
 ## Commands
 

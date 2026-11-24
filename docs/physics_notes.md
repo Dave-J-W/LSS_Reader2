@@ -5869,3 +5869,12 @@ Verified by: tests (`test_beam_height.py`, I42) on synthetic knife edges; a run 
 - **The width is not measured** (the study: about 1.05 mm between the 5 and 95 % points in one earlier
   image study), so `beam_mm` takes it as typed.
 
+### 2026-11-24 — The owner: sample-height scans from the ROI are unrestricted data
+
+Verified by: the owner's statement in the orchestrator's session ("sample height scans from ROI are
+unrestricted data"). So the ROI counter, monitor and sh columns of sample-height scans, and anything derived
+from them, may be published: per-scan curves, edges, widths, and the inventory behind the beam-height study
+(#60), if the local data agent wishes. Detector images of those scans stay private, as do the other private
+data and their identifiers (names, scan numbers, dates) unless the owner says otherwise. Recorded in
+AGENTS.md's row for `sample_data/private/`.
+
