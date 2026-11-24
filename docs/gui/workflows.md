@@ -1204,6 +1204,7 @@ flowchart TD
 | `prefRepeatsLegacyCheckBox` Ref Patch repeats: average (legacy) |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
 | `prefGisaxsRawCheckBox` GISAXS: raw counts (legacy) |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `prefMcaFitLegacyCheckBox` Fluorescence fit: legacy Fit dialog |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefMcaFitPoissonCheckBox` Fit lines: Poisson weights (F90 P1) |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `prefBurnLegacyCheckBox` Burn test: show the Legacy tab |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `prefBadgesComboBox` State badges: on / when not default / off |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `prefClosePushButton` Close |  |  |  |  |  |  |  |  |  |  |  |  | B |  |

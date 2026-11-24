@@ -58,9 +58,15 @@ def test_height_scans_are_fitted_only_with_good_signal(window, qapp, recorder, t
     assert window.ui.spXComboBox.currentText() == 'Sample_H'
     assert seen[-1] == peaks.height_scan_options()
     assert window.specFit.kind == 'box' and window.specFit.peaks[0].fwhm > 0.02
+    # F78 (2026-11-24): the super-Gaussian too, its FWHM in µm and p on the title
+    sg = window.specHeightFit
+    assert sg.ok and 0.079 < sg.fwhm < 0.084 and 3.2 < sg.p < 3.7
+    ax = window.ui.specPlotMplWidget.canvas.ax
+    assert 'µm, p 3.' in ax.get_title() and any(l.get_label().startswith('Super-Gaussian') for l in ax.get_lines())
     sweep._select_scans(window, qapp, [3])                     # scan 4
     assert window.specFit.kind in ('flat', 'weak') and window.specFit.peaks == []
     assert window.peakFWHM == '0'
+    assert window.specHeightFit is None                        # no fit at all on a scan without beam
     assert recorder.exceptions == []
 
 
