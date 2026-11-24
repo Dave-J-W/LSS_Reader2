@@ -75,7 +75,9 @@ Each line: feature — where — default — script — notes entry (date).
   twice its background and only with a FWHM over 20 µm (owner: "we always
   get good signal"; `peaks.height_scan_options`).
 - MCA tab: "Fit lines" and "Fit options..." (lines of all selected spectra,
-  the sum fixing position and width; intensities like Sum All).
+  the sum fixing position and width; intensities like Sum All). With
+  several lines placed, the intensity is the first line given (the
+  element's), not the tallest (2026-11-24, F90 P5).
 - Fit options are kept between sessions (preferences) and in the workbook.
 
 ### Monitor and absorbers (affect every tab)

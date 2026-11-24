@@ -87,7 +87,7 @@ working list, one table per area, each row with its source. Rows marked
 | Fluorescence burns (XFNTR 19, 20) | hand-off 07 |
 | F90, real-data half: the gauntlet's estimators on the owner's spectra (a strong elastic and Compton beside a weak line, plus a blank, pure water or subphase, at the same Qz and time); the synthetic half's verdict (C42) rests on the modelled O 1s Compton wing and Si escape — **new** | F90; C42 |
 | F90 candidates found by the synthetic half, none a default yet: line width fixed from the detector's resolution (calibrated on the elastic peak), Si escape stripping, a Poisson (model-weighted) per-spectrum step, a box short on the Compton side, a Compton-tail background term or a measured blank as a template — **new** | C42 |
-| "Fit lines" reports the tallest fitted peak (`mcaFitLines`: `r.peaks[0]`); once several lines are placed (escapes, neighbours, F93) it must report the element's line — **new** | C42 (read in `mainwindow.py`) |
+| ~~"Fit lines" reports the tallest fitted peak~~ **fixed 2026-11-24**: the first line given (`peaks.line_index`; OUTPUT_DECISIONS) | C42 |
 | A synthetic MCA series the reader opens (`synthetic_dataset.py --kind mca`, from `synthetic.mca`) — **new** | SYNTHETIC_DATA §5 |
 
 **D. Monitor, absorbers, normalisation**
