@@ -194,3 +194,55 @@ def combine_channels(spectra, channels=None):
         out.append((d, p))
     return out
 
+
+
+# ---- line-fit options for silicon detectors (F90 P2, P3; the owner, 2026-11-24: options, not defaults) ----
+
+SI_KA_KEV = 1.740            # Si Kα (X-ray Data Booklet Table 1-2: Kα1 1.73998 keV)
+SI_K_EDGE_KEV = 1.8389
+SI_EPS_KEV = 0.00365         # energy per electron-hole pair in Si
+SI_FANO = 0.115              # Fano factor (from memory; 0.11-0.12 in the literature)
+
+
+def detector_fwhm(e_kev, noise_kev=0.12, fano=SI_FANO, eps=SI_EPS_KEV):
+    """FWHM (keV) of a silicon detector's photopeak at ``e_kev``:
+    √(noise² + 8 ln2 ε F E), with ``noise_kev`` the electronic noise FWHM
+    (calibrate it on a strong peak, e.g. the elastic line: noise² = FWHM² −
+    8 ln2 ε F E0). P2: the "Fit lines" width fixed at this value at the
+    element's line removes the trade-off of a free width against the
+    background (C42)."""
+    return float(np.sqrt(noise_kev ** 2 + 8 * np.log(2) * eps * fano * max(float(e_kev), 0.0)))
+
+
+def si_escape_fraction(e_kev, omega=0.050, jump=0.90, mu_k=350.0):
+    """Si K escape probability for a photon of ``e_kev`` absorbed in a thick
+    detector at normal incidence (S. J. B. Reed and N. G. Ware, J. Phys. E 5,
+    582, 1972): ½ ω_K (1 − 1/r) [1 − (μ_K/μ_E) ln(1 + μ_E/μ_K)], with
+    ω_K(Si) = 0.050, 1 − 1/r = 0.90, μ_K = 350 cm²/g (Si Kα in Si) and
+    μ_E = 33.9 (10/E)^2.75 cm²/g. The constants are from memory: about 0.10 %
+    at 10 keV and 0.15 % at 8.6 keV. 0 below the Si K edge."""
+    if e_kev <= SI_K_EDGE_KEV:
+        return 0.0
+    mu_e = 33.9 * (10.0 / e_kev) ** 2.75
+    a = mu_k / mu_e
+    return 0.5 * omega * jump * (1.0 - a * np.log1p(1.0 / a))
+
+
+def strip_escape(data, scale=1.0):
+    """Si escape stripping of a spectrum (N, 3: energy, value, σ), P3: the
+    escape of what was measured at E + 1.740 keV, Reed's fraction × ``scale``
+    of it, comes off at E (AXIL and PyMca correct escapes this way). σ gets
+    the subtracted part's error; a zero σ (no counts) stays zero, as the
+    reader leaves it. Under 10 keV the elastic's escape at 8.26 keV lies
+    under Zn Kα: stripping cut its bias on "Fit lines" from +45 % to about
+    4 % (C42). The fraction is the detector's; ``scale`` corrects Reed's."""
+    d = np.array(data, dtype=float, copy=True)
+    e, y, s = d[:, 0], d[:, 1], d[:, 2]
+    up = e + SI_KA_KEV
+    f = scale * np.array([si_escape_fraction(v) for v in up])
+    order = np.argsort(e)
+    yu = np.interp(up, e[order], y[order], right=0.0)
+    su = np.interp(up, e[order], s[order], right=0.0)
+    d[:, 1] = y - f * yu
+    d[:, 2] = np.where(s > 0, np.sqrt(s ** 2 + (f * su) ** 2), 0.0)
+    return d
