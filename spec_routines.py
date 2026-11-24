@@ -149,6 +149,7 @@ class specread:
                 else:
                     self.Par[num]['Detector']='Monitor'
                 tmpdata=[]
+                absorber_a=None     # (value,) from #A: it wins over the Absorber motor of #P, whatever the order
                 while line[:2]!='\n' and line[:2]!='#C':
                     if line[:2]=='#P':
                         parName=line[4:].split()
@@ -188,6 +189,7 @@ class specread:
                             self.Par[num]['Absorber']=spec_number(tmppar[1])
                         except (IndexError,ValueError,TypeError,SyntaxError):
                             self.Par[num]['Absorber']=None
+                        absorber_a=(self.Par[num]['Absorber'],)
                     if line[:2]=='#Q':
                         tmppar=line[2:].split()
                         self.Par[num]['Q']=spec_numbers(tmppar)
@@ -275,6 +277,13 @@ class specread:
                             self.Data[num][scanVar[j]]=np.array(tmpdata,dtype='float')[:,j]
                         except:
                             self.Data[num][scanVar[j]]=None
+                if absorber_a is not None:
+                    # #A is the absorber setting; the motor of #P4 named Absorber gives the
+                    # same in NX files, where #A comes after #P and so won by order. Now it
+                    # wins by rule (TODO area L, 2026-11-24); the motor's value is kept
+                    if self.Par[num].get('Absorber',absorber_a[0])!=absorber_a[0]:
+                        self.Par[num]['AbsorberMotor']=self.Par[num]['Absorber']
+                    self.Par[num]['Absorber']=absorber_a[0]
                 if len(self.Par[num])==1:
                     self.Par[num]['Message']='No parameters!!'
                 self.Par[num].update(extras)
