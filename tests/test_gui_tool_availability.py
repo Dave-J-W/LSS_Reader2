@@ -53,4 +53,5 @@ def test_gid_patch_on_frames_without_gid_levels_says_so(loaded, qapp, dataset, r
     loaded.gidPatchPushButton.click()
     qapp.processEvents()
     assert recorder.exceptions == []
-    assert any('no GID levels' in m for m in recorder.messages)
+    # the patch's own GIDError message since the test-speed session's #29, else gidPatch's safety net
+    assert any('no GID levels' in m or 'nothing to patch' in m for m in recorder.messages)
