@@ -34,6 +34,8 @@ Times measured 2026-11-23 on a 4-CPU, 16 GB cloud container, parallel
 | `LSS_SWEEP_TIMES=FILE pytest -m sweep` | also append each control's time (state, control, seconds) to FILE, to find a slow one | |
 | `pytest -n0 …` | in this one process (debuggers, `--pdb`) | |
 
+Test windows open at their minimum size (`w.resize(1, 1)` in the `window` fixture and the sweep's `make_window`; 2461 × 693 since the window grew, not `mainwindow.ui`'s 3367 × 1281): every plot is still drawn, on about 40 % of the pixels. Measured 2026-11-24 on three GUI test files, 107 s → 94 s of CPU (the archived commit 69d8585, ported).
+
 `slow`, `bench` and `sweep` are deselected by default (`pyproject.toml`).
 
 **Parallel by default (2026-11-23).** With `pytest-xdist` installed, a

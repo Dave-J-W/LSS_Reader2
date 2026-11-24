@@ -52,6 +52,7 @@ def make_window(qapp, tmp_path):
     def make():
         w = MainWindow()
         w.directory = str(tmp_path)
+        w.resize(1, 1)      # its minimum size, as the window fixture (conftest.py)
         w.show()
         qapp.processEvents()
         return w
