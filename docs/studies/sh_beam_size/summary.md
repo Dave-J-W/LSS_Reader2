@@ -43,6 +43,60 @@ size (private data)" (external, not regenerable from the repository).
    Taking the FWHM (0.031 mm) overstates it by about 1.3×, because the tail
    holds a quarter to a third of the photons.
 
+## For the dose: FWHM per energy, drift over time, shape, level drift
+
+These answer main man's questions for `lss_core.dose` and OQ-2
+(`S5_width_vs_time.png`, `width_vs_time_by_run.csv`, `shape.json`).
+
+**Vertical FWHM at the sample, by energy.** For the core + tail profile it
+is from the images; for the erf fit to the spec rise, from every accepted scan.
+
+| Energy, S1 | Profile FWHM (images) | erf FWHM (spec rise) | Dose height |
+|---|---|---|---|
+| 10 keV, 0.016–0.04 mm | 28–33 µm (class medians) | 36–40 µm | 0.040 mm |
+| 6–8 keV, 0.05–0.07 mm (cell) | 42–51 µm | 51–52 µm | 0.055 mm |
+| 6–8 keV, 0.2 mm (cell) | 70 µm (1 run) | 60–90 µm (2 runs) | 0.080 mm |
+| 30 keV, 0.02 mm (liquid metal) | ≈ 19 µm, one half-cut | not measurable | ≈ 0.020 mm |
+
+**Over time, the width does not drift.** This covers 21 run × class series
+with ≥ 10 accepted scans over ≥ 3 h, spanning up to two weeks of elapsed
+time. Times are hours since each run's first usable height scan, never dates.
+The Theil–Sen slope of σ_rise has median +0.001 µm/h (10–90 %: −0.015 to
++0.034 µm/h). That is below 1 µm per day in every 10 keV series, against
+σ ≈ 16 µm. Thirteen slopes are statistically non-zero, but all of them are
+that small. From the first third of a run to the last, σ changes by −1.8 to
++2.1 µm (median 0.0). The scan-to-scan spread within a run (10–90 %) is
+2.4 µm. **So the size is a property of the run (the focus and S1 set for
+it): differences between runs (σ 14–18 µm at 10 keV) are larger than
+changes within one.** The exception is the 0.2 mm gap in the cell
+(+3 µm per day, scatter 14 µm; cause not known).
+
+**Shape: peaked with wings, not Gaussian and not flat-topped.** Fitted to
+the 73 stacked 10 keV direct-beam edges, a super-Gaussian
+exp(−|u/w|^p / 2) gives **p = 0.72** (bootstrap over scans, 5–95 %:
+0.69–0.76). p = 2 is a Gaussian, and p > 2 is flat-topped. The rms
+residuals are 0.030 (best p), 0.035 (Gaussian) and 0.041 (flat top,
+p = 6). The core + tail model does best (0.027 and 0.018, the two S2
+panels). The core + tail profiles have an excess kurtosis of 4.6 (10–90 %:
+2.5–7.6), against 0 for a Gaussian. Do not confuse this with F78's "a good
+sample height scan is flatter than a Gaussian". That flatness is the
+reflected-beam peak of the whole height scan, which the flat middle of the
+surface shapes; it is not the beam.
+
+**Liquid-level drift, beside the size.** Measured in the owner's
+height-scan analysis (`c51_surface/LEVEL_DRIFT.md` in the spec reference
+repository): the level moves at about ±10 µm/h, with a sign that depends on
+the run (+9 µm/h median where it rose; the fastest run 26.5 µm/h). One
+centre scatters 1.9 µm on the trough's stage. A height scan takes 41 s
+(10–90 %: 37–56 s), and the beam crosses the rising edge in 9–12 s. So
+drift moves the edge by 0.03 µm at 10 µm/h, and by 0.09 µm in the fastest
+run, while it is measured. Over a whole scan the edge moves 0.16 µm. That
+is under 1 % of σ: **drift does not blur these edges.** It matters on a
+different scale: the surface moves by a beam's σ (16 µm) in 1.5 h at
+10 µm/h, so after about an hour the beam no longer sits on the surface
+where the height scan put it. That changes where the footprint falls, not
+the beam's size.
+
 ## Why the rising edge of a height scan is a knife edge
 
 At the height-scan qz the incident beam slopes down at α (1.6 mrad at

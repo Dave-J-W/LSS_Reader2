@@ -5831,6 +5831,11 @@ the geometry argument is derived, not measured. Study: `docs/studies/sh_beam_siz
   (10–90 % 0.91–1.24; +25 % too large at S1 0.2 mm). Default without height scans: **0.040 mm** at 10 keV and
   S1 ≤ 0.04 mm (±15 %, run to run). The S1 gap (0.016 mm) as height overstates the peak dose 2.5×, the FWHM
   1.3×. `lss_core/dose.py` is not changed here; this is the input it waits for.
+- **Over time, shape, level drift** (main man's questions): σ_rise does not drift within a run (Theil–Sen median
+  +0.001 µm/h, every 10 keV series below 1 µm per day; first to last third −1.8 to +2.1 µm); runs differ more (σ 14–18 µm).
+  Shape: super-Gaussian p = 0.72 (0.69–0.76): peaked with wings, not flat-topped (F78's flat top is the height scan's
+  reflected peak, not the beam). Level drift (±10 µm/h, fastest 26.5) moves the edge by ≤ 0.09 µm while a
+  41 s scan crosses it: no blur.
 - **OQ-1, read only:** the slit macro that sets centre and gap puts the blades at gap/2 ∓ centre, so the
   header's S1T and S1B are half-openings and the opening is their sum.
 - **Still open for the owner:** whether the peak dose (this rule) or the footprint-average is the dose meant
