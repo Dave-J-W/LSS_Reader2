@@ -238,6 +238,12 @@ class specread:
                     tmpdata,dropped=complete_rows(tmpdata)
                     if dropped:
                         extras['DroppedRows']=dropped
+                    if tmpdata and len(tmpdata[0])!=len(scanVar):
+                        # #L names more or fewer columns than the rows hold (a label with a space,
+                        # "Two Theta", in a macro that does not join them): the columns are
+                        # still matched by position, as they always were, but now it is said
+                        # (TODO area L, 2026-11-24): (labels, values per row)
+                        extras['LabelMismatch']=(len(scanVar),len(tmpdata[0]))
                     for j in range(len(scanVar)):
                         try:
                             self.Data[num][scanVar[j]]=np.array(tmpdata,dtype='float')[:,j]

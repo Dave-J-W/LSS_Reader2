@@ -727,6 +727,12 @@ class MainWindow (QMainWindow):
                 self.notify('Scan(s) %s: a data line with a different number of values was left out (in a file '
                             'SPEC is still writing, usually the line being written).' % listText(short),
                             title='SPEC file',level='info')
+            odd=[n for n in scannums if isinstance(self.specPar.get(n),dict) and self.specPar[n].get('LabelMismatch')]
+            if odd:     # spec_routines: #L and the rows disagree; columns matched by position as before
+                nl,nv=self.specPar[odd[0]]['LabelMismatch']
+                self.notify('Scan(s) %s: #L names %d columns, the rows hold %d values (scan %d); columns are matched by '
+                            'position, so a label with a space in it shifts the later ones.' % (listText(odd),nl,nv,odd[0]),
+                            title='SPEC file',level='warning')
             self.scanlines=[self.specData[i]['ScanLine'] for i in scannums]
             self.ui.scanListWidget.addItems(self.scanlines)
             if np.any([self.specPar[i]['Detector']=='Vortex' for i in scannums]):

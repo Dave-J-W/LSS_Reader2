@@ -363,3 +363,4 @@ stable (burn tests), the confident 5 % time.
   (the figure agent can use the same window, or `python -m lss_toolbox
   --audit`, to get current figures).
 - File names (2026-11-24): SPEC names may contain dots (`run.v2`) and paths may use '/' or '\\'; plot-file legends show the file's name, the list '<folder>/<name>'.
+- SPEC files (2026-11-24): when a scan's `#L` names more or fewer columns than its rows hold, the window says so once; the columns are still matched by position (a label with a space in it shifts the later ones).
