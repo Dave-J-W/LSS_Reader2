@@ -5163,3 +5163,24 @@ a scan and its unmerged repeat (`synth.make_identical_scans_dataset`, scans
 1, 2, 3 with 3 a repeat of 2; joint fit impossible there, the legacy fit
 used) leaves dR NaN at Qz 0.09 and inf at Qz 0.10 in the joined curve, the
 same with and without Back. Reported to Main; not fixed here.
+
+### 2026-11-24 — F95 (part): Ref Patch checks as one message and marks; the Bad Pixels list wired
+
+The owner's Q-UI-B6 and the list half of Q-UI-B3 (batch 7). Verified by:
+tested (`tests/test_gui_ref_checks.py`, 5 tests, on a synthetic set with
+one frame's beam drawn 5 px off and with corrected pixels injected into
+one frame's box), not yet tried by the owner.
+
+- The two modal boxes (beam centre more than 2 px off; corrected bad
+  pixels inside the signal box) are gone. One message names the frames;
+  the log has each frame's numbers.
+- The flags belong to the result: they are promoted when the patch goes on
+  show and kept through a cancelled patch, as the F96 join table is.
+- Marks are placed by matching each flagged frame's Qz to the curve's Qz
+  (within 5e-5 Å⁻¹; Qz steps are ≥ 1e-3 Å⁻¹ in every set seen): a point
+  merged at an overlap carries the mark, and a dropped point has none.
+- **No output number changes**: the checks only report. **Not built:** the
+  separate ROI threshold of B3 (the tab's "Bad Pixel Correction fac"
+  field), which would change numbers and then needs an OUTPUT_DECISIONS
+  row.
+

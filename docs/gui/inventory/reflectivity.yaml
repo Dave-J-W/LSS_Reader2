@@ -156,13 +156,13 @@
   kind: list
   label: "Bad Pixels:"
   where: "Reflectivity > top"
-  handler: ""
-  does: "Nothing today: only ever cleared"
+  handler: promoteRefFlags
+  does: "Lists, by Qz, the bad pixels corrected inside the signal box of each frame of the Ref Patch on show (scan, frame, pixels x, y); those points carry a cross on the plot"
   workflows: [reflectivity]
-  needs: ""
+  needs: "a Ref Patch with bad-pixel correction finding pixels in the box"
   shown: always
-  tooltip: false
-  notes: "Defunct (read only: no code adds items). Bad pixels in the ROI are reported instead by the modal pilBadPixDialog during Ref Patch."
+  tooltip: true
+  notes: "Wired 2026-11-24 (F95, owner Q-UI-B3); was only ever cleared, the modal pilBadPixDialog reported instead. Filled when the patch is on show; a cancelled patch leaves it. The separate ROI threshold of B3 (refBPCFacLineEdit) is not built: it would change output numbers."
 
 # ---- middle: readout of the analysed point ----
 - id: refQLineEdit

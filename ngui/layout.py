@@ -386,10 +386,11 @@ REFLECTIVITY = {
             ('ROI close-up', [PLOT('refADDataPlotWidget', 'ROI movie (log)', 'roi',
                   note='Opens on log scale, zoomed to a box holding the ROI and both background zones with a margin of '
                        'diffuse scattering around them: a healthy zoom, not too close (owner 2026-11-23; F71)')]),
-            ('Checks', [C('pilPeakCenDialog.peakCenTextBrowser', 'Beam centre off', kind='list',
-                          note='Was a modal window during Ref Patch'),
-                        C('pilBadPixDialog.peakCenTextBrowser', 'Bad pixels in the ROI', kind='list',
-                          note='Was a modal window during Ref Patch')]),
+            ('Checks', [NEW('ref_centreChecks', 'Beam centre off', 'list',
+                            'Frames whose beam centre is more than 2 px off; in the main window since 2026-11-24 a '
+                            'message and open squares on the curve (F95)'),
+                        C('refBadPixListWidget', 'Bad pixels in the ROI', kind='list',
+                          note='Per Qz, with crosses on the curve (F95; was a modal window during Ref Patch)')]),
          ]),
          SPECIAL('joins', title=C('refpatch.Label', 'Joins', kind='label'),
                  controls=[C('refpatch.knownRatioCheckBox', 'Known ratio'),
@@ -730,7 +731,8 @@ RETIRED = {
     'peakfit2': 'Dialog never shown: ' + Q14,
     'peakfitpara': 'Dialog never shown: ' + Q14,
     'refBPCFacLineEdit': 'Defunct: read and never used (inventory); bad pixels are set in Frames > Reduce',
-    'refBadPixListWidget': 'Defunct: only ever cleared (inventory); the bad-pixel report is Reflectivity > Checks',
+    'pilPeakCenDialog.peakCenTextBrowser': 'Removed 2026-11-24 (F95, Q-UI-B6): a message and marks instead of a modal box',
+    'pilBadPixDialog.peakCenTextBrowser': 'Removed 2026-11-24 (F95, Q-UI-B6): the Bad Pixels list (Checks) instead of a modal box',
     # dialog chrome made unnecessary by inline groups
     'pdburn.closePushButton': 'Burn test dialog, now the Burn tab: ' + INLINE,
     'gidClosePushButton': 'GID worksheet, now GID tab groups: ' + INLINE,

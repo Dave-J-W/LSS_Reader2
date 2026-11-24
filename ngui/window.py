@@ -46,8 +46,8 @@ SAMPLES = {
     'plotFileListWidget': ['#1  run3/water_ref.txt', '#2  run3/lipid_ref.txt', '#3  run3/gid_map.txt'],
     'scanInfoDialog.impInfoTextBrowser': ['#S 12 ascan sh -0.2 0.2 40 1', 'Energy 10.0 keV · abs 0',
                                           'sh 0.0000 · Det_Th 0.00'],
-    'pilPeakCenDialog.peakCenTextBrowser': ['S# 8 pt 3: centre 2 px off the ROI centre'],
-    'pilBadPixDialog.peakCenTextBrowser': ['S# 9 pt 10: 1 hot pixel in the ROI (corrected)'],
+    'ref_centreChecks': ['S# 8 pt 3: centre 2 px off the ROI centre'],
+    'refBadPixListWidget': ['Qz 0.0450  S# 9 F# 10: (212, 97)'],
 }
 TABLE_HEADERS = {
     'gidJoinTable': ['join', 'direction', 'from', 'to', 'points', 'factor', 'χ²/dof'],

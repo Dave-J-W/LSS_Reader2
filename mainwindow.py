@@ -6270,11 +6270,13 @@ class MainWindow (QMainWindow):
             self.messageBox('Please select a Qz and analyze it first')
             return
         if self.refpatchindex==0: #regular ref
+            self.promoteRefFlags()          # F95: no checks for Analyze; clears those of an earlier patch
             comments=str(self.refQzSelectedItems[0].text()).split('\t')[1:]
             self.refData.append([itemQz(self.refQzSelectedItems[0]),self.fsig,self.fsigerr])
             self.refInfo.append('#'+comments[0]+'\t'+comments[1]+'\t#Comments:'+str(self.ui.refComLineEdit.text()))
             self.ui.refDataListWidget.addItem('%.4f'%itemQz(self.refQzSelectedItems[0])+'\t'+'%.4e'%self.fsig+'\t'+'%.4e'%self.fsigerr+'\t'+self.refInfo[-1])
         else:  #pilatus patch ref
+            self.promoteRefFlags()          # F95: the checks of this patch, now on show
             self.ui.refDataListWidget.clear()
             self.ui.refNormRefListWidget.clear()
             for i in range(len(self.refData)):
@@ -6377,6 +6379,8 @@ class MainWindow (QMainWindow):
         self.scanqzmon={}    # the monitor of each of those points, for merging repeats (F81)
         self.pilRefPeakCen=[]
         self.pilBadPixInf = []  # build a list for the detailed info for corrected bad pix in RF signal ROI, which is shown for users
+        self.refQzOf={}         # (scan, frame) -> the Qz of its point, for the marks (F95)
+        self.refFlagsPending=[]
         self.refErrorModel=self.errorModel   # recorded for the Script pane
         for i in self.selectedPilFramesNums:
             # one point per frame: the same code a script uses (lss_core.reflectivity)
@@ -6403,6 +6407,7 @@ class MainWindow (QMainWindow):
                 self.pilBadPixInf.append([qkey,self.pilFrameNum[i],pilbadpixloc])
             self.scanqzframe[qkey]=row if first else np.vstack((self.scanqzframe[qkey],row))
             self.scanqzmon.setdefault(qkey,[]).append(float(self.pilMonc[i]))
+            self.refQzOf[(int(qkey),int(self.pilFrameNum[i]))]=float(np.atleast_1d(row)[0])
         try:
             self.pilrefsort=list(self.sortedScans(self.scanqzframe, mtype='qz'))
         except:
@@ -6410,10 +6415,7 @@ class MainWindow (QMainWindow):
 
         #print(self.scanqzframe)
         #print (self.pilrefsort)
-        if len(self.pilRefPeakCen) != 0:
-            self.pilRefPeakCenDis()  # display peak center offest (>2) for each frame
-        if len(self.pilBadPixInf) != 0:
-            self.pilBadPixInfDis()  # display bad pix correction in signal ROI for each frame
+        self.refPatchChecks()   # beam off centre, bad pixels in the ROI: a message and marks, no modal box (F95)
         if len(self.pilrefsort)==0:
             self.messageBox('Warning: no frame selected!!!')
         elif len(self.pilrefsort)==1:
@@ -6441,32 +6443,87 @@ class MainWindow (QMainWindow):
             else:
                 self.pilRefPatch()
                 
-    def pilRefPeakCenDis(self):
-        Dialog=QDialog(self)
-        ui=uic.loadUi(resource('pilPeakCenDialog.ui'),Dialog)
-        ui.show()
-        line='Scan\tFrame\tAxis\t# of Pixels off\n'
-        for i in range(len(self.pilRefPeakCen)):
-            line=line+str(self.pilRefPeakCen[i][0])+'\t'+str(self.pilRefPeakCen[i][1])+'\t'+self.pilRefPeakCen[i][2]+'\t'+str(self.pilRefPeakCen[i][3])+'\n'
-        ui.peakCenTextBrowser.append(line)
-        
-        Dialog.exec_()
+    def refPatchChecks(self):
+        """F95 (owner, 2026-11-23, Q-UI-B6 and B3): frames whose beam centre
+        is more than 2 px from the expected one, and frames with corrected
+        bad pixels inside the signal box. One message (the details in the
+        log) instead of two modal boxes; the points are marked on the
+        Reflectivity plot and the bad pixels listed per Qz once the patch is
+        on show (updateRefDataList promotes these flags)."""
+        qz=getattr(self,'refQzOf',{})
+        flags=[]
+        for scan,frame,axis,off in self.pilRefPeakCen:
+            flags.append(dict(kind='centre',scan=int(scan),frame=int(frame),qz=qz.get((int(scan),int(frame))),
+                              axis=str(axis),pixels=float(off)))
+        for scan,frame,pix in self.pilBadPixInf:
+            flags.append(dict(kind='badpix',scan=int(scan),frame=int(frame),qz=qz.get((int(scan),int(frame))),
+                              pixels=[[int(x),int(y)] for x,y in pix]))
+        self.refFlagsPending=flags
+        if not flags:
+            return
+        parts=[]
+        for kind,what in (('centre','the beam centre is more than 2 px from the expected one'),
+                          ('badpix','corrected bad pixels lie inside the signal box')):
+            fr=sorted({(f['scan'],f['frame']) for f in flags if f['kind']==kind})
+            if fr:
+                parts.append('%s in %d frame%s (%s)' % (what,len(fr),'s' if len(fr)!=1 else '',self.refFramesText(fr)))
+        self.notify('Ref Patch: '+'; '.join(parts)+'. These points are marked on the Reflectivity plot (open square: '
+                    'beam off centre; cross: bad pixels), the bad pixels are listed per Qz under Bad Pixels, and the '
+                    'details are in the log.',title='Ref Patch',level='warning')
+        for f in flags:
+            self.log.info('Ref Patch check: scan %d frame %d (Qz %s): %s',f['scan'],f['frame'],f['qz'],
+                          'beam centre %.1f px off in %s' % (f['pixels'],f['axis']) if f['kind']=='centre'
+                          else 'corrected bad pixels in the signal box at (x, y) %s' % f['pixels'])
 
-    def pilBadPixInfDis(self):
-        Dialog = QDialog(self)
-        ui = uic.loadUi(resource('pilBadPixDialog.ui'), Dialog)
-        ui.pushButton.setIcon(QIcon(resource('stop.png')))
-        ui.pushButton.setIconSize(QSize(100, 100))
-        ui.show()
-        line = 'Scan\tFrame\tPixel(s)\n'
-       # print self.pilBadPixInf
-        for i in range(len(self.pilBadPixInf)):
-            line = line + str(self.pilBadPixInf[i][0]) + '\t' + str(self.pilBadPixInf[i][1]) + '\t' + \
-                   str(self.pilBadPixInf[i][2]) + '\n'
-        ui.peakCenTextBrowser.append(line)
+    @staticmethod
+    def refFramesText(frames,most=8):
+        """'scan 7: frames 3, 4; scan 8: frame 0' for (scan, frame) pairs, cut after ``most`` frames."""
+        out,shown=[],0
+        for scan in sorted({s for s,_ in frames}):
+            fs=[f for s,f in frames if s==scan]
+            take=fs[:max(most-shown,0)]
+            if not take:
+                break
+            shown+=len(take)
+            out.append('scan %d: frame%s %s%s' % (scan,'s' if len(take)>1 else '',listText(take),', ...' if len(take)<len(fs) else ''))
+        text='; '.join(out)
+        return text+('; ...' if shown<len(frames) and not text.endswith('...') else '')
 
-        Dialog.exec_()
-                
+    def promoteRefFlags(self):
+        """The checks of the patch now on show become the result's (F95)."""
+        self.refFlags=list(getattr(self,'refFlagsPending',[])) if getattr(self,'refpatchindex',0)==1 else []
+        w=self.ui.refBadPixListWidget
+        w.clear()
+        bad=sorted((f for f in self.refFlags if f['kind']=='badpix'),
+                   key=lambda f:(f['qz'] if f['qz'] is not None else np.inf,f['scan'],f['frame']))
+        for f in bad:
+            w.addItem('Qz %s  S# %d F# %d: %s' % ('%.4f' % f['qz'] if f['qz'] is not None else '?',f['scan'],f['frame'],
+                                                 ', '.join('(%d, %d)' % tuple(p) for p in f['pixels'])))
+
+    def drawRefFlags(self,ax,qz0,x,y):
+        """Mark the points of the frames the Ref Patch checks flagged (F95):
+        matched to the curve by their Qz; a point dropped from the curve has
+        no mark."""
+        self.refFlagMarks={}         # check -> the marked rows of the curve
+        flags=getattr(self,'refFlags',[]) if getattr(self,'refpatchindex',0)==1 else []
+        if not flags or len(qz0)==0:
+            return
+        qz0=np.asarray(qz0,dtype=float)
+        styles=(('centre',dict(marker='s',ms=11,mfc='none',mec='tab:orange',mew=1.5,ls='none',
+                               label='beam off centre (> 2 px)')),
+                ('badpix',dict(marker='x',ms=10,color='tab:red',mew=1.5,ls='none',label='bad pixels in the ROI')))
+        for kind,style in styles:
+            idx=set()
+            for f in flags:
+                if f['kind']==kind and f['qz'] is not None:
+                    k=int(np.argmin(np.abs(qz0-f['qz'])))
+                    if abs(qz0[k]-f['qz'])<5e-5:
+                        idx.add(k)
+            if idx:
+                idx=sorted(idx)
+                ax.plot(np.asarray(x)[idx],np.asarray(y)[idx],**style)
+                self.refFlagMarks[kind]=idx
+
     def pilRefPatch(self):            
         Dialog=QDialog(self)                
         self.uirefpatch=uic.loadUi(resource('refpatch.ui'), Dialog)
@@ -7065,6 +7122,7 @@ class MainWindow (QMainWindow):
             if self.refpatchindex==0:
                 self.refInfoNew=[self.refInfo[i] for i in np.argsort(data[:,0])]
                 data=data[np.argsort(data[:,0])]
+            qz0=data[:,0].copy()     # before Qoff and Qz^2: what the F95 marks are matched on
             if data[0,0]<self.refQc:
                 norm=np.max(data[np.where(data[:,0]<self.refQc)][:,1]) #use the max intensity for the q below qc as the normalization factor. 
                 
@@ -7113,6 +7171,7 @@ class MainWindow (QMainWindow):
                 self.ui.refRefDataPlotwidget.canvas.ax.errorbar(data[:,0],data[:,6],fmt='-',label='rb')
             else: 
                 self.ui.refRefDataPlotwidget.canvas.ax.errorbar(data[:,0],data[:,1],data[:,2],fmt='o',label='#0')
+            self.drawRefFlags(self.ui.refRefDataPlotwidget.canvas.ax,qz0,data[:,0],data[:,1] if len(data[0])==3 else data[:,3])
         else:
             print ('no current ref data to plot')
      #plot selected ref files
@@ -8073,6 +8132,10 @@ class MainWindow (QMainWindow):
         lay=self.ui.refTab.layout()
         lay.insertWidget(lay.indexOf(self.ui.splitter_2)+1,lab)
         self.refProvenanceLabel=lab
+        self.ui.refBadPixListWidget.setToolTip(
+            'Bad pixels corrected inside the signal box of each frame of the Ref Patch on show, by Qz: '
+            'scan, frame and the pixels (x, y). The correction is the Pilatus tab\'s (Bad pixel: iterations, '
+            'factor). Those points are marked with a cross on the plot below (F95).')
 
     def refSavedState(self):
         """(short text, sentence) on whether the result on show is in the
@@ -8137,6 +8200,12 @@ class MainWindow (QMainWindow):
             if getattr(self,'refPoints',None):
                 extra.append('only some frames of scan%s %s' % ('s' if len(self.refPoints)>1 else '',listText(sorted(self.refPoints))))
             tip.append('Scans: %s%s.' % (listText(scans),'; '+'; '.join(extra) if extra else ''))
+            fl=getattr(self,'refFlags',[]) or []
+            nc=len({(f['scan'],f['frame']) for f in fl if f['kind']=='centre'})
+            nb=len({(f['scan'],f['frame']) for f in fl if f['kind']=='badpix'})
+            if nc or nb:
+                tip.append('Checks: beam centre more than 2 px off in %d frame%s (open squares), corrected bad pixels '
+                           'in the signal box in %d frame%s (crosses).' % (nc,'s' if nc!=1 else '',nb,'s' if nb!=1 else ''))
             nd=sum(len(d) for v in getattr(self,'refDrops',{}).values() for d in v)
             parts.append('%d point%s dropped' % (nd,'s' if nd!=1 else '') if nd else 'no points dropped')
         saved,said=self.refSavedState()

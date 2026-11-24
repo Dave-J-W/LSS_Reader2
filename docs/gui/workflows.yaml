@@ -627,7 +627,7 @@ workflows:
         could_be_automatic: offer Ref Patch when a reflectivity series is selected (F60)
         known_from: code (pilRefPatchData); test tests/test_real_nx_school.py
         issues:
-          - "The beam-offset and bad-pixel tables are modal dialogs (pilPeakCenDialog, pilBadPixDialog) that interrupt the patch"
+          - "The beam-offset and bad-pixel tables were modal dialogs that interrupted the patch; since 2026-11-24 (F95) one message, marks on the curve and the Bad Pixels list (refBadPixListWidget)"
       - id: ref.same
         do: When identical scans (same Qz range and points) are found - merge them, drop some, or patch them regularly
         where: identical-scans dialog

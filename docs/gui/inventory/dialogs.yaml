@@ -485,6 +485,7 @@
   tooltip: true
   notes: "Added in code (F96, Q-UI-B7). Kept with the result: the tooltip of refProvenanceLabel and settings['joins'] of the workbook's Saved row. The live replay of accepted joins (B7's added rule) is not built yet."
 - id: pilPeakCenDialog
+  removed: "2026-11-24, owner Q-UI-B6 (F95): Ref Patch checks are one message in the Messages pane and marks on the Reflectivity plot; the bad pixels are listed per Qz in refBadPixListWidget"
   kind: dialog
   label: "Scan Details"
   where: "Scan Details (beam centre off)"
@@ -496,6 +497,7 @@
   tooltip: false
   notes: "Modal (exec_) although messages go to the Messages pane elsewhere; title 'Scan Details' is wrong. Not shown for the Analyze path or the burn test."
 - id: pilPeakCenDialog.peakCenTextBrowser
+  removed: "2026-11-24, owner Q-UI-B6 (F95): Ref Patch checks are one message in the Messages pane and marks on the Reflectivity plot; the bad pixels are listed per Qz in refBadPixListWidget"
   kind: list
   label: ""
   where: "Scan Details (beam centre off)"
@@ -507,6 +509,7 @@
   tooltip: false
   notes: ""
 - id: pilBadPixDialog
+  removed: "2026-11-24, owner Q-UI-B6 (F95): Ref Patch checks are one message in the Messages pane and marks on the Reflectivity plot; the bad pixels are listed per Qz in refBadPixListWidget"
   kind: dialog
   label: "Scan Details"
   where: "Scan Details (bad pixels)"
@@ -518,6 +521,7 @@
   tooltip: false
   notes: "Modal; the large icon button does nothing (no handler). Points to the Pilatus tab's criteria; text typo 'Conside'. Same objectName and title as pilPeakCenDialog."
 - id: pilBadPixDialog.peakCenTextBrowser
+  removed: "2026-11-24, owner Q-UI-B6 (F95): Ref Patch checks are one message in the Messages pane and marks on the Reflectivity plot; the bad pixels are listed per Qz in refBadPixListWidget"
   kind: list
   label: ""
   where: "Scan Details (bad pixels)"

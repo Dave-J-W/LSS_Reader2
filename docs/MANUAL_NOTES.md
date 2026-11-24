@@ -353,6 +353,20 @@ Each line: feature — where — default — script — notes entry (date).
   the fit's note. It stays with the result: it is in the tooltip of the line
   under the plot, and it is saved with the result in the workbook.
 
+### Ref Patch checks: a message and marks (F95, 2026-11-24, Q-UI-B6, B3)
+- Before joining, Ref Patch checks each frame: is the reflected beam more
+  than 2 px from where the geometry puts it, and were bad pixels corrected
+  inside the signal box? It used to stop for a box for each; now one
+  message in the Messages pane names the frames (details in the log).
+- Once the patch is on show, those points are marked on the Reflectivity
+  plot: an open square for a beam off centre, a cross for bad pixels in
+  the box. A point dropped from the curve has no mark.
+- The **Bad Pixels** list at the top right of the Reflectivity tab gives
+  the corrected pixels by Qz (scan, frame, pixels x, y). The correction
+  itself is the Pilatus tab's (iterations, factor); the tab's own "Bad
+  Pixel Correction fac" field is still unused (a separate ROI threshold is
+  planned).
+
 ### The line under the Reflectivity plot (F96, 2026-11-24, Q-UI-B5)
 - One short line says how the curve on show was made: patch method, error
   model, absorber model, scans, points dropped, and "saved vN" once it is in

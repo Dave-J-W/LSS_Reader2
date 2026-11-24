@@ -393,7 +393,7 @@ INVENTORY = {
     'refAcceptPushButton': ('button', 'Accept', 'Reflectivity > top', 'Adds the analysed point (Qz, R, error, comment) to the Ref list and replots'),
     'refAnalyzeAllPushButton': ('button', 'Analyze All', 'Reflectivity > top', 'Analyzes and accepts every Qz in the list in turn, with a modal progress dialog'),
     'refADDataPlotWidget': ('plot', '', 'Reflectivity > top', 'ROI close-up of the selected Qz: without correction (top/left) and, after Analyze, with correction'),
-    'refBadPixListWidget': ('list', 'Bad Pixels:', 'Reflectivity > top', 'Nothing today: only ever cleared'),
+    'refBadPixListWidget': ('list', 'Bad Pixels:', 'Reflectivity > top', 'Lists, by Qz, the bad pixels corrected inside the signal box of each frame of the Ref Patch on show (scan, frame, pixels x, y); those points carry a cross on the plot'),
     'refQLineEdit': ('lineedit', 'Q:', 'Reflectivity > middle', 'Shows the Qz of the analysed point'),
     'refRLineEdit': ('lineedit', 'R:', 'Reflectivity > middle', 'Shows the net ROI intensity of the analysed point (per monitor, times absorber factor; not normalised)'),
     'refRErrLineEdit': ('lineedit', 'R_Err:', 'Reflectivity > middle', 'Shows the error of R'),
