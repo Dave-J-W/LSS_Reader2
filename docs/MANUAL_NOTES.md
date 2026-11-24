@@ -144,7 +144,9 @@ Each line: feature — where — default — script — notes entry (date).
   options dialog, "Save results..." writes a table; `cut.fit(peaks.FitOptions(...))`
   in scripts; `lss_core/peaks.py`. A fit that does not describe the data says so.
 - Line/Area cuts: directions Q H, Q V, Pix H, Pix V; axes Pixels / Angles
-  / Q; "Sum"; pinhole box (on: S4–detector distance at Det_Th > 1°) —
+  / Q; "Sum"; choosing a direction puts its default range in the box, the
+  pixel cuts' spanning the frames' rows or columns (0:485 and 0:194 on the
+  Pilatus 100K; any detector since 2026-11-24, `cuts.default_range`); pinhole box (on: S4–detector distance at Det_Th > 1°) —
   `exp.cut` — Notes 2026-11-18 "Pinhole is the default". Q cuts with empty
   default ranges are a known gap (F59, docket). A user complained (2026-11-18)
   that cuts in Qz/Qxy and I vs β are not documented: I vs β works today as

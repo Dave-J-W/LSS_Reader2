@@ -243,6 +243,9 @@ class MainWindow (QMainWindow):
         self.cutDirItems=['Q H Cut [Qz_min : Qz_max]', 'Q V Cut [Qxy_min : Qxy_max]', 'Pix H Cut [Pix_bottom : Pix_top]', 'Pix V Cut [Pix_left : Pix_right]']
         self.ui.pilCutDirComboBox.clear()
         self.ui.pilCutDirComboBox.addItems(self.cutDirItems)
+        self.ui.pilCutDirComboBox.setToolTip('Choosing a direction puts its default range in the box: Q H 0:1 (Qz), Q V 1:2 (Qxy); '
+                                             'Pix H the rows of the frames read last, Pix V their columns (0:485 and 0:194 on '
+                                             'the Pilatus 100K, 487 rows by 195 columns; lss_core.cuts.default_range).')
         self.plotfiles=[]
         self.twodplotfiles=[]
         self.selected2dplotfiles_rows=[]   # rows selected in the 2D_Plot file list
@@ -7482,15 +7485,16 @@ class MainWindow (QMainWindow):
                 return
 
 
+    def pilShape(self):
+        """(rows, columns) of the Pilatus frames read last; the Pilatus 100K's
+        before any (lss_core.images.SHAPE_100K: 487, 195)."""
+        from lss_core.images import SHAPE_100K
+        return (getattr(self.pilatus,'NROWS',SHAPE_100K[0]),getattr(self.pilatus,'NCOLS',SHAPE_100K[1]))
+
     def updatePilCutRange(self):
-        if self.ui.pilCutDirComboBox.currentIndex()==0:
-            self.ui.pilIntRangeLineEdit.setText('0:1')
-        elif self.ui.pilCutDirComboBox.currentIndex()==1:
-            self.ui.pilIntRangeLineEdit.setText('1:2')
-        elif self.ui.pilCutDirComboBox.currentIndex()==2:
-            self.ui.pilIntRangeLineEdit.setText('0:485')
-        elif self.ui.pilCutDirComboBox.currentIndex() ==3:
-            self.ui.pilIntRangeLineEdit.setText('0:194')
+        d=self.ui.pilCutDirComboBox.currentIndex()
+        if 0<=d<len(cuts.DIRECTIONS):     # the pixel cuts span the detector's rows or columns (lss_core.cuts.default_range)
+            self.ui.pilIntRangeLineEdit.setText(cuts.default_range(d,self.pilShape()))
 
     def updatePilCutData(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()

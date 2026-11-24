@@ -430,8 +430,8 @@
   workflows: [cuts, gid]
   needs: ""
   shown: always
-  tooltip: false
-  notes: "Range syntax is in the item text ('[Qz_min : Qz_max]'). Defaults hard-coded (0:1, 1:2, 0:485, 0:194). Q cuts on GID/GISAXS maps, pixel cuts on frames."
+  tooltip: true
+  notes: "Range syntax is in the item text ('[Qz_min : Qz_max]'). Defaults (lss_core.cuts.default_range, 2026-11-24): 0:1, 1:2, then the rows and columns of the frames read last (0:485, 0:194 on the Pilatus 100K; were hard-coded), in the tooltip. Q cuts on GID/GISAXS maps, pixel cuts on frames."
 - id: pilIntRangeLineEdit
   kind: lineedit
   label: "Int Range: min:max"
