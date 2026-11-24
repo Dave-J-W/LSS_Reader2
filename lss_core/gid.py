@@ -531,11 +531,25 @@ def products(X, Y, D, E, axes, alpha, wavelength, relax=False):
         yq = k0 * (np.sin(alpha) + np.sin(Y / 180 * np.pi))
         if not relax:
             r = np.where(np.logical_and(xq[0] < xq[-1][-1], xq[0] > xq[-1][0]))
+            if r[0].size == 0:
+                # the rows share no Qxy range (frames that are not a GID series): the grid would be
+                # empty and the integrals below raised IndexError (the GUI manager's sweep, 2026-11-24)
+                raise GIDError('The map\'s rows share no Qxy range, so it cannot be regridded in Q (frames of a '
+                               'GID series are needed). GID Patch Relax fills the corners, or show it in Angles.')
             qxy, qz = np.meshgrid(xq[0][r], yq[:, 0])
             d = griddata((xq.ravel(), yq.ravel()), D.ravel(), (qxy, qz), method='linear')
             e = griddata((xq.ravel(), yq.ravel()), E.ravel(), (qxy, qz), method='linear')
         else:
-            r = np.linspace(np.min(xq), np.max(xq), int(len(xq[0]) * (np.max(xq) - np.min(xq)) / (xq[0][-1] - xq[0][0])))
+            # as many bins as the first row has columns, scaled by the whole map's Qxy span over that row's:
+            # its last − first, in size (it can run backwards), its full span when that is zero, the column
+            # count when that is zero too (the same guard as Show GISAXS, 2026-11-23)
+            row_span = abs(xq[0][-1] - xq[0][0])
+            if not (row_span > 0 and np.isfinite(row_span)):
+                row_span = np.ptp(xq[0])
+            n = len(xq[0])
+            if row_span > 0 and np.isfinite(row_span):
+                n = max(2, int(n * (np.max(xq) - np.min(xq)) / row_span))
+            r = np.linspace(np.min(xq), np.max(xq), n)
             qxy, qz = np.meshgrid(r, yq[:, 0])
             d = griddata((xq.ravel(), yq.ravel()), D.ravel(), (qxy, qz), method='linear', fill_value=1e-10)
             e = griddata((xq.ravel(), yq.ravel()), E.ravel(), (qxy, qz), method='linear', fill_value=1e-10)
