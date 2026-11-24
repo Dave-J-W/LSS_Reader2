@@ -5396,3 +5396,30 @@ are inflated.
 
 Verified: run, `tests/tools/ref_guard_study.py`. Rerun by Main, every
 CSV and PNG byte-identical. C48 (C47 is study B).
+
+### 2026-11-24 — The owner pauses the synthetic MCA project: wait for real data; Zn at 10 keV no longer required
+
+**Owner, 2026-11-24 (to Main):** "Btw this synthetic MCA data project is getting out of hand. Let's wait for real data and relax the requirement of zinc at 10kev. It served as a good stress test but is probably an unsolvable problem. Likely we would just increase the excitation energy to separate the lines. But don't lose all the work we've done so far, make sure it gets a full demo treatment (figures, clear docs) and inclusion in the tools menu."
+
+**What this means for the work:**
+- **Paused:** further synthetic MCA development for F90. That covers the
+  generator, new estimators and further gauntlet designs.
+- **No longer a requirement:** Zn Kα under a 10 keV beam (the "hard
+  case"). It stays in the record as the stress test it was. Study B
+  (C47) found no estimator within 1 % there, because the oxygen 1s
+  Compton wing decides it.
+- **The practical route:** raise the excitation energy to separate the
+  lines. Study B measured this: at 12 keV the same case passes with P1
+  alone (+0.5 %, no failures).
+- **Waits for real data:** P2, P3 and P4 (DATA_NEEDS row 3: other
+  elements and blank spectra).
+- **The work is kept:** it gets a full demonstration treatment, with
+  figures, clear documents and its Tools menu items. That is assigned to
+  tools man, who built it.
+
+**Not decided by this:** P1 as the "Fit lines" default. Study B found it
+needs no real data, but the owner's answer on it is still pending, with
+the guard's p (TODO, "For the owner").
+
+Verified: nothing measured (a decision).
+
