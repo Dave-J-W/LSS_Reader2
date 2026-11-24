@@ -736,6 +736,11 @@ class MainWindow (QMainWindow):
             repeated=sorted(set(n for n in self.specData['ScanNums'] if self.specData['ScanNums'].count(n)>1))
             if len(repeated)>0:
                 self.messageBox('Scan number(s) '+listText(repeated)+' appear more than once in this SPEC file. The last scan with each number is shown.')
+            short=[n for n in scannums if isinstance(self.specPar.get(n),dict) and self.specPar[n].get('DroppedRows')]
+            if short:   # spec_routines.complete_rows: one short line used to lose the whole scan
+                self.notify('Scan(s) %s: a data line with a different number of values was left out (in a file '
+                            'SPEC is still writing, usually the line being written).' % listText(short),
+                            title='SPEC file',level='info')
             self.scanlines=[self.specData[i]['ScanLine'] for i in scannums]
             self.ui.scanListWidget.addItems(self.scanlines)
             if np.any([self.specPar[i]['Detector']=='Vortex' for i in scannums]):
@@ -877,6 +882,7 @@ class MainWindow (QMainWindow):
                 where.setdefault(n,(s,'scan %d of %s' % (i,'?' if s.n is None else s.n),s.kind))
             for n,r in s.aux:
                 where.setdefault(n,(s,r,'alignment' if r=='align' else s.kind))
+        self.seriesWhere=where          # scan -> (series, role, kind): the tools' availability uses it
         box.setCurrentIndex(0)
         box.setEnabled(bool(self.seriesList))
         box.blockSignals(False)
@@ -1394,6 +1400,7 @@ class MainWindow (QMainWindow):
         self.selectedScans=self.ui.scanListWidget.selectedItems()
         #self.selectedScanNums=[self.ui.scanListWidget.row(items) for items in self.selectedScans]
         self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
+        self.updateToolAvailability()
         self.ui.scansLineEdit.setText(listText(self.selectedScanNums))
         if self.checkSameScans()==False or self.selectedScanNums==[]:
             self.messageBox('Error:: The scans are not identical or some scans have no data!!')
@@ -1470,6 +1477,7 @@ class MainWindow (QMainWindow):
         try:
             self.selectedScans=self.ui.scanListWidget.selectedItems()
             self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
+            self.updateToolAvailability()
             try:    # deselect the currently selected numbers
                 for item in self.selectedScans:
                     item.setSelected(False)
@@ -2161,6 +2169,9 @@ class MainWindow (QMainWindow):
                 ('sum_all_legacy_average','prefSumAllLegacyCheckBox','Sum All: average of normalised frames (legacy)',
                  'Off (default): Sum All adds the counts and the monitors, then normalises once, Sigma N / Sigma M '
                  '(owner, 2026-11-23; F91). On: the mean of the frames each normalised alone, as before.'),
+                ('repeats_legacy_average','prefRepeatsLegacyCheckBox','Ref Patch repeats: average (legacy)',
+                 'Off (default): repeated reflectivity scans merged in Ref Patch add their counts and monitors, then '
+                 'normalise once, Sigma N / Sigma M (owner, 2026-11-23; F81). On: the equal-weight mean, as before.'),
                 ('gisaxs_raw_counts','prefGisaxsRawCheckBox','GISAXS: raw counts (legacy)',
                  'Off (default): GISAXS sums frames per Monc (Sigma N / Sigma M, F91). On: the raw counts, as before.'),
                 ('mca_fit_legacy','prefMcaFitLegacyCheckBox','Fluorescence fit: legacy Fit dialog',
@@ -3307,7 +3318,9 @@ class MainWindow (QMainWindow):
                     self.pilFileQxs.append(self.specData[i]['H'][j])
                     self.pilFileQys.append(self.specData[i]['K'][j])
                     self.pilAlpha.append(np.arcsin(self.pilFileQzs[-1]*self.specPar[i]['Wavelength']/4.0/np.pi))
-                    self.pilTrueAlpha.append(self.specPar[i]['In_Rot']*np.pi/180.0)
+                    # per frame: the header's In_Rot predates the scan's moves, so a specular scan takes
+                    # each frame's from its L (P47, 2026-11-23; lss_core.cuts.true_incidence)
+                    self.pilTrueAlpha.append(cuts.true_incidence(self.specData[i],j,self.specPar[i]['Wavelength'],self.specPar[i]['In_Rot']))
                     self.pilX.append(self.specPar[i]['DBPos'][1])
                     self.pil_Wavelength.append(self.specPar[i]['Wavelength'])
                     self.pilY.append(self.specPar[i]['DBPos'][0])
@@ -5060,6 +5073,10 @@ class MainWindow (QMainWindow):
                                        'GID Patch and the worksheet are the buttons beside it.')
 
     def gidPatch(self):
+        # nothing to patch: say so (the crash sweep found the button raising in pinhole.shared_edges, 2026-11-24)
+        if getattr(self,'det',None)!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]) or [])==0:
+            self.notify('Select the GID scans and their frames first (Select All), then GID Patch.',title='GID Patch')
+            return
         self.pilGIDRelax=0
         self.pilGIDpatchData()
 
@@ -6250,6 +6267,7 @@ class MainWindow (QMainWindow):
         self.refMethodUsed=method   # one method for the whole patch (the script line says it)
         self.refKnownOverride={}   # join number -> the user's choice in the patch window
         self.refMerged=[]      # groups merged in the identical-scans dialog
+        self.refRepeatsUsed='monitors'   # how they were merged (F81; 'mean' with the legacy preference)
         self.refDroppedScans=[]   # scans dropped in the identical-scans dialog
         self.refScanList=sorted(set(int(self.pilScanNum[i]) for i in self.selectedPilFramesNums))
         self.refPoints={}      # scans of which only some frames are selected
@@ -6265,6 +6283,7 @@ class MainWindow (QMainWindow):
         bg=float(self.ui.refBGOffLineEdit.text())  #get the background offset
         self.command='Ref Patch, scans=['+listText(np.sort(self.selectedScanNums))+'], slits=['+listText(self.slit)+'], bg_angle='+str(bg)+', bg_direction='+str(self.dir)
         self.scanqzframe={}  #build a dictionary for all scans with their qz ranges and data for sorting the scans.
+        self.scanqzmon={}    # the monitor of each of those points, for merging repeats (F81)
         self.pilRefPeakCen=[]
         self.pilBadPixInf = []  # build a list for the detailed info for corrected bad pix in RF signal ROI, which is shown for users
         self.refErrorModel=self.errorModel   # recorded for the Script pane
@@ -6292,6 +6311,7 @@ class MainWindow (QMainWindow):
             if len(pilbadpixloc)!=0:
                 self.pilBadPixInf.append([qkey,self.pilFrameNum[i],pilbadpixloc])
             self.scanqzframe[qkey]=row if first else np.vstack((self.scanqzframe[qkey],row))
+            self.scanqzmon.setdefault(qkey,[]).append(float(self.pilMonc[i]))
         try:
             self.pilrefsort=list(self.sortedScans(self.scanqzframe, mtype='qz'))
         except:
@@ -6477,6 +6497,11 @@ class MainWindow (QMainWindow):
         self.uirefpatchsamescan.dropPushButton.clicked.connect(self.pilRefSSDrop)
         # self.connect(self.uirefpatchsamescan.mergePushButton, SIGNAL('clicked()'),self.pilRefSSMerge) #merge scans
         self.uirefpatchsamescan.mergePushButton.clicked.connect(self.pilRefSSMerge)
+        self.uirefpatchsamescan.mergePushButton.setToolTip(
+            'Merge these repeats into one scan: their counts and monitors are summed point by point and '
+            'divided once (ΣN/ΣM, F81), so each repeat weighs by its monitor, the most likely common '
+            'reflectivity. With equal monitors this is the plain average. The old average of the '
+            'normalised repeats is a preference (repeats_legacy_average).')
         # self.connect(self.uirefpatchsamescan.nextPushButton, SIGNAL('clicked()'),self.pilRefSSNext) #go to the next overlap
         self.uirefpatchsamescan.nextPushButton.clicked.connect(self.pilRefSSNext)
         self.pilRefSameScanPlot()
@@ -6523,27 +6548,30 @@ class MainWindow (QMainWindow):
         self.pilRefSameScanPlot()
 
     def pilRefSSMerge(self):
-        if len(self.pilrefsamescannum[self.pilrefsamescanorder])<2:
+        """Merge the repeats on show: counts and monitors summed point by point,
+        then normalised once, ΣN/ΣM (F81, owner 2026-11-23: "have reader handle
+        summing the ROIs"); the legacy mean of the per-monitor curves with the
+        preference 'repeats_legacy_average' (lss_core.reflectivity.merge_identical)."""
+        group=list(self.pilrefsamescannum[self.pilrefsamescanorder])
+        if len(group)<2:
             self.messageBox('There is nothing to merge: fewer than two scans are left in this group.')
             return
-        datax=self.scanqzframe[self.pilrefsamescannum[self.pilrefsamescanorder][0]][:,0]
-        datay=self.scanqzframe[self.pilrefsamescannum[self.pilrefsamescanorder][0]][:,1]
-        datayerr=self.scanqzframe[self.pilrefsamescannum[self.pilrefsamescanorder][0]][:,2]**2
-        for i in range(1,len(self.pilrefsamescannum[self.pilrefsamescanorder])):
-            datay=datay+self.scanqzframe[self.pilrefsamescannum[self.pilrefsamescanorder][i]][:,1]
-            datayerr=datayerr+self.scanqzframe[self.pilrefsamescannum[self.pilrefsamescanorder][i]][:,2]**2
-            self.scanqzframe.pop(self.pilrefsamescannum[self.pilrefsamescanorder][i])
-        datay=datay/len(self.pilrefsamescannum[self.pilrefsamescanorder])
-        datayerr=np.sqrt(datayerr)/len(self.pilrefsamescannum[self.pilrefsamescanorder])
-        data=np.vstack((datax,datay,datayerr)).T
-        self.refMerged.append(list(self.pilrefsamescannum[self.pilrefsamescanorder]))
-        self.scanqzframe[self.pilrefsamescannum[self.pilrefsamescanorder][0]]=data
-        self.pilrefsamescannum[self.pilrefsamescanorder]=[self.pilrefsamescannum[self.pilrefsamescanorder][0]]
-        #print data
-        #print self.pilrefsamescannum
-        #print self.scanqzframe
+        legacy=self.repeatsLegacy()
+        mons=getattr(self,'scanqzmon',{})
+        if not legacy and any(len(mons.get(k,[]))!=len(self.scanqzframe[k]) for k in group):
+            legacy=True          # cannot happen through the window; kept safe
+            self.notify('The monitors of these repeats are not known point by point: they are averaged instead.')
+        reflectivity.merge_identical(self.scanqzframe,group,None if legacy else mons)
+        self.refRepeatsUsed='mean' if legacy else 'monitors'
+        self.refMerged.append(group)
+        self.pilrefsamescannum[self.pilrefsamescanorder]=[group[0]]
         self.pilRefSameScanPlot()
-        
+
+    def repeatsLegacy(self):
+        """Repeats merged by the legacy mean instead of ΣN/ΣM (preference
+        'repeats_legacy_average', for the Reduction options page, F86)."""
+        return bool(self.prefs.get('repeats_legacy_average',False))
+
     def pilRefSSNext(self):
         self.pilrefsamescanorder=self.pilrefsamescanorder+1 
         self.pilRefSameScanPlot()
@@ -6934,6 +6962,8 @@ class MainWindow (QMainWindow):
             kw.append('factors=%r' % {k:(float(v[0]),float(v[1])) for k,v in sorted(self.refFactors.items())})
         if self.refMerged:
             kw.append('merge=%r' % self.refMerged)
+            if getattr(self,'refRepeatsUsed','monitors')!='monitors':
+                kw.append('repeats=%r' % self.refRepeatsUsed)
         if self.ui.pilLowQzCorCheckBox.checkState()!=0:
             kw.append('low_qz_slit=True')
         if self.refPoints:
@@ -7767,6 +7797,39 @@ class MainWindow (QMainWindow):
                     label='2theta, beta (deg)',settings=asdict(self.gidParams),
                     recipe=self.recipe(lambda name:self.gidScript(name,'Q')))]
         self.saveToWorkbook('gid map',items,auto=getattr(self,'autoSaving',False))
+
+    # tools that fit one series kind (owner, 2026-11-23, Q-UI-A10: grey out, with a tooltip saying what is needed)
+    TOOL_KINDS={'pilRefPushButton':'reflectivity','pilRefPatchPushButton':'reflectivity','gidPatchPushButton':'gid',
+                'gidComboBox':'gid','pilBurnPushButton':'burn'}
+    TOOL_NEEDS={'reflectivity':'a reflectivity series','gid':'a GID series','burn':'a burn scan'}
+
+    def selectionKind(self):
+        """The one series kind of the selected scans (alignment scans aside), or None when unknown or mixed."""
+        where=getattr(self,'seriesWhere',{}) or {}
+        nums=list(getattr(self,'selectedScanNums',[]) or [])
+        if not nums or not all(n in where for n in nums):
+            return None
+        kinds={where[n][2] for n in nums}
+        kinds.discard('alignment')
+        return kinds.pop() if len(kinds)==1 else None
+
+    def updateToolAvailability(self):
+        """Grey out the Pilatus tools that do not fit the selected series kind, saying why in the tooltip.
+        Only when the kind is known and one of reflectivity, GID, burn or GISAXS; otherwise all stay enabled,
+        so a wrong or missing guess never blocks an action."""
+        kind=self.selectionKind()
+        restrict=kind in ('reflectivity','gid','burn','gisaxs')
+        for name,fits in self.TOOL_KINDS.items():
+            w=getattr(self.ui,name,None) or getattr(self,name,None)
+            if w is None:
+                continue
+            if w.property('baseToolTip') is None:
+                w.setProperty('baseToolTip',w.toolTip())
+            base=str(w.property('baseToolTip') or '')
+            ok=(not restrict) or kind==fits
+            w.setEnabled(ok)
+            w.setToolTip(base if ok else 'Greyed out: the selected scans are a %s series; this needs %s. %s'
+                         % (kind,self.TOOL_NEEDS[fits],base))
 
     def ctrlClicked(self):
         """True when Ctrl is held: a Ctrl+click runs an action's other path once (F86)."""

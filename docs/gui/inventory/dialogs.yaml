@@ -228,6 +228,17 @@
   shown: always
   tooltip: true
   notes: "Added 2026-11-23 (F86; owner Q13 and 'one button, switch picks'). Off by default."
+- id: prefRepeatsLegacyCheckBox
+  kind: checkbox
+  label: "Ref Patch repeats: average (legacy)"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "Off: repeated scans merged in Ref Patch are Sigma N / Sigma M (F81); on: the old equal-weight mean"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F86 switch for the test-speed session's F81). Off by default."
 - id: prefGisaxsRawCheckBox
   kind: checkbox
   label: "GISAXS: raw counts (legacy)"
@@ -302,12 +313,12 @@
   label: "Merge"
   where: "Dialog (identical scans)"
   handler: pilRefSSMerge
-  does: "Averages the scans of the group into one"
+  does: "Merges the scans of the group into one: counts and monitors summed point by point, then normalised once (ΣN/ΣM, F81, 2026-11-23)"
   workflows: [reflectivity]
   needs: "two or more scans left in the group"
   shown: always
-  tooltip: false
-  notes: ""
+  tooltip: true
+  notes: "Until 2026-11-23 the plain average of the normalised repeats; that stays as the preference repeats_legacy_average (F86)."
 - id: refpatchsamescan.dropPushButton
   kind: button
   label: "Drop"

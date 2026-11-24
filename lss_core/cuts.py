@@ -39,6 +39,30 @@ class Geometry:
     ycenter: float        # direct beam, row
 
 
+SPECULAR_HK_MAX = 1e-4     # |H|, |K| below this throughout: a specular scan (NX: at most 4.2e-7)
+
+
+def true_incidence(columns, index, wavelength, in_rot_deg):
+    """Incidence angle (rad) of point ``index`` of a scan.
+
+    The scan header's In_Rot is written before the scan moves (P47,
+    2026-11-23). In a scan at fixed incidence (GID, GISAXS, height scans)
+    that is the angle of every point; in a specular scan that moves L
+    (H = K = 0, L not constant) the incidence moves with it, and there
+    α = β, Qz = 4π sin α / λ: α = arcsin(L λ / 4π) per point. An In_Rot
+    column, when a macro writes one, wins. ``columns``: the scan's data
+    columns by name (arrays; None or missing ones are ignored)."""
+    col = columns.get('In_Rot')
+    if col is not None:
+        return float(col[index] * np.pi / 180.0)
+    h, k, l = (columns.get(n) for n in ('H', 'K', 'L'))
+    if h is not None and k is not None and l is not None and len(l) > 1:
+        if (np.max(np.abs(h)) < SPECULAR_HK_MAX and np.max(np.abs(k)) < SPECULAR_HK_MAX
+                and np.ptp(l) > 1e-6):
+            return float(np.arcsin(l[index] * wavelength / 4.0 / np.pi))
+    return in_rot_deg * np.pi / 180.0          # as before, to the last bit
+
+
 def frame_cut(det, data, error, direction, lo, hi, g, axes='Pixels', absfac=1, absnum=None, terms=None):
     """Cut of one normalised frame ``data`` (``error``) with geometry ``g``;
     ``direction`` an index into DIRECTIONS or its name. Returns (N, 3)."""

@@ -38,6 +38,11 @@ Each line: feature — where — default — script — notes entry (date).
   File > Preferences — `lss_core/preferences.py`; Notes 2026-11-18
   "Calibrated foils in the reader".
 
+- A data line with a different number of values from the rest of its scan
+  (in a file SPEC is still writing, the line being written) is left out,
+  with one message in the Messages pane (2026-11-23); the scan's other
+  lines are read as usual. Before, such a scan read as empty.
+
 ### Fluorescence detector
 - File > Preferences > Fluorescence detector: elements 1–7 of the
   multi-element detector summed into one spectrum per point (default all,
@@ -97,6 +102,12 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- Identical scans (repeats of a macro): "Merge" sums each point's counts
+  and monitors and divides once, ΣN/ΣM (F81, 2026-11-23; tooltip), so a
+  repeat with more monitor counts weighs more; with equal monitors it is
+  the old average, which stays as a preference (`repeats_legacy_average`).
+  Scripts: `exp.reflectivity(..., merge=[[2, 3]])`, `repeats='mean'` for
+  the old average.
 - Patch window: fitted factor per join, known-ratio box and line,
   automatic choice — `exp.reflectivity(factors=...)` — Notes 2026-11-18
   "Calibrated foils in the reader"; P29 (Monc at narrow slits).
@@ -133,6 +144,9 @@ Each line: feature — where — default — script — notes entry (date).
   default ranges are a known gap (F59, docket). A user complained (2026-11-18)
   that cuts in Qz/Qxy and I vs β are not documented: I vs β works today as
   "Pix V" with axes "Angles"; write this part of the manual first.
+  Since 2026-11-23 each frame of a reflectivity scan has its own incidence
+  angle (from its Qz; the scan header's In_Rot is the position before the
+  scan moved, P47), so the reflected beam sits at β = α on that axis.
 - Background images and background-subtracted frames (not scriptable yet).
 - The frames display is sticky (F88, owner Q9, 2026-11-24): zoom, colour
   map, aspect, Axes, log (per kind of frame) and typed limits (per kind)
@@ -318,13 +332,20 @@ Each line: feature — where — default — script — notes entry (date).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.
 
+### Greyed-out tools (2026-11-23, Q-UI-A10)
+- On the Pilatus tab, Reflectivity and Ref Patch need a reflectivity series,
+  GID Patch and the GID drop-down a GID series, and Burn Test a burn scan.
+  When the selected scans are all of one known kind, the tools for other
+  kinds are greyed out and their tooltip says what is needed. With no known
+  kind, or a mixed selection, everything stays enabled.
+
 ### Reduction options (F86, 2026-11-23)
 - **Preferences > Reduction options** (first on the page) chooses, for each
   action that has a legacy and a new path, which one it takes; nothing is
   removed (owner, 2026-11-23). **Reflectivity patch**: joint or legacy fit
   (moved here from the Ref Patch group). **Sum All**: counts and monitors
-  summed then normalised (default) or the old average. **GISAXS**: per Monc
-  (default) or raw counts. **Fluorescence fit**: the MCA tab's one Fit action
+  summed then normalised (default) or the old average. **Ref Patch repeats**: summed by counts and monitors (default) or
+  the old average. **GISAXS**: per Monc (default) or raw counts. **Fluorescence fit**: the MCA tab's one Fit action
   runs the line fit (default) or, when on, the legacy Fit dialog, and then
   also shows the legacy Fit, Fit All and Accept buttons. **Burn test**: shows
   the dialog's Legacy tab.

@@ -17,10 +17,10 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 
 | Session | Now | Next |
 |---|---|---|
-| Main (orchestrator) | F81 repeats summed (ΣN/ΣM, output change); ~~F91 "Sum All" really sums, every view per Monc~~ done 2026-11-23; ~~F87 burn kind from Det_Th > 2°~~ done 2026-11-23 | F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
-| GUI manager | the main window's unblocked items (area I, "Unblocked 2026-11-23"): removals, F74, F85, F86, F88, F69 movie, Q-GID-5, then F95–F97 display | the timeline tab (F83), then ngui |
-| tools man | what "the gauntlet" is, whether it was wrapped up, its extensions (report to Main) | F90 MCA fit gauntlet, synthetic half |
-| questor | the owner's questions and their answers in `docs/` | (its own order) |
+| Main (orchestrator) | ~~F81 repeats summed (ΣN/ΣM)~~, ~~F91 "Sum All" really sums, every view per Monc~~, ~~F87 burn kind from Det_Th > 2°~~, ~~P47 per-frame incidence~~, ~~half-written SPEC lines~~: all done 2026-11-23 | the rest of area L (fragile assumptions; list-text lookups go to GUI manager); F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
+| GUI manager | F88 sticky display (Home/Fit all) and the F69 movie: **holds `updatePilPlotData`, `pilMovieShow`, `update2dPlots` and the pilMin/Max slider handlers until it says merged** (2026-11-23; keeps the display per Monc, `test_monc_normalised.py`); F86 Reduction options built (switches for `sum_all_legacy_average`, `gisaxs_raw_counts`, `repeats_legacy_average`) | Q-GID-5, F95–F97 display; then the timeline tab (F83), then ngui; area L's list-text lookups (`Qt.UserRole`) when it next touches the lists |
+| tools man | the three slow tests failing since the patching commits (one commit per cause), then the gauntlet records (item 2) | F90 MCA fit gauntlet: full run, results as C42; then extension 4 |
+| questor | the owner's questions and their answers in `docs/`; the data needs (`docs/DATA_NEEDS.md`, with tools man's blank-spectrum request) | (its own order) |
 
 ## Remaining work by area (regrouped 2026-11-21, review `docs/reviews/2026-11-21-todo-review.md`)
 
@@ -57,7 +57,7 @@ working list, one table per area, each row with its source. Rows marked
 | Per-second option — **new** | F20 |
 | Qoff proposed from the continuity of R/R_F across the joins (robust to one or two outliers); Qc from a subphase list or typed electron density — **new** 2026-11-23 | F79; F42 |
 | Saved reflectivities of the workbook overlaid by series, time or sx, with ratios, to check stability — **new** 2026-11-23 | F80 |
-| Repeated macros summed by counts and monitors (the identical-scans merge averages with equal weights today) — **new** 2026-11-23 | F81; physics_notes 2026-11-23 |
+| ~~Repeated macros summed by counts and monitors (the identical-scans merge averages with equal weights today)~~ **done 2026-11-23** (F81, `test_repeats_merge.py`) | F81; physics_notes 2026-11-23 |
 | ORSO, HDF5 export; steps and parameters recorded — **new** (F30) | F25, F30, R7 |
 | Synthetic K = 3–5 generator; hand-off tests 2–6 | hand-off §5; input 4 |
 | Tell users which old reductions to redo (non-zero absorbers before P24; bu files at 6.21/7.51/9.9 keV before F49): a release note and a manual line — **new** | TODO Stage 2 list; P24, F49 |
@@ -314,8 +314,8 @@ and dark rate, photons-in, half-cuts and an sh scan beside each GID level,
 
 | Assumption | What breaks | Evidence | Fix |
 |---|---|---|---|
-| Every data row of a scan has as many numbers as `#L` has labels | one half-written last line (a file SPEC is still writing, i.e. live updates) loses **every column** of that scan | M: synthetic, the last line cut to two numbers → no columns | drop a short last row with a note; check widths per row (`spec_routines.py`) |
-| The header's `In_Rot` is each frame's incidence | β of reflectivity frames (cuts, GISAXS) | M: P47 | P47 |
+| ~~Every data row of a scan has as many numbers as `#L` has labels~~ **fixed 2026-11-23** (`spec_routines.complete_rows`, `test_spec_partial_line.py`) | one half-written last line (a file SPEC is still writing, i.e. live updates) lost **every column** of that scan | M: synthetic, the last line cut to two numbers → no columns | a line of another width is left out, noted (`DroppedRows`) and said once |
+| ~~The header's `In_Rot` is each frame's incidence~~ **fixed 2026-11-23** (P47, `cuts.true_incidence`) | β of reflectivity frames (cuts, GISAXS) | M: P47, C43 | α from L in specular scans |
 | A frame's scan and frame numbers are read back from the list's text (`imageListWidget` 13 places, `scanListWidget` `split()[1]` 8, the Ref Qz list) | any change of the displayed text (the GUI overhaul) breaks frame and scan lookups silently | R | keep them as item data (`Qt.UserRole`); GUI manager |
 | Pilatus 100K sizes: default cut ranges `0:485`, `0:194`; GID last row 486; columns spin box max 195; 0.172 mm written 22 times in `mainwindow.py` (one constant exists, `cuts.PIXEL_MM`) | defaults and limits wrong for the 1M (area H) | R | from `pilatus.NROWS`/`NCOLS` and one pixel constant |
 | File names cut at `/` (`specFileName.split('/')[-1]` makes the image and MCA prefixes) | a path with backslashes (Windows, `os.path`) gives a wrong prefix: no images; plot-file legends show the whole path | R | `os.path.basename` |

@@ -658,6 +658,7 @@ PREFERENCES = [
         C('prefBadgesComboBox', 'State badges', items=['on', 'when not default', 'off']),
         # Reduction options (F86, built in the main window 2026-11-23)
         C('prefSumAllLegacyCheckBox', 'Sum All: legacy average'),
+        C('prefRepeatsLegacyCheckBox', 'Ref Patch repeats: average (legacy)'),
         C('prefGisaxsRawCheckBox', 'GISAXS: raw counts (legacy)'),
         C('prefMcaFitLegacyCheckBox', 'Fluorescence fit: legacy dialog'),
         C('prefBurnLegacyCheckBox', 'Burn: Legacy tab'),
