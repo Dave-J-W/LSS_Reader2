@@ -82,7 +82,9 @@ class ReflectivityResult:
     beam_offsets: list = field(default_factory=list)  # (scan, point, dx, dy)
     method: str = refl.DEFAULT_PATCH_METHOD           # how the patch factors were fitted
     notes: list = field(default_factory=list)         # (join, note) left by the fit
-    settings: dict = field(default_factory=dict)       # qc, qoff, norm_factor, rrf, drops, factors, method
+    settings: dict = field(default_factory=dict)       # qc, qoff, norm_factor, rrf, drops, factors, method, mask
+    points: dict = field(default_factory=dict)         # scan -> the point number of each row of per_scan (F92)
+    masked: list = field(default_factory=list)         # (scan, point) left out by the mask
 
     def covariance(self, method=None, error_column=None):
         """The stitched curve with its covariance, as written to the
@@ -274,7 +276,7 @@ class Experiment:
                      qc=0.0217, qoff=0.0, norm_factor=None, rrf=True,
                      drops=None, merge_repeats=False, merge=None, repeats='monitors', low_qz_slit=False, points=None,
                      bad_pixel_iterations=0, bad_pixel_factor=1, errors=None, factors=None,
-                     method=refl.DEFAULT_PATCH_METHOD):
+                     method=refl.DEFAULT_PATCH_METHOD, mask=None):
         """Specular reflectivity of ``scans``, as the window's Ref Patch with
         the same settings (defaults are the window's defaults for Pilatus
         data). ``drops``: {join number: [indices]} as typed into the patch
@@ -290,11 +292,15 @@ class Experiment:
         when the window uses the known absorber ratio. ``method``: how the
         patch factors are fitted, 'joint' (default since 2026-11-22) or
         'legacy' (the window's files before then, byte for byte;
-        ``lss_core.reflectivity.join_factor``)."""
+        ``lss_core.reflectivity.join_factor``). ``mask``: (scan, point)
+        pairs left out (F92, ``lss_core.masks``), after repeats are merged:
+        a point of a repeat merged into the group's first scan masks that
+        point of the merged scan (where the window's drops are made);
+        ``drops`` then apply to what is left."""
         from TwoDDetector import TwoDDetector
         det = TwoDDetector('Pilatus')
         det.errors = as_model(errors)
-        per_scan, offsets, mons = {}, [], {}
+        per_scan, offsets, mons, pts = {}, [], {}, {}
         for f in self.frames(scans):
             if points is not None and f.scan in points and f.index not in points[f.scan]:
                 continue
@@ -306,6 +312,7 @@ class Experiment:
                                       low_qz_slit=(first or low_qz_slit))
             per_scan[f.scan] = row if first else np.vstack((per_scan[f.scan], row))
             mons.setdefault(f.scan, []).append(f.monitor)
+            pts.setdefault(f.scan, []).append(f.index)
             off = info['offset']
             if abs(off[0]) > 2 or abs(off[1]) > 2:
                 offsets.append((f.scan, f.index, off[0], off[1]))
@@ -313,11 +320,13 @@ class Experiment:
         if repeats not in ('monitors', 'mean'):
             raise ValueError("repeats: 'monitors' or 'mean'")
         weights = mons if repeats == 'monitors' else None
-        if merge_repeats:
-            for group in refl.identical_groups(per_scan):
-                refl.merge_identical(per_scan, group, weights)
-        for group in merge or []:          # groups merged by hand, as in the window
+        alias = {}                         # a repeat merged away -> the scan it went into
+        groups = refl.identical_groups(per_scan) if merge_repeats else []
+        for group in groups + [list(g) for g in merge or []]:     # by hand too, as in the window
             refl.merge_identical(per_scan, list(group), weights)
+            for m in group[1:]:
+                alias[m] = group[0]
+        masked = self._apply_mask(per_scan, pts, alias, mask) if mask else []
         order = refl.order_scans(per_scan)
         notes = []
         patched = refl.patch(per_scan, order, drops, factors, method=method, notes=notes)
@@ -325,7 +334,39 @@ class Experiment:
                                    qc, qoff, norm_factor, rrf)
         return ReflectivityResult(per_scan, order, patched, ref, out_rrf, offsets, method, notes,
                                   dict(qc=qc, qoff=qoff, norm_factor=norm_factor, rrf=rrf, drops=drops,
-                                       factors=factors, method=method, repeats=repeats))
+                                       factors=factors, method=method, repeats=repeats,
+                                       mask=[list(sp) for sp in masked] if mask else None),
+                                  {k: list(pts[k]) for k in per_scan}, masked)
+
+    @staticmethod
+    def _apply_mask(per_scan, pts, alias, mask):
+        """Leave the masked points out of ``per_scan`` (and ``pts``) in place;
+        returns the (scan, point) pairs left out, sorted. A point of a repeat
+        merged away masks the point at the same position of the scan it went
+        into; masked points of scans not in the reduction are ignored."""
+        from . import masks as maskmod
+        want = {}
+        for s_, p_ in maskmod.Mask(mask):
+            tgt = s_
+            while tgt in alias:
+                tgt = alias[tgt]
+            if tgt != s_:
+                if s_ not in pts or p_ not in pts[s_] or tgt not in pts:
+                    continue
+                p_ = pts[tgt][pts[s_].index(p_)]
+            want.setdefault(tgt, set()).add(p_)
+        masked = []
+        for s_ in sorted(want):
+            if s_ not in per_scan:
+                continue
+            keep = [i for i, p_ in enumerate(pts[s_]) if p_ not in want[s_]]
+            masked += [(s_, p_) for p_ in pts[s_] if p_ in want[s_]]
+            if keep:
+                per_scan[s_] = per_scan[s_][keep]
+                pts[s_] = [pts[s_][i] for i in keep]
+            else:
+                del per_scan[s_]
+        return sorted(masked)
 
     def cut(self, scans, direction, range, axes='Pixels', summed=False, points=None, sum_mode='monitors',
             absfac=ABSFAC_10KEV, errors=None, monitor_gain=False, distance=None, db_pos=None,
@@ -469,7 +510,8 @@ class Experiment:
     def burn(self, scan, points=None, time='clock', qxy_range=None, rows='mean', fit=None,
              models=None, threshold=0.05, confidence=0.95, slit=(21, 11), bg_offset=0.5, direction='H',
              errors=None, db_pos=None, bad_pixel_iterations=0, bad_pixel_factor=1, overdispersion=True,
-             estimator='template', trend_errors=None, limit=('intensity', 'fwhm')):
+             estimator='template', trend_errors=None, limit=('intensity', 'fwhm'), axis='time',
+             dose_unit='photons', beam_mm=None, shutter='closed'):
         """Burn test of one Pilatus scan (lss_core.burn): per frame the
         reflected intensity (Det_Th 0; ``slit``, ``bg_offset``,
         ``direction`` as Ref Patch) or the strongest GID peak's intensity,
@@ -489,7 +531,13 @@ class Experiment:
         relative change is what matters; owner, 2026-11-21) or 'given'
         (default for reflectivity: counting errors as they are). ``limit``:
         the quantities whose 5 % time sets ``safe_time`` (add 'centre' for
-        the position: the user's judgment)."""
+        the position: the user's judgment). ``axis``: what the trends are
+        fitted against, 'time' (default) or 'dose' (F98: the dose received
+        since the first frame began, at the middle of each frame,
+        lss_core.dose; ``dose_unit`` 'photons' or 'monitor', ``beam_mm``
+        (width, height) for photons/mm², ``shutter`` 'open' for fast mode);
+        the limit is then a dose. The dose
+        is worked out whenever it can be (``res.dose``), whatever the axis."""
         from . import burn as burnmod
         from . import trends
         sc = self.scans[scan]
@@ -513,6 +561,19 @@ class Experiment:
         res = burnmod.BurnResult(scan, kind, t, used, idx, notes=[note], threshold=threshold,
                                  limit_quantities=tuple(limit),
                                  seconds=np.asarray(cols['Seconds'], float)[idx] if 'Seconds' in cols else None)
+        if axis not in burnmod.AXES:
+            raise ValueError('axis %r: one of %s' % (axis, ', '.join(burnmod.AXES)))
+        try:
+            d = self.dose(scan, idx, unit=dose_unit, beam_mm=beam_mm, shutter=shutter)
+            from . import dose as dosemod
+            sc_ = dosemod.engineering_scale(d.total())      # the axis in 1e12 photons etc.: lss_core.dose
+            res.dose, res.dose_total, res.dose_scale = d.cumulative() / sc_, d.total() / sc_, sc_
+            res.dose_unit, res.dose_notes = dosemod.scaled_unit(d.unit, sc_), list(d.notes)
+        except (ValueError, KeyError) as e:   # dose.DoseError is a ValueError
+            res.dose_notes = ['dose not known: %s' % e]
+            if axis == 'dose':
+                raise
+        res.axis = axis
         if kind == 'reflectivity':
             r = self.reflectivity([scan], slit=slit, bg_offset=bg_offset, direction=direction,
                                   points={scan: idx}, errors=errors, rrf=False,
@@ -548,9 +609,20 @@ class Experiment:
                 res.notes.append('%d frame(s) whose peak fit failed are left out' % bad)
         te = trend_errors or ('scatter' if kind == 'gid' else 'given')
         res.trend_errors = te
-        res.trends = burnmod.analyse(t, res.values, models or trends.MODELS, threshold, confidence, overdispersion,
+        res.trends = burnmod.analyse(res.x, res.values, models or trends.MODELS, threshold, confidence, overdispersion,
                                      errors=te)
         return res
+
+    def dose(self, scan, points=None, unit='photons', beam_mm=None, absfac=None, monitor='Monc', shutter='closed'):
+        """The dose each point of ``scan`` gives the sample (lss_core.dose.scan_dose:
+        photons, or Monc counts at 5 µA/V with the absorbers taken out; per mm²
+        of footprint with ``beam_mm``, the beam's (width, height); ``shutter``
+        'open' in fast mode, from the scan's per-point times)."""
+        from . import dose as dosemod
+        sc = self.scans[scan]
+        pt = self.point_times(scan) if shutter == 'open' else None
+        return dosemod.scan_dose(sc.columns, sc.parameters, points, unit=unit, beam_mm=beam_mm, absfac=absfac,
+                                 monitor=monitor, scan=scan, shutter=shutter, point_times=pt)
 
     def mean_frame(self, frames):
         """The mean of ``frames``' images per monitor count (rows × columns, as

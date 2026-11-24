@@ -124,3 +124,22 @@ def test_the_confident_time_is_conservative_at_its_stated_level():
         stable += bool(trends.compare(T, y0, np.full(T.size, 1.0), models=('constant', 'linear')).stable)
     assert miss / n < 0.09
     assert stable / n > 0.85
+
+
+def test_linear_trend_is_the_same_on_any_scale():
+    """A dose in photons is ~1e12: [1, t] lost all precision there (the linear
+    model's ΔAICc was 831271 instead of 2.56). Seconds are fitted as before."""
+    rng = np.random.default_rng(3)
+    t = np.arange(30) * 10.0 + 5
+    y = 1000 - 0.4 * t + rng.normal(0, 3, 30)
+    s = np.full(30, 3.0)
+    ref = trends.compare(t, y, s)
+    for k in (1e6, 1e12, 1e15):
+        c = trends.compare(t * k, y, s)
+        assert c.best == ref.best
+        for m, f in c.fits.items():
+            assert f.delta == pytest.approx(ref.fits[m].delta, rel=1e-8, abs=1e-6)
+        assert c.change.confident / k == pytest.approx(ref.change.confident, rel=1e-6)
+    p, cov, chi2 = trends._wls(np.column_stack([np.ones_like(t), t]), y, 1 / s)
+    q, qcov, qchi2 = trends._fit_linear(t, y, s)
+    assert np.array_equal(p, q) and np.array_equal(cov, qcov) and chi2 == qchi2    # bit for bit below 1e5

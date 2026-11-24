@@ -47,7 +47,8 @@ Maps       two-dimensional results (GID maps) as grids, so that Excel can
            value, error). (Until 2026-11-22 one row per cell: 5 × the
            cells and 6 s per later save for one NX map.)
 Settings   the current settings (section, key, value, time), the fitting
-           preferences among them
+           preferences among them; the masks of dropped points (section
+           ``masks``, lss_core.masks, F92)
 =========  ================================================================
 
 Exports (the legacy text files) are unchanged; the workbook is in

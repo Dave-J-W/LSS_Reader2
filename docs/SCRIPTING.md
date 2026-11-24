@@ -34,12 +34,32 @@ Options, with the window's defaults for Pilatus data:
 | `low_qz_slit=False` | | Low Qz Corr. |
 | `merge=[[2, 3]]` | | groups merged in the identical-scans dialog |
 | `points={7: [0, 1, 3]}` | all points | frames selected in the image list |
+| `mask=[(7, 3), (8, 0)]` | none | dropped points kept in the workbook (F92; `lss_core.masks`) |
 | `bad_pixel_iterations=0`, `bad_pixel_factor=1` | | BPC iterations, factor |
 
 `result` holds the per-scan points (`per_scan`, columns Qz, net signal,
 error, signal, signal error, background 1, background 2), the scan order,
 the patched curve before normalisation, `ref`, `rrf`, and the frames whose
-beam was more than 2 pixels from its recorded position (`beam_offsets`).
+beam was more than 2 pixels from its recorded position (`beam_offsets`),
+and the point number of each per-scan row (`points`) with the masked
+points left out (`masked`).
+
+Dropped points as a mask over raw points (F92, 2026-11-24):
+
+```python
+from lss_core import masks, reflectivity as refl
+from lss_core.workbook import Workbook
+r = exp.reflectivity([6, 7, 8, 9])
+removed, origins = refl.drop_points(r.per_scan, r.order, r.points, {1: [-1]})   # typed drops -> (scan, point)
+wb = Workbook('20260923_reader.xlsx')
+m = masks.load(wb).add(removed)                 # the mask kept in the workbook's Settings sheet
+masks.save(wb, m); wb.save()
+r = exp.reflectivity([6, 7, 8, 9], mask=m)      # the points left out from the start
+masks.save(wb, m.restore_all()); wb.save()      # "Restore all"
+```
+
+`origins` is the (scan, point) of each row of the patched curve: every row
+sits at one raw point's Qz.
 
 Not yet available from scripts: background images, single-scan export,
 GISAXS. (GID, cuts, peak fits and burn tests followed: sections below.)
@@ -208,6 +228,13 @@ print(burn.summary())                          # verdicts, best models, the 5 % 
 burn.trends['centre'].table()                  # every model: chi2/dof, AICc, Δ, weight, parameters
 cols, values = burn.data()                     # time and each quantity with its error
 burn = exp.burn(14, estimator='moments', time='clock', threshold=0.10, qxy_range=(1.40, 1.52))
+d = exp.dose(14)                               # photons each point gives the sample (lss_core.dose, F98)
+d.per_point, d.cumulative(), d.total(), d.unit, d.notes, d.bounds
+exp.dose(14, unit='monitor')                   # Monc counts at 5 uA/V with the absorbers taken out: M/(A g)
+exp.dose(14, beam_mm=(2.0, 0.1))               # photons/mm2 of footprint, for a beam of that width and height
+exp.dose(14, shutter='open')                   # fast mode: the beam also between points (from the point times)
+burn = exp.burn(14, axis='dose')               # trends against the dose; the limit is a dose
+burn.dose, burn.dose_unit, burn.dose_scale     # the axis: NX 14 in '1e+12 photons' (dose_scale 1e12), 28.9 at the end
 ```
 
 Reflectivity geometry (Det_Th 0): the Ref Patch ROI per Monc (`slit`,

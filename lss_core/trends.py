@@ -234,8 +234,20 @@ def _fit_constant(t, y, s):
     return p, cov, chi2
 
 
+# An axis whose values exceed this (a dose in photons, ~1e12; F98) is fitted by the linear model against
+# t / 2**k and transformed back: [1, t] loses all precision there (its normal matrix has a condition
+# number ~ t**2). Axes below it (times in seconds) are fitted as before, bit for bit (2026-11-24).
+LINEAR_RESCALE_ABOVE = 1e5
+
+
 def _fit_linear(t, y, s):
-    return _wls(np.column_stack([np.ones_like(t), t]), y, 1 / s)
+    T = float(np.max(np.abs(t))) if t.size else 0.0
+    if not T > LINEAR_RESCALE_ABOVE or not np.isfinite(T):
+        return _wls(np.column_stack([np.ones_like(t), t]), y, 1 / s)
+    c = 2.0 ** -math.floor(math.log2(T))
+    p, cov, chi2 = _wls(np.column_stack([np.ones_like(t), t * c]), y, 1 / s)
+    d = np.array([1.0, c])
+    return p * d, cov * np.outer(d, d), chi2
 
 
 def _rates(T, n=81):

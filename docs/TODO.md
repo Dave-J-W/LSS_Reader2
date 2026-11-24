@@ -17,9 +17,9 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 
 | Session | Now | Next |
 |---|---|---|
-| Main (orchestrator) | ~~F81, F91, F87, P47, half-written SPEC lines~~ (2026-11-23); ~~the two decision studies and the ELI5 rationale~~, ~~the join guard at p 0.7~~ (#47), ~~list-text lookups as item data~~, ~~`gid.products` refuses an empty Q grid with a reason, Relax's bin count guarded~~ (2026-11-24) | the rest of area L (fragile assumptions); F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
+| Main (orchestrator) | ~~F81, F91, F87, P47, half-written SPEC lines~~ (2026-11-23); ~~the two decision studies and the ELI5 rationale~~, ~~the join guard at p 0.7~~ (#47), ~~area L, the fragile assumptions~~ (#50), ~~F98's core: the dose of each point, burns against dose~~ (#52), ~~F92's core: dropped points as a mask~~ (2026-11-24) | F97 diffuse cut axes (the core), then what Main assigns next |
 | GUI manager | ~~F88 sticky display, F69 movie~~ (merged #34, 2026-11-24: the image display functions are free); ~~F86 Reduction options~~, ~~Q-GID-5~~, ~~Q-UI-A10~~ (#32); **F96** Ref Patch window: Back, Cancel, join table, the line under the Reflectivity plot (built 2026-11-24; the live replay of accepted joins later); **F95** B6 and the B3 list, **F74** residual panels on scan, cut and burn fits, **F97** saturation cue, **F78** super-Gaussian height-scan fit (timeline 1a) (built 2026-11-24) | timeline 1c's next steps (the first tab is built: sh thumbnails, notes and 'new sample?' confirmation, the reduced-data lane); F95's ROI threshold, B9, B10; F97's diffuse axes (the ROI close-up built 2026-11-24); then ngui |
-| tools man | the Pilatus 100K sizes hard-coded in `mainwindow.py` and `gid.py` (TODO area L, the last row) | the F90 demo wrap-up (`docs/reports/mca_fit_demo.md`, the beam-energy figure, Tools menu variations; the owner paused the synthetic MCA project, 2026-11-24), then Q-BURN-6 |
+| tools man | ~~the Pilatus 100K sizes~~, ~~the F90 demo wrap-up and P1 the default of Fit lines~~, ~~Q-BURN-6~~ (#46, 2026-11-24); **F79**: Qoff proposed from the continuity of R/R_F and Qc from the subphase (core and a rule-12 study; no default change) | its API to the GUI manager for the Ref tab's "Propose" buttons |
 | questor | the owner's questions and their answers in `docs/`; the data needs (`docs/DATA_NEEDS.md`, with tools man's blank-spectrum request) | (its own order) |
 
 ## Remaining work by area (regrouped 2026-11-21, review `docs/reviews/2026-11-21-todo-review.md`)
@@ -742,6 +742,7 @@ reruns the quick, real-data and export-fixture checks, and commits.
       for `DATA_NEEDS.md` row 3, 2026-11-23. Mark private files as such (they stay under
       `sample_data/private/`).
 - [ ] **All data needs are listed in `docs/DATA_NEEDS.md` (2026-11-23)**: read it before asking the owner for data; the owner's non-cloud agent will supply the large private sets (reflectivity series for hand-off 08 "not soon"; GISAXS and GIOXS examples later).
+- [ ] **Open beam and shutter questions OQ-1 to OQ-4 (2026-11-24):** slit values half or full openings; the vertical beam size after the mirror focus and before the APS shutdown; how fast mode appears in a SPEC file. Full text and why in `docs/gui/questions.md` ("Open questions added on 2026-11-24"). They block the dose per area of F98 and the sx colouring of F107; until they are answered the beam size stays a typed value.
 - [ ] Decide how sample data should be hosted (`bu` is 1.7 GB, local to the
       session only, git-ignored; NX school is committed at 104 MB).
 - [ ] Questions in `ASSESSMENT.md` sections 6 and 7 still open: reference
