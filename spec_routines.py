@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import os
+import re
 import numpy as np
 from lss_core import paths
 from lss_core.numbers import spec_number, spec_numbers
@@ -119,10 +120,24 @@ class specread:
                         fileheads.append((k_e,float(l_e[2:].split()[0]),d_e[2:].strip()))
                     except (ValueError,IndexError):
                         pass
+            # the file header's full motor names (#O0, #O1, ...), position for position
+            # with the scans' #P names, which the macro cuts to 8 characters
+            # ('Two_Thet' for 'Two_Theta'; TODO area L, 2026-11-24)
+            motorheads=[]
+            for k_e,l_e in enumerate(fdata):
+                if l_e[:2]=='#O' and l_e[2:3].isdigit():
+                    tag=l_e.split()[0]
+                    if tag=='#O0' or not motorheads:
+                        motorheads.append((k_e,{}))
+                    motorheads[-1][1][int(tag[2:])]=re.split(r'\s{2,}',l_e[len(tag):].strip())
+            if motorheads:
+                self.Data['MotorNames']=motorheads[-1][1]
             self.lastAbsorber=self.Data.get('LastAbsorber') if startLineNum>0 else None
             self.lastMoncGain=self.Data.get('LastMoncGain') if startLineNum>0 else None
             for i in range(numOfScans): 
                 start=startScanLineNums[i]+1
+                onames=next((h[1] for h in reversed(motorheads) if h[0]<startScanLineNums[i]),
+                            self.Data.get('MotorNames') or {})
                 line=fdata[start]
                 num=int(fdata[startScanLineNums[i]].split()[1])
                 i=i+tmp
@@ -141,6 +156,17 @@ class specread:
                         parValue=spec_numbers(fdata[start][1:].split())
                         for j in range(len(parName)):
                             self.Par[num][parName[j]]=parValue[j]
+                        try:
+                            full=onames.get(int(line.split()[0][2:]),[])
+                        except ValueError:
+                            full=[]
+                        if len(full)==len(parName):   # the full name too, where the macro cut it
+                            for j,(short,name) in enumerate(zip(parName,full)):
+                                if name!=short and name.startswith(short) and name not in self.Par[num]:
+                                    self.Par[num][name]=parValue[j]
+                        for j,name in enumerate(parName):   # and the 8-character name, where a macro writes it whole
+                            if len(name)>8 and name[:8] not in self.Par[num]:
+                                self.Par[num][name[:8]]=parValue[j]
                     if line[:2]=='#W':
                         tmppar=line[2:].split()
                         self.Par[num]['Wavelength']=spec_number(tmppar[1])

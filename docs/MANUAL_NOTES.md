@@ -364,3 +364,4 @@ stable (burn tests), the confident 5 % time.
   --audit`, to get current figures).
 - File names (2026-11-24): SPEC names may contain dots (`run.v2`) and paths may use '/' or '\\'; plot-file legends show the file's name, the list '<folder>/<name>'.
 - SPEC files (2026-11-24): when a scan's `#L` names more or fewer columns than its rows hold, the window says so once; the columns are still matched by position (a label with a space in it shifts the later ones).
+- Motor names (2026-11-24): a scan's parameters hold each motor under its 8-character name (as the macro writes `#P`) and its full name from the file header's `#O` (`Two_Thet` and `Two_Theta`).
