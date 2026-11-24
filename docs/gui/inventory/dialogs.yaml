@@ -77,7 +77,7 @@
 - id: prefPatchMethodComboBox
   kind: combo
   label: ""
-  where: "Preferences > Ref Patch"
+  where: "Preferences > Reduction options (moved from Ref Patch, 2026-11-23, F86)"
   handler: setPreference
   does: "How the join factor is fitted: Joint fit (default) or Legacy fit"
   workflows: [reflectivity]
@@ -217,6 +217,61 @@
   shown: always
   tooltip: true
   notes: "Added 2026-11-23 (F82). Off by default. The ngui window's own widgets are named ngui_* and are not inventoried (they are placeholders of the controls below)."
+- id: prefSumAllLegacyCheckBox
+  kind: checkbox
+  label: "Sum All: average of normalised frames (legacy)"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "Off: Sum All is Sigma N / Sigma M (F91); on: the old mean of normalised frames"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F86; owner Q13 and 'one button, switch picks'). Off by default."
+- id: prefGisaxsRawCheckBox
+  kind: checkbox
+  label: "GISAXS: raw counts (legacy)"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "Off: GISAXS per Monc (F91); on: raw counts as before"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F86; owner Q13 and 'one button, switch picks'). Off by default."
+- id: prefMcaFitLegacyCheckBox
+  kind: checkbox
+  label: "Fluorescence fit: legacy Fit dialog"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "Off: the MCA Fit lines button runs the line fit and the legacy Fit/Fit All/Accept are hidden; on: it runs the legacy fit and they show"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F86; owner Q13 and 'one button, switch picks'). Off by default."
+- id: prefBurnLegacyCheckBox
+  kind: checkbox
+  label: "Burn test: show the Legacy tab"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "Off: the burn dialog shows Trends only; on: also its Legacy tab (the REF button and GID list still open it)"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F86; owner Q13 and 'one button, switch picks'). Off by default."
+- id: prefBadgesComboBox
+  kind: combo
+  label: "State badges: on / when not default / off"
+  where: "Preferences > Layout"
+  handler: setPreference('state_badges')
+  does: "Chooses whether the status-bar state badges are shown always, only when a setting differs from its default, or never"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F85, owner Q12: three modes). Default 'on'."
 - id: prefClosePushButton
   kind: button
   label: "Close"
@@ -1599,6 +1654,7 @@
   tooltip: false
   notes: ""
 - id: peakfit2
+  removed: "2026-11-23, owner Q14: never loaded by any code; the file is deleted"
   kind: dialog
   label: "Dialog"
   where: "(never shown)"
@@ -1610,6 +1666,7 @@
   tooltip: false
   notes: "Defunct (read only: no reference in any .py). Candidate for removal."
 - id: peakfitpara
+  removed: "2026-11-23, owner Q14: never loaded by any code; the file is deleted"
   kind: dialog
   label: "Dialog"
   where: "(never shown)"

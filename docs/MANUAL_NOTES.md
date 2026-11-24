@@ -297,6 +297,59 @@ Each line: feature — where — default — script — notes entry (date).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.
 
+### Reduction options (F86, 2026-11-23)
+- **Preferences > Reduction options** (first on the page) chooses, for each
+  action that has a legacy and a new path, which one it takes; nothing is
+  removed (owner, 2026-11-23). **Reflectivity patch**: joint or legacy fit
+  (moved here from the Ref Patch group). **Sum All**: counts and monitors
+  summed then normalised (default) or the old average. **GISAXS**: per Monc
+  (default) or raw counts. **Fluorescence fit**: the MCA tab's one Fit action
+  runs the line fit (default) or, when on, the legacy Fit dialog, and then
+  also shows the legacy Fit, Fit All and Accept buttons. **Burn test**: shows
+  the dialog's Legacy tab.
+- **Ctrl+click** on Ref Patch or on Fit lines runs the other path once and
+  writes a line in the Messages pane saying so; no dialog.
+
+### State badges (F85, 2026-11-23)
+- At the right of the status bar, three short labels show the settings that
+  change numbers everywhere: the **error model** (legacy or budget errors),
+  the **monitor normalisation** (/ Monc, / Monc / gain, / photon) and the
+  **reflectivity patch method** (joint or legacy). A setting changed from
+  its default is drawn amber. Hover for the detail; click to open the
+  setting (the Errors pane, the SpecPlot tab, Preferences).
+  **Preferences > Layout > State badges** shows them always, only when not
+  at the default, or never.
+
+### The bottom panes (D59, 2026-11-23)
+- **Messages, Script, Errors** sit under the tabs only, so the scan and
+  frame lists on the left keep the window's full height. All three are
+  hidden at start and shown from the **View** menu, which remembers the
+  choice between sessions. The Script pane never shows itself; Messages
+  shows itself (and comes to the front) only for a warning or an error.
+  Notices that are not warnings ("Saved to the workbook", "Covariance
+  written") go to the Messages pane without opening it and are shown for a
+  few seconds in the status bar.
+
+### Menus (2026-11-23)
+- **File > Quit** (Ctrl+Q) closes the reader; results are already in the
+  workbook. **Help > Documentation** opens the scripting guide
+  (`docs/SCRIPTING.md`) until the manual exists, or its GitHub page from a
+  packaged build. Both were in the menus before but did nothing.
+
+### Removed from the window (owner, 2026-11-23, question 14)
+- **Beamlines menu** (APS-15IDC, APS-9IDC): removed. The reader supports one
+  beamline, 15-ID-C, which is always used; there was nothing to choose.
+- **`peakfit2.ui`, `peakfitpara.ui`**: deleted. No code loaded them; the
+  peak fit in use is `peakfit.ui` (Plot tab > Peak Fit).
+- **The Command line row** (bottom of the window): removed. It showed, and
+  let one edit to no effect, a summary of the last reduction (e.g. "Ref
+  Patch, scans=[6–9], slits=…"). That summary is still written as the first
+  header line of exported files; the Script pane holds the runnable form.
+- **The Apex tab** (the Bruker CCD, a defunct detector; hidden since
+  2026-11-17): removed with its 18 controls. Its colour map had silently
+  coloured the Reflectivity ROI image; that image now follows the Pilatus
+  tab's colour map (CMap), the same default (jet).
+
 ## Terms a manual must define
 
 Monc, Monp, Monb (monitors; Monc is the normaliser, upstream of the

@@ -60,6 +60,9 @@ def test_every_scan_opens_and_shows_its_first_frame(nx, qapp, recorder):
 
 
 def test_reflectivity_scans_6_to_9_match_reference(nx, qapp, recorder):
+    """The legacy patch reproduces the reference made with it (the default
+    is the joint fit since 2026-11-22, C36; test_patching pins that one)."""
+    nx.setPreference('ref_patch_method', 'legacy')
     sweep._select_scans(nx, qapp, [5, 6, 7, 8])
     sweep._select_images(nx, qapp)
     assert len(nx.selectedPilFramesNums) == 96
@@ -70,7 +73,7 @@ def test_reflectivity_scans_6_to_9_match_reference(nx, qapp, recorder):
         nx.uirefpatch.nextPushButton.click()
         qapp.processEvents()
     assert recorder.exceptions == []
-    assert nx.ui.PlotWidget.currentIndex() == 3
+    assert nx.ui.PlotWidget.currentWidget() is nx.ui.refTab
     got = nx.normRefData
     ref = np.loadtxt(REFERENCE)
     assert got.shape == ref.shape == (87, 3)
@@ -92,9 +95,7 @@ def _gid_patch(nx, qapp, rows):
     nx.gidParams = GIDParams(pinhole=False)
     sweep._select_scans(nx, qapp, rows)
     sweep._select_images(nx, qapp)
-    i = nx.ui.gidComboBox.findText('GID Patch')
-    nx.ui.gidComboBox.setCurrentIndex(i)
-    nx.ui.gidComboBox.activated.emit(i)
+    nx.gidPatchPushButton.click()
     qapp.processEvents()
 
 
@@ -254,9 +255,7 @@ def test_reflectivity_and_gid_map_are_saved_to_the_workbook(nx, qapp, recorder):
     nx.saveButtons['ref'].click()
     sweep._select_scans(nx, qapp, [10])
     sweep._select_images(nx, qapp)
-    i = nx.ui.gidComboBox.findText('GID Patch')
-    nx.ui.gidComboBox.setCurrentIndex(i)
-    nx.ui.gidComboBox.activated.emit(i)
+    nx.gidPatchPushButton.click()
     qapp.processEvents()
     i = nx.ui.gidComboBox.findText('Save to workbook')
     nx.ui.gidComboBox.setCurrentIndex(i)

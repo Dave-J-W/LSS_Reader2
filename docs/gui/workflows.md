@@ -309,7 +309,7 @@ flowchart TD
 | ref.check | Optionally check the ROI frame by frame - Reflectivity opens the Ref tab with the frames by Qz, the ROI image, Analyze / Accept / Analyze All | Pilatus tab > Reflectivity; Reflectivity tab | `pilRefPushButton`, `refQzListWidget`, `refSlitLineEdit`, `refBGOffLineEdit`, `refBGDirComboBox`, `refCenCheckBox`, `refCenLineEdit`, `refSeaWinLineEdit`, `refBPCFacLineEdit`, `refAnalyzePushButton`, `refAcceptPushButton`, `refAnalyzeAllPushButton` | ROI size, background offset and direction, centre (from SPEC or typed), search window | no | a movie of the frames zoomed to the region around the ROI, on a log or other nonlinear scale, keeping zoom and colour mode while it plays (owner 2026-11-23: 'If there was a slick way to show a movie of it ... we might do it more often'); ROI close-up with the box and background boxes drawn, flags on frames whose beam is off by > 2 px (F71) | code (refPlotWin, refAnalyze); owner 2026-11-23 (done, but mostly when something is weird and the data must be verified; the routine path is Ref Patch) | Two entry points with similar names: 'Reflectivity' (frame-by-frame analysis) and 'Ref Patch' (the reduction); the ROI fields used by both live on the Reflectivity tab<br>The ROI default in the .ui is 61,31 and is overwritten to 21,11 when a Pilatus file opens (code); the script default is 21,11 |
 | ref.options | Set the options that change the per-frame signal (low-Qz slit correction, merge same Qz, bad-pixel correction, DB position) | Pilatus tab | `pilLowQzCorCheckBox`, `pilMergeSameQzCheckBox`, `pilBPCiteSpinBox`, `pilBPCfacSpinBox`, `pilSpecCheckBox`, `pilDBPosLineEdit` | usually the defaults (guess) | yes |  | code | Low Qz Corr. is applied to the first frame of each scan regardless of the box (P18, as coded) |
 | ref.errors (shared.errors) | Choose the error model (Legacy default, or Budget with a monitor model) | Errors pane (dock) | `errorModeComboBox`, `monitorKindComboBox`, `errorModel_sigma` | Legacy (default, byte-identical files) or Budget | yes |  | owner 2026-11-17 (D20, D22, D26); code | A global setting in a dock, far from the reductions it changes; which default the export should use is open (TODO B) |
-| ref.patch | Ref Patch - one point per frame (ROI minus background per Monc), scans sorted by Qz; pop-ups for beams > 2 px off and bad pixels in the ROI | Pilatus tab > Ref Patch | `pilRefPatchPushButton`, `commandLineEdit` |  | yes | offer Ref Patch when a reflectivity series is selected (F60) | code (pilRefPatchData); test tests/test_real_nx_school.py | The beam-offset and bad-pixel tables are modal dialogs (pilPeakCenDialog, pilBadPixDialog) that interrupt the patch |
+| ref.patch | Ref Patch - one point per frame (ROI minus background per Monc), scans sorted by Qz; pop-ups for beams > 2 px off and bad pixels in the ROI | Pilatus tab > Ref Patch | `pilRefPatchPushButton` |  | yes | offer Ref Patch when a reflectivity series is selected (F60) | code (pilRefPatchData); test tests/test_real_nx_school.py | The beam-offset and bad-pixel tables are modal dialogs (pilPeakCenDialog, pilBadPixDialog) that interrupt the patch |
 | ref.same | When identical scans (same Qz range and points) are found - merge them, drop some, or patch them regularly | identical-scans dialog | `refpatchsamescan.mergePushButton`, `refpatchsamescan.dropPushButton`, `refpatchsamescan.dropLineEdit`, `refpatchsamescan.nextPushButton` | merge (repeats), drop, or patch (default) | no | merge repeats by default when they agree within errors | code (pilRefPatchData, pilRefSameScan) | Announced by a message, then a dialog; the default ('regular patch') is stated only in the message |
 | ref.join | For each join: the overlap plotted with the factor that Next will use (joint fit), the known foil ratio offered; drop points; Next / Finish! | Ref Patch dialog (one per join) | `refpatch.nextPushButton`, `refpatch.dropPushButton`, `refpatch.dropLineEdit`, `refpatch.knownRatioCheckBox`, `refpatch.knownRatioLabel`, `prefPatchMethodComboBox`, `prefPatchAutoCheckBox`, `prefPatchThresholdSpinBox` | accept the fitted factor or use the known ratio; which points to drop (typed indices) | partly | accept every join whose fit passes its guard and agrees with the foils, and show only the doubtful ones (owner 2026-11-18 F58 - known ratio automatic where plainly better) | owner 2026-11-18 (F58), owner 2026-11-22 (joint fit default); test tests/test_gui_workflows.py, tests/test_known_ratio_patch.py | One dialog per join (3 for NX 6-9); the method preference is in File > Preferences, not in the dialog<br>Dropped points are typed as indices, deleted from the arrays, not drawn, no undo (F16, D2) |
 | ref.view | The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files | Reflectivity tab (Ref / Norm Ref lists, plot) | `refDataListWidget`, `refNormRefListWidget`, `refRRFCheckBox`, `refQcLineEdit`, `refQoffLineEdit`, `refLogYCheckBox`, `refQzSqrCheckBox`, `refNormFacCheckBox`, `refNormLineEdit`, `refDelPushButton`, `refRefFileListWidget`, `refAddFilePushButton`, `refRemoveFilePushButton`, `refLegendCheckBox` | Qc (0.0217 preset: water, the same Qc at every energy, physics_notes 2026-11-23; changed for lighter or denser subphases); Qoff tweaked until R/R_F is continuous apart from one or two outliers (owner 2026-11-23); reference curves to compare | partly | Qoff proposed from the continuity of R/R_F across the joins, Qc from the subphase (F79); Qoff from the sh-scan images (F42) | code (updateRefPlotData); test tests/test_gui_workflows.py (tab 3 after Finish); owner 2026-11-23 | Qc and Qoff change the R/R_F file but are typed fields among display options<br>Qoff is found by trial: type, press Enter, look, repeat |
@@ -1026,7 +1026,7 @@ flowchart TD
 
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `commandLineEdit` Command: | i | i |  | B | i | i |  |  |  |  |  |  | i |  |
+| `commandLineEdit` Command: | i | i |  | i | i | i |  |  |  |  |  |  | i |  |
 
 ### Menu bar
 
@@ -1116,6 +1116,8 @@ flowchart TD
 | `pilCutDirComboBox`  |  |  |  |  | B |  |  |  | B |  |  |  |  |  |
 | `pilIntRangeLineEdit` Int Range: min:max |  |  |  |  | B |  |  |  | B |  |  |  |  |  |
 | `pilLineAreaPushButton` Line/Area Cuts |  |  |  |  | B |  |  |  | B |  |  |  |  |  |
+| `gidPatchPushButton` GID Patch |  |  |  |  | B |  |  |  |  |  |  |  |  |  |
+| `gidWorksheetPushButton` Worksheet... |  |  |  |  | i |  |  |  |  |  |  |  |  |  |
 
 ### Plot
 
@@ -1164,6 +1166,11 @@ flowchart TD
 | `prefSaveNoteCheckBox` Ask for a note on every Save |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `prefAutoSaveCheckBox` Save every reduction automatically |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `prefNguiCheckBox` ngui (new layout, prototype) |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `prefSumAllLegacyCheckBox` Sum All: average of normalised frames (legacy) |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefGisaxsRawCheckBox` GISAXS: raw counts (legacy) |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefMcaFitLegacyCheckBox` Fluorescence fit: legacy Fit dialog |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefBurnLegacyCheckBox` Burn test: show the Legacy tab |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefBadgesComboBox` State badges: on / when not default / off |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `prefClosePushButton` Close |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 
 ### Reflectivity
@@ -1282,6 +1289,14 @@ flowchart TD
 | `spLegendLocComboBox`  |  |  |  |  |  |  |  |  |  | i |  |  |  | i |
 | `spExportPushButton` Export |  |  |  |  |  |  |  |  |  | B |  |  |  | i |
 | `specSaveWorkbookPushButton` Save |  |  |  |  |  |  |  |  |  | B |  |  | i |  |
+
+### Status bar, right
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `errorsBadgeLabel` legacy errors \| budget errors |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `normBadgeLabel` / Monc \| / Monc / gain \| / photon |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `patchBadgeLabel` joint patch \| legacy patch |  |  |  | i |  |  |  |  |  |  |  |  |  | i |
 
 ### Wait
 

@@ -118,7 +118,7 @@
   needs: "a Qz selected in the list"
   shown: always
   tooltip: false
-  notes: "The corrected ROI image uses the hidden Apex tab's colour map (gixCMapComboBox), the uncorrected one the Pilatus map (read only). Not scriptable (Script pane says so on export)."
+  notes: "Both ROI images use the Pilatus colour map (pilCMapComboBox) since 2026-11-23; the corrected one used the hidden Apex tab's map before (removed, owner Q14). Not scriptable (Script pane says so on export)."
 - id: refAcceptPushButton
   kind: button
   label: "Accept"

@@ -130,7 +130,9 @@ def test_scan_numbers_are_written_as_plain_integers(xf, qapp, recorder,
                                                     tmp_path):
     w, truth = xf
     _sum(w, qapp)
-    assert w.ui.commandLineEdit.text() == (
+    # the command, written into the export header; the Command line row that
+    # also showed it was removed (owner, 2026-11-23, Q14)
+    assert w.command == (
         'Flu Sum, scans=[1, 2, 3, 4, 5, 6, 7, 8, 9], energy range=[5.6:7.2]')
 
 

@@ -46,6 +46,13 @@ DEFAULTS = {
     # ngui: a second window sketching the proposed layout (non-functional prototype, F82;
     # docs/gui/prototype.md); off by default (owner, 2026-11-23)
     'ngui': False,
+    # the bottom panes the user showed from the View menu (D59: all hidden by default, owner 2026-11-23)
+    'panes_shown': [],
+    # status-bar state badges (F85, owner 2026-11-23): 'on', 'when_not_default' or 'off'
+    'state_badges': 'on',
+    # Reduction options (F86, owner 2026-11-23): legacy paths, off by default
+    'mca_fit_legacy': False,
+    'burn_legacy_tab': False,
 }
 
 

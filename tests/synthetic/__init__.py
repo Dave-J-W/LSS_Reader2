@@ -15,4 +15,7 @@ in ``tests/synth.py``, whose outputs must not change.
   ROI sums reproduce the reduced rows exactly.
 - ``gid_levels``: a legacy GID set with three Qz levels (P36, P37).
 - ``growing``: a SPEC file and its images written in steps (live mode).
+- ``mca``: MCA spectra of fluorescence lines with the beam's Rayleigh and
+  Compton scatter, the detector's tails, shelves and Si escape peaks, every
+  part kept apart (F90).
 """
