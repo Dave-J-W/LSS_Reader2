@@ -353,6 +353,17 @@ Each line: feature — where — default — script — notes entry (date).
   the fit's note. It stays with the result: it is in the tooltip of the line
   under the plot, and it is saved with the result in the workbook.
 
+### Saturation cue on the frames (F97, 2026-11-24, Q-IMG-10)
+- On the Pilatus tab, pixels counting faster than **1e5 counts per second**
+  are drawn amber, and faster than **1.5e5** red: there an absorber is
+  needed. A small red label in the frame's corner says how many pixels ("3 px > 1.5e5 cps:
+  absorber needed"), and the tooltip over the frames explains the colours.
+- Counts per second are the raw counts of the frame over its point's
+  counting time (SPEC Seconds), not the per-monitor values the colour scale
+  shows. In a sum of frames, a pixel above the limit in any frame is marked.
+- The limits are the owner's figures for the Pilatus 100K. Whether the
+  detector already corrected its counts for rate is not known here.
+
 ### Residuals above fits (F74, 2026-11-24)
 - **View > Residuals above fits** adds a small panel above each plot that
   shows a fit: the SpecPlot scan fit and the cut peak fits, so far. It shows

@@ -4031,11 +4031,17 @@ class MainWindow (QMainWindow):
             axs=[fig.add_subplot(rows,cols,k+1) for k in range(n)]
             ims=[ax.imshow(np.zeros((2,2)),origin='lower',interpolation=display.INTERPOLATION) for ax in axs]
             lines=[ax.plot([0,0],[0,1],'w--',linewidth=1.5)[0] for ax in axs]
+            # F97: pixels near or above the count-rate limit, over the frame
+            sats=[ax.imshow(np.zeros((2,2,4)),origin='lower',interpolation=display.INTERPOLATION,zorder=3)
+                  for ax in axs]
+            notes=[ax.text(0.02,0.97,'',transform=ax.transAxes,ha='left',va='top',fontsize='small',color='white',
+                           zorder=4,bbox=dict(boxstyle='round,pad=0.2',fc=(0.75,0.0,0.0,0.8),ec='none'))
+                   for ax in axs]
             cbar=fig.colorbar(ims[0],ax=axs,format='%.1e')
             for ax in axs:
                 ax.callbacks.connect('xlim_changed',self.pilLimitsChanged)
                 ax.callbacks.connect('ylim_changed',self.pilLimitsChanged)
-            self.pilView={'key':key,'axes':axs,'images':ims,'lines':lines,'cbar':cbar}
+            self.pilView={'key':key,'axes':axs,'images':ims,'lines':lines,'cbar':cbar,'sats':sats,'satnotes':notes}
         self.pilUpdateImages(arrays)
         bg=len(self.ui.backgroundListWidget.selectedItems())!=0
         self.pilView['cbar'].update_normal(self.pilView['images'][0])
@@ -4059,6 +4065,7 @@ class MainWindow (QMainWindow):
         aspect=str(self.ui.pilAspectComboBox.currentText())
         frames=list(self.selectedPilFramesNums)
         self._pilSettingLimits=True
+        cued=False
         try:
             for k,(ax,im,line) in enumerate(zip(v['axes'],v['images'],v['lines'])):
                 p=self.pilShown[k]
@@ -4071,6 +4078,13 @@ class MainWindow (QMainWindow):
                 ax.set_aspect(aspect)
                 ax.set_xlabel(xlabel)
                 ax.set_ylabel(ylabel)
+                which=frames if self.pilMode=='sum' else [frames[p]]
+                cue=self.pilSaturationCue(v.get('sats',[None]*len(v['axes']))[k],which,extent)
+                cued=cued or bool(cue)
+                note=v.get('satnotes',[None]*len(v['axes']))[k]
+                if note is not None:          # inside the frame: the title stays the frame's name
+                    note.set_text(cue)
+                    note.set_visible(bool(cue))
                 if self.pilMode=='sum':
                     ax.set_title('Sum of %d frames' % len(frames))
                 else:
@@ -4081,9 +4095,45 @@ class MainWindow (QMainWindow):
                 if k==0:
                     self.Zdata=arr
                     self.extent=extent
+            # the cue explained where it is shown (rule 9); no tooltip over the frames otherwise
+            self.ui.pilMplWidget.setToolTip(self.SATURATION_TIP % (display._short(display.SOFT_CPS),
+                                            display._short(display.HARD_CPS)) if cued else '')
             self.pilApplyZoom(draw=False)
         finally:
             self._pilSettingLimits=False
+
+    SATURATION_TIP=('Amber pixels: above %s counts per second (the soft limit); red: above %s counts per second, '
+                    'an absorber is needed (owner, 2026-11-23, Q-IMG-10). Counts per second are the raw counts over '
+                    'the point\'s counting time (SPEC Seconds); whether the detector already corrected its counts '
+                    'for rate is not known here. In a sum, any frame above the limit marks the pixel (F97).')
+
+    def pilSeconds(self,i):
+        """The counting time of frame i (its point's SPEC 'Seconds'), or None."""
+        try:
+            return float(self.specData[int(self.pilScanNum[i])]['Seconds'][int(self.pilFrameNum[i])])
+        except (KeyError,IndexError,TypeError,ValueError):
+            return None
+
+    def pilSaturationCue(self,overlay,frames,extent):
+        """Mark the pixels of ``frames`` above the count-rate limits on
+        ``overlay`` (F97); returns the short note for the title."""
+        soft=hard=None
+        for i in frames:
+            s,h,_=display.saturation(self.pilData[i],self.pilSeconds(i))
+            if s is None:
+                continue
+            soft=s if soft is None else (soft|s)
+            hard=h if hard is None else (hard|h)
+        n_soft=0 if soft is None else int(soft.sum())
+        n_hard=0 if hard is None else int(hard.sum())
+        if overlay is not None:
+            if n_soft:
+                overlay.set_data(display.saturation_rgba(soft,hard))
+                overlay.set_extent(extent)
+            overlay.set_visible(bool(n_soft))
+        self.pilSaturated=getattr(self,'pilSaturated',{})
+        self.pilSaturated[tuple(frames)]=(n_soft,n_hard)
+        return display.saturation_text(n_soft,n_hard)
 
     def pilCoordFormatter(self,arr,extent):
         """The cursor readout of one image (before: every tile read the last tile's data)."""

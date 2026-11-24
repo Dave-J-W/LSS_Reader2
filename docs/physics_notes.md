@@ -5211,3 +5211,21 @@ yet seen by the owner.
   matplotlib only) for the other fit plots to use. No output number
   changes.
 
+### 2026-11-24 — F97 (part): the saturation cue on Pilatus frames
+
+The owner's Q-IMG-10 (batch 9): per pixel, soft limit 1e5 counts/s, hard
+limit 1.5e5 counts/s ("absorber needed"). Built as a display cue only:
+`lss_core.display.saturation` divides a frame's **raw** counts (as read,
+before monitor normalisation) by the point's SPEC `Seconds`, and the
+window colours the pixels above each limit over the frame, with a note in
+its corner. Verified by: tested (`tests/test_saturation_cue.py`, 5 tests:
+the limits, the overlay, a synthetic frame of 1e6 counts in 1 s marked
+red, a frame of about 1e3 counts unmarked, the drawn and raw frames
+unchanged).
+
+**Still open (from batch 9):** the exposure time is taken as SPEC
+`Seconds`, which is what the macros count for; not checked against the
+TIFF header's own exposure time. Whether the Pilatus counts are already
+rate-corrected by the detector is not known; if they are, the true
+incident rate is higher than shown. No output number changes.
+
