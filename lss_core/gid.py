@@ -46,7 +46,7 @@ the GID worksheet (F61). Where each one acts:
 """
 from dataclasses import dataclass, fields
 
-from .images import SHAPE_100K
+from .images import PIXEL_MM, SHAPE_100K
 
 ROW_MAX_100K = SHAPE_100K[0] - 1        # 486: the last row of a Pilatus 100K frame (487 rows as presented)
 
@@ -160,8 +160,8 @@ def cal_area(areainfo, dth, hslit_px, hard_slit_offset_mm=32.0):
     sam2d = areainfo[5] - hard_slit_offset_mm
     sli2s = areainfo[5] - areainfo[6]
     dth = dth * np.pi / 180.0
-    if s5h > float(hslit_px) * 0.172:
-        s5h = float(hslit_px) * 0.172
+    if s5h > float(hslit_px) * PIXEL_MM:
+        s5h = float(hslit_px) * PIXEL_MM
         sam2d = areainfo[5]
     phi = np.arcsin((s4h + s5h) / 2.0 / np.sqrt((s4h + s5h) ** 2 / 4.0 + (sam2d - sli2s) ** 2))
     dist = (s4h / 2.0 * sam2d + s5h / 2.0 * sli2s) / np.sqrt((s4h + s5h) ** 2 / 4.0 + (sam2d - sli2s) ** 2)

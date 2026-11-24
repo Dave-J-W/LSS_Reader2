@@ -43,7 +43,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-PIXEL_MM = 0.172
+from .images import PIXEL_MM                    # noqa: E402  Pilatus pixel (mm), written once there
 S5_TO_DETECTOR_MM = 32.0       # hard slits (the window's area correction uses the same 32 mm)
 
 

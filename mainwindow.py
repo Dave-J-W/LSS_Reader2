@@ -3953,22 +3953,22 @@ class MainWindow (QMainWindow):
         if axes=='Angles':
             xlabel=r'$2\theta$'+' '+r'$[\deg]$'
             ylabel=r'$\beta$'+' '+r'$[\deg]$'
-            pilYMin=((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
-            pilYMax=((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
+            pilYMin=((pilYMin-self.ycenter)*self.pilatus.pix_size/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
+            pilYMax=((pilYMax-self.ycenter)*self.pilatus.pix_size/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
             if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
                 self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
-            pilXMin=(self.dth+(pilXMin-self.xcenter)*0.172/self.distance)*180.0/np.pi
-            pilXMax=(self.dth+(pilXMax-self.xcenter)*0.172/self.distance)*180.0/np.pi
+            pilXMin=(self.dth+(pilXMin-self.xcenter)*self.pilatus.pix_size/self.distance)*180.0/np.pi
+            pilXMax=(self.dth+(pilXMax-self.xcenter)*self.pilatus.pix_size/self.distance)*180.0/np.pi
             pilXCen=self.dth*180.0/np.pi
         elif axes=='Q':
             xlabel=r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$'
             ylabel=r'$Q_z$'+' '+r'$[\AA^{-1}]$'
-            pilYMin=2.0*np.pi*(np.sin((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
-            pilYMax=2.0*np.pi*(np.sin((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
+            pilYMin=2.0*np.pi*(np.sin((pilYMin-self.ycenter)*self.pilatus.pix_size/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
+            pilYMax=2.0*np.pi*(np.sin((pilYMax-self.ycenter)*self.pilatus.pix_size/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
             if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
                 self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
-            pilXMin=4.0*np.pi*np.sin((self.dth+(pilXMin-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
-            pilXMax=4.0*np.pi*np.sin((self.dth+(pilXMax-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
+            pilXMin=4.0*np.pi*np.sin((self.dth+(pilXMin-self.xcenter)*self.pilatus.pix_size/self.distance)/2.0)/self.wavelength
+            pilXMax=4.0*np.pi*np.sin((self.dth+(pilXMax-self.xcenter)*self.pilatus.pix_size/self.distance)/2.0)/self.wavelength
             pilXCen=4.0*np.pi*np.sin(self.dth/2.0)/self.wavelength
         one=np.ones(n)
         return (pilXMin*one,pilXMax*one,pilYMin*one,pilYMax*one,pilXCen*one,xlabel,ylabel)
@@ -5014,9 +5014,9 @@ class MainWindow (QMainWindow):
                 ceny=self.pilY[i]
                 cenx,ceny=self.pilatus.peakLocate(self.pilData[i],self.pilErrorData[i],cen=[cenx,ceny],mon=self.pilMonc[i])
                 if self.dir=='H':
-                    self.bg=bg*self.pil_Dist[i]*np.pi/180/0.172/slitx
+                    self.bg=bg*self.pil_Dist[i]*np.pi/180/self.pilatus.pix_size/slitx
                 else:
-                    self.bg=bg*self.pil_Dist[i]*np.pi/180/0.172/slity
+                    self.bg=bg*self.pil_Dist[i]*np.pi/180/self.pilatus.pix_size/slity
                 self.pilatus.sumROI(slit=self.slit,cen=[cenx,ceny],dir=self.dir,bg=self.bg)
                 net,neterr=self.pilatus.netROI()
                 data.append([ctime*i,net,neterr])
@@ -5055,8 +5055,8 @@ class MainWindow (QMainWindow):
                     ini=float(self.uipdburn.rangeLineEdit.text().split(':')[0]) #get the  ini qz value from lineedit
                     fin=float(self.uipdburn.rangeLineEdit.text().split(':')[1]) #get the final qz value from lineedit
                     cen=self.pilatus.NCOLS-self.pilSelectedX[0]-1
-                    ini=max(int((2.0*np.arcsin(ini*self.pilSelected_Wavelength[0]/4.0/np.pi)-self.pilSelected_Dth[0])*self.pilSelected_PDist[0]/0.172)+cen,0) # conver it to pixel and check with the boundary
-                    fin=min(int((2.0*np.arcsin(fin*self.pilSelected_Wavelength[0]/4.0/np.pi)-self.pilSelected_Dth[0])*self.pilSelected_PDist[0]/0.172)+cen,self.pilatus.NCOLS-1)
+                    ini=max(int((2.0*np.arcsin(ini*self.pilSelected_Wavelength[0]/4.0/np.pi)-self.pilSelected_Dth[0])*self.pilSelected_PDist[0]/self.pilatus.pix_size)+cen,0) # conver it to pixel and check with the boundary
+                    fin=min(int((2.0*np.arcsin(fin*self.pilSelected_Wavelength[0]/4.0/np.pi)-self.pilSelected_Dth[0])*self.pilSelected_PDist[0]/self.pilatus.pix_size)+cen,self.pilatus.NCOLS-1)
                     row=np.arange(self.pilatus.NROWS)
                     col=np.arange(ini,fin+1)
                     col,row=np.meshgrid(col,row)
@@ -5092,15 +5092,15 @@ class MainWindow (QMainWindow):
                     print(y)
                     if self.uipdburn.gidComboBox.currentText()=='Location':
                         self.uipdburn.plotWidget.canvas.ax.set_ylabel('Relative Location '+r'$[\AA^{-1}]$')
-                        y=4.0*np.pi*np.sin((self.pilSelected_Dth[0]+(data[:,1]-cen)*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]
-                        yerr=4.0*np.pi*np.cos((self.pilSelected_Dth[0]+(data[:,1]-cen)*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]*data[:,2]*0.172/2/self.pilSelected_PDist[0]
+                        y=4.0*np.pi*np.sin((self.pilSelected_Dth[0]+(data[:,1]-cen)*self.pilatus.pix_size/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]
+                        yerr=4.0*np.pi*np.cos((self.pilSelected_Dth[0]+(data[:,1]-cen)*self.pilatus.pix_size/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]*data[:,2]*self.pilatus.pix_size/2/self.pilSelected_PDist[0]
                         y=y-y[0]
                     if self.uipdburn.gidComboBox.currentText()=='Width':
                         self.uipdburn.plotWidget.canvas.ax.set_ylabel('FWHM '+r'$[\AA^{-1}]$')
                         y=np.sqrt(y)
                         yerr=0.5/y*yerr
-                        y=4.0*np.pi*np.sin((y*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]
-                        yerr=4.0*np.pi*np.cos((data[:,1]*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]*data[:,2]*0.172/2/self.pilSelected_PDist[0]
+                        y=4.0*np.pi*np.sin((y*self.pilatus.pix_size/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]
+                        yerr=4.0*np.pi*np.cos((data[:,1]*self.pilatus.pix_size/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]*data[:,2]*self.pilatus.pix_size/2/self.pilSelected_PDist[0]
                     self.uipdburn.plotWidget.canvas.ax.errorbar(x,y,yerr,fmt='o-')
                     if self.uipdburn.gidComboBox.currentText()=='Intensity':
                         self.uipdburn.plotWidget.canvas.ax.set_ylabel('Intensity')
@@ -5169,10 +5169,10 @@ class MainWindow (QMainWindow):
             ax = self.ui.pilMplWidget.canvas.fig.add_subplot(1, 1, 1)
             ax.set_xlabel(xlabel, fontsize=16)
             ax.set_ylabel(ylabel, fontsize=16)
-            pilY_deg = np.arctan(-(self.ycenter[0] - pilY) * 0.172 / self.distance[0]) + np.arcsin(2 * np.sin(self.alpha[0]) - np.sin(self.truealpha[0]))  # beta in rad
+            pilY_deg = np.arctan(-(self.ycenter[0] - pilY) * self.pilatus.pix_size / self.distance[0]) + np.arcsin(2 * np.sin(self.alpha[0]) - np.sin(self.truealpha[0]))  # beta in rad
             if self.ui.pilPinholeCheckBox.checkState()!= 0:
                 self.distance = np.array(self.pilSelected_PDist)  # distance between S4 & S5 for pinhole setup
-            pilX_deg = self.dth[0] + np.arctan(-(self.xcenter[0] - pilX) * 0.172 / self.distance[0])  # dth in rad
+            pilX_deg = self.dth[0] + np.arctan(-(self.xcenter[0] - pilX) * self.pilatus.pix_size / self.distance[0])  # dth in rad
             pilX_deg, pilY_deg = np.meshgrid(pilX_deg, pilY_deg)  # mesh x-y corrdinates
             self.pilXbin = 2.0 * np.pi / self.wavelength[0] * np.sqrt(np.cos(self.truealpha[0]) ** 2 + np.cos(pilY_deg) ** 2 - 2 * np.cos(self.truealpha[0]) * np.cos(pilY_deg) * np.cos(pilX_deg))
             self.pilYbin = 2.0 * np.pi / self.wavelength[0] * (np.sin(self.truealpha[0]) + np.sin(pilY_deg))
@@ -6102,7 +6102,7 @@ class MainWindow (QMainWindow):
         j=0   #for xcenter and ycenter, which are already defined in self.selectedPilFramesNums
         for i in self.selectedPilFramesNums:
             self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absfac=self.absfac,absnum=[self.pil_AbsNum[i]],cen=[self.pilX[i],self.pilY[i]], hroi=[self.pilxleft[j]-1, self.pilxright[j]-1], vroi=[5,self.pilShape()[0]-1], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]], gain=self.pilGains([self.pilScanNum[i]]))
-            #ang=((self.pilatus.hintData[:,0]-self.ycenter[j])*0.172/self.distance[0]+np.arcsin(2.0*np.sin(self.pilAlpha[i])-np.sin(self.pilTrueAlpha[i])))*180/np.pi #convert pixle to beta
+            #ang=((self.pilatus.hintData[:,0]-self.ycenter[j])*self.pilatus.pix_size/self.distance[0]+np.arcsin(2.0*np.sin(self.pilAlpha[i])-np.sin(self.pilTrueAlpha[i])))*180/np.pi #convert pixle to beta
             #print self.pilatus.hintData[0][0]             
             j=j+1
             ckey=float(format(self.pil_Dth[i]*180/np.pi,'.2f'))
@@ -6150,7 +6150,7 @@ class MainWindow (QMainWindow):
         vmax=np.max(self.pilhintData)
 
 #            if str(self.ui.pilAxesComboBox.currentText())=='Angles':
-#                self.pilYAxs=((self.pilYAxs-self.ycenter[0])*0.172/self.distance[0]+self.alpha[0])*180/np.pi
+#                self.pilYAxs=((self.pilYAxs-self.ycenter[0])*self.pilatus.pix_size/self.distance[0]+self.alpha[0])*180/np.pi
 #                self.pil_ylabel= 'Theta [Degrees]'
         if str(self.ui.pilAxesComboBox.currentText())=='Q':
             self.pilYAxs==2.0*np.pi*(np.sin(self.pilYAxs*np.pi/180.0)+np.sin(self.pilTrueAlpha[0]))/self.wavelength[0] #this coversion is approximation. 
@@ -6324,9 +6324,9 @@ class MainWindow (QMainWindow):
             self.selData={}
             self.selErrorData={}
             if self.dir=='H':
-                self.bg=self.bg*self.pil_Dist[self.selFrameNums[0]]*np.pi/180/0.172/slitx
+                self.bg=self.bg*self.pil_Dist[self.selFrameNums[0]]*np.pi/180/self.pilatus.pix_size/slitx
             else:
-                self.bg=self.bg*self.pil_Dist[self.selFrameNums[0]]*np.pi/180/0.172/slity         
+                self.bg=self.bg*self.pil_Dist[self.selFrameNums[0]]*np.pi/180/self.pilatus.pix_size/slity         
             for i in self.selFrameNums:
                 self.selData[i]=self.pilData[i]
                 self.selErrorData[i]=self.pilErrorData[i]

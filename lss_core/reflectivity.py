@@ -27,7 +27,7 @@ import numpy as np
 
 from . import stitching
 
-PIXEL_MM = 0.172
+from .images import PIXEL_MM                    # noqa: E402  Pilatus pixel (mm), written once there
 
 
 def frame_row(detector, image, error, monitor, beam_xy, qz, slit, bg_offset_deg,

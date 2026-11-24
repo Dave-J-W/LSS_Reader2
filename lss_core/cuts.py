@@ -25,9 +25,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .images import PIXEL_MM     # noqa: F401  (cuts.PIXEL_MM, as before)
+
 DIRECTIONS = ('Q H', 'Q V', 'Pix H', 'Pix V')    # the window's list, in order
 AXES = ('Pixels', 'Angles', 'Q')
-PIXEL_MM = 0.172
 
 
 def default_range(direction, shape=None):

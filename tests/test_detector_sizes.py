@@ -114,3 +114,23 @@ def test_gid_worksheet_limits_follow_the_frames(window, qapp, recorder, monkeypa
     assert w.gidEffectiveParams().row_max == LARGER[0] - 1
     assert w.gidScriptSettings()[1] == ['row_max']          # a script names the larger detector's row
     assert recorder.exceptions == []
+
+
+def test_the_pixel_size_is_written_once():
+    """0.172 mm appears once, in lss_core.images; the window takes the
+    detector's pix_size, the modules import PIXEL_MM (same float: outputs
+    bit for bit as before, the export fixtures and real-data suites)."""
+    import os
+    import re
+    import TwoDDetector
+    from lss_core import cuts, display, images, pinhole, reflectivity
+    assert images.PIXEL_MM == 0.172
+    assert cuts.PIXEL_MM is display.PIXEL_MM is pinhole.PIXEL_MM is reflectivity.PIXEL_MM is images.PIXEL_MM
+    assert TwoDDetector.TwoDDetector('Pilatus').pix_size is images.PIXEL_MM
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sources = ['mainwindow.py', 'TwoDDetector.py'] + ['lss_core/' + f for f in os.listdir(os.path.join(root, 'lss_core'))
+                                                      if f.endswith('.py')]
+    found = [(f, k + 1) for f in sources for k, line in enumerate(open(os.path.join(root, f), encoding='utf-8'))
+             if re.search(r'(?<![\d.])0\.172(?!\d)', line)]
+    assert found == [('lss_core/images.py', n) for f, n in found if f == 'lss_core/images.py']
+    assert len(found) == 2               # the docstring's sentence and the constant
