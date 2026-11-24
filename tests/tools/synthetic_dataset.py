@@ -7,6 +7,7 @@ generators are those of docs/SYNTHETIC_DATA.md).
     python tests/tools/synthetic_dataset.py --out DIR --fault slits         # a slit change Monc misses (P29)
     python tests/tools/synthetic_dataset.py --out DIR --kind xfntr
     python tests/tools/synthetic_dataset.py --out DIR --kind burn
+    python tests/tools/synthetic_dataset.py --out DIR --kind mca --beam 12   # study B's hard case at 12 keV
 
 Kinds:
 
@@ -25,6 +26,15 @@ Kinds:
   counts per Qz.
 - ``burn``: one spot measured 21 times, the reflected peak decaying with
   τ = 400 s, no noise (``synth.make_burn_dataset``).
+- ``mca``: study B's hard case (F90; ``docs/reports/mca_fit_demo.md``),
+  ``--spectra`` MCA spectra drawn from one truth (``synthetic.mca``: the
+  line, Rayleigh and water's Compton shell by shell, Reed's escapes, tail
+  and shelf), one scan each: select them all and "Fit lines" fits them as
+  the gauntlet does. ``--beam``, ``--element``, ``--photons``, ``--wing``
+  (the O 1s Compton wing × water's) and ``--escape`` (× Reed's fraction)
+  as the demo's. ``truth.json``: the line's true photopeak counts per
+  spectrum (what a fit should find) and in the ±2 FWHM box (what a window
+  sum's line part is).
 
 The SPEC file's path is the last line printed (``SPEC <path>``): the Tools
 window opens it in the reader. Writes only under ``--out``.
@@ -40,6 +50,7 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, 'tests'))
+sys.path.insert(0, os.path.join(ROOT, 'tests', 'tools'))
 
 FAULTS = ('none', 'slits', 'foil')
 
@@ -83,6 +94,27 @@ def xfntr_dataset(out, seed=0):
     return spec, dict(kind='xfntr', seed=seed, scans=list(range(1, len(qz) + 1)))
 
 
+def mca_dataset(out, beam=10.0, element='Zn', photons=1e3, wing=1.0, escape=1.0, spectra=10, seed=0):
+    import mca_fit_gauntlet as g
+    from synthetic import mca
+    cond = g.hard_case(beam, element, photons, wing, escape)
+    if not g.excited(cond):
+        raise SystemExit('%g keV is below the %s K edge (%.3f keV)' % (beam, element, mca.ELEMENTS[element][0]))
+    s = cond.spectrum()
+    rng = np.random.default_rng([20261124, seed])
+    counts = [s.draw(rng) for _ in range(int(spectra))]
+    qz = np.round(np.linspace(0.01, 0.01 + 0.002 * (len(counts) - 1), len(counts)), 4)
+    spec = mca.write_dataset(out, [s] * len(counts), counts, qz=qz, monitor=1e6)
+    lo, hi = cond.box_range()
+    box = (s.energy >= lo) & (s.energy <= hi)
+    return spec, dict(kind='mca', describe=cond.describe, beam_keV=beam, element=element, photons=photons,
+                      wing=wing, escape=escape, seed=seed, scans=list(range(1, len(counts) + 1)),
+                      line_keV=cond.line, box_keV=[lo, hi], fwhm_keV=cond.fwhm,
+                      true_line_counts=float(s.photopeak(element).sum()),
+                      true_line_counts_in_box=float(s.photopeak(element)[box].sum()),
+                      expected_counts_in_box=float(s.expected[box].sum()))
+
+
 def burn_dataset(out):
     import synth
     spec = synth.make_burn_dataset(out)
@@ -93,7 +125,7 @@ def burn_dataset(out):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--out', required=True, help='folder to write into (created)')
-    ap.add_argument('--kind', choices=('xrr', 'xfntr', 'burn'), default='xrr')
+    ap.add_argument('--kind', choices=('xrr', 'xfntr', 'burn', 'mca'), default='xrr')
     ap.add_argument('--truth', choices=('film', 'water', 'dppc'), default='film', help='xrr: the true interface')
     ap.add_argument('--thickness', type=float, default=100.0, help='xrr film thickness (Å); fringes of period 2π/d')
     ap.add_argument('--counts', type=float, default=1.0, help='xrr: beam and monitors scaled (1: the NX school rates)')
@@ -106,6 +138,12 @@ def main(argv=None):
                          'exp(-Qz²σ²)')
     ap.add_argument('--background', type=float, default=1.0,
                     help='xrr: the diffuse background scaled (1: the NX school level)')
+    ap.add_argument('--beam', type=float, default=10.0, help='mca: the beam energy (keV)')
+    ap.add_argument('--element', default='Zn', help='mca: the fluorescing element (Zn, Fe, Cu, Ni, Ga, Br)')
+    ap.add_argument('--photons', type=float, default=1e3, help="mca: the line's K photons per spectrum (1e6 elastic)")
+    ap.add_argument('--wing', type=float, default=1.0, help="mca: the O 1s Compton wing, × water's (0: none)")
+    ap.add_argument('--escape', type=float, default=1.0, help="mca: the Si escape peaks, × Reed's fraction (0: none)")
+    ap.add_argument('--spectra', type=int, default=10, help='mca: spectra (one scan each) drawn from the truth')
     ap.add_argument('--seed', type=int, default=0, help='noise replicate')
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
@@ -114,6 +152,8 @@ def main(argv=None):
                                  a.roughness, a.background)
     elif a.kind == 'xfntr':
         spec, info = xfntr_dataset(a.out, a.seed)
+    elif a.kind == 'mca':
+        spec, info = mca_dataset(a.out, a.beam, a.element, a.photons, a.wing, a.escape, a.spectra, a.seed)
     else:
         spec, info = burn_dataset(a.out)
     with open(os.path.join(a.out, 'truth.json'), 'w', encoding='utf-8') as f:
