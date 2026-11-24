@@ -95,6 +95,7 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [MCA line-fit gauntlet (synthetic, judged)](#mca-fit-gauntlet) | data | Fitted fluorescence lines against the window sum on synthetic MCA spectra with the beam's Rayleigh and Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), judged by hand-off 08's pull rule and a 1 % bias rule. | synthetic (public) |  | `docs/comparisons_data/mca_fit_gauntlet` |
+| [Study B figures: MCA line intensities (F90)](#mca-study) | figures | The owner's study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with every estimator's fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass rates and the robustness map (B1-B7), from the gauntlet's study run. | synthetic (public) |  | `docs/studies/mca_fit` |
 
 ### Synthetic data sets
 
@@ -775,6 +776,27 @@ Variations:
 | Grid: Si escapes and stripping | Escape peaks at 0.3 to 5 × Reed's fraction, and stripping with the fraction half or twice the true one. | `docs/physics_notes.md#(3) **Si escape` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions escape_x0.3,escape_x1,escape_x5,escape_assumed_x0.5,escape_assumed_x2` |
 | Grid: counts and line/elastic | From 1e-2 to 1e-4 of the elastic and from 0.03 to 10 times the counts. | `docs/physics_notes.md#| Neyman bias, 270` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions ratio_0.01,ratio_0.003,ratio_0.0003,ratio_0.0001,counts_x0.1,counts_x10` |
 | XFNTR series | Whole XFNTR curves, smooth and hard: does each estimator keep the curve's shape where the elastic grows above Qc? | `docs/physics_notes.md#distorts XFNTR curves:` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design series --replicates 50` |
+| Study B run (shells Compton, P1-P3) | The study's run: water's Compton shell by shell, the reader's options P1, P2, P3, the robustness sweep and the counts design (about 25 min; its products are docs/studies/mca_fit/gauntlet). | `docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design all,robust,counts --replicates 200 --methods study --compton shells` |
+| Robustness sweep only | Escape fraction x O 1s wing, Doppler width and counts from the hard case. | `docs/studies/2026-11-24_two_decisions_plan.md#Then the robustness sweep over` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design robust --replicates 100 --methods study --compton shells` |
+
+<a id="mca-study"></a>
+
+### Study B figures: MCA line intensities (F90)
+
+The owner's study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with every estimator's fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass rates and the robustness map (B1-B7), from the gauntlet's study run.
+
+- Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/mca_study.py`
+- Explained in: `docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line`, `docs/studies/mca_fit/summary.md`, `docs/COMPARISONS.md#| C47 |`
+- Committed products: `docs/studies/mca_fit`; not replaced from the window
+- Run:
+
+      python tests/tools/mca_study.py --gauntlet docs/studies/mca_fit/gauntlet --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Replicates and anatomy only | B1 and B2, which need no gauntlet run (about 20 s). | `docs/studies/2026-11-24_two_decisions_plan.md#B2. Replicates and their fits` | `python tests/tools/mca_study.py --gauntlet docs/studies/mca_fit/gauntlet --out '{out}' --only B1,B2` |
 
 <a id="synthetic-dataset"></a>
 

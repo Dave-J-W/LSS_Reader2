@@ -179,10 +179,84 @@ class Beam:
     compton_core: float = 0.0
     compton_core_fwhm: float = 0.8
     compton_core_binding: float = 0.532
+    compton_model: str = 'hydrogenic'      # or 'shells': water's electron shells (``WATER_SHELLS``, study B)
+    core_scale: float = 1.0                # shells: × the O 1s electrons (0: none)
+    doppler_scale: float = 1.0             # shells: × every shell's momentum width
 
     @property
     def compton(self):
         return compton_energy(self.energy, self.angle)
+
+
+# Water's electron shells for the 'shells' Compton model (study B, 2026-11-24): (name, electrons,
+# orbital, effective charge Z_eff, binding keV). Hydrogenic momentum densities with Clementi and
+# Raimondi's (1963) Slater exponents, Z_eff = n ζ (O 1s ζ 7.658, 2s 2.246, 2p 2.227; from memory);
+# for H in the O-H bond ζ ≈ 1.2 (an assumption between the free atom's 1.0 and H2's 1.19).
+# Bindings: O 1s 0.543 keV (X-ray Data Booklet, the O K edge, from memory), the valence ones
+# 0.03 keV or less (water's 2a1, 1b2, 3a1, 1b1 levels). Tabulated Hartree-Fock profiles (Biggs,
+# Mendelsohn and Mann 1975) were not available offline: this is an approximation, swept in the
+# study by core_scale and doppler_scale.
+WATER_SHELLS = (
+    ('O 1s', 2, '1s', 7.658, 0.543),
+    ('O 2s', 2, '2s', 2 * 2.246, 0.032),
+    ('O 2p', 4, '2p', 2 * 2.227, 0.013),
+    ('H 1s', 2, '1s', 1.2, 0.016),
+)
+ALPHA_INV = 137.035999          # 1/α: p_z in atomic units from units of mc
+
+
+def compton_pz(e0, e1, angle_deg):
+    """The electron's momentum along the scattering vector, p_z (atomic
+    units), for a photon scattered from ``e0`` to ``e1`` (keV) through 2θ:
+    the impulse approximation's p_z = mc [E0 E1 (1 − cos 2θ) − mc² (E0 − E1)]
+    / (mc² |k0 − k1|) (P. Eisenberger and P. M. Platzman 1970; R. Ribberfors
+    1975). Zero at the free-electron Compton energy, positive above it."""
+    c = math.cos(math.radians(angle_deg))
+    e1 = np.asarray(e1, float)
+    num = e0 * e1 * (1.0 - c) - ME_C2_KEV * (e0 - e1)
+    den = ME_C2_KEV * np.sqrt(e0 ** 2 + e1 ** 2 - 2.0 * e0 * e1 * c)
+    return ALPHA_INV * num / den
+
+
+def hydrogenic_profile(q, orbital, z_eff):
+    """Compton profile J(q) (per electron, ∫J dq = 1) of a hydrogenic
+    orbital: J(q) = 2π ∫_|q|^∞ ρ(p) p dp, with the momentum densities
+    ρ_1s ∝ (p² + p0²)⁻⁴, ρ_2s ∝ (p² − p0²)² (p² + p0²)⁻⁶ and
+    ρ_2p ∝ p² (p² + p0²)⁻⁶, p0 = Z_eff/n (Podolsky and Pauling 1929)."""
+    n = {'1s': 1, '2s': 2, '2p': 2}[orbital]
+    p0 = z_eff / n
+    p = np.linspace(0.0, 40.0 * p0, 20001)
+    if orbital == '1s':
+        rho = (p ** 2 + p0 ** 2) ** -4
+    elif orbital == '2s':
+        rho = (p ** 2 - p0 ** 2) ** 2 * (p ** 2 + p0 ** 2) ** -6
+    else:
+        rho = p ** 2 * (p ** 2 + p0 ** 2) ** -6
+    tail = np.concatenate([np.cumsum((rho * p)[::-1])[::-1]])      # ∫_p^∞ ρ p dp (up to the step)
+    j = tail / np.trapezoid(tail, p) / 2.0                          # J on q ≥ 0; ∫ over q from −∞ to ∞ is 1
+    return np.interp(np.abs(np.asarray(q, float)), p, j, right=0.0)
+
+
+def shell_compton(beam, e1):
+    """Compton photons per keV at energies ``e1`` (keV) per Compton photon of
+    the free-electron reference (all water's electrons, no binding), split
+    into the valence and O 1s parts: (valence, core). Each shell's J(p_z)
+    |dp_z/dE| (the impulse approximation), cut off where the energy given
+    to the electron is below its binding, E0 − E1 < B."""
+    e1 = np.asarray(e1, float)
+    pz = compton_pz(beam.energy, e1, beam.angle)
+    dpz = np.abs(np.gradient(pz, e1))
+    total = sum(n for _, n, _, _, _ in WATER_SHELLS)
+    val, core = np.zeros_like(e1), np.zeros_like(e1)
+    for name, n, orb, z, b in WATER_SHELLS:
+        lam = beam.doppler_scale
+        j = hydrogenic_profile(pz / lam, orb, z) / lam
+        w = (n / total) * j * dpz * (beam.energy - e1 > b)
+        if name == 'O 1s':
+            core += beam.core_scale * w
+        else:
+            val += w
+    return val, core
 
 
 def _hydrogenic(fwhm, span=10.0, n=401):
@@ -303,7 +377,15 @@ def spectrum(lines, elastic=0.0, beam=Beam(), detector=Detector(), background=0.
     if elastic > 0:
         add('Rayleigh', [beam.energy], [elastic])
         nc = elastic * beam.compton_ratio
-        if nc > 0:
+        if nc > 0 and beam.compton_model == 'shells':
+            ec = beam.compton
+            de = 0.004
+            e1 = np.arange(ec - 4.0, min(ec + 1.0, beam.energy), de)
+            val, core = shell_compton(beam, e1)
+            add('Compton valence', e1, nc * val * de)
+            if beam.core_scale > 0:
+                add('Compton core', e1, nc * core * de)
+        elif nc > 0:
             ec = beam.compton
             d, wv = _hydrogenic(beam.compton_fwhm)
             ev, nv = ec + d, nc * (1.0 - beam.compton_core) * wv

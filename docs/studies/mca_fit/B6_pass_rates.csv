@@ -1,0 +1,50 @@
+method,klass,conditions,share_within_1pc
+window,low counts (< 300),45,0
+sides,low counts (< 300),45,0
+fit,low counts (< 300),45,0
+p1,low counts (< 300),45,0
+p1p2,low counts (< 300),45,0
+p1p3,low counts (< 300),45,0.0222222
+p1p2p3,low counts (< 300),45,0.0222222
+window,strong O 1s wing,36,0
+sides,strong O 1s wing,36,0.166667
+fit,strong O 1s wing,36,0.277778
+p1,strong O 1s wing,36,0.305556
+p1p2,strong O 1s wing,36,0.25
+p1p3,strong O 1s wing,36,0.277778
+p1p2p3,strong O 1s wing,36,0.222222
+window,large escape (> 2 × Reed),41,0
+sides,large escape (> 2 × Reed),41,0.0243902
+fit,large escape (> 2 × Reed),41,0.170732
+p1,large escape (> 2 × Reed),41,0.146341
+p1p2,large escape (> 2 × Reed),41,0.170732
+p1p3,large escape (> 2 × Reed),41,0.219512
+p1p2p3,large escape (> 2 × Reed),41,0.219512
+window,wide Doppler (> 1.5 ×),14,0
+sides,wide Doppler (> 1.5 ×),14,0.0714286
+fit,wide Doppler (> 1.5 ×),14,0.0714286
+p1,wide Doppler (> 1.5 ×),14,0.0714286
+p1p2,wide Doppler (> 1.5 ×),14,0.142857
+p1p3,wide Doppler (> 1.5 ×),14,0.142857
+p1p2p3,wide Doppler (> 1.5 ×),14,0.0714286
+window,Cu neighbour,3,0
+sides,Cu neighbour,3,0
+fit,Cu neighbour,3,0.333333
+p1,Cu neighbour,3,0.333333
+p1p2,Cu neighbour,3,0
+p1p3,Cu neighbour,3,0.333333
+p1p2p3,Cu neighbour,3,0
+window,the rest,11,0
+sides,the rest,11,0.0909091
+fit,the rest,11,0.272727
+p1,the rest,11,0.272727
+p1p2,the rest,11,0.272727
+p1p3,the rest,11,0.272727
+p1p2p3,the rest,11,0.272727
+window,all,150,0
+sides,all,150,0.06
+fit,all,150,0.146667
+p1,all,150,0.146667
+p1p2,all,150,0.14
+p1p3,all,150,0.173333
+p1p2p3,all,150,0.146667
