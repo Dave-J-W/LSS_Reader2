@@ -444,7 +444,8 @@ GID = {
             ROW(C('pdformfac.ellCheckBox', 'Ellipsoid'), C('pdformfac.ellXYLineEdit', 'r_xy (Å)')),
             C('pdformfac.ellZLineEdit', 'r_z (Å)'),
             ROW(C('pdformfac.updatePushButton', 'Draw form factor'),
-                NEW('gid_patchRelax', 'Patch relax', 'button', 'Was an item of the GID combo')),
+                NEW('gid_patchRelax', 'Patch relax', 'button', 'Was an item of the GID combo'),
+                C('gidWorksheetPushButton', 'Worksheet…', kind='button')),
         ], fold=True),
     ],
     'right': [
@@ -615,12 +616,13 @@ PANES = [
 STATUS = [
     C('statusBar', '', kind='pane'),
     C('progressDialog', '', kind='progress', note='Progress in the status bar, with Abort, instead of a window'),
+    # the main window's state badges (F85, built there 2026-11-23); STATUS[2:] are drawn as badges
+    C('errorsBadgeLabel', 'legacy errors', kind='badge'),
+    C('normBadgeLabel', '/ Monc', kind='badge'),
+    C('patchBadgeLabel', 'joint patch', kind='badge'),
 ]
 
 STATE_BAR = [
-    ('budget errors', 'Error model (Errors pane). Click: open the Errors pane.'),
-    ('/ Monc', 'Normalisation everywhere: / Monc; / gain off; / photon off. Click: open the setting.'),
-    ('joint patch', 'Reflectivity patch method (Reflectivity > Patch). Click: go there.'),
     ('Live off', 'Watching the SPEC file for new scans (the panel\'s Live box).'),
 ]
 
@@ -639,6 +641,13 @@ PREFERENCES = [
     ]),
     G('Window', '', [
         C('prefNguiCheckBox', 'ngui (new layout, prototype)', note='This window; unticking closes it'),
+        C('prefBadgesComboBox', 'State badges', items=['on', 'when not default', 'off']),
+        # Reduction options (F86, built in the main window 2026-11-23)
+        C('prefSumAllLegacyCheckBox', 'Sum All: legacy average'),
+        C('prefRepeatsLegacyCheckBox', 'Ref Patch repeats: average (legacy)'),
+        C('prefGisaxsRawCheckBox', 'GISAXS: raw counts (legacy)'),
+        C('prefMcaFitLegacyCheckBox', 'Fluorescence fit: legacy dialog'),
+        C('prefBurnLegacyCheckBox', 'Burn: Legacy tab'),
         C('prefClosePushButton', 'Close'),
     ]),
 ]

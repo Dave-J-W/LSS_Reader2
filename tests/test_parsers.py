@@ -125,7 +125,11 @@ def test_only_15idc_files_are_read(qapp, dataset, tmp_path):
 
 
 @pytest.mark.gui
-def test_9idc_menu_entry_is_hidden(window):
-    assert not window.ui.actionAPS_9IDC.isVisible()
-    assert window.ui.actionAPS_15IDC.isChecked()
+def test_the_beamline_is_15idc_and_has_no_menu(window, recorder):
+    """One beamline is supported (owner, 2026-11-17); the Beamlines menu,
+    which offered nothing to choose, was removed (owner, 2026-11-23, Q14)."""
     assert window.beamline == 'APS-15IDC'
+    titles = [a.text() for a in window.menuBar().actions()]
+    assert 'Beamlines' not in titles and titles[0] == 'File'
+    assert not hasattr(window.ui, 'actionAPS_15IDC') and not hasattr(window.ui, 'actionAPS_9IDC')
+    assert recorder.exceptions == []

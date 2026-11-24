@@ -102,6 +102,9 @@ only by reading the merge.
   tooltip: true               # has a tooltip today
   notes: ""                   # placement, duplicates, inconsistent naming or look,
                               # a counterpart missing elsewhere (optional)
+  removed: ""                 # set when the control is taken out of the window:
+                              # the date and the reason (e.g. "2026-11-23, owner Q14");
+                              # the entry stays as the record and is not looked for
 ```
 
 ### Workflow entry (`workflows.yaml`, key `workflows:`, a list)

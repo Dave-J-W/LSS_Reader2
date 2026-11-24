@@ -19,7 +19,9 @@ The map (``docs/gui/workflows.yaml``) and the inventory
     for the purpose), to an attribute of ``window.ui`` or the window, or to
     an objectName in a ``.ui`` file (``<stem>.<widget>`` against
     ``<stem>.ui``); an id found only in ``mainwindow.py`` text is reported
-    as such; and, the other way, every named interactive control of that
+    as such (entries with a ``removed:`` field, a date and reason, are
+    kept as the record of what the window had and are not looked for; a
+    workflow step naming one is a problem); and, the other way, every named interactive control of that
     window (buttons, check boxes, combos, line edits, spin boxes, sliders,
     lists, text boxes) is in the inventory, so a control added to the
     window without an entry is a problem (``tests/test_gui_map.py`` runs
@@ -215,6 +217,12 @@ def check(inv, entries, shared, flows, report):
                     loose[str(cid)] = got
     for cid in sorted(missing):
         report.problem('control %s (in %s) is not in the inventory' % (cid, ', '.join(sorted(missing[cid]))))
+    for flow in flows:
+        for s in resolved_steps(flow, shared):
+            for cid in s['controls']:
+                got = match_control(str(cid), inv)[0]
+                if got is not None and inv[got].get('removed'):
+                    report.problem('%s: control %s was removed (%s)' % (s.get('id'), cid, inv[got]['removed']))
     for cid in sorted(loose):
         report.warn('control %s matched the inventory id %s loosely (by widget name)' % (cid, loose[cid]))
     known_q = question_ids()
@@ -273,6 +281,10 @@ def check_window(entries, report):
         with open(path, encoding='utf-8') as f:
             ui_names[os.path.splitext(os.path.basename(path))[0]] = set(re.findall(r'name="([^"]+)"', f.read()))
     found = code_only = 0
+    gone = [e for e in entries if e.get('removed')]
+    entries = [e for e in entries if not e.get('removed')]
+    if gone:
+        report.note('--window: %d removed entr%s not looked for (field removed:)' % (len(gone), 'y' if len(gone) == 1 else 'ies'))
     for e in entries:
         cid = str(e['id'])
         head, _, tail = cid.rpartition('.')
@@ -455,9 +467,12 @@ def render_inventory(entries):
               '| Id | Kind | Label | Where | Handler | Does | Workflows | Needs | Shown | Tooltip | Notes |',
               '|---|---|---|---|---|---|---|---|---|---|---|']
         for e in files[fn]:
+            notes = e.get('notes')
+            if e.get('removed'):
+                notes = '**Removed** %s. %s' % (e['removed'], notes or '')
             L.append('| `%s` | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |' % tuple(
                 [cell(e['id'])] + [cell(e.get(k)) for k in ('kind', 'label', 'where', 'handler', 'does', 'workflows',
-                                                           'needs', 'shown', 'tooltip', 'notes')]))
+                                                           'needs', 'shown', 'tooltip')] + [cell(notes)]))
         L.append('')
     return '\n'.join(L) + '\n'
 

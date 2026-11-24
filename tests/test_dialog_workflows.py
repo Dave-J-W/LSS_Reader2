@@ -62,7 +62,7 @@ def test_merge_then_patch(same, qapp, recorder):
     same.uirefpatch.nextPushButton.click()
     qapp.processEvents()
     assert recorder.exceptions == []
-    assert same.ui.PlotWidget.currentIndex() == 3
+    assert same.ui.PlotWidget.currentWidget() is same.ui.refTab
     # 9 + 7 points; the new scan's 2 points inside the overlap are averaged in
     assert len(same.refData) == 9 + 7 - 2
 
@@ -91,7 +91,7 @@ def test_dropping_both_repeats_leaves_one_scan(same, qapp, recorder):
     assert recorder.exceptions == []
     assert sorted(same.scanqzframe) == [1]
     # one scan left: no patch dialog, its data become the reflectivity
-    assert same.ui.PlotWidget.currentIndex() == 3
+    assert same.ui.PlotWidget.currentWidget() is same.ui.refTab
     assert np.array(same.refData)[:, 0] == pytest.approx(np.linspace(0.01, 0.05, 9))
 
 
@@ -130,6 +130,38 @@ def test_patch_dialog_drop_then_finish(patch, qapp, recorder):
     assert recorder.exceptions == []
     # 9 + 6 points, the remaining overlap point (Qz 0.05) averaged in
     assert len(patch.refData) == 9 + 6 - 1
+
+
+def test_drop_after_the_last_join_says_so(patch, qapp, recorder):
+    """Found by the crash sweep's random walk (2026-11-23): Drop with no join
+    left raised IndexError (pilreforder + 1 past the scans)."""
+    d = patch.uirefpatch
+    d.nextPushButton.click()                  # the only join: Finish
+    qapp.processEvents()
+    recorder.messages.clear()
+    d.dropLineEdit.setText('0')
+    d.dropPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert any('no next scan' in m for m in recorder.messages)
+
+
+def test_a_one_scan_patch_exports_three_columns(loaded, qapp, recorder, tmp_path):
+    """Found by the crash sweep's random walk (2026-11-23): a Ref Patch of one
+    scan keeps extra columns (signal and backgrounds apart), and Export's
+    three-column format raised ValueError. The _ref.txt format is Qz, R, dR."""
+    sweep._select_scans(loaded, qapp, [0])
+    sweep._select_images(loaded, qapp)
+    loaded.ui.pilRefPatchPushButton.click()
+    qapp.processEvents()
+    assert np.asarray(loaded.normRefData).shape[1] > 3
+    recorder.save_name = str(tmp_path / 'one')
+    loaded.ui.refExportPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    got = np.loadtxt(str(tmp_path / 'one_ref.txt'))
+    assert got.shape == (len(loaded.normRefData), 3)
+    assert got[:, :3] == pytest.approx(np.asarray(loaded.normRefData)[:, :3], rel=1e-4)
 
 
 # ---- information dialogs opened by Ref Patch --------------------------------
@@ -190,6 +222,10 @@ def test_burn_dialog_bad_range_and_mode(window, qapp, recorder, tmp_path):
 # ---- GID: form-factor dialog -------------------------------------------------
 
 def _gid(w, qapp, name):
+    if name in ('GID Patch', 'Worksheet'):          # buttons since 2026-11-23 (Q-GID-5)
+        (w.gidPatchPushButton if name == 'GID Patch' else w.gidWorksheetPushButton).click()
+        qapp.processEvents()
+        return
     i = w.ui.gidComboBox.findText(name)
     w.ui.gidComboBox.setCurrentIndex(i)
     w.ui.gidComboBox.activated.emit(i)

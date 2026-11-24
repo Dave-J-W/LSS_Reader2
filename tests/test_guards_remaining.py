@@ -21,7 +21,6 @@ PAIRS = [
     ('empty', 'action:actionG_l3'),
     ('empty', 'click:backgroundPushButton'),
     ('empty', 'click:cutExportPushButton'),
-    ('empty', 'click:gixLineAreaPushButton'),
     ('empty', 'click:mcaAcceptPushButton'),
     ('empty', 'click:mcaFitPushButton'),
     ('empty', 'click:mcaRemoveFilePushButton'),
@@ -30,11 +29,8 @@ PAIRS = [
     ('empty', 'click:pilMoviePushButton'),
     ('empty', 'click:spExportPushButton'),
     ('empty', 'combo:cutLegendLocComboBox'),
-    ('empty', 'combo:gixCutDirComboBox'),
     ('empty', 'combo:spLegendLocComboBox'),
     ('empty', 'enter:cutOffsetLineEdit'),
-    ('empty', 'enter:gixBPCfacLineEdit'),
-    ('empty', 'enter:gixIntRangeLineEdit'),
     ('empty', 'enter:pilIntRangeLineEdit'),
     ('empty', 'enter:scansLineEdit'),
     ('empty', 'step:pilBPCfacSpinBox'),
@@ -55,7 +51,6 @@ PAIRS = [
     ('mca_frames', 'action:actionG_l3'),
     ('mca_frames', 'click:backgroundPushButton'),
     ('mca_frames', 'click:cutExportPushButton'),
-    ('mca_frames', 'click:gixLineAreaPushButton'),
     ('mca_frames', 'click:mcaAcceptPushButton'),
     ('mca_frames', 'click:mcaRemoveFilePushButton'),
     ('mca_frames', 'click:pilBurnPushButton'),
@@ -63,11 +58,9 @@ PAIRS = [
     ('mca_frames', 'click:pilMoviePushButton'),
     ('mca_frames', 'click:spExportPushButton'),
     ('mca_frames', 'combo:cutLegendLocComboBox'),
-    ('mca_frames', 'combo:gixCutDirComboBox'),
     ('mca_frames', 'combo:mcaNormComboBox'),
     ('mca_frames', 'combo:spLegendLocComboBox'),
     ('mca_frames', 'enter:cutOffsetLineEdit'),
-    ('mca_frames', 'enter:gixIntRangeLineEdit'),
     ('mca_frames', 'enter:pilIntRangeLineEdit'),
     ('mca_frames', 'toggle:bgSelectAllCheckBox'),
     ('mca_frames', 'toggle:cutErrorbarCheckBox'),
@@ -83,7 +76,6 @@ PAIRS = [
     ('mca_frames', 'toggle:spNCheckBox'),
     ('motor_scan', 'click:backgroundPushButton'),
     ('motor_scan', 'click:cutExportPushButton'),
-    ('motor_scan', 'click:gixLineAreaPushButton'),
     ('motor_scan', 'click:mcaAcceptPushButton'),
     ('motor_scan', 'click:mcaFitPushButton'),
     ('motor_scan', 'click:mcaRemoveFilePushButton'),
@@ -91,9 +83,7 @@ PAIRS = [
     ('motor_scan', 'click:pilLineAreaPushButton'),
     ('motor_scan', 'click:pilMoviePushButton'),
     ('motor_scan', 'combo:cutLegendLocComboBox'),
-    ('motor_scan', 'combo:gixCutDirComboBox'),
     ('motor_scan', 'enter:cutOffsetLineEdit'),
-    ('motor_scan', 'enter:gixIntRangeLineEdit'),
     ('motor_scan', 'enter:pilIntRangeLineEdit'),
     ('motor_scan', 'toggle:bgSelectAllCheckBox'),
     ('motor_scan', 'toggle:cutErrorbarCheckBox'),
@@ -108,7 +98,6 @@ PAIRS = [
     ('pilatus_one_frame', 'click:mcaRemoveFilePushButton'),
     ('pilatus_scan_no_frames', 'click:backgroundPushButton'),
     ('pilatus_scan_no_frames', 'click:cutExportPushButton'),
-    ('pilatus_scan_no_frames', 'click:gixLineAreaPushButton'),
     ('pilatus_scan_no_frames', 'click:mcaAcceptPushButton'),
     ('pilatus_scan_no_frames', 'click:mcaFitPushButton'),
     ('pilatus_scan_no_frames', 'click:mcaRemoveFilePushButton'),
@@ -116,9 +105,7 @@ PAIRS = [
     ('pilatus_scan_no_frames', 'click:pilLineAreaPushButton'),
     ('pilatus_scan_no_frames', 'click:pilMoviePushButton'),
     ('pilatus_scan_no_frames', 'combo:cutLegendLocComboBox'),
-    ('pilatus_scan_no_frames', 'combo:gixCutDirComboBox'),
     ('pilatus_scan_no_frames', 'enter:cutOffsetLineEdit'),
-    ('pilatus_scan_no_frames', 'enter:gixIntRangeLineEdit'),
     ('pilatus_scan_no_frames', 'enter:pilIntRangeLineEdit'),
     ('pilatus_scan_no_frames', 'toggle:bgSelectAllCheckBox'),
     ('pilatus_scan_no_frames', 'toggle:cutErrorbarCheckBox'),
@@ -138,7 +125,6 @@ PAIRS = [
     ('spec_loaded', 'action:actionG_l3'),
     ('spec_loaded', 'click:backgroundPushButton'),
     ('spec_loaded', 'click:cutExportPushButton'),
-    ('spec_loaded', 'click:gixLineAreaPushButton'),
     ('spec_loaded', 'click:mcaAcceptPushButton'),
     ('spec_loaded', 'click:mcaFitPushButton'),
     ('spec_loaded', 'click:mcaRemoveFilePushButton'),
@@ -147,11 +133,8 @@ PAIRS = [
     ('spec_loaded', 'click:pilMoviePushButton'),
     ('spec_loaded', 'click:spExportPushButton'),
     ('spec_loaded', 'combo:cutLegendLocComboBox'),
-    ('spec_loaded', 'combo:gixCutDirComboBox'),
     ('spec_loaded', 'combo:spLegendLocComboBox'),
     ('spec_loaded', 'enter:cutOffsetLineEdit'),
-    ('spec_loaded', 'enter:gixBPCfacLineEdit'),
-    ('spec_loaded', 'enter:gixIntRangeLineEdit'),
     ('spec_loaded', 'enter:pilIntRangeLineEdit'),
     ('spec_loaded', 'step:pilBPCfacSpinBox'),
     ('spec_loaded', 'step:pilBPCiteSpinBox'),
@@ -270,11 +253,10 @@ def test_display_options_with_nothing_plotted_are_silent(qapp, recorder, tmp_pat
                      'spLogXCheckBox', 'spLogYCheckBox', 'spGridCheckBox',
                      'spLegendCheckBox', 'spNCheckBox', 'bgSelectAllCheckBox'):
             getattr(w.ui, name).toggle()
-        for name in ('cutLegendLocComboBox', 'spLegendLocComboBox', 'gixCutDirComboBox'):
+        for name in ('cutLegendLocComboBox', 'spLegendLocComboBox'):   # gixCutDirComboBox: Apex tab removed (Q14)
             c = getattr(w.ui, name)
             c.setCurrentIndex((c.currentIndex() + 1) % c.count())
-        for name in ('cutOffsetLineEdit', 'gixIntRangeLineEdit', 'pilIntRangeLineEdit',
-                     'gixBPCfacLineEdit'):
+        for name in ('cutOffsetLineEdit', 'pilIntRangeLineEdit'):   # the gix* fields: Apex tab removed (Q14)
             getattr(w.ui, name).returnPressed.emit()
         w.ui.pilBPCfacSpinBox.stepUp()
         w.ui.pilBPCiteSpinBox.stepUp()
