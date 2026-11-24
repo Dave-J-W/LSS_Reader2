@@ -432,6 +432,8 @@ order"), for a day of reflectivity only; the whole answer is in
 
 | F107 | **Colour the timeline's sx line by received dose** (owner, 2026-11-24, Q-TL-7): the sx trace on the sample timeline (F83) is coloured by the radiation dose per area received at each position, scaled by the dose per area of the relevant burn test (so colour says how close a spot is to the damage threshold). Needs the beam footprint and a dose per scan point (the burn dose axis of F98 is the same quantity); the burn test chosen for scaling is the sample's own, else the nearest in time (assumption). Barrier and tensiometer traces appear only when the data exist (F75). |
 
+| F108 | **Timeline placeholders and automatic flags** (owner, 2026-11-24, Q-TL-5): coloured boxes hold the user's own notes and stand in where a thumbnail cannot be drawn (not reduced, failed, stale); the program adds automatic flags, for example "sh scan narrower than 65 µm" and "40 min since the last sh scan", as marks the user can dismiss (assumption: dismissible, per-SPEC state). Part of F83. |
+
 Also decided (see `docs/gui/questions.md` Answers): movie at 3 or more frames, space pauses, arrows step when paused (F69); weighted residuals (F74); Apex tab, Beamlines menu, `peakfit2`/`peakfitpara` and the Command line row removed; Quit works and Documentation opens `docs/SCRIPTING.md`; Messages, Errors and Script panes follow D59.
 
 ### Status of built items

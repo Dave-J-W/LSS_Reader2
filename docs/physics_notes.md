@@ -5626,3 +5626,11 @@ geometry (which side of the absorbers the Monc chamber is on).
   case and against time in the second (the Bunsen–Roscoe reciprocity assumption). The comparison of two
   burns, and the window's plot mode with several burns at once, are next (F98's GUI part, the GUI manager).
 
+### 2026-11-24 — Beam size, Monc position, shutter in fast mode, timeline placeholders (batch 18; asked for Main)
+
+Verified by: the owner's statements; nothing checked against data.
+
+- **Beam geometry:** S0 and S1 are upstream of the sample; S2/S3 (Pilatus 1M or point detector, defunct) and S4/S5 (Pilatus 200K/100K) are downstream. Vertically the beam is focused by a curved mirror since the APS shutdown; the slits transmit more than the vertical FWHM. Horizontally most of the energy is in about 1 mm and 1 or 2 mm slits are used. **So the slit opening is not the footprint**; the footprint for dose per area needs the vertical beam size (open: OQ-2, OQ-3) and whether the header's values are half-openings (OQ-1). For a footprint, width × height / sin α with α the incidence angle, which holds for a beam of uniform profile; for a Gaussian the effective area uses the FWHM or the second moment, a choice to make (open).
+- **Monc upstream of the absorbers:** confirmed by the owner. The reduction's use of the absorber factor and Monc is consistent with that.
+- **Shutter:** closed between burn frames, open in fast mode (wall time = exposure, F98's dose axis must use it); fast mode is a recommended technique, not yet demonstrated (OQ-4).
+- **Timeline placeholders:** notes and stand-ins both, plus automatic flags (F108).
