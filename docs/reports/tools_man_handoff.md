@@ -62,3 +62,13 @@ Run: `python tests/tools/ref_patch_biased_joins.py --out DIR`, 400 replicates on
 - My invariant stays **I33**; Main's became I34.
 - Main re-pointed all 25 of the catalogue's `physics_notes.md:NNN` references by the text they cite.
 - **New item, after extension 4 and P5** (TODO area L, last row): in `catalog.py`'s variation sources, cite headings or a short unique quote instead of line numbers, e.g. `docs/physics_notes.md#<heading text>`. `test_toolbox` must check that the anchor exists.
+
+## 2026-11-24: done since
+
+Commits on the branch, going to main as one pull request once the sweep passes:
+- 1c9e4fe: extension 4 recorded (C45, physics_notes, TODO B). The products are in `docs/comparisons_data/ref_patch_biased_joins/`.
+- 0a10f08: P5 fixed. `peaks.line_index` reports the first line given; there is an OUTPUT_DECISIONS row.
+- 07a8100: catalogue references cite `path#text`, not line numbers. `test_toolbox` checks that each anchor is on exactly one line. 26 references had drifted and were recovered through git blame.
+- P1–P4 and the guard question went to questor as one batch.
+
+Next: report to Main and ask for the next assignment. TODO area L's other rows are not mine unless Main assigns them.
