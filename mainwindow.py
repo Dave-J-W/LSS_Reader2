@@ -4710,7 +4710,7 @@ class MainWindow (QMainWindow):
 
     def burnOptions(self):
         o=dict(models=list(trendmod.MODELS),estimator='template',time='clock',threshold=5.0,auto_peak=True,position_limit=False,
-               errors='auto')
+               errors='auto',rows_auto=True)
         o.update({k:v for k,v in (self.prefs.get('burn') or {}).items() if k in o})
         return o
 
@@ -4719,7 +4719,7 @@ class MainWindow (QMainWindow):
         time with constant, linear, exponential and double-exponential fits
         compared by AICc; the legacy plot moves to its own tab."""
         from PyQt5.QtWidgets import (QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QCheckBox, QComboBox,
-                                     QDoubleSpinBox, QPushButton, QLabel)
+                                     QDoubleSpinBox, QPushButton, QLabel, QLineEdit)
         u=self.uipdburn
         o=self.burnOptions()
         tabs=QTabWidget(u)
@@ -4797,6 +4797,25 @@ class MainWindow (QMainWindow):
         auto.setToolTip('GID: the strongest peak of the mean of the frames, 3 FWHM either side, inside the lit '
                         'columns. Off: the Qxy range typed below.')
         auto.toggled.connect(self.burnOptionsChanged)
+        rauto=QCheckBox('Rows from frame',page)
+        rauto.setObjectName('burnRowsAutoCheckBox')
+        rauto.setChecked(bool(o['rows_auto']))
+        rauto.setToolTip('GID: the detector rows summed are those where the mean of the frames has its signal (owner, '
+                         '2026-11-23, Q-BURN-6): the strongest peak\'s columns, then the run of rows where their '
+                         'profile stays above 10 % of its maximum, 2 rows either side (lss_core.burn.signal_rows); '
+                         'all rows when no peak stands out. On NX scans 14 and 15: rows 46-486 (the shadow below '
+                         'the horizon left out). Off: the rows typed beside it; empty, all rows (as before '
+                         '2026-11-24).')
+        rauto.toggled.connect(self.burnOptionsChanged)
+        rowsEdit=QLineEdit(page)
+        rowsEdit.setObjectName('burnRowsLineEdit')
+        rowsEdit.setPlaceholderText('all rows')
+        rowsEdit.setMaximumWidth(80)
+        rowsEdit.setEnabled(not rauto.isChecked())
+        rowsEdit.setToolTip('GID: the detector rows summed, first:last (both included). With "Rows from frame" on, '
+                            'the rows found are shown here after Analyse; off, type them and press Enter. Empty: all '
+                            'rows.')
+        rowsEdit.returnPressed.connect(self.burnTrends)
         run=QPushButton('Analyse',page)
         run.setObjectName('burnAnalysePushButton')
         run.setToolTip('Measure every selected frame and fit the trends again.')
@@ -4807,7 +4826,7 @@ class MainWindow (QMainWindow):
                         'parameters; the change time) into this SPEC file\'s workbook (Data and Trends sheets).')
         save.clicked.connect(self.saveBurnToWorkbook)
         for w in (QLabel('Estimator',page),est,QLabel('Errors',page),err,QLabel('Time',page),tim,QLabel('Change',page),
-                  thr,poslim,auto,run,save):
+                  thr,poslim,auto,rauto,rowsEdit,run,save):
             row.addWidget(w)
         row.addStretch(1)
         lay.addLayout(row)
@@ -4831,6 +4850,7 @@ class MainWindow (QMainWindow):
         u.burnTabWidget,u.burnEstimatorComboBox,u.burnTimeComboBox,u.burnErrorsComboBox=tabs,est,tim,err
         u.burnThresholdSpinBox,u.burnAutoPeakCheckBox,u.burnAnalysePushButton=thr,auto,run
         u.burnPositionLimitCheckBox=poslim
+        u.burnRowsAutoCheckBox,u.burnRowsLineEdit=rauto,rowsEdit
         u.burnSavePushButton,u.burnTrendPlotWidget,u.burnResultLabel=save,canvas,res
         self.burnResult=None
 
@@ -4840,7 +4860,9 @@ class MainWindow (QMainWindow):
                estimator=str(u.burnEstimatorComboBox.currentText()),time=str(u.burnTimeComboBox.currentText()),
                errors=str(u.burnErrorsComboBox.currentText()),
                threshold=float(u.burnThresholdSpinBox.value()),auto_peak=bool(u.burnAutoPeakCheckBox.isChecked()),
-               position_limit=bool(u.burnPositionLimitCheckBox.isChecked()))
+               position_limit=bool(u.burnPositionLimitCheckBox.isChecked()),
+               rows_auto=bool(u.burnRowsAutoCheckBox.isChecked()))
+        u.burnRowsLineEdit.setEnabled(not o['rows_auto'])
         self.setPreference('burn',o)
         self.burnTrends()
 
@@ -4869,6 +4891,12 @@ class MainWindow (QMainWindow):
         if not o['auto_peak']:
             lo,hi=(float(v) for v in str(u.rangeLineEdit.text()).split(':'))
             kw['qxy_range']=(lo,hi)
+        if not o['rows_auto']:                     # Q-BURN-6: typed rows, or all of them; the default is 'mean'
+            t=str(u.burnRowsLineEdit.text()).strip()
+            v=[int(float(x)) for x in t.split(':')] if t else None
+            if v is not None and len(v)!=2:
+                raise ValueError('rows are typed first:last')
+            kw['rows']=(min(v),max(v)) if v else None
         kw['slit']=tuple(int(v) for v in str(self.ui.refSlitLineEdit.text()).split(','))
         kw['bg_offset']=float(self.ui.refBGOffLineEdit.text())
         kw['direction']=str(self.ui.refBGDirComboBox.currentText())
@@ -4906,6 +4934,8 @@ class MainWindow (QMainWindow):
             return
         self.burnResult=res
         self.plotBurnTrends(res)
+        if 'rows' not in kw and res.rows is not None:      # the rows found in the mean frame (Q-BURN-6)
+            u.burnRowsLineEdit.setText('%d:%d' % tuple(res.rows))
         u.Label.setText('Burn test for Scan #%d' % scan)
         u.burnResultLabel.setText(self.burnShortText(res))
         u.burnResultLabel.setToolTip(self.burnLongText(res))

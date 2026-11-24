@@ -100,6 +100,8 @@ INVENTORY = {
     'burnThresholdSpinBox': ('spin', 'Change', 'Dialog (Burn test) > Trends', 'The change that matters (default 5 %) for the safe-time estimate'),
     'burnPositionLimitCheckBox': ('checkbox', 'Position in limit', 'Dialog (Burn test) > Trends', "Lets the GID peak position's change set the limit too"),
     'burnAutoPeakCheckBox': ('checkbox', 'Auto peak', 'Dialog (Burn test) > Trends', 'Finds the GID peak window automatically; off uses the Qxy range field (below the tabs)'),
+    'burnRowsAutoCheckBox': ('checkbox', 'Rows from frame', 'Dialog (Burn test) > Trends', "GID: sums the detector rows where the mean frame's signal is (lss_core.burn.signal_rows, Q-BURN-6); off uses the rows typed beside it"),
+    'burnRowsLineEdit': ('lineedit', '', 'Dialog (Burn test) > Trends', 'GID: the rows summed, first:last; shows the rows found while Rows from frame is on (disabled), typed when off (Enter analyses); empty = all rows'),
     'burnAnalysePushButton': ('button', 'Analyse', 'Dialog (Burn test) > Trends', 'Measures every selected frame and fits the trends again'),
     'burnSavePushButton': ('button', 'Save', 'Dialog (Burn test) > Trends', 'Saves values over time and the trend table into the workbook (Data and Trends sheets)'),
     'burnTrendPlotWidget': ('plot', '', 'Dialog (Burn test) > Trends', 'Each quantity over time on its own panel with the fitted models and a right axis in percent'),

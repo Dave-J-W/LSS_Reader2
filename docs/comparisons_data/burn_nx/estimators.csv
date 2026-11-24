@@ -1,19 +1,19 @@
 scan,kind,estimator,quantity,best,stable,delta_constant_linear,c_hat,criterion,median_frame_chi2,residual_relative,scatter_factor,change_model,change_best_s,change_confident_s
-14,gid,template,intensity,constant,True,-1.43,1.0,AICc,1.008,0.031174,0.844,linear,479.65,189.62
-14,gid,template,centre,exponential,False,206.38,1.0,AICc,1.008,0.000141,0.951,exponential,76.62,68.93
-14,gid,template,fwhm,constant,True,-2.42,1.0,AICc,1.008,0.020706,0.658,linear,4004.51,379.55
-14,gid,moments,intensity,constant,True,-2.43,1.0,AICc,,0.028206,1.75,linear,2947.72,237.43
-14,gid,moments,centre,exponential,False,9.14,1.0,AICc,,0.000375,1.094,exponential,332.31,225.7
-14,gid,moments,fwhm,linear,True,0.05,1.0,AICc,,0.026678,0.968,linear,322.07,156.69
-14,gid,fit,intensity,exponential,False,4.39,1.0,AICc,9.562,0.046993,1.431,exponential,112.2,69.53
-14,gid,fit,centre,exponential,False,74.09,1.0,AICc,9.562,0.000288,1.347,exponential,124.97,105.57
-14,gid,fit,fwhm,linear,True,1.88,1.0,AICc,9.562,0.073668,2.798,linear,103.51,61.02
-15,gid,template,intensity,constant,True,-1.52,1.0,AICc,4.271,0.017674,0.944,linear,742.1,283.89
-15,gid,template,centre,double exponential,False,20080.82,1.0,AICc,4.271,5.1e-05,0.601,double exponential,20.87,9.29
-15,gid,template,fwhm,exponential,False,156.93,1.0,AICc,4.271,0.016332,0.986,exponential,62.76,55.71
-15,gid,moments,intensity,exponential,True,1.38,1.0,AICc,,0.01615,1.933,exponential,451.6,248.29
-15,gid,moments,centre,double exponential,False,93.82,1.0,AICc,,0.00021,1.227,double exponential,112.19,49.92
-15,gid,moments,fwhm,double exponential,False,77.62,1.0,AICc,,0.013144,1.055,double exponential,168.18,11.77
-15,gid,fit,intensity,double exponential,False,6.72,1.0,AICc,41.229,0.022689,1.431,double exponential,27.07,5.98
-15,gid,fit,centre,double exponential,False,2870.78,1.0,AICc,41.229,0.000127,1.292,double exponential,25.23,0.37
-15,gid,fit,fwhm,double exponential,False,13.04,1.0,AICc,41.229,0.03957,3.446,double exponential,20.11,11.54
+14,gid,template,intensity,constant,True,-1.27,1.0,AICc,1.018,0.031924,0.863,linear,431.31,178.39
+14,gid,template,centre,exponential,False,209.82,1.0,AICc,1.018,0.000141,0.947,exponential,76.45,68.83
+14,gid,template,fwhm,constant,True,-2.45,1.0,AICc,1.018,0.02156,0.688,linear,11167.43,358.0
+14,gid,moments,intensity,constant,True,-2.44,1.0,AICc,,0.028994,1.798,linear,3814.19,233.6
+14,gid,moments,centre,exponential,False,8.89,1.0,AICc,,0.000383,1.094,exponential,338.05,228.8
+14,gid,moments,fwhm,linear,True,0.12,1.0,AICc,,0.026746,0.979,linear,316.71,155.21
+14,gid,fit,intensity,exponential,False,4.06,1.0,AICc,9.643,0.046213,1.419,exponential,116.32,71.39
+14,gid,fit,centre,exponential,False,74.5,1.0,AICc,9.643,0.000286,1.332,exponential,126.42,106.85
+14,gid,fit,fwhm,linear,True,1.42,1.0,AICc,9.643,0.072438,2.769,linear,110.52,63.56
+15,gid,template,intensity,constant,True,-1.46,1.0,AICc,4.38,0.017568,0.934,linear,729.49,283.98
+15,gid,template,centre,double exponential,False,20800.55,1.0,AICc,4.38,5e-05,0.593,double exponential,20.92,9.97
+15,gid,template,fwhm,exponential,False,155.75,1.0,AICc,4.38,0.016381,0.987,exponential,63.14,56.02
+15,gid,moments,intensity,exponential,True,1.39,1.0,AICc,,0.016157,1.932,exponential,452.92,249.2
+15,gid,moments,centre,double exponential,False,92.63,1.0,AICc,,0.000212,1.248,double exponential,114.35,51.88
+15,gid,moments,fwhm,double exponential,False,80.81,1.0,AICc,,0.012855,1.042,double exponential,170.63,13.85
+15,gid,fit,intensity,double exponential,False,6.66,1.0,AICc,41.348,0.022796,1.439,double exponential,27.81,5.87
+15,gid,fit,centre,double exponential,False,2899.21,1.0,AICc,41.348,0.000126,1.283,double exponential,25.37,0.38
+15,gid,fit,fwhm,double exponential,False,12.8,1.0,AICc,41.348,0.039846,3.471,double exponential,21.04,11.18

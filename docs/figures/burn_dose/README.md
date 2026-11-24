@@ -13,13 +13,15 @@ right: against the dose Σ Monc·T, T the foils' transmission at the scan's
 absorber (the calibrated foils at 10 keV: T = 0.0100 and 0.0469, flux ratio
 4.68; the nominal 1.4247 per unit gives 4.12, the docs' "4.1×").
 
-Measured (2026-11-23):
+Measured (2026-11-23; regenerated 2026-11-24 with the GID-burn rows from
+the mean frame, Q-BURN-6: the position ratio 3.70 → 3.69, the ends
+1.46617 and 1.46577 → 1.46620 and 1.46582 Å⁻¹, the rest as before):
 
-- **Position**: scan 15 drifts 3.70× faster than scan 14 against time
+- **Position**: scan 15 drifts 3.69× faster than scan 14 against time
   (26σ apart), 0.79× as fast against dose (2.8σ apart; 0.90×, 1.3σ, with
   the nominal foils). Against dose the two drifts nearly coincide: what
   a beam-driven change would give, not a sample changing by itself.
-- Scan 15 starts (1.46617 Å⁻¹) where scan 14 ended (1.46577 Å⁻¹ after a
+- Scan 15 starts (1.46620 Å⁻¹) where scan 14 ended (1.46582 Å⁻¹ after a
   dose of 0.66): consistent with one spot measured twice;
   `--join` draws 15's dose and time after 14's.
 - **Intensity** stable in both; **FWHM** stable in 14 and rising in 15

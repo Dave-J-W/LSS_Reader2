@@ -677,6 +677,28 @@
   shown: always
   tooltip: true
   notes: "Its counterpart field (rangeLineEdit) sits in the legacy row, outside the Trends tab."
+- id: burnRowsAutoCheckBox
+  kind: checkbox
+  label: "Rows from frame"
+  where: "Dialog (Burn test) > Trends"
+  handler: burnOptionsChanged
+  does: "GID: sums the detector rows where the mean frame's signal is (lss_core.burn.signal_rows, Q-BURN-6); off uses the rows typed beside it"
+  workflows: [burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "On by default (owner, 2026-11-23, Q-BURN-6); kept between sessions (preference burn.rows_auto). NX 14, 15: rows 46-486."
+- id: burnRowsLineEdit
+  kind: lineedit
+  label: ""
+  where: "Dialog (Burn test) > Trends"
+  handler: burnTrends
+  does: "GID: the rows summed, first:last; shows the rows found while Rows from frame is on (disabled), typed when off (Enter analyses); empty = all rows"
+  workflows: [burn-gid]
+  needs: "Rows from frame off, to type"
+  shown: always
+  tooltip: true
+  notes: "Not kept between sessions (rows belong to a data set)."
 - id: burnAnalysePushButton
   kind: button
   label: "Analyse"

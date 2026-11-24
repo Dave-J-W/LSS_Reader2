@@ -137,7 +137,7 @@ working list, one table per area, each row with its source. Rows marked
 | Burns at several absorbers on dose and time axes: beam damage or a changing sample — **new** 2026-11-23 | F76; physics_notes 2026-11-23 |
 | Predicting a safe absorber from a short high-flux burn (research; needs burn pairs at two fluxes) — **new** 2026-11-23 | F77 |
 | Sample height scan: super-Gaussian fit (width, exponent) beside the sample's earlier sh scans; verdict thresholds from the owner. The test-speed session's commit 35f41c3 (on main) skips flat and weak sh scans and fits a sample height scan only when its FWHM is above 20 µm, the owner's plausibility floor; the 65 µm here is the quality verdict, so they do not conflict — **new** 2026-11-23 | F78; F43 |
-| **GID-burn detector rows default from the mean frame** (owner, 2026-11-23, Q-BURN-6; recorded by questor in batch 14, not listed until 2026-11-24) — tools man, after the Pilatus sizes | physics_notes 2026-11-23 batch 14 |
+| ~~**GID-burn detector rows default from the mean frame** (owner, 2026-11-23, Q-BURN-6; recorded by questor in batch 14, not listed until 2026-11-24) — tools man, after the Pilatus sizes~~ **done 2026-11-24**: `burn.signal_rows`, `exp.burn(rows='mean')` by default, "Rows from frame" and a rows field in the dialog; NX 14, 15 rows 46–486 (C49, OUTPUT_DECISIONS) | physics_notes 2026-11-23 batch 14 |
 
 **H. Detectors and inputs (Stage 4)**: 1M (F17–F19, F38, D11), 100K/200K
 models (F33), ME7 tab (F34, F35), new-format SPEC (F28), HDF5 (F29). All

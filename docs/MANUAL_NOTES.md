@@ -94,6 +94,13 @@ Each line: feature — where — default — script — notes entry (date).
 ### Burn tests
 - A burn test is analysed as a GID burn when Det_Th > 2°, otherwise as a
   reflectivity burn (owner, 2026-11-23; F87).
+- GID burns sum the detector rows where the mean frame's signal is ("Rows
+  from frame", on by default; owner, 2026-11-23, Q-BURN-6): the strongest
+  peak's columns, the rows where their profile stays above 10 % of its
+  maximum, 2 rows either side; all rows when no peak stands out. The rows
+  found are shown in the field beside it; turn it off to type first:last
+  (empty: all rows, as before 2026-11-24). `exp.burn(scan, rows=...)`:
+  'mean' (default), None (all) or (first, last).
 
 ### SpecPlot
 - Log x or log y with nothing positive to show on that axis (all values

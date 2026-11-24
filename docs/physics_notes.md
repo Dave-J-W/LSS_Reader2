@@ -5423,3 +5423,22 @@ the guard's p (TODO, "For the owner").
 
 Verified: nothing measured (a decision).
 
+### 2026-11-24 — Q-BURN-6 built: GID-burn rows from the mean frame
+
+The owner's answer (2026-11-23, batch 14): "GID-burn detector rows default
+from the mean frame". Built by the tools session as `burn.signal_rows`,
+the default of `exp.burn` (`rows='mean'`) and of the burn dialog ("Rows
+from frame"). The rule: a 3 × 3 median of the mean frame per Monc; the
+strongest column peak's columns (the half-height run, widened by its
+width on each side); their row profile less each row's median over the
+same number of columns; the rows where it stays above 10 % of its maximum,
+2 rows either side. For an exponential rod, 10 % keeps 90 % of its counts.
+
+Verified by: test (`tests/test_burn_rows.py`: a synthetic rod's rows,
+noise, a hot pixel, a flat frame, a rod over the whole frame; the GUI
+test in `test_gui_burn_trends.py`) and run (NX 14, 15: rows 46–486, the
+shadow below the horizon left out; intensity +0.3 %; NX 14's 5 % time
+189.6 → 178.4 s). Building it showed a fault in the burn's lit-column rule
+(a peak 20 × its floor shrank the window to its core), fixed the same day
+(`burn._illuminated`, NX unchanged bit for bit). COMPARISONS C49.
+

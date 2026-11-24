@@ -66,7 +66,8 @@ Assumed, not tested: the coverage of the confident time for the
 exponential and double-exponential models (their covariance is a
 linearisation; the double exponential's is often wide and skewed); the
 template's behaviour when the peak's shape changes a lot (NX 15: per-frame
-χ²/dof 4); that all rows of the frame are the right ones to sum.
+χ²/dof 4); that all rows of the frame are the right ones to sum (since
+2026-11-24 the rows of the mean frame's signal, Q-BURN-6).
 
 ## What to test (suggested, in order)
 
@@ -108,8 +109,11 @@ template's behaviour when the peak's shape changes a lot (NX 15: per-frame
 - **Fluorescence burns** (XFNTR scans 19, 20 of the private file): the
   line intensity per spectrum from `peaks.fit_series` (the MCA tab's "Fit
   lines") over time, through `trends.compare`.
-- **Row range for GID** (`rows=`): the Bragg rod's β range instead of all
-  rows; a control in the dialog.
+- ~~**Row range for GID** (`rows=`): the Bragg rod's β range instead of all
+  rows; a control in the dialog.~~ **Built 2026-11-24** (Q-BURN-6): the rows
+  where the mean frame's signal is, by default (`burn.signal_rows`,
+  `exp.burn(rows='mean')`), and "Rows from frame" with a rows field in the
+  dialog (COMPARISONS C49).
 - **Contextual reduction (F60):** offer the burn test when a burn scan
   (`series.is_burn`) is selected.
 

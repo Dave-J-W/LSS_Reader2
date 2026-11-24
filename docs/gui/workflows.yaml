@@ -430,14 +430,14 @@ workflows:
       - id: burn-gid.peak
         do: "Choose the peak: Auto peak (strongest peak of the mean frame, 3 FWHM either side, inside the lit columns) or a typed Qxy range"
         where: Burn test dialog > Trends; range field at the top of the dialog
-        controls: [burnAutoPeakCheckBox, pdburn.rangeLineEdit]
-        user_decides: auto (default) or another Qxy section (owner F22a 4 - override to another section)
+        controls: [burnAutoPeakCheckBox, pdburn.rangeLineEdit, burnRowsAutoCheckBox, burnRowsLineEdit]
+        user_decides: auto (default) or another Qxy section (owner F22a 4 - override to another section); the rows summed, from the mean frame (default, Q-BURN-6) or typed
         automatic: yes
         could_be_automatic: list the peaks found and let the user pick one by clicking
         known_from: owner 2026-11-19 (F22a 4); test tests/test_gui_burn_trends.py
         issues:
           - "The typed range field ('1.4:1.5') belongs to the legacy layout at the top of the dialog; it is used only when Auto peak is off"
-          - "Detector rows are all summed; the row range is not exposed (TODO, hand-off 07)"
+          - "The rows come from the strongest peak of the mean frame even when a Qxy range is typed for another peak (2026-11-24, Q-BURN-6)"
       - id: burn-gid.options
         do: Choose estimator, models, time, errors, threshold and whether the position counts in the limit
         where: Burn test dialog > Trends
