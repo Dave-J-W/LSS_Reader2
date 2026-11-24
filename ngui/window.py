@@ -632,7 +632,16 @@ class NguiWindow(QMainWindow):
     def _provenance(self, key, text, note_button, parent):
         h = QHBoxLayout()
         h.setSpacing(6)
-        if text:
+        if isinstance(text, dict):          # the main window's line under the plot (F96): a label, as there
+            lab = QLabel(text.get('label') or '', parent)
+            lab.setObjectName(_oname(text['id']))
+            lab.setProperty('nguiProvenance', True)
+            lab.setMinimumWidth(80)
+            lab.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)  # clipped, never widening the window
+            lab.setToolTip(tooltip(text))
+            self.controls[text['id']] = lab
+            h.addWidget(lab, 1)
+        elif text:
             b = QPushButton(text, parent)
             b.setObjectName(_oname(key + '_provenance'))
             b.setProperty('nguiProvenance', True)
@@ -742,10 +751,15 @@ class NguiWindow(QMainWindow):
         t.setMaximumHeight(112)
         t.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         t.setEnabled(False)
-        t.setToolTip('New in ngui: every join at once. ' + NOT_FUNCTIONAL)
+        if sp.get('table'):              # the main window's join table (F96): its inventory entry
+            t.setToolTip(tooltip(sp['table']))
+            t.setObjectName(_oname(sp['table']['id']))
+            self.controls[sp['table']['id']] = t
+        else:
+            t.setToolTip('New in ngui: every join at once. ' + NOT_FUNCTIONAL)
         v.addWidget(t)
         ctl = sp['controls']
-        self._add_items([{'row': ctl[:2]}, {'row': ctl[2:]}], v, f)
+        self._add_items([{'row': ctl[:2]}, {'row': ctl[2:4]}, {'row': ctl[4:]}], v, f)
         tw = QTabWidget(f)
         tw.setObjectName('ngui_ref_joinPlots')
         for name, pl in sp['pages']:

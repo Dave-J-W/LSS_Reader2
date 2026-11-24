@@ -310,6 +310,17 @@
   shown: always
   tooltip: false
   notes: "Title 'File: <path> S# ...' takes the scan list from the left panel at plot time and is clipped at the top (observed). Legend labels '#0', '#1'... Has a matplotlib toolbar."
+- id: refProvenanceLabel
+  kind: label
+  label: "joint patch · legacy errors · calibrated foils · scans 6, 7, 8, 9 · 2 points dropped · saved v3"
+  where: "Reflectivity > under the result plot"
+  handler: updateRefProvenance
+  does: "One line on how the curve on show was made: patch method, error model, absorber model, scans, dropped points, saved version; the joins and details in its tooltip"
+  workflows: [reflectivity]
+  needs: "a curve"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F96, owner Q-UI-B5, 2026-11-24). Describes the result as it was made (a later change of preference does not alter it); 'saved vN' is read from the workbook in memory only, so it is absent until the workbook has been opened in the session."
 - id: refExportPushButton
   kind: button
   label: "Export"

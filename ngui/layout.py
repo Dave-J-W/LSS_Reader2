@@ -379,7 +379,8 @@ REFLECTIVITY = {
         ]),
     ],
     'right': [
-        [PLOT('refRefDataPlotwidget', 'R / R_F vs Qz', 'ref', residuals=True, provenance=PROV_REF, stretch=3,
+        [PLOT('refRefDataPlotwidget', 'R / R_F vs Qz', 'ref', residuals=True,
+              provenance=C('refProvenanceLabel', PROV_REF, kind='label'), stretch=3,
               note_button=SAVE('refSaveWorkbookPushButton'))],
         [SPECIAL('tabs', name='ref_roiTabs', pages=[
             ('ROI close-up', [PLOT('refADDataPlotWidget', 'ROI movie (log)', 'roi',
@@ -394,8 +395,15 @@ REFLECTIVITY = {
                  controls=[C('refpatch.knownRatioCheckBox', 'Known ratio'),
                            C('refpatch.knownRatioLabel', 'fit ±0.4 %, foils ±1.5 %'),
                            C('refpatch.dropLineEdit', 'Drop points'), C('refpatch.dropPushButton', 'Drop'),
+                           C('refpatch.backPushButton', '◂ Back',
+                             note='Undoes the last drop or accepted join (F96, built in the main window 2026-11-24)'),
                            C('refpatch.nextPushButton', 'Next doubtful ▸',
-                             note='Steps to the next doubtful join; all joins are listed together')],
+                             note='Steps to the next doubtful join; all joins are listed together'),
+                           C('refpatch.cancelPushButton', 'Cancel',
+                             note='Stops the patch and says so; the result on show is unchanged (F96)')],
+                 table=C('refpatch.joinTableWidget', 'Joins', kind='table',
+                         note='Accepted joins and the one on show, kept with the result (F96, the main window\'s patch '
+                              'window since 2026-11-24); here every join at once'),
                  pages=[('Join', PLOT('refpatch.plotWidget', 'Join close-up', 'join')),
                         ('Identical scans', PLOT('refpatchsamescan.plotWidget', 'Identical scans', 'join'))]),
          SPECIAL('tabs', name='ref_pointsTabs', title=C('reflectivityDataLabel', 'Points', kind='label'),
@@ -756,12 +764,15 @@ def _walk_items(items, where):
                 yield it['plot'], where, it
             if it.get('note_button'):
                 yield from _walk_items([it['note_button']], where)
+            if isinstance(it.get('provenance'), dict):      # the main window's line under the plot (F96)
+                yield from _walk_items([it['provenance']], where)
 
 
 def _walk_special(sp, where):
     kind = sp['special']
     w = '%s > %s' % (where, kind)
-    for key in ('label', 'title', 'image', 'gioxs', 'gisaxs', 'movie', 'plot', 'tabwidget', 'cuts', 'note_button'):
+    for key in ('label', 'title', 'image', 'gioxs', 'gisaxs', 'movie', 'plot', 'tabwidget', 'cuts', 'note_button',
+                'table'):
         v = sp.get(key)
         if isinstance(v, dict):
             yield from _walk_items([v], w)

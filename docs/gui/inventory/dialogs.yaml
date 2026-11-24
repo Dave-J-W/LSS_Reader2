@@ -351,7 +351,7 @@
   needs: ""
   shown: always
   tooltip: false
-  notes: "No Back, no Cancel."
+  notes: "No Back. Closing the window stops the Ref Patch and says so, leaving the result on show (F96, 2026-11-24)."
 - id: refpatchsamescan.plotWidget
   kind: plot
   label: ""
@@ -406,7 +406,7 @@
   needs: "valid indices"
   shown: always
   tooltip: false
-  notes: "No undo; dropped points disappear from the plot and are not marked anywhere afterwards (only the Script line's drops= records them)."
+  notes: "Back undoes a drop (F96, 2026-11-24); dropped points disappear from the plot, and the join table and the Script line's drops= record them."
 - id: refpatch.dropLineEdit
   kind: lineedit
   label: "0"
@@ -450,7 +450,40 @@
   needs: "overlapping scans"
   shown: always
   tooltip: false
-  notes: "No Back, no Cancel."
+  notes: "Back and Cancel beside it since 2026-11-24 (F96)."
+- id: refpatch.backPushButton
+  kind: button
+  label: "<< Back"
+  where: "Dialog (Reflectivity Patch)"
+  handler: pilRefPatchBack
+  does: "Undoes the last step: the last Drop, or the last join accepted with Next (that join comes back as it was left, its drops kept)"
+  workflows: [reflectivity]
+  needs: "a step to undo"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F96, owner Q-UI-B7, 2026-11-24). Disabled at the first join as it opened. Going back and redoing the same steps gives the same curve (tested)."
+- id: refpatch.cancelPushButton
+  kind: button
+  label: "Cancel"
+  where: "Dialog (Reflectivity Patch)"
+  handler: pilRefPatchFinished
+  does: "Stops the patch: the Reflectivity tab and its Script line stay as they were; the Messages pane says at which join it stopped, the log lists the joins accepted"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added in code (F96, Q-UI-B7). Esc and the window's close button do the same; so does closing the identical-scans window. Before, closing abandoned the patch silently."
+- id: refpatch.joinTableWidget
+  kind: table
+  label: "Join | Scans | Factor | ± % | From | Dropped | Note"
+  where: "Dialog (Reflectivity Patch), under the buttons"
+  handler: updateRefJoinTable
+  does: "Lists the accepted joins and the one on show (italic): factor, its error, joint / legacy / known ratio, dropped points, the fit's note"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added in code (F96, Q-UI-B7). Kept with the result: the tooltip of refProvenanceLabel and settings['joins'] of the workbook's Saved row. The live replay of accepted joins (B7's added rule) is not built yet."
 - id: pilPeakCenDialog
   kind: dialog
   label: "Scan Details"

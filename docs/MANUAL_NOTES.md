@@ -338,6 +338,30 @@ Each line: feature — where — default — script — notes entry (date).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.
 
+### The Ref Patch window: Back, Cancel and the joins (F96, 2026-11-24)
+- **<< Back** undoes the last step: the last Drop, or the last join
+  accepted with Next. A join comes back as you left it, its drops kept.
+  Press it again to go further back. Going back and repeating the same
+  steps gives the same curve.
+- **Cancel** (or Esc, or closing the window) stops the patch. The
+  Reflectivity tab keeps the curve it showed, and the Messages pane says at
+  which join the patch stopped. Closing the identical-scans window does the
+  same. Starting a new Ref Patch while one is open replaces it, and says so.
+- **The join table** under the buttons lists the accepted joins and the one
+  on show (in italics): scans, factor ± error in per cent, where the factor
+  came from (joint fit, legacy fit, or known ratio), the points dropped, and
+  the fit's note. It stays with the result: it is in the tooltip of the line
+  under the plot, and it is saved with the result in the workbook.
+
+### The line under the Reflectivity plot (F96, 2026-11-24, Q-UI-B5)
+- One short line says how the curve on show was made: patch method, error
+  model, absorber model, scans, points dropped, and "saved vN" once it is in
+  the workbook. Its tooltip lists the joins and the details.
+- It describes the curve as it was made: changing a preference afterwards
+  does not change the line (it changes the next Ref Patch).
+- "saved vN" appears once the workbook has been opened in the session (by a
+  Save, or by automatic saving).
+
 ### Greyed-out tools (2026-11-23, Q-UI-A10)
 - On the Pilatus tab, Reflectivity and Ref Patch need a reflectivity series,
   GID Patch and the GID drop-down a GID series, and Burn Test a burn scan.

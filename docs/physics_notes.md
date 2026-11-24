@@ -46,6 +46,7 @@ exists.
 | I33 | Every photon of a synthetic MCA spectrum lands in exactly one part: photopeak + tail + shelf + escape = the photons of each source (`synthetic.mca`, to 0.2 % where the channels cover everything); the gauntlet's truths rest on it (F90) | `test_synthetic_mca.py::test_every_photon_lands_in_one_part` |
 | I34 | On the Angles axis of a 'Pix V' cut through the reflected beam's columns, the reflected peak of a specular frame is at β = α (α = arcsin(Qz λ/4π)); NX school scans 6, 8, 9 to 2e-4° | `test_true_incidence.py::test_the_reflected_beam_sits_at_beta_equal_alpha` |
 | I35 | L is Qz in Å⁻¹ (the beamline's SPEC lattice): L = (2π/λ)(sin α + sin β), α = In_Rot, β = Out_Rot; in a specular scan 4π sin α/λ. On NX school every scan at fixed L agrees to better than 0.001 % (scans 4, 5, 10–15; scan 12 at the raised GID level, β = 6.5°); a fixed-L scan off by more than 1 % is noted at load (`LMismatch`) | `test_lattice.py::test_nx_l_is_qz_at_every_fixed_l_scan` |
+| I36 | Ref Patch steps are reversible: going Back (undoing a drop, or an accepted join) and doing the same steps again gives the same curve value for value as never going back; a cancelled patch leaves the curve on show and its Script line as they were (F96, owner Q-UI-B7). Not yet held: an accepted join must not change when live data arrive (B7's added rule; the live replay is not built) | `test_gui_ref_patch_steps.py::test_back_then_the_same_steps_give_the_same_reflectivity`, `::test_cancel_says_so_and_leaves_the_result_on_show` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5123,3 +5124,42 @@ but **P1's default switch waits**: tools man builds P1, P2 and P3 as
 code paths with today's weighting kept as the default.
 
 Verified: nothing yet (a plan).
+
+### 2026-11-24 — F96 built: Back, Cancel and the join table in the Ref Patch window; the line under the Reflectivity plot
+
+The owner's answers Q-UI-B7 and Q-UI-B5 (batch 8, above) are built in the
+main window. Verified by: tested (`tests/test_gui_ref_patch_steps.py`, 13
+tests), not yet tried by the owner.
+
+- **Back** undoes one step at a time: a Drop, or a join accepted with Next.
+  Each step first saves a copy of everything it changes (the scans' arrays,
+  which the joins scale in place, hand-off trap T3; the curve joined so far;
+  the scales, known-ratio factors, drops and choices). Back puts the copy
+  back, so a join comes back as it was left, its drops kept. **Invariant
+  I36:** Back and redoing the same steps gives the same curve, value for
+  value (tested on a three-scan synthetic patch with two drops).
+- **Cancel**, Esc, or closing the window (or the identical-scans window)
+  stops the patch and says so in the Messages pane: at which join, and that
+  the Reflectivity tab is unchanged; the log lists the joins accepted.
+  **A defect went with the old silent close:** the patch had already
+  replaced what describes the result on show (drops, factors, method,
+  merged repeats, the command line), so after a closed patch the Script
+  pane and the workbook recipe described the abandoned patch, not the curve
+  on show. A stopped patch now puts them back (tested: the Script line is
+  the same before and after a cancelled patch with a drop).
+- **The join table** lists each join: scans, factor ± error, its source in
+  the words of the script (`joint`, `legacy`, `known ratio`, so that a live
+  replay can rebuild it, Main's request), the dropped points, the fit's
+  note. It is kept with the result and saved in the workbook's Saved
+  settings (`joins`).
+- **The line under the Reflectivity plot** (Q-UI-B5): patch method, error
+  model, absorber model, scans, dropped points and the saved version, as
+  the result was made (a later change of preference does not alter it);
+  the joins and details in its tooltip. "saved vN" is read only from a
+  workbook already in memory (opening one can take seconds).
+
+**Seen in passing (measured, synthetic, not investigated):** a Ref Patch of
+a scan and its unmerged repeat (`synth.make_identical_scans_dataset`, scans
+1, 2, 3 with 3 a repeat of 2; joint fit impossible there, the legacy fit
+used) leaves dR NaN at Qz 0.09 and inf at Qz 0.10 in the joined curve, the
+same with and without Back. Reported to Main; not fixed here.
