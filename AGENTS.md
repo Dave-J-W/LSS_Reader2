@@ -87,7 +87,10 @@ directions are refused, between cloud sessions and the owner's computer
 and into a session the owner has approved for their trusted devices
 (main man's is). main man watches the issues and new `claude/local-data-*`
 pull requests every minute, and reviews and merges the local data agent's
-pull requests (it does not merge them itself); questor reads the issue
+pull requests (it does not merge them itself). Standing rule (owner,
+2026-11-24): main man merges such a pull request once it passes main man's
+privacy review and the quick suite in the cloud, and asks the owner only
+when something private or doubtful shows up; questor reads the issue
 when the owner starts a turn with it. GUI priorities: the main window first, then
 the sample timeline tab (F83), then the new layout prototype (`ngui/`);
 ideas proven in ngui are carried into the main window, not built twice.
