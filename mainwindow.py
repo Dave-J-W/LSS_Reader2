@@ -281,6 +281,7 @@ class MainWindow (QMainWindow):
         self.initGIDButtons()
         self.initRefProvenance()
         self.initTimelineTab()
+        self.initCompareTab()
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
@@ -8145,6 +8146,66 @@ class MainWindow (QMainWindow):
         c=np.asarray(cd,float)
         return [('GID cut',c[:,0],c[:,1],c[:,2],1.0)] if c.ndim==2 and c.shape[1]>=3 else []
 
+    # ---- F80, F105 (owner, 2026-11-23): comparing the reduced curves saved in the workbook ----
+
+    def initCompareTab(self):
+        """The Compare tab, just left of Timeline (which stays furthest right):
+        the saved reflectivities of this SPEC file's workbook, overlaid, with
+        their ratios; it follows the workbook as reductions are saved."""
+        from comparetab import CompareTab
+        tab=CompareTab(self.ui.PlotWidget)
+        self.compareTab=tab
+        self.compareKey=None
+        k=self.ui.PlotWidget.indexOf(getattr(self,'timelineTab',None)) if getattr(self,'timelineTab',None) else -1
+        if k>=0:
+            self.ui.PlotWidget.insertTab(k,tab,'Compare')
+        else:
+            self.ui.PlotWidget.addTab(tab,'Compare')
+        self.ui.PlotWidget.setTabToolTip(self.ui.PlotWidget.indexOf(tab),
+            'Compare the reflectivities saved in this SPEC file\'s workbook: overlaid by series, time or sx, '
+            'with their ratios to the first; new ones appear as they are saved (F80, F105)')
+        tab.rrfChanged=lambda: self.refreshCompare(force=True)
+        self.ui.PlotWidget.currentChanged.connect(self.compareTabShown)
+        tab.show_entries([],'Open a SPEC file: the reflectivities saved in its workbook are compared here.')
+
+    def compareTabShown(self,*args):
+        if self.ui.PlotWidget.currentWidget() is getattr(self,'compareTab',None):
+            self.refreshCompare()
+
+    def compareChanged(self):
+        """The workbook changed: refresh the Compare tab if it is on show (else when shown)."""
+        if self.ui.PlotWidget.currentWidget() is getattr(self,'compareTab',None):
+            self.refreshCompare(force=True)
+
+    def refreshCompare(self,force=False):
+        from lss_core import compare
+        tab=getattr(self,'compareTab',None)
+        if tab is None:
+            return
+        if not getattr(self,'specFileName',None):
+            self.compareKey=None
+            tab.show_entries([],'Open a SPEC file: the reflectivities saved in its workbook are compared here.')
+            return
+        path=self.workbookPath()
+        if not os.path.exists(path):
+            self.compareKey=None
+            tab.show_entries([],'No workbook yet: reductions are saved in it as they are made.')
+            return
+        key=(path,os.path.getmtime(path),tab.label())
+        if key==self.compareKey and not force:
+            return
+        try:
+            positions={n:p.get('Sample_X') for n,p in self.specPar.items() if isinstance(p,dict)}
+            items=compare.entries(self.openWorkbook(),label=tab.label(),positions=positions)
+        except Exception as e:
+            self.log.info('Compare tab not read: %s',e,exc_info=True)
+            tab.show_entries([],'The workbook could not be read: %s (detail in the log).' % e)
+            self.compareKey=None
+            return
+        tab.show_entries(items,'%d saved %s curve%s in %s' % (len(items),tab.label(),'s' if len(items)!=1 else '',
+                                                               os.path.basename(path)))
+        self.compareKey=key
+
     # ---- F83 phase 1c (owner, 2026-11-24: a tab in the main window): the sample timeline ----
 
     def initTimelineTab(self):
@@ -8160,6 +8221,8 @@ class MainWindow (QMainWindow):
             'The sample timeline (F83): scans, "set sh 0" (new sample?), re-referencing, aborts, sx moves and '
             'the sample-height scans with their width and flatness, on one time axis')
         tab.view.scanClicked.connect(self.timelineScanClicked)
+        tab.view.answerGiven.connect(self.timelineAnswer)
+        tab.view.noteWanted.connect(self.timelineAddNote)
         self.ui.PlotWidget.currentChanged.connect(self.timelineTabShown)
         tab.show_message('Open a SPEC file: its timeline is drawn here.')
 
@@ -8177,7 +8240,8 @@ class MainWindow (QMainWindow):
             self.timelineKey=None
             tab.show_message('Open a SPEC file: its timeline is drawn here.')
             return
-        key=(spec,os.path.getmtime(spec),os.path.getsize(spec))
+        book=self.workbookPath()
+        key=(spec,os.path.getmtime(spec),os.path.getsize(spec),os.path.getmtime(book) if os.path.exists(book) else None)
         if key==self.timelineKey and not force:
             return
         from lss_core.experiment import Experiment
@@ -8189,8 +8253,58 @@ class MainWindow (QMainWindow):
             tab.show_message('The timeline could not be read: %s (detail in the log).' % e)
             self.timelineKey=None
             return
-        tab.show_timeline(tl,os.path.basename(spec))
+        tab.show_timeline(tl,os.path.basename(spec),self.timelineNotes())
         self.timelineKey=key
+
+    def timelineNotes(self):
+        """The timeline's notes and answers, from the workbook's Saved rows of
+        kind 'note' (research §5); none when there is no workbook yet (it is
+        not created to look)."""
+        from lss_core import timeline as timelinemod
+        if not os.path.exists(self.workbookPath()):
+            return []
+        try:
+            return timelinemod.notes_from_rows(self.openWorkbook().results(timelinemod.NOTE_KIND))
+        except Exception as e:
+            self.log.info('timeline notes not read: %s',e,exc_info=True)
+            return []
+
+    def timelineSaveNote(self,item):
+        from lss_core import timeline as timelinemod
+        try:
+            wb=self.openWorkbook()
+            rid=wb.add_result(timelinemod.NOTE_KIND,origin='user',**item)
+            self.saveWorkbook(wb)
+        except Exception as e:
+            self.workbookCache=None
+            self.notify('The note could not be saved in the workbook %s: %s' % (self.workbookPath(),e),title='Timeline')
+            return None
+        self.updateTimeline(force=True)
+        return rid
+
+    def timelineAnswer(self,t,after_scan,answer):
+        """The user's answer to a "set sh 0: new sample?" (F83): a note in the
+        workbook; the latest answer is the one drawn."""
+        from lss_core import timeline as timelinemod
+        clock=self.timelineTab.view.clock(t,True)
+        item=timelinemod.note_item(t,answer,'set sh 0 at %s (after scan %d): %s' % (clock,after_scan,answer),
+                                   scans=[after_scan] if after_scan else [],event='set-zero',answer=answer)
+        if self.timelineSaveNote(item):
+            self.notify('Timeline: the set sh 0 at %s marked "%s" (a note in the workbook).' % (clock,answer),
+                        title='Timeline',level='info')
+
+    def timelineAddNote(self,t):
+        """A note at time t on the timeline: its first line is its title."""
+        from PyQt5.QtWidgets import QInputDialog
+        from lss_core import timeline as timelinemod
+        clock=self.timelineTab.view.clock(t,True)
+        text,ok=QInputDialog.getMultiLineText(self,'Timeline note','A note at %s (the first line is its title):' % clock,'')
+        text=str(text or '').strip()
+        if not ok or not text:
+            return
+        before=[s.scan for s in getattr(self.timelineTab.view.timeline,'spans',[]) if s.t0<=t]
+        item=timelinemod.note_item(t,text.split('\n',1)[0][:60],text,scans=before[-1:])
+        self.timelineSaveNote(item)
 
     def timelineScanClicked(self,scan):
         """A scan bar or an sh scan clicked on the timeline: select that scan."""
@@ -8553,6 +8667,7 @@ class MainWindow (QMainWindow):
             self.log.info(text)
         else:
             self.notify(text,title='Save',level='info')
+        self.compareChanged()           # F105: the Compare tab follows what is saved
         return ids
 
     AUTO_SAVE_AFTER={'updateRefPlotData':'ref','updatePilCutData':'cut','updatePilGIDCutData':'cut','fitCuts':'cut',
@@ -8643,6 +8758,7 @@ class MainWindow (QMainWindow):
                 return
             self.shownResults[kind]=nid
             self.ui.statusBar.showMessage('Live: the %s shown is now %s' % (kind,nid),8000)
+            self.compareChanged()
         finally:
             self.suppressAutoSave=False
 

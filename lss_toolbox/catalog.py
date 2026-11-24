@@ -324,6 +324,30 @@ TOOLS = (
                        'study; the default\'s pulls no longer match the gauntlet\'s exactly.',
                        'tests/tools/ref_patch_biased_joins.py', replicates='100', covariance_seeds='100'),),
          repo_out='docs/comparisons_data/ref_patch_biased_joins', seconds=15),
+    Tool('qoff_study', 'Qoff and Qc of R/R_F: the proposer\'s study (F79)', 'refl', 'figures',
+         'tests/tools/qoff_study.py',
+         'Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and '
+         'least squares) and the joint Qc + Qoff fit against the truth over offsets, samples, counts, outliers, '
+         'resolution, a wrong Qc and the reader\'s patch; the NX school scans at the GUI\'s preset and at the '
+         'proposals: figures Q1-Q5.',
+         committed=('docs/studies/qoff',),
+         docs=('docs/studies/qoff/summary.md', 'docs/COMPARISONS.md#| C50 |', 'docs/FEATURE_REQUESTS.md#| F79 |'),
+         data='public', defaults={'--out': OUT},
+         variations=(
+             V('The anatomy and NX only', 'Q1 and Q5, which need no replicates (about 20 s): what a wrong Qoff does at '
+               'the edge, and the NX school proposal against the preset.', 'docs/studies/qoff/summary.md### 6. The NX school scans',
+               only='Q1,Q5'),
+             V('Outliers', 'One or two points off by 30 %, and the worst case, the first point above the edge: the '
+               'edge fit holds, the roughness is pulled.', 'docs/studies/qoff/summary.md### 2. Outliers', design='outliers'),
+             V('Resolution', 'A Qz resolution of 0.0002 to 0.001 Å⁻¹ FWHM smears the edge and reads as a negative Qoff.',
+               'docs/studies/qoff/summary.md### 3. Resolution', design='resolution'),
+             V('A wrong Qc', '1 M NaCl reduced at water\'s Qc and the other way round: Qoff absorbs the error one for one; '
+               'the joint fit lies on Qc − Qoff = constant.', 'docs/studies/qoff/summary.md### 4. A wrong Qc, and Qc with Qoff', design='qc'),
+             V('More replicates (200)', 'Every design with 200 replicates (about 15 min).', 'docs/studies/qoff/summary.md### 1. Do they find the offset?',
+               replicates='200'),
+         ),
+         repo_out='docs/studies/qoff', repo_ok=False),
+
     Tool('ref_guard_study', 'Study A: how strict the joint fit\'s guard should be', 'refl', 'figures',
          'tests/tools/ref_guard_study.py',
          'The guard\'s p from 0.001 to 0.9, the guard off, an AICc average and the legacy factor on C45\'s six '

@@ -64,6 +64,30 @@ sits at one raw point's Qz.
 Not yet available from scripts: background images, single-scan export,
 GISAXS. (GID, cuts, peak fits and burn tests followed: sections below.)
 
+## Qc and Qoff of R/R_F (2026-11-24, F79)
+
+```python
+from lss_core import fresnel
+fresnel.subphase('NaCl 6 % (1.07 M)').qc          # 0.0221: Qc from the subphase's electron density
+fresnel.qc_from_density(0.3333)                   # 0.02173 (water at 25 °C)
+ref = exp.reflectivity([6, 7, 8, 9]).ref           # Qz, R, σ
+p = fresnel.propose_qoff(ref[:, 0], ref[:, 1], ref[:, 2], qc=0.0217)
+p.qoff, p.sigma, p.note                           # NX school: -0.00028 Å⁻¹ (the window's preset is 0)
+exp.reflectivity([6, 7, 8, 9], qoff=p.qoff)        # R/R_F with it
+```
+
+`propose_qoff` proposes; nothing applies it. `method='edge'` (default) fits
+the plateau and the drop at the edge, ln R = ln A + ln R_F(Qz + Qoff) +
+a smooth factor, by robust least squares; `method='smooth'` minimises the
+roughness of ln R/R_F near the edge (the owner's by-eye criterion), robust
+to one or two outliers away from the edge. `fit_qc=True` (edge only) fits
+Qc too and reports their correlation: near +1, because Qc and Qoff move
+the edge together, so Qc is better taken from the subphase
+(`fresnel.SUBPHASES`, each density with its source; or a typed density).
+σ comes from a bootstrap over the counting errors and does not include the
+biases the study found (`docs/studies/qoff/summary.md`): the Qz resolution
+reads as a negative Qoff, and a wrong Qc moves Qoff one for one.
+
 ## Fluorescence (XFNTR)
 
 ```python
@@ -277,9 +301,17 @@ rrf)`. Why and what it changes: `docs/reports/downstream_covariance.md`.
     cut = exp.cut([1, 2], 'Pix H', (90, 110))            # one cut per frame
     cut = exp.cut([1, 2], 'Q H', (0.005, 0.02), summed=True)
     cut.save('dppc_')      # dppc_S# 1_F# 0_cut.txt ... or dppc_S# 1_sumcut.txt
+    cut = exp.cut([7], 'Q V', (-0.005, 0.005), axes='beta-alpha')   # diffuse: I vs beta - alpha (F97)
+    cut = exp.cut([7], 'Pix V', (90, 104), axes='beta')            # or 'Qz'; horizontal cuts: axes='Qxy'
+    from lss_core import cuts
+    cuts.covered_range('Q V', geometry, (487, 195))   # the Qxy the detector covers (geometry: cuts.Geometry)
+    cuts.centred_range('Q V', geometry, 10)           # a band of 10 columns either side of the beam
 
 Directions as the window lists them: 'Q H', 'Q V', 'Pix H', 'Pix V';
-`axes` 'Pixels', 'Angles' or 'Q' for the pixel cuts. Frames are divided by
+`axes` 'Pixels', 'Angles' or 'Q' for the pixel cuts, or for any cut a
+diffuse-cut axis (F97, 2026-11-24): 'beta', 'beta-alpha' (α from Qz),
+'Qz' for vertical cuts and 'Qxy' (exact) for horizontal ones; the
+intensities are the cut's own, the x axis converted from its pixels. Frames are divided by
 the monitor and multiplied by `absfac` (a number or
 `absorbers.calibrated(10.0)`) first. `points`, `errors`, `monitor_gain`, `per_photon`,
 `distance` and `db_pos` (typed geometry), `pinhole`, and the bad-pixel
@@ -394,4 +426,21 @@ no reflected beam. `timeline.build` (F83 phase 1b) gives scan spans
 resets, aborts, macro files), SPEC session restarts, gaps, motor steps,
 sh scans with their fits, and the mnemonic table (sh → Sample_H). Times
 are Unix seconds (UTC). Research: `docs/gui/timeline/research.md`.
+
+Notes on the timeline are workbook Saved rows of kind `note`:
+`timeline.note_item(t0, label, text, scans, event, answer)` gives the
+`Workbook.add_result` keywords, `timeline.notes_from_rows(wb.results('note'))`
+reads them back, and `timeline.answers(notes)(event)` gives the latest
+answer to a "set sh 0: new sample?".
+
+## Comparing saved curves (2026-11-24)
+
+    from lss_core import compare, workbook
+    wb = workbook.Workbook('20260923_reader.xlsx')
+    curves = compare.order(compare.entries(wb), 'time')      # or 'series', 'sx' (pass positions={scan: sx})
+    q, r, s = compare.ratio(curves[0].data, curves[1].data)   # the second over the first, on the first's Qz
+
+`entries` reads the saved reflectivities (label 'R', or 'R/RF') with their
+data. `ratio` interpolates the second curve in log R against log Qz and adds
+the relative errors in quadrature.
 

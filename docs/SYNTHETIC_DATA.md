@@ -145,6 +145,13 @@ Poisson(monp_rate·t); the reader's three boxes (21 × 11 px; 5-row core
 apart, for P18); net = (S − (B1+B2)/2)/M; σ = √(S + (B1+B2)/4)/M
 (`errors='counting'`), plus net²/M (`'counting+monitor'`).
 
+`Beamline.angle_offset_deg` (2026-11-24, F79): the true incident angle is
+the recorded one plus δα, so R is drawn at Qz_true = (4π/λ) sin(asin(Qz λ/4π)
++ δα) while the rows keep the recorded Qz; `qoff_of(δα, qz)` gives the Qoff
+the reader should find, (4π/λ) cos α δα (0.00088 Å⁻¹ for 0.005° at 10 keV),
+and `true_qz` the Qz seen. 0 (the default) leaves every earlier output as it
+was.
+
 `Beamline` defaults, read from the public NX school file, scans 6–9:
 Monc 1.1e5/s, Monp 2.15e5/s, about 4e5 counts/s in the ROI at each scan's
 first point (absorbers 41, 31, 24, 18); with the calibrated foils that is
@@ -338,7 +345,7 @@ Tested:
 - O 1s binding 0.543 keV;
 - water's J(0) comes out at 4.06 a.u.⁻¹.
 
-**Checked against real spectra (2026-11-24, `docs/studies/mca_scatter/summary.md`, C50):**
+**Checked against real spectra (2026-11-24, `docs/studies/mca_scatter/summary.md`, C52):**
 - water's full O 1s wing is too large: real spectra give 0.8 × on a
   single-element readout at 10 keV, and 0–0.35 × on a seven-element one;
 - Reed's escape holds to 10 % at 6–7.4 keV and to 20 % at 10 keV; it is

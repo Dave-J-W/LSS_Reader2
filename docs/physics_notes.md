@@ -51,6 +51,7 @@ exists.
 | I38 | The ROI close-up outlines the pixels the reduction sums: summing a frame over `lss_core.display.roi_boxes(slit, cen, bg, direction)` gives `TwoDDetector.sumROI`'s signal and background values exactly, for any slit, centre, offset and direction (its slit − 2 and integer background centres included, PHYSICS_ISSUES P12) | `test_roi_boxes.py::test_summing_over_the_drawn_boxes_gives_sumROIs_values` |
 | I39 | The dose of a point is what the reduction already divides by: in monitor counts it is the point's weight in "Sum All", M/(A·g) (`cuts.frame_normaliser`); in photons, the flux route's photons/s × its seconds / A (`flux.photons_per_second`); a scan's dose is the sum of its points'; at a constant monitor rate and absorber the dose axis is the exposure axis × that rate, so a burn's dose limit is its time limit × the rate | `test_dose.py` (every test; the last on the synthetic burn, to 1e-6) | 2026-11-24 |
 | I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
+| I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own` | 2026-11-24 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5593,6 +5594,44 @@ reproduced).
 
 Verified by: reading only. The timeline joins several SPEC files on one axis; the sh-scan thumbnail uses SPEC's `Pilatus` counter; the verdict colour depends on width only, the exponent p is shown as a number and the colour thresholds are visual preferences; sx is drawn and coloured by dose per area scaled by a burn test's (F107), with barrier and tensiometer traces shown only if their data exist. Open: Q-TL-2 (a macro-written new-sample line; partly covered by Q-TL-1's answer), Q-TL-5 (the coloured placeholder boxes), Q-TL-8 (environment column names and units), and what a "large" sx change is. **Note on process:** AGENTS.md rule 12 (2026-11-24) now requires a COMPARISONS study, pinning tests and a demonstrator before a default switches; the owner's adoption of the Poisson step P1 as the MCA default (batch 15) falls under it.
 
+### 2026-11-24 — Qc and Qoff of R/R_F (F79): the degeneracy, and the subphases
+
+Asked by Main for the owner's F79 ("Qoff tweaked by hand until the
+fresnel-normed reflectivity looks continuous"). Derivation, then checks:
+
+- **Why the edge decides Qoff.** R/R_F with a wrong Qoff ε is
+  R(Qz + Qoff)/R_F(Qz + Qoff + ε). Far above the edge R_F ∝ Qz⁻⁴, so the
+  ratio only tilts, (1 + ε/Qz)⁴ ≈ 1 + 4ε/Qz (0.4 % at Qz 0.1 for ε = 10⁻⁴).
+  At the edge dR_F/dQz is infinite (R_F = 1 − 4√(2x)+… with x = Qz/Qc − 1),
+  so the same ε leaves a spike or a dip of tens of percent in the first
+  points above Qc: what the owner sees as "not continuous".
+- **Qc and Qoff are nearly degenerate.** Without absorption R_F depends on
+  Qz/Qc alone and the edge sits at Qz = Qc − Qoff. Moving Qc and Qoff by
+  the same Δ keeps the edge in place; what is left is a level change far
+  above the edge, R_F(Qz; Qc + Δ)/R_F(Qz; Qc) → (1 + Δ/Qc)⁴ (the 4 % per
+  1 % of Qc in F79), which looks like the sample's own level, and a small
+  change of shape just above the edge. So fitting Qc and Qoff together from
+  one curve is ill-posed: the bootstrap correlation is +0.9 to +1.0.
+  Measured: `tests/test_qoff.py` (the fitted Qc − Qoff equals the true
+  Qc − Qoff within 10⁻⁴; correlation > 0.8) and the study (C50).
+- **A wrong Qc moves Qoff one for one.** The subphase 1 M NaCl (Qc 0.0221)
+  reduced at water's 0.0217 gives a proposed Qoff 0.0004 below the truth:
+  the edge is put in the right place, and R/R_F above it is then off in
+  level by (0.0221/0.0217)⁴ − 1 ≈ 7 %. Measured (`test_qoff.py`).
+- **Subphase densities** (`lss_core.fresnel.SUBPHASES`): ρ_e = ρ_m N_A
+  [w Z_s/M_s + (1 − w) Z_w/M_w]. Water at 25 °C, 0.99705 g/cm³: 0.3333
+  e/Å³, Qc 0.02173 Å⁻¹; D2O 0.02169; NaCl 1, 3, 6, 10 % by mass: 0.02180,
+  0.02193, 0.02211, 0.02236; KCl 7 %: 0.02212; CaCl2 5 %, 10 %: 0.02213,
+  0.02251 (computed). **Every density is from memory** (CRC Handbook
+  tables): the pages could not be opened from this session (Wikipedia's
+  data pages do not resolve here), and each entry says so. The third
+  significant figure of Qc, the one that matters, is safe against a 0.5 %
+  error in a density (Qc ∝ √ρ_e: 0.25 %).
+
+Verified by: derivation, the tests named, and the study's runs
+(`docs/studies/qoff/summary.md`).
+
+
 ### 2026-11-24 — F98's core: the dose each point gives the sample, and burns against dose
 
 Verified by: tests (`test_dose.py`, I39); a run on NX school's burns (the numbers below); the owner for the
@@ -5673,6 +5712,95 @@ Verified by: the owner's statements; nothing checked against data.
 - **Monc upstream of the absorbers:** confirmed by the owner. The reduction's use of the absorber factor and Monc is consistent with that.
 - **Shutter:** closed between burn frames, open in fast mode (wall time = exposure, F98's dose axis must use it); fast mode is a recommended technique, not yet demonstrated (OQ-4).
 - **Timeline placeholders:** notes and stand-ins both, plus automatic flags (F108).
+
+### 2026-11-24 — F97's core: diffuse-cut axes β, β − α, Qz and Qxy
+
+Verified by: tests (`test_diffuse_axes.py`, I41) on synthetic specular frames; a computation for the Qxy
+comparison (below); reading only for the Q H quirk.
+
+- **The owner's axes** (2026-11-23, Q-IMG-12): β, β − α with α from Qz, Qz and Qxy. Any cut, pixel or Q, can
+  now give its x axis as one of `cuts.DIFFUSE_AXES`: 'beta', 'beta-alpha' and 'Qz' for vertical cuts, 'Qxy'
+  for horizontal ones. The cut is made exactly as before and only its x values are converted from its
+  pixels, so the intensities cannot change (tested).
+- **The formulas** (module docstring of `lss_core/cuts.py`):
+  - **Vertical cuts:** β = arctan((r − r0) p / D_S2D) + arcsin(2 sin α − sin α_i), the window's 'Angles' of
+    Pix V; Qz = (2π/λ)(sin β + sin α_i), its 'Q'.
+  - **β − α**, with α = arcsin(Qz λ/4π), puts the specular row at 0 even on a tilted sample: the owner's
+    reason. For a specular ray the exit angle equals the specular angle.
+  - **Qxy is exact:** (2π/λ)√(cos²α_i + cos²β − 2 cos α_i cos β cos 2θ), signed by 2θ, at the β of the band's
+    middle row.
+- **The window's 'Q' of a horizontal cut**, 4π sin(2θ/2)/λ, is not Qxy away from the surface. It exceeds the
+  exact Qxy by 1/cos α − 1 ≈ α²/2 when β = α, whatever 2θ is (computed, COMPARISONS C51): 1.5e-6 at 0.1°,
+  3.8e-5 at 0.5°, 1.5e-4 at 1°, 6.1e-4 at 2°, 1.4e-3 at 3°. Negligible for GID at 0.1°; visible in diffuse
+  cuts at large exit angles. The window's 'Q' is unchanged.
+- **F59's "nothing happens", measured:** the window's default Q ranges, Qz 0–1 for Q H and Qxy 1–2 for Q V,
+  lie off a reflectivity frame. On the synthetic frame the Q V cut over 1–2 sums zeros, with no message.
+  - `cuts.covered_range(direction, g, shape)` gives the range the detector covers.
+  - `cuts.centred_range(direction, g, half_px)` gives a band about the beam: Qz about its row, Qxy about its
+    column. On the synthetic frame it is the Pix V cut over ±10 columns, to the pixel the window rounds to.
+  - Which defaults and what message the window uses is the GUI manager's choice.
+- **A quirk, read only (not changed):** the Q H cut turns its Qz range into rows with sin α, α from Qz, where
+  sin α_i belongs in Qz = (2π/λ)(sin α_i + sin β). The two agree when α_i = α. That holds in specular scans
+  (P47) and in GID scans whose L matches In_Rot (NX 14: L 0.0180 → 0.1017°, In_Rot 0.1017°). They differ for
+  a sample whose incidence is offset from its Qz. `covered_range` and `centred_range` follow the cut's own
+  arithmetic, so that they describe the band it sums.
+- **Not yet (the window, GUI manager):** a cut-axis choice beside the Line/Area cut, separate from the frame
+  display's Axes; the Q cuts' default ranges and a message when a range misses the detector (F59).
+
+### 2026-11-24 — Qoff: typical size and resolution (F79, C50; asked for tools man, batch 19)
+
+Verified by: the owner's statements; nothing computed here. The owner called the typical Qz offset "roughly −5e-4" Å⁻¹ (asked: the resolution ΔQ near Qc; the question and the answer are about different quantities, so ΔQ remains unmeasured and a request for the local data agent is `DATA_NEEDS.md` row 13). Context: the study's proposal for NX school scans 6–9 is −0.00028 Å⁻¹ (−0.0016°), the same sign and order as the owner's typical offset, and the owner says offsets of that size are usual, so proposing a Qoff by default (nothing applied automatically) matches practice. The synthetic study's rule of thumb, a resolution reads as Qoff ≈ −0.15 × ΔQ (FWHM), is the tools session's, not rechecked: if the owner's −5e-4 were all resolution it would mean ΔQ ≈ 3e-3 Å⁻¹, which is larger than the 5e-4 to 1e-3 range the question assumed, so the two readings need the measurement of row 13.
+### 2026-11-24 — Timeline: sample-height scans as thumbnails
+
+The height lane now draws each sh scan small, 64 × 34 px at every zoom:
+its Pilatus/Monc points (grey), and its super-Gaussian (purple) when
+fitted. `lss_core.timeline.HeightScan` keeps the points (x, y), with y
+the values fitted, on the mean monitor's scale. Seen on NX (scan 4's
+noise in a grey frame; scans 5, 10 and 13 flat-topped). Verified by:
+tested (`test_gui_timeline.py::test_the_sample_height_scans_are_drawn_as_thumbnails`).
+No output number changes.
+
+### 2026-11-24 — Timeline: notes, and answering "new sample?"
+
+Research §5's proposal, built. A note is a workbook Saved row of kind
+`note`: its scans, a title (label), the text (note), and settings
+`{t0, t1, lane, event, answer}`. That gives ids, versions and Excel
+filtering, and needs no new sheet (the owner asked for fewer than eight).
+
+- The user's answer to a "set sh 0: new sample?" is such a note, with
+  `event` 'set-zero' and `answer` 'new sample' or 'same sample'. It is
+  matched to the event by time (within 1 s), and the latest answer
+  is drawn.
+- The tab reads the notes when it is built, and only from an existing
+  workbook: it never creates one just to look.
+
+Verified by: tested (`test_timeline.py::test_notes_round_trip_through_saved_rows`;
+`test_gui_timeline.py`: an answer kept and redrawn, a note added and
+cancelled, the right-click menu). No output number changes.
+
+### 2026-11-24 — F80 / F105: the Compare tab and the ratio of two reduced curves
+
+The owner's F80 (compare reduced data across places and over time, for
+stability) and Q-REF-5 (a tab only for comparing, fed by the workbook,
+"provided the new data auto-update"). Built: `lss_core.compare` (no Qt)
+and the Compare tab. Verified by: tested (`tests/test_compare.py`,
+`tests/test_gui_compare.py`).
+
+- **The ratio** of curve 2 over curve 1 is taken on curve 1's Qz inside
+  the common range, with curve 2 interpolated linearly in log R against
+  log Qz. Above the critical edge R ≈ (Qc/2Qz)⁴ (Fresnel), and that
+  interpolation follows a power law exactly. Measured on a synthetic
+  Qz⁻⁴ curve on a coarser grid: ratio 2.000 to 1e-9; interpolating log R
+  against Qz instead was up to 4 % off at low Qz. This is the reason for
+  the choice.
+- **The error** adds relative errors in quadrature,
+  σ_r = r √((σ₁/R₁)² + (σ₂/R₂)²) (independent values; Bevington and
+  Robinson, ch. 3, from memory). The interpolation correlates neighbouring
+  ratio points, which this ignores.
+- **Updating:** the tab re-reads the workbook when shown and after every
+  save or live remake while it is on show; "Follow new" ticks new curves.
+  No output number changes.
+
 
 ### 2026-11-24 — Real scatter in MCA spectra against the synthetic generator (DATA_NEEDS rows 2 and 3)
 

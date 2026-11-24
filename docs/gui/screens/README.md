@@ -34,6 +34,7 @@ Observations section is by hand and is kept.
 | `32_reflectivity_after_patch.png` | Reflectivity tab after Ref Patch (finished on the patched curve) | Scans 6-9 patched, all three joins accepted; sub-tab: Ref |
 | `33_reflectivity_norm_ref_subtab.png` | Reflectivity tab, "Norm Ref" sub-tab (page and controls) | Scans 6-9 patched |
 | `33_reflectivity_ref_subtab.png` | Reflectivity tab, "Ref" sub-tab (page and controls) | Scans 6-9 patched |
+| `34_compare_tab.png` | Compare tab (F80, F105): the reflectivities saved in the workbook, overlaid | Scans 6-9 patched and saved automatically; Compare tab shown |
 | `40_gid_controls_before_patch.png` | Pilatus tab with scans 11-12 selected: the GID drop-down (GID, GID Patch, ..., Worksheet) and neighbours | Scans 11-12 all frames selected |
 | `40b_gid_dropdown.png` | The GID drop-down opened | Pilatus tab, scans 11-12 |
 | `41_gid_patch_pinhole.png` | Whole window after GID Patch of scans 11-12 (pinhole mode, the default) | Scans 11-12 all frames; GID drop-down > GID Patch; tab now: Pilatus |

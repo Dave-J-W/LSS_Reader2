@@ -214,4 +214,4 @@ def test_program_starts_from_another_working_directory(tmp_path):
                          cwd=str(tmp_path), env=env, capture_output=True,
                          text=True, timeout=180)
     assert out.returncode == 0, out.stderr[-2000:]
-    assert 'started 8' in out.stdout      # 8 tabs since the Timeline tab came (F83, 2026-11-24); 7 after the Apex tab went (Q14)
+    assert 'started 9' in out.stdout      # 9 since the Compare tab (F105) and 8 since the Timeline tab (F83), 2026-11-24; 7 after the Apex tab went (Q14)
