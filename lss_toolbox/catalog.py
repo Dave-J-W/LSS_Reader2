@@ -662,9 +662,29 @@ TOOLS = (
                conditions='ratio_0.01,ratio_0.003,ratio_0.0003,ratio_0.0001,counts_x0.1,counts_x10'),
              V('XFNTR series', 'Whole XFNTR curves, smooth and hard: does each estimator keep the curve\'s shape '
                'where the elastic grows above Qc?', 'docs/physics_notes.md#distorts XFNTR curves:', design='series'),
+             V('Study B run (shells Compton, P1-P3)', 'The study\'s run: water\'s Compton shell by shell, the '
+               'reader\'s options P1, P2, P3, the robustness sweep and the counts design (about 25 min; its products '
+               'are docs/studies/mca_fit/gauntlet).', 'docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line',
+               design='all,robust,counts', methods='study', compton='shells', replicates='200'),
+             V('Robustness sweep only', 'Escape fraction x O 1s wing, Doppler width and counts from the hard case.',
+               'docs/studies/2026-11-24_two_decisions_plan.md#Then the robustness sweep over',
+               design='robust', methods='study', compton='shells', replicates='100'),
          ),
          committed_with={'--design': 'all', '--replicates': '200'},
          repo_out='docs/comparisons_data/mca_fit_gauntlet', repo_ok=False, seconds=None),
+
+    Tool('mca_study', 'Study B figures: MCA line intensities (F90)', 'fluo', 'figures',
+         'tests/tools/mca_study.py',
+         'The owner\'s study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with '
+         'every estimator\'s fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass '
+         'rates and the robustness map (B1-B7), from the gauntlet\'s study run.',
+         committed=('docs/studies/mca_fit',),
+         docs=('docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line',),
+         defaults={'--gauntlet': 'docs/studies/mca_fit/gauntlet', '--out': OUT},
+         variations=(V('Replicates and anatomy only', 'B1 and B2, which need no gauntlet run (about 20 s).',
+                       'docs/studies/2026-11-24_two_decisions_plan.md#B2. Replicates and their fits', only='B1,B2'),),
+         inputs=('docs/studies/mca_fit/gauntlet',),
+         repo_out='docs/studies/mca_fit', repo_ok=False),
 
     # ------------------------------------------------------------ the reader's window
     Tool('gui_screens', 'Screenshots of every area of the window', 'gui', 'figures',

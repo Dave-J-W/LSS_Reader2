@@ -144,7 +144,10 @@ STOP = dict(after=20, fails=10, fraction=0.05)
 MONITOR = 1e7                # Monc of every spectrum: its N²/M term is negligible under the line
 TIME = (10.0, 10.0)          # real, live (s)
 KEY_METHODS = ('window', 'sides', 'fit', 'fit_fixed', 'fit_width', 'fit_strip', 'fit_known', 'fit_irls')
-METHODS = KEY_METHODS + ('fit_linear', 'fit_cubic', 'nonlinear')
+# study B (2026-11-24): the reader's own code paths, options P1 (Poisson step), P2 (width from the
+# detector, lss_core.fluorescence.detector_fwhm), P3 (Si escape stripping, fluorescence.strip_escape)
+STUDY_METHODS = ('window', 'sides', 'fit', 'p1', 'p1p2', 'p1p3', 'p1p2p3')
+METHODS = KEY_METHODS + ('fit_linear', 'fit_cubic', 'nonlinear', 'p1', 'p1p2', 'p1p3', 'p1p2p3')
 
 SMOOTH_BEAM = mca.Beam(energy=10.0, angle=90.0, compton_ratio=1.0, compton_fwhm=0.19, compton_core=0.0)
 SMOOTH_DET = mca.Detector(tail=0.0, shelf=0.0, escape=0.0)
@@ -355,6 +358,42 @@ class SeriesCond:
         return [self.cond.spectrum(a, b) for a, b in zip(n_line, n_el)], n_line, n_el
 
 
+def with_shells(cond):
+    """The condition with the generator's 'shells' Compton model (study B):
+    the hydrogenic model's water-like core fraction 0.2 and valence FWHM
+    0.19 keV map to core_scale 1 and doppler_scale 1."""
+    b = cond.beam
+    return replace(cond, beam=replace(b, compton_model='shells', core_scale=b.compton_core / 0.2,
+                                      doppler_scale=b.compton_fwhm / 0.19))
+
+
+def robust():
+    """Study B's robustness sweep from the hard case: the escape fraction
+    (× Reed) against the O 1s wing (× water's), then the Doppler width and
+    the counts. Run with ``--compton shells``; in the hydrogenic model the
+    wing is ``compton_core`` × 0.2."""
+    g = {}
+    for e in (0.0, 0.5, 1.0, 2.0, 3.0):
+        for c in (0.0, 0.5, 1.0, 2.0):
+            g['robust_esc%g_core%g' % (e, c)] = Cond('escape %g × Reed, O 1s wing %g × water\'s' % (e, c),
+                                                    factor='robust escape x wing', beam=replace(HARD_BEAM, compton_core=0.2 * c),
+                                                    detector=replace(HARD_DET, escape=e))
+    for d in (0.8, 1.25):
+        g['robust_doppler%g' % d] = Cond('Doppler widths × %g' % d, factor='robust Doppler',
+                                         beam=replace(HARD_BEAM, compton_fwhm=0.19 * d), detector=HARD_DET)
+    for n in (100, 300, 3000, 10000):
+        g['robust_counts%g' % n] = Cond('Zn %g photons on 1e6 elastic' % n, factor='robust counts', photons=float(n),
+                                        beam=HARD_BEAM, detector=HARD_DET)
+    return g
+
+
+def counts():
+    """A clean line (no scatter, 1 count per channel) over counts: the
+    weighting's own bias (study B, figure B3)."""
+    return {'counts_%g' % n: Cond('clean line, %g photons' % n, factor='counts', photons=float(n), elastic=0.0)
+            for n in (30, 60, 100, 200, 400, 1000, 3000, 10000)}
+
+
 def series_conditions():
     smooth = Cond('series', factor='series', series=1)
     hard = replace(smooth, beam=HARD_BEAM, detector=HARD_DET)
@@ -537,6 +576,21 @@ def estimate(cond, spectra, counts, methods):
                     continue
                 got = _from_heights(ref, j, linear_step(x, Y, S, ref, o, 'data'), step)
                 out[m] = [g + (t,) for g, t in zip(got, ka_total)]
+            elif m in ('p1', 'p1p2', 'p1p3', 'p1p2p3'):     # the reader's options (lss_core), study B
+                YY, SS = Y, S
+                if 'p3' in m:
+                    sd = [fluo.strip_escape(d, cond.assumed_escape) for d in data]
+                    YY, SS = [d[:, 1] for d in sd], [d[:, 2] for d in sd]
+                kw = dict(fwhm=fluo.detector_fwhm(cond.line, cond.detector.noise) * (1 + cond.width_error)) \
+                    if 'p2' in m else {}
+                o = fit_options(cond, [cond.line], **kw)
+                ref, each = peaks.fit_series(x, YY, SS, o, weights='poisson')
+                if not each:
+                    out[m] = fail
+                    continue
+                j = _ka_index(ref, cond.line)
+                out[m] = [(r.peaks[j].area / step * scale(), r.peaks[j].area_err / step * scale(), t)
+                          for r, t in zip(each, ka_total)]
             elif m == 'nonlinear':
                 o = fit_options(cond, [cond.line])
                 r = peaks.fit_lines(x, Y[0], [cond.line], S[0], o)
@@ -920,7 +974,11 @@ def figure_series(out, table, sconds):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--out', required=True)
-    ap.add_argument('--design', default='core', choices=['core', 'grid', 'random', 'series', 'all'])
+    ap.add_argument('--design', default='core',
+                    help="core, grid, random, series, all (the four), robust (study B: escape x O 1s wing, Doppler, "
+                         "counts), counts (a clean line over counts), or a comma-separated list")
+    ap.add_argument('--compton', default='hydrogenic', choices=['hydrogenic', 'shells'],
+                    help="the generator's Compton model: 'hydrogenic' (C42) or 'shells' (water's shells, study B)")
     ap.add_argument('--replicates', type=int, default=200, help='per designed condition (a replicate is one series)')
     ap.add_argument('--random', type=int, default=150, help='number of random conditions')
     ap.add_argument('--random-replicates', type=int, default=40)
@@ -930,21 +988,35 @@ def main(argv=None):
     ap.add_argument('--jobs', type=int, default=0, help='worker processes (0: one per CPU)')
     ap.add_argument('--rows', action='store_true', help='also write pulls.csv (every estimate; large)')
     a = ap.parse_args(argv)
-    methods = list(METHODS) if a.methods == 'all' else (list(KEY_METHODS) if a.methods == 'key' else a.methods.split(','))
+    methods = {'all': list(METHODS), 'key': list(KEY_METHODS), 'study': list(STUDY_METHODS)}.get(a.methods) \
+        or a.methods.split(',')
+    designs = set(a.design.split(','))
+    if 'all' in designs:
+        designs |= {'core', 'grid', 'random', 'series'}
+    for dname in designs - {'core', 'grid', 'random', 'series', 'all', 'robust', 'counts'}:
+        ap.error('unknown design %r' % dname)
     for m in methods:
         if m not in METHODS:
             ap.error('unknown method %r (use %s)' % (m, ', '.join(METHODS)))
     if 'window' not in methods:
         methods.insert(0, 'window')               # the reference every verdict needs
     designed, randoms, sconds = {}, {}, {}
-    if a.design in ('core', 'all'):
+    if 'core' in designs:
         designed.update(core())
-    if a.design in ('grid', 'all'):
+    if 'grid' in designs:
         designed.update(grid())
-    if a.design in ('random', 'all'):
+    if 'robust' in designs:
+        designed.update(robust())
+    if 'counts' in designs:
+        designed.update(counts())
+    if 'random' in designs:
         randoms = random_conditions(a.random)
-    if a.design in ('series', 'all'):
+    if 'series' in designs:
         sconds = series_conditions()
+    if a.compton == 'shells':
+        designed = {k: with_shells(v) for k, v in designed.items()}
+        randoms = {k: with_shells(v) for k, v in randoms.items()}
+        sconds = {k: replace(v, cond=with_shells(v.cond)) for k, v in sconds.items()}
     if a.conditions:
         keep = set(a.conditions.split(','))
         designed = {k: v for k, v in designed.items() if k in keep}
@@ -980,6 +1052,7 @@ def main(argv=None):
               [dict(condition=n, factor=c.factor, element=c.element, photons=c.photons, elastic=c.elastic,
                     fwhm_kev=c.fwhm, box=c.box, box_high=c.box_high if c.box_high is not None else c.box, series=c.series, background=c.background, offset=c.offset, gain=c.gain,
                     compton_ratio=c.beam.compton_ratio, compton_fwhm=c.beam.compton_fwhm, compton_core=c.beam.compton_core,
+                    compton_model=c.beam.compton_model, core_scale=c.beam.core_scale, doppler_scale=c.beam.doppler_scale,
                     angle=c.beam.angle, escape=c.detector.escape, tail=c.detector.tail, shelf=c.detector.shelf,
                     others=';'.join('%s %g' % o for o in c.others), describe=c.describe) for n, c in conds.items()])
     write_csv(os.path.join(a.out, 'verdict.csv'), ver)
@@ -996,7 +1069,7 @@ def main(argv=None):
                          for r in lst]
         write_csv(os.path.join(a.out, 'pulls.csv'), rows)
     summary(ver, pool, sver, f90, conds, sconds, a, a.out)
-    if a.design in ('core', 'all'):
+    if 'core' in designs and a.compton == 'hydrogenic':
         figure_hard_case(a.out)
     if sconds:
         figure_series(a.out, table, sconds)
