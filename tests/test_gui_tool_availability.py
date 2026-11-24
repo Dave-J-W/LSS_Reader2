@@ -139,3 +139,27 @@ def test_a_gid_map_without_a_common_qxy_range_is_refused_in_q_and_drawn_in_angle
     qapp.processEvents()
     assert loaded.pilGIDshow == 1
     assert recorder.exceptions == []
+
+
+def test_a_gid_map_refused_by_lss_core_is_said_too(loaded, qapp, dataset, recorder, monkeypatch):
+    """Main plans a guard in gid.products (2026-11-24): a GIDError naming the
+    cause instead of the IndexError. The window refuses that map the same
+    way: frames back, a message, nothing raised."""
+    import dataclasses
+    from lss_core import gid as gidmod
+
+    def refuse(*a, **k):
+        raise gidmod.GIDError('no Qxy range is shared by every row')
+    monkeypatch.setattr(gidmod, 'products', refuse)
+    sweep.state_pilatus_one_frame(loaded, qapp, dataset)
+    loaded.seriesWhere = {}
+    loaded.updateToolAvailability()
+    loaded.gidParams = dataclasses.replace(loaded.gidParams, pinhole=False)
+    loaded.ui.pilAxesComboBox.setCurrentIndex(loaded.ui.pilAxesComboBox.findText('Angles'))
+    qapp.processEvents()
+    loaded.gidPatchPushButton.click()
+    qapp.processEvents()
+    assert loaded.pilGIDshow == 0
+    assert any('GID Patch' in m for m in recorder.messages)
+    assert recorder.exceptions == []
+

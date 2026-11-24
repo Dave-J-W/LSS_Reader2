@@ -6070,7 +6070,7 @@ class MainWindow (QMainWindow):
         self.pilPatchData=patch
         try:
             self.gidFinishMap()
-        except IndexError as e:
+        except (IndexError,gidmod.GIDError) as e:      # GIDError: Main's guard in gid.products (planned 2026-11-24)
             # frames that are not a GID series can give a map whose rows share no Qxy range: its Q grid
             # is empty and gid.products fails (the crash sweep, 2026-11-24). Refused, with the reason.
             self.log.info('GID map not drawn: %s',e,exc_info=True)
