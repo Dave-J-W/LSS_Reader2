@@ -46,6 +46,8 @@ exists.
 | I33 | Every photon of a synthetic MCA spectrum lands in exactly one part: photopeak + tail + shelf + escape = the photons of each source (`synthetic.mca`, to 0.2 % where the channels cover everything); the gauntlet's truths rest on it (F90) | `test_synthetic_mca.py::test_every_photon_lands_in_one_part` |
 | I34 | On the Angles axis of a 'Pix V' cut through the reflected beam's columns, the reflected peak of a specular frame is at β = α (α = arcsin(Qz λ/4π)); NX school scans 6, 8, 9 to 2e-4° | `test_true_incidence.py::test_the_reflected_beam_sits_at_beta_equal_alpha` |
 | I35 | L is Qz in Å⁻¹ (the beamline's SPEC lattice): L = (2π/λ)(sin α + sin β), α = In_Rot, β = Out_Rot; in a specular scan 4π sin α/λ. On NX school every scan at fixed L agrees to better than 0.001 % (scans 4, 5, 10–15; scan 12 at the raised GID level, β = 6.5°); a fixed-L scan off by more than 1 % is noted at load (`LMismatch`) | `test_lattice.py::test_nx_l_is_qz_at_every_fixed_l_scan` |
+| I36 | Ref Patch steps are reversible: going Back (undoing a drop, or an accepted join) and doing the same steps again gives the same curve value for value as never going back; a cancelled patch leaves the curve on show and its Script line as they were (F96, owner Q-UI-B7). Not yet held: an accepted join must not change when live data arrive (B7's added rule; the live replay is not built) | `test_gui_ref_patch_steps.py::test_back_then_the_same_steps_give_the_same_reflectivity`, `::test_cancel_says_so_and_leaves_the_result_on_show` |
+| I37 | The residual panel shows what the fit minimised: over the fitted points Σ((y − fit)/σ)² = χ²/dof × (N − p), N − p an integer with p the fit's parameter count; for Poisson data with σ = √y and a right model the weighted residuals have mean ≈ 0 and SD ≈ 1 (F74) | `test_residuals.py::test_the_residuals_are_those_the_fit_minimised` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5123,3 +5125,111 @@ but **P1's default switch waits**: tools man builds P1, P2 and P3 as
 code paths with today's weighting kept as the default.
 
 Verified: nothing yet (a plan).
+
+### 2026-11-24 — F96 built: Back, Cancel and the join table in the Ref Patch window; the line under the Reflectivity plot
+
+The owner's answers Q-UI-B7 and Q-UI-B5 (batch 8, above) are built in the
+main window. Verified by: tested (`tests/test_gui_ref_patch_steps.py`, 13
+tests), not yet tried by the owner.
+
+- **Back** undoes one step at a time: a Drop, or a join accepted with Next.
+  Each step first saves a copy of everything it changes (the scans' arrays,
+  which the joins scale in place, hand-off trap T3; the curve joined so far;
+  the scales, known-ratio factors, drops and choices). Back puts the copy
+  back, so a join comes back as it was left, its drops kept. **Invariant
+  I36:** Back and redoing the same steps gives the same curve, value for
+  value (tested on a three-scan synthetic patch with two drops).
+- **Cancel**, Esc, or closing the window (or the identical-scans window)
+  stops the patch and says so in the Messages pane: at which join, and that
+  the Reflectivity tab is unchanged; the log lists the joins accepted.
+  **A defect went with the old silent close:** the patch had already
+  replaced what describes the result on show (drops, factors, method,
+  merged repeats, the command line), so after a closed patch the Script
+  pane and the workbook recipe described the abandoned patch, not the curve
+  on show. A stopped patch now puts them back (tested: the Script line is
+  the same before and after a cancelled patch with a drop).
+- **The join table** lists each join: scans, factor ± error, its source in
+  the words of the script (`joint`, `legacy`, `known ratio`, so that a live
+  replay can rebuild it, Main's request), the dropped points, the fit's
+  note. It is kept with the result and saved in the workbook's Saved
+  settings (`joins`).
+- **The line under the Reflectivity plot** (Q-UI-B5): patch method, error
+  model, absorber model, scans, dropped points and the saved version, as
+  the result was made (a later change of preference does not alter it);
+  the joins and details in its tooltip. "saved vN" is read only from a
+  workbook already in memory (opening one can take seconds).
+
+**Seen in passing (measured, synthetic; corrected the same day):** first
+read as an effect of an unmerged repeat, it is a drop: dropping the **new
+scan's first point** (Drop "0") at a join leaves dR NaN or inf from there to
+the end of the curve, in the window and in `Experiment.reflectivity`, with
+the joint and the legacy fit, on main before F96 (7b9a22b) as on this
+branch. `synth.make_dataset` scans 1, 2: 6 of 14 points from Qz 0.05;
+with the repeat (scans 1, 2, 3): 8 of 14 from Qz 0.04; drops −1 or 1, or no
+drop: all finite. Pinned by the strict xfail
+`tests/test_drop_first_point_errors.py`; handed to Main, not fixed here.
+
+### 2026-11-24 — F95 (part): Ref Patch checks as one message and marks; the Bad Pixels list wired
+
+The owner's Q-UI-B6 and the list half of Q-UI-B3 (batch 7). Verified by:
+tested (`tests/test_gui_ref_checks.py`, 5 tests, on a synthetic set with
+one frame's beam drawn 5 px off and with corrected pixels injected into
+one frame's box), not yet tried by the owner.
+
+- The two modal boxes (beam centre more than 2 px off; corrected bad
+  pixels inside the signal box) are gone. One message names the frames;
+  the log has each frame's numbers.
+- The flags belong to the result: they are promoted when the patch goes on
+  show and kept through a cancelled patch, as the F96 join table is.
+- Marks are placed by matching each flagged frame's Qz to the curve's Qz
+  (within 5e-5 Å⁻¹; Qz steps are ≥ 1e-3 Å⁻¹ in every set seen): a point
+  merged at an overlap carries the mark, and a dropped point has none.
+- **No output number changes**: the checks only report. **Not built:** the
+  separate ROI threshold of B3 (the tab's "Bad Pixel Correction fac"
+  field), which would change numbers and then needs an OUTPUT_DECISIONS
+  row.
+
+### 2026-11-24 — F74 built (first plots): residual panels above fits
+
+The owner's request of 2026-11-22 (a small residuals plot above every plot
+that shows a fit, about 15 % of the height, χ² in the legend, hidden by
+default). Verified by: tested (`tests/test_residuals.py`, 6 tests), not
+yet seen by the owner.
+
+- **What is drawn:** (y − fit)/σ for the points inside the fit's window,
+  as in decay fitting (Lakowicz, *Principles of Fluorescence
+  Spectroscopy*, 3rd ed., Springer 2006, ch. 4; from memory, not rechecked
+  — still the assumption recorded with F74). Where a σ is missing or zero,
+  y − fit, and the axis label says so.
+- **Invariant I37:** the panel's residuals are the ones the fit minimised:
+  their squares sum to χ²/dof × (N − p). Measured on a synthetic Poisson
+  peak (61 points, peak plus linear background): N − p is an integer, p
+  between 3 and 8; mean residual within 0.5 and SD between 0.6 and 1.5 (a
+  weighted fit with σ = √y; the reason to expect SD ≈ 1 is that each
+  weighted residual of a right model is approximately N(0, 1), Bevington
+  and Robinson, *Data Reduction and Error Analysis*, 3rd ed., ch. 8, from
+  memory).
+- **Where:** SpecPlot scan fits (`peaks.fit_scan`) and the cut peak fits
+  (`fitCuts`), with one switch, View > Residuals above fits (preference
+  `fit_residuals`, default False), and one helper (`lss_core/residuals.py`,
+  matplotlib only) for the other fit plots to use. No output number
+  changes.
+
+### 2026-11-24 — F97 (part): the saturation cue on Pilatus frames
+
+The owner's Q-IMG-10 (batch 9): per pixel, soft limit 1e5 counts/s, hard
+limit 1.5e5 counts/s ("absorber needed"). Built as a display cue only:
+`lss_core.display.saturation` divides a frame's **raw** counts (as read,
+before monitor normalisation) by the point's SPEC `Seconds`, and the
+window colours the pixels above each limit over the frame, with a note in
+its corner. Verified by: tested (`tests/test_saturation_cue.py`, 5 tests:
+the limits, the overlay, a synthetic frame of 1e6 counts in 1 s marked
+red, a frame of about 1e3 counts unmarked, the drawn and raw frames
+unchanged).
+
+**Still open (from batch 9):** the exposure time is taken as SPEC
+`Seconds`, which is what the macros count for; not checked against the
+TIFF header's own exposure time. Whether the Pilatus counts are already
+rate-corrected by the detector is not known; if they are, the true
+incident rate is higher than shown. No output number changes.
+

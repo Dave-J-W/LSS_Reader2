@@ -310,3 +310,54 @@ def frame_text(scan, point, kind, qz=None, tth_deg=None, t_s=None, absorber=None
     if monc is not None:
         parts.append('Monc %.3g' % monc)
     return ' · '.join(parts)
+
+
+# ---------------------------------------------------------------- saturation cue (F97)
+
+# Owner, 2026-11-23 (Q-IMG-10): per pixel, a soft limit at 1e5 counts per second
+# and a hard one at 1.5e5 counts per second, above which an absorber is needed.
+# Counts per second = the frame's raw counts over its counting time (the SPEC
+# 'Seconds' of its point). Not checked against the detector's own count-rate
+# correction (whether the counts written are corrected is not known here).
+SOFT_CPS = 1.0e5
+HARD_CPS = 1.5e5
+SOFT_RGBA = (1.0, 0.85, 0.0, 0.85)       # amber: near the limit
+HARD_RGBA = (1.0, 0.0, 0.0, 0.95)        # red: an absorber is needed
+
+
+def saturation(counts, seconds, soft=SOFT_CPS, hard=HARD_CPS):
+    """(above soft, above hard, highest cps) for a frame of raw ``counts``
+    counted for ``seconds``; (None, None, None) when the time is not known
+    or not positive. 'Above soft' includes the pixels above hard."""
+    try:
+        t = float(seconds)
+    except (TypeError, ValueError):
+        return None, None, None
+    if not np.isfinite(t) or t <= 0:
+        return None, None, None
+    cps = np.asarray(counts, dtype=float) / t
+    finite = np.where(np.isfinite(cps), cps, 0.0)
+    return finite > soft, finite > hard, float(finite.max()) if finite.size else 0.0
+
+
+def saturation_rgba(above_soft, above_hard):
+    """An RGBA overlay: clear, amber where above the soft limit, red where above the hard one."""
+    out = np.zeros(np.shape(above_soft) + (4,), dtype=float)
+    out[np.asarray(above_soft, bool)] = SOFT_RGBA
+    out[np.asarray(above_hard, bool)] = HARD_RGBA
+    return out
+
+
+def saturation_text(n_soft, n_hard):
+    """The short note for a frame's title ('' when nothing is above the soft limit)."""
+    if n_hard:
+        return '%d px > %s cps: absorber needed' % (n_hard, _short(HARD_CPS))
+    if n_soft:
+        return '%d px > %s cps' % (n_soft, _short(SOFT_CPS))
+    return ''
+
+
+def _short(v):
+    """1.5e5 for 150000, 1e5 for 100000."""
+    m, e = ('%.2g' % v).split('e')
+    return '%se%d' % (m, int(e))

@@ -524,7 +524,7 @@ workflows:
       - id: burn-fluo.line
         do: Measure the line in each spectrum - Fit lines (sum fixes position and width, each spectrum amplitude and background) or a window Sum All
         where: MCA tab
-        controls: [mcaRanLineEdit, mcaFitLinesPushButton, mcaFitOptionsPushButton, mcaSumAllPushButton, mcaXAxisComboBox]
+        controls: [mcaRanLineEdit, mcaFitLinesPushButton, mcaFitOptionsPushButton, mcaFitDetectorWidthCheckBox, mcaFitNoiseSpinBox, mcaFitEscapeCheckBox, mcaSumAllPushButton, mcaXAxisComboBox]
         user_decides: the line window; fitted lines (owner D47 - lines count, not the Vortex counter) or window sum; x axis Frame
         automatic: no
         could_be_automatic: a burn dialog for MCA series (TODO - feed fit_series through trends.compare)
@@ -627,7 +627,7 @@ workflows:
         could_be_automatic: offer Ref Patch when a reflectivity series is selected (F60)
         known_from: code (pilRefPatchData); test tests/test_real_nx_school.py
         issues:
-          - "The beam-offset and bad-pixel tables are modal dialogs (pilPeakCenDialog, pilBadPixDialog) that interrupt the patch"
+          - "The beam-offset and bad-pixel tables were modal dialogs that interrupted the patch; since 2026-11-24 (F95) one message, marks on the curve and the Bad Pixels list (refBadPixListWidget)"
       - id: ref.same
         do: When identical scans (same Qz range and points) are found - merge them, drop some, or patch them regularly
         where: identical-scans dialog
@@ -643,7 +643,7 @@ workflows:
       - id: ref.join
         do: "For each join: the overlap plotted with the factor that Next will use (joint fit), the known foil ratio offered; drop points; Next / Finish!"
         where: Ref Patch dialog (one per join)
-        controls: [refpatch.nextPushButton, refpatch.dropPushButton, refpatch.dropLineEdit, refpatch.knownRatioCheckBox, refpatch.knownRatioLabel, prefPatchMethodComboBox, prefPatchAutoCheckBox, prefPatchThresholdSpinBox]
+        controls: [refpatch.nextPushButton, refpatch.dropPushButton, refpatch.dropLineEdit, refpatch.knownRatioCheckBox, refpatch.knownRatioLabel, refpatch.backPushButton, refpatch.cancelPushButton, refpatch.joinTableWidget, prefPatchMethodComboBox, prefPatchAutoCheckBox, prefPatchThresholdSpinBox]
         user_decides: accept the fitted factor or use the known ratio; which points to drop (typed indices)
         automatic: partly
         could_be_automatic: accept every join whose fit passes its guard and agrees with the foils, and show only the doubtful ones (owner 2026-11-18 F58 - known ratio automatic where plainly better)
@@ -652,11 +652,11 @@ workflows:
         goto: {"drop points": ref.join, "use known ratio": ref.join}
         issues:
           - "One dialog per join (3 for NX 6-9); the method preference is in File > Preferences, not in the dialog"
-          - "Dropped points are typed as indices, deleted from the arrays, not drawn, no undo (F16, D2)"
+          - "Dropped points are typed as indices, deleted from the arrays, not drawn (F16, D2); Back undoes a drop or a join and Cancel says so (F96, 2026-11-24)"
       - id: ref.view
         do: The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files
         where: Reflectivity tab (Ref / Norm Ref lists, plot)
-        controls: [refDataListWidget, refNormRefListWidget, refRRFCheckBox, refQcLineEdit, refQoffLineEdit, refLogYCheckBox, refQzSqrCheckBox, refNormFacCheckBox, refNormLineEdit, refDelPushButton, refRefFileListWidget, refAddFilePushButton, refRemoveFilePushButton, refLegendCheckBox]
+        controls: [refDataListWidget, refNormRefListWidget, refProvenanceLabel, refRRFCheckBox, refQcLineEdit, refQoffLineEdit, refLogYCheckBox, refQzSqrCheckBox, refNormFacCheckBox, refNormLineEdit, refDelPushButton, refRefFileListWidget, refAddFilePushButton, refRemoveFilePushButton, refLegendCheckBox]
         user_decides: "Qc (0.0217 preset: water, the same Qc at every energy, physics_notes 2026-11-23; changed for lighter or denser subphases); Qoff tweaked until R/R_F is continuous apart from one or two outliers (owner 2026-11-23); reference curves to compare"
         automatic: partly
         could_be_automatic: Qoff proposed from the continuity of R/R_F across the joins, Qc from the subphase (F79); Qoff from the sh-scan images (F42)
@@ -1101,7 +1101,7 @@ workflows:
       - id: cuts.view
         do: Look at the cuts; errorbars, offset, log; Fit peaks
         where: Line/Area Cuts tab
-        controls: [cutErrorbarCheckBox, cutOffsetCheckBox, cutOffsetLineEdit, cutLogYCheckBox, cutClearGraphPushButton, cutFitPushButton, cutFitOptionsPushButton]
+        controls: [cutErrorbarCheckBox, cutOffsetCheckBox, cutOffsetLineEdit, cutLogYCheckBox, cutClearGraphPushButton, cutFitPushButton, cutFitOptionsPushButton, actionFitResiduals]
         user_decides: fit options
         automatic: partly
         could_be_automatic: ""

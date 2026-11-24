@@ -227,6 +227,8 @@ FRAMES = {
             C('cutFitFwhmSpinBox', 'Fixed FWHM (0 = fitted)'),
             C('cutFitRangeLineEdit', 'x range (a – b)'),
             ROW(C('cutFitCentresLineEdit', 'Centres'), C('cutFitFixCheckBox', 'fixed')),
+            ROW(C('mcaFitDetectorWidthCheckBox', 'width from detector'), C('mcaFitNoiseSpinBox', 'noise (keV)')),
+            C('mcaFitEscapeCheckBox', 'strip Si escapes', note='Fluorescence only: F90 P2, P3 (options, not defaults)'),
             C('cutFitPushButton', 'Fit peaks'),
             C('cutFitResultLabel', 'χ²/dof —, 2 peaks'),
         ], replaces=['cutFitDialog', 'cutFitOptionsPushButton'], fold=True,
@@ -379,23 +381,32 @@ REFLECTIVITY = {
         ]),
     ],
     'right': [
-        [PLOT('refRefDataPlotwidget', 'R / R_F vs Qz', 'ref', residuals=True, provenance=PROV_REF, stretch=3,
+        [PLOT('refRefDataPlotwidget', 'R / R_F vs Qz', 'ref', residuals=True,
+              provenance=C('refProvenanceLabel', PROV_REF, kind='label'), stretch=3,
               note_button=SAVE('refSaveWorkbookPushButton'))],
         [SPECIAL('tabs', name='ref_roiTabs', pages=[
             ('ROI close-up', [PLOT('refADDataPlotWidget', 'ROI movie (log)', 'roi',
                   note='Opens on log scale, zoomed to a box holding the ROI and both background zones with a margin of '
                        'diffuse scattering around them: a healthy zoom, not too close (owner 2026-11-23; F71)')]),
-            ('Checks', [C('pilPeakCenDialog.peakCenTextBrowser', 'Beam centre off', kind='list',
-                          note='Was a modal window during Ref Patch'),
-                        C('pilBadPixDialog.peakCenTextBrowser', 'Bad pixels in the ROI', kind='list',
-                          note='Was a modal window during Ref Patch')]),
+            ('Checks', [NEW('ref_centreChecks', 'Beam centre off', 'list',
+                            'Frames whose beam centre is more than 2 px off; in the main window since 2026-11-24 a '
+                            'message and open squares on the curve (F95)'),
+                        C('refBadPixListWidget', 'Bad pixels in the ROI', kind='list',
+                          note='Per Qz, with crosses on the curve (F95; was a modal window during Ref Patch)')]),
          ]),
          SPECIAL('joins', title=C('refpatch.Label', 'Joins', kind='label'),
                  controls=[C('refpatch.knownRatioCheckBox', 'Known ratio'),
                            C('refpatch.knownRatioLabel', 'fit ±0.4 %, foils ±1.5 %'),
                            C('refpatch.dropLineEdit', 'Drop points'), C('refpatch.dropPushButton', 'Drop'),
+                           C('refpatch.backPushButton', '◂ Back',
+                             note='Undoes the last drop or accepted join (F96, built in the main window 2026-11-24)'),
                            C('refpatch.nextPushButton', 'Next doubtful ▸',
-                             note='Steps to the next doubtful join; all joins are listed together')],
+                             note='Steps to the next doubtful join; all joins are listed together'),
+                           C('refpatch.cancelPushButton', 'Cancel',
+                             note='Stops the patch and says so; the result on show is unchanged (F96)')],
+                 table=C('refpatch.joinTableWidget', 'Joins', kind='table',
+                         note='Accepted joins and the one on show, kept with the result (F96, the main window\'s patch '
+                              'window since 2026-11-24); here every join at once'),
                  pages=[('Join', PLOT('refpatch.plotWidget', 'Join close-up', 'join')),
                         ('Identical scans', PLOT('refpatchsamescan.plotWidget', 'Identical scans', 'join'))]),
          SPECIAL('tabs', name='ref_pointsTabs', title=C('reflectivityDataLabel', 'Points', kind='label'),
@@ -600,6 +611,8 @@ MENUS = [
         C('messageDock_toggleViewAction', 'Messages'),
         C('scriptDock_toggleViewAction', 'Script'),
         C('errorDock_toggleViewAction', 'Errors'),
+        C('actionFitResiduals', 'Residuals above fits',
+          note='One switch for every fit plot: the panels drawn here as the Residuals toggle above each fit plot (F74)'),
     ]},
     {'title': 'Tools', 'replaces': ['menuTools'], 'items': [
         C('actionToolsWindow', 'All tools…', note='The Tools collection (F84, lss_toolbox): every demonstration and '
@@ -722,7 +735,8 @@ RETIRED = {
     'peakfit2': 'Dialog never shown: ' + Q14,
     'peakfitpara': 'Dialog never shown: ' + Q14,
     'refBPCFacLineEdit': 'Defunct: read and never used (inventory); bad pixels are set in Frames > Reduce',
-    'refBadPixListWidget': 'Defunct: only ever cleared (inventory); the bad-pixel report is Reflectivity > Checks',
+    'pilPeakCenDialog.peakCenTextBrowser': 'Removed 2026-11-24 (F95, Q-UI-B6): a message and marks instead of a modal box',
+    'pilBadPixDialog.peakCenTextBrowser': 'Removed 2026-11-24 (F95, Q-UI-B6): the Bad Pixels list (Checks) instead of a modal box',
     # dialog chrome made unnecessary by inline groups
     'pdburn.closePushButton': 'Burn test dialog, now the Burn tab: ' + INLINE,
     'gidClosePushButton': 'GID worksheet, now GID tab groups: ' + INLINE,
@@ -756,12 +770,15 @@ def _walk_items(items, where):
                 yield it['plot'], where, it
             if it.get('note_button'):
                 yield from _walk_items([it['note_button']], where)
+            if isinstance(it.get('provenance'), dict):      # the main window's line under the plot (F96)
+                yield from _walk_items([it['provenance']], where)
 
 
 def _walk_special(sp, where):
     kind = sp['special']
     w = '%s > %s' % (where, kind)
-    for key in ('label', 'title', 'image', 'gioxs', 'gisaxs', 'movie', 'plot', 'tabwidget', 'cuts', 'note_button'):
+    for key in ('label', 'title', 'image', 'gioxs', 'gisaxs', 'movie', 'plot', 'tabwidget', 'cuts', 'note_button',
+                'table'):
         v = sp.get(key)
         if isinstance(v, dict):
             yield from _walk_items([v], w)

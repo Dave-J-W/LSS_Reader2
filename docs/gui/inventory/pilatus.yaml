@@ -111,8 +111,8 @@
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "frames selected"
   shown: always
-  tooltip: false
-  notes: "Measured: 11 frames selected -> 10 drawn (F#0-F#9) with no notice; frame titles, axis labels and colour bars overlap and the suptitle overprints the top row; at the default scale (min -2, max 1) the reflectivity frames are a uniform yellow. No overlay of the ROI, cut band or direct beam column, except a dashed line in Movie (read only). Phase-2 subject (image_display.md). Since 2026-11-24 (F88): redrawn in place, zoom kept across redraws, scans and sessions; nearest pixels; per-tile titles 'S# n pt k' and cursor readouts of the tile under the cursor; the house icon does Fit all."
+  tooltip: "while a saturation cue is shown"
+  notes: "Since 2026-11-24 (F97): pixels above 1e5 counts/s amber, above 1.5e5 red (absorber needed), from raw counts over the point's Seconds, with a note in the frame's corner; the tooltip explains it only while a cue is shown. Measured: 11 frames selected -> 10 drawn (F#0-F#9) with no notice; frame titles, axis labels and colour bars overlap and the suptitle overprints the top row; at the default scale (min -2, max 1) the reflectivity frames are a uniform yellow. No overlay of the ROI, cut band or direct beam column, except a dashed line in Movie (read only). Phase-2 subject (image_display.md). Since 2026-11-24 (F88): redrawn in place, zoom kept across redraws, scans and sessions; nearest pixels; per-tile titles 'S# n pt k' and cursor readouts of the tile under the cursor; the house icon does Fit all."
 - id: pilHomePushButton
   kind: button
   label: "Home"
