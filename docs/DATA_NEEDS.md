@@ -35,3 +35,5 @@ has to be believed on its own.
 Not data, but waiting on the owner and recorded elsewhere: the interview
 answers (`docs/gui/questions.md`, Answers table), and the decision tables
 B2 in `docs/TODO.md`.
+
+| 13 | **Qz resolution ΔQ near the critical edge** at 15-ID-C, 10 keV, liquid reflectivity (for splitting a proposed Qoff into the true angle offset and the resolution smearing, F79) | Reflectivity data across the critical edge of a liquid (and the slit settings of those scans), enough to estimate the edge width or the direct-beam angular width | ΔQ (FWHM) near Qc, with how it was estimated, and whether it depends on the slits | `sample_data/private/`; the number in `docs/studies/qoff/summary.md` and `physics_notes.md` | Interpreting a proposed Qoff (F79, C50) | owner 2026-11-24: "you can leave a request for local yokel"; asked for tools man; the owner's own figure is a typical *offset* of about −5e-4 Å⁻¹, not a resolution |
