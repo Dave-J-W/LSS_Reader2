@@ -51,6 +51,7 @@ exists.
 | I38 | The ROI close-up outlines the pixels the reduction sums: summing a frame over `lss_core.display.roi_boxes(slit, cen, bg, direction)` gives `TwoDDetector.sumROI`'s signal and background values exactly, for any slit, centre, offset and direction (its slit − 2 and integer background centres included, PHYSICS_ISSUES P12) | `test_roi_boxes.py::test_summing_over_the_drawn_boxes_gives_sumROIs_values` |
 | I39 | The dose of a point is what the reduction already divides by: in monitor counts it is the point's weight in "Sum All", M/(A·g) (`cuts.frame_normaliser`); in photons, the flux route's photons/s × its seconds / A (`flux.photons_per_second`); a scan's dose is the sum of its points'; at a constant monitor rate and absorber the dose axis is the exposure axis × that rate, so a burn's dose limit is its time limit × the rate | `test_dose.py` (every test; the last on the synthetic burn, to 1e-6) | 2026-11-24 |
 | I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
+| I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own` | 2026-11-24 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5711,6 +5712,40 @@ Verified by: the owner's statements; nothing checked against data.
 - **Monc upstream of the absorbers:** confirmed by the owner. The reduction's use of the absorber factor and Monc is consistent with that.
 - **Shutter:** closed between burn frames, open in fast mode (wall time = exposure, F98's dose axis must use it); fast mode is a recommended technique, not yet demonstrated (OQ-4).
 - **Timeline placeholders:** notes and stand-ins both, plus automatic flags (F108).
+
+### 2026-11-24 — F97's core: diffuse-cut axes β, β − α, Qz and Qxy
+
+Verified by: tests (`test_diffuse_axes.py`, I41) on synthetic specular frames; a computation for the Qxy
+comparison (below); reading only for the Q H quirk.
+
+- **The owner's axes** (2026-11-23, Q-IMG-12): β, β − α with α from Qz, Qz and Qxy. Any cut, pixel or Q, can
+  now give its x axis as one of `cuts.DIFFUSE_AXES`: 'beta', 'beta-alpha' and 'Qz' for vertical cuts, 'Qxy'
+  for horizontal ones. The cut is made exactly as before and only its x values are converted from its
+  pixels, so the intensities cannot change (tested).
+- **The formulas** (module docstring of `lss_core/cuts.py`):
+  - **Vertical cuts:** β = arctan((r − r0) p / D_S2D) + arcsin(2 sin α − sin α_i), the window's 'Angles' of
+    Pix V; Qz = (2π/λ)(sin β + sin α_i), its 'Q'.
+  - **β − α**, with α = arcsin(Qz λ/4π), puts the specular row at 0 even on a tilted sample: the owner's
+    reason. For a specular ray the exit angle equals the specular angle.
+  - **Qxy is exact:** (2π/λ)√(cos²α_i + cos²β − 2 cos α_i cos β cos 2θ), signed by 2θ, at the β of the band's
+    middle row.
+- **The window's 'Q' of a horizontal cut**, 4π sin(2θ/2)/λ, is not Qxy away from the surface. It exceeds the
+  exact Qxy by 1/cos α − 1 ≈ α²/2 when β = α, whatever 2θ is (computed, COMPARISONS C51): 1.5e-6 at 0.1°,
+  3.8e-5 at 0.5°, 1.5e-4 at 1°, 6.1e-4 at 2°, 1.4e-3 at 3°. Negligible for GID at 0.1°; visible in diffuse
+  cuts at large exit angles. The window's 'Q' is unchanged.
+- **F59's "nothing happens", measured:** the window's default Q ranges, Qz 0–1 for Q H and Qxy 1–2 for Q V,
+  lie off a reflectivity frame. On the synthetic frame the Q V cut over 1–2 sums zeros, with no message.
+  - `cuts.covered_range(direction, g, shape)` gives the range the detector covers.
+  - `cuts.centred_range(direction, g, half_px)` gives a band about the beam: Qz about its row, Qxy about its
+    column. On the synthetic frame it is the Pix V cut over ±10 columns, to the pixel the window rounds to.
+  - Which defaults and what message the window uses is the GUI manager's choice.
+- **A quirk, read only (not changed):** the Q H cut turns its Qz range into rows with sin α, α from Qz, where
+  sin α_i belongs in Qz = (2π/λ)(sin α_i + sin β). The two agree when α_i = α. That holds in specular scans
+  (P47) and in GID scans whose L matches In_Rot (NX 14: L 0.0180 → 0.1017°, In_Rot 0.1017°). They differ for
+  a sample whose incidence is offset from its Qz. `covered_range` and `centred_range` follow the cut's own
+  arithmetic, so that they describe the band it sums.
+- **Not yet (the window, GUI manager):** a cut-axis choice beside the Line/Area cut, separate from the frame
+  display's Axes; the Q cuts' default ranges and a message when a range misses the detector (F59).
 
 ### 2026-11-24 — Qoff: typical size and resolution (F79, C50; asked for tools man, batch 19)
 

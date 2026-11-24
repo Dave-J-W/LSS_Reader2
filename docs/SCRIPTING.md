@@ -301,9 +301,17 @@ rrf)`. Why and what it changes: `docs/reports/downstream_covariance.md`.
     cut = exp.cut([1, 2], 'Pix H', (90, 110))            # one cut per frame
     cut = exp.cut([1, 2], 'Q H', (0.005, 0.02), summed=True)
     cut.save('dppc_')      # dppc_S# 1_F# 0_cut.txt ... or dppc_S# 1_sumcut.txt
+    cut = exp.cut([7], 'Q V', (-0.005, 0.005), axes='beta-alpha')   # diffuse: I vs beta - alpha (F97)
+    cut = exp.cut([7], 'Pix V', (90, 104), axes='beta')            # or 'Qz'; horizontal cuts: axes='Qxy'
+    from lss_core import cuts
+    cuts.covered_range('Q V', geometry, (487, 195))   # the Qxy the detector covers (geometry: cuts.Geometry)
+    cuts.centred_range('Q V', geometry, 10)           # a band of 10 columns either side of the beam
 
 Directions as the window lists them: 'Q H', 'Q V', 'Pix H', 'Pix V';
-`axes` 'Pixels', 'Angles' or 'Q' for the pixel cuts. Frames are divided by
+`axes` 'Pixels', 'Angles' or 'Q' for the pixel cuts, or for any cut a
+diffuse-cut axis (F97, 2026-11-24): 'beta', 'beta-alpha' (α from Qz),
+'Qz' for vertical cuts and 'Qxy' (exact) for horizontal ones; the
+intensities are the cut's own, the x axis converted from its pixels. Frames are divided by
 the monitor and multiplied by `absfac` (a number or
 `absorbers.calibrated(10.0)`) first. `points`, `errors`, `monitor_gain`, `per_photon`,
 `distance` and `db_pos` (typed geometry), `pinhole`, and the bad-pixel

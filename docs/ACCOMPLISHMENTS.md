@@ -138,6 +138,9 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   F92's core): kept in the workbook, applied by `exp.reflectivity(mask=...)`;
   the patch dialog's typed drops turned into raw points, and every row of a
   patched curve traced to its point (`reflectivity.drop_points`).
+- Diffuse-cut axes (`lss_core.cuts`, 2026-11-24, F97's core): β, β − α (α
+  from Qz), Qz and exact Qxy for any cut, intensities unchanged; the range
+  a Q cut can take on the detector, and a band about the beam (F59).
 
 ## Reflectivity patching and uncertainty (2026-11-22)
 
