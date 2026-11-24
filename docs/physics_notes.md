@@ -5587,3 +5587,6 @@ Verified: by tests (`test_patching`, re-pinned with the old state kept
 at p 0.3), and by runs (the audit, the NX survey, C45 and C35
 reproduced).
 
+### 2026-11-24 — GUI questions answered, batch 17 (timeline: Q-TL-3, 4, 6, 7)
+
+Verified by: reading only. The timeline joins several SPEC files on one axis; the sh-scan thumbnail uses SPEC's `Pilatus` counter; the verdict colour depends on width only, the exponent p is shown as a number and the colour thresholds are visual preferences; sx is drawn and coloured by dose per area scaled by a burn test's (F107), with barrier and tensiometer traces shown only if their data exist. Open: Q-TL-2 (a macro-written new-sample line; partly covered by Q-TL-1's answer), Q-TL-5 (the coloured placeholder boxes), Q-TL-8 (environment column names and units), and what a "large" sx change is. **Note on process:** AGENTS.md rule 12 (2026-11-24) now requires a COMPARISONS study, pinning tests and a demonstrator before a default switches; the owner's adoption of the Poisson step P1 as the MCA default (batch 15) falls under it.
