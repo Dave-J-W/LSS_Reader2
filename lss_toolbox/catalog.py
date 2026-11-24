@@ -881,6 +881,13 @@ TOOLS = (
                       '(sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them.',
          committed=('docs/studies/xr_burns',), docs=('docs/studies/xr_burns/summary.md',),
          data='private', repo_ok=False),
+    Tool('qz_resolution', 'Qz resolution near the critical edge (private data)', 'external', 'external',
+         demonstrates="The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NEEDS row 13, "
+                      "F79): the resolution per run and S1 gap, the fit's sensitivity, a known-truth check and the "
+                      "coverage of the fits' errors. Made by the non-cloud agent's private generator "
+                      "(sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them.",
+         committed=('docs/studies/qz_resolution',), docs=('docs/studies/qz_resolution/summary.md',),
+         data='private', repo_ok=False),
 )
 
 BY_ID = {t.id: t for t in TOOLS}

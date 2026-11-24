@@ -1,0 +1,10 @@
+run,s1_gap_mm,scans,sigma_median,sigma_sem,ill_conditioned
+E17,0.02,8,0.000631,0.000302,
+E17,0.04,12,0.000266,3.918e-05,
+E04,0.04,13,0.0003377,8.083e-06,
+E04,0.2,11,0.0003414,7.516e-05,
+all,0.02,11,0.0004765,nan,3
+all,0.04,378,0.0003719,nan,19
+all,0.2,11,0.0003414,nan,0
+all (S1 horizontal 1 mm),0.04 mostly,87,0.0003893,,
+all (S1 horizontal 2 mm),0.04 mostly,291,0.0003736,,

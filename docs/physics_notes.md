@@ -5977,3 +5977,23 @@ from the owner's private data (14 runs, 10 keV), by the non-cloud agent. Study, 
 - **For the core:** any automatic dose-or-time verdict needs a between-strip term, or it will call most
   real series "neither". One real burn makes `Experiment.burn` fail with a NaN change time (a ValueError in
   converting it). The 30 keV burns, a Pilatus 1M run, are not read by the burn at all.
+
+### 2026-11-24 — The Qz resolution near the critical edge (DATA_NEEDS row 13, F79, C50, C55)
+
+Verified by: a fit of the edge's width in 400 real reflectivity scans (the first scan of every series
+crossing the edge; 17 runs, 10 keV, steps of 0.001 Å⁻¹) by the non-cloud agent, with a known-truth check
+on synthetic scans of the same sampling. Study: `docs/studies/qz_resolution/summary.md`.
+- **ΔQ FWHM = 8.9 × 10⁻⁴ Å⁻¹ at 10 keV** (σ_Q 3.8 × 10⁻⁴), the median of 378 scans. Run medians are
+  6.5–12.6 × 10⁻⁴, and scans within a run scatter by ±15 %. The subphase's absorption is the largest model
+  term, ±15 % for β wrong by ×2.
+- **Not the slits:** S1 at 0.04 and at 0.2 mm in one run give the same width (σ_Q 3.38 ± 0.08 and
+  3.41 ± 0.75 × 10⁻⁴). The footprint grows ×5 and the width does not change. S1 at 0.02 mm is not
+  determined.
+- **The cause:** the beam's convergence, 37 µrad rms. The specular spot is as narrow as the direct beam
+  (0.245 px, 95 % in one pixel), so the meniscus slope spread is ≲ 1.5 × 10⁻⁴ in σ_Q. Si(111) bandwidth
+  contributes 1 × 10⁻⁶.
+- **For Qoff:** C50's −0.15 ΔQ turns this into a proposed Qoff of −1.3 × 10⁻⁴ Å⁻¹ (runs −1.0 to −1.9). That
+  is about half of NX's −2.8 × 10⁻⁴ and a quarter of the owner's typical −5 × 10⁻⁴. The rest is angle (or
+  Qc).
+- The fits' own errors are 3.5× too small against the scatter within a run (per-point angle errors); quote
+  the scatter.
