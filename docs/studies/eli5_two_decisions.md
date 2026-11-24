@@ -122,22 +122,25 @@ Each dot above is one setting of the guard:
 
 | Choice | Bias at the hard joins (mean \|pull mean\|) | Error-bar size at the hard joins (pull SD) | At a smooth join (pull SD) |
 |---|---|---|---|
-| **today, p₀ 0.3** | **0.24** | **1.02** | **1.00** |
+| today, p₀ 0.3 | 0.24 | 1.02 | 1.00 |
+| **stricter, p₀ 0.7** | **0.12** | **0.98** | **1.04** |
 | p₀ 0.01 | 0.52 | 0.92 | 0.92 |
 | no guard | 0.33 | 0.47 (bars 3× too big) | 0.92 |
 | averaging | 0.59 | 0.83 | 0.92 |
 | old spline ratio | 0.29 | 14 (bars meaningless) | 1.47 |
 
-- **Today's guard is the only setting with right-sized error bars at
-  both kinds of join.**
-- **A stricter guard leaves less bias, a looser one more.** No setting
-  removes the bias at a fringe, because no polynomial fits a fringe
-  exactly.
-- **Choosing after looking does widen the error a little** (+0.08). But
-  without the guard the bars are already slightly too large at a smooth
-  join (0.92), because they are only ever inflated, never shrunk. The two
-  cancel, and today's guard lands at 1.00.
-- **The robustness map:** today's setting is the best in all 12
+- **A stricter guard leaves less bias, up to about p₀ 0.7.** From 0.3 to
+  0.7 the bias at the hard joins halves. Beyond 0.7 almost nothing
+  changes. No setting removes the bias at a fringe, because no
+  polynomial fits a fringe exactly.
+- **The price is small.** At a smooth join the error bars become about
+  4 % too small (1.04 instead of 1.00).
+- **Choosing after looking does widen the error a little** (+0.08 at
+  p₀ 0.3). But without the guard the bars are already slightly too
+  large at a smooth join (0.92), because they are only ever inflated,
+  never shrunk. The two nearly cancel.
+- **The robustness maps,** on two kinds of grid (scans sharing their Qz
+  points or not): the strict settings, p₀ 0.5–0.9, are best in 23 of 24
   combinations of fringe sampling (3–10 points per fringe) and count
   level (1× to 0.01×).
 - **Real data:** on the public NX school joins every setting gives the
@@ -146,19 +149,23 @@ Each dot above is one setting of the guard:
 
 ### Recommendation, cost of being wrong, what would change it
 
-- **Keep p₀ = 0.3.** Nothing changes in the reader.
-- **The cost of a different choice is small where it counts.** A
-  structural fit of the patched curve moves film thickness and roughness
-  by about 0.001 Å, because it uses every point and the full covariance.
-  The choice matters for how honest each join's error bar looks.
+- **Raise p₀ from 0.3 to 0.7.** In the reader that is one constant, with
+  its records and re-pinned tests. On the NX school joins nothing
+  changes.
+- **The cost of either choice is small where it counts.** A structural
+  fit of the patched curve moves film thickness and roughness by about
+  0.001 Å, because it uses every point and the full covariance. The
+  choice matters for how honest each join's error bar looks: 0.7 is
+  more honest at fringed joins, 0.3 at smooth ones.
 - **Real data are not needed to decide.** The ranking holds across
   everything the synthetic data could not know.
 - **What would change it:**
-  - p₀ 0.5 is a little less biased (0.16) at a slightly wide smooth join
-    (1.03), and is worth one more check;
-  - a robustness map on staggered grids;
+  - a design where the 4 % over-confidence grows;
   - the owner's long real series, if it showed joins where the fit and
     the absorber ratio disagree.
+- **How this answer changed overnight.** A first map that stopped at
+  p₀ 0.3 said "keep 0.3". Testing stricter settings showed the gain
+  continues to about 0.7.
 
 ---
 

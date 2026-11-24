@@ -12,7 +12,7 @@ lower p makes the joins biased by the curve model worse.
 **Choices compared** at each join (δ = ln f, f multiplies scan b):
 - ``legacy``: ``stitching.fitted_factor`` (as the gauntlet);
 - ``guard_p0.3`` (today's default), ``guard_p0.1``, ``guard_p0.03``,
-  ``guard_p0.01``; A5 sweeps p over 0.001 … 0.5;
+  ``guard_p0.01``; A5 sweeps p over 0.001 … 0.9 (0.7 and 0.9 added by Main, 2026-11-24, after p 0.5 led the robustness map; R and RS, the map on staggered grids, also carry p 0.5, 0.7 and 0.9);
 - ``guard_off``: order 4, 2 points either side, no ladder (``guard_p=0``;
   the error still inflate-only by √(χ²/dof), as ``joint_factor``);
 - ``average``: a candidate only, never a default. Every rung of the
@@ -89,35 +89,38 @@ import ref_patch_biased_joins as biased                        # noqa: E402
 OUT_DEFAULT = os.path.join('docs', 'studies', 'reflectivity_guard')
 NX = os.path.join(ROOT, 'sample_data', 'NX_school', '2026sep', '20260923')
 C45_CSV = os.path.join(ROOT, 'docs', 'comparisons_data', 'ref_patch_biased_joins', 'joins.csv')
-FIGURES = ('A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'R')
+FIGURES = ('A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'R', 'RS')
 QC = patching.QC
 N_EXT = patching.N_EXT
 COV = 'covariance_first_join'
 JOINS = tuple(biased.JOINS) + (COV,)
 BIASED = tuple(biased.JOINS)
 COV_TRUTH = biased.COV_TRUTH
-GUARD_PS = (0.001, 0.003, 0.01, 0.03, 0.1, 0.2, 0.3, 0.5)
+GUARD_PS = (0.001, 0.003, 0.01, 0.03, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9)
 CHOICES = ('legacy', 'guard_p0.3', 'guard_p0.1', 'guard_p0.03', 'guard_p0.01', 'guard_off', 'average')
 ALL_CHOICES = (CHOICES + tuple('guard_p%g' % p for p in GUARD_PS if 'guard_p%g' % p not in CHOICES)
                + ('average_sqrt', 'average_all'))
 LABEL = {'legacy': 'legacy', 'guard_p0.3': 'p 0.3 (default)', 'guard_p0.1': 'p 0.1', 'guard_p0.03': 'p 0.03',
-         'guard_p0.01': 'p 0.01', 'guard_off': 'guard off', 'average': 'AICc average',
+         'guard_p0.01': 'p 0.01', 'guard_off': 'guard off', 'average': 'AICc average', 'guard_p0.5': 'p 0.5', 'guard_p0.7': 'p 0.7', 'guard_p0.9': 'p 0.9',
          'average_sqrt': 'AICc average, Buckland\'s σ', 'average_all': 'AICc average, all windows'}
 # categorical slots in a fixed order (the dataviz reference palette, light mode); legacy a neutral grey
 COLOR = {'guard_p0.3': '#2a78d6', 'guard_p0.1': '#eb6834', 'guard_p0.03': '#1baf7a', 'guard_p0.01': '#eda100',
-         'guard_off': '#e87ba4', 'average': '#008300', 'legacy': '#8a8984'}
+         'guard_off': '#e87ba4', 'average': '#008300', 'legacy': '#8a8984', 'guard_p0.5': '#7b5cc4', 'guard_p0.7': '#4d3a8c', 'guard_p0.9': '#2b1f52'}
 MARK = {'legacy': 's', 'guard_p0.3': 'o', 'guard_p0.1': 'o', 'guard_p0.03': 'o', 'guard_p0.01': 'o',
-        'guard_off': 'D', 'average': '^'}
+        'guard_off': 'D', 'average': '^', 'guard_p0.5': 'o', 'guard_p0.7': 'o', 'guard_p0.9': 'o'}
 SHORT = {'layer_dppc:3': 'layer_dppc j3', 'layer_film150:2': 'layer_film150 j2',
          'overlap_3_staggered:3': 'overlap_3_staggered j3', 'overlap_6:1': 'overlap_6 j1', 'scans_5:2': 'scans_5 j2',
          COV: 'covariance j1 (smooth)'}
 A1_TYPES = (('smooth', COV), ('fringe', 'layer_dppc:3'), ('staggered', 'overlap_3_staggered:3'))
 A7_CHOICES = ('guard_p0.3', 'guard_off', 'guard_p0.01', 'average', 'legacy')
+# the robustness map also has p 0.5, the one setting A5 shows close to p 0.3 (Main, 2026-11-24)
+R_CHOICES = CHOICES + ('guard_p0.5', 'guard_p0.7', 'guard_p0.9')
 R_PPF = (3, 4, 6, 10)
 R_FLUX = (1.0, 0.1, 0.01)
 R_D0 = 150.0
 R_Q0 = 0.2
 R_PHASES = 4
+R_GRID = 'coincide'      # 'staggered' for the RS map (no Qz shared by the two scans; Main, 2026-11-24)
 DPI = 150
 
 
@@ -745,7 +748,7 @@ def fig_a5(out, res, pulls, prec=None):
     ax.legend(loc='upper right', frameon=False, fontsize=8)
     ax.set_xlabel('pull SD at the smooth first join (covariance study; ideal 1)')
     ax.set_ylabel('mean |pull mean| over the five biased joins (ideal 0)')
-    ax.set_title('The decision curve: the guard\'s p from 0.001 to 0.5 (bars: ±1 bootstrap SE)')
+    ax.set_title('The decision curve: the guard\'s p from 0.001 to 0.9 (bars: ±1 bootstrap SE)')
     fig.tight_layout()
     _save(fig, out, 'A5_decision_curve')
     return rows
@@ -977,7 +980,7 @@ def r_cell(ip, iflux, phase):
     """(profile, plan, beamline, points per fringe) of one cell and phase."""
     period = 2 * math.pi / R_D0
     step = period / R_PPF[ip]
-    plan = xs.chain_plan([(0.01, 0.04, 0.0025), (0.0, R_Q0, step / 2), (0.0, 0.45, step)], overlap=4, grid='coincide')
+    plan = xs.chain_plan([(0.01, 0.04, 0.0025), (0.0, R_Q0, step / 2), (0.0, 0.45, step)], overlap=4, grid=R_GRID)
     q_mid = float(np.mean(plan[1].qz[-4:]))
     d = R_D0 + (phase + 0.5 - R_PHASES / 2) / R_PHASES * (2 * math.pi / q_mid)
     bl = xs.Beamline(flux=gauntlet.FLUX * R_FLUX[iflux], **xs.REAL_MONITOR)
@@ -997,7 +1000,7 @@ def _r_task(args):
     sc = biased.scans_of(r)
     tab = join_table(sc[1], sc[2])
     tab['truth'] = math.log(list(r.true_steps().values())[1])
-    est = {c: estimate(tab, c) for c in CHOICES}
+    est = {c: estimate(tab, c) for c in R_CHOICES}
     return dict(truth=tab['truth'], est=est)
 
 
@@ -1010,16 +1013,16 @@ def _win_share(by, ip, ifl, n_boot=200, seed=2468):
     for ph in range(R_PHASES):
         reps = by[(ip, ifl, ph)]
         P.append(np.array([[(x['est'][c][0] - x['truth']) / x['est'][c][1] if x['est'][c] is not None else np.nan
-                            for c in CHOICES] for x in reps]))
+                            for c in R_CHOICES] for x in reps]))
     wins = Counter()
     for _ in range(n_boot):
-        crit = np.zeros(len(CHOICES))
+        crit = np.zeros(len(R_CHOICES))
         for M in P:
             S = M[rng.integers(0, len(M), len(M))]
             crit += np.nanmean(S, axis=0) ** 2 + (np.nanstd(S, axis=0, ddof=1) - 1) ** 2
         crit = np.where(np.isfinite(crit), crit, np.inf)
-        wins[CHOICES[int(np.argmin(crit))]] += 1
-    return {c: wins[c] / n_boot for c in CHOICES}
+        wins[R_CHOICES[int(np.argmin(crit))]] += 1
+    return {c: wins[c] / n_boot for c in R_CHOICES}
 
 
 def robustness(n_per_cell, procs, log):
@@ -1049,7 +1052,7 @@ def robustness(n_per_cell, procs, log):
                 ppfs.append(ppf)
                 reps = by[(ip, ifl, ph)]
                 truth = [x['truth'] for x in reps]
-                for c in CHOICES:
+                for c in R_CHOICES:
                     s, _ = stats([x['est'][c] for x in reps], truth)
                     n0 = nfb[(ip, ifl, ph)]['est'][c]
                     nfbias = (n0[0] - nfb[(ip, ifl, ph)]['truth']) / s['median_err'] if n0 is not None else math.nan
@@ -1058,10 +1061,10 @@ def robustness(n_per_cell, procs, log):
                     crit[c].append(s['mean_pull'] ** 2 + (s['pull_sd'] - 1) ** 2)
                     sds[c].append(s['pull_sd'])
                     means[c].append(s['mean_pull'])
-            rms = {c: float(math.sqrt(np.mean(crit[c]) / 2)) for c in CHOICES}
-            win = min(CHOICES, key=lambda c: rms[c] if np.isfinite(rms[c]) else np.inf)
+            rms = {c: float(math.sqrt(np.mean(crit[c]) / 2)) for c in R_CHOICES}
+            win = min(R_CHOICES, key=lambda c: rms[c] if np.isfinite(rms[c]) else np.inf)
             share = _win_share(by, ip, ifl)
-            for c in CHOICES:
+            for c in R_CHOICES:
                 cell_rows.append(dict(ppf_target=R_PPF[ip], flux=R_FLUX[ifl], ppf_min=min(ppfs), ppf_max=max(ppfs),
                                       choice=c, rms_criterion=rms[c], mean_pull_sd=float(np.mean(sds[c])),
                                       rms_pull_mean=float(np.sqrt(np.mean(np.square(means[c])))),
@@ -1069,12 +1072,12 @@ def robustness(n_per_cell, procs, log):
     return phase_rows, cell_rows, time.time() - t0
 
 
-def fig_r(out, n_per_cell, procs, log):
+def fig_r(out, n_per_cell, procs, log, tag='R'):
     plt = _plt()
     from matplotlib import colors
     phase_rows, cell_rows, secs = robustness(n_per_cell, procs, log)
-    write_csv(os.path.join(out, 'R_phases.csv'), phase_rows)
-    write_csv(os.path.join(out, 'R_cells.csv'), cell_rows)
+    write_csv(os.path.join(out, tag + '_phases.csv'), phase_rows)
+    write_csv(os.path.join(out, tag + '_cells.csv'), cell_rows)
     nP, nF = len(R_PPF), len(R_FLUX)
     win = np.empty((nP, nF), object)
     rmsw = np.zeros((nP, nF))
@@ -1084,10 +1087,10 @@ def fig_r(out, n_per_cell, procs, log):
             win[i, j], rmsw[i, j] = r['choice'], r['rms_criterion']
     look = {(r['ppf_target'], r['flux'], r['choice']): r['rms_criterion'] for r in cell_rows}
     shr = {(r['ppf_target'], r['flux'], r['choice']): r['bootstrap_win_share'] for r in cell_rows}
-    fig, axes = plt.subplots(1, len(CHOICES), figsize=(2.15 * len(CHOICES) + 0.8, 3.9), sharey=True)
+    fig, axes = plt.subplots(1, len(R_CHOICES), figsize=(2.15 * len(R_CHOICES) + 0.8, 3.9), sharey=True)
     vmax = 1.0
     nrm = colors.Normalize(0.0, vmax)
-    for ax, c in zip(axes, CHOICES):
+    for ax, c in zip(axes, R_CHOICES):
         m = np.array([[look[(R_PPF[i], R_FLUX[j], c)] for j in range(nF)] for i in range(nP)])
         im = ax.imshow(np.minimum(m, vmax), cmap='Blues', norm=nrm, aspect='auto', origin='lower')
         for i in range(nP):
@@ -1109,7 +1112,7 @@ def fig_r(out, n_per_cell, procs, log):
     fig.suptitle('Robustness map: the criterion per choice over fringe sampling and counts (four fringe phases, %d '
                  'replicates per cell); ★ the best choice in the cell and the share of bootstrap resamples it wins'
                  % cell_rows[0]['replicates'], fontsize=9.5)
-    _save(fig, out, 'R_winner')
+    _save(fig, out, tag + '_winner')
     fig, axes = plt.subplots(1, 2, figsize=(9.0, 4.4), sharey=True)
     fig.subplots_adjust(left=0.09, right=0.86, bottom=0.14, top=0.86, wspace=0.08)
     nrm = colors.TwoSlopeNorm(vmin=0.2, vcenter=1.0, vmax=1.8)
@@ -1133,11 +1136,29 @@ def fig_r(out, n_per_cell, procs, log):
     cb = fig.colorbar(im, cax=fig.add_axes([0.88, 0.14, 0.015, 0.72]))
     cb.set_label('pull SD (mean over four fringe phases; ideal 1)')
     fig.suptitle('Pull SD of the default and of the guard off over fringe sampling and counts', fontsize=10)
-    _save(fig, out, 'R_pull_sd')
+    _save(fig, out, tag + '_pull_sd')
     return cell_rows, secs
 
 
 # ------------------------------------------------------------------ data summary
+
+def _rs_section(cell_rows):
+    """The staggered-grid robustness map (RS) as a section of data_summary.md."""
+    by = defaultdict(dict)
+    for r in cell_rows:
+        by[(r['ppf_target'], r['flux'])][r['choice']] = r
+    L = ['## RS. Robustness map on staggered grids', '',
+         'As R, with the two scans sharing no Qz at the join (`xs.chain_plan(grid=\'staggered\')`). RMS of (pull mean, '
+         'pull SD − 1) per choice; the winner and the share of bootstrap resamples it wins.', '']
+    rows = []
+    for (p, fl) in sorted(by):
+        d = by[(p, fl)]
+        w = [c for c in R_CHOICES if d[c]['winner']][0]
+        rows.append(['%d' % p, '×%g' % fl, '%s (%.0f %%)' % (LABEL[w], 100 * d[w]['bootstrap_win_share'])]
+                    + ['%.2f / %.2f' % (d[c]['rms_criterion'], d[c]['mean_pull_sd']) for c in R_CHOICES])
+    L += _table(['points per period', 'flux', 'best'] + ['%s: RMS / pull SD' % LABEL[c] for c in R_CHOICES], rows)
+    return L
+
 
 def _table(header, rows):
     L = ['| ' + ' | '.join(header) + ' |', '|' + '---|' * len(header)]
@@ -1309,21 +1330,21 @@ def write_summary(out, a, info, res=None, a1=None, a3=None, a4=None, a5=None, a6
             by[(r['ppf_target'], r['flux'])][r['choice']] = r
         rows = []
         for (p, fl), d in sorted(by.items(), key=lambda kv: (kv[0][0], -kv[0][1])):
-            w = [c for c in CHOICES if d[c]['winner']][0]
+            w = [c for c in R_CHOICES if d[c]['winner']][0]
             rows.append(['%d (%.1f–%.1f)' % (p, d[w]['ppf_min'], d[w]['ppf_max']), '×%g' % fl, LABEL[w],
-                         ', '.join('%s %.0f %%' % (LABEL[c], 100 * d[c]['bootstrap_win_share']) for c in CHOICES
+                         ', '.join('%s %.0f %%' % (LABEL[c], 100 * d[c]['bootstrap_win_share']) for c in R_CHOICES
                                    if d[c]['bootstrap_win_share'] >= 0.05)]
-                        + ['%.2f' % d[c]['rms_criterion'] for c in CHOICES])
+                        + ['%.2f' % d[c]['rms_criterion'] for c in R_CHOICES])
         L += _table(['points per period', 'flux', 'best', 'wins (share of 200 bootstrap resamples)']
-                    + ['RMS ' + LABEL[c] for c in CHOICES], rows)
+                    + ['RMS ' + LABEL[c] for c in R_CHOICES], rows)
         L += ['', 'Pull SD (mean over the four phases):', '']
-        rows = [['%d' % p, '×%g' % fl] + ['%.2f' % d[c]['mean_pull_sd'] for c in CHOICES]
+        rows = [['%d' % p, '×%g' % fl] + ['%.2f' % d[c]['mean_pull_sd'] for c in R_CHOICES]
                 for (p, fl), d in sorted(by.items(), key=lambda kv: (kv[0][0], -kv[0][1]))]
-        L += _table(['points per period', 'flux'] + [LABEL[c] for c in CHOICES], rows)
+        L += _table(['points per period', 'flux'] + [LABEL[c] for c in R_CHOICES], rows)
         L += ['', 'RMS over phases of the pull mean:', '']
-        rows = [['%d' % p, '×%g' % fl] + ['%.2f' % d[c]['rms_pull_mean'] for c in CHOICES]
+        rows = [['%d' % p, '×%g' % fl] + ['%.2f' % d[c]['rms_pull_mean'] for c in R_CHOICES]
                 for (p, fl), d in sorted(by.items(), key=lambda kv: (kv[0][0], -kv[0][1]))]
-        L += _table(['points per period', 'flux'] + [LABEL[c] for c in CHOICES], rows)
+        L += _table(['points per period', 'flux'] + [LABEL[c] for c in R_CHOICES], rows)
     L += ['', '## Files', '', 'Each figure `X.png` has its numbers in `X.csv` (A2 also `A2_pulls_all.csv`, every pull; '
           'A7 also `A7_downstream_seeds.csv`; R `R_cells.csv` and `R_phases.csv`). The quick variant of the tool '
           '(`--quick`) is a smoke run with few replicates, for tests only.', '']
@@ -1441,8 +1462,18 @@ def main(argv=None):
         t0 = time.time()
         kw['rc'], _ = fig_r(a.out, a.r_replicates, a.procs, log)
         times['R (%d replicates per cell)' % a.r_replicates] = time.time() - t0
+    rs = None
+    if 'RS' in figs:
+        global R_GRID
+        t0, R_GRID = time.time(), 'staggered'
+        rs, _ = fig_r(a.out, a.r_replicates, a.procs, log, tag='RS')
+        R_GRID = 'coincide'
+        times['RS, staggered grids (%d replicates per cell)' % a.r_replicates] = time.time() - t0
     info['total'] = time.time() - t_start
     write_summary(a.out, a, info, **kw)
+    if rs is not None:
+        with open(os.path.join(a.out, 'data_summary.md'), 'a') as f:
+            f.write('\n'.join([''] + _rs_section(rs)) + '\n')
     log('done: %.0f s' % info['total'])
     return 0
 

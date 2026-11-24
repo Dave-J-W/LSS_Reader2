@@ -5233,23 +5233,39 @@ TIFF header's own exposure time. Whether the Pilatus counts are already
 rate-corrected by the detector is not known; if they are, the true
 incident rate is higher than shown. No output number changes.
 
-### 2026-11-24 — Study A answered: keep the join guard at p 0.3; C45's "1.13" was mostly sampling
+### 2026-11-24 — Study A answered: raise the join guard to p 0.7; C45's "1.13" was mostly sampling
 
 The owner asked for a full study (entry above, "The owner asks for full
 studies").
 
 **The answer for the guard.** The details are in
 `docs/studies/reflectivity_guard/summary.md`, and in the ELI5 version,
-`docs/studies/eli5_two_decisions.md`. Keep p₀ = 0.3.
-- **The evidence:** synthetic joins with known truth, C45 reproduced
-  exactly, 400–2000 replicates. p 0.3 is the only setting with pull SD
-  ≈ 1.0 at both smooth and fringed joins.
-- **The robustness map:** it is best in all 12 cells, 3–10 points per
-  fringe × flux 1 to 0.01.
-- **Real data are not needed:** the choice moves a downstream structural
-  fit by about 0.001 Å, and the NX school joins give identical factors
-  under every choice.
-- **Next checks:** p 0.5 in the robustness map, and staggered grids.
+`docs/studies/eli5_two_decisions.md`. Raise p₀ from 0.3 to 0.7.
+
+**The evidence**, all synthetic with known truth: C45 reproduced exactly,
+400–2000 replicates, two robustness maps.
+
+| p₀ | Bias at the five hard joins (mean \|pull mean\|) | Smooth join pull SD |
+|---|---|---|
+| 0.3 | 0.24 | 1.00 |
+| 0.5 | 0.16 | 1.03 |
+| 0.7 | 0.12 | 1.04 |
+| 0.9 | 0.10 | 1.04 |
+
+- p₀ 0.5–0.9 win 23 of 24 robustness cells: 3–10 points per fringe ×
+  flux 1 to 0.01, on coinciding and on staggered grids.
+- 0.7 is the setting, because 0.9 gains nothing that shows.
+
+**Real data are not needed.** Every choice moves a downstream structural
+fit by about 0.001 Å. The NX school joins give identical factors under
+every choice.
+
+**The answer changed overnight.** A first map whose strictest setting
+was 0.3 said "keep 0.3". Main added p 0.5, then 0.7 and 0.9 and a map
+on staggered grids, and the answer moved.
+
+The owner decides. The change itself is one constant, `patching.GUARD_P`,
+with its OUTPUT_DECISIONS row and re-pins.
 
 **Correction to C45 and to the entry "Why five gauntlet joins are
 biased".** The smooth first join's "pull SD 1.13" was mostly sampling
