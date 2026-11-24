@@ -299,7 +299,38 @@ Assumptions, all from memory:
 - noise 0.12 keV FWHM.
 
 With E0 = 10 keV, the elastic and Compton escapes (8.26 and 8.07 keV) and
-the core wing fall under Zn Kα: the hard case of F90. The gauntlet that
+the core wing fall under Zn Kα: the hard case of F90.
+
+**The 'shells' Compton model** (study B, 2026-11-24; `Beam(compton_model='shells', core_scale,
+doppler_scale)`) replaces the two hydrogenic parts (valence width, core fraction) with the
+impulse approximation shell by shell. For each of water's shells (`WATER_SHELLS`: O 1s, O 2s,
+O 2p, H 1s; electrons, orbital, effective charge, binding):
+- the hydrogenic momentum density, ρ_1s ∝ (p² + p0²)⁻⁴, ρ_2s ∝ (p² − p0²)²(p² + p0²)⁻⁶,
+  ρ_2p ∝ p²(p² + p0²)⁻⁶ with p0 = Z_eff/n (Podolsky and Pauling 1929), gives
+  J(q) = 2π ∫_|q|^∞ ρ p dp;
+- `compton_pz` maps each scattered energy E1 to p_z, exactly (Eisenberger and Platzman 1970;
+  Ribberfors 1975), and the spectrum is Σ n_s J_s(p_z) |dp_z/dE1|;
+- each shell is cut off where the energy given to the electron is below its binding (E0 − E1 < B).
+
+Tested:
+- the profiles integrate to 1, and hydrogen's J(0) = 8/(3π);
+- p_z = 0 at the free-electron Compton energy, at 0.102 keV per atomic unit (10 keV, 90°);
+- the O 1s part stops at E0 − 0.543 keV; `core_scale` scales it; `doppler_scale` widens every
+  shell.
+
+**Assumptions, from memory:**
+- the effective charges are Clementi and Raimondi's Slater exponents (O 1s 7.658, 2s 2.246,
+  2p 2.227, Z_eff = nζ), with ζ = 1.2 for H in the O–H bond;
+- O 1s binding 0.543 keV;
+- water's J(0) comes out at 4.06 a.u.⁻¹.
+
+Tabulated Hartree–Fock profiles (Biggs, Mendelsohn and Mann 1975) would be better. They were
+not available offline (no package install in this environment), so study B sweeps `core_scale`
+and `doppler_scale` instead.
+
+In the ±2 FWHM box around Zn Kα (1e3 photons on 1e6 elastic) the O 1s wing still gives
+about 5,750 counts against the line's 897. The hydrogenic two-part model gave the same order.
+ The gauntlet that
 uses it is `tests/tools/mca_fit_gauntlet.py` (COMPARISONS C42).
 
 **Growing files** (`synthetic.growing.Growing(src_spec, dst_dir,

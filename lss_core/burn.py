@@ -427,13 +427,29 @@ def summary_text(res):
     return '\n'.join(out)
 
 
-def plot(res, fig, title=''):
+def _residual_panel(ax, c, col):
+    """The best model's residuals above one burn panel (F74)."""
+    from lss_core import residuals as resid
+    f = c.fits[c.best]
+    rax = resid.panel(ax, True)
+    resid.draw(rax, c.t, c.y, f(c.t), c.sigma, color=col)
+    dof = max(int(f.n) - len(np.atleast_1d(f.params)), 1)
+    rax.text(0.99, 0.92, resid.chi2_label('best: %s' % c.best, f.chi2 / dof), transform=rax.transAxes,
+             ha='right', va='top', fontsize=6)
+    rax.tick_params(labelsize=6)
+    rax.yaxis.label.set_fontsize(6)
+    return rax
+
+
+def plot(res, fig, title='', residuals=False):
     """Draw a burn result into a matplotlib figure: one panel per quantity
     (GID: intensity, position, FWHM; reflectivity: intensity), the values
     with their errors and every fitted model (the best thick), a dotted
     vertical line at the confident change time; on the right of each panel
     the same quantity normalised, in percent (``normaliser``), with the
     threshold marked; the summary as text to the right of the panels.
+    ``residuals``: above each panel, the residuals of its best model,
+    (y − fit)/σ, with χ²/dof (F74, lss_core.residuals; off by default).
     Returns the data axes."""
     fig.clf()
     qs = [q for q in ('intensity', 'centre', 'fwhm') if q in res.values]
@@ -456,6 +472,8 @@ def plot(res, fig, title=''):
             if f.ok:
                 best = m == c.best
                 ax.plot(tt, f(tt), STYLES[m], color=col, lw=2 if best else 1, alpha=1.0 if best else 0.45)
+        if residuals and c.best in c.fits and c.fits[c.best].ok:
+            _residual_panel(ax, c, col)
         ch = c.change
         if ch is not None and np.isfinite(ch.confident) and ch.confident <= tt[-1]:
             ax.axvline(ch.confident, color=col, ls=(0, (1, 3)), lw=1)

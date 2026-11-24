@@ -202,5 +202,5 @@ is compared point by point. It hardly matters for the fitted structure.
    and staggered grids.
 4. **A2**, the pulls; **A7** and **A7b**, what it costs.
 
-*C47 in `docs/COMPARISONS.md`. Tool: `tests/tools/ref_guard_study.py`, a
+*C48 in `docs/COMPARISONS.md`. Tool: `tests/tools/ref_guard_study.py`, a
 Tools menu item.*

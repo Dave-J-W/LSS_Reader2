@@ -1,8 +1,8 @@
 # Two decisions, explained simply
 
 *2026-11-24. The figures and numbers come from the two studies,
-`docs/studies/reflectivity_guard/summary.md` (A, C47) and
-`docs/studies/mca_fit/summary.md` (B, C46). Everything measured is
+`docs/studies/reflectivity_guard/summary.md` (A, C48) and
+`docs/studies/mca_fit/summary.md` (B, C47). Everything measured is
 synthetic data with the truth known, except where NX school data are
 named. The citations were checked as far as this environment allows;
 see References.*
@@ -289,7 +289,7 @@ $$
 
 ![Why weighting matters](mca_fit/B3_weighting.png)
 
-Tools man's study (`docs/studies/mca_fit/summary.md`, C46) used
+Tools man's study (`docs/studies/mca_fit/summary.md`, C47) used
 synthetic spectra with the truth known. Zn Kα (8.6 keV) under a 10 keV
 beam is the hard case: in the ±2 FWHM box the line has 887 counts,
 against 5,681 from the oxygen 1s Compton wing, 570 from escape peaks and
