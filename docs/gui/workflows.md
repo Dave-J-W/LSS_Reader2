@@ -8,7 +8,7 @@ In the flowcharts, rounded green boxes are steps that are automatic today; diamo
 |---|---|---|---|---|
 | [day-ref](#day-ref) | 0 | 12 | 0 / 3 / 9 | 7 |
 | [burn-ref](#burn-ref) | 1 | 11 | 4 / 4 / 3 | 17 |
-| [burn-gid](#burn-gid) | 1 | 11 | 4 / 5 / 2 | 12 |
+| [burn-gid](#burn-gid) | 1 | 11 | 4 / 5 / 2 | 13 |
 | [burn-fluo](#burn-fluo) | 1 | 7 | 0 / 3 / 4 | 9 |
 | [reflectivity](#reflectivity) | 2 | 15 | 4 / 5 / 6 | 19 |
 | [gid](#gid) | 3 | 14 | 1 / 8 / 5 | 17 |
@@ -197,7 +197,7 @@ flowchart TD
 | burn-gid.open (shared.open) | Open the SPEC file (File > Open Spec File); the scans, the series and the detector folders are read | File menu | `actionOpen_Spec_File` | which SPEC file | partly | reopen the last file and its workbook settings (F66 to-do); offer the series' reductions at once (F60) | code; run 2026-11-22 | Opening a file with Pilatus images presets the reflectivity ROI (21,11), the background offset (0.5), Qc (0.0217) and the absorber factor (code, openSpecFile ~l.744); nothing on screen says so<br>A missing detector folder opens a directory chooser (F27) |
 | burn-gid.series (shared.series) | Choose the burn series or click the burn scan (NX 14 or 15) | left panel | `seriesComboBox`, `seriesWholeCheckBox`, `scanListWidget`, `scansLineEdit` | which series (or scans by number); Whole series on (default) or off | partly | select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3) | run 2026-11-22; test tests/test_gui_burn_trends.py | Nothing offers the burn test for a burn series (F60, TODO) |
 | burn-gid.frames (shared.frames) | Select the frames (Pilatus) or spectra (MCA) of the selected scans; Select All for all of them | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual) or a subset (left out of the reduction, kept in remakes) | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | code; test tests/test_gui_workflows.py | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
-| burn-gid.look (shared.frames-look) | Look at the frames to see the peak (optional) | Pilatus tab | `pilLogIntCheckBox`, `pilMinLineEdit`, `pilMaxLineEdit`, `pilMinHorizontalSlider`, `pilMaxHorizontalSlider`, `pilCMapComboBox`, `pilAxesComboBox`, `pilAspectComboBox`, `pilMoviePushButton` | whether the frames look sane (Movie, colour scale) | partly | sticky preferences and intelligent colour scales (F70); movie with sticky zoom (F69) | guess | Colour limits are reset on every selection (code, imageSelectedScanChanged); see docs/gui/image_display.md |
+| burn-gid.look (shared.frames-look) | Look at the frames to see the peak (optional) | Pilatus tab | `pilLogIntCheckBox`, `pilMinLineEdit`, `pilMaxLineEdit`, `pilMinHorizontalSlider`, `pilMaxHorizontalSlider`, `pilCMapComboBox`, `pilAxesComboBox`, `pilAspectComboBox`, `pilMoviePushButton`, `pilHomePushButton`, `pilFitAllPushButton`, `pilAutoScalePushButton`, `pilViewComboBox`, `pilMoviePlayPushButton`, `pilMovieBackPushButton`, `pilMovieForwardPushButton`, `pilMovieSlider`, `pilMovieCounterLabel`, `pilMovieSpeedComboBox`, `pilMovieLoopCheckBox`, `pilMovieInfoLabel` | whether the frames look sane (Movie, colour scale) | partly | sticky preferences and intelligent colour scales (F70); movie with sticky zoom (F69) | guess | Fixed 2026-11-24 (F88): colour limits, zoom and settings were reset on every selection; now sticky until another SPEC file, with Home, Fit all and Auto scale<br>Fixed 2026-11-24 (F69): 3 or more frames play as a non-blocking movie (space, arrow keys); never more than 6 tiles |
 | burn-gid.dialog | Open the burn test; Trends tab, analysed; three panels (intensity, position, FWHM) | Pilatus tab > Burn Test; Burn test dialog | `pilBurnPushButton`, `burnTabWidget`, `burnTrendPlotWidget`, `burnResultLabel` |  | yes | offer it for a burn series (F60) | owner 2026-11-21 (panels, % axes, summary beside); test tests/test_gui_burn_trends.py (slow, NX 15) |  |
 | burn-gid.peak | Choose the peak: Auto peak (strongest peak of the mean frame, 3 FWHM either side, inside the lit columns) or a typed Qxy range | Burn test dialog > Trends; range field at the top of the dialog | `burnAutoPeakCheckBox`, `pdburn.rangeLineEdit` | auto (default) or another Qxy section (owner F22a 4 - override to another section) | yes | list the peaks found and let the user pick one by clicking | owner 2026-11-19 (F22a 4); test tests/test_gui_burn_trends.py | The typed range field ('1.4:1.5') belongs to the legacy layout at the top of the dialog; it is used only when Auto peak is off<br>Detector rows are all summed; the row range is not exposed (TODO, hand-off 07) |
 | burn-gid.options | Choose estimator, models, time, errors, threshold and whether the position counts in the limit | Burn test dialog > Trends | `burnEstimatorComboBox`, `burnConstantCheckBox`, `burnLinearCheckBox`, `burnExponentialCheckBox`, `burnDoubleExponentialCheckBox`, `burnTimeComboBox`, `burnErrorsComboBox`, `burnThresholdSpinBox`, `burnPositionLimitCheckBox`, `burnAnalysePushButton` | estimator template (default), moments (legacy) or fit; errors auto = scatter for GID; position in limit off (owner - the position judgment is the user's) | yes |  | owner 2026-11-21; code; test tests/test_gui_burn_trends.py | The template estimator reads a broadening at constant area on a shoulder as an intensity gain (P44, measured on synthetic data); the user is not warned |
@@ -1099,7 +1099,7 @@ flowchart TD
 | `pilMplWidget`  | i | i |  | i | i |  |  | i | i |  |  |  |  |  |
 | `pilLogIntCheckBox` Log Int | i | B |  | i | B |  |  | i | i |  |  |  |  |  |
 | `pilPinholeCheckBox` Pinhole |  | i |  |  | B |  |  |  | B |  |  |  |  |  |
-| `pilMoviePushButton` Movie | i | B |  |  | B |  |  |  |  |  |  |  |  | i |
+| `pilMoviePushButton` Movie | i | B |  | i | B |  |  |  |  |  |  |  |  | i |
 | `pilMinHorizontalSlider` Min (%): | i | B |  | i | i |  |  | i | i |  |  |  |  |  |
 | `pilMinLineEdit`  | i | B |  | i | B |  |  | i | i |  |  |  |  |  |
 | `pilMaxHorizontalSlider` Max (%): | i | B |  | i | i |  |  | i | i |  |  |  |  |  |
@@ -1118,6 +1118,28 @@ flowchart TD
 | `pilLineAreaPushButton` Line/Area Cuts |  |  |  |  | B |  |  |  | B |  |  |  |  |  |
 | `gidPatchPushButton` GID Patch |  |  |  |  | B |  |  |  |  |  |  |  |  |  |
 | `gidWorksheetPushButton` Worksheet... |  |  |  |  | i |  |  |  |  |  |  |  |  |  |
+
+### Pilatus (image toolbar)
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `pilHomePushButton` Home | i | B |  | i | i |  |  | i | i |  |  |  |  | i |
+| `pilFitAllPushButton` Fit all | i | B |  | i | i |  |  | i | i |  |  |  |  | i |
+| `pilAutoScalePushButton` Auto scale | i | B |  | i | i |  |  | i | i |  |  |  |  | i |
+
+### Pilatus (movie bar under the image)
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `pilViewComboBox`  | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieBackPushButton` ◀ | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMoviePlayPushButton` ▶ | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieForwardPushButton` ▶\| | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieSlider`  | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieCounterLabel` 1 / 41 | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieSpeedComboBox`  | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieLoopCheckBox` Loop | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieInfoLabel`  | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
 
 ### Plot
 

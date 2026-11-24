@@ -460,13 +460,13 @@ def run_nx(app, ctx, skip_slow):
         save_png(crop(img, rect_in(w, w.ui.PlotWidget)), '21b_pilatus_tab_controls.png',
                  'Pilatus tab page (controls above, image below)', 'Scan 11, frame 1')
         select_frames(w, app, [0, 10, 20])
-        save_png(grab_window(w, app), '22_pilatus_three_frames.png', 'Pilatus tab with three frames selected',
+        save_png(grab_window(w, app), '22_pilatus_three_frames.png', 'Pilatus tab with three frames selected (a movie since 2026-11-24, F69)',
                  'Scan 11, frames 1, 11, 21 selected')
         t = time.time()
         select_frames(w, app, None)
         dt = time.time() - t
         save_png(grab_window(w, app), '23_pilatus_all_frames_of_a_scan.png',
-                 'Pilatus tab with ALL frames of a long scan selected (the many-small-images problem)',
+                 'Pilatus tab with ALL frames of a long scan selected: the movie (F69; before 2026-11-24, 10 small tiles)',
                  'Scan 11: all 40 frames selected (drawing took %.1f s offscreen)' % dt)
         select_scans(w, app, [5, 6, 7, 8])
         select_frames(w, app, None)

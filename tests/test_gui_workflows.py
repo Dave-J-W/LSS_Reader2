@@ -177,9 +177,12 @@ def test_movie_of_a_sub_selection_uses_each_frames_own_axes(loaded, qapp,
     loaded.ui.pilMoviePushButton.click()
     qapp.processEvents()
     assert recorder.exceptions == []
-    # the last frame shown is frame 7; its Qz axis must be centred on its own Qz
+    assert loaded.ui.pilAxesComboBox.currentText() == 'Q'     # (the movie no longer sets it)
+    # the movie no longer blocks (F69, 2026-11-24): it starts on frame 5; one step forward shows frame 7,
+    # whose Qz axis must be centred on its own Qz
+    loaded.ui.pilMovieForwardPushButton.click()
     ax = loaded.ui.pilMplWidget.canvas.fig.axes[0]
-    assert ax.get_title() == 'F #7'
+    assert ax.get_title() == 'S# 1 pt 7'          # scan and point number (was 'F #7', the list row; 2026-11-24)
     lo, hi = ax.get_ylim()
     qz7 = loaded.pilFileQzs[7]
     row = synth.DB_Y / (synth.PIL_W - 1.0)          # beam row as a fraction

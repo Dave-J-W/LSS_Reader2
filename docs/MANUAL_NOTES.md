@@ -150,6 +150,27 @@ Each line: feature — where — default — script — notes entry (date).
   angle (from its Qz; the scan header's In_Rot is the position before the
   scan moved, P47), so the reflected beam sits at β = α on that axis.
 - Background images and background-subtracted frames (not scriptable yet).
+- The frames display is sticky (F88, owner Q9, 2026-11-24): zoom, colour
+  map, aspect, Axes, log (per kind of frame) and typed limits (per kind)
+  stay through redraws, frame and scan changes and the next session, and are
+  reset only when another SPEC file is opened. Toolbar buttons: **Home**
+  (the last zoom box drawn), **Fit all** (the whole frame; also the house
+  icon), **Auto scale** (forget typed limits). Defaults (owner Q8,
+  Q-IMG-4, 8, 14): log for reflectivity, GID and GISAXS frames, linear for
+  direct beam and dark; the top of the scale at the 99.9th percentile of
+  the whole selection per Monc with the direct beam masked; viridis;
+  nearest pixels; at most 6 tiles, sampled first-to-last, "6 of 9 shown".
+  Terms to define: kind of frame, direct-beam mask. `lss_core/display.py`.
+- The frame movie (F69, owner Q7, 2026-11-24): 3 or more selected frames
+  play as one large frame (the view box: Movie, or Tiles: 4 / 6); the Movie
+  button plays any 2 or more. Movie bar: view, ◀, ▶/❚❚, ▶|, a slider (the
+  image list marks the frame shown), the counter, speed (2 fps default),
+  Loop (off: stops on the last frame), and the frame's scan, point, Qz or
+  2θ, time, absorber and Monc. Keys with the image focused: space plays or
+  pauses; Left, Up, Back step back and Right, Down, Forward step forward,
+  pausing first. Zoom, colour map and the one shared colour scale (per Monc,
+  absorber-corrected) never change while it plays. The movie no longer sets
+  Axes to Q or ticks Pinhole.
 - Everything shown is per Monc (2026-11-23, owner: "all data is default
   normalized by monc, even gisaxs"): the image and its colour range, the
   cuts, GISAXS. "Sum All" sums the frames' counts and monitors and divides
