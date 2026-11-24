@@ -11,7 +11,8 @@ Measured on synthetic data (tests/synth.py), `Experiment.reflectivity`:
 The window gives the same: Ref Patch, Drop "0", Finish.
 
 Handed to Main (the session that owns the reduction) with this test; the
-strict xfail comes off with the fix.
+strict xfail came off with the fix (2026-11-24: a one-point overlap now
+gives the ratio and its counting error, `stitching._fit_factor`).
 """
 import numpy as np
 import pytest
@@ -28,8 +29,6 @@ def test_other_drops_keep_every_error_finite(tmp_path, method, drop):
     assert np.all(np.isfinite(ref.patched[:, 2]))
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError,
-                   reason='a drop of the new scan\'s first point makes dR NaN/inf from there on (2026-11-24)')
 @pytest.mark.parametrize('method', ['joint', 'legacy'])
 @pytest.mark.parametrize('maker,scans', [(synth.make_dataset, [1, 2]),
                                          (synth.make_identical_scans_dataset, [1, 2, 3])],
