@@ -542,9 +542,15 @@ def global_fit(scans, order=4, n_ext=4, space='rrf', qc=QC, qoff=0.0, prior_mean
                inflate=True):
     """All factors in one weighted least-squares fit in ln y (each join's
     window has its own polynomial; a point is used in one window only).
-    With disjoint windows this equals ``chain`` (measured to 0.01 %); it
-    adds something when a correlated prior couples the joins or a scan
-    overlaps more than its neighbour. Returns a ``PatchResult``."""
+    With disjoint windows this equals ``chain`` with the same window and
+    order and **no guard** (``chain(likelihood='log', n_ext=4,
+    guard_p=0)``, measured to the fourth digit); it adds something when a
+    correlated prior couples the joins or a scan overlaps more than its
+    neighbour. It has no guard and one χ² inflation for all joins: where
+    one window cannot follow the curve (a 100 Å film at NX steps) that
+    join is biased (−3.4 %) and every join's error is inflated about
+    ten-fold (``docs/reports/patch_demo.md``, figure 2; pinned in
+    ``tests/test_patch_demo.py``). Returns a ``PatchResult``."""
     K = len(scans)
     q = np.concatenate([s.q for s in scans])
     y = np.concatenate([s.y for s in scans])

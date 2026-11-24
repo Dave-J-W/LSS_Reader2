@@ -292,6 +292,22 @@ Findings (measured):
   ladder; probably because the window and order are chosen after looking
   at χ²), not about the covariance. It has been passed to the main
   session.
+- **Since 2026-11-24 the guard is p 0.7** (study A,
+  `docs/studies/reflectivity_guard/`; C45 explained the effect above as
+  the ladder's post-selection). Table 1 and C35 stay the record at p 0.3
+  (`covariance_pulls.py` runs at 0.3 unless `--guard-p` is given). The
+  same 300 seeds at p 0.7 (measured in the 2026-11-24 review):
+  - joint chain's √Σ against the true spread: 0.85 / 0.89 / 0.89, scan
+    level pull SDs 1.15 / 1.11 / 1.11 (at p 0.3: 0.88 / 0.95 / 0.95 and
+    1.13 / 1.06 / 1.05). The stricter guard makes the scan levels' Σ
+    about 10 % small at every join, not only the first;
+  - the downstream fit with the covariance is still honest: pull SD of
+    d / ρ / σ 1.11 / 1.00 / 0.98, χ²/dof 1.01. With the file's column it
+    is 1.53 / 4.38 / 4.11, and with √diag C 0.89 / 4.12 / 2.46.
+  - A remedy (an error that allows for the rung choice) is the owner's
+    decision, already asked through questor (TODO B, C45). Until then
+    the joint sidecar's Σ is the joint fit's counting spread, as
+    described in §6.1.
 
 **NX school scans 6–9** (public, budget errors, measured; `nx_sigma.csv`):
 
