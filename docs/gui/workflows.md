@@ -1167,6 +1167,7 @@ flowchart TD
 | `prefAutoSaveCheckBox` Save every reduction automatically |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `prefNguiCheckBox` ngui (new layout, prototype) |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `prefSumAllLegacyCheckBox` Sum All: average of normalised frames (legacy) |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefRepeatsLegacyCheckBox` Ref Patch repeats: average (legacy) |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
 | `prefGisaxsRawCheckBox` GISAXS: raw counts (legacy) |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `prefMcaFitLegacyCheckBox` Fluorescence fit: legacy Fit dialog |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `prefBurnLegacyCheckBox` Burn test: show the Legacy tab |  |  |  |  |  |  |  |  |  |  |  |  |  | i |

@@ -323,8 +323,8 @@ Each line: feature — where — default — script — notes entry (date).
   action that has a legacy and a new path, which one it takes; nothing is
   removed (owner, 2026-11-23). **Reflectivity patch**: joint or legacy fit
   (moved here from the Ref Patch group). **Sum All**: counts and monitors
-  summed then normalised (default) or the old average. **GISAXS**: per Monc
-  (default) or raw counts. **Fluorescence fit**: the MCA tab's one Fit action
+  summed then normalised (default) or the old average. **Ref Patch repeats**: summed by counts and monitors (default) or
+  the old average. **GISAXS**: per Monc (default) or raw counts. **Fluorescence fit**: the MCA tab's one Fit action
   runs the line fit (default) or, when on, the legacy Fit dialog, and then
   also shows the legacy Fit, Fit All and Accept buttons. **Burn test**: shows
   the dialog's Legacy tab.

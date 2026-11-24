@@ -228,6 +228,17 @@
   shown: always
   tooltip: true
   notes: "Added 2026-11-23 (F86; owner Q13 and 'one button, switch picks'). Off by default."
+- id: prefRepeatsLegacyCheckBox
+  kind: checkbox
+  label: "Ref Patch repeats: average (legacy)"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "Off: repeated scans merged in Ref Patch are Sigma N / Sigma M (F81); on: the old equal-weight mean"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F86 switch for the test-speed session's F81). Off by default."
 - id: prefGisaxsRawCheckBox
   kind: checkbox
   label: "GISAXS: raw counts (legacy)"

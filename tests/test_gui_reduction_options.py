@@ -9,6 +9,7 @@ import sweep
 pytestmark = pytest.mark.gui
 
 SWITCHES = {'prefSumAllLegacyCheckBox': 'sum_all_legacy_average', 'prefGisaxsRawCheckBox': 'gisaxs_raw_counts',
+            'prefRepeatsLegacyCheckBox': 'repeats_legacy_average',
             'prefMcaFitLegacyCheckBox': 'mca_fit_legacy', 'prefBurnLegacyCheckBox': 'burn_legacy_tab'}
 
 

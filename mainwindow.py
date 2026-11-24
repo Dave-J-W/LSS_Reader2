@@ -2160,6 +2160,9 @@ class MainWindow (QMainWindow):
                 ('sum_all_legacy_average','prefSumAllLegacyCheckBox','Sum All: average of normalised frames (legacy)',
                  'Off (default): Sum All adds the counts and the monitors, then normalises once, Sigma N / Sigma M '
                  '(owner, 2026-11-23; F91). On: the mean of the frames each normalised alone, as before.'),
+                ('repeats_legacy_average','prefRepeatsLegacyCheckBox','Ref Patch repeats: average (legacy)',
+                 'Off (default): repeated reflectivity scans merged in Ref Patch add their counts and monitors, then '
+                 'normalise once, Sigma N / Sigma M (owner, 2026-11-23; F81). On: the equal-weight mean, as before.'),
                 ('gisaxs_raw_counts','prefGisaxsRawCheckBox','GISAXS: raw counts (legacy)',
                  'Off (default): GISAXS sums frames per Monc (Sigma N / Sigma M, F91). On: the raw counts, as before.'),
                 ('mca_fit_legacy','prefMcaFitLegacyCheckBox','Fluorescence fit: legacy Fit dialog',
