@@ -5590,3 +5590,41 @@ reproduced).
 ### 2026-11-24 — GUI questions answered, batch 17 (timeline: Q-TL-3, 4, 6, 7)
 
 Verified by: reading only. The timeline joins several SPEC files on one axis; the sh-scan thumbnail uses SPEC's `Pilatus` counter; the verdict colour depends on width only, the exponent p is shown as a number and the colour thresholds are visual preferences; sx is drawn and coloured by dose per area scaled by a burn test's (F107), with barrier and tensiometer traces shown only if their data exist. Open: Q-TL-2 (a macro-written new-sample line; partly covered by Q-TL-1's answer), Q-TL-5 (the coloured placeholder boxes), Q-TL-8 (environment column names and units), and what a "large" sx change is. **Note on process:** AGENTS.md rule 12 (2026-11-24) now requires a COMPARISONS study, pinning tests and a demonstrator before a default switches; the owner's adoption of the Poisson step P1 as the MCA default (batch 15) falls under it.
+
+### 2026-11-24 — Qc and Qoff of R/R_F (F79): the degeneracy, and the subphases
+
+Asked by Main for the owner's F79 ("Qoff tweaked by hand until the
+fresnel-normed reflectivity looks continuous"). Derivation, then checks:
+
+- **Why the edge decides Qoff.** R/R_F with a wrong Qoff ε is
+  R(Qz + Qoff)/R_F(Qz + Qoff + ε). Far above the edge R_F ∝ Qz⁻⁴, so the
+  ratio only tilts, (1 + ε/Qz)⁴ ≈ 1 + 4ε/Qz (0.4 % at Qz 0.1 for ε = 10⁻⁴).
+  At the edge dR_F/dQz is infinite (R_F = 1 − 4√(2x)+… with x = Qz/Qc − 1),
+  so the same ε leaves a spike or a dip of tens of percent in the first
+  points above Qc: what the owner sees as "not continuous".
+- **Qc and Qoff are nearly degenerate.** Without absorption R_F depends on
+  Qz/Qc alone and the edge sits at Qz = Qc − Qoff. Moving Qc and Qoff by
+  the same Δ keeps the edge in place; what is left is a level change far
+  above the edge, R_F(Qz; Qc + Δ)/R_F(Qz; Qc) → (1 + Δ/Qc)⁴ (the 4 % per
+  1 % of Qc in F79), which looks like the sample's own level, and a small
+  change of shape just above the edge. So fitting Qc and Qoff together from
+  one curve is ill-posed: the bootstrap correlation is +0.9 to +1.0.
+  Measured: `tests/test_qoff.py` (the fitted Qc − Qoff equals the true
+  Qc − Qoff within 10⁻⁴; correlation > 0.8) and the study (C50).
+- **A wrong Qc moves Qoff one for one.** The subphase 1 M NaCl (Qc 0.0221)
+  reduced at water's 0.0217 gives a proposed Qoff 0.0004 below the truth:
+  the edge is put in the right place, and R/R_F above it is then off in
+  level by (0.0221/0.0217)⁴ − 1 ≈ 7 %. Measured (`test_qoff.py`).
+- **Subphase densities** (`lss_core.fresnel.SUBPHASES`): ρ_e = ρ_m N_A
+  [w Z_s/M_s + (1 − w) Z_w/M_w]. Water at 25 °C, 0.99705 g/cm³: 0.3333
+  e/Å³, Qc 0.02173 Å⁻¹; D2O 0.02169; NaCl 1, 3, 6, 10 % by mass: 0.02180,
+  0.02193, 0.02211, 0.02236; KCl 7 %: 0.02212; CaCl2 5 %, 10 %: 0.02213,
+  0.02251 (computed). **Every density is from memory** (CRC Handbook
+  tables): the pages could not be opened from this session (Wikipedia's
+  data pages do not resolve here), and each entry says so. The third
+  significant figure of Qc, the one that matters, is safe against a 0.5 %
+  error in a density (Qc ∝ √ρ_e: 0.25 %).
+
+Verified by: derivation, the tests named, and the study's runs
+(`docs/studies/qoff/summary.md`).
+
