@@ -5073,8 +5073,9 @@ class MainWindow (QMainWindow):
                                        'GID Patch and the worksheet are the buttons beside it.')
 
     def gidPatch(self):
-        # nothing to patch: say so (the crash sweep found the button raising in pinhole.shared_edges, 2026-11-24)
-        if getattr(self,'det',None)!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]) or [])==0:
+        # nothing to patch: say so (the crash sweep found the button raising in pinhole.shared_edges, 2026-11-24);
+        # the frames are a numpy array once selected, so no 'x or []' (an array has no truth value)
+        if getattr(self,'det',None)!='Pilatus' or len(getattr(self,'selectedPilFramesNums',None) if getattr(self,'selectedPilFramesNums',None) is not None else [])==0:
             self.notify('Select the GID scans and their frames first (Select All), then GID Patch.',title='GID Patch')
             return
         self.pilGIDRelax=0
