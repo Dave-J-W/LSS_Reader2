@@ -5997,3 +5997,21 @@ on synthetic scans of the same sampling. Study: `docs/studies/qz_resolution/summ
   Qc).
 - The fits' own errors are 3.5× too small against the scatter within a run (per-point angle errors); quote
   the scatter.
+
+### 2026-11-24 — Reflectivity patching on real series (DATA_NEEDS row 1, hand-off 08, C56)
+
+Verified by: a run of hand-off 08's survey (`tests/tools/ref_patch_survey.py`) on 380 private reflectivity
+series, 1832 joins (18 files, 10 keV), by the non-cloud agent. It added the guard at p 0.3 and the guard off
+beside the default (p 0.7). Study: `docs/studies/ref_patch_real/summary.md`.
+- **The joint fit is confirmed as the default on real data.** In 1091 real-curve split tests (truth
+  f = 1.25) its bias is +0.10 % [−0.10, +0.32]. The legacy factor's is −0.55 % [−1.16, −0.22], with errors
+  2.4× too small.
+- **p 0.7 or 0.3 makes no difference on real data.** The factor is identical at 67 % of joins and more than
+  1σ apart at 3.7 %. The calibration is the same (pull SD 1.24, 1.23), and so is the foil z. Study A's
+  choice stands, and the foils do not disagree with the fits at real joins.
+- **New: the guard leaves the errors too small on real joins.** The pull SD is 1.24 [1.09, 1.40] with the
+  guard and 1.00 [0.93, 1.03] without it, a difference of +0.24 [0.11, 0.38] (bootstrap over files). The
+  ladder climbs to order 5, χ²/dof about 0.8, so inflate-only never acts. Without the guard, χ²/dof is
+  about 1.5 and the errors inflate. A remedy is proposed in the study; nothing is changed (rule 12).
+- The share of joins with χ² p < 0.01 rises with Qz, 5 → 11 → 17 % (default): there is excess per-point
+  scatter at high Qz.

@@ -888,6 +888,13 @@ TOOLS = (
                       "(sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them.",
          committed=('docs/studies/qz_resolution',), docs=('docs/studies/qz_resolution/summary.md',),
          data='private', repo_ok=False),
+    Tool('ref_patch_real', 'Reflectivity patching on real series (private data)', 'external', 'external',
+         demonstrates="Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per "
+                      "method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the "
+                      "non-cloud agent from tests/tools/ref_patch_survey.py on private files; not regenerable here; "
+                      "the numbers are the CSVs beside the figure.",
+         committed=('docs/studies/ref_patch_real',), docs=('docs/studies/ref_patch_real/summary.md',),
+         data='private', repo_ok=False),
 )
 
 BY_ID = {t.id: t for t in TOOLS}

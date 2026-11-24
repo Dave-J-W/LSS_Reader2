@@ -128,6 +128,7 @@ container on 2026-11-23 with the defaults shown.
 | [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
 | [Real reflectivity burns: trends, dose or time (private data)](#xr-burns) | external | The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): each series at several absorbers against time and dose, the drift rate against flux and the dose-or-time verdicts. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/xr_burns` |
 | [Qz resolution near the critical edge (private data)](#qz-resolution) | external | The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NEEDS row 13, F79): the resolution per run and S1 gap, the fit's sensitivity, a known-truth check and the coverage of the fits' errors. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/qz_resolution` |
+| [Reflectivity patching on real series (private data)](#ref-patch-real) | external | Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the non-cloud agent from tests/tools/ref_patch_survey.py on private files; not regenerable here; the numbers are the CSVs beside the figure. | private (not in the repository) |  | `docs/studies/ref_patch_real` |
 
 ## Items
 
@@ -1100,6 +1101,16 @@ The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NE
 - Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
 - Explained in: `docs/studies/qz_resolution/summary.md`
 - Committed products: `docs/studies/qz_resolution`; not replaced from the window
+
+<a id="ref-patch-real"></a>
+
+### Reflectivity patching on real series (private data)
+
+Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the non-cloud agent from tests/tools/ref_patch_survey.py on private files; not regenerable here; the numbers are the CSVs beside the figure.
+
+- Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
+- Explained in: `docs/studies/ref_patch_real/summary.md`
+- Committed products: `docs/studies/ref_patch_real`; not replaced from the window
 
 ## The Tools window
 
