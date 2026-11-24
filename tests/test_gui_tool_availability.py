@@ -32,3 +32,12 @@ def test_other_selections_leave_every_tool_enabled(loaded, qapp, dataset, record
     sweep._select_scans(loaded, qapp, [3])
     assert 'Greyed out' not in loaded.gidPatchPushButton.toolTip()
     assert recorder.exceptions == []
+
+
+def test_gid_patch_with_nothing_selected_says_so(window, qapp, recorder):
+    """Found by the crash sweep (2026-11-24): the GID Patch button, clicked
+    with nothing loaded, raised IndexError in pinhole.shared_edges."""
+    window.gidPatchPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert any('GID scans and their frames first' in m for m in recorder.messages)
