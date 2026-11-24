@@ -79,7 +79,7 @@ cannot run on a current SciPy.
 |---|---|
 | `conftest.py` | Fixtures (below). Sets offscreen Qt and the working directory. |
 | `synth.py` | Writes synthetic SPEC, Pilatus TIFF and MCA files (outputs must not change; new generators go in `synthetic/`, see `docs/SYNTHETIC_DATA.md`). |
-| `sweep.py` | Drives the window: application states, control enumeration, fresh-window driver, random walks, `dispose`. |
+| `sweep.py` | Drives the window: application states, control enumeration, the fork driver (a forked copy of the state window per control) and the fresh-window driver, random walks, `dispose`. |
 | `test_walk_crashes.py` | Three crashes the sweep's random walks reached (2026-11-23), each fixed: the Ref Patch close-up with vertical background, SpecPlot's log scale with nothing positive, an empty typed Pilatus distance. |
 | `test_test_infrastructure.py` | The suite's own machinery: windows really freed, nothing left on disk, the parallel defaults. |
 | `test_plot_speed.py`, `test_mcafiles.py`, `test_gid_redraw.py` | Plots drawn fast and the same (MCA error bars as one path, `pcolor` maps as one mesh); MCA files parsed once per file version; the GID map regridded to Q once per map, not on every redraw (2026-11-23). |
@@ -214,10 +214,28 @@ The stated goal is that no sequence of selections and button presses raises.
 each of seven states (nothing loaded; SPEC file loaded; a motor scan, a
 Pilatus scan, one frame, two scans with all frames, or MCA frames selected).
 Every push button, check box, menu action, combo box, line edit and spin box
-is then triggered once, each in a fresh window. When a control opens a
-dialog, every control of that dialog is triggered as well. Each state is run
-twice: with every file dialog cancelled, and with every file dialog
-returning a usable path (keys ending `+paths`).
+is then triggered once, each starting from the window exactly as the state
+leaves it. When a control opens a dialog, every control of that dialog is
+triggered as well. Each state is run twice: with every file dialog
+cancelled, and with every file dialog returning a usable path (keys ending
+`+paths`).
+
+How each control gets its own window (2026-11-24, the archived commit
+29ade46 of 2026-11-22, ported): the window is built in the state once, and
+each control runs in a **forked copy** of it (`sweep._ForkDriver`). The copy
+starts with that window as it is (nothing rebuilt), triggers the control
+(and the dialog child), reports through a pipe and exits. The two files a
+fresh window reads, its output folder and the preferences file, are put
+back before each control, so no control sees what another did (more strictly
+than before: rebuilt windows shared the preferences file). A copy that dies
+or hangs becomes an inventory entry ('Signal11 @ child', 'Timeout @ child',
+`LSS_SWEEP_CHILD_TIMEOUT` seconds) instead of ending the run. Before a fork
+the driver waits until Qt's thread pool has no threads (its expiry is set to
+0 while the sweep runs). `LSS_SWEEP_FORK=0`, and every platform without
+fork, build a fresh window per control as before.
+`test_every_forked_copy_starts_from_the_state` and
+`test_a_child_that_dies_is_an_inventory_entry` (quick suite) and
+`test_fork_and_rebuild_trigger_the_same_controls` (in the sweep) check it.
 
 `tests/known_crashes.json` records every control that raises, with the
 exception type and the function it came from. The test fails if a control
