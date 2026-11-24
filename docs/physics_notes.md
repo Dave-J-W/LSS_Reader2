@@ -5472,6 +5472,51 @@ proven in ngui are carried over, not built twice. **Answer (owner,
 ngui shows the same view later. Verified by: the owner's answer only (the
 tab is not built yet).
 
+### 2026-11-24 — Q-BURN-6 built: GID-burn rows from the mean frame
+
+The owner's answer (2026-11-23, batch 14): "GID-burn detector rows default
+from the mean frame". Built by the tools session as `burn.signal_rows`,
+the default of `exp.burn` (`rows='mean'`) and of the burn dialog ("Rows
+from frame"). The rule: a 3 × 3 median of the mean frame per Monc; the
+strongest column peak's columns (the half-height run, widened by its
+width on each side); their row profile less each row's median over the
+same number of columns; the rows where it stays above 10 % of its maximum,
+2 rows either side. For an exponential rod, 10 % keeps 90 % of its counts.
+
+Verified by: test (`tests/test_burn_rows.py`: a synthetic rod's rows,
+noise, a hot pixel, a flat frame, a rod over the whole frame; the GUI
+test in `test_gui_burn_trends.py`) and run (NX 14, 15: rows 46–486, the
+shadow below the horizon left out; intensity +0.3 %; NX 14's 5 % time
+189.6 → 178.4 s). Building it showed a fault in the burn's lit-column rule
+(a peak 20 × its floor shrank the window to its core), fixed the same day
+(`burn._illuminated`, NX unchanged bit for bit). COMPARISONS C49.
+
+### 2026-11-24 — P1 is the default of "Fit lines" (rule 12)
+
+The owner's standing rule 12 (via Main, 2026-11-24): "Make the best
+method the default if it has been comprehensively demonstrated and
+tested and has a demonstrator presentation effort behind it." P1 has
+study B (C47) and the demo (`docs/reports/mca_fit_demo.md`), so "Fit
+lines" now fits each spectrum by Poisson maximum likelihood, and so does
+`peaks.fit_series` by default. The old weighting is the legacy switch
+`mca_fit_data_weights`, off by default. The earlier option
+`mca_fit_poisson` is retired: preferences store every key, so a stored
+"False" would otherwise have kept data weights for everyone who saved
+preferences.
+
+Before → after (synthetic, study B, measured): a clean line's bias
+−23 % → +1.8 % at 100 counts, −5.0 % → +0.4 % at 400, −1.5 % → within
+its errors at 1000; within 0.2 % at 10⁴; the weak XFNTR curve's worst
+point 13 % → 1.2 %. Re-pins: none of the numbers in the suite changed.
+Only tests that named the default changed: `test_gui_workbook`'s switch
+test, the preference key in `test_gui_preferences` and
+`test_gui_reduction_options`, and `test_peaks` names `weights='data'`
+for its comparison. The gauntlet's 'fit' estimators and study B's pass
+`weights='data'`, so C42 and C47 reproduce as run.
+
+Verified by: test (the suites named) and reading; no real spectra here.
+The window sum is left as it is (OUTPUT_DECISIONS).
+
 ### 2026-11-24 — F83 phase 1c: the Timeline tab (first version)
 
 Built in the main window, as the owner chose: `timelineview.TimelineTab`,

@@ -445,14 +445,14 @@ class Experiment:
         """GID map of the frames of ``scans``, as the window's "GID Patch"
         (``relax``: "GID Patch Relax") with the GID worksheet's settings
         ``params`` (lss_core.gid.GIDParams; default: pinhole geometry, as
-        the window). ``axes``: 'Q' or 'Angles', what ``save`` writes;
+        the window, and the frames' last row, ``GIDParams.for_detector``). ``axes``: 'Q' or 'Angles', what ``save`` writes;
         ``points``, ``db_pos`` (typed direct beam, column and row), the
         bad-pixel settings and ``errors`` (legacy patch only) as the window.
         Background-subtracted frames are not scriptable yet. Raises
         lss_core.gid.GIDError where the window shows a message and stops."""
         from . import gid as gidmod
-        gp = gidmod.GIDParams() if params is None else params
         frames, det = self.gid_frames(scans, points, db_pos, bad_pixel_iterations, bad_pixel_factor, errors)
+        gp = gidmod.GIDParams.for_detector(np.shape(frames[0].data)) if params is None else params   # the frames' last row
         log, warnings = [], []
         info = None
         if gp.pinhole:
@@ -466,7 +466,7 @@ class Experiment:
         res.warnings = warnings
         return res
 
-    def burn(self, scan, points=None, time='clock', qxy_range=None, rows=None, fit=None,
+    def burn(self, scan, points=None, time='clock', qxy_range=None, rows='mean', fit=None,
              models=None, threshold=0.05, confidence=0.95, slit=(21, 11), bg_offset=0.5, direction='H',
              errors=None, db_pos=None, bad_pixel_iterations=0, bad_pixel_factor=1, overdispersion=True,
              estimator='template', trend_errors=None, limit=('intensity', 'fwhm')):
@@ -474,7 +474,10 @@ class Experiment:
         reflected intensity (Det_Th 0; ``slit``, ``bg_offset``,
         ``direction`` as Ref Patch) or the strongest GID peak's intensity,
         position and FWHM (``qxy_range`` to choose another peak; ``rows``
-        (low, high) pixel rows summed, default all; ``fit``: a
+        (low, high) pixel rows summed, both included: 'mean' (default since
+        2026-11-24, Q-BURN-6) the rows where the mean frame's signal is,
+        lss_core.burn.signal_rows, all rows when no peak stands out; None
+        all rows (before); ``fit``: a
         peaks.FitOptions, for ``estimator`` 'fit'; ``estimator``: 'template'
         (default), 'moments' (the legacy arithmetic) or 'fit', lss_core.burn.measure_gid),
         all per monitor count; then each quantity over
@@ -518,7 +521,23 @@ class Experiment:
             res.values['intensity'] = (rows_[:, 1].astype(float), rows_[:, 2].astype(float))
         else:
             from . import cuts as cutmod
-            lo, hi = (0, 100000) if rows is None else rows
+            from .images import read_pilatus
+            last = np.shape(read_pilatus(frames[0].path))[0] - 1
+            lo, hi = 0, last
+            if isinstance(rows, str):
+                if rows != 'mean':
+                    raise ValueError("rows: 'mean', None or (low, high), not %r" % (rows,))
+                found = burnmod.signal_rows(self.mean_frame(frames))
+                if found is None:
+                    res.notes.append('rows: all (no peak stands out in the mean frame)')
+                else:
+                    lo, hi = found
+                    res.notes.append('rows %d-%d: where the mean frame\'s signal is (Q-BURN-6)' % found)
+            elif rows is not None:
+                if len(rows) != 2:
+                    raise ValueError('rows: (first, last), not %r' % (rows,))
+                lo, hi = int(rows[0]), int(rows[1])
+            res.rows = (max(int(lo), 0), min(int(hi), last))
             c = self.cut([scan], 'Pix H', (lo, hi), axes='Q', points={scan: idx}, errors=errors, db_pos=db_pos,
                          bad_pixel_iterations=bad_pixel_iterations, bad_pixel_factor=bad_pixel_factor)
             res.profiles = [np.asarray(p, float) for p in c.cuts]
@@ -532,6 +551,12 @@ class Experiment:
         res.trends = burnmod.analyse(t, res.values, models or trends.MODELS, threshold, confidence, overdispersion,
                                      errors=te)
         return res
+
+    def mean_frame(self, frames):
+        """The mean of ``frames``' images per monitor count (rows × columns, as
+        read; no bad-pixel removal), e.g. for burn.signal_rows."""
+        from .images import read_pilatus
+        return np.mean([np.asarray(read_pilatus(f.path), float) / f.monitor for f in frames], axis=0)
 
     def spectra(self, scans, channels=None):
         """(scan, spectrum number, Data, Par) for every MCA spectrum of the

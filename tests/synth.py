@@ -268,6 +268,49 @@ def make_burn_dataset(root, name='burn'):
     return spec
 
 
+GID_BURN_DTH = 16.2      # Det_Th (degrees) of the synthetic GID burn
+GID_ROD = dict(column=130, sigma=2.5, horizon=100, decay=60.0, amplitude=400.0)   # rows × columns as read
+
+
+def gid_burn_image(amplitude=GID_ROD['amplitude'], column=GID_ROD['column'], sigma=GID_ROD['sigma'],
+                   horizon=GID_ROD['horizon'], decay=GID_ROD['decay'], background=2.0, diffuse=3.0):
+    """Expected GID frame as the reader returns it (rows × columns): a Bragg
+    rod at ``column`` (Gaussian of σ ``sigma`` columns) from the horizon row
+    up, falling as exp(−(row − horizon)/``decay``); diffuse scatter above
+    the horizon, flat across the columns and falling three times slower; a
+    flat ``background`` everywhere (counts per pixel)."""
+    r, c = np.mgrid[0:PIL_W, 0:PIL_H].astype(float)
+    above = r >= horizon
+    rod = amplitude * np.exp(-0.5 * ((c - column) / sigma) ** 2) * np.where(above, np.exp(-(r - horizon) / decay), 0.0)
+    return background + rod + diffuse * np.where(above, np.exp(-(r - horizon) / (3 * decay)), 0.0)
+
+
+def gid_burn_rows(fraction=0.1, rod=GID_ROD):
+    """The rows where the rod is above ``fraction`` of its maximum (the truth
+    for burn.signal_rows, before its padding): horizon … horizon + decay·ln(1/fraction)."""
+    return rod['horizon'], int(rod['horizon'] + rod['decay'] * np.log(1 / fraction))
+
+
+def make_gid_burn_dataset(root, name='gidburn', seed=None, tau=BURN_TAU):
+    """One GID-geometry burn scan (Det_Th GID_BURN_DTH) of BURN_FRAMES frames
+    whose Bragg rod (GID_ROD) fades as exp(−t/``tau``); Poisson counts when
+    ``seed`` is given (Q-BURN-6, 2026-11-24)."""
+    root = str(root)
+    os.makedirs(os.path.join(root, 'pilatus'))
+    n = BURN_FRAMES
+    z = np.zeros(n)
+    rows = np.column_stack([z, z, z, z + 0.02, z + GID_BURN_DTH, z + BURN_CTIME, z + MONITOR, z + 1000.0])
+    cols = ['In_Ht', 'H', 'K', 'L', 'Det_Th', 'Seconds', 'Monc', 'Pilatus']
+    scan = spec_scan(1, name, cols, rows, command='ascan  ih 0 0  %d %g' % (n - 1, BURN_CTIME))
+    spec = write_spec(os.path.join(root, name), [scan])
+    rng = np.random.default_rng(seed) if seed is not None else None
+    for j in range(n):
+        img = gid_burn_image(GID_ROD['amplitude'] * np.exp(-j * BURN_CTIME / tau))
+        write_pilatus_tif(os.path.join(root, 'pilatus', '%s_SCAN-1_%04d.tif' % (name, j)),
+                          rng.poisson(img) if rng is not None else img)
+    return spec
+
+
 def make_identical_scans_dataset(root, name='same'):
     """Reflectivity scans 1-2 as in make_dataset, plus scan 3 measured with
     the same Qz points and absorber as scan 2 (a repeat), so that "Ref

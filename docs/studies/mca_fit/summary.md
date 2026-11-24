@@ -1,5 +1,9 @@
 # Study B: how to measure an MCA line intensity (F90)
 
+**Since 2026-11-24 P1 is the reader's default** (rule 12; recommendation 1
+below). The study's figures and tables are kept as run: "fit (data
+weights)" and "today" there mean the weighting before that day.
+
 Tools man, 2026-11-24. This is the plan's study B
 (`docs/studies/2026-11-24_two_decisions_plan.md`). Everything here is
 **measured on synthetic spectra** (`tests/synthetic/mca.py`). Real data

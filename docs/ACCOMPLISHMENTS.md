@@ -115,6 +115,11 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   - the window sum fails under scatter;
   - Zn under a 10 keV beam needs a blank to decide;
   - at 12 keV, P1 alone passes.
+- The synthetic MCA project's wrap-up (2026-11-24; the owner paused it to wait for real data):
+  `docs/reports/mca_fit_demo.md`, a reader's guide to the generator's parts, the six estimators and
+  what the stress test taught, with the beam-energy figure (`tests/tools/mca_fit_demo.py`: P1 within
+  0.3 % at 12 keV where it fails at 10 keV) and the Tools menu's MCA items and variations; the hard case
+  as MCA files for the reader (`synthetic_dataset.py --kind mca`).
 - Burn tests as trends over time (`lss_core.trends`, `lss_core.burn`):
   constant, linear, exponential and double exponential compared by AICc;
   "stable" when a flat line fits as well as a line; the 95 % confident time

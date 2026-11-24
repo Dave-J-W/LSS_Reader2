@@ -107,19 +107,20 @@ def test_fit_lines_reports_the_elements_line_not_the_tallest(loaded, qapp, datas
 
 
 def test_fit_lines_poisson_switch(loaded, qapp, dataset, recorder):
-    """F90 P1: data weights by default (until the owner's study); the
-    preference 'mca_fit_poisson' fits each spectrum by Poisson maximum
-    likelihood (the command and each result say so)."""
+    """F90 P1, the default since 2026-11-24 (rule 12): each spectrum by
+    Poisson maximum likelihood; the legacy switch 'mca_fit_data_weights'
+    weights by the data's errors, as before (the command and each result
+    say which)."""
     sweep.state_mca_frames(loaded, qapp, dataset)
     loaded.mcaFitLinesPushButton.click()
     qapp.processEvents()
-    data = [r[3] for r in loaded.mcaIntData]
-    assert 'Poisson' not in loaded.command and 'Poisson' not in loaded.mcaLineFits[1][0].message
-    loaded.setPreference('mca_fit_poisson', True)
+    poisson = [r[3] for r in loaded.mcaIntData]
+    assert 'Poisson weights' in loaded.command and 'Poisson weights' in loaded.mcaLineFits[1][0].message
+    loaded.setPreference('mca_fit_data_weights', True)
     loaded.mcaFitLinesPushButton.click()
     qapp.processEvents()
-    assert 'Poisson weights' in loaded.command and 'Poisson weights' in loaded.mcaLineFits[1][0].message
-    assert [r[3] for r in loaded.mcaIntData] == pytest.approx(data, rel=0.05)
+    assert 'data weights (legacy)' in loaded.command and 'Poisson' not in loaded.mcaLineFits[1][0].message
+    assert [r[3] for r in loaded.mcaIntData] == pytest.approx(poisson, rel=0.05)
     assert recorder.exceptions == []
 
 
