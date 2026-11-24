@@ -1,8 +1,9 @@
 # Two decisions, explained simply
 
 *Draft, 2026-11-24, 1 am onward. The figures and the numbers marked
-⟨…⟩ come from the two studies. This page is filled in when they are in,
-and the citations are checked before it is handed over.*
+⟨…⟩ come from the two studies, and this page is filled in when they are
+in. The citations were checked as far as this environment allows; see
+References.*
 
 This page explains two choices the reader makes when it turns detector
 counts into numbers:
@@ -80,9 +81,10 @@ $$
 The reported error is the chosen rung's own $\sigma_r$, which leaves out
 the second term. So when the rungs disagree, the pulls
 $(\hat\delta - \delta)/\sigma$ spread wider than 1. That is the measured
-pull SD of 1.13 at the first join. Inference that pretends the choice was
-fixed in advance is called post-selection inference
-(Berk et al. 2013 ⟨check⟩).
+pull SD of 1.13 at the first join. Statisticians call this
+post-selection inference: inference after a data-driven choice "enjoys
+none of the guarantees" classical theory gives when the model is fixed
+in advance (Berk et al. 2013).
 
 **Why a lenient guard leaves bias.** If the true curve is not a
 polynomial of order $m$ over the window (a Kiessig fringe, say), the fit
@@ -99,8 +101,12 @@ $$
 \bar\delta = \sum_r w_r \hat\delta_r, \qquad
 \sigma^2 = \sum_r w_r\left[\sigma_r^2 + (\hat\delta_r - \bar\delta)^2\right].
 $$
-This is model averaging (Buckland, Burnham & Augustin 1997; Burnham &
-Anderson 2002 ⟨check which form⟩). It is a candidate only.
+This is model averaging with weights $w_r \propto e^{-I_r/2}$ from an
+information criterion $I_r$. The variance above is the revised form
+(Burnham & Anderson 2002, eq. 6.12). Buckland, Burnham & Augustin (1997)
+proposed the square-root form,
+$\left[\sum_r w_r \sqrt{\sigma_r^2 + (\hat\delta_r - \bar\delta)^2}\right]^2$.
+It is a candidate only.
 
 ### What the study found
 
@@ -167,8 +173,11 @@ $$
 \frac{\mathrm{E}[\hat A_N] - A}{A} \;\approx\; -\frac{m}{N},
 $$
 with $N$ the line's total counts and $m$ the number of channels that
-carry it. The bias is downward and grows as counts fall; Baker & Cousins
-1984 ⟨check⟩ show it in general.
+carry it: about one count per channel, downward, as Baker & Cousins
+(1984) state for Neyman's $\chi^2$. With Pearson's $\chi^2$ (weights from
+the model, but not iterated to the likelihood) the bias goes the other
+way, about half a count per channel. Mighell (1999) shows the same for
+astronomical counts.
 
 *Checked by simulation* (20 000 spectra per row; a Gaussian line on no
 background; channels with mean > 0.5; zero counts clipped to 1; the code
@@ -196,24 +205,32 @@ For a line alone this gives $\hat A = \sum_i n_i$, which is unbiased.
 For a linear model, the condition is the weighted least-squares equation
 with weights $1/\mu_i$ from the model. Iterating the weighted fit with
 weights from the previous model (IRLS) reaches the maximum-likelihood
-answer (Cash 1979 ⟨check⟩).
+answer.
+- Minimising Cash's statistic $C = 2\sum_i(\mu_i - n_i\ln\mu_i)$ is the
+  same thing, and it is valid at any number of counts per channel
+  (Cash 1979).
+- With the normalisation free, it keeps the fitted total equal to the
+  counts observed (Baker & Cousins 1984). It is not free of bias in
+  every case at very low counts, which the study measures.
 
 **Width fixed from the detector (P2).** For a silicon detector, the line
 width follows from electronic noise and charge statistics:
 $$
 \text{FWHM}^2(E) = \text{FWHM}_{\text{noise}}^2 + (2.355)^2\,F\,\varepsilon\,E ,
 $$
-with Fano factor $F$ and pair energy $\varepsilon$ (textbook values
-⟨check⟩). Fixing the width removes a free parameter that otherwise
+with Fano factor $F$ and pair energy $\varepsilon$ (for silicon
+$F \approx 0.1$ and $\varepsilon \approx 3.6$ eV; textbook values, not
+checked here). Fixing the width removes a free parameter that otherwise
 trades off against a curved background.
 
 **Escape stripping (P3).** A photon of energy $E$ that loses a Si Kα
 photon (1.74 keV) is recorded at $E - 1.74$ keV with probability
-$f_{\text{esc}}(E)$. Stripping subtracts that copy:
+$f_{\text{esc}}(E)$. This happens only above the Si K edge at
+1.839 keV. Stripping subtracts that copy:
 $$
 y'(E) = y(E) - f_{\text{esc}}(E + 1.74)\, y(E + 1.74) .
 $$
-(Reed & Ware 1972 ⟨check⟩.)
+(The escape fraction against energy: Reed & Ware 1972.)
 
 ### What the study found
 
@@ -227,15 +244,22 @@ $$
 
 ## References
 
-⟨All to be checked against the papers before hand-over.⟩
+**How far these were checked.** The bibliographic details were confirmed
+from publisher, ADS and index records. The claims were checked against
+abstracts and against secondary sources that restate the papers. **The
+full texts were not read**: this environment's network policy blocks the
+publishers and arXiv. Read every claim here as checked at that level.
 
-- Baker, S. & Cousins, R. D. (1984). *Nucl. Instrum. Methods* 221, 437.
-- Berk, R., Brown, L., Buja, A., Zhang, K. & Zhao, L. (2013). *Ann. Stat.* 41, 802.
-- Buckland, S. T., Burnham, K. P. & Augustin, N. H. (1997). *Biometrics* 53, 603.
-- Burnham, K. P. & Anderson, D. R. (2002). *Model Selection and Multimodel Inference*, 2nd ed. Springer.
-- Cash, W. (1979). *Astrophys. J.* 228, 939.
-- Parratt, L. G. (1954). *Phys. Rev.* 95, 359.
-- Reed, S. J. B. & Ware, N. G. (1972). *J. Phys. E* 5, 582.
+- Baker, S. & Cousins, R. D. (1984). Clarification of the use of chi-square and likelihood functions in fits to histograms. *Nucl. Instrum. Methods Phys. Res.* 221(2), 437–442. https://doi.org/10.1016/0167-5087(84)90016-4
+- Berk, R., Brown, L., Buja, A., Zhang, K. & Zhao, L. (2013). Valid post-selection inference. *Ann. Statist.* 41(2), 802–837. https://doi.org/10.1214/12-AOS1077 (open copy: arXiv:1306.1059)
+- Buckland, S. T., Burnham, K. P. & Augustin, N. H. (1997). Model selection: an integral part of inference. *Biometrics* 53(2), 603–618. https://doi.org/10.2307/2533961
+- Burnham, K. P. & Anderson, D. R. (2002). *Model Selection and Multimodel Inference*, 2nd ed. Springer, New York (eq. 6.12, p. 345). https://doi.org/10.1007/b97636
+- Cash, W. (1979). Parameter estimation in astronomy through application of the likelihood ratio. *Astrophys. J.* 228, 939–947. https://doi.org/10.1086/156922
+- Mighell, K. J. (1999). Parameter estimation in astronomy with Poisson-distributed data. I. The χ²_γ statistic. *Astrophys. J.* 518, 380. https://doi.org/10.1086/307253
+- Névot, L. & Croce, P. (1980). Caractérisation des surfaces par réflexion rasante de rayons X. *Rev. Phys. Appl.* 15(3), 761–779. https://doi.org/10.1051/rphysap:01980001503076100. Derived for one rough surface; applied interface by interface in the recursion, a later generalisation.
+- Parratt, L. G. (1954). Surface studies of solids by total reflection of X-rays. *Phys. Rev.* 95(2), 359–369. https://doi.org/10.1103/PhysRev.95.359
+- Biggs, F., Mendelsohn, L. B. & Mann, J. B. (1975). Hartree-Fock Compton profiles for the elements. *At. Data Nucl. Data Tables* 16(3), 201–309. https://doi.org/10.1016/0092-640X(75)90030-3. Free-atom, per-shell profiles; using the O 1s profile for water is our inference. The impulse approximation behind them is poor when the energy transfer nears the 1s binding energy (about 0.54 keV).
+- Reed, S. J. B. & Ware, N. G. (1972). Escape peaks and internal fluorescence in X-ray spectra recorded with lithium drifted silicon detectors. *J. Phys. E: Sci. Instrum.* 5(6), 582–583. https://doi.org/10.1088/0022-3735/5/6/029
 
 ---
 
