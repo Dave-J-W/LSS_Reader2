@@ -354,7 +354,7 @@ stated assumption until the answer arrives.
 | 5 | ~~`Monc`'s own noise~~: not needed (owner, 2026-11-19, D44). Which monitor model the Budget uses by default when it becomes the default: Gaussian 0.04 % (D22, now) or Student t (D26)? | Stage 5: Budget as default | Gaussian stays the Budget's default |
 | 6 | ~~IDL `IMG_COO_CONV`/`LIMG_COO_CONV`, `SCAN_JOIN`, `SPEC_FILE_INFO`~~ received 2026-11-19 (`docs/reference_code/idl/`); still wanted: IDL output for NX 11+12 | checking the pinhole map against IDL numbers | pinhole checked on synthetic data and by reading |
 | 7 | ~~IDL review §8: column response from data or geometry; per-column patch replacing or beside the 3-column one~~: both built as options (`fit`, `physical`, 2026-11-20); still open: PD_MERGE | GID defaults | pinhole default (D40), response fitted |
-| 8 | Reflectivity series with overlaps at 6–7 keV; foil tolerance and alloy; Cu thickness at 30 keV | P28 below 10 keV; F49 at 30 keV | nominal Al below 10 keV; no factor at 30 keV |
+| 8 | Reflectivity series with overlaps at 6–7 keV; foil tolerance and alloy; Cu thickness at 30 keV | P28 below 10 keV; F49 at 30 keV | nominal Al below 10 keV; no factor at 30 keV. **2026-11-24:** none at 6–7 keV in the private data; Cu ≈ 20–24 µm per unit from 16 overlaps of one 30 keV run (rough; DATA_NEEDS row 8) |
 | 9 | P29 mechanism (Monc high at narrow S1) | whether the 3 % Monc/Monp guard is right | guard as built |
 | 10 | Confirm or change the open assumptions in `OUTPUT_DECISIONS.md` (3 % tolerance; per-photon gas and median rate; GID min frames, β step) | — | as built |
 | 11 | Fitting requirements (F22a, 2026-11-19) | Stage 6 fitting | **done 2026-11-21**: peaks module, MCA lines, scan shapes, burn trends (open questions in the list below) |

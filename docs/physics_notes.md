@@ -6015,3 +6015,19 @@ beside the default (p 0.7). Study: `docs/studies/ref_patch_real/summary.md`.
   about 1.5 and the errors inflate. A remedy is proposed in the study; nothing is changed (rule 12).
 - The share of joins with χ² p < 0.01 rises with Qz, 5 → 11 → 17 % (default): there is excess per-point
   scatter at high Qz.
+
+### 2026-11-24 — Row 8: overlaps below 10 keV, and the copper foils at 30 keV (DATA_NEEDS row 8, P28, F49)
+
+Verified by: the reflectivity survey of row 1 (every readable series and its energy), the owner's analysing
+repository's beam energies per run, and its absorber-step measurement at 30 keV (read here, not rerun). By
+the non-cloud agent.
+- **No reflectivity series with overlaps at 6–7 keV exists** in the owner's private data: every readable
+  series is at 10 keV, and the only other energy is one run at 30 keV. P28 below 10 keV stays open.
+- **Cu at 30 keV (F49):** that run gives 16 same-slit overlaps between absorber settings (ROI totals, not
+  background-subtracted). The factor per unit has a median of 1.212 (interquartile 1.15–1.27, 10th–90th
+  1.08–1.33). A log-ratio fit weighted by Δabsorber gives 1.262 ± 0.035. With μ/ρ of copper at 30 keV of
+  about 10.9 cm²/g (NIST; an assumption to check against SRD 126 before it goes into `absorbers.py`) and
+  8.96 g/cm³, ln f / μ is **about 20 µm (median) to 24 ± 3 µm (fit) of Cu per unit**. Rough: one run, and
+  most overlaps share only one point.
+- **Not in the data:** foil tolerance and alloy. The reader cannot read that run's frames (Pilatus 1M,
+  F38), so the background-subtracted check is not possible yet.
