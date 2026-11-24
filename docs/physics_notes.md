@@ -5442,3 +5442,29 @@ shadow below the horizon left out; intensity +0.3 %; NX 14's 5 % time
 (a peak 20 × its floor shrank the window to its core), fixed the same day
 (`burn._illuminated`, NX unchanged bit for bit). COMPARISONS C49.
 
+### 2026-11-24 — P1 is the default of "Fit lines" (rule 12)
+
+The owner's standing rule 12 (via Main, 2026-11-24): "Make the best
+method the default if it has been comprehensively demonstrated and
+tested and has a demonstrator presentation effort behind it." P1 has
+study B (C47) and the demo (`docs/reports/mca_fit_demo.md`), so "Fit
+lines" now fits each spectrum by Poisson maximum likelihood, and so does
+`peaks.fit_series` by default. The old weighting is the legacy switch
+`mca_fit_data_weights`, off by default. The earlier option
+`mca_fit_poisson` is retired: preferences store every key, so a stored
+"False" would otherwise have kept data weights for everyone who saved
+preferences.
+
+Before → after (synthetic, study B, measured): a clean line's bias
+−23 % → +1.8 % at 100 counts, −5.0 % → +0.4 % at 400, −1.5 % → within
+its errors at 1000; within 0.2 % at 10⁴; the weak XFNTR curve's worst
+point 13 % → 1.2 %. Re-pins: none of the numbers in the suite changed.
+Only tests that named the default changed: `test_gui_workbook`'s switch
+test, the preference key in `test_gui_preferences` and
+`test_gui_reduction_options`, and `test_peaks` names `weights='data'`
+for its comparison. The gauntlet's 'fit' estimators and study B's pass
+`weights='data'`, so C42 and C47 reproduce as run.
+
+Verified by: test (the suites named) and reading; no real spectra here.
+The window sum is left as it is (OUTPUT_DECISIONS).
+

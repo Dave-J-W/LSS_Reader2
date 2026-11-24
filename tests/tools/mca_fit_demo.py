@@ -17,7 +17,7 @@ Reed's escapes, a 1 % tail and a 0.2 % shelf; 1e3 line photons on 1e6
 elastic). The line's photons and the elastic's are the same at every beam
 energy. In fact the Zn K excitation falls by about 40 % from 10 to 12 keV
 (the document says so). P1 is the reader's "Fit lines" with Poisson
-weights (the option ``mca_fit_poisson``), as the gauntlet runs it: a
+weights (its default since 2026-11-24), as the gauntlet runs it: a
 Gaussian on a quadratic over the box, ten spectra fitted together. The
 bias is the mean of estimate / true line − 1 over the series that did not
 fail, ± its standard error.

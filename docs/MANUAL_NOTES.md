@@ -78,6 +78,11 @@ Each line: feature — where — default — script — notes entry (date).
   the sum fixing position and width; intensities like Sum All). With
   several lines placed, the intensity is the first line given (the
   element's), not the tallest (2026-11-24, F90 P5).
+  Each spectrum is fitted by Poisson maximum likelihood (F90 P1, the
+  default since 2026-11-24, rule 12): unbiased on weak lines, where
+  weighting by the data read them low by about 19 counts. Preferences >
+  Reduction options > "Fit lines: data weights (legacy)" gives the old
+  weighting; the result and the saved command say which was used.
 - Fit options are kept between sessions (preferences) and in the workbook.
 
 ### Monitor and absorbers (affect every tab)

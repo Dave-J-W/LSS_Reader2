@@ -561,7 +561,7 @@ def estimate(cond, spectra, counts, methods):
                         stripped = ([d[:, 1] for d in sd], [d[:, 2] for d in sd])
                     YY, SS = stripped
                 o = fit_options(cond, [cond.line], **kw)
-                ref, each = peaks.fit_series(x, YY, SS, o)
+                ref, each = peaks.fit_series(x, YY, SS, o, weights='data')    # as C42 ran it (data weights)
                 refs[m] = (ref, o)
                 if not each:
                     out[m] = fail
@@ -572,7 +572,7 @@ def estimate(cond, spectra, counts, methods):
             elif m == 'fit_irls':
                 if 'fit' not in refs:
                     o = fit_options(cond, [cond.line])
-                    refs['fit'] = (peaks.fit_series(x, Y, S, o)[0], o)
+                    refs['fit'] = (peaks.fit_series(x, Y, S, o, weights='data')[0], o)
                 ref, o = refs['fit']
                 if not (ref.ok and ref.peaks):
                     out[m] = fail

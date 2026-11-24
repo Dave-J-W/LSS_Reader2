@@ -261,17 +261,17 @@
   shown: always
   tooltip: true
   notes: "Added 2026-11-23 (F86; owner Q13 and 'one button, switch picks'). Off by default."
-- id: prefMcaFitPoissonCheckBox
+- id: prefMcaFitDataWeightsCheckBox
   kind: checkbox
-  label: "Fit lines: Poisson weights (F90 P1)"
+  label: "Fit lines: data weights (legacy)"
   where: "Preferences > Reduction options"
   handler: setPreference
-  does: "On: the MCA tab's Fit lines fits each spectrum's line heights by Poisson maximum likelihood (MainWindow.mcaFitPoisson); off: least squares weighted by the error bars, as always"
+  does: "On: the MCA tab's Fit lines weights each spectrum's line heights by its error bars, as before 2026-11-24; off (default): Poisson maximum likelihood (F90 P1, MainWindow.mcaFitPoisson)"
   workflows: [general]
   needs: ""
   shown: always
   tooltip: true
-  notes: "Added 2026-11-24 for the tools session's preference mca_fit_poisson (F90 P1). Off by default until the owner's study (docs/studies/2026-11-24_two_decisions_plan.md). Unlike the other switches here, on is the new path."
+  notes: "Was prefMcaFitPoissonCheckBox (preference mca_fit_poisson, on = Poisson, off by default) until 2026-11-24, when P1 became the default (rule 12, study B, C47); a legacy switch now, off by default like the others here. The old key is ignored, so a stored mca_fit_poisson False does not keep data weights."
 - id: prefBurnLegacyCheckBox
   kind: checkbox
   label: "Burn test: show the Legacy tab"

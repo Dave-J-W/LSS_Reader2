@@ -2270,11 +2270,12 @@ class MainWindow (QMainWindow):
                  'Off (default): the MCA tab\'s Fit lines runs the line fit (lss_core.peaks), and the legacy Fit, Fit All '
                  'and Accept buttons are hidden. On: Fit runs the legacy fit dialog, and those buttons show (owner, '
                  '2026-11-23: one Fit action, the switch picks).'),
-                ('mca_fit_poisson','prefMcaFitPoissonCheckBox','Fit lines: Poisson weights (F90 P1)',
-                 'Off (default): Fit lines fits each spectrum\'s line heights by least squares weighted by its error '
-                 'bars, as always; that reads weak lines low (synthetic, COMPARISONS C42: areas at 90 counts 21 % '
-                 'low). On: by Poisson maximum likelihood, the model weighting the points (synthetic: 3.6 % high at '
-                 '90 counts, 0.6 % at 270). An option until the owner\'s study (tools session, 2026-11-24).'),
+                ('mca_fit_data_weights','prefMcaFitDataWeightsCheckBox','Fit lines: data weights (legacy)',
+                 'Off (default since 2026-11-24): Fit lines fits each spectrum\'s line heights by Poisson maximum '
+                 'likelihood, the model weighting the points (F90 P1; synthetic, study B: unbiased from about 60 '
+                 'counts, within 0.2 % of the old weighting at 10^4). On: least squares weighted by each spectrum\'s '
+                 'error bars, as before; that reads a weak line low by about 19 counts (-23 % at 100 counts, -5 % '
+                 'at 400; docs/reports/mca_fit_demo.md).'),
                 ('burn_legacy_tab','prefBurnLegacyCheckBox','Burn test: show the Legacy tab',
                  'Off (default): the burn dialog shows its Trends tab only. On: also its Legacy tab, the original plots '
                  '(owner, 2026-11-23, Q-BURN-4). The REF button and the GID list still open it.')):
@@ -2502,10 +2503,10 @@ class MainWindow (QMainWindow):
 
     def mcaFitPoisson(self):
         """True when "Fit lines" fits each spectrum by Poisson maximum
-        likelihood (F90 P1; preference 'mca_fit_poisson', off by default: the
-        owner wants the study first, 2026-11-24). Off: least squares weighted
-        by the data's σ, as always."""
-        return bool(self.prefs.get('mca_fit_poisson',False))
+        likelihood (F90 P1): the default since 2026-11-24 (rule 12; study B,
+        C47). The legacy switch 'mca_fit_data_weights' (Reduction options)
+        gives least squares weighted by the data's σ, as before."""
+        return not bool(self.prefs.get('mca_fit_data_weights',False))
 
     def gisaxsRawCounts(self):
         """True when GISAXS keeps the raw counts it showed until 2026-11-23
@@ -7770,8 +7771,9 @@ class MainWindow (QMainWindow):
         fl.setObjectName('mcaFitLinesPushButton')
         fl.setToolTip('Fit the fluorescence line(s) of all selected spectra (F22a, owner\'s rule): the sum of the spectra '
                       'is fitted within the range in the Sum All field for the lines\' positions and widths; then every '
-                      'spectrum is fitted with those fixed, heights and background only, weighted by its errors '
-                      '(Poisson maximum likelihood with the preference mca_fit_poisson, F90 P1) (a Gaussian on a quadratic '
+                      'spectrum is fitted with those fixed, heights and background only, by Poisson maximum likelihood '
+                      '(F90 P1, the default since 2026-11-24; the legacy switch "data weights" of the Reduction options '
+                      'weights by its error bars instead) (a Gaussian on a quadratic '
                       'background by default, for the Rayleigh spill-over). The intensity of the line asked for (the first '
                       'energy given in Fit options, the element\'s; the strongest when none is given), as its '
                       'area over the channel width (the same units as Sum All, background removed), goes to the '
@@ -8665,6 +8667,7 @@ class MainWindow (QMainWindow):
         self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background%s' % (
             listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background,
             ''.join(t for t,on in ((', Poisson weights',self.mcaFitPoisson()),
+                                   (', data weights (legacy)',not self.mcaFitPoisson()),
                                    (', width from the detector',lopt['detector_width'] and bool(self.mcaFitOptions.centres)),
                                    (', Si escapes stripped',lopt['strip_escape'])) if on))
         self.notify('Fit lines: sum of %d spectra: %s. Intensities of the line at %.4g (area / channel width) in the '

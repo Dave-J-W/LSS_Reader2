@@ -21,9 +21,11 @@ ledger (`docs/COMPARISONS.md`, rows C42 and C47).
 - **From memory** marks a physical constant that was not checked against
   a table here.
 
-All data are synthetic, so every figure is public. This wrap-up changes
-no default: whether P1 becomes the default is still the owner's call
-(TODO, area C).
+All data are synthetic, so every figure is public. **P1 is the default
+of "Fit lines" since 2026-11-24**, under the owner's rule 12: "Make the
+best method the default if it has been comprehensively demonstrated and
+tested and has a demonstrator presentation effort behind it". This guide
+and study B are that effort. The old weighting stays as a legacy switch.
 
 ## 1. How to try it
 
@@ -47,8 +49,9 @@ The same from a shell, run from the repository root:
 **In the reader itself.** Open the MCA data set, select all ten spectra on
 the MCA tab, and press "Fit lines". In Fit options, give the line's
 energy (8.631 keV for Zn Kα) and the box (`box_keV` in `truth.json`,
-8.26–9.00 keV). P1 is the Preferences check box "Fit lines: Poisson
-weights"; P2 and P3 are check boxes in Fit options (section 3).
+8.26–9.00 keV). P1 is the default; the Preferences check box "Fit lines:
+data weights (legacy)" gives the old weighting. P2 and P3 are check
+boxes in Fit options (section 3).
 `truth.json` beside the SPEC file gives the line's true counts per
 spectrum, the number a fit should find.
 
@@ -121,7 +124,8 @@ with t the box centre's position between the bands' centres. It works
 when the background is straight across the box, and it is not straight
 under Zn at 10 keV.
 
-**Fit, data weights** (the reader's default). Each spectrum's linear
+**Fit, data weights** (the reader's default until 2026-11-24; now the
+legacy switch "Fit lines: data weights"). Each spectrum's linear
 step weights each channel by its own counts, which is Neyman's χ²:
 
 $$\min \sum_i \frac{(n_i-\mu_i)^2}{n_i}.$$
@@ -129,7 +133,7 @@ $$\min \sum_i \frac{(n_i-\mu_i)^2}{n_i}.$$
 A channel that fluctuated down gets more weight than one that fluctuated
 up, so the fit is pulled low.
 
-**P1: the Poisson fit** (option "Poisson weights"). The same model, but
+**P1: the Poisson fit** (the default since 2026-11-24). The same model, but
 each spectrum's step maximises the Poisson likelihood:
 
 $$\ln L = \sum_i \big[n_i \ln \mu_i - \mu_i\big],\qquad \sum_i\Big(\frac{n_i}{\mu_i}-1\Big)\frac{\partial\mu_i}{\partial a_k}=0 .$$

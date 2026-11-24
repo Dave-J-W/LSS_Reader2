@@ -169,8 +169,10 @@ Series, stale results and remakes (2026-11-22):
 
 `fit_series` fits the sum of a series of spectra for the lines' positions
 and widths, then each spectrum with those fixed (owner's rule for MCA
-series); `peaks.find_peaks` alone gives the candidates. "Fit peaks" in the
-window writes the `cut.fit(...)` call to the Script pane.
+series); each spectrum by Poisson maximum likelihood (`weights='poisson'`,
+the default since 2026-11-24; `weights='data'` for least squares weighted
+by the σ given, as before). `peaks.find_peaks` alone gives the candidates.
+"Fit peaks" in the window writes the `cut.fit(...)` call to the Script pane.
 
 ## Burn tests (2026-11-21)
 
