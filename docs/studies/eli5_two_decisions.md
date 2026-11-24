@@ -16,6 +16,7 @@ counts into numbers:
   spectrum (window sum or fit, and how the fit weighs the channels).
 
 Each part has five sections:
+
 - the question, with a picture;
 - the idea in everyday terms;
 - the maths;
@@ -45,6 +46,7 @@ reader trusts it.
 Picture joining two photographs of a winding road, taken with different
 exposures. You find the exposure ratio by drawing one smooth line along
 the road across both photos.
+
 - If the road bends where the photos overlap, a stiff ruler won't
   follow the bend, and your ratio comes out a little wrong. That is
   **model bias**.
@@ -117,6 +119,7 @@ It is a candidate only.
 
 There were 400–2000 synthetic replicates per join, with the truth known.
 Each dot above is one setting of the guard:
+
 - left and right is how honest the error bar is at a smooth join, where
   1.00 is ideal;
 - up and down is how biased the factor is at the five joins where a
@@ -191,6 +194,7 @@ honestly?
   counts only the leak.
 
 **How the fit weighs the channels also matters.**
+
 - If you trust each channel by the count it happened to get, the
   channels that came out low look more precise, because their error
   $\sqrt n$ is smaller. Trusting them more drags the answer down.
@@ -259,6 +263,7 @@ For a linear model, the condition is the weighted least-squares equation
 with weights $1/\mu_i$ from the model. Iterating the weighted fit with
 weights from the previous model (IRLS) reaches the maximum-likelihood
 answer.
+
 - Minimising Cash's statistic $C = 2\sum_i(\mu_i - n_i\ln\mu_i)$ is the
   same thing, and it is valid at any number of counts per channel
   (Cash 1979).
