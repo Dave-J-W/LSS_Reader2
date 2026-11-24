@@ -5415,7 +5415,12 @@ class MainWindow (QMainWindow):
             self.messageBox('The first row must be below the last row.')
             return
         self.pilGIDRelax=getattr(self,'pilGIDRelax',0)
-        self.pilGIDpatchData()
+        try:
+            self.pilGIDpatchData()
+        except ValueError as e:     # frames without GID levels, as gidPatch (the crash sweep, 2026-11-24)
+            self.log.info('GID worksheet Patch refused: %s',e,exc_info=True)
+            self.notify('GID Patch: the selected frames hold no GID levels to patch (frames of a GID series are '
+                        'needed). Detail in the log.',title='GID Patch')
 
     def gidWorksheetResults(self):
         """Fill the worksheet with the last patch's levels and joins."""

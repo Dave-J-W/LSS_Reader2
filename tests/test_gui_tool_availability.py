@@ -74,3 +74,14 @@ def test_gid_patch_on_frames_without_gid_levels_says_so(loaded, qapp, dataset, r
     qapp.processEvents()
     assert recorder.exceptions == []
     assert any('no GID levels' in m for m in recorder.messages)
+
+
+def test_worksheet_patch_on_frames_without_gid_levels_says_so(loaded, qapp, dataset, recorder):
+    """The worksheet's own Patch button reached the same ValueError as GID
+    Patch on reflectivity frames (the crash sweep, 2026-11-24): now the same
+    message."""
+    sweep.state_pilatus_one_frame(loaded, qapp, dataset)
+    loaded.gidWorksheetPatch()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert any('no GID levels' in m for m in recorder.messages)
