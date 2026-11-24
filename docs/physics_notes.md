@@ -5803,6 +5803,84 @@ and the Compare tab. Verified by: tested (`tests/test_compare.py`,
   No output number changes.
 
 
+### 2026-11-24 — Real scatter in MCA spectra against the synthetic generator (DATA_NEEDS rows 2 and 3)
+
+The owner's non-cloud agent searched the private beamline data for real
+examples of the scattered beam (Rayleigh, Compton and its low-energy wing,
+Si escape peaks). It fitted them with the generator's own physics
+(`tests/synthetic/mca.py`), every uncertain axis free, by Poisson
+likelihood. Study: `docs/studies/mca_scatter/summary.md`; tool:
+`tests/tools/mca_scatter.py`; per-example numbers:
+`docs/studies/mca_scatter/quantities.csv`. No spectrum is committed: blank
+candidates wait for the owner's yes (listed in the summary).
+
+**Row 2 (where the spectra are), answered.**
+- No SPEC data file holds a spectrum: 1043 MCA files from 12 runs were
+  checked.
+- The scan's block has `#V <datafile>_<scan>_mca`, a pointer only. It is
+  missing from some `a2scan`, `ascan` and `escan` blocks whose file exists.
+- The spectra are in `vortex/<datafile>_<scan>_mca`:
+  - one `mca_save_point Point:p Scan:s` block per point and per detector
+    element;
+  - each block carries `#@CALIB`, `#@CTIME`, `#Energy`, `#Q` and `#Monc`.
+
+**Row 3 (blanks), answered as far as the data go.**
+- **The blanks.** No pure-water blank was recorded. Two kinds of spectra
+  stand in for one:
+  - spectra with no line near the scatter: energy-scan points below the
+    studied edge, aligned and summed;
+  - 10 keV scans with only traces of Cu and Zn.
+- **Coverage.** 6.1, 7.2, 7.4, 8.3, 9.2 and 10 keV beams, on two readouts;
+  30 good fits.
+- **Si escape.** Reed's fraction × 1.01–1.12 at 6–7.4 keV, × 1.27–1.44 (fit)
+  or 1.46–1.55 (template) at 8.3–9.2 keV on readout B, and × 0.8–1.0 at
+  10 keV on readout A.
+  - At 10 keV, Cu Kα (8.04 keV) sits on the Compton escape and hides it in
+    most scans.
+- **O 1s Compton wing.** A water-sized wing (the generator's) is rejected
+  by every spectrum: the deviance rises by 38–1600, scaled.
+  - Readout A, 10 keV: 0.78–0.87 of water's. Zero is also rejected.
+  - Readout B: 0–0.35. It trades against a broad detector tail.
+- **Under a line** (E0 − 1.55 keV to the Compton peak − 0.35 keV), against
+  study B's hard case:
+  - readout A, 10 keV: 1.03–1.23 ×;
+  - readout B: 1.5–1.75 × at 10 keV and 1.9–3.2 × at 6–9 keV, because of
+    detector tails the generator lacks (a low tail of 3–12 % with a
+    0.3–0.5 keV decay, and a high-energy tail of up to 11 %).
+- **Resolution.** −9 … +15 % of the generator's default (one run +45 %).
+- **Compton.** The momentum widths are water's to 5 % on readout A.
+
+**What it means for F90.**
+- The window sum's failure (study B) holds on real data, more strongly on
+  readout B.
+- The 10 keV Zn case stays out of reach: the wing is 0.8, between B7's ½
+  and 1.
+- A third axis, the detector's own tails, is missing from B7.
+- No default and no generator value was changed: synthetic MCA work is
+  paused (owner, 2026-11-24).
+
+**The Zn box (8.26–9.00 keV) at 10 keV.** It holds 0.020 of the elastic
+photopeak counts on readout A and 0.062 on readout B. The generator gives
+0.014 and 0.021 at the same photons and angle; study B's hard case is about
+0.008. The Fe box (6.24–6.56 keV) holds 0.003–0.021 of the elastic at
+7.2–9.2 keV.
+
+**P1 on real data (C53).** 19 series of 21 repeated spectra at 10 keV, with a
+line near 8 keV on the Compton and elastic escapes, fitted with the reader's
+`peaks.fit_series`. The truth is the summed spectrum's fit / N.
+- **Data weights:** −28.0 % ± 1.4 % at 25–50 line counts, −27 % at 200,
+  −4 % at 1470, and about −1 % by 3000. That is not study B's −19/N: the
+  background here is far larger.
+- **P1:** +3.5 % ± 1.5 % at 25–50 counts, and within its errors from 200
+  counts up.
+- So the default (P1) is confirmed on real data.
+
+**Not in the data:** 10.05, 10.52 and 30 keV.
+
+Verified: measured (fits to the private spectra; the reader's own
+`fit_series` for C53). The model recovers a known wing, escape and tail on
+synthetic data (`tests/test_mca_scatter.py`, slow).
+
 ### 2026-11-24 — The beam's vertical size at the sample, from height scans (DATA_NEEDS row 9, F43, OQ-2)
 
 Verified by: measurement on private data by the non-cloud agent (spec files and Pilatus images of 21 runs);

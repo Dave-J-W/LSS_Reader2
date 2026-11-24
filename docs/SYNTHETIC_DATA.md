@@ -345,6 +345,18 @@ Tested:
 - O 1s binding 0.543 keV;
 - water's J(0) comes out at 4.06 a.u.⁻¹.
 
+**Checked against real spectra (2026-11-24, `docs/studies/mca_scatter/summary.md`, C52):**
+- water's full O 1s wing is too large: real spectra give 0.8 × on a
+  single-element readout at 10 keV, and 0–0.35 × on a seven-element one;
+- Reed's escape holds to 10 % at 6–7.4 keV and to 20 % at 10 keV; it is
+  1.3–1.55 × too small at 8.3–9.2 keV on the seven-element readout;
+- real detectors have tails the generator lacks: a low tail of 2–12 % with
+  a 0.3–0.65 keV decay, and a high-energy tail of up to 11 %;
+- the resolution default is within −9 … +15 %; the Compton widths are
+  water's to 5 % at 90° on the single-element readout.
+
+Nothing in the generator was changed (synthetic MCA work is paused).
+
 Tabulated Hartree–Fock profiles (Biggs, Mendelsohn and Mann 1975) would be better. They were
 not available offline (no package install in this environment), so study B sweeps `core_scale`
 and `doppler_scale` instead.
