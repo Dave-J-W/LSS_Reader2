@@ -426,6 +426,8 @@ order"), for a day of reflectivity only; the whole answer is in
 | F103 | **A selection no longer jumps to SpecPlot** (owner, 2026-11-23, Q-GEN-1): selecting scans leaves the tab the user is on. |
 | F104 | **Upgrade GISAXS and GIOXS** (owner, 2026-11-23, Q-GEN-3): both are used, are image analyses beyond an ROI sum ("like GID but even more complicated") and need new capabilities. **First deliverables (owner, 2026-11-23):** cuts along qy and qz (Yoneda, specular rod), q mapping with refraction (DWBA corrections), background subtraction and beam-stop masking; a research step on the science workflow and importable libraries comes first. GIOXS is grazing-incidence off-specular scattering (diffuse scatter around the specular beam); XmodFit is gaining analysis for it, so the reader's part (what to export) is not yet stated. Data to come (`docs/DATA_NEEDS.md` row 4). |
 
+| F105 | **Comparison of reduced curves with auto-update; export names proposed** (owner, 2026-11-23, Q-REF-5, Q-REF-6): reduced reflectivities are compared in a dedicated tab or from the workbook rather than only by loading files from disk, and the comparison updates by itself as new data arrive (extends F80, live updates D57); Export goes straight to xmodfit with a name proposed from the sample and series. Files from disk stay available. |
+
 Also decided (see `docs/gui/questions.md` Answers): movie at 3 or more frames, space pauses, arrows step when paused (F69); weighted residuals (F74); Apex tab, Beamlines menu, `peakfit2`/`peakfitpara` and the Command line row removed; Quit works and Documentation opens `docs/SCRIPTING.md`; Messages, Errors and Script panes follow D59.
 
 ### Status of built items

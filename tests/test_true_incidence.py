@@ -36,7 +36,7 @@ def test_a_specular_scan_takes_its_incidence_from_l():
 
 @pytest.mark.parametrize('scan,which', [(6, 0), (6, -1), (8, -1), (9, -1)])
 def test_the_reflected_beam_sits_at_beta_equal_alpha(scan, which):
-    """Invariant I33: on the Angles axis of a 'Pix V' cut through the
+    """Invariant I34: on the Angles axis of a 'Pix V' cut through the
     reflected beam's columns, the peak of a specular frame is at β = α."""
     e = Experiment(NX)
     f = e.frames([scan])[which]

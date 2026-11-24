@@ -32,8 +32,10 @@ def create_app(argv=None):
 def self_test(specfile, reference_prefix):
     """Check a build (F46): the window opens (its .ui files and icons are
     found), and NX school scans 6-9 reduce to the reference files byte for
-    byte (tests/reference/legacy_export/nx_scans_6-9_ref.txt, _rrf.txt).
-    Returns 0 when both hold. Needs no display with QT_QPA_PLATFORM=offscreen.
+    byte (tests/reference/legacy_export/nx_scans_6-9_ref.txt, _rrf.txt),
+    reduced with the legacy patch: those files are the legacy reduction and
+    never change (AGENTS.md rule 3), while the default patch is the joint
+    fit since 2026-11-22 (COMPARISONS C36). Returns 0 when both hold. Needs no display with QT_QPA_PLATFORM=offscreen.
     The report goes to stdout and, if $LSS_SELFTEST_REPORT is set, to that
     file (a Windows build has no console)."""
     import os
@@ -47,7 +49,7 @@ def self_test(specfile, reference_prefix):
     say('window: %s, %d tabs' % (w.windowTitle(), w.ui.PlotWidget.count()))
     from lss_core.experiment import Experiment
     out = os.path.join(tempfile.mkdtemp(prefix='lss_selftest_'), 'nx')
-    Experiment(specfile).reflectivity([6, 7, 8, 9]).save(out)
+    Experiment(specfile).reflectivity([6, 7, 8, 9], method='legacy').save(out)
     ok = True
     for kind in ('_ref.txt', '_rrf.txt'):
         with open(out + kind, 'rb') as f1, open(reference_prefix + kind, 'rb') as f2:

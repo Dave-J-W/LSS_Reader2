@@ -102,7 +102,7 @@ moves.
 - `--pinhole-mm 265.7` uses the calibrated distance, and the peak stands
   stiller (`docs/manual/gid_patching.md:384`).
 - `--linear` draws on a linear colour scale instead of log
-  (`docs/physics_notes.md:3991`). `--every 4` uses every 4th frame; the
+  (`docs/physics_notes.md:3992`). `--every 4` uses every 4th frame; the
   colours stay the same because they come from all the frames.
 
 For private data, pass `--spec`, `--scans` and an `--out` outside `docs/`

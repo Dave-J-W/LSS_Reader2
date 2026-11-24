@@ -94,6 +94,20 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   plateau (P9 fixed: 0.471, was 0.406); a flat scan (the background alone
   fits it) is not fitted, nor a sample-height scan with poor signal or
   narrower than 20 µm (owner, 2026-11-23; C37).
+- The MCA line-fit gauntlet, the synthetic half of F90 (2026-11-23, C42):
+  - a generator of MCA spectra with the beam's scatter under the lines
+    (`tests/synthetic/mca.py`: Rayleigh, Compton with an O 1s wing, Si
+    escapes, tails, shelves);
+  - `tests/tools/mca_fit_gauntlet.py`, under Tools > Fluorescence (MCA).
+
+  Measured on synthetic data:
+  - the window sum never holds once scatter lies under the box;
+  - "Fit lines" holds on a smooth background, but not against the
+    elastic's Si escape, the O 1s Compton wing or low counts;
+  - a Poisson per-spectrum step, a fixed detector width and escape
+    stripping are proposed to Main; no default was changed.
+
+  Real spectra and a blank decide it (`DATA_NEEDS.md` row 3).
 - Burn tests as trends over time (`lss_core.trends`, `lss_core.burn`):
   constant, linear, exponential and double exponential compared by AICc;
   "stable" when a flat line fits as well as a line; the 95 % confident time

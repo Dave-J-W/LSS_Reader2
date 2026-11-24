@@ -89,6 +89,12 @@ container on 2026-11-23 with the defaults shown.
 | [Scan-shape fits of every column (survey)](#fit-scan-survey) | data | The scan-shape fit the SpecPlot shows (peak, edge, box, flat, weak) on every scan and column of a SPEC file, as CSV: what the fit rules decide and how long they take. | NX school by default; any SPEC file |  | `docs/comparisons_data/C37_fit_scan_new_nx.csv`<br>`docs/comparisons_data/C37_fit_scan_old_nx.csv` |
 | [Sample timeline: what a SPEC file holds](#timeline-survey) | text | Counts only, safe for private files: scans and their kinds, sample-height scans, motor redefinitions, sx changes, sample-environment columns (research for the timeline tab, F83). | NX school by default; any SPEC file |  | — |
 
+### Fluorescence (MCA)
+
+| Item | Kind | What it demonstrates | Data | Time | Committed products |
+|---|---|---|---|---|---|
+| [MCA line-fit gauntlet (synthetic, judged)](#mca-fit-gauntlet) | data | Fitted fluorescence lines against the window sum on synthetic MCA spectra with the beam's Rayleigh and Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), judged by hand-off 08's pull rule and a 1 % bias rule. | synthetic (public) |  | `docs/comparisons_data/mca_fit_gauntlet` |
+
 ### Synthetic data sets
 
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
@@ -175,8 +181,8 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| Scan 14 only | One burn scan: absorber 12, the lower dose of the pair. | `docs/physics_notes.md:3966` | `python tests/tools/burn_figures.py --out '{out}' --scans 14` |
-| Scan 15 only | The second scan of the spot at absorber 8 (4.1x the flux of scan 14): dose against time, beam damage or a changing sample. | `docs/physics_notes.md:3966` | `python tests/tools/burn_figures.py --out '{out}' --scans 15` |
+| Scan 14 only | One burn scan: absorber 12, the lower dose of the pair. | `docs/physics_notes.md:3967` | `python tests/tools/burn_figures.py --out '{out}' --scans 14` |
+| Scan 15 only | The second scan of the spot at absorber 8 (4.1x the flux of scan 14): dose against time, beam damage or a changing sample. | `docs/physics_notes.md:3967` | `python tests/tools/burn_figures.py --out '{out}' --scans 15` |
 
 <a id="burn-dose-figure"></a>
 
@@ -185,7 +191,7 @@ Variations:
 NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil transmission): a beam-driven change coincides against dose, a sample changing by itself against time.
 
 - Menu: Tools > Burn tests; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/burn_dose_figure.py`
-- Explained in: `docs/figures/burn_dose/README.md`, `docs/handoff_out/07-burn-trends.md:102`, `docs/physics_notes.md:3967`
+- Explained in: `docs/figures/burn_dose/README.md`, `docs/handoff_out/07-burn-trends.md:102`, `docs/physics_notes.md:3968`
 - Committed products: `docs/figures/burn_dose`; replaced from the window with the settings that made them
 - Run:
 
@@ -195,7 +201,7 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| Nominal foils (1.4247 per unit) | The flux ratio of the docs' "4.1x" instead of the calibrated 4.68: the dose ratio of the drifts moves from 0.79 to 0.90. | `docs/physics_notes.md:3242` | `python tests/tools/burn_dose_figure.py --out '{out}' --absorbers nominal` |
+| Nominal foils (1.4247 per unit) | The flux ratio of the docs' "4.1x" instead of the calibrated 4.68: the dose ratio of the drifts moves from 0.79 to 0.90. | `docs/physics_notes.md:3243` | `python tests/tools/burn_dose_figure.py --out '{out}' --absorbers nominal` |
 | One spot measured twice | Scan 15's dose and time follow scan 14's: 15 starts where 14 ended, as one spot would. | `docs/handoff_out/07-burn-trends.md:104` | `python tests/tools/burn_dose_figure.py --out '{out}' --join` |
 | Moments estimator | The legacy moments instead of the template. | `docs/handoff_out/07-burn-trends.md` | `python tests/tools/burn_dose_figure.py --out '{out}' --estimator moments` |
 
@@ -279,20 +285,20 @@ Every patching method on many noise replicates of synthetic reflectivity under m
 
 - The committed products were made with:
 
-      python tests/tools/ref_patch_gauntlet.py --out '{out}' --design all --methods legacy,interp,coincident,joint_o4_e2,joint_o4_e2_prior,joint_o4_e4,joint_o4_e4_g01 --replicates 400
+      python tests/tools/ref_patch_gauntlet.py --out '{out}' --design all --methods key --replicates 400
 
 Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Core, all methods | The seven core conditions with every method (about 3 min). | `docs/COMPARISONS.md:89` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design core --methods all --replicates 400` |
-| Full gauntlet (as committed) | Core, grid and random designs with the seven methods judged: the run behind the default (about 25 min; every committed row reproduced exactly, 2026-11-23). | `docs/COMPARISONS.md:89` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design all --methods legacy,interp,coincident,joint_o4_e2,joint_o4_e2_prior,joint_o4_e4,joint_o4_e4_g01 --replicates 400` |
+| Full gauntlet (as committed) | Core, grid and random designs with the key methods (the six of --methods key and the default with the foil prior, computed always): the run behind the default (about 25 min; every committed row reproduced exactly, 2026-11-23). | `docs/COMPARISONS.md:89` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design all --methods key --replicates 400` |
 | Full gauntlet, every method | The same designs with every method of the tool, including those added since (hybrid, other orders and windows). | `docs/COMPARISONS.md:89` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design all --methods all --replicates 400` |
-| Poisson monitor | Monc with Poisson noise: the χ² test is blunter, the verdict the same. | `docs/physics_notes.md:3725` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design core --methods key --replicates 100 --monitor poisson` |
+| Poisson monitor | Monc with Poisson noise: the χ² test is blunter, the verdict the same. | `docs/physics_notes.md:3726` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design core --methods key --replicates 100 --monitor poisson` |
 | Counting errors only | The monitor's 0.05 % left out of the per-point errors: pulls wider than 1 above about 3e5 counts. | `docs/SYNTHETIC_DATA.md:188` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design core --methods key --replicates 100 --errors counting` |
-| Grid: films and roughness | One factor at a time from the baseline: film thickness and roughness. | `docs/physics_notes.md:3770` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design grid --methods key --replicates 100 --conditions layer_film50,layer_film250,layer_film400,rough_film_2.5,rough_film_6` |
-| Grid: planted faults | A slit change the monitor misses and a foil 2 % off: where the foil prior misleads. | `docs/physics_notes.md:3770` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design grid --methods all --replicates 100 --conditions fault_slits_missed,fault_foil_2pc` |
-| Grid: low flux | Flux x0.3 to x0.03: how the methods degrade as counts fall. | `docs/physics_notes.md:3770` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design grid --methods key --replicates 100 --conditions flux_x0.3,flux_x0.1,flux_x0.03` |
+| Grid: films and roughness | One factor at a time from the baseline: film thickness and roughness. | `docs/physics_notes.md:3771` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design grid --methods key --replicates 100 --conditions layer_film50,layer_film250,layer_film400,rough_film_2.5,rough_film_6` |
+| Grid: planted faults | A slit change the monitor misses and a foil 2 % off: where the foil prior misleads. | `docs/physics_notes.md:3771` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design grid --methods all --replicates 100 --conditions fault_slits_missed,fault_foil_2pc` |
+| Grid: low flux | Flux x0.3 to x0.03: how the methods degrade as counts fall. | `docs/physics_notes.md:3771` | `python tests/tools/ref_patch_gauntlet.py --out '{out}' --design grid --methods key --replicates 100 --conditions flux_x0.3,flux_x0.1,flux_x0.03` |
 
 <a id="ref-patch-survey"></a>
 
@@ -387,8 +393,8 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| Strict cuts | Monc/Monp within 1 %, χ²/dof < 5, no error floor: each foil moves by at most 0.9 µm (the fit is robust to its cuts). | `docs/physics_notes.md:1628` | `python tests/tools/foil_fit_from_joins.py docs/handoff_out/03-answer/joins.csv --monc-tol 0.01 --chi2-max 5 --floor 0` |
-| Loose cuts | Monc/Monp within 3 %, no χ² cut, 1 % floor. | `docs/physics_notes.md:1628` | `python tests/tools/foil_fit_from_joins.py docs/handoff_out/03-answer/joins.csv --chi2-max inf --floor 0.01` |
+| Strict cuts | Monc/Monp within 1 %, χ²/dof < 5, no error floor: each foil moves by at most 0.9 µm (the fit is robust to its cuts). | `docs/physics_notes.md:1629` | `python tests/tools/foil_fit_from_joins.py docs/handoff_out/03-answer/joins.csv --monc-tol 0.01 --chi2-max 5 --floor 0` |
+| Loose cuts | Monc/Monp within 3 %, no χ² cut, 1 % floor. | `docs/physics_notes.md:1629` | `python tests/tools/foil_fit_from_joins.py docs/handoff_out/03-answer/joins.csv --chi2-max inf --floor 0.01` |
 | Less clipping | Clip at 10 robust SDs instead of 5: outlying joins pull the foils. | `tests/tools/foil_fit_from_joins.py` | `python tests/tools/foil_fit_from_joins.py docs/handoff_out/03-answer/joins.csv --clip 10` |
 
 <a id="pinhole-figures"></a>
@@ -461,7 +467,7 @@ Variations:
 The beam profile the "beam" response measures along the beam axis, and the beam height it implies (about 52 µm on NX scan 11).
 
 - Menu: Tools > GID and pinhole geometry; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/pinhole_beam_figure.py`
-- Explained in: `docs/figures/pinhole_beam/README.md`, `docs/physics_notes.md:2895`
+- Explained in: `docs/figures/pinhole_beam/README.md`, `docs/physics_notes.md:2896`
 - Committed products: `docs/figures/pinhole_beam`; replaced from the window with the settings that made them
 - Run:
 
@@ -475,7 +481,7 @@ The beam profile the "beam" response measures along the beam axis, and the beam 
 What a Gaussian beam does to the pinhole patch, which assumes a uniform footprint: the column response it predicts and the bias left in a map.
 
 - Menu: Tools > GID and pinhole geometry; kind: text (a printed report (tables in the output pane)); script: `tests/tools/pinhole_beam_profile.py`
-- Explained in: `docs/physics_notes.md:2655`, `docs/COMPARISONS.md:76`
+- Explained in: `docs/physics_notes.md:2656`, `docs/COMPARISONS.md:76`
 - Run:
 
       python tests/tools/pinhole_beam_profile.py
@@ -484,9 +490,9 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| Beam 60 µm | A wider beam: bias inside the map 0.97-1.03 (against 0.93-1.04 at 30 µm), edges 0.91-1.37 (against 0.71-2.8). | `docs/physics_notes.md:2677` | `python tests/tools/pinhole_beam_profile.py --fwhm-v 0.060` |
-| Beam 52 µm (as NX implies) | The beam height NX scan 11's data imply. | `docs/physics_notes.md:2711` | `python tests/tools/pinhole_beam_profile.py --fwhm-v 0.052` |
-| Narrow horizontal beam (0.1 mm) | The horizontal width smears which point of the beam axis a column sees, never its 2θ. | `docs/physics_notes.md:2657` | `python tests/tools/pinhole_beam_profile.py --fwhm-h 0.1` |
+| Beam 60 µm | A wider beam: bias inside the map 0.97-1.03 (against 0.93-1.04 at 30 µm), edges 0.91-1.37 (against 0.71-2.8). | `docs/physics_notes.md:2678` | `python tests/tools/pinhole_beam_profile.py --fwhm-v 0.060` |
+| Beam 52 µm (as NX implies) | The beam height NX scan 11's data imply. | `docs/physics_notes.md:2712` | `python tests/tools/pinhole_beam_profile.py --fwhm-v 0.052` |
+| Narrow horizontal beam (0.1 mm) | The horizontal width smears which point of the beam axis a column sees, never its 2θ. | `docs/physics_notes.md:2658` | `python tests/tools/pinhole_beam_profile.py --fwhm-h 0.1` |
 
 <a id="gid-stray-light"></a>
 
@@ -553,7 +559,7 @@ Variations:
 The pinhole patch of each Qz level made from groups of detector columns, and the level join's factor per group with the cells of the β overlap: why the factor depends on which columns are used.
 
 - Menu: Tools > GID and pinhole geometry; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/gid_column_groups.py`
-- Explained in: `docs/figures/gid_column_groups/README.md`, `docs/physics_notes.md:2726`
+- Explained in: `docs/figures/gid_column_groups/README.md`, `docs/physics_notes.md:2727`
 - Committed products: `docs/figures/gid_column_groups`; replaced from the window with the settings that made them
 - Run:
 
@@ -563,9 +569,9 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| The same columns at both levels | Groups inside the columns every level has: the pooled group factors then agree within errors (1.024, 1.009, 0.985). | `docs/physics_notes.md:2755` | `python tests/tools/gid_column_groups.py --out '{out}' --columns common` |
-| Beam response | The response along the beam axis instead of one factor per column: the column dependence remains. | `docs/physics_notes.md:2723` | `python tests/tools/gid_column_groups.py --out '{out}' --response beam` |
-| No response | Each group's map keeps its columns' own light. | `docs/physics_notes.md:2747` | `python tests/tools/gid_column_groups.py --out '{out}' --response none` |
+| The same columns at both levels | Groups inside the columns every level has: the pooled group factors then agree within errors (1.024, 1.009, 0.985). | `docs/physics_notes.md:2756` | `python tests/tools/gid_column_groups.py --out '{out}' --columns common` |
+| Beam response | The response along the beam axis instead of one factor per column: the column dependence remains. | `docs/physics_notes.md:2724` | `python tests/tools/gid_column_groups.py --out '{out}' --response beam` |
+| No response | Each group's map keeps its columns' own light. | `docs/physics_notes.md:2748` | `python tests/tools/gid_column_groups.py --out '{out}' --response none` |
 | Angle maps (faster) | The maps of the cells themselves, in (2θ, β), without the regridding to Q. | `tests/tools/gid_column_groups.py` | `python tests/tools/gid_column_groups.py --out '{out}' --axes Angles` |
 
 <a id="gid-method-survey"></a>
@@ -616,7 +622,7 @@ Variations:
 Frame-to-frame deviations of Monc pooled over the sample SPEC files: Gaussian, Student t or Laplace; drift or noise; what share of each point's variance the monitor takes.
 
 - Menu: Tools > Monitor, scans, SPEC files; kind: text (a printed report (tables in the output pane)); script: `tests/tools/monitor_distribution.py`
-- Explained in: `docs/physics_notes.md:973`, `docs/COMPARISONS.md:56`
+- Explained in: `docs/physics_notes.md:974`, `docs/COMPARISONS.md:56`
 - Run:
 
       python tests/tools/monitor_distribution.py sample_data/NX_school/2026sep/20260923
@@ -625,7 +631,7 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| All sample data (private sets too, when present) | Part A pooled over every SPEC file the reader can see. Prints counts of private files when they are present; never write them into docs. | `docs/physics_notes.md:973` | `python tests/tools/monitor_distribution.py` |
+| All sample data (private sets too, when present) | Part A pooled over every SPEC file the reader can see. Prints counts of private files when they are present; never write them into docs. | `docs/physics_notes.md:974` | `python tests/tools/monitor_distribution.py` |
 
 <a id="monitor-ratio"></a>
 
@@ -634,7 +640,7 @@ Variations:
 The two monitors' common scatter (beam variation, cancels in the ratio) against each one's own noise, per scan.
 
 - Menu: Tools > Monitor, scans, SPEC files; kind: text (a printed report (tables in the output pane)); script: `tests/tools/monitor_ratio.py`
-- Explained in: `docs/reports/monitor_noise.md`, `docs/physics_notes.md:603`
+- Explained in: `docs/reports/monitor_noise.md`, `docs/physics_notes.md:604`
 - Run:
 
       python tests/tools/monitor_ratio.py sample_data/NX_school/2026sep/20260923
@@ -678,7 +684,7 @@ Variations:
 Epoch of each scan's first point against its header time: seconds since the file's #E, plus the local-time offset of #D.
 
 - Menu: Tools > Monitor, scans, SPEC files; kind: text (a printed report (tables in the output pane)); script: `tests/tools/spec_epoch.py`
-- Explained in: `docs/physics_notes.md:698`
+- Explained in: `docs/physics_notes.md:699`
 - Run:
 
       python tests/tools/spec_epoch.py sample_data/NX_school/2026sep/20260923
@@ -687,7 +693,7 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| All sample data (private sets too, when present) | The nine sample files of the 2026-11-16 answer: NX and the bu files. Prints counts of private files when they are present; never write them into docs. | `docs/physics_notes.md:698` | `python tests/tools/spec_epoch.py` |
+| All sample data (private sets too, when present) | The nine sample files of the 2026-11-16 answer: NX and the bu files. Prints counts of private files when they are present; never write them into docs. | `docs/physics_notes.md:699` | `python tests/tools/spec_epoch.py` |
 
 <a id="fit-scan-survey"></a>
 
@@ -721,6 +727,35 @@ Counts only, safe for private files: scans and their kinds, sample-height scans,
       python tests/tools/timeline_mock.py survey sample_data/NX_school/2026sep/20260923
 
 
+<a id="mca-fit-gauntlet"></a>
+
+### MCA line-fit gauntlet (synthetic, judged)
+
+Fitted fluorescence lines against the window sum on synthetic MCA spectra with the beam's Rayleigh and Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), judged by hand-off 08's pull rule and a 1 % bias rule.
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/mca_fit_gauntlet.py`
+- Explained in: `docs/FEATURE_REQUESTS.md:404`, `docs/comparisons_data/mca_fit_gauntlet/summary.md`, `docs/COMPARISONS.md:95`, `docs/SYNTHETIC_DATA.md:263`, `docs/physics_notes.md:4854`
+- Committed products: `docs/comparisons_data/mca_fit_gauntlet`; not replaced from the window
+- Run:
+
+      python tests/tools/mca_fit_gauntlet.py --out '{out}' --design core --replicates 50
+
+- The committed products were made with:
+
+      python tests/tools/mca_fit_gauntlet.py --out '{out}' --design all --replicates 200
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Full gauntlet (as committed) | Core, grid, random and series designs with the key estimators: the run behind C42 (about 10 min on 4 CPUs). | `docs/COMPARISONS.md:95` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design all --replicates 200` |
+| Every estimator | The core conditions with the other backgrounds (linear, cubic) and a spectrum fitted alone with its own error. | `tests/tools/mca_fit_gauntlet.py` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design core --replicates 50 --methods all` |
+| Grid: the box | The fit range from ±1.5 to ±4 FWHM and short on the Compton side: the valence Compton tail curves across a wide box and a quadratic cannot follow it. | `docs/physics_notes.md:4904` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions box_1.5,box_3,box_4,box_3_1.5` |
+| Grid: the O 1s Compton wing | The core electrons' Compton wing at 2 to 20 % of the Compton photons: what breaks the fit first. | `docs/physics_notes.md:4899` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions compton_core_0.02,compton_core_0.05,compton_core_0.1,compton_core_0.2` |
+| Grid: Si escapes and stripping | Escape peaks at 0.3 to 5 × Reed's fraction, and stripping with the fraction half or twice the true one. | `docs/physics_notes.md:4921` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions escape_x0.3,escape_x1,escape_x5,escape_assumed_x0.5,escape_assumed_x2` |
+| Grid: counts and line/elastic | From 1e-2 to 1e-4 of the elastic and from 0.03 to 10 times the counts. | `docs/physics_notes.md:4902` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions ratio_0.01,ratio_0.003,ratio_0.0003,ratio_0.0001,counts_x0.1,counts_x10` |
+| XFNTR series | Whole XFNTR curves, smooth and hard: does each estimator keep the curve's shape where the elastic grows above Qc? | `docs/physics_notes.md:4886` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design series --replicates 50` |
+
 <a id="synthetic-dataset"></a>
 
 ### Open a synthetic data set
@@ -743,7 +778,7 @@ Variations:
 | Missed slit change (P29) | The monitor misses a slit change: the foil prior misleads at that join. | `docs/SYNTHETIC_DATA.md:160` | `python tests/tools/synthetic_dataset.py --out '{out}' --fault slits` |
 | Low counts (x0.1) | One tenth of the NX rates: the joins' errors grow by √10. | `docs/SYNTHETIC_DATA.md:42` | `python tests/tools/synthetic_dataset.py --out '{out}' --counts 0.1` |
 | Rough interfaces (6 Å) | R/R_F falls as exp(−Qz²σ²): twice the roughness, four times the decay rate. | `docs/SYNTHETIC_DATA.md:48` | `python tests/tools/synthetic_dataset.py --out '{out}' --roughness 6` |
-| Background ×100 | A diffuse background a hundred times NX's: the ROI background boxes earn their keep at high Qz. | `docs/physics_notes.md:3775` | `python tests/tools/synthetic_dataset.py --out '{out}' --background 100` |
+| Background ×100 | A diffuse background a hundred times NX's: the ROI background boxes earn their keep at high Qz. | `docs/physics_notes.md:3776` | `python tests/tools/synthetic_dataset.py --out '{out}' --background 100` |
 | XFNTR series | Fluorescence near total reflection: one MCA file per Qz, a surface and a bulk ion. | `docs/SYNTHETIC_DATA.md:55` | `python tests/tools/synthetic_dataset.py --out '{out}' --kind xfntr` |
 | Burn series | One spot measured 21 times, the peak decaying with τ = 400 s. | `docs/SYNTHETIC_DATA.md:68` | `python tests/tools/synthetic_dataset.py --out '{out}' --kind burn` |
 
