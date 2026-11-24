@@ -264,3 +264,30 @@ def test_line_index_is_the_first_given_line_not_the_tallest():
     assert ref.peaks[j].centre == pytest.approx(8.631, abs=0.01)
     assert each[0].peaks[j].height == pytest.approx(60, rel=0.25)
     assert peaks.line_index(ref) == 0 and peaks.line_index(peaks.FitResult([], np.zeros(0), 0, 1, 0, (0, 1), 0, False)) is None
+
+
+def test_series_fits_each_spectrum_by_poisson_likelihood():
+    """F90 P1 (an option until the owner's study, 2026-11-24): each
+    spectrum's heights by Poisson maximum likelihood. A line of ~300 counts
+    on 1 count per channel: the default data weights read it low (Neyman's
+    χ²), the Poisson step does not; at high counts the two agree."""
+    e = np.linspace(5.6, 7.2, 161)
+    got = {'poisson': [], 'data': []}
+    for seed in range(40):
+        mu = 1.0 + _gauss(e, 6.40, 0.15, 20.0)                   # area ≈ 20 × 0.15 × 1.0645 / 0.01 = 319 counts
+        ys = [_poisson(mu, 100 * seed + k) for k in range(8)]
+        sig = [np.sqrt(y) for y in ys]                            # as normalise_spectrum: 0 where no counts
+        for w in got:
+            ref, each = peaks.fit_series(e, ys, sig, peaks.FitOptions(centres=(6.40,), background='linear', window=0.8),
+                                         weights=w)
+            got[w] += [r.peaks[0].height / 20.0 - 1 for r in each]
+    se = np.std(got['data']) / np.sqrt(len(got['data']))
+    assert np.mean(got['data']) < -3 * se                        # Neyman: low
+    assert abs(np.mean(got['poisson'])) < 3 * se
+    hi = 100.0 + _gauss(e, 6.40, 0.15, 2000.0)
+    y = _poisson(hi, 3)
+    a = peaks.fit_series(e, [y], [np.sqrt(y)], peaks.FitOptions(centres=(6.40,)), weights='poisson')[1][0].peaks[0].height
+    b = peaks.fit_series(e, [y], [np.sqrt(y)], peaks.FitOptions(centres=(6.40,)))[1][0].peaks[0].height
+    assert a == pytest.approx(b, rel=0.01)
+    with pytest.raises(ValueError):
+        peaks.fit_series(e, [y], [np.sqrt(y)], weights='neyman')

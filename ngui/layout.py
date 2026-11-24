@@ -227,6 +227,8 @@ FRAMES = {
             C('cutFitFwhmSpinBox', 'Fixed FWHM (0 = fitted)'),
             C('cutFitRangeLineEdit', 'x range (a – b)'),
             ROW(C('cutFitCentresLineEdit', 'Centres'), C('cutFitFixCheckBox', 'fixed')),
+            ROW(C('mcaFitDetectorWidthCheckBox', 'width from detector'), C('mcaFitNoiseSpinBox', 'noise (keV)')),
+            C('mcaFitEscapeCheckBox', 'strip Si escapes', note='Fluorescence only: F90 P2, P3 (options, not defaults)'),
             C('cutFitPushButton', 'Fit peaks'),
             C('cutFitResultLabel', 'χ²/dof —, 2 peaks'),
         ], replaces=['cutFitDialog', 'cutFitOptionsPushButton'], fold=True,
