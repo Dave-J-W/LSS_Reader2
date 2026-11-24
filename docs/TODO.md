@@ -135,8 +135,8 @@ working list, one table per area, each row with its source. Rows marked
 | Half-cut fit for the beam profile on real data: the data are in (2026-11-24, `docs/studies/sh_beam_size/summary.md`); ~~left to build: `fit_box` on sh scans with its guards, h = 1.064 × rising FWHM into `lss_core.dose`~~ **built 2026-11-24** (main man: `exp.beam_height`, `dose.rising_edge`; NX 0.0333 mm); still open: the window's use of it, and the GID response `beam` and P39 from the core + tail profile | F43; input 16 |
 | Remaining characterisation tests: GISAXS, g_l2/g_l3, absorber-ratio fits, legacy peak-fit dialog, 2D plot tab | Carried-over list |
 | Sample-environment readings (barrier, tensiometer, oxygen) as extra panels beside burn trends; synthetic columns until the macros write them — **new** 2026-11-23 | F75 |
-| Burns at several absorbers on dose and time axes: beam damage or a changing sample — **new** 2026-11-23 | F76; physics_notes 2026-11-23 |
-| Predicting a safe absorber from a short high-flux burn (research; needs burn pairs at two fluxes) — **new** 2026-11-23 | F77 |
+| Burns at several absorbers on dose and time axes: beam damage or a changing sample — **new** 2026-11-23. **Real data 2026-11-24** (DATA_NEEDS row 11, `docs/studies/xr_burns/summary.md`, C54): 19 real series; strip-to-strip scatter 88 %/h decides most; 4 dose, 0 time, 10 undecidable; β 0.2 to > 2. For the core (tools man): add a between-strip term to any dose/time verdict; a defect: `Experiment.burn` fails on one real burn with a NaN change time | F76; physics_notes 2026-11-23, 2026-11-24 |
+| Predicting a safe absorber from a short high-flux burn (research; needs burn pairs at two fluxes) — **new** 2026-11-23. **Real data 2026-11-24** (`docs/studies/xr_burns/summary.md` §4): reciprocity (β = 1) holds in 3 of 8 series where β is determined, β > 1 in 4 (a high-flux test overstates damage: safe), β ≈ 0.2 in 1 (understates: unsafe); needs burns ×10 apart, two strips each, alternating order | F77 |
 | Sample height scan: super-Gaussian fit (width, exponent) beside the sample's earlier sh scans; verdict thresholds from the owner. The test-speed session's commit 35f41c3 (on main) skips flat and weak sh scans and fits a sample height scan only when its FWHM is above 20 µm, the owner's plausibility floor; the 65 µm here is the quality verdict, so they do not conflict — **new** 2026-11-23 | F78; F43 |
 | ~~**GID-burn detector rows default from the mean frame** (owner, 2026-11-23, Q-BURN-6; recorded by questor in batch 14, not listed until 2026-11-24) — tools man, after the Pilatus sizes~~ **done 2026-11-24**: `burn.signal_rows`, `exp.burn(rows='mean')` by default, "Rows from frame" and a rows field in the dialog; NX 14, 15 rows 46–486 (C49, OUTPUT_DECISIONS) | physics_notes 2026-11-23 batch 14 |
 
@@ -534,7 +534,7 @@ stated assumption until the answer arrives.
       better (clock default); position judgment is the user's (out of the
       limit by default); burn scans = `ascan ih` without movement.
 - [ ] **Ask the owner later for more burn data** (owner, 2026-11-21: "ask
-      later"): higher flux, reflectivity burns, the private file's burn scans
+      later"): higher flux, ~~reflectivity burns~~ (78 real ones read 2026-11-24, DATA_NEEDS row 11), the private file's burn scans
       (gid 23, 35, 51, 211, 275, 277, 278; xfntr 19, 20) with their frames.
 - [ ] Burn trends: testing and extension by another agent
       (`docs/handoff_out/07-burn-trends.md`). Items (2026-11-21), tests first:

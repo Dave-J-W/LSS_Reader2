@@ -874,6 +874,13 @@ TOOLS = (
                       'behind the figures are the CSVs beside them.',
          committed=('docs/studies/sh_beam_size',), docs=('docs/studies/sh_beam_size/summary.md',),
          data='private', repo_ok=False),
+    Tool('xr_burns', 'Real reflectivity burns: trends, dose or time (private data)', 'external', 'external',
+         demonstrates="The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): each "
+                      'series at several absorbers against time and dose, the drift rate against flux and the '
+                      "dose-or-time verdicts. Made by the non-cloud agent's private generator "
+                      '(sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them.',
+         committed=('docs/studies/xr_burns',), docs=('docs/studies/xr_burns/summary.md',),
+         data='private', repo_ok=False),
 )
 
 BY_ID = {t.id: t for t in TOOLS}

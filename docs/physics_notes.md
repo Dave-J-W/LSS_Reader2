@@ -5956,3 +5956,24 @@ from them, may be published: per-scan curves, edges, widths, and the inventory b
 data and their identifiers (names, scan numbers, dates) unless the owner says otherwise. Recorded in
 AGENTS.md's row for `sample_data/private/`.
 
+
+### 2026-11-24 — Real reflectivity burns: trends, and the beam or the clock (DATA_NEEDS row 11, F76, F77)
+
+Verified by: a run of the reader's `Experiment.burn` (both axes, defaults) on 78 real reflectivity burns
+from the owner's private data (14 runs, 10 keV), by the non-cloud agent. Study, figures and tables:
+`docs/studies/xr_burns/summary.md` (C54).
+- **The reader's verdicts:** 28 of 78 stable (frame 1 left out). Stability falls with flux: 10 of 18 below
+  3 × 10⁹ photons/s, 5–7 of about 20 in each bin above.
+- **The old ROI-total rule dilutes the change.** The background-subtracted specular part is a median 0.37
+  of the ROI total. Over 41 burns that change by ≥ 3σ, the ROI total drifts at a median 0.61 of the
+  specular rate, and those burns' median fraction is 0.60. The old rule calls 11 changing burns stable.
+- **Dose or time (F76):** across a series at several absorbers, rate_t ∝ flux^β, β = 1 for the dose and 0
+  for the clock. Two strips at one absorber differ by 88 %/h (64–122) beyond their counting errors. With
+  counting errors alone, 8 of 19 series reject both. With the strip scatter: 4 dose, 0 time, 10
+  undecidable. Where β is determined it runs from 0.2 to more than 2 (≈ 1 in 3 series).
+- **F77:** reciprocity holds in 3 of 8 series. β > 1 makes a high-flux test overstate the damage (safe);
+  β < 1 makes it understate it (unsafe). Since β varies between samples, one short high-flux test does not
+  predict a safe absorber. Two fluxes at least ×10 apart, each on two strips, can.
+- **For the core:** any automatic dose-or-time verdict needs a between-strip term, or it will call most
+  real series "neither". One real burn makes `Experiment.burn` fail with a NaN change time (a ValueError in
+  converting it). The 30 keV burns, a Pilatus 1M run, are not read by the burn at all.

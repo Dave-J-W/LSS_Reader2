@@ -1,0 +1,126 @@
+{
+ "burns_read": 78,
+ "burns_failed": 11,
+ "runs": 14,
+ "series_multi": 19,
+ "reader_stable": 29,
+ "reader_stable_drop1": 28,
+ "verdicts": {
+  "no burn changes by 3 sigma: cannot tell": 10,
+  "both fit: cannot tell": 2,
+  "dose (beam damage)": 4,
+  "rises and falls: neither one process": 1,
+  "neither fits (p < 0.05 at beta 0 and 1)": 2
+ },
+ "best_models": {
+  "exponential": 16,
+  "linear": 15,
+  "double exponential": 23,
+  "constant": 24
+ },
+ "old_rule": {
+  "unclear": 1,
+  "stable": 34,
+  "rises": 21,
+  "falls": 22
+ },
+ "old_rule_vs_reader_drop1": {
+  "falls / reader changes": 21,
+  "stable / reader stable": 23,
+  "rises / reader changes": 17,
+  "stable / reader changes": 11,
+  "rises / reader stable": 4,
+  "falls / reader stable": 1,
+  "unclear / reader changes": 1
+ },
+ "strip_sigma_pct_per_h": [
+  87.60000000000001,
+  64.2,
+  121.60000000000001
+ ],
+ "strip_groups": 6,
+ "specular_fraction_quartiles": [
+  0.015555779299234804,
+  0.2457740419221184,
+  0.36876160367767963,
+  0.8147578983516484,
+  0.9281236768185683
+ ],
+ "roi_over_net_rate_median": 0.6077401781181708,
+ "fraction_median_same_burns": 0.5989195758226888,
+ "n_dilution": 41,
+ "jumps": 3,
+ "beta_determined": [
+  [
+   "R02-S1",
+   4.0,
+   2.07,
+   4.0
+  ],
+  [
+   "R03-S4",
+   4.0,
+   2.12,
+   4.0
+  ],
+  [
+   "R03-S5",
+   4.0,
+   3.79,
+   4.0
+  ],
+  [
+   "R05-S1",
+   0.96,
+   0.55,
+   2.42
+  ],
+  [
+   "R06-S3",
+   0.19,
+   0.01,
+   0.4
+  ],
+  [
+   "R11-S1",
+   1.92,
+   1.41,
+   2.9
+  ],
+  [
+   "R11-S2",
+   1.11,
+   0.54,
+   2.22
+  ],
+  [
+   "R13-S1",
+   1.09,
+   0.78,
+   1.47
+  ]
+ ],
+ "verdicts_by_tag": {
+  "all": {
+   "neither fits (p < 0.05 at beta 0 and 1)": 8,
+   "no burn changes by 3 sigma: cannot tell": 3,
+   "rises and falls: neither one process": 5,
+   "dose (beam damage)": 2,
+   "time (the sample changes by itself)": 1
+  },
+  "drop1": {
+   "neither fits (p < 0.05 at beta 0 and 1)": 8,
+   "no burn changes by 3 sigma: cannot tell": 3,
+   "rises and falls: neither one process": 5,
+   "dose (beam damage)": 2,
+   "time (the sample changes by itself)": 1
+  },
+  "drop1+strip": {
+   "no burn changes by 3 sigma: cannot tell": 10,
+   "rises and falls: neither one process": 1,
+   "neither fits (p < 0.05 at beta 0 and 1)": 2,
+   "dose (beam damage)": 4,
+   "both fit: cannot tell": 2
+  }
+ }
+}
