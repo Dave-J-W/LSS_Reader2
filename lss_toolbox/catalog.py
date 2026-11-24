@@ -157,13 +157,15 @@ TOOLS = (
          docs=('docs/reports/patch_demo.md', 'docs/handoff_out/07-burn-trends.md'),
          defaults={'--mode': 'burn'},
          variations=(
-             V('Fade', 'Intensity falls at constant shape: every estimator should see it as intensity only.',
-               'docs/SYNTHETIC_DATA.md#**GID burn profiles**', mode='burn', set='change=fade'),
+             V('Fade', 'Intensity falls at constant shape; every estimator under-reads it (the window holds part of the '
+               'shoulder), and the Gaussian fit also reads a +13 % broadening.',
+               'docs/reports/patch_demo.md#fade: spurious FWHM', mode='burn', set='change=fade'),
              V('Broadening at constant area', 'The template estimator reads a broadening as a shift and a gain '
                '(the report\'s caveat on the default estimator).', 'docs/reports/patch_demo.md#Gaussian fit reads a fade as +13 % FWHM',
                mode='burn', set='change=broaden'),
-             V('Fade under a 3x shoulder', 'A peak fading under a broad shoulder: where moments mislead.',
-               'docs/SYNTHETIC_DATA.md#**GID burn profiles**', mode='burn', set='change=shoulder'),
+             V('Fade under a 3x shoulder', 'A peak fading by 20 % under a broad shoulder: the template reads -9 %, the '
+               'moments -4 %, the Gaussian fit a gain (+3 %).',
+               'docs/reports/patch_demo.md#fade under a 3× shoulder (−20 %)', mode='burn', set='change=shoulder'),
              V('Low counts (monitor 1e5)', '"Lower monitor until each estimator fails": the counts per frame at '
                'which each estimator becomes unusable.', 'docs/handoff_out/07-burn-trends.md#4. **Noise level.**',
                mode='burn', set='monitor=1e5'),
@@ -235,7 +237,7 @@ TOOLS = (
                'docs/SYNTHETIC_DATA.md#(Qc/2Qz)⁴ with a', set='thickness=250'),
              V('Staggered overlaps', 'No coinciding points at the joins: the coinciding-points ratio is unavailable, '
                'curve models must interpolate.', 'docs/reports/patch_demo.md#**Reflectivity controls**: truth', set='plan=nx_staggered'),
-             V('Critical-edge aside', 'A staggered overlap across Qc (P1): the legacy factor is 16.7 % low; the '
+             V('Critical-edge aside', 'A staggered overlap across Qc (P1): the legacy factor is 16.6 % low; the '
                'owner does not patch there.', 'docs/reports/patch_demo.md#the default joint fit is +2.44 %', set=['truth=water', 'plan=edge']),
              V('Counts x100', 'Every method within 0.15 % of the truth: what remains is bias, not noise.',
                'docs/reports/patch_demo.md#0.15 % of', set='counts=100'),
