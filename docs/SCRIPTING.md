@@ -64,6 +64,30 @@ sits at one raw point's Qz.
 Not yet available from scripts: background images, single-scan export,
 GISAXS. (GID, cuts, peak fits and burn tests followed: sections below.)
 
+## Qc and Qoff of R/R_F (2026-11-24, F79)
+
+```python
+from lss_core import fresnel
+fresnel.subphase('NaCl 6 % (1.07 M)').qc          # 0.0221: Qc from the subphase's electron density
+fresnel.qc_from_density(0.3333)                   # 0.02173 (water at 25 °C)
+ref = exp.reflectivity([6, 7, 8, 9]).ref           # Qz, R, σ
+p = fresnel.propose_qoff(ref[:, 0], ref[:, 1], ref[:, 2], qc=0.0217)
+p.qoff, p.sigma, p.note                           # NX school: -0.00028 Å⁻¹ (the window's preset is 0)
+exp.reflectivity([6, 7, 8, 9], qoff=p.qoff)        # R/R_F with it
+```
+
+`propose_qoff` proposes; nothing applies it. `method='edge'` (default) fits
+the plateau and the drop at the edge, ln R = ln A + ln R_F(Qz + Qoff) +
+a smooth factor, by robust least squares; `method='smooth'` minimises the
+roughness of ln R/R_F near the edge (the owner's by-eye criterion), robust
+to one or two outliers away from the edge. `fit_qc=True` (edge only) fits
+Qc too and reports their correlation: near +1, because Qc and Qoff move
+the edge together, so Qc is better taken from the subphase
+(`fresnel.SUBPHASES`, each density with its source; or a typed density).
+σ comes from a bootstrap over the counting errors and does not include the
+biases the study found (`docs/studies/qoff/summary.md`): the Qz resolution
+reads as a negative Qoff, and a wrong Qc moves Qoff one for one.
+
 ## Fluorescence (XFNTR)
 
 ```python

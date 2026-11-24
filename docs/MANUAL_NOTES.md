@@ -116,6 +116,15 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- Qc and Qoff of R/R_F (F79, 2026-11-24): `lss_core.fresnel` proposes
+  Qoff from the data (the edge fit by default; the smoothness of R/R_F as
+  the owner judges it by eye) with its error, and gives Qc from the
+  subphase (a list of densities with their sources, or a typed electron
+  density). It proposes; it never applies. The window's "Propose" buttons
+  beside Qoff and Qc are the GUI manager's (F96). Notes for the manual:
+  the Qz resolution reads as a slightly negative Qoff, and a wrong Qc
+  moves Qoff by the same amount, so set Qc from the subphase first
+  (`docs/studies/qoff/summary.md`).
 - The guard prefers fits with χ² p ≥ 0.7 (since 2026-11-24; 0.3 before):
   stricter, so a fringe at a join biases the factor half as much.
 - A join's note: "the best fit of the ladder" means no curve reached the
