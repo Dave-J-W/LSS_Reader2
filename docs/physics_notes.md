@@ -5673,3 +5673,38 @@ Verified by: the owner's statements; nothing checked against data.
 - **Monc upstream of the absorbers:** confirmed by the owner. The reduction's use of the absorber factor and Monc is consistent with that.
 - **Shutter:** closed between burn frames, open in fast mode (wall time = exposure, F98's dose axis must use it); fast mode is a recommended technique, not yet demonstrated (OQ-4).
 - **Timeline placeholders:** notes and stand-ins both, plus automatic flags (F108).
+
+### 2026-11-24 — The beam's vertical size at the sample, from height scans (DATA_NEEDS row 9, F43, OQ-2)
+
+Verified by: measurement on private data by the non-cloud agent (spec files and Pilatus images of 21 runs);
+the geometry argument is derived, not measured. Study: `docs/studies/sh_beam_size/summary.md`.
+
+- **The question** (OQ-2, F43): can the vertical beam size at the sample come from half-cut or sh scans, and
+  what should the dose per mm² (`lss_core.dose`, `beam_mm=(width, height)`) take?
+- **Half-cuts leave no data.** They are done by hand on the live view; the files hold only the `set sh 0`
+  (526 times) and three scans at incidence 0, one fine enough to use.
+- **The rising edge of every height scan is a knife edge.** The incident beam slopes down at α; a ray clears
+  the liquid's dome exactly when it passes above the tangent point where the surface's slope equals the
+  beam's, the same point for every ray of a nearly parallel beam, moving 1 : 1 with `sh`. Distortions
+  (derived): convergence × tangent distance ≤ 1.5 µm; reflection into the direct beam's pixels < 0.3 µm.
+  The falling side is loss on the curved upstream end, not a beam edge. 1995 of 2815 height scans pass the
+  guards (rise scanned from its foot, ≥ 2 points on the edge, rise and fall separated by > 3 σ, χ²/dof ≤ 20).
+- **Two witnesses agree.** The erf σ of the ROI/Monc rise (the spec-only route; `peaks.fit_box`'s rising
+  FWHM / 2.355 matches it, ratio 0.983 on 150 scans) and the direct beam in the Pilatus images (109 scans,
+  18 runs). The images need a core + tail profile (median χ²/dof 2.1 against 30 for one erf): core σ 13.5 µm,
+  tail σ 56 µm, tail fraction 0.29, FWHM 33 µm, inverse peak 43 µm (medians). The S1 slit scans show a tail
+  already at S1 (median fraction 0.23), so it is in the beam.
+- **Numbers.** 10 keV, S1 0.016–0.04 mm: σ_rise 15.3–17.0 µm by class (run medians 14.0–20.0), independent of
+  the gap there; profile FWHM 30–33 µm. 6–8 keV, sample cell: σ_rise 22 µm at 0.05–0.07 mm, 32 µm at 0.2 mm
+  (energy, cell and gap confounded). 30 keV, liquid metal, one half-cut: σ 8.0 ± 0.3 µm (2 points on the
+  edge); a box round the beam on a liquid keeps 4.4 % of the beam 50 µm past the edge (total reflection).
+- **Rule for the dose:** height = √(2π)·σ_rise = 1.064 × `fit_box`'s rising FWHM, the median over the run's
+  height scans: the inverse peak of the profile, i.e. the peak dose per area. Against the images: 1.06 median
+  (10–90 % 0.91–1.24; +25 % too large at S1 0.2 mm). Default without height scans: **0.040 mm** at 10 keV and
+  S1 ≤ 0.04 mm (±15 %, run to run). The S1 gap (0.016 mm) as height overstates the peak dose 2.5×, the FWHM
+  1.3×. `lss_core/dose.py` is not changed here; this is the input it waits for.
+- **OQ-1, read only:** the slit macro that sets centre and gap puts the blades at gap/2 ∓ centre, so the
+  header's S1T and S1B are half-openings and the opening is their sum.
+- **Still open for the owner:** whether the peak dose (this rule) or the footprint-average is the dose meant
+  (OQ-2's last part); the width (not measured here); the upper tail's share of light transmitted through the
+  downstream meniscus.
