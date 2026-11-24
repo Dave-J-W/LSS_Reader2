@@ -29,6 +29,22 @@ class _NoProgress:
         return lambda *a, **k: None
 
 
+def complete_rows(rows):
+    """The data rows of a scan that have its usual number of values, and
+    [(row index, number of values)] of the others: a line SPEC is still
+    writing (a live file) or a damaged one. One short row made every column
+    of its scan None, because numpy cannot stack rows of unequal length
+    (the fragility audit, 2026-11-23). The usual number is the commonest,
+    the larger on a tie (a partial line is shorter)."""
+    if not rows:
+        return rows, []
+    counts = {}
+    for r in rows:
+        counts[len(r)] = counts.get(len(r), 0) + 1
+    usual = max(counts, key=lambda w: (counts[w], w))
+    return [r for r in rows if len(r) == usual], [(k, len(r)) for k, r in enumerate(rows) if len(r) != usual]
+
+
 class specread:
     def __init__(self, specfile, startLineNum=0, endScanNum=0, beamline='APS-15IDC',det='CCD',data=None,par=None,progress=None):
         # progress: an object with the QProgressDialog methods used below (the
@@ -216,6 +232,9 @@ class specread:
                         if 'Series' in words and 'end' in words:
                             extras['SeriesEnd']=parse_series(words[words.index('Series')+1:])
                 if self.Data[num]['ScanVar']!='Empty':
+                    tmpdata,dropped=complete_rows(tmpdata)
+                    if dropped:
+                        extras['DroppedRows']=dropped
                     for j in range(len(scanVar)):
                         try:
                             self.Data[num][scanVar[j]]=np.array(tmpdata,dtype='float')[:,j]

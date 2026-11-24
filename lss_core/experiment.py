@@ -272,14 +272,17 @@ class Experiment:
 
     def reflectivity(self, scans, slit=(21, 11), bg_offset=0.5, direction='H',
                      qc=0.0217, qoff=0.0, norm_factor=None, rrf=True,
-                     drops=None, merge_repeats=False, merge=None, low_qz_slit=False, points=None,
+                     drops=None, merge_repeats=False, merge=None, repeats='monitors', low_qz_slit=False, points=None,
                      bad_pixel_iterations=0, bad_pixel_factor=1, errors=None, factors=None,
                      method=refl.DEFAULT_PATCH_METHOD):
         """Specular reflectivity of ``scans``, as the window's Ref Patch with
         the same settings (defaults are the window's defaults for Pilatus
         data). ``drops``: {join number: [indices]} as typed into the patch
-        dialog (several presses: a list of lists). ``merge_repeats``: average
-        all repeated scans first; ``merge``: average only these groups. ``points``: {scan: [point numbers]} to use only
+        dialog (several presses: a list of lists). ``merge_repeats``: merge
+        all repeated scans first; ``merge``: merge only these groups;
+        ``repeats``: how, 'monitors' (default since 2026-11-23, F81: counts
+        and monitors summed point by point, ΣN/ΣM) or 'mean' (the legacy
+        average of the normalised repeats). ``points``: {scan: [point numbers]} to use only
         some points of a scan (as when only some frames are selected).
         ``errors``: error model, 'legacy' (default: the window's numbers) or
         'budget' or an lss_core.errors.ErrorModel. ``factors``: {join number:
@@ -291,7 +294,7 @@ class Experiment:
         from TwoDDetector import TwoDDetector
         det = TwoDDetector('Pilatus')
         det.errors = as_model(errors)
-        per_scan, offsets = {}, []
+        per_scan, offsets, mons = {}, [], {}
         for f in self.frames(scans):
             if points is not None and f.scan in points and f.index not in points[f.scan]:
                 continue
@@ -302,15 +305,19 @@ class Experiment:
                                       slit, bg_offset, direction, f.distance,
                                       low_qz_slit=(first or low_qz_slit))
             per_scan[f.scan] = row if first else np.vstack((per_scan[f.scan], row))
+            mons.setdefault(f.scan, []).append(f.monitor)
             off = info['offset']
             if abs(off[0]) > 2 or abs(off[1]) > 2:
                 offsets.append((f.scan, f.index, off[0], off[1]))
         per_scan = {k: np.atleast_2d(v) for k, v in per_scan.items()}
+        if repeats not in ('monitors', 'mean'):
+            raise ValueError("repeats: 'monitors' or 'mean'")
+        weights = mons if repeats == 'monitors' else None
         if merge_repeats:
             for group in refl.identical_groups(per_scan):
-                refl.merge_identical(per_scan, group)
+                refl.merge_identical(per_scan, group, weights)
         for group in merge or []:          # groups merged by hand, as in the window
-            refl.merge_identical(per_scan, list(group))
+            refl.merge_identical(per_scan, list(group), weights)
         order = refl.order_scans(per_scan)
         notes = []
         patched = refl.patch(per_scan, order, drops, factors, method=method, notes=notes)
@@ -318,7 +325,7 @@ class Experiment:
                                    qc, qoff, norm_factor, rrf)
         return ReflectivityResult(per_scan, order, patched, ref, out_rrf, offsets, method, notes,
                                   dict(qc=qc, qoff=qoff, norm_factor=norm_factor, rrf=rrf, drops=drops,
-                                       factors=factors, method=method))
+                                       factors=factors, method=method, repeats=repeats))
 
     def cut(self, scans, direction, range, axes='Pixels', summed=False, points=None, sum_mode='monitors',
             absfac=ABSFAC_10KEV, errors=None, monitor_gain=False, distance=None, db_pos=None,
@@ -376,7 +383,7 @@ class Experiment:
                 xc, yc = float(det.NCOLS) - 1 - p['DBPos'][1], p['DBPos'][0]
             else:
                 xc, yc = float(db_pos[0]), float(db_pos[1])
-            geoms.append(cutmod.Geometry(wl, alpha, p['In_Rot'] * np.pi / 180.0, dth,
+            geoms.append(cutmod.Geometry(wl, alpha, cutmod.true_incidence(cols, f.index, wl, p['In_Rot']), dth,
                                          -p['g_l2'] * np.tan(alpha), dist, p['S2D_Dist'], xc, yc))
             labels.append('S# %d_F# %d' % (f.scan, f.index))
         if summed:
@@ -424,7 +431,8 @@ class Experiment:
             else:
                 centre = (float(db_pos[0]), float(db_pos[1]))
             out.append(gidmod.GIDFrame(np.array(det.imageData), np.array(det.errorData), f.monitor, f.absorber,
-                                       f.scan, f.qz, np.arcsin(f.qz * wl / 4.0 / np.pi), p['In_Rot'] * np.pi / 180.0,
+                                       f.scan, f.qz, np.arcsin(f.qz * wl / 4.0 / np.pi),
+                                       cutmod.true_incidence(cols, f.index, wl, p['In_Rot']),
                                        dth, wl, centre, p['S2D_Dist'], p['S7D_Dist'], p['Sample_H'],
                                        (p['S1L'] + p['S1R'], p['S1T'] + p['S1B'], p['S4L'] + p['S4R'], p['S5L'] + p['S5R']),
                                        p))
