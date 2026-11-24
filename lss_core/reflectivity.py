@@ -77,10 +77,32 @@ def identical_groups(per_scan):
     return [g for g in groups.values() if len(g) > 1]
 
 
-def merge_identical(per_scan, group):
-    """Average a group of repeated scans into its first scan (columns Qz, R,
-    σ; the window's "Merge"): R = mean, σ = √(Σσ²)/n."""
+def merge_identical(per_scan, group, monitors=None):
+    """Merge a group of repeated scans into its first scan (columns Qz, R,
+    σ; the window's "Merge").
+
+    With ``monitors`` ({scan: monitor of each point}): the repeats' counts
+    and monitors summed, then normalised once, R = Σ M R / Σ M and
+    σ = √Σ(M σ)² / Σ M. That is ΣN/ΣM point by point, the Poisson
+    maximum-likelihood rate (F81, the default since 2026-11-23;
+    physics_notes, I32). ``monitors`` is kept up to date: the first scan's
+    become the sums, so merging again goes on in the same way.
+
+    Without ``monitors``: the legacy mean, R = mean and σ = √(Σσ²)/n."""
     first = per_scan[group[0]]
+    if monitors is not None:
+        m = [np.asarray(monitors[k], float) for k in group]
+        if any(len(mk) != len(per_scan[k]) for mk, k in zip(m, group)):
+            raise ValueError('a monitor for every point of every repeat is needed')
+        msum = np.sum(m, axis=0)
+        y = sum(mk * per_scan[k][:, 1] for mk, k in zip(m, group)) / msum
+        err = np.sqrt(sum((mk * per_scan[k][:, 2]) ** 2 for mk, k in zip(m, group))) / msum
+        for k in group[1:]:
+            del per_scan[k]
+            monitors.pop(k, None)
+        monitors[group[0]] = msum
+        per_scan[group[0]] = np.vstack((first[:, 0], y, err)).T
+        return
     y = first[:, 1].copy()
     var = first[:, 2] ** 2
     for k in group[1:]:

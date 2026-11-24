@@ -43,6 +43,9 @@ DEFAULTS = {
     # of the normalised frames. GISAXS: True shows the legacy raw counts (their mean when summed)
     'sum_all_legacy_average': False,
     'gisaxs_raw_counts': False,
+    # Ref Patch, identical scans: repeats merged by counts and monitors, ΣN/ΣM (F81); True:
+    # the legacy mean of the normalised repeats
+    'repeats_legacy_average': False,
     # ngui: a second window sketching the proposed layout (non-functional prototype, F82;
     # docs/gui/prototype.md); off by default (owner, 2026-11-23)
     'ngui': False,

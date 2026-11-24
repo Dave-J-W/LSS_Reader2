@@ -61,7 +61,7 @@ INVENTORY = {
     'prefNguiCheckBox': ('checkbox', 'ngui (new layout, prototype)', 'Preferences > Layout', 'Opens (ticked) or closes the ngui window, a non-functional sketch of the proposed new layout, and keeps the choice'),
     'prefClosePushButton': ('button', 'Close', 'Preferences', 'Closes the dialog'),
     'refpatchsamescan': ('dialog', 'Dialog', 'Dialog (identical scans)', 'Shown before patching when scans with the same Qz range and length are found: merge, drop, or keep each group'),
-    'refpatchsamescan.mergePushButton': ('button', 'Merge', 'Dialog (identical scans)', 'Averages the scans of the group into one'),
+    'refpatchsamescan.mergePushButton': ('button', 'Merge', 'Dialog (identical scans)', 'Merges the scans of the group into one: counts and monitors summed point by point, then normalised once (ΣN/ΣM, F81, 2026-11-23)'),
     'refpatchsamescan.dropPushButton': ('button', 'Drop', 'Dialog (identical scans)', 'Drops the scan numbers typed beside it from the patch'),
     'refpatchsamescan.dropLineEdit': ('lineedit', '0', 'Dialog (identical scans)', 'Scan numbers to drop, comma-separated'),
     'refpatchsamescan.nextPushButton': ('button', 'Next>>', 'Dialog (identical scans)', "Goes to the next group; 'Finish!' on the last starts the patch"),

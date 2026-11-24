@@ -39,6 +39,10 @@ Comparisons written:
   cut over the whole width, value and σ per row. NX school (``--sums``):
   repeats within scans 11 and 12, and three overlaps of two scans at
   different absorbers.
+- C43 each frame's true incidence: the scan header's In_Rot (before
+  2026-11-23) vs ``cuts.true_incidence`` (α from L in specular scans, P47),
+  and the exit angle of the reflected row, arcsin(2 sin α − sin α_true),
+  with each: it is α only with the new value. Reflectivity scans (``--ref``).
 """
 import argparse
 import json
@@ -144,6 +148,24 @@ def sums(exp, groups, label, out, manifest):
                "Experiment.cut(scans, 'Pix V', (0, 194), summed=True, points=..., sum_mode='monitors'|'mean')")
 
 
+def incidence(exp, scans, label, out, manifest):
+    from lss_core import cuts
+    rows = []
+    for n in scans:
+        cols, p = exp.scans[n].columns, exp.scans[n].parameters
+        wl = p['Wavelength']
+        for i, q in enumerate(cols['L']):
+            a = np.arcsin(q * wl / 4.0 / np.pi)
+            old, new = np.radians(p['In_Rot']), cuts.true_incidence(cols, i, wl, p['In_Rot'])
+            beta = [np.arcsin(2 * np.sin(a) - np.sin(t)) for t in (old, new)]
+            rows.append([n, i, q] + list(np.degrees([a, old, new] + beta)))
+    _write(out, manifest, 'C43_incidence_%s_S%s.csv' % (label, '-'.join(map(str, scans))), 'C43',
+           'true incidence: header In_Rot (old) vs cuts.true_incidence (new)', '%s scans %s' % (label, scans),
+           ['scan', 'point', 'L (1/A)', 'alpha from L (deg)', 'old alpha_true (deg)', 'new alpha_true (deg)',
+            'reflected-row beta old (deg)', 'reflected-row beta new (deg)'], rows,
+           'beta = arcsin(2 sin(alpha) - sin(alpha_true)); equal to alpha only when alpha_true = alpha (specular)')
+
+
 def absorbers(out, manifest):
     from lss_core import absorbers as ab
     cal = ab.calibrated(10.0)
@@ -176,6 +198,7 @@ def main():
     manifest = []
     if a.ref:
         reflectivity(exp, [int(s) for s in a.ref.split(',')], label, a.out, manifest)
+        incidence(exp, [int(s) for s in a.ref.split(',')], label, a.out, manifest)
     for group in filter(None, a.gid.split(';')):
         gid(exp, [int(s) for s in group.split(',')], label, a.out, manifest, maps=not a.no_maps)
     groups = a.sums if a.sums is not None else (NX_SUMS if os.path.abspath(a.spec) == os.path.abspath(NX) else '')
