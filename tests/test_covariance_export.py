@@ -325,7 +325,9 @@ def test_statistical_sanity_of_sigma(method):
     1.08–1.11 for the §3.2 chain and the legacy factors (inflate-only, as
     XModJointFit's 6–17 % above), 0.88–0.95 for the joint fit, whose first
     join's own error is ≈ 12 % small on these scans (its pull SD 1.13, the
-    same with reflectivity.join_factor's reported error)."""
+    same with reflectivity.join_factor's reported error). With the guard at
+    p 0.7 (the default since 2026-11-24) the joint ratio is 0.85–0.89 and the
+    pull SDs 1.11–1.15 (review 2026-11-24; report §6), inside the bounds."""
     bl = xs.Beamline(**xs.REAL_MONITOR)
     errs, sig = [], []
     for seed in range(300):

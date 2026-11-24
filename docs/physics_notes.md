@@ -5878,3 +5878,24 @@ from them, may be published: per-scan curves, edges, widths, and the inventory b
 data and their identifiers (names, scan numbers, dates) unless the owner says otherwise. Recorded in
 AGENTS.md's row for `sample_data/private/`.
 
+### 2026-11-24 — Review of the covariance export (owner: "review their subject areas")
+
+Checked on origin/main 9e706a7: the export's own tests, the reflectivity
+tests and the window's Ref Patch since the GUI work (F96 Back, F92 masks,
+F81 repeats as ΣN/ΣM, the one-point-overlap error, the guard at p 0.7).
+The sidecars still match the written files: tested again, and new tests
+cover Back after a Drop, masked reductions and the §3.1 linear fallback.
+One defect, fixed: the Script pane's line for an Export with "+
+covariance" said `ref.save(name)`, so a script wrote no sidecars. It now
+says `covariance='sidecar'` (tested by running it).
+
+Measured: at the new guard p 0.7 the joint chain's Σ is about 10 % small
+at every join (scan-level pull SDs 1.11–1.15, 300 seeds). Downstream
+fits with the covariance stay honest (pull SDs 0.98–1.11). Report §6;
+the remedy is the owner's (TODO B2, with C45's question).
+
+Read only: in the contract layout, `_ref_legacy.txt` is the legacy
+factor fit on the scans as the result holds them. With repeats merged
+as ΣN/ΣM (F81, the default since 2026-11-23) it is therefore not the
+pre-2026-11-22 file for reductions with repeats.
+
