@@ -45,6 +45,7 @@ exists.
 | I32 | "Sum All" of Poisson frames (y = N·A/(M·g), σ = √N·A/(M·g)) equals ΣN/Σ(M/A·g) with σ = √ΣN/Σ(M/A·g), exactly; it is the mean of the per-frame values weighted by M/(A·g), and with equal monitors and absorbers the plain mean | `test_monc_normalised.py` (`test_sum_frames_is_the_counts_over_the_monitors`, `test_frames_with_absorbers_are_summed_by_their_effective_monitors`, `test_the_scripted_summed_cut_is_the_counts_over_the_monitors`, `test_the_windows_summed_cut_is_the_counts_over_the_monitors`); the identical-scans merge the same per point, also one repeat at a time (`test_repeats_merge.py::test_merge_identical_is_the_counts_over_the_monitors`) |
 | I33 | Every photon of a synthetic MCA spectrum lands in exactly one part: photopeak + tail + shelf + escape = the photons of each source (`synthetic.mca`, to 0.2 % where the channels cover everything); the gauntlet's truths rest on it (F90) | `test_synthetic_mca.py::test_every_photon_lands_in_one_part` |
 | I34 | On the Angles axis of a 'Pix V' cut through the reflected beam's columns, the reflected peak of a specular frame is at β = α (α = arcsin(Qz λ/4π)); NX school scans 6, 8, 9 to 2e-4° | `test_true_incidence.py::test_the_reflected_beam_sits_at_beta_equal_alpha` |
+| I35 | L is Qz in Å⁻¹ (the beamline's SPEC lattice): L = (2π/λ)(sin α + sin β), α = In_Rot, β = Out_Rot; in a specular scan 4π sin α/λ. On NX school every scan at fixed L agrees to better than 0.001 % (scans 4, 5, 10–15; scan 12 at the raised GID level, β = 6.5°); a fixed-L scan off by more than 1 % is noted at load (`LMismatch`) | `test_lattice.py::test_nx_l_is_qz_at_every_fixed_l_scan` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5067,3 +5068,33 @@ Verified by: reading only. The numbers are the tools session's, measured on synt
 - **P4:** after the blanks.
 - **Guard:** needs further study; p stays 0.3; the real test is hand-off 08 (not soon).
 - **Numbering clash to note:** the tools session called the blank-spectrum request "F105"; F105 here is the comparison tab with auto-update. The blank spectra are F90's data (DATA_NEEDS row 3).
+
+### 2026-11-24 — L as Qz: the convention, written down and checked at load (tools man, area L)
+
+Verified by: run and test on NX school (`test_lattice.py`). The
+convention was read from the data, not from the beamline's SPEC
+configuration, which is not in the repository.
+
+**The convention.** H and K are the in-plane components; L is Qz in Å⁻¹:
+L = (2π/λ)(sin α + sin β), with α the incidence (header `In_Rot`) and β
+the exit angle (header `Out_Rot`). In a specular scan α = β, and
+L = 4π sin α/λ.
+
+**Measured on NX school.** Every scan at fixed L agrees with its header
+angles to better than 0.001 %:
+- scans 4, 5, 10, 13–15 (specular);
+- scan 11, the GID low level. The fragility audit's 0.06 % came from
+  using α twice: In_Rot is 0.0905° and Out_Rot 0.0906°;
+- scan 12, the raised GID level, where β = 6.5° and L = 0.582 Å⁻¹.
+
+Scans whose L moves (the hklscans) are not checked.
+
+**The check (invariant I35).** At load, a fixed-L scan whose L differs
+from its angles by more than 1 % gets `LMismatch` (the relative
+difference) in its parameters, and the window says so once. Only scans
+whose header gives both In_Rot and Out_Rot are checked: without the
+exit angle, a raised detector arm would look like a wrong lattice
+(scan 12). It asks
+whether the SPEC lattice is the usual one. Nothing is changed:
+reductions keep using L.
+
