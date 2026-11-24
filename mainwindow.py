@@ -57,6 +57,50 @@ from lss_core.errors import ErrorModel, MonitorModel, MonitorTerms, script_kw, E
 # per-frame lists built by updatePilImageList, one entry per row of the image list
 FRAMELISTS=['pilAlpha', 'pilFileNames', 'pilFileQxs', 'pilFileQys', 'pilFileQzs', 'pilFrameNum', 'pilScanNum', 'pilTrueAlpha', 'pilX', 'pilY', 'pil_AbsNum', 'pil_Chi', 'pil_Dist', 'pil_Dth', 'pil_Gl2', 'pil_PDist', 'pil_Phi', 'pil_S1h', 'pil_S1v', 'pil_S4h', 'pil_S5h', 'pil_Sh', 'pil_Tth', 'pil_Wavelength']
 
+# What a list item stands for is kept as item data, not read back from its text (the
+# fragility audit, 2026-11-24): the displayed text can change (the GUI overhaul) without
+# breaking any lookup. The text is still read when an item lacks the data.
+from PyQt5.QtCore import Qt as _QtNS
+SCAN_ROLE=_QtNS.UserRole           # scan and image lists: the scan number
+FRAME_ROLE=_QtNS.UserRole+1     # image list: the frame's number (F# for images, mS# for MCA points)
+LABEL_ROLE=_QtNS.UserRole+2     # image list: (scan label, frame label), e.g. ('S# 12', 'F# 3'), for file names
+QZ_ROLE=_QtNS.UserRole+3        # Ref Qz list: the Qz of the row
+
+
+def itemScan(item):
+    """The scan number of a scan- or image-list item."""
+    v=item.data(SCAN_ROLE)
+    return int(v) if v is not None else int(str(item.text()).split()[1])
+
+
+def itemFrame(item):
+    """The frame number of an image-list item ('F# 3' or 'mS# 3' -> 3)."""
+    v=item.data(FRAME_ROLE)
+    return int(v) if v is not None else int(str(item.text()).split('\t')[1].split('#')[1])
+
+
+def itemLabels(item):
+    """(scan label, frame label) of an image-list item, as written in file names."""
+    v=item.data(LABEL_ROLE)
+    if v is not None:
+        return str(v[0]),str(v[1])
+    t=str(item.text()).split('\t')
+    return t[0],t[1]
+
+
+def itemQz(item):
+    """The Qz of a Ref Qz list row."""
+    v=item.data(QZ_ROLE)
+    return float(v) if v is not None else float(str(item.text()).split()[1])
+
+
+def tagImageItem(item,scan,frame,frame_label):
+    item.setData(SCAN_ROLE,int(scan))
+    item.setData(FRAME_ROLE,int(frame))
+    item.setData(LABEL_ROLE,('S# %d' % int(scan),frame_label))
+    return item
+
+
 
 def selectionDelayMs():
     """Delay before a change of the image-list selection is drawn
@@ -754,7 +798,10 @@ class MainWindow (QMainWindow):
                             'position, so a label with a space in it shifts the later ones.' % (listText(odd),nl,nv,odd[0]),
                             title='SPEC file',level='warning')
             self.scanlines=[self.specData[i]['ScanLine'] for i in scannums]
+            first=self.ui.scanListWidget.count()
             self.ui.scanListWidget.addItems(self.scanlines)
+            for k,n in enumerate(scannums):
+                self.ui.scanListWidget.item(first+k).setData(SCAN_ROLE,int(n))
             if np.any([self.specPar[i]['Detector']=='Vortex' for i in scannums]):
                 if QDir(self.directory+'/'+self.mcaDirName).exists()==True:
                     self.mcaDir=self.directory+'/'+self.mcaDirName
@@ -939,7 +986,7 @@ class MainWindow (QMainWindow):
         out=[]
         for it in self.ui.scanListWidget.selectedItems():
             try:
-                out.append(int(str(it.text()).split()[1]))
+                out.append(itemScan(it))
             except (IndexError,ValueError):
                 pass
         return out
@@ -1374,7 +1421,7 @@ class MainWindow (QMainWindow):
         s=getattr(self,'seriesChosen',None)
         if box is None or s is None:
             return
-        chosen=sorted(int(str(it.text()).split()[1]) for it in self.ui.scanListWidget.selectedItems())
+        chosen=sorted(itemScan(it) for it in self.ui.scanListWidget.selectedItems())
         if chosen!=sorted(s.data_scans):
             self.seriesChosen=None
             box.blockSignals(True)
@@ -1411,7 +1458,7 @@ class MainWindow (QMainWindow):
         self.ui.spNComboBox.currentIndexChanged.disconnect(self.updateSpecPlotData)
         self.selectedScans=self.ui.scanListWidget.selectedItems()
         #self.selectedScanNums=[self.ui.scanListWidget.row(items) for items in self.selectedScans]
-        self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
+        self.selectedScanNums=[itemScan(items) for items in self.selectedScans]
         self.updateToolAvailability()
         self.ui.scansLineEdit.setText(listText(self.selectedScanNums))
         if self.checkSameScans()==False or self.selectedScanNums==[]:
@@ -1487,7 +1534,7 @@ class MainWindow (QMainWindow):
         self.ui.scanListWidget.itemSelectionChanged.disconnect(self.scanListChanged)
         try:
             self.selectedScans=self.ui.scanListWidget.selectedItems()
-            self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
+            self.selectedScanNums=[itemScan(items) for items in self.selectedScans]
             self.updateToolAvailability()
             try:    # deselect the currently selected numbers
                 for item in self.selectedScans:
@@ -1813,6 +1860,7 @@ class MainWindow (QMainWindow):
                     self.mcaScanOf[start]=self.selectedScanNums[i]
                     chtext='\tch '+','.join(map(str,pj['Channels'])) if 'Channels' in pj else ''
                     self.ui.imageListWidget.addItem('S# '+str(self.selectedScanNums[i])+'\tmS# '+str(j+1)+'\tQz='+str(self.mcaPar[start]['Q'][2])+abstext+chtext)
+                    tagImageItem(self.ui.imageListWidget.item(self.ui.imageListWidget.count()-1),self.selectedScanNums[i],j+1,'mS# %d' % (j+1))
                     start=start+1
         except:
             self.messageBox('MCA file(s) of selected scans do not exit!')
@@ -2662,7 +2710,7 @@ class MainWindow (QMainWindow):
         if self.saveMcaFileName=='':   # dialog cancelled: write nothing
             return
         for i in self.selectedMcaScanNums:
-            self.fmcaName=self.saveMcaFileName+str(self.ui.imageListWidget.item(i).text().split('\t')[0])+'_'+str(self.ui.imageListWidget.item(i).text().split('\t')[1])+'_''%.4f'%self.mcaPar[i]['Q'][2]+'_mca.txt'
+            self.fmcaName=self.saveMcaFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_''%.4f'%self.mcaPar[i]['Q'][2]+'_mca.txt'
             np.savetxt(self.fmcaName,self.nomMcaData[i],fmt='%.4f\t%.4e\t%.4e')
             
     def mcaPeakFit(self):  #fit the mca spectrum
@@ -3322,6 +3370,7 @@ class MainWindow (QMainWindow):
                         fnum='0'
                     absn=self.specPar[i].get('Absorber')
                     self.ui.imageListWidget.addItem('S# '+str(i)+'\tF# '+fnum+'\tQz='+'%.4f'%self.specData[i]['L'][j]+'\tQx='+'%.4f'%self.specData[i]['H'][j]+('\tAbs=?' if absn is None else '\tAbs=%d'%absn))
+                    tagImageItem(self.ui.imageListWidget.item(self.ui.imageListWidget.count()-1),i,int(fnum),'F# '+fnum)
                     self.pilMonc=np.append(self.pilMonc, scanmonc[j])
                     self.pilScanNum.append(i)  
                     self.pilFrameNum.append(j)
@@ -3495,7 +3544,7 @@ class MainWindow (QMainWindow):
             return
         self.ui.backgroundListWidget.clear()
         for item in self.ui.imageListWidget.selectedItems():
-            self.ui.backgroundListWidget.addItem(item.text())
+            self.ui.backgroundListWidget.addItem(item.clone())   # the text and the item data
         self.bgpilData={}
         self.bgpilErrorData={}
         self.bgMonc={}
@@ -6042,26 +6091,29 @@ class MainWindow (QMainWindow):
             for key in sorted(self.pilFrameNumsWithSameQz.keys()):
                 self.scanframe[key]={}
                 for item in self.pilFrameNumsWithSameQz[key]:
-                    ekey=int(str(self.ui.imageListWidget.item(item).text()).split('\t')[0].split('#')[1])
+                    ekey=itemScan(self.ui.imageListWidget.item(item))
                     if ekey in self.scanframe[key]:
-                        self.scanframe[key][ekey].append(int(str(self.ui.imageListWidget.item(item).text()).split('\t')[1].split('#')[1]))
+                        self.scanframe[key][ekey].append(itemFrame(self.ui.imageListWidget.item(item)))
                     else:
-                        self.scanframe[key][ekey]=[int(str(self.ui.imageListWidget.item(item).text()).split('\t')[1].split('#')[1])]
+                        self.scanframe[key][ekey]=[itemFrame(self.ui.imageListWidget.item(item))]
                 if all(x==self.pilFrameAbsWithSameQz[key][0] for x in self.pilFrameAbsWithSameQz[key]):                   
                     self.ui.refQzListWidget.addItem('Qz= '+str(key)+'\t {S:F}= '+str(self.scanframe[key])+'\t Abs= '+str([self.pilFrameAbsWithSameQz[key][0]]))
+                    self.ui.refQzListWidget.item(self.ui.refQzListWidget.count()-1).setData(QZ_ROLE,float(key))
                     self.refSortedFrameNums[j]=self.pilFrameNumsWithSameQz[key]
                     j=j+1
                 else:
                     for i in range(len(self.pilFrameNumsWithSameQz[key])):
-                        sftext=str(self.ui.imageListWidget.item(self.pilFrameNumsWithSameQz[key][i]).text()).split('\t')
-                        self.ui.refQzListWidget.addItem('Qz= '+str(key)+'\t {S:F}= '+str({int(sftext[0].split('#')[1]):[int(sftext[1].split('#')[1])]})+'\t Abs= '+str([self.pilFrameAbsWithSameQz[key][i]]))
+                        it=self.ui.imageListWidget.item(self.pilFrameNumsWithSameQz[key][i])
+                        self.ui.refQzListWidget.addItem('Qz= '+str(key)+'\t {S:F}= '+str({itemScan(it):[itemFrame(it)]})+'\t Abs= '+str([self.pilFrameAbsWithSameQz[key][i]]))
+                        self.ui.refQzListWidget.item(self.ui.refQzListWidget.count()-1).setData(QZ_ROLE,float(key))
                         self.refSortedFrameNums[j]=[self.pilFrameNumsWithSameQz[key][i]]
                         j=j+1
         else:
             j=0
             for i in self.selectedPilFramesNums:
-                sftext=str(self.ui.imageListWidget.item(i).text()).split('\t')
-                self.ui.refQzListWidget.addItem('Qz= '+str(self.pilFileQzs[i])+'\t {S:F}= '+str({int(sftext[0].split('#')[1]):[int(sftext[1].split('#')[1])]})+'\t Abs='+str(self.pil_AbsNum[i]))
+                it=self.ui.imageListWidget.item(i)
+                self.ui.refQzListWidget.addItem('Qz= '+str(self.pilFileQzs[i])+'\t {S:F}= '+str({itemScan(it):[itemFrame(it)]})+'\t Abs='+str(self.pil_AbsNum[i]))
+                self.ui.refQzListWidget.item(self.ui.refQzListWidget.count()-1).setData(QZ_ROLE,float(self.pilFileQzs[i]))
                 self.refSortedFrameNums[j]=[i]
                 j=j+1
         # self.connect(self.ui.refQzListWidget, SIGNAL('itemSelectionChanged()'),self.refQzListSelectionChanged)
@@ -6096,7 +6148,7 @@ class MainWindow (QMainWindow):
         self.ui.refADDataPlotWidget.canvas.fig.clf()
         cmap=str(self.ui.pilCMapComboBox.currentText())
         self.refQzSelectedItems=self.ui.refQzListWidget.selectedItems()        
-        self.refQzSelected=float(str(self.refQzSelectedItems[0].text()).split()[1])
+        self.refQzSelected=itemQz(self.refQzSelectedItems[0])
         self.absfac=self.absorberModel()       
         self.dir=str(self.ui.refBGDirComboBox.currentText())
         if self.det=='Pilatus': 
@@ -6219,9 +6271,9 @@ class MainWindow (QMainWindow):
             return
         if self.refpatchindex==0: #regular ref
             comments=str(self.refQzSelectedItems[0].text()).split('\t')[1:]
-            self.refData.append([float(str(self.refQzSelectedItems[0].text()).split()[1]),self.fsig,self.fsigerr])
+            self.refData.append([itemQz(self.refQzSelectedItems[0]),self.fsig,self.fsigerr])
             self.refInfo.append('#'+comments[0]+'\t'+comments[1]+'\t#Comments:'+str(self.ui.refComLineEdit.text()))
-            self.ui.refDataListWidget.addItem('%.4f'%float(str(self.refQzSelectedItems[0].text()).split()[1])+'\t'+'%.4e'%self.fsig+'\t'+'%.4e'%self.fsigerr+'\t'+self.refInfo[-1])
+            self.ui.refDataListWidget.addItem('%.4f'%itemQz(self.refQzSelectedItems[0])+'\t'+'%.4e'%self.fsig+'\t'+'%.4e'%self.fsigerr+'\t'+self.refInfo[-1])
         else:  #pilatus patch ref
             self.ui.refDataListWidget.clear()
             self.ui.refNormRefListWidget.clear()
@@ -7323,7 +7375,7 @@ class MainWindow (QMainWindow):
                 self.cutData[i]=cuts.frame_cut(self.pilatus,self.selCutPilData[i],self.selCutPilErrorData[i],direction,ini,fin,
                                                self.cutGeometry(j),axes=axes,absfac=self.absfac,
                                                absnum=self.pilSelected_AbsNum[j],terms=self.selCutTerms.get(i))
-                self.cutLabel[i]=str(self.ui.imageListWidget.item(i).text().split('\t')[0])+' '+str(self.ui.imageListWidget.item(i).text().split('\t')[1])
+                self.cutLabel[i]=' '.join(itemLabels(self.ui.imageListWidget.item(i)))
         if self.ui.gixSumCheckBox.checkState()!=0:
             if self.ui.cutErrorbarCheckBox.checkState()!=0:
                 self.ui.cutPlotMplWidget.canvas.ax.errorbar(self.cutData[-1][:,0],self.cutData[-1][:,1],self.cutData[-1][:,2],fmt='o-',label=self.cutLabel[-1])
@@ -7388,7 +7440,7 @@ class MainWindow (QMainWindow):
             kw.append('bad_pixel_iterations=%d, bad_pixel_factor=%d' % (int(self.ui.pilBPCiteSpinBox.value()),int(self.ui.pilBPCfacSpinBox.value())))
         head='from lss_core import absorbers\n' if isinstance(absfac,absorbers.Foils) and any(self.pilSelected_AbsNum) else ''
         text=head+'cut = exp.cut(%r, %s)\n' % (scans,', '.join(kw))
-        first=int(self.ui.imageListWidget.item(0).text().split('\t')[0].split()[-1])
+        first=itemScan(self.ui.imageListWidget.item(0))
         if self.ui.gixSumCheckBox.checkState()!=0 and first!=min(scans):   # the window names the file after the list's first scan
             text+='cut.summed_label = %r\n' % ('S# %d' % first)
         return text+'cut.save(%r)' % name
@@ -8328,11 +8380,11 @@ class MainWindow (QMainWindow):
         if self.det=='Pilatus':
             if self.pilGIDshow==0 and self.pilGISAXSshow==0:
                 if self.ui.gixSumCheckBox.checkState()!=0:
-                    self.fname=self.saveFileName+str(self.ui.imageListWidget.item(0).text().split('\t')[0])+'_sumcut.txt'
+                    self.fname=self.saveFileName+itemLabels(self.ui.imageListWidget.item(0))[0]+'_sumcut.txt'
                     np.savetxt(self.fname,self.cutData[-1],fmt='%.4f\t%.4e\t%.4e')
                 else:
                     for i in self.selectedPilFramesNums:
-                        self.fname=self.saveFileName+str(self.ui.imageListWidget.item(i).text().split('\t')[0])+'_'+str(self.ui.imageListWidget.item(i).text().split('\t')[1])+'_cut.txt'
+                        self.fname=self.saveFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_cut.txt'
                         np.savetxt(self.fname,self.cutData[i],fmt='%.4f\t%.4e\t%.4e')
                 self.scriptLine(self.cutScript(self.saveFileName))
             else:
