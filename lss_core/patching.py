@@ -27,7 +27,7 @@ the gauntlet). **Guard** (``guard_ladder``; revised 2026-11-22 after the gauntle
 ``tests/tools/ref_patch_gauntlet.py``): the fits are tried from the
 largest window down (4, 2, 1 points either side, then the overlap alone),
 the order rising at each window from 4 (from 2 on the overlap alone) as
-far as the points allow, and the first whose χ² has p ≥ ``guard_p`` (0.3)
+far as the points allow, and the first whose χ² has p ≥ ``guard_p`` (0.7)
 is kept; if none, the most adequate, its error inflated. Before, the
 ladder was (4, 4), (4, 2), (2, 0) with p ≥ 0.01: a thick film's fringes
 or four coinciding points at a fringe minimum fit no quadratic, and the
@@ -130,9 +130,12 @@ def fresnel(q, qc=QC):
 
 
 MAX_ORDER = 7      # the guard's highest polynomial order (guard_ladder)
-# the guard keeps the first fit whose chi2 p-value is at least this (2026-11-22, the gauntlet:
-# 0.01 let model bias of 0.2-0.4 sigma through at 4 of 21 synthetic joins, 0.3 passes 19 of 21)
-GUARD_P = 0.3
+# the guard keeps the first fit whose chi2 p-value is at least this. 0.3 from 2026-11-22 (the gauntlet:
+# 0.01 let model bias of 0.2-0.4 sigma through at 4 of 21 synthetic joins, 0.3 passes 19 of 21); 0.7
+# since 2026-11-24 (study A, docs/studies/reflectivity_guard, C48: the bias at the five hard joins halves,
+# 0.24 -> 0.12 errors, for a smooth join's pull SD 1.00 -> 1.04; p 0.5-0.9 win 23 of 24 robustness
+# cells; the owner's rule: the best method, demonstrated, tested and presented, is the default)
+GUARD_P = 0.7
 # below this chi2 p-value even the best rung is called inadequate in the join's note (the guard's
 # threshold is a preference among rungs, not a test of adequacy; 2026-11-24, Main): 0.01, the guard
 # of before 2026-11-22
@@ -293,11 +296,15 @@ def guard_ladder(a, b, order=4, n_ext=N_EXT, max_order=MAX_ORDER):
 
 
 def joint_factor(a, b, order=4, n_ext=N_EXT, space='rrf', qc=QC, qoff=0.0, likelihood='poisson', prior=None,
-                 inflate=True, guard_p=GUARD_P, snr_min=0.0):
+                 inflate=True, guard_p=None, snr_min=0.0):
     """The joint fit at one join (module docstring): a ``JoinFit``. ``prior``:
     (δ_0, s_0) or None (a single join; for several use ``chain(prior=...)``,
-    which handles the correlations)."""
+    which handles the correlations). ``guard_p``: the
+    guard's p, by default ``GUARD_P`` as it is at the call (a study that was run
+    at another default can set ``GUARD_P`` for its run)."""
     from scipy.stats import chi2 as C2
+    if guard_p is None:
+        guard_p = GUARD_P
     tries = guard_ladder(a, b, order, n_ext) if guard_p else [(order, n_ext)]
     flags, last_err, best = [], None, None
 

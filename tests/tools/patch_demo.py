@@ -101,6 +101,12 @@ def survey(a, rc, bc):
     return 0
 
 
+# the report (docs/reports/patch_demo.md) quotes this run's numbers, made at the guard's p 0.3, the
+# default of 2026-11-22; the reader's default is 0.7 since 2026-11-24 (study A). The figures stay at the
+# report's p unless --guard-p says otherwise; the interactive window uses the reader's default.
+REPORT_GUARD_P = 0.3
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--mode', choices=('refl', 'burn'), default='refl')
@@ -117,10 +123,26 @@ def main(argv=None):
                          'bias, scatter and stable fraction per quantity')
     ap.add_argument('--methods', default='default',
                     help="--survey, reflectivity: 'default' (the window's four), 'all', or a comma-separated list")
+    ap.add_argument('--guard-p', type=float, default=None,
+                    help='the joint fit\'s guard p. Default: for --save, --views and --survey %g, the default '
+                         'when docs/reports/patch_demo.md was written; for the window the reader\'s own default '
+                         '(0.7 since 2026-11-24)' % REPORT_GUARD_P)
     ap.add_argument('--set', action='append', default=[], metavar='KEY=VALUE',
                     help='a setting of the window or of --views, e.g. truth=water, plan=edge, '
                          'counts=100, monitor=poisson, change=fade (repeatable)')
     a = ap.parse_args(argv)
+    from lss_core import patching
+    gp = a.guard_p
+    if gp is None:
+        gp = REPORT_GUARD_P if (a.save or a.views or a.survey) else patching.GUARD_P
+    saved, patching.GUARD_P = patching.GUARD_P, gp
+    try:
+        return _run(a)
+    finally:
+        patching.GUARD_P = saved
+
+
+def _run(a):
     rc, bc = configs(a.set, a.mode)
     if a.survey:
         return survey(a, rc, bc)

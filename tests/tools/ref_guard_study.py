@@ -100,8 +100,8 @@ GUARD_PS = (0.001, 0.003, 0.01, 0.03, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9)
 CHOICES = ('legacy', 'guard_p0.3', 'guard_p0.1', 'guard_p0.03', 'guard_p0.01', 'guard_off', 'average')
 ALL_CHOICES = (CHOICES + tuple('guard_p%g' % p for p in GUARD_PS if 'guard_p%g' % p not in CHOICES)
                + ('average_sqrt', 'average_all'))
-LABEL = {'legacy': 'legacy', 'guard_p0.3': 'p 0.3 (default)', 'guard_p0.1': 'p 0.1', 'guard_p0.03': 'p 0.03',
-         'guard_p0.01': 'p 0.01', 'guard_off': 'guard off', 'average': 'AICc average', 'guard_p0.5': 'p 0.5', 'guard_p0.7': 'p 0.7', 'guard_p0.9': 'p 0.9',
+LABEL = {'legacy': 'legacy', 'guard_p0.3': 'p 0.3 (old default)', 'guard_p0.1': 'p 0.1', 'guard_p0.03': 'p 0.03',
+         'guard_p0.01': 'p 0.01', 'guard_off': 'guard off', 'average': 'AICc average', 'guard_p0.5': 'p 0.5', 'guard_p0.7': 'p 0.7 (default)', 'guard_p0.9': 'p 0.9',
          'average_sqrt': 'AICc average, Buckland\'s σ', 'average_all': 'AICc average, all windows'}
 # categorical slots in a fixed order (the dataviz reference palette, light mode); legacy a neutral grey
 COLOR = {'guard_p0.3': '#2a78d6', 'guard_p0.1': '#eb6834', 'guard_p0.03': '#1baf7a', 'guard_p0.01': '#eda100',
@@ -474,7 +474,7 @@ def fig_a1(out, n_show=6):
             qf = np.linspace(w0, w1, 200)
             ax.plot(qf, off.curve(qf), color=COLOR['guard_off'], lw=1.2, ls='--', label='guard off (o4 ±2)')
             qf = np.linspace(q_own.min(), q_own.max(), 200)
-            ax.plot(qf, rf.curve(qf), color=COLOR['guard_p0.3'], lw=2.0, label='p 0.3 (default): chosen rung')
+            ax.plot(qf, rf.curve(qf), color=COLOR['guard_p0.3'], lw=2.0, label='p 0.3 (old default): chosen rung')
             fb = math.exp(est[0])
             for sc, idx, col, scale, lab in ((a, rf.ia, '#52514e', 1.0, 'scan a'), (b, rf.ib, '#eb6834', fb,
                                                                                     r'scan b $\times\,\hat f$')):

@@ -104,6 +104,8 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- The guard prefers fits with χ² p ≥ 0.7 (since 2026-11-24; 0.3 before):
+  stricter, so a fringe at a join biases the factor half as much.
 - A join's note: "the best fit of the ladder" means no curve reached the
   guard's preferred p but the fit is fine; "no adequate fit" means even the
   best curve fails at p 0.01. The error's inflation factor is given when

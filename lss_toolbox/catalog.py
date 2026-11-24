@@ -269,6 +269,9 @@ TOOLS = (
          variations=(
              V('Smoke run', 'The same figures from a few replicates (seconds instead of minutes).',
                'docs/reports/patch_demo.md#python tests/tools/patch_demo.py --save DIR', save=OUT, quick=True),
+             V('At today\'s guard (p 0.7)', 'The report\'s figures with the joint fit\'s guard at the reader\'s '
+               'default since 2026-11-24 (p 0.7, study A) instead of the report\'s p 0.3: pull SDs within 0.05.',
+               'docs/reports/patch_demo.md#Run at the joint fit\'s guard p 0.3', save=OUT, guard_p=0.7),
              V('The two default views', 'Only the window\'s two default views as PNG.',
                'docs/reports/patch_demo.md#python tests/tools/patch_demo.py --views', save='', views=OUT),
              V('Views: DPPC and a fading burn', 'The window\'s two views for a DPPC monolayer and a fading burn.',

@@ -206,6 +206,15 @@ foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by
      that is not an item, on a variation naming an option its script lacks,
      and on a committed figure no item claims (2026-11-23, F84).
 
+12. **The best method becomes the default** (owner, 2026-11-24): "make the best method the default
+   if it has been comprehensively demonstrated and tested and has a demonstrator presentation effort
+   behind it". So, before a default changes:
+   - a study with known truth and figures (a COMPARISONS row);
+   - tests that pin the new numbers;
+   - a demonstrator: a document and a Tools menu item, `docs/studies/` or `docs/reports/`.
+   Then make the switch, with its OUTPUT_DECISIONS row and the re-pins named one by one. Committed
+   products of earlier studies keep the default they were run at (they set it for their own run).
+
 ## Things that will bite you
 
 - The program loads `.ui` files and icons relative to the working
