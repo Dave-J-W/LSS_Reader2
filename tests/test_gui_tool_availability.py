@@ -41,3 +41,16 @@ def test_gid_patch_with_nothing_selected_says_so(window, qapp, recorder):
     qapp.processEvents()
     assert recorder.exceptions == []
     assert any('GID scans and their frames first' in m for m in recorder.messages)
+
+
+def test_gid_patch_on_frames_without_gid_levels_says_so(loaded, qapp, dataset, recorder):
+    """Found by the crash sweep (2026-11-24): GID Patch on reflectivity frames
+    raised ValueError (an empty array tested for truth in the GID patch). The
+    button now says what is needed; the detail goes to the log."""
+    sweep.state_pilatus_one_frame(loaded, qapp, dataset)
+    loaded.seriesWhere = {}                      # as if the kind were unknown: the button is enabled
+    loaded.updateToolAvailability()
+    loaded.gidPatchPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert any('no GID levels' in m for m in recorder.messages)
