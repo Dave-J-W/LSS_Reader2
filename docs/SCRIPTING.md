@@ -184,6 +184,12 @@ print(burn.summary())                          # verdicts, best models, the 5 % 
 burn.trends['centre'].table()                  # every model: chi2/dof, AICc, Δ, weight, parameters
 cols, values = burn.data()                     # time and each quantity with its error
 burn = exp.burn(14, estimator='moments', time='clock', threshold=0.10, qxy_range=(1.40, 1.52))
+d = exp.dose(14)                               # photons each point gives the sample (lss_core.dose, F98)
+d.per_point, d.cumulative(), d.total(), d.unit, d.notes, d.bounds
+exp.dose(14, unit='monitor')                   # Monc counts at 5 uA/V with the absorbers taken out: M/(A g)
+exp.dose(14, beam_mm=(2.0, 0.1))               # photons/mm2 of footprint, for a beam of that width and height
+burn = exp.burn(14, axis='dose')               # trends against the dose; the limit is a dose
+burn.dose, burn.dose_unit, burn.dose_scale     # the axis: NX 14 in '1e+12 photons' (dose_scale 1e12), 28.9 at the end
 ```
 
 Reflectivity geometry (Det_Th 0): the Ref Patch ROI per Monc (`slit`,

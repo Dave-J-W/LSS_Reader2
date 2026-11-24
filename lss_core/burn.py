@@ -80,12 +80,30 @@ class BurnResult:
     seconds: np.ndarray = None    # count time of each frame
     rows: tuple = None            # GID: the detector rows summed (first, last), both included
     limit_quantities: tuple = ('intensity', 'fwhm')   # what sets the limit (position: the user's choice)
+    axis: str = 'time'            # what the trends are fitted against: 'time' or 'dose' (F98)
+    dose: np.ndarray = None       # the dose since the first frame began, at the middle of each (lss_core.dose)
+    dose_unit: str = ''
+    dose_total: float = None      # to the end of the last frame
+    dose_scale: float = 1.0       # dose and dose_total are in units of this many (dose.engineering_scale)
+    dose_notes: list = field(default_factory=list)
+
+    @property
+    def x(self):
+        """The axis the trends are fitted against: ``t``, or ``dose`` on the dose axis."""
+        return self.dose if self.axis == 'dose' else self.t
+
+    def x_unit(self):
+        return self.dose_unit if self.axis == 'dose' else 's'
+
+    def span(self):
+        """The axis from 0 to the end of the last frame: ``duration()``, or the dose."""
+        return float(self.dose_total) if self.axis == 'dose' else self.duration()
 
     def safe_time(self, quantities=None):
         """(time, quantity): the shortest confident time to a ``threshold``
         change over ``quantities`` (default ``limit_quantities``: intensity
         and width; the position only when the user asks) (math.inf: none
-        within the horizon)."""
+        within the horizon). On the dose axis, a dose (``x_unit()``)."""
         best = (math.inf, '')
         use = self.limit_quantities if quantities is None else quantities
         for q, c in self.trends.items():
@@ -111,12 +129,15 @@ class BurnResult:
     def summary(self):
         lines = ['Burn test, scan %d (%s), %d frames over %.0f s (%s time)'
                  % (self.scan, self.kind, len(self.t), self.duration(), self.time)]
+        if self.axis == 'dose':
+            lines[0] += ', %.3g %s (against dose)' % (self.dose_total, self.dose_unit)
         for q, c in self.trends.items():
             lines.append(c.summary())
         t, q = self.safe_time()
         if q:
-            lines.append('limit: %s, %.0f%% change in ≥ %.3g s (%.0f%% confidence)'
-                         % (LABELS.get(q, q), 100 * self.threshold, t, 100 * self.trends[q].change.confidence))
+            lines.append('limit: %s, %.0f%% change in ≥ %.3g %s (%.0f%% confidence)'
+                         % (LABELS.get(q, q), 100 * self.threshold, t, self.x_unit(),
+                            100 * self.trends[q].change.confidence))
         return '\n'.join(lines)
 
     def table(self):
@@ -135,10 +156,16 @@ class BurnResult:
         """(columns, array): time and each quantity with its error."""
         cols = ['time_s']
         arr = [self.t]
+        if self.axis == 'dose':          # the time axis's files are as before
+            cols.append('dose_' + self.dose_unit.replace(' ', '_').replace('/', '_per_'))
+            arr.append(self.dose)
         for q, (y, s) in self.values.items():
             cols += [q, q + '_err']
             arr += [y, s]
         return cols, np.column_stack(arr)
+
+
+AXES = ('time', 'dose')
 
 
 def frame_times(columns, point_times, points, time='clock'):
@@ -482,7 +509,8 @@ def summary_text(res):
             out.append(('  Δ%s: ' % c.criterion if i == 0 else ' ' * (5 + len(c.criterion))) + ', '.join(ds[i:i + 2]))
         ch = c.change
         if ch is not None:
-            t = '> %.3g s' % ch.horizon if math.isinf(ch.confident) else '%.3g s' % ch.confident
+            u = res.x_unit() if hasattr(res, 'x_unit') else 's'
+            t = '> %.3g %s' % (ch.horizon, u) if math.isinf(ch.confident) else '%.3g %s' % (ch.confident, u)
             out.append('  %.0f %% in ≥ %s' % (100 * ch.threshold, t))
             out.append('    (%s%s)' % (SHORT[ch.model], ', extrap.' if ch.extrapolated else ''))
         out.append('')
@@ -490,7 +518,7 @@ def summary_text(res):
     if q:
         out.append('Limit (%s): %s' % (', '.join(LABELS.get(x, x).lower() for x in res.limit_quantities
                                                if x in res.trends), LABELS.get(q, q).lower()))
-        out.append('  %.0f %% in ≥ %.3g s' % (100 * res.threshold, t))
+        out.append('  %.0f %% in ≥ %.3g %s' % (100 * res.threshold, t, res.x_unit() if hasattr(res, 'x_unit') else 's'))
         out.append('  (%.0f %% confidence)' % (100 * res.trends[q].change.confidence))
     elif res.trends:
         out.append('No %.0f %% change' % (100 * res.threshold))
@@ -498,6 +526,8 @@ def summary_text(res):
     out.append('')
     out.append('%d frames, %.0f s' % (len(res.t), res.duration()))
     out.append('time: %s' % res.time)
+    if getattr(res, 'axis', 'time') == 'dose':
+        out.append('against dose: %.3g %s' % (res.dose_total, res.dose_unit))
     est = (res.reference or {}).get('estimator') if isinstance(res.reference, dict) else None
     if est:
         out.append('estimator: %s' % est)
@@ -537,14 +567,14 @@ def plot(res, fig, title='', residuals=False):
     fig.clf()
     qs = [q for q in ('intensity', 'centre', 'fwhm') if q in res.values]
     gs = fig.add_gridspec(len(qs), 2, width_ratios=[3.4, 1.0], wspace=0.42, hspace=0.12)
-    tt = np.linspace(0, res.duration(), 300)
+    tt = np.linspace(0, res.span(), 300)
     axes = []
     for k, q in enumerate(qs):
         ax = fig.add_subplot(gs[k, 0], sharex=axes[0] if axes else None)
         axes.append(ax)
         col = COLOURS[q]
         y, s = res.values[q]
-        ax.errorbar(res.t, y, s, fmt='o', color=col, ms=3, lw=0.8)
+        ax.errorbar(res.x, y, s, fmt='o', color=col, ms=3, lw=0.8)
         ax.set_ylabel(UNITS[res.kind].get(q, q), color=col, fontsize=8)
         ax.tick_params(axis='y', colors=col, labelsize=7)
         ax.tick_params(axis='x', labelsize=7)
@@ -575,7 +605,10 @@ def plot(res, fig, title='', residuals=False):
                 ax.axhline(inv(mk), color='0.6', lw=0.6, ls=(0, (4, 4)))
         if k < len(qs) - 1:
             ax.tick_params(axis='x', labelbottom=False)
-    axes[-1].set_xlabel('Time %s (s)' % ('under the beam' if res.time == 'exposure' else 'by the clock'), fontsize=8)
+    if res.axis == 'dose':
+        axes[-1].set_xlabel('Dose since the first frame (%s)' % res.dose_unit, fontsize=8)
+    else:
+        axes[-1].set_xlabel('Time %s (s)' % ('under the beam' if res.time == 'exposure' else 'by the clock'), fontsize=8)
     from matplotlib.lines import Line2D
     axes[0].legend(handles=[Line2D([], [], color='k', ls=ls, lw=1, label=m) for m, ls in STYLES.items()
                             if any(m in c.fits and c.fits[m].ok for c in res.trends.values())],

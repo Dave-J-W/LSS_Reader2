@@ -469,7 +469,8 @@ class Experiment:
     def burn(self, scan, points=None, time='clock', qxy_range=None, rows='mean', fit=None,
              models=None, threshold=0.05, confidence=0.95, slit=(21, 11), bg_offset=0.5, direction='H',
              errors=None, db_pos=None, bad_pixel_iterations=0, bad_pixel_factor=1, overdispersion=True,
-             estimator='template', trend_errors=None, limit=('intensity', 'fwhm')):
+             estimator='template', trend_errors=None, limit=('intensity', 'fwhm'), axis='time',
+             dose_unit='photons', beam_mm=None):
         """Burn test of one Pilatus scan (lss_core.burn): per frame the
         reflected intensity (Det_Th 0; ``slit``, ``bg_offset``,
         ``direction`` as Ref Patch) or the strongest GID peak's intensity,
@@ -489,7 +490,12 @@ class Experiment:
         relative change is what matters; owner, 2026-11-21) or 'given'
         (default for reflectivity: counting errors as they are). ``limit``:
         the quantities whose 5 % time sets ``safe_time`` (add 'centre' for
-        the position: the user's judgment)."""
+        the position: the user's judgment). ``axis``: what the trends are
+        fitted against, 'time' (default) or 'dose' (F98: the dose received
+        since the first frame began, at the middle of each frame,
+        lss_core.dose; ``dose_unit`` 'photons' or 'monitor', ``beam_mm``
+        (width, height) for photons/mm²); the limit is then a dose. The dose
+        is worked out whenever it can be (``res.dose``), whatever the axis."""
         from . import burn as burnmod
         from . import trends
         sc = self.scans[scan]
@@ -513,6 +519,19 @@ class Experiment:
         res = burnmod.BurnResult(scan, kind, t, used, idx, notes=[note], threshold=threshold,
                                  limit_quantities=tuple(limit),
                                  seconds=np.asarray(cols['Seconds'], float)[idx] if 'Seconds' in cols else None)
+        if axis not in burnmod.AXES:
+            raise ValueError('axis %r: one of %s' % (axis, ', '.join(burnmod.AXES)))
+        try:
+            d = self.dose(scan, idx, unit=dose_unit, beam_mm=beam_mm)
+            from . import dose as dosemod
+            sc_ = dosemod.engineering_scale(d.total())      # the axis in 1e12 photons etc.: lss_core.dose
+            res.dose, res.dose_total, res.dose_scale = d.cumulative() / sc_, d.total() / sc_, sc_
+            res.dose_unit, res.dose_notes = dosemod.scaled_unit(d.unit, sc_), list(d.notes)
+        except (ValueError, KeyError) as e:   # dose.DoseError is a ValueError
+            res.dose_notes = ['dose not known: %s' % e]
+            if axis == 'dose':
+                raise
+        res.axis = axis
         if kind == 'reflectivity':
             r = self.reflectivity([scan], slit=slit, bg_offset=bg_offset, direction=direction,
                                   points={scan: idx}, errors=errors, rrf=False,
@@ -548,9 +567,18 @@ class Experiment:
                 res.notes.append('%d frame(s) whose peak fit failed are left out' % bad)
         te = trend_errors or ('scatter' if kind == 'gid' else 'given')
         res.trend_errors = te
-        res.trends = burnmod.analyse(t, res.values, models or trends.MODELS, threshold, confidence, overdispersion,
+        res.trends = burnmod.analyse(res.x, res.values, models or trends.MODELS, threshold, confidence, overdispersion,
                                      errors=te)
         return res
+
+    def dose(self, scan, points=None, unit='photons', beam_mm=None, absfac=None, monitor='Monc'):
+        """The dose each point of ``scan`` gives the sample (lss_core.dose.scan_dose:
+        photons, or Monc counts at 5 µA/V with the absorbers taken out; per mm²
+        of footprint with ``beam_mm``, the beam's (width, height))."""
+        from . import dose as dosemod
+        sc = self.scans[scan]
+        return dosemod.scan_dose(sc.columns, sc.parameters, points, unit=unit, beam_mm=beam_mm, absfac=absfac,
+                                 monitor=monitor, scan=scan)
 
     def mean_frame(self, frames):
         """The mean of ``frames``' images per monitor count (rows × columns, as
