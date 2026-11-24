@@ -533,7 +533,7 @@ def summary(ver, lev, rdr, pool, conds, args, out):
         f.write('\n'.join(L) + '\n')
 
 
-def main(argv=None):
+def _main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--out', required=True)
     ap.add_argument('--design', default='core', choices=['core', 'grid', 'random', 'all'])
@@ -589,6 +589,21 @@ def main(argv=None):
         write_csv(os.path.join(a.out, 'pulls.csv'), rows)
     summary(ver, lv, rv, pool, conds, a, a.out)
     logf.close()
+
+
+# C36 (the reflectivity gauntlet) as run: the joint fit's guard at p 0.3, the default from 2026-11-22 until 2026-11-24, when it
+# became 0.7 (study A, docs/studies/reflectivity_guard). The committed products are that record, so
+# this tool keeps its run at 0.3; the reader's default is not changed by it (restored afterwards).
+GUARD_P_AS_RUN = 0.3
+
+
+def main(argv=None):
+    from lss_core import patching as _patching
+    saved, _patching.GUARD_P = _patching.GUARD_P, GUARD_P_AS_RUN
+    try:
+        return _main(argv)
+    finally:
+        _patching.GUARD_P = saved
 
 
 if __name__ == '__main__':

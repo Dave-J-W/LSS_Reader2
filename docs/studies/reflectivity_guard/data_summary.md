@@ -7,17 +7,17 @@ Made by `tests/tools/ref_guard_study.py` (its docstring says what each choice is
 Command line: `python tests/tools/ref_guard_study.py`
 
 - Replicates per join: 400 (gauntlet seeds for the five biased joins; seeds 0 … 399 for the first join of the covariance study).
-- Processes: 4. Total wall time: 71 s.
+- Processes: 4. Total wall time: 109 s.
 - The AICc average (a candidate, never a default): Akaike weights w_k ∝ exp(−ΔAICc_k/2), AICc = χ² + 2K + 2K(K+1)/(n−K−1), K = order + 2, over the rungs of the ladder's largest window (the same points); δ̄ = Σ w_k δ_k, σ² = Σ w_k (σ_k² + (δ_k − δ̄)²): Burnham & Anderson 2002 (eq. 6.12), the revised form of Buckland et al. 1997.
 
-- six joins (draws, rung tables, checks): 6.1 s
-- A5 precision run (2000 replicates per join): 25.0 s
-- A2–A6 figures: 4.2 s
-- A1: 1.1 s
-- A7 and A7b (200 seeds each): 10.4 s
-- A8: 0.5 s
-- R (800 replicates per cell): 13.1 s
-- RS, staggered grids (800 replicates per cell): 10.7 s
+- six joins (draws, rung tables, checks): 9.6 s
+- A5 precision run (2000 replicates per join): 38.1 s
+- A2–A6 figures: 7.2 s
+- A1: 2.1 s
+- A7 and A7b (200 seeds each): 16.8 s
+- A8: 0.6 s
+- R (800 replicates per cell): 18.6 s
+- RS, staggered grids (800 replicates per cell): 15.8 s
 
 ## C45 reproduced first
 
@@ -38,7 +38,7 @@ The stored-rung selection against `patching.joint_factor` itself (the first 10 r
 
 Mean pull / pull SD (n = 400 per join; failures in brackets when any).
 
-| join | legacy | p 0.3 (default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average |
+| join | legacy | p 0.3 (old default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average |
 |---|---|---|---|---|---|---|---|
 | layer_dppc j3 | +0.06 / 2.00 | -0.21 / 1.18 | -0.42 / 1.19 | -0.59 / 1.13 | -0.68 / 1.07 | +0.42 / 0.29 | -0.80 / 0.86 |
 | layer_film150 j2 | -0.21 / 1.68 | -0.31 / 1.03 | -0.48 / 1.00 | -0.62 / 0.94 | -0.70 / 0.88 | -0.44 / 0.09 | -0.94 / 0.66 |
@@ -49,7 +49,7 @@ Mean pull / pull SD (n = 400 per join; failures in brackets when any).
 
 The rest of the p sweep, and two forms of the average for comparison only: the same Akaike weights with Buckland et al. 1997's own σ = Σ w_k √(σ_k² + (δ_k − δ̄)²), and the average over every window (its weights compare χ² of different data):
 
-| join | p 0.001 | p 0.003 | p 0.2 | p 0.5 | p 0.7 | p 0.9 | AICc average, Buckland's σ | AICc average, all windows |
+| join | p 0.001 | p 0.003 | p 0.2 | p 0.5 | p 0.7 (default) | p 0.9 | AICc average, Buckland's σ | AICc average, all windows |
 |---|---|---|---|---|---|---|---|---|
 | layer_dppc j3 | -0.81 / 0.97 | -0.76 / 1.01 | -0.28 / 1.19 | -0.09 / 1.11 | -0.05 / 1.07 | -0.02 / 1.05 | -0.80 / 0.87 | +0.00 / 0.99 |
 | layer_film150 j2 | -0.82 / 0.79 | -0.77 / 0.84 | -0.38 / 1.01 | -0.22 / 1.00 | -0.19 / 0.96 | -0.18 / 0.96 | -0.94 / 0.67 | -0.06 / 0.65 |
@@ -60,7 +60,7 @@ The rest of the p sweep, and two forms of the average for comparison only: the s
 
 Bias of δ (×10⁻³) and median error σ̂ (×10⁻³):
 
-| join | legacy | p 0.3 (default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average |
+| join | legacy | p 0.3 (old default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average |
 |---|---|---|---|---|---|---|---|
 | layer_dppc j3 | -0.78 / 12.20 | -2.52 / 14.10 | -5.74 / 14.20 | -8.73 / 15.25 | -10.43 / 15.67 | +17.73 / 42.38 | -13.24 / 18.33 |
 | layer_film150 j2 | -1.29 / 9.24 | -2.85 / 10.34 | -4.89 / 10.50 | -6.88 / 11.45 | -8.53 / 12.40 | -43.81 / 100.42 | -15.32 / 16.91 |
@@ -98,7 +98,7 @@ Replicates 0–5 of each join type; the default's chosen rung (p 0.3) and its pu
 
 In median errors of each choice, with the rung chosen on noise-free data (order, points either side).
 
-| join | legacy | p 0.3 (default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average |
+| join | legacy | p 0.3 (old default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average |
 |---|---|---|---|---|---|---|---|
 | layer_dppc j3 | -0.00 (, ) | -1.03 (6, 2) | -1.03 (6, 2) | -0.96 (6, 2) | -0.93 (6, 2) | +0.42 (4, 2) | -0.79 (, ) |
 | layer_film150 j2 | +0.00 (, ) | -0.64 (6, 2) | -0.63 (6, 2) | -0.57 (6, 2) | -0.53 (6, 2) | -0.42 (4, 2) | -1.01 (, ) |
@@ -188,9 +188,9 @@ x: pull SD at the smooth first join; y: mean |pull mean| over the five biased jo
 | p 0.03 | 1.014 ± 0.039 | +0.009 ± 0.006 | 0.501 ± 0.021 | 0.964 |
 | p 0.1 | 1.023 ± 0.039 | +0.018 ± 0.008 | 0.399 ± 0.022 | 1.021 |
 | p 0.2 | 1.045 ± 0.038 | +0.040 ± 0.011 | 0.323 ± 0.023 | 1.042 |
-| p 0.3 (default) | 1.077 ± 0.039 | +0.072 ± 0.016 | 0.269 ± 0.023 | 1.048 |
+| p 0.3 (old default) | 1.077 ± 0.039 | +0.072 ± 0.016 | 0.269 ± 0.023 | 1.048 |
 | p 0.5 | 1.094 ± 0.039 | +0.090 ± 0.019 | 0.188 ± 0.022 | 1.030 |
-| p 0.7 | 1.118 ± 0.039 | +0.113 ± 0.021 | 0.148 ± 0.020 | 1.012 |
+| p 0.7 (default) | 1.118 ± 0.039 | +0.113 ± 0.021 | 0.148 ± 0.020 | 1.012 |
 | p 0.9 | 1.122 ± 0.040 | +0.118 ± 0.022 | 0.126 ± 0.018 | 1.000 |
 | guard off | 1.005 ± 0.039 | +0.000 ± 0.000 | 0.337 ± 0.012 | 0.481 |
 | legacy | 1.585 ± 0.127 | +0.580 ± 0.111 | 1.262 ± 1.150 | 28.320 |
@@ -208,9 +208,9 @@ The same seeds continued (the first 400 are the figure's). With 300 seeds C45 fo
 | p 0.03 | 0.930 ± 0.015 | +0.012 ± 0.003 | 0.468 ± 0.009 | 0.950 |
 | p 0.1 | 0.949 ± 0.015 | +0.031 ± 0.005 | 0.368 ± 0.010 | 0.997 |
 | p 0.2 | 0.975 ± 0.016 | +0.057 ± 0.007 | 0.289 ± 0.010 | 1.016 |
-| p 0.3 (default) | 1.001 ± 0.016 | +0.083 ± 0.008 | 0.237 ± 0.010 | 1.021 |
+| p 0.3 (old default) | 1.001 ± 0.016 | +0.083 ± 0.008 | 0.237 ± 0.010 | 1.021 |
 | p 0.5 | 1.027 ± 0.016 | +0.110 ± 0.010 | 0.162 ± 0.010 | 1.004 |
-| p 0.7 | 1.043 ± 0.016 | +0.125 ± 0.011 | 0.118 ± 0.010 | 0.984 |
+| p 0.7 (default) | 1.043 ± 0.016 | +0.125 ± 0.011 | 0.118 ± 0.010 | 0.984 |
 | p 0.9 | 1.044 ± 0.016 | +0.126 ± 0.012 | 0.097 ± 0.009 | 0.974 |
 | guard off | 0.918 ± 0.016 | +0.000 ± 0.000 | 0.329 ± 0.006 | 0.473 |
 | legacy | 1.473 ± 0.062 | +0.556 ± 0.056 | 0.286 ± 0.244 | 14.126 |
@@ -221,7 +221,7 @@ The first join's pull SD in consecutive blocks of 400 seeds (the first block is 
 | choice | seeds 0–399 | seeds 400–799 | seeds 800–1199 | seeds 1200–1599 | seeds 1600–1999 |
 |---|---|---|---|---|---|
 | guard off | 1.005 | 0.915 | 0.875 | 0.882 | 0.904 |
-| p 0.3 (default) | 1.077 | 1.010 | 0.944 | 0.995 | 0.971 |
+| p 0.3 (old default) | 1.077 | 1.010 | 0.944 | 0.995 | 0.971 |
 
 Why the guard off's pull SD is below 1 there: with its counting error alone (no inflation) it is 0.978; the inflate-only rule max(1, √(χ²/dof)) enlarges the error in 41 % of the replicates, by ×1.226 on average among those (2000 replicates).
 
@@ -229,7 +229,7 @@ Why the guard off's pull SD is below 1 there: with its counting error alone (no 
 
 Share of |pull| < 1 / share of |pull| < 2 (targets 0.683 / 0.954).
 
-| group | legacy | p 0.3 (default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average |
+| group | legacy | p 0.3 (old default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average |
 |---|---|---|---|---|---|---|---|
 | pooled | 0.582 / 0.837 | 0.649 / 0.931 | 0.639 / 0.933 | 0.638 / 0.936 | 0.639 / 0.936 | 0.840 / 0.980 | 0.637 / 0.943 |
 | layer_dppc j3 | 0.575 / 0.850 | 0.598 / 0.905 | 0.568 / 0.882 | 0.532 / 0.882 | 0.535 / 0.880 | 0.975 / 1.000 | 0.583 / 0.907 |
@@ -245,12 +245,12 @@ Two cases, seeds 0 … 199 each. **A7** (as asked): NX-like plan, 25 Å film (ρ
 
 | case | choice | failed | d bias | d SD | d RMS | d pull mean / SD | σ bias | σ SD | σ RMS | σ pull mean / SD | ρ pull SD | χ²/dof |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| A7 (25 Å) | p 0.3 (default) | 0 | -0.0009 | 0.0140 | 0.0140 | -0.07 / 1.06 | -0.0005 | 0.0032 | 0.0033 | -0.15 / 0.99 | 0.96 | 1.002 |
+| A7 (25 Å) | p 0.3 (old default) | 0 | -0.0009 | 0.0140 | 0.0140 | -0.07 / 1.06 | -0.0005 | 0.0032 | 0.0033 | -0.15 / 0.99 | 0.96 | 1.002 |
 | A7 (25 Å) | guard off | 0 | -0.0008 | 0.0141 | 0.0141 | -0.06 / 1.07 | -0.0005 | 0.0033 | 0.0033 | -0.15 / 1.00 | 0.96 | 0.995 |
 | A7 (25 Å) | p 0.01 | 0 | -0.0008 | 0.0141 | 0.0141 | -0.06 / 1.07 | -0.0005 | 0.0033 | 0.0033 | -0.15 / 1.00 | 0.96 | 0.995 |
 | A7 (25 Å) | AICc average | 0 | -0.0008 | 0.0141 | 0.0141 | -0.06 / 1.07 | -0.0005 | 0.0033 | 0.0033 | -0.15 / 1.00 | 0.96 | 0.995 |
 | A7 (25 Å) | legacy | 0 | -0.0008 | 0.0146 | 0.0146 | -0.06 / 1.13 | -0.0004 | 0.0034 | 0.0034 | -0.13 / 1.07 | 1.06 | 1.020 |
-| A7b (150 Å) | p 0.3 (default) | 0 | +0.0007 | 0.0239 | 0.0238 | +0.03 / 0.96 | +0.0000 | 0.0063 | 0.0063 | +0.00 / 0.90 | 1.00 | 1.001 |
+| A7b (150 Å) | p 0.3 (old default) | 0 | +0.0007 | 0.0239 | 0.0238 | +0.03 / 0.96 | +0.0000 | 0.0063 | 0.0063 | +0.00 / 0.90 | 1.00 | 1.001 |
 | A7b (150 Å) | guard off | 0 | +0.0007 | 0.0239 | 0.0238 | +0.03 / 0.96 | +0.0000 | 0.0066 | 0.0066 | +0.00 / 0.92 | 1.00 | 0.961 |
 | A7b (150 Å) | p 0.01 | 0 | +0.0006 | 0.0239 | 0.0239 | +0.03 / 0.97 | +0.0001 | 0.0063 | 0.0063 | +0.01 / 0.90 | 1.00 | 1.000 |
 | A7b (150 Å) | AICc average | 0 | +0.0006 | 0.0239 | 0.0238 | +0.03 / 0.97 | +0.0001 | 0.0063 | 0.0063 | +0.01 / 0.90 | 1.00 | 1.000 |
@@ -263,21 +263,21 @@ Factor ± error per choice beside the calibrated foil ratio (`absorbers.calibrat
 | join | absorbers | Monc/Monp | foil ratio | choice | factor | rung | z | within 1σ | within 2σ |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | 41 → 31 | 1.005 | 0.02311 ± 1.55 % | legacy | 0.02293 ± 0.00008 |  | -0.47 | yes | yes |
-| 1 | 41 → 31 | 1.005 | 0.02311 ± 1.55 % | p 0.3 (default) | 0.02298 ± 0.00010 | o4 ±2 | -0.34 | yes | yes |
+| 1 | 41 → 31 | 1.005 | 0.02311 ± 1.55 % | p 0.3 (old default) | 0.02298 ± 0.00010 | o4 ±2 | -0.34 | yes | yes |
 | 1 | 41 → 31 | 1.005 | 0.02311 ± 1.55 % | p 0.1 | 0.02298 ± 0.00010 | o4 ±2 | -0.34 | yes | yes |
 | 1 | 41 → 31 | 1.005 | 0.02311 ± 1.55 % | p 0.03 | 0.02298 ± 0.00010 | o4 ±2 | -0.34 | yes | yes |
 | 1 | 41 → 31 | 1.005 | 0.02311 ± 1.55 % | p 0.01 | 0.02298 ± 0.00010 | o4 ±2 | -0.34 | yes | yes |
 | 1 | 41 → 31 | 1.005 | 0.02311 ± 1.55 % | guard off | 0.02298 ± 0.00010 | o4 ±2 | -0.34 | yes | yes |
 | 1 | 41 → 31 | 1.005 | 0.02311 ± 1.55 % | AICc average | 0.02298 ± 0.00010 |  | -0.34 | yes | yes |
 | 2 | 31 → 24 | 4.353 | 0.06555 ± 0.94 % | legacy | 0.06452 ± 0.00052 |  | -1.29 | no | yes |
-| 2 | 31 → 24 | 4.353 | 0.06555 ± 0.94 % | p 0.3 (default) | 0.06447 ± 0.00040 | o4 ±2 (none adequate) | -1.48 | no | yes |
+| 2 | 31 → 24 | 4.353 | 0.06555 ± 0.94 % | p 0.3 (old default) | 0.06447 ± 0.00040 | o4 ±2 (none adequate) | -1.48 | no | yes |
 | 2 | 31 → 24 | 4.353 | 0.06555 ± 0.94 % | p 0.1 | 0.06447 ± 0.00040 | o4 ±2 | -1.48 | no | yes |
 | 2 | 31 → 24 | 4.353 | 0.06555 ± 0.94 % | p 0.03 | 0.06447 ± 0.00040 | o4 ±2 | -1.48 | no | yes |
 | 2 | 31 → 24 | 4.353 | 0.06555 ± 0.94 % | p 0.01 | 0.06447 ± 0.00040 | o4 ±2 | -1.48 | no | yes |
 | 2 | 31 → 24 | 4.353 | 0.06555 ± 0.94 % | guard off | 0.06447 ± 0.00040 | o4 ±2 | -1.48 | no | yes |
 | 2 | 31 → 24 | 4.353 | 0.06555 ± 0.94 % | AICc average | 0.06447 ± 0.00040 |  | -1.48 | no | yes |
 | 3 | 24 → 18 | 1.321 | 0.10386 ± 0.75 % | legacy | 0.10368 ± 0.00047 |  | -0.20 | yes | yes |
-| 3 | 24 → 18 | 1.321 | 0.10386 ± 0.75 % | p 0.3 (default) | 0.10369 ± 0.00041 | o4 ±2 | -0.19 | yes | yes |
+| 3 | 24 → 18 | 1.321 | 0.10386 ± 0.75 % | p 0.3 (old default) | 0.10369 ± 0.00041 | o4 ±2 | -0.19 | yes | yes |
 | 3 | 24 → 18 | 1.321 | 0.10386 ± 0.75 % | p 0.1 | 0.10369 ± 0.00041 | o4 ±2 | -0.19 | yes | yes |
 | 3 | 24 → 18 | 1.321 | 0.10386 ± 0.75 % | p 0.03 | 0.10369 ± 0.00041 | o4 ±2 | -0.19 | yes | yes |
 | 3 | 24 → 18 | 1.321 | 0.10386 ± 0.75 % | p 0.01 | 0.10369 ± 0.00041 | o4 ±2 | -0.19 | yes | yes |
@@ -288,24 +288,24 @@ Factor ± error per choice beside the calibrated foil ratio (`absorbers.calibrat
 
 A 150 Å film (four phases: ±1/8 and ±3/8 of a fringe at the join), three scans from `xs.chain_plan` with the join at Qz ≈ 0.2 Å⁻¹; the coarser scan's step sets the points per Kiessig period (the actual range over the phases in brackets); flux relative to the NX-like default. Criterion: √(mean over phases of (pull mean² + (pull SD − 1)²)/2). 800 replicates per cell.
 
-| points per period | flux | best | wins (share of 200 bootstrap resamples) | RMS legacy | RMS p 0.3 (default) | RMS p 0.1 | RMS p 0.03 | RMS p 0.01 | RMS guard off | RMS AICc average | RMS p 0.5 | RMS p 0.7 | RMS p 0.9 |
+| points per period | flux | best | wins (share of 200 bootstrap resamples) | RMS legacy | RMS p 0.3 (old default) | RMS p 0.1 | RMS p 0.03 | RMS p 0.01 | RMS guard off | RMS AICc average | RMS p 0.5 | RMS p 0.7 (default) | RMS p 0.9 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 3 (2.8–3.3) | ×1 | p 0.9 | p 0.7 8 %, p 0.9 90 % | 0.46 | 0.15 | 0.22 | 0.28 | 0.30 | 1.02 | 0.34 | 0.09 | 0.07 | 0.06 |
-| 3 (2.8–3.3) | ×0.1 | p 0.9 | p 0.7 24 %, p 0.9 70 % | 0.43 | 0.10 | 0.17 | 0.23 | 0.27 | 1.01 | 0.30 | 0.08 | 0.06 | 0.06 |
-| 3 (2.8–3.3) | ×0.01 | p 0.9 | p 0.7 29 %, p 0.9 71 % | 0.42 | 0.17 | 0.22 | 0.28 | 0.29 | 1.00 | 0.33 | 0.12 | 0.10 | 0.10 |
-| 4 (3.7–4.4) | ×1 | p 0.9 | p 0.7 8 %, p 0.9 90 % | 0.43 | 0.12 | 0.16 | 0.20 | 0.23 | 0.75 | 0.25 | 0.10 | 0.09 | 0.08 |
-| 4 (3.7–4.4) | ×0.1 | p 0.9 | p 0.5 8 %, p 0.7 6 %, p 0.9 86 % | 0.44 | 0.12 | 0.17 | 0.20 | 0.23 | 0.75 | 0.25 | 0.10 | 0.08 | 0.07 |
-| 4 (3.7–4.4) | ×0.01 | p 0.9 | p 0.3 (default) 12 %, p 0.5 16 %, p 0.7 30 %, p 0.9 42 % | 0.46 | 0.07 | 0.13 | 0.18 | 0.20 | 0.74 | 0.23 | 0.06 | 0.05 | 0.05 |
-| 6 (5.6–6.5) | ×1 | p 0.9 | p 0.3 (default) 14 %, p 0.5 8 %, p 0.7 28 %, p 0.9 48 % | 0.68 | 0.09 | 0.13 | 0.18 | 0.25 | 0.56 | 0.26 | 0.09 | 0.08 | 0.08 |
-| 6 (5.6–6.5) | ×0.1 | p 0.9 | p 0.7 10 %, p 0.9 86 % | 0.52 | 0.10 | 0.12 | 0.15 | 0.19 | 0.53 | 0.20 | 0.10 | 0.08 | 0.08 |
-| 6 (5.6–6.5) | ×0.01 | p 0.9 | p 0.1 5 %, p 0.7 18 %, p 0.9 74 % | 1.01 | 0.09 | 0.10 | 0.17 | 0.24 | 0.52 | 0.25 | 0.07 | 0.06 | 0.05 |
-| 10 (9.3–10.9) | ×1 | p 0.9 | p 0.7 12 %, p 0.9 84 % | 0.52 | 0.09 | 0.11 | 0.13 | 0.13 | 0.13 | 0.13 | 0.07 | 0.06 | 0.04 |
-| 10 (9.3–10.9) | ×0.1 | p 0.7 | p 0.3 (default) 27 %, p 0.5 14 %, p 0.7 36 %, p 0.9 20 % | 0.42 | 0.06 | 0.09 | 0.10 | 0.11 | 0.11 | 0.11 | 0.05 | 0.04 | 0.05 |
-| 10 (9.3–10.9) | ×0.01 | p 0.9 | p 0.3 (default) 5 %, p 0.5 8 %, p 0.7 8 %, p 0.9 78 % | 0.40 | 0.09 | 0.11 | 0.11 | 0.13 | 0.13 | 0.13 | 0.08 | 0.07 | 0.06 |
+| 3 (2.8–3.3) | ×1 | p 0.9 | p 0.7 (default) 8 %, p 0.9 90 % | 0.46 | 0.15 | 0.22 | 0.28 | 0.30 | 1.02 | 0.34 | 0.09 | 0.07 | 0.06 |
+| 3 (2.8–3.3) | ×0.1 | p 0.9 | p 0.7 (default) 24 %, p 0.9 70 % | 0.43 | 0.10 | 0.17 | 0.23 | 0.27 | 1.01 | 0.30 | 0.08 | 0.06 | 0.06 |
+| 3 (2.8–3.3) | ×0.01 | p 0.9 | p 0.7 (default) 29 %, p 0.9 71 % | 0.42 | 0.17 | 0.22 | 0.28 | 0.29 | 1.00 | 0.33 | 0.12 | 0.10 | 0.10 |
+| 4 (3.7–4.4) | ×1 | p 0.9 | p 0.7 (default) 8 %, p 0.9 90 % | 0.43 | 0.12 | 0.16 | 0.20 | 0.23 | 0.75 | 0.25 | 0.10 | 0.09 | 0.08 |
+| 4 (3.7–4.4) | ×0.1 | p 0.9 | p 0.5 8 %, p 0.7 (default) 6 %, p 0.9 86 % | 0.44 | 0.12 | 0.17 | 0.20 | 0.23 | 0.75 | 0.25 | 0.10 | 0.08 | 0.07 |
+| 4 (3.7–4.4) | ×0.01 | p 0.9 | p 0.3 (old default) 12 %, p 0.5 16 %, p 0.7 (default) 30 %, p 0.9 42 % | 0.46 | 0.07 | 0.13 | 0.18 | 0.20 | 0.74 | 0.23 | 0.06 | 0.05 | 0.05 |
+| 6 (5.6–6.5) | ×1 | p 0.9 | p 0.3 (old default) 14 %, p 0.5 8 %, p 0.7 (default) 28 %, p 0.9 48 % | 0.68 | 0.09 | 0.13 | 0.18 | 0.25 | 0.56 | 0.26 | 0.09 | 0.08 | 0.08 |
+| 6 (5.6–6.5) | ×0.1 | p 0.9 | p 0.7 (default) 10 %, p 0.9 86 % | 0.52 | 0.10 | 0.12 | 0.15 | 0.19 | 0.53 | 0.20 | 0.10 | 0.08 | 0.08 |
+| 6 (5.6–6.5) | ×0.01 | p 0.9 | p 0.1 5 %, p 0.7 (default) 18 %, p 0.9 74 % | 1.01 | 0.09 | 0.10 | 0.17 | 0.24 | 0.52 | 0.25 | 0.07 | 0.06 | 0.05 |
+| 10 (9.3–10.9) | ×1 | p 0.9 | p 0.7 (default) 12 %, p 0.9 84 % | 0.52 | 0.09 | 0.11 | 0.13 | 0.13 | 0.13 | 0.13 | 0.07 | 0.06 | 0.04 |
+| 10 (9.3–10.9) | ×0.1 | p 0.7 (default) | p 0.3 (old default) 27 %, p 0.5 14 %, p 0.7 (default) 36 %, p 0.9 20 % | 0.42 | 0.06 | 0.09 | 0.10 | 0.11 | 0.11 | 0.11 | 0.05 | 0.04 | 0.05 |
+| 10 (9.3–10.9) | ×0.01 | p 0.9 | p 0.3 (old default) 5 %, p 0.5 8 %, p 0.7 (default) 8 %, p 0.9 78 % | 0.40 | 0.09 | 0.11 | 0.11 | 0.13 | 0.13 | 0.13 | 0.08 | 0.07 | 0.06 |
 
 Pull SD (mean over the four phases):
 
-| points per period | flux | legacy | p 0.3 (default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average | p 0.5 | p 0.7 | p 0.9 |
+| points per period | flux | legacy | p 0.3 (old default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average | p 0.5 | p 0.7 (default) | p 0.9 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 3 | ×1 | 1.56 | 1.02 | 0.98 | 0.96 | 0.93 | 0.21 | 0.89 | 1.01 | 1.01 | 1.00 |
 | 3 | ×0.1 | 1.55 | 1.04 | 1.01 | 0.98 | 0.95 | 0.21 | 0.91 | 1.03 | 1.02 | 1.02 |
@@ -322,7 +322,7 @@ Pull SD (mean over the four phases):
 
 RMS over phases of the pull mean:
 
-| points per period | flux | legacy | p 0.3 (default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average | p 0.5 | p 0.7 | p 0.9 |
+| points per period | flux | legacy | p 0.3 (old default) | p 0.1 | p 0.03 | p 0.01 | guard off | AICc average | p 0.5 | p 0.7 (default) | p 0.9 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 3 | ×1 | 0.17 | 0.20 | 0.31 | 0.39 | 0.42 | 1.20 | 0.46 | 0.13 | 0.10 | 0.08 |
 | 3 | ×0.1 | 0.21 | 0.14 | 0.24 | 0.32 | 0.38 | 1.18 | 0.41 | 0.10 | 0.08 | 0.07 |
@@ -345,15 +345,15 @@ Each figure `X.png` has its numbers in `X.csv` (A2 also `A2_pulls_all.csv`, ever
 
 As R, with the two scans sharing no Qz at the join (`xs.chain_plan(grid='staggered')`). RMS of (pull mean, pull SD − 1) per choice; the winner and the share of bootstrap resamples it wins.
 
-| points per period | flux | best | legacy: RMS / pull SD | p 0.3 (default): RMS / pull SD | p 0.1: RMS / pull SD | p 0.03: RMS / pull SD | p 0.01: RMS / pull SD | guard off: RMS / pull SD | AICc average: RMS / pull SD | p 0.5: RMS / pull SD | p 0.7: RMS / pull SD | p 0.9: RMS / pull SD |
+| points per period | flux | best | legacy: RMS / pull SD | p 0.3 (old default): RMS / pull SD | p 0.1: RMS / pull SD | p 0.03: RMS / pull SD | p 0.01: RMS / pull SD | guard off: RMS / pull SD | AICc average: RMS / pull SD | p 0.5: RMS / pull SD | p 0.7 (default): RMS / pull SD | p 0.9: RMS / pull SD |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 3 | ×0.01 | p 0.9 (46 %) | 1.52 / 2.95 | 0.13 / 1.03 | 0.21 / 1.00 | 0.26 / 0.99 | 0.30 / 0.98 | 0.65 / 0.67 | 0.50 / 0.83 | 0.11 / 1.02 | 0.11 / 1.03 | 0.11 / 1.02 |
-| 3 | ×0.1 | p 0.7 (32 %) | 1.56 / 2.71 | 0.12 / 1.03 | 0.18 / 1.02 | 0.23 / 1.00 | 0.25 / 1.00 | 0.64 / 0.69 | 0.47 / 0.86 | 0.08 / 1.03 | 0.07 / 1.03 | 0.07 / 1.03 |
+| 3 | ×0.1 | p 0.7 (default) (32 %) | 1.56 / 2.71 | 0.12 / 1.03 | 0.18 / 1.02 | 0.23 / 1.00 | 0.25 / 1.00 | 0.64 / 0.69 | 0.47 / 0.86 | 0.08 / 1.03 | 0.07 / 1.03 | 0.07 / 1.03 |
 | 3 | ×1 | p 0.5 (48 %) | 0.74 / 2.00 | 0.12 / 1.02 | 0.18 / 0.97 | 0.22 / 0.96 | 0.26 / 0.94 | 0.64 / 0.67 | 0.48 / 0.83 | 0.07 / 1.01 | 0.07 / 1.02 | 0.07 / 1.02 |
 | 4 | ×0.01 | p 0.9 (52 %) | 2.44 / 3.55 | 0.15 / 1.05 | 0.22 / 1.01 | 0.28 / 0.97 | 0.32 / 0.96 | 0.40 / 0.87 | 0.40 / 0.87 | 0.12 / 1.05 | 0.10 / 1.04 | 0.10 / 1.04 |
 | 4 | ×0.1 | p 0.9 (94 %) | 1.08 / 2.50 | 0.15 / 1.07 | 0.22 / 1.04 | 0.29 / 0.98 | 0.33 / 0.96 | 0.40 / 0.91 | 0.39 / 0.91 | 0.11 / 1.08 | 0.09 / 1.07 | 0.08 / 1.06 |
 | 4 | ×1 | p 0.9 (79 %) | 1.23 / 2.61 | 0.12 / 1.07 | 0.18 / 1.02 | 0.25 / 0.98 | 0.29 / 0.96 | 0.39 / 0.86 | 0.39 / 0.86 | 0.10 / 1.08 | 0.09 / 1.08 | 0.08 / 1.07 |
-| 6 | ×0.01 | p 0.3 (default) (24 %) | 0.98 / 2.29 | 0.05 / 0.99 | 0.05 / 0.95 | 0.06 / 0.93 | 0.07 / 0.92 | 0.07 / 0.92 | 0.07 / 0.92 | 0.05 / 1.01 | 0.05 / 1.03 | 0.05 / 1.03 |
+| 6 | ×0.01 | p 0.3 (old default) (24 %) | 0.98 / 2.29 | 0.05 / 0.99 | 0.05 / 0.95 | 0.06 / 0.93 | 0.07 / 0.92 | 0.07 / 0.92 | 0.07 / 0.92 | 0.05 / 1.01 | 0.05 / 1.03 | 0.05 / 1.03 |
 | 6 | ×0.1 | p 0.9 (40 %) | 1.29 / 2.57 | 0.07 / 1.02 | 0.07 / 0.97 | 0.08 / 0.96 | 0.09 / 0.94 | 0.08 / 0.94 | 0.08 / 0.94 | 0.06 / 1.04 | 0.06 / 1.05 | 0.05 / 1.05 |
 | 6 | ×1 | p 0.9 (44 %) | 1.08 / 2.43 | 0.04 / 0.99 | 0.06 / 0.94 | 0.07 / 0.92 | 0.07 / 0.92 | 0.08 / 0.91 | 0.08 / 0.91 | 0.05 / 1.01 | 0.04 / 0.99 | 0.04 / 0.99 |
 | 10 | ×0.01 | p 0.5 (44 %) | 1.05 / 2.35 | 0.05 / 1.00 | 0.08 / 0.95 | 0.09 / 0.94 | 0.09 / 0.93 | 0.09 / 0.93 | 0.09 / 0.93 | 0.04 / 1.02 | 0.04 / 1.03 | 0.05 / 1.03 |

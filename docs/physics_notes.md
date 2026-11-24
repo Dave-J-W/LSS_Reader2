@@ -5548,3 +5548,38 @@ It is so: the last tab, after 2D_Plot (seen in a window: SpecPlot,
 Pilatus, Reflectivity, Line/Area Cuts, MCA, Plot, 2D_Plot, Timeline).
 Verified by: test (`test_gui_timeline.py::test_the_tab_is_last_and_says_what_to_do_before_a_file`).
 
+### 2026-11-24 — The owner's rule for defaults, and the join guard made p 0.7
+
+**Owner, 2026-11-24 (to Main):** "Make the best method the default if it has been comprehensively demonstrated and tested and has a demonstrator presentation effort behind it".
+It is AGENTS.md rule 12.
+
+**Applied, the same day:**
+- **The join guard is now p 0.7** (`patching.GUARD_P`). It meets the
+  rule: study A (C48) has six joins on known truth, 400–2000
+  replicates, two robustness maps, downstream fits and the real NX
+  joins. It has tests, figures, a Tools menu item, the summary and the
+  ELI5 rationale.
+- **Before → after, on NX school 6–9:** the factors, rungs and covariance
+  are identical. NX's split test (six real scans cut in two with a known
+  factor 1.25) gives the default an RMS pull of 1.13 before and 1.00
+  after.
+- **The join note came first, in its own commit.** At a strict guard
+  many good fits miss the threshold, and the note had called them "no
+  adequate fit" (117 of 300 smooth synthetic joins at p 0.7, none of
+  them with p < 0.01). Now it reads "the best fit of the ladder". Only
+  below p 0.01 does it read "no adequate fit".
+- **Earlier studies keep their own runs at p 0.3,** with a note in each
+  tool. That is C35 (downstream covariance), C36 (the gauntlet) and C45
+  (biased joins). Their committed products reproduce exactly, the full
+  C36 gauntlet included. So does the patch demonstrator's report, whose
+  text quotes its run: its figures stay at 0.3 (`--guard-p`), with a note
+  and a Tools menu variation at 0.7. Its interactive window uses the
+  reader's default.
+- **P1 for "Fit lines" is not yet the default.** Its demonstrator, the
+  wrap-up the owner asked for (`docs/reports/mca_fit_demo.md`), is not
+  done. It becomes the default with that wrap-up (tools man).
+
+Verified: by tests (`test_patching`, re-pinned with the old state kept
+at p 0.3), and by runs (the audit, the NX survey, C45 and C35
+reproduced).
+
