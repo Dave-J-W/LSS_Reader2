@@ -7137,7 +7137,7 @@ class MainWindow (QMainWindow):
         if self.ui.refLegendCheckBox.checkState()!=0:
             self.ui.refRefDataPlotwidget.canvas.ax.legend(loc=self.ui.refLegendLocComboBox.currentIndex()+1,frameon=False,scatterpoints=0,numpoints=1)
         try:
-            self.ui.refRefDataPlotwidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
+            self.ui.refRefDataPlotwidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(self.refResultScans()))
         except:
             pass
         self.ui.refRefDataPlotwidget.canvas.draw()
@@ -8040,7 +8040,7 @@ class MainWindow (QMainWindow):
     def refWorkbookItems(self):
         """The reflectivity on show as workbook items (R, and R/RF when made);
         a Ref Patch's join table goes into the settings (F96)."""
-        scans=sorted(int(n) for n in self.selectedScanNums)
+        scans=self.refResultScans()
         d=np.asarray(self.normRefData,float)
         cols=['Qz','R','dR','dQz'][:d.shape[1]]
         settings=dict(command=str(getattr(self,'command','')))
@@ -8053,6 +8053,14 @@ class MainWindow (QMainWindow):
             r=np.asarray(rrf,float)
             items.append(dict(scans=scans,data=r,columns=['Qz','R/RF','d(R/RF)','dQz'][:r.shape[1]],label='R/RF'))
         return items
+
+    def refResultScans(self):
+        """The scans of the reflectivity on show: those of the Ref Patch (less
+        any dropped in the identical-scans window), not the scans selected
+        now (TODO area I, 2026-11-22); for Analyze, the selection."""
+        if getattr(self,'refpatchindex',0)==1 and hasattr(self,'refScanList'):
+            return [int(n) for n in self.refScanList if n not in getattr(self,'refDroppedScans',[])]
+        return sorted(int(n) for n in self.selectedScanNums)
 
     # ---- F96 (owner, 2026-11-23, Q-UI-B5): one line under the result saying how it was made ----
 
