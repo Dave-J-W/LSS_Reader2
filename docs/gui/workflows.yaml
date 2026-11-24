@@ -663,6 +663,16 @@ workflows:
         issues:
           - "One dialog per join (3 for NX 6-9); the method preference is in File > Preferences, not in the dialog"
           - "Dropped points are typed as indices, deleted from the arrays, not drawn (F16, D2); Back undoes a drop or a join and Cancel says so (F96, 2026-11-24)"
+      - id: ref.compare
+        do: "Compare the saved reflectivities of this file: overlaid by series, time or sx, with ratios to the first; new ones appear as they are saved"
+        where: Compare tab
+        controls: [compareTab, compareListWidget, comparePlotWidget, compareOrderComboBox, compareRatioCheckBox, compareRrfCheckBox, compareFollowCheckBox, compareInfoLabel]
+        user_decides: which curves to compare; the order
+        automatic: partly
+        could_be_automatic: "tick every curve of the selected series at once"
+        known_from: owner 2026-11-23 (F80, Q-REF-5); test tests/test_gui_compare.py
+        issues:
+          - "Export with a proposed name and the hand-over to xmodfit (Q-REF-6) not yet built"
       - id: ref.view
         do: The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files
         where: Reflectivity tab (Ref / Norm Ref lists, plot)

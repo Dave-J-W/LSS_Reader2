@@ -356,6 +356,22 @@ Each line: feature — where — default — script — notes entry (date).
   the fit's note. It stays with the result: it is in the tooltip of the line
   under the plot, and it is saved with the result in the workbook.
 
+### The Compare tab (F80, F105, 2026-11-24)
+- Just left of Timeline, the **Compare** tab lists every reflectivity
+  saved in the SPEC file's workbook, whether saved automatically or with
+  Save, each with its version and scans. Tick the ones to compare; hover
+  an item for its series, the time it was saved, the sample position sx
+  and its note.
+- The plot overlays the ticked curves (log R against Qz). With **Ratio to
+  the first**, a panel below shows each curve divided by the first ticked
+  one, over the Qz range both cover. This is the check for stability from
+  place to place and over time.
+- **Order by** series, time saved or sx. **R/R_F** lists the saved R/R_F
+  curves instead.
+- **Follow new** (on by default) ticks each curve as it is saved, so the
+  comparison keeps itself up to date while data come in.
+- Earlier files on disk are still loaded on the Reflectivity tab.
+
 ### The Timeline tab (F83, 2026-11-24)
 - The last tab shows the session on one time axis, on the file's local
   clock. From top to bottom:

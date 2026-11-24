@@ -5531,3 +5531,26 @@ Verified by: tested (`test_timeline.py::test_notes_round_trip_through_saved_rows
 `test_gui_timeline.py`: an answer kept and redrawn, a note added and
 cancelled, the right-click menu). No output number changes.
 
+### 2026-11-24 — F80 / F105: the Compare tab and the ratio of two reduced curves
+
+The owner's F80 (compare reduced data across places and over time, for
+stability) and Q-REF-5 (a tab only for comparing, fed by the workbook,
+"provided the new data auto-update"). Built: `lss_core.compare` (no Qt)
+and the Compare tab. Verified by: tested (`tests/test_compare.py`,
+`tests/test_gui_compare.py`).
+
+- **The ratio** of curve 2 over curve 1 is taken on curve 1's Qz inside
+  the common range, with curve 2 interpolated linearly in log R against
+  log Qz. Above the critical edge R ≈ (Qc/2Qz)⁴ (Fresnel), and that
+  interpolation follows a power law exactly. Measured on a synthetic
+  Qz⁻⁴ curve on a coarser grid: ratio 2.000 to 1e-9; interpolating log R
+  against Qz instead was up to 4 % off at low Qz. This is the reason for
+  the choice.
+- **The error** adds relative errors in quadrature,
+  σ_r = r √((σ₁/R₁)² + (σ₂/R₂)²) (independent values; Bevington and
+  Robinson, ch. 3, from memory). The interpolation correlates neighbouring
+  ratio points, which this ignores.
+- **Updating:** the tab re-reads the workbook when shown and after every
+  save or live remake while it is on show; "Follow new" ticks new curves.
+  No output number changes.
+

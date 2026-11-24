@@ -369,3 +369,14 @@ Notes on the timeline are workbook Saved rows of kind `note`:
 reads them back, and `timeline.answers(notes)(event)` gives the latest
 answer to a "set sh 0: new sample?".
 
+## Comparing saved curves (2026-11-24)
+
+    from lss_core import compare, workbook
+    wb = workbook.Workbook('20260923_reader.xlsx')
+    curves = compare.order(compare.entries(wb), 'time')      # or 'series', 'sx' (pass positions={scan: sx})
+    q, r, s = compare.ratio(curves[0].data, curves[1].data)   # the second over the first, on the first's Qz
+
+`entries` reads the saved reflectivities (label 'R', or 'R/RF') with their
+data. `ratio` interpolates the second curve in log R against log Qz and adds
+the relative errors in quadrature.
+
