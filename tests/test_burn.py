@@ -68,10 +68,19 @@ def test_reflectivity_burn_recovers_known_decay(burn, qapp, recorder):
 
 def test_burn_dialog_refuses_a_scan_that_varies(loaded, qapp, dataset, recorder):
     """A reflectivity scan (Qz changes from frame to frame) is not a burn
-    test; the user is told and no dialog opens."""
+    test. Since 2026-11-23 (owner, Q-UI-A10) Burn Test is greyed out for a
+    reflectivity series, its tooltip saying why; where the series kind is not
+    known, a click still refuses with a message and no dialog opens."""
     sweep.state_pilatus_two_scans_all_frames(loaded, qapp, dataset)
+    button = loaded.ui.pilBurnPushButton
+    assert loaded.selectionKind() == 'reflectivity'
+    assert not button.isEnabled()
+    assert 'reflectivity series; this needs a burn scan' in button.toolTip()
+    loaded.seriesWhere = {}                       # the kind unknown: nothing is greyed out
+    loaded.updateToolAvailability()
+    assert button.isEnabled()
     recorder.messages.clear()
-    loaded.ui.pilBurnPushButton.click()
+    button.click()
     qapp.processEvents()
     assert recorder.exceptions == []
     assert recorder.messages == [

@@ -220,7 +220,7 @@
   does: "Opens the Reflectivity tab with the selected frames' Qz list for ROI analysis"
   workflows: [reflectivity]
   needs: "Pilatus frames selected"
-  shown: always
+  shown: "enabled, but greyed out (tooltip says what is needed) when the selection is a series of another known kind (Q-UI-A10, 2026-11-23)"
   tooltip: false
   notes: "Same text as the Reflectivity tab name; reads as navigation. Apex tab has a dead copy."
 - id: pilRefPatchPushButton
@@ -231,7 +231,7 @@
   does: "Patches the selected reflectivity scans into one curve (joint fit by default) in the Ref Patch window"
   workflows: [reflectivity]
   needs: "frames of two or more specular scans selected"
-  shown: always
+  shown: "enabled, but greyed out (tooltip says what is needed) when the selection is a series of another known kind (Q-UI-A10, 2026-11-23)"
   tooltip: false
   notes: "Main reflectivity reduction, but no tooltip and no visual weight; its settings are in File > Preferences and on the Reflectivity tab (slits, BG offset)."
 - id: pilHSlitLineEdit
@@ -253,7 +253,7 @@
   does: "Action menu: GID Patch, GID Patch Relax, Save GID, Form Factor, Worksheet, Save to workbook ('GID' is the heading)"
   workflows: [gid]
   needs: "frames of a GID series (ascan dth) selected"
-  shown: always
+  shown: "enabled, but greyed out (tooltip says what is needed) when the selection is a series of another known kind (Q-UI-A10, 2026-11-23)"
   tooltip: false
   notes: "A combo box used as a menu: the last action stays as its text (state looks like a mode), choosing the same item again needs 'activated'. 'Worksheet' and 'Save to workbook' added in code. Pinhole patch vs legacy patch is decided by the Pinhole box, not visible here. Item tooltips absent."
 - id: gisaxsComboBox
@@ -275,7 +275,7 @@
   does: "Opens the Burn test dialog (ROI or GID intensity vs time, trends, fits) for repeated frames at one Q"
   workflows: [burn-ref, burn-gid]
   needs: "frames of one burn scan (same Qz and Qx) selected"
-  shown: always
+  shown: "enabled, but greyed out (tooltip says what is needed) when the selection is a series of another known kind (Q-UI-A10, 2026-11-23)"
   tooltip: false
   notes: "Top-priority workflow behind an untooltipped button in the middle of the action row. Fluorescence burn tests are on the MCA tab (inventory B)."
 - id: pilGioxsPushButton
@@ -330,7 +330,7 @@
   does: "Patches the GID levels of the selected scans into a map (was the drop-down's GID Patch)"
   workflows: [gid]
   needs: "GID scans with frames"
-  shown: always
+  shown: "enabled, but greyed out (tooltip says what is needed) when the selection is a series of another known kind (Q-UI-A10, 2026-11-23)"
   tooltip: true
   notes: "Added 2026-11-23 (owner, Q-GID-1, Q-GID-5: GID Patch is the common action, worksheet beside it). The drop-down keeps GID Patch Relax, Save GID, Form Factor, Save to workbook."
 - id: gidWorksheetPushButton

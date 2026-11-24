@@ -297,6 +297,13 @@ Each line: feature — where — default — script — notes entry (date).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.
 
+### Greyed-out tools (2026-11-23, Q-UI-A10)
+- On the Pilatus tab, Reflectivity and Ref Patch need a reflectivity series,
+  GID Patch and the GID drop-down a GID series, and Burn Test a burn scan.
+  When the selected scans are all of one known kind, the tools for other
+  kinds are greyed out and their tooltip says what is needed. With no known
+  kind, or a mixed selection, everything stays enabled.
+
 ### Reduction options (F86, 2026-11-23)
 - **Preferences > Reduction options** (first on the page) chooses, for each
   action that has a legacy and a new path, which one it takes; nothing is

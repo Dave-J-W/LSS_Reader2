@@ -871,6 +871,7 @@ class MainWindow (QMainWindow):
                 where.setdefault(n,(s,'scan %d of %s' % (i,'?' if s.n is None else s.n),s.kind))
             for n,r in s.aux:
                 where.setdefault(n,(s,r,'alignment' if r=='align' else s.kind))
+        self.seriesWhere=where          # scan -> (series, role, kind): the tools' availability uses it
         box.setCurrentIndex(0)
         box.setEnabled(bool(self.seriesList))
         box.blockSignals(False)
@@ -1385,6 +1386,7 @@ class MainWindow (QMainWindow):
         self.selectedScans=self.ui.scanListWidget.selectedItems()
         #self.selectedScanNums=[self.ui.scanListWidget.row(items) for items in self.selectedScans]
         self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
+        self.updateToolAvailability()
         self.ui.scansLineEdit.setText(listText(self.selectedScanNums))
         if self.checkSameScans()==False or self.selectedScanNums==[]:
             self.messageBox('Error:: The scans are not identical or some scans have no data!!')
@@ -1461,6 +1463,7 @@ class MainWindow (QMainWindow):
         try:
             self.selectedScans=self.ui.scanListWidget.selectedItems()
             self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
+            self.updateToolAvailability()
             try:    # deselect the currently selected numbers
                 for item in self.selectedScans:
                     item.setSelected(False)
@@ -7160,6 +7163,39 @@ class MainWindow (QMainWindow):
                     label='2theta, beta (deg)',settings=asdict(self.gidParams),
                     recipe=self.recipe(lambda name:self.gidScript(name,'Q')))]
         self.saveToWorkbook('gid map',items,auto=getattr(self,'autoSaving',False))
+
+    # tools that fit one series kind (owner, 2026-11-23, Q-UI-A10: grey out, with a tooltip saying what is needed)
+    TOOL_KINDS={'pilRefPushButton':'reflectivity','pilRefPatchPushButton':'reflectivity','gidPatchPushButton':'gid',
+                'gidComboBox':'gid','pilBurnPushButton':'burn'}
+    TOOL_NEEDS={'reflectivity':'a reflectivity series','gid':'a GID series','burn':'a burn scan'}
+
+    def selectionKind(self):
+        """The one series kind of the selected scans (alignment scans aside), or None when unknown or mixed."""
+        where=getattr(self,'seriesWhere',{}) or {}
+        nums=list(getattr(self,'selectedScanNums',[]) or [])
+        if not nums or not all(n in where for n in nums):
+            return None
+        kinds={where[n][2] for n in nums}
+        kinds.discard('alignment')
+        return kinds.pop() if len(kinds)==1 else None
+
+    def updateToolAvailability(self):
+        """Grey out the Pilatus tools that do not fit the selected series kind, saying why in the tooltip.
+        Only when the kind is known and one of reflectivity, GID, burn or GISAXS; otherwise all stay enabled,
+        so a wrong or missing guess never blocks an action."""
+        kind=self.selectionKind()
+        restrict=kind in ('reflectivity','gid','burn','gisaxs')
+        for name,fits in self.TOOL_KINDS.items():
+            w=getattr(self.ui,name,None) or getattr(self,name,None)
+            if w is None:
+                continue
+            if w.property('baseToolTip') is None:
+                w.setProperty('baseToolTip',w.toolTip())
+            base=str(w.property('baseToolTip') or '')
+            ok=(not restrict) or kind==fits
+            w.setEnabled(ok)
+            w.setToolTip(base if ok else 'Greyed out: the selected scans are a %s series; this needs %s. %s'
+                         % (kind,self.TOOL_NEEDS[fits],base))
 
     def ctrlClicked(self):
         """True when Ctrl is held: a Ctrl+click runs an action's other path once (F86)."""
