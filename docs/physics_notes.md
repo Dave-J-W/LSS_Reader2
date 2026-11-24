@@ -5067,3 +5067,7 @@ Verified by: reading only. The numbers are the tools session's, measured on synt
 - **P4:** after the blanks.
 - **Guard:** needs further study; p stays 0.3; the real test is hand-off 08 (not soon).
 - **Numbering clash to note:** the tools session called the blank-spectrum request "F105"; F105 here is the comparison tab with auto-update. The blank spectra are F90's data (DATA_NEEDS row 3).
+
+### 2026-11-24 — GUI questions answered, batch 16 (Q-XFNTR-4, Q-UI-A9, Q-CUTS-3, Q-TL-1)
+
+Verified by: reading only (the SPEC command names are the owner's; not checked against a SPEC file here). No MCA spectrum browser. Reflectivity frame series default to a ROI-zoomed movie. α_f is reserved in the cut interface. New samples on the timeline are detected from `setup_sh_scan`, sh movements and `set sh 0`, asked of the user on the timeline (F106). This begins the timeline questions Q-TL-2–8, which remain open.

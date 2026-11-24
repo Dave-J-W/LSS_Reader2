@@ -428,6 +428,8 @@ order"), for a day of reflectivity only; the whole answer is in
 
 | F105 | **Comparison of reduced curves with auto-update; export names proposed** (owner, 2026-11-23, Q-REF-5, Q-REF-6): reduced reflectivities are compared in a dedicated tab or from the workbook rather than only by loading files from disk, and the comparison updates by itself as new data arrive (extends F80, live updates D57); Export goes straight to xmodfit with a name proposed from the sample and series. Files from disk stay available. |
 
+| F106 | **New-sample detection on the timeline, confirmed by the user** (owner, 2026-11-24, Q-TL-1): propose a new sample at `setup_sh_scan` followed by sh movements and `set sh 0`; show "New sample assumed. Correct?" with Yes/No buttons on the timeline; keep the answer (per-SPEC state). Later a SPEC-written marker takes precedence (the owner plans it; its form unknown). Part of F83. |
+
 Also decided (see `docs/gui/questions.md` Answers): movie at 3 or more frames, space pauses, arrows step when paused (F69); weighted residuals (F74); Apex tab, Beamlines menu, `peakfit2`/`peakfitpara` and the Command line row removed; Quit works and Documentation opens `docs/SCRIPTING.md`; Messages, Errors and Script panes follow D59.
 
 ### Status of built items
