@@ -366,7 +366,8 @@ Each line: feature — where — default — script — notes entry (date).
 
 ### Residuals above fits (F74, 2026-11-24)
 - **View > Residuals above fits** adds a small panel above each plot that
-  shows a fit: the SpecPlot scan fit and the cut peak fits, so far. It shows
+  shows a fit: the SpecPlot scan fit, the cut peak fits and the burn
+  test's trends (the best model of each quantity), so far. It shows
   the residuals of the fitted points weighted by their errors,
   (y − fit)/σ, and the fit's legend label gains χ²/dof.
 - For a good fit with the right errors the points scatter about zero,
@@ -375,8 +376,8 @@ Each line: feature — where — default — script — notes entry (date).
   model or the errors are wrong.
 - Off by default; the choice is kept between sessions. The plot's title
   moves above the panel while it is shown.
-- Not yet on: MCA line fits, burn trends, the Ref Patch join preview, the
-  older fit dialogs.
+- Not yet on: MCA line fits (the tools session's), the Ref Patch join
+  preview, the older fit dialogs.
 
 ### Ref Patch checks: a message and marks (F95, 2026-11-24, Q-UI-B6, B3)
 - Before joining, Ref Patch checks each frame: is the reflected beam more

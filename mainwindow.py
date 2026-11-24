@@ -3119,7 +3119,7 @@ class MainWindow (QMainWindow):
         act.setObjectName('actionFitResiduals')
         act.setCheckable(True)
         act.setChecked(self.fitResidualsShown())
-        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits): the '
+        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends): the '
                        'residuals (y - fit)/sigma of the fitted points, and chi2/dof in the legend. For a good fit '
                        'with right errors they scatter within about +/-2. Hidden by default; kept between sessions (F74).')
         act.toggled.connect(self.setFitResiduals)
@@ -4933,7 +4933,8 @@ class MainWindow (QMainWindow):
         """Each quantity on its own panel, its right axis in percent, the
         summary to the right (owner, 2026-11-21; lss_core.burn.plot)."""
         canvas=self.uipdburn.burnTrendPlotWidget.canvas
-        burnmod.plot(res,canvas.fig,'%s S# %d' % (os.path.basename(self.specFileName),res.scan))
+        burnmod.plot(res,canvas.fig,'%s S# %d' % (os.path.basename(self.specFileName),res.scan),
+                     residuals=self.fitResidualsShown())     # F74
         try:
             canvas.fig.subplots_adjust(left=0.1,right=0.97,top=0.9,bottom=0.09)
         except Exception:
@@ -7774,6 +7775,9 @@ class MainWindow (QMainWindow):
         if getattr(self,'cutFitResults',None):
             self.drawCutResiduals()
             self.ui.cutPlotMplWidget.canvas.draw()
+        if getattr(self,'burnResult',None) is not None and getattr(self,'uipdburn',None) is not None \
+                and hasattr(self.uipdburn,'burnTrendPlotWidget'):
+            self.plotBurnTrends(self.burnResult)
 
     def fitCuts(self):
         """Fit every plotted cut (the "Fit peaks" button)."""

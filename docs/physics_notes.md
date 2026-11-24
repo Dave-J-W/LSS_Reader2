@@ -47,7 +47,7 @@ exists.
 | I34 | On the Angles axis of a 'Pix V' cut through the reflected beam's columns, the reflected peak of a specular frame is at β = α (α = arcsin(Qz λ/4π)); NX school scans 6, 8, 9 to 2e-4° | `test_true_incidence.py::test_the_reflected_beam_sits_at_beta_equal_alpha` |
 | I35 | L is Qz in Å⁻¹ (the beamline's SPEC lattice): L = (2π/λ)(sin α + sin β), α = In_Rot, β = Out_Rot; in a specular scan 4π sin α/λ. On NX school every scan at fixed L agrees to better than 0.001 % (scans 4, 5, 10–15; scan 12 at the raised GID level, β = 6.5°); a fixed-L scan off by more than 1 % is noted at load (`LMismatch`) | `test_lattice.py::test_nx_l_is_qz_at_every_fixed_l_scan` |
 | I36 | Ref Patch steps are reversible: going Back (undoing a drop, or an accepted join) and doing the same steps again gives the same curve value for value as never going back; a cancelled patch leaves the curve on show and its Script line as they were (F96, owner Q-UI-B7). Not yet held: an accepted join must not change when live data arrive (B7's added rule; the live replay is not built) | `test_gui_ref_patch_steps.py::test_back_then_the_same_steps_give_the_same_reflectivity`, `::test_cancel_says_so_and_leaves_the_result_on_show` |
-| I37 | The residual panel shows what the fit minimised: over the fitted points Σ((y − fit)/σ)² = χ²/dof × (N − p), N − p an integer with p the fit's parameter count; for Poisson data with σ = √y and a right model the weighted residuals have mean ≈ 0 and SD ≈ 1 (F74) | `test_residuals.py::test_the_residuals_are_those_the_fit_minimised` |
+| I37 | The residual panel shows what the fit minimised: over the fitted points Σ((y − fit)/σ)² = χ²/dof × (N − p), N − p an integer with p the fit's parameter count; for Poisson data with σ = √y and a right model the weighted residuals have mean ≈ 0 and SD ≈ 1 (F74). For burn trends Σr² is the best model's χ² itself (to 1e-9, every model on the synthetic burn) | `test_residuals.py::test_the_residuals_are_those_the_fit_minimised`, `::test_burn_trends_get_the_best_models_residuals` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5232,4 +5232,17 @@ unchanged).
 TIFF header's own exposure time. Whether the Pilatus counts are already
 rate-corrected by the detector is not known; if they are, the true
 incident rate is higher than shown. No output number changes.
+
+### 2026-11-24 — F74 on burn trends
+
+The burn test's trend panels get the residual panel too
+(`lss_core.burn.plot(..., residuals=True)`, from the window's View >
+Residuals above fits): above each quantity, the best model's (y − fit)/σ
+over every frame, with "best: <model>, χ²/dof" in the panel. Verified by:
+tested; measured on the synthetic burn (`synth.make_burn_dataset`, scan
+1): Σr² equals each model's χ² as the trend fit reports it (constant
+1.032e6, linear 4734, exponential and double exponential 1.9e-4, the
+synthetic decay being noiseless), so the σ drawn is the one fitted (ĉ = 1
+here; with ĉ > 1 the fit's covariance is scaled but χ² is not). No output
+number changes.
 
