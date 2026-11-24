@@ -113,3 +113,29 @@ def test_a_refused_gid_patch_leaves_the_frames_shown(loaded, qapp, dataset, reco
     assert recorder.messages
 
 
+
+def test_a_gid_map_without_a_common_qxy_range_is_refused_in_q_and_drawn_in_angles(loaded, qapp, dataset, recorder):
+    """The crash sweep's second find (2026-11-24): the legacy GID patch of
+    a reflectivity frame gives a map whose rows share no Qxy range, so its
+    Q grid is empty and gid.products raised IndexError; every later redraw
+    raised again. In Q it is now refused with the reason and the frames come
+    back; in Angles the map is drawn as before."""
+    import dataclasses
+    sweep.state_pilatus_one_frame(loaded, qapp, dataset)
+    loaded.seriesWhere = {}
+    loaded.updateToolAvailability()
+    loaded.gidParams = dataclasses.replace(loaded.gidParams, pinhole=False)
+    loaded.ui.pilAxesComboBox.setCurrentIndex(loaded.ui.pilAxesComboBox.findText('Q'))
+    qapp.processEvents()
+    loaded.gidPatchPushButton.click()
+    qapp.processEvents()
+    assert loaded.pilGIDshow == 0
+    assert any('no Qxy range common to its rows' in m for m in recorder.messages)
+    loaded.ui.pilLogIntCheckBox.toggle()
+    qapp.processEvents()
+    loaded.ui.pilAxesComboBox.setCurrentIndex(loaded.ui.pilAxesComboBox.findText('Angles'))
+    qapp.processEvents()
+    loaded.gidPatchPushButton.click()
+    qapp.processEvents()
+    assert loaded.pilGIDshow == 1
+    assert recorder.exceptions == []

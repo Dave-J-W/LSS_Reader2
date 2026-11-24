@@ -6068,7 +6068,16 @@ class MainWindow (QMainWindow):
             self.gidPatchRefused(before)      # the callers say why (gidPatch, gidWorksheetPatch)
             raise
         self.pilPatchData=patch
-        self.gidFinishMap()
+        try:
+            self.gidFinishMap()
+        except IndexError as e:
+            # frames that are not a GID series can give a map whose rows share no Qxy range: its Q grid
+            # is empty and gid.products fails (the crash sweep, 2026-11-24). Refused, with the reason.
+            self.log.info('GID map not drawn: %s',e,exc_info=True)
+            self.gidPatchRefused(before)
+            self.notify('GID Patch: the patched map has no Qxy range common to its rows, so it cannot be shown in '
+                        'Q (frames of a GID series are needed; GID Patch Relax fills the corners). Detail in the log.',
+                        title='GID Patch')
 
     def gidPatchRefused(self,before):
         """A GID patch that stopped: the frames come back as they were shown.
