@@ -43,6 +43,7 @@ exists.
 | I30 | A figure tool is deterministic: rerun with the settings of its committed figures on unchanged code and inputs, it gives them back pixel for pixel (the measured test of staleness; a provenance stamp, where a tool prints its git revision, differs inside one small box) | `test_toolbox_gui.py::test_a_figure_tool_reproduces_its_committed_figures` (burn trends, 4 of 4); measured 2026-11-23: the ngui prototype screenshots 23 of 23, the fit demonstrator figures 6 of 6 |
 | I31 | A pinhole join factor (scans of a level, or Qz levels) is unbiased whatever the counts per bin: the likelihood of how each bin's counts split between the two sides (`pinhole.ratio_ml`, P46) gives back a known factor within ±0.1 % down to 0.026 counts per pixel; equal to the pooled ratio of a single bin | `test_pinhole.py::test_level_factor_is_unbiased_at_low_counts`, `test_ratio_ml_is_the_pooled_ratio_for_one_bin_and_recovers_a_scale` |
 | I32 | "Sum All" of Poisson frames (y = N·A/(M·g), σ = √N·A/(M·g)) equals ΣN/Σ(M/A·g) with σ = √ΣN/Σ(M/A·g), exactly; it is the mean of the per-frame values weighted by M/(A·g), and with equal monitors and absorbers the plain mean | `test_monc_normalised.py` (`test_sum_frames_is_the_counts_over_the_monitors`, `test_frames_with_absorbers_are_summed_by_their_effective_monitors`, `test_the_scripted_summed_cut_is_the_counts_over_the_monitors`, `test_the_windows_summed_cut_is_the_counts_over_the_monitors`) |
+| I33 | Every photon of a synthetic MCA spectrum lands in exactly one part: photopeak + tail + shelf + escape = the photons of each source (`synthetic.mca`, to 0.2 % where the channels cover everything); the gauntlet's truths rest on it (F90) | `test_synthetic_mca.py::test_every_photon_lands_in_one_part` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -3766,7 +3767,7 @@ covariance agent's branch, merged next).
 **Owner:** "The gauntlet also requires using the synthetic data
 capabilities and lots of replicates under diff conditions."
 
-**Done** (`tests/tools/ref_patch_gauntlet.py --design all`, outputs in
+**Done** (`tests/tools/ref_patch_gauntlet.py --design all --methods key`, outputs in
 `docs/comparisons_data/ref_patch_gauntlet/`, C36). The generators' range
 was used one factor at a time from a baseline (a 100 Å film, four scans,
 NX flux, the owner's monitor), 400 replicates each: the layer (water, DPPC,
@@ -4747,3 +4748,193 @@ fixed yet. The first two change results; the rest are latent.
 ### 2026-11-23 — GUI questions answered, batch 14 (Q-REF-5, 6; Q-BURN-4, 6; blank spectra)
 
 Verified by: reading only. Comparisons of reduced curves move toward a workbook-fed tab that auto-updates (F105, F80). Export proposes a name and hands over to xmodfit. The burn Legacy tab goes behind the Reduction options; GID-burn rows default from the mean frame. **Data:** no zinc spectra will exist; other elements and blank spectra will come, so the F90 gauntlet's hard case (Zn Kα under 10 keV scatter) can only be tested on a nearby real case plus the synthetic generator, with a blank used to check the generator's escape-peak and Compton profiles.
+
+### 2026-11-23 — NX 6–9 under today's patch default: join 2 flagged (tools man, for Main)
+
+Verified by: run (`patching.chain` on `Experiment(NX).reflectivity([6, 7,
+8, 9], errors='budget')`) and test (`test_patching.py::test_nx_school_scans_6_to_9`,
+which now pins both sets of numbers).
+
+The test pinned report §6.1 (2026-11-22). That report used `n_ext=4,
+guard_p=0.01`. The gauntlet of the same day then made `n_ext=2,
+guard_p=0.3` the default, and the test has failed since. It now passes
+the old settings explicitly, and it pins today's default beside them:
+
+| | §6.1 settings (n_ext 4, guard p 0.01) | today's default (n_ext 2, guard p 0.3) |
+|---|---|---|
+| factors 6→7, 7→8, 8→9 | 0.023004, 0.064516, 0.103604 | 0.022980, 0.064474, 0.103695 |
+| level of scan 9 / scan 6, relative error √Σ₃₃ | 0.75 % | 0.85 % |
+| join 1: order, points either side, χ²/dof | 4, 4, 0.88 | 4, 2, 0.68 |
+| join 2 | 4, 4, 1.10; error 0.00501 (counting 0.00479) | 4, 2, 1.37; **flagged**, error 0.00616 (counting 0.00527, ×1.17) |
+| join 3 | 4, 4, 1.37 | 4, 2, 0.83 |
+| with 6 points either side, join 8→9 | window stepped down (χ²/dof 60, before the ladder raised orders) | order raised to 6, 6 either side (χ²/dof 1.15), "the first adequate fit" |
+| foil prior (monitor ratios 1.005, 4.35, 1.32) | used at join 1 only; join 2 "Monc/Monp changed ×4.350" | the same |
+
+**For the owner:** on the one real series in the repository, the default
+patch flags join 2 (scans 7→8). The flag reads "no adequate fit (χ² p <
+0.3 everywhere): order 4, 2 either side, χ²/dof 1.37, error inflated".
+
+- At the guard's p of 0.3, no window or order the ladder tries fits
+  well enough, so the join's error is inflated by √(χ²/dof), ×1.17.
+- At the old p of 0.01 the same join passes (χ²/dof 1.10 with 4 points
+  either side).
+- The factors agree to 0.1 % between the two settings (0.064474 against
+  0.064516, inside either error).
+
+So the flag is the stricter guard showing a modest misfit. It does not
+signal a wrong factor. Whether p = 0.3 is too strict for real data,
+where the model (a smooth curve under the overlap) is never exact, is
+for the owner to weigh. The gauntlet chose it on synthetic data (C36).
+The real-series comparison of hand-off 08 (DATA_NEEDS row 1) is the test
+that would decide. Nothing was changed.
+
+### 2026-11-23 — What "the gauntlet" is, whether it is wrapped up, what it needs (owner, through Main)
+
+Verified by: M = measured (a run or a test), R = reading only, marked
+per statement.
+
+**Question (owner, through Main):** "what 'the gauntlet' is, whether it
+got wrapped up and what extensions it needs".
+
+**What it is (R).** `tests/tools/ref_patch_gauntlet.py` runs every
+reflectivity patching method on many noise replicates of synthetic
+reflectivity with known truth (`tests/synthetic`):
+- Parratt reflectivity with water's critical edge and Kiessig fringes;
+- the reader's ROI boxes, foils, monitors and planted faults.
+
+It has three designs:
+- seven core conditions;
+- a grid, one factor at a time from a 100 Å film on water;
+- 150 random conditions.
+
+It judges every join by hand-off 08's rule: |mean pull| < 0.2, pull SD
+0.90–1.15, no failed fit. It also follows the reader's own path
+(`reflectivity.patch`). It is what made the joint fit the default
+(owner, 2026-11-22: "make new method the default if it passes the
+gauntlet"; C36, OUTPUT_DECISIONS). F90's MCA line-fit gauntlet is built
+the same way (C42).
+
+**Wrapped up: yes; the records were not quite right.**
+- (M) Rerunning the committed run, `--design all --methods key`, gives
+  every committed table back, row for row.
+- (M) The default (`joint_o4_e2`) passes 139 of 155 designed joins. Of
+  the 16 that fail, 5 fail by bias (|mean pull| ≥ 0.2). It passes 415 of
+  463 random joins.
+- (R) Three records gave a command that does not make those tables. C36
+  and the entry of 2026-11-22 gave `--design all` alone, whose default
+  `--methods all` adds rows. The Tools catalogue named a method that does
+  not exist. All are corrected, and the summary's header now prints its
+  `--methods`.
+- (M) Three real-data tests had failed since the default changed. They
+  are fixed; the slow suite gives 484 passed.
+
+**Extensions, ranked, with their status:**
+1. The three failing real-data tests. **Done** 2026-11-23, without
+   weakening any:
+   - the reference test and the self-test choose the legacy patch, whose
+     output their fixtures are (rule 3);
+   - `test_patching` pins both the §6.1 settings and today's default.
+   - Finding (M): today's default flags join 2 of NX 6–9 (the entry
+     above).
+2. The record defects. **Done** 2026-11-23 (above).
+3. Hand-off 08 on the owner's real reflectivity series with many joins,
+   the real test of the default. **Waits on data** (`DATA_NEEDS.md` row
+   1; questor asks the owner).
+4. Explain the five biased designed joins, and the pull SD of 1.13 at the
+   first join of the downstream-covariance study (`TODO.md` B). **Next**,
+   after F90.
+5. A fallback to the coinciding-points ratio where fringes are
+   undersampled. **Dropped** by the owner on 2026-11-23. Main recorded
+   the owner's words at the end of its F91 entry ("Owner, same day:
+   undersampled fringes are not a case to consider"), and `TODO.md` B
+   strikes the row.
+6. and 7. **Parked** by Main.
+
+### 2026-11-23 — F90, the MCA line-fit gauntlet: synthetic half (tools man, for Main)
+
+Verified by: runs on synthetic spectra, `tests/tools/mca_fit_gauntlet.py
+--design all --replicates 200`, outputs in
+`docs/comparisons_data/mca_fit_gauntlet/`, C42; tests for the pieces,
+`test_mca_fit_gauntlet.py` and `test_synthetic_mca.py`. The generator's
+physics (`tests/synthetic/mca.py`) is textbook. Two of its sizes are from
+memory and are marked so there: the O 1s Compton wing (a hydrogenic
+impulse-approximation profile with p0 = Z_eff = 7.7 a.u., cut off at
+E0 − 0.532 keV) and Reed's escape fraction (0.10 % at 10 keV, 0.15 % at
+8.6 keV).
+
+**Question (owner, F90):** does a fitted line hold against the
+direct-beam scatter (Rayleigh, Compton), the hard case being Zn Kα under
+10 keV excitation? If it does, the window sum retires.
+
+**What lies under Zn Kα** (8.631 keV intensity-weighted, box ±2 FWHM =
+8.26–9.00 keV; 1e3 Zn photons on 1e6 elastic):
+- the valence Compton tail, rising as ΔE⁻⁶ toward the Compton peak at
+  9.81 keV (90°);
+- the elastic's Si escape at 8.26 keV, about as large as the line itself
+  (1015 counts against 887), and the Compton's broad escape at 8.07 keV;
+- the O 1s wing, which in a ±3 FWHM box gives about 14k counts, 16 times
+  the line;
+- shelves and tails;
+- with copper about, Cu Kα (8.048 keV) and Kβ (8.905 keV, inside the box).
+
+**Answer, synthetic.** Judged by hand-off 08's pull rule, or |bias| < 1 %
+against the true line.
+
+- **The window sum never holds once scatter lies under the box.** It
+  reads +21 % on the smooth baseline and +886 % in the hard case. It
+  distorts XFNTR curves: in the hard series the ratio to the truth runs
+  from 0.76 below Qc to over 1.5 above it. Side-band subtraction does
+  worse, because the bands sit on the curved Compton tail (about −60 %).
+- **The reader's "Fit lines" holds on a smooth background.** On the
+  smooth baseline it reads −0.4 %, with pull −0.1 / 1.03, and the smooth
+  XFNTR curve stays within 0.8 %. It also holds at FWHM 130–220 eV,
+  line/elastic down to 3e-3, Compton/Rayleigh 0.3, a 60° angle, Kβ ×1.25,
+  and series of 1 to 30 spectra.
+- **It does not hold against** (bias against the true line):
+
+  | Factor | Bias of the reader's fit |
+  |---|---|
+  | the elastic's Si escape at Reed's 0.1 % | +45 % (the free width trades off against it); with the centre fixed, −0.6 % |
+  | O 1s Compton wing at 2 % | −3.7 % |
+  | O 1s Compton wing at 20 % | −31 % |
+  | valence Doppler width 0.3 keV | −10 % |
+  | Neyman bias, 270 counts | −5.8 % |
+  | Neyman bias, 90 counts | −21 % |
+  | ±3 FWHM box (the Compton tail curves across it) | −3 % |
+  | calibration offset ±30 eV | ∓3 % |
+  | gain ±0.5 % | −3 % / +5.5 % |
+  | detector tail 3 % | −3.8 % |
+
+  None of the candidates handles the core wing either. The fixed width,
+  stripping and placed peaks all give −1.6 % at 2 % and −12 % at 20 %.
+- **Candidates** (not defaults; for Main to take to the owner):
+  - (1) **A Poisson (model-weighted) per-spectrum step**, which is
+    `fit_series`' linear step iterated with σ² ∝ the model, i.e. the
+    Poisson maximum likelihood. It removes the Neyman bias: −21 % → +3.6 %
+    at 90 counts, −5.8 % → +0.6 % at 270, and the weak XFNTR curve's
+    worst point 12.9 % → 1.4 %.
+  - (2) **The width fixed from the detector's resolution.** Calibrate the
+    noise on the elastic peak; the Fano term gives the rest. It passes
+    1 % tails, shelves, backgrounds and offsets up to 10 eV, which the
+    free width fails. A 3 % error in the assumed width costs 2.5 %.
+  - (3) **Si escape stripping** (subtract f(E + 1.740)·y(E + 1.740)), or
+    placing the escape peaks. Either cuts the escape bias to 3–4 %.
+    Stripping plus the fixed width passes both hard XFNTR curves (worst
+    points 0.74 % and 0.49 %), where every other estimator fails.
+  - (4) **A box of ±2 FWHM**, not ±3, when F90's editable box gets its
+    default.
+  - (5) **"Fit lines" must report the element's line**, not the tallest
+    peak (`mcaFitLines` takes `r.peaks[0]`), once several lines are
+    placed.
+- **Overall:** no estimator passes F90 on synthetic data. Of the
+  in-range random conditions (all features at once), the window passes
+  1 %, the reader's fit 28 %, the best candidate (stripping + fixed
+  width) 38 %.
+
+**What decides it on real data:** how large the elastic's escape peak and
+the Compton wing under the line really are. A blank (pure water or the
+subphase) at the same Qz measures both. It is passed to questor for
+`DATA_NEEDS.md` row 3 together with the owner's offered spectra. No
+default was changed.
+
+**Invariant:** I33 (the invariants table).

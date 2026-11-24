@@ -211,19 +211,35 @@ def test_monte_carlo_bias_and_pulls():
 @pytest.mark.slow
 @pytest.mark.skipif(not os.path.exists(NX), reason='NX_school data not present')
 def test_nx_school_scans_6_to_9():
-    """As measured 2026-11-22 (report §6.1): joint factors 0.023004,
-    0.064516, 0.103604; the level of scan 9 relative to scan 6 known to
-    0.75 % (legacy chain 1.03 %); the guard steps the window down at join
-    8→9 with 6 points either side (χ²/dof 60) and not at 4."""
+    """Two pins, both measured.
+
+    The settings of 2026-11-22 (report §6.1: n_ext=4, guard_p=0.01):
+    joint factors 0.023004, 0.064516, 0.103604; the level of scan 9
+    relative to scan 6 known to 0.75 % (legacy chain 1.03 %); no join
+    flagged.
+
+    Today's default (n_ext=2, guard_p=0.3, from the gauntlet of
+    2026-11-22; measured 2026-11-23, physics_notes): factors 0.022980,
+    0.064474, 0.103695; the level known to 0.85 %; join 2 (7→8) flagged,
+    because no window or order passes the guard (χ²/dof 1.37 at 2 either
+    side), with its error inflated ×1.17. With 6 points either side, the
+    ladder now raises the order at join 8→9 (order 6, χ²/dof 1.15) where
+    it used to step the window down."""
     from lss_core.experiment import Experiment
     r = Experiment(NX).reflectivity([6, 7, 8, 9], errors='budget')
     scans = patching.scans_from_reflectivity(r)
+    old = patching.chain(scans, n_ext=4, guard_p=0.01)
+    assert [round(j.factor, 6) for j in old.joins] == [0.023004, 0.064516, 0.103604]
+    assert np.sqrt(old.Sigma[3, 3]) == pytest.approx(0.0075, abs=3e-4)
+    assert not any(j.flags for j in old.joins)
     res = patching.chain(scans)
-    assert [round(j.factor, 6) for j in res.joins] == [0.023004, 0.064516, 0.103604]
-    assert np.sqrt(res.Sigma[3, 3]) == pytest.approx(0.0075, abs=3e-4)
-    assert not any(j.flags for j in res.joins)
+    assert [round(j.factor, 6) for j in res.joins] == [0.02298, 0.064474, 0.103695]
+    assert np.sqrt(res.Sigma[3, 3]) == pytest.approx(0.00845, abs=3e-4)
+    assert not res.joins[0].flags and not res.joins[2].flags
+    assert 'no adequate fit' in res.joins[1].flags[0] and 'error inflated' in res.joins[1].flags[0]
+    assert res.joins[1].err / res.joins[1].err_counting == pytest.approx(1.17, abs=0.02)
     wide = patching.chain(scans, n_ext=6)
-    assert 'window reduced' in wide.joins[2].flags[0] and not wide.joins[0].flags
+    assert wide.joins[2].order == 6 and 'first adequate fit' in wide.joins[2].flags[0] and not wide.joins[0].flags
     foils = absorbers.calibrated(10.0)
     prior = patching.known_steps(foils, [41, 31, 24, 18])
     pr = patching.chain(scans, prior=prior, monitor_ratios=[1.005, 4.35, 1.32])
