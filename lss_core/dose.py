@@ -49,6 +49,25 @@ next point's start (the last: to its end, or its counting time), from the
 scan's per-point times. How a file shows fast mode is open (OQ-4), so the
 caller says.
 
+**The beam's height from the sample-height scans** (``beam_height``; the
+local data agent's study, ``docs/studies/sh_beam_size/summary.md``, #60,
+2026-11-24). The rising edge of a routine height scan is a knife edge of
+the beam: the liquid's dome cuts it at its tangent point, which moves 1:1
+with sh. The height for the dose is √(2π)·σ_rise, σ_rise the erf width of
+that edge (``peaks.fit_box``'s rising FWHM / 2.355), i.e. 1.0645 × the
+rising FWHM: the inverse of the profile's peak, so the dose is the peak
+dose per area, of the most exposed line. The profile is a core (σ ≈ 12 µm)
+and a tail (σ ≈ 55 µm, a quarter to a third of the photons), so its FWHM
+(about 0.84 × the rising FWHM) would overstate the peak dose by 1.3×, and
+the S1 gap by 2.5×. A scan is refused (``RISE_GUARDS``, the study's) when its first
+point is not below 25 % of the peak (the rise not scanned from its foot),
+fewer than 2 points lie on the edge (10-90 %), the edge's centre is outside
+the scan, the falling edge is within 3 σ_rise of the rising one, or χ²/dof
+(Poisson + 1 % weights) is above 20. The falling side is the loss on the
+curved upstream surface, never used. Without an accepted scan:
+``DEFAULT_HEIGHT_MM`` 0.040 mm (±15 %, run to run) at 10 keV with S1 ≤
+0.04 mm, the conditions it was measured at; elsewhere no height.
+
 Not included: the beam's decay or top-up within a point (the monitor
 counts it already) and any dose before the scan, unless the caller adds
 the earlier scans' totals (the timeline does, F107).
@@ -133,6 +152,107 @@ def absorber_factor(params, absfac=None):
 
 
 SHUTTERS = ('closed', 'open')
+
+# The beam's height for the dose from the height scans' rising edge (module docstring; study #60)
+HEIGHT_PER_RISE_FWHM = math.sqrt(2 * math.pi) / (2 * math.sqrt(2 * math.log(2)))   # √(2π)σ over 2.355σ: 1.0645
+RISE_GUARDS = dict(foot=0.25, edge_points=2, separation=3.0, chi2_dof=20.0)
+DEFAULT_HEIGHT_MM = 0.040          # no accepted scan: 10 keV, S1 gap <= 0.04 mm (run medians 0.035-0.045)
+DEFAULT_HEIGHT_REL = 0.15          # its run-to-run uncertainty
+DEFAULT_HEIGHT_KEV = (9.9, 10.6)   # the energies it was measured at (10, 10.05, 10.52 keV)
+DEFAULT_HEIGHT_MAX_S1_MM = 0.040
+NEAR_SCANS = 3                     # beam_height(near=n): the nearest accepted height scans with n's S1 gap (an assumption)
+
+
+@dataclass
+class RisingEdge:
+    """The rising edge of one height scan: its erf FWHM (the scan's x
+    units, mm for sh), the height for the dose (× HEIGHT_PER_RISE_FWHM), its
+    centre; ``why`` the guard that refused it ('' when accepted)."""
+    scan: int
+    fwhm: float
+    height: float
+    centre: float
+    why: str = ''
+
+    @property
+    def ok(self):
+        return not self.why
+
+
+def rising_edge(x, y, sigma=None, scan=0, guards=None):
+    """The rising edge of a height scan (x the height, y the reflected
+    signal per monitor), under ``guards`` (default RISE_GUARDS)."""
+    from . import peaks
+    g = dict(RISE_GUARDS, **(guards or {}))
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    o = np.argsort(x)
+    x, y = x[o], y[o]
+    sig = None if sigma is None else np.asarray(sigma, float)[o]
+    r = peaks.fit_box(x, y, sig)
+    if not r.ok:
+        return RisingEdge(scan, math.nan, math.nan, math.nan, 'no box fit (%s)' % r.message)
+    (c1, w1), (c2, w2) = r.edges
+    e = RisingEdge(scan, float(w1), float(w1) * HEIGHT_PER_RISE_FWHM, float(c1))
+    srise = w1 / (2 * math.sqrt(2 * math.log(2)))
+    frac = peaks._step(x, c1, w1)
+    if not y[0] < g['foot'] * np.max(y):
+        e.why = 'the rise was not scanned from its foot (first point %.0f %% of the peak)' % (100 * y[0] / np.max(y))
+    elif int(np.sum((frac > 0.1) & (frac < 0.9) & (x < 0.5 * (c1 + c2)))) < g['edge_points']:
+        e.why = 'fewer than %d points on the rising edge' % g['edge_points']
+    elif not x[0] <= c1 <= x[-1]:
+        e.why = 'the edge is outside the scan'
+    elif not c2 - c1 > g['separation'] * srise:
+        e.why = 'the falling edge is within %g sigma of the rising one' % g['separation']
+    elif sig is not None and r.chi2_dof is not None and r.chi2_dof > g['chi2_dof']:
+        e.why = 'chi2/dof %.1f above %g' % (r.chi2_dof, g['chi2_dof'])
+    return e
+
+
+@dataclass
+class BeamHeight:
+    """The beam's height at the sample for the dose (mm), where it came
+    from ('height scans' or 'default'; None and ``note`` the reason when
+    neither applies), the edges used and refused."""
+    height_mm: float
+    source: str
+    uncertainty_rel: float = None
+    edges: list = field(default_factory=list)
+    refused: list = field(default_factory=list)
+    note: str = ''
+
+
+def s1_gap_mm(params):
+    """The S1 slit's vertical gap (mm): S1T + S1B, as the study reads it (whether the header's values are
+    half-openings is open, OQ-1). None when not recorded."""
+    t, b = params.get('S1T'), params.get('S1B')
+    try:
+        return float(t) + float(b)
+    except (TypeError, ValueError):
+        return None
+
+
+def height_scan_data(columns, counter='Pilatus', monitor='Monc'):
+    """(x, y, sigma) of a height scan: the first column (the scanned motor),
+    the counter per monitor, σ Poisson + 1 %."""
+    x = np.asarray(columns[next(iter(columns))], float)
+    n = np.asarray(columns[counter], float)
+    m = np.asarray(columns[monitor], float)
+    return x, n / m, np.sqrt(np.maximum(n, 1.0) + (0.01 * n) ** 2) / m
+
+
+def default_height(params):
+    """BeamHeight from the study's default, where its conditions hold."""
+    wl = params.get('Wavelength')
+    e = absorbers.energy_kev(wl) if isinstance(wl, (int, float)) and wl > 0 else None
+    gap = s1_gap_mm(params)
+    if e is None or not DEFAULT_HEIGHT_KEV[0] <= e <= DEFAULT_HEIGHT_KEV[1]:
+        return BeamHeight(None, None, note='no accepted height scan, and the default is for 10 keV (%s)'
+                          % ('energy unknown' if e is None else '%.2f keV' % e))
+    if gap is None or gap > DEFAULT_HEIGHT_MAX_S1_MM + 1e-9:
+        return BeamHeight(None, None, note='no accepted height scan, and the default is for S1 <= 0.04 mm (%s)'
+                          % ('S1 unknown' if gap is None else '%.3f mm' % gap))
+    return BeamHeight(DEFAULT_HEIGHT_MM, 'default', DEFAULT_HEIGHT_REL,
+                      note='no accepted height scan: the study\'s default for 10 keV, S1 <= 0.04 mm (+-15 %)')
 
 
 def scan_dose(columns, params, points=None, unit='photons', beam_mm=None, absfac=None, monitor='Monc', scan=0,

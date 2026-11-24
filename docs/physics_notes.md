@@ -52,6 +52,7 @@ exists.
 | I39 | The dose of a point is what the reduction already divides by: in monitor counts it is the point's weight in "Sum All", M/(A·g) (`cuts.frame_normaliser`); in photons, the flux route's photons/s × its seconds / A (`flux.photons_per_second`); a scan's dose is the sum of its points'; at a constant monitor rate and absorber the dose axis is the exposure axis × that rate, so a burn's dose limit is its time limit × the rate | `test_dose.py` (every test; the last on the synthetic burn, to 1e-6) | 2026-11-24 |
 | I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
 | I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own` | 2026-11-24 |
+| I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5841,3 +5842,30 @@ the geometry argument is derived, not measured. Study: `docs/studies/sh_beam_siz
 - **Still open for the owner:** whether the peak dose (this rule) or the footprint-average is the dose meant
   (OQ-2's last part); the width (not measured here); the upper tail's share of light transmitted through the
   downstream meniscus.
+
+### 2026-11-24 — The beam's height for the dose, from the height scans (the local data agent's rule, #60)
+
+Verified by: tests (`test_beam_height.py`, I42) on synthetic knife edges; a run on NX school's height scans
+(public). The rule and its numbers are the local data agent's study (`docs/studies/sh_beam_size/summary.md`).
+
+- **What the study found:** the rising edge of a routine height scan is a knife edge of the beam. The
+  dose's height is √(2π)·σ_rise = 1.0645 × `fit_box`'s rising FWHM, which gives the peak dose per area. The
+  default is 0.040 mm (±15 %) at 10 keV with S1 ≤ 0.04 mm.
+- **What the reader does now:** `exp.beam_height(scans=None, near=None)` applies `dose.rising_edge` to every
+  height scan. It uses `peaks.is_height_scan`, the first column as the height and Pilatus/Monc as the signal,
+  with Poisson + 1 % weights.
+  - **The study's guards:** the first point below 25 % of the peak; at least 2 points on the edge; the
+    centre inside the scan; the edges more than 3 σ apart; χ²/dof ≤ 20.
+  - **The height:** 1.0645 × the median rising FWHM of the accepted scans.
+  - **With `near=n`:** only the scans with n's S1 gap count (S1T + S1B; whether these are half-openings is
+    OQ-1), and the nearest `NEAR_SCANS` = 3 of them are used. The 3 is an assumption.
+  - **Without an accepted scan:** the default where its conditions hold, otherwise no height, with the reason.
+- **NX school, run:**
+  - Scans 5, 10 and 13 are accepted: rising FWHM 0.029–0.032 mm, height 0.0333 mm, scatter 3.8 %.
+  - Scan 4 is refused: the stopped scan starts at 54 % of the peak.
+  - At S1 0.016 mm that is a little below the study's run medians, 0.035–0.045 mm.
+  - Burn 14 ran with S1 at 0.100 mm, so `near=14` gives no height. Its height scans were at 0.016 mm, and the
+    default is only for ≤ 0.04 mm. That refusal is the rule working: the beam depends on the gap.
+- **The width is not measured** (the study: about 1.05 mm between the 5 and 95 % points in one earlier
+  image study), so `beam_mm` takes it as typed.
+
