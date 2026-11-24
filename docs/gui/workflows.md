@@ -1033,7 +1033,13 @@ flowchart TD
 
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `PlotWidget` SpecPlot \| Pilatus \| Reflectivity \| Line/Area Cuts \| MCA \| Plot \| 2D_Plot |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `PlotWidget` SpecPlot \| Pilatus \| Reflectivity \| Line/Area Cuts \| MCA \| Plot \| 2D_Plot \| Timeline |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+
+### Main window tabs, last
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `timelineTab` Timeline |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 
 ### Main window, under the left panel and tabs
 
@@ -1346,6 +1352,14 @@ flowchart TD
 | `errorsBadgeLabel` legacy errors \| budget errors |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `normBadgeLabel` / Monc \| / Monc / gain \| / photon |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `patchBadgeLabel` joint patch \| legacy patch |  |  |  | i |  |  |  |  |  |  |  |  |  | i |
+
+### Timeline
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `timelineView`  |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
+| `timelineFitPushButton` Fit all |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
+| `timelineInfoLabel` 20260923: 15 scans, 09:32 to 11:23, 1 set sh 0 (new sample?) |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 
 ### Wait
 

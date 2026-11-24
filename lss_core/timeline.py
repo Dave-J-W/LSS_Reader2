@@ -119,6 +119,8 @@ class Timeline:
     heights: list = field(default_factory=list)
     mnemonics: dict = field(default_factory=dict)
     notes: list = field(default_factory=list)
+    utc_offset: float = 0.0         # s by which the file's local clock is ahead of UTC (0 when not known)
+    positions: dict = field(default_factory=dict)   # motor -> [(scan, scan start, value at its #P)]
 
     def of_kind(self, kind):
         return [e for e in self.events if e.kind == kind]
@@ -233,6 +235,7 @@ def build(exp, motors=DEFAULT_MOTORS, gap_minutes=GAP_MINUTES, fit_heights=True)
             break
     if offset is None:
         tl.notes.append('dates read as UTC: the file header gives no time zone')
+    tl.utc_offset = float(offset or 0.0)
     tl.mnemonics = learn_mnemonics(exp.scans[n] for n in nums)
     height_motor = tl.mnemonics.get('sh', HEIGHT_MOTOR)
     # scan spans
@@ -270,6 +273,7 @@ def build(exp, motors=DEFAULT_MOTORS, gap_minutes=GAP_MINUTES, fit_heights=True)
             v = exp.scans[s.scan].parameters.get(motor)
             if not isinstance(v, (int, float)):
                 continue
+            tl.positions.setdefault(motor, []).append((s.scan, s.t0, float(v)))
             if last is not None and abs(v - last[1]) > STEP_TOLERANCE:
                 tl.steps.append(Step(motor, s.scan, last[0].t1, s.t0, float(last[1]), float(v)))
             last = (s, v)

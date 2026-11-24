@@ -3,7 +3,7 @@
 # (offscreen, 2026-11-22, 1600x1000) unless a note says "read only".
 - id: PlotWidget
   kind: tab
-  label: "SpecPlot | Pilatus | Reflectivity | Line/Area Cuts | MCA | Plot | 2D_Plot"
+  label: "SpecPlot | Pilatus | Reflectivity | Line/Area Cuts | MCA | Plot | 2D_Plot | Timeline"
   where: "Main window (right of the left panel)"
   handler: ""
   does: "The tabs of the window (the hidden Apex tab was removed 2026-11-23, owner Q14)"
