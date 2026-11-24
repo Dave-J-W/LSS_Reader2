@@ -71,16 +71,24 @@ Application code may now be changed, under these conditions:
 
 ## Sessions (D62, owner, 2026-11-23)
 
-Several Claude sessions work on this repository at once. **Main** (the
-session that was "test speed") orchestrates: it hands out work and the
-others report to it. **questor** asks the owner questions and records the
-answers in `docs/`, and takes small fetch and edit tasks. **tools man**
-(the Tools-menu session) is general purpose. **GUI manager** works on
-workflows and the interface. GUI priorities: the main window first, then
+Several Claude sessions work on this repository at once. **main man**
+(called Main until 2026-11-24, when the owner renamed it to tell it
+apart; the session that was "test speed") orchestrates: it hands out work
+and the others report to it. **questor** asks the owner questions and
+records the answers in `docs/`, and takes small fetch and edit tasks.
+**tools man** (the Tools-menu session) is general purpose. **GUI manager**
+works on workflows and the interface. **Local yokel** runs on the owner's
+own computer and fetches the private data sets (`docs/DATA_NEEDS.md`),
+with helper sessions of its own. A cloud session reaches it, and it
+reaches a cloud session, only by the remote `send_message` tool with the
+session's id (name-based tools do not cross between computers and the
+cloud). main man may message the sessions on the owner's computer (owner,
+2026-11-24: "you have permission to communicate with agents on this
+computer"). GUI priorities: the main window first, then
 the sample timeline tab (F83), then the new layout prototype (`ngui/`);
 ideas proven in ngui are carried into the main window, not built twice.
 A session that wants to change a large part of `mainwindow.py`,
-`tests/conftest.py` or `tests/sweep.py` tells Main first, so that two
+`tests/conftest.py` or `tests/sweep.py` tells main man first, so that two
 sessions do not edit the same lines.
 
 ## Where things are

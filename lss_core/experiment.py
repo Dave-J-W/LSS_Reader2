@@ -375,7 +375,9 @@ class Experiment:
         Cuts tab with the same settings (lss_core.cuts). ``direction``: one of
         cuts.DIRECTIONS ('Q H', 'Q V', 'Pix H', 'Pix V'); ``range``: (low,
         high) in Qz, Qxy or pixels; ``axes``: 'Pixels', 'Angles' or 'Q' (pixel
-        cuts only); ``summed``: cut the mean of the frames (the window's
+        cuts only), or a diffuse-cut axis for any cut it fits (F97,
+        cuts.DIFFUSE_AXES: 'beta', 'beta-alpha', 'Qz' for vertical cuts,
+        'Qxy' for horizontal ones); ``summed``: cut the mean of the frames (the window's
         "Sum"). Frames are divided by their monitor and multiplied by the
         absorber factor ``absfac`` (a number per unit, or
         lss_core.absorbers.Foils) first. ``points``: {scan: [point numbers]}
@@ -418,7 +420,7 @@ class Experiment:
             else:
                 dth = 2.0 * np.arcsin(np.sqrt(cols['H'][f.index] ** 2 + cols['K'][f.index] ** 2) * wl / 4.0 / np.pi)
             dist = p['S2D_Dist'] if distance is None else float(distance)
-            if pinhole and axes in ('Angles', 'Q') and np.degrees(dth) > 1.0:
+            if pinhole and axes in ('Angles', 'Q') + cutmod.DIFFUSE_AXES and np.degrees(dth) > 1.0:
                 dist = p['S7D_Dist']
             if db_pos is None:
                 xc, yc = float(det.NCOLS) - 1 - p['DBPos'][1], p['DBPos'][0]
