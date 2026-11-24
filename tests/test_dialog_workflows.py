@@ -164,12 +164,13 @@ def test_a_one_scan_patch_exports_three_columns(loaded, qapp, recorder, tmp_path
     assert got[:, :3] == pytest.approx(np.asarray(loaded.normRefData)[:, :3], rel=1e-4)
 
 
-# ---- information dialogs opened by Ref Patch --------------------------------
+# ---- information Ref Patch gives (dialogs until 2026-11-24) -----------------
 
-def test_peak_centre_dialog_when_the_beam_is_off_its_recorded_position(
+def test_peak_centre_report_when_the_beam_is_off_its_recorded_position(
         window, qapp, recorder, tmp_path):
     """Frames whose reflected beam is more than 2 pixels from the position
-    in the SPEC header open a dialog listing them."""
+    in the SPEC header are listed: in a modal dialog until 2026-11-24, now
+    in one message (F95, owner Q-UI-B6; tests/test_gui_ref_checks.py)."""
     root = tmp_path / 'off'
     os.makedirs(str(root / 'pilatus'))
     qz = np.array([0.02, 0.03])
@@ -187,9 +188,8 @@ def test_peak_centre_dialog_when_the_beam_is_off_its_recorded_position(
     window.ui.pilRefPatchPushButton.click()
     qapp.processEvents()
     assert recorder.exceptions == []
-    texts = [d.findChild(sweep.QtWidgets.QTextBrowser).toPlainText()
-             for d in recorder.dialogs if d.findChild(sweep.QtWidgets.QTextBrowser)]
-    assert any('3' in t for t in texts)
+    assert recorder.dialogs == []
+    assert any('beam centre is more than 2 px' in m and 'scan 1: frame 1' in m for m in recorder.messages)
     assert window.pilRefPeakCen == [[1, 1, 'y', 3]]
 
 

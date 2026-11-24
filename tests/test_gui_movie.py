@@ -17,6 +17,19 @@ from lss_core import display
 pytestmark = pytest.mark.gui
 
 
+@pytest.fixture(autouse=True)
+def _ticks_by_hand(request):
+    """The movie's timer runs (isActive is what "playing" means) but never
+    advances a frame by itself: the tests step it with pilMovieTick. With
+    real ticks every 0.5 s, a slow machine (the crash sweep running beside
+    the suite) advanced a frame between two assertions (seen 2026-11-24:
+    pilMovieIndex 2 where 1 was expected)."""
+    if 'loaded' in request.fixturenames:
+        w = request.getfixturevalue('loaded')
+        w.pilMovieTimer.timeout.disconnect(w.pilMovieTick)
+    yield
+
+
 def _all_of_scan_1(w, qapp):
     sweep._select_scans(w, qapp, [0])
     sweep._select_images(w, qapp)

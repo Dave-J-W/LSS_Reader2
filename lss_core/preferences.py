@@ -66,6 +66,8 @@ DEFAULTS = {
     # frame, typed limits per kind, the zoom and the Home zoom, and (F69) the movie's view, speed and
     # loop. Kept between sessions; reset when another SPEC file is opened ('spec' says which file)
     'pil_display': {},
+    # residual panels above the plots that show a fit (F74, owner 2026-11-22: hidden by default)
+    'fit_residuals': False,
 }
 
 

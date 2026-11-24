@@ -290,15 +290,14 @@ def test_a_burn_test_and_mca_sum_are_saved_when_done(loaded, qapp, dataset, reco
     assert recorder.exceptions == []
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError,
-                   reason="Save stores the scans selected at the time, not the curve's (TODO area I, 2026-11-22)")
 def test_a_reflectivity_is_saved_tied_to_the_scans_it_was_made_from(loaded, qapp, dataset, recorder):
     """GUI assessment, 2026-11-22: Save took the scans selected when it was
-    clicked, not those of the curve on show (``saveRefToWorkbook`` reads
+    clicked, not those of the curve on show (``saveRefToWorkbook`` read
     ``selectedScanNums``), so a curve of scans 1 and 2 saved after selecting
     scan 1 alone was stored as scan 1, and its series tie, stale flag and
-    live remake followed the wrong scans. ``saveMcaToWorkbook`` reads the
-    selection the same way."""
+    live remake followed the wrong scans; the plot title too. Fixed
+    2026-11-24 (``refResultScans``). ``saveMcaToWorkbook`` still reads the
+    selection."""
     loaded.prefs['auto_save'] = False
     loaded.prefs['save_asks_note'] = False
     sweep.state_pilatus_two_scans_all_frames(loaded, qapp, dataset)
@@ -315,3 +314,5 @@ def test_a_reflectivity_is_saved_tied_to_the_scans_it_was_made_from(loaded, qapp
     res = _book(loaded).results(kind='reflectivity')
     assert [r['label'] for r in res] in (['R', 'R/RF'], ['R'])
     assert res[0]['scans'] == '1,2'
+    loaded.updateRefPlotData()                            # a redraw (Log R, Qc ...) after the selection changed
+    assert loaded.ui.refRefDataPlotwidget.canvas.ax.get_title().endswith('S# 1, 2')
