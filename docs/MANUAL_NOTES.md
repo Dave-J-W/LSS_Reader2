@@ -362,4 +362,4 @@ stable (burn tests), the confident 5 % time.
 - Manual idea: a page per menu with the figures it makes, taken from a run
   (the figure agent can use the same window, or `python -m lss_toolbox
   --audit`, to get current figures).
-
+- File names (2026-11-24): SPEC names may contain dots (`run.v2`) and paths may use '/' or '\\'; plot-file legends show the file's name, the list '<folder>/<name>'.

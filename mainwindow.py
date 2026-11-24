@@ -33,7 +33,7 @@ import traceback
 import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
-from lss_core import cuts, mcafiles
+from lss_core import cuts, mcafiles, paths
 from lss_core import gid as gidmod
 from lss_core import pinhole
 from lss_core import peaks
@@ -624,7 +624,7 @@ class MainWindow (QMainWindow):
         self.startLineNum=0
         self.endScanNum=0
         self.readSpecFile()
-        self.ui.specFileLabel.setText('SpecFile: '+str(self.specFileName.split('/')[-1]))
+        self.ui.specFileLabel.setText('SpecFile: '+paths.base(self.specFileName))
         self.scriptLine('exp = Experiment(%r)' % os.path.abspath(self.specFileName))
         # except:
         #     self.specData=specData_old
@@ -738,7 +738,7 @@ class MainWindow (QMainWindow):
                     if self.mcaDir=='':
                         self.mcaDir=self.directory+'/'+self.mcaDirName
                         self.messageBox('No MCA folder chosen: spectra of the fluorescence scans cannot be shown.')
-                self.mcafhead=str(self.mcaDir)+'/'+self.specFileName.split('/')[-1]+'_'
+                self.mcafhead=str(self.mcaDir)+'/'+paths.base(self.specFileName)+'_'
                 self.mcaftail='_mca' 
                 print("MCA data Found!!")
             if np.any([self.specPar[i]['Detector']=='Pilatus' for i in scannums]):
@@ -750,7 +750,7 @@ class MainWindow (QMainWindow):
                     if self.pilDir=='':
                         self.pilDir=self.directory+'/'+self.pilDirName
                         self.messageBox('No Pilatus folder chosen: images of the Pilatus scans cannot be shown.')
-                self.pilfhead=str(self.pilDir)+'/'+self.specFileName.split('/')[-1]+'_SCAN-'
+                self.pilfhead=str(self.pilDir)+'/'+paths.base(self.specFileName)+'_SCAN-'
                 self.pilftail='.tif'
                 print ("Pilatus Images Found!!")
                 if inipil==0:
@@ -7323,10 +7323,7 @@ class MainWindow (QMainWindow):
     def updatePlotFile(self): #update plot files in the listwidget
         self.ui.plotFileListWidget.clear()
         for i in range(len(self.plotfiles)):
-            try:  #for pc
-                self.ui.plotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.plotfiles[i].split('\\')[-2])+'\\'+str(self.plotfiles[i].split('\\')[-1]))
-            except: #for mac and linux
-                self.ui.plotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.plotfiles[i].split('/')[-2])+'/'+str(self.plotfiles[i].split('/')[-1]))
+            self.ui.plotFileListWidget.addItem('#'+str(i+1)+self.halftab+paths.short(self.plotfiles[i]))
 
     def addPlotFile(self): #add plot files into the listwidget and deselect all ref files in the listwidget
         f=QFileDialog.getOpenFileNames(caption='Select Multiple Files to import', directory=self.directory, filter='Files (*.*)')[0]
@@ -7387,10 +7384,7 @@ class MainWindow (QMainWindow):
                     QMessageBox.warning(self, 'File Error','The data file doesnot seems to have column data only. Please check',QMessageBox.Ok)
                     return
                 data1=data1[np.argsort(data1[:,0])]
-                try:  #for pc
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('\\')[-1])
-                except: #for mac and linux
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('/')[-1])
+                datalabel=paths.base(self.plotfiles[self.selectedplotfiles_rows[i]])
                 try:
                     self.ui.PlotMplWidget.canvas.ax.errorbar(data1[:,0]*self.plotscale[i][0]+self.plotscale[i][1],data1[:,1]*self.plotscale[i][2]+self.plotscale[i][3],data1[:,2]*self.plotscale[i][2],fmt=style,label='#'+str(self.selectedplotfiles_rows[i]+1)+' '+datalabel)
                 except:
@@ -7432,10 +7426,7 @@ class MainWindow (QMainWindow):
                 y=fint(x)
                 y=np.gradient(y)
                 self.gradata=np.vstack((x,y)).T
-                try:  #for pc
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('\\')[-1])
-                except: #for mac and linux
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('/')[-1])
+                datalabel=paths.base(self.plotfiles[self.selectedplotfiles_rows[i]])
                 self.ui.PlotMplWidget.canvas.ax.plot(self.gradata[:,0],self.gradata[:,1],style,label='#'+str(self.selectedplotfiles_rows[i]+1)+' '+datalabel)
         if self.ui.plotLogXCheckBox.checkState()!=0:
             self.ui.PlotMplWidget.canvas.ax.set_xscale('log')
@@ -7928,10 +7919,7 @@ class MainWindow (QMainWindow):
     def update2dPlotFile(self): #update 2dplot files in the listwidget
         self.ui.twodPlotFileListWidget.clear()
         for i in range(len(self.twodplotfiles)):
-            try:  #for pc
-                self.ui.twodPlotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.twodplotfiles[i].split('\\')[-2])+'\\'+str(self.twodplotfiles[i].split('\\')[-1]))
-            except: #for mac and linux
-                self.ui.twodPlotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.twodplotfiles[i].split('/')[-2])+'/'+str(self.twodplotfiles[i].split('/')[-1]))
+            self.ui.twodPlotFileListWidget.addItem('#'+str(i+1)+self.halftab+paths.short(self.twodplotfiles[i]))
 
     def add2dPlotFile(self): #add plot files into the listwidget and deselect all ref files in the listwidget
         f=QFileDialog.getOpenFileNames(caption='Select Multiple Files to import', directory=self.directory, filter='Files (*.*)')[0]

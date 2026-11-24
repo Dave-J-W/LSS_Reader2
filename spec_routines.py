@@ -2,6 +2,7 @@
 import sys
 import os
 import numpy as np
+from lss_core import paths
 from lss_core.numbers import spec_number, spec_numbers
 from lss_core.monitor import parse_gain
 from lss_core.series import parse_series, aborted_after
@@ -168,11 +169,13 @@ class specread:
                     if line[:2]=='#V':
                         self.Par[num]['Detector']='Vortex'
                     if line[:3]=='#B0':
-                        tmppar=line[3:].split('.')
-                        self.Par[num]['ImageNumber']=len(line[3:].split('_')[-1].split('.')[0])
-                        if tmppar[1]=='tif\n':
+                        # the image name's extension and last field, by splitext: a SPEC
+                        # name with a dot (run.v2) hid the scan's images (TODO area L)
+                        image=line[3:].strip()
+                        self.Par[num]['ImageNumber']=len(paths.stem(image).split('_')[-1])
+                        if paths.ext(image)=='.tif':
                             self.Par[num]['Detector']='Pilatus'
-                        elif tmppar[1]=='sfrm\n':
+                        elif paths.ext(image)=='.sfrm':
                             self.Par[num]['Detector']='Unsupported'   # Bruker CCD (.sfrm) images: no longer supported
                     if line[:3]=='#B1':
                         try:
