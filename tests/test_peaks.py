@@ -249,3 +249,18 @@ def test_scan_shape_picks_peak_edge_or_box():
     assert peak.peaks[0].fwhm == pytest.approx(0.471, rel=0.05)        # P9: the box model gave 0.406
     box = peaks.fit_scan(x, _poisson(cases['box'], 22), None)
     assert box.peaks[0].centre == pytest.approx(-0.05, abs=0.01) and box.peaks[0].fwhm == pytest.approx(0.7, abs=0.02)
+
+
+def test_line_index_is_the_first_given_line_not_the_tallest():
+    """F90, P5 (2026-11-24): with several lines placed, the line asked for
+    is the first one given (the element's), even when another is taller."""
+    e = np.linspace(7.8, 9.3, 151)
+    mu = 20 + _gauss(e, 8.26, 0.078, 400) + _gauss(e, 8.631, 0.079, 60)   # an escape peak taller than the line
+    y = _poisson(mu, 11)
+    ref, each = peaks.fit_series(e, [y], [np.sqrt(np.maximum(y, 1))],
+                                 peaks.FitOptions(centres=(8.631, 8.26), background='linear', window=5.0))
+    assert ref.ok and ref.peaks[0].centre == pytest.approx(8.26, abs=0.01)    # the tallest comes first
+    j = peaks.line_index(ref, (8.631, 8.26))
+    assert ref.peaks[j].centre == pytest.approx(8.631, abs=0.01)
+    assert each[0].peaks[j].height == pytest.approx(60, rel=0.25)
+    assert peaks.line_index(ref) == 0 and peaks.line_index(peaks.FitResult([], np.zeros(0), 0, 1, 0, (0, 1), 0, False)) is None

@@ -10,7 +10,7 @@ CONTROLS = (
     ('variationCombo', 'Settings', 'Defaults, or a variation the documents describe ("change this parameter and '
                                    'regenerate to see that"). Choosing one fills the form; the tooltip of each says '
                                    'what it shows and where the documents say so.'),
-    ('sourceButton', 'Source', 'Open the document line the chosen variation comes from.'),
+    ('sourceButton', 'Source', 'Open the document the chosen variation comes from (its passage is the text after # in the variation\'s tooltip).'),
     ('form', 'Options', "The script's own options, read from its argparse parser each time the page opens (never "
                         'copied, so they cannot go out of date). An empty field uses the script\'s default (shown '
                         'greyed). {out} stands for this run\'s folder.'),
