@@ -197,6 +197,10 @@ Each line: feature — where — default — script — notes entry (date).
   (figures `docs/manual/figures/gid_patching/`, by
   `tests/tools/gid_patching_diagrams.py`).
 
+- GID Patch on frames that are not a GID set (one frame per Qz, as in a
+  reflectivity scan) stops with a message naming the Qz level that has
+  nothing to patch (2026-11-24); it raised a numpy error before.
+
 ### Figures of the pinhole geometry
 - Eight figures of the exact pinhole trigonometry (lab frame, the
   direct-beam row and column, the pinhole from above, β depending on the

@@ -468,18 +468,33 @@ def pinhole_patch(frames, params, log=None):
     edges = pinhole.shared_edges([f for level in byqz for f in level])
     infos, level_info, levels = [], [], []
     log = [] if log is None else log
+    if len(byqz) > len(LEVEL_NAMES):
+        raise GIDError('The selected frames lie at %d Qz levels; a GID patch takes at most %d (the frames of '
+                       'detector-angle scans at a few Qz), not one frame per Qz as in a reflectivity scan.'
+                       % (len(byqz), len(LEVEL_NAMES)))
     for k, level in enumerate(byqz):
-        tt, beta, I, S, info = pinhole.level_map(level, gp.row_min, gp.row_max, response=gp.response,
-                                                 area=gp.area_correction, pol=gp.polarisation, log=log,
-                                                 min_frames=gp.min_frames, edges=edges,
-                                                 beam_centre_mm=gp.beam_centre_mm, beam_fwhm_um=gp.beam_fwhm_um or None,
-                                                 beam_h_fwhm_mm=gp.beam_h_fwhm_mm, apply_joins=gp.apply_joins,
-                                                 angles=gp.angles, join_estimator=gp.join_estimator)
+        scans = sorted(set(int(f.scan) for f in level))
+        try:
+            tt, beta, I, S, info = pinhole.level_map(level, gp.row_min, gp.row_max, response=gp.response,
+                                                     area=gp.area_correction, pol=gp.polarisation, log=log,
+                                                     min_frames=gp.min_frames, edges=edges,
+                                                     beam_centre_mm=gp.beam_centre_mm, beam_fwhm_um=gp.beam_fwhm_um or None,
+                                                     beam_h_fwhm_mm=gp.beam_h_fwhm_mm, apply_joins=gp.apply_joins,
+                                                     angles=gp.angles, join_estimator=gp.join_estimator)
+        except ValueError as e:
+            raise GIDError('The %s level (scans %s) could not be mapped: %s.' % (LEVEL_NAMES[k], scans, e))
+        if np.size(tt) == 0:
+            # a level with no column seen by min_frames frames (one frame per Qz: a reflectivity
+            # scan) used to fail on tt.min() with a numpy error (the GUI manager's sweep, 2026-11-24)
+            raise GIDError('The %s level (%d frame%s, scans %s) has no detector column seen by %d frames or more: '
+                           'nothing to patch. A GID patch needs several frames of a detector-angle scan at each '
+                           'Qz; reflectivity frames (one per Qz) cannot be patched.'
+                           % (LEVEL_NAMES[k], len(level), '' if len(level) == 1 else 's', scans, gp.min_frames))
         for e in log:
             e.setdefault('label', LEVEL_NAMES[k])
         level_info.append(dict(level=LEVEL_NAMES[k], **info))
         infos.append(info)
-        levels.append((LEVEL_NAMES[k], sorted(set(f.scan for f in level)), len(level), float(tt.min()), float(tt.max())))
+        levels.append((LEVEL_NAMES[k], scans, len(level), float(tt.min()), float(tt.max())))
     try:
         tt, beta, I, S, jinfo = pinhole.join_levels(infos, transverse=gp.transverse, log=log,
                                                     labels=[LEVEL_NAMES[k] for k in range(len(byqz))],
