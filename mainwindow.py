@@ -33,7 +33,7 @@ import traceback
 import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
-from lss_core import cuts, mcafiles
+from lss_core import cuts, mcafiles, paths, scanaxes
 from lss_core import gid as gidmod
 from lss_core import pinhole
 from lss_core import peaks
@@ -636,7 +636,7 @@ class MainWindow (QMainWindow):
         self.startLineNum=0
         self.endScanNum=0
         self.readSpecFile()
-        self.ui.specFileLabel.setText('SpecFile: '+str(self.specFileName.split('/')[-1]))
+        self.ui.specFileLabel.setText('SpecFile: '+paths.base(self.specFileName))
         self.scriptLine('exp = Experiment(%r)' % os.path.abspath(self.specFileName))
         # except:
         #     self.specData=specData_old
@@ -737,6 +737,17 @@ class MainWindow (QMainWindow):
                 self.notify('Scan(s) %s: a data line with a different number of values was left out (in a file '
                             'SPEC is still writing, usually the line being written).' % listText(short),
                             title='SPEC file',level='info')
+            offl=[n for n in scannums if isinstance(self.specPar.get(n),dict) and self.specPar[n].get('LMismatch') is not None]
+            if offl:    # lss_core.lattice: L should be Qz = (2π/λ)(sin In_Rot + sin Out_Rot)
+                self.notify('Scan(s) %s: L differs from the Qz of In_Rot and Out_Rot by %+.1f %% (scan %d); is the SPEC '
+                            'lattice the usual one (L = Qz)?' % (listText(offl),100*self.specPar[offl[0]]['LMismatch'],offl[0]),
+                            title='SPEC file',level='warning')
+            odd=[n for n in scannums if isinstance(self.specPar.get(n),dict) and self.specPar[n].get('LabelMismatch')]
+            if odd:     # spec_routines: #L and the rows disagree; columns matched by position as before
+                nl,nv=self.specPar[odd[0]]['LabelMismatch']
+                self.notify('Scan(s) %s: #L names %d columns, the rows hold %d values (scan %d); columns are matched by '
+                            'position, so a label with a space in it shifts the later ones.' % (listText(odd),nl,nv,odd[0]),
+                            title='SPEC file',level='warning')
             self.scanlines=[self.specData[i]['ScanLine'] for i in scannums]
             self.ui.scanListWidget.addItems(self.scanlines)
             if np.any([self.specPar[i]['Detector']=='Vortex' for i in scannums]):
@@ -748,7 +759,7 @@ class MainWindow (QMainWindow):
                     if self.mcaDir=='':
                         self.mcaDir=self.directory+'/'+self.mcaDirName
                         self.messageBox('No MCA folder chosen: spectra of the fluorescence scans cannot be shown.')
-                self.mcafhead=str(self.mcaDir)+'/'+self.specFileName.split('/')[-1]+'_'
+                self.mcafhead=str(self.mcaDir)+'/'+paths.base(self.specFileName)+'_'
                 self.mcaftail='_mca' 
                 print("MCA data Found!!")
             if np.any([self.specPar[i]['Detector']=='Pilatus' for i in scannums]):
@@ -760,7 +771,7 @@ class MainWindow (QMainWindow):
                     if self.pilDir=='':
                         self.pilDir=self.directory+'/'+self.pilDirName
                         self.messageBox('No Pilatus folder chosen: images of the Pilatus scans cannot be shown.')
-                self.pilfhead=str(self.pilDir)+'/'+self.specFileName.split('/')[-1]+'_SCAN-'
+                self.pilfhead=str(self.pilDir)+'/'+paths.base(self.specFileName)+'_SCAN-'
                 self.pilftail='.tif'
                 print ("Pilatus Images Found!!")
                 if inipil==0:
@@ -1418,10 +1429,9 @@ class MainWindow (QMainWindow):
                 self.ui.spY2ComboBox.addItems(['None'])
                 self.ui.spY2ComboBox.addItems(self.specData[self.selectedScanNums[0]]['ScanVar'])
                 self.ui.spNComboBox.addItems(self.specData[self.selectedScanNums[0]]['ScanVar'])
-                if self.specData[self.selectedScanNums[0]]['ScanVar'][0]=='H':
-                    self.ui.spXComboBox.setCurrentIndex(2)
-                else:
-                    self.ui.spXComboBox.setCurrentIndex(0)
+                first=self.specData[self.selectedScanNums[0]]
+                # an hklscan: the index that moves (the #S command, else the column that varies), not L whatever
+                self.ui.spXComboBox.setCurrentIndex(scanaxes.default_x(first['ScanVar'],first,first.get('ScanLine','')))
                 self.ui.spYComboBox.setCurrentIndex(len(self.specData[self.selectedScanNums[0]]['ScanVar'])-1)
                 self.ui.spY2ComboBox.setCurrentIndex(0)
                 cols=list(self.specData[self.selectedScanNums[0]]['ScanVar'])
@@ -7589,10 +7599,7 @@ class MainWindow (QMainWindow):
     def updatePlotFile(self): #update plot files in the listwidget
         self.ui.plotFileListWidget.clear()
         for i in range(len(self.plotfiles)):
-            try:  #for pc
-                self.ui.plotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.plotfiles[i].split('\\')[-2])+'\\'+str(self.plotfiles[i].split('\\')[-1]))
-            except: #for mac and linux
-                self.ui.plotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.plotfiles[i].split('/')[-2])+'/'+str(self.plotfiles[i].split('/')[-1]))
+            self.ui.plotFileListWidget.addItem('#'+str(i+1)+self.halftab+paths.short(self.plotfiles[i]))
 
     def addPlotFile(self): #add plot files into the listwidget and deselect all ref files in the listwidget
         f=QFileDialog.getOpenFileNames(caption='Select Multiple Files to import', directory=self.directory, filter='Files (*.*)')[0]
@@ -7653,10 +7660,7 @@ class MainWindow (QMainWindow):
                     QMessageBox.warning(self, 'File Error','The data file doesnot seems to have column data only. Please check',QMessageBox.Ok)
                     return
                 data1=data1[np.argsort(data1[:,0])]
-                try:  #for pc
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('\\')[-1])
-                except: #for mac and linux
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('/')[-1])
+                datalabel=paths.base(self.plotfiles[self.selectedplotfiles_rows[i]])
                 try:
                     self.ui.PlotMplWidget.canvas.ax.errorbar(data1[:,0]*self.plotscale[i][0]+self.plotscale[i][1],data1[:,1]*self.plotscale[i][2]+self.plotscale[i][3],data1[:,2]*self.plotscale[i][2],fmt=style,label='#'+str(self.selectedplotfiles_rows[i]+1)+' '+datalabel)
                 except:
@@ -7698,10 +7702,7 @@ class MainWindow (QMainWindow):
                 y=fint(x)
                 y=np.gradient(y)
                 self.gradata=np.vstack((x,y)).T
-                try:  #for pc
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('\\')[-1])
-                except: #for mac and linux
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('/')[-1])
+                datalabel=paths.base(self.plotfiles[self.selectedplotfiles_rows[i]])
                 self.ui.PlotMplWidget.canvas.ax.plot(self.gradata[:,0],self.gradata[:,1],style,label='#'+str(self.selectedplotfiles_rows[i]+1)+' '+datalabel)
         if self.ui.plotLogXCheckBox.checkState()!=0:
             self.ui.PlotMplWidget.canvas.ax.set_xscale('log')
@@ -8194,10 +8195,7 @@ class MainWindow (QMainWindow):
     def update2dPlotFile(self): #update 2dplot files in the listwidget
         self.ui.twodPlotFileListWidget.clear()
         for i in range(len(self.twodplotfiles)):
-            try:  #for pc
-                self.ui.twodPlotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.twodplotfiles[i].split('\\')[-2])+'\\'+str(self.twodplotfiles[i].split('\\')[-1]))
-            except: #for mac and linux
-                self.ui.twodPlotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.twodplotfiles[i].split('/')[-2])+'/'+str(self.twodplotfiles[i].split('/')[-1]))
+            self.ui.twodPlotFileListWidget.addItem('#'+str(i+1)+self.halftab+paths.short(self.twodplotfiles[i]))
 
     def add2dPlotFile(self): #add plot files into the listwidget and deselect all ref files in the listwidget
         f=QFileDialog.getOpenFileNames(caption='Select Multiple Files to import', directory=self.directory, filter='Files (*.*)')[0]

@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import sys
 import os
+import re
 import numpy as np
+from lss_core import lattice, paths
 from lss_core.numbers import spec_number, spec_numbers
 from lss_core.monitor import parse_gain
 from lss_core.series import parse_series, aborted_after
@@ -118,10 +120,24 @@ class specread:
                         fileheads.append((k_e,float(l_e[2:].split()[0]),d_e[2:].strip()))
                     except (ValueError,IndexError):
                         pass
+            # the file header's full motor names (#O0, #O1, ...), position for position
+            # with the scans' #P names, which the macro cuts to 8 characters
+            # ('Two_Thet' for 'Two_Theta'; TODO area L, 2026-11-24)
+            motorheads=[]
+            for k_e,l_e in enumerate(fdata):
+                if l_e[:2]=='#O' and l_e[2:3].isdigit():
+                    tag=l_e.split()[0]
+                    if tag=='#O0' or not motorheads:
+                        motorheads.append((k_e,{}))
+                    motorheads[-1][1][int(tag[2:])]=re.split(r'\s{2,}',l_e[len(tag):].strip())
+            if motorheads:
+                self.Data['MotorNames']=motorheads[-1][1]
             self.lastAbsorber=self.Data.get('LastAbsorber') if startLineNum>0 else None
             self.lastMoncGain=self.Data.get('LastMoncGain') if startLineNum>0 else None
             for i in range(numOfScans): 
                 start=startScanLineNums[i]+1
+                onames=next((h[1] for h in reversed(motorheads) if h[0]<startScanLineNums[i]),
+                            self.Data.get('MotorNames') or {})
                 line=fdata[start]
                 num=int(fdata[startScanLineNums[i]].split()[1])
                 i=i+tmp
@@ -133,6 +149,7 @@ class specread:
                 else:
                     self.Par[num]['Detector']='Monitor'
                 tmpdata=[]
+                absorber_a=None     # (value,) from #A: it wins over the Absorber motor of #P, whatever the order
                 while line[:2]!='\n' and line[:2]!='#C':
                     if line[:2]=='#P':
                         parName=line[4:].split()
@@ -140,6 +157,17 @@ class specread:
                         parValue=spec_numbers(fdata[start][1:].split())
                         for j in range(len(parName)):
                             self.Par[num][parName[j]]=parValue[j]
+                        try:
+                            full=onames.get(int(line.split()[0][2:]),[])
+                        except ValueError:
+                            full=[]
+                        if len(full)==len(parName):   # the full name too, where the macro cut it
+                            for j,(short,name) in enumerate(zip(parName,full)):
+                                if name!=short and name.startswith(short) and name not in self.Par[num]:
+                                    self.Par[num][name]=parValue[j]
+                        for j,name in enumerate(parName):   # and the 8-character name, where a macro writes it whole
+                            if len(name)>8 and name[:8] not in self.Par[num]:
+                                self.Par[num][name[:8]]=parValue[j]
                     if line[:2]=='#W':
                         tmppar=line[2:].split()
                         self.Par[num]['Wavelength']=spec_number(tmppar[1])
@@ -161,6 +189,7 @@ class specread:
                             self.Par[num]['Absorber']=spec_number(tmppar[1])
                         except (IndexError,ValueError,TypeError,SyntaxError):
                             self.Par[num]['Absorber']=None
+                        absorber_a=(self.Par[num]['Absorber'],)
                     if line[:2]=='#Q':
                         tmppar=line[2:].split()
                         self.Par[num]['Q']=spec_numbers(tmppar)
@@ -168,11 +197,13 @@ class specread:
                     if line[:2]=='#V':
                         self.Par[num]['Detector']='Vortex'
                     if line[:3]=='#B0':
-                        tmppar=line[3:].split('.')
-                        self.Par[num]['ImageNumber']=len(line[3:].split('_')[-1].split('.')[0])
-                        if tmppar[1]=='tif\n':
+                        # the image name's extension and last field, by splitext: a SPEC
+                        # name with a dot (run.v2) hid the scan's images (TODO area L)
+                        image=line[3:].strip()
+                        self.Par[num]['ImageNumber']=len(paths.stem(image).split('_')[-1])
+                        if paths.ext(image)=='.tif':
                             self.Par[num]['Detector']='Pilatus'
-                        elif tmppar[1]=='sfrm\n':
+                        elif paths.ext(image)=='.sfrm':
                             self.Par[num]['Detector']='Unsupported'   # Bruker CCD (.sfrm) images: no longer supported
                     if line[:3]=='#B1':
                         try:
@@ -235,11 +266,29 @@ class specread:
                     tmpdata,dropped=complete_rows(tmpdata)
                     if dropped:
                         extras['DroppedRows']=dropped
+                    if tmpdata and len(tmpdata[0])!=len(scanVar):
+                        # #L names more or fewer columns than the rows hold (a label with a space,
+                        # "Two Theta", in a macro that does not join them): the columns are
+                        # still matched by position, as they always were, but now it is said
+                        # (TODO area L, 2026-11-24): (labels, values per row)
+                        extras['LabelMismatch']=(len(scanVar),len(tmpdata[0]))
                     for j in range(len(scanVar)):
                         try:
                             self.Data[num][scanVar[j]]=np.array(tmpdata,dtype='float')[:,j]
                         except:
                             self.Data[num][scanVar[j]]=None
+                if absorber_a is not None:
+                    # #A is the absorber setting; the motor of #P4 named Absorber gives the
+                    # same in NX files, where #A comes after #P and so won by order. Now it
+                    # wins by rule (TODO area L, 2026-11-24); the motor's value is kept
+                    if self.Par[num].get('Absorber',absorber_a[0])!=absorber_a[0]:
+                        self.Par[num]['AbsorberMotor']=self.Par[num]['Absorber']
+                    self.Par[num]['Absorber']=absorber_a[0]
+                # L is Qz (the beamline's lattice): a fixed-L scan whose L disagrees with
+                # (2π/λ)(sin In_Rot + sin Out_Rot) by more than 1 % is noted (lss_core.lattice)
+                lm=lattice.l_mismatch(self.Data[num],self.Par[num])
+                if lm is not None:
+                    extras['LMismatch']=lm
                 if len(self.Par[num])==1:
                     self.Par[num]['Message']='No parameters!!'
                 self.Par[num].update(extras)

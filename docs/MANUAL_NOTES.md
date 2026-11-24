@@ -426,4 +426,8 @@ stable (burn tests), the confident 5 % time.
 - Manual idea: a page per menu with the figures it makes, taken from a run
   (the figure agent can use the same window, or `python -m lss_toolbox
   --audit`, to get current figures).
-
+- File names (2026-11-24): SPEC names may contain dots (`run.v2`) and paths may use '/' or '\\'; plot-file legends show the file's name, the list '<folder>/<name>'.
+- SPEC files (2026-11-24): when a scan's `#L` names more or fewer columns than its rows hold, the window says so once; the columns are still matched by position (a label with a space in it shifts the later ones).
+- Motor names (2026-11-24): a scan's parameters hold each motor under its 8-character name (as the macro writes `#P`) and its full name from the file header's `#O` (`Two_Thet` and `Two_Theta`).
+- SpecPlot (2026-11-24): an hklscan is plotted against the index it moves (from the `#S` command, else the column that varies; L when nothing moves); other scans against their first column; y the last column, as before.
+- SPEC files (2026-11-24): L is Qz; a scan at fixed L whose L disagrees with its In_Rot and Out_Rot by more than 1 % is reported once on opening (a changed SPEC lattice would scale every Qz).
