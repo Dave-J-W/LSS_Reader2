@@ -5075,6 +5075,13 @@ Verified by: reading only. The numbers are the tools session's, measured on synt
 - **P4:** after the blanks.
 - **Guard:** needs further study; p stays 0.3; the real test is hand-off 08 (not soon).
 - **Numbering clash to note:** the tools session called the blank-spectrum request "F105"; F105 here is the comparison tab with auto-update. The blank spectra are F90's data (DATA_NEEDS row 3).
+  - *Resolved (Main, 2026-11-24).* Every use of "F105" on main was checked (a search of `docs/`, `tests/` and `lss_*`). None calls the blank spectra F105 any longer: tools man corrected `docs/reports/tools_man_handoff.md`, and the study B summary and DATA_NEEDS row 3 use F90. F105 itself, the comparison tab with Export's proposed names (Q-REF-5, Q-REF-6), was not on TODO until 2026-11-24. It is now in TODO area B, for the GUI manager after timeline 1c.
+- *Since (Main, 2026-11-24).*
+  - The owner asked for full studies before these decisions stand (entry "The owner asks for full studies…"). So P1's default switch is **held**: P1, P2 and P3 are options, and today's weighting is still the default.
+  - Study B (`docs/studies/mca_fit/summary.md`, C47) recommends P1 as the default.
+  - Study A (`docs/studies/reflectivity_guard/summary.md`, C48) recommends raising the guard to p 0.7.
+  - Both wait for the owner's answer, which questor records.
+  - Cash 1979's DOI above is confirmed from the index record; the full text is not read.
 
 ### 2026-11-24 — L as Qz: the convention, written down and checked at load (tools man, area L)
 
