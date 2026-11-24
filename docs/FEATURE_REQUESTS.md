@@ -430,6 +430,8 @@ order"), for a day of reflectivity only; the whole answer is in
 
 | F106 | **New-sample detection on the timeline, confirmed by the user** (owner, 2026-11-24, Q-TL-1): propose a new sample at `setup_sh_scan` followed by sh movements and `set sh 0`; show "New sample assumed. Correct?" with Yes/No buttons on the timeline; keep the answer (per-SPEC state). Later a SPEC-written marker takes precedence (the owner plans it; its form unknown). Part of F83. |
 
+| F107 | **Colour the timeline's sx line by received dose** (owner, 2026-11-24, Q-TL-7): the sx trace on the sample timeline (F83) is coloured by the radiation dose per area received at each position, scaled by the dose per area of the relevant burn test (so colour says how close a spot is to the damage threshold). Needs the beam footprint and a dose per scan point (the burn dose axis of F98 is the same quantity); the burn test chosen for scaling is the sample's own, else the nearest in time (assumption). Barrier and tensiometer traces appear only when the data exist (F75). |
+
 Also decided (see `docs/gui/questions.md` Answers): movie at 3 or more frames, space pauses, arrows step when paused (F69); weighted residuals (F74); Apex tab, Beamlines menu, `peakfit2`/`peakfitpara` and the Command line row removed; Quit works and Documentation opens `docs/SCRIPTING.md`; Messages, Errors and Script panes follow D59.
 
 ### Status of built items
