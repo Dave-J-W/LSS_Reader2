@@ -5977,3 +5977,25 @@ factor fit on the scans as the result holds them. With repeats merged
 as ΣN/ΣM (F81, the default since 2026-11-23) it is therefore not the
 pre-2026-11-22 file for reductions with repeats.
 
+### 2026-11-24 — What a height scan tells you, and both of its edges (the owner's question on the fits)
+
+Verified by: measurement on private spec files by the non-cloud agent (1995 accepted height scans, 21 runs);
+the sketch is derived. Study: `docs/studies/sh_beam_size/height_scans.md` (figures S6–S9).
+
+- **Single scans, fitted, are now shown** (the owner made height-scan ROI data unrestricted): one accepted scan
+  per class and one rejected scan per guard, with residuals. χ²/dof is 3–13 (10–90 %), not 1, because one erf
+  misses the beam's core + tail: points sit above the fit in the foot and wobble about the edge. The per-scan
+  fit error on σ_rise (median 1.0 µm) equals the scan-to-scan scatter within a run (median 1.0 µm).
+- **Correction to the entry above: the falling edge is also a cut through the beam, not only "loss".** The
+  rise and fall widths are rank-correlated scan to scan in all 21 run series (ρ +0.29 to +0.79, median
+  +0.57). σ_fall / σ_rise is 0.89 at 10 keV in the full fit, and 0.96 when each edge is fitted on its own
+  half with a sloping plateau (6–8 keV: 0.98 and 1.03). So both ends of the trough see the same beam. The
+  fall stays a cross-check only: its position depends on α_c − α, the reflectivity and the ROI.
+- **The residual shape matches the images.** One erf fitted to the images' median core + tail (13.5 / 56 µm,
+  29 %) has σ = 16.2 µm, against σ_rise 15–17 µm at 10 keV, and leaves the same wiggle the ROI scans show.
+- **Meniscus.** The curved ends set where the knife cuts (the tangent point) and the plateau length (α × the
+  flat length), not the rise's width. Too short a plateau is rejected. A non-flat plateau narrows the full
+  fit's σ_fall by about 9 % and σ_rise by about 2 %. Within a run σ_rise falls slightly as the plateau
+  lengthens (median ρ −0.20), unexplained, about 1 µm.
+- **How sure:** a run's median σ_rise ± 0.3 µm statistically; as a size, about ± 10 % (one erf for a core +
+  tail profile). No number of the dose rule changes.

@@ -125,7 +125,7 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [Absorber steps and foils (hand-off 03 answer)](#absorber-answer-figures) | external | Figures of the owner's analysing repository (tools/absorber_steps.py, absorber_review.py, absorber_trust.py) from private data: measured steps, foil fits, the review of anomalous joins. Not regenerable here; the numbers behind them are in figdata/ and joins.csv. | private (not in the repository) |  | `docs/handoff_out/03-answer/figures` |
-| [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
+| [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, the guards, rise against fall and what the meniscus does. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
 
 ## Items
 
@@ -1073,10 +1073,10 @@ Figures of the owner's analysing repository (tools/absorber_steps.py, absorber_r
 
 ### sh-scan beam size (private data)
 
-The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them.
+The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, the guards, rise against fall and what the meniscus does. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them.
 
 - Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
-- Explained in: `docs/studies/sh_beam_size/summary.md`
+- Explained in: `docs/studies/sh_beam_size/summary.md`, `docs/studies/sh_beam_size/height_scans.md`
 - Committed products: `docs/studies/sh_beam_size`; not replaced from the window
 
 ## The Tools window

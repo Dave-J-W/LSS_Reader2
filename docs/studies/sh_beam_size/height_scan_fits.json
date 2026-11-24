@@ -1,0 +1,296 @@
+{
+ "S6_scans": [
+  {
+   "cls": "10 keV S1 0.016 trough",
+   "sigma_rise_um": 15.828180233203833,
+   "sigma_fall_um": 13.448316102117001,
+   "chi2dof": 4.872179001002748
+  },
+  {
+   "cls": "10 keV S1 0.020 trough",
+   "sigma_rise_um": 16.446444195518296,
+   "sigma_fall_um": 14.362515772915296,
+   "chi2dof": 8.188706258143974
+  },
+  {
+   "cls": "10 keV S1 0.040 trough",
+   "sigma_rise_um": 15.814565213832559,
+   "sigma_fall_um": 14.702999246605726,
+   "chi2dof": 8.032443530211868
+  },
+  {
+   "cls": "10 keV S1 0.020 cell",
+   "sigma_rise_um": 16.257158454516354,
+   "sigma_fall_um": 14.349355623138024,
+   "chi2dof": 5.659723263426968
+  },
+  {
+   "cls": "6-8 keV S1 0.070 cell",
+   "sigma_rise_um": 22.227139597585992,
+   "sigma_fall_um": 22.09327965080368,
+   "chi2dof": 6.098477417941536
+  },
+  {
+   "cls": "6-8 keV S1 0.200 cell",
+   "sigma_rise_um": 37.8136886786886,
+   "sigma_fall_um": 58.79997727159319,
+   "chi2dof": 10.182796121971313
+  }
+ ],
+ "edges": {
+  "n_scans": 1994,
+  "n_run_series": 21,
+  "fall_over_rise_10keV": [
+   0.8128380874411119,
+   0.8881645237057538,
+   0.9587372720848398
+  ],
+  "fall_over_rise_6_8keV": [
+   0.8184163249849907,
+   0.9799751917067826,
+   1.1840642752509183
+  ],
+  "run_ratio_range_10keV": [
+   0.8392630383023498,
+   0.938699949945103
+  ],
+  "run_ratio_range_6_8keV": [
+   0.9655823709437805,
+   0.9890544528823767
+  ],
+  "rho_rise_fall_runs": [
+   0.2932795913480725,
+   0.5731643356643357,
+   0.7886205837173578
+  ],
+  "rho_rise_plateau_runs": [
+   -0.6861705458720385,
+   -0.20281298003072198,
+   0.06285387825057895
+  ],
+  "rise_alone_over_product": [
+   0.8420123274123353,
+   1.0180451760724227,
+   1.211432816376322
+  ],
+  "fall_alone_over_product": [
+   0.9756336204974613,
+   1.091126011778405,
+   1.256357152379187
+  ],
+  "plateau_um_10keV": [
+   78.73823134677292,
+   86.62772170244915,
+   101.53788466596322
+  ],
+  "plateau_um_6_8keV": [
+   135.60642082122064,
+   150.0053367298193,
+   178.00975656662655
+  ],
+  "fall_alone_over_rise_alone": {
+   "10 keV": [
+    0.7320978205952939,
+    0.9636529266020046,
+    1.2625005052814764
+   ],
+   "6-8 keV": [
+    0.7837272348761641,
+    1.0325783184937927,
+    1.5589467756239688
+   ]
+  }
+ },
+ "run_series": [
+  {
+   "cls": "10 keV S1 0.016 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 55,
+   "ratio": 0.845840099943221,
+   "rho_rise_fall": 0.6779220779220781,
+   "rho_rise_plateau": -0.27503607503607513
+  },
+  {
+   "cls": "10 keV S1 0.016 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 66,
+   "ratio": 0.887973298576995,
+   "rho_rise_fall": 0.7378144243815887,
+   "rho_rise_plateau": -0.6861705458720385
+  },
+  {
+   "cls": "10 keV S1 0.016 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 83,
+   "ratio": 0.891057784851719,
+   "rho_rise_fall": 0.7522354225263422,
+   "rho_rise_plateau": -0.487133201796734
+  },
+  {
+   "cls": "10 keV S1 0.016 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 52,
+   "ratio": 0.8914449229907488,
+   "rho_rise_fall": 0.592760180995475,
+   "rho_rise_plateau": -0.18466660974985058
+  },
+  {
+   "cls": "10 keV S1 0.016 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 132,
+   "ratio": 0.9070685235730888,
+   "rho_rise_fall": 0.7325374504964701,
+   "rho_rise_plateau": -0.5217085044324898
+  },
+  {
+   "cls": "10 keV S1 0.016 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 110,
+   "ratio": 0.9248403890909014,
+   "rho_rise_fall": 0.7021211369835223,
+   "rho_rise_plateau": -0.09023285170074162
+  },
+  {
+   "cls": "10 keV S1 0.016 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 51,
+   "ratio": 0.9262194403325509,
+   "rho_rise_fall": 0.5377375565610859,
+   "rho_rise_plateau": -0.2376470588235294
+  },
+  {
+   "cls": "10 keV S1 0.020 cell",
+   "energy": "10 keV",
+   "cell": "cell",
+   "n": 96,
+   "ratio": 0.8559811189225088,
+   "rho_rise_fall": 0.4185567010309279,
+   "rho_rise_plateau": -0.25812533912099833
+  },
+  {
+   "cls": "10 keV S1 0.020 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 104,
+   "ratio": 0.8392630383023498,
+   "rho_rise_fall": 0.5255201109570042,
+   "rho_rise_plateau": -0.08308972580817241
+  },
+  {
+   "cls": "10 keV S1 0.020 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 63,
+   "ratio": 0.8473202792265445,
+   "rho_rise_fall": 0.36688748079877115,
+   "rho_rise_plateau": -0.20281298003072198
+  },
+  {
+   "cls": "10 keV S1 0.020 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 188,
+   "ratio": 0.8477869799698543,
+   "rho_rise_fall": 0.7623291740938799,
+   "rho_rise_plateau": -0.15057602667114556
+  },
+  {
+   "cls": "10 keV S1 0.020 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 125,
+   "ratio": 0.874107164991424,
+   "rho_rise_fall": 0.7886205837173578,
+   "rho_rise_plateau": -0.2733701996927803
+  },
+  {
+   "cls": "10 keV S1 0.020 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 114,
+   "ratio": 0.8757064574348206,
+   "rho_rise_fall": 0.5914866041594947,
+   "rho_rise_plateau": -0.3888013608472895
+  },
+  {
+   "cls": "10 keV S1 0.020 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 65,
+   "ratio": 0.8902199137480181,
+   "rho_rise_fall": 0.5731643356643357,
+   "rho_rise_plateau": -0.44256993006993
+  },
+  {
+   "cls": "10 keV S1 0.040 cell",
+   "energy": "10 keV",
+   "cell": "cell",
+   "n": 67,
+   "ratio": 0.8666043315914156,
+   "rho_rise_fall": 0.2932795913480725,
+   "rho_rise_plateau": 0.055710751057546505
+  },
+  {
+   "cls": "10 keV S1 0.040 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 62,
+   "ratio": 0.8760824495095874,
+   "rho_rise_fall": 0.7095515096572738,
+   "rho_rise_plateau": -0.4779783938958978
+  },
+  {
+   "cls": "10 keV S1 0.040 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 74,
+   "ratio": 0.9293359203662269,
+   "rho_rise_fall": 0.556401332839689,
+   "rho_rise_plateau": -0.18895223991114396
+  },
+  {
+   "cls": "10 keV S1 0.040 trough",
+   "energy": "10 keV",
+   "cell": "trough",
+   "n": 165,
+   "ratio": 0.938699949945103,
+   "rho_rise_fall": 0.4137418855020972,
+   "rho_rise_plateau": -0.1969091443378837
+  },
+  {
+   "cls": "6-8 keV S1 0.050 cell",
+   "energy": "6-8 keV",
+   "cell": "cell",
+   "n": 49,
+   "ratio": 0.9890544528823767,
+   "rho_rise_fall": 0.35704081632653056,
+   "rho_rise_plateau": 0.009081632653061224
+  },
+  {
+   "cls": "6-8 keV S1 0.070 cell",
+   "energy": "6-8 keV",
+   "cell": "cell",
+   "n": 133,
+   "ratio": 0.9795378038557588,
+   "rho_rise_fall": 0.5549372073331225,
+   "rho_rise_plateau": 0.06285387825057895
+  },
+  {
+   "cls": "6-8 keV S1 0.200 cell",
+   "energy": "6-8 keV",
+   "cell": "cell",
+   "n": 94,
+   "ratio": 0.9655823709437805,
+   "rho_rise_fall": 0.394198605642452,
+   "rho_rise_plateau": 0.022504786330961243
+  }
+ ],
+ "erf_of_core_tail_sigma_um": 16.1750892488814
+}
