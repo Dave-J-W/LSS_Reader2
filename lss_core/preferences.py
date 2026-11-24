@@ -46,9 +46,28 @@ DEFAULTS = {
     # Ref Patch, identical scans: repeats merged by counts and monitors, ΣN/ΣM (F81); True:
     # the legacy mean of the normalised repeats
     'repeats_legacy_average': False,
+    # MCA "Fit lines": True fits each spectrum's heights by Poisson maximum likelihood (F90 P1);
+    # off by default until the owner's study (2026-11-24): least squares weighted by the data's σ
+    'mca_fit_poisson': False,
+    # MCA "Fit lines" options (F90 P2, P3; options, not defaults, 2026-11-24): the line width from
+    # the detector's resolution (its electronic noise FWHM, keV) and Si escape stripping
+    'mca_line_options': {'detector_width': False, 'noise_kev': 0.12, 'strip_escape': False},
     # ngui: a second window sketching the proposed layout (non-functional prototype, F82;
     # docs/gui/prototype.md); off by default (owner, 2026-11-23)
     'ngui': False,
+    # the bottom panes the user showed from the View menu (D59: all hidden by default, owner 2026-11-23)
+    'panes_shown': [],
+    # status-bar state badges (F85, owner 2026-11-23): 'on', 'when_not_default' or 'off'
+    'state_badges': 'on',
+    # Reduction options (F86, owner 2026-11-23): legacy paths, off by default
+    'mca_fit_legacy': False,
+    'burn_legacy_tab': False,
+    # the Pilatus frames display (F88, owner 2026-11-23, Q9): colour map, aspect, Axes, log per kind of
+    # frame, typed limits per kind, the zoom and the Home zoom, and (F69) the movie's view, speed and
+    # loop. Kept between sessions; reset when another SPEC file is opened ('spec' says which file)
+    'pil_display': {},
+    # residual panels above the plots that show a fit (F74, owner 2026-11-22: hidden by default)
+    'fit_residuals': False,
 }
 
 

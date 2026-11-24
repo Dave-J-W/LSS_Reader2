@@ -45,6 +45,10 @@ exists.
 | I32 | "Sum All" of Poisson frames (y = N·A/(M·g), σ = √N·A/(M·g)) equals ΣN/Σ(M/A·g) with σ = √ΣN/Σ(M/A·g), exactly; it is the mean of the per-frame values weighted by M/(A·g), and with equal monitors and absorbers the plain mean | `test_monc_normalised.py` (`test_sum_frames_is_the_counts_over_the_monitors`, `test_frames_with_absorbers_are_summed_by_their_effective_monitors`, `test_the_scripted_summed_cut_is_the_counts_over_the_monitors`, `test_the_windows_summed_cut_is_the_counts_over_the_monitors`); the identical-scans merge the same per point, also one repeat at a time (`test_repeats_merge.py::test_merge_identical_is_the_counts_over_the_monitors`) |
 | I33 | Every photon of a synthetic MCA spectrum lands in exactly one part: photopeak + tail + shelf + escape = the photons of each source (`synthetic.mca`, to 0.2 % where the channels cover everything); the gauntlet's truths rest on it (F90) | `test_synthetic_mca.py::test_every_photon_lands_in_one_part` |
 | I34 | On the Angles axis of a 'Pix V' cut through the reflected beam's columns, the reflected peak of a specular frame is at β = α (α = arcsin(Qz λ/4π)); NX school scans 6, 8, 9 to 2e-4° | `test_true_incidence.py::test_the_reflected_beam_sits_at_beta_equal_alpha` |
+| I35 | L is Qz in Å⁻¹ (the beamline's SPEC lattice): L = (2π/λ)(sin α + sin β), α = In_Rot, β = Out_Rot; in a specular scan 4π sin α/λ. On NX school every scan at fixed L agrees to better than 0.001 % (scans 4, 5, 10–15; scan 12 at the raised GID level, β = 6.5°); a fixed-L scan off by more than 1 % is noted at load (`LMismatch`) | `test_lattice.py::test_nx_l_is_qz_at_every_fixed_l_scan` |
+| I36 | Ref Patch steps are reversible: going Back (undoing a drop, or an accepted join) and doing the same steps again gives the same curve value for value as never going back; a cancelled patch leaves the curve on show and its Script line as they were (F96, owner Q-UI-B7). Not yet held: an accepted join must not change when live data arrive (B7's added rule; the live replay is not built) | `test_gui_ref_patch_steps.py::test_back_then_the_same_steps_give_the_same_reflectivity`, `::test_cancel_says_so_and_leaves_the_result_on_show` |
+| I37 | The residual panel shows what the fit minimised: over the fitted points Σ((y − fit)/σ)² = χ²/dof × (N − p), N − p an integer with p the fit's parameter count; for Poisson data with σ = √y and a right model the weighted residuals have mean ≈ 0 and SD ≈ 1 (F74). For burn trends Σr² is the best model's χ² itself (to 1e-9, every model on the synthetic burn) | `test_residuals.py::test_the_residuals_are_those_the_fit_minimised`, `::test_burn_trends_get_the_best_models_residuals` |
+| I38 | The ROI close-up outlines the pixels the reduction sums: summing a frame over `lss_core.display.roi_boxes(slit, cen, bg, direction)` gives `TwoDDetector.sumROI`'s signal and background values exactly, for any slit, centre, offset and direction (its slit − 2 and integer background centres included, PHYSICS_ISSUES P12) | `test_roi_boxes.py::test_summing_over_the_drawn_boxes_gives_sumROIs_values` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5013,6 +5017,11 @@ script, the window and the legacy preference). Measured: none.
 
 ### 2026-11-24 — Why five gauntlet joins are biased, and the first join's pull SD of 1.13 (tools man, extension 4)
 
+**Correction (2026-11-24, from Main's study A; reported by Main, not rerun here):** over 2000 seeds the first
+join's pull SD at p 0.3 is 1.00. The 1.13 of the first 300 seeds below was mostly sampling noise, so the
+"post-selection" explanation of it does not stand. The measured rung shares and the biased joins' model
+bias are unaffected. Study A (`docs/studies/reflectivity_guard/`) has the guard's full sweep.
+
 Verified by: runs. The command is `tests/tools/ref_patch_biased_joins.py --out
 docs/comparisons_data/ref_patch_biased_joins`, with 400 replicates per
 join on the gauntlet's own seeds; the default's pulls come back exactly as
@@ -5071,3 +5080,465 @@ Verified by: reading only. The numbers are the tools session's, measured on synt
 ### 2026-11-24 — GUI questions answered, batch 16 (Q-XFNTR-4, Q-UI-A9, Q-CUTS-3, Q-TL-1)
 
 Verified by: reading only (the SPEC command names are the owner's; not checked against a SPEC file here). No MCA spectrum browser. Reflectivity frame series default to a ROI-zoomed movie. α_f is reserved in the cut interface. New samples on the timeline are detected from `setup_sh_scan`, sh movements and `set sh 0`, asked of the user on the timeline (F106). This begins the timeline questions Q-TL-2–8, which remain open.
+  - *Resolved (Main, 2026-11-24).* Every use of "F105" on main was checked (a search of `docs/`, `tests/` and `lss_*`). None calls the blank spectra F105 any longer: tools man corrected `docs/reports/tools_man_handoff.md`, and the study B summary and DATA_NEEDS row 3 use F90. F105 itself, the comparison tab with Export's proposed names (Q-REF-5, Q-REF-6), was not on TODO until 2026-11-24. It is now in TODO area B, for the GUI manager after timeline 1c.
+- *Since (Main, 2026-11-24).*
+  - The owner asked for full studies before these decisions stand (entry "The owner asks for full studies…"). So P1's default switch is **held**: P1, P2 and P3 are options, and today's weighting is still the default.
+  - Study B (`docs/studies/mca_fit/summary.md`, C47) recommends P1 as the default.
+  - Study A (`docs/studies/reflectivity_guard/summary.md`, C48) recommends raising the guard to p 0.7.
+  - Both wait for the owner's answer, which questor records.
+  - Cash 1979's DOI above is confirmed from the index record; the full text is not read.
+
+### 2026-11-24 — L as Qz: the convention, written down and checked at load (tools man, area L)
+
+Verified by: run and test on NX school (`test_lattice.py`). The
+convention was read from the data, not from the beamline's SPEC
+configuration, which is not in the repository.
+
+**The convention.** H and K are the in-plane components; L is Qz in Å⁻¹:
+L = (2π/λ)(sin α + sin β), with α the incidence (header `In_Rot`) and β
+the exit angle (header `Out_Rot`). In a specular scan α = β, and
+L = 4π sin α/λ.
+
+**Measured on NX school.** Every scan at fixed L agrees with its header
+angles to better than 0.001 %:
+- scans 4, 5, 10, 13–15 (specular);
+- scan 11, the GID low level. The fragility audit's 0.06 % came from
+  using α twice: In_Rot is 0.0905° and Out_Rot 0.0906°;
+- scan 12, the raised GID level, where β = 6.5° and L = 0.582 Å⁻¹.
+
+Scans whose L moves (the hklscans) are not checked.
+
+**The check (invariant I35).** At load, a fixed-L scan whose L differs
+from its angles by more than 1 % gets `LMismatch` (the relative
+difference) in its parameters, and the window says so once. Only scans
+whose header gives both In_Rot and Out_Rot are checked: without the
+exit angle, a raised detector arm would look like a wrong lattice
+(scan 12). It asks
+whether the SPEC lattice is the usual one. Nothing is changed:
+reductions keep using L.
+
+### 2026-11-24 — The owner asks for full studies of the guard and the MCA fit decisions
+
+**Owner, after answering batch 15:** "I want a full study (is real data
+needed? Better synthetic? Show some synthetic data replicates and their
+fits! Show me stats in graphical form!) illustrations, and a ELI5
+rationale document with latex equations for those two decisions. But
+this will have to wait until 1am."
+
+**Answer: planned, not yet done.** The plan is
+`docs/studies/2026-11-24_two_decisions_plan.md`:
+- study A, the reflectivity join guard (C45, C36);
+- study B, the MCA line intensity (F90, C42);
+- each answers the same five questions, the second and third being
+  whether the synthetic data are good enough and whether real data are
+  needed;
+- each comes with figures of replicates and their fits, and statistics
+  in graphical form;
+- an ELI5 rationale with LaTeX follows both.
+
+The work starts at 1:00 am America/Chicago, from a reminder in the Main
+session. Until the studies are in, the batch 15 decisions are recorded
+but **P1's default switch waits**: tools man builds P1, P2 and P3 as
+code paths with today's weighting kept as the default.
+
+Verified: nothing yet (a plan).
+
+### 2026-11-24 — F96 built: Back, Cancel and the join table in the Ref Patch window; the line under the Reflectivity plot
+
+The owner's answers Q-UI-B7 and Q-UI-B5 (batch 8, above) are built in the
+main window. Verified by: tested (`tests/test_gui_ref_patch_steps.py`, 13
+tests), not yet tried by the owner.
+
+- **Back** undoes one step at a time: a Drop, or a join accepted with Next.
+  Each step first saves a copy of everything it changes (the scans' arrays,
+  which the joins scale in place, hand-off trap T3; the curve joined so far;
+  the scales, known-ratio factors, drops and choices). Back puts the copy
+  back, so a join comes back as it was left, its drops kept. **Invariant
+  I36:** Back and redoing the same steps gives the same curve, value for
+  value (tested on a three-scan synthetic patch with two drops).
+- **Cancel**, Esc, or closing the window (or the identical-scans window)
+  stops the patch and says so in the Messages pane: at which join, and that
+  the Reflectivity tab is unchanged; the log lists the joins accepted.
+  **A defect went with the old silent close:** the patch had already
+  replaced what describes the result on show (drops, factors, method,
+  merged repeats, the command line), so after a closed patch the Script
+  pane and the workbook recipe described the abandoned patch, not the curve
+  on show. A stopped patch now puts them back (tested: the Script line is
+  the same before and after a cancelled patch with a drop).
+- **The join table** lists each join: scans, factor ± error, its source in
+  the words of the script (`joint`, `legacy`, `known ratio`, so that a live
+  replay can rebuild it, Main's request), the dropped points, the fit's
+  note. It is kept with the result and saved in the workbook's Saved
+  settings (`joins`).
+- **The line under the Reflectivity plot** (Q-UI-B5): patch method, error
+  model, absorber model, scans, dropped points and the saved version, as
+  the result was made (a later change of preference does not alter it);
+  the joins and details in its tooltip. "saved vN" is read only from a
+  workbook already in memory (opening one can take seconds).
+
+**Seen in passing (measured, synthetic; corrected the same day):** first
+read as an effect of an unmerged repeat, it is a drop: dropping the **new
+scan's first point** (Drop "0") at a join leaves dR NaN or inf from there to
+the end of the curve, in the window and in `Experiment.reflectivity`, with
+the joint and the legacy fit, on main before F96 (7b9a22b) as on this
+branch. `synth.make_dataset` scans 1, 2: 6 of 14 points from Qz 0.05;
+with the repeat (scans 1, 2, 3): 8 of 14 from Qz 0.04; drops −1 or 1, or no
+drop: all finite. Pinned by the strict xfail
+`tests/test_drop_first_point_errors.py`; handed to Main, not fixed here.
+
+### 2026-11-24 — F95 (part): Ref Patch checks as one message and marks; the Bad Pixels list wired
+
+The owner's Q-UI-B6 and the list half of Q-UI-B3 (batch 7). Verified by:
+tested (`tests/test_gui_ref_checks.py`, 5 tests, on a synthetic set with
+one frame's beam drawn 5 px off and with corrected pixels injected into
+one frame's box), not yet tried by the owner.
+
+- The two modal boxes (beam centre more than 2 px off; corrected bad
+  pixels inside the signal box) are gone. One message names the frames;
+  the log has each frame's numbers.
+- The flags belong to the result: they are promoted when the patch goes on
+  show and kept through a cancelled patch, as the F96 join table is.
+- Marks are placed by matching each flagged frame's Qz to the curve's Qz
+  (within 5e-5 Å⁻¹; Qz steps are ≥ 1e-3 Å⁻¹ in every set seen): a point
+  merged at an overlap carries the mark, and a dropped point has none.
+- **No output number changes**: the checks only report. **Not built:** the
+  separate ROI threshold of B3 (the tab's "Bad Pixel Correction fac"
+  field), which would change numbers and then needs an OUTPUT_DECISIONS
+  row.
+
+### 2026-11-24 — F74 built (first plots): residual panels above fits
+
+The owner's request of 2026-11-22 (a small residuals plot above every plot
+that shows a fit, about 15 % of the height, χ² in the legend, hidden by
+default). Verified by: tested (`tests/test_residuals.py`, 6 tests), not
+yet seen by the owner.
+
+- **What is drawn:** (y − fit)/σ for the points inside the fit's window,
+  as in decay fitting (Lakowicz, *Principles of Fluorescence
+  Spectroscopy*, 3rd ed., Springer 2006, ch. 4; from memory, not rechecked
+  — still the assumption recorded with F74). Where a σ is missing or zero,
+  y − fit, and the axis label says so.
+- **Invariant I37:** the panel's residuals are the ones the fit minimised:
+  their squares sum to χ²/dof × (N − p). Measured on a synthetic Poisson
+  peak (61 points, peak plus linear background): N − p is an integer, p
+  between 3 and 8; mean residual within 0.5 and SD between 0.6 and 1.5 (a
+  weighted fit with σ = √y; the reason to expect SD ≈ 1 is that each
+  weighted residual of a right model is approximately N(0, 1), Bevington
+  and Robinson, *Data Reduction and Error Analysis*, 3rd ed., ch. 8, from
+  memory).
+- **Where:** SpecPlot scan fits (`peaks.fit_scan`) and the cut peak fits
+  (`fitCuts`), with one switch, View > Residuals above fits (preference
+  `fit_residuals`, default False), and one helper (`lss_core/residuals.py`,
+  matplotlib only) for the other fit plots to use. No output number
+  changes.
+
+### 2026-11-24 — F97 (part): the saturation cue on Pilatus frames
+
+The owner's Q-IMG-10 (batch 9): per pixel, soft limit 1e5 counts/s, hard
+limit 1.5e5 counts/s ("absorber needed"). Built as a display cue only:
+`lss_core.display.saturation` divides a frame's **raw** counts (as read,
+before monitor normalisation) by the point's SPEC `Seconds`, and the
+window colours the pixels above each limit over the frame, with a note in
+its corner. Verified by: tested (`tests/test_saturation_cue.py`, 5 tests:
+the limits, the overlay, a synthetic frame of 1e6 counts in 1 s marked
+red, a frame of about 1e3 counts unmarked, the drawn and raw frames
+unchanged).
+
+**Still open (from batch 9):** the exposure time is taken as SPEC
+`Seconds`, which is what the macros count for; not checked against the
+TIFF header's own exposure time. Whether the Pilatus counts are already
+rate-corrected by the detector is not known; if they are, the true
+incident rate is higher than shown. No output number changes.
+
+### 2026-11-24 — F74 on burn trends
+
+The burn test's trend panels get the residual panel too
+(`lss_core.burn.plot(..., residuals=True)`, from the window's View >
+Residuals above fits): above each quantity, the best model's (y − fit)/σ
+over every frame, with "best: <model>, χ²/dof" in the panel. Verified by:
+tested; measured on the synthetic burn (`synth.make_burn_dataset`, scan
+1): Σr² equals each model's χ² as the trend fit reports it (constant
+1.032e6, linear 4734, exponential and double exponential 1.9e-4, the
+synthetic decay being noiseless), so the σ drawn is the one fitted (ĉ = 1
+here; with ĉ > 1 the fit's covariance is scaled but χ² is not). No output
+number changes.
+
+### 2026-11-24 — F78 / timeline phase 1a: the super-Gaussian fit of sample-height scans
+
+**Question (owner, F78):** is a sample-height scan wide enough and "more
+squashed than a gaussian", flat-topped? **Built:**
+`lss_core.peaks.fit_super_gaussian`, I = A exp(−|(h − h0)/w|^p) + b with
+FWHM = 2 w (ln 2)^(1/p). p = 2 is a Gaussian; larger p is flatter. This is
+the higher-order Gaussian, the shape of the generalised normal distribution
+(Nadarajah, J. Appl. Stat. 32, 685 (2005),
+[doi:10.1080/02664760500079464](https://doi.org/10.1080/02664760500079464);
+the flat-top beam use, e.g. Shealy and Hoffnagle, Appl. Opt. 45, 5118
+(2006); both cited from memory, not rechecked).
+
+- **The FWHM error** propagates the covariance of (w, p): ∂F/∂w = F/w and
+  ∂F/∂p = −F ln(ln 2)/p², with ln(ln 2) = −0.367.
+- **The guard** (research §2): a peak less than 10σ above the edges, or
+  fewer than 3 points above half the peak, means no reflected beam, and the
+  fit is refused.
+- **Verified by:** tested (`tests/test_super_gaussian.py`, 6 tests), and
+  measured:
+  - synthetic Poisson scans (FWHM 80.8 µm, p 3.4, 41 points), 300 seeds:
+    FWHM pull mean 0.02 and SD 0.95; p pull SD 0.98; χ²/dof mean 1.015. The
+    errors are right.
+  - NX school (Pilatus/Monc, Poisson errors): scan 5 FWHM 82.1 ± 0.5 µm,
+    p 3.36 ± 0.08; scan 10 81.1 ± 0.5 µm, p 3.38 ± 0.08; scan 13
+    81.5 ± 0.5 µm, p 3.53 ± 0.09. A Gaussian's χ²/dof is 28–34 against
+    2.6–5.2. Scan 4: no reflected beam. These are the research's numbers.
+- **The box shape** that `fit_scan` already chooses for these scans gives
+  the same widths to 0.2 µm, with a better χ² (COMPARISONS C46). The
+  super-Gaussian's gain is the flatness number and the Gaussian comparison.
+- **On screen:** SpecPlot draws it on a sample-height scan plotted against
+  sh, with FWHM (µm), p and both χ²/dof on the title's last line. The
+  existing fit is unchanged.
+- **No verdict:** the owner gives the thresholds. No output number changes;
+  the fit is not saved.
+
+### 2026-11-24 — F83 phase 1b: the timeline model (lss_core.timeline)
+
+Built from the research's measured facts (`docs/gui/timeline/research.md`
+§1–3). Verified by: tested (`tests/test_timeline.py`, 6 tests: NX
+school, and a synthetic file for header comments, a SPEC session restart,
+a gap, and a missing time zone). Measured on NX: `timeline.build` takes
+36 ms and finds:
+
+- the `set sh 0` after scan 4 at 10:37:39 local (Sample_H −0.61 → 0, a
+  610 µm change), drawn as "new sample?". The research reads it as the
+  same sample, re-found after slit changes; the user confirms.
+- three re-references after sh scans 5, 10 and 13, of +5.5, −1.0 and
+  +0.5 µm, each 1–2 min after its scan ends.
+- 4 aborts, 29 macro files loaded (3 in the file header) and one gap over
+  20 min (after scan 2).
+- 5 sx steps, 20 → 18 → 16 → 14 → 12 → 10 mm.
+- the four sh scans with their super-Gaussian fits (scan 4: no beam).
+- the mnemonics sh → Sample_H, oh → Out_Ht, dth → Det_Th, ih → In_Ht.
+
+**Assumptions:**
+- A gap is 20 min without a scan; the research leaves N to the owner.
+- A move between scans is dated only to the interval between them.
+- Dates are local and converted with the header's #E/#D zone; without a
+  zone they are read as UTC, and the timeline's notes say so.
+- Scan 13's "aborted after 21 points" counts as complete, by the series
+  rule (21 of 21 points).
+
+### 2026-11-24 — Study B, MCA line intensities: the owner's study of F90's decisions (tools man)
+
+Verified by: runs on synthetic spectra, with tests for the pieces. The
+full write-up, figures B1–B7 and the commands are in
+`docs/studies/mca_fit/summary.md` (C47).
+
+**Question (owner, 2026-11-24, on batch 15):** "I want a full study (is
+real data needed? Better synthetic? Show some synthetic data replicates
+and their fits! Show me stats in graphical form!)" for the MCA decision.
+
+**Answer, in brief:**
+- **P1.** Data weights read a weak line low, as −19/N: −23 % at 100
+  counts, −5 % at 400. P1 removes the bias and costs nothing at high
+  counts. This holds whatever the background, so no real data are
+  needed for it.
+- **The window sum** fails whenever beam scatter lies under the box:
+  everywhere in the robustness map, and the hard XFNTR curve is off by
+  68 % at its worst point.
+- **Zn under 10 keV.** No estimator is within 1 %. P1+P2+P3 comes
+  closest, at −7 % with fits failing. The O 1s Compton wing decides, and
+  its size is the synthetic data's main uncertainty. A blank spectrum
+  measures it (DATA_NEEDS row 3).
+- **At a 12 keV beam** the same case passes with P1 alone: +0.5 %, pull
+  SD 1.07, no failures. At 11 keV, P1+P3 reads +0.3 %.
+
+**The generator was improved for the study.** Water's Compton scatter is
+now computed shell by shell in the impulse approximation, with hydrogenic
+momentum densities and binding cut-offs. The effective charges are from
+memory, and Hartree–Fock tables were not available offline. Not checked
+against real spectra.
+
+### 2026-11-24 — Study A answered: raise the join guard to p 0.7; C45's "1.13" was mostly sampling
+
+The owner asked for a full study (entry above, "The owner asks for full
+studies").
+
+**The answer for the guard.** The details are in
+`docs/studies/reflectivity_guard/summary.md`, and in the ELI5 version,
+`docs/studies/eli5_two_decisions.md`. Raise p₀ from 0.3 to 0.7.
+
+**The evidence**, all synthetic with known truth: C45 reproduced exactly,
+400–2000 replicates, two robustness maps.
+
+| p₀ | Bias at the five hard joins (mean \|pull mean\|) | Smooth join pull SD |
+|---|---|---|
+| 0.3 | 0.24 | 1.00 |
+| 0.5 | 0.16 | 1.03 |
+| 0.7 | 0.12 | 1.04 |
+| 0.9 | 0.10 | 1.04 |
+
+- p₀ 0.5–0.9 win 23 of 24 robustness cells: 3–10 points per fringe ×
+  flux 1 to 0.01, on coinciding and on staggered grids.
+- 0.7 is the setting, because 0.9 gains nothing that shows.
+
+**Real data are not needed.** Every choice moves a downstream structural
+fit by about 0.001 Å. The NX school joins give identical factors under
+every choice.
+
+**The answer changed overnight.** A first map whose strictest setting
+was 0.3 said "keep 0.3". Main added p 0.5, then 0.7 and 0.9 and a map
+on staggered grids, and the answer moved.
+
+The owner decides. The change itself is one constant, `patching.GUARD_P`,
+with its OUTPUT_DECISIONS row and re-pins.
+
+**Correction to C45 and to the entry "Why five gauntlet joins are
+biased".** The smooth first join's "pull SD 1.13" was mostly sampling
+noise of the first 300–400 seeds. Over 2000 seeds p 0.3 gives
+1.001 ± 0.016, and the guard off gives 0.918. The guard's widening is
+real but smaller, +0.083 ± 0.008, measured paired on the same
+replicates. It roughly cancels the guard-off error's inflate-only
+conservatism: 0.978 on the counting error alone, and 41 % of its errors
+are inflated.
+
+Verified: run, `tests/tools/ref_guard_study.py`. Rerun by Main, every
+CSV and PNG byte-identical. C48 (C47 is study B).
+
+### 2026-11-24 — The owner pauses the synthetic MCA project: wait for real data; Zn at 10 keV no longer required
+
+**Owner, 2026-11-24 (to Main):** "Btw this synthetic MCA data project is getting out of hand. Let's wait for real data and relax the requirement of zinc at 10kev. It served as a good stress test but is probably an unsolvable problem. Likely we would just increase the excitation energy to separate the lines. But don't lose all the work we've done so far, make sure it gets a full demo treatment (figures, clear docs) and inclusion in the tools menu."
+
+**What this means for the work:**
+- **Paused:** further synthetic MCA development for F90. That covers the
+  generator, new estimators and further gauntlet designs.
+- **No longer a requirement:** Zn Kα under a 10 keV beam (the "hard
+  case"). It stays in the record as the stress test it was. Study B
+  (C47) found no estimator within 1 % there, because the oxygen 1s
+  Compton wing decides it.
+- **The practical route:** raise the excitation energy to separate the
+  lines. Study B measured this: at 12 keV the same case passes with P1
+  alone (+0.5 %, no failures).
+- **Waits for real data:** P2, P3 and P4 (DATA_NEEDS row 3: other
+  elements and blank spectra).
+- **The work is kept:** it gets a full demonstration treatment, with
+  figures, clear documents and its Tools menu items. That is assigned to
+  tools man, who built it.
+
+**Not decided by this:** P1 as the "Fit lines" default. Study B found it
+needs no real data, but the owner's answer on it is still pending, with
+the guard's p (TODO, "For the owner").
+
+Verified: nothing measured (a decision).
+### 2026-11-24 — F71 / F97: the ROI close-up panel
+
+The owner's Q-IMG-7: a side panel always visible beside the frame, the
+same on both tabs, with the cue thresholds as proposed. F71: a healthy
+zoom that still shows the diffuse scattering and the background zones,
+log helps. Built (a subagent's draft, finished by the GUI manager after a
+container restart cut it off). Verified by: tested (`test_roi_boxes.py`,
+`test_roi_cues.py`, `test_gui_roi_panel.py`) and measured.
+
+- **Boxes:** `lss_core.display.roi_boxes` reproduces `sumROI`'s
+  arithmetic (invariant I38). The burned-in borders of the old strip are
+  gone, and so is its right background box drawn 2 px from the one summed
+  (`image_display.md` §1.5). The reduction is untouched (no sum is made in
+  the panel; the export fixtures are unchanged).
+- **The panel:**
+  - the frame zoomed to the boxes plus a margin, on its own colour scale
+    from the signal box (the 99.9th percentile), log by default;
+  - the column and row profiles;
+  - the sums and the checks;
+  - on the Pilatus tab beside the frame, following the movie; on the
+    Reflectivity tab in its close-up canvas, following the Qz list;
+  - the boxes before the peak search, drawn dashed.
+- **Checks (display only, owner's thresholds):**
+  - off centre beyond 25 % of the half-width;
+  - clipped, more than 1 % of the net on or beyond the box edge;
+  - a background box 2 px or less from the signal box;
+  - pixels above the count-rate limits (F97);
+  - the direct beam inside a box;
+  - a box off the frame.
+  Position and clipping are judged only when the net signal is above 3σ (an
+  assumption, so that noise is not called off centre).
+- **Measured** (NX scan 7, movie, 1600 × 1000 offscreen): 0.138 s per
+  frame with the panel against 0.092 s without, 46 ms more; within the
+  0.5 s of the default 2 fps.
+
+### 2026-11-24 — Where the sample timeline tab goes (owner)
+
+**Question (GUI manager, F83 phase 1c):** a tab in the main window, in the
+ngui prototype first, both at once, or not now? The research proposed
+ngui; the owner's priorities put the main window first and say ideas
+proven in ngui are carried over, not built twice. **Answer (owner,
+2026-11-24): a tab in the main window**, a view of `lss_core.timeline`;
+ngui shows the same view later. Verified by: the owner's answer only (the
+tab is not built yet).
+
+### 2026-11-24 — F83 phase 1c: the Timeline tab (first version)
+
+Built in the main window, as the owner chose: `timelineview.TimelineTab`,
+a QGraphicsView of `lss_core.timeline`, added as the last tab. Verified
+by: tested (`tests/test_gui_timeline.py`, 6 tests) and seen. On NX it
+draws:
+- 15 scan bars coloured by kind (scans 4 and 12 paler: aborted);
+- the "set sh 0" line at 10:37:39 local;
+- the three re-references, the four aborts and the 29 macro loads;
+- the 5 sx steps from 20 to 10 mm;
+- the four sh scans: 82, 81, 81 µm and p 3.4–3.5, scan 4 "no beam";
+- the 45 min gap after scan 2.
+
+How it behaves:
+- The time axis is drawn in the foreground on the file's local clock,
+  with ticks of 1 s to 1 day.
+- The wheel zooms the time axis only (×1.25 a notch), drag pans,
+  double-click fits.
+- A click selects the scan, and SpecPlot shows it with its super-Gaussian
+  fit.
+- The tab is built when shown and rebuilt when the file's size or time
+  changed (Update, Live).
+
+**Not yet:** thumbnails of the sh scans, notes (a Saved row of kind
+`note`, research §5), confirming or rejecting "new sample?", the
+reduced-data and environment lanes, and level of detail for thousands of
+scans (research measured 3,000 bars at 9 ms a redraw).
+
+### 2026-11-24 — The Timeline tab's place (owner)
+
+**Owner:** "Put the timeline tab in main window, furthest to the right."
+It is so: the last tab, after 2D_Plot (seen in a window: SpecPlot,
+Pilatus, Reflectivity, Line/Area Cuts, MCA, Plot, 2D_Plot, Timeline).
+Verified by: test (`test_gui_timeline.py::test_the_tab_is_last_and_says_what_to_do_before_a_file`).
+
+### 2026-11-24 — The owner's rule for defaults, and the join guard made p 0.7
+
+**Owner, 2026-11-24 (to Main):** "Make the best method the default if it has been comprehensively demonstrated and tested and has a demonstrator presentation effort behind it".
+It is AGENTS.md rule 12.
+
+**Applied, the same day:**
+- **The join guard is now p 0.7** (`patching.GUARD_P`). It meets the
+  rule: study A (C48) has six joins on known truth, 400–2000
+  replicates, two robustness maps, downstream fits and the real NX
+  joins. It has tests, figures, a Tools menu item, the summary and the
+  ELI5 rationale.
+- **Before → after, on NX school 6–9:** the factors, rungs and covariance
+  are identical. NX's split test (six real scans cut in two with a known
+  factor 1.25) gives the default an RMS pull of 1.13 before and 1.00
+  after.
+- **The join note came first, in its own commit.** At a strict guard
+  many good fits miss the threshold, and the note had called them "no
+  adequate fit" (117 of 300 smooth synthetic joins at p 0.7, none of
+  them with p < 0.01). Now it reads "the best fit of the ladder". Only
+  below p 0.01 does it read "no adequate fit".
+- **Earlier studies keep their own runs at p 0.3,** with a note in each
+  tool. That is C35 (downstream covariance), C36 (the gauntlet) and C45
+  (biased joins). Their committed products reproduce exactly, the full
+  C36 gauntlet included. So does the patch demonstrator's report, whose
+  text quotes its run: its figures stay at 0.3 (`--guard-p`), with a note
+  and a Tools menu variation at 0.7. Its interactive window uses the
+  reader's default.
+- **P1 for "Fit lines" is not yet the default.** Its demonstrator, the
+  wrap-up the owner asked for (`docs/reports/mca_fit_demo.md`), is not
+  done. It becomes the default with that wrap-up (tools man).
+
+Verified: by tests (`test_patching`, re-pinned with the old state kept
+at p 0.3), and by runs (the audit, the NX survey, C45 and C35
+reproduced).
+

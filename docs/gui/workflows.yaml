@@ -108,16 +108,27 @@ shared_steps:
     could_be_automatic: ""
     known_from: code; docs docs/SCRIPTING.md
     issues: []
+  - id: shared.timeline
+    do: "See the session on one time axis: when samples changed (set sh 0), sh scans and their width and flatness, sx moves, scans by kind; click a scan to open it"
+    where: Timeline tab
+    controls: [timelineTab, timelineView, timelineFitPushButton, timelineInfoLabel]
+    user_decides: "whether a 'set sh 0' was a new sample; which scan to open"
+    automatic: yes
+    could_be_automatic: "a verdict on each sh scan once the owner gives the thresholds (F78, Q-TL-6)"
+    known_from: owner 2026-11-23 (F83), 2026-11-24 (main-window tab); test tests/test_gui_timeline.py
+    issues:
+      - "No thumbnails, notes, reduced-data or environment lanes yet (phase 1c, first version)"
   - id: shared.frames-look
     do: Look at the frames (colour scale, log, axes, movie)
     where: Pilatus tab
-    controls: [pilLogIntCheckBox, pilMinLineEdit, pilMaxLineEdit, pilMinHorizontalSlider, pilMaxHorizontalSlider, pilCMapComboBox, pilAxesComboBox, pilAspectComboBox, pilMoviePushButton]
+    controls: [pilLogIntCheckBox, pilMinLineEdit, pilMaxLineEdit, pilMinHorizontalSlider, pilMaxHorizontalSlider, pilCMapComboBox, pilAxesComboBox, pilAspectComboBox, pilMoviePushButton, pilHomePushButton, pilFitAllPushButton, pilAutoScalePushButton, pilViewComboBox, pilMoviePlayPushButton, pilMovieBackPushButton, pilMovieForwardPushButton, pilMovieSlider, pilMovieCounterLabel, pilMovieSpeedComboBox, pilMovieLoopCheckBox, pilMovieInfoLabel]
     user_decides: colour limits, log scale, axes (Pixels, Angles, Q)
     automatic: partly
     could_be_automatic: sticky preferences and intelligent colour scales (F70); movie with sticky zoom (F69)
     known_from: code; owner 2026-11-22 (F69, F70)
     issues:
-      - "Colour limits are reset on every selection (code, imageSelectedScanChanged); see docs/gui/image_display.md"
+      - "Fixed 2026-11-24 (F88): colour limits, zoom and settings were reset on every selection; now sticky until another SPEC file, with Home, Fit all and Auto scale"
+      - "Fixed 2026-11-24 (F69): 3 or more frames play as a non-blocking movie (space, arrow keys); never more than 6 tiles"
 
 workflows:
   - id: day-ref
@@ -523,7 +534,7 @@ workflows:
       - id: burn-fluo.line
         do: Measure the line in each spectrum - Fit lines (sum fixes position and width, each spectrum amplitude and background) or a window Sum All
         where: MCA tab
-        controls: [mcaRanLineEdit, mcaFitLinesPushButton, mcaFitOptionsPushButton, mcaSumAllPushButton, mcaXAxisComboBox]
+        controls: [mcaRanLineEdit, mcaFitLinesPushButton, mcaFitOptionsPushButton, mcaFitDetectorWidthCheckBox, mcaFitNoiseSpinBox, mcaFitEscapeCheckBox, mcaSumAllPushButton, mcaXAxisComboBox]
         user_decides: the line window; fitted lines (owner D47 - lines count, not the Vortex counter) or window sum; x axis Frame
         automatic: no
         could_be_automatic: a burn dialog for MCA series (TODO - feed fit_series through trends.compare)
@@ -620,13 +631,13 @@ workflows:
       - id: ref.patch
         do: Ref Patch - one point per frame (ROI minus background per Monc), scans sorted by Qz; pop-ups for beams > 2 px off and bad pixels in the ROI
         where: Pilatus tab > Ref Patch
-        controls: [pilRefPatchPushButton, commandLineEdit]
+        controls: [pilRefPatchPushButton]
         user_decides: ""
         automatic: yes
         could_be_automatic: offer Ref Patch when a reflectivity series is selected (F60)
         known_from: code (pilRefPatchData); test tests/test_real_nx_school.py
         issues:
-          - "The beam-offset and bad-pixel tables are modal dialogs (pilPeakCenDialog, pilBadPixDialog) that interrupt the patch"
+          - "The beam-offset and bad-pixel tables were modal dialogs that interrupted the patch; since 2026-11-24 (F95) one message, marks on the curve and the Bad Pixels list (refBadPixListWidget)"
       - id: ref.same
         do: When identical scans (same Qz range and points) are found - merge them, drop some, or patch them regularly
         where: identical-scans dialog
@@ -642,7 +653,7 @@ workflows:
       - id: ref.join
         do: "For each join: the overlap plotted with the factor that Next will use (joint fit), the known foil ratio offered; drop points; Next / Finish!"
         where: Ref Patch dialog (one per join)
-        controls: [refpatch.nextPushButton, refpatch.dropPushButton, refpatch.dropLineEdit, refpatch.knownRatioCheckBox, refpatch.knownRatioLabel, prefPatchMethodComboBox, prefPatchAutoCheckBox, prefPatchThresholdSpinBox]
+        controls: [refpatch.nextPushButton, refpatch.dropPushButton, refpatch.dropLineEdit, refpatch.knownRatioCheckBox, refpatch.knownRatioLabel, refpatch.backPushButton, refpatch.cancelPushButton, refpatch.joinTableWidget, prefPatchMethodComboBox, prefPatchAutoCheckBox, prefPatchThresholdSpinBox]
         user_decides: accept the fitted factor or use the known ratio; which points to drop (typed indices)
         automatic: partly
         could_be_automatic: accept every join whose fit passes its guard and agrees with the foils, and show only the doubtful ones (owner 2026-11-18 F58 - known ratio automatic where plainly better)
@@ -651,11 +662,11 @@ workflows:
         goto: {"drop points": ref.join, "use known ratio": ref.join}
         issues:
           - "One dialog per join (3 for NX 6-9); the method preference is in File > Preferences, not in the dialog"
-          - "Dropped points are typed as indices, deleted from the arrays, not drawn, no undo (F16, D2)"
+          - "Dropped points are typed as indices, deleted from the arrays, not drawn (F16, D2); Back undoes a drop or a join and Cancel says so (F96, 2026-11-24)"
       - id: ref.view
         do: The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files
         where: Reflectivity tab (Ref / Norm Ref lists, plot)
-        controls: [refDataListWidget, refNormRefListWidget, refRRFCheckBox, refQcLineEdit, refQoffLineEdit, refLogYCheckBox, refQzSqrCheckBox, refNormFacCheckBox, refNormLineEdit, refDelPushButton, refRefFileListWidget, refAddFilePushButton, refRemoveFilePushButton, refLegendCheckBox]
+        controls: [refDataListWidget, refNormRefListWidget, refProvenanceLabel, refRRFCheckBox, refQcLineEdit, refQoffLineEdit, refLogYCheckBox, refQzSqrCheckBox, refNormFacCheckBox, refNormLineEdit, refDelPushButton, refRefFileListWidget, refAddFilePushButton, refRemoveFilePushButton, refLegendCheckBox]
         user_decides: "Qc (0.0217 preset: water, the same Qc at every energy, physics_notes 2026-11-23; changed for lighter or denser subphases); Qoff tweaked until R/R_F is continuous apart from one or two outliers (owner 2026-11-23); reference curves to compare"
         automatic: partly
         could_be_automatic: Qoff proposed from the continuity of R/R_F across the joins, Qc from the subphase (F79); Qoff from the sh-scan images (F42)
@@ -1100,7 +1111,7 @@ workflows:
       - id: cuts.view
         do: Look at the cuts; errorbars, offset, log; Fit peaks
         where: Line/Area Cuts tab
-        controls: [cutErrorbarCheckBox, cutOffsetCheckBox, cutOffsetLineEdit, cutLogYCheckBox, cutClearGraphPushButton, cutFitPushButton, cutFitOptionsPushButton]
+        controls: [cutErrorbarCheckBox, cutOffsetCheckBox, cutOffsetLineEdit, cutLogYCheckBox, cutClearGraphPushButton, cutFitPushButton, cutFitOptionsPushButton, actionFitResiduals]
         user_decides: fit options
         automatic: partly
         could_be_automatic: ""

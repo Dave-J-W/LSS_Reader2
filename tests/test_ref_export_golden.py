@@ -53,7 +53,7 @@ def reduce_and_save(w, qapp, recorder, out, scan_rows, drops=(), rrf=True,
             qapp.processEvents()
         w.uirefpatch.nextPushButton.click()
         qapp.processEvents()
-    assert w.ui.PlotWidget.currentIndex() == 3, 'patch did not finish'
+    assert w.ui.PlotWidget.currentWidget() is w.ui.refTab, 'patch did not finish'
     if qoff is not None:
         w.ui.refQoffLineEdit.setText(str(qoff))
         w.ui.refQoffLineEdit.returnPressed.emit()

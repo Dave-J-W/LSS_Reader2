@@ -51,6 +51,11 @@ def _fit_factor(data1x, data1y, data1yerr, data2x, data2y, data2yerr, overlap1):
     x=data1x[overlap1]
     y=data1y[overlap1]/f(x)
     yerr=y*np.sqrt(((data1yerr[overlap1]/data1y[overlap1])**2+(ferr(x)/f(x))**2))
+    if len(x)==1:
+        # one point in the overlap (e.g. the new scan's first point dropped): no scatter to
+        # scale by, so curve_fit's covariance was infinite and every later point got an
+        # infinite or NaN error; the ratio's own counting error instead (2026-11-24)
+        return float(y[0]), float(yerr[0])
     pfit,pcov=curve_fit(polynomial,x,y,p0=[1],sigma=yerr) #fit the data with the scale factor
     return pfit[0], pcov[0][0]**0.5
 

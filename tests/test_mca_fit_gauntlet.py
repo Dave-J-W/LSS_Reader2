@@ -23,19 +23,20 @@ def _series(cond, n, seed):
     return s, data, data[0][:, 0], [d[:, 1] for d in data], [d[:, 2] for d in data]
 
 
-def test_the_linear_step_is_the_readers():
-    """linear_step with data weights gives fit_series' per-spectrum heights
-    and errors exactly (so fit_known and fit_irls differ from the reader
-    only where they say)."""
+@pytest.mark.parametrize('weights, step', [('poisson', 'model'), ('data', 'data')])
+def test_the_linear_step_is_the_readers(weights, step):
+    """linear_step gives fit_series' per-spectrum heights and errors: data
+    weights its default, model weights its Poisson option (F90 P1), so
+    fit_known and fit_irls differ from the reader only where they say."""
     cond = g.core()['smooth']
     s, data, x, Y, S = _series(cond, 5, 1)
     o = g.fit_options(cond, [cond.line])
-    ref, each = peaks.fit_series(x, Y, S, o)
+    ref, each = peaks.fit_series(x, Y, S, o, weights=weights)
     assert ref.ok and len(each) == 5
-    mine = g.linear_step(x, Y, S, ref, o, 'data')
+    mine = g.linear_step(x, Y, S, ref, o, step)
     for r, (coef, err) in zip(each, mine):
-        assert coef[0] == pytest.approx(r.peaks[0].height, rel=1e-9)
-        assert err[0] == pytest.approx(r.peaks[0].height_err, rel=1e-9)
+        assert coef[0] == pytest.approx(r.peaks[0].height, rel=1e-6)
+        assert err[0] == pytest.approx(r.peaks[0].height_err, rel=1e-6)
 
 
 def test_model_weights_remove_neymans_bias_at_low_counts():

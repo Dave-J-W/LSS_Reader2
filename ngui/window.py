@@ -46,8 +46,8 @@ SAMPLES = {
     'plotFileListWidget': ['#1  run3/water_ref.txt', '#2  run3/lipid_ref.txt', '#3  run3/gid_map.txt'],
     'scanInfoDialog.impInfoTextBrowser': ['#S 12 ascan sh -0.2 0.2 40 1', 'Energy 10.0 keV · abs 0',
                                           'sh 0.0000 · Det_Th 0.00'],
-    'pilPeakCenDialog.peakCenTextBrowser': ['S# 8 pt 3: centre 2 px off the ROI centre'],
-    'pilBadPixDialog.peakCenTextBrowser': ['S# 9 pt 10: 1 hot pixel in the ROI (corrected)'],
+    'ref_centreChecks': ['S# 8 pt 3: centre 2 px off the ROI centre'],
+    'refBadPixListWidget': ['Qz 0.0450  S# 9 F# 10: (212, 97)'],
 }
 TABLE_HEADERS = {
     'gidJoinTable': ['join', 'direction', 'from', 'to', 'points', 'factor', 'χ²/dof'],
@@ -632,7 +632,16 @@ class NguiWindow(QMainWindow):
     def _provenance(self, key, text, note_button, parent):
         h = QHBoxLayout()
         h.setSpacing(6)
-        if text:
+        if isinstance(text, dict):          # the main window's line under the plot (F96): a label, as there
+            lab = QLabel(text.get('label') or '', parent)
+            lab.setObjectName(_oname(text['id']))
+            lab.setProperty('nguiProvenance', True)
+            lab.setMinimumWidth(80)
+            lab.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)  # clipped, never widening the window
+            lab.setToolTip(tooltip(text))
+            self.controls[text['id']] = lab
+            h.addWidget(lab, 1)
+        elif text:
             b = QPushButton(text, parent)
             b.setObjectName(_oname(key + '_provenance'))
             b.setProperty('nguiProvenance', True)
@@ -742,10 +751,15 @@ class NguiWindow(QMainWindow):
         t.setMaximumHeight(112)
         t.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         t.setEnabled(False)
-        t.setToolTip('New in ngui: every join at once. ' + NOT_FUNCTIONAL)
+        if sp.get('table'):              # the main window's join table (F96): its inventory entry
+            t.setToolTip(tooltip(sp['table']))
+            t.setObjectName(_oname(sp['table']['id']))
+            self.controls[sp['table']['id']] = t
+        else:
+            t.setToolTip('New in ngui: every join at once. ' + NOT_FUNCTIONAL)
         v.addWidget(t)
         ctl = sp['controls']
-        self._add_items([{'row': ctl[:2]}, {'row': ctl[2:]}], v, f)
+        self._add_items([{'row': ctl[:2]}, {'row': ctl[2:4]}, {'row': ctl[4:]}], v, f)
         tw = QTabWidget(f)
         tw.setObjectName('ngui_ref_joinPlots')
         for name, pl in sp['pages']:
@@ -809,34 +823,27 @@ class NguiWindow(QMainWindow):
         rv.addWidget(image, 1)
         movie = QHBoxLayout()
         movie.setSpacing(4)
-        for name, text, note in (('first', '|◀', 'First frame'), ('back', '◀', 'Step back (←)')):
-            movie.addWidget(self._widget({'new': 'movie_' + name, 'label': text, 'kind': 'button', 'note': note},
-                                         raw)[0])
-        play, _ = self._widget(sp['movie'], raw)
-        movie.addWidget(play)
-        for name, text, note in (('next', '▶|', 'Step forward (→)'), ('last', '▶▶|', 'Last frame')):
-            movie.addWidget(self._widget({'new': 'movie_' + name, 'label': text, 'kind': 'button', 'note': note},
-                                         raw)[0])
-        movie.addWidget(self._widget({'new': 'movie_slider', 'label': '', 'kind': 'slider',
-                                      'note': 'Moves through the frames; the list follows'}, raw)[0], 1)
-        movie.addWidget(QLabel('14 / 41', raw))
+        mb = sp['movie_bar']           # the main window's movie bar (F69, built 2026-11-24)
+        movie.addWidget(self._widget(mb['view'], raw)[0])
+        movie.addWidget(self._widget(sp['movie'], raw)[0])
+        movie.addWidget(self._widget({'new': 'movie_first', 'label': '|◀', 'kind': 'button', 'note': 'First frame'},
+                                     raw)[0])
+        for key in ('back', 'play', 'next'):
+            movie.addWidget(self._widget(mb[key], raw)[0])
+        movie.addWidget(self._widget({'new': 'movie_last', 'label': '▶▶|', 'kind': 'button', 'note': 'Last frame'},
+                                     raw)[0])
+        movie.addWidget(self._widget(mb['slider'], raw)[0], 1)
+        movie.addWidget(self._widget(mb['counter'], raw)[0])
         rv.addLayout(movie)
         movie = QHBoxLayout()           # second line: speed, loop, colour scale, then the frame's metadata
         movie.setSpacing(4)
-        movie.addWidget(self._widget({'new': 'movie_speed', 'label': '', 'kind': 'combo',
-                                      'items': ['2 fps', '0.5 fps', '1 fps', '5 fps', '10 fps'],
-                                      'note': 'Movie speed'}, raw)[0])
-        movie.addWidget(self._widget({'new': 'movie_loop', 'label': 'loop', 'kind': 'checkbox',
-                                      'note': 'Loop the movie'}, raw)[0])
+        movie.addWidget(self._widget(mb['speed'], raw)[0])
+        movie.addWidget(self._widget(mb['loop'], raw)[0])
         movie.addWidget(self._widget({'new': 'movie_colour', 'label': 'colour', 'kind': 'combo',
                                       'items': ['shared', 'per frame', 'locked'],
                                       'note': 'Colour scale across the movie (M4)'}, raw)[0])
-        meta = QLabel('S# 11 · pt 13 · Qz 0.215 1/Å · 2θ 18.40° · t 412 s · abs 2 · Monc 1.2e5', raw)
-        meta.setObjectName('ngui_frames_metadata')
+        meta = self._widget(mb['meta'], raw)[0]
         meta.setProperty('nguiCaption', True)
-        meta.setToolTip('The frame shown: scan, point, Qz or 2θ, time from the first frame, absorber, monitor '
-                        '(M3). New in ngui. ' + NOT_FUNCTIONAL)
-        meta.setWordWrap(True)
         meta.setMinimumWidth(60)
         movie.addWidget(meta, 1)
         rv.addLayout(movie)
@@ -925,6 +932,11 @@ class NguiWindow(QMainWindow):
         sb.showMessage('ngui prototype: a sketch of the layout; nothing is read or reduced here')
         w, _ = self._widget(L.STATUS[1], sb)
         sb.addPermanentWidget(w)
+        for item in L.STATUS[2:]:                  # the state badges, as built in the main window (F85)
+            b, _ = self._widget(item, sb)
+            b.setWordWrap(False)
+            b.setProperty('nguiState', True)
+            sb.addPermanentWidget(b)
         for text, tip in L.STATE_BAR:
             lab = QLabel(text, sb)
             lab.setObjectName(_oname('state_' + text.replace(' ', '_').replace('/', '')))
@@ -943,7 +955,7 @@ class NguiWindow(QMainWindow):
             menu.setToolTipsVisible(True)
             for it in m['items']:
                 key = _key(it)
-                if m['title'] == 'View':
+                if m['title'] == 'View' and _label(it) in self.panes:
                     d = self.panes[_label(it)]
                     a = d.toggleViewAction()
                     a.setText(_label(it))

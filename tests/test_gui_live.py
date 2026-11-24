@@ -121,13 +121,13 @@ def test_an_update_keeps_the_tab_the_axes_and_the_frames(window, qapp, recorder,
     sweep._select_scans(window, qapp, [0])
     sweep._select_images(window, qapp, [2, 5])
     window.ui.spYComboBox.setCurrentIndex(window.ui.spYComboBox.findText('Monc'))
-    window.ui.PlotWidget.setCurrentIndex(1)
+    window.ui.PlotWidget.setCurrentWidget(window.ui.cutAreaTab)   # a tab the live update must leave alone
     window.liveCheckBox.setChecked(True)
     with open(spec, 'a') as f:
         f.write(rest)
     window.liveTick()
     qapp.processEvents()
-    assert window.ui.PlotWidget.currentIndex() == 1
+    assert window.ui.PlotWidget.currentWidget() is window.ui.cutAreaTab
     assert window.ui.spYComboBox.currentText() == 'Monc'
     assert [i for i in range(window.ui.imageListWidget.count())
             if window.ui.imageListWidget.item(i).isSelected()] == [2, 5]
@@ -232,9 +232,7 @@ def test_the_open_gid_map_follows_its_series(window, qapp, recorder, tmp_path):
     qapp.processEvents()
     sweep._select_scans(window, qapp, [10])
     sweep._select_images(window, qapp)
-    i = window.ui.gidComboBox.findText('GID Patch')
-    window.ui.gidComboBox.setCurrentIndex(i)
-    window.ui.gidComboBox.activated.emit(i)
+    window.gidPatchPushButton.click()
     qapp.processEvents()
     qapp.processEvents()
     first = window.shownResults['gid map']

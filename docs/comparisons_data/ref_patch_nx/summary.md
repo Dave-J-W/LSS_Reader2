@@ -6,11 +6,11 @@
 | interp | 3 | 0.00461 | 1.16 | 0 |
 | interp_log | 3 | 0.00461 | 1.15 | 0 |
 | coincident | 3 | 0.00715 | 1.73 | 0 |
-| joint_o2_e0 | 3 | 0.00466 | 1.14 | 1 |
-| joint_o4_e2 | 3 | 0.00426 | 0.83 | 1 |
-| joint_o4_e4 | 3 | 0.00381 | 0.88 | 1 |
-| joint_o4_e4_raw | 3 | 0.00381 | 0.93 | 1 |
-| joint_o4_e4_log | 3 | 0.00381 | 0.88 | 1 |
+| joint_o2_e0 | 3 | 0.00466 | 1.14 | 3 |
+| joint_o4_e2 | 3 | 0.00426 | 0.83 | 3 |
+| joint_o4_e4 | 3 | 0.00426 | 0.71 | 3 |
+| joint_o4_e4_raw | 3 | 0.00426 | 0.71 | 3 |
+| joint_o4_e4_log | 3 | 0.00426 | 0.71 | 3 |
 | joint_o4_e4_prior | 3 | 0.0041 |  | 0 |
 
 ## Split truth (f = 1.25; pull SD meaningful for interleaved only)
@@ -25,12 +25,12 @@
 | interp_log | shared | 3 | -0.0000 | 0.00 |
 | coincident | shared | 3 | 0.0000 | 0.00 |
 | joint_o2_e0 | interleaved | 3 | 0.0051 | 1.80 |
-| joint_o2_e0 | shared | 3 | -0.0000 | 0.00 |
-| joint_o4_e2 | interleaved | 3 | 0.0040 | 1.52 |
-| joint_o4_e2 | shared | 3 | -0.0001 | 0.32 |
-| joint_o4_e4 | interleaved | 3 | 0.0052 | 1.48 |
-| joint_o4_e4 | shared | 3 | -0.0004 | 0.25 |
-| joint_o4_e4_raw | interleaved | 3 | 0.0051 | 1.49 |
-| joint_o4_e4_raw | shared | 3 | -0.0004 | 0.23 |
-| joint_o4_e4_log | interleaved | 3 | 0.0052 | 1.48 |
-| joint_o4_e4_log | shared | 3 | -0.0004 | 0.25 |
+| joint_o2_e0 | shared | 3 | 0.0000 | 0.00 |
+| joint_o4_e2 | interleaved | 3 | 0.0034 | 1.46 |
+| joint_o4_e2 | shared | 3 | 0.0002 | 0.20 |
+| joint_o4_e4 | interleaved | 3 | 0.0039 | 1.30 |
+| joint_o4_e4 | shared | 3 | 0.0001 | 0.12 |
+| joint_o4_e4_raw | interleaved | 3 | 0.0038 | 1.31 |
+| joint_o4_e4_raw | shared | 3 | 0.0001 | 0.10 |
+| joint_o4_e4_log | interleaved | 3 | 0.0039 | 1.30 |
+| joint_o4_e4_log | shared | 3 | 0.0001 | 0.12 |

@@ -3,10 +3,10 @@
 # (offscreen, 2026-11-22, 1600x1000) unless a note says "read only".
 - id: PlotWidget
   kind: tab
-  label: "SpecPlot | Pilatus | Reflectivity | Line/Area Cuts | MCA | Plot | 2D_Plot"
+  label: "SpecPlot | Pilatus | Reflectivity | Line/Area Cuts | MCA | Plot | 2D_Plot | Timeline"
   where: "Main window (right of the left panel)"
   handler: ""
-  does: "The tabs of the window; the Apex tab (index 1) is hidden"
+  does: "The tabs of the window (the hidden Apex tab was removed 2026-11-23, owner Q14)"
   workflows: [general]
   needs: ""
   shown: always
@@ -20,9 +20,9 @@
   does: "Collects every message to the user (warnings, fit results, absorber notes) with the time; nothing blocks"
   workflows: [session, general]
   needs: ""
-  shown: "hidden until the first message; each message makes it visible"
+  shown: "hidden at start; shows itself and comes to the front on a warning or error only (owner Q11, 2026-11-23); View > Messages otherwise"
   tooltip: false
-  notes: "Each message calls show(), which does not bring it to the front of the dock tab group: measured, after a fit message the Script tab stayed in front and the result was behind the Messages tab. Shows time and text; the title (Warning, Absorbers, Peak fit) goes to the log only. As a bottom dock it spans the full width and takes height from the left panel (Q-UI-A1 asks whether D59 applies here too). Messages of all levels look the same (no colour for warnings vs info)."
+  notes: "Since 2026-11-23 (D59): under the tabs only, in an inner window beside the selection panel, which keeps the full height. Before: Each message calls show(), which does not bring it to the front of the dock tab group: measured, after a fit message the Script tab stayed in front and the result was behind the Messages tab. Shows time and text; the title (Warning, Absorbers, Peak fit) goes to the log only. As a bottom dock it spans the full width and takes height from the left panel (Q-UI-A1 asks whether D59 applies here too). Messages of all levels look the same (no colour for warnings vs info)."
 - id: messageView
   kind: pane
   label: ""
@@ -42,9 +42,9 @@
   does: "Shows, for actions that have one, the lss_core Python that does the same thing, ready to copy (F48)"
   workflows: [session]
   needs: ""
-  shown: "hidden at start, but shows itself with the first line; opening a SPEC file writes one, so in practice always visible"
+  shown: "hidden at start; View > Script only, never by itself (D59, 2026-11-23); the View-menu choice is kept between sessions"
   tooltip: false
-  notes: "Measured: after opening the NX file the Script dock is visible and about 200 px tall at a 1000 px window, spanning the full width; the scan list above it is 100 px tall and shows two scans. Decided requirement D59 (owner, 2026-11-22): 'The script terminal panel shouldn't compete with data selection and it should be hidden by default' -> hidden by default, never raises itself (scriptLine must not call show()), opened from View, and placed so it takes no room from the left panel. Layout constraint: the left panel is part of the central widget (splitter_3), not a dock, so any bottom dock spans under it; options are confining docks to the right column (make the left panel a left dock and setCorner(BottomLeft, LeftDockWidgetArea)), a right dock, a floating window, or a splitter under the tab area inside the central widget."
+  notes: "Since 2026-11-23 (D59): under the tabs only, in an inner window beside the selection panel, which keeps the full height. Before: Measured: after opening the NX file the Script dock is visible and about 200 px tall at a 1000 px window, spanning the full width; the scan list above it is 100 px tall and shows two scans. Decided requirement D59 (owner, 2026-11-22): 'The script terminal panel shouldn't compete with data selection and it should be hidden by default' -> hidden by default, never raises itself (scriptLine must not call show()), opened from View, and placed so it takes no room from the left panel. Layout constraint: the left panel is part of the central widget (splitter_3), not a dock, so any bottom dock spans under it; options are confining docks to the right column (make the left panel a left dock and setCorner(BottomLeft, LeftDockWidgetArea)), a right dock, a floating window, or a splitter under the tab area inside the central widget."
 - id: scriptView
   kind: pane
   label: ""
@@ -66,7 +66,7 @@
   needs: ""
   shown: "hidden; View > Errors"
   tooltip: false
-  notes: "A setting that changes every error bar lives in a hidden pane; there is no cue elsewhere (status bar, plot titles, exports) of whether Legacy or Budget is in use (read only: the export header may say; not checked). Parameter fields of the unused models are disabled, not hidden."
+  notes: "Since 2026-11-23 (D59): under the tabs only, in an inner window beside the selection panel, which keeps the full height. Before: A setting that changes every error bar lives in a hidden pane; there is no cue elsewhere (status bar, plot titles, exports) of whether Legacy or Budget is in use (read only: the export header may say; not checked). Parameter fields of the unused models are disabled, not hidden."
 - id: errorModeComboBox
   kind: combo
   label: "Error model"
@@ -178,6 +178,7 @@
   tooltip: false
   notes: "Long wrapped text on screen, against rule 9."
 - id: commandLineEdit
+  removed: "2026-11-23, owner Q14: the Command line row goes; the command it showed is still written into the export header (self.command)"
   kind: lineedit
   label: "Command:"
   where: "Main window, under the left panel and tabs"
@@ -188,6 +189,39 @@
   shown: always
   tooltip: false
   notes: "Measured: empty after selecting scans and frames and after a line cut; filled only by Ref Patch, GID, GIOXS, burn tests and MCA sums/fits (read only). Editable but typing does nothing (no signal; exports use self.command, not the field) (read only). Duplicates the Script pane in an older, non-runnable form; a full-width row for a rarely filled field."
+- id: errorsBadgeLabel
+  kind: badge
+  label: "legacy errors | budget errors"
+  where: "Status bar, right"
+  handler: badgeClicked('errors')
+  does: "Shows the error model in use; click opens the Errors pane"
+  workflows: [general]
+  needs: ""
+  shown: "per Preferences > State badges"
+  tooltip: true
+  notes: "Added 2026-11-23 (F85, owner Q12). Amber when not the default (legacy)."
+- id: normBadgeLabel
+  kind: badge
+  label: "/ Monc | / Monc / gain | / photon"
+  where: "Status bar, right"
+  handler: badgeClicked('norm')
+  does: "Shows the monitor normalisation in use; click goes to the SpecPlot tab, where / gain and / photon are"
+  workflows: [general]
+  needs: ""
+  shown: "per Preferences > State badges"
+  tooltip: true
+  notes: "Added 2026-11-23 (F85). Amber when / gain or / photon is on."
+- id: patchBadgeLabel
+  kind: badge
+  label: "joint patch | legacy patch"
+  where: "Status bar, right"
+  handler: badgeClicked('patch')
+  does: "Shows the reflectivity patch method; click opens Preferences"
+  workflows: [reflectivity, general]
+  needs: ""
+  shown: "per Preferences > State badges"
+  tooltip: true
+  notes: "Added 2026-11-23 (F85). Amber when the legacy fit is chosen."
 - id: statusBar
   kind: pane
   label: ""

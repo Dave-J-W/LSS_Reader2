@@ -56,6 +56,7 @@ container on 2026-11-23 with the defaults shown.
 | [Fit demonstrator report figures](#patch-demo-figures) | figures | The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per survey). | synthetic (public) |  | `docs/figures/patch_demo` |
 | [Patching gauntlet (synthetic, judged)](#ref-patch-gauntlet) | data | Every patching method on many noise replicates of synthetic reflectivity under many conditions, judged by hand-off 08's rules (\|mean pull\| < 0.2, pull SD 0.9-1.15). | synthetic (public) |  | `docs/comparisons_data/ref_patch_gauntlet` |
 | [Why five gauntlet joins are biased (extension 4)](#ref-patch-biased-joins) | data | The default joint fit's five biased designed joins and the covariance study's first join, redrawn with the gauntlet's seeds and fitted with the guard off, other orders and windows, noise-free. | synthetic (public) | 15 s | `docs/comparisons_data/ref_patch_biased_joins` |
+| [Study A: how strict the joint fit's guard should be](#ref-guard-study) | figures | The guard's p from 0.001 to 0.9, the guard off, an AICc average and the legacy factor on C45's six joins (C45 reproduced first), a downstream fit, the NX school joins beside the foil ratio, and a robustness map over fringe sampling and counts, on coinciding and staggered grids: figures A1-A8, R and RS. | public (NX school or committed tables) | 54 s | `docs/studies/reflectivity_guard` |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
 | [Downstream fits with and without the covariance](#covariance-pulls) | data | Synthetic NX-like scans of a 25 Å film reduced by each patch method and fitted for thickness, density and roughness under four error treatments: pull SD is 1 only with the full covariance. | synthetic (public) | 3 s | `docs/comparisons_data/downstream_covariance` |
 | [Old and new methods as CSV (C2, C10, C11, ...)](#compare-methods) | data | Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, the footprint window, absorber factors, "Sum All" as the counts over the monitors vs the mean of the normalised frames, each frame's true incidence (header In_Rot vs α from L). | NX school by default; any SPEC file | 39 s | `docs/comparisons_data/manifest.json`<br>`docs/comparisons_data/C2_*`<br>`docs/comparisons_data/C6_*`<br>`docs/comparisons_data/C10_*`<br>`docs/comparisons_data/C11_*`<br>`docs/comparisons_data/C21_*`<br>`docs/comparisons_data/C24_*`<br>`docs/comparisons_data/C41_*`<br>`docs/comparisons_data/C43_*` |
@@ -95,6 +96,7 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [MCA line-fit gauntlet (synthetic, judged)](#mca-fit-gauntlet) | data | Fitted fluorescence lines against the window sum on synthetic MCA spectra with the beam's Rayleigh and Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), judged by hand-off 08's pull rule and a 1 % bias rule. | synthetic (public) |  | `docs/comparisons_data/mca_fit_gauntlet` |
+| [Study B figures: MCA line intensities (F90)](#mca-study) | figures | The owner's study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with every estimator's fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass rates and the robustness map (B1-B7), from the gauntlet's study run. | synthetic (public) |  | `docs/studies/mca_fit` |
 
 ### Synthetic data sets
 
@@ -268,6 +270,7 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Smoke run | The same figures from a few replicates (seconds instead of minutes). | `docs/reports/patch_demo.md#python tests/tools/patch_demo.py --save DIR` | `python tests/tools/patch_demo.py --save '{out}' --quick` |
+| At today's guard (p 0.7) | The report's figures with the joint fit's guard at the reader's default since 2026-11-24 (p 0.7, study A) instead of the report's p 0.3: pull SDs within 0.05. | `docs/reports/patch_demo.md#Run at the joint fit's guard p 0.3` | `python tests/tools/patch_demo.py --save '{out}' --guard-p 0.7` |
 | The two default views | Only the window's two default views as PNG. | `docs/reports/patch_demo.md#python tests/tools/patch_demo.py --views` | `python tests/tools/patch_demo.py --views '{out}'` |
 | Views: DPPC and a fading burn | The window's two views for a DPPC monolayer and a fading burn. | `docs/reports/patch_demo.md#**Reflectivity controls**: truth` | `python tests/tools/patch_demo.py --views '{out}' --set truth=dppc --set change=fade` |
 
@@ -319,6 +322,29 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Fewer replicates | A quick look: 100 replicates per join and 100 seeds of the covariance study; the default's pulls no longer match the gauntlet's exactly. | `tests/tools/ref_patch_biased_joins.py` | `python tests/tools/ref_patch_biased_joins.py --out '{out}' --replicates 100 --covariance-seeds 100` |
+
+<a id="ref-guard-study"></a>
+
+### Study A: how strict the joint fit's guard should be
+
+The guard's p from 0.001 to 0.9, the guard off, an AICc average and the legacy factor on C45's six joins (C45 reproduced first), a downstream fit, the NX school joins beside the foil ratio, and a robustness map over fringe sampling and counts, on coinciding and staggered grids: figures A1-A8, R and RS.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/ref_guard_study.py`
+- Explained in: `docs/studies/2026-11-24_two_decisions_plan.md### Study A: reflectivity joins and the guard`, `docs/studies/reflectivity_guard/data_summary.md`, `docs/COMPARISONS.md#| C48 |`
+- Committed products: `docs/studies/reflectivity_guard`; replaced from the window with the settings that made them (into `docs/studies/reflectivity_guard`)
+- Run:
+
+      python tests/tools/ref_guard_study.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Smoke run | Every figure from a few replicates (about 10 s): checks the tool, not the numbers. | `docs/studies/reflectivity_guard/data_summary.md#(`--quick`)` | `python tests/tools/ref_guard_study.py --out '{out}' --quick` |
+| C45 and the decision curve only | The six joins on the gauntlet's seeds (C45 comes back exactly), figures A2-A6 and the 2000-replicate precision check. | `docs/studies/2026-11-24_two_decisions_plan.md#so that today's numbers come back exactly first` | `python tests/tools/ref_guard_study.py --out '{out}' --figures A2,A3,A4,A5,A6` |
+| Decision curve, 5000 replicates | A5 with the precision run at 5000 replicates per join: how much of the first join's pull SD is sampling. | `docs/studies/reflectivity_guard/data_summary.md#(precision check)` | `python tests/tools/ref_guard_study.py --out '{out}' --figures A5 --precision 5000` |
+| Robustness map, 2000 per cell | R with 2000 replicates per cell (500 per fringe phase). | `docs/studies/reflectivity_guard/data_summary.md### R. Robustness map` | `python tests/tools/ref_guard_study.py --out '{out}' --figures R --r-replicates 2000` |
+| Real data only | A8: the NX school joins under each choice beside the calibrated foil ratio. | `docs/studies/reflectivity_guard/data_summary.md### A8. NX school, scans 6–9` | `python tests/tools/ref_guard_study.py --out '{out}' --figures A8` |
 
 <a id="ref-patch-survey"></a>
 
@@ -775,6 +801,27 @@ Variations:
 | Grid: Si escapes and stripping | Escape peaks at 0.3 to 5 × Reed's fraction, and stripping with the fraction half or twice the true one. | `docs/physics_notes.md#(3) **Si escape` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions escape_x0.3,escape_x1,escape_x5,escape_assumed_x0.5,escape_assumed_x2` |
 | Grid: counts and line/elastic | From 1e-2 to 1e-4 of the elastic and from 0.03 to 10 times the counts. | `docs/physics_notes.md#| Neyman bias, 270` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design grid --replicates 50 --conditions ratio_0.01,ratio_0.003,ratio_0.0003,ratio_0.0001,counts_x0.1,counts_x10` |
 | XFNTR series | Whole XFNTR curves, smooth and hard: does each estimator keep the curve's shape where the elastic grows above Qc? | `docs/physics_notes.md#distorts XFNTR curves:` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design series --replicates 50` |
+| Study B run (shells Compton, P1-P3) | The study's run: water's Compton shell by shell, the reader's options P1, P2, P3, the robustness sweep and the counts design (about 25 min; its products are docs/studies/mca_fit/gauntlet). | `docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design all,robust,counts --replicates 200 --methods study --compton shells` |
+| Robustness sweep only | Escape fraction x O 1s wing, Doppler width and counts from the hard case. | `docs/studies/2026-11-24_two_decisions_plan.md#Then the robustness sweep over` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design robust --replicates 100 --methods study --compton shells` |
+
+<a id="mca-study"></a>
+
+### Study B figures: MCA line intensities (F90)
+
+The owner's study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with every estimator's fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass rates and the robustness map (B1-B7), from the gauntlet's study run.
+
+- Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/mca_study.py`
+- Explained in: `docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line`, `docs/studies/mca_fit/summary.md`, `docs/COMPARISONS.md#| C47 |`
+- Committed products: `docs/studies/mca_fit`; not replaced from the window
+- Run:
+
+      python tests/tools/mca_study.py --gauntlet docs/studies/mca_fit/gauntlet --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Replicates and anatomy only | B1 and B2, which need no gauntlet run (about 20 s). | `docs/studies/2026-11-24_two_decisions_plan.md#B2. Replicates and their fits` | `python tests/tools/mca_study.py --gauntlet docs/studies/mca_fit/gauntlet --out '{out}' --only B1,B2` |
 
 <a id="synthetic-dataset"></a>
 

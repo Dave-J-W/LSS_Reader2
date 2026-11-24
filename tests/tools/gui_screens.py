@@ -319,10 +319,9 @@ def annotated_overview(w, app, img, name, shows, state):
     add('series chooser', rect_in(w, getw(w, 'seriesComboBox')), (0, 150, 0))
     add('frame (detector) list', rect_in(w, ui.imageListWidget), (0, 150, 0))
     add('background list', rect_in(w, ui.backgroundListWidget), (0, 150, 0))
-    add('tab bar (8 tabs)', rect_in(w, ui.PlotWidget.tabBar()), (0, 0, 200))
+    add('tab bar (7 tabs)', rect_in(w, ui.PlotWidget.tabBar()), (0, 0, 200))
     cur = ui.PlotWidget.currentWidget()
     add('tab page: controls and plot', rect_in(w, cur), (150, 0, 150))
-    add('command line', rect_in(w, ui.commandLineEdit), (200, 110, 0))
     add('status bar', rect_in(w, ui.statusBar), (90, 90, 90))
     for dock, label in ((w.messageDock, 'Messages pane'), (w.scriptDock, 'Script pane'), (w.errorDock, 'Errors pane')):
         if dock.isVisible():
@@ -374,14 +373,14 @@ def run_nx(app, ctx, skip_slow):
         img = grab_window(w, app)
         save_png(img, '01_window_empty.png', 'Whole window, nothing opened', 'No SPEC file; SpecPlot tab (first tab) shown')
         tw = w.ui.PlotWidget
-        for t in ('Apex', 'Pilatus', 'Reflectivity', 'Line/Area Cuts', 'MCA', 'Plot', '2D_Plot'):
+        for t in ('Pilatus', 'Reflectivity', 'Line/Area Cuts', 'MCA', 'Plot', '2D_Plot'):
             tab(w, app, t)
-            sl = {'Apex': '14_apex_tab', 'Pilatus': '20_pilatus_empty', 'Reflectivity': '30_reflectivity_empty',
+            sl = {'Pilatus': '20_pilatus_empty', 'Reflectivity': '30_reflectivity_empty',
                   'Line/Area Cuts': '60_cuts_empty', 'MCA': '70_mca_empty', 'Plot': '80_plot_empty',
                   '2D_Plot': '82_2dplot_empty'}[t]
             save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), sl + '.png',
                      'The %s tab (page and its controls) with nothing loaded' % t,
-                     'No SPEC file; crop of the tab widget' + ('; the Apex (Bruker CCD) tab, defunct' if t == 'Apex' else ''))
+                     'No SPEC file; crop of the tab widget')
         free(w, app)
     empty()
 
@@ -447,6 +446,14 @@ def run_nx(app, ctx, skip_slow):
                  'SpecPlot of scan 1 (a motor scan with the beam off)', 'Scan 1 selected')
     specplot()
 
+    @step('timeline')
+    def timeline_tab():
+        tab(w, app, 'Timeline')
+        save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '14_timeline_tab.png',
+                 'Timeline tab (F83): events, sx, sample-height scans and scans on one time axis',
+                 'NX school file opened; Timeline tab shown (fitted to the whole file)')
+    timeline_tab()
+
     # --- Pilatus
     @step('pilatus')
     def pilatus():
@@ -461,13 +468,13 @@ def run_nx(app, ctx, skip_slow):
         save_png(crop(img, rect_in(w, w.ui.PlotWidget)), '21b_pilatus_tab_controls.png',
                  'Pilatus tab page (controls above, image below)', 'Scan 11, frame 1')
         select_frames(w, app, [0, 10, 20])
-        save_png(grab_window(w, app), '22_pilatus_three_frames.png', 'Pilatus tab with three frames selected',
+        save_png(grab_window(w, app), '22_pilatus_three_frames.png', 'Pilatus tab with three frames selected (a movie since 2026-11-24, F69)',
                  'Scan 11, frames 1, 11, 21 selected')
         t = time.time()
         select_frames(w, app, None)
         dt = time.time() - t
         save_png(grab_window(w, app), '23_pilatus_all_frames_of_a_scan.png',
-                 'Pilatus tab with ALL frames of a long scan selected (the many-small-images problem)',
+                 'Pilatus tab with ALL frames of a long scan selected: the movie (F69; before 2026-11-24, 10 small tiles)',
                  'Scan 11: all 40 frames selected (drawing took %.1f s offscreen)' % dt)
         select_scans(w, app, [5, 6, 7, 8])
         select_frames(w, app, None)
@@ -540,7 +547,7 @@ def run_nx(app, ctx, skip_slow):
             save_png(v.window().grab(), '40b_gid_dropdown.png', 'The GID drop-down opened', 'Pilatus tab, scans 11-12')
         w.ui.gidComboBox.hidePopup()
         before = visible_tops(app)
-        combo_do(w, app, w.ui.gidComboBox, 'GID Patch')
+        w.gidPatchPushButton.click(); settle(app)
         settle(app)
         img = grab_window(w, app)
         save_png(img, '41_gid_patch_pinhole.png', 'Whole window after GID Patch of scans 11-12 (pinhole mode, the default)',
@@ -551,7 +558,7 @@ def run_nx(app, ctx, skip_slow):
             tab(w, app, t)
         tab(w, app, 'Pilatus')
         before = visible_tops(app)
-        combo_do(w, app, w.ui.gidComboBox, 'Worksheet')
+        w.gidWorksheetPushButton.click(); settle(app)
         settle(app)
         grab_toplevels(app, before, '42_gid_worksheet_window.png', 'GID worksheet window (GID drop-down > Worksheet)',
                        'After GID Patch of scans 11-12', skip=[w])

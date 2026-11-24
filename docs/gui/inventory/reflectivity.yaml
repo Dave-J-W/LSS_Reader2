@@ -118,7 +118,7 @@
   needs: "a Qz selected in the list"
   shown: always
   tooltip: false
-  notes: "The corrected ROI image uses the hidden Apex tab's colour map (gixCMapComboBox), the uncorrected one the Pilatus map (read only). Not scriptable (Script pane says so on export)."
+  notes: "Both ROI images use the Pilatus colour map (pilCMapComboBox) since 2026-11-23; the corrected one used the hidden Apex tab's map before (removed, owner Q14). Not scriptable (Script pane says so on export)."
 - id: refAcceptPushButton
   kind: button
   label: "Accept"
@@ -151,18 +151,40 @@
   needs: "a Qz selected"
   shown: always
   tooltip: false
-  notes: "Empty after Ref Patch (no close-up of any frame of the patch); see F71 (ROI close-up for reflectivity). Has a matplotlib toolbar."
+  notes: "Since 2026-11-24 (F71): the ROI close-up panel (roipanel.RoiPanel), the same as the Pilatus tab's: boxes as outlines from sumROI's arithmetic (the burned-in borders and the 2 px misplaced background box gone), profiles, sums, checks; Log box and labels beside it. Has a matplotlib toolbar."
+- id: refRoiLogCheckBox
+  kind: checkbox
+  label: "Log"
+  where: "Reflectivity > ROI close-up"
+  handler: roiLogChanged
+  does: "Log colour scale of the close-up and log profiles; the same setting as the Pilatus tab's"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-24 (F71)."
+- id: refRoiCuesLabel
+  kind: label
+  label: "off centre 30 % · clipped 2 %"
+  where: "Reflectivity > ROI close-up"
+  handler: refRoiShow
+  does: "The checks of the boxes on the selected Qz's frame, as on the Pilatus tab"
+  workflows: [reflectivity]
+  needs: "a Qz selected"
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-24 (F97, Q-IMG-7)."
 - id: refBadPixListWidget
   kind: list
   label: "Bad Pixels:"
   where: "Reflectivity > top"
-  handler: ""
-  does: "Nothing today: only ever cleared"
+  handler: promoteRefFlags
+  does: "Lists, by Qz, the bad pixels corrected inside the signal box of each frame of the Ref Patch on show (scan, frame, pixels x, y); those points carry a cross on the plot"
   workflows: [reflectivity]
-  needs: ""
+  needs: "a Ref Patch with bad-pixel correction finding pixels in the box"
   shown: always
-  tooltip: false
-  notes: "Defunct (read only: no code adds items). Bad pixels in the ROI are reported instead by the modal pilBadPixDialog during Ref Patch."
+  tooltip: true
+  notes: "Wired 2026-11-24 (F95, owner Q-UI-B3); was only ever cleared, the modal pilBadPixDialog reported instead. Filled when the patch is on show; a cancelled patch leaves it. The separate ROI threshold of B3 (refBPCFacLineEdit) is not built: it would change output numbers."
 
 # ---- middle: readout of the analysed point ----
 - id: refQLineEdit
@@ -310,6 +332,17 @@
   shown: always
   tooltip: false
   notes: "Title 'File: <path> S# ...' takes the scan list from the left panel at plot time and is clipped at the top (observed). Legend labels '#0', '#1'... Has a matplotlib toolbar."
+- id: refProvenanceLabel
+  kind: label
+  label: "joint patch · legacy errors · calibrated foils · scans 6, 7, 8, 9 · 2 points dropped · saved v3"
+  where: "Reflectivity > under the result plot"
+  handler: updateRefProvenance
+  does: "One line on how the curve on show was made: patch method, error model, absorber model, scans, dropped points, saved version; the joins and details in its tooltip"
+  workflows: [reflectivity]
+  needs: "a curve"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F96, owner Q-UI-B5, 2026-11-24). Describes the result as it was made (a later change of preference does not alter it); 'saved vN' is read from the workbook in memory only, so it is absent until the workbook has been opened in the session."
 - id: refExportPushButton
   kind: button
   label: "Export"

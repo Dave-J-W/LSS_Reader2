@@ -448,12 +448,42 @@ def line_index(result, centres=()):
     return int(np.argmin([abs(p.centre - c) for p in result.peaks]))
 
 
-def fit_series(x, spectra, sigmas=None, options=None):
+WEIGHTS = ('poisson', 'data')
+
+
+def _poisson_step(A, y, s, coef, iters=20):
+    """The per-spectrum linear fit by Poisson maximum likelihood (F90 P1,
+    an option until the owner's study, 2026-11-24): least squares iterated with σ² = k·model, where
+    k = σ²/y is the spectrum's own scale (τ/M for a normalised MCA
+    spectrum). At convergence Σ (y/μ − 1) ∂μ/∂a = 0, the Poisson condition
+    (W. Cash, ApJ 228, 939, 1979). Weights from the data, σ² ∝ y, give
+    upward fluctuations less weight and pull low-count areas low (Neyman's
+    χ²): −21 % at 90 counts, −5.8 % at 270 (C42). Returns (coef, σ used)."""
+    pos = y > 0
+    k = float(np.median(s[pos] ** 2 / y[pos])) if pos.any() else float(np.median(s) ** 2)
+    floor = 0.1 * k                                   # a tenth of a count: the model never weighs a channel infinitely
+    for _ in range(iters):
+        sm = np.sqrt(k * np.maximum(A @ coef, floor))
+        new = np.linalg.lstsq(A / sm[:, None], y / sm, rcond=None)[0]
+        done = np.allclose(new, coef, rtol=1e-10, atol=1e-12 * max(np.abs(coef).max(), 1e-300))
+        coef = new
+        if done:
+            break
+    return coef, np.sqrt(k * np.maximum(A @ coef, floor))
+
+
+def fit_series(x, spectra, sigmas=None, options=None, weights='data'):
     """A series of spectra with the same lines (MCA, EXAFS, XFNTR): the sum
     of all spectra is fitted (``fit``) for the centres, widths and shape;
     each spectrum is then fitted with those fixed, its heights and
-    background by linear least squares (weighted by its σ when given).
-    Returns (the sum's FitResult, [FitResult per spectrum])."""
+    background linear. With σ given, ``weights`` 'data' (the default)
+    is least squares weighted by the given σ; 'poisson' fits each spectrum
+    by Poisson maximum likelihood (``_poisson_step``; F90 P1, an option
+    until the owner's study, 2026-11-24). Without σ the fit is unweighted, errors scaled
+    by the residual, either way. Returns (the sum's FitResult, [FitResult
+    per spectrum])."""
+    if weights not in WEIGHTS:
+        raise ValueError('weights %r: use one of %s' % (weights, ', '.join(WEIGHTS)))
     o = (options or FitOptions()).check()
     Y = np.asarray(spectra, float)
     S = None if sigmas is None else np.asarray(sigmas, float)
@@ -476,6 +506,9 @@ def fit_series(x, spectra, sigmas=None, options=None):
         s = noise_sigma(y, None if S is None else S[k][w])
         Aw = A / s[:, None]
         coef, *_ = np.linalg.lstsq(Aw, y / s, rcond=None)
+        if S is not None and weights == 'poisson':
+            coef, s = _poisson_step(A, y, s, coef)
+            Aw = A / s[:, None]
         cov = np.linalg.pinv(Aw.T @ Aw)
         dof = max(len(y) - A.shape[1], 1)
         chi2 = float(np.sum(((y - A @ coef) / s) ** 2) / dof)
@@ -488,7 +521,8 @@ def fit_series(x, spectra, sigmas=None, options=None):
             pk.append(Peak(p.centre, 0.0, p.fwhm, 0.0, h, he, _area(h, p.fwhm, p.eta, p.shape),
                            abs(_area(he, p.fwhm, p.eta, p.shape)), p.shape, p.eta))
         out.append(FitResult(pk, coef[len(ref.peaks):], ref.x0, ref.xs, chi2, ref.window, int(w.sum()), True,
-                             'centres and widths from the sum of %d spectra' % len(Y), o))
+                             'centres and widths from the sum of %d spectra%s' % (
+                                 len(Y), '; Poisson weights' if S is not None and weights == 'poisson' else ''), o))
     return ref, out
 
 
@@ -788,3 +822,152 @@ def options_from_dict(d, default=None):
         return replace(base, **kw).check()
     except ValueError:
         return base
+
+
+# ---------------------------------------------------------------- sample-height scans: the super-Gaussian (F78)
+#
+# Owner, 2026-11-23 (F78): a usable sample-height scan is wide (FWHM of about
+# 65 µm and more; up to about 110 µm in the 89 mm trough) and "more squashed
+# than a gaussian", flat-topped; one well described by a Gaussian may be
+# unusable. The scan is the surface curvature convolved with the beam profile
+# in the reflected-beam ROI. The shape used to say so is the super-Gaussian
+# (higher-order Gaussian, the generalised normal distribution's shape):
+#
+#     I(h) = A exp(−|(h − h0)/w|^p) + b,  FWHM = 2 w (ln 2)^(1/p)
+#
+# p = 2 is a Gaussian, larger p flatter (p → ∞ a box). References (from
+# memory, not rechecked): Nadarajah, "A generalized normal distribution",
+# J. Appl. Stat. 32, 685 (2005), doi:10.1080/02664760500079464; the
+# "super-Gaussian" form of flat-top laser beams, e.g. Shealy and Hoffnagle,
+# Appl. Opt. 45, 5118 (2006). The research behind this (NX school sh scans 5,
+# 10, 13: FWHM 81-82 µm, p 3.4-3.5, a Gaussian's χ² ten times worse) is in
+# docs/gui/timeline/research.md section 2. The verdict thresholds are the
+# owner's to give: this reports numbers, not a verdict.
+
+SUPER_P_START = (2.0, 4.0)       # starting exponents; the better fit is kept
+SUPER_P_BOUNDS = (0.8, 20.0)
+NO_BEAM_SIGMA = 10.0             # the peak must stand this many σ above the edges
+
+
+def super_gaussian(x, height, centre, w, p, background):
+    """height · exp(−|(x − centre)/w|^p) + background."""
+    x = np.asarray(x, float)
+    return height * np.exp(-np.abs((x - centre) / w) ** p) + background
+
+
+def super_gaussian_fwhm(w, p):
+    return 2.0 * w * math.log(2.0) ** (1.0 / p)
+
+
+@dataclass
+class SuperGaussianFit:
+    """A super-Gaussian fitted to a sample-height scan. ``ok`` False with a
+    ``message`` when the scan holds no reflected beam or the fit failed.
+    ``gaussian_chi2_dof``: the same data fitted with p fixed at 2, for
+    comparison (much larger than ``chi2_dof``: the scan is flatter than a
+    Gaussian)."""
+    ok: bool
+    message: str = ''
+    centre: float = math.nan
+    centre_err: float = math.nan
+    fwhm: float = math.nan
+    fwhm_err: float = math.nan
+    p: float = math.nan
+    p_err: float = math.nan
+    height: float = math.nan
+    background: float = math.nan
+    chi2_dof: float = math.nan
+    gaussian_chi2_dof: float = math.nan
+    points: int = 0
+    params: np.ndarray = None       # height, centre, w, p, background
+    cov: np.ndarray = None
+
+    def model(self, x):
+        if self.params is None:
+            return np.full(np.shape(x), np.nan)
+        return super_gaussian(x, *self.params)
+
+    def summary(self, unit='', scale=1.0):
+        """'FWHM 81.1 ± 0.6 µm, p 3.38 ± 0.08 (Gaussian χ²/dof 28.0 against 3.1)'."""
+        if not self.ok:
+            return self.message
+        return ('FWHM %.4g ± %.2g%s, p %.3g ± %.2g (χ²/dof %.3g; Gaussian %.3g)'
+                % (self.fwhm * scale, self.fwhm_err * scale, (' ' + unit) if unit else '', self.p, self.p_err,
+                   self.chi2_dof, self.gaussian_chi2_dof))
+
+
+def fit_super_gaussian(x, counts, monitor=None, sigma=None):
+    """Fit I = A exp(−|(h − h0)/w|^p) + b to a sample-height scan.
+
+    ``counts``: the detector's ROI counts per point; ``monitor``: the
+    monitor per point (the values are counts/monitor scaled by the mean
+    monitor, with Poisson errors √max(counts, 1) on the same scale), or
+    None to fit ``counts`` as they are with ``sigma`` (default √max(y, 1)).
+    The fit starts at p = 2 and p = 4 and keeps the better χ². Refused
+    (ok False) with fewer than 7 points, or when no reflected beam is there:
+    the peak less than NO_BEAM_SIGMA σ above the median of the two first and
+    two last points, or fewer than 3 points above half the peak (an aborted
+    scan without beam "fitted" p = 20 ± 760 without this guard, research §2).
+    """
+    from scipy.optimize import curve_fit
+    x = np.asarray(x, float)
+    c = np.asarray(counts, float)
+    if monitor is not None:
+        m = np.asarray(monitor, float)
+        scale = float(np.mean(m))
+        y = c / m * scale
+        s = np.sqrt(np.maximum(c, 1.0)) / m * scale
+    else:
+        y = c
+        s = np.sqrt(np.maximum(np.abs(c), 1.0)) if sigma is None else np.asarray(sigma, float) * np.ones_like(c)
+    good = np.isfinite(x) & np.isfinite(y) & np.isfinite(s) & (s > 0)
+    x, y, s = x[good], y[good], s[good]
+    n = len(x)
+    if n < 7:
+        return SuperGaussianFit(False, 'too few points (%d)' % n, points=n)
+    order = np.argsort(x)
+    x, y, s = x[order], y[order], s[order]
+    b0 = float(np.median(np.r_[y[:2], y[-2:]]))
+    a0 = float(y.max() - b0)
+    edge_sigma = float(np.median(np.r_[s[:2], s[-2:]]))
+    if a0 < NO_BEAM_SIGMA * max(edge_sigma, 1e-300) or np.sum(y > b0 + a0 / 2) < 3:
+        return SuperGaussianFit(False, 'no reflected beam (the peak is not %g σ above the edges)' % NO_BEAM_SIGMA,
+                                points=n)
+    wts = np.clip(y - b0, 0, None)
+    h0 = float(np.sum(x * wts) / np.sum(wts))
+    half = x[y > b0 + a0 / 2]
+    w0 = max((half.max() - half.min()) / 2, float(np.min(np.diff(x))) if n > 1 else 1.0)
+    span = float(np.ptp(x))
+    lo = [0.0, float(x.min()), span * 1e-6, SUPER_P_BOUNDS[0], -np.inf]
+    hi = [np.inf, float(x.max()), span, SUPER_P_BOUNDS[1], np.inf]
+    best = None
+    for p0 in SUPER_P_START:
+        try:
+            popt, pcov = curve_fit(super_gaussian, x, y, p0=[a0, h0, min(w0, span * 0.99), p0, b0], sigma=s,
+                                   absolute_sigma=True, bounds=(lo, hi), maxfev=4000)
+        except (RuntimeError, ValueError):
+            continue
+        chi = float(np.sum(((y - super_gaussian(x, *popt)) / s) ** 2))
+        if best is None or chi < best[2]:
+            best = (popt, pcov, chi)
+    if best is None:
+        return SuperGaussianFit(False, 'the super-Gaussian fit did not converge', points=n)
+    popt, pcov, chi = best
+    height, centre, w, p, background = (float(v) for v in popt)
+    dof = max(n - 5, 1)
+    fwhm = super_gaussian_fwhm(w, p)
+    # FWHM error from the covariance of (w, p): dF/dw = F/w, dF/dp = −F ln(ln 2)/p²
+    jw, jp = fwhm / w, -fwhm * math.log(math.log(2.0)) / p ** 2
+    cwp = pcov[2:4, 2:4]
+    fwhm_var = jw * jw * cwp[0, 0] + 2 * jw * jp * cwp[0, 1] + jp * jp * cwp[1, 1]
+    try:
+        pg, _ = curve_fit(lambda h, a, h0_, w_, b: super_gaussian(h, a, h0_, w_, 2.0, b), x, y,
+                          p0=[height, centre, w, background], sigma=s, absolute_sigma=True, maxfev=4000)
+        gchi = float(np.sum(((y - super_gaussian(x, pg[0], pg[1], pg[2], 2.0, pg[3])) / s) ** 2) / max(n - 4, 1))
+    except (RuntimeError, ValueError):
+        gchi = math.nan
+    err = np.sqrt(np.abs(np.diag(pcov)))
+    return SuperGaussianFit(True, '', centre=centre, centre_err=float(err[1]), fwhm=fwhm,
+                            fwhm_err=float(math.sqrt(abs(fwhm_var))), p=p, p_err=float(err[3]), height=height,
+                            background=background, chi2_dof=chi / dof, gaussian_chi2_dof=gchi, points=n,
+                            params=np.asarray(popt, float), cov=np.asarray(pcov, float))

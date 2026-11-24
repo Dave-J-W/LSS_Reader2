@@ -207,6 +207,9 @@ FRAMES = {
             C('pilAspectComboBox', 'Aspect'),
             ROW(C('pilMinHorizontalSlider', 'Low %'), C('pilMinLineEdit', '')),
             ROW(C('pilMaxHorizontalSlider', 'High %'), C('pilMaxLineEdit', '')),
+            ROW(C('pilHomePushButton', 'Home', note='The remembered zoom (F88)'),
+                C('pilFitAllPushButton', 'Fit all', note='The whole frame (F88)'),
+                C('pilAutoScalePushButton', 'Auto scale', note='Automatic limits again (F88)')),
             CAPTION('Zoom, map, scale and limits stay put while frames play (F70)'),
         ]),
         G('Views', 'Views', [
@@ -224,6 +227,8 @@ FRAMES = {
             C('cutFitFwhmSpinBox', 'Fixed FWHM (0 = fitted)'),
             C('cutFitRangeLineEdit', 'x range (a – b)'),
             ROW(C('cutFitCentresLineEdit', 'Centres'), C('cutFitFixCheckBox', 'fixed')),
+            ROW(C('mcaFitDetectorWidthCheckBox', 'width from detector'), C('mcaFitNoiseSpinBox', 'noise (keV)')),
+            C('mcaFitEscapeCheckBox', 'strip Si escapes', note='Fluorescence only: F90 P2, P3 (options, not defaults)'),
             C('cutFitPushButton', 'Fit peaks'),
             C('cutFitResultLabel', 'χ²/dof —, 2 peaks'),
         ], replaces=['cutFitDialog', 'cutFitOptionsPushButton'], fold=True,
@@ -242,7 +247,18 @@ FRAMES = {
                                  'scattering, much smaller than the full frame (owner 2026-11-23)'),
                  gioxs=PLOT('pdgioxs.plotWidget', 'GIOXS profiles', 'curves'),
                  gisaxs=PLOT(None, 'GISAXS: Qz vs Qy', 'gisaxs', name='frames_gisaxsPlot'),
-                 movie=C('pilMoviePushButton', '▶', note='Play/pause of a non-blocking movie (M1)'),
+                 movie=C('pilMoviePushButton', 'Movie', note='Plays the selection as a movie, also 2 frames (F69)'),
+                 movie_bar={'view': C('pilViewComboBox', '', items=['Movie', 'Tiles: 4', 'Tiles: 6']),
+                            'back': C('pilMovieBackPushButton', '◀'),
+                            'play': C('pilMoviePlayPushButton', '▶', note='Play/pause (space; F69, Q7)'),
+                            'next': C('pilMovieForwardPushButton', '▶|'),
+                            'slider': C('pilMovieSlider', ''),
+                            'counter': C('pilMovieCounterLabel', '14 / 41'),
+                            'speed': C('pilMovieSpeedComboBox', '', items=['2 fps', '0.5 fps', '1 fps', '5 fps',
+                                                                         '10 fps']),
+                            'loop': C('pilMovieLoopCheckBox', 'loop'),
+                            'meta': C('pilMovieInfoLabel', 'S# 11 · pt 13 · 2θ 18.40° · t 412 s · abs 2 · '
+                                                           'Monc 1.2e+05')},
                  split=NEW('frames_split', 'Split', 'toggle', 'Shows Raw frames and Line cuts together, side by '
                            'side or stacked (owner 2026-11-23)'),
                  # the "Line cuts" sub-tab; its band is drawn on the raw image
@@ -365,23 +381,35 @@ REFLECTIVITY = {
         ]),
     ],
     'right': [
-        [PLOT('refRefDataPlotwidget', 'R / R_F vs Qz', 'ref', residuals=True, provenance=PROV_REF, stretch=3,
+        [PLOT('refRefDataPlotwidget', 'R / R_F vs Qz', 'ref', residuals=True,
+              provenance=C('refProvenanceLabel', PROV_REF, kind='label'), stretch=3,
               note_button=SAVE('refSaveWorkbookPushButton'))],
         [SPECIAL('tabs', name='ref_roiTabs', pages=[
             ('ROI close-up', [PLOT('refADDataPlotWidget', 'ROI movie (log)', 'roi',
                   note='Opens on log scale, zoomed to a box holding the ROI and both background zones with a margin of '
-                       'diffuse scattering around them: a healthy zoom, not too close (owner 2026-11-23; F71)')]),
-            ('Checks', [C('pilPeakCenDialog.peakCenTextBrowser', 'Beam centre off', kind='list',
-                          note='Was a modal window during Ref Patch'),
-                        C('pilBadPixDialog.peakCenTextBrowser', 'Bad pixels in the ROI', kind='list',
-                          note='Was a modal window during Ref Patch')]),
+                       'diffuse scattering around them: a healthy zoom, not too close (owner 2026-11-23; F71)'),
+                  C('refRoiLogCheckBox', 'Log'),
+                  C('refRoiCuesLabel', 'off centre 30 % · clipped 2 %', kind='label',
+                    note='The checks of the boxes (Q-IMG-7), the reasons in the tooltip')]),
+            ('Checks', [NEW('ref_centreChecks', 'Beam centre off', 'list',
+                            'Frames whose beam centre is more than 2 px off; in the main window since 2026-11-24 a '
+                            'message and open squares on the curve (F95)'),
+                        C('refBadPixListWidget', 'Bad pixels in the ROI', kind='list',
+                          note='Per Qz, with crosses on the curve (F95; was a modal window during Ref Patch)')]),
          ]),
          SPECIAL('joins', title=C('refpatch.Label', 'Joins', kind='label'),
                  controls=[C('refpatch.knownRatioCheckBox', 'Known ratio'),
                            C('refpatch.knownRatioLabel', 'fit ±0.4 %, foils ±1.5 %'),
                            C('refpatch.dropLineEdit', 'Drop points'), C('refpatch.dropPushButton', 'Drop'),
+                           C('refpatch.backPushButton', '◂ Back',
+                             note='Undoes the last drop or accepted join (F96, built in the main window 2026-11-24)'),
                            C('refpatch.nextPushButton', 'Next doubtful ▸',
-                             note='Steps to the next doubtful join; all joins are listed together')],
+                             note='Steps to the next doubtful join; all joins are listed together'),
+                           C('refpatch.cancelPushButton', 'Cancel',
+                             note='Stops the patch and says so; the result on show is unchanged (F96)')],
+                 table=C('refpatch.joinTableWidget', 'Joins', kind='table',
+                         note='Accepted joins and the one on show, kept with the result (F96, the main window\'s patch '
+                              'window since 2026-11-24); here every join at once'),
                  pages=[('Join', PLOT('refpatch.plotWidget', 'Join close-up', 'join')),
                         ('Identical scans', PLOT('refpatchsamescan.plotWidget', 'Identical scans', 'join'))]),
          SPECIAL('tabs', name='ref_pointsTabs', title=C('reflectivityDataLabel', 'Points', kind='label'),
@@ -444,7 +472,8 @@ GID = {
             ROW(C('pdformfac.ellCheckBox', 'Ellipsoid'), C('pdformfac.ellXYLineEdit', 'r_xy (Å)')),
             C('pdformfac.ellZLineEdit', 'r_z (Å)'),
             ROW(C('pdformfac.updatePushButton', 'Draw form factor'),
-                NEW('gid_patchRelax', 'Patch relax', 'button', 'Was an item of the GID combo')),
+                NEW('gid_patchRelax', 'Patch relax', 'button', 'Was an item of the GID combo'),
+                C('gidWorksheetPushButton', 'Worksheet…', kind='button')),
         ], fold=True),
     ],
     'right': [
@@ -585,6 +614,8 @@ MENUS = [
         C('messageDock_toggleViewAction', 'Messages'),
         C('scriptDock_toggleViewAction', 'Script'),
         C('errorDock_toggleViewAction', 'Errors'),
+        C('actionFitResiduals', 'Residuals above fits',
+          note='One switch for every fit plot: the panels drawn here as the Residuals toggle above each fit plot (F74)'),
     ]},
     {'title': 'Tools', 'replaces': ['menuTools'], 'items': [
         C('actionToolsWindow', 'All tools…', note='The Tools collection (F84, lss_toolbox): every demonstration and '
@@ -615,12 +646,13 @@ PANES = [
 STATUS = [
     C('statusBar', '', kind='pane'),
     C('progressDialog', '', kind='progress', note='Progress in the status bar, with Abort, instead of a window'),
+    # the main window's state badges (F85, built there 2026-11-23); STATUS[2:] are drawn as badges
+    C('errorsBadgeLabel', 'legacy errors', kind='badge'),
+    C('normBadgeLabel', '/ Monc', kind='badge'),
+    C('patchBadgeLabel', 'joint patch', kind='badge'),
 ]
 
 STATE_BAR = [
-    ('budget errors', 'Error model (Errors pane). Click: open the Errors pane.'),
-    ('/ Monc', 'Normalisation everywhere: / Monc; / gain off; / photon off. Click: open the setting.'),
-    ('joint patch', 'Reflectivity patch method (Reflectivity > Patch). Click: go there.'),
     ('Live off', 'Watching the SPEC file for new scans (the panel\'s Live box).'),
 ]
 
@@ -639,6 +671,14 @@ PREFERENCES = [
     ]),
     G('Window', '', [
         C('prefNguiCheckBox', 'ngui (new layout, prototype)', note='This window; unticking closes it'),
+        C('prefBadgesComboBox', 'State badges', items=['on', 'when not default', 'off']),
+        # Reduction options (F86, built in the main window 2026-11-23)
+        C('prefSumAllLegacyCheckBox', 'Sum All: legacy average'),
+        C('prefRepeatsLegacyCheckBox', 'Ref Patch repeats: average (legacy)'),
+        C('prefGisaxsRawCheckBox', 'GISAXS: raw counts (legacy)'),
+        C('prefMcaFitLegacyCheckBox', 'Fluorescence fit: legacy dialog'),
+        C('prefMcaFitPoissonCheckBox', 'Fit lines: Poisson weights', note='F90 P1, an option until the owner\'s study'),
+        C('prefBurnLegacyCheckBox', 'Burn: Legacy tab'),
         C('prefClosePushButton', 'Close'),
     ]),
 ]
@@ -699,7 +739,15 @@ RETIRED = {
     'peakfit2': 'Dialog never shown: ' + Q14,
     'peakfitpara': 'Dialog never shown: ' + Q14,
     'refBPCFacLineEdit': 'Defunct: read and never used (inventory); bad pixels are set in Frames > Reduce',
-    'refBadPixListWidget': 'Defunct: only ever cleared (inventory); the bad-pixel report is Reflectivity > Checks',
+    'timelineTab': 'Built in the main window first (owner, 2026-11-24); ngui is to show the same view, timelineview.TimelineView',
+    'timelineView': 'The main window\'s Timeline tab (F83); ngui is to reuse it',
+    'timelineFitPushButton': 'Part of the main window\'s Timeline tab (F83)',
+    'timelineInfoLabel': 'Part of the main window\'s Timeline tab (F83)',
+    'pilRoiPanel': 'One ROI close-up in this layout (Reflectivity > ROI close-up); the main window also has it beside the frame',
+    'pilRoiLogCheckBox': 'One ROI close-up in this layout: its Log box is Reflectivity > ROI close-up > Log',
+    'pilRoiCuesLabel': 'One ROI close-up in this layout: its checks are under Reflectivity > ROI close-up',
+    'pilPeakCenDialog.peakCenTextBrowser': 'Removed 2026-11-24 (F95, Q-UI-B6): a message and marks instead of a modal box',
+    'pilBadPixDialog.peakCenTextBrowser': 'Removed 2026-11-24 (F95, Q-UI-B6): the Bad Pixels list (Checks) instead of a modal box',
     # dialog chrome made unnecessary by inline groups
     'pdburn.closePushButton': 'Burn test dialog, now the Burn tab: ' + INLINE,
     'gidClosePushButton': 'GID worksheet, now GID tab groups: ' + INLINE,
@@ -733,17 +781,22 @@ def _walk_items(items, where):
                 yield it['plot'], where, it
             if it.get('note_button'):
                 yield from _walk_items([it['note_button']], where)
+            if isinstance(it.get('provenance'), dict):      # the main window's line under the plot (F96)
+                yield from _walk_items([it['provenance']], where)
 
 
 def _walk_special(sp, where):
     kind = sp['special']
     w = '%s > %s' % (where, kind)
-    for key in ('label', 'title', 'image', 'gioxs', 'gisaxs', 'movie', 'plot', 'tabwidget', 'cuts', 'note_button'):
+    for key in ('label', 'title', 'image', 'gioxs', 'gisaxs', 'movie', 'plot', 'tabwidget', 'cuts', 'note_button',
+                'table'):
         v = sp.get(key)
         if isinstance(v, dict):
             yield from _walk_items([v], w)
     for key in ('toolbar', 'options', 'controls', 'items', 'footer'):
         yield from _walk_items(sp.get(key) or [], w)
+    if isinstance(sp.get('movie_bar'), dict):
+        yield from _walk_items(list(sp['movie_bar'].values()), w)
     for _name, v in sp.get('views') or []:
         if v:
             yield from _walk_items([v], w)

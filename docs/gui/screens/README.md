@@ -6,7 +6,7 @@ and synthetic data from `tests/synth.py` for MCA / fluorescence, the reflectivit
 (NX has no MCA data). Regenerate the whole folder with the command above; the table is rewritten, the
 Observations section is by hand and is kept.
 
-75 images, 5.7 MB, last run took 54 s.
+73 images, 4.5 MB, last run took 46 s.
 
 | File | What it shows | Data and state |
 |---|---|---|
@@ -19,13 +19,13 @@ Observations section is by hand and is kept.
 | `12_specplot_tab_crop.png` | SpecPlot tab page: controls and plot | Scan 4 selected |
 | `13_specplot_two_scans.png` | SpecPlot with two scans selected (legend, N-scan controls) | Scans 4 and 5 selected |
 | `13b_specplot_beam_off_scan.png` | SpecPlot of scan 1 (a motor scan with the beam off) | Scan 1 selected |
-| `14_apex_tab.png` | The Apex tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget; the Apex (Bruker CCD) tab, defunct |
+| `14_timeline_tab.png` | Timeline tab (F83): events, sx, sample-height scans and scans on one time axis | NX school file opened; Timeline tab shown (fitted to the whole file) |
 | `20_pilatus_empty.png` | The Pilatus tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |
 | `20_pilatus_scan_selected_no_frames.png` | Pilatus tab, whole window: a scan with images selected, no frame selected yet | Scan 11 (ascan dth, 40 frames) selected, no frame selected |
 | `21_pilatus_one_frame.png` | Pilatus tab, whole window, one frame | Scan 11, frame 1 selected |
 | `21b_pilatus_tab_controls.png` | Pilatus tab page (controls above, image below) | Scan 11, frame 1 |
-| `22_pilatus_three_frames.png` | Pilatus tab with three frames selected | Scan 11, frames 1, 11, 21 selected |
-| `23_pilatus_all_frames_of_a_scan.png` | Pilatus tab with ALL frames of a long scan selected (the many-small-images problem) | Scan 11: all 40 frames selected (drawing took 0.7 s offscreen) |
+| `22_pilatus_three_frames.png` | Pilatus tab with three frames selected (a movie since 2026-11-24, F69) | Scan 11, frames 1, 11, 21 selected |
+| `23_pilatus_all_frames_of_a_scan.png` | Pilatus tab with ALL frames of a long scan selected: the movie (F69; before 2026-11-24, 10 small tiles) | Scan 11: all 40 frames selected (drawing took 0.4 s offscreen) |
 | `23b_pilatus_all_frames_reflectivity_series.png` | Pilatus tab with all frames of the four reflectivity scans selected | Scans 6-9: all 96 frames selected |
 | `30_reflectivity_empty.png` | The Reflectivity tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |
 | `31_refpatch_dialog_first_join.png` | Ref Patch window (opened by Pilatus > Ref Patch), first join | Scans 6-9 all frames; Ref Patch clicked |
@@ -79,7 +79,6 @@ Observations section is by hand and is kept.
 | `97_pane_script.png` | Script pane (bottom dock) | After the reductions run in this session (the script records them) |
 | `98_pane_errors_legacy.png` | Errors pane (bottom dock), Legacy error model | Defaults |
 | `98b_pane_errors_budget.png` | Errors pane (bottom dock), Budget error model (extra monitor controls appear) | Errors combo set to Budget |
-| `99_menu_beamlines.png` | Menu bar > Beamlines menu | Menu popped up offscreen |
 | `99_menu_calculations.png` | Menu bar > Calculations menu | Menu popped up offscreen |
 | `99_menu_file.png` | Menu bar > File menu | Menu popped up offscreen |
 | `99_menu_help.png` | Menu bar > Help menu | Menu popped up offscreen |
@@ -89,9 +88,8 @@ Observations section is by hand and is kept.
 ### Menus (item lists, from the actions of each menu)
 
 - **File**: Open Spec File, Preferences..., Quit
-- **Beamlines**: APS-15IDC, APS-9IDC
 - **Calculations**: g_l2, g_l3, abs ratio
-- **Tools**: All tools…, -, Burn tests, Reflectivity patching, GID and pinhole geometry, Monitor, scans, SPEC files, Synthetic data sets, The reader's window and manual, Made elsewhere
+- **Tools**: All tools…, -, Burn tests, Reflectivity patching, GID and pinhole geometry, Monitor, scans, SPEC files, Fluorescence (MCA), Synthetic data sets, The reader's window and manual, Made elsewhere
 - **Help**: Documentation, About
 - **View**: Messages, Script, Errors
 
@@ -102,8 +100,8 @@ fonts), where font metrics may differ a little from the owner's desktop.
 
 **Window**
 - Minimum width is about 2266 px (`minimumSizeHint`); on a laptop screen the window cannot be shown whole.
-- The Apex (Bruker CCD) tab is hidden by `setTabVisible(1, False)` (mainwindow.py:143) but still exists with its controls
-  (Reflectivity, Line/Area Cuts, axes, cmap, cut direction); `14_apex_tab.png` shows what is behind it. Defunct.
+- The Apex (Bruker CCD) tab was hidden by `setTabVisible(1, False)` but still existed with its controls (Reflectivity,
+  Line/Area Cuts, axes, cmap, cut direction). **Removed 2026-11-23** (owner, Q14), with `14_apex_tab.png`.
 - The status bar is a single thin line; the bottom dock has tabs Messages / Script, and Errors only once its View entry is ticked.
 - The Script pane, once shown, holds mostly empty space; the two header lines are all it shows before a reduction.
 
@@ -145,9 +143,12 @@ fonts), where font metrics may differ a little from the owner's desktop.
 
 **Dialogs, panes, menus (`9x`)**
 - The absorber-ratio dialog could not be captured (no scan with an Absorber scan variable in NX or in the synthetic sets).
-- Menus have few entries: File (Open Spec File, Preferences, Quit), Beamlines (two checkable entries), Calculations (g_l2, g_l3, abs ratio: three lowercase names), Help, View (panes). Everything else is in the tab strips.
+- Menus have few entries: File (Open Spec File, Preferences, Quit), Beamlines (two checkable entries; **removed 2026-11-23**, owner Q14, with the Command line row), Calculations (g_l2, g_l3, abs ratio: three lowercase names), Help, View (panes). Everything else is in the tab strips.
 
 **Reruns (2026-11-23)**
 - The tool's working folders now have fixed names (`<tmp>/lss_screens/...`): their random names appeared in plot titles, legends and the status bar and changed 11 otherwise identical images on every rerun. Between two reruns only `50b_*`, `91_*` (the Messages strip's clock time) and `96_*` (message timestamps) still differ.
 - A finished "Reading Scan #1, 100 %, Abort" progress window from an earlier step sometimes appeared late, and was caught as `81d_plot_scale_window.png` with the real window as `81d_*b.png`. The tool now leaves progress windows out. Not reproduced by opening the NX file and waiting 6 s; the SPEC reader keeps the window referenced (`spec_routines.py:236`), so Qt's show-if-slow timer could show it after reading (cause guessed; TODO area I).
 - Reflectivity screenshots (`30_*`, `32_*`, `33_*`) retaken for the "+ covariance" box after the reflectivity Save.
+- Ref Patch window (`31_*`, `31c_*`) and Reflectivity tab (`30_*`, `31b_*`, `32_*`, `33_*`) retaken 2026-11-24 for F96: Back, Cancel and the join table in the window; the line under the Reflectivity plot.
+- Pilatus (`21_*`, `22_*`, `23_*`, `23b_*`) and Reflectivity (`30_*`, `32_*`, `33_*`) screenshots retaken 2026-11-24 for the ROI close-up panel (F71, F97): beside the frame on the Pilatus tab, in the close-up on the Reflectivity tab.
+- `99_menu_view.png` retaken 2026-11-24 for F74 (View > Residuals above fits). The Pilatus screenshots show no saturation cue (F97): no NX frame here is above 1e5 counts/s. **Most whole-window screenshots now differ from a rerun** (changes by several sessions since 2026-11-23, not checked one by one); they are left for a full retake.

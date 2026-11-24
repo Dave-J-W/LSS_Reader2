@@ -8,6 +8,8 @@ from PyQt5.Qt import *
 from spec_routines import specread, is_spec_file
 from mca_routines import mcaread
 from mplwidget import MplWidget, errorbars, mesh
+import roipanel
+from roipanel import RoiPanel
 from matplotlib.widgets import MultiCursor
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.gridspec as gridspec
@@ -33,7 +35,8 @@ import traceback
 import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
-from lss_core import cuts, mcafiles
+from lss_core import cuts, mcafiles, paths, scanaxes
+from lss_core import residuals
 from lss_core import gid as gidmod
 from lss_core import pinhole
 from lss_core import peaks
@@ -44,6 +47,7 @@ from lss_core import trends as trendmod
 from lss_core import burn as burnmod
 from lss_core import series as seriesmod
 from lss_core import live as livemod
+from lss_core import display
 from lss_core.absorbers import ABSFAC_10KEV
 from lss_core.monitor import gain_factor, scan_rate
 from lss_core.experiment import monitor_factor, absorber_setting
@@ -55,6 +59,50 @@ from lss_core.errors import ErrorModel, MonitorModel, MonitorTerms, script_kw, E
 
 # per-frame lists built by updatePilImageList, one entry per row of the image list
 FRAMELISTS=['pilAlpha', 'pilFileNames', 'pilFileQxs', 'pilFileQys', 'pilFileQzs', 'pilFrameNum', 'pilScanNum', 'pilTrueAlpha', 'pilX', 'pilY', 'pil_AbsNum', 'pil_Chi', 'pil_Dist', 'pil_Dth', 'pil_Gl2', 'pil_PDist', 'pil_Phi', 'pil_S1h', 'pil_S1v', 'pil_S4h', 'pil_S5h', 'pil_Sh', 'pil_Tth', 'pil_Wavelength']
+
+# What a list item stands for is kept as item data, not read back from its text (the
+# fragility audit, 2026-11-24): the displayed text can change (the GUI overhaul) without
+# breaking any lookup. The text is still read when an item lacks the data.
+from PyQt5.QtCore import Qt as _QtNS
+SCAN_ROLE=_QtNS.UserRole           # scan and image lists: the scan number
+FRAME_ROLE=_QtNS.UserRole+1     # image list: the frame's number (F# for images, mS# for MCA points)
+LABEL_ROLE=_QtNS.UserRole+2     # image list: (scan label, frame label), e.g. ('S# 12', 'F# 3'), for file names
+QZ_ROLE=_QtNS.UserRole+3        # Ref Qz list: the Qz of the row
+
+
+def itemScan(item):
+    """The scan number of a scan- or image-list item."""
+    v=item.data(SCAN_ROLE)
+    return int(v) if v is not None else int(str(item.text()).split()[1])
+
+
+def itemFrame(item):
+    """The frame number of an image-list item ('F# 3' or 'mS# 3' -> 3)."""
+    v=item.data(FRAME_ROLE)
+    return int(v) if v is not None else int(str(item.text()).split('\t')[1].split('#')[1])
+
+
+def itemLabels(item):
+    """(scan label, frame label) of an image-list item, as written in file names."""
+    v=item.data(LABEL_ROLE)
+    if v is not None:
+        return str(v[0]),str(v[1])
+    t=str(item.text()).split('\t')
+    return t[0],t[1]
+
+
+def itemQz(item):
+    """The Qz of a Ref Qz list row."""
+    v=item.data(QZ_ROLE)
+    return float(v) if v is not None else float(str(item.text()).split()[1])
+
+
+def tagImageItem(item,scan,frame,frame_label):
+    item.setData(SCAN_ROLE,int(scan))
+    item.setData(FRAME_ROLE,int(frame))
+    item.setData(LABEL_ROLE,('S# %d' % int(scan),frame_label))
+    return item
+
 
 
 def selectionDelayMs():
@@ -140,7 +188,6 @@ class MainWindow (QMainWindow):
         QMainWindow.__init__(self, parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.ui.PlotWidget.setTabVisible(1, False)   # the Apex (CCD) tab: that detector is defunct
         self.pilatus=TwoDDetector('Pilatus')
         np.seterr(invalid='ignore',divide='ignore')
         self.mcaDirName='vortex'
@@ -183,7 +230,7 @@ class MainWindow (QMainWindow):
         self.selectedPilFramesNums=[]
         self.pilScanNum=[]
         self.selectedplotfiles_rows=[]
-        self.ui.PlotWidget.setCurrentIndex(0)
+        self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
         self.directory=os.getcwd()
         self.pilGIDshow=0
         self.pilGISAXSshow=0
@@ -211,6 +258,7 @@ class MainWindow (QMainWindow):
         self.wrapReductionsForAutoSave()        # before the signals: every connection reaches the wrapped method
         self.init_signals()
         self.log=reader_log.get_logger()
+        self.initPaneHost()
         self.initMessagePane()
         self.initScriptPane()
         self.initErrorPane()
@@ -218,16 +266,22 @@ class MainWindow (QMainWindow):
         self.initAbsFacFromEnergy()
         self.initPreferences()
         self.initToolsMenu()
+        self.initPilDisplay()
+        self.initPilMovie()
+        self.initRoiPanels()
         self.gidParams=gidmod.GIDParams()     # GID patch settings (worksheet, F61)
         self.gidJoinLog=[]
         self.gidLevels=[]
         self.gidWorksheet=None
-        self.ui.gidComboBox.addItem('Worksheet')
         self.ui.gidComboBox.addItem('Save to workbook')
+        self.initGIDButtons()
+        self.initRefProvenance()
+        self.initTimelineTab()
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
         self.initValidator()
+        self.initStateBadges()
         self.nguiWindow=None
         if self.prefs.get('ngui',False):
             self.setNgui(True)
@@ -236,13 +290,18 @@ class MainWindow (QMainWindow):
     def init_signals(self):
         # self.connect(self.ui.actionAbout, SIGNAL('triggered()'),self.showAbout)
         self.ui.actionAbout.triggered.connect(self.showAbout)
+        # File > Quit and Help > Documentation were not connected (owner, 2026-11-23, Q-UI-A12)
+        from PyQt5.QtGui import QKeySequence
+        self.ui.actionQuit.setShortcut(QKeySequence('Ctrl+Q'))   # explicit: Windows has no standard Quit key
+        self.ui.actionQuit.setToolTip('Close the reader (Ctrl+Q). Results are already saved in the workbook.')
+        self.ui.actionQuit.triggered.connect(self.close)
+        self.ui.actionDocumentation.setToolTip('Open the scripting guide (docs/SCRIPTING.md) until the manual exists; '
+                                               'from a packaged build without the docs folder, its page on GitHub.')
+        self.ui.actionDocumentation.triggered.connect(self.showDocumentation)
         # self.connect(self.ui.actionOpen_Spec_File, SIGNAL('triggered()'),self.openSpecFile)
         self.ui.actionOpen_Spec_File.triggered.connect(lambda x:self.openSpecFile(fname=None))
         # self.connect(self.ui.speUpSpeFilePushButton, SIGNAL('clicked()'),self.readSpecFile)
         self.ui.speUpSpeFilePushButton.clicked.connect(self.updateSpecFile)
-        # self.connect(self.ui.actionAPS_15IDC, SIGNAL('triggered()'),self.selectAPS_15IDC)
-        self.ui.actionAPS_15IDC.triggered.connect(self.selectAPS_15IDC)
-        self.ui.actionAPS_9IDC.setVisible(False)   # 9-ID-C is not supported (owner, 2026-11-17)
         # self.connect(self.ui.actionG_l2, SIGNAL('triggered()'), self.calg_l2)
         self.ui.actionG_l2.triggered.connect(self.calg_l2)
         # self.connect(self.ui.actionG_l3, SIGNAL('triggered()'), self.calg_l3)
@@ -573,13 +632,19 @@ class MainWindow (QMainWindow):
 
 
 
-    def selectAPS_15IDC(self):
-        # 15-ID-C is the only beamline; the menu entry stays checked
-        self.ui.statusBar.clearMessage()
-        self.beamline='APS-15IDC'
-        self.ui.actionAPS_15IDC.setChecked(True)
-        self.ui.statusBar.showMessage('APS-15IDC Selected')
-        
+    DOCS_URL='https://github.com/Dave-J-W/LSS_Reader2/blob/main/docs/SCRIPTING.md'
+
+    def showDocumentation(self):
+        """Help > Documentation: the scripting guide for now, the manual when it
+        exists (owner, 2026-11-23, Q-UI-A12). The local file when present, else
+        its page on GitHub (a packaged build carries no docs folder)."""
+        from PyQt5.QtGui import QDesktopServices
+        from PyQt5.QtCore import QUrl
+        path=resource(os.path.join('docs','SCRIPTING.md'))
+        url=QUrl.fromLocalFile(path) if os.path.exists(path) else QUrl(self.DOCS_URL)
+        if not QDesktopServices.openUrl(url):
+            self.notify('Could not open the documentation; it is at %s' % url.toString(),title='Documentation')
+
     def showAbout(self):
         cwd=os.path.dirname(resource('mainwindow.py'))
         files=['mainwindow.py','mainwindow.ui','LSS_Reader.py','mca_routines.py','mpl2dwidget.py','mplwidget.py','spec_routines.py','TwoDDetector.py','logo.png']
@@ -603,6 +668,7 @@ class MainWindow (QMainWindow):
         self.specFileName=fname
         if self.specFileName!='':
             self.clearAll()
+            self.pilDisplayForFile(self.specFileName)   # a new SPEC file resets the display (F88)
             self.directory=str(QFileInfo(self.specFileName).absolutePath())
             self.directory_old=self.directory
             logpath,fallback=reader_log.attach_spec_log(self.specFileName)
@@ -624,7 +690,7 @@ class MainWindow (QMainWindow):
         self.startLineNum=0
         self.endScanNum=0
         self.readSpecFile()
-        self.ui.specFileLabel.setText('SpecFile: '+str(self.specFileName.split('/')[-1]))
+        self.ui.specFileLabel.setText('SpecFile: '+paths.base(self.specFileName))
         self.scriptLine('exp = Experiment(%r)' % os.path.abspath(self.specFileName))
         # except:
         #     self.specData=specData_old
@@ -653,6 +719,7 @@ class MainWindow (QMainWindow):
         self.ui.statusBar.clearMessage()
         self.ui.scanListWidget.clear()
         self.ui.specPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.specPlotMplWidget.canvas.ax,False)   # F74: no fit, no residuals
         self.ui.spXComboBox.clear()
         self.ui.spYComboBox.clear()
         self.ui.spY2ComboBox.clear()
@@ -661,12 +728,10 @@ class MainWindow (QMainWindow):
         self.ui.mcaPlotMplWidget.canvas.draw()
         self.ui.refBadPixListWidget.clear()
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)
         self.ui.cutPlotMplWidget.canvas.draw()
-        self.ui.gixMplWidget.canvas.ax.clear()
-        self.ui.gixMplWidget.canvas.draw()
-        self.ui.refADDataPlotWidget.canvas.ax.clear()
-        self.ui.refADDataPlotWidget.canvas.draw()
-        self.ui.refQzListWidget.clear() 
+        self.roiClearPanels()      # the ROI close-ups (F71), on both tabs
+        self.ui.refQzListWidget.clear()
         # self.connect(self.ui.scanListWidget, SIGNAL('itemSelectionChanged()'),self.scanListChanged)
         # self.connect(self.ui.imageListWidget, SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
         # self.connect(self.ui.refQzListWidget, SIGNAL('itemSelectionChanged()'),self.refQzListSelectionChanged)
@@ -727,8 +792,22 @@ class MainWindow (QMainWindow):
                 self.notify('Scan(s) %s: a data line with a different number of values was left out (in a file '
                             'SPEC is still writing, usually the line being written).' % listText(short),
                             title='SPEC file',level='info')
+            offl=[n for n in scannums if isinstance(self.specPar.get(n),dict) and self.specPar[n].get('LMismatch') is not None]
+            if offl:    # lss_core.lattice: L should be Qz = (2π/λ)(sin In_Rot + sin Out_Rot)
+                self.notify('Scan(s) %s: L differs from the Qz of In_Rot and Out_Rot by %+.1f %% (scan %d); is the SPEC '
+                            'lattice the usual one (L = Qz)?' % (listText(offl),100*self.specPar[offl[0]]['LMismatch'],offl[0]),
+                            title='SPEC file',level='warning')
+            odd=[n for n in scannums if isinstance(self.specPar.get(n),dict) and self.specPar[n].get('LabelMismatch')]
+            if odd:     # spec_routines: #L and the rows disagree; columns matched by position as before
+                nl,nv=self.specPar[odd[0]]['LabelMismatch']
+                self.notify('Scan(s) %s: #L names %d columns, the rows hold %d values (scan %d); columns are matched by '
+                            'position, so a label with a space in it shifts the later ones.' % (listText(odd),nl,nv,odd[0]),
+                            title='SPEC file',level='warning')
             self.scanlines=[self.specData[i]['ScanLine'] for i in scannums]
+            first=self.ui.scanListWidget.count()
             self.ui.scanListWidget.addItems(self.scanlines)
+            for k,n in enumerate(scannums):
+                self.ui.scanListWidget.item(first+k).setData(SCAN_ROLE,int(n))
             if np.any([self.specPar[i]['Detector']=='Vortex' for i in scannums]):
                 if QDir(self.directory+'/'+self.mcaDirName).exists()==True:
                     self.mcaDir=self.directory+'/'+self.mcaDirName
@@ -738,7 +817,7 @@ class MainWindow (QMainWindow):
                     if self.mcaDir=='':
                         self.mcaDir=self.directory+'/'+self.mcaDirName
                         self.messageBox('No MCA folder chosen: spectra of the fluorescence scans cannot be shown.')
-                self.mcafhead=str(self.mcaDir)+'/'+self.specFileName.split('/')[-1]+'_'
+                self.mcafhead=str(self.mcaDir)+'/'+paths.base(self.specFileName)+'_'
                 self.mcaftail='_mca' 
                 print("MCA data Found!!")
             if np.any([self.specPar[i]['Detector']=='Pilatus' for i in scannums]):
@@ -750,7 +829,7 @@ class MainWindow (QMainWindow):
                     if self.pilDir=='':
                         self.pilDir=self.directory+'/'+self.pilDirName
                         self.messageBox('No Pilatus folder chosen: images of the Pilatus scans cannot be shown.')
-                self.pilfhead=str(self.pilDir)+'/'+self.specFileName.split('/')[-1]+'_SCAN-'
+                self.pilfhead=str(self.pilDir)+'/'+paths.base(self.specFileName)+'_SCAN-'
                 self.pilftail='.tif'
                 print ("Pilatus Images Found!!")
                 if inipil==0:
@@ -777,6 +856,8 @@ class MainWindow (QMainWindow):
         self.pilErrorData={}
         self.pilGIDshow=0
         self.pilGISAXSshow=0
+        if hasattr(self,'pilMovieTimer'):
+            self.pilMovieTimer.stop()
 
     # ---- scan series in the scan list (F39, review R2; owner, 2026-11-21) ----
 
@@ -866,6 +947,7 @@ class MainWindow (QMainWindow):
                 where.setdefault(n,(s,'scan %d of %s' % (i,'?' if s.n is None else s.n),s.kind))
             for n,r in s.aux:
                 where.setdefault(n,(s,r,'alignment' if r=='align' else s.kind))
+        self.seriesWhere=where          # scan -> (series, role, kind): the tools' availability uses it
         box.setCurrentIndex(0)
         box.setEnabled(bool(self.seriesList))
         box.blockSignals(False)
@@ -889,6 +971,9 @@ class MainWindow (QMainWindow):
         """A mouse press or key press in the scan list is the user's own
         selection: only then is it widened to whole series (expandToSeries)."""
         from PyQt5.QtCore import QEvent
+        if (hasattr(self,'ui') and event.type()==QEvent.KeyPress and hasattr(self.ui,'pilMplWidget')
+                and obj is self.ui.pilMplWidget.canvas and self.pilMovieKey(event)):
+            return True                      # the movie's keys (F69, owner Q7), before matplotlib's
         lw=getattr(self.ui,'scanListWidget',None) if hasattr(self,'ui') else None
         if lw is not None and obj in (lw,lw.viewport()) and event.type() in (QEvent.MouseButtonPress,
                                                                              QEvent.KeyPress):
@@ -907,7 +992,7 @@ class MainWindow (QMainWindow):
         out=[]
         for it in self.ui.scanListWidget.selectedItems():
             try:
-                out.append(int(str(it.text()).split()[1]))
+                out.append(itemScan(it))
             except (IndexError,ValueError):
                 pass
         return out
@@ -1160,6 +1245,8 @@ class MainWindow (QMainWindow):
         self.updateSeries()
         grown=[n for n in scannums if n in old_pts and self.scanPoints.get(n,0)>old_pts[n]]
         self.checkStaleResults()
+        if (new or grown) and self.ui.PlotWidget.currentWidget() is getattr(self,'timelineTab',None):
+            self.updateTimeline()       # F83: the timeline on show follows the growing file
         return new,grown
 
     def liveUpdate(self):
@@ -1342,7 +1429,7 @@ class MainWindow (QMainWindow):
         s=getattr(self,'seriesChosen',None)
         if box is None or s is None:
             return
-        chosen=sorted(int(str(it.text()).split()[1]) for it in self.ui.scanListWidget.selectedItems())
+        chosen=sorted(itemScan(it) for it in self.ui.scanListWidget.selectedItems())
         if chosen!=sorted(s.data_scans):
             self.seriesChosen=None
             box.blockSignals(True)
@@ -1379,7 +1466,8 @@ class MainWindow (QMainWindow):
         self.ui.spNComboBox.currentIndexChanged.disconnect(self.updateSpecPlotData)
         self.selectedScans=self.ui.scanListWidget.selectedItems()
         #self.selectedScanNums=[self.ui.scanListWidget.row(items) for items in self.selectedScans]
-        self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
+        self.selectedScanNums=[itemScan(items) for items in self.selectedScans]
+        self.updateToolAvailability()
         self.ui.scansLineEdit.setText(listText(self.selectedScanNums))
         if self.checkSameScans()==False or self.selectedScanNums==[]:
             self.messageBox('Error:: The scans are not identical or some scans have no data!!')
@@ -1406,10 +1494,9 @@ class MainWindow (QMainWindow):
                 self.ui.spY2ComboBox.addItems(['None'])
                 self.ui.spY2ComboBox.addItems(self.specData[self.selectedScanNums[0]]['ScanVar'])
                 self.ui.spNComboBox.addItems(self.specData[self.selectedScanNums[0]]['ScanVar'])
-                if self.specData[self.selectedScanNums[0]]['ScanVar'][0]=='H':
-                    self.ui.spXComboBox.setCurrentIndex(2)
-                else:
-                    self.ui.spXComboBox.setCurrentIndex(0)
+                first=self.specData[self.selectedScanNums[0]]
+                # an hklscan: the index that moves (the #S command, else the column that varies), not L whatever
+                self.ui.spXComboBox.setCurrentIndex(scanaxes.default_x(first['ScanVar'],first,first.get('ScanLine','')))
                 self.ui.spYComboBox.setCurrentIndex(len(self.specData[self.selectedScanNums[0]]['ScanVar'])-1)
                 self.ui.spY2ComboBox.setCurrentIndex(0)
                 cols=list(self.specData[self.selectedScanNums[0]]['ScanVar'])
@@ -1438,12 +1525,12 @@ class MainWindow (QMainWindow):
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Vortex':
                 self.updateMcaImageList()
                 self.ui.imagesLabel.setText('Vortex:')
-                self.ui.PlotWidget.setCurrentIndex(0)
+                self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Unsupported':
                 self.messageBox('Bruker CCD images (.sfrm) are no longer supported by this reader.')
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Pilatus':
                 self.updatePilImageList()
-                self.ui.PlotWidget.setCurrentIndex(0)
+                self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
                 self.ui.imagesLabel.setText('Pilatus:')
         self.ui.statusBar.showMessage('Done')
             
@@ -1455,7 +1542,8 @@ class MainWindow (QMainWindow):
         self.ui.scanListWidget.itemSelectionChanged.disconnect(self.scanListChanged)
         try:
             self.selectedScans=self.ui.scanListWidget.selectedItems()
-            self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
+            self.selectedScanNums=[itemScan(items) for items in self.selectedScans]
+            self.updateToolAvailability()
             try:    # deselect the currently selected numbers
                 for item in self.selectedScans:
                     item.setSelected(False)
@@ -1542,7 +1630,9 @@ class MainWindow (QMainWindow):
             return
         self.ui.statusBar.clearMessage()
         self.ui.specPlotMplWidget.canvas.ax.clear()
-        self.ui.PlotWidget.setCurrentIndex(0)
+        self.specResidualItems=[]       # F74: the fit drawn, for its residual panel
+        self.specHeightFit=None         # F78: the super-Gaussian of a sample-height scan
+        self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
         self.specData['YCol']=str(self.ui.spYComboBox.currentText())
         self.specData['NCol']=str(self.ui.spNComboBox.currentText())
         title='File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums))
@@ -1596,16 +1686,40 @@ class MainWindow (QMainWindow):
                 else:
                     self.ui.specPlotMplWidget.canvas.ax.set_title(title+'\n'+'Peak= '+self.peakPos+', Cen= '+self.peakCenter+', FWHM= '+self.peakFWHM)
                 xf=np.linspace(np.min(x),np.max(x),400)
-                self.ui.specPlotMplWidget.canvas.ax.plot(xf,res.model(xf),'g--',label='Fit (%s)' % res.kind)
+                lab='Fit (%s)' % res.kind
+                if self.fitResidualsShown():
+                    lab=residuals.chi2_label(lab,res.chi2_dof)
+                self.ui.specPlotMplWidget.canvas.ax.plot(xf,res.model(xf),'g--',label=lab)
+                self.specResidualItems=[(x,y,yerr_,res,'g')]
                 self.scanCenter[self.selectedScanNums[-1]]=float(format(p.centre,'.3f'))
+                if kw:              # a sample-height scan against sh: its width and flatness (F78)
+                    self.specHeightFit=self.drawHeightScanFit(x,y,yerr_)
             except:
                 self.peakPos='%.4f'%x[np.argmax(y)]
                 self.peakCenter=self.peakPos
                 self.peakFWHM='0'
+        self.drawFitResiduals(self.ui.specPlotMplWidget.canvas.ax,self.specResidualItems)
         self.specPlotSettings()
         if not getattr(self,'specLogKept',''):          # keep the note about a log axis left linear
             self.ui.statusBar.showMessage('Done')
         
+    def drawHeightScanFit(self,x,y,yerr):
+        """F78 (owner, 2026-11-23): on a sample-height scan, the
+        super-Gaussian A exp(-|(h-h0)/w|^p) + b (lss_core.peaks.
+        fit_super_gaussian) drawn over the data, and its FWHM in µm (sh is in
+        mm), p and the Gaussian's χ²/dof on the title's last line: wide and
+        flatter than a Gaussian (p > 2) is what a usable scan looks like. No
+        verdict: the thresholds are the owner's to give."""
+        yerr=np.asarray(yerr,float)
+        sg=peaks.fit_super_gaussian(x,y,sigma=yerr if np.all(yerr>0) else None)
+        if not sg.ok:
+            return sg
+        ax=self.ui.specPlotMplWidget.canvas.ax
+        xf=np.linspace(np.min(x),np.max(x),400)
+        ax.plot(xf,sg.model(xf),'-.',color='tab:purple',label='Super-Gaussian (p %.2f)' % sg.p)
+        ax.set_title(ax.get_title()+'\n'+sg.summary('µm',1000.0))
+        return sg
+
     def specSaveData(self):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
             self.messageBox('Please select a scan with data to save first!')
@@ -1780,6 +1894,7 @@ class MainWindow (QMainWindow):
                     self.mcaScanOf[start]=self.selectedScanNums[i]
                     chtext='\tch '+','.join(map(str,pj['Channels'])) if 'Channels' in pj else ''
                     self.ui.imageListWidget.addItem('S# '+str(self.selectedScanNums[i])+'\tmS# '+str(j+1)+'\tQz='+str(self.mcaPar[start]['Q'][2])+abstext+chtext)
+                    tagImageItem(self.ui.imageListWidget.item(self.ui.imageListWidget.count()-1),self.selectedScanNums[i],j+1,'mS# %d' % (j+1))
                     start=start+1
         except:
             self.messageBox('MCA file(s) of selected scans do not exit!')
@@ -2037,8 +2152,8 @@ class MainWindow (QMainWindow):
                         'is not (+5.5 % on a thick film\'s fringes, P1) and with honest errors (the legacy ones are '
                         '1.1-4.8 times too small), measured on synthetic scans '
                         '(tests/tools/ref_patch_gauntlet.py). Legacy fit: scan b interpolated at the overlap points '
-                        'and one ratio fitted, as before; it reproduces older files exactly.')
-        hl.addWidget(meth)
+                        'and one ratio fitted, as before; it reproduces older files exactly. Ctrl+click on Ref Patch '
+                        'uses the other fit once.')
         lay.addWidget(g2)
         g3=QGroupBox('Fluorescence detector',d)
         g3.setToolTip('Multi-element detector (7-element Xspress3): the elements summed into one spectrum per '
@@ -2122,8 +2237,61 @@ class MainWindow (QMainWindow):
                         '(F82; docs/gui/prototype.md).')
         ngui.toggled.connect(self.setNgui)
         l5.addWidget(ngui)
+        badges=QComboBox(g5)
+        badges.setObjectName('prefBadgesComboBox')
+        for text,key in (('State badges: on','on'),('State badges: when not default','when_not_default'),
+                         ('State badges: off','off')):
+            badges.addItem(text,key)
+        badges.setCurrentIndex(max(0,badges.findData(self.prefs.get('state_badges','on'))))
+        badges.setToolTip('The badges at the right of the status bar: error model, monitor normalisation and '
+                          'reflectivity patch method (F85). "When not default" shows only those changed from '
+                          'their defaults; a changed one is drawn amber either way. Clicking a badge opens its '
+                          'setting.')
+        badges.currentIndexChanged.connect(lambda i:self.setPreference('state_badges',badges.itemData(i)))
+        l5.addWidget(badges)
         lay.addWidget(g5)
+        g0=QGroupBox('Reduction options',d)
+        g0.setObjectName('prefReductionGroup')
+        g0.setToolTip('Which path an action takes where the program has a legacy one and a new one (owner, 2026-11-23, '
+                      'Q13: nothing is removed). Ctrl+click on Ref Patch or on Fit lines runs the other path once and '
+                      'says so in the Messages pane (F86).')
+        f0=QFormLayout(g0)
+        f0.addRow('Reflectivity patch',meth)
+        legacy={}
+        for key,name,text,tip in (
+                ('sum_all_legacy_average','prefSumAllLegacyCheckBox','Sum All: average of normalised frames (legacy)',
+                 'Off (default): Sum All adds the counts and the monitors, then normalises once, Sigma N / Sigma M '
+                 '(owner, 2026-11-23; F91). On: the mean of the frames each normalised alone, as before.'),
+                ('repeats_legacy_average','prefRepeatsLegacyCheckBox','Ref Patch repeats: average (legacy)',
+                 'Off (default): repeated reflectivity scans merged in Ref Patch add their counts and monitors, then '
+                 'normalise once, Sigma N / Sigma M (owner, 2026-11-23; F81). On: the equal-weight mean, as before.'),
+                ('gisaxs_raw_counts','prefGisaxsRawCheckBox','GISAXS: raw counts (legacy)',
+                 'Off (default): GISAXS sums frames per Monc (Sigma N / Sigma M, F91). On: the raw counts, as before.'),
+                ('mca_fit_legacy','prefMcaFitLegacyCheckBox','Fluorescence fit: legacy Fit dialog',
+                 'Off (default): the MCA tab\'s Fit lines runs the line fit (lss_core.peaks), and the legacy Fit, Fit All '
+                 'and Accept buttons are hidden. On: Fit runs the legacy fit dialog, and those buttons show (owner, '
+                 '2026-11-23: one Fit action, the switch picks).'),
+                ('mca_fit_poisson','prefMcaFitPoissonCheckBox','Fit lines: Poisson weights (F90 P1)',
+                 'Off (default): Fit lines fits each spectrum\'s line heights by least squares weighted by its error '
+                 'bars, as always; that reads weak lines low (synthetic, COMPARISONS C42: areas at 90 counts 21 % '
+                 'low). On: by Poisson maximum likelihood, the model weighting the points (synthetic: 3.6 % high at '
+                 '90 counts, 0.6 % at 270). An option until the owner\'s study (tools session, 2026-11-24).'),
+                ('burn_legacy_tab','prefBurnLegacyCheckBox','Burn test: show the Legacy tab',
+                 'Off (default): the burn dialog shows its Trends tab only. On: also its Legacy tab, the original plots '
+                 '(owner, 2026-11-23, Q-BURN-4). The REF button and the GID list still open it.')):
+            box=QCheckBox(text,g0)
+            box.setObjectName(name)
+            box.setChecked(bool(self.prefs.get(key,False)))
+            box.setToolTip(tip)
+            box.toggled.connect(lambda on,k=key:self.setPreference(k,bool(on)))
+            f0.addRow(box)
+            legacy[name]=box
+        lay.insertWidget(0,g0)
+        d.prefReductionGroup=g0
+        for name,box in legacy.items():
+            setattr(d,name,box)
         d.prefNguiCheckBox=ngui
+        d.prefBadgesComboBox=badges
         close=QPushButton('Close',d)
         close.setObjectName('prefClosePushButton')
         close.clicked.connect(d.close)
@@ -2158,10 +2326,77 @@ class MainWindow (QMainWindow):
         ch=self.prefs.get('mca_channels',[])
         return [int(c) for c in ch if isinstance(c,int) and not isinstance(c,bool)]
 
+    BADGE_STYLE='QLabel { border: 1px solid #8a8f98; border-radius: 8px; padding: 0px 6px; }'
+    BADGE_CHANGED_STYLE='QLabel { border: 1px solid #b35c00; border-radius: 8px; padding: 0px 6px; background: #fff1e0; }'
+
+    def initStateBadges(self):
+        """State badges at the right of the status bar (F85; owner, 2026-11-23,
+        Q12): the settings that change numbers everywhere, as short labels
+        with the detail in their tooltips (rule 9). A setting away from its
+        default is drawn amber. Preferences > Display chooses on, on when not
+        default, or off. Clicking a badge opens its setting."""
+        self.badges={}
+        for key in ('errors','norm','patch'):
+            lab=QLabel(self.ui.statusBar)
+            lab.setObjectName('%sBadgeLabel' % key)
+            lab.setCursor(Qt.PointingHandCursor)
+            lab.mousePressEvent=lambda ev,k=key: self.badgeClicked(k)
+            self.ui.statusBar.addPermanentWidget(lab)
+            self.badges[key]=lab
+        self.updateBadges()
+
+    def badgeStates(self):
+        """badge -> (text, is the default, tooltip)."""
+        budget=self.errorModeComboBox.currentIndex()==1
+        mode=self.monitorMode()
+        patch=str(self.prefs.get('ref_patch_method',reflectivity.DEFAULT_PATCH_METHOD))
+        return {
+            'errors':('budget errors' if budget else 'legacy errors',not budget,
+                      'Error model: %s. Budget adds the monitor\'s scatter to the counting errors; legacy gives the '
+                      'numbers the program always gave. Applies to what is computed from now on. Default: legacy '
+                      '(the owner decides, TODO B2). Click: the Errors pane.' % ('budget' if budget else 'legacy')),
+            'norm':({'photons':'/ photon','gain':'/ Monc / gain'}.get(mode,'/ Monc'),mode is False,
+                    'Monitor normalisation: %s. Default: Monc counts. Set with "/ gain" and "/ photon" on the SpecPlot '
+                    'and MCA tabs (one setting). Click: the SpecPlot tab.'
+                    % {'photons':'per incident photon','gain':'Monc current (counts x gain)'}.get(mode,'Monc counts')),
+            'patch':('%s patch' % patch,patch==reflectivity.DEFAULT_PATCH_METHOD,
+                     'Reflectivity patch factor: %s fit (default: %s). Click: Preferences.'
+                     % (patch,reflectivity.DEFAULT_PATCH_METHOD)),
+        }
+
+    def updateBadges(self):
+        if not getattr(self,'badges',None):
+            return
+        mode=self.prefs.get('state_badges','on')
+        for key,(text,default,tip) in self.badgeStates().items():
+            lab=self.badges[key]
+            lab.setText(text)
+            lab.setToolTip(tip)
+            lab.setStyleSheet(self.BADGE_STYLE if default else self.BADGE_CHANGED_STYLE)
+            lab.setVisible(mode=='on' or (mode=='when_not_default' and not default))
+
+    def badgeClicked(self,key):
+        if key=='errors':
+            self.errorDock.show()
+            self.errorDock.raise_()
+        elif key=='norm':
+            self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
+            self.spGainCheckBox.setFocus()
+        else:
+            self.showPreferences()
+
     def setPreference(self,key,value):
         if self.prefs.get(key)==value:
             return
         self.prefs[key]=value
+        if key in ('ref_patch_method','state_badges'):
+            self.updateBadges()
+        if key=='mca_fit_legacy':
+            self.applyMcaFitMode()
+        if key=='burn_legacy_tab' and getattr(self,'uipdburn',None) is not None:
+            tabs=getattr(self.uipdburn,'burnTabWidget',None)
+            if tabs is not None:
+                tabs.setTabVisible(1,bool(value))
         err=prefs_store.save(self.prefs)
         if err and not getattr(self,'prefsSaveNoted',False):
             self.prefsSaveNoted=True
@@ -2204,6 +2439,7 @@ class MainWindow (QMainWindow):
         if (gain,photons)==(self.monitorGain,self.monitorPhotons):
             return
         self.monitorGain,self.monitorPhotons=gain,photons
+        self.updateBadges()
         what=('per incident photon, N = (M - D t) q(E) S/(500 nA/V) (xray_fluxor route D)' if photons else
               'Monc current, M x S/(5 uA/V), S from "#M Monc Gain"' if gain else 'Monc counts M (gain not used)')
         self.notify('Monitor normalisation: '+what
@@ -2257,6 +2493,20 @@ class MainWindow (QMainWindow):
         (the Reduction options page, F86; preference 'sum_all_legacy_average',
         off by default since 2026-11-23, F91)."""
         return bool(self.prefs.get('sum_all_legacy_average',False))
+
+    def mcaLineOptions(self):
+        """The MCA "Fit lines" options F90 P2 and P3 (preference
+        'mca_line_options'): detector_width (bool), noise_kev, strip_escape."""
+        lo=dict(prefs_store.DEFAULTS['mca_line_options'])
+        lo.update(self.prefs.get('mca_line_options') or {})
+        return lo
+
+    def mcaFitPoisson(self):
+        """True when "Fit lines" fits each spectrum by Poisson maximum
+        likelihood (F90 P1; preference 'mca_fit_poisson', off by default: the
+        owner wants the study first, 2026-11-24). Off: least squares weighted
+        by the data's σ, as always."""
+        return bool(self.prefs.get('mca_fit_poisson',False))
 
     def gisaxsRawCounts(self):
         """True when GISAXS keeps the raw counts it showed until 2026-11-23
@@ -2359,7 +2609,7 @@ class MainWindow (QMainWindow):
         self.selectedMcaScanNums=[self.ui.imageListWidget.row(items) for items in self.selectedMcaScans]
         self.mcafitplotstatus=0
         try:
-            self.ui.PlotWidget.setCurrentIndex(5)
+            self.ui.PlotWidget.setCurrentWidget(self.ui.mcaTab)
             self.updateMcaPlotData()
         except:
             self.ui.statusBar.showMessage('Warning:: Some scans maybe missing!')
@@ -2513,7 +2763,7 @@ class MainWindow (QMainWindow):
         if self.saveMcaFileName=='':   # dialog cancelled: write nothing
             return
         for i in self.selectedMcaScanNums:
-            self.fmcaName=self.saveMcaFileName+str(self.ui.imageListWidget.item(i).text().split('\t')[0])+'_'+str(self.ui.imageListWidget.item(i).text().split('\t')[1])+'_''%.4f'%self.mcaPar[i]['Q'][2]+'_mca.txt'
+            self.fmcaName=self.saveMcaFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_''%.4f'%self.mcaPar[i]['Q'][2]+'_mca.txt'
             np.savetxt(self.fmcaName,self.nomMcaData[i],fmt='%.4f\t%.4e\t%.4e')
             
     def mcaPeakFit(self):  #fit the mca spectrum
@@ -2576,7 +2826,6 @@ class MainWindow (QMainWindow):
                                len(self.selectedMcaScanNums)==self.ui.imageListWidget.count())
             self.mcaMerges=[]       # Merge actions since this Sum All, for the Script pane
             self.command='Flu Sum, scans=['+listText(np.sort(self.selectedScanNums))+'], energy range=['+str(ini)+':'+str(fin)+']'
-            self.ui.commandLineEdit.setText(self.command)
         except:
             self.messageBox('Please input the proper sum range in the format of "min:max"!')
             self.ui.mcaRanLineEdit.setText('1:1000')
@@ -2770,6 +3019,24 @@ class MainWindow (QMainWindow):
             self.selectedmcafiles_rows.append(self.ui.mcaFileListWidget.row(item))
         self.updateMcaIntPlot()
 
+    def initPaneHost(self):
+        """The tab area and the bottom panes in one inner window (D59, owner
+        2026-11-22/23): the panes sit under the tabs only, so the selection
+        panel on the left keeps the window's full height. The tab widget moves
+        out of the main splitter into the inner window, which takes its place."""
+        pw=self.ui.PlotWidget
+        split=pw.parentWidget()
+        at=split.indexOf(pw)
+        host=QMainWindow(self)
+        host.setObjectName('paneHost')
+        host.setWindowFlags(Qt.Widget)
+        host.setDockOptions(QMainWindow.AnimatedDocks|QMainWindow.AllowTabbedDocks)
+        host.setCentralWidget(pw)
+        split.insertWidget(at,host)
+        for k in range(split.count()):           # the tab area takes the extra width, as the tab widget did
+            split.setStretchFactor(k,1 if k==at else 0)
+        self.paneHost=host
+
     def initMessagePane(self):
         """A dock at the bottom of the window that collects messages.
 
@@ -2787,8 +3054,8 @@ class MainWindow (QMainWindow):
         self.messageView.setMaximumBlockCount(2000)
         self.messageView.setMinimumHeight(60)
         self.messageDock.setWidget(self.messageView)
-        self.addDockWidget(Qt.BottomDockWidgetArea,self.messageDock)
-        self.messageDock.hide()   # appears with the first message
+        self.paneHost.addDockWidget(Qt.BottomDockWidgetArea,self.messageDock)
+        self.messageDock.hide()   # appears with the first warning (owner, Q11: raises only on warnings)
 
     def initScriptPane(self):
         """A dock showing, for actions that have one, the Python that does the
@@ -2800,9 +3067,9 @@ class MainWindow (QMainWindow):
         self.scriptView.setReadOnly(True)
         self.scriptView.setPlainText('from lss_core.experiment import Experiment\n')
         self.scriptDock.setWidget(self.scriptView)
-        self.addDockWidget(Qt.BottomDockWidgetArea,self.scriptDock)
-        self.tabifyDockWidget(self.messageDock,self.scriptDock)
-        self.scriptDock.hide()   # View it from the dock area's context menu, or it appears with the first line
+        self.paneHost.addDockWidget(Qt.BottomDockWidgetArea,self.scriptDock)
+        self.paneHost.tabifyDockWidget(self.messageDock,self.scriptDock)
+        self.scriptDock.hide()   # View > Script only; it never shows itself (D59)
 
     def initErrorPane(self):
         """A dock with the error model (lss_core.errors). 'Legacy' gives the
@@ -2857,14 +3124,39 @@ class MainWindow (QMainWindow):
         self.errorModeComboBox.currentIndexChanged.connect(self.setErrorModel)
         self.monitorKindComboBox.currentIndexChanged.connect(self.setErrorModel)
         self.errorDock.setWidget(w)
-        self.addDockWidget(Qt.BottomDockWidgetArea,self.errorDock)
-        self.tabifyDockWidget(self.messageDock,self.errorDock)
+        self.paneHost.addDockWidget(Qt.BottomDockWidgetArea,self.errorDock)
+        self.paneHost.tabifyDockWidget(self.messageDock,self.errorDock)
         self.errorDock.hide()
         view=self.ui.menuBar.addMenu('View')
         view.setObjectName('menuView')
+        shown=set(self.prefs.get('panes_shown',[]) or [])
         for dock in (self.messageDock,self.scriptDock,self.errorDock):
-            view.addAction(dock.toggleViewAction())
+            act=dock.toggleViewAction()
+            act.setToolTip('Show or hide the %s pane, under the tabs. Hidden by default; the choice is kept '
+                           'between sessions. Messages also appears by itself on a warning.' % dock.windowTitle())
+            act.triggered.connect(lambda on,d=dock: self.rememberPane(d,on))   # the user's choice only
+            view.addAction(act)
+            if dock.objectName() in shown:
+                dock.show()
+        view.addSeparator()
+        from PyQt5.QtWidgets import QAction
+        act=QAction('Residuals above fits',self)
+        act.setObjectName('actionFitResiduals')
+        act.setCheckable(True)
+        act.setChecked(self.fitResidualsShown())
+        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends): the '
+                       'residuals (y - fit)/sigma of the fitted points, and chi2/dof in the legend. For a good fit '
+                       'with right errors they scatter within about +/-2. Hidden by default; kept between sessions (F74).')
+        act.toggled.connect(self.setFitResiduals)
+        view.addAction(act)
+        self.fitResidualsAction=act
         self.showErrorModel()
+
+    def rememberPane(self,dock,on):
+        """Keep the panes the user showed from the View menu (D59)."""
+        shown=set(self.prefs.get('panes_shown',[]) or [])
+        (shown.add if on else shown.discard)(dock.objectName())
+        self.setPreference('panes_shown',sorted(shown))
 
     def showErrorModel(self):
         """Enable the fields the chosen monitor model uses; describe the model."""
@@ -2906,6 +3198,7 @@ class MainWindow (QMainWindow):
             self.showErrorModel()
             return
         self.errorModel=new
+        self.updateBadges()
         self.pilatus.errors=new
         self.showErrorModel()
         self.notify('Error model: '+new.describe()+'. Spectra and background-subtracted images on show are '
@@ -2943,26 +3236,34 @@ class MainWindow (QMainWindow):
         """Append Python to the Script pane and the log."""
         self.log.info('script: %s',text.replace('\n',' | '))
         try:
-            self.scriptView.appendPlainText(text)
-            self.scriptDock.show()
+            self.scriptView.appendPlainText(text)   # the pane does not show itself (D59)
         except RuntimeError:
             pass
 
-    def notify(self,text,title='Warning',level='warning'):
-        """Tell the user something without stopping them, and log it."""
+    def notify(self,text,title='Warning',level='warning',show=None):
+        """Tell the user something without stopping them, and log it. The
+        Messages pane shows itself (and comes to the front) only for warnings
+        and errors (owner, 2026-11-23, Q11); an 'info' notice is kept in the
+        pane and shown in the status bar. ``show`` overrides."""
         text=str(text)
         stamp=time.strftime('%H:%M:%S')
         self.messages.append((stamp,title,text))
         getattr(self.log,level,self.log.warning)('%s: %s',title,text.replace('\n',' | '))
+        if show is None:
+            show=level in ('warning','error','critical')
         try:
             self.messageView.appendPlainText(stamp+'  '+text.replace('\n','\n          '))
-            self.messageDock.show()
+            if show:
+                self.messageDock.show()
+                self.messageDock.raise_()
+            else:
+                self.ui.statusBar.showMessage(text.split('\n')[0],8000)
         except RuntimeError:   # window already being destroyed
             pass
 
     def reportFailure(self,text):
         """Called by the process-wide exception handler (reader_log)."""
-        self.notify(text,title='Error',level='info')   # the traceback is logged separately
+        self.notify(text,title='Error',level='info',show=True)   # the traceback is logged separately; an error shows the pane
         try:
             self.ui.statusBar.showMessage(text.split('. Details')[0])
         except RuntimeError:
@@ -3134,6 +3435,7 @@ class MainWindow (QMainWindow):
                         fnum='0'
                     absn=self.specPar[i].get('Absorber')
                     self.ui.imageListWidget.addItem('S# '+str(i)+'\tF# '+fnum+'\tQz='+'%.4f'%self.specData[i]['L'][j]+'\tQx='+'%.4f'%self.specData[i]['H'][j]+('\tAbs=?' if absn is None else '\tAbs=%d'%absn))
+                    tagImageItem(self.ui.imageListWidget.item(self.ui.imageListWidget.count()-1),i,int(fnum),'F# '+fnum)
                     self.pilMonc=np.append(self.pilMonc, scanmonc[j])
                     self.pilScanNum.append(i)  
                     self.pilFrameNum.append(j)
@@ -3193,6 +3495,10 @@ class MainWindow (QMainWindow):
 
     def pilSelectedScanChanged(self):
         self.pilmovieindex=0
+        self.pilMovieIndex=0             # a new selection: its movie starts at its first frame (F69)
+        self.pilMovieForce=False
+        if hasattr(self,'pilMovieTimer'):
+            self.pilMovieTimer.stop()
         #        self.disconnect=(self.ui.gidComboBox, SIGNAL('currentIndexChanged(int)'), self.pilGID)
 #        self.ui.gidComboBox.setCurrentIndex(0)
 #        self.connect=(self.ui.gidComboBox, SIGNAL('currentIndexChanged(int)'), self.pilGID)
@@ -3271,45 +3577,39 @@ class MainWindow (QMainWindow):
             else:
                 self.pilFrameNumsWithSameQz[float(format(self.pilFileQzs[i],'.4f'))]=[i]
                 self.pilFrameAbsWithSameQz[float(format(self.pilFileQzs[i],'.4f'))]=[self.pil_AbsNum[i]]
-        try:
-            # the range of what is drawn: the first frame per Monc (owner, 2026-11-23); a range
-            # below 1 is normal now, so only a frame without any positive value falls back to 1
-            first=self.pilFrameNormalised(self.selectedPilFramesNums[0])[0]
-            self.imageMax=np.max(first)
-            if not self.imageMax>0:
-                self.imageMax=1
-            self.imageMin=np.min(first[np.nonzero(first)])
-        except:
-            self.imageMax=100
-            self.imageMin=0
-        self.ui.pilMaxLineEdit.setText(str(self.imageMax))
-        self.ui.pilMinLineEdit.setText(str(self.imageMin))
-        self.ui.pilMinHorizontalSlider.setRange(0, 100)
-        self.ui.pilMaxHorizontalSlider.setRange(0, 100)
-        self.ui.pilMinHorizontalSlider.setValue(0)
-        self.ui.pilMaxHorizontalSlider.setValue(100)
+        # the range of what is drawn (imageMax/imageMin, per Monc, owner 2026-11-23) and the colour
+        # limits are set by the redraw (pilDrawFrames); here the kind of frame and its log default
+        self.pilSetKind()
 #        try:
-        self.ui.PlotWidget.setCurrentIndex(2)
+        self.ui.PlotWidget.setCurrentWidget(self.ui.pilatusTab)
         self.updatePilPlotData()
+        if self.pilMovieOn():            # 3 or more frames: the movie plays (owner Q7)
+            self.pilMoviePlay(True)
 #        except:
 #            self.messageBox('Warning:: Some scans maybe missing')
             
     def updatePilMaxSlider(self):
-        self.ui.pilMaxLineEdit.setText(str(self.ui.pilMaxHorizontalSlider.value()*(self.imageMax-self.imageMin)/100.0))
-        self.ui.pilMinHorizontalSlider.setMaximum(int(float(self.ui.pilMaxLineEdit.text())*100.0/(self.imageMax-self.imageMin)))
-        self.updatePilPlotData()
-        
+        log=self.ui.pilLogIntCheckBox.checkState()!=0
+        v=display.slider_value(self.ui.pilMaxHorizontalSlider.value(),self.imageMin,self.imageMax,log)
+        self.ui.pilMaxLineEdit.setText('%.6g' % v)
+        self.ui.pilMinHorizontalSlider.setMaximum(max(display.slider_position(v,self.imageMin,self.imageMax,log),0))
+        self.pilLimitsTyped()
+
     def updatePilMinSlider(self):
-        self.ui.pilMinLineEdit.setText(str(self.ui.pilMinHorizontalSlider.value()*(self.imageMax-self.imageMin)/100.0))
-        self.updatePilPlotData()
-        
+        # the slider runs from imageMin to imageMax, evenly in log10 on a log scale (before
+        # 2026-11-23: slider x (max - min) / 100, without min; lss_core.display.slider_value)
+        log=self.ui.pilLogIntCheckBox.checkState()!=0
+        v=display.slider_value(self.ui.pilMinHorizontalSlider.value(),self.imageMin,self.imageMax,log)
+        self.ui.pilMinLineEdit.setText('%.6g' % v)
+        self.pilLimitsTyped()
+
     def addBGImagestoList(self):
         if self.det is None or len(self.ui.imageListWidget.selectedItems())==0:
             self.messageBox('Please select the background images in the image list first!')
             return
         self.ui.backgroundListWidget.clear()
         for item in self.ui.imageListWidget.selectedItems():
-            self.ui.backgroundListWidget.addItem(item.text())
+            self.ui.backgroundListWidget.addItem(item.clone())   # the text and the item data
         self.bgpilData={}
         self.bgpilErrorData={}
         self.bgMonc={}
@@ -3420,191 +3720,1179 @@ class MainWindow (QMainWindow):
         return d*one,x*one,y*one
 
     def updatePilPlotData(self):
-        aspect=str(self.ui.pilAspectComboBox.currentText())
         if self.pilGIDshow==0 and self.pilGISAXSshow==0 and len(self.selectedPilFramesNums)!=0:
-            if len(self.selectedPilFramesNums)>10 and self.ui.gixSumCheckBox.checkState()<1:
-                #self.messageBox("The number of selected frames are more than 10. So plotting only first 10 images")
-                N=10
-            else:
-                N=len(self.selectedPilFramesNums)    
-            self.ui.pilMplWidget.canvas.fig.clf()
-            cmap=str(self.ui.pilCMapComboBox.currentText())
-            self.ui.pilMaxHorizontalSlider.setValue(int(float(self.ui.pilMaxLineEdit.text())*100/(self.imageMax-self.imageMin)))
-            self.ui.pilMinHorizontalSlider.setValue(int(float(self.ui.pilMinLineEdit.text())*100/(self.imageMax-self.imageMin)))
-            vmax=float(self.ui.pilMaxLineEdit.text())
-            vmin=float(self.ui.pilMinLineEdit.text())
-            pilXMin=np.ones_like(self.selectedPilFramesNums)-1
-            pilYMin=np.ones_like(self.selectedPilFramesNums)-1
-            pilXMax=float(self.pilatus.NCOLS)*np.ones_like(self.selectedPilFramesNums)-1   #[194,...,194]
-            pilYMax=float(self.pilatus.NROWS)*np.ones_like(self.selectedPilFramesNums)-1
-            xlabel='PixX'
-            ylabel='PixY'
-            self.wavelength=np.array(self.pilSelected_Wavelength)
-            self.alpha=np.array(self.pilSelected_Alpha)
-            self.truealpha=np.array(self.pilSelected_TrueAlpha)
-            self.dth=np.array(self.pilSelected_Dth)
-            if self.ui.pilSpecCheckBox.checkState()!=0: #if this CB is checked, use spec value
-                if self.checkSameArrays(self.pilSelectedX)==False or self.checkSameArrays(self.pilSelectedY)==False or self.checkSameArrays(self.pilSelected_Dist)==False:
-                    self.messageBox('Warning:: The selected frames have different Pilatus parameters; the parameters of the first frames are used here!!')
-                try:
-                    self.ui.pilSDDistLineEdit.setText(str(self.pilSelected_Dist[0]))
-                    self.ui.pilDBPosLineEdit.setText(str(int(pilXMax[0])-self.pilSelectedX[0])+','+str(self.pilSelectedY[0]))
-                   # if self.ui.pilPinholeCheckBox.checkState()!=0:
-                   #     self.distance=np.array(self.pilSelected_PDist)
-                   # else:
-                   #     self.distance=np.array(self.pilSelected_Dist)
-                    self.distance=np.array(self.pilSelected_Dist)
-                    self.xcenter=np.array(pilXMax[0]-self.pilSelectedX) # image was flipped from left to right, i.e., x=194
-                    self.ycenter=np.array(self.pilSelectedY)
-                except:
-                    pass
-            else:   #if this CB is unchecked, use input value   
-                typed=self.typedPilGeometry()
-                if typed is not None:
-                    self.distance,self.xcenter,self.ycenter=typed
-                else:                                       # the SPEC values, as with the box ticked
-                    self.distance=np.array(self.pilSelected_Dist)
-                    self.xcenter=np.array(pilXMax[0]-self.pilSelectedX)
-                    self.ycenter=np.array(self.pilSelectedY)
-                #self.ui.pilSDDistLineEdit.setText(str(self.pilSelected_Dist[0]))
-                #self.ui.pilDBPosLineEdit.setText(str(self.pilSelectedX[0])+','+str(self.pilSelectedY[0]))
-                #if self.ui.pilPinholeCheckBox.checkState()!=0:
-                #    self.distance=np.array(self.pilSelected_PDist)
-                #else:
-                #    self.distance=self.distance
-                #self.xcenter=np.array(self.pilSelectedX)
-                #self.ycenter=np.array(self.pilSelectedY).ones_like(self.selectedPilFramesNums)
-            if str(self.ui.pilAxesComboBox.currentText())=='Angles':
-                xlabel=r'$2\theta$'+' '+r'$[\deg]$'
-                ylabel=r'$\beta$'+' '+r'$[\deg]$'
-                pilYMin=((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
-                pilYMax=((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
-                if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
-                    self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
-                #else:
-                #    self.distance=np.array(self.pilSelected_Dist)
-                pilXMin=(self.dth+(pilXMin-self.xcenter)*0.172/self.distance)*180.0/np.pi
-                pilXMax=(self.dth+(pilXMax-self.xcenter)*0.172/self.distance)*180.0/np.pi
-                pilXCen=self.dth*180.0/np.pi
-                
-            elif str(self.ui.pilAxesComboBox.currentText())=='Q':
-                xlabel=r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$'
-               # ylabel='Qz [1/Angs]'
-                ylabel=r'$Q_z$'+' '+r'$[\AA^{-1}]$'
-                pilYMin=2.0*np.pi*(np.sin((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
-                pilYMax=2.0*np.pi*(np.sin((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
-                if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
-                    self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
-                #else:
-                #    self.distance=np.array(self.pilSelected_Dist)
-                pilXMin=4.0*np.pi*np.sin((self.dth+(pilXMin-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
-                pilXMax=4.0*np.pi*np.sin((self.dth+(pilXMax-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
-                pilXCen=4.0*np.pi*np.sin(self.dth/2.0)/self.wavelength
-                
-            # what is drawn: every frame per monitor (Monc), absorber and gain, as every reduction
-            # is (owner, 2026-11-23: "all data is default normalized by monc"); pilData stays as read
-            disp={i:self.pilFrameNormalised(i)[0] for i in self.selectedPilFramesNums}
-            dlog={i:np.log10(np.where(d<=0,1e-10,d)) for i,d in disp.items()}
-            if self.pilmovieindex==1:
-                for j,i in enumerate(self.selectedPilFramesNums):   # j: position in the selection, i: frame number
-                    self.ui.pilMplWidget.canvas.fig.clf()
-                    ax=self.ui.pilMplWidget.canvas.fig.add_subplot(1,1,1)
-                    ax.set_xlabel(xlabel)
-                    ax.set_ylabel(ylabel) 
-                    ax.set_title('F #'+str(i),fontsize=16)
-                    self.extent=[pilXMin[j],pilXMax[j],pilYMin[j],pilYMax[j]]
-                    if self.ui.pilLogIntCheckBox.checkState()!=0:
-                        p=ax.imshow(dlog[i],interpolation='bicubic',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect=aspect,origin='lower')
-                        self.Zdata=dlog[i] 
-                    else:
-                        p=ax.imshow(disp[i],interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower')
-                        self.Zdata=disp[i]
-                    ax.format_coord=self.format_pil_coord
-                    ax.autoscale(False)
-                    ax.plot([pilXCen[j],pilXCen[j]], [pilYMin[j],pilYMax[j]], 'w--', linewidth=2.0)
-                    self.ui.pilMplWidget.canvas.fig.colorbar(p)
-                    self.ui.pilMplWidget.canvas.fig.suptitle('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
-                    self.ui.pilMplWidget.canvas.fig.tight_layout()
-                    self.ui.pilMplWidget.canvas.fig.subplots_adjust(top=0.9)
-                    self.ui.pilMplWidget.canvas.draw()
-                    self.ui.pilMplWidget.canvas.flush_events()
-                    time.sleep(0.5)
-                    
-            else:
-                if self.ui.gixSumCheckBox.checkState()!=0:   #if "Sum All" is checked; merge the frames having the same qz
-                    if self.checkSameQzs(self.pilSelectedQzs)==True: # check if qz are same in selected frames
-                        # ΣN/ΣM of the frames per Monc (F91; the mean with 'sum_all_legacy_average')
-                        self.sumData=self.pilSumNormalised(list(self.selectedPilFramesNums))[0]
-                        self.logData=np.log10(np.where(self.sumData<=0,1e-10,self.sumData))
-                        ax=self.ui.pilMplWidget.canvas.fig.add_subplot(1,1,1)
-                        ax.set_xlabel(xlabel)
-                        ax.set_ylabel(ylabel)
-                        ax.set_title('Sum'+str(self.selectedPilFramesNums))
-                        self.extent=[pilXMin[0],pilXMax[0],pilYMin[0],pilYMax[0]]
-                        if self.ui.pilLogIntCheckBox.checkState()!=0:
-                            p=ax.imshow(self.logData,interpolation='bicubic',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect=aspect,origin='lower') 
-                            self.Zdata=self.logData
-                        else:
-                            p=ax.imshow(self.sumData,interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower')
-                            self.Zdata=self.sumData 
-                        ax.format_coord=self.format_pil_coord
-                        self.ui.pilMplWidget.canvas.fig.colorbar(p)
-                    else:
-                        self.messageBox('Error:: The selected frames have different qz values!!')
-                else:
-                    row=2
-                    while N/row+pl.where(pl.mod(N,row)>0,1,0)>=row:  #setup subplot format for n of selected frames. 
-                        row=row+1
-                    row=row-1
-                    col=int(N/row+pl.where(pl.mod(N,row)>0,1,0))
-                    num=1
-                    ax={}
-                    for i in self.selectedPilFramesNums[:N]:
-                        ax[i]=self.ui.pilMplWidget.canvas.fig.add_subplot(row,col,num)
-                        ax[i].set_xlabel(xlabel,fontsize=16)
-                        ax[i].set_ylabel(ylabel,fontsize=16)
-                        ax[i].set_title('F #'+str(i),fontsize=16)
-                        self.extent=[pilXMin[num-1],pilXMax[num-1],pilYMin[num-1],pilYMax[num-1]]
-                        if self.ui.pilLogIntCheckBox.checkState()!=0:
-                            p=ax[i].imshow(dlog[i],interpolation='bicubic',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect=aspect,origin='lower')
-                            self.Zdata=dlog[i] 
-                        else:
-                            p=ax[i].imshow(disp[i],interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower')
-                            self.Zdata=disp[i]
-                        ax[i].format_coord=self.format_pil_coord
-                        self.ui.pilMplWidget.canvas.fig.colorbar(p,format="%.1e")
-                        num=num+1
-                self.ui.pilMplWidget.canvas.fig.suptitle('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
-                self.ui.pilMplWidget.canvas.fig.tight_layout()
-                self.ui.pilMplWidget.canvas.fig.subplots_adjust(top=0.9)
-              # self.ui.pilMplWidget.canvas.fig.subplots_adjust(left=0)
-              #  self.ui.pilMplWidget.canvas.fig.subplots_adjust(right=1)
-                self.ui.pilMplWidget.canvas.draw()
-        elif self.pilGIDshow!=0 and len(self.selectedPilFramesNums)!=0:            
+            self.pilDrawFrames()
+        elif self.pilGIDshow!=0 and len(self.selectedPilFramesNums)!=0:
             self.pilGIDPlot()
         elif self.pilGISAXSshow!=0 and len(self.selectedPilFramesNums)!=0:
             self.showPilGISAXS()
-            
+
+    # ---- the Pilatus frames display (F69, F70, F88; lss_core.display) ----
+    # Owner, 2026-11-23 (docs/gui/questions.md): display settings and zoom do not change between
+    # redraws, scans or sessions and reset only on a new SPEC file (Q9); log for scattering frames,
+    # linear for direct beam and dark, the top at the 99.9th percentile with the direct beam masked
+    # (Q8); one shared scale on per-Monc, absorber-corrected values (Q-IMG-4); nearest pixels and
+    # viridis (Q-IMG-8, 14). The image is redrawn in place (set_data, set_norm): the axes, and so
+    # the zoom, survive every redraw.
+
+    def initPilDisplay(self):
+        from PyQt5.QtWidgets import QPushButton
+        self.pilView=None                 # the axes, images and colour bar drawn; reused while the layout stays
+        self.pilShown=[]                  # positions in the selection of the frames drawn
+        self.pilDispCache=(None,{})
+        self.pilLimitsCache=(None,None)
+        self.pilKind='other'
+        self._pilSettingLimits=False
+        self._pilZoomUnsaved=False
+        tb=self.ui.pilMplWidget.toolbar
+        for name,text,slot,tip in (
+                ('pilHomePushButton','Home',self.pilHome,
+                 'Back to the remembered zoom: the last box drawn with the zoom tool (the whole frame if none). '
+                 'The zoom is kept between frames, scans and sessions, and forgotten when another SPEC file '
+                 'is opened (owner, 2026-11-23, Q9)'),
+                ('pilFitAllPushButton','Fit all',self.pilFitAll,
+                 'Show the whole frame. The remembered zoom stays: Home brings it back. (The toolbar\'s house '
+                 'icon does the same as Fit all.)'),
+                ('pilAutoScalePushButton','Auto scale',self.pilAutoScale,
+                 'Forget the typed Min and Max of this kind of frame and go back to the automatic limits: the '
+                 'top at the 99.9th percentile of the selected frames with the direct beam left out, the bottom '
+                 'at the 1st percentile (of the positive pixels on a log scale), one scale for the whole '
+                 'selection (owner, 2026-11-23, Q8, Q-IMG-4). Typed limits are kept per kind of frame '
+                 '(reflectivity, GID, direct beam ...)')):
+            b=QPushButton(text,self)
+            b.setObjectName(name)
+            b.setToolTip(tip)
+            b.clicked.connect(slot)
+            tb.addWidget(b)
+            setattr(self.ui,name,b)
+        for a in tb.actions():
+            if a.text()=='Home':        # matplotlib's Home went to a view the in-place redraws no longer have
+                try:
+                    a.triggered.disconnect()
+                except TypeError:
+                    pass
+                a.triggered.connect(self.pilFitAll)
+                a.setToolTip('Fit all: the whole frame (the Home button beside it returns to the remembered zoom)')
+        for e in (self.ui.pilMinLineEdit,self.ui.pilMaxLineEdit):
+            e.returnPressed.disconnect(self.update2dPlots)
+            e.returnPressed.connect(self.pilLimitsTyped)
+        self.ui.pilLogIntCheckBox.stateChanged.connect(self.pilRememberDisplay)
+        for box in (self.ui.pilCMapComboBox,self.ui.pilAspectComboBox,self.ui.pilAxesComboBox):
+            box.currentIndexChanged.connect(self.pilRememberDisplay)
+        self.ui.pilMplWidget.canvas.mpl_connect('button_release_event',self.pilViewReleased)
+        self.ui.pilLogIntCheckBox.setToolTip(
+            'Log scale. The default depends on the kind of frame: log for reflectivity, GID and GISAXS frames, '
+            'linear for the direct beam and dark frames (owner, 2026-11-23, Q8). Your choice is kept per kind, '
+            'between sessions, until another SPEC file is opened')
+        self.ui.pilCMapComboBox.setToolTip(
+            'Colour map. viridis by default (perceptually uniform); jet and the others stay available '
+            '(owner, 2026-11-23, Q-IMG-14). Kept between sessions until another SPEC file is opened')
+        for e,end in ((self.ui.pilMinLineEdit,'bottom'),(self.ui.pilMaxLineEdit,'top')):
+            e.setToolTip('The %s of the colour scale, per Monc and absorber-corrected. Filled automatically '
+                         '(Auto scale); a value typed here (Enter) or set with the slider is kept for this kind '
+                         'of frame until Auto scale or another SPEC file' % end)
+        self.pilDisplay=dict(self.prefs.get('pil_display') or {})
+        self.pilApplyDisplay()
+
+    def pilApplyDisplay(self):
+        """The remembered colour map, aspect and Axes into their boxes (no redraw)."""
+        d=self.pilDisplay
+        for box,key,default in ((self.ui.pilCMapComboBox,'cmap',display.DEFAULT_CMAP),
+                                (self.ui.pilAspectComboBox,'aspect','auto'),
+                                (self.ui.pilAxesComboBox,'axes','Pixels')):
+            k=box.findText(str(d.get(key,default)))
+            if k<0:
+                k=max(box.findText(default),0)
+            box.blockSignals(True)
+            box.setCurrentIndex(k)
+            box.blockSignals(False)
+
+    def pilSaveDisplay(self):
+        import json
+        self._pilZoomUnsaved=False
+        self.setPreference('pil_display',json.loads(json.dumps(self.pilDisplay)))
+
+    def pilDisplayForFile(self,fname):
+        """A new SPEC file resets the display (Q9); the same file again keeps it."""
+        spec=os.path.abspath(fname)
+        if self.pilDisplay.get('spec')!=spec:
+            self.pilDisplay={'spec':spec}
+            self.pilView=None
+            self.pilApplyDisplay()
+            if hasattr(self.ui,'pilViewComboBox'):
+                self.pilApplyMovieSettings()
+            if hasattr(self.ui,'pilRoiLogCheckBox'):
+                self.roiApplySettings()
+            self.pilSaveDisplay()
+
+    def pilRememberDisplay(self,*args):
+        if self.sender() is self.ui.pilLogIntCheckBox:
+            self.pilDisplay.setdefault('log',{})[self.pilKind]=self.ui.pilLogIntCheckBox.checkState()!=0
+        else:
+            self.pilDisplay['cmap']=str(self.ui.pilCMapComboBox.currentText())
+            self.pilDisplay['aspect']=str(self.ui.pilAspectComboBox.currentText())
+            self.pilDisplay['axes']=str(self.ui.pilAxesComboBox.currentText())
+        self.pilSaveDisplay()
+
+    def scanSeriesKind(self,n):
+        """The kind of the series scan ``n`` belongs to (lss_core.series), or None."""
+        for s in getattr(self,'seriesAll',None) or []:
+            if n in s.scans.values():
+                return s.kind
+            for m,r in s.aux:
+                if m==n:
+                    return 'alignment' if r=='align' else s.kind
+        return None
+
+    def pilFrameKind(self,i):
+        """Display kind of frame ``i`` (lss_core.display.kind_of)."""
+        try:
+            return display.kind_of(self.scanSeriesKind(self.pilScanNum[i]),np.degrees(self.pil_Dth[i]),
+                                   self.pilMonc[i],self.pilFileQzs[i])
+        except (IndexError,TypeError,ValueError):
+            return 'other'
+
+    def pilSetKind(self):
+        """The kind of the selection (its first frame) and its remembered or default log scale."""
+        frames=self.selectedPilFramesNums
+        self.pilKind=self.pilFrameKind(frames[0]) if len(frames) else 'other'
+        log=bool(self.pilDisplay.get('log',{}).get(self.pilKind,display.default_log(self.pilKind)))
+        box=self.ui.pilLogIntCheckBox
+        box.blockSignals(True)
+        box.setChecked(log)
+        box.blockSignals(False)
+
+    def pilDisplayData(self,frames):
+        """{frame: its values per Monc, absorber and gain} (pilFrameNormalised), kept while
+        nothing they depend on changes."""
+        bg=len(self.ui.backgroundListWidget.selectedItems())!=0
+        try:
+            gains=repr(self.pilGains(sorted(set(self.pilScanNum[i] for i in frames))))
+        except Exception:
+            gains=''
+        key=(tuple((i,id(self.pilData.get(i))) for i in frames),repr(self.absfac),bg,
+             id(getattr(self,'bgData',None)),gains,repr(getattr(self,'errorModel',None)))
+        if self.pilDispCache[0]!=key:
+            self.pilDispCache=(key,{i:self.pilFrameNormalised(i)[0] for i in frames})
+            self.pilLimitsCache=(None,None)
+        return self.pilDispCache[1]
+
+    def pilSetRange(self,arrays):
+        """imageMax/imageMin (the ends of the sliders) from the normalised frames shown."""
+        try:
+            self.imageMax=max(float(np.max(a)) for a in arrays)
+            if not self.imageMax>0:
+                self.imageMax=1
+            pos=[a[a>0] for a in arrays]
+            pos=[p for p in pos if p.size]
+            self.imageMin=min(float(np.min(p)) for p in pos) if pos else self.imageMax/1000.0
+        except Exception:
+            self.imageMax=100
+            self.imageMin=0
+
+    def pilBeamMask(self,j,shape):
+        """Mask of the direct beam on the frame at position ``j`` of the selection (none on direct-beam
+        and dark frames, whose beam is the point)."""
+        if self.pilKind in ('direct','dark'):
+            return None
+        try:
+            row,col=display.direct_beam_pixel(float(self.xcenter[j]),float(self.ycenter[j]),float(self.alpha[j]),
+                                              float(self.truealpha[j]),float(self.dth[j]),
+                                              float(self._pilDistance0[j]))
+        except (IndexError,TypeError,ValueError):
+            return None
+        return display.beam_mask(shape,row,col)
+
+    def pilAutoLimits(self,frames,disp,log):
+        key=(self.pilDispCache[0],log,self.pilKind,tuple(np.round(np.asarray(self.xcenter,float),3)),
+             tuple(np.round(np.asarray(self.ycenter,float),3)))
+        if self.pilLimitsCache[0]!=key:
+            arrays=[disp[i] for i in frames]
+            masks=[self.pilBeamMask(j,a.shape) for j,a in enumerate(arrays)]
+            self.pilLimitsCache=(key,display.robust_limits(arrays,log,masks))
+        return self.pilLimitsCache[1]
+
+    def pilGeometry(self):
+        """Direct-beam pixel and distance of each selected frame: from SPEC, or typed."""
+        pilXMax=float(self.pilatus.NCOLS)*np.ones_like(self.selectedPilFramesNums)-1
+        self.wavelength=np.array(self.pilSelected_Wavelength)
+        self.alpha=np.array(self.pilSelected_Alpha)
+        self.truealpha=np.array(self.pilSelected_TrueAlpha)
+        self.dth=np.array(self.pilSelected_Dth)
+        if self.ui.pilSpecCheckBox.checkState()!=0: #if this CB is checked, use spec value
+            if self.checkSameArrays(self.pilSelectedX)==False or self.checkSameArrays(self.pilSelectedY)==False or self.checkSameArrays(self.pilSelected_Dist)==False:
+                self.messageBox('Warning:: The selected frames have different Pilatus parameters; the parameters of the first frames are used here!!')
+            try:
+                self.ui.pilSDDistLineEdit.setText(str(self.pilSelected_Dist[0]))
+                self.ui.pilDBPosLineEdit.setText(str(int(pilXMax[0])-self.pilSelectedX[0])+','+str(self.pilSelectedY[0]))
+                self.distance=np.array(self.pilSelected_Dist)
+                self.xcenter=np.array(pilXMax[0]-self.pilSelectedX) # image was flipped from left to right, i.e., x=194
+                self.ycenter=np.array(self.pilSelectedY)
+            except:
+                pass
+        else:   #if this CB is unchecked, use input value
+            typed=self.typedPilGeometry()
+            if typed is not None:
+                self.distance,self.xcenter,self.ycenter=typed
+            else:                                       # the SPEC values, as with the box ticked
+                self.distance=np.array(self.pilSelected_Dist)
+                self.xcenter=np.array(pilXMax[0]-self.pilSelectedX)
+                self.ycenter=np.array(self.pilSelectedY)
+        self._pilDistance0=np.array(self.distance,dtype=float)
+
+    def pilExtents(self,axes):
+        """Extent of every selected frame in the Axes choice ``axes``: (xmin, xmax, ymin, ymax,
+        detector-arm column, x label, y label). Sets self.distance as the redraw always did (the
+        pinhole distance for frames above Det_Th 1 deg in Angles and Q)."""
+        n=len(self.selectedPilFramesNums)
+        pilXMin=np.zeros(n)
+        pilYMin=np.zeros(n)
+        pilXMax=float(self.pilatus.NCOLS)*np.ones(n)-1
+        pilYMax=float(self.pilatus.NROWS)*np.ones(n)-1
+        pilXCen=np.asarray(self.xcenter,dtype=float)*np.ones(n)
+        xlabel='PixX'
+        ylabel='PixY'
+        self.distance=np.array(self._pilDistance0)
+        if axes=='Angles':
+            xlabel=r'$2\theta$'+' '+r'$[\deg]$'
+            ylabel=r'$\beta$'+' '+r'$[\deg]$'
+            pilYMin=((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
+            pilYMax=((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
+            if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
+                self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
+            pilXMin=(self.dth+(pilXMin-self.xcenter)*0.172/self.distance)*180.0/np.pi
+            pilXMax=(self.dth+(pilXMax-self.xcenter)*0.172/self.distance)*180.0/np.pi
+            pilXCen=self.dth*180.0/np.pi
+        elif axes=='Q':
+            xlabel=r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$'
+            ylabel=r'$Q_z$'+' '+r'$[\AA^{-1}]$'
+            pilYMin=2.0*np.pi*(np.sin((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
+            pilYMax=2.0*np.pi*(np.sin((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
+            if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
+                self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
+            pilXMin=4.0*np.pi*np.sin((self.dth+(pilXMin-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
+            pilXMax=4.0*np.pi*np.sin((self.dth+(pilXMax-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
+            pilXCen=4.0*np.pi*np.sin(self.dth/2.0)/self.wavelength
+        one=np.ones(n)
+        return (pilXMin*one,pilXMax*one,pilYMin*one,pilYMax*one,pilXCen*one,xlabel,ylabel)
+
+    def pilLimits(self,frames,disp,log):
+        """(vmin, vmax): typed for this kind of frame, else automatic (lss_core.display)."""
+        locked=self.pilDisplay.get('limits',{}).get(self.pilKind)
+        if locked:
+            return display.safe_limits(locked[0],locked[1],log)
+        return self.pilAutoLimits(frames,disp,log)
+
+    def pilShowLimits(self,vmin,vmax,log):
+        """The limits in the Min and Max fields and sliders, without redrawing."""
+        self.ui.pilMinLineEdit.setText('%.6g' % vmin)
+        self.ui.pilMaxLineEdit.setText('%.6g' % vmax)
+        for s,v in ((self.ui.pilMinHorizontalSlider,vmin),(self.ui.pilMaxHorizontalSlider,vmax)):
+            s.blockSignals(True)
+            s.setRange(0,100)
+            s.setValue(display.slider_position(v,self.imageMin,self.imageMax,log))
+            s.blockSignals(False)
+
+    def pilViewChoice(self):
+        """'movie' or 'tiles' for 3 or more frames, and the number of tiles (pilViewComboBox)."""
+        if getattr(self,'pilMovieForce',False):
+            return 'movie',display.MAX_TILES
+        view=self.pilDisplay.get('view','movie')
+        if view in ('tiles4','tiles6'):
+            return 'tiles',int(view[-1])
+        return 'movie',display.MAX_TILES
+
+    def pilTitle(self,i):
+        try:
+            return 'S# %d pt %d' % (self.pilScanNum[i],self.pilFrameNum[i])
+        except (IndexError,TypeError):
+            return 'F #%s' % i
+
+    def pilDrawFrames(self):
+        from matplotlib.colors import LogNorm, Normalize
+        frames=list(self.selectedPilFramesNums)
+        canvas=self.ui.pilMplWidget.canvas
+        fig=canvas.fig
+        summed=self.ui.gixSumCheckBox.checkState()!=0
+        # what is drawn: every frame per monitor (Monc), absorber and gain, as every reduction
+        # is (owner, 2026-11-23: "all data is default normalized by monc"); pilData stays as read
+        disp=self.pilDisplayData(frames)
+        if summed and not self.checkSameQzs(self.pilSelectedQzs):
+            self.pilSetRange([disp[i] for i in frames])
+            self.messageBox('Error:: The selected frames have different qz values!!')
+            if hasattr(self,'pilMovieTimer'):
+                self.pilMoviePlay(False)
+            return
+        self.pilGeometry()
+        axes=str(self.ui.pilAxesComboBox.currentText())
+        view,ntiles=self.pilViewChoice()
+        mode=display.mode_for(len(frames),view,summed)
+        if getattr(self,'pilMovieForce',False) and not summed and len(frames)>=2:
+            mode='movie'                     # the Movie button: also for 2 frames
+        if mode=='sum':
+            shown=[0]
+            # ΣN/ΣM of the frames per Monc (F91; the mean with 'sum_all_legacy_average')
+            self.sumData=self.pilSumNormalised(frames)[0]
+            arrays=[self.sumData]
+        elif mode=='movie':
+            self.pilMovieIndex=display.step(getattr(self,'pilMovieIndex',0),0,len(frames))
+            shown=[self.pilMovieIndex]
+            arrays=[disp[frames[self.pilMovieIndex]]]
+        else:
+            shown=display.sample(len(frames),min(ntiles,display.MAX_TILES))
+            arrays=[disp[frames[p]] for p in shown]
+        self.pilSetRange([disp[i] for i in frames] if mode!='sum' else arrays)
+        for key in ('zoom','home'):          # a zoom made in other axes: the same pixels in these
+            z=self.pilDisplay.get(key)
+            if z and z.get('axes')!=axes:
+                try:
+                    old=self.pilExtents(z['axes'])
+                    p=shown[0]
+                    new=self.pilExtents(axes)
+                    z={'axes':axes,'x':list(display.convert_limits(z['x'],(old[0][p],old[1][p]),(new[0][p],new[1][p]))),
+                       'y':list(display.convert_limits(z['y'],(old[2][p],old[3][p]),(new[2][p],new[3][p])))}
+                except (KeyError,IndexError,TypeError,ValueError):
+                    z=None
+                self.pilDisplay[key]=z
+        self.pilExt=self.pilExtents(axes)
+        log=self.ui.pilLogIntCheckBox.checkState()!=0
+        vmin,vmax=self.pilLimits(frames,disp,log)
+        self.pilShowLimits(vmin,vmax,log)
+        self.pilNorm=LogNorm(vmin=vmin,vmax=vmax) if log else Normalize(vmin=vmin,vmax=vmax)
+        name=str(self.ui.pilCMapComboBox.currentText())
+        try:
+            cm=mpl.colormaps[name]
+        except KeyError:
+            cm=mpl.colormaps[display.DEFAULT_CMAP]
+        self.pilCmap=cm.with_extremes(bad=cm(0.0))     # zeros on a log scale: the lowest colour
+        self.pilMode=mode
+        self.pilShown=shown
+        key=(mode,len(shown))
+        v=self.pilView
+        if v is None or v['key']!=key or not v['axes'] or v['axes'][0] not in fig.axes:
+            fig.clf()
+            n=len(shown)
+            rows=1 if n<=3 else 2
+            cols=int(np.ceil(n/float(rows)))
+            axs=[fig.add_subplot(rows,cols,k+1) for k in range(n)]
+            ims=[ax.imshow(np.zeros((2,2)),origin='lower',interpolation=display.INTERPOLATION) for ax in axs]
+            lines=[ax.plot([0,0],[0,1],'w--',linewidth=1.5)[0] for ax in axs]
+            # F97: pixels near or above the count-rate limit, over the frame
+            sats=[ax.imshow(np.zeros((2,2,4)),origin='lower',interpolation=display.INTERPOLATION,zorder=3)
+                  for ax in axs]
+            notes=[ax.text(0.02,0.97,'',transform=ax.transAxes,ha='left',va='top',fontsize='small',color='white',
+                           zorder=4,bbox=dict(boxstyle='round,pad=0.2',fc=(0.75,0.0,0.0,0.8),ec='none'))
+                   for ax in axs]
+            cbar=fig.colorbar(ims[0],ax=axs,format='%.1e')
+            for ax in axs:
+                ax.callbacks.connect('xlim_changed',self.pilLimitsChanged)
+                ax.callbacks.connect('ylim_changed',self.pilLimitsChanged)
+            # F71 R2: the ROI boxes summed, as outlines (no longer burned into pixels)
+            rois=[self.pilRoiPatches(ax) for ax in axs]
+            self.pilView={'key':key,'axes':axs,'images':ims,'lines':lines,'cbar':cbar,'sats':sats,'satnotes':notes,
+                          'rois':rois}
+        self.pilUpdateImages(arrays)
+        bg=len(self.ui.backgroundListWidget.selectedItems())!=0
+        self.pilView['cbar'].update_normal(self.pilView['images'][0])
+        self.pilView['cbar'].set_label(display.units(bg))
+        # the file's name, not its whole path (a long path ran off the canvas)
+        title=os.path.basename(str(self.specFileName))+'   S# '+listText(np.sort(self.selectedScanNums))
+        if mode=='tiles' and display.tiles_title(len(shown),len(frames)):
+            title+='   '+display.tiles_title(len(shown),len(frames))
+        fig.suptitle(title,fontsize='medium')
+        canvas.draw()
+        if mode!='movie' and hasattr(self,'pilMovieTimer'):
+            self.pilMoviePlay(False)
+        if hasattr(self.ui,'pilMovieSlider'):
+            self.pilMovieUpdateBar()
+
+    def pilUpdateImages(self,arrays):
+        """The frames ``arrays`` into the images drawn, with the current norm, map, extent and zoom."""
+        v=self.pilView
+        x0,x1,y0,y1,xc,xlabel,ylabel=self.pilExt
+        axes=str(self.ui.pilAxesComboBox.currentText())
+        aspect=str(self.ui.pilAspectComboBox.currentText())
+        frames=list(self.selectedPilFramesNums)
+        self._pilSettingLimits=True
+        cued=False
+        rois={}                               # position in the selection -> its ROI (F71), for the panel too
+        roiset=self.pilRoiSettings()
+        try:
+            for k,(ax,im,line) in enumerate(zip(v['axes'],v['images'],v['lines'])):
+                p=self.pilShown[k]
+                arr=arrays[k]
+                extent=[x0[p],x1[p],y0[p],y1[p]]
+                im.set_data(arr)
+                im.set_extent(extent)
+                im.set_cmap(self.pilCmap)
+                im.set_norm(self.pilNorm)
+                ax.set_aspect(aspect)
+                ax.set_xlabel(xlabel)
+                ax.set_ylabel(ylabel)
+                which=frames if self.pilMode=='sum' else [frames[p]]
+                cue=self.pilSaturationCue(v.get('sats',[None]*len(v['axes']))[k],which,extent)
+                cued=cued or bool(cue)
+                note=v.get('satnotes',[None]*len(v['axes']))[k]
+                if note is not None:          # inside the frame: the title stays the frame's name
+                    note.set_text(cue)
+                    note.set_visible(bool(cue))
+                if self.pilMode=='sum':
+                    ax.set_title('Sum of %d frames' % len(frames))
+                else:
+                    ax.set_title(self.pilTitle(frames[p]))
+                line.set_data([xc[p],xc[p]],[y0[p],y1[p]])
+                line.set_visible(axes=='Angles')
+                ax.format_coord=self.pilCoordFormatter(arr,extent)
+                if k==0:
+                    self.Zdata=arr
+                    self.extent=extent
+                if self.pilMode!='sum':
+                    rois[p]=self.pilRoiOf(frames[p],p,roiset)
+                self.pilRoiOutline(v.get('rois',[None]*len(v['axes']))[k],rois.get(p),extent,arr.shape)
+            # the cue explained where it is shown (rule 9); no tooltip over the frames otherwise
+            self.ui.pilMplWidget.setToolTip(self.SATURATION_TIP % (display._short(display.SOFT_CPS),
+                                            display._short(display.HARD_CPS)) if cued else '')
+            self.pilApplyZoom(draw=False)
+        finally:
+            self._pilSettingLimits=False
+        self.pilRoiPanelShow(rois.get(self.pilShown[0]) if self.pilMode!='sum' and self.pilShown else None)
+
+    SATURATION_TIP=('Amber pixels: above %s counts per second (the soft limit); red: above %s counts per second, '
+                    'an absorber is needed (owner, 2026-11-23, Q-IMG-10). Counts per second are the raw counts over '
+                    'the point\'s counting time (SPEC Seconds); whether the detector already corrected its counts '
+                    'for rate is not known here. In a sum, any frame above the limit marks the pixel (F97).')
+
+    def pilSeconds(self,i):
+        """The counting time of frame i (its point's SPEC 'Seconds'), or None."""
+        try:
+            return float(self.specData[int(self.pilScanNum[i])]['Seconds'][int(self.pilFrameNum[i])])
+        except (KeyError,IndexError,TypeError,ValueError):
+            return None
+
+    def pilSaturationCue(self,overlay,frames,extent):
+        """Mark the pixels of ``frames`` above the count-rate limits on
+        ``overlay`` (F97); returns the short note for the title."""
+        soft=hard=None
+        for i in frames:
+            s,h,_=display.saturation(self.pilData[i],self.pilSeconds(i))
+            if s is None:
+                continue
+            soft=s if soft is None else (soft|s)
+            hard=h if hard is None else (hard|h)
+        n_soft=0 if soft is None else int(soft.sum())
+        n_hard=0 if hard is None else int(hard.sum())
+        if overlay is not None:
+            if n_soft:
+                overlay.set_data(display.saturation_rgba(soft,hard))
+                overlay.set_extent(extent)
+            overlay.set_visible(bool(n_soft))
+        self.pilSaturated=getattr(self,'pilSaturated',{})
+        self.pilSaturated[tuple(frames)]=(n_soft,n_hard)
+        return display.saturation_text(n_soft,n_hard)
+
+    def pilCoordFormatter(self,arr,extent):
+        """The cursor readout of one image (before: every tile read the last tile's data)."""
+        def fmt(x,y):
+            numrows,numcols=arr.shape
+            col=int(np.abs(x-extent[0])*numcols/np.abs(extent[1]-extent[0]))
+            row=int(np.abs(y-extent[2])*numrows/np.abs(extent[3]-extent[2]))
+            if 0<=col<numcols and 0<=row<numrows:
+                return self.xyzformat%(x,y,arr[row,col])
+            return 'x=%.2f, y=%.2f'%(x,y)
+        return fmt
+
+    def pilFramesShown(self):
+        """True when the canvas holds the frames drawn by pilDrawFrames (not the GID map or GISAXS)."""
+        v=getattr(self,'pilView',None)
+        return (v is not None and self.pilGIDshow==0 and self.pilGISAXSshow==0 and bool(v['axes'])
+                and v['axes'][0] in self.ui.pilMplWidget.canvas.fig.axes)
+
+    def pilApplyZoom(self,draw=True):
+        """The remembered view (or the whole frame) on every image drawn."""
+        v=self.pilView
+        if v is None:
+            return
+        x0,x1,y0,y1=self.pilExt[:4]
+        z=self.pilDisplay.get('zoom')
+        was=self._pilSettingLimits
+        self._pilSettingLimits=True
+        try:
+            for k,ax in enumerate(v['axes']):
+                p=self.pilShown[k]
+                if z:
+                    ax.set_xlim(z['x'])
+                    ax.set_ylim(z['y'])
+                else:
+                    ax.set_xlim(x0[p],x1[p])
+                    ax.set_ylim(y0[p],y1[p])
+        finally:
+            self._pilSettingLimits=was
+        if draw:
+            self.ui.pilMplWidget.canvas.draw()
+
+    def pilLimitsChanged(self,ax):
+        """The user zoomed or panned: remembered (and, for a zoom box, made the Home view)."""
+        if self._pilSettingLimits or not self.pilFramesShown() or ax not in self.pilView['axes']:
+            return
+        z={'axes':str(self.ui.pilAxesComboBox.currentText()),'x':[float(t) for t in ax.get_xlim()],
+           'y':[float(t) for t in ax.get_ylim()]}
+        self.pilDisplay['zoom']=z
+        if str(getattr(self.ui.pilMplWidget.toolbar,'mode',''))=='zoom rect':
+            self.pilDisplay['home']=dict(z)
+        self._pilZoomUnsaved=True
+        self._pilSettingLimits=True
+        try:
+            for other in self.pilView['axes']:     # every tile shows the same region
+                if other is not ax:
+                    other.set_xlim(z['x'])
+                    other.set_ylim(z['y'])
+        finally:
+            self._pilSettingLimits=False
+
+    def pilViewReleased(self,event):
+        if self._pilZoomUnsaved:
+            self.pilSaveDisplay()
+
+    def pilGenericFit(self):
+        """Fit all on the GID map or GISAXS views: every axes to its data."""
+        canvas=self.ui.pilMplWidget.canvas
+        for ax in canvas.fig.axes:
+            if ax.images:
+                e=ax.images[0].get_extent()
+                ax.set_xlim(e[0],e[1])
+                ax.set_ylim(e[2],e[3])
+            else:
+                ax.relim()
+                ax.autoscale()
+        canvas.draw()
+
+    def pilFitAll(self,*args):
+        if not self.pilFramesShown():
+            self.pilGenericFit()
+            return
+        self.pilDisplay['zoom']=None
+        self.pilApplyZoom()
+        self.pilSaveDisplay()
+
+    def pilHome(self,*args):
+        if not self.pilFramesShown():
+            self.pilGenericFit()
+            return
+        home=self.pilDisplay.get('home')
+        if home and home.get('axes')!=str(self.ui.pilAxesComboBox.currentText()):
+            self.pilDisplay['zoom']=dict(home)
+            self.pilDrawFrames()             # converted to the current axes there
+        else:
+            self.pilDisplay['zoom']=dict(home) if home else None
+            self.pilApplyZoom()
+        self.pilSaveDisplay()
+
+    def pilAutoScale(self,*args):
+        self.pilDisplay.setdefault('limits',{}).pop(self.pilKind,None)
+        self.pilSaveDisplay()
+        if self.pilGIDshow==0 and self.pilGISAXSshow==0 and len(self.selectedPilFramesNums)!=0:
+            self.pilDrawFrames()
+        else:
+            self.notify('Auto scale applies to the frames; the GID map and GISAXS views keep their own range.',
+                        level='info')
+
+    def pilLimitsTyped(self):
+        """Min or Max typed (Enter) or set by a slider: kept for this kind of frame (F88)."""
+        if not (self.pilGIDshow==0 and self.pilGISAXSshow==0 and len(self.selectedPilFramesNums)!=0):
+            self.update2dPlots()
+            return
+        try:
+            vmin=float(self.ui.pilMinLineEdit.text())
+            vmax=float(self.ui.pilMaxLineEdit.text())
+        except ValueError:
+            self.notify('Min and Max must be numbers: the limits were not changed.')
+            return
+        self.pilDisplay.setdefault('limits',{})[self.pilKind]=[vmin,vmax]
+        self.pilSaveDisplay()
+        self.pilDrawFrames()
+
     def pilMovieShow(self):
+        """The Movie button: the selected frames as a movie, also for 2 frames (F69). The movie no
+        longer sets Axes to Q nor ticks Pinhole behind the user's back, and does not block."""
         if self.det!='Pilatus' or len(self.selectedPilFramesNums)==0:
             self.messageBox('Please select Pilatus images first!')
             return
-        #self.disconnect(self.ui.pilAxesComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
-        self.ui.pilAxesComboBox.currentIndexChanged.disconnect(self.update2dPlots)
-        self.ui.pilAxesComboBox.setCurrentIndex(2)
-        #self.connect(self.ui.pilAxesComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
-        self.ui.pilAxesComboBox.currentIndexChanged.connect(self.update2dPlots)
-        self.pilmovieindex=1
-        #self.disconnect(self.ui.pilPinholeCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
-        self.ui.pilPinholeCheckBox.stateChanged.disconnect(self.update2dPlots)
-        was=self.ui.pilPinholeCheckBox.checkState()
-        self.ui.pilPinholeCheckBox.setCheckState(2)
-        self.updatePilPlotData()
-        self.pilmovieindex=0
-        self.ui.pilPinholeCheckBox.setCheckState(was)      # as it was (it was always left unticked)
-        #self.connect(self.ui.pilPinholeCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)
-        self.ui.pilPinholeCheckBox.stateChanged.connect(self.update2dPlots)
-        
+        if len(self.selectedPilFramesNums)<2:
+            self.notify('A movie needs 2 or more frames selected.',level='info')
+            return
+        if self.ui.gixSumCheckBox.checkState()!=0:
+            self.notify('"Sum All" is on: the summed frame is shown, not a movie.',level='info')
+            return
+        self.pilMovieForce=True
+        self.pilMovieIndex=0
+        self.pilGIDshow=0
+        self.pilGISAXSshow=0
+        self.pilDrawFrames()
+        self.pilMoviePlay(True)
+
+    # ---- the movie (F69; owner Q7, 2026-11-23: a movie whenever 3 or more frames are selected;
+    # space pauses or plays; any arrow key pauses, then steps: up, back, left backward in time;
+    # down, forward, right forward) ----
+
+    def initPilMovie(self):
+        from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QSlider, QLabel, QComboBox, QCheckBox
+        self.pilMovieIndex=0
+        self.pilMovieForce=False
+        self.pilMovieTimer=QTimer(self)
+        self.pilMovieTimer.timeout.connect(self.pilMovieTick)
+        host=self.ui.pilMplWidget
+        row=QHBoxLayout()
+        row.setSpacing(4)
+        view=QComboBox(host)
+        view.setObjectName('pilViewComboBox')
+        for text,data in (('Movie','movie'),('Tiles: 4','tiles4'),('Tiles: 6','tiles6')):
+            view.addItem(text,data)
+        view.setToolTip('How 3 or more selected frames are shown: one large frame as a movie (the default, owner '
+                        '2026-11-23, Q7), or 4 or 6 tiles sampled first to last ("4 of 41 shown"). Never more than '
+                        '6 tiles. One or two frames are always tiled; "Sum All" shows their sum. Kept until another '
+                        'SPEC file is opened')
+        back=QPushButton('◀',host)
+        back.setObjectName('pilMovieBackPushButton')
+        back.setToolTip('One frame back (also the Left, Up and Back keys when the image has the focus; any of '
+                        'them pauses first)')
+        play=QPushButton('▶',host)
+        play.setObjectName('pilMoviePlayPushButton')
+        play.setToolTip('Play or pause the movie (also the space bar when the image has the focus). Zoom, colour '
+                        'map and scale stay as they are while it plays; the colour scale is shared by every frame '
+                        'of the selection, per Monc and absorber-corrected (owner, Q-IMG-4)')
+        fwd=QPushButton('▶|',host)
+        fwd.setObjectName('pilMovieForwardPushButton')
+        fwd.setToolTip('One frame forward (also the Right, Down and Forward keys when the image has the focus; '
+                       'any of them pauses first)')
+        for b in (back,play,fwd):
+            b.setMaximumWidth(44)
+        slider=QSlider(Qt.Horizontal,host)
+        slider.setObjectName('pilMovieSlider')
+        slider.setToolTip('The frame shown, in the order of the selection; the image list marks it as the '
+                          'current row (the selection itself does not change)')
+        counter=QLabel('– / –',host)
+        counter.setObjectName('pilMovieCounterLabel')
+        counter.setToolTip('Position of the frame shown in the selection')
+        speed=QComboBox(host)
+        speed.setObjectName('pilMovieSpeedComboBox')
+        for f in display.SPEEDS_FPS:
+            speed.addItem('%g fps' % f,f)
+        speed.setToolTip('Frames per second of the movie (one redraw takes about 0.05 s offscreen on NX school '
+                         'frames, so 10 fps is the practical top). Kept between sessions')
+        loop=QCheckBox('Loop',host)
+        loop.setObjectName('pilMovieLoopCheckBox')
+        loop.setToolTip('Start again from the first frame after the last; off: the movie stops on the last frame '
+                        '(space plays it again). Kept between sessions')
+        info=QLabel('',host)
+        info.setObjectName('pilMovieInfoLabel')
+        info.setToolTip('The frame shown: scan, point number, Qz (reflectivity) or 2θ (GID), time since the first '
+                        'frame of the selection (lss_core.timing), absorber setting and monitor counts')
+        info.setMinimumWidth(60)
+        for wgt in (view,back,play,fwd):
+            row.addWidget(wgt)
+        row.addWidget(slider,1)
+        for wgt in (counter,speed,loop):
+            row.addWidget(wgt)
+        row.addWidget(info,2)
+        host.vbl.insertLayout(1,row)
+        for name,wgt in (('pilViewComboBox',view),('pilMovieBackPushButton',back),('pilMoviePlayPushButton',play),
+                         ('pilMovieForwardPushButton',fwd),('pilMovieSlider',slider),
+                         ('pilMovieCounterLabel',counter),('pilMovieSpeedComboBox',speed),
+                         ('pilMovieLoopCheckBox',loop),('pilMovieInfoLabel',info)):
+            setattr(self.ui,name,wgt)
+        self.pilApplyMovieSettings()
+        view.currentIndexChanged.connect(self.pilViewChanged)
+        back.clicked.connect(lambda *a:self.pilMovieStep(-1))
+        fwd.clicked.connect(lambda *a:self.pilMovieStep(1))
+        play.clicked.connect(lambda *a:self.pilMoviePlay(None))
+        slider.valueChanged.connect(self.pilMovieSliderMoved)
+        speed.currentIndexChanged.connect(self.pilMovieSettingsChanged)
+        loop.stateChanged.connect(self.pilMovieSettingsChanged)
+        canvas=host.canvas
+        canvas.setFocusPolicy(Qt.StrongFocus)
+        canvas.installEventFilter(self)
+        self.pilMovieBar(False)
+
+    def pilApplyMovieSettings(self):
+        d=self.pilDisplay
+        for box,val in ((self.ui.pilViewComboBox,d.get('view','movie')),
+                        (self.ui.pilMovieSpeedComboBox,float(d.get('fps',display.DEFAULT_FPS)))):
+            k=box.findData(val)
+            box.blockSignals(True)
+            box.setCurrentIndex(k if k>=0 else 0 if box is self.ui.pilViewComboBox else
+                                box.findData(display.DEFAULT_FPS))
+            box.blockSignals(False)
+        self.ui.pilMovieLoopCheckBox.blockSignals(True)
+        self.ui.pilMovieLoopCheckBox.setChecked(bool(d.get('loop',False)))
+        self.ui.pilMovieLoopCheckBox.blockSignals(False)
+
+    def pilMovieSettingsChanged(self,*args):
+        self.pilDisplay['fps']=float(self.ui.pilMovieSpeedComboBox.currentData())
+        self.pilDisplay['loop']=self.ui.pilMovieLoopCheckBox.isChecked()
+        if self.pilMovieTimer.isActive():
+            self.pilMovieTimer.start(self.pilMovieInterval())
+        self.pilSaveDisplay()
+
+    def pilViewChanged(self,*args):
+        self.pilDisplay['view']=str(self.ui.pilViewComboBox.currentData())
+        self.pilMovieForce=False
+        self.pilSaveDisplay()
+        self.pilMoviePlay(False)
+        self.update2dPlots()
+
+    def pilMovieInterval(self):
+        try:
+            return int(round(1000.0/float(self.ui.pilMovieSpeedComboBox.currentData())))
+        except (TypeError,ValueError,ZeroDivisionError):
+            return 500
+
+    def pilMovieOn(self):
+        """True while the canvas shows the frames as a movie."""
+        return self.pilFramesShown() and getattr(self,'pilMode','')=='movie'
+
+    def pilMovieBar(self,on):
+        for w in (self.ui.pilMovieBackPushButton,self.ui.pilMoviePlayPushButton,self.ui.pilMovieForwardPushButton,
+                  self.ui.pilMovieSlider):
+            w.setEnabled(on)
+        if not on:
+            self.ui.pilMovieCounterLabel.setText('– / –')
+            self.ui.pilMovieInfoLabel.setText('')
+            self.ui.pilMoviePlayPushButton.setText('▶')
+
+    def pilMoviePlay(self,on=None):
+        """Play (True), pause (False) or toggle (None)."""
+        if on is None:
+            on=not self.pilMovieTimer.isActive()
+        if on and self.pilMovieOn():
+            n=len(self.selectedPilFramesNums)
+            if self.pilMovieIndex>=n-1 and not self.ui.pilMovieLoopCheckBox.isChecked():
+                self.pilMovieShowFrame(0)        # at the end: play from the start
+            self.pilMovieTimer.start(self.pilMovieInterval())
+            self.ui.pilMoviePlayPushButton.setText('❚❚')
+        else:
+            self.pilMovieTimer.stop()
+            self.ui.pilMoviePlayPushButton.setText('▶')
+
+    def pilMovieTick(self):
+        if not self.pilMovieOn():
+            self.pilMoviePlay(False)
+            return
+        n=len(self.selectedPilFramesNums)
+        k=display.step(self.pilMovieIndex,1,n,self.ui.pilMovieLoopCheckBox.isChecked())
+        if k==self.pilMovieIndex:
+            self.pilMoviePlay(False)          # the last frame, no loop: stop there
+            return
+        self.pilMovieShowFrame(k)
+
+    def pilMovieStep(self,delta):
+        """Pause, then one frame back (-1) or forward (+1)."""
+        self.pilMoviePlay(False)
+        if self.pilMovieOn():
+            n=len(self.selectedPilFramesNums)
+            self.pilMovieShowFrame(display.step(self.pilMovieIndex,delta,n,self.ui.pilMovieLoopCheckBox.isChecked()))
+
+    def pilMovieSliderMoved(self,value):
+        if self.pilMovieOn() and value!=self.pilMovieIndex:
+            self.pilMovieShowFrame(value)
+
+    def pilMovieShowFrame(self,k):
+        """Frame ``k`` of the selection into the image drawn: the axes, zoom, norm and map stay."""
+        frames=list(self.selectedPilFramesNums)
+        if not frames:
+            return
+        k=display.step(k,0,len(frames))
+        self.pilMovieIndex=k
+        if self.pilMovieOn():
+            disp=self.pilDisplayData(frames)
+            self.pilShown=[k]
+            self.pilUpdateImages([disp[frames[k]]])
+            self.ui.pilMplWidget.canvas.draw()
+        self.pilMovieUpdateBar()
+
+    def pilMovieUpdateBar(self):
+        frames=list(self.selectedPilFramesNums)
+        on=self.pilMovieOn() and len(frames)>0
+        self.pilMovieBar(on)
+        if not on:
+            return
+        k=self.pilMovieIndex
+        s=self.ui.pilMovieSlider
+        s.blockSignals(True)
+        s.setRange(0,len(frames)-1)
+        s.setValue(k)
+        s.blockSignals(False)
+        self.ui.pilMovieCounterLabel.setText('%d / %d' % (k+1,len(frames)))
+        self.ui.pilMovieInfoLabel.setText(self.pilFrameText(k))
+        lw=self.ui.imageListWidget
+        try:
+            from PyQt5.QtCore import QItemSelectionModel
+            lw.setCurrentRow(int(frames[k]),QItemSelectionModel.NoUpdate)   # marks the row, keeps the selection
+            lw.scrollToItem(lw.item(int(frames[k])))
+        except Exception:
+            pass
+
+    def pilFrameText(self,k):
+        """The metadata line of the frame at position ``k`` of the selection (lss_core.display.frame_text)."""
+        frames=list(self.selectedPilFramesNums)
+        i=frames[k]
+        try:
+            scan,point=self.pilScanNum[i],self.pilFrameNum[i]
+        except IndexError:
+            return ''
+        t=None
+        try:
+            t0=self.scanTimes(self.pilScanNum[frames[0]]).start[self.pilFrameNum[frames[0]]]
+            t=float(self.scanTimes(scan).start[point])-float(t0)
+        except Exception:
+            t=None
+        try:
+            absn=self.specPar[scan].get('Absorber')
+        except Exception:
+            absn=None
+        return display.frame_text(scan,point,self.pilFrameKind(i),qz=self.pilFileQzs[i],
+                                  tth_deg=float(np.degrees(self.pil_Dth[i])),t_s=t,absorber=absn,
+                                  monc=float(self.pilMonc[i]))
+
+    def pilMovieKey(self,event):
+        """Q7 keys on the image; True when the key was used."""
+        names={Qt.Key_Space:'space',Qt.Key_Up:'up',Qt.Key_Left:'left',Qt.Key_Back:'back',Qt.Key_Down:'down',
+               Qt.Key_Right:'right',Qt.Key_Forward:'forward'}
+        act=display.key_action(names.get(event.key(),''))
+        if act is None or not self.pilMovieOn():
+            return False
+        if act=='toggle':
+            self.pilMoviePlay(None)
+        else:
+            self.pilMovieStep(act)
+        return True
+
+    # ---- the reflectivity ROI close-up (F71; image_display.md §2.4 R1-R6). Owner, 2026-11-23: a side
+    # panel, always visible beside the frame, the same for both tabs (Q-IMG-7); one panel, the box moved to
+    # the found peak and the old box dashed (Q-IMG-16); the cue thresholds 25 %, 1 %, 2 px (Q-IMG-7).
+    # Display only: the sums shown are the reduction's own (sumROI, netROI), made on a detector of the
+    # display's (self._roiDetector), so the window's own detector state is never touched.
+
+    ROI_PANEL_TIP=('The ROI close-up (F71): the frame zoomed to the signal box (white), both background boxes '
+                   '(cyan) and a margin of diffuse scattering around them, on its own colour scale (the top at the '
+                   '99.9th percentile of the signal box). The boxes are drawn from sumROI\'s own arithmetic '
+                   '(lss_core.display.roi_boxes): the pixels outlined are the pixels summed. Dashed: the boxes '
+                   'before the peak search (owner, Q-IMG-16). Below: each column summed over the signal box\'s '
+                   'rows and each row over its columns, the boxes shaded and the background level subtracted '
+                   'dotted. Squares: pixels above the count-rate limits; ×: the direct beam')
+
+    def initRoiPanels(self):
+        from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QSplitter, QSizePolicy
+        from mpl2dwidget import MplCanvas
+        self._roiDetector=TwoDDetector('Pilatus')
+
+        def parts(prefix,host):
+            log=QCheckBox('Log',host)
+            log.setToolTip('Log colour scale of the close-up and log profiles (the default: the reflected beam and '
+                           'the diffuse scattering around it both show, owner F71). The close-up has its own scale, '
+                           'from its signal box; the frame\'s Log Int is not changed. One setting for both tabs, '
+                           'kept until another SPEC file is opened')
+            numbers=QLabel('',host)
+            cues=QLabel('',host)
+            cues.setWordWrap(True)
+            cursor=QLabel('',host)
+            cursor.setToolTip('The pixel under the cursor on the close-up (column, row: value, in the units of its '
+                              'colour bar), or the profile value under it')
+            for name,w in (('RoiLogCheckBox',log),('RoiNumbersLabel',numbers),('RoiCuesLabel',cues),
+                           ('RoiCursorLabel',cursor)):
+                w.setObjectName(prefix+name)
+                setattr(self.ui,prefix+name,w)
+            for w in (numbers,cues,cursor):
+                w.setSizePolicy(QSizePolicy.Ignored,QSizePolicy.Preferred)
+                w.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            return log,numbers,cues,cursor
+
+        # the Pilatus tab: a panel beside the frame, in a splitter (either side can be widened)
+        host=self.ui.pilMplWidget
+        layout=self._layoutHolding(host)
+        panel=QWidget()
+        panel.setObjectName('pilRoiPanel')
+        self.ui.pilRoiPanel=panel
+        canvas=MplCanvas()
+        canvas.setObjectName('pilRoiCanvas')
+        canvas.setToolTip(self.ROI_PANEL_TIP)
+        canvas.setMinimumSize(180,240)
+        log,numbers,cues,cursor=parts('pil',panel)
+        v=QVBoxLayout(panel)
+        v.setContentsMargins(0,0,0,0)
+        v.addWidget(canvas,1)
+        row=QHBoxLayout()
+        row.addWidget(log)
+        row.addWidget(cursor,1)
+        v.addLayout(row)
+        numbers.setWordWrap(True)
+        v.addWidget(numbers)
+        v.addWidget(cues)
+        split=QSplitter(Qt.Horizontal)
+        split.setObjectName('pilRoiSplitter')
+        split.setChildrenCollapsible(False)
+        if layout is not None:
+            if hasattr(layout,'getItemPosition'):
+                pos=layout.getItemPosition(layout.indexOf(host))
+                layout.removeWidget(host)
+                layout.addWidget(split,*pos)
+            else:
+                k=layout.indexOf(host)
+                layout.removeWidget(host)
+                layout.insertWidget(k,split,1)
+        split.addWidget(host)
+        split.addWidget(panel)
+        split.setStretchFactor(0,3)
+        split.setStretchFactor(1,1)
+        split.setSizes([3000,1000])
+        self.pilRoi=RoiPanel(canvas,numbers,cues,cursor,log,wide=False)
+        # the Reflectivity tab: the same panel in its close-up canvas, with its labels on one row
+        rhost=self.ui.refADDataPlotWidget
+        rhost.canvas.setToolTip(self.ROI_PANEL_TIP)
+        rlog,rnumbers,rcues,rcursor=parts('ref',rhost)
+        row=QHBoxLayout()
+        for w,stretch in ((rlog,0),(rnumbers,2),(rcues,3),(rcursor,1)):
+            row.addWidget(w,stretch)
+        rhost.vbl.insertLayout(1,row)
+        self.refRoi=RoiPanel(rhost.canvas,rnumbers,rcues,rcursor,rlog,wide=True)
+        self.roiApplySettings()
+        for box in (log,rlog):
+            box.stateChanged.connect(self.roiLogChanged)
+        for sig in (self.ui.refSlitLineEdit.returnPressed,self.ui.refBGOffLineEdit.returnPressed,
+                    self.ui.refBGDirComboBox.currentIndexChanged,self.ui.pilLowQzCorCheckBox.stateChanged):
+            sig.connect(self.pilRoiSettingsChanged)
+        panel.setVisible(False)          # until reflectivity frames are shown
+
+    @staticmethod
+    def _layoutHolding(widget):
+        """The layout (of its parent, or nested in it) that holds ``widget``, or None."""
+        def walk(lay):
+            if lay is None:
+                return None
+            if lay.indexOf(widget)>=0:
+                return lay
+            for k in range(lay.count()):
+                found=walk(lay.itemAt(k).layout())
+                if found is not None:
+                    return found
+            return None
+        parent=widget.parentWidget()
+        return walk(parent.layout()) if parent is not None else None
+
+    def roiApplySettings(self):
+        """The close-ups' Log box from the display settings (log by default, owner F71)."""
+        on=bool(self.pilDisplay.get('roi_log',True))
+        for box in (self.ui.pilRoiLogCheckBox,self.ui.refRoiLogCheckBox):
+            box.blockSignals(True)
+            box.setChecked(on)
+            box.blockSignals(False)
+
+    def roiClearPanels(self):
+        """Both close-ups empty (another SPEC file)."""
+        if not hasattr(self,'refRoi'):
+            return
+        self.roiApplySettings()
+        self.pilRoi.clear('Select reflectivity frames')
+        self.refRoi.clear('Select a Qz')
+
+    def roiLogChanged(self,state):
+        on=bool(state)
+        self.pilDisplay['roi_log']=on
+        self.roiApplySettings()
+        self.pilSaveDisplay()
+        for panel in (self.pilRoi,self.refRoi):
+            if panel.view is not None:
+                panel.show(panel.view)
+
+    def pilRoiSettings(self):
+        """(slit, background offset in degrees, direction) from the Reflectivity tab's fields, read as Ref
+        Patch reads them; or a str saying why there is no ROI."""
+        try:
+            parts=str(self.ui.refSlitLineEdit.text()).split(',')
+            slit=[int(parts[0]),int(parts[1])]
+            bg=float(self.ui.refBGOffLineEdit.text())
+        except (ValueError,IndexError):
+            return 'No ROI: the Reflectivity tab\'s Slit(H,V) must be two whole numbers and BG Offset a number'
+        return slit,bg,str(self.ui.refBGDirComboBox.currentText())
+
+    def pilRoiOf(self,i,p,settings):
+        """The ROI of frame ``i`` (position ``p`` of the selection) as Ref Patch sums it
+        (lss_core.reflectivity.frame_row: the centre found by peakLocate, the low-Qz slit as Ref Patch
+        applies it): a dict for the close-up and the outlines, or a str saying why there is none."""
+        kind=self.pilFrameKind(i)
+        if kind not in display.ROI_KINDS:
+            return 'No ROI: a %s frame (the close-up shows reflectivity frames)' % kind
+        if isinstance(settings,str):
+            return settings
+        slit,bg_deg,direction=settings
+        det=self._roiDetector
+        det.errors=self.pilatus.errors
+        try:
+            frames=list(self.selectedPilFramesNums)
+            first=next(j for j in frames if self.pilScanNum[j]==self.pilScanNum[i])==i
+            low=first or self.ui.pilLowQzCorCheckBox.checkState()!=0     # as Ref Patch (P18)
+            qz=float(self.pilFileQzs[i])
+            row,info=reflectivity.frame_row(det,self.pilData[i],self.pilErrorData[i],self.pilMonc[i],
+                                            (self.pilX[i],self.pilY[i]),qz,list(slit),bg_deg,direction,
+                                            self.pil_Dist[i],low_qz_slit=low)
+            sums=tuple(float(x) for x in det.roiParts['values'])+(float(row[1]),float(row[2]))
+            boxes=display.roi_boxes(info['slit'],info['centre'],info['bg'],direction)
+            moved=tuple(info['centre'])!=tuple(info['expected'])
+            old=display.roi_boxes(info['slit'],info['expected'],info['bg'],direction) if moved else None
+        except (ValueError,IndexError,KeyError,TypeError,ZeroDivisionError) as e:
+            return 'No ROI on this frame: %s' % e
+        image,error=det.imageData,det.errorData
+        region=display.roi_region(boxes+(old or []),image.shape,direction)
+        if region is None:
+            return 'No ROI: the boxes are off the frame'
+        soft,hard,_=display.saturation(self.pilData[i],self.pilSeconds(i))
+        try:
+            beam=display.direct_beam_pixel(float(self.xcenter[p]),float(self.ycenter[p]),float(self.alpha[p]),
+                                           float(self.truealpha[p]),float(self.dth[p]),
+                                           float(self._pilDistance0[p]))
+        except (AttributeError,IndexError,TypeError,ValueError):
+            beam=None
+        saturated=None if soft is None else (soft,hard)
+        cues=display.roi_cues(image,error,boxes,sums,direction,beam,saturated,kind)
+        sb=dict(boxes)['signal']
+        centres=', '.join('%s %g' % (n,(b[2]+b[3]-1)/2.0 if direction=='H' else (b[0]+b[1]-1)/2.0)
+                          for n,b in boxes[1:])
+        tip=('Frame by frame as Ref Patch sums it (lss_core.reflectivity.frame_row). Centre found by peakLocate: '
+             'column %d, row %d; SPEC beam position %d, %d%s. Slit typed %d,%d%s, summed %d × %d px (slit − 2, '
+             'PHYSICS_ISSUES P12). BG offset %g° = %.1f px typed; the background boxes are centred at %s '
+             '(sumROI: int(centre ± offset × (slit − 2)/slit)). Units: counts per Monc, before the absorber and '
+             'join factors of Ref Patch.'
+             % (info['centre'][0],info['centre'][1],info['expected'][0],info['expected'][1],
+                ' (dashed boxes)' if moved else '',slit[0],slit[1],
+                ', height 5 at 0.02 < Qz < 0.03 (low-Qz slit, as Ref Patch)' if list(info['slit'])!=list(slit) else '',
+                sb[3]-sb[2],sb[1]-sb[0],bg_deg,
+                info['bg']*(slit[0] if direction=='H' else slit[1]),centres or 'none'))
+        return {'image':image,'error':error,'region':region,'boxes':boxes,'old':old,'direction':direction,
+                'sums':sums,'cues':cues,'saturated':saturated,'beam':beam,'kind':kind,
+                'title':'%s · Qz %.4f' % (self.pilTitle(i),qz),'units':'counts / Monc (as Ref Patch sums)',
+                'tip':tip,'cmap':getattr(self,'pilCmap',None),'frame':i}
+
+    def pilRoiPatches(self,ax):
+        """Three outlines (signal, two backgrounds) on a frame's axes, hidden until a ROI is drawn (R2)."""
+        from matplotlib.patches import Rectangle
+        out=[]
+        for k in range(3):
+            r=Rectangle((0,0),1,1,fill=False,ec=roipanel.SIGNAL_COLOUR if k==0 else roipanel.BG_COLOUR,lw=1.0,
+                        zorder=3.5,path_effects=roipanel.STROKE)
+            r.set_visible(False)
+            ax.add_patch(r)
+            out.append(r)
+        return out
+
+    def pilRoiOutline(self,patches,roi,extent,shape):
+        """The boxes of ``roi`` as outlines on a frame drawn over ``extent`` (any Axes choice: the extent is
+        linear in pixels); hidden when there is no ROI."""
+        if not patches:
+            return
+        boxes=roi['boxes'] if isinstance(roi,dict) else []
+        x0,x1,y0,y1=[float(t) for t in extent]
+        dx,dy=(x1-x0)/shape[1],(y1-y0)/shape[0]
+        for k,patch in enumerate(patches):
+            on=display.box_on_frame(boxes[k][1],shape) if k<len(boxes) else None
+            if on is None:
+                patch.set_visible(False)
+                continue
+            patch.set_bounds(x0+on[2]*dx,y0+on[0]*dy,(on[3]-on[2])*dx,(on[1]-on[0])*dy)
+            patch.set_visible(True)
+
+    def pilRoiPanelShow(self,roi):
+        """The Pilatus tab's close-up for the frame on show (the movie's, or the first tile): shown for
+        reflectivity frames, hidden otherwise (the frame keeps the width)."""
+        panel=getattr(self,'pilRoi',None)
+        if panel is None:
+            return
+        on=self.pilKind in display.ROI_KINDS and self.pilFramesShown()
+        if self.ui.pilRoiPanel.isHidden()==on:
+            self.ui.pilRoiPanel.setVisible(on)
+        if not on:
+            return
+        if self.pilMode=='sum':
+            panel.clear('"Sum All" is on: the close-up shows single frames, as Ref Patch sums them')
+        elif isinstance(roi,dict):
+            panel.show(roi)
+        else:
+            panel.clear(roi or 'No ROI')
+
+    def pilRoiSettingsChanged(self,*args):
+        """The ROI fields (or the low-Qz slit) changed: the outlines and the close-up of the frames on show
+        follow at once (the Reflectivity tab's are redrawn by refQzListSelectionChanged)."""
+        if not self.pilFramesShown() or getattr(self,'pilMode','')=='sum':
+            return
+        frames=list(self.selectedPilFramesNums)
+        shown=list(self.pilShown)
+        if not frames or not shown or max(shown)>=len(frames) or len(self.pilExt[0])!=len(frames):
+            return
+        disp=self.pilDisplayData(frames)
+        self.pilUpdateImages([disp[frames[p]] for p in shown])
+        self.ui.pilMplWidget.canvas.draw_idle()
+
+    def refRoiShow(self,cen,sums=None,old=None):
+        """The Reflectivity tab's close-up of the Qz selected: the frames at that Qz per Monc,
+        absorber-corrected (their mean when several: sumFiles), as Analyze sums them; the boxes at ``cen``
+        with ``sums`` (sumROI, netROI; made here before Analyze); ``old``: the centre before the peak
+        search, its boxes dashed."""
+        panel=getattr(self,'refRoi',None)
+        if panel is None:
+            return
+        det=self.pilatus
+        analysed=sums is not None
+        try:
+            boxes=display.roi_boxes(self.slit,cen,self.bg,self.dir)
+            oldboxes=display.roi_boxes(self.slit,old,self.bg,self.dir) if old is not None else None
+            if sums is None:
+                d=self._roiDetector
+                d.imageData,d.errorData,d.errors,d.monitorTerms=det.imageData,det.errorData,det.errors,det.monitorTerms
+                vals=d.sumROI(slit=list(self.slit),cen=list(cen),dir=self.dir,bg=self.bg)
+                net,neterr=d.netROI()
+                sums=tuple(vals)+(net,neterr)
+            sums=tuple(float(x) for x in sums)
+        except (ValueError,IndexError,TypeError) as e:
+            panel.clear('No ROI: %s' % e)
+            return
+        image,error=det.imageData,det.errorData
+        region=display.roi_region(boxes+(oldboxes or []),image.shape,self.dir)
+        if region is None:
+            panel.clear('No ROI: the boxes are off the frame')
+            return
+        frames=list(self.selFrameNums)
+        kind=self.pilFrameKind(frames[0])
+        soft=hard=None
+        for i in frames:
+            s,h,_=display.saturation(self.pilData[i],self.pilSeconds(i))
+            if s is not None:
+                soft,hard=(s,h) if soft is None else (soft|s,hard|h)
+        try:
+            j=list(self.selectedPilFramesNums).index(frames[0])
+            beam=display.direct_beam_pixel(float(self.xcenter[j]),float(self.ycenter[j]),float(self.alpha[j]),
+                                           float(self.truealpha[j]),float(self.dth[j]),
+                                           float(self._pilDistance0[j]))
+        except (AttributeError,IndexError,TypeError,ValueError):
+            beam=None
+        cues=display.roi_cues(image,error,boxes,sums,self.dir,beam,None if soft is None else (soft,hard),kind)
+        name=str(self.ui.pilCMapComboBox.currentText())
+        try:
+            cm=mpl.colormaps[name]
+        except KeyError:
+            cm=mpl.colormaps[display.DEFAULT_CMAP]
+        sb=dict(boxes)['signal']
+        what=('after Analyze: the boxes at the peak found (peakFind)%s; the numbers are R, R_Err and %%R_Err'
+              % (', those before the search dashed' if old is not None else ', where the search started')
+              if analysed else
+              'before Analyze: the boxes at the starting centre (the SPEC beam position, or the typed Cen)')
+        tip=('The frame%s at this Qz per Monc, absorber-corrected (sumFiles), as Analyze sums it; %s. Centre column '
+             '%d, row %d; slit typed %d,%d, summed %d × %d px (slit − 2, PHYSICS_ISSUES P12).'
+             % ('s' if len(frames)>1 else '',what,cen[0],cen[1],self.slit[0],self.slit[1],sb[3]-sb[2],sb[1]-sb[0]))
+        title='Qz %.4f · %s' % (float(self.refQzSelected),self.pilTitle(frames[0]) if len(frames)==1 else
+                                 'mean of %d frames' % len(frames))
+        panel.show({'image':image,'error':error,'region':region,'boxes':boxes,'old':oldboxes,'direction':self.dir,
+                    'sums':sums,'cues':cues,'saturated':None if soft is None else (soft,hard),'beam':beam,
+                    'kind':kind,'title':title,'units':'counts / Monc, absorber-corrected','tip':tip,
+                    'cmap':cm.with_extremes(bad=cm(0.0))})
+
     def gioxsDisplay(self):
         if len(self.selectedBgFrameNums)==0 or len(self.selectedPilFramesNums)==0:
             self.messageBox('Warning: No GIOXS data or background selected!!')
@@ -3699,7 +4987,6 @@ class MainWindow (QMainWindow):
         self.uipdgioxs.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums))+'\nbg S# '+listText(np.unique(np.sort(self.selectedBgScanNum))))
         self.uipdgioxs.plotWidget.canvas.draw()
         self.command='GIOXS, singal scans=['+listText(np.sort(self.selectedScanNums))+'], bg scans=['+listText(np.unique(np.sort(self.selectedBgScanNum)))+'], ave_frames='+str(aveframe)+', ave_points='+str(avepoint)
-        self.ui.commandLineEdit.setText(self.command)                
         
     def pilGioxsSub(self, data1, data2): #for Gioxs 1d data substration
         data1x=data1[:,0]
@@ -3874,8 +5161,12 @@ class MainWindow (QMainWindow):
         tabs.addTab(u.plotWidget,'Legacy')
         tabs.setTabToolTip(1,'The program\'s original burn plots (REF button, GID list): raw counts against count time '
                              '× frame (P30), one quantity at a time, an exponential for the intensity only.')
-        u.refPushButton.clicked.connect(lambda: tabs.setCurrentIndex(1))
-        u.gidComboBox.activated.connect(lambda i: i and tabs.setCurrentIndex(1))
+        tabs.setTabVisible(1,bool(self.prefs.get('burn_legacy_tab',False)))   # behind the Reduction options (Q-BURN-4)
+        def legacyTab():
+            tabs.setTabVisible(1,True)
+            tabs.setCurrentIndex(1)
+        u.refPushButton.clicked.connect(legacyTab)
+        u.gidComboBox.activated.connect(lambda i: i and legacyTab())
         u.burnTabWidget,u.burnEstimatorComboBox,u.burnTimeComboBox,u.burnErrorsComboBox=tabs,est,tim,err
         u.burnThresholdSpinBox,u.burnAutoPeakCheckBox,u.burnAnalysePushButton=thr,auto,run
         u.burnPositionLimitCheckBox=poslim
@@ -4005,7 +5296,8 @@ class MainWindow (QMainWindow):
         """Each quantity on its own panel, its right axis in percent, the
         summary to the right (owner, 2026-11-21; lss_core.burn.plot)."""
         canvas=self.uipdburn.burnTrendPlotWidget.canvas
-        burnmod.plot(res,canvas.fig,'%s S# %d' % (os.path.basename(self.specFileName),res.scan))
+        burnmod.plot(res,canvas.fig,'%s S# %d' % (os.path.basename(self.specFileName),res.scan),
+                     residuals=self.fitResidualsShown())     # F74
         try:
             canvas.fig.subplots_adjust(left=0.1,right=0.97,top=0.9,bottom=0.09)
         except Exception:
@@ -4082,7 +5374,6 @@ class MainWindow (QMainWindow):
                 self.uipdburn.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
                 self.uipdburn.plotWidget.canvas.draw()
                 self.command='REF Burn, scan='+str(self.selectedScanNums)
-                self.ui.commandLineEdit.setText(self.command)
             except:
                 self.messageBox('Warning: It seems there is not enough data points for burn test fitting (min: 3 points)!')
                 return
@@ -4161,7 +5452,6 @@ class MainWindow (QMainWindow):
                     self.uipdburn.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
                     self.uipdburn.plotWidget.canvas.draw()
                     self.command='GID Burn, scan='+str(self.selectedScanNums)+', Qz range=['+str(self.uipdburn.rangeLineEdit.text())+'], mode='+str(self.uipdburn.gidComboBox.currentText())
-                    self.ui.commandLineEdit.setText(self.command)
                 except:
                     self.messageBox('Warning: It seems there is either not enough data points for burn test fitting (min: 3 points) or selected Qxy range is not correct!')
                     return
@@ -4275,19 +5565,49 @@ class MainWindow (QMainWindow):
         except:
             self.messageBox("Warning: No GISAXS data available!")
 
-    def pilGID(self):
-        if str(self.ui.gidComboBox.currentText())=='GID Patch': 
-            self.pilGIDRelax=0
+    def initGIDButtons(self):
+        """GID Patch as a button, with the worksheet beside it (owner, 2026-11-23, Q-GID-1, Q-GID-5: GID Patch
+        is the common action; the worksheet/options sit next to it). The GID drop-down keeps the rarer actions."""
+        lay=self.ui.horizontalLayout_29
+        at=lay.indexOf(self.ui.gidComboBox)
+        patch=QPushButton('GID Patch',self)
+        patch.setObjectName('gidPatchPushButton')
+        patch.setToolTip('Patch the GID levels of the selected scans into a map (pinhole geometry by default, D40), '
+                         'with the settings of the worksheet beside it. The map is shown here and saved automatically.')
+        sheet=QPushButton('Worksheet...',self)
+        sheet.setObjectName('gidWorksheetPushButton')
+        sheet.setToolTip('The GID patching worksheet: the patch\'s settings (geometry, response, joins), editable, and '
+                         'what each join did (F61).')
+        lay.insertWidget(at+1,patch)
+        lay.insertWidget(at+2,sheet)
+        patch.clicked.connect(self.gidPatch)
+        sheet.clicked.connect(self.showGIDWorksheet)
+        self.gidPatchPushButton,self.gidWorksheetPushButton=patch,sheet
+        self.ui.gidComboBox.setToolTip('More GID actions: GID Patch Relax, Save GID, Form Factor, Save to workbook. '
+                                       'GID Patch and the worksheet are the buttons beside it.')
+
+    def gidPatch(self):
+        # nothing to patch: say so (the crash sweep found the button raising in pinhole.shared_edges, 2026-11-24)
+        frames=getattr(self,'selectedPilFramesNums',None)     # a numpy array: len, never its truth value
+        if getattr(self,'det',None)!='Pilatus' or frames is None or len(frames)==0:
+            self.notify('Select the GID scans and their frames first (Select All), then GID Patch.',title='GID Patch')
+            return
+        self.pilGIDRelax=0
+        try:
             self.pilGIDpatchData()
-        elif str(self.ui.gidComboBox.currentText())=='GID Patch Relax':
+        except ValueError as e:     # frames without GID levels (the crash sweep, 2026-11-24): say so, log the detail
+            self.log.info('GID Patch refused: %s',e,exc_info=True)
+            self.notify('GID Patch: the selected frames hold no GID levels to patch (frames of a GID series are '
+                        'needed). Detail in the log.',title='GID Patch')
+
+    def pilGID(self):
+        if str(self.ui.gidComboBox.currentText())=='GID Patch Relax':
             self.pilGIDRelax=1
             self.pilGIDpatchData()
         elif str(self.ui.gidComboBox.currentText())=='Save GID':
             self.saveGIDData()
         elif str(self.ui.gidComboBox.currentText())=='Form Factor':
             self.setGIDFormFactor()
-        elif str(self.ui.gidComboBox.currentText())=='Worksheet':
-            self.showGIDWorksheet()
         elif str(self.ui.gidComboBox.currentText())=='Save to workbook':
             self.saveGIDToWorkbook()
             
@@ -4609,7 +5929,12 @@ class MainWindow (QMainWindow):
             self.messageBox('The first row must be below the last row.')
             return
         self.pilGIDRelax=getattr(self,'pilGIDRelax',0)
-        self.pilGIDpatchData()
+        try:
+            self.pilGIDpatchData()
+        except ValueError as e:     # frames without GID levels, as gidPatch (the crash sweep, 2026-11-24)
+            self.log.info('GID worksheet Patch refused: %s',e,exc_info=True)
+            self.notify('GID Patch: the selected frames hold no GID levels to patch (frames of a GID series are '
+                        'needed). Detail in the log.',title='GID Patch')
 
     def gidWorksheetResults(self):
         """Fill the worksheet with the last patch's levels and joins."""
@@ -4712,6 +6037,7 @@ class MainWindow (QMainWindow):
         self.pilGIDPlot()
 
     def pilGIDpatchData(self):
+        before=(self.pilGIDshow,self.pilGISAXSshow)     # put back if the patch is refused (the crash sweep, 2026-11-24)
         if self.pilGIDshow==0:
             # self.disconnect(self.ui.pilAxesComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
             self.ui.pilAxesComboBox.currentIndexChanged.disconnect(self.update2dPlots)
@@ -4735,10 +6061,33 @@ class MainWindow (QMainWindow):
                 self.absfac=self.absorberModel()
                 patch,self.gidLevels=gidmod.legacy_patch(frames,gp,self.pilatus,log=self.gidJoinLog,warn=self.messageBox)
         except gidmod.GIDError as e:
+            self.gidPatchRefused(before)
             self.messageBox(str(e))
             return
+        except ValueError:
+            self.gidPatchRefused(before)      # the callers say why (gidPatch, gidWorksheetPatch)
+            raise
         self.pilPatchData=patch
-        self.gidFinishMap()
+        try:
+            self.gidFinishMap()
+        except IndexError as e:
+            # frames that are not a GID series can give a map whose rows share no Qxy range: its Q grid
+            # is empty and gid.products fails (the crash sweep, 2026-11-24). Refused, with the reason.
+            self.log.info('GID map not drawn: %s',e,exc_info=True)
+            self.gidPatchRefused(before)
+            self.notify('GID Patch: the patched map has no Qxy range common to its rows, so it cannot be shown in '
+                        'Q (frames of a GID series are needed; GID Patch Relax fills the corners). Detail in the log.',
+                        title='GID Patch')
+
+    def gidPatchRefused(self,before):
+        """A GID patch that stopped: the frames come back as they were shown.
+        It used to leave the GID display switched on with no patch, so the
+        next redraw (Log Int, Axes, a frame) raised AttributeError or
+        IndexError in pilGIDPlot (the crash sweep, 2026-11-24)."""
+        self.pilGIDshow,self.pilGISAXSshow=before
+        self.pilView=None                  # the figure was cleared: build the frame axes again
+        if not self.pilGIDshow and not self.pilGISAXSshow and len(getattr(self,'selectedPilFramesNums',[]))!=0:
+            self.updatePilPlotData()
 
     def gidEffectiveParams(self):
         """The worksheet's settings with the H slit field as the column count
@@ -4980,8 +6329,7 @@ class MainWindow (QMainWindow):
         self.ui.pilMplWidget.canvas.fig.tight_layout()
         self.ui.pilMplWidget.canvas.fig.subplots_adjust(top=0.9)
         self.ui.pilMplWidget.canvas.draw()
-        self.command=str(self.ui.gidComboBox.currentText())+', scans=['+listText(np.sort(self.selectedScanNums))+'], sli=['+self.ui.pilHSlitLineEdit.text()+'], /'+self.ui.pilAxesComboBox.currentText()
-        self.ui.commandLineEdit.setText(self.command)
+        self.command=('GID Patch Relax' if getattr(self,'pilGIDRelax',0) else 'GID Patch')+', scans=['   # as the drop-down's text gave it (Q-GID-5)+listText(np.sort(self.selectedScanNums))+'], sli=['+self.ui.pilHSlitLineEdit.text()+'], /'+self.ui.pilAxesComboBox.currentText()
         
     def saveGIDData(self):
         axes=str(self.ui.pilAxesComboBox.currentText())
@@ -5177,16 +6525,6 @@ class MainWindow (QMainWindow):
         else:
             return 'x=%.2f, y=%.2f'%(x, y)
     
-    def format_coord_ref(self,x,y):
-        numrows, numcols = self.refZdata.shape
-        col = int(np.abs((x-self.extent[0]))*numrows/np.abs((self.extent[1]-self.extent[0])))
-        row = int(np.abs((y-self.extent[3]))*numcols/np.abs((self.extent[3]-self.extent[2])))
-        if col>=0 and col<numcols and row>=0 and row<numrows:
-            z = self.refZdata[row,col]
-            return 'x=%d,y=%d,z=%.1e'%(x, y, z)
-        else:
-            return 'x=%d, y=%d'%(x, y)
-        
     def refPlotWin(self):
 #        if self.ui.gixSumCheckBox.checkState()==0:
 #            self.ui.gixSumCheckBox.setCheckState(2)
@@ -5194,7 +6532,7 @@ class MainWindow (QMainWindow):
         if self.det!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]))==0:
             self.messageBox('Please load a scan and select its images before opening the reflectivity analysis')
             return
-        self.ui.PlotWidget.setCurrentIndex(3)
+        self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
         self.ui.refCenCheckBox.setCheckState(0)
         self.ui.refComLineEdit.clear()
         if self.refpatchindex==1:
@@ -5221,26 +6559,29 @@ class MainWindow (QMainWindow):
             for key in sorted(self.pilFrameNumsWithSameQz.keys()):
                 self.scanframe[key]={}
                 for item in self.pilFrameNumsWithSameQz[key]:
-                    ekey=int(str(self.ui.imageListWidget.item(item).text()).split('\t')[0].split('#')[1])
+                    ekey=itemScan(self.ui.imageListWidget.item(item))
                     if ekey in self.scanframe[key]:
-                        self.scanframe[key][ekey].append(int(str(self.ui.imageListWidget.item(item).text()).split('\t')[1].split('#')[1]))
+                        self.scanframe[key][ekey].append(itemFrame(self.ui.imageListWidget.item(item)))
                     else:
-                        self.scanframe[key][ekey]=[int(str(self.ui.imageListWidget.item(item).text()).split('\t')[1].split('#')[1])]
+                        self.scanframe[key][ekey]=[itemFrame(self.ui.imageListWidget.item(item))]
                 if all(x==self.pilFrameAbsWithSameQz[key][0] for x in self.pilFrameAbsWithSameQz[key]):                   
                     self.ui.refQzListWidget.addItem('Qz= '+str(key)+'\t {S:F}= '+str(self.scanframe[key])+'\t Abs= '+str([self.pilFrameAbsWithSameQz[key][0]]))
+                    self.ui.refQzListWidget.item(self.ui.refQzListWidget.count()-1).setData(QZ_ROLE,float(key))
                     self.refSortedFrameNums[j]=self.pilFrameNumsWithSameQz[key]
                     j=j+1
                 else:
                     for i in range(len(self.pilFrameNumsWithSameQz[key])):
-                        sftext=str(self.ui.imageListWidget.item(self.pilFrameNumsWithSameQz[key][i]).text()).split('\t')
-                        self.ui.refQzListWidget.addItem('Qz= '+str(key)+'\t {S:F}= '+str({int(sftext[0].split('#')[1]):[int(sftext[1].split('#')[1])]})+'\t Abs= '+str([self.pilFrameAbsWithSameQz[key][i]]))
+                        it=self.ui.imageListWidget.item(self.pilFrameNumsWithSameQz[key][i])
+                        self.ui.refQzListWidget.addItem('Qz= '+str(key)+'\t {S:F}= '+str({itemScan(it):[itemFrame(it)]})+'\t Abs= '+str([self.pilFrameAbsWithSameQz[key][i]]))
+                        self.ui.refQzListWidget.item(self.ui.refQzListWidget.count()-1).setData(QZ_ROLE,float(key))
                         self.refSortedFrameNums[j]=[self.pilFrameNumsWithSameQz[key][i]]
                         j=j+1
         else:
             j=0
             for i in self.selectedPilFramesNums:
-                sftext=str(self.ui.imageListWidget.item(i).text()).split('\t')
-                self.ui.refQzListWidget.addItem('Qz= '+str(self.pilFileQzs[i])+'\t {S:F}= '+str({int(sftext[0].split('#')[1]):[int(sftext[1].split('#')[1])]})+'\t Abs='+str(self.pil_AbsNum[i]))
+                it=self.ui.imageListWidget.item(i)
+                self.ui.refQzListWidget.addItem('Qz= '+str(self.pilFileQzs[i])+'\t {S:F}= '+str({itemScan(it):[itemFrame(it)]})+'\t Abs='+str(self.pil_AbsNum[i]))
+                self.ui.refQzListWidget.item(self.ui.refQzListWidget.count()-1).setData(QZ_ROLE,float(self.pilFileQzs[i]))
                 self.refSortedFrameNums[j]=[i]
                 j=j+1
         # self.connect(self.ui.refQzListWidget, SIGNAL('itemSelectionChanged()'),self.refQzListSelectionChanged)
@@ -5272,10 +6613,8 @@ class MainWindow (QMainWindow):
             return   #nothing selected in the Qz list, nothing to redraw
         if self.refFramesGone():
             return False
-        self.ui.refADDataPlotWidget.canvas.fig.clf()
-        cmap=str(self.ui.pilCMapComboBox.currentText())
-        self.refQzSelectedItems=self.ui.refQzListWidget.selectedItems()        
-        self.refQzSelected=float(str(self.refQzSelectedItems[0].text()).split()[1])
+        self.refQzSelectedItems=self.ui.refQzListWidget.selectedItems()
+        self.refQzSelected=itemQz(self.refQzSelectedItems[0])
         self.absfac=self.absorberModel()       
         self.dir=str(self.ui.refBGDirComboBox.currentText())
         if self.det=='Pilatus': 
@@ -5308,32 +6647,21 @@ class MainWindow (QMainWindow):
             self.pilatus.setROI(self.selData,self.selErrorData,absfac=self.absfac,absnum=self.absnum,slit=self.slit,cen=self.cen,bg=self.bg,dir=self.dir,mon=self.mon,gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
             slit=[self.slit[1], self.slit[0]]
             cen=[self.cen[1], self.cen[0]]
-            self.ax={}
+            # the region of the strip drawn here until 2026-11-24 (setROI's centres) and its top, kept as
+            # they were (tests/test_walk_crashes.py); the close-up is now the ROI panel (F71, refRoiShow)
             if self.dir=='H':
                 self.refextent=[max(0,self.pilatus.bglcen-slit[1]), self.pilatus.bgrcen+slit[1]+1, cen[0]-slit[0], cen[0]+slit[0]+1]
-                self.ax[1]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(2,1,1)
                 self.vmax=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, max(0,self.pilatus.bglcen-slit[1]):self.pilatus.bgrcen+slit[1]+1])
-               # self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, max(0,self.pilatus.bglcen-slit[1]):self.pilatus.bgrcen+slit[1]+1])
-                self.refZdata=self.pilatus.imageData
-                p=self.ax[1].imshow(self.pilatus.imageROI[cen[0]-slit[0]:cen[0]+slit[0]+1, max(0,self.pilatus.bglcen-slit[1]):self.pilatus.bgrcen+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[1].set_ylabel('w/o Corr')
-                self.ax[1].format_coord=self.format_coord_ref
             else:
                 self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], max(0,self.pilatus.bgucen-slit[0]), self.pilatus.bgdcen+slit[0]+1]
-                self.ax[1]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(1,2,1)            
                 # the region shown: the vertical background's centres (bglcen/bgrcen are the horizontal
                 # one's, set only for 'H': AttributeError or a stale region; 2026-11-23)
                 self.vmax=np.max(self.pilatus.imageData[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1])
-                #self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
-                self.refZdata=self.pilatus.imageData
-                p=self.ax[1].imshow(self.pilatus.imageROI[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[1].set_ylabel('w/o Corr')
-                self.ax[1].format_coord=self.format_coord_ref
-            self.ui.refADDataPlotWidget.canvas.fig.colorbar(p)
-            self.ui.refADDataPlotWidget.canvas.draw()
-         
-        
-        
+            self.refZdata=self.pilatus.imageData
+            self.refRoiStart=list(self.cen)       # the boxes before Analyze's peak search (dashed after it)
+            self.refRoiShow(self.cen)
+
+
     def refAnalyzeFromField(self):
         #Enter pressed in a parameter field: silent when no Qz is selected
         if len(self.ui.refQzListWidget.selectedItems())==0:
@@ -5346,7 +6674,6 @@ class MainWindow (QMainWindow):
             return
         if self.refQzListSelectionChanged() is False:
             return False   #the frames of the list are gone; refFramesGone said so
-        cmap=str(self.ui.gixCMapComboBox.currentText())
         if self.det=='Pilatus':
             self.ui.refBadPixListWidget.clear()
             fac=float(self.ui.refSeaWinLineEdit.text())
@@ -5354,36 +6681,17 @@ class MainWindow (QMainWindow):
             #Peak searching is dummy it is not doing anything#
             if self.ui.refCenCheckBox.checkState()!=0:
                 self.cen=[int(self.ui.refCenLineEdit.text().split(',')[0]),int(self.ui.refCenLineEdit.text().split(',')[1])]
+            start=list(self.cen)
             self.par=self.pilatus.peakFind(self.selData,self.selErrorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,fac=fac,mon=self.mon,cenfit=self.cenfit,gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
             self.cen=[int(np.floor(self.par[1])), int(np.floor(self.par[3]))]
-            slit=[self.slit[1], self.slit[0]]
-            cen=[self.cen[1], self.cen[0]]
             bfac=float(self.ui.refBPCFacLineEdit.text())
             sig,sigerr,lbg,lbgerr,rbg,rbgerr=self.pilatus.sumROI(slit=self.slit,cen=self.cen,dir=self.dir,bg=self.bg)
             net,neterr=self.pilatus.netROI()
-            self.pilatus.setROI(self.pilatus.imageData,self.pilatus.errorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,bg=self.bg,dir=self.dir,mon=None)  
-            if self.dir=='H':
-                self.refextent=[max(0,self.pilatus.bglcen-slit[1]), self.pilatus.bgrcen+slit[1]+1, cen[0]-slit[0], cen[0]+slit[0]+1]
-                self.ax[2]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(2,1,2)
-                self.vmax=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, max(0,self.pilatus.bglcen-slit[1]):self.pilatus.bgrcen+slit[1]+1])
-               # self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
-                self.refZdata=self.pilatus.imageData
-                p=self.ax[2].imshow(self.pilatus.imageROI[cen[0]-slit[0]:cen[0]+slit[0]+1, max(0,self.pilatus.bglcen-slit[1]):self.pilatus.bgrcen+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[2].set_ylabel('w Corr')
-                self.ax[2].format_coord=self.format_coord_ref
-            else:
-                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], max(0,self.pilatus.bgucen-slit[0]), self.pilatus.bgdcen+slit[0]+1]
-                self.ax[2]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(1,2,2)            
-                # the region shown: the vertical background's centres (bglcen/bgrcen are the horizontal
-                # one's, set only for 'H': AttributeError or a stale region; 2026-11-23)
-                self.vmax=np.max(self.pilatus.imageData[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1])
-                #self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
-                self.refZdata=self.pilatus.imageData
-                p=self.ax[2].imshow(self.pilatus.imageROI[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[2].set_ylabel('w Corr')
-                self.ax[2].format_coord=self.format_coord_ref
-        self.ui.refADDataPlotWidget.canvas.fig.colorbar(p)
-        self.ui.refADDataPlotWidget.canvas.draw()
+            self.pilatus.setROI(self.pilatus.imageData,self.pilatus.errorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,bg=self.bg,dir=self.dir,mon=None)
+            self.refZdata=self.pilatus.imageData
+            # one panel: the boxes at the peak found, those before the search dashed (owner, Q-IMG-16; F71)
+            self.refRoiShow(self.cen,sums=(sig,sigerr,lbg,lbgerr,rbg,rbgerr,net,neterr),
+                            old=start if list(start)!=list(self.cen) else None)
         self.fsig=net
         self.fsigerr=neterr
         self.fsigerrper=self.fsigerr/self.fsig*100.0
@@ -5397,11 +6705,13 @@ class MainWindow (QMainWindow):
             self.messageBox('Please select a Qz and analyze it first')
             return
         if self.refpatchindex==0: #regular ref
+            self.promoteRefFlags()          # F95: no checks for Analyze; clears those of an earlier patch
             comments=str(self.refQzSelectedItems[0].text()).split('\t')[1:]
-            self.refData.append([float(str(self.refQzSelectedItems[0].text()).split()[1]),self.fsig,self.fsigerr])
+            self.refData.append([itemQz(self.refQzSelectedItems[0]),self.fsig,self.fsigerr])
             self.refInfo.append('#'+comments[0]+'\t'+comments[1]+'\t#Comments:'+str(self.ui.refComLineEdit.text()))
-            self.ui.refDataListWidget.addItem('%.4f'%float(str(self.refQzSelectedItems[0].text()).split()[1])+'\t'+'%.4e'%self.fsig+'\t'+'%.4e'%self.fsigerr+'\t'+self.refInfo[-1])
+            self.ui.refDataListWidget.addItem('%.4f'%itemQz(self.refQzSelectedItems[0])+'\t'+'%.4e'%self.fsig+'\t'+'%.4e'%self.fsigerr+'\t'+self.refInfo[-1])
         else:  #pilatus patch ref
+            self.promoteRefFlags()          # F95: the checks of this patch, now on show
             self.ui.refDataListWidget.clear()
             self.ui.refNormRefListWidget.clear()
             for i in range(len(self.refData)):
@@ -5457,10 +6767,32 @@ class MainWindow (QMainWindow):
         if self.det!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]))==0 or len(getattr(self,'selectedScanNums',[]))==0:
             self.messageBox('Please load a Pilatus scan and select its images before using Ref Patch')
             return
+        old=getattr(self,'uirefpatch',None)
+        if old is not None and old.isVisible() and not getattr(self,'refPatchEnded',True):
+            self.refPatchEnded=True        # its Cancel message would describe the new patch
+            old.close()
+            self.refRestorePrevious()      # the result on show, before the unfinished patch began
+            self.notify('The unfinished Ref Patch was abandoned for this new one.',title='Ref Patch',level='info')
+        same=getattr(self,'uirefpatchsamescan',None)
+        if same is not None and same.isVisible() and not getattr(self,'refSameEnded',True):
+            self.refSameEnded=True
+            same.close()
+            self.refRestorePrevious()
+            self.notify('The unfinished Ref Patch was abandoned for this new one.',title='Ref Patch',level='info')
+        # what describes the result on show, put back if this patch is cancelled (F96)
+        self.refPrevResult={a:getattr(self,a) for a in self.REF_RESULT_ATTRS if hasattr(self,a)}
         self.refpatchindex=1
+        self.refJoins=[]
+        self.refResultJoins=[]  # the join table of the result on show (F96)
+        self.refAbsorberUsed=self.absorberModel()
         self.refDrops={}       # join number -> list of drop actions, for the script console
         self.refFactors={}     # join number -> (factor, error) used instead of the fitted one
-        self.refMethodUsed=self.refPatchMethod()   # one method for the whole patch (the script line says it)
+        method=self.refPatchMethod()
+        if self.ctrlClicked():    # F86: Ctrl+click runs the other path once
+            method='legacy' if method=='joint' else 'joint'
+            self.notify('Ctrl+click: this Ref Patch uses the %s fit (Reduction options: %s).' % (method,self.refPatchMethod()),
+                        title='Ref Patch',level='info')
+        self.refMethodUsed=method   # one method for the whole patch (the script line says it)
         self.refKnownOverride={}   # join number -> the user's choice in the patch window
         self.refMerged=[]      # groups merged in the identical-scans dialog
         self.refRepeatsUsed='monitors'   # how they were merged (F81; 'mean' with the legacy preference)
@@ -5478,11 +6810,12 @@ class MainWindow (QMainWindow):
         self.dir=str(self.ui.refBGDirComboBox.currentText()) #get the background offset direction
         bg=float(self.ui.refBGOffLineEdit.text())  #get the background offset
         self.command='Ref Patch, scans=['+listText(np.sort(self.selectedScanNums))+'], slits=['+listText(self.slit)+'], bg_angle='+str(bg)+', bg_direction='+str(self.dir)
-        self.ui.commandLineEdit.setText(self.command)         #update the command lineedit
         self.scanqzframe={}  #build a dictionary for all scans with their qz ranges and data for sorting the scans.
         self.scanqzmon={}    # the monitor of each of those points, for merging repeats (F81)
         self.pilRefPeakCen=[]
         self.pilBadPixInf = []  # build a list for the detailed info for corrected bad pix in RF signal ROI, which is shown for users
+        self.refQzOf={}         # (scan, frame) -> the Qz of its point, for the marks (F95)
+        self.refFlagsPending=[]
         self.refErrorModel=self.errorModel   # recorded for the Script pane
         for i in self.selectedPilFramesNums:
             # one point per frame: the same code a script uses (lss_core.reflectivity)
@@ -5509,6 +6842,7 @@ class MainWindow (QMainWindow):
                 self.pilBadPixInf.append([qkey,self.pilFrameNum[i],pilbadpixloc])
             self.scanqzframe[qkey]=row if first else np.vstack((self.scanqzframe[qkey],row))
             self.scanqzmon.setdefault(qkey,[]).append(float(self.pilMonc[i]))
+            self.refQzOf[(int(qkey),int(self.pilFrameNum[i]))]=float(np.atleast_1d(row)[0])
         try:
             self.pilrefsort=list(self.sortedScans(self.scanqzframe, mtype='qz'))
         except:
@@ -5516,16 +6850,13 @@ class MainWindow (QMainWindow):
 
         #print(self.scanqzframe)
         #print (self.pilrefsort)
-        if len(self.pilRefPeakCen) != 0:
-            self.pilRefPeakCenDis()  # display peak center offest (>2) for each frame
-        if len(self.pilBadPixInf) != 0:
-            self.pilBadPixInfDis()  # display bad pix correction in signal ROI for each frame
+        self.refPatchChecks()   # beam off centre, bad pixels in the ROI: a message and marks, no modal box (F95)
         if len(self.pilrefsort)==0:
             self.messageBox('Warning: no frame selected!!!')
         elif len(self.pilrefsort)==1:
             self.refData=list(np.atleast_2d(self.scanqzframe[self.pilrefsort[0]]))   #a single frame is a 1-D row
            #print self.refData
-            self.ui.PlotWidget.setCurrentIndex(3)
+            self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
             self.updateRefDataList()
         else:
             self.pilrefscanrag={}  #find the identical scans
@@ -5547,32 +6878,87 @@ class MainWindow (QMainWindow):
             else:
                 self.pilRefPatch()
                 
-    def pilRefPeakCenDis(self):
-        Dialog=QDialog(self)
-        ui=uic.loadUi(resource('pilPeakCenDialog.ui'),Dialog)
-        ui.show()
-        line='Scan\tFrame\tAxis\t# of Pixels off\n'
-        for i in range(len(self.pilRefPeakCen)):
-            line=line+str(self.pilRefPeakCen[i][0])+'\t'+str(self.pilRefPeakCen[i][1])+'\t'+self.pilRefPeakCen[i][2]+'\t'+str(self.pilRefPeakCen[i][3])+'\n'
-        ui.peakCenTextBrowser.append(line)
-        
-        Dialog.exec_()
+    def refPatchChecks(self):
+        """F95 (owner, 2026-11-23, Q-UI-B6 and B3): frames whose beam centre
+        is more than 2 px from the expected one, and frames with corrected
+        bad pixels inside the signal box. One message (the details in the
+        log) instead of two modal boxes; the points are marked on the
+        Reflectivity plot and the bad pixels listed per Qz once the patch is
+        on show (updateRefDataList promotes these flags)."""
+        qz=getattr(self,'refQzOf',{})
+        flags=[]
+        for scan,frame,axis,off in self.pilRefPeakCen:
+            flags.append(dict(kind='centre',scan=int(scan),frame=int(frame),qz=qz.get((int(scan),int(frame))),
+                              axis=str(axis),pixels=float(off)))
+        for scan,frame,pix in self.pilBadPixInf:
+            flags.append(dict(kind='badpix',scan=int(scan),frame=int(frame),qz=qz.get((int(scan),int(frame))),
+                              pixels=[[int(x),int(y)] for x,y in pix]))
+        self.refFlagsPending=flags
+        if not flags:
+            return
+        parts=[]
+        for kind,what in (('centre','the beam centre is more than 2 px from the expected one'),
+                          ('badpix','corrected bad pixels lie inside the signal box')):
+            fr=sorted({(f['scan'],f['frame']) for f in flags if f['kind']==kind})
+            if fr:
+                parts.append('%s in %d frame%s (%s)' % (what,len(fr),'s' if len(fr)!=1 else '',self.refFramesText(fr)))
+        self.notify('Ref Patch: '+'; '.join(parts)+'. These points are marked on the Reflectivity plot (open square: '
+                    'beam off centre; cross: bad pixels), the bad pixels are listed per Qz under Bad Pixels, and the '
+                    'details are in the log.',title='Ref Patch',level='warning')
+        for f in flags:
+            self.log.info('Ref Patch check: scan %d frame %d (Qz %s): %s',f['scan'],f['frame'],f['qz'],
+                          'beam centre %.1f px off in %s' % (f['pixels'],f['axis']) if f['kind']=='centre'
+                          else 'corrected bad pixels in the signal box at (x, y) %s' % f['pixels'])
 
-    def pilBadPixInfDis(self):
-        Dialog = QDialog(self)
-        ui = uic.loadUi(resource('pilBadPixDialog.ui'), Dialog)
-        ui.pushButton.setIcon(QIcon(resource('stop.png')))
-        ui.pushButton.setIconSize(QSize(100, 100))
-        ui.show()
-        line = 'Scan\tFrame\tPixel(s)\n'
-       # print self.pilBadPixInf
-        for i in range(len(self.pilBadPixInf)):
-            line = line + str(self.pilBadPixInf[i][0]) + '\t' + str(self.pilBadPixInf[i][1]) + '\t' + \
-                   str(self.pilBadPixInf[i][2]) + '\n'
-        ui.peakCenTextBrowser.append(line)
+    @staticmethod
+    def refFramesText(frames,most=8):
+        """'scan 7: frames 3, 4; scan 8: frame 0' for (scan, frame) pairs, cut after ``most`` frames."""
+        out,shown=[],0
+        for scan in sorted({s for s,_ in frames}):
+            fs=[f for s,f in frames if s==scan]
+            take=fs[:max(most-shown,0)]
+            if not take:
+                break
+            shown+=len(take)
+            out.append('scan %d: frame%s %s%s' % (scan,'s' if len(take)>1 else '',listText(take),', ...' if len(take)<len(fs) else ''))
+        text='; '.join(out)
+        return text+('; ...' if shown<len(frames) and not text.endswith('...') else '')
 
-        Dialog.exec_()
-                
+    def promoteRefFlags(self):
+        """The checks of the patch now on show become the result's (F95)."""
+        self.refFlags=list(getattr(self,'refFlagsPending',[])) if getattr(self,'refpatchindex',0)==1 else []
+        w=self.ui.refBadPixListWidget
+        w.clear()
+        bad=sorted((f for f in self.refFlags if f['kind']=='badpix'),
+                   key=lambda f:(f['qz'] if f['qz'] is not None else np.inf,f['scan'],f['frame']))
+        for f in bad:
+            w.addItem('Qz %s  S# %d F# %d: %s' % ('%.4f' % f['qz'] if f['qz'] is not None else '?',f['scan'],f['frame'],
+                                                 ', '.join('(%d, %d)' % tuple(p) for p in f['pixels'])))
+
+    def drawRefFlags(self,ax,qz0,x,y):
+        """Mark the points of the frames the Ref Patch checks flagged (F95):
+        matched to the curve by their Qz; a point dropped from the curve has
+        no mark."""
+        self.refFlagMarks={}         # check -> the marked rows of the curve
+        flags=getattr(self,'refFlags',[]) if getattr(self,'refpatchindex',0)==1 else []
+        if not flags or len(qz0)==0:
+            return
+        qz0=np.asarray(qz0,dtype=float)
+        styles=(('centre',dict(marker='s',ms=11,mfc='none',mec='tab:orange',mew=1.5,ls='none',
+                               label='beam off centre (> 2 px)')),
+                ('badpix',dict(marker='x',ms=10,color='tab:red',mew=1.5,ls='none',label='bad pixels in the ROI')))
+        for kind,style in styles:
+            idx=set()
+            for f in flags:
+                if f['kind']==kind and f['qz'] is not None:
+                    k=int(np.argmin(np.abs(qz0-f['qz'])))
+                    if abs(qz0[k]-f['qz'])<5e-5:
+                        idx.add(k)
+            if idx:
+                idx=sorted(idx)
+                ax.plot(np.asarray(x)[idx],np.asarray(y)[idx],**style)
+                self.refFlagMarks[kind]=idx
+
     def pilRefPatch(self):            
         Dialog=QDialog(self)                
         self.uirefpatch=uic.loadUi(resource('refpatch.ui'), Dialog)
@@ -5592,6 +6978,7 @@ class MainWindow (QMainWindow):
         lay.insertWidget(lay.indexOf(self.uirefpatch.nextPushButton),box)
         self.uirefpatch.knownRatioCheckBox,self.uirefpatch.knownRatioLabel=box,lab
         box.toggled.connect(self.pilRefPatchKnownToggled)
+        self.initRefPatchSteps(Dialog)   # F96: Back, Cancel, the join table
         self.refScale={self.pilrefsort[0]:1.0}   # scale already applied to each scan's data
         # unscaled copies of the scans as the joins start (the joins scale them in place, trap T3):
         # the covariance export replays the patch from these
@@ -5599,6 +6986,191 @@ class MainWindow (QMainWindow):
         self.refPatchOrder=list(self.pilrefsort)
         self.refInfoShown=None
         self.pilRefPatchPlot()
+
+    # ---- F96 (owner, 2026-11-23, Q-UI-B7): Back, a Cancel that says so, the join table ----
+
+    REF_JOIN_COLUMNS=('Join','Scans','Factor','± %','From','Dropped','Note')
+    # what describes the reflectivity on show (Script pane, recipe, provenance line); a cancelled patch puts them back
+    REF_RESULT_ATTRS=('refpatchindex','refDrops','refFactors','refMethodUsed','refKnownOverride','refMerged',
+                      'refRepeatsUsed','refDroppedScans','refScanList','refPoints','slit','dir','command',
+                      'refErrorModel','refPatchInput','refPatchOrder','refScale','refResultJoins','refAbsorberUsed')
+
+    def initRefPatchSteps(self,Dialog):
+        """Back, Cancel and the join table of the patch window. Every Drop
+        and every Next is a step that Back undoes; Cancel, Esc or closing the
+        window stops the patch and says so (never silently)."""
+        from PyQt5.QtWidgets import QPushButton, QTableWidget, QHeaderView, QAbstractItemView
+        ui=self.uirefpatch
+        lay=ui.horizontalLayout
+        back=QPushButton('<< Back',Dialog)
+        back.setObjectName('backPushButton')
+        back.setToolTip('Undo the last step: the last Drop, or the last join accepted with Next (that join comes '
+                        'back as you left it, its drops kept, so that you can drop more or change the known ratio). '
+                        'Press again to go further back, down to the first join as it opened.')
+        lay.insertWidget(lay.indexOf(ui.nextPushButton),back)
+        cancel=QPushButton('Cancel',Dialog)
+        cancel.setObjectName('cancelPushButton')
+        cancel.setToolTip('Stop this Ref Patch. The Reflectivity tab keeps what it showed before. The Messages pane '
+                          'says at which join the patch stopped, and the log lists the joins accepted so far. Esc '
+                          'and closing the window do the same.')
+        lay.addWidget(cancel)
+        table=QTableWidget(0,len(self.REF_JOIN_COLUMNS),Dialog)
+        table.setObjectName('joinTableWidget')
+        table.setHorizontalHeaderLabels(list(self.REF_JOIN_COLUMNS))
+        table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        table.setSelectionMode(QAbstractItemView.NoSelection)
+        table.verticalHeader().setVisible(False)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        table.horizontalHeader().setStretchLastSection(True)
+        rows3=table.horizontalHeader().sizeHint().height()+3*table.verticalHeader().defaultSectionSize()+6
+        table.setMinimumHeight(rows3)      # three joins visible (NX 6-9 has three), then it scrolls
+        table.setMaximumHeight(rows3+table.verticalHeader().defaultSectionSize())
+        table.setToolTip('The joins of this patch: those accepted with Next, then the one on show (in italics). '
+                         'Factor: what scales the new scan (± its error in per cent); From: joint (the joint fit), '
+                         'legacy (the legacy fit) or known ratio (the calibrated foils); Dropped: the point numbers typed for Drop. The table is '
+                         'kept with the result: in the tooltip of the line under the Reflectivity plot, and in the '
+                         'workbook\'s Saved settings when the result is saved.')
+        ui.gridLayout.addWidget(table,3,0)
+        Dialog.resize(max(Dialog.width(),720),max(Dialog.height(),620))   # room for the table under the plot
+        ui.backPushButton,ui.cancelPushButton,ui.joinTableWidget=back,cancel,table
+        back.clicked.connect(self.pilRefPatchBack)
+        cancel.clicked.connect(Dialog.reject)
+        Dialog.finished.connect(lambda result,d=Dialog: self.pilRefPatchFinished(d))
+        self.refHistory=[]        # snapshots before each step, for Back
+        self.refJoins=[]          # the accepted joins (refJoinRow)
+        self.refPatchEnded=False  # set when the patch finishes or stops with a message of its own
+
+    def refPatchEnd(self,finished=True):
+        """Close the patch window without the Cancel message: the patch
+        finished, or (``finished`` False) stopped with a message of its own,
+        which leaves the result on show as it was."""
+        self.refPatchEnded=True
+        self.uirefpatch.close()
+        if not finished:
+            self.refRestorePrevious()
+
+    def refRestorePrevious(self):
+        """Put back what describes the reflectivity on show (Script pane,
+        recipe, provenance line) after a patch that did not finish."""
+        prev=getattr(self,'refPrevResult',None)
+        if prev is None:
+            return
+        for a in self.REF_RESULT_ATTRS:
+            if a in prev:
+                setattr(self,a,prev[a])
+            elif hasattr(self,a):
+                delattr(self,a)
+        self.refPrevResult=None
+
+    def refSnapshot(self):
+        """What a step can change: kept so that Back can restore it (the joins
+        scale the scans in place, trap T3, so the arrays are copied)."""
+        data=getattr(self,'pilrefdata',None)
+        return dict(order=self.pilreforder,
+                    frames={k:np.array(v,copy=True) for k,v in self.scanqzframe.items()},
+                    data=None if data is None else np.array(data,copy=True),
+                    scale=dict(self.refScale),factors=dict(self.refFactors),
+                    drops={k:[list(d) for d in v] for k,v in self.refDrops.items()},
+                    known=dict(self.refKnownOverride),joins=[dict(r) for r in self.refJoins])
+
+    def pilRefPatchBack(self):
+        if not getattr(self,'refHistory',None):
+            self.notify('Nothing to go back to: this is the first join as it opened.',title='Ref Patch',level='info')
+            return
+        s=self.refHistory.pop()
+        self.pilreforder=s['order']
+        self.scanqzframe=s['frames']
+        if s['data'] is not None:
+            self.pilrefdata=s['data']
+        self.refScale,self.refFactors,self.refDrops=s['scale'],s['factors'],s['drops']
+        self.refKnownOverride,self.refJoins=s['known'],s['joins']
+        self.refInfoShown=None
+        self.uirefpatch.nextPushButton.setText('Next>>')
+        self.pilRefPatchPlot()
+
+    def pilRefPatchFinished(self,dialog):
+        """The patch window closed: by the patch itself (finished, or stopped
+        with its own message), or by Cancel, Esc or the window's close button,
+        which must not abandon the patch silently (Q-UI-B7)."""
+        if dialog is not getattr(self,'uirefpatch',None) or getattr(self,'refPatchEnded',True):
+            return
+        self.refPatchEnded=True
+        self.refRestorePrevious()
+        n=len(self.pilrefsort)-1
+        j=min(self.pilreforder,n-1)
+        done=len(self.refJoins)
+        self.log.info('Ref Patch cancelled; joins accepted:\n%s',self.refJoinsText() or 'none')
+        self.notify('Ref Patch cancelled at join %d of %d (scans %s and %s): the Reflectivity tab is unchanged. '
+                    '%s Press Ref Patch to start again.'
+                    % (j+1,n,self.pilrefsort[j],self.pilrefsort[j+1],
+                       'The %d join%s accepted so far %s listed in the log.' % (done,'s' if done!=1 else '','are' if done!=1 else 'is')
+                       if done else 'No join had been accepted.'),
+                    title='Ref Patch',level='warning')
+
+    def refJoinRow(self,info,factor):
+        """One row of the join table for the join of ``info`` (refJoinInfo),
+        accepted with ``factor`` ((value, error), or None: the fitted one)."""
+        j=info['join']
+        note=str(info.get('note','') or '')
+        # the words of the script's method= and factors= (a live replay rebuilds the joins from them)
+        if j in getattr(self,'refFactors',{}):
+            source='known ratio'
+        elif self.refActiveMethod()=='legacy' or 'legacy fit used' in note:
+            source='legacy'        # the note says when the joint fit was impossible
+        else:
+            source='joint'
+        fe=factor if factor is not None else info.get('patch')
+        f,e=(None,None) if fe is None else (float(fe[0]),float(fe[1]))
+        return dict(join=j+1,scans=[int(info['a']),int(info['b'])],factor=f,error=e,source=source,
+                    dropped=[int(d) for ds in self.refDrops.get(j,[]) for d in ds],note=note)
+
+    def refJoinCells(self,r):
+        rel='' if not r['factor'] or r['error'] is None else '%.2f' % (100*abs(r['error']/r['factor']))
+        return [str(r['join']),'%d → %d' % tuple(r['scans']),'' if r['factor'] is None else '%.5g' % r['factor'],rel,
+                r['source'],', '.join(str(d) for d in r['dropped']),r['note']]
+
+    def refJoinsText(self,joins=None):
+        """The join table as text (log, tooltips)."""
+        rows=self.refJoins if joins is None else joins
+        lines=[]
+        for r in rows:
+            join,scans,f,rel,source,dropped,note=(c or '-' for c in self.refJoinCells(r))
+            line='join %s, scans %s: factor %s ± %s %% (%s)' % (join,scans,f,rel,source)
+            if r['dropped']:
+                line+=', dropped %s' % dropped
+            if r['note']:
+                line+='; %s' % note
+            lines.append(line)
+        return '\n'.join(lines)
+
+    def updateRefJoinTable(self):
+        """The accepted joins, then the one on show (italic)."""
+        from PyQt5.QtWidgets import QTableWidgetItem
+        table=getattr(self.uirefpatch,'joinTableWidget',None)
+        if table is None:
+            return
+        rows=[(r,False) for r in self.refJoins]
+        info=self.refInfoShown
+        if info is not None and info.get('join')==self.pilreforder and self.pilreforder<len(self.pilrefsort)-1:
+            known=info['known'] is not None and self.uirefpatch.knownRatioCheckBox.isChecked()
+            factor=(info['known'][0],info['known'][0]*info['known'][1]) if known else None
+            r=self.refJoinRow(info,factor)
+            if known:
+                r['source']='known ratio'
+            r['note']=('on show; '+r['note']) if r['note'] else 'on show'
+            rows.append((r,True))
+        table.setRowCount(len(rows))
+        for i,(r,pending) in enumerate(rows):
+            for k,text in enumerate(self.refJoinCells(r)):
+                item=QTableWidgetItem(text)
+                if k==len(self.REF_JOIN_COLUMNS)-1 and text:
+                    item.setToolTip(text)          # the note in full (the column elides it)
+                if pending:
+                    f=item.font()
+                    f.setItalic(True)
+                    item.setFont(f)
+                table.setItem(i,k,item)
+        self.uirefpatch.backPushButton.setEnabled(bool(self.refHistory))
 
     def refMonitorChange(self,a,b):
         """Monc/Monp of scan b over scan a at their overlap (P29), or None."""
@@ -5701,17 +7273,30 @@ class MainWindow (QMainWindow):
             'normalised repeats is a preference (repeats_legacy_average).')
         # self.connect(self.uirefpatchsamescan.nextPushButton, SIGNAL('clicked()'),self.pilRefSSNext) #go to the next overlap
         self.uirefpatchsamescan.nextPushButton.clicked.connect(self.pilRefSSNext)
+        self.refSameEnded=False
+        Dialog.finished.connect(lambda result,d=Dialog: self.pilRefSameScanFinished(d))
         self.pilRefSameScanPlot()
+
+    def pilRefSameScanFinished(self,dialog):
+        """The identical-scans window closed before its Finish: the Ref Patch
+        stops, and says so (F96, as the patch window's Cancel)."""
+        if dialog is not getattr(self,'uirefpatchsamescan',None) or getattr(self,'refSameEnded',True):
+            return
+        self.refSameEnded=True
+        self.refRestorePrevious()
+        self.notify('Ref Patch cancelled in the identical-scans window: the Reflectivity tab is unchanged. '
+                    'Press Ref Patch to start again.',title='Ref Patch',level='warning')
     
     def pilRefSameScanPlot(self):  
         if self.pilrefsamescanorder==len(self.pilrefsamescannum):
             self.pilrefsort=list(self.sortedScans(self.scanqzframe, mtype='qz'))
+            self.refSameEnded=True
             self.uirefpatchsamescan.close()
             if len(self.pilrefsort)==0:
                 self.messageBox('All scans were dropped; there is no reflectivity to patch.')
             elif len(self.pilrefsort)==1:   # one scan left: nothing to patch, use it as it is
                 self.refData=list(np.atleast_2d(self.scanqzframe[self.pilrefsort[0]]))
-                self.ui.PlotWidget.setCurrentIndex(3)
+                self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
                 self.updateRefDataList()
             else:
                 self.pilRefPatch()
@@ -5775,9 +7360,10 @@ class MainWindow (QMainWindow):
     
     def pilRefPatchPlot(self):
         if self.pilreforder==len(self.pilrefsort)-1:
-            self.uirefpatch.close()
+            self.refPatchEnd()
+            self.refResultJoins=list(self.refJoins)   # the join table, kept with the result (F96)
             self.refData=list(self.pilrefdata)
-            self.ui.PlotWidget.setCurrentIndex(3)
+            self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
           #  print self.pilrefdata
             self.updateRefDataList()
         elif self.pilreforder==0:
@@ -5786,14 +7372,14 @@ class MainWindow (QMainWindow):
             self.uirefpatch.Label.setText('Reflectivity Patch between Scans '+str(self.pilrefsort[self.pilreforder])+' and '+str(self.pilrefsort[self.pilreforder+1]))
             if self.scanqzframe[self.pilrefsort[self.pilreforder]][-1][0]<self.scanqzframe[self.pilrefsort[self.pilreforder+1]][0][0]:
                 self.messageBox('Warning: no overlap qz between slected frames from scan '+str(self.pilrefsort[self.pilreforder])+' and '+str(self.pilrefsort[self.pilreforder+1])+'!!!')
-                self.uirefpatch.close()
+                self.refPatchEnd(finished=False)
             else:
                #print self.scanqzframe[self.pilrefsort[self.pilreforder]],self.scanqzframe[self.pilrefsort[self.pilreforder+1]]
                 try:
                     fac,xmin,xmax,ymin,ymax=self.oneDjoin(self.scanqzframe[self.pilrefsort[self.pilreforder]],self.scanqzframe[self.pilrefsort[self.pilreforder+1]],mtype='fac')
                 except:
                     self.messageBox('Warning: Scan ' + str(self.pilrefsort[self.pilreforder]) + ' or ' + str(self.pilrefsort[self.pilreforder+1]) + ' does not have enough points for patching!')
-                    self.uirefpatch.close()
+                    self.refPatchEnd(finished=False)
                     return
 
                 #print self.scanqzframe[self.pilrefsort[self.pilreforder]],self.scanqzframe[self.pilrefsort[self.pilreforder+1]]                
@@ -5819,6 +7405,7 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
               #  print xmin,xmax,ymin,ymax, fac
                 self.uirefpatch.plotWidget.canvas.draw()
+                self.updateRefJoinTable()
         else:
             if self.pilreforder==len(self.pilrefsort)-2:
                 self.uirefpatch.nextPushButton.setText('Finish!')
@@ -5830,7 +7417,7 @@ class MainWindow (QMainWindow):
                     fac,xmin,xmax,ymin,ymax=self.oneDjoin(self.pilrefdata,self.scanqzframe[self.pilrefsort[self.pilreforder+1]],mtype='fac')
                 except:
                     self.messageBox('Warning: Scan ' + str(self.pilrefsort[self.pilreforder]) + ' or ' + str(self.pilrefsort[self.pilreforder+1]) + ' does not have enough points for patching!')
-                    self.uirefpatch.close()
+                    self.refPatchEnd(finished=False)
                     return
                 kfac=self.refShowKnown()
                 if kfac is None:
@@ -5854,8 +7441,12 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
             #    print xmin,xmax,ymin,ymax, fac
                 self.uirefpatch.plotWidget.canvas.draw()
+                self.updateRefJoinTable()
     
     def pilRefPatchDrop(self):
+        if self.pilreforder>=len(self.pilrefsort)-1:     # no join left (found by the crash sweep, 2026-11-23)
+            self.notify('Every join is done: there is no next scan to drop points from.',title='Ref Patch')
+            return
         try:
             dropnumbers=[int(t) for t in str(self.uirefpatch.dropLineEdit.text()).split(',')]
         except ValueError:
@@ -5868,6 +7459,7 @@ class MainWindow (QMainWindow):
         except IndexError:
             self.messageBox('Point '+listText([d for d in dropnumbers if not -len(old)<=d<len(new)] or dropnumbers)+' does not exist; nothing was dropped.')
             return
+        self.refHistory.append(self.refSnapshot())     # Back undoes this drop (F96)
         self.scanqzframe[self.pilrefsort[self.pilreforder+1]]=new2
         if self.pilreforder==0:
             self.scanqzframe[self.pilrefsort[0]]=old2
@@ -5887,6 +7479,7 @@ class MainWindow (QMainWindow):
         info=self.refInfoShown
         if info is None or info['join']!=self.pilreforder or self.refActiveMethod()!='legacy':
             info=self.refJoinInfo()     # the joint fit: always on the data as they are now (drops)
+        self.refHistory.append(self.refSnapshot())     # Back returns to this join as it is now (F96)
         a,b=self.pilrefsort[self.pilreforder],self.pilrefsort[self.pilreforder+1]
         factor=None
         if info['known'] is not None and self.uirefpatch.knownRatioCheckBox.isChecked():
@@ -5911,6 +7504,8 @@ class MainWindow (QMainWindow):
             self.pilrefdata=self.oneDjoin(self.pilrefdata,self.scanqzframe[self.pilrefsort[self.pilreforder+1]],mtype='merge')
         used=factor[0] if factor is not None else (info['patch'][0] if info['patch'] else 1.0)
         self.refScale[b]=used     # fitted against the curve joined so far: already relative to the first scan
+        self.refJoins.append(self.refJoinRow(info,factor if factor is not None else
+                                             ((used,info['patch'][1]) if info['patch'] else None)))
         self.pilreforder=self.pilreforder+1
         self.pilRefPatchPlot()
         
@@ -5962,6 +7557,7 @@ class MainWindow (QMainWindow):
             if self.refpatchindex==0:
                 self.refInfoNew=[self.refInfo[i] for i in np.argsort(data[:,0])]
                 data=data[np.argsort(data[:,0])]
+            qz0=data[:,0].copy()     # before Qoff and Qz^2: what the F95 marks are matched on
             if data[0,0]<self.refQc:
                 norm=np.max(data[np.where(data[:,0]<self.refQc)][:,1]) #use the max intensity for the q below qc as the normalization factor. 
                 
@@ -6010,6 +7606,7 @@ class MainWindow (QMainWindow):
                 self.ui.refRefDataPlotwidget.canvas.ax.errorbar(data[:,0],data[:,6],fmt='-',label='rb')
             else: 
                 self.ui.refRefDataPlotwidget.canvas.ax.errorbar(data[:,0],data[:,1],data[:,2],fmt='o',label='#0')
+            self.drawRefFlags(self.ui.refRefDataPlotwidget.canvas.ax,qz0,data[:,0],data[:,1] if len(data[0])==3 else data[:,3])
         else:
             print ('no current ref data to plot')
      #plot selected ref files
@@ -6034,12 +7631,13 @@ class MainWindow (QMainWindow):
         if self.ui.refLegendCheckBox.checkState()!=0:
             self.ui.refRefDataPlotwidget.canvas.ax.legend(loc=self.ui.refLegendLocComboBox.currentIndex()+1,frameon=False,scatterpoints=0,numpoints=1)
         try:
-            self.ui.refRefDataPlotwidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
+            self.ui.refRefDataPlotwidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(self.refResultScans()))
         except:
             pass
         self.ui.refRefDataPlotwidget.canvas.draw()
         self.saveTemData()
-        
+        self.updateRefProvenance()      # F96: how the result on show was made
+
     def saveRefData(self):
         if self.det!='Pilatus' or len(self.refData)==0 or getattr(self,'normRefData',None) is None:
             self.messageBox('There is no reflectivity data to save yet')
@@ -6050,9 +7648,11 @@ class MainWindow (QMainWindow):
         if self.det=='Pilatus':
             reffile=self.saveFileName+'_ref.txt'
             rrffile=self.saveFileName+'_rrf.txt'
-            np.savetxt(reffile,self.normRefData,fmt='%.4e\t%.4e\t%.4e')
+            # Qz, R, dR: a one-scan patch keeps more columns (signal and background apart), which the
+            # three-column format could not write (found by the crash sweep's random walk, 2026-11-23)
+            np.savetxt(reffile,np.asarray(self.normRefData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
             try:
-                np.savetxt(rrffile,self.RrfData,fmt='%.4e\t%.4e\t%.4e')
+                np.savetxt(rrffile,np.asarray(self.RrfData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
             except:
                 print ('No rrf data available!')
             if self.refCovarianceCheckBox.isChecked():
@@ -6180,6 +7780,7 @@ class MainWindow (QMainWindow):
     
     def clearCutGraph(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)
         self.ui.cutPlotMplWidget.canvas.draw()
         
     def lineAreaCut(self):   # the Line/Area cut buttons
@@ -6217,6 +7818,7 @@ class MainWindow (QMainWindow):
 
     def updatePilCutData(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)   # F74: the new cuts are not fitted yet
         self.selCutPilData={}
         self.selCutPilErrorData={}
         self.cutData={}
@@ -6269,7 +7871,7 @@ class MainWindow (QMainWindow):
                 self.cutData[i]=cuts.frame_cut(self.pilatus,self.selCutPilData[i],self.selCutPilErrorData[i],direction,ini,fin,
                                                self.cutGeometry(j),axes=axes,absfac=self.absfac,
                                                absnum=self.pilSelected_AbsNum[j],terms=self.selCutTerms.get(i))
-                self.cutLabel[i]=str(self.ui.imageListWidget.item(i).text().split('\t')[0])+' '+str(self.ui.imageListWidget.item(i).text().split('\t')[1])
+                self.cutLabel[i]=' '.join(itemLabels(self.ui.imageListWidget.item(i)))
         if self.ui.gixSumCheckBox.checkState()!=0:
             if self.ui.cutErrorbarCheckBox.checkState()!=0:
                 self.ui.cutPlotMplWidget.canvas.ax.errorbar(self.cutData[-1][:,0],self.cutData[-1][:,1],self.cutData[-1][:,2],fmt='o-',label=self.cutLabel[-1])
@@ -6334,13 +7936,14 @@ class MainWindow (QMainWindow):
             kw.append('bad_pixel_iterations=%d, bad_pixel_factor=%d' % (int(self.ui.pilBPCiteSpinBox.value()),int(self.ui.pilBPCfacSpinBox.value())))
         head='from lss_core import absorbers\n' if isinstance(absfac,absorbers.Foils) and any(self.pilSelected_AbsNum) else ''
         text=head+'cut = exp.cut(%r, %s)\n' % (scans,', '.join(kw))
-        first=int(self.ui.imageListWidget.item(0).text().split('\t')[0].split()[-1])
+        first=itemScan(self.ui.imageListWidget.item(0))
         if self.ui.gixSumCheckBox.checkState()!=0 and first!=min(scans):   # the window names the file after the list's first scan
             text+='cut.summed_label = %r\n' % ('S# %d' % first)
         return text+'cut.save(%r)' % name
 
     def updatePilGIDCutData(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)
         try:
             start=float(self.ui.pilIntRangeLineEdit.text().split(':')[0])
             end=float(self.ui.pilIntRangeLineEdit.text().split(':')[1])
@@ -6419,7 +8022,8 @@ class MainWindow (QMainWindow):
         fl.setObjectName('mcaFitLinesPushButton')
         fl.setToolTip('Fit the fluorescence line(s) of all selected spectra (F22a, owner\'s rule): the sum of the spectra '
                       'is fitted within the range in the Sum All field for the lines\' positions and widths; then every '
-                      'spectrum is fitted with those fixed, heights and background only (a Gaussian on a quadratic '
+                      'spectrum is fitted with those fixed, heights and background only, weighted by its errors '
+                      '(Poisson maximum likelihood with the preference mca_fit_poisson, F90 P1) (a Gaussian on a quadratic '
                       'background by default, for the Rayleigh spill-over). The intensity of the line asked for (the first '
                       'energy given in Fit options, the element\'s; the strongest when none is given), as its '
                       'area over the channel width (the same units as Sum All, background removed), goes to the '
@@ -6429,7 +8033,9 @@ class MainWindow (QMainWindow):
         fo.setToolTip('Shape, background, number of lines or their energies, sensitivity, for "Fit lines".')
         self.ui.horizontalLayout_37.addWidget(fl)
         self.ui.horizontalLayout_37.addWidget(fo)
-        fl.clicked.connect(self.mcaFitLines)
+        fl.clicked.connect(self.mcaFitAction)
+        self.mcaFitLinesPushButton=fl
+        self.applyMcaFitMode()
         fo.clicked.connect(self.showMcaFitOptions)
         self.mcaFitLinesPushButton,self.mcaFitOptionsPushButton=fl,fo
         # one-click Save into the SPEC file's workbook beside every Export (owner, 2026-11-21)
@@ -6465,6 +8071,120 @@ class MainWindow (QMainWindow):
         c=np.asarray(cd,float)
         return [('GID cut',c[:,0],c[:,1],c[:,2],1.0)] if c.ndim==2 and c.shape[1]>=3 else []
 
+    # ---- F83 phase 1c (owner, 2026-11-24: a tab in the main window): the sample timeline ----
+
+    def initTimelineTab(self):
+        """The Timeline tab, last: a view of lss_core.timeline, built when the
+        tab is shown and rebuilt when the SPEC file changed (a new file, or
+        scans added by Update or Live)."""
+        from timelineview import TimelineTab
+        tab=TimelineTab(self.ui.PlotWidget)
+        self.timelineTab=tab
+        self.timelineKey=None
+        self.ui.PlotWidget.addTab(tab,'Timeline')
+        self.ui.PlotWidget.setTabToolTip(self.ui.PlotWidget.indexOf(tab),
+            'The sample timeline (F83): scans, "set sh 0" (new sample?), re-referencing, aborts, sx moves and '
+            'the sample-height scans with their width and flatness, on one time axis')
+        tab.view.scanClicked.connect(self.timelineScanClicked)
+        self.ui.PlotWidget.currentChanged.connect(self.timelineTabShown)
+        tab.show_message('Open a SPEC file: its timeline is drawn here.')
+
+    def timelineTabShown(self,*args):
+        if self.ui.PlotWidget.currentWidget() is getattr(self,'timelineTab',None):
+            self.updateTimeline()
+
+    def updateTimeline(self,force=False):
+        """Read the timeline of the open SPEC file again if it changed."""
+        tab=getattr(self,'timelineTab',None)
+        spec=getattr(self,'specFileName',None)
+        if tab is None:
+            return
+        if not spec or not os.path.exists(spec):
+            self.timelineKey=None
+            tab.show_message('Open a SPEC file: its timeline is drawn here.')
+            return
+        key=(spec,os.path.getmtime(spec),os.path.getsize(spec))
+        if key==self.timelineKey and not force:
+            return
+        from lss_core.experiment import Experiment
+        from lss_core import timeline as timelinemod
+        try:
+            tl=timelinemod.build(Experiment(spec))
+        except Exception as e:
+            self.log.info('timeline of %s not drawn: %s',spec,e,exc_info=True)
+            tab.show_message('The timeline could not be read: %s (detail in the log).' % e)
+            self.timelineKey=None
+            return
+        tab.show_timeline(tl,os.path.basename(spec))
+        self.timelineKey=key
+
+    def timelineScanClicked(self,scan):
+        """A scan bar or an sh scan clicked on the timeline: select that scan."""
+        lw=self.ui.scanListWidget
+        rows=[r for r in range(lw.count()) if itemScan(lw.item(r))==int(scan)]
+        if not rows:
+            self.notify('Scan %d is not in the scan list (Update the SPEC file).' % scan,title='Timeline',level='info')
+            return
+        lw.blockSignals(True)
+        lw.clearSelection()
+        lw.item(rows[0]).setSelected(True)
+        lw.setCurrentRow(rows[0])
+        lw.blockSignals(False)
+        lw.scrollToItem(lw.item(rows[0]))
+        lw.itemSelectionChanged.emit()
+
+    # ---- F74 (owner, 2026-11-22): residuals above the plots that show a fit ----
+
+    def fitResidualsShown(self):
+        return bool(self.prefs.get('fit_residuals',False))
+
+    def drawFitResiduals(self,ax,items):
+        """The residual panel above ``ax`` for ``items`` = (x, y, σ,
+        lss_core.peaks.FitResult or a list of them, colour): each fit's
+        residuals inside its window, weighted by σ (lss_core.residuals). No
+        panel when the switch is off or nothing is fitted."""
+        rax=residuals.panel(ax,self.fitResidualsShown() and bool(items))
+        if rax is None:
+            moved=getattr(ax,'_lss_title','')
+            if moved and not ax.get_title():          # the title had gone up to the panel
+                ax.set_title(moved)
+            ax._lss_title=''
+            return None
+        for x,y,s,fits,colour in items:
+            x,y=np.asarray(x,float),np.asarray(y,float)
+            s=None if s is None else np.asarray(s,float)*np.ones_like(y)
+            for g in (fits if isinstance(fits,(list,tuple)) else [fits]):
+                if not getattr(g,'peaks',None) or not np.all(np.isfinite(g.window)):
+                    continue
+                m=(x>=min(g.window))&(x<=max(g.window))
+                if m.any():
+                    residuals.draw(rax,x[m],y[m],g.model(x[m]),None if s is None else s[m],color=colour)
+        title=ax.get_title() or getattr(ax,'_lss_title','')
+        rax.set_title(title,fontsize=ax.title.get_fontsize())   # the title above the pair
+        ax._lss_title=title
+        ax.set_title('')
+        return rax
+
+    def drawCutResiduals(self,curves=None):
+        curves=self.cutCurves() if curves is None else curves
+        fits=dict(getattr(self,'cutFitResults',[]) or [])
+        items=[(x,y,s,fits[label],'C%d' % (k%10) if label!='GID cut' else 'k')
+               for k,(label,x,y,s,scale) in enumerate(curves) if label in fits]
+        return self.drawFitResiduals(self.ui.cutPlotMplWidget.canvas.ax,items)
+
+    def setFitResiduals(self,on):
+        """View > Residuals above fits: kept between sessions; redraws the
+        fits on show."""
+        self.setPreference('fit_residuals',bool(on))
+        if getattr(self,'specResidualItems',None):
+            self.updateSpecPlotData()
+        if getattr(self,'cutFitResults',None):
+            self.drawCutResiduals()
+            self.ui.cutPlotMplWidget.canvas.draw()
+        if getattr(self,'burnResult',None) is not None and getattr(self,'uipdburn',None) is not None \
+                and hasattr(self.uipdburn,'burnTrendPlotWidget'):
+            self.plotBurnTrends(self.burnResult)
+
     def fitCuts(self):
         """Fit every plotted cut (the "Fit peaks" button)."""
         curves=self.cutCurves()
@@ -6473,9 +8193,13 @@ class MainWindow (QMainWindow):
             return
         ax=self.ui.cutPlotMplWidget.canvas.ax
         for a in self.cutFitArtists:
+            # only lines still on the plot: ax.clear() (Clear graph, a new cut) has detached the others,
+            # and matplotlib refuses to remove a detached artist (the crash sweep, 2026-11-24)
+            if getattr(a,'axes',None) is not ax:
+                continue
             try:
                 a.remove()
-            except (ValueError,AttributeError):
+            except (ValueError,AttributeError,NotImplementedError):
                 pass
         self.cutFitArtists=[]
         self.cutFitResults=[]
@@ -6494,6 +8218,7 @@ class MainWindow (QMainWindow):
             good=[g for g in groups if g.ok]
             text='; '.join(g.summary() for g in groups) if groups else 'no fit'
             self.notify('Fit of %s: %s' % (label,text),title='Peak fit',level='info' if good else 'warning')
+        self.drawCutResiduals(curves)
         self.ui.cutPlotMplWidget.canvas.draw()
         if self.cutFitDialog is not None:
             self.cutFitDialog.findChild(QLabel,'cutFitResultLabel').setText(self.cutFitSummary())
@@ -6584,6 +8309,26 @@ class MainWindow (QMainWindow):
                       ('x range (min:max)',rng),('Centres',cen)):
             form.addRow(lab,w)
         form.addRow(fix)
+        if which=='mca':        # F90 P2, P3: options, not defaults (the owner, 2026-11-24)
+            lo=self.mcaLineOptions()
+            dw=QCheckBox('width from the detector',d); dw.setObjectName('mcaFitDetectorWidthCheckBox')
+            dw.setChecked(lo['detector_width'])
+            dw.setToolTip('Fix the line width at the detector\'s resolution at the first centre (the element\'s line): '
+                          'FWHM = sqrt(noise^2 + 8 ln2 x 3.65 eV x 0.115 x E). A free width trades off against a '
+                          'curved background (synthetic: +45 % with the elastic\'s escape peak under Zn Ka, C42). '
+                          'Needs a centre; the Fixed FWHM above is then ignored.')
+            noise=QDoubleSpinBox(d); noise.setObjectName('mcaFitNoiseSpinBox'); noise.setRange(0.0,1.0)
+            noise.setDecimals(3); noise.setSingleStep(0.005); noise.setSuffix(' keV'); noise.setValue(lo['noise_kev'])
+            noise.setToolTip('The detector\'s electronic noise as a FWHM (keV): calibrate it on a strong peak, '
+                             'noise^2 = FWHM^2 - 8 ln2 x 3.65 eV x 0.115 x E (0.12 keV is typical of a Vortex; an assumption).')
+            esc=QCheckBox('strip Si escape peaks',d); esc.setObjectName('mcaFitEscapeCheckBox')
+            esc.setChecked(lo['strip_escape'])
+            esc.setToolTip('Before fitting, subtract each spectrum\'s Si K escape spectrum: what was measured 1.740 keV '
+                           'higher, times Reed\'s escape fraction (about 0.1 % at 10 keV; constants from memory). Under '
+                           '10 keV the elastic\'s escape peak at 8.26 keV sits under Zn Ka (C42).')
+            form.addRow(dw)
+            form.addRow('Detector noise (FWHM)',noise)
+            form.addRow(esc)
         lay.addLayout(form)
         res=QLabel(self.cutFitSummary() if which=='cut' else self.mcaFitSummary(),d)
         res.setObjectName('%sFitResultLabel' % which); res.setWordWrap(True)
@@ -6616,6 +8361,9 @@ class MainWindow (QMainWindow):
                                  x_range=xr,centres=cs,fix_centres=fix.isChecked(),fwhm=fw.value())
             setattr(self,attr,new)
             self.setPreference(pref,peaks.options_to_dict(new))          # kept between sessions
+            if which=='mca':
+                self.setPreference('mca_line_options',{'detector_width':dw.isChecked(),'noise_kev':noise.value(),
+                                                       'strip_escape':esc.isChecked()})
         for w in (shape,bg):
             w.currentIndexChanged.connect(apply)
         for w in (npk,mpk,prom,win,fw):
@@ -6623,6 +8371,10 @@ class MainWindow (QMainWindow):
         for w in (rng,cen):
             w.editingFinished.connect(apply)
         fix.toggled.connect(apply)
+        if which=='mca':
+            dw.toggled.connect(apply)
+            esc.toggled.connect(apply)
+            noise.valueChanged.connect(apply)
         go.clicked.connect(lambda: (apply(),self.fitCuts() if which=='cut' else self.mcaFitLines()))
         if which=='cut':
             save.clicked.connect(self.saveCutFits)
@@ -6926,16 +8678,138 @@ class MainWindow (QMainWindow):
         if self.det!='Pilatus' or len(getattr(self,'refData',[]))==0 or getattr(self,'normRefData',None) is None:
             self.saveNotice('There is no reflectivity data to save yet')
             return
-        scans=sorted(int(n) for n in self.selectedScanNums)
+        self.saveToWorkbook('reflectivity',self.refWorkbookItems(),auto=getattr(self,'autoSaving',False))
+        self.updateRefProvenance()      # 'saved vN' under the plot
+
+    def refWorkbookItems(self):
+        """The reflectivity on show as workbook items (R, and R/RF when made);
+        a Ref Patch's join table goes into the settings (F96)."""
+        scans=self.refResultScans()
         d=np.asarray(self.normRefData,float)
         cols=['Qz','R','dR','dQz'][:d.shape[1]]
-        items=[dict(scans=scans,data=d,columns=cols,label='R',settings=dict(command=str(getattr(self,'command',''))),
+        settings=dict(command=str(getattr(self,'command','')))
+        if getattr(self,'refpatchindex',0)==1 and getattr(self,'refResultJoins',None):
+            settings['joins']=[dict(r) for r in self.refResultJoins]
+        items=[dict(scans=scans,data=d,columns=cols,label='R',settings=settings,
                     recipe=self.recipe(self.reflectivityScript))]
         rrf=getattr(self,'RrfData',None)
         if rrf is not None and len(rrf):
             r=np.asarray(rrf,float)
             items.append(dict(scans=scans,data=r,columns=['Qz','R/RF','d(R/RF)','dQz'][:r.shape[1]],label='R/RF'))
-        self.saveToWorkbook('reflectivity',items,auto=getattr(self,'autoSaving',False))
+        return items
+
+    def refResultScans(self):
+        """The scans of the reflectivity on show: those of the Ref Patch (less
+        any dropped in the identical-scans window), not the scans selected
+        now (TODO area I, 2026-11-22); for Analyze, the selection."""
+        if getattr(self,'refpatchindex',0)==1 and hasattr(self,'refScanList'):
+            return [int(n) for n in self.refScanList if n not in getattr(self,'refDroppedScans',[])]
+        return sorted(int(n) for n in self.selectedScanNums)
+
+    # ---- F96 (owner, 2026-11-23, Q-UI-B5): one line under the result saying how it was made ----
+
+    def initRefProvenance(self):
+        from PyQt5.QtWidgets import QLabel
+        lab=QLabel('',self.ui.refTab)
+        lab.setObjectName('refProvenanceLabel')
+        lab.setStyleSheet('color: #555; font-size: 9pt;')
+        lab.setToolTip('How the reflectivity on show was made. Nothing to show yet.')
+        lay=self.ui.refTab.layout()
+        lay.insertWidget(lay.indexOf(self.ui.splitter_2)+1,lab)
+        self.refProvenanceLabel=lab
+        self.ui.refBadPixListWidget.setToolTip(
+            'Bad pixels corrected inside the signal box of each frame of the Ref Patch on show, by Qz: '
+            'scan, frame and the pixels (x, y). The correction is the Pilatus tab\'s (Bad pixel: iterations, '
+            'factor). Those points are marked with a cross on the plot below (F95).')
+
+    def refSavedState(self):
+        """(short text, sentence) on whether the result on show is in the
+        workbook, read only from the workbook already in memory (opening one
+        can take seconds)."""
+        cached=getattr(self,'workbookCache',None)
+        try:
+            if not cached or cached[0]!=self.workbookPath():
+                return '','Saved: not checked (the workbook has not been opened in this session).'
+            items=self.refWorkbookItems()
+            wb=cached[2]
+            rid=wb.find_content(workbookmod.content_key('reflectivity',**items[0]))
+        except Exception as e:
+            return '','Saved: not checked (%s).' % e
+        if rid is None:
+            return 'not saved','Saved: no, this result is not in the workbook %s.' % os.path.basename(cached[0])
+        row=next((r for r in wb.results('reflectivity') if r['id']==rid),{})
+        return ('saved v%s' % row.get('version','?'),
+                'Saved: %s v%s (id %s) in %s.' % (row.get('label') or 'R',row.get('version','?'),rid,os.path.basename(cached[0])))
+
+    def refProvenance(self):
+        """(line, tooltip) for the reflectivity on show: method, error model,
+        absorber model, scans, dropped points, saved version (Q-UI-B5)."""
+        if len(getattr(self,'refData',[]))==0:
+            return '','How the reflectivity on show was made. Nothing to show yet.'
+        parts,tip=[],['How the reflectivity on show was made:']
+        patched=getattr(self,'refpatchindex',0)==1 and hasattr(self,'refScanList')
+        if patched:
+            scans=[n for n in self.refScanList if n not in getattr(self,'refDroppedScans',[])]
+            joins=getattr(self,'refResultJoins',[]) or []
+            method=getattr(self,'refMethodUsed',None) or self.refPatchMethod()
+            if len(scans)<2:
+                parts.append('one scan, no joins')
+                tip.append('Ref Patch of one scan: nothing to join.')
+            else:
+                known=sum(1 for r in joins if r.get('source')=='known ratio')
+                parts.append('%s patch%s' % (method,', %d known ratio%s' % (known,'s' if known!=1 else '') if known else ''))
+                tip.append('Ref Patch, %s fit at each join (Reduction options); the joins:' % method)
+                tip+=['  '+t for t in self.refJoinsText(joins).split('\n') if t] or ['  (not recorded)']
+        else:
+            scans=[]
+            parts.append('Analyze, point by point')
+            tip.append('Analyze: one Qz point at a time from the Qz list, no joins.')
+        em=getattr(self,'refErrorModel',None) or self.errorModel
+        parts.append('budget errors' if em.budget else 'legacy errors')
+        tip.append('Errors: %s.' % em.describe())
+        ab=getattr(self,'refAbsorberUsed',None) or self.absorberModel()
+        if isinstance(ab,absorbers.Foils):
+            parts.append('calibrated foils')
+            tip.append('Absorbers: the calibrated foils (File > Preferences), as in use when the patch was made.')
+        else:
+            parts.append('absfac %s' % ab)
+            tip.append('Absorbers: absfac^n with absfac %s (the Absorber factor field), as in use when the patch was made.' % ab)
+        if patched:
+            parts.append('scans %s' % listText(scans))
+            extra=[]
+            if getattr(self,'refDroppedScans',None):
+                extra.append('dropped in the identical-scans window: %s' % listText(self.refDroppedScans))
+            if getattr(self,'refMerged',None):
+                extra.append('repeats merged: %s (%s)' % ('; '.join(listText(g) for g in self.refMerged),
+                             'ΣN/ΣM' if getattr(self,'refRepeatsUsed','monitors')=='monitors' else 'legacy mean'))
+            if getattr(self,'refPoints',None):
+                extra.append('only some frames of scan%s %s' % ('s' if len(self.refPoints)>1 else '',listText(sorted(self.refPoints))))
+            tip.append('Scans: %s%s.' % (listText(scans),'; '+'; '.join(extra) if extra else ''))
+            fl=getattr(self,'refFlags',[]) or []
+            nc=len({(f['scan'],f['frame']) for f in fl if f['kind']=='centre'})
+            nb=len({(f['scan'],f['frame']) for f in fl if f['kind']=='badpix'})
+            if nc or nb:
+                tip.append('Checks: beam centre more than 2 px off in %d frame%s (open squares), corrected bad pixels '
+                           'in the signal box in %d frame%s (crosses).' % (nc,'s' if nc!=1 else '',nb,'s' if nb!=1 else ''))
+            nd=sum(len(d) for v in getattr(self,'refDrops',{}).values() for d in v)
+            parts.append('%d point%s dropped' % (nd,'s' if nd!=1 else '') if nd else 'no points dropped')
+        saved,said=self.refSavedState()
+        if saved:
+            parts.append(saved)
+        tip.append(said)
+        return ' · '.join(parts),'\n'.join(tip)
+
+    def updateRefProvenance(self):
+        lab=getattr(self,'refProvenanceLabel',None)
+        if lab is None:
+            return
+        try:
+            line,tip=self.refProvenance()
+        except Exception as e:          # a description must never break the plot it describes
+            self.log.info('provenance line: %s',e,exc_info=True)
+            line,tip='','How the reflectivity on show was made: not known (%s).' % e
+        lab.setText(line)
+        lab.setToolTip(tip)
 
     def saveCutsToWorkbook(self):
         curves=self.cutCurves()
@@ -6989,6 +8863,64 @@ class MainWindow (QMainWindow):
                     recipe=self.recipe(lambda name:self.gidScript(name,'Q')))]
         self.saveToWorkbook('gid map',items,auto=getattr(self,'autoSaving',False))
 
+    # tools that fit one series kind (owner, 2026-11-23, Q-UI-A10: grey out, with a tooltip saying what is needed)
+    TOOL_KINDS={'pilRefPushButton':'reflectivity','pilRefPatchPushButton':'reflectivity','gidPatchPushButton':'gid',
+                'gidComboBox':'gid','pilBurnPushButton':'burn'}
+    TOOL_NEEDS={'reflectivity':'a reflectivity series','gid':'a GID series','burn':'a burn scan'}
+
+    def selectionKind(self):
+        """The one series kind of the selected scans (alignment scans aside), or None when unknown or mixed."""
+        where=getattr(self,'seriesWhere',{}) or {}
+        nums=list(getattr(self,'selectedScanNums',[]) or [])
+        if not nums or not all(n in where for n in nums):
+            return None
+        kinds={where[n][2] for n in nums}
+        kinds.discard('alignment')
+        return kinds.pop() if len(kinds)==1 else None
+
+    def updateToolAvailability(self):
+        """Grey out the Pilatus tools that do not fit the selected series kind, saying why in the tooltip.
+        Only when the kind is known and one of reflectivity, GID, burn or GISAXS; otherwise all stay enabled,
+        so a wrong or missing guess never blocks an action."""
+        kind=self.selectionKind()
+        restrict=kind in ('reflectivity','gid','burn','gisaxs')
+        for name,fits in self.TOOL_KINDS.items():
+            w=getattr(self.ui,name,None) or getattr(self,name,None)
+            if w is None:
+                continue
+            if w.property('baseToolTip') is None:
+                w.setProperty('baseToolTip',w.toolTip())
+            base=str(w.property('baseToolTip') or '')
+            ok=(not restrict) or kind==fits
+            w.setEnabled(ok)
+            w.setToolTip(base if ok else 'Greyed out: the selected scans are a %s series; this needs %s. %s'
+                         % (kind,self.TOOL_NEEDS[fits],base))
+
+    def ctrlClicked(self):
+        """True when Ctrl is held: a Ctrl+click runs an action's other path once (F86)."""
+        from PyQt5.QtWidgets import QApplication
+        return bool(QApplication.keyboardModifiers() & Qt.ControlModifier)
+
+    def applyMcaFitMode(self):
+        """The MCA tab's fit buttons for the Reduction options' choice (F86; owner, 2026-11-23: one Fit
+        action per tab, the switch picks; nothing removed)."""
+        legacy=bool(self.prefs.get('mca_fit_legacy',False))
+        for b in (self.ui.mcaFitPushButton,self.ui.mcaFitAllPushButton,self.ui.mcaAcceptPushButton):
+            b.setVisible(legacy)
+        fl=getattr(self,'mcaFitLinesPushButton',None)
+        if fl is not None:
+            fl.setText('Fit (legacy)' if legacy else 'Fit lines')
+
+    def mcaFitAction(self):
+        """Fit lines, or the legacy fit when the Reduction options say so; Ctrl+click: the other, once."""
+        legacy=bool(self.prefs.get('mca_fit_legacy',False))
+        if self.ctrlClicked():
+            legacy=not legacy
+            self.notify('Ctrl+click: this fit uses the %s (Reduction options: %s).'
+                        % ('legacy Fit dialog' if legacy else 'line fit',
+                           'legacy' if self.prefs.get('mca_fit_legacy',False) else 'line fit'),title='Fit',level='info')
+        return self.mcaPeakFit() if legacy else self.mcaFitLines()
+
     def mcaFitLines(self):
         """Fit the selected spectra's lines (lss_core.peaks.fit_series)."""
         nums=list(getattr(self,'selectedMcaScanNums',[]) or [])
@@ -6999,15 +8931,21 @@ class MainWindow (QMainWindow):
         if any(len(d)!=len(data[0]) or not np.allclose(d[:,0],data[0][:,0]) for d in data):
             self.messageBox('The selected spectra have different energy axes; fit them in groups with the same axis.')
             return
+        lopt=self.mcaLineOptions()
+        if lopt['strip_escape']:      # F90 P3: the Si escape spectrum off each spectrum first
+            data=[fluorescence.strip_escape(d) for d in data]
         x=data[0][:,0]
         o=self.mcaFitOptions
+        if lopt['detector_width'] and o.centres:   # F90 P2: the width at the element's line from the detector
+            o=dataclasses.replace(o,fwhm=fluorescence.detector_fwhm(o.centres[0],lopt['noise_kev']))
         if o.x_range is None:
             try:
                 lo,hi=(float(t) for t in str(self.ui.mcaRanLineEdit.text()).split(':'))
                 o=dataclasses.replace(o,x_range=(lo,hi))
             except ValueError:
                 pass
-        ref,each=peaks.fit_series(x,[d[:,1] for d in data],[d[:,2] for d in data],o)
+        ref,each=peaks.fit_series(x,[d[:,1] for d in data],[d[:,2] for d in data],o,
+                                  weights='poisson' if self.mcaFitPoisson() else 'data')
         if not each:
             self.notify('Fit lines: %s' % (ref.message or 'no line found'),title='Fit lines')
             return
@@ -7038,9 +8976,11 @@ class MainWindow (QMainWindow):
         except Exception:
             pass
         p=ref.peaks[j]
-        self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background' % (
-            listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background)
-        self.ui.commandLineEdit.setText(self.command)
+        self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background%s' % (
+            listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background,
+            ''.join(t for t,on in ((', Poisson weights',self.mcaFitPoisson()),
+                                   (', width from the detector',lopt['detector_width'] and bool(self.mcaFitOptions.centres)),
+                                   (', Si escapes stripped',lopt['strip_escape'])) if on))
         self.notify('Fit lines: sum of %d spectra: %s. Intensities of the line at %.4g (area / channel width) in the '
                     'integral plot.' % (len(each),ref.summary(),p.centre),title='Fit lines',level='info')
         if self.mcaFitDialog is not None:
@@ -7061,7 +9001,7 @@ class MainWindow (QMainWindow):
     def updateCutPlotData(self):
         if self.det!='Pilatus':   # no cut plotted: display options do nothing
             return
-        self.ui.PlotWidget.setCurrentIndex(4) 
+        self.ui.PlotWidget.setCurrentWidget(self.ui.cutAreaTab) 
         self.cutLogX=self.ui.cutLogXCheckBox.checkState()
         self.cutLogY=self.ui.cutLogYCheckBox.checkState()
         self.cutGrid=self.ui.cutGridCheckBox.checkState()
@@ -7111,11 +9051,11 @@ class MainWindow (QMainWindow):
         if self.det=='Pilatus':
             if self.pilGIDshow==0 and self.pilGISAXSshow==0:
                 if self.ui.gixSumCheckBox.checkState()!=0:
-                    self.fname=self.saveFileName+str(self.ui.imageListWidget.item(0).text().split('\t')[0])+'_sumcut.txt'
+                    self.fname=self.saveFileName+itemLabels(self.ui.imageListWidget.item(0))[0]+'_sumcut.txt'
                     np.savetxt(self.fname,self.cutData[-1],fmt='%.4f\t%.4e\t%.4e')
                 else:
                     for i in self.selectedPilFramesNums:
-                        self.fname=self.saveFileName+str(self.ui.imageListWidget.item(i).text().split('\t')[0])+'_'+str(self.ui.imageListWidget.item(i).text().split('\t')[1])+'_cut.txt'
+                        self.fname=self.saveFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_cut.txt'
                         np.savetxt(self.fname,self.cutData[i],fmt='%.4f\t%.4e\t%.4e')
                 self.scriptLine(self.cutScript(self.saveFileName))
             else:
@@ -7323,10 +9263,7 @@ class MainWindow (QMainWindow):
     def updatePlotFile(self): #update plot files in the listwidget
         self.ui.plotFileListWidget.clear()
         for i in range(len(self.plotfiles)):
-            try:  #for pc
-                self.ui.plotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.plotfiles[i].split('\\')[-2])+'\\'+str(self.plotfiles[i].split('\\')[-1]))
-            except: #for mac and linux
-                self.ui.plotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.plotfiles[i].split('/')[-2])+'/'+str(self.plotfiles[i].split('/')[-1]))
+            self.ui.plotFileListWidget.addItem('#'+str(i+1)+self.halftab+paths.short(self.plotfiles[i]))
 
     def addPlotFile(self): #add plot files into the listwidget and deselect all ref files in the listwidget
         f=QFileDialog.getOpenFileNames(caption='Select Multiple Files to import', directory=self.directory, filter='Files (*.*)')[0]
@@ -7387,10 +9324,7 @@ class MainWindow (QMainWindow):
                     QMessageBox.warning(self, 'File Error','The data file doesnot seems to have column data only. Please check',QMessageBox.Ok)
                     return
                 data1=data1[np.argsort(data1[:,0])]
-                try:  #for pc
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('\\')[-1])
-                except: #for mac and linux
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('/')[-1])
+                datalabel=paths.base(self.plotfiles[self.selectedplotfiles_rows[i]])
                 try:
                     self.ui.PlotMplWidget.canvas.ax.errorbar(data1[:,0]*self.plotscale[i][0]+self.plotscale[i][1],data1[:,1]*self.plotscale[i][2]+self.plotscale[i][3],data1[:,2]*self.plotscale[i][2],fmt=style,label='#'+str(self.selectedplotfiles_rows[i]+1)+' '+datalabel)
                 except:
@@ -7432,10 +9366,7 @@ class MainWindow (QMainWindow):
                 y=fint(x)
                 y=np.gradient(y)
                 self.gradata=np.vstack((x,y)).T
-                try:  #for pc
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('\\')[-1])
-                except: #for mac and linux
-                    datalabel=str(self.plotfiles[self.selectedplotfiles_rows[i]].split('/')[-1])
+                datalabel=paths.base(self.plotfiles[self.selectedplotfiles_rows[i]])
                 self.ui.PlotMplWidget.canvas.ax.plot(self.gradata[:,0],self.gradata[:,1],style,label='#'+str(self.selectedplotfiles_rows[i]+1)+' '+datalabel)
         if self.ui.plotLogXCheckBox.checkState()!=0:
             self.ui.PlotMplWidget.canvas.ax.set_xscale('log')
@@ -7928,10 +9859,7 @@ class MainWindow (QMainWindow):
     def update2dPlotFile(self): #update 2dplot files in the listwidget
         self.ui.twodPlotFileListWidget.clear()
         for i in range(len(self.twodplotfiles)):
-            try:  #for pc
-                self.ui.twodPlotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.twodplotfiles[i].split('\\')[-2])+'\\'+str(self.twodplotfiles[i].split('\\')[-1]))
-            except: #for mac and linux
-                self.ui.twodPlotFileListWidget.addItem('#'+str(i+1)+self.halftab+str(self.twodplotfiles[i].split('/')[-2])+'/'+str(self.twodplotfiles[i].split('/')[-1]))
+            self.ui.twodPlotFileListWidget.addItem('#'+str(i+1)+self.halftab+paths.short(self.twodplotfiles[i]))
 
     def add2dPlotFile(self): #add plot files into the listwidget and deselect all ref files in the listwidget
         f=QFileDialog.getOpenFileNames(caption='Select Multiple Files to import', directory=self.directory, filter='Files (*.*)')[0]

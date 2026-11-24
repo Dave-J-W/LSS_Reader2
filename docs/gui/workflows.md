@@ -8,7 +8,7 @@ In the flowcharts, rounded green boxes are steps that are automatic today; diamo
 |---|---|---|---|---|
 | [day-ref](#day-ref) | 0 | 12 | 0 / 3 / 9 | 7 |
 | [burn-ref](#burn-ref) | 1 | 11 | 4 / 4 / 3 | 17 |
-| [burn-gid](#burn-gid) | 1 | 11 | 4 / 5 / 2 | 12 |
+| [burn-gid](#burn-gid) | 1 | 11 | 4 / 5 / 2 | 13 |
 | [burn-fluo](#burn-fluo) | 1 | 7 | 0 / 3 / 4 | 9 |
 | [reflectivity](#reflectivity) | 2 | 15 | 4 / 5 / 6 | 19 |
 | [gid](#gid) | 3 | 14 | 1 / 8 / 5 | 17 |
@@ -197,7 +197,7 @@ flowchart TD
 | burn-gid.open (shared.open) | Open the SPEC file (File > Open Spec File); the scans, the series and the detector folders are read | File menu | `actionOpen_Spec_File` | which SPEC file | partly | reopen the last file and its workbook settings (F66 to-do); offer the series' reductions at once (F60) | code; run 2026-11-22 | Opening a file with Pilatus images presets the reflectivity ROI (21,11), the background offset (0.5), Qc (0.0217) and the absorber factor (code, openSpecFile ~l.744); nothing on screen says so<br>A missing detector folder opens a directory chooser (F27) |
 | burn-gid.series (shared.series) | Choose the burn series or click the burn scan (NX 14 or 15) | left panel | `seriesComboBox`, `seriesWholeCheckBox`, `scanListWidget`, `scansLineEdit` | which series (or scans by number); Whole series on (default) or off | partly | select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3) | run 2026-11-22; test tests/test_gui_burn_trends.py | Nothing offers the burn test for a burn series (F60, TODO) |
 | burn-gid.frames (shared.frames) | Select the frames (Pilatus) or spectra (MCA) of the selected scans; Select All for all of them | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual) or a subset (left out of the reduction, kept in remakes) | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | code; test tests/test_gui_workflows.py | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
-| burn-gid.look (shared.frames-look) | Look at the frames to see the peak (optional) | Pilatus tab | `pilLogIntCheckBox`, `pilMinLineEdit`, `pilMaxLineEdit`, `pilMinHorizontalSlider`, `pilMaxHorizontalSlider`, `pilCMapComboBox`, `pilAxesComboBox`, `pilAspectComboBox`, `pilMoviePushButton` | whether the frames look sane (Movie, colour scale) | partly | sticky preferences and intelligent colour scales (F70); movie with sticky zoom (F69) | guess | Colour limits are reset on every selection (code, imageSelectedScanChanged); see docs/gui/image_display.md |
+| burn-gid.look (shared.frames-look) | Look at the frames to see the peak (optional) | Pilatus tab | `pilLogIntCheckBox`, `pilMinLineEdit`, `pilMaxLineEdit`, `pilMinHorizontalSlider`, `pilMaxHorizontalSlider`, `pilCMapComboBox`, `pilAxesComboBox`, `pilAspectComboBox`, `pilMoviePushButton`, `pilHomePushButton`, `pilFitAllPushButton`, `pilAutoScalePushButton`, `pilViewComboBox`, `pilMoviePlayPushButton`, `pilMovieBackPushButton`, `pilMovieForwardPushButton`, `pilMovieSlider`, `pilMovieCounterLabel`, `pilMovieSpeedComboBox`, `pilMovieLoopCheckBox`, `pilMovieInfoLabel` | whether the frames look sane (Movie, colour scale) | partly | sticky preferences and intelligent colour scales (F70); movie with sticky zoom (F69) | guess | Fixed 2026-11-24 (F88): colour limits, zoom and settings were reset on every selection; now sticky until another SPEC file, with Home, Fit all and Auto scale<br>Fixed 2026-11-24 (F69): 3 or more frames play as a non-blocking movie (space, arrow keys); never more than 6 tiles |
 | burn-gid.dialog | Open the burn test; Trends tab, analysed; three panels (intensity, position, FWHM) | Pilatus tab > Burn Test; Burn test dialog | `pilBurnPushButton`, `burnTabWidget`, `burnTrendPlotWidget`, `burnResultLabel` |  | yes | offer it for a burn series (F60) | owner 2026-11-21 (panels, % axes, summary beside); test tests/test_gui_burn_trends.py (slow, NX 15) |  |
 | burn-gid.peak | Choose the peak: Auto peak (strongest peak of the mean frame, 3 FWHM either side, inside the lit columns) or a typed Qxy range | Burn test dialog > Trends; range field at the top of the dialog | `burnAutoPeakCheckBox`, `pdburn.rangeLineEdit` | auto (default) or another Qxy section (owner F22a 4 - override to another section) | yes | list the peaks found and let the user pick one by clicking | owner 2026-11-19 (F22a 4); test tests/test_gui_burn_trends.py | The typed range field ('1.4:1.5') belongs to the legacy layout at the top of the dialog; it is used only when Auto peak is off<br>Detector rows are all summed; the row range is not exposed (TODO, hand-off 07) |
 | burn-gid.options | Choose estimator, models, time, errors, threshold and whether the position counts in the limit | Burn test dialog > Trends | `burnEstimatorComboBox`, `burnConstantCheckBox`, `burnLinearCheckBox`, `burnExponentialCheckBox`, `burnDoubleExponentialCheckBox`, `burnTimeComboBox`, `burnErrorsComboBox`, `burnThresholdSpinBox`, `burnPositionLimitCheckBox`, `burnAnalysePushButton` | estimator template (default), moments (legacy) or fit; errors auto = scatter for GID; position in limit off (owner - the position judgment is the user's) | yes |  | owner 2026-11-21; code; test tests/test_gui_burn_trends.py | The template estimator reads a broadening at constant area on a shoulder as an intensity gain (P44, measured on synthetic data); the user is not warned |
@@ -241,7 +241,7 @@ flowchart TD
 | burn-fluo.detector | For the 7-element detector, choose the elements (XFNTR uses the central one, element 1) | File > Preferences > Fluorescence detector | `actionPreferences`, `prefMcaCentrePushButton`, `prefMcaAllPushButton`, `prefMcaChannel1CheckBox` | elements summed (default all) | no | choose by series kind (xfntr/burn of an XFNTR sample - centre; energy - all) (D49) | owner 2026-11-19 (D49); code | A global preference in a dialog; what a burn of fluorescence should use is not stated (Q-BURN-3) |
 | burn-fluo.series (shared.series) | Choose the burn scan | left panel | `seriesComboBox`, `seriesWholeCheckBox`, `scanListWidget`, `scansLineEdit` | which series (or scans by number); Whole series on (default) or off | partly | select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3) | code (is_burn does not look at the detector); guess | If the scan has no #V line its spectra are not listed at all (physics_notes 2026-11-19, checked on the October file) |
 | burn-fluo.spectra (shared.frames) | Select all spectra; the MCA tab plots them normalised (Monc, absorber from the last #A) | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox`, `mcaNormComboBox`, `mcaCalibCheckBox` | all frames (usual) or a subset (left out of the reduction, kept in remakes) | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | code (mcaSelectedScanChanged) | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
-| burn-fluo.line | Measure the line in each spectrum - Fit lines (sum fixes position and width, each spectrum amplitude and background) or a window Sum All | MCA tab | `mcaRanLineEdit`, `mcaFitLinesPushButton`, `mcaFitOptionsPushButton`, `mcaSumAllPushButton`, `mcaXAxisComboBox` | the line window; fitted lines (owner D47 - lines count, not the Vortex counter) or window sum; x axis Frame | no | a burn dialog for MCA series (TODO - feed fit_series through trends.compare) | code; owner 2026-11-19 (D47); guess (that users do this for burns) | The Burn Test button refuses MCA scans (it needs Pilatus frames; code, pilBurnTest)<br>The MCA x axis offers Frame, Qz, Energy; no time axis (TODO area E: time axis in MCA) |
+| burn-fluo.line | Measure the line in each spectrum - Fit lines (sum fixes position and width, each spectrum amplitude and background) or a window Sum All | MCA tab | `mcaRanLineEdit`, `mcaFitLinesPushButton`, `mcaFitOptionsPushButton`, `mcaFitDetectorWidthCheckBox`, `mcaFitNoiseSpinBox`, `mcaFitEscapeCheckBox`, `mcaSumAllPushButton`, `mcaXAxisComboBox` | the line window; fitted lines (owner D47 - lines count, not the Vortex counter) or window sum; x axis Frame | no | a burn dialog for MCA series (TODO - feed fit_series through trends.compare) | code; owner 2026-11-19 (D47); guess (that users do this for burns) | The Burn Test button refuses MCA scans (it needs Pilatus frames; code, pilBurnTest)<br>The MCA x axis offers Frame, Qz, Energy; no time axis (TODO area E: time axis in MCA) |
 | burn-fluo.judge | Look at intensity against frame number; no trend models, no 5 % time in the window | MCA tab (integral plot, list) | `mcaDataListWidget` | whether the line intensity changes | no | the same Trends panel as the Pilatus burns | code; guess | This workflow is not supported as a burn test today; the user judges by eye or exports |
 | burn-fluo.export | Export the intensities (x = frame) and analyse elsewhere; saved to the workbook as a fluorescence sum or line fit | MCA tab | `mcaExportIntPushButton`, `mcaSaveWorkbookPushButton` | file name | partly |  | code; guess |  |
 
@@ -309,10 +309,10 @@ flowchart TD
 | ref.check | Optionally check the ROI frame by frame - Reflectivity opens the Ref tab with the frames by Qz, the ROI image, Analyze / Accept / Analyze All | Pilatus tab > Reflectivity; Reflectivity tab | `pilRefPushButton`, `refQzListWidget`, `refSlitLineEdit`, `refBGOffLineEdit`, `refBGDirComboBox`, `refCenCheckBox`, `refCenLineEdit`, `refSeaWinLineEdit`, `refBPCFacLineEdit`, `refAnalyzePushButton`, `refAcceptPushButton`, `refAnalyzeAllPushButton` | ROI size, background offset and direction, centre (from SPEC or typed), search window | no | a movie of the frames zoomed to the region around the ROI, on a log or other nonlinear scale, keeping zoom and colour mode while it plays (owner 2026-11-23: 'If there was a slick way to show a movie of it ... we might do it more often'); ROI close-up with the box and background boxes drawn, flags on frames whose beam is off by > 2 px (F71) | code (refPlotWin, refAnalyze); owner 2026-11-23 (done, but mostly when something is weird and the data must be verified; the routine path is Ref Patch) | Two entry points with similar names: 'Reflectivity' (frame-by-frame analysis) and 'Ref Patch' (the reduction); the ROI fields used by both live on the Reflectivity tab<br>The ROI default in the .ui is 61,31 and is overwritten to 21,11 when a Pilatus file opens (code); the script default is 21,11 |
 | ref.options | Set the options that change the per-frame signal (low-Qz slit correction, merge same Qz, bad-pixel correction, DB position) | Pilatus tab | `pilLowQzCorCheckBox`, `pilMergeSameQzCheckBox`, `pilBPCiteSpinBox`, `pilBPCfacSpinBox`, `pilSpecCheckBox`, `pilDBPosLineEdit` | usually the defaults (guess) | yes |  | code | Low Qz Corr. is applied to the first frame of each scan regardless of the box (P18, as coded) |
 | ref.errors (shared.errors) | Choose the error model (Legacy default, or Budget with a monitor model) | Errors pane (dock) | `errorModeComboBox`, `monitorKindComboBox`, `errorModel_sigma` | Legacy (default, byte-identical files) or Budget | yes |  | owner 2026-11-17 (D20, D22, D26); code | A global setting in a dock, far from the reductions it changes; which default the export should use is open (TODO B) |
-| ref.patch | Ref Patch - one point per frame (ROI minus background per Monc), scans sorted by Qz; pop-ups for beams > 2 px off and bad pixels in the ROI | Pilatus tab > Ref Patch | `pilRefPatchPushButton`, `commandLineEdit` |  | yes | offer Ref Patch when a reflectivity series is selected (F60) | code (pilRefPatchData); test tests/test_real_nx_school.py | The beam-offset and bad-pixel tables are modal dialogs (pilPeakCenDialog, pilBadPixDialog) that interrupt the patch |
+| ref.patch | Ref Patch - one point per frame (ROI minus background per Monc), scans sorted by Qz; pop-ups for beams > 2 px off and bad pixels in the ROI | Pilatus tab > Ref Patch | `pilRefPatchPushButton` |  | yes | offer Ref Patch when a reflectivity series is selected (F60) | code (pilRefPatchData); test tests/test_real_nx_school.py | The beam-offset and bad-pixel tables were modal dialogs that interrupted the patch; since 2026-11-24 (F95) one message, marks on the curve and the Bad Pixels list (refBadPixListWidget) |
 | ref.same | When identical scans (same Qz range and points) are found - merge them, drop some, or patch them regularly | identical-scans dialog | `refpatchsamescan.mergePushButton`, `refpatchsamescan.dropPushButton`, `refpatchsamescan.dropLineEdit`, `refpatchsamescan.nextPushButton` | merge (repeats), drop, or patch (default) | no | merge repeats by default when they agree within errors | code (pilRefPatchData, pilRefSameScan) | Announced by a message, then a dialog; the default ('regular patch') is stated only in the message |
-| ref.join | For each join: the overlap plotted with the factor that Next will use (joint fit), the known foil ratio offered; drop points; Next / Finish! | Ref Patch dialog (one per join) | `refpatch.nextPushButton`, `refpatch.dropPushButton`, `refpatch.dropLineEdit`, `refpatch.knownRatioCheckBox`, `refpatch.knownRatioLabel`, `prefPatchMethodComboBox`, `prefPatchAutoCheckBox`, `prefPatchThresholdSpinBox` | accept the fitted factor or use the known ratio; which points to drop (typed indices) | partly | accept every join whose fit passes its guard and agrees with the foils, and show only the doubtful ones (owner 2026-11-18 F58 - known ratio automatic where plainly better) | owner 2026-11-18 (F58), owner 2026-11-22 (joint fit default); test tests/test_gui_workflows.py, tests/test_known_ratio_patch.py | One dialog per join (3 for NX 6-9); the method preference is in File > Preferences, not in the dialog<br>Dropped points are typed as indices, deleted from the arrays, not drawn, no undo (F16, D2) |
-| ref.view | The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files | Reflectivity tab (Ref / Norm Ref lists, plot) | `refDataListWidget`, `refNormRefListWidget`, `refRRFCheckBox`, `refQcLineEdit`, `refQoffLineEdit`, `refLogYCheckBox`, `refQzSqrCheckBox`, `refNormFacCheckBox`, `refNormLineEdit`, `refDelPushButton`, `refRefFileListWidget`, `refAddFilePushButton`, `refRemoveFilePushButton`, `refLegendCheckBox` | Qc (0.0217 preset: water, the same Qc at every energy, physics_notes 2026-11-23; changed for lighter or denser subphases); Qoff tweaked until R/R_F is continuous apart from one or two outliers (owner 2026-11-23); reference curves to compare | partly | Qoff proposed from the continuity of R/R_F across the joins, Qc from the subphase (F79); Qoff from the sh-scan images (F42) | code (updateRefPlotData); test tests/test_gui_workflows.py (tab 3 after Finish); owner 2026-11-23 | Qc and Qoff change the R/R_F file but are typed fields among display options<br>Qoff is found by trial: type, press Enter, look, repeat |
+| ref.join | For each join: the overlap plotted with the factor that Next will use (joint fit), the known foil ratio offered; drop points; Next / Finish! | Ref Patch dialog (one per join) | `refpatch.nextPushButton`, `refpatch.dropPushButton`, `refpatch.dropLineEdit`, `refpatch.knownRatioCheckBox`, `refpatch.knownRatioLabel`, `refpatch.backPushButton`, `refpatch.cancelPushButton`, `refpatch.joinTableWidget`, `prefPatchMethodComboBox`, `prefPatchAutoCheckBox`, `prefPatchThresholdSpinBox` | accept the fitted factor or use the known ratio; which points to drop (typed indices) | partly | accept every join whose fit passes its guard and agrees with the foils, and show only the doubtful ones (owner 2026-11-18 F58 - known ratio automatic where plainly better) | owner 2026-11-18 (F58), owner 2026-11-22 (joint fit default); test tests/test_gui_workflows.py, tests/test_known_ratio_patch.py | One dialog per join (3 for NX 6-9); the method preference is in File > Preferences, not in the dialog<br>Dropped points are typed as indices, deleted from the arrays, not drawn (F16, D2); Back undoes a drop or a join and Cancel says so (F96, 2026-11-24) |
+| ref.view | The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files | Reflectivity tab (Ref / Norm Ref lists, plot) | `refDataListWidget`, `refNormRefListWidget`, `refProvenanceLabel`, `refRRFCheckBox`, `refQcLineEdit`, `refQoffLineEdit`, `refLogYCheckBox`, `refQzSqrCheckBox`, `refNormFacCheckBox`, `refNormLineEdit`, `refDelPushButton`, `refRefFileListWidget`, `refAddFilePushButton`, `refRemoveFilePushButton`, `refLegendCheckBox` | Qc (0.0217 preset: water, the same Qc at every energy, physics_notes 2026-11-23; changed for lighter or denser subphases); Qoff tweaked until R/R_F is continuous apart from one or two outliers (owner 2026-11-23); reference curves to compare | partly | Qoff proposed from the continuity of R/R_F across the joins, Qc from the subphase (F79); Qoff from the sh-scan images (F42) | code (updateRefPlotData); test tests/test_gui_workflows.py (tab 3 after Finish); owner 2026-11-23 | Qc and Qoff change the R/R_F file but are typed fields among display options<br>Qoff is found by trial: type, press Enter, look, repeat |
 | ref.export | Export - <name>_ref.txt and <name>_rrf.txt (Q, R, sigma); the Script pane records exp.reflectivity(...) | Reflectivity tab > Export | `refExportPushButton`, `refCovarianceCheckBox` | file name; whether to write the covariance sidecars (+ covariance, off by default) | no | name from the sample and series (guess) | code (saveRefData, saveRefCovariance); tests/test_ref_export_golden.py, tests/test_gui_covariance_export.py; docs docs/SCRIPTING.md | The covariance sidecars (F24) exist since 2026-11-22 behind '+ covariance', which sits after the workbook Save although it modifies Export; the contract's corrected/legacy pair is for scripts only (TODO B2) |
 | ref.save (shared.workbook) | The finished reduction is saved into <SPEC file>_reader.xlsx automatically; Save stores a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `refSaveWorkbookPushButton` | whether to add a 'user' version with a note | yes |  | test tests/test_real_nx_school.py (reflectivity saved to the workbook) | Automatic saves report in the status bar only; there is no view of the workbook inside the reader |
 | ref.compare | Compare reduced curves from different places on the sample and over time, to check that it is stable | Reflectivity tab (Add Files: the exported _ref.txt files) | `refAddFilePushButton`, `refRefFileListWidget`, `refRemoveFilePushButton` | whether the sample is stable | no | the workbook's saved reflectivities overlaid by series, time or sx in one action, with ratios to the first (F80) | owner 2026-11-23 (the need; which tab is used is a guess) | Comparing means exporting, then adding the files back |
@@ -538,7 +538,7 @@ flowchart TD
 |---|---|---|---|---|---|---|---|---|
 | cuts.frames (shared.frames) | Select the frames (Pilatus) or spectra (MCA) of the selected scans; Select All for all of them | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual) or a subset (left out of the reduction, kept in remakes) | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | code; test tests/test_gui_workflows.py | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
 | cuts.define | Choose the direction (Q H, Q V, Pix H, Pix V), the range, the axes and Sum All; Line/Area Cuts | Pilatus tab | `pilCutDirComboBox`, `pilIntRangeLineEdit`, `pilAxesComboBox`, `gixSumCheckBox`, `pilPinholeCheckBox`, `pilLineAreaPushButton` | direction, range, axes (Angles for I vs beta), summed or per frame | no | one cut interface on every image plot with defaults by scan kind (F68); a range on the detector by default (F59) | code; test tests/test_gui_cuts.py; owner 2026-11-18 (F59) | Q V default range lies off a reflectivity frame: zeros, no message (F59, measured)<br>The cut is defined on the Pilatus tab and shown on another tab |
-| cuts.view | Look at the cuts; errorbars, offset, log; Fit peaks | Line/Area Cuts tab | `cutErrorbarCheckBox`, `cutOffsetCheckBox`, `cutOffsetLineEdit`, `cutLogYCheckBox`, `cutClearGraphPushButton`, `cutFitPushButton`, `cutFitOptionsPushButton` | fit options | partly |  | test tests/test_gui_peak_fit.py |  |
+| cuts.view | Look at the cuts; errorbars, offset, log; Fit peaks | Line/Area Cuts tab | `cutErrorbarCheckBox`, `cutOffsetCheckBox`, `cutOffsetLineEdit`, `cutLogYCheckBox`, `cutClearGraphPushButton`, `cutFitPushButton`, `cutFitOptionsPushButton`, `actionFitResiduals` | fit options | partly |  | test tests/test_gui_peak_fit.py |  |
 | cuts.export | Export (cut files; Script pane records exp.cut) and Save | Line/Area Cuts tab | `cutExportPushButton`, `cutSaveWorkbookPushButton` | file name | partly |  | code; tests/test_cut_script.py; test tests/test_gui_workbook.py |  |
 
 <a id="alignment"></a>
@@ -863,6 +863,14 @@ flowchart TD
 | `refpatch.knownRatioLabel` fit +/-0.4%, foils +/-1.5% |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refpatch.knownRatioCheckBox` Known ratio |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refpatch.nextPushButton` Next>> |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `refpatch.backPushButton` << Back |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `refpatch.cancelPushButton` Cancel |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+
+### Dialog (Reflectivity Patch), under the buttons
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `refpatch.joinTableWidget` Join \| Scans \| Factor \| ± % \| From \| Dropped \| Note |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 
 ### Dialog (identical scans)
 
@@ -895,6 +903,9 @@ flowchart TD
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `mcaFitDialog` Fluorescence line fit options |  |  |  |  |  | i | i |  |  |  |  |  |  |  |
+| `mcaFitDetectorWidthCheckBox` width from the detector |  |  | S |  |  | i |  |  |  |  |  |  |  |  |
+| `mcaFitNoiseSpinBox` Detector noise (FWHM) |  |  | S |  |  | i |  |  |  |  |  |  |  |  |
+| `mcaFitEscapeCheckBox` strip Si escape peaks |  |  | S |  |  | i |  |  |  |  |  |  |  |  |
 
 ### GID patching worksheet
 
@@ -1020,13 +1031,19 @@ flowchart TD
 
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `PlotWidget` SpecPlot \| Pilatus \| Reflectivity \| Line/Area Cuts \| MCA \| Plot \| 2D_Plot |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `PlotWidget` SpecPlot \| Pilatus \| Reflectivity \| Line/Area Cuts \| MCA \| Plot \| 2D_Plot \| Timeline |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+
+### Main window tabs, last
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `timelineTab` Timeline |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 
 ### Main window, under the left panel and tabs
 
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `commandLineEdit` Command: | i | i |  | B | i | i |  |  |  |  |  |  | i |  |
+| `commandLineEdit` Command: | i | i |  | i | i | i |  |  |  |  |  |  | i |  |
 
 ### Menu bar
 
@@ -1052,6 +1069,7 @@ flowchart TD
 | `messageDock_toggleViewAction` Messages |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `scriptDock_toggleViewAction` Script |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `errorDock_toggleViewAction` Errors |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
+| `actionFitResiduals` Residuals above fits |  |  |  |  |  |  |  |  | S |  |  |  | i |  |
 
 ### Messages pane
 
@@ -1097,9 +1115,11 @@ flowchart TD
 | `pilCMapComboBox` CMap: | i | B |  | i | B |  |  | i | i |  |  |  |  |  |
 | `pilAspectComboBox` Aspect: |  | S |  |  | i |  |  | i | i |  |  |  |  |  |
 | `pilMplWidget`  | i | i |  | i | i |  |  | i | i |  |  |  |  |  |
+| `pilRoiLogCheckBox` Log | i |  |  | i |  |  |  |  |  |  |  |  |  |  |
+| `pilRoiCuesLabel` off centre 30 % · clipped 2 % | i |  |  | i |  |  |  |  |  |  |  |  |  |  |
 | `pilLogIntCheckBox` Log Int | i | B |  | i | B |  |  | i | i |  |  |  |  |  |
 | `pilPinholeCheckBox` Pinhole |  | i |  |  | B |  |  |  | B |  |  |  |  |  |
-| `pilMoviePushButton` Movie | i | B |  |  | B |  |  |  |  |  |  |  |  | i |
+| `pilMoviePushButton` Movie | i | B |  | i | B |  |  |  |  |  |  |  |  | i |
 | `pilMinHorizontalSlider` Min (%): | i | B |  | i | i |  |  | i | i |  |  |  |  |  |
 | `pilMinLineEdit`  | i | B |  | i | B |  |  | i | i |  |  |  |  |  |
 | `pilMaxHorizontalSlider` Max (%): | i | B |  | i | i |  |  | i | i |  |  |  |  |  |
@@ -1116,6 +1136,36 @@ flowchart TD
 | `pilCutDirComboBox`  |  |  |  |  | B |  |  |  | B |  |  |  |  |  |
 | `pilIntRangeLineEdit` Int Range: min:max |  |  |  |  | B |  |  |  | B |  |  |  |  |  |
 | `pilLineAreaPushButton` Line/Area Cuts |  |  |  |  | B |  |  |  | B |  |  |  |  |  |
+| `gidPatchPushButton` GID Patch |  |  |  |  | B |  |  |  |  |  |  |  |  |  |
+| `gidWorksheetPushButton` Worksheet... |  |  |  |  | i |  |  |  |  |  |  |  |  |  |
+
+### Pilatus (image toolbar)
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `pilHomePushButton` Home | i | B |  | i | i |  |  | i | i |  |  |  |  | i |
+| `pilFitAllPushButton` Fit all | i | B |  | i | i |  |  | i | i |  |  |  |  | i |
+| `pilAutoScalePushButton` Auto scale | i | B |  | i | i |  |  | i | i |  |  |  |  | i |
+
+### Pilatus (movie bar under the image)
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `pilViewComboBox`  | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieBackPushButton` ◀ | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMoviePlayPushButton` ▶ | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieForwardPushButton` ▶\| | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieSlider`  | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieCounterLabel` 1 / 41 | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieSpeedComboBox`  | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieLoopCheckBox` Loop | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+| `pilMovieInfoLabel`  | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+
+### Pilatus, beside the frame (splitter)
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `pilRoiPanel`  | i |  |  | i |  |  |  |  |  |  |  |  |  |  |
 
 ### Plot
 
@@ -1164,6 +1214,13 @@ flowchart TD
 | `prefSaveNoteCheckBox` Ask for a note on every Save |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `prefAutoSaveCheckBox` Save every reduction automatically |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `prefNguiCheckBox` ngui (new layout, prototype) |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `prefSumAllLegacyCheckBox` Sum All: average of normalised frames (legacy) |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefRepeatsLegacyCheckBox` Ref Patch repeats: average (legacy) |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
+| `prefGisaxsRawCheckBox` GISAXS: raw counts (legacy) |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefMcaFitLegacyCheckBox` Fluorescence fit: legacy Fit dialog |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefMcaFitPoissonCheckBox` Fit lines: Poisson weights (F90 P1) |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefBurnLegacyCheckBox` Burn test: show the Legacy tab |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `prefBadgesComboBox` State badges: on / when not default / off |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 | `prefClosePushButton` Close |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 
 ### Reflectivity
@@ -1183,6 +1240,8 @@ flowchart TD
 | `refAcceptPushButton` Accept |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refAnalyzeAllPushButton` Analyze All |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refADDataPlotWidget`  |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
+| `refRoiLogCheckBox` Log |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
+| `refRoiCuesLabel` off centre 30 % · clipped 2 % |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
 | `refBadPixListWidget` Bad Pixels: |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
 | `refQLineEdit` Q: |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
 | `refRLineEdit` R: |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
@@ -1197,6 +1256,7 @@ flowchart TD
 | `refDataListWidget` Ref |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refNormRefListWidget` Norm Ref |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refRefDataPlotwidget`  |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
+| `refProvenanceLabel` joint patch · legacy errors · calibrated foils · scans 6, 7, 8, 9 · 2 points dropped · saved v3 |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refExportPushButton` Export |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refCovarianceCheckBox` + covariance |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refSaveWorkbookPushButton` Save |  |  |  | B |  |  |  |  |  |  |  |  | i |  |
@@ -1282,6 +1342,22 @@ flowchart TD
 | `spLegendLocComboBox`  |  |  |  |  |  |  |  |  |  | i |  |  |  | i |
 | `spExportPushButton` Export |  |  |  |  |  |  |  |  |  | B |  |  |  | i |
 | `specSaveWorkbookPushButton` Save |  |  |  |  |  |  |  |  |  | B |  |  | i |  |
+
+### Status bar, right
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `errorsBadgeLabel` legacy errors \| budget errors |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `normBadgeLabel` / Monc \| / Monc / gain \| / photon |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `patchBadgeLabel` joint patch \| legacy patch |  |  |  | i |  |  |  |  |  |  |  |  |  | i |
+
+### Timeline
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `timelineView`  |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
+| `timelineFitPushButton` Fit all |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
+| `timelineInfoLabel` 20260923: 15 scans, 09:32 to 11:23, 1 set sh 0 (new sample?) |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 
 ### Wait
 

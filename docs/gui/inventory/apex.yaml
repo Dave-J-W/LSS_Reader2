@@ -3,6 +3,7 @@
 # connections read in mainwindow.py (none for any gix* control except
 # gixSumCheckBox, which is the left panel's "Sum All", see left_panel.yaml).
 - id: apexTab
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: tab
   label: "Apex"
   where: "Apex"
@@ -14,6 +15,7 @@
   tooltip: false
   notes: "Owner 2026-11-15: the Bruker CCD is defunct. Measured: tab not visible. Opening a Bruker scan only gives a message (.sfrm not supported). Everything below is unconnected except two lines of code: gixCMapComboBox (still read by refAnalyze) and gixMplWidget (cleared in clearAll)."
 - id: gixSpecCheckBox
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: checkbox
   label: "DB Pos[x,y]:"
   where: "Apex"
@@ -25,6 +27,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixDBPosLineEdit
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: lineedit
   label: ""
   where: "Apex"
@@ -36,6 +39,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixSDDistLineEdit
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: lineedit
   label: "SD Dist(mm):"
   where: "Apex"
@@ -47,6 +51,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixCcd_OffLineEdit
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: lineedit
   label: "CCD_Pos[x,y](mm):"
   where: "Apex"
@@ -58,6 +63,7 @@
   tooltip: false
   notes: "Dead; CCD-specific."
 - id: gixBPCfacLineEdit
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: lineedit
   label: "Bad Pix Corr:"
   where: "Apex"
@@ -69,6 +75,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixAxesComboBox
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: combo
   label: "Axes:"
   where: "Apex"
@@ -80,6 +87,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixCMapComboBox
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: combo
   label: "CMap:"
   where: "Apex"
@@ -91,6 +99,7 @@
   tooltip: false
   notes: "Hidden live dependency (read only): the Reflectivity ROI plot cannot change colour map; should read pilCMapComboBox or its own control before the tab is removed."
 - id: gixMplWidget
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: plot
   label: ""
   where: "Apex"
@@ -102,6 +111,7 @@
   tooltip: false
   notes: "Dead apart from clearAll."
 - id: gixLogIntCheckBox
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: checkbox
   label: "Log Int"
   where: "Apex"
@@ -113,6 +123,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixMinHorizontalSlider
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: slider
   label: "Min (%):"
   where: "Apex"
@@ -124,6 +135,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixMinLineEdit
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: lineedit
   label: ""
   where: "Apex"
@@ -135,6 +147,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixMaxHorizontalSlider
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: slider
   label: "Max (%):"
   where: "Apex"
@@ -146,6 +159,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixMaxLineEdit
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: lineedit
   label: ""
   where: "Apex"
@@ -157,6 +171,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixMergeSameQzCheckBox
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: checkbox
   label: "Merge Same Qzs"
   where: "Apex"
@@ -168,6 +183,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixRefPushButton
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: button
   label: "Reflectivity"
   where: "Apex"
@@ -179,6 +195,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixCutDirComboBox
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: combo
   label: ""
   where: "Apex"
@@ -190,6 +207,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixIntRangeLineEdit
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: lineedit
   label: "Int Range:"
   where: "Apex"
@@ -201,6 +219,7 @@
   tooltip: false
   notes: "Dead."
 - id: gixLineAreaPushButton
+  removed: "2026-11-23, owner Q14: the Apex (Bruker CCD) tab goes; its colour map, which coloured the Reflectivity ROI image, was replaced by the Pilatus colour map first"
   kind: button
   label: "Line/Area Cuts"
   where: "Apex"

@@ -9,6 +9,15 @@ Written 2026-11-22 by a subagent at the owner's request:
 > with spacebar. For burn tests i will also need a demo of the line cut
 > fits, so just add that as a mode to the demonstrator.
 
+*Run at the joint fit's guard p 0.3*, the reader's default when this
+report was written. Since 2026-11-24 the default is p 0.7 (study A,
+`docs/studies/reflectivity_guard/summary.md`). The figures and numbers
+here stay at 0.3, so that they match this text. `python
+tests/tools/patch_demo.py --save DIR --guard-p 0.7`, or the Tools menu
+variation "At today's guard", draws them at the new default. The default
+joint fit's pull SDs there differ from the tables below by at most 0.05
+per join. The interactive window always uses the reader's default.
+
 "Measured" below means the tool was run and the number is its output
 (`docs/figures/patch_demo/numbers.json`, written by the same run as the
 figures); "read" means taken from code or a document without running it.

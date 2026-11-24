@@ -341,3 +341,25 @@ Missing columns are noted in `t.notes`, never an error.
 Photons/s at the ion chamber's exit plane (xray_fluxor hand-off, route D);
 `flags` lists what was assumed (dark 0, 24.9 °C, 98.99 kPa unless given).
 
+## Sample-height scans and the sample timeline (2026-11-24)
+
+    from lss_core import peaks, timeline
+    from lss_core.experiment import Experiment
+    exp = Experiment('20260923')
+    sc = exp.scans[10]
+    x = sc.columns[next(iter(sc.columns))]                 # Sample_H, mm
+    f = peaks.fit_super_gaussian(x, sc.columns['Pilatus'], sc.columns['Monc'])
+    print(f.summary('µm', 1000.0))     # FWHM 81.07 ± 0.53 µm, p 3.38 ± 0.082 (χ²/dof 3.1; Gaussian 28)
+    tl = timeline.build(exp)
+    tl.of_kind('set-zero')             # 'set Sample_H 0: new sample?' after scan 4
+    tl.steps                           # sx moves between scans, from #P
+    tl.heights                         # every sh scan with its fit
+
+`fit_super_gaussian` (F78) fits A exp(−|(h − h0)/w|^p) + b; FWHM =
+2w(ln 2)^(1/p), p = 2 a Gaussian, larger p flatter. It refuses a scan with
+no reflected beam. `timeline.build` (F83 phase 1b) gives scan spans
+(start, end, kind), events read from the file's dated `#C` lines (`set`
+resets, aborts, macro files), SPEC session restarts, gaps, motor steps,
+sh scans with their fits, and the mnemonic table (sh → Sample_H). Times
+are Unix seconds (UTC). Research: `docs/gui/timeline/research.md`.
+

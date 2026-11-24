@@ -115,3 +115,37 @@ def test_written_files_open_with_their_counts(tmp_path):
     for k, c in enumerate(counts):
         sel = (spectra[k].energy >= 8.2) & (spectra[k].energy <= 9.1)
         assert rows[k, 3] == pytest.approx(c[sel].sum() / 1e5, rel=1e-6)
+
+
+def test_shell_profiles_are_normalised_and_hydrogen_is_exact():
+    """The 'shells' Compton model (study B, 2026-11-24): each hydrogenic
+    profile integrates to 1; hydrogen's 1s has J(0) = 8/(3π)."""
+    q = np.linspace(-80, 80, 320001)
+    for orb, z in (('1s', 1.0), ('2s', 4.49), ('2p', 4.45), ('1s', 7.658)):
+        assert np.trapezoid(mca.hydrogenic_profile(q, orb, z), q) == pytest.approx(1.0, abs=2e-3), (orb, z)
+    assert mca.hydrogenic_profile(0.0, '1s', 1.0) == pytest.approx(8 / (3 * math.pi), rel=2e-3)
+
+
+def test_compton_pz_is_zero_at_the_compton_energy():
+    ec = mca.compton_energy(10.0, 90.0)
+    assert mca.compton_pz(10.0, ec, 90.0) == pytest.approx(0.0, abs=1e-9)
+    assert mca.compton_pz(10.0, ec + 0.05, 90.0) > 0 > mca.compton_pz(10.0, ec - 0.05, 90.0)
+    # 0.102 keV per atomic unit of p_z near the peak at 10 keV, 90° (√(E0² + E_C²)/137)
+    d = (mca.compton_pz(10.0, ec + 0.01, 90.0) - mca.compton_pz(10.0, ec - 0.01, 90.0)) / 0.02
+    assert 1 / d == pytest.approx(math.sqrt(10.0 ** 2 + ec ** 2) / 137.036, rel=0.02)
+
+
+def test_shell_compton_cut_off_and_scales():
+    """The O 1s part stops at E0 − 0.543 keV; core_scale scales it;
+    doppler_scale widens every shell; photons are kept apart by part."""
+    det = mca.Detector(noise=1e-4, fano=1e-6, escape=0.0)
+    s = mca.spectrum({}, 1e6, mca.Beam(compton_model='shells'), det)
+    core, val = s.part(['Compton core']), s.part(['Compton valence'])
+    assert core[s.energy > 10.0 - 0.543 + 0.01].sum() < 1e-6 * core.sum()
+    assert 0 < s.photons['Compton core'] < 0.25 * 2 / 10 * 1e6           # most O 1s electrons cannot scatter here
+    s2 = mca.spectrum({}, 1e6, mca.Beam(compton_model='shells', core_scale=2.0), det)
+    assert s2.photons['Compton core'] == pytest.approx(2 * s.photons['Compton core'], rel=1e-9)
+    wide = mca.spectrum({}, 1e6, mca.Beam(compton_model='shells', doppler_scale=1.25), det).part(['Compton valence'])
+    e, ec = s.energy, mca.compton_energy(10.0, 90.0)
+    spread = lambda y: math.sqrt(np.sum(y * (e - ec) ** 2) / np.sum(y))
+    assert spread(wide) > 1.15 * spread(val)

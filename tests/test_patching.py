@@ -235,11 +235,21 @@ def test_nx_school_scans_6_to_9():
     res = patching.chain(scans)
     assert [round(j.factor, 6) for j in res.joins] == [0.02298, 0.064474, 0.103695]
     assert np.sqrt(res.Sigma[3, 3]) == pytest.approx(0.00845, abs=3e-4)
-    assert not res.joins[0].flags and not res.joins[2].flags
-    assert 'no adequate fit' in res.joins[1].flags[0] and 'error inflated' in res.joins[1].flags[0]
+    # 2026-11-24, the default p 0.3 -> 0.7: the same rungs and numbers on NX 6-9; joins 1 and 3 (p 0.67,
+    # 0.54) now note that they are the best of the ladder; at p 0.3 they had no note, as pinned before
+    assert all('best fit of the ladder' in j.flags[0] for j in res.joins)
+    at03 = patching.chain(scans, guard_p=0.3)
+    assert [round(j.factor, 6) for j in at03.joins] == [0.02298, 0.064474, 0.103695]
+    assert not at03.joins[0].flags and not at03.joins[2].flags
+    # the note says what the guard did (2026-11-24): an adequate fit that missed p 0.3, inflated ×1.17
+    # (it said "no adequate fit (chi2 p < 0.3 everywhere) ... error inflated")
+    assert 'best fit of the ladder' in res.joins[1].flags[0] and 'error inflated ×1.17' in res.joins[1].flags[0]
     assert res.joins[1].err / res.joins[1].err_counting == pytest.approx(1.17, abs=0.02)
-    wide = patching.chain(scans, n_ext=6)
+    wide = patching.chain(scans, n_ext=6, guard_p=0.3)      # as pinned at the default of 2026-11-22
     assert wide.joins[2].order == 6 and 'first adequate fit' in wide.joins[2].flags[0] and not wide.joins[0].flags
+    wide7 = patching.chain(scans, n_ext=6)                   # at p 0.7 (2026-11-24) no rung reaches it there:
+    assert (wide7.joins[2].order, wide7.joins[2].n_ext) == (4, 2)   # the best of the ladder, p 0.54
+    assert 'best fit of the ladder' in wide7.joins[2].flags[0]
     foils = absorbers.calibrated(10.0)
     prior = patching.known_steps(foils, [41, 31, 24, 18])
     pr = patching.chain(scans, prior=prior, monitor_ratios=[1.005, 4.35, 1.32])
@@ -269,7 +279,10 @@ def test_the_guard_raises_the_order_where_no_quadratic_fits():
     j = patching.joint_factor(a, b)
     assert j.err < 2 * j.err_counting            # not inflated by an inadequate model
     assert abs(j.delta - truth) < 3 * j.err
-    assert scipy_chi2_sf(j.chi2, j.dof) >= patching.GUARD_P or j.n_ext == 0
+    # 2026-11-24, the default p 0.3 -> 0.7: no rung reaches 0.7 here, so the best of the ladder is kept
+    # (p 0.46); it is still adequate at the test's original p 0.3, and the note says what happened
+    assert scipy_chi2_sf(j.chi2, j.dof) >= 0.3 or j.n_ext == 0
+    assert patching.GUARD_P == 0.7 and 'best fit of the ladder' in '; '.join(j.flags)
 
 
 def scipy_chi2_sf(x, k):
@@ -291,3 +304,54 @@ def test_the_guard_ladder_keeps_the_offset_identifiable():
         n_pos = len(np.unique(np.round(np.concatenate([a.q[ia], b.q[ib]]), 9)))
         assert o <= n_pos - 2 and o <= len(ia) + len(ib) - 4
     assert patching.guard_ladder(a, b)[0] == (4, patching.N_EXT)
+
+
+def test_rung_fit_is_the_joint_fit_at_one_rung_and_returns_its_curve():
+    """patching.rung_fit (2026-11-24, study A, tests/tools/ref_guard_study.py):
+    on every rung of the guard's ladder it gives joint_factor's δ, errors, χ²,
+    dof and points at that rung without the guard, bit for bit; its curve is
+    the fitted ln(μ_a/R_F): exact data on a quartic give the quartic back."""
+    a, b, _ = _fringe_minimum_join()
+    for o, e in patching.guard_ladder(a, b):
+        try:
+            j = patching.joint_factor(a, b, order=o, n_ext=e, guard_p=0)
+        except ValueError:
+            with pytest.raises(ValueError):
+                patching.rung_fit(a, b, o, e)
+            continue
+        r = patching.rung_fit(a, b, o, e)
+        assert (r.order, r.n_ext) == (o, e)
+        assert (r.delta, r.err, r.err_counting, r.chi2, r.dof) == (j.delta, j.err, j.err_counting, j.chi2, j.dof)
+        assert list(r.ia) == list(j.ia) and list(r.ib) == list(j.ib)
+        assert r.p_chi2 == pytest.approx(scipy_chi2_sf(r.chi2, r.dof), rel=1e-12)
+        assert len(r.coef) == o + 1
+    qa, qb = np.linspace(0.03, 0.12, 10), np.linspace(0.081, 0.205, 11)
+    lnr = lambda q: 1.0 - 30 * q + 50 * q ** 2 - 80 * q ** 3 + 60 * q ** 4
+    ya, yb = np.exp(lnr(qa)) * patching.fresnel(qa), np.exp(lnr(qb)) * patching.fresnel(qb) / 3.7
+    r = patching.rung_fit(Scan(qa, ya, 1e-3 * ya), Scan(qb, yb, 1e-3 * yb), order=4, n_ext=2)
+    q = np.linspace(qa[r.ia].min(), qb[r.ib].max(), 9)
+    assert r.curve(q) == pytest.approx(lnr(q), abs=1e-7)
+    assert math.exp(r.delta) == pytest.approx(3.7, rel=1e-8)
+
+
+def test_the_join_note_says_what_the_guard_did():
+    """2026-11-24 (Main): when no rung reached the guard's p, the note said
+    "no adequate fit ... error inflated" even for a good fit (p 0.46) whose
+    error was not inflated (chi2/dof < 1). The guard's p is a preference
+    among rungs; a fit is called inadequate only below ADEQUATE_P, and the
+    inflation is named only when applied, with its factor."""
+    a, b, truth = _fringe_minimum_join()
+    j = patching.joint_factor(a, b, guard_p=0.7)
+    p = scipy_chi2_sf(j.chi2, j.dof)
+    assert patching.ADEQUATE_P <= p < 0.7
+    note = '; '.join(j.flags)
+    assert 'best fit of the ladder' in note and 'no adequate fit' not in note
+    assert ('inflated' in note) == (j.chi2 / j.dof > 1)
+    # a join no rung can fit (one overlap point 30 % off): called inadequate, with the inflation factor
+    y = a.y.copy()
+    k = int(np.argmin(np.abs(a.q - b.q[1])))
+    y[k] *= 1.3
+    bad = patching.joint_factor(patching.Scan(a.q, y, a.sigma), b, guard_p=0.7)
+    note = '; '.join(bad.flags)
+    assert scipy_chi2_sf(bad.chi2, bad.dof) < patching.ADEQUATE_P
+    assert 'no adequate fit (chi2 p < 0.01 everywhere)' in note and 'inflated ×' in note

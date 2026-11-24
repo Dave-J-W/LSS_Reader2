@@ -24,7 +24,7 @@ def test_open_spec_file_lists_scans(loaded, recorder):
 def test_motor_scan_is_plotted_and_peak_fitted(loaded, qapp, dataset, recorder):
     sweep.state_motor_scan(loaded, qapp, dataset)
     assert recorder.exceptions == []
-    assert loaded.ui.PlotWidget.currentIndex() == 0
+    assert loaded.ui.PlotWidget.currentWidget() is loaded.ui.specPlotTab
     assert float(loaded.peakPos) == pytest.approx(0.0, abs=1e-6)
     assert float(loaded.peakCenter) == pytest.approx(0.0, abs=2e-3)
     # P9 fixed (2026-11-21, owner: close F22): the scan's shape is chosen by
@@ -58,9 +58,15 @@ def test_height_scans_are_fitted_only_with_good_signal(window, qapp, recorder, t
     assert window.ui.spXComboBox.currentText() == 'Sample_H'
     assert seen[-1] == peaks.height_scan_options()
     assert window.specFit.kind == 'box' and window.specFit.peaks[0].fwhm > 0.02
+    # F78 (2026-11-24): the super-Gaussian too, its FWHM in µm and p on the title
+    sg = window.specHeightFit
+    assert sg.ok and 0.079 < sg.fwhm < 0.084 and 3.2 < sg.p < 3.7
+    ax = window.ui.specPlotMplWidget.canvas.ax
+    assert 'µm, p 3.' in ax.get_title() and any(l.get_label().startswith('Super-Gaussian') for l in ax.get_lines())
     sweep._select_scans(window, qapp, [3])                     # scan 4
     assert window.specFit.kind in ('flat', 'weak') and window.specFit.peaks == []
     assert window.peakFWHM == '0'
+    assert window.specHeightFit is None                        # no fit at all on a scan without beam
     assert recorder.exceptions == []
 
 
@@ -74,7 +80,7 @@ def test_selecting_pilatus_scan_lists_frames(loaded, qapp, dataset, recorder):
 def test_selecting_frame_shows_image(loaded, qapp, dataset, recorder):
     sweep.state_pilatus_one_frame(loaded, qapp, dataset)
     assert recorder.exceptions == []
-    assert loaded.ui.PlotWidget.currentIndex() == 2
+    assert loaded.ui.PlotWidget.currentWidget() is loaded.ui.pilatusTab
     img = loaded.pilData[0]
     assert img.shape == (synth.PIL_W, synth.PIL_H)
     # direct-beam column is mirrored: col = NCOLS - X - 1
@@ -116,7 +122,7 @@ def test_reflectivity_patch_end_to_end(loaded, qapp, dataset, recorder, method, 
     loaded.uirefpatch.nextPushButton.click()      # "Finish!"
     qapp.processEvents()
     assert recorder.exceptions == []
-    assert loaded.ui.PlotWidget.currentIndex() == 3
+    assert loaded.ui.PlotWidget.currentWidget() is loaded.ui.refTab
     d = np.array(loaded.refData)
     assert d[:, 0] == pytest.approx(
         np.union1d(np.linspace(0.01, 0.05, 9), np.linspace(0.04, 0.10, 7)))
@@ -132,7 +138,7 @@ def test_reflectivity_patch_end_to_end(loaded, qapp, dataset, recorder, method, 
 def test_mca_frames_are_normalised(loaded, qapp, dataset, recorder):
     sweep.state_mca_frames(loaded, qapp, dataset)
     assert recorder.exceptions == []
-    assert loaded.ui.PlotWidget.currentIndex() == 5
+    assert loaded.ui.PlotWidget.currentWidget() is loaded.ui.mcaTab
     assert sorted(loaded.nomMcaData) == [0, 1]
     x, y, e = loaded.nomMcaData[0].T
     counts = round(500 * 1.0 + 5)                 # channel 120 of synth data
@@ -177,9 +183,12 @@ def test_movie_of_a_sub_selection_uses_each_frames_own_axes(loaded, qapp,
     loaded.ui.pilMoviePushButton.click()
     qapp.processEvents()
     assert recorder.exceptions == []
-    # the last frame shown is frame 7; its Qz axis must be centred on its own Qz
+    assert loaded.ui.pilAxesComboBox.currentText() == 'Q'     # (the movie no longer sets it)
+    # the movie no longer blocks (F69, 2026-11-24): it starts on frame 5; one step forward shows frame 7,
+    # whose Qz axis must be centred on its own Qz
+    loaded.ui.pilMovieForwardPushButton.click()
     ax = loaded.ui.pilMplWidget.canvas.fig.axes[0]
-    assert ax.get_title() == 'F #7'
+    assert ax.get_title() == 'S# 1 pt 7'          # scan and point number (was 'F #7', the list row; 2026-11-24)
     lo, hi = ax.get_ylim()
     qz7 = loaded.pilFileQzs[7]
     row = synth.DB_Y / (synth.PIL_W - 1.0)          # beam row as a fraction

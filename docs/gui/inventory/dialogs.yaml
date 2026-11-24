@@ -77,7 +77,7 @@
 - id: prefPatchMethodComboBox
   kind: combo
   label: ""
-  where: "Preferences > Ref Patch"
+  where: "Preferences > Reduction options (moved from Ref Patch, 2026-11-23, F86)"
   handler: setPreference
   does: "How the join factor is fitted: Joint fit (default) or Legacy fit"
   workflows: [reflectivity]
@@ -217,6 +217,83 @@
   shown: always
   tooltip: true
   notes: "Added 2026-11-23 (F82). Off by default. The ngui window's own widgets are named ngui_* and are not inventoried (they are placeholders of the controls below)."
+- id: prefSumAllLegacyCheckBox
+  kind: checkbox
+  label: "Sum All: average of normalised frames (legacy)"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "Off: Sum All is Sigma N / Sigma M (F91); on: the old mean of normalised frames"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F86; owner Q13 and 'one button, switch picks'). Off by default."
+- id: prefRepeatsLegacyCheckBox
+  kind: checkbox
+  label: "Ref Patch repeats: average (legacy)"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "Off: repeated scans merged in Ref Patch are Sigma N / Sigma M (F81); on: the old equal-weight mean"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F86 switch for the test-speed session's F81). Off by default."
+- id: prefGisaxsRawCheckBox
+  kind: checkbox
+  label: "GISAXS: raw counts (legacy)"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "Off: GISAXS per Monc (F91); on: raw counts as before"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F86; owner Q13 and 'one button, switch picks'). Off by default."
+- id: prefMcaFitLegacyCheckBox
+  kind: checkbox
+  label: "Fluorescence fit: legacy Fit dialog"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "Off: the MCA Fit lines button runs the line fit and the legacy Fit/Fit All/Accept are hidden; on: it runs the legacy fit and they show"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F86; owner Q13 and 'one button, switch picks'). Off by default."
+- id: prefMcaFitPoissonCheckBox
+  kind: checkbox
+  label: "Fit lines: Poisson weights (F90 P1)"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "On: the MCA tab's Fit lines fits each spectrum's line heights by Poisson maximum likelihood (MainWindow.mcaFitPoisson); off: least squares weighted by the error bars, as always"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-24 for the tools session's preference mca_fit_poisson (F90 P1). Off by default until the owner's study (docs/studies/2026-11-24_two_decisions_plan.md). Unlike the other switches here, on is the new path."
+- id: prefBurnLegacyCheckBox
+  kind: checkbox
+  label: "Burn test: show the Legacy tab"
+  where: "Preferences > Reduction options"
+  handler: setPreference
+  does: "Off: the burn dialog shows Trends only; on: also its Legacy tab (the REF button and GID list still open it)"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F86; owner Q13 and 'one button, switch picks'). Off by default."
+- id: prefBadgesComboBox
+  kind: combo
+  label: "State badges: on / when not default / off"
+  where: "Preferences > Layout"
+  handler: setPreference('state_badges')
+  does: "Chooses whether the status-bar state badges are shown always, only when a setting differs from its default, or never"
+  workflows: [general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-23 (F85, owner Q12: three modes). Default 'on'."
 - id: prefClosePushButton
   kind: button
   label: "Close"
@@ -285,7 +362,7 @@
   needs: ""
   shown: always
   tooltip: false
-  notes: "No Back, no Cancel."
+  notes: "No Back. Closing the window stops the Ref Patch and says so, leaving the result on show (F96, 2026-11-24)."
 - id: refpatchsamescan.plotWidget
   kind: plot
   label: ""
@@ -340,7 +417,7 @@
   needs: "valid indices"
   shown: always
   tooltip: false
-  notes: "No undo; dropped points disappear from the plot and are not marked anywhere afterwards (only the Script line's drops= records them)."
+  notes: "Back undoes a drop (F96, 2026-11-24); dropped points disappear from the plot, and the join table and the Script line's drops= record them."
 - id: refpatch.dropLineEdit
   kind: lineedit
   label: "0"
@@ -384,8 +461,42 @@
   needs: "overlapping scans"
   shown: always
   tooltip: false
-  notes: "No Back, no Cancel."
+  notes: "Back and Cancel beside it since 2026-11-24 (F96)."
+- id: refpatch.backPushButton
+  kind: button
+  label: "<< Back"
+  where: "Dialog (Reflectivity Patch)"
+  handler: pilRefPatchBack
+  does: "Undoes the last step: the last Drop, or the last join accepted with Next (that join comes back as it was left, its drops kept)"
+  workflows: [reflectivity]
+  needs: "a step to undo"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F96, owner Q-UI-B7, 2026-11-24). Disabled at the first join as it opened. Going back and redoing the same steps gives the same curve (tested)."
+- id: refpatch.cancelPushButton
+  kind: button
+  label: "Cancel"
+  where: "Dialog (Reflectivity Patch)"
+  handler: pilRefPatchFinished
+  does: "Stops the patch: the Reflectivity tab and its Script line stay as they were; the Messages pane says at which join it stopped, the log lists the joins accepted"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added in code (F96, Q-UI-B7). Esc and the window's close button do the same; so does closing the identical-scans window. Before, closing abandoned the patch silently."
+- id: refpatch.joinTableWidget
+  kind: table
+  label: "Join | Scans | Factor | ± % | From | Dropped | Note"
+  where: "Dialog (Reflectivity Patch), under the buttons"
+  handler: updateRefJoinTable
+  does: "Lists the accepted joins and the one on show (italic): factor, its error, joint / legacy / known ratio, dropped points, the fit's note"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added in code (F96, Q-UI-B7). Kept with the result: the tooltip of refProvenanceLabel and settings['joins'] of the workbook's Saved row. The live replay of accepted joins (B7's added rule) is not built yet."
 - id: pilPeakCenDialog
+  removed: "2026-11-24, owner Q-UI-B6 (F95): Ref Patch checks are one message in the Messages pane and marks on the Reflectivity plot; the bad pixels are listed per Qz in refBadPixListWidget"
   kind: dialog
   label: "Scan Details"
   where: "Scan Details (beam centre off)"
@@ -397,6 +508,7 @@
   tooltip: false
   notes: "Modal (exec_) although messages go to the Messages pane elsewhere; title 'Scan Details' is wrong. Not shown for the Analyze path or the burn test."
 - id: pilPeakCenDialog.peakCenTextBrowser
+  removed: "2026-11-24, owner Q-UI-B6 (F95): Ref Patch checks are one message in the Messages pane and marks on the Reflectivity plot; the bad pixels are listed per Qz in refBadPixListWidget"
   kind: list
   label: ""
   where: "Scan Details (beam centre off)"
@@ -408,6 +520,7 @@
   tooltip: false
   notes: ""
 - id: pilBadPixDialog
+  removed: "2026-11-24, owner Q-UI-B6 (F95): Ref Patch checks are one message in the Messages pane and marks on the Reflectivity plot; the bad pixels are listed per Qz in refBadPixListWidget"
   kind: dialog
   label: "Scan Details"
   where: "Scan Details (bad pixels)"
@@ -419,6 +532,7 @@
   tooltip: false
   notes: "Modal; the large icon button does nothing (no handler). Points to the Pilatus tab's criteria; text typo 'Conside'. Same objectName and title as pilPeakCenDialog."
 - id: pilBadPixDialog.peakCenTextBrowser
+  removed: "2026-11-24, owner Q-UI-B6 (F95): Ref Patch checks are one message in the Messages pane and marks on the Reflectivity plot; the bad pixels are listed per Qz in refBadPixListWidget"
   kind: list
   label: ""
   where: "Scan Details (bad pixels)"
@@ -1365,6 +1479,39 @@
   shown: always
   tooltip: true
   notes: ""
+- id: mcaFitDetectorWidthCheckBox
+  kind: checkbox
+  label: "width from the detector"
+  where: "Fluorescence line fit options"
+  handler: apply
+  does: "Fixes the line width at the detector's resolution at the first centre, from the detector noise (F90 P2; preference mca_line_options)"
+  workflows: [xfntr]
+  needs: "a centre given (the element's line)"
+  shown: "MCA dialog only"
+  tooltip: true
+  notes: "An option, not a default (owner, 2026-11-24); overrides the Fixed FWHM field when on."
+- id: mcaFitNoiseSpinBox
+  kind: spinbox
+  label: "Detector noise (FWHM)"
+  where: "Fluorescence line fit options"
+  handler: apply
+  does: "The detector's electronic noise FWHM (keV) for the width from the detector"
+  workflows: [xfntr]
+  needs: "width from the detector on"
+  shown: "MCA dialog only"
+  tooltip: true
+  notes: "0.12 keV default (an assumption for a Vortex); calibrate on a strong peak."
+- id: mcaFitEscapeCheckBox
+  kind: checkbox
+  label: "strip Si escape peaks"
+  where: "Fluorescence line fit options"
+  handler: apply
+  does: "Subtracts each spectrum's Si K escape spectrum (Reed's fraction) before Fit lines (F90 P3; preference mca_line_options)"
+  workflows: [xfntr]
+  needs: "spectra on an energy axis"
+  shown: "MCA dialog only"
+  tooltip: true
+  notes: "An option, not a default (owner, 2026-11-24)."
 - id: cutFitResultLabel
   kind: label
   label: ""
@@ -1599,6 +1746,7 @@
   tooltip: false
   notes: ""
 - id: peakfit2
+  removed: "2026-11-23, owner Q14: never loaded by any code; the file is deleted"
   kind: dialog
   label: "Dialog"
   where: "(never shown)"
@@ -1610,6 +1758,7 @@
   tooltip: false
   notes: "Defunct (read only: no reference in any .py). Candidate for removal."
 - id: peakfitpara
+  removed: "2026-11-23, owner Q14: never loaded by any code; the file is deleted"
   kind: dialog
   label: "Dialog"
   where: "(never shown)"

@@ -106,6 +106,58 @@ def test_fit_lines_reports_the_elements_line_not_the_tallest(loaded, qapp, datas
     assert 'line at 6.4' in loaded.command
 
 
+def test_fit_lines_poisson_switch(loaded, qapp, dataset, recorder):
+    """F90 P1: data weights by default (until the owner's study); the
+    preference 'mca_fit_poisson' fits each spectrum by Poisson maximum
+    likelihood (the command and each result say so)."""
+    sweep.state_mca_frames(loaded, qapp, dataset)
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    data = [r[3] for r in loaded.mcaIntData]
+    assert 'Poisson' not in loaded.command and 'Poisson' not in loaded.mcaLineFits[1][0].message
+    loaded.setPreference('mca_fit_poisson', True)
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    assert 'Poisson weights' in loaded.command and 'Poisson weights' in loaded.mcaLineFits[1][0].message
+    assert [r[3] for r in loaded.mcaIntData] == pytest.approx(data, rel=0.05)
+    assert recorder.exceptions == []
+
+
+def test_fit_lines_detector_width_and_escape_options(loaded, qapp, dataset, recorder, monkeypatch):
+    """F90 P2, P3 (options, not defaults): the Fit options dialog's three
+    MCA controls are stored in 'mca_line_options'; with them on, the fit
+    gets the detector's FWHM at the first centre and spectra stripped of
+    their Si escapes (the command says so)."""
+    from lss_core import fluorescence, peaks
+    sweep.state_mca_frames(loaded, qapp, dataset)
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    centre = loaded.mcaLineFits[0].peaks[0].centre
+    loaded.mcaFitOptions = peaks.FitOptions(centres=(centre,), n_peaks=1, background='quadratic')
+    loaded.showMcaFitOptions()
+    d = loaded.mcaFitDialog
+    from PyQt5.QtWidgets import QCheckBox, QDoubleSpinBox
+    d.findChild(QDoubleSpinBox, 'mcaFitNoiseSpinBox').setValue(0.15)
+    d.findChild(QCheckBox, 'mcaFitDetectorWidthCheckBox').setChecked(True)
+    d.findChild(QCheckBox, 'mcaFitEscapeCheckBox').setChecked(True)
+    assert loaded.prefs['mca_line_options'] == {'detector_width': True, 'noise_kev': 0.15, 'strip_escape': True}
+    loaded.mcaFitOptions = peaks.FitOptions(centres=(centre,), n_peaks=1, background='quadratic')
+    seen = {}
+    real = peaks.fit_series
+
+    def spy(x, spectra, sigmas=None, options=None, **kw):
+        seen['fwhm'], seen['first'] = options.fwhm, np.array(spectra[0])
+        return real(x, spectra, sigmas, options, **kw)
+    monkeypatch.setattr(peaks, 'fit_series', spy)
+    stripped = fluorescence.strip_escape(loaded.nomMcaData[loaded.selectedMcaScanNums[0]])
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    assert seen['fwhm'] == pytest.approx(fluorescence.detector_fwhm(centre, 0.15))
+    assert np.allclose(seen['first'], stripped[:, 1])
+    assert 'width from the detector' in loaded.command and 'Si escapes stripped' in loaded.command
+    assert recorder.exceptions == []
+
+
 def test_fit_options_are_kept_between_sessions(loaded, qapp, recorder):
     loaded.cutFitOptionsPushButton.click()
     d = loaded.cutFitDialog
@@ -238,15 +290,14 @@ def test_a_burn_test_and_mca_sum_are_saved_when_done(loaded, qapp, dataset, reco
     assert recorder.exceptions == []
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError,
-                   reason="Save stores the scans selected at the time, not the curve's (TODO area I, 2026-11-22)")
 def test_a_reflectivity_is_saved_tied_to_the_scans_it_was_made_from(loaded, qapp, dataset, recorder):
     """GUI assessment, 2026-11-22: Save took the scans selected when it was
-    clicked, not those of the curve on show (``saveRefToWorkbook`` reads
+    clicked, not those of the curve on show (``saveRefToWorkbook`` read
     ``selectedScanNums``), so a curve of scans 1 and 2 saved after selecting
     scan 1 alone was stored as scan 1, and its series tie, stale flag and
-    live remake followed the wrong scans. ``saveMcaToWorkbook`` reads the
-    selection the same way."""
+    live remake followed the wrong scans; the plot title too. Fixed
+    2026-11-24 (``refResultScans``). ``saveMcaToWorkbook`` still reads the
+    selection."""
     loaded.prefs['auto_save'] = False
     loaded.prefs['save_asks_note'] = False
     sweep.state_pilatus_two_scans_all_frames(loaded, qapp, dataset)
@@ -263,3 +314,5 @@ def test_a_reflectivity_is_saved_tied_to_the_scans_it_was_made_from(loaded, qapp
     res = _book(loaded).results(kind='reflectivity')
     assert [r['label'] for r in res] in (['R', 'R/RF'], ['R'])
     assert res[0]['scans'] == '1,2'
+    loaded.updateRefPlotData()                            # a redraw (Log R, Qc ...) after the selection changed
+    assert loaded.ui.refRefDataPlotwidget.canvas.ax.get_title().endswith('S# 1, 2')

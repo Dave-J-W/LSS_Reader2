@@ -104,6 +104,15 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- The guard prefers fits with χ² p ≥ 0.7 (since 2026-11-24; 0.3 before):
+  stricter, so a fringe at a join biases the factor half as much.
+- A join's note: "the best fit of the ladder" means no curve reached the
+  guard's preferred p but the fit is fine; "no adequate fit" means even the
+  best curve fails at p 0.01. The error's inflation factor is given when
+  applied (2026-11-24).
+- A join with only one coinciding point (after a Drop, say) uses that
+  point's ratio as the factor, with the ratio's counting error
+  (2026-11-24; the errors from the join on were infinite before).
 - Identical scans (repeats of a macro): "Merge" sums each point's counts
   and monitors and divides once, ΣN/ΣM (F81, 2026-11-23; tooltip), so a
   repeat with more monitor counts weighs more; with equal monitors it is
@@ -150,6 +159,27 @@ Each line: feature — where — default — script — notes entry (date).
   angle (from its Qz; the scan header's In_Rot is the position before the
   scan moved, P47), so the reflected beam sits at β = α on that axis.
 - Background images and background-subtracted frames (not scriptable yet).
+- The frames display is sticky (F88, owner Q9, 2026-11-24): zoom, colour
+  map, aspect, Axes, log (per kind of frame) and typed limits (per kind)
+  stay through redraws, frame and scan changes and the next session, and are
+  reset only when another SPEC file is opened. Toolbar buttons: **Home**
+  (the last zoom box drawn), **Fit all** (the whole frame; also the house
+  icon), **Auto scale** (forget typed limits). Defaults (owner Q8,
+  Q-IMG-4, 8, 14): log for reflectivity, GID and GISAXS frames, linear for
+  direct beam and dark; the top of the scale at the 99.9th percentile of
+  the whole selection per Monc with the direct beam masked; viridis;
+  nearest pixels; at most 6 tiles, sampled first-to-last, "6 of 9 shown".
+  Terms to define: kind of frame, direct-beam mask. `lss_core/display.py`.
+- The frame movie (F69, owner Q7, 2026-11-24): 3 or more selected frames
+  play as one large frame (the view box: Movie, or Tiles: 4 / 6); the Movie
+  button plays any 2 or more. Movie bar: view, ◀, ▶/❚❚, ▶|, a slider (the
+  image list marks the frame shown), the counter, speed (2 fps default),
+  Loop (off: stops on the last frame), and the frame's scan, point, Qz or
+  2θ, time, absorber and Monc. Keys with the image focused: space plays or
+  pauses; Left, Up, Back step back and Right, Down, Forward step forward,
+  pausing first. Zoom, colour map and the one shared colour scale (per Monc,
+  absorber-corrected) never change while it plays. The movie no longer sets
+  Axes to Q or ticks Pinhole.
 - Everything shown is per Monc (2026-11-23, owner: "all data is default
   normalized by monc, even gisaxs"): the image and its colour range, the
   cuts, GISAXS. "Sum All" sums the frames' counts and monitors and divides
@@ -317,6 +347,182 @@ Each line: feature — where — default — script — notes entry (date).
 - Figures: `docs/figures/burn_trends/` (`tests/tools/burn_figures.py`).
   Notes 2026-11-21.
 
+### The Ref Patch window: Back, Cancel and the joins (F96, 2026-11-24)
+- **<< Back** undoes the last step: the last Drop, or the last join
+  accepted with Next. A join comes back as you left it, its drops kept.
+  Press it again to go further back. Going back and repeating the same
+  steps gives the same curve.
+- **Cancel** (or Esc, or closing the window) stops the patch. The
+  Reflectivity tab keeps the curve it showed, and the Messages pane says at
+  which join the patch stopped. Closing the identical-scans window does the
+  same. Starting a new Ref Patch while one is open replaces it, and says so.
+- **The join table** under the buttons lists the accepted joins and the one
+  on show (in italics): scans, factor ± error in per cent, where the factor
+  came from (joint fit, legacy fit, or known ratio), the points dropped, and
+  the fit's note. It stays with the result: it is in the tooltip of the line
+  under the plot, and it is saved with the result in the workbook.
+
+### The Timeline tab (F83, 2026-11-24)
+- The last tab shows the session on one time axis, on the file's local
+  clock. From top to bottom:
+  - **Events:** a red dashed line marked "new sample?" where the sample
+    height was set to 0 ("set sh 0": almost always a new sample, sometimes
+    the same one after conditions changed, so it is a guess for you to
+    confirm); orange dots for re-referencing after an sh scan (in µm);
+    crosses for aborted scans; small grey dots for macro files loaded; a
+    dotted line where SPEC reopened the file.
+  - **sx:** the sample's x position, from each scan's header.
+  - **Sample height:** each sh scan with its FWHM and flatness p (a grey dot
+    when the scan saw no reflected beam).
+  - **Scans:** one bar per scan, coloured by kind (reflectivity blue, GID
+    green, sample height purple, burn red); aborted scans are paler.
+  - Long gaps without scans are hatched across every lane.
+- The wheel zooms the time axis around the cursor; drag to pan;
+  double-click or **Fit all** shows the whole file. Hover anything for
+  details. Click a scan bar or an sh scan to select that scan (it opens on
+  SpecPlot, with its fit).
+- The tab reads the SPEC file when it is shown, and again after Update or
+  a live read when the file has grown.
+
+### The ROI close-up (F71, F97, 2026-11-24, Q-IMG-7)
+- Beside the frame on the Pilatus tab (reflectivity, burn and direct-beam
+  frames), and in the close-up on the Reflectivity tab, one panel shows the
+  ROI: the frame zoomed to the signal box (white), both background boxes
+  (cyan) and some diffuse scattering around them, on its own colour scale.
+  It follows the movie and the Qz list. Drag the splitter to widen it.
+- The boxes are exactly the pixels the reduction sums. Dashed boxes show
+  where they were before the peak search moved them.
+- Below: the column and row profiles across the boxes, the sums (signal,
+  backgrounds, net ± σ), and the checks: peak off centre (more than 25 % of
+  the half-width), clipped (more than 1 % on or beyond the box edge), a
+  background box 2 px or less from the signal box, saturation, the direct
+  beam in a box. Each check's reason is in its tooltip.
+- **Log** (one box for both tabs, on by default) switches the close-up's
+  colour scale and profiles; the frame's own Log Int is not changed.
+
+### Saturation cue on the frames (F97, 2026-11-24, Q-IMG-10)
+- On the Pilatus tab, pixels counting faster than **1e5 counts per second**
+  are drawn amber, and faster than **1.5e5** red: there an absorber is
+  needed. A small red label in the frame's corner says how many pixels ("3 px > 1.5e5 cps:
+  absorber needed"), and the tooltip over the frames explains the colours.
+- Counts per second are the raw counts of the frame over its point's
+  counting time (SPEC Seconds), not the per-monitor values the colour scale
+  shows. In a sum of frames, a pixel above the limit in any frame is marked.
+- The limits are the owner's figures for the Pilatus 100K. Whether the
+  detector already corrected its counts for rate is not known here.
+
+### Sample-height scans: width and flatness (F78, 2026-11-24)
+- A sample-height scan (sh, or sh with oh) plotted against sh on the
+  SpecPlot tab gets a second fit: a super-Gaussian, drawn dash-dotted in
+  purple. The title's last line gives its FWHM in µm, the exponent p and,
+  for comparison, how well a plain Gaussian fits (χ²/dof).
+- p = 2 is a Gaussian; a larger p is flatter-topped. A usable scan is wide
+  and flatter than a Gaussian (owner: FWHM of about 65 µm or more, "more
+  squashed than a gaussian"). The program gives the numbers, not a verdict.
+- A scan with no reflected beam (the peak not 10σ above the edges) is not
+  fitted.
+
+### Residuals above fits (F74, 2026-11-24)
+- **View > Residuals above fits** adds a small panel above each plot that
+  shows a fit: the SpecPlot scan fit, the cut peak fits and the burn
+  test's trends (the best model of each quantity), so far. It shows
+  the residuals of the fitted points weighted by their errors,
+  (y − fit)/σ, and the fit's legend label gains χ²/dof.
+- For a good fit with the right errors the points scatter about zero,
+  mostly within ±2. A pattern (a wave, a slope, a run on one side) means
+  the model misses something; a spread much wider than ±2 means either the
+  model or the errors are wrong.
+- Off by default; the choice is kept between sessions. The plot's title
+  moves above the panel while it is shown.
+- Not yet on: MCA line fits (the tools session's), the Ref Patch join
+  preview, the older fit dialogs.
+
+### Ref Patch checks: a message and marks (F95, 2026-11-24, Q-UI-B6, B3)
+- Before joining, Ref Patch checks each frame: is the reflected beam more
+  than 2 px from where the geometry puts it, and were bad pixels corrected
+  inside the signal box? It used to stop for a box for each; now one
+  message in the Messages pane names the frames (details in the log).
+- Once the patch is on show, those points are marked on the Reflectivity
+  plot: an open square for a beam off centre, a cross for bad pixels in
+  the box. A point dropped from the curve has no mark.
+- The **Bad Pixels** list at the top right of the Reflectivity tab gives
+  the corrected pixels by Qz (scan, frame, pixels x, y). The correction
+  itself is the Pilatus tab's (iterations, factor); the tab's own "Bad
+  Pixel Correction fac" field is still unused (a separate ROI threshold is
+  planned).
+
+### The line under the Reflectivity plot (F96, 2026-11-24, Q-UI-B5)
+- One short line says how the curve on show was made: patch method, error
+  model, absorber model, scans, points dropped, and "saved vN" once it is in
+  the workbook. Its tooltip lists the joins and the details.
+- It describes the curve as it was made: changing a preference afterwards
+  does not change the line (it changes the next Ref Patch).
+- "saved vN" appears once the workbook has been opened in the session (by a
+  Save, or by automatic saving).
+
+### Greyed-out tools (2026-11-23, Q-UI-A10)
+- On the Pilatus tab, Reflectivity and Ref Patch need a reflectivity series,
+  GID Patch and the GID drop-down a GID series, and Burn Test a burn scan.
+  When the selected scans are all of one known kind, the tools for other
+  kinds are greyed out and their tooltip says what is needed. With no known
+  kind, or a mixed selection, everything stays enabled.
+
+### Reduction options (F86, 2026-11-23)
+- **Preferences > Reduction options** (first on the page) chooses, for each
+  action that has a legacy and a new path, which one it takes; nothing is
+  removed (owner, 2026-11-23). **Reflectivity patch**: joint or legacy fit
+  (moved here from the Ref Patch group). **Sum All**: counts and monitors
+  summed then normalised (default) or the old average. **Ref Patch repeats**: summed by counts and monitors (default) or
+  the old average. **GISAXS**: per Monc (default) or raw counts. **Fluorescence fit**: the MCA tab's one Fit action
+  runs the line fit (default) or, when on, the legacy Fit dialog, and then
+  also shows the legacy Fit, Fit All and Accept buttons. **Burn test**: shows
+  the dialog's Legacy tab. **Fit lines: Poisson weights** (2026-11-24, F90
+  P1): when on, each spectrum's line heights are fitted by Poisson maximum
+  likelihood instead of least squares weighted by the error bars (which
+  reads weak lines low); off by default until the owner's study.
+- **Ctrl+click** on Ref Patch or on Fit lines runs the other path once and
+  writes a line in the Messages pane saying so; no dialog.
+
+### State badges (F85, 2026-11-23)
+- At the right of the status bar, three short labels show the settings that
+  change numbers everywhere: the **error model** (legacy or budget errors),
+  the **monitor normalisation** (/ Monc, / Monc / gain, / photon) and the
+  **reflectivity patch method** (joint or legacy). A setting changed from
+  its default is drawn amber. Hover for the detail; click to open the
+  setting (the Errors pane, the SpecPlot tab, Preferences).
+  **Preferences > Layout > State badges** shows them always, only when not
+  at the default, or never.
+
+### The bottom panes (D59, 2026-11-23)
+- **Messages, Script, Errors** sit under the tabs only, so the scan and
+  frame lists on the left keep the window's full height. All three are
+  hidden at start and shown from the **View** menu, which remembers the
+  choice between sessions. The Script pane never shows itself; Messages
+  shows itself (and comes to the front) only for a warning or an error.
+  Notices that are not warnings ("Saved to the workbook", "Covariance
+  written") go to the Messages pane without opening it and are shown for a
+  few seconds in the status bar.
+
+### Menus (2026-11-23)
+- **File > Quit** (Ctrl+Q) closes the reader; results are already in the
+  workbook. **Help > Documentation** opens the scripting guide
+  (`docs/SCRIPTING.md`) until the manual exists, or its GitHub page from a
+  packaged build. Both were in the menus before but did nothing.
+
+### Removed from the window (owner, 2026-11-23, question 14)
+- **Beamlines menu** (APS-15IDC, APS-9IDC): removed. The reader supports one
+  beamline, 15-ID-C, which is always used; there was nothing to choose.
+- **`peakfit2.ui`, `peakfitpara.ui`**: deleted. No code loaded them; the
+  peak fit in use is `peakfit.ui` (Plot tab > Peak Fit).
+- **The Command line row** (bottom of the window): removed. It showed, and
+  let one edit to no effect, a summary of the last reduction (e.g. "Ref
+  Patch, scans=[6–9], slits=…"). That summary is still written as the first
+  header line of exported files; the Script pane holds the runnable form.
+- **The Apex tab** (the Bruker CCD, a defunct detector; hidden since
+  2026-11-17): removed with its 18 controls. Its colour map had silently
+  coloured the Reflectivity ROI image; that image now follows the Pilatus
+  tab's colour map (CMap), the same default (jet).
+
 ## Terms a manual must define
 
 Monc, Monp, Monb (monitors; Monc is the normaliser, upstream of the
@@ -366,4 +572,10 @@ stable (burn tests), the confident 5 % time.
 - Manual idea: a page per menu with the figures it makes, taken from a run
   (the figure agent can use the same window, or `python -m lss_toolbox
   --audit`, to get current figures).
-
+- File names (2026-11-24): SPEC names may contain dots (`run.v2`) and paths may use '/' or '\\'; plot-file legends show the file's name, the list '<folder>/<name>'.
+- SPEC files (2026-11-24): when a scan's `#L` names more or fewer columns than its rows hold, the window says so once; the columns are still matched by position (a label with a space in it shifts the later ones).
+- Motor names (2026-11-24): a scan's parameters hold each motor under its 8-character name (as the macro writes `#P`) and its full name from the file header's `#O` (`Two_Thet` and `Two_Theta`).
+- SpecPlot (2026-11-24): an hklscan is plotted against the index it moves (from the `#S` command, else the column that varies; L when nothing moves); other scans against their first column; y the last column, as before.
+- SPEC files (2026-11-24): L is Qz; a scan at fixed L whose L disagrees with its In_Rot and Out_Rot by more than 1 % is reported once on opening (a changed SPEC lattice would scale every Qz).
+- MCA "Fit lines" weights (2026-11-24, F90 P1): the preference `mca_fit_poisson` fits each spectrum's heights by Poisson maximum likelihood instead of least squares weighted by its error bars (which reads weak lines low); off by default until the owner's study.
+- MCA Fit options (2026-11-24, F90 P2, P3; options, not defaults): "width from the detector" fixes the line width at the detector's resolution at the first centre (with "Detector noise (FWHM)", keV); "strip Si escape peaks" subtracts each spectrum's escape spectrum before the fit. Kept in the preference `mca_line_options`; the command recorded with the fit says when they were on.

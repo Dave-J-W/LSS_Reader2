@@ -52,7 +52,14 @@ def test_settings_are_saved_and_read_back(window, qapp, recorder):
                       'select_whole_series': True,
                       'sum_all_legacy_average': False, 'gisaxs_raw_counts': False,   # per Monc, ΣN/ΣM (F91, 2026-11-23)
                       'repeats_legacy_average': False,                                # repeats as ΣN/ΣM (F81, 2026-11-23)
-                      'ngui': False}                                        # the ngui prototype, off (F82, 2026-11-23)
+                      'ngui': False,                                        # the ngui prototype, off (F82, 2026-11-23)
+                      'panes_shown': [],                                    # D59: no pane shown by default (2026-11-23)
+                      'state_badges': 'on',                                 # F85 badges shown (2026-11-23)
+                      'mca_fit_legacy': False, 'burn_legacy_tab': False,    # F86 Reduction options (2026-11-23)
+                      'pil_display': {},                                    # F88 sticky frames display (2026-11-24)
+                      'mca_fit_poisson': False,                             # F90 P1, an option until the study (2026-11-24)
+                      'mca_line_options': {'detector_width': False, 'noise_kev': 0.12, 'strip_escape': False},   # F90 P2, P3
+                      'fit_residuals': False}                               # F74 residual panels hidden (2026-11-24)
     assert preferences.load() == stored
     assert recorder.exceptions == []
 
