@@ -7778,9 +7778,13 @@ class MainWindow (QMainWindow):
             return
         ax=self.ui.cutPlotMplWidget.canvas.ax
         for a in self.cutFitArtists:
+            # only lines still on the plot: ax.clear() (Clear graph, a new cut) has detached the others,
+            # and matplotlib refuses to remove a detached artist (the crash sweep, 2026-11-24)
+            if getattr(a,'axes',None) is not ax:
+                continue
             try:
                 a.remove()
-            except (ValueError,AttributeError):
+            except (ValueError,AttributeError,NotImplementedError):
                 pass
         self.cutFitArtists=[]
         self.cutFitResults=[]
