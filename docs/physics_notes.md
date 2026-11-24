@@ -5281,3 +5281,30 @@ the flat-top beam use, e.g. Shealy and Hoffnagle, Appl. Opt. 45, 5118
 - **No verdict:** the owner gives the thresholds. No output number changes;
   the fit is not saved.
 
+### 2026-11-24 — F83 phase 1b: the timeline model (lss_core.timeline)
+
+Built from the research's measured facts (`docs/gui/timeline/research.md`
+§1–3). Verified by: tested (`tests/test_timeline.py`, 6 tests: NX
+school, and a synthetic file for header comments, a SPEC session restart,
+a gap, and a missing time zone). Measured on NX: `timeline.build` takes
+36 ms and finds:
+
+- the `set sh 0` after scan 4 at 10:37:39 local (Sample_H −0.61 → 0, a
+  610 µm change), drawn as "new sample?". The research reads it as the
+  same sample, re-found after slit changes; the user confirms.
+- three re-references after sh scans 5, 10 and 13, of +5.5, −1.0 and
+  +0.5 µm, each 1–2 min after its scan ends.
+- 4 aborts, 29 macro files loaded (3 in the file header) and one gap over
+  20 min (after scan 2).
+- 5 sx steps, 20 → 18 → 16 → 14 → 12 → 10 mm.
+- the four sh scans with their super-Gaussian fits (scan 4: no beam).
+- the mnemonics sh → Sample_H, oh → Out_Ht, dth → Det_Th, ih → In_Ht.
+
+**Assumptions:**
+- A gap is 20 min without a scan; the research leaves N to the owner.
+- A move between scans is dated only to the interval between them.
+- Dates are local and converted with the header's #E/#D zone; without a
+  zone they are read as UTC, and the timeline's notes say so.
+- Scan 13's "aborted after 21 points" counts as complete, by the series
+  rule (21 of 21 points).
+
