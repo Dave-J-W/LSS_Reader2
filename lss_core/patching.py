@@ -32,7 +32,9 @@ is kept; if none, the most adequate, its error inflated. Before, the
 ladder was (4, 4), (4, 2), (2, 0) with p ≥ 0.01: a thick film's fringes
 or four coinciding points at a fringe minimum fit no quadratic, and the
 factor was biased by up to 4 % or its error inflated ×17; and p ≥ 0.01
-let model bias of 0.2–0.4 σ through.
+let model bias of 0.2–0.4 σ through. ``rung_fit`` fits one rung alone and
+returns its curve (for studies that redo or average the guard's choice,
+``tests/tools/ref_guard_study.py``); it changes no number.
 
 **Prior.** δ_0 = ln(T(n_a)/T(n_b)) from the calibrated foils; across joins
 the foil errors are shared, so the prior on the steps is correlated
@@ -211,7 +213,57 @@ def _fit_once(a, b, order, n_ext, space, qc, qoff, likelihood, prior, snr_min):
         raise ValueError("likelihood %r: 'poisson' or 'log'" % likelihood)
     dof = n - X.shape[1]
     err_c = float(math.sqrt(cov[-1, -1]))
-    return dict(delta=float(th[-1]), err_c=err_c, chi2=chi2, dof=dof, ia=ia, ib=ib, sens=sens)
+    return dict(delta=float(th[-1]), err_c=err_c, chi2=chi2, dof=dof, ia=ia, ib=ib, sens=sens,
+                coef=np.array(th[:-1], float), centre=float(xm), half_width=float(xh))
+
+
+@dataclass
+class RungFit:
+    """One rung (order, points either side) of the joint fit, fitted alone
+    (``rung_fit``): δ, its counting error, χ², dof, and the curve, so that a
+    study can redo the guard's choice, or average over rungs, without
+    refitting, and draw what each rung fitted. ``coef`` are c_0..c_m of
+    Σ c_k u^k, u = (q − ``centre``)/``half_width``: ln(μ_a/R_F(q + q_off))
+    for ``space='rrf'``, ln μ_a for ``'raw'`` (μ_b = μ_a·exp(−δ))."""
+    order: int
+    n_ext: int
+    delta: float
+    err_counting: float
+    chi2: float
+    dof: int
+    coef: np.ndarray
+    centre: float
+    half_width: float
+    ia: np.ndarray
+    ib: np.ndarray
+    space: str = 'rrf'
+
+    @property
+    def p_chi2(self):
+        """The χ² p-value as the guard computes it (1 when dof is 0)."""
+        from scipy.stats import chi2 as C2
+        return float(C2.sf(self.chi2, self.dof)) if self.dof > 0 else 1.0
+
+    @property
+    def err(self):
+        """The error ``joint_factor`` reports at this rung (inflate-only)."""
+        return unc.inflate(self.err_counting, self.chi2, self.dof)
+
+    def curve(self, q):
+        """The fitted Σ c_k u^k at ``q`` (scan a's scale; module docstring)."""
+        u = (np.asarray(q, float) - self.centre) / self.half_width
+        return np.polynomial.polynomial.polyval(u, self.coef)
+
+
+def rung_fit(a, b, order=4, n_ext=N_EXT, space='rrf', qc=QC, qoff=0.0, likelihood='poisson', prior=None,
+             snr_min=0.0):
+    """The joint fit at one rung, without the guard: a ``RungFit`` with the
+    same δ, error, χ² and dof as ``joint_factor(a, b, order, n_ext,
+    guard_p=0)``, and the fitted curve. Raises ValueError as the fit does
+    (too few points)."""
+    r = _fit_once(a, b, order, n_ext, space, qc, qoff, likelihood, prior, snr_min)
+    return RungFit(order, n_ext, r['delta'], r['err_c'], r['chi2'], r['dof'], r['coef'], r['centre'],
+                   r['half_width'], r['ia'], r['ib'], space)
 
 
 def guard_ladder(a, b, order=4, n_ext=N_EXT, max_order=MAX_ORDER):

@@ -291,3 +291,31 @@ def test_the_guard_ladder_keeps_the_offset_identifiable():
         n_pos = len(np.unique(np.round(np.concatenate([a.q[ia], b.q[ib]]), 9)))
         assert o <= n_pos - 2 and o <= len(ia) + len(ib) - 4
     assert patching.guard_ladder(a, b)[0] == (4, patching.N_EXT)
+
+
+def test_rung_fit_is_the_joint_fit_at_one_rung_and_returns_its_curve():
+    """patching.rung_fit (2026-11-24, study A, tests/tools/ref_guard_study.py):
+    on every rung of the guard's ladder it gives joint_factor's δ, errors, χ²,
+    dof and points at that rung without the guard, bit for bit; its curve is
+    the fitted ln(μ_a/R_F): exact data on a quartic give the quartic back."""
+    a, b, _ = _fringe_minimum_join()
+    for o, e in patching.guard_ladder(a, b):
+        try:
+            j = patching.joint_factor(a, b, order=o, n_ext=e, guard_p=0)
+        except ValueError:
+            with pytest.raises(ValueError):
+                patching.rung_fit(a, b, o, e)
+            continue
+        r = patching.rung_fit(a, b, o, e)
+        assert (r.order, r.n_ext) == (o, e)
+        assert (r.delta, r.err, r.err_counting, r.chi2, r.dof) == (j.delta, j.err, j.err_counting, j.chi2, j.dof)
+        assert list(r.ia) == list(j.ia) and list(r.ib) == list(j.ib)
+        assert r.p_chi2 == pytest.approx(scipy_chi2_sf(r.chi2, r.dof), rel=1e-12)
+        assert len(r.coef) == o + 1
+    qa, qb = np.linspace(0.03, 0.12, 10), np.linspace(0.081, 0.205, 11)
+    lnr = lambda q: 1.0 - 30 * q + 50 * q ** 2 - 80 * q ** 3 + 60 * q ** 4
+    ya, yb = np.exp(lnr(qa)) * patching.fresnel(qa), np.exp(lnr(qb)) * patching.fresnel(qb) / 3.7
+    r = patching.rung_fit(Scan(qa, ya, 1e-3 * ya), Scan(qb, yb, 1e-3 * yb), order=4, n_ext=2)
+    q = np.linspace(qa[r.ia].min(), qb[r.ib].max(), 9)
+    assert r.curve(q) == pytest.approx(lnr(q), abs=1e-7)
+    assert math.exp(r.delta) == pytest.approx(3.7, rel=1e-8)
