@@ -189,11 +189,12 @@ def test_fork_and_rebuild_trigger_the_same_controls(qapp, recorder, dataset, tmp
     order, with the same result."""
     _answer_dialogs(recorder, dataset, tmp_path)
     forked, rebuilt = [], []
-    found_fork = sweep.run_state(make_window, qapp, recorder, dataset, 'spec_loaded', exercised=forked)
+    # a third of the controls (part 0 of 3): the rebuild path is the slow one (382 s for all of them, 2026-11-24)
+    found_fork = sweep.run_state(make_window, qapp, recorder, dataset, 'spec_loaded', (0, 3), exercised=forked)
     monkeypatch.setenv('LSS_SWEEP_FORK', '0')
-    found_rebuild = sweep.run_state(make_window, qapp, recorder, dataset, 'spec_loaded', exercised=rebuilt)
+    found_rebuild = sweep.run_state(make_window, qapp, recorder, dataset, 'spec_loaded', (0, 3), exercised=rebuilt)
     recorder.exceptions.clear()
-    assert len(forked) > 200
+    assert len(forked) > 60
     assert forked == rebuilt
     assert found_fork == found_rebuild
 

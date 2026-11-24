@@ -29,7 +29,7 @@ Times measured 2026-11-23 on a 4-CPU, 16 GB cloud container, parallel
 | `pytest` | fast suite: unit tests and GUI workflows on synthetic data | ~5 min (1176 tests, 2026-11-24: 6 min 13 s on 4 workers beside another agent's job, 861 s CPU in all, at most 1.6 GB per worker and 4.9 GB together; ~2 min at 761 tests on 2026-11-23; 9 min 44 s in one process before 2026-11-23) |
 | `pytest -m slow` | regressions on real data in `sample_data/` | ~4 min (487 tests; ~25 min in one process) |
 | `pytest -m bench -s` | timing table, rewrites `docs/timings.md` (always in one process) | ~30 s |
-| `pytest -m sweep` | crash inventory (see below); each state shared by 8 tests (`SWEEP_PARTS`), so more CPUs finish it sooner | ~20 min (193 tests; ~3 h in one process before 2026-11-23): longer than a foreground command may run, so start it in the background |
+| `pytest -m sweep` | crash inventory (see below); each state shared by 8 tests (`SWEEP_PARTS`), so more CPUs finish it sooner | ~9 min (194 tests, 2026-11-24, each control in a forked copy of the state window; 21 min 26 s building a window per control, `LSS_SWEEP_FORK=0`; ~3 h in one process before 2026-11-23): start it in the background |
 | `LSS_UPDATE_CRASHES=1 pytest -m sweep` | regenerate the crash baselines (always in one process) | longer: one process |
 | `LSS_SWEEP_TIMES=FILE pytest -m sweep` | also append each control's time (state, control, seconds) to FILE, to find a slow one | |
 | `pytest -n0 …` | in this one process (debuggers, `--pdb`) | |

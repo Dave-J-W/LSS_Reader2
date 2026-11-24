@@ -142,7 +142,7 @@ sessions do not edit the same lines.
     pytest                 # fast suite, ~5 min (1176 tests, 2026-11-24); run before every commit
     pytest -m slow         # real-data regressions, ~4 min
     pytest -m bench -s     # rewrites docs/timings.md
-    pytest -m sweep        # crash inventory, ~20 min: start it in the background; run after GUI-facing changes
+    pytest -m sweep        # crash inventory, ~9 min (forked copies, 2026-11-24): start it in the background; run after GUI-facing changes
     python -m lss_toolbox  # the Tools window on its own; --render rewrites docs/TOOLS.md, --stale, --audit
 
 No display is needed. Run from the repository root. Every suite runs in
