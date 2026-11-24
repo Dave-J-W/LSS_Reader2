@@ -9,6 +9,7 @@ is tested in test_toolbox_gui.py.
 import fnmatch
 import glob
 import os
+import re
 import subprocess
 
 import numpy as np
@@ -30,7 +31,19 @@ def parsers():
 
 
 def _path(ref):
-    return os.path.join(ROOT, ref.split(':')[0])
+    return os.path.join(ROOT, catalog.split_ref(ref)[0])
+
+
+def _anchor_ok(ref):
+    """A reference names a file that exists and, with '#text', text on
+    exactly one of its lines; never a line number, which moves when lines
+    are inserted (Main, 2026-11-24)."""
+    path, anchor = catalog.split_ref(ref)
+    assert not re.search(r':\d+$', path), 'cite a heading or a quote, not a line number: %s' % ref
+    full, line, hits = catalog.locate(ref, ROOT)
+    assert os.path.exists(full), ref
+    if anchor:
+        assert hits == 1, '%s: the anchor is on %d lines' % (ref, hits)
 
 
 # ---------------------------------------------------------------- catalogue
@@ -54,7 +67,7 @@ def test_catalogue_entries_are_well_formed():
         if t.script:
             assert os.path.isfile(os.path.join(ROOT, t.script)), t.script
         for ref in t.docs:
-            assert os.path.exists(_path(ref)), (t.id, ref)
+            _anchor_ok(ref)
         for c in t.committed:
             assert glob.glob(os.path.join(ROOT, c)), (t.id, c)
         for p in t.inputs:
@@ -63,12 +76,7 @@ def test_catalogue_entries_are_well_formed():
             assert any(t.repo_out == c or c.startswith(t.repo_out) for c in t.committed), t.id
         for v in t.variations:
             assert v.label and v.shows, (t.id, v)
-            path, _, line = v.source.partition(':')
-            assert os.path.exists(os.path.join(ROOT, path)), (t.id, v.label, v.source)
-            if line:
-                with open(os.path.join(ROOT, path), encoding='utf-8') as f:
-                    n = sum(1 for _ in f)
-                assert 1 <= int(line) <= n, (t.id, v.label, v.source)
+            _anchor_ok(v.source)
 
 
 def test_every_option_a_variation_sets_exists_in_its_script(parsers):

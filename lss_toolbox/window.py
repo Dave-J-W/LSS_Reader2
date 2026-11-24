@@ -112,9 +112,9 @@ def open_path(path):
 
 
 def doc_file(ref):
-    """'docs/x.md:12' -> absolute path of docs/x.md."""
-    path = ref.split(':')[0]
-    return os.path.join(ROOT, path)
+    """'docs/x.md#some text' -> absolute path of docs/x.md (catalog.locate
+    finds the line)."""
+    return os.path.join(ROOT, catalog.split_ref(ref)[0])
 
 
 def compare_images(path_a, path_b):

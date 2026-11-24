@@ -86,6 +86,26 @@ def test_mca_fit_lines_and_save(loaded, qapp, dataset, recorder):
     assert loaded.mcaFitDialog.isVisible()
 
 
+def test_fit_lines_reports_the_elements_line_not_the_tallest(loaded, qapp, dataset, recorder, monkeypatch):
+    """F90, P5 (2026-11-24): with a second line placed (an escape peak,
+    a neighbour) and taller, "Fit lines" still reports the first line
+    given. The fit is replaced by a known two-peak result."""
+    from lss_core import peaks
+    sweep.state_mca_frames(loaded, qapp, dataset)
+    n = len(loaded.selectedMcaScanNums)
+    tall = peaks.Peak(7.0, 0, 0.2, 0, 900.0, 9.0, 900.0 * 0.2 * 1.0645, 9.0, 'gaussian')
+    line = peaks.Peak(6.4, 0, 0.2, 0, 50.0, 2.0, 50.0 * 0.2 * 1.0645, 2.0, 'gaussian')
+    res = peaks.FitResult([tall, line], np.zeros(3), 6.7, 1.0, 1.0, (5.6, 7.8), 100, True)
+    monkeypatch.setattr(peaks, 'fit_series', lambda *a, **k: (res, [res] * n))
+    loaded.mcaFitOptions = peaks.FitOptions(centres=(6.4, 7.0), n_peaks=2)
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    step = float(np.median(np.diff(loaded.nomMcaData[loaded.selectedMcaScanNums[0]][:, 0])))
+    assert [r[3] for r in loaded.mcaIntData] == pytest.approx([line.area / step] * n)
+    assert 'line at 6.4' in loaded.command
+
+
 def test_fit_options_are_kept_between_sessions(loaded, qapp, recorder):
     loaded.cutFitOptionsPushButton.click()
     d = loaded.cutFitDialog
