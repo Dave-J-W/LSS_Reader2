@@ -135,3 +135,55 @@ def test_the_sample_height_scans_are_drawn_as_thumbnails(nx, qapp, recorder):
     assert th[10].data(0) == ('scan', 10)
     assert recorder.exceptions == []
 
+
+
+@needs_nx
+def test_a_new_sample_answer_is_kept_in_the_workbook_and_drawn(nx, qapp, recorder):
+    v = _show(nx, qapp).view
+    (event, line, label), = v.items['set_zero']
+    assert label.text() == 'new sample?'
+    nx.timelineAnswer(event.t, event.after_scan, 'same sample')
+    (event, line, label), = nx.timelineTab.view.items['set_zero']
+    assert label.text() == 'same sample' and 'Answered: same sample' in line.toolTip()
+    nx.timelineAnswer(event.t, event.after_scan, 'new sample')
+    (event, line, label), = nx.timelineTab.view.items['set_zero']
+    assert label.text() == 'new sample'
+    from lss_core import workbook
+    rows = workbook.Workbook(nx.workbookPath()).results('note')
+    assert [r['label'] for r in rows] == ['same sample', 'new sample'] and rows[0]['scans'] == '4'
+    assert recorder.exceptions == []
+
+
+@needs_nx
+def test_a_note_is_added_at_a_time(nx, qapp, recorder, monkeypatch):
+    from PyQt5 import QtWidgets
+    monkeypatch.setattr(QtWidgets.QInputDialog, 'getMultiLineText',
+                        lambda *a, **k: ('Trough cleaned\nwith ethanol', True))
+    v = _show(nx, qapp).view
+    t = v.items and nx.timelineTab.view.timeline.spans[5].t0 + 10
+    nx.timelineAddNote(t)
+    (box,) = nx.timelineTab.view.items['notes']
+    assert box.text() == 'Trough cleaned' and 'with ethanol' in box.toolTip()
+    monkeypatch.setattr(QtWidgets.QInputDialog, 'getMultiLineText', lambda *a, **k: ('', False))
+    nx.timelineAddNote(t)                                        # cancelled: nothing added
+    assert len(nx.timelineTab.view.items['notes']) == 1
+    assert recorder.exceptions == []
+
+
+@needs_nx
+def test_the_right_click_menu(nx, qapp, recorder):
+    from PyQt5.QtGui import QContextMenuEvent
+    v = _show(nx, qapp).view
+    (event, line, label), = v.items['set_zero']
+    pos = v.mapFromScene(label.scenePos()) + QPoint(3, 3)
+    v.contextMenuEvent(QContextMenuEvent(QContextMenuEvent.Mouse, pos, v.mapToGlobal(pos)))
+    assert [a.text() for a in v.contextMenu.actions() if a.text()] == ['A new sample', 'The same sample',
+                                                                         'Add a note here…']
+    got = []
+    v.answerGiven.connect(lambda t, n, a: got.append((n, a)))
+    v.contextMenu.actions()[1].trigger()
+    assert got == [(4, 'same sample')]
+    empty = v.mapFromScene(v.items['scans'][8].rect().center()) + QPoint(0, 200)
+    v.contextMenuEvent(QContextMenuEvent(QContextMenuEvent.Mouse, empty, v.mapToGlobal(empty)))
+    assert [a.text() for a in v.contextMenu.actions()] == ['Add a note here…']
+    assert recorder.exceptions == []

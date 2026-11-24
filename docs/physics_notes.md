@@ -5513,3 +5513,21 @@ noise in a grey frame; scans 5, 10 and 13 flat-topped). Verified by:
 tested (`test_gui_timeline.py::test_the_sample_height_scans_are_drawn_as_thumbnails`).
 No output number changes.
 
+### 2026-11-24 — Timeline: notes, and answering "new sample?"
+
+Research §5's proposal, built. A note is a workbook Saved row of kind
+`note`: its scans, a title (label), the text (note), and settings
+`{t0, t1, lane, event, answer}`. That gives ids, versions and Excel
+filtering, and needs no new sheet (the owner asked for fewer than eight).
+
+- The user's answer to a "set sh 0: new sample?" is such a note, with
+  `event` 'set-zero' and `answer` 'new sample' or 'same sample'. It is
+  matched to the event by time (within 1 s), and the latest answer
+  is drawn.
+- The tab reads the notes when it is built, and only from an existing
+  workbook: it never creates one just to look.
+
+Verified by: tested (`test_timeline.py::test_notes_round_trip_through_saved_rows`;
+`test_gui_timeline.py`: an answer kept and redrawn, a note added and
+cancelled, the right-click menu). No output number changes.
+

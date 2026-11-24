@@ -371,7 +371,15 @@ Each line: feature — where — default — script — notes entry (date).
     it; a grey frame and "no beam" when the scan saw no reflected beam.
   - **Scans:** one bar per scan, coloured by kind (reflectivity blue, GID
     green, sample height purple, burn red); aborted scans are paler.
+  - **Notes:** your notes, each at its time (a yellow band when it covers
+    a span).
   - Long gaps without scans are hatched across every lane.
+- **Right-click** the "new sample?" line to answer it: *A new sample* or
+  *The same sample*. The line then says so (grey and solid for the same
+  sample). Right-click anywhere else to **add a note** at that time; its
+  first line is its title. Answers and notes are kept in the SPEC file's
+  workbook as Saved rows of kind "note", with versions, so they come back
+  when the file is opened again. The latest answer is the one drawn.
 - The wheel zooms the time axis around the cursor; drag to pan;
   double-click or **Fit all** shows the whole file. Hover anything for
   details. Click a scan bar or an sh scan to select that scan (it opens on

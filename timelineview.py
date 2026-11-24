@@ -24,11 +24,12 @@ import time
 from PyQt5.QtCore import Qt, QRectF, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen, QTransform
 from PyQt5.QtWidgets import (QGraphicsEllipseItem, QGraphicsItem, QGraphicsPathItem, QGraphicsRectItem,
-                             QGraphicsScene, QGraphicsSimpleTextItem, QGraphicsView, QHBoxLayout, QLabel,
+                             QGraphicsScene, QGraphicsSimpleTextItem, QGraphicsView, QHBoxLayout, QLabel, QMenu,
                              QPushButton, QVBoxLayout, QWidget)
 
 AXIS_H = 22                                   # px at the top for the time axis
-LANES = (('events', 'Events', 46), ('sx', 'sx (mm)', 46), ('height', 'Sample height', 64), ('scans', 'Scans', 34))
+LANES = (('events', 'Events', 46), ('sx', 'sx (mm)', 46), ('height', 'Sample height', 64), ('scans', 'Scans', 34),
+         ('notes', 'Notes', 34))
 THUMB_W, THUMB_H = 64, 34                     # px: a sample-height scan's thumbnail
 KIND_COLOURS = {'reflectivity': '#1f77b4', 'gid': '#2ca02c', 'height': '#9467bd', 'burn': '#d62728',
                 'xfntr': '#ff7f0e', 'gisaxs': '#17becf', 'energy': '#bcbd22', 'other': '#8c8c8c'}
@@ -109,6 +110,8 @@ class HeightThumb(QGraphicsItem):
 class TimelineView(QGraphicsView):
     """The lanes. ``scanClicked(n)`` when a scan bar or an sh scan is clicked."""
     scanClicked = pyqtSignal(int)
+    answerGiven = pyqtSignal(float, int, str)       # a set-zero's time, the scan before it, the answer
+    noteWanted = pyqtSignal(float)                  # the time a note is to be added at
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -125,15 +128,20 @@ class TimelineView(QGraphicsView):
         self.t0 = 0.0
         self.span = 1.0
         self.offset = 0.0
-        self.items = {'scans': {}, 'heights': {}, 'events': [], 'steps': [], 'gaps': []}
+        self.items = {'scans': {}, 'heights': {}, 'events': [], 'steps': [], 'gaps': [], 'notes': [], 'set_zero': []}
+        self.notes = []
+        self.answer_of = lambda event: ''
 
     # ---- building
 
-    def set_timeline(self, tl):
+    def set_timeline(self, tl, notes=()):
+        from lss_core import timeline as timelinemod
         sc = self.scene()
         sc.clear()
-        self.items = {'scans': {}, 'heights': {}, 'events': [], 'steps': [], 'gaps': []}
+        self.items = {'scans': {}, 'heights': {}, 'events': [], 'steps': [], 'gaps': [], 'notes': [], 'set_zero': []}
         self.timeline = tl
+        self.notes = list(notes)
+        self.answer_of = timelinemod.answers(self.notes)
         t0, t1 = tl.range()
         if t0 is None:
             self.t0, self.span = 0.0, 1.0
@@ -153,6 +161,7 @@ class TimelineView(QGraphicsView):
         self._heights(tl)
         self._steps(tl)
         self._events(tl)
+        self._notes()
         self.fit_all()
 
     @staticmethod
@@ -279,13 +288,22 @@ class TimelineView(QGraphicsView):
             colour = EVENT_COLOURS.get(e.kind, '#555555')
             local = self.clock(e.t, True)
             if e.kind == 'set-zero':
-                line = self.scene().addLine(x, AXIS_H, x, total_height(), self._pen(colour, 1.6, Qt.DashLine))
+                answer = self.answer_of(e)
+                if answer == 'same sample':
+                    colour = '#8c8c8c'
+                style = Qt.DashLine if not answer else Qt.SolidLine
+                line = self.scene().addLine(x, AXIS_H, x, total_height(), self._pen(colour, 1.6, style))
                 line.setZValue(5)
                 tip = ('%s: %s reset from %g to 0 at %s (after scan %d). "set sh 0" is almost always a new sample, '
-                       'occasionally the same one after conditions changed (owner, F83): a guess to confirm' %
-                       (e.text, e.motor, e.old, local, e.after_scan))
+                       'occasionally the same one after conditions changed (owner, F83). %s Right-click to answer; '
+                       'the answer is kept in the workbook as a note.' %
+                       (e.text, e.motor, e.old, local, e.after_scan,
+                        ('Answered: %s.' % answer) if answer else 'Not answered yet: a guess to confirm.'))
                 line.setToolTip(tip)
-                self._label('new sample?', x + 0, y + 2, colour=colour, tip=tip, bold=True)
+                line.setData(0, ('set-zero', len(self.items['set_zero'])))
+                lab = self._label(answer or 'new sample?', x + 0, y + 2, colour=colour, tip=tip, bold=True)
+                lab.setData(0, ('set-zero', len(self.items['set_zero'])))
+                self.items['set_zero'].append((e, line, lab))
                 self.items['events'].append(line)
             elif e.kind == 'reset':
                 tip = ('%s at %s (after scan %d): re-referenced by %+.1f µm' %
@@ -303,6 +321,39 @@ class TimelineView(QGraphicsView):
                 tip = '%s at %s (%s)' % (e.text, local, 'file header' if e.after_scan == 0 else
                                           'after scan %d' % e.after_scan)
                 self.items['events'].append(self._marker(x, y + 40, 2.0, colour, tip))
+
+    def _notes(self):
+        y, h = lane_top('notes')
+        for n in self.notes:
+            if n.event:
+                continue                                           # an answer: shown on its event
+            x = self._x(n.t0)
+            tip = '%s\n%s\n(note %s v%d in the workbook, at %s)' % (n.label, n.text, n.rid, n.version,
+                                                                     self.clock(n.t0, True))
+            if n.t1 is not None and n.t1 > n.t0:
+                r = self.scene().addRect(QRectF(x, y + 4, n.t1 - n.t0, h - 8), QPen(Qt.NoPen),
+                                         QBrush(QColor(255, 230, 120, 120)))
+                r.setToolTip(tip)
+            box = self._label(n.label[:40], x, y + 8, colour='#5a4500', tip=tip)
+            box.setData(0, ('note', n.rid))
+            self.items['notes'].append(box)
+
+    def contextMenuEvent(self, ev):
+        """Right-click: answer a "new sample?", or add a note at that time."""
+        item = self.itemAt(ev.pos())
+        data = item.data(0) if item is not None else None
+        t = self.t0 + self.mapToScene(ev.pos()).x()
+        menu = QMenu(self)
+        if isinstance(data, tuple) and data[:1] == ('set-zero',):
+            e = self.items['set_zero'][data[1]][0]
+            for answer in ('new sample', 'same sample'):
+                act = menu.addAction('A new sample' if answer == 'new sample' else 'The same sample')
+                act.triggered.connect(lambda _=False, a=answer, e=e: self.answerGiven.emit(float(e.t), int(e.after_scan), a))
+            menu.addSeparator()
+        act = menu.addAction('Add a note here…')
+        act.triggered.connect(lambda _=False, t=t: self.noteWanted.emit(float(t)))
+        self.contextMenu = menu
+        menu.exec_(ev.globalPos())
 
     # ---- viewing
 
@@ -412,8 +463,8 @@ class TimelineTab(QWidget):
         v.addStretch(1)
         self.fitButton.clicked.connect(self.view.fit_all)
 
-    def show_timeline(self, tl, name=''):
-        self.view.set_timeline(tl)
+    def show_timeline(self, tl, name='', notes=()):
+        self.view.set_timeline(tl, notes)
         t0, t1 = tl.range()
         if t0 is None:
             self.infoLabel.setText('No scan of this file has a time.')

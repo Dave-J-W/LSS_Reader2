@@ -8086,6 +8086,8 @@ class MainWindow (QMainWindow):
             'The sample timeline (F83): scans, "set sh 0" (new sample?), re-referencing, aborts, sx moves and '
             'the sample-height scans with their width and flatness, on one time axis')
         tab.view.scanClicked.connect(self.timelineScanClicked)
+        tab.view.answerGiven.connect(self.timelineAnswer)
+        tab.view.noteWanted.connect(self.timelineAddNote)
         self.ui.PlotWidget.currentChanged.connect(self.timelineTabShown)
         tab.show_message('Open a SPEC file: its timeline is drawn here.')
 
@@ -8103,7 +8105,8 @@ class MainWindow (QMainWindow):
             self.timelineKey=None
             tab.show_message('Open a SPEC file: its timeline is drawn here.')
             return
-        key=(spec,os.path.getmtime(spec),os.path.getsize(spec))
+        book=self.workbookPath()
+        key=(spec,os.path.getmtime(spec),os.path.getsize(spec),os.path.getmtime(book) if os.path.exists(book) else None)
         if key==self.timelineKey and not force:
             return
         from lss_core.experiment import Experiment
@@ -8115,8 +8118,58 @@ class MainWindow (QMainWindow):
             tab.show_message('The timeline could not be read: %s (detail in the log).' % e)
             self.timelineKey=None
             return
-        tab.show_timeline(tl,os.path.basename(spec))
+        tab.show_timeline(tl,os.path.basename(spec),self.timelineNotes())
         self.timelineKey=key
+
+    def timelineNotes(self):
+        """The timeline's notes and answers, from the workbook's Saved rows of
+        kind 'note' (research §5); none when there is no workbook yet (it is
+        not created to look)."""
+        from lss_core import timeline as timelinemod
+        if not os.path.exists(self.workbookPath()):
+            return []
+        try:
+            return timelinemod.notes_from_rows(self.openWorkbook().results(timelinemod.NOTE_KIND))
+        except Exception as e:
+            self.log.info('timeline notes not read: %s',e,exc_info=True)
+            return []
+
+    def timelineSaveNote(self,item):
+        from lss_core import timeline as timelinemod
+        try:
+            wb=self.openWorkbook()
+            rid=wb.add_result(timelinemod.NOTE_KIND,origin='user',**item)
+            self.saveWorkbook(wb)
+        except Exception as e:
+            self.workbookCache=None
+            self.notify('The note could not be saved in the workbook %s: %s' % (self.workbookPath(),e),title='Timeline')
+            return None
+        self.updateTimeline(force=True)
+        return rid
+
+    def timelineAnswer(self,t,after_scan,answer):
+        """The user's answer to a "set sh 0: new sample?" (F83): a note in the
+        workbook; the latest answer is the one drawn."""
+        from lss_core import timeline as timelinemod
+        clock=self.timelineTab.view.clock(t,True)
+        item=timelinemod.note_item(t,answer,'set sh 0 at %s (after scan %d): %s' % (clock,after_scan,answer),
+                                   scans=[after_scan] if after_scan else [],event='set-zero',answer=answer)
+        if self.timelineSaveNote(item):
+            self.notify('Timeline: the set sh 0 at %s marked "%s" (a note in the workbook).' % (clock,answer),
+                        title='Timeline',level='info')
+
+    def timelineAddNote(self,t):
+        """A note at time t on the timeline: its first line is its title."""
+        from PyQt5.QtWidgets import QInputDialog
+        from lss_core import timeline as timelinemod
+        clock=self.timelineTab.view.clock(t,True)
+        text,ok=QInputDialog.getMultiLineText(self,'Timeline note','A note at %s (the first line is its title):' % clock,'')
+        text=str(text or '').strip()
+        if not ok or not text:
+            return
+        before=[s.scan for s in getattr(self.timelineTab.view.timeline,'spans',[]) if s.t0<=t]
+        item=timelinemod.note_item(t,text.split('\n',1)[0][:60],text,scans=before[-1:])
+        self.timelineSaveNote(item)
 
     def timelineScanClicked(self,scan):
         """A scan bar or an sh scan clicked on the timeline: select that scan."""

@@ -363,3 +363,9 @@ resets, aborts, macro files), SPEC session restarts, gaps, motor steps,
 sh scans with their fits, and the mnemonic table (sh → Sample_H). Times
 are Unix seconds (UTC). Research: `docs/gui/timeline/research.md`.
 
+Notes on the timeline are workbook Saved rows of kind `note`:
+`timeline.note_item(t0, label, text, scans, event, answer)` gives the
+`Workbook.add_result` keywords, `timeline.notes_from_rows(wb.results('note'))`
+reads them back, and `timeline.answers(notes)(event)` gives the latest
+answer to a "set sh 0: new sample?".
+

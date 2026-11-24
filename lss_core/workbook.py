@@ -78,7 +78,7 @@ HEADERS = {
     'Settings': ['section', 'key', 'value', 'updated'],
 }
 KINDS = ('reflectivity', 'gid map', 'gid cut', 'line cut', 'fluorescence', 'scan', 'peak fit', 'burn test',
-         'other')
+         'note', 'other')     # 'note': a timeline note or a "new sample?" answer (lss_core.timeline, F83)
 MAX_VALUES = 8
 
 
