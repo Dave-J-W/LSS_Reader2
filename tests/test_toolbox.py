@@ -121,6 +121,23 @@ def test_every_committed_figure_belongs_to_an_item():
     assert [p for p in figures if not claimed(p)] == []
 
 
+def test_every_committed_data_file_belongs_to_an_item():
+    """The same for the committed tables and data behind the figures
+    (docs/comparisons_data/, the folders of docs/figures/): a CSV nobody
+    can regenerate would go stale unseen (README files are hand-written)."""
+    out = subprocess.run(['git', 'ls-files', 'docs/comparisons_data', 'docs/figures', 'docs/manual/figures'],
+                         cwd=ROOT, capture_output=True, text=True)
+    if out.returncode != 0:
+        pytest.skip('no git')
+    files = [p for p in out.stdout.split() if os.path.basename(p) != 'README.md']
+    assert files
+    claims = [c for t in catalog.TOOLS for c in t.committed]
+
+    def claimed(p):
+        return any(p == c or p.startswith(c.rstrip('/') + '/') or fnmatch.fnmatch(p, c) for c in claims)
+    assert [p for p in files if not claimed(p)] == []
+
+
 def test_tools_page_is_the_rendering_of_the_catalogue():
     with open(render.PAGE, encoding='utf-8') as f:
         assert f.read() == render.page(), 'run: python -m lss_toolbox --render'
@@ -242,6 +259,27 @@ def test_pixel_comparison(tmp_path):
     assert d.state == 'differ' and d.box == (5, 6, 10, 12) and d.fraction == pytest.approx(6 / 600)
     assert compare.compare(tmp_path / 'a.png', tmp_path / 'd.png').state == 'size'
     assert compare.difference_rgb(str(tmp_path / 'a.png'), d.mask)[5, 10].tolist() == [255, 255, 255]
+
+
+def test_tables_compare_without_their_timing_column(tmp_path):
+    """The audit compares tables apart from a 'seconds' column (wall time of a
+    fit: ref_patch_survey, gid_method_survey, fit_scan_survey); every other
+    column, the comment lines and non-CSV files byte for byte."""
+    a, b, c, d = (tmp_path / n for n in ('a.csv', 'b.csv', 'c.csv', 'd.csv'))
+    a.write_text('# C37 header\nmethod,factor,seconds\njoint,1.25,0.0004\n')
+    b.write_text('# C37 header\nmethod,factor,seconds\njoint,1.25,0.0007\n')
+    c.write_text('# C37 header\nmethod,factor,seconds\njoint,1.26,0.0004\n')
+    d.write_text('# C37 other header\nmethod,factor,seconds\njoint,1.25,0.0004\n')
+    assert compare.tables_same(a, b)
+    assert not compare.tables_same(a, c) and not compare.tables_same(a, d)
+    e, f = tmp_path / 'e.md', tmp_path / 'f.md'
+    e.write_text('seconds 1\n')
+    f.write_text('seconds 2\n')
+    assert not compare.tables_same(e, f)
+    g, h = tmp_path / 'g.csv', tmp_path / 'h.csv'           # time_s of burn_nx is data, not a timing
+    g.write_text('time_s,I\n0,1\n')
+    h.write_text('time_s,I\n1,1\n')
+    assert not compare.tables_same(g, h)
 
 
 def test_build_args():

@@ -234,6 +234,9 @@ def test_without_the_repository_nothing_runs(qapp, recorder, monkeypatch):
     p = w.show_item('pinhole_figures')
     assert not p.runButton.isEnabled() and p.runButton.toolTip() == 'no tools here'
     assert w.statusBar().currentMessage() == 'no tools here'
+    for t in catalog.TOOLS:                 # every page opens without its parser (as in a packaged build)
+        w.show_item(t.id)
+        qapp.processEvents()
     w.close()
     window.wait_workers()
     assert recorder.exceptions == []
