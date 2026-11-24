@@ -195,6 +195,10 @@ def test_spec_reader_identical_to_eval_version(path, qapp):
     assert 'LastAbsorber' in data and 'LastMoncGain' in data
     data.pop('LastAbsorber')
     data.pop('LastMoncGain')
+    # area L (2026-11-24): the file header's full motor names (#O), kept for live re-reads
+    if 'MotorNames' in data:
+        assert 'MotorNames' not in old.Data and isinstance(data['MotorNames'], dict)
+        data.pop('MotorNames')
     par = {}
     for num, p in new.Par.items():
         p = dict(p)
@@ -224,6 +228,14 @@ def test_spec_reader_identical_to_eval_version(path, qapp):
             if k in p:
                 assert k not in old.Par[num]
                 del p[k]
+        # area L (2026-11-24): each motor also under its full #O name, with the
+        # value of its 8-character #P name; notes on #L/row counts, L against the
+        # angles and an Absorber motor that differs from #A (none on these files)
+        for k in [k for k in p if k not in old.Par[num] and len(k) > 8 and k[:8] in p]:
+            assert p[k] == p[k[:8]], (num, k)
+            del p[k]
+        for k in ('LabelMismatch', 'LMismatch', 'AbsorberMotor'):
+            assert k not in p, (num, k)
         par[num] = p
     assert _same(old.Data, data) and _same(old.Par, par)
 
