@@ -5468,3 +5468,38 @@ proven in ngui are carried over, not built twice. **Answer (owner,
 ngui shows the same view later. Verified by: the owner's answer only (the
 tab is not built yet).
 
+### 2026-11-24 — F83 phase 1c: the Timeline tab (first version)
+
+Built in the main window, as the owner chose: `timelineview.TimelineTab`,
+a QGraphicsView of `lss_core.timeline`, added as the last tab. Verified
+by: tested (`tests/test_gui_timeline.py`, 6 tests) and seen. On NX it
+draws:
+- 15 scan bars coloured by kind (scans 4 and 12 paler: aborted);
+- the "set sh 0" line at 10:37:39 local;
+- the three re-references, the four aborts and the 29 macro loads;
+- the 5 sx steps from 20 to 10 mm;
+- the four sh scans: 82, 81, 81 µm and p 3.4–3.5, scan 4 "no beam";
+- the 45 min gap after scan 2.
+
+How it behaves:
+- The time axis is drawn in the foreground on the file's local clock,
+  with ticks of 1 s to 1 day.
+- The wheel zooms the time axis only (×1.25 a notch), drag pans,
+  double-click fits.
+- A click selects the scan, and SpecPlot shows it with its super-Gaussian
+  fit.
+- The tab is built when shown and rebuilt when the file's size or time
+  changed (Update, Live).
+
+**Not yet:** thumbnails of the sh scans, notes (a Saved row of kind
+`note`, research §5), confirming or rejecting "new sample?", the
+reduced-data and environment lanes, and level of detail for thousands of
+scans (research measured 3,000 bars at 9 ms a redraw).
+
+### 2026-11-24 — The Timeline tab's place (owner)
+
+**Owner:** "Put the timeline tab in main window, furthest to the right."
+It is so: the last tab, after 2D_Plot (seen in a window: SpecPlot,
+Pilatus, Reflectivity, Line/Area Cuts, MCA, Plot, 2D_Plot, Timeline).
+Verified by: test (`test_gui_timeline.py::test_the_tab_is_last_and_says_what_to_do_before_a_file`).
+

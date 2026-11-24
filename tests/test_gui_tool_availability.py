@@ -86,3 +86,56 @@ def test_worksheet_patch_on_frames_without_gid_levels_says_so(loaded, qapp, data
     qapp.processEvents()
     assert recorder.exceptions == []
     assert any('no GID levels' in m or 'nothing to patch' in m for m in recorder.messages)
+
+
+@pytest.mark.parametrize('pinhole', [True, False])
+def test_a_refused_gid_patch_leaves_the_frames_shown(loaded, qapp, dataset, recorder, pinhole):
+    """Found by the crash sweep's random walks (2026-11-24, after the
+    Timeline tab changed them): GID Patch on frames that hold no GID level
+    is refused ("has no detector column"), but the GID display stayed on,
+    so the next redraw (Log Int, Axes, the view) raised AttributeError
+    (pilGIDXAxs, pilGIDxlabel) or IndexError (gid.products) in
+    pilGIDPlot. The frames come back instead."""
+    sweep.state_pilatus_two_scans_all_frames(loaded, qapp, dataset)
+    loaded.seriesWhere = {}                      # as if the kind were unknown: the button is enabled
+    loaded.updateToolAvailability()
+    loaded.ui.pilSpecCheckBox.setChecked(pinhole)
+    qapp.processEvents()
+    loaded.gidPatchPushButton.click()
+    qapp.processEvents()
+    assert loaded.pilGIDshow == 0
+    assert loaded.pilMode in ('movie', 'tiles', 'sum')         # the frames drawn again
+    loaded.ui.pilLogIntCheckBox.toggle()
+    qapp.processEvents()
+    loaded.ui.pilAxesComboBox.setCurrentIndex((loaded.ui.pilAxesComboBox.currentIndex() + 1) % 3)
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert recorder.messages
+
+
+
+def test_a_gid_map_without_a_common_qxy_range_is_refused_in_q_and_drawn_in_angles(loaded, qapp, dataset, recorder):
+    """The crash sweep's second find (2026-11-24): the legacy GID patch of
+    a reflectivity frame gives a map whose rows share no Qxy range, so its
+    Q grid is empty and gid.products raised IndexError; every later redraw
+    raised again. In Q it is now refused with the reason and the frames come
+    back; in Angles the map is drawn as before."""
+    import dataclasses
+    sweep.state_pilatus_one_frame(loaded, qapp, dataset)
+    loaded.seriesWhere = {}
+    loaded.updateToolAvailability()
+    loaded.gidParams = dataclasses.replace(loaded.gidParams, pinhole=False)
+    loaded.ui.pilAxesComboBox.setCurrentIndex(loaded.ui.pilAxesComboBox.findText('Q'))
+    qapp.processEvents()
+    loaded.gidPatchPushButton.click()
+    qapp.processEvents()
+    assert loaded.pilGIDshow == 0
+    assert any('no Qxy range common to its rows' in m for m in recorder.messages)
+    loaded.ui.pilLogIntCheckBox.toggle()
+    qapp.processEvents()
+    loaded.ui.pilAxesComboBox.setCurrentIndex(loaded.ui.pilAxesComboBox.findText('Angles'))
+    qapp.processEvents()
+    loaded.gidPatchPushButton.click()
+    qapp.processEvents()
+    assert loaded.pilGIDshow == 1
+    assert recorder.exceptions == []
