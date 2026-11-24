@@ -113,6 +113,39 @@
   shown: always
   tooltip: "while a saturation cue is shown"
   notes: "Since 2026-11-24 (F97): pixels above 1e5 counts/s amber, above 1.5e5 red (absorber needed), from raw counts over the point's Seconds, with a note in the frame's corner; the tooltip explains it only while a cue is shown. Measured: 11 frames selected -> 10 drawn (F#0-F#9) with no notice; frame titles, axis labels and colour bars overlap and the suptitle overprints the top row; at the default scale (min -2, max 1) the reflectivity frames are a uniform yellow. No overlay of the ROI, cut band or direct beam column, except a dashed line in Movie (read only). Phase-2 subject (image_display.md). Since 2026-11-24 (F88): redrawn in place, zoom kept across redraws, scans and sessions; nearest pixels; per-tile titles 'S# n pt k' and cursor readouts of the tile under the cursor; the house icon does Fit all."
+- id: pilRoiPanel
+  kind: plot
+  label: ""
+  where: "Pilatus, beside the frame (splitter)"
+  handler: pilRoiPanelShow
+  does: "The ROI close-up of the frame on show (F71): signal and background boxes drawn from sumROI's arithmetic, the profiles, the sums and the checks; follows the movie"
+  workflows: [reflectivity, burn-ref]
+  needs: "reflectivity, burn or direct-beam frames"
+  shown: "reflectivity-kind frames"
+  tooltip: true
+  notes: "Added 2026-11-24 (F71, F97; owner Q-IMG-7: a side panel always visible beside the frame, the same on both tabs). Hidden for other frames. Display only: lss_core.display.roi_boxes gives exactly the pixels TwoDDetector.sumROI sums (invariant I38)."
+- id: pilRoiLogCheckBox
+  kind: checkbox
+  label: "Log"
+  where: "Pilatus > ROI close-up"
+  handler: roiLogChanged
+  does: "Log colour scale of the close-up and log profiles; one setting for both tabs"
+  workflows: [reflectivity, burn-ref]
+  needs: ""
+  shown: "with the close-up"
+  tooltip: true
+  notes: "Added 2026-11-24 (F71: log by default). Kept until another SPEC file (pil_display['roi_log'])."
+- id: pilRoiCuesLabel
+  kind: label
+  label: "off centre 30 % · clipped 2 %"
+  where: "Pilatus > ROI close-up"
+  handler: pilRoiPanelShow
+  does: "The checks of the boxes on this frame: off centre (> 25 % of the half-width), clipped (> 1 % on or beyond the edge), background within 2 px, saturation, direct beam in a box, box off the frame"
+  workflows: [reflectivity, burn-ref]
+  needs: ""
+  shown: "with the close-up"
+  tooltip: true
+  notes: "Added 2026-11-24 (owner Q-IMG-7, second half: the thresholds as proposed; display only). Each check's reason in the tooltip."
 - id: pilHomePushButton
   kind: button
   label: "Home"
