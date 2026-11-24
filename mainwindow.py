@@ -4810,7 +4810,7 @@ class MainWindow (QMainWindow):
         rowsEdit=QLineEdit(page)
         rowsEdit.setObjectName('burnRowsLineEdit')
         rowsEdit.setPlaceholderText('all rows')
-        rowsEdit.setMaximumWidth(80)
+        rowsEdit.setFixedWidth(rowsEdit.fontMetrics().horizontalAdvance('0000:0000')+16)   # room for first:last
         rowsEdit.setEnabled(not rauto.isChecked())
         rowsEdit.setToolTip('GID: the detector rows summed, first:last (both included). With "Rows from frame" on, '
                             'the rows found are shown here after Analyse; off, type them and press Enter. Empty: all '
