@@ -263,6 +263,8 @@ def window(qapp, recorder, tmp_path):
     from mainwindow import MainWindow
     w = MainWindow()
     w.directory = str(tmp_path)
+    w.resize(1, 1)      # its minimum size, not mainwindow.ui's 3367 x 1281: every plot is still drawn, on about a
+    #                     third of the pixels (2026-11-22, the archived speed commit 69d8585: 23 % less CPU)
     w.show()
     qapp.processEvents()
     yield w
