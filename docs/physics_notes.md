@@ -5750,6 +5750,57 @@ comparison (below); reading only for the Q H quirk.
 ### 2026-11-24 — Qoff: typical size and resolution (F79, C50; asked for tools man, batch 19)
 
 Verified by: the owner's statements; nothing computed here. The owner called the typical Qz offset "roughly −5e-4" Å⁻¹ (asked: the resolution ΔQ near Qc; the question and the answer are about different quantities, so ΔQ remains unmeasured and a request for the local data agent is `DATA_NEEDS.md` row 13). Context: the study's proposal for NX school scans 6–9 is −0.00028 Å⁻¹ (−0.0016°), the same sign and order as the owner's typical offset, and the owner says offsets of that size are usual, so proposing a Qoff by default (nothing applied automatically) matches practice. The synthetic study's rule of thumb, a resolution reads as Qoff ≈ −0.15 × ΔQ (FWHM), is the tools session's, not rechecked: if the owner's −5e-4 were all resolution it would mean ΔQ ≈ 3e-3 Å⁻¹, which is larger than the 5e-4 to 1e-3 range the question assumed, so the two readings need the measurement of row 13.
+### 2026-11-24 — Timeline: sample-height scans as thumbnails
+
+The height lane now draws each sh scan small, 64 × 34 px at every zoom:
+its Pilatus/Monc points (grey), and its super-Gaussian (purple) when
+fitted. `lss_core.timeline.HeightScan` keeps the points (x, y), with y
+the values fitted, on the mean monitor's scale. Seen on NX (scan 4's
+noise in a grey frame; scans 5, 10 and 13 flat-topped). Verified by:
+tested (`test_gui_timeline.py::test_the_sample_height_scans_are_drawn_as_thumbnails`).
+No output number changes.
+
+### 2026-11-24 — Timeline: notes, and answering "new sample?"
+
+Research §5's proposal, built. A note is a workbook Saved row of kind
+`note`: its scans, a title (label), the text (note), and settings
+`{t0, t1, lane, event, answer}`. That gives ids, versions and Excel
+filtering, and needs no new sheet (the owner asked for fewer than eight).
+
+- The user's answer to a "set sh 0: new sample?" is such a note, with
+  `event` 'set-zero' and `answer` 'new sample' or 'same sample'. It is
+  matched to the event by time (within 1 s), and the latest answer
+  is drawn.
+- The tab reads the notes when it is built, and only from an existing
+  workbook: it never creates one just to look.
+
+Verified by: tested (`test_timeline.py::test_notes_round_trip_through_saved_rows`;
+`test_gui_timeline.py`: an answer kept and redrawn, a note added and
+cancelled, the right-click menu). No output number changes.
+
+### 2026-11-24 — F80 / F105: the Compare tab and the ratio of two reduced curves
+
+The owner's F80 (compare reduced data across places and over time, for
+stability) and Q-REF-5 (a tab only for comparing, fed by the workbook,
+"provided the new data auto-update"). Built: `lss_core.compare` (no Qt)
+and the Compare tab. Verified by: tested (`tests/test_compare.py`,
+`tests/test_gui_compare.py`).
+
+- **The ratio** of curve 2 over curve 1 is taken on curve 1's Qz inside
+  the common range, with curve 2 interpolated linearly in log R against
+  log Qz. Above the critical edge R ≈ (Qc/2Qz)⁴ (Fresnel), and that
+  interpolation follows a power law exactly. Measured on a synthetic
+  Qz⁻⁴ curve on a coarser grid: ratio 2.000 to 1e-9; interpolating log R
+  against Qz instead was up to 4 % off at low Qz. This is the reason for
+  the choice.
+- **The error** adds relative errors in quadrature,
+  σ_r = r √((σ₁/R₁)² + (σ₂/R₂)²) (independent values; Bevington and
+  Robinson, ch. 3, from memory). The interpolation correlates neighbouring
+  ratio points, which this ignores.
+- **Updating:** the tab re-reads the workbook when shown and after every
+  save or live remake while it is on show; "Follow new" ticks new curves.
+  No output number changes.
+
 
 ### 2026-11-24 — The beam's vertical size at the sample, from height scans (DATA_NEEDS row 9, F43, OQ-2)
 
