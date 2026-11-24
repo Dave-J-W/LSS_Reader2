@@ -19,7 +19,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 |---|---|---|
 | Main (orchestrator) | ~~F81 repeats summed (ΣN/ΣM)~~, ~~F91 "Sum All" really sums, every view per Monc~~, ~~F87 burn kind from Det_Th > 2°~~, ~~P47 per-frame incidence~~, ~~half-written SPEC lines~~: all done 2026-11-23 | the rest of area L (fragile assumptions); the list-text lookups as item data (`Qt.UserRole`) once GUI manager says F88/F69 has merged (agreed 2026-11-24); F79 Qoff from R/R_F continuity, F97 diffuse cut axes, F98 dose axis (core parts), F92 masks: to be assigned |
 | GUI manager | F88 sticky display (Home/Fit all) and the F69 movie: **holds `updatePilPlotData`, `pilMovieShow`, `update2dPlots` and the pilMin/Max slider handlers until it says merged** (2026-11-23; keeps the display per Monc, `test_monc_normalised.py`); F86 Reduction options built (switches for `sum_all_legacy_average`, `gisaxs_raw_counts`, `repeats_legacy_average`) | Q-GID-5, F95–F97 display; then the timeline tab (F83), then ngui |
-| tools man | the three slow tests failing since the patching commits (one commit per cause), then the gauntlet records (item 2) | F90 MCA fit gauntlet: full run, results as C42; then extension 4 |
+| tools man | TODO area L, the parser and file-name rows (assigned 2026-11-24): file names by `os.path`, the `#B0` dot, `#L` count check, `#P`→`#O` motor names, `#A` precedence, SpecPlot's default x, the L-as-Qz check; out of the GUI manager's held display functions | (Main assigns) |
 | questor | the owner's questions and their answers in `docs/`; the data needs (`docs/DATA_NEEDS.md`, with tools man's blank-spectrum request) | (its own order) |
 
 ## Remaining work by area (regrouped 2026-11-21, review `docs/reviews/2026-11-21-todo-review.md`)
