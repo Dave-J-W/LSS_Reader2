@@ -136,7 +136,7 @@ sessions do not edit the same lines.
 ## Commands
 
     pip install -r requirements-dev.txt   # a fresh cloud session lacks PyQt5 etc.: ~10 s
-    pytest                 # fast suite, ~2 min; run before every commit
+    pytest                 # fast suite, ~5 min (1176 tests, 2026-11-24); run before every commit
     pytest -m slow         # real-data regressions, ~4 min
     pytest -m bench -s     # rewrites docs/timings.md
     pytest -m sweep        # crash inventory, ~20 min: start it in the background; run after GUI-facing changes

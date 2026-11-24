@@ -26,7 +26,7 @@ Times measured 2026-11-23 on a 4-CPU, 16 GB cloud container, parallel
 
 | Command | What | Time |
 |---|---|---|
-| `pytest` | fast suite: unit tests and GUI workflows on synthetic data | ~2 min (761 tests; 9 min 44 s in one process before 2026-11-23) |
+| `pytest` | fast suite: unit tests and GUI workflows on synthetic data | ~5 min (1176 tests, 2026-11-24: 6 min 13 s on 4 workers beside another agent's job, 861 s CPU in all, at most 1.6 GB per worker and 4.9 GB together; ~2 min at 761 tests on 2026-11-23; 9 min 44 s in one process before 2026-11-23) |
 | `pytest -m slow` | regressions on real data in `sample_data/` | ~4 min (487 tests; ~25 min in one process) |
 | `pytest -m bench -s` | timing table, rewrites `docs/timings.md` (always in one process) | ~30 s |
 | `pytest -m sweep` | crash inventory (see below); each state shared by 8 tests (`SWEEP_PARTS`), so more CPUs finish it sooner | ~20 min (193 tests; ~3 h in one process before 2026-11-23): longer than a foreground command may run, so start it in the background |
