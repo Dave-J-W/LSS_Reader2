@@ -49,6 +49,9 @@ DEFAULTS = {
     # MCA "Fit lines": True fits each spectrum's heights by Poisson maximum likelihood (F90 P1);
     # off by default until the owner's study (2026-11-24): least squares weighted by the data's σ
     'mca_fit_poisson': False,
+    # MCA "Fit lines" options (F90 P2, P3; options, not defaults, 2026-11-24): the line width from
+    # the detector's resolution (its electronic noise FWHM, keV) and Si escape stripping
+    'mca_line_options': {'detector_width': False, 'noise_kev': 0.12, 'strip_escape': False},
     # ngui: a second window sketching the proposed layout (non-functional prototype, F82;
     # docs/gui/prototype.md); off by default (owner, 2026-11-23)
     'ngui': False,
