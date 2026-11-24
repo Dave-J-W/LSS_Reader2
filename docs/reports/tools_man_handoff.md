@@ -72,3 +72,20 @@ Commits on the branch, going to main as one pull request once the sweep passes:
 - P1–P4 and the guard question went to questor as one batch.
 
 Next: report to Main and ask for the next assignment. TODO area L's other rows are not mine unless Main assigns them.
+
+## 2026-11-24, later: TODO area L, parser and file-name rows (Main's six)
+
+All six are committed on the branch, one per commit with its test:
+
+| Commit | Change | Test |
+|---|---|---|
+| 763b818 | `lss_core.paths` | `test_paths.py` |
+| 907b344 | `LabelMismatch` | `test_spec_labels.py` |
+| 2d7ea3e | motors under both their names | `test_spec_motor_names.py` |
+| 84f9325 | `#A` wins | `test_spec_absorber_order.py` |
+| e677fe9 | `lss_core.scanaxes` | `test_scanaxes.py` |
+| 6409592 | `lss_core.lattice`, I35 | `test_lattice.py` |
+
+c5f…: the reader identity test lists these additions.
+
+Suites: quick 913 passed, slow 484 passed. The sweep was running at the time of writing. After it: PR, merge, report to Main.
