@@ -786,7 +786,7 @@ Variations:
 The owner's study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with every estimator's fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass rates and the robustness map (B1-B7), from the gauntlet's study run.
 
 - Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/mca_study.py`
-- Explained in: `docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line`
+- Explained in: `docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line`, `docs/studies/mca_fit/summary.md`, `docs/COMPARISONS.md#| C46 |`
 - Committed products: `docs/studies/mca_fit`; not replaced from the window
 - Run:
 

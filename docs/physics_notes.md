@@ -5123,3 +5123,34 @@ but **P1's default switch waits**: tools man builds P1, P2 and P3 as
 code paths with today's weighting kept as the default.
 
 Verified: nothing yet (a plan).
+
+### 2026-11-24 — Study B, MCA line intensities: the owner's study of F90's decisions (tools man)
+
+Verified by: runs on synthetic spectra, with tests for the pieces. The
+full write-up, figures B1–B7 and the commands are in
+`docs/studies/mca_fit/summary.md` (C46).
+
+**Question (owner, 2026-11-24, on batch 15):** "I want a full study (is
+real data needed? Better synthetic? Show some synthetic data replicates
+and their fits! Show me stats in graphical form!)" for the MCA decision.
+
+**Answer, in brief:**
+- **P1.** Data weights read a weak line low, as −19/N: −23 % at 100
+  counts, −5 % at 400. P1 removes the bias and costs nothing at high
+  counts. This holds whatever the background, so no real data are
+  needed for it.
+- **The window sum** fails whenever beam scatter lies under the box:
+  everywhere in the robustness map, and the hard XFNTR curve is off by
+  68 % at its worst point.
+- **Zn under 10 keV.** No estimator is within 1 %. P1+P2+P3 comes
+  closest, at −7 % with fits failing. The O 1s Compton wing decides, and
+  its size is the synthetic data's main uncertainty. A blank spectrum
+  measures it (DATA_NEEDS row 3).
+- **At a 12 keV beam** the same case passes with P1 alone: +0.5 %, pull
+  SD 1.07, no failures. At 11 keV, P1+P3 reads +0.3 %.
+
+**The generator was improved for the study.** Water's Compton scatter is
+now computed shell by shell in the impulse approximation, with hydrogenic
+momentum densities and binding cut-offs. The effective charges are from
+memory, and Hartree–Fock tables were not available offline. Not checked
+against real spectra.
