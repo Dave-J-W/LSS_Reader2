@@ -33,7 +33,7 @@ import traceback
 import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
-from lss_core import cuts, mcafiles, paths
+from lss_core import cuts, mcafiles, paths, scanaxes
 from lss_core import gid as gidmod
 from lss_core import pinhole
 from lss_core import peaks
@@ -1412,10 +1412,9 @@ class MainWindow (QMainWindow):
                 self.ui.spY2ComboBox.addItems(['None'])
                 self.ui.spY2ComboBox.addItems(self.specData[self.selectedScanNums[0]]['ScanVar'])
                 self.ui.spNComboBox.addItems(self.specData[self.selectedScanNums[0]]['ScanVar'])
-                if self.specData[self.selectedScanNums[0]]['ScanVar'][0]=='H':
-                    self.ui.spXComboBox.setCurrentIndex(2)
-                else:
-                    self.ui.spXComboBox.setCurrentIndex(0)
+                first=self.specData[self.selectedScanNums[0]]
+                # an hklscan: the index that moves (the #S command, else the column that varies), not L whatever
+                self.ui.spXComboBox.setCurrentIndex(scanaxes.default_x(first['ScanVar'],first,first.get('ScanLine','')))
                 self.ui.spYComboBox.setCurrentIndex(len(self.specData[self.selectedScanNums[0]]['ScanVar'])-1)
                 self.ui.spY2ComboBox.setCurrentIndex(0)
                 cols=list(self.specData[self.selectedScanNums[0]]['ScanVar'])
