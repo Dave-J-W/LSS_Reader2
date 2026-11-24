@@ -207,6 +207,9 @@ FRAMES = {
             C('pilAspectComboBox', 'Aspect'),
             ROW(C('pilMinHorizontalSlider', 'Low %'), C('pilMinLineEdit', '')),
             ROW(C('pilMaxHorizontalSlider', 'High %'), C('pilMaxLineEdit', '')),
+            ROW(C('pilHomePushButton', 'Home', note='The remembered zoom (F88)'),
+                C('pilFitAllPushButton', 'Fit all', note='The whole frame (F88)'),
+                C('pilAutoScalePushButton', 'Auto scale', note='Automatic limits again (F88)')),
             CAPTION('Zoom, map, scale and limits stay put while frames play (F70)'),
         ]),
         G('Views', 'Views', [

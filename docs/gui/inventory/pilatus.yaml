@@ -79,18 +79,18 @@
   needs: "frames selected"
   shown: always
   tooltip: false
-  notes: "Movie and GISAXS switch it to Q silently. Cut directions in pixels or Q are chosen separately in pilCutDirComboBox, not linked to this."
+  notes: "Kept between sessions until another SPEC file is opened (F88, 2026-11-24); the zoom follows a change of Axes onto the same pixels. Movie and GISAXS switch it to Q silently. Cut directions in pixels or Q are chosen separately in pilCutDirComboBox, not linked to this."
 - id: pilCMapComboBox
   kind: combo
   label: "CMap:"
   where: "Pilatus"
   handler: update2dPlots
-  does: "Colour map (jet, gray, hot, summer, winter, rainbow)"
+  does: "Colour map (viridis by default; magma, inferno, cividis, jet, gray, hot, summer, winter, rainbow)"
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: ""
   shown: always
-  tooltip: false
-  notes: "List differs from 2D_Plot ('nipy_spectral' there, formerly 'spectral'; 'rainbow' here). Since 2026-11-23 it also colours the Reflectivity ROI images (refAnalyze), which used the removed Apex tab's map before. Not kept between sessions (F70)."
+  tooltip: true
+  notes: "List differs from 2D_Plot ('nipy_spectral' there, formerly 'spectral'; 'rainbow' here). Since 2026-11-23 it also colours the Reflectivity ROI images (refAnalyze), which used the removed Apex tab's map before. Since 2026-11-24 viridis is the default (owner Q-IMG-14; jet stays), with a tooltip, and the choice is kept between sessions until another SPEC file is opened (F88)."
 - id: pilAspectComboBox
   kind: combo
   label: "Aspect:"
@@ -107,12 +107,45 @@
   label: ""
   where: "Pilatus"
   handler: ""
-  does: "Up to 10 selected frames in a grid, each with a colour bar, or one summed frame, GISAXS or GID map; matplotlib toolbar below"
+  does: "The selected frames (at most 6 tiles, sampled, one shared colour bar), one summed frame, GISAXS or GID map; matplotlib toolbar below with Home, Fit all and Auto scale"
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "frames selected"
   shown: always
   tooltip: false
-  notes: "Measured: 11 frames selected -> 10 drawn (F#0-F#9) with no notice; frame titles, axis labels and colour bars overlap and the suptitle overprints the top row; at the default scale (min -2, max 1) the reflectivity frames are a uniform yellow. No overlay of the ROI, cut band or direct beam column, except a dashed line in Movie (read only). Phase-2 subject (image_display.md)."
+  notes: "Measured: 11 frames selected -> 10 drawn (F#0-F#9) with no notice; frame titles, axis labels and colour bars overlap and the suptitle overprints the top row; at the default scale (min -2, max 1) the reflectivity frames are a uniform yellow. No overlay of the ROI, cut band or direct beam column, except a dashed line in Movie (read only). Phase-2 subject (image_display.md). Since 2026-11-24 (F88): redrawn in place, zoom kept across redraws, scans and sessions; nearest pixels; per-tile titles 'S# n pt k' and cursor readouts of the tile under the cursor; the house icon does Fit all."
+- id: pilHomePushButton
+  kind: button
+  label: "Home"
+  where: "Pilatus (image toolbar)"
+  handler: pilHome
+  does: "Back to the remembered zoom: the last box drawn with the zoom tool (the whole frame if none)"
+  workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid, general]
+  needs: "frames shown"
+  shown: always
+  tooltip: true
+  notes: "F88 (owner Q9, 2026-11-23: every axis gets Home and Fit all). The zoom box sets it; a pan does not. On the GID map or GISAXS it fits every axes, as Fit all."
+- id: pilFitAllPushButton
+  kind: button
+  label: "Fit all"
+  where: "Pilatus (image toolbar)"
+  handler: pilFitAll
+  does: "Shows the whole frame; the remembered zoom stays for Home"
+  workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid, general]
+  needs: "an image shown"
+  shown: always
+  tooltip: true
+  notes: "F88. matplotlib's own Home (house icon) does the same since 2026-11-24 (its view stack no longer matches the in-place redraws)."
+- id: pilAutoScalePushButton
+  kind: button
+  label: "Auto scale"
+  where: "Pilatus (image toolbar)"
+  handler: pilAutoScale
+  does: "Forgets the typed Min and Max of this kind of frame: automatic limits again"
+  workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid, general]
+  needs: "frames shown"
+  shown: always
+  tooltip: true
+  notes: "F88/F70: automatic = 99.9th percentile of the selection per Monc with the direct beam masked, 1st percentile at the bottom (owner Q8, Q-IMG-4; lss_core.display.robust_limits)."
 - id: pilLogIntCheckBox
   kind: checkbox
   label: "Log Int"
@@ -122,8 +155,8 @@
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: ""
   shown: always
-  tooltip: false
-  notes: "Off by default although most frames need it (observed). Name differs from LogX/LogY elsewhere."
+  tooltip: true
+  notes: "Since 2026-11-24 the default follows the kind of frame (owner Q8: log for reflectivity, GID, GISAXS; linear for direct beam and dark) and the user's choice is kept per kind until another SPEC file (F88); tooltip. Name differs from LogX/LogY elsewhere."
 - id: pilPinholeCheckBox
   kind: checkbox
   label: "Pinhole"
@@ -151,12 +184,12 @@
   label: "Min (%):"
   where: "Pilatus"
   handler: updatePilMinSlider
-  does: "Lower end of the colour scale as a percentage of the image range"
+  does: "Lower end of the colour scale, from the smallest to the largest value shown (evenly in log10 on a log scale)"
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "frames selected"
   shown: always
   tooltip: false
-  notes: "Acts on release only."
+  notes: "Acts on release only. Before 2026-11-24 it gave slider x (max - min) / 100 without adding min; now min + ..., and a value set here is kept for the kind of frame (F88)."
 - id: pilMinLineEdit
   kind: lineedit
   label: ""
@@ -166,14 +199,14 @@
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "frames selected"
   shown: always
-  tooltip: false
-  notes: "Observed '-2.0' under the label 'Min (%)': the field holds an intensity (log10 when Log Int), not a percent. Same on 2D_Plot."
+  tooltip: true
+  notes: "Observed '-2.0' under the label 'Min (%)': the field holds an intensity (log10 when Log Int), not a percent. Same on 2D_Plot. Since 2026-11-24 filled automatically (1st percentile; of the positive pixels on a log scale, so a negative Min can no longer make the log view NaN) and kept when typed (F88)."
 - id: pilMaxHorizontalSlider
   kind: slider
   label: "Max (%):"
   where: "Pilatus"
   handler: updatePilMaxSlider
-  does: "Upper end of the colour scale as a percentage of the image range"
+  does: "Upper end of the colour scale, from the smallest to the largest value shown (evenly in log10 on a log scale)"
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "frames selected"
   shown: always
@@ -188,8 +221,8 @@
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "frames selected"
   shown: always
-  tooltip: false
-  notes: "Observed 1.0 for S# 3 frames and 5.0 for S# 11: defaults that saturate."
+  tooltip: true
+  notes: "Observed 1.0 for S# 3 frames and 5.0 for S# 11: defaults that saturate. Since 2026-11-24 filled automatically (99.9th percentile of the selection per Monc, direct beam masked; owner Q8, Q-IMG-4); a typed value (Enter) is kept for the kind of frame until Auto scale or another SPEC file (F88)."
 - id: pilMergeSameQzCheckBox
   kind: checkbox
   label: "Merge Same Qzs"

@@ -44,6 +44,7 @@ from lss_core import trends as trendmod
 from lss_core import burn as burnmod
 from lss_core import series as seriesmod
 from lss_core import live as livemod
+from lss_core import display
 from lss_core.absorbers import ABSFAC_10KEV
 from lss_core.monitor import gain_factor, scan_rate
 from lss_core.experiment import monitor_factor, absorber_setting
@@ -218,6 +219,7 @@ class MainWindow (QMainWindow):
         self.initAbsFacFromEnergy()
         self.initPreferences()
         self.initToolsMenu()
+        self.initPilDisplay()
         self.gidParams=gidmod.GIDParams()     # GID patch settings (worksheet, F61)
         self.gidJoinLog=[]
         self.gidLevels=[]
@@ -615,6 +617,7 @@ class MainWindow (QMainWindow):
         self.specFileName=fname
         if self.specFileName!='':
             self.clearAll()
+            self.pilDisplayForFile(self.specFileName)   # a new SPEC file resets the display (F88)
             self.directory=str(QFileInfo(self.specFileName).absolutePath())
             self.directory_old=self.directory
             logpath,fallback=reader_log.attach_spec_log(self.specFileName)
@@ -3426,23 +3429,9 @@ class MainWindow (QMainWindow):
             else:
                 self.pilFrameNumsWithSameQz[float(format(self.pilFileQzs[i],'.4f'))]=[i]
                 self.pilFrameAbsWithSameQz[float(format(self.pilFileQzs[i],'.4f'))]=[self.pil_AbsNum[i]]
-        try:
-            # the range of what is drawn: the first frame per Monc (owner, 2026-11-23); a range
-            # below 1 is normal now, so only a frame without any positive value falls back to 1
-            first=self.pilFrameNormalised(self.selectedPilFramesNums[0])[0]
-            self.imageMax=np.max(first)
-            if not self.imageMax>0:
-                self.imageMax=1
-            self.imageMin=np.min(first[np.nonzero(first)])
-        except:
-            self.imageMax=100
-            self.imageMin=0
-        self.ui.pilMaxLineEdit.setText(str(self.imageMax))
-        self.ui.pilMinLineEdit.setText(str(self.imageMin))
-        self.ui.pilMinHorizontalSlider.setRange(0, 100)
-        self.ui.pilMaxHorizontalSlider.setRange(0, 100)
-        self.ui.pilMinHorizontalSlider.setValue(0)
-        self.ui.pilMaxHorizontalSlider.setValue(100)
+        # the range of what is drawn (imageMax/imageMin, per Monc, owner 2026-11-23) and the colour
+        # limits are set by the redraw (pilDrawFrames); here the kind of frame and its log default
+        self.pilSetKind()
 #        try:
         self.ui.PlotWidget.setCurrentWidget(self.ui.pilatusTab)
         self.updatePilPlotData()
@@ -3450,14 +3439,20 @@ class MainWindow (QMainWindow):
 #            self.messageBox('Warning:: Some scans maybe missing')
             
     def updatePilMaxSlider(self):
-        self.ui.pilMaxLineEdit.setText(str(self.ui.pilMaxHorizontalSlider.value()*(self.imageMax-self.imageMin)/100.0))
-        self.ui.pilMinHorizontalSlider.setMaximum(int(float(self.ui.pilMaxLineEdit.text())*100.0/(self.imageMax-self.imageMin)))
-        self.updatePilPlotData()
-        
+        log=self.ui.pilLogIntCheckBox.checkState()!=0
+        v=display.slider_value(self.ui.pilMaxHorizontalSlider.value(),self.imageMin,self.imageMax,log)
+        self.ui.pilMaxLineEdit.setText('%.6g' % v)
+        self.ui.pilMinHorizontalSlider.setMaximum(max(display.slider_position(v,self.imageMin,self.imageMax,log),0))
+        self.pilLimitsTyped()
+
     def updatePilMinSlider(self):
-        self.ui.pilMinLineEdit.setText(str(self.ui.pilMinHorizontalSlider.value()*(self.imageMax-self.imageMin)/100.0))
-        self.updatePilPlotData()
-        
+        # the slider runs from imageMin to imageMax, evenly in log10 on a log scale (before
+        # 2026-11-23: slider x (max - min) / 100, without min; lss_core.display.slider_value)
+        log=self.ui.pilLogIntCheckBox.checkState()!=0
+        v=display.slider_value(self.ui.pilMinHorizontalSlider.value(),self.imageMin,self.imageMax,log)
+        self.ui.pilMinLineEdit.setText('%.6g' % v)
+        self.pilLimitsTyped()
+
     def addBGImagestoList(self):
         if self.det is None or len(self.ui.imageListWidget.selectedItems())==0:
             self.messageBox('Please select the background images in the image list first!')
@@ -3575,171 +3570,522 @@ class MainWindow (QMainWindow):
         return d*one,x*one,y*one
 
     def updatePilPlotData(self):
-        aspect=str(self.ui.pilAspectComboBox.currentText())
         if self.pilGIDshow==0 and self.pilGISAXSshow==0 and len(self.selectedPilFramesNums)!=0:
-            if len(self.selectedPilFramesNums)>10 and self.ui.gixSumCheckBox.checkState()<1:
-                #self.messageBox("The number of selected frames are more than 10. So plotting only first 10 images")
-                N=10
-            else:
-                N=len(self.selectedPilFramesNums)    
-            self.ui.pilMplWidget.canvas.fig.clf()
-            cmap=str(self.ui.pilCMapComboBox.currentText())
-            self.ui.pilMaxHorizontalSlider.setValue(int(float(self.ui.pilMaxLineEdit.text())*100/(self.imageMax-self.imageMin)))
-            self.ui.pilMinHorizontalSlider.setValue(int(float(self.ui.pilMinLineEdit.text())*100/(self.imageMax-self.imageMin)))
-            vmax=float(self.ui.pilMaxLineEdit.text())
-            vmin=float(self.ui.pilMinLineEdit.text())
-            pilXMin=np.ones_like(self.selectedPilFramesNums)-1
-            pilYMin=np.ones_like(self.selectedPilFramesNums)-1
-            pilXMax=float(self.pilatus.NCOLS)*np.ones_like(self.selectedPilFramesNums)-1   #[194,...,194]
-            pilYMax=float(self.pilatus.NROWS)*np.ones_like(self.selectedPilFramesNums)-1
-            xlabel='PixX'
-            ylabel='PixY'
-            self.wavelength=np.array(self.pilSelected_Wavelength)
-            self.alpha=np.array(self.pilSelected_Alpha)
-            self.truealpha=np.array(self.pilSelected_TrueAlpha)
-            self.dth=np.array(self.pilSelected_Dth)
-            if self.ui.pilSpecCheckBox.checkState()!=0: #if this CB is checked, use spec value
-                if self.checkSameArrays(self.pilSelectedX)==False or self.checkSameArrays(self.pilSelectedY)==False or self.checkSameArrays(self.pilSelected_Dist)==False:
-                    self.messageBox('Warning:: The selected frames have different Pilatus parameters; the parameters of the first frames are used here!!')
-                try:
-                    self.ui.pilSDDistLineEdit.setText(str(self.pilSelected_Dist[0]))
-                    self.ui.pilDBPosLineEdit.setText(str(int(pilXMax[0])-self.pilSelectedX[0])+','+str(self.pilSelectedY[0]))
-                   # if self.ui.pilPinholeCheckBox.checkState()!=0:
-                   #     self.distance=np.array(self.pilSelected_PDist)
-                   # else:
-                   #     self.distance=np.array(self.pilSelected_Dist)
-                    self.distance=np.array(self.pilSelected_Dist)
-                    self.xcenter=np.array(pilXMax[0]-self.pilSelectedX) # image was flipped from left to right, i.e., x=194
-                    self.ycenter=np.array(self.pilSelectedY)
-                except:
-                    pass
-            else:   #if this CB is unchecked, use input value   
-                typed=self.typedPilGeometry()
-                if typed is not None:
-                    self.distance,self.xcenter,self.ycenter=typed
-                else:                                       # the SPEC values, as with the box ticked
-                    self.distance=np.array(self.pilSelected_Dist)
-                    self.xcenter=np.array(pilXMax[0]-self.pilSelectedX)
-                    self.ycenter=np.array(self.pilSelectedY)
-                #self.ui.pilSDDistLineEdit.setText(str(self.pilSelected_Dist[0]))
-                #self.ui.pilDBPosLineEdit.setText(str(self.pilSelectedX[0])+','+str(self.pilSelectedY[0]))
-                #if self.ui.pilPinholeCheckBox.checkState()!=0:
-                #    self.distance=np.array(self.pilSelected_PDist)
-                #else:
-                #    self.distance=self.distance
-                #self.xcenter=np.array(self.pilSelectedX)
-                #self.ycenter=np.array(self.pilSelectedY).ones_like(self.selectedPilFramesNums)
-            if str(self.ui.pilAxesComboBox.currentText())=='Angles':
-                xlabel=r'$2\theta$'+' '+r'$[\deg]$'
-                ylabel=r'$\beta$'+' '+r'$[\deg]$'
-                pilYMin=((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
-                pilYMax=((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
-                if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
-                    self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
-                #else:
-                #    self.distance=np.array(self.pilSelected_Dist)
-                pilXMin=(self.dth+(pilXMin-self.xcenter)*0.172/self.distance)*180.0/np.pi
-                pilXMax=(self.dth+(pilXMax-self.xcenter)*0.172/self.distance)*180.0/np.pi
-                pilXCen=self.dth*180.0/np.pi
-                
-            elif str(self.ui.pilAxesComboBox.currentText())=='Q':
-                xlabel=r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$'
-               # ylabel='Qz [1/Angs]'
-                ylabel=r'$Q_z$'+' '+r'$[\AA^{-1}]$'
-                pilYMin=2.0*np.pi*(np.sin((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
-                pilYMax=2.0*np.pi*(np.sin((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
-                if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
-                    self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
-                #else:
-                #    self.distance=np.array(self.pilSelected_Dist)
-                pilXMin=4.0*np.pi*np.sin((self.dth+(pilXMin-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
-                pilXMax=4.0*np.pi*np.sin((self.dth+(pilXMax-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
-                pilXCen=4.0*np.pi*np.sin(self.dth/2.0)/self.wavelength
-                
-            # what is drawn: every frame per monitor (Monc), absorber and gain, as every reduction
-            # is (owner, 2026-11-23: "all data is default normalized by monc"); pilData stays as read
-            disp={i:self.pilFrameNormalised(i)[0] for i in self.selectedPilFramesNums}
-            dlog={i:np.log10(np.where(d<=0,1e-10,d)) for i,d in disp.items()}
-            if self.pilmovieindex==1:
-                for j,i in enumerate(self.selectedPilFramesNums):   # j: position in the selection, i: frame number
-                    self.ui.pilMplWidget.canvas.fig.clf()
-                    ax=self.ui.pilMplWidget.canvas.fig.add_subplot(1,1,1)
-                    ax.set_xlabel(xlabel)
-                    ax.set_ylabel(ylabel) 
-                    ax.set_title('F #'+str(i),fontsize=16)
-                    self.extent=[pilXMin[j],pilXMax[j],pilYMin[j],pilYMax[j]]
-                    if self.ui.pilLogIntCheckBox.checkState()!=0:
-                        p=ax.imshow(dlog[i],interpolation='bicubic',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect=aspect,origin='lower')
-                        self.Zdata=dlog[i] 
-                    else:
-                        p=ax.imshow(disp[i],interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower')
-                        self.Zdata=disp[i]
-                    ax.format_coord=self.format_pil_coord
-                    ax.autoscale(False)
-                    ax.plot([pilXCen[j],pilXCen[j]], [pilYMin[j],pilYMax[j]], 'w--', linewidth=2.0)
-                    self.ui.pilMplWidget.canvas.fig.colorbar(p)
-                    self.ui.pilMplWidget.canvas.fig.suptitle('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
-                    self.ui.pilMplWidget.canvas.fig.tight_layout()
-                    self.ui.pilMplWidget.canvas.fig.subplots_adjust(top=0.9)
-                    self.ui.pilMplWidget.canvas.draw()
-                    self.ui.pilMplWidget.canvas.flush_events()
-                    time.sleep(0.5)
-                    
-            else:
-                if self.ui.gixSumCheckBox.checkState()!=0:   #if "Sum All" is checked; merge the frames having the same qz
-                    if self.checkSameQzs(self.pilSelectedQzs)==True: # check if qz are same in selected frames
-                        # ΣN/ΣM of the frames per Monc (F91; the mean with 'sum_all_legacy_average')
-                        self.sumData=self.pilSumNormalised(list(self.selectedPilFramesNums))[0]
-                        self.logData=np.log10(np.where(self.sumData<=0,1e-10,self.sumData))
-                        ax=self.ui.pilMplWidget.canvas.fig.add_subplot(1,1,1)
-                        ax.set_xlabel(xlabel)
-                        ax.set_ylabel(ylabel)
-                        ax.set_title('Sum'+str(self.selectedPilFramesNums))
-                        self.extent=[pilXMin[0],pilXMax[0],pilYMin[0],pilYMax[0]]
-                        if self.ui.pilLogIntCheckBox.checkState()!=0:
-                            p=ax.imshow(self.logData,interpolation='bicubic',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect=aspect,origin='lower') 
-                            self.Zdata=self.logData
-                        else:
-                            p=ax.imshow(self.sumData,interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower')
-                            self.Zdata=self.sumData 
-                        ax.format_coord=self.format_pil_coord
-                        self.ui.pilMplWidget.canvas.fig.colorbar(p)
-                    else:
-                        self.messageBox('Error:: The selected frames have different qz values!!')
-                else:
-                    row=2
-                    while N/row+pl.where(pl.mod(N,row)>0,1,0)>=row:  #setup subplot format for n of selected frames. 
-                        row=row+1
-                    row=row-1
-                    col=int(N/row+pl.where(pl.mod(N,row)>0,1,0))
-                    num=1
-                    ax={}
-                    for i in self.selectedPilFramesNums[:N]:
-                        ax[i]=self.ui.pilMplWidget.canvas.fig.add_subplot(row,col,num)
-                        ax[i].set_xlabel(xlabel,fontsize=16)
-                        ax[i].set_ylabel(ylabel,fontsize=16)
-                        ax[i].set_title('F #'+str(i),fontsize=16)
-                        self.extent=[pilXMin[num-1],pilXMax[num-1],pilYMin[num-1],pilYMax[num-1]]
-                        if self.ui.pilLogIntCheckBox.checkState()!=0:
-                            p=ax[i].imshow(dlog[i],interpolation='bicubic',extent=self.extent,vmax=np.log10(vmax),vmin=np.log10(vmin),cmap=cmap,aspect=aspect,origin='lower')
-                            self.Zdata=dlog[i] 
-                        else:
-                            p=ax[i].imshow(disp[i],interpolation='bicubic',extent=self.extent,vmax=vmax,vmin=vmin,cmap=cmap,aspect=aspect,origin='lower')
-                            self.Zdata=disp[i]
-                        ax[i].format_coord=self.format_pil_coord
-                        self.ui.pilMplWidget.canvas.fig.colorbar(p,format="%.1e")
-                        num=num+1
-                self.ui.pilMplWidget.canvas.fig.suptitle('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
-                self.ui.pilMplWidget.canvas.fig.tight_layout()
-                self.ui.pilMplWidget.canvas.fig.subplots_adjust(top=0.9)
-              # self.ui.pilMplWidget.canvas.fig.subplots_adjust(left=0)
-              #  self.ui.pilMplWidget.canvas.fig.subplots_adjust(right=1)
-                self.ui.pilMplWidget.canvas.draw()
-        elif self.pilGIDshow!=0 and len(self.selectedPilFramesNums)!=0:            
+            self.pilDrawFrames()
+        elif self.pilGIDshow!=0 and len(self.selectedPilFramesNums)!=0:
             self.pilGIDPlot()
         elif self.pilGISAXSshow!=0 and len(self.selectedPilFramesNums)!=0:
             self.showPilGISAXS()
-            
+
+    # ---- the Pilatus frames display (F69, F70, F88; lss_core.display) ----
+    # Owner, 2026-11-23 (docs/gui/questions.md): display settings and zoom do not change between
+    # redraws, scans or sessions and reset only on a new SPEC file (Q9); log for scattering frames,
+    # linear for direct beam and dark, the top at the 99.9th percentile with the direct beam masked
+    # (Q8); one shared scale on per-Monc, absorber-corrected values (Q-IMG-4); nearest pixels and
+    # viridis (Q-IMG-8, 14). The image is redrawn in place (set_data, set_norm): the axes, and so
+    # the zoom, survive every redraw.
+
+    def initPilDisplay(self):
+        from PyQt5.QtWidgets import QPushButton
+        self.pilView=None                 # the axes, images and colour bar drawn; reused while the layout stays
+        self.pilShown=[]                  # positions in the selection of the frames drawn
+        self.pilDispCache=(None,{})
+        self.pilLimitsCache=(None,None)
+        self.pilKind='other'
+        self._pilSettingLimits=False
+        self._pilZoomUnsaved=False
+        tb=self.ui.pilMplWidget.toolbar
+        for name,text,slot,tip in (
+                ('pilHomePushButton','Home',self.pilHome,
+                 'Back to the remembered zoom: the last box drawn with the zoom tool (the whole frame if none). '
+                 'The zoom is kept between frames, scans and sessions, and forgotten when another SPEC file '
+                 'is opened (owner, 2026-11-23, Q9)'),
+                ('pilFitAllPushButton','Fit all',self.pilFitAll,
+                 'Show the whole frame. The remembered zoom stays: Home brings it back. (The toolbar\'s house '
+                 'icon does the same as Fit all.)'),
+                ('pilAutoScalePushButton','Auto scale',self.pilAutoScale,
+                 'Forget the typed Min and Max of this kind of frame and go back to the automatic limits: the '
+                 'top at the 99.9th percentile of the selected frames with the direct beam left out, the bottom '
+                 'at the 1st percentile (of the positive pixels on a log scale), one scale for the whole '
+                 'selection (owner, 2026-11-23, Q8, Q-IMG-4). Typed limits are kept per kind of frame '
+                 '(reflectivity, GID, direct beam ...)')):
+            b=QPushButton(text,self)
+            b.setObjectName(name)
+            b.setToolTip(tip)
+            b.clicked.connect(slot)
+            tb.addWidget(b)
+            setattr(self.ui,name,b)
+        for a in tb.actions():
+            if a.text()=='Home':        # matplotlib's Home went to a view the in-place redraws no longer have
+                try:
+                    a.triggered.disconnect()
+                except TypeError:
+                    pass
+                a.triggered.connect(self.pilFitAll)
+                a.setToolTip('Fit all: the whole frame (the Home button beside it returns to the remembered zoom)')
+        for e in (self.ui.pilMinLineEdit,self.ui.pilMaxLineEdit):
+            e.returnPressed.disconnect(self.update2dPlots)
+            e.returnPressed.connect(self.pilLimitsTyped)
+        self.ui.pilLogIntCheckBox.stateChanged.connect(self.pilRememberDisplay)
+        for box in (self.ui.pilCMapComboBox,self.ui.pilAspectComboBox,self.ui.pilAxesComboBox):
+            box.currentIndexChanged.connect(self.pilRememberDisplay)
+        self.ui.pilMplWidget.canvas.mpl_connect('button_release_event',self.pilViewReleased)
+        self.ui.pilLogIntCheckBox.setToolTip(
+            'Log scale. The default depends on the kind of frame: log for reflectivity, GID and GISAXS frames, '
+            'linear for the direct beam and dark frames (owner, 2026-11-23, Q8). Your choice is kept per kind, '
+            'between sessions, until another SPEC file is opened')
+        self.ui.pilCMapComboBox.setToolTip(
+            'Colour map. viridis by default (perceptually uniform); jet and the others stay available '
+            '(owner, 2026-11-23, Q-IMG-14). Kept between sessions until another SPEC file is opened')
+        for e,end in ((self.ui.pilMinLineEdit,'bottom'),(self.ui.pilMaxLineEdit,'top')):
+            e.setToolTip('The %s of the colour scale, per Monc and absorber-corrected. Filled automatically '
+                         '(Auto scale); a value typed here (Enter) or set with the slider is kept for this kind '
+                         'of frame until Auto scale or another SPEC file' % end)
+        self.pilDisplay=dict(self.prefs.get('pil_display') or {})
+        self.pilApplyDisplay()
+
+    def pilApplyDisplay(self):
+        """The remembered colour map, aspect and Axes into their boxes (no redraw)."""
+        d=self.pilDisplay
+        for box,key,default in ((self.ui.pilCMapComboBox,'cmap',display.DEFAULT_CMAP),
+                                (self.ui.pilAspectComboBox,'aspect','auto'),
+                                (self.ui.pilAxesComboBox,'axes','Pixels')):
+            k=box.findText(str(d.get(key,default)))
+            if k<0:
+                k=max(box.findText(default),0)
+            box.blockSignals(True)
+            box.setCurrentIndex(k)
+            box.blockSignals(False)
+
+    def pilSaveDisplay(self):
+        import json
+        self._pilZoomUnsaved=False
+        self.setPreference('pil_display',json.loads(json.dumps(self.pilDisplay)))
+
+    def pilDisplayForFile(self,fname):
+        """A new SPEC file resets the display (Q9); the same file again keeps it."""
+        spec=os.path.abspath(fname)
+        if self.pilDisplay.get('spec')!=spec:
+            self.pilDisplay={'spec':spec}
+            self.pilView=None
+            self.pilApplyDisplay()
+            self.pilSaveDisplay()
+
+    def pilRememberDisplay(self,*args):
+        if self.sender() is self.ui.pilLogIntCheckBox:
+            self.pilDisplay.setdefault('log',{})[self.pilKind]=self.ui.pilLogIntCheckBox.checkState()!=0
+        else:
+            self.pilDisplay['cmap']=str(self.ui.pilCMapComboBox.currentText())
+            self.pilDisplay['aspect']=str(self.ui.pilAspectComboBox.currentText())
+            self.pilDisplay['axes']=str(self.ui.pilAxesComboBox.currentText())
+        self.pilSaveDisplay()
+
+    def scanSeriesKind(self,n):
+        """The kind of the series scan ``n`` belongs to (lss_core.series), or None."""
+        for s in getattr(self,'seriesAll',None) or []:
+            if n in s.scans.values():
+                return s.kind
+            for m,r in s.aux:
+                if m==n:
+                    return 'alignment' if r=='align' else s.kind
+        return None
+
+    def pilFrameKind(self,i):
+        """Display kind of frame ``i`` (lss_core.display.kind_of)."""
+        try:
+            return display.kind_of(self.scanSeriesKind(self.pilScanNum[i]),np.degrees(self.pil_Dth[i]),
+                                   self.pilMonc[i],self.pilFileQzs[i])
+        except (IndexError,TypeError,ValueError):
+            return 'other'
+
+    def pilSetKind(self):
+        """The kind of the selection (its first frame) and its remembered or default log scale."""
+        frames=self.selectedPilFramesNums
+        self.pilKind=self.pilFrameKind(frames[0]) if len(frames) else 'other'
+        log=bool(self.pilDisplay.get('log',{}).get(self.pilKind,display.default_log(self.pilKind)))
+        box=self.ui.pilLogIntCheckBox
+        box.blockSignals(True)
+        box.setChecked(log)
+        box.blockSignals(False)
+
+    def pilDisplayData(self,frames):
+        """{frame: its values per Monc, absorber and gain} (pilFrameNormalised), kept while
+        nothing they depend on changes."""
+        bg=len(self.ui.backgroundListWidget.selectedItems())!=0
+        try:
+            gains=repr(self.pilGains(sorted(set(self.pilScanNum[i] for i in frames))))
+        except Exception:
+            gains=''
+        key=(tuple((i,id(self.pilData.get(i))) for i in frames),repr(self.absfac),bg,
+             id(getattr(self,'bgData',None)),gains,repr(getattr(self,'errorModel',None)))
+        if self.pilDispCache[0]!=key:
+            self.pilDispCache=(key,{i:self.pilFrameNormalised(i)[0] for i in frames})
+            self.pilLimitsCache=(None,None)
+        return self.pilDispCache[1]
+
+    def pilSetRange(self,arrays):
+        """imageMax/imageMin (the ends of the sliders) from the normalised frames shown."""
+        try:
+            self.imageMax=max(float(np.max(a)) for a in arrays)
+            if not self.imageMax>0:
+                self.imageMax=1
+            pos=[a[a>0] for a in arrays]
+            pos=[p for p in pos if p.size]
+            self.imageMin=min(float(np.min(p)) for p in pos) if pos else self.imageMax/1000.0
+        except Exception:
+            self.imageMax=100
+            self.imageMin=0
+
+    def pilBeamMask(self,j,shape):
+        """Mask of the direct beam on the frame at position ``j`` of the selection (none on direct-beam
+        and dark frames, whose beam is the point)."""
+        if self.pilKind in ('direct','dark'):
+            return None
+        try:
+            row,col=display.direct_beam_pixel(float(self.xcenter[j]),float(self.ycenter[j]),float(self.alpha[j]),
+                                              float(self.truealpha[j]),float(self.dth[j]),
+                                              float(self._pilDistance0[j]))
+        except (IndexError,TypeError,ValueError):
+            return None
+        return display.beam_mask(shape,row,col)
+
+    def pilAutoLimits(self,frames,disp,log):
+        key=(self.pilDispCache[0],log,self.pilKind,tuple(np.round(np.asarray(self.xcenter,float),3)),
+             tuple(np.round(np.asarray(self.ycenter,float),3)))
+        if self.pilLimitsCache[0]!=key:
+            arrays=[disp[i] for i in frames]
+            masks=[self.pilBeamMask(j,a.shape) for j,a in enumerate(arrays)]
+            self.pilLimitsCache=(key,display.robust_limits(arrays,log,masks))
+        return self.pilLimitsCache[1]
+
+    def pilGeometry(self):
+        """Direct-beam pixel and distance of each selected frame: from SPEC, or typed."""
+        pilXMax=float(self.pilatus.NCOLS)*np.ones_like(self.selectedPilFramesNums)-1
+        self.wavelength=np.array(self.pilSelected_Wavelength)
+        self.alpha=np.array(self.pilSelected_Alpha)
+        self.truealpha=np.array(self.pilSelected_TrueAlpha)
+        self.dth=np.array(self.pilSelected_Dth)
+        if self.ui.pilSpecCheckBox.checkState()!=0: #if this CB is checked, use spec value
+            if self.checkSameArrays(self.pilSelectedX)==False or self.checkSameArrays(self.pilSelectedY)==False or self.checkSameArrays(self.pilSelected_Dist)==False:
+                self.messageBox('Warning:: The selected frames have different Pilatus parameters; the parameters of the first frames are used here!!')
+            try:
+                self.ui.pilSDDistLineEdit.setText(str(self.pilSelected_Dist[0]))
+                self.ui.pilDBPosLineEdit.setText(str(int(pilXMax[0])-self.pilSelectedX[0])+','+str(self.pilSelectedY[0]))
+                self.distance=np.array(self.pilSelected_Dist)
+                self.xcenter=np.array(pilXMax[0]-self.pilSelectedX) # image was flipped from left to right, i.e., x=194
+                self.ycenter=np.array(self.pilSelectedY)
+            except:
+                pass
+        else:   #if this CB is unchecked, use input value
+            typed=self.typedPilGeometry()
+            if typed is not None:
+                self.distance,self.xcenter,self.ycenter=typed
+            else:                                       # the SPEC values, as with the box ticked
+                self.distance=np.array(self.pilSelected_Dist)
+                self.xcenter=np.array(pilXMax[0]-self.pilSelectedX)
+                self.ycenter=np.array(self.pilSelectedY)
+        self._pilDistance0=np.array(self.distance,dtype=float)
+
+    def pilExtents(self,axes):
+        """Extent of every selected frame in the Axes choice ``axes``: (xmin, xmax, ymin, ymax,
+        detector-arm column, x label, y label). Sets self.distance as the redraw always did (the
+        pinhole distance for frames above Det_Th 1 deg in Angles and Q)."""
+        n=len(self.selectedPilFramesNums)
+        pilXMin=np.zeros(n)
+        pilYMin=np.zeros(n)
+        pilXMax=float(self.pilatus.NCOLS)*np.ones(n)-1
+        pilYMax=float(self.pilatus.NROWS)*np.ones(n)-1
+        pilXCen=np.asarray(self.xcenter,dtype=float)*np.ones(n)
+        xlabel='PixX'
+        ylabel='PixY'
+        self.distance=np.array(self._pilDistance0)
+        if axes=='Angles':
+            xlabel=r'$2\theta$'+' '+r'$[\deg]$'
+            ylabel=r'$\beta$'+' '+r'$[\deg]$'
+            pilYMin=((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
+            pilYMax=((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
+            if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
+                self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
+            pilXMin=(self.dth+(pilXMin-self.xcenter)*0.172/self.distance)*180.0/np.pi
+            pilXMax=(self.dth+(pilXMax-self.xcenter)*0.172/self.distance)*180.0/np.pi
+            pilXCen=self.dth*180.0/np.pi
+        elif axes=='Q':
+            xlabel=r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$'
+            ylabel=r'$Q_z$'+' '+r'$[\AA^{-1}]$'
+            pilYMin=2.0*np.pi*(np.sin((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
+            pilYMax=2.0*np.pi*(np.sin((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
+            if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
+                self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
+            pilXMin=4.0*np.pi*np.sin((self.dth+(pilXMin-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
+            pilXMax=4.0*np.pi*np.sin((self.dth+(pilXMax-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
+            pilXCen=4.0*np.pi*np.sin(self.dth/2.0)/self.wavelength
+        one=np.ones(n)
+        return (pilXMin*one,pilXMax*one,pilYMin*one,pilYMax*one,pilXCen*one,xlabel,ylabel)
+
+    def pilLimits(self,frames,disp,log):
+        """(vmin, vmax): typed for this kind of frame, else automatic (lss_core.display)."""
+        locked=self.pilDisplay.get('limits',{}).get(self.pilKind)
+        if locked:
+            return display.safe_limits(locked[0],locked[1],log)
+        return self.pilAutoLimits(frames,disp,log)
+
+    def pilShowLimits(self,vmin,vmax,log):
+        """The limits in the Min and Max fields and sliders, without redrawing."""
+        self.ui.pilMinLineEdit.setText('%.6g' % vmin)
+        self.ui.pilMaxLineEdit.setText('%.6g' % vmax)
+        for s,v in ((self.ui.pilMinHorizontalSlider,vmin),(self.ui.pilMaxHorizontalSlider,vmax)):
+            s.blockSignals(True)
+            s.setRange(0,100)
+            s.setValue(display.slider_position(v,self.imageMin,self.imageMax,log))
+            s.blockSignals(False)
+
+    def pilViewChoice(self):
+        """'movie' or 'tiles' for 3 or more frames, and the number of tiles."""
+        return 'tiles',display.MAX_TILES
+
+    def pilTitle(self,i):
+        try:
+            return 'S# %d pt %d' % (self.pilScanNum[i],self.pilFrameNum[i])
+        except (IndexError,TypeError):
+            return 'F #%s' % i
+
+    def pilDrawFrames(self):
+        from matplotlib.colors import LogNorm, Normalize
+        frames=list(self.selectedPilFramesNums)
+        canvas=self.ui.pilMplWidget.canvas
+        fig=canvas.fig
+        summed=self.ui.gixSumCheckBox.checkState()!=0
+        # what is drawn: every frame per monitor (Monc), absorber and gain, as every reduction
+        # is (owner, 2026-11-23: "all data is default normalized by monc"); pilData stays as read
+        disp=self.pilDisplayData(frames)
+        if summed and not self.checkSameQzs(self.pilSelectedQzs):
+            self.pilSetRange([disp[i] for i in frames])
+            self.messageBox('Error:: The selected frames have different qz values!!')
+            return
+        self.pilGeometry()
+        axes=str(self.ui.pilAxesComboBox.currentText())
+        view,ntiles=self.pilViewChoice()
+        mode=display.mode_for(len(frames),view,summed)
+        if getattr(self,'pilmovieindex',0)==1 and not summed:
+            mode='movie'
+        if mode=='sum':
+            shown=[0]
+            # ΣN/ΣM of the frames per Monc (F91; the mean with 'sum_all_legacy_average')
+            self.sumData=self.pilSumNormalised(frames)[0]
+            arrays=[self.sumData]
+        elif mode=='movie':
+            self.pilMovieIndex=display.step(getattr(self,'pilMovieIndex',0),0,len(frames))
+            shown=[self.pilMovieIndex]
+            arrays=[disp[frames[self.pilMovieIndex]]]
+        else:
+            shown=display.sample(len(frames),min(ntiles,display.MAX_TILES))
+            arrays=[disp[frames[p]] for p in shown]
+        self.pilSetRange([disp[i] for i in frames] if mode!='sum' else arrays)
+        for key in ('zoom','home'):          # a zoom made in other axes: the same pixels in these
+            z=self.pilDisplay.get(key)
+            if z and z.get('axes')!=axes:
+                try:
+                    old=self.pilExtents(z['axes'])
+                    p=shown[0]
+                    new=self.pilExtents(axes)
+                    z={'axes':axes,'x':list(display.convert_limits(z['x'],(old[0][p],old[1][p]),(new[0][p],new[1][p]))),
+                       'y':list(display.convert_limits(z['y'],(old[2][p],old[3][p]),(new[2][p],new[3][p])))}
+                except (KeyError,IndexError,TypeError,ValueError):
+                    z=None
+                self.pilDisplay[key]=z
+        self.pilExt=self.pilExtents(axes)
+        log=self.ui.pilLogIntCheckBox.checkState()!=0
+        vmin,vmax=self.pilLimits(frames,disp,log)
+        self.pilShowLimits(vmin,vmax,log)
+        self.pilNorm=LogNorm(vmin=vmin,vmax=vmax) if log else Normalize(vmin=vmin,vmax=vmax)
+        name=str(self.ui.pilCMapComboBox.currentText())
+        try:
+            cm=mpl.colormaps[name]
+        except KeyError:
+            cm=mpl.colormaps[display.DEFAULT_CMAP]
+        self.pilCmap=cm.with_extremes(bad=cm(0.0))     # zeros on a log scale: the lowest colour
+        self.pilMode=mode
+        self.pilShown=shown
+        key=(mode,len(shown))
+        v=self.pilView
+        if v is None or v['key']!=key or not v['axes'] or v['axes'][0] not in fig.axes:
+            fig.clf()
+            n=len(shown)
+            rows=1 if n<=3 else 2
+            cols=int(np.ceil(n/float(rows)))
+            axs=[fig.add_subplot(rows,cols,k+1) for k in range(n)]
+            ims=[ax.imshow(np.zeros((2,2)),origin='lower',interpolation=display.INTERPOLATION) for ax in axs]
+            lines=[ax.plot([0,0],[0,1],'w--',linewidth=1.5)[0] for ax in axs]
+            cbar=fig.colorbar(ims[0],ax=axs,format='%.1e')
+            for ax in axs:
+                ax.callbacks.connect('xlim_changed',self.pilLimitsChanged)
+                ax.callbacks.connect('ylim_changed',self.pilLimitsChanged)
+            self.pilView={'key':key,'axes':axs,'images':ims,'lines':lines,'cbar':cbar}
+        self.pilUpdateImages(arrays)
+        bg=len(self.ui.backgroundListWidget.selectedItems())!=0
+        self.pilView['cbar'].update_normal(self.pilView['images'][0])
+        self.pilView['cbar'].set_label(display.units(bg))
+        title='File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums))
+        if mode=='tiles' and display.tiles_title(len(shown),len(frames)):
+            title+='   '+display.tiles_title(len(shown),len(frames))
+        fig.suptitle(title)
+        canvas.draw()
+
+    def pilUpdateImages(self,arrays):
+        """The frames ``arrays`` into the images drawn, with the current norm, map, extent and zoom."""
+        v=self.pilView
+        x0,x1,y0,y1,xc,xlabel,ylabel=self.pilExt
+        axes=str(self.ui.pilAxesComboBox.currentText())
+        aspect=str(self.ui.pilAspectComboBox.currentText())
+        frames=list(self.selectedPilFramesNums)
+        self._pilSettingLimits=True
+        try:
+            for k,(ax,im,line) in enumerate(zip(v['axes'],v['images'],v['lines'])):
+                p=self.pilShown[k]
+                arr=arrays[k]
+                extent=[x0[p],x1[p],y0[p],y1[p]]
+                im.set_data(arr)
+                im.set_extent(extent)
+                im.set_cmap(self.pilCmap)
+                im.set_norm(self.pilNorm)
+                ax.set_aspect(aspect)
+                ax.set_xlabel(xlabel)
+                ax.set_ylabel(ylabel)
+                if self.pilMode=='sum':
+                    ax.set_title('Sum of %d frames' % len(frames))
+                else:
+                    ax.set_title(self.pilTitle(frames[p]))
+                line.set_data([xc[p],xc[p]],[y0[p],y1[p]])
+                line.set_visible(axes=='Angles')
+                ax.format_coord=self.pilCoordFormatter(arr,extent)
+                if k==0:
+                    self.Zdata=arr
+                    self.extent=extent
+            self.pilApplyZoom(draw=False)
+        finally:
+            self._pilSettingLimits=False
+
+    def pilCoordFormatter(self,arr,extent):
+        """The cursor readout of one image (before: every tile read the last tile's data)."""
+        def fmt(x,y):
+            numrows,numcols=arr.shape
+            col=int(np.abs(x-extent[0])*numcols/np.abs(extent[1]-extent[0]))
+            row=int(np.abs(y-extent[2])*numrows/np.abs(extent[3]-extent[2]))
+            if 0<=col<numcols and 0<=row<numrows:
+                return self.xyzformat%(x,y,arr[row,col])
+            return 'x=%.2f, y=%.2f'%(x,y)
+        return fmt
+
+    def pilFramesShown(self):
+        """True when the canvas holds the frames drawn by pilDrawFrames (not the GID map or GISAXS)."""
+        v=getattr(self,'pilView',None)
+        return (v is not None and self.pilGIDshow==0 and self.pilGISAXSshow==0 and bool(v['axes'])
+                and v['axes'][0] in self.ui.pilMplWidget.canvas.fig.axes)
+
+    def pilApplyZoom(self,draw=True):
+        """The remembered view (or the whole frame) on every image drawn."""
+        v=self.pilView
+        if v is None:
+            return
+        x0,x1,y0,y1=self.pilExt[:4]
+        z=self.pilDisplay.get('zoom')
+        was=self._pilSettingLimits
+        self._pilSettingLimits=True
+        try:
+            for k,ax in enumerate(v['axes']):
+                p=self.pilShown[k]
+                if z:
+                    ax.set_xlim(z['x'])
+                    ax.set_ylim(z['y'])
+                else:
+                    ax.set_xlim(x0[p],x1[p])
+                    ax.set_ylim(y0[p],y1[p])
+        finally:
+            self._pilSettingLimits=was
+        if draw:
+            self.ui.pilMplWidget.canvas.draw()
+
+    def pilLimitsChanged(self,ax):
+        """The user zoomed or panned: remembered (and, for a zoom box, made the Home view)."""
+        if self._pilSettingLimits or not self.pilFramesShown() or ax not in self.pilView['axes']:
+            return
+        z={'axes':str(self.ui.pilAxesComboBox.currentText()),'x':[float(t) for t in ax.get_xlim()],
+           'y':[float(t) for t in ax.get_ylim()]}
+        self.pilDisplay['zoom']=z
+        if str(getattr(self.ui.pilMplWidget.toolbar,'mode',''))=='zoom rect':
+            self.pilDisplay['home']=dict(z)
+        self._pilZoomUnsaved=True
+        self._pilSettingLimits=True
+        try:
+            for other in self.pilView['axes']:     # every tile shows the same region
+                if other is not ax:
+                    other.set_xlim(z['x'])
+                    other.set_ylim(z['y'])
+        finally:
+            self._pilSettingLimits=False
+
+    def pilViewReleased(self,event):
+        if self._pilZoomUnsaved:
+            self.pilSaveDisplay()
+
+    def pilGenericFit(self):
+        """Fit all on the GID map or GISAXS views: every axes to its data."""
+        canvas=self.ui.pilMplWidget.canvas
+        for ax in canvas.fig.axes:
+            if ax.images:
+                e=ax.images[0].get_extent()
+                ax.set_xlim(e[0],e[1])
+                ax.set_ylim(e[2],e[3])
+            else:
+                ax.relim()
+                ax.autoscale()
+        canvas.draw()
+
+    def pilFitAll(self,*args):
+        if not self.pilFramesShown():
+            self.pilGenericFit()
+            return
+        self.pilDisplay['zoom']=None
+        self.pilApplyZoom()
+        self.pilSaveDisplay()
+
+    def pilHome(self,*args):
+        if not self.pilFramesShown():
+            self.pilGenericFit()
+            return
+        home=self.pilDisplay.get('home')
+        if home and home.get('axes')!=str(self.ui.pilAxesComboBox.currentText()):
+            self.pilDisplay['zoom']=dict(home)
+            self.pilDrawFrames()             # converted to the current axes there
+        else:
+            self.pilDisplay['zoom']=dict(home) if home else None
+            self.pilApplyZoom()
+        self.pilSaveDisplay()
+
+    def pilAutoScale(self,*args):
+        self.pilDisplay.setdefault('limits',{}).pop(self.pilKind,None)
+        self.pilSaveDisplay()
+        if self.pilGIDshow==0 and self.pilGISAXSshow==0 and len(self.selectedPilFramesNums)!=0:
+            self.pilDrawFrames()
+        else:
+            self.notify('Auto scale applies to the frames; the GID map and GISAXS views keep their own range.',
+                        level='info')
+
+    def pilLimitsTyped(self):
+        """Min or Max typed (Enter) or set by a slider: kept for this kind of frame (F88)."""
+        if not (self.pilGIDshow==0 and self.pilGISAXSshow==0 and len(self.selectedPilFramesNums)!=0):
+            self.update2dPlots()
+            return
+        try:
+            vmin=float(self.ui.pilMinLineEdit.text())
+            vmax=float(self.ui.pilMaxLineEdit.text())
+        except ValueError:
+            self.notify('Min and Max must be numbers: the limits were not changed.')
+            return
+        self.pilDisplay.setdefault('limits',{})[self.pilKind]=[vmin,vmax]
+        self.pilSaveDisplay()
+        self.pilDrawFrames()
+
     def pilMovieShow(self):
         if self.det!='Pilatus' or len(self.selectedPilFramesNums)==0:
             self.messageBox('Please select Pilatus images first!')
@@ -3754,7 +4100,11 @@ class MainWindow (QMainWindow):
         self.ui.pilPinholeCheckBox.stateChanged.disconnect(self.update2dPlots)
         was=self.ui.pilPinholeCheckBox.checkState()
         self.ui.pilPinholeCheckBox.setCheckState(2)
-        self.updatePilPlotData()
+        for p in range(len(self.selectedPilFramesNums)):   # each frame in turn, drawn in place
+            self.pilMovieIndex=p
+            self.updatePilPlotData()
+            self.ui.pilMplWidget.canvas.flush_events()
+            time.sleep(0.5)
         self.pilmovieindex=0
         self.ui.pilPinholeCheckBox.setCheckState(was)      # as it was (it was always left unticked)
         #self.connect(self.ui.pilPinholeCheckBox,SIGNAL('stateChanged(int)'),self.update2dPlots)

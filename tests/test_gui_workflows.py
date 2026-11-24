@@ -179,7 +179,7 @@ def test_movie_of_a_sub_selection_uses_each_frames_own_axes(loaded, qapp,
     assert recorder.exceptions == []
     # the last frame shown is frame 7; its Qz axis must be centred on its own Qz
     ax = loaded.ui.pilMplWidget.canvas.fig.axes[0]
-    assert ax.get_title() == 'F #7'
+    assert ax.get_title() == 'S# 1 pt 7'          # scan and point number (was 'F #7', the list row; 2026-11-24)
     lo, hi = ax.get_ylim()
     qz7 = loaded.pilFileQzs[7]
     row = synth.DB_Y / (synth.PIL_W - 1.0)          # beam row as a fraction

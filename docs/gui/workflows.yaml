@@ -111,7 +111,7 @@ shared_steps:
   - id: shared.frames-look
     do: Look at the frames (colour scale, log, axes, movie)
     where: Pilatus tab
-    controls: [pilLogIntCheckBox, pilMinLineEdit, pilMaxLineEdit, pilMinHorizontalSlider, pilMaxHorizontalSlider, pilCMapComboBox, pilAxesComboBox, pilAspectComboBox, pilMoviePushButton]
+    controls: [pilLogIntCheckBox, pilMinLineEdit, pilMaxLineEdit, pilMinHorizontalSlider, pilMaxHorizontalSlider, pilCMapComboBox, pilAxesComboBox, pilAspectComboBox, pilMoviePushButton, pilHomePushButton, pilFitAllPushButton, pilAutoScalePushButton]
     user_decides: colour limits, log scale, axes (Pixels, Angles, Q)
     automatic: partly
     could_be_automatic: sticky preferences and intelligent colour scales (F70); movie with sticky zoom (F69)

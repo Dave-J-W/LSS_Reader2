@@ -54,7 +54,8 @@ def test_settings_are_saved_and_read_back(window, qapp, recorder):
                       'ngui': False,                                        # the ngui prototype, off (F82, 2026-11-23)
                       'panes_shown': [],                                    # D59: no pane shown by default (2026-11-23)
                       'state_badges': 'on',                                 # F85 badges shown (2026-11-23)
-                      'mca_fit_legacy': False, 'burn_legacy_tab': False}    # F86 Reduction options (2026-11-23)
+                      'mca_fit_legacy': False, 'burn_legacy_tab': False,    # F86 Reduction options (2026-11-23)
+                      'pil_display': {}}                                    # F88 sticky frames display (2026-11-24)
     assert preferences.load() == stored
     assert recorder.exceptions == []
 
