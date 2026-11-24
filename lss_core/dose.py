@@ -2,9 +2,9 @@
 2026-11-24).
 
 **The beam on the sample during point i.** The Monc ion chamber sits
-upstream of the absorbers: the reduction multiplies counts by the
-absorber factor A and divides by the monitor M (``lss_core.normalise``),
-and by the gain factor g = S_ref/S. So, in monitor counts at the
+upstream of the absorbers (confirmed by the owner, 2026-11-24): the
+reduction multiplies counts by the absorber factor A and divides by the
+monitor M (``lss_core.normalise``), and by the gain factor g = S_ref/S. So, in monitor counts at the
 reference gain (5 µA/V) with the absorbers taken out, the sample sees
 
     d_i = M_i / (A_i · g_i),
@@ -29,16 +29,25 @@ point's incidence (``cuts.true_incidence``), so the dose per area is
 
     N_i · sin α_i / (width · height)   (photons/mm²).
 
-The beam's size is not read from the header: which slit defines it, and
-whether the blades are half-openings, is a question for the owner
-(questions.md, 2026-11-24). A footprint longer than the sample changes
-nothing: the dose per area of the illuminated part stays the same.
+The beam's size is not read from the header (owner, 2026-11-24): the
+slits upstream of the sample (S0, S1) pass more than the beam, which is
+focused vertically by a curved mirror, and most of its energy lies within
+about 1 mm horizontally. Its vertical size, and whether the header's blade
+values are half-openings, are open (questions.md OQ-1 to OQ-3). The area
+is that of a uniform beam; for a Gaussian one, whether the FWHM or the
+second moment is meant is open too. A footprint longer than the sample
+changes nothing: the dose per area of the illuminated part stays the same.
 
 **Cumulative.** ``Dose.cumulative()``: the dose received since the first
-point began, at the middle of each point, which is the convention of the
-burn's time axis (``burn.frame_times``, ``time='exposure'``). The shutter
-is assumed closed between points (owner, 2026-11-21: the default), so
-the overhead between frames adds no dose.
+point began, at the middle of each point's exposure, the convention of the
+burn's time axes (``burn.frame_times``). ``shutter='closed'`` (the
+default; owner: closed between burn frames normally) gives no dose between
+points. ``shutter='open'`` (fast mode, owner 2026-11-24: the shutter held
+open, e.g. by ``stopabs``, and short exposures) adds the beam between
+points: point i gives its counting rate × the time from its start to the
+next point's start (the last: to its end, or its counting time), from the
+scan's per-point times. How a file shows fast mode is open (OQ-4), so the
+caller says.
 
 Not included: the beam's decay or top-up within a point (the monitor
 counts it already) and any dose before the scan, unless the caller adds
@@ -72,11 +81,14 @@ class Dose:
     unit: str
     notes: list = field(default_factory=list)
     bounds: tuple = (0.0, 0.0)
+    to_middle: np.ndarray = None      # the dose from a point's start to the middle of its exposure (None: half)
 
     def cumulative(self):
-        """The dose since the first point began, at the middle of each point."""
+        """The dose since the first point began, at the middle of each
+        point's exposure."""
         d = np.asarray(self.per_point, float)
-        return np.cumsum(d) - d / 2
+        half = d / 2 if self.to_middle is None else np.asarray(self.to_middle, float)
+        return np.cumsum(d) - d + half
 
     def total(self):
         return float(np.sum(self.per_point))
@@ -120,13 +132,21 @@ def absorber_factor(params, absfac=None):
     return float(absorbers.attenuation(absfac, n)), 'absorber %d: factor %s given' % (n, absfac)
 
 
-def scan_dose(columns, params, points=None, unit='photons', beam_mm=None, absfac=None, monitor='Monc', scan=0):
+SHUTTERS = ('closed', 'open')
+
+
+def scan_dose(columns, params, points=None, unit='photons', beam_mm=None, absfac=None, monitor='Monc', scan=0,
+              shutter='closed', point_times=None):
     """Dose of the points ``points`` (all when None) of one scan, from its
     data ``columns`` and header ``params`` (module docstring). ``unit``:
     'photons' (falls back to 'monitor', with the reason in the notes, when
     the gain or the energy is unknown) or 'monitor' (counts at 5 µA/V, the
     absorbers taken out). ``beam_mm``: (width, height) of the beam for the
-    dose per mm²."""
+    dose per mm². ``shutter``: 'closed' between points (default) or 'open'
+    (fast mode; needs ``point_times``, a ``timing.PointTimes`` with start
+    times)."""
+    if shutter not in SHUTTERS:
+        raise ValueError('shutter %r: one of %s' % (shutter, ', '.join(SHUTTERS)))
     if unit not in UNITS:
         raise ValueError('unit %r: one of %s' % (unit, ', '.join(UNITS)))
     mon = columns.get(monitor)
@@ -205,4 +225,19 @@ def scan_dose(columns, params, points=None, unit='photons', beam_mm=None, absfac
         notes.append('per mm2 of footprint, beam %g x %g mm (given), footprint %.3g-%.3g mm long'
                      % (w, h, float(np.min(h / np.sin(alpha))), float(np.max(h / np.sin(alpha)))))
         name += '/mm2'
-    return Dose(scan, idx, per, name, notes, bounds)
+    to_middle = None
+    if shutter == 'open':
+        start = getattr(point_times, 'start', None)
+        if start is None or sec is None:
+            raise DoseError('shutter open: the per-point start times and the Seconds column are needed')
+        start = np.asarray(start, float)[idx]
+        end = getattr(point_times, 'end', None)
+        last = (float(np.asarray(end, float)[idx[-1]]) - start[-1]) if end is not None else float(sec[-1])
+        span = np.append(np.diff(start), max(last, float(sec[-1])))
+        if np.any(span < sec - 1e-6):
+            raise DoseError('shutter open: a point starts before the previous one has finished counting')
+        to_middle = per / 2
+        per = per * span / sec            # the counting rate over the whole time to the next point
+        notes.append('shutter open between points (fast mode): the beam from each start to the next, %.3g s in all'
+                     % float(np.sum(span)))
+    return Dose(scan, idx, per, name, notes, bounds, to_middle)

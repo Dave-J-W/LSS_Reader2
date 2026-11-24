@@ -50,6 +50,7 @@ exists.
 | I37 | The residual panel shows what the fit minimised: over the fitted points Σ((y − fit)/σ)² = χ²/dof × (N − p), N − p an integer with p the fit's parameter count; for Poisson data with σ = √y and a right model the weighted residuals have mean ≈ 0 and SD ≈ 1 (F74). For burn trends Σr² is the best model's χ² itself (to 1e-9, every model on the synthetic burn) | `test_residuals.py::test_the_residuals_are_those_the_fit_minimised`, `::test_burn_trends_get_the_best_models_residuals` |
 | I38 | The ROI close-up outlines the pixels the reduction sums: summing a frame over `lss_core.display.roi_boxes(slit, cen, bg, direction)` gives `TwoDDetector.sumROI`'s signal and background values exactly, for any slit, centre, offset and direction (its slit − 2 and integer background centres included, PHYSICS_ISSUES P12) | `test_roi_boxes.py::test_summing_over_the_drawn_boxes_gives_sumROIs_values` |
 | I39 | The dose of a point is what the reduction already divides by: in monitor counts it is the point's weight in "Sum All", M/(A·g) (`cuts.frame_normaliser`); in photons, the flux route's photons/s × its seconds / A (`flux.photons_per_second`); a scan's dose is the sum of its points'; at a constant monitor rate and absorber the dose axis is the exposure axis × that rate, so a burn's dose limit is its time limit × the rate | `test_dose.py` (every test; the last on the synthetic burn, to 1e-6) | 2026-11-24 |
+| I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5594,12 +5595,13 @@ Verified by: reading only. The timeline joins several SPEC files on one axis; th
 
 ### 2026-11-24 — F98's core: the dose each point gives the sample, and burns against dose
 
-Verified by: tests (`test_dose.py`, I39); a run on NX school's burns (the numbers below); reading only for the
-geometry (which side of the absorbers the Monc chamber is on).
+Verified by: tests (`test_dose.py`, I39); a run on NX school's burns (the numbers below); the owner for the
+geometry (Monc upstream of the absorbers, confirmed later the same day: batch 18 below).
 
 - **The beam on the sample during point i** is d_i = M_i/(A_i·g_i) Monc counts at 5 µA/V with the absorbers
   taken out. This is the weight the point already has in "Sum All". The chamber is upstream of the absorbers:
-  the reduction multiplies by A and divides by M (read from `lss_core.normalise`, not checked at the beamline).
+  the reduction multiplies by A and divides by M (read from `lss_core.normalise`; confirmed by the owner,
+  2026-11-24, batch 18).
 - **In photons** (the default unit), the owner's counts-to-photons route D
   ([xray_fluxor](https://github.com/Dave-J-W/xray_fluxor), `docs/handoff/xray_fluxor_counts_to_photons.md`):
   N_i = (M_i − D t_i) q(E) (S/500 nA/V) gas / A_i. Its bounds (±3.6 % below 13 keV) are a common scale. They
@@ -5610,7 +5612,10 @@ geometry (which side of the absorbers the Monc chamber is on).
   half-openings, is asked of the owner (via questor). The header has S0–S3 left/right/top/bottom; NX 14 has
   S1 L/R 1.00 and T/B 0.05.
 - **Cumulative, at the middle of each point**, like the burn's exposure time. The shutter is taken as closed
-  between points (owner, 2026-11-21: the default), so the overhead adds no dose.
+  between points (owner, 2026-11-21: the default), so the overhead adds no dose. **Fast mode** (owner,
+  2026-11-24, batch 18: the shutter held open and short exposures): `shutter='open'` adds the beam between
+  points, each point's counting rate × the time to the next point's start (`test_dose.py::
+  test_fast_mode_adds_the_beam_between_points`). How a file shows fast mode is open (OQ-4), so the caller says.
 - **NX school, run:** burn 14 received 2.89e13 photons in 210 s of exposure through absorber 12 (the
   calibrated foils, 10.00 keV, 5 µA/V): 1.4e11 photons/s on the sample. On burns 14 and 15 the dose axis is
   the exposure axis times the mean rate to 1 %.
@@ -5625,6 +5630,40 @@ geometry (which side of the absorbers the Monc chamber is on).
   sample changing by itself follows time. Two burns at different absorbers coincide against dose in the first
   case and against time in the second (the Bunsen–Roscoe reciprocity assumption). The comparison of two
   burns, and the window's plot mode with several burns at once, are next (F98's GUI part, the GUI manager).
+
+### 2026-11-24 — F92's core: dropped points as a mask over raw points
+
+Verified by: tests (`test_masks.py`, I40). Reading only for what the window will do with it (the GUI manager's
+F96 window).
+
+- **The mask** (`lss_core.masks.Mask`) is a set of (scan, point) pairs, point numbers as SPEC counts them.
+  - It is kept in the workbook's Settings sheet, section `masks`, one row per kind of reduction. The workbook
+    keeps its seven sheets (the owner's limit, fewer than eight).
+  - "Restore all" empties it (owner, 2026-11-23: undo of single drops is not asked for).
+- **`exp.reflectivity(mask=...)`** leaves the masked points out from the start, after repeats are merged.
+  - A point of a repeat merged away masks the same position of the scan it went into, which is where the
+    window's drops are made.
+  - Masked points of scans not in the reduction are ignored.
+  - The result records `points` (the point number of each per-scan row) and `masked`; the settings and the
+    recipe carry the mask, so a live remake keeps it.
+- **From the window's drops to a mask** (`reflectivity.drop_points`). The legacy join keeps the earlier curve's
+  points through the overlap (averaged there with the new scan, interpolated) and the new scan's beyond it.
+  So every row of the curve joined so far sits at one raw point's Qz, and a typed drop of row k is a drop of
+  that row's point. The function also returns the origin of every row of the patched curve, which F94's
+  click-to-drop needs.
+- **Where a mask and a drop differ.** A point dropped from the curve so far at a later join was already used
+  by an earlier join's fit. The mask leaves it out of that fit too, because the mask is over the raw data
+  (D2, owner: "reduction can always be repeated from raw data … Confirmed"). For drops of points no earlier
+  fit used (every drop of the new scan, the first scan's at the first join, and far-away points of the curve
+  so far, outside the earlier overlaps and their ±2 points) the curves are identical.
+- **Measured on synthetic data with 2 % noise per scan:** masking scan 1's point at Qz 0.045, inside join 0's
+  overlap, changes the curve, while dropping it at join 1 leaves join 0 as it was. With noise-free data on
+  coinciding grids the two agree whichever points are used, because the factor is then exactly the ratio.
+- **Not yet (the window, GUI manager):**
+  - the patch dialog's drops recorded as the mask and the curve remade from it;
+  - "Restore all";
+  - masked points drawn in a distinct style (F16);
+  - the mask read-only when a second reader has the file open (D1).
 
 ### 2026-11-24 — Beam size, Monc position, shutter in fast mode, timeline placeholders (batch 18; asked for Main)
 

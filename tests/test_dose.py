@@ -91,6 +91,29 @@ def test_dose_per_area_uses_the_footprint():
         dose.scan_dose(fixed, _params(in_rot=0.0), beam_mm=beam)
 
 
+def test_fast_mode_adds_the_beam_between_points():
+    """Owner, 2026-11-24: in fast mode the shutter stays open between frames."""
+    from lss_core.timing import PointTimes
+    closed = dose.scan_dose(COLS, _params())
+    start = np.array([0.0, 12.0, 24.0, 36.0])                     # 2 s overhead after each 10 s point
+    pt = PointTimes('old', start=start)
+    fast = dose.scan_dose(COLS, _params(), shutter='open', point_times=pt)
+    span = np.array([12.0, 12.0, 12.0, 5.0])                    # the last: its counting time (no end time)
+    assert np.allclose(fast.per_point, closed.per_point * span / COLS['Seconds'], rtol=1e-12)
+    rate = closed.per_point / COLS['Seconds']
+    want = np.concatenate([[0.0], np.cumsum(rate[:-1] * span[:-1])]) + rate * COLS['Seconds'] / 2
+    assert np.allclose(fast.cumulative(), want, rtol=1e-12)    # at the middle of each exposure
+    no_gap = PointTimes('old', start=np.array([0.0, 10.0, 20.0, 30.0]))
+    assert np.allclose(dose.scan_dose(COLS, _params(), shutter='open', point_times=no_gap).cumulative(),
+                       closed.cumulative(), rtol=1e-12)        # no overhead: the same as closed
+    with pytest.raises(dose.DoseError, match='start times'):
+        dose.scan_dose(COLS, _params(), shutter='open')
+    with pytest.raises(dose.DoseError, match='before the previous'):
+        dose.scan_dose(COLS, _params(), shutter='open', point_times=PointTimes('old', start=np.array([0.0, 5.0, 20.0, 30.0])))
+    with pytest.raises(ValueError):
+        dose.scan_dose(COLS, _params(), shutter='ajar')
+
+
 def test_what_is_not_known_is_said():
     d = dose.scan_dose(COLS, _params(gain=None))
     assert d.unit == 'Monc counts' and any('Monc gain unknown' in n for n in d.notes)
