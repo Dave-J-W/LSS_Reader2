@@ -431,3 +431,4 @@ stable (burn tests), the confident 5 % time.
 - Motor names (2026-11-24): a scan's parameters hold each motor under its 8-character name (as the macro writes `#P`) and its full name from the file header's `#O` (`Two_Thet` and `Two_Theta`).
 - SpecPlot (2026-11-24): an hklscan is plotted against the index it moves (from the `#S` command, else the column that varies; L when nothing moves); other scans against their first column; y the last column, as before.
 - SPEC files (2026-11-24): L is Qz; a scan at fixed L whose L disagrees with its In_Rot and Out_Rot by more than 1 % is reported once on opening (a changed SPEC lattice would scale every Qz).
+- MCA "Fit lines" weights (2026-11-24, F90 P1): the preference `mca_fit_poisson` fits each spectrum's heights by Poisson maximum likelihood instead of least squares weighted by its error bars (which reads weak lines low); off by default until the owner's study.
