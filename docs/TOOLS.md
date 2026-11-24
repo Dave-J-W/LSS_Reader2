@@ -56,6 +56,7 @@ container on 2026-11-23 with the defaults shown.
 | [Fit demonstrator report figures](#patch-demo-figures) | figures | The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per survey). | synthetic (public) |  | `docs/figures/patch_demo` |
 | [Patching gauntlet (synthetic, judged)](#ref-patch-gauntlet) | data | Every patching method on many noise replicates of synthetic reflectivity under many conditions, judged by hand-off 08's rules (\|mean pull\| < 0.2, pull SD 0.9-1.15). | synthetic (public) |  | `docs/comparisons_data/ref_patch_gauntlet` |
 | [Why five gauntlet joins are biased (extension 4)](#ref-patch-biased-joins) | data | The default joint fit's five biased designed joins and the covariance study's first join, redrawn with the gauntlet's seeds and fitted with the guard off, other orders and windows, noise-free. | synthetic (public) | 15 s | `docs/comparisons_data/ref_patch_biased_joins` |
+| [Study A: how strict the joint fit's guard should be](#ref-guard-study) | figures | The guard's p from 0.001 to 0.5, the guard off, an AICc average and the legacy factor on C45's six joins (C45 reproduced first), a downstream fit, the NX school joins beside the foil ratio, and a robustness map over fringe sampling and counts: figures A1-A8 and R. | public (NX school or committed tables) | 54 s | `docs/studies/reflectivity_guard` |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
 | [Downstream fits with and without the covariance](#covariance-pulls) | data | Synthetic NX-like scans of a 25 Å film reduced by each patch method and fitted for thickness, density and roughness under four error treatments: pull SD is 1 only with the full covariance. | synthetic (public) | 3 s | `docs/comparisons_data/downstream_covariance` |
 | [Old and new methods as CSV (C2, C10, C11, ...)](#compare-methods) | data | Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, the footprint window, absorber factors, "Sum All" as the counts over the monitors vs the mean of the normalised frames, each frame's true incidence (header In_Rot vs α from L). | NX school by default; any SPEC file | 39 s | `docs/comparisons_data/manifest.json`<br>`docs/comparisons_data/C2_*`<br>`docs/comparisons_data/C6_*`<br>`docs/comparisons_data/C10_*`<br>`docs/comparisons_data/C11_*`<br>`docs/comparisons_data/C21_*`<br>`docs/comparisons_data/C24_*`<br>`docs/comparisons_data/C41_*`<br>`docs/comparisons_data/C43_*` |
@@ -319,6 +320,29 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Fewer replicates | A quick look: 100 replicates per join and 100 seeds of the covariance study; the default's pulls no longer match the gauntlet's exactly. | `tests/tools/ref_patch_biased_joins.py` | `python tests/tools/ref_patch_biased_joins.py --out '{out}' --replicates 100 --covariance-seeds 100` |
+
+<a id="ref-guard-study"></a>
+
+### Study A: how strict the joint fit's guard should be
+
+The guard's p from 0.001 to 0.5, the guard off, an AICc average and the legacy factor on C45's six joins (C45 reproduced first), a downstream fit, the NX school joins beside the foil ratio, and a robustness map over fringe sampling and counts: figures A1-A8 and R.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/ref_guard_study.py`
+- Explained in: `docs/studies/2026-11-24_two_decisions_plan.md### Study A: reflectivity joins and the guard`, `docs/studies/reflectivity_guard/data_summary.md`, `docs/COMPARISONS.md#| C47 |`
+- Committed products: `docs/studies/reflectivity_guard`; replaced from the window with the settings that made them (into `docs/studies/reflectivity_guard`)
+- Run:
+
+      python tests/tools/ref_guard_study.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Smoke run | Every figure from a few replicates (about 10 s): checks the tool, not the numbers. | `docs/studies/reflectivity_guard/data_summary.md#(`--quick`)` | `python tests/tools/ref_guard_study.py --out '{out}' --quick` |
+| C45 and the decision curve only | The six joins on the gauntlet's seeds (C45 comes back exactly), figures A2-A6 and the 2000-replicate precision check. | `docs/studies/2026-11-24_two_decisions_plan.md#so that today's numbers come back exactly first` | `python tests/tools/ref_guard_study.py --out '{out}' --figures A2,A3,A4,A5,A6` |
+| Decision curve, 5000 replicates | A5 with the precision run at 5000 replicates per join: how much of the first join's pull SD is sampling. | `docs/studies/reflectivity_guard/data_summary.md#(precision check)` | `python tests/tools/ref_guard_study.py --out '{out}' --figures A5 --precision 5000` |
+| Robustness map, 2000 per cell | R with 2000 replicates per cell (500 per fringe phase). | `docs/studies/reflectivity_guard/data_summary.md### R. Robustness map` | `python tests/tools/ref_guard_study.py --out '{out}' --figures R --r-replicates 2000` |
+| Real data only | A8: the NX school joins under each choice beside the calibrated foil ratio. | `docs/studies/reflectivity_guard/data_summary.md### A8. NX school, scans 6–9` | `python tests/tools/ref_guard_study.py --out '{out}' --figures A8` |
 
 <a id="ref-patch-survey"></a>
 
