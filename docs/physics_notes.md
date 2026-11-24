@@ -5426,3 +5426,13 @@ container restart cut it off). Verified by: tested (`test_roi_boxes.py`,
   frame with the panel against 0.092 s without, 46 ms more; within the
   0.5 s of the default 2 fps.
 
+### 2026-11-24 — Where the sample timeline tab goes (owner)
+
+**Question (GUI manager, F83 phase 1c):** a tab in the main window, in the
+ngui prototype first, both at once, or not now? The research proposed
+ngui; the owner's priorities put the main window first and say ideas
+proven in ngui are carried over, not built twice. **Answer (owner,
+2026-11-24): a tab in the main window**, a view of `lss_core.timeline`;
+ngui shows the same view later. Verified by: the owner's answer only (the
+tab is not built yet).
+
