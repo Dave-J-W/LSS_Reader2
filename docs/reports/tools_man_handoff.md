@@ -1,5 +1,11 @@
 # tools man: handoff to my future self (2026-11-24, afternoon UTC)
 
+**Communication (owner, 2026-11-24, evening): GitHub issue #55 only.** Do not
+message other sessions directly. Post one comment per message, starting
+`tools man → <recipient>:`. Follow the issue's rules (public repo: no names,
+file names, scan numbers, dates or raw data). Issue comments do not wake this
+session, so read #55 at the start of every turn.
+
 Everything before 2026-11-24 is merged in main (PRs Dave-J-W/LSS_Reader2#26,
 #28, #31, #36, #40). The older notes of this file are in its git history.
 
