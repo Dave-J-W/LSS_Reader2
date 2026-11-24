@@ -5098,3 +5098,28 @@ exit angle, a raised detector arm would look like a wrong lattice
 whether the SPEC lattice is the usual one. Nothing is changed:
 reductions keep using L.
 
+### 2026-11-24 — The owner asks for full studies of the guard and the MCA fit decisions
+
+**Owner, after answering batch 15:** "I want a full study (is real data
+needed? Better synthetic? Show some synthetic data replicates and their
+fits! Show me stats in graphical form!) illustrations, and a ELI5
+rationale document with latex equations for those two decisions. But
+this will have to wait until 1am."
+
+**Answer: planned, not yet done.** The plan is
+`docs/studies/2026-11-24_two_decisions_plan.md`:
+- study A, the reflectivity join guard (C45, C36);
+- study B, the MCA line intensity (F90, C42);
+- each answers the same five questions, the second and third being
+  whether the synthetic data are good enough and whether real data are
+  needed;
+- each comes with figures of replicates and their fits, and statistics
+  in graphical form;
+- an ELI5 rationale with LaTeX follows both.
+
+The work starts at 1:00 am America/Chicago, from a reminder in the Main
+session. Until the studies are in, the batch 15 decisions are recorded
+but **P1's default switch waits**: tools man builds P1, P2 and P3 as
+code paths with today's weighting kept as the default.
+
+Verified: nothing yet (a plan).
