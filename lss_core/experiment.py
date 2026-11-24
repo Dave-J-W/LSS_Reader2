@@ -445,14 +445,14 @@ class Experiment:
         """GID map of the frames of ``scans``, as the window's "GID Patch"
         (``relax``: "GID Patch Relax") with the GID worksheet's settings
         ``params`` (lss_core.gid.GIDParams; default: pinhole geometry, as
-        the window). ``axes``: 'Q' or 'Angles', what ``save`` writes;
+        the window, and the frames' last row, ``GIDParams.for_detector``). ``axes``: 'Q' or 'Angles', what ``save`` writes;
         ``points``, ``db_pos`` (typed direct beam, column and row), the
         bad-pixel settings and ``errors`` (legacy patch only) as the window.
         Background-subtracted frames are not scriptable yet. Raises
         lss_core.gid.GIDError where the window shows a message and stops."""
         from . import gid as gidmod
-        gp = gidmod.GIDParams() if params is None else params
         frames, det = self.gid_frames(scans, points, db_pos, bad_pixel_iterations, bad_pixel_factor, errors)
+        gp = gidmod.GIDParams.for_detector(np.shape(frames[0].data)) if params is None else params   # the frames' last row
         log, warnings = [], []
         info = None
         if gp.pinhole:

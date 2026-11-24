@@ -270,6 +270,7 @@ class MainWindow (QMainWindow):
         self.initPilDisplay()
         self.initPilMovie()
         self.gidParams=gidmod.GIDParams()     # GID patch settings (worksheet, F61)
+        self.gidRowMaxFollows=True            # the last GID row is the frames' last until another is typed (gidEffectiveParams)
         self.gidJoinLog=[]
         self.gidLevels=[]
         self.gidWorksheet=None
@@ -5274,6 +5275,7 @@ class MainWindow (QMainWindow):
     def showGIDWorksheet(self):
         if self.gidWorksheet is None:
             self.gidWorksheet=self.buildGIDWorksheet()
+        self.gidWorksheetLimits()
         self.gidWorksheetResults()
         self.gidWorksheet.show()
         self.gidWorksheet.raise_()
@@ -5301,13 +5303,17 @@ class MainWindow (QMainWindow):
             w.setValue(val)
             w.setToolTip(tip)
             return w
-        cols=spin('gidColumnsSpinBox',1,195,int(float(self.ui.pilHSlitLineEdit.text() or 3)),
+        nrows,ncols=self.pilShape()
+        cols=spin('gidColumnsSpinBox',1,ncols,int(float(self.ui.pilHSlitLineEdit.text() or 3)),
                   'Pixels summed across each frame, centred on the direct-beam column; the sum is one profile placed at '
                   'the frame\'s detector angle (the H slit field of the GID tab). More columns: more counts, coarser 2theta '
-                  'resolution (the pinhole correction, F45, is to lift that limit).')
+                  'resolution (the pinhole correction, F45, is to lift that limit). At most the frames\' columns '
+                  '(195 on the Pilatus 100K).')
         rows=QHBoxLayout()
         rmin=spin('gidRowMinSpinBox',0,4000,gp.row_min,'First detector row used (beta range). Default 15.')
-        rmax=spin('gidRowMaxSpinBox',0,4000,gp.row_max,'Last detector row used (beta range). Default 486.')
+        rmax=spin('gidRowMaxSpinBox',0,4000,self.gidEffectiveParams().row_max,
+                  'Last detector row used (beta range), included. Default: the frames\' last row (486 on the Pilatus '
+                  '100K, rows 0-486), and it follows the frames until another row is typed.')
         rows.addWidget(rmin)
         rows.addWidget(rmax)
         qzd=spin('gidQzDecimalsSpinBox',1,6,gp.qz_decimals,'Frames are grouped into Qz levels by their Qz rounded to this many '
@@ -5479,7 +5485,7 @@ class MainWindow (QMainWindow):
         again.setToolTip('Patch the selected frames again with these settings')
         reset=QPushButton('Defaults',d)
         reset.setObjectName('gidDefaultsPushButton')
-        reset.setToolTip('Back to the values the program always used')
+        reset.setToolTip('Back to the values the program always used; the last row the frames\' last (486 on the Pilatus 100K)')
         close=QPushButton('Close',d)
         close.setObjectName('gidClosePushButton')
         buttons.addWidget(live)
@@ -5491,7 +5497,9 @@ class MainWindow (QMainWindow):
 
         def apply(*_):
             self.ui.pilHSlitLineEdit.setText(str(cols.value()))
-            self.gidParams=gidmod.GIDParams(columns=cols.value(),row_min=rmin.value(),row_max=rmax.value(),
+            self.gidRowMaxFollows=rmax.value()==self.pilShape()[0]-1      # the frames' last row: keep following them
+            self.gidParams=gidmod.GIDParams(columns=cols.value(),row_min=rmin.value(),
+                                            row_max=gidmod.ROW_MAX_100K if self.gidRowMaxFollows else rmax.value(),
                                             qz_decimals=qzd.value(),dth_decimals=dthd.value(),
                                             area_correction=area.isChecked(),hard_slit_offset_mm=hard.value(),
                                             polarisation=pol.isChecked(),vjoin_kind=kind.currentText(),
@@ -5514,7 +5522,7 @@ class MainWindow (QMainWindow):
             cols.setEnabled(not pin.isChecked())
 
         def defaults():
-            dflt=gidmod.GIDParams()
+            dflt=gidmod.GIDParams.for_detector(self.pilShape())     # the last row: the frames' (486 on the Pilatus 100K)
             for w,v in ((cols,dflt.columns),(rmin,dflt.row_min),(rmax,dflt.row_max),(qzd,dflt.qz_decimals),
                         (dthd,dflt.dth_decimals),(hard,dflt.hard_slit_offset_mm)):
                 w.setValue(v)
@@ -5727,13 +5735,33 @@ class MainWindow (QMainWindow):
 
     def gidEffectiveParams(self):
         """The worksheet's settings with the H slit field as the column count
-        (the field can be typed without the worksheet)."""
+        (the field can be typed without the worksheet), and the frames' last
+        row as the last row while it is left at its default (486 on the
+        Pilatus 100K, so there no change)."""
         import dataclasses
         try:
             cols=float(self.ui.pilHSlitLineEdit.text())
         except ValueError:
             cols=self.gidParams.columns
-        return dataclasses.replace(self.gidParams,columns=int(cols) if cols==int(cols) else cols)
+        gp=dataclasses.replace(self.gidParams,columns=int(cols) if cols==int(cols) else cols)
+        if getattr(self,'gidRowMaxFollows',True) and gp.row_max==gidmod.ROW_MAX_100K:
+            gp=dataclasses.replace(gp,row_max=self.pilShape()[0]-1)
+        return gp
+
+    def gidWorksheetLimits(self):
+        """The worksheet's detector limits from the frames read last: the
+        columns at most theirs, the last row theirs while it follows them."""
+        d=self.gidWorksheet
+        if d is None:
+            return
+        nrows,ncols=self.pilShape()
+        for w,v in ((d.gidColumnsSpinBox,None),(d.gidRowMaxSpinBox,self.gidEffectiveParams().row_max)):
+            w.blockSignals(True)        # no live patch for a limit
+            if v is None:
+                w.setMaximum(ncols)
+            else:
+                w.setValue(v)
+            w.blockSignals(False)
 
     def gidFrames(self):
         """lss_core.gid.GIDFrame for each selected frame, in selection order."""
@@ -5978,6 +6006,17 @@ class MainWindow (QMainWindow):
         gidmod.save(self.saveFileName,self.gidProducts(axes))
         self.scriptLine(self.gidScript(self.saveFileName,axes))
 
+    def gidScriptSettings(self):
+        """The patch's settings and the names a script must give: those that
+        differ from GIDParams()'s, or the last row alone when only it differs
+        from what exp.gid takes without params (the frames' last row: the
+        100K's 486 typed on a larger detector)."""
+        gp=self.gidEffectiveParams()
+        changed=gp.changed()
+        if not changed and gp!=gidmod.GIDParams.for_detector(self.pilShape()):
+            changed=['row_max']
+        return gp,changed
+
     def gidScript(self,name,axes):
         """The lss_core call that reproduces the GID map just saved."""
         if len(self.ui.backgroundListWidget.selectedItems())>0:
@@ -5990,8 +6029,7 @@ class MainWindow (QMainWindow):
             if chosen!=listed:
                 points[n]=chosen
         kw=['axes=%r' % axes]
-        gp=self.gidEffectiveParams()
-        changed=gp.changed()
+        gp,changed=self.gidScriptSettings()
         head=''
         if changed:
             head='from lss_core.gid import GIDParams\n'
@@ -6063,7 +6101,7 @@ class MainWindow (QMainWindow):
         #sortedFrameNums=np.array(self.selectedPilFramesNums)[np.argsort(np.array(self.pil_Dth))]
         j=0   #for xcenter and ycenter, which are already defined in self.selectedPilFramesNums
         for i in self.selectedPilFramesNums:
-            self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absfac=self.absfac,absnum=[self.pil_AbsNum[i]],cen=[self.pilX[i],self.pilY[i]], hroi=[self.pilxleft[j]-1, self.pilxright[j]-1], vroi=[5,486], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]], gain=self.pilGains([self.pilScanNum[i]]))
+            self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absfac=self.absfac,absnum=[self.pil_AbsNum[i]],cen=[self.pilX[i],self.pilY[i]], hroi=[self.pilxleft[j]-1, self.pilxright[j]-1], vroi=[5,self.pilShape()[0]-1], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]], gain=self.pilGains([self.pilScanNum[i]]))
             #ang=((self.pilatus.hintData[:,0]-self.ycenter[j])*0.172/self.distance[0]+np.arcsin(2.0*np.sin(self.pilAlpha[i])-np.sin(self.pilTrueAlpha[i])))*180/np.pi #convert pixle to beta
             #print self.pilatus.hintData[0][0]             
             j=j+1

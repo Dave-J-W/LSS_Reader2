@@ -191,6 +191,10 @@ Each line: feature — where — default — script — notes entry (date).
 - GID worksheet (GID menu > Worksheet): every patch parameter, Patch,
   Defaults, Fit (pinhole distance, diagnostic only), join table — Notes
   2026-11-18 "Pinhole-geometry GID built", 2026-11-19 "Joining Qz levels".
+  The last row's default is the frames' last row (486 on the Pilatus 100K)
+  and follows the frames until another row is typed; the columns go up to
+  the frames' columns (195 on the 100K). `exp.gid` without `params` takes
+  the frames' last row too (`GIDParams.for_detector`; 2026-11-24).
 - Worksheet: response "fit" (per column), "beam" (along the beam axis, for a narrow beam;
   shows the beam's centre and FWHM on the sample) or "none"; the 2θ resolution
   (S4 + pixel) is shown with the levels.

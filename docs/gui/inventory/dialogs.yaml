@@ -799,7 +799,7 @@
   needs: "Pinhole off"
   shown: always
   tooltip: true
-  notes: "Disabled while Pinhole is on (observed), without a visible reason."
+  notes: "Disabled while Pinhole is on (observed), without a visible reason. At most the frames' columns (195 on the Pilatus 100K; follows the frames read last, 2026-11-24)."
 - id: gidRowMinSpinBox
   kind: spin
   label: "rows from"
@@ -821,7 +821,7 @@
   needs: ""
   shown: always
   tooltip: true
-  notes: ""
+  notes: "Default: the frames' last row (486 on the Pilatus 100K); follows the frames read last until another row is typed (gidRowMaxFollows, 2026-11-24)."
 - id: gidQzDecimalsSpinBox
   kind: spin
   label: "Qz decimals"
@@ -1118,7 +1118,7 @@
   needs: ""
   shown: always
   tooltip: true
-  notes: "No Defaults button in any other settings dialog (Preferences, fit options, burn)."
+  notes: "No Defaults button in any other settings dialog (Preferences, fit options, burn). The last row it restores is the frames' (486 on the Pilatus 100K, 2026-11-24)."
 - id: gidClosePushButton
   kind: button
   label: "Close"
