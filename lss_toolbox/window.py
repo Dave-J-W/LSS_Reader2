@@ -534,7 +534,9 @@ class ToolPage(QtWidgets.QWidget):
 
     def _build_args(self, out_dir):
         values = self.values()
-        if out_dir is not None and self.item.scratch_args and self.spec:
+        # without a parser (a packaged build, or a script whose options could not be read) there is no
+        # option to set: the scratch settings are left out rather than raising
+        if out_dir is not None and self.item.scratch_args and self.spec and self.spec.get('actions'):
             values.update(runner.values_from(self.spec, self.item.scratch_args))
         return runner.build_args(self.spec or {'actions': []}, values, out_dir, free=self.freeEdit.text())
 
