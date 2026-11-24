@@ -99,7 +99,7 @@ container on 2026-11-23 with the defaults shown.
 | [MCA line-fit gauntlet (synthetic, judged)](#mca-fit-gauntlet) | data | Fitted fluorescence lines against the window sum on synthetic MCA spectra with the beam's Rayleigh and Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), judged by hand-off 08's pull rule and a 1 % bias rule. | synthetic (public) |  | `docs/comparisons_data/mca_fit_gauntlet` |
 | [MCA fit demo: the beam-energy story (F90)](#mca-fit-demo) | figures | The same Zn spectrum under 10, 11 and 12 keV beams: its parts stacked, the box, one drawn spectrum with P1's fit, and P1's bias over 200 series on each panel (the window sum's beside it). The wrap-up of the synthetic MCA project (paused 2026-11-24). | synthetic (public) | 17 s | `docs/figures/mca_fit_demo` |
 | [Study B figures: MCA line intensities (F90)](#mca-study) | figures | The owner's study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with every estimator's fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass rates and the robustness map (B1-B7), from the gauntlet's study run. | synthetic (public) |  | `docs/studies/mca_fit` |
-| [Scatter in real MCA spectra against the generator (F90)](#mca-scatter) | figures | Real spectra of the scattered beam at 6-10 keV fitted with the synthetic generator's own physics, every uncertain axis free: the Si escape fraction against Reed's, the O 1s Compton wing, the detector tails, the resolution and the counts under a line against study B's hard case (DATA_NEEDS row 3). | public (NX school or committed tables) | 60 s | `docs/studies/mca_scatter` |
+| [Scatter in real MCA spectra against the generator (F90)](#mca-scatter) | figures | Real spectra of the scattered beam at 6-10 keV fitted with the synthetic generator's own physics, every uncertain axis free: the Si escape fraction against Reed's, the O 1s Compton wing, the detector tails, the resolution and the counts under a line against study B's hard case (DATA_NEEDS row 3); and P1 against data weights on real series of repeated spectra. From the anonymised tables only. | public (NX school or committed tables) | 8 s | `docs/studies/mca_scatter` |
 
 ### Synthetic data sets
 
@@ -880,7 +880,7 @@ Variations:
 
 ### Scatter in real MCA spectra against the generator (F90)
 
-Real spectra of the scattered beam at 6-10 keV fitted with the synthetic generator's own physics, every uncertain axis free: the Si escape fraction against Reed's, the O 1s Compton wing, the detector tails, the resolution and the counts under a line against study B's hard case (DATA_NEEDS row 3).
+Real spectra of the scattered beam at 6-10 keV fitted with the synthetic generator's own physics, every uncertain axis free: the Si escape fraction against Reed's, the O 1s Compton wing, the detector tails, the resolution and the counts under a line against study B's hard case (DATA_NEEDS row 3); and P1 against data weights on real series of repeated spectra. From the anonymised tables only.
 
 - Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/mca_scatter.py`
 - Explained in: `docs/studies/mca_scatter/summary.md`, `docs/DATA_NEEDS.md#MCA fit gauntlet spectra`, `docs/studies/mca_fit/summary.md`
@@ -893,7 +893,7 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| Numbers against beam energy only | S2 from the anonymised table, without refitting the example spectra (a few seconds). | `docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |` | `python tests/tools/mca_scatter.py --out '{out}' --only S2` |
+| Numbers against beam energy only | S2 from the anonymised table (a few seconds). | `docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |` | `python tests/tools/mca_scatter.py --out '{out}' --only S2` |
 
 <a id="synthetic-dataset"></a>
 

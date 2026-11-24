@@ -1,128 +1,171 @@
-# The scattered beam in real MCA spectra (DATA_NEEDS row 3, F90)
+# The scattered beam in real MCA spectra (DATA_NEEDS rows 2 and 3, F90)
 
-The owner's non-cloud agent, 2026-11-24. **Measured on real spectra.** The
-owner's private beamline data hold no pure-water blank, so the blanks here
-are spectra with no fluorescence line near the scatter (see "Which spectra").
-The aim is to check the synthetic generator that study B
-(`docs/studies/mca_fit/summary.md`) rests on (`tests/synthetic/mca.py`).
-Its two uncertain axes are the O 1s Compton wing and the Si escape fraction
-(B7).
+The owner's non-cloud agent, 2026-11-24, to the specification of main man and tools man (relayed by
+the data-analysis coordinator).
 
-**Regenerate** (from public files only, about 1 min):
+**Measured on real spectra** from the owner's private beamline data. The private data hold no
+pure-water blank. The blanks here are spectra with no fluorescence line near the scatter (see
+"Which spectra").
+
+The aim is to check the synthetic generator (`tests/synthetic/mca.py`) that study B
+(`docs/studies/mca_fit/summary.md`) rests on. Its two uncertain axes are the O 1s Compton wing and
+the Si escape fraction (B7).
+
+Every number below is a derived number. No spectrum is committed: a scrubbed blank is published
+only with the owner's yes (candidates are listed at the end).
+
+**Regenerate** the figures from the public tables (a few seconds):
 
     python tests/tools/mca_scatter.py --out docs/studies/mca_scatter
 
-The table `scatter_fits.csv` was made from the private spectra by the same
-model (the private scripts import nothing else). The tool refits the four
-public example spectra (`tests/reference/mca_scatter/E10-*.csv`) and draws
-both figures. Tools menu: Fluorescence (MCA), "Scatter in real MCA spectra".
+Tools menu: Fluorescence (MCA), "Scatter in real MCA spectra against the generator".
 
-## In one paragraph
+The tables were made from the private spectra by the same module's model:
+- `scatter_fits.csv`: one row per spectrum;
+- `quantities.csv`: long form, with columns energy_kev, example, quantity, value, error, method,
+  n_spectra and evidence (measured, read or computed; AGENTS rule 6).
 
-Real scatter at 6–10 keV was fitted with the generator's own physics and
-every uncertain axis left free. Results by feature:
+## The generator against the real spectra
 
-- **Si escape.** Reed's fraction is right to about 10 % at 6–7.4 keV. It is
-  low by 30–55 % at 8.3–9.2 keV on one readout. At 10 keV it is right to
-  about 20 % on the other.
-- **O 1s wing.** Water's impulse-approximation wing at full size is
-  rejected by every spectrum. Readout A measures 0.78–0.87 of it. Readout B
-  measures 0–0.35, but there the wing trades against a broad detector tail.
-- **Scatter under a line.** Readout B carries detector tails the generator
-  does not have: a low-energy tail of 3–12 % with a 0.3–0.5 keV decay, and a
-  high-energy tail of up to 11 %. So what lies under a line is 1.5–3.2 × the
-  generator's hard case on B. On readout A it is 1.03–1.23 ×.
-- **Detector resolution.** It matches the generator's default to about
-  ±15 %, apart from one run at +45 %.
-- **Compton peak.** The water-shell width is right to 5 % on readout A. It
-  is 1.15–1.7 × on readout B, where the spread of angles over an element is
-  folded in.
+Each row compares one generator setting (`Detector` / `Beam` in `tests/synthetic/mca.py`, study B's
+hard case) with what the spectra show. Values are medians, with the range over examples in
+brackets.
 
-## The spectra
+- **A:** the single-element readout: 10 keV, 7 spectra from 4 runs.
+- **B:** one element of the seven-element readout: 6.1–9.2 keV (20 pre-edge sums from 3 runs) and
+  10 keV (3 spectra from 2 runs).
 
-**Where the spectra are (row 2).** No SPEC data file holds a spectrum: 1043
-MCA files from 12 runs were checked. The scan's block has a
-`#V <datafile>_<scan>_mca` line, which only points to a file. 1007 of the
-1043 scans have it; 26 `a2scan`, 11 `ascan` and 4 `escan` blocks lack it,
-although their file exists. That file, `vortex/<datafile>_<scan>_mca`, is
-SPEC-like:
+**Evidence:**
+- **measured:** fitted to the spectra;
+- **read:** taken from the file header.
 
-- one `#S n mca_save_point Point:p Scan:s Datafile:d` block per point and
-  per detector element;
-- in each block `#T`, `#Q` (H K L), `#Energy` (SPEC's `en`), `#Monc`,
-  `#@CTIME` (preset, real, live), `#@CALIB` and the counts in `@A`;
-- `#@CALIB` is in eV or in keV per channel; on the 7-element readout it is a
-  nominal 0 10 0;
-- the 7-element readout writes `#@CHANNEL k`.
+**Detector**
 
-**Two readouts.**
-- **A:** a single-element readout, 2048 or 4096 channels of 4.8–14 eV.
-- **B:** a seven-element readout, 4096 channels of 10 eV. Each element is
-  fitted on its own, with its own calibration.
+| Generator setting | Default | Measured, readout A (10 keV) | Measured, readout B | Evidence |
+|---|---|---|---|---|
+| `Detector.noise` (keV FWHM), with Fano fixed 0.115 | 0.12 | 0.09–0.23 (fit) | 0.09–0.17 | measured |
+| Fano factor (`Detector.fano`), from the Ar Kα and elastic widths | 0.115 | 0.137 (0.134–0.139), n = 2 | 0.107 (0.092–0.127), n = 9; two at 0.18–0.21 | measured |
+| Noise from the same two widths (keV) | 0.12 | 0.065 (0.061–0.069) | 0.105 (0.080–0.114) | measured |
+| Elastic FWHM at 10 keV (keV) | 0.194 | 0.206 (0.179–0.280) | 0.190 (0.190–0.227) | measured |
+| Elastic FWHM at 6.1 / 7.2 / 7.4 / 8.3 / 9.2 keV (keV) | 0.169 / 0.176 / 0.178 / 0.183 / 0.189 | — | 0.154 / 0.161 / 0.166 / 0.170 / 0.179 | measured |
+| `Detector.tail` (fraction) | 0.01 | 0.020 (0.018–0.022) | 0.028–0.116 | measured |
+| `Detector.tail_slope` (keV) | 0.15 | 0.64 (0.50–0.68) | 0.30–0.69 | measured |
+| `Detector.shelf` (fraction) | 0.002 | 0.000 | 0–0.034 | measured |
+| High-energy tail (fraction, decay) | none | 0–1.4 % | 0.7–11 %, 0.13–0.26 keV | measured |
+| `Detector.escape` (× Reed), 6.1–7.4 keV | 1 | — | 1.01–1.12 (fit), 1.11–1.19 (template) | measured |
+| `Detector.escape` (× Reed), 8.3–9.2 keV | 1 | — | 1.27–1.44 (fit), 1.46–1.55 (template) | measured |
+| `Detector.escape` (× Reed), 10 keV | 1 | 0.82 (fit), 1.02 (template), n = 2 | hidden under Cu Kα | measured |
 
-**Calibration.** The files' calibrations are close to right: the gain is
-within 1.6 % and the offset within tens of eV.
-- **B:** the gain was measured from the elastic line across beam energies
-  (energy scans).
-- **A:** the gain was measured from the elastic line and air's Ar Kα
-  (2.957 keV).
-- The offset is fitted per spectrum.
+**Beam and Compton**
 
-The detector's position is not logged, so the scattering angle 2θ is
-measured from the Compton shift.
+| Generator setting | Default | Measured, readout A (10 keV) | Measured, readout B | Evidence |
+|---|---|---|---|---|
+| `Beam.angle` 2θ (°): shells fit | 90 | 91.2 (90.4–91.9) | 85–98 at 6.1–7.4 keV; 70–81 at 8.3–9.2 keV | measured |
+| `Beam.angle` 2θ (°): `compton_energy` at the detected peak | 90 | 91.3 (91.0–93.1) | 76–113 | measured |
+| `Beam.compton_ratio`, Compton / elastic photons | 1 (free) | 2.0 (1.9–2.2) | 0.58–3.3 | measured |
+| `Beam.doppler_scale` (momentum widths × water's) | 1 | 0.97 (0.95–1.03) | 1.15–1.69 | measured |
+| Compton FWHM as detected (keV) | 0.276 at 10 keV | 0.282 (0.26–0.35) | 0.19–0.34 (generator 0.20–0.28) | measured |
+| Compton asymmetry, HWHM below / above | 1.03 (shells) | 1.01–1.05 | 1.04–1.21 | measured |
+| `Beam.core_scale`, the O 1s wing (shells fit) | 1 | 0.84 (0.78–0.87) | 0.0–0.37 (one spectrum 0.70) | measured |
+| O 1s wing window, counts in E_C − 2 … E_C − 0.5 keV / Compton photons | 0.025 (A), 0.013–0.025 (B) | 0.029 (0.0285–0.030) | 0.028–0.041 | measured |
 
-**Which spectra.** Not every record could be used:
-- The energy scans cross absorption edges of the samples' elements, and
-  points above an edge carry that element's lines under the scatter. So each
-  scan's **pre-edge** points (30–150 eV below the edge) were aligned to
-  their mean beam energy (`rebin_shift`) and summed, per element. These give
-  the 6.1, 7.2, 7.4, 8.3 and 9.2 keV cases.
-- At 10 keV, whole scans were summed. Most carry traces of Cu and Zn
-  (below 10⁻³ of the elastic photons). Cu Kα (8.04 keV) sits on the Compton
-  escape (≈ 8.07 keV), so those spectra give no escape fraction.
-- The `#Energy` headers of 20 and 30 keV do not match their spectra (there
-  is no elastic line there), so those were dropped.
-- Tiers: **clean** means no line above 10⁻⁴ of the elastic photons in
-  E0 − 2.4 … E0 + 0.6 keV. **Trace** means lines below 10⁻³. **Line** means
-  stronger lines.
+**Counting**
 
-38 spectra were fitted. 30 give good fits. The 8 not shown are listed on S2.
+| Generator setting | Default | Measured, readout A (10 keV) | Measured, readout B | Evidence |
+|---|---|---|---|---|
+| Real time per spectrum (s) | 10 | 15 (15–60) | 2 (pre-edge points); 15–100 at 10 keV | read |
+| Dead-time fraction, 1 − live/real | 0 | 0.08 (0.04–0.20) | not recorded (the file has real = live) | read |
 
-**Labels.** Spectra are labelled by beam energy (to 0.1 keV) and a letter.
-Nothing ties a label to a run.
+**What the table says:**
 
-## The model
+- **Readout A at 10 keV is close to the generator.** Its O 1s wing is 0.84 × water's. Its low tail
+  is broader (0.6 keV) and larger (2 %) than the generator's. Its Fano factor is higher, and its
+  noise lower.
+- **Readout B is far from it.** Most of what sits under a line comes from its own tails, which the
+  generator lacks or under-sizes.
+- **The Fano factor from two widths** assumes the noise is the same at the Ar Kα line and at the
+  elastic line. The elastic line is counted at a much higher rate, so this is an upper bound when
+  pile-up broadens the elastic.
 
-Over E0 − 2.4 … E0 + 0.6 keV, by Poisson maximum likelihood (the tool's
-docstring has every term):
+## 1. Scatter under the line boxes (tools man's item 1; B_box of `docs/reports/mca_fit_demo.md` §4.2)
 
-- elastic photons at E0;
-- water's Compton shells (`mca.shell_compton`, study B's 'shells' model) at
-  a free angle;
-- the O 1s part × `core`, every momentum width × `doppler`;
-- the generator's detector (`mca._response`): free noise, low tail, shelf
-  and escape × Reed;
-- **plus a high-energy tail** (pile-up), which the generator lacks;
-- nuisance K lines of elements whose lines fall in the region;
-- a flat background.
+**Method:**
+- The box counts are divided by the elastic photopeak counts of the same spectrum.
+- Only spectra with a good fit are used, and boxes at or above the elastic line are skipped.
+- Inside the fitted region the fitted trace lines are taken off (`quantities.csv`: `box_Zn_*`,
+  `box_Fe_*`, and `elastic_photopeak_counts` alongside).
+- Outside the fitted region (the Fe box at 9.2 and 10 keV) all counts are kept, any trace Fe
+  included.
 
-Errors are statistical, scaled by √(deviance/dof). The fits reach
-deviance/dof 0.6–1.0 on the pre-edge sums (10⁵–10⁶ counts). They reach
-2–19 on the 10 keV sums, which have up to 2 × 10⁸ counts.
+**Generator** means its hard case with the same photons, angle and ratio.
 
-## 1. Si escape fraction (escape peak over its parent)
+**Zn Kα box, 8.26–9.00 keV.** Only the 10 keV beam has it below the elastic.
 
-Two estimates:
-- **the fit:** `escape` × Reed, with the escape's position and width tied
-  to the parent;
-- **a model-free template:** in E0 − 1.74 − 0.55 … E0 − 1.74 + 0.35 keV,
-  n(E) = f · n(E + 1.740) + quadratic, the parent taken from the measured
-  spectrum itself.
+| Beam (keV) | Readout | n | Box / elastic: real | Generator | Real / generator | Elastic photopeak counts |
+|---|---|---|---|---|---|---|
+| 10.0 | A | 7 | 0.020 (0.018–0.025) | 0.0136 | 1.5 | 1.5e6–1.2e7 |
+| 10.0 | B | 3 | 0.062 (0.061–0.074) | 0.0205 | 3.0 | 2e6–5e7 |
 
-Medians, with the range in brackets. Spectra with Cu under the escape are
-left out.
+Study B's hard case puts B_box at about 8 × the line for 1e3 line photons on 1e6 elastic: 0.008 of
+the elastic. The real box holds 2.5 × that on readout A and 7.7 × on readout B. Part of the
+difference is the real Compton/Rayleigh ratio of 2, against the hard case's 1.
 
-| Beam (keV) | Readout | n | Fit / Reed | Template / Reed | Reed (generator) | Measured fraction (fit) |
+**Fe Kα box, 6.24–6.56 keV**
+
+| Beam (keV) | Readout | n | Box / elastic: real | Generator | How |
+|---|---|---|---|---|---|
+| 7.2 | B | 4 | 0.021 (0.015–0.042) | 0.013 | lines taken off |
+| 7.4 | B | 4 | 0.019 (0.016–0.024) | 0.005 | lines taken off |
+| 8.3 | B | 4 | 0.0054 (0.0052–0.0058) | 0.0021 | lines taken off |
+| 9.2 | B | 4 | 0.0031 (0.0028–0.0034) | — | all counts (outside the fit) |
+| 10.0 | A | 7 | 0.0018 (0.0004–0.011) | — | all counts (outside the fit) |
+| 10.0 | B | 3 | 0.016 (0.007–0.017) | — | all counts (outside the fit) |
+
+At 6.1 keV the boxes are above the elastic, so it is skipped. Beside the boxes, `quantities.csv`
+gives the counts per keV per elastic photon in ±2 FWHM windows at E0 − 0.6, 1.0, 1.37, 1.74 and
+2.0 keV, for the generator and for the clean and trace spectra (`window_counts_per_keV_*`): the
+window-sum view.
+
+## 2. P1 on real data (tools man's item 2)
+
+**The series.** 19 series of 21 repeated spectra each (fluorescence burns, `ascan ih`) at a fixed
+position, all from one run on readout A with a 10 keV beam. The line is near 8 keV. It sits on the
+Compton escape and the elastic escape peaks, the hard real case.
+
+**The fits.** Each spectrum was fitted with `peaks.fit_series` (Gaussian on a quadratic, box
+±2 FWHM, the reader's defaults), once with `weights='data'` and once with `weights='poisson'`. The
+truth is the fit of the summed spectrum divided by N. Rows `p1_*` in `quantities.csv`; figure S3.
+
+| Line counts per spectrum | Series | Data weights, bias | P1 (Poisson), bias | Study B's law −19/N |
+|---|---|---|---|---|
+| 25–50 | 9 | −28.0 % ± 1.4 % (weighted mean; each −23 to −32 %) | +3.5 % ± 1.5 % | −38 to −76 % |
+| 190–215 | 2 | −27 % ± 10 %, −28 % ± 12 % | +0.4 % ± 12 %, −0.8 % ± 15 % | −9 % |
+| 1470 | 1 | −4.0 % ± 1.7 % | 0.0 % ± 1.4 % | −1.3 % |
+| 2500–3900 | 7 | −0.5 to −1.5 % (± 0.6–17 %) | within ± 0.1 % | −0.5 to −0.8 % |
+
+**What it shows:**
+
+- **P1 removes the data-weight bias on real spectra.** It is unbiased within its errors from about
+  200 counts up. At 25–50 counts it reads +3.5 % ± 1.5 % (2.3 σ).
+- **The data-weight bias is real**, but it is not −19/N here:
+  - it stays near −27 % up to about 200 counts, so it is smaller than −19/N below about 70 counts
+    and larger above;
+  - it is about −1 % by 3000 counts.
+- **Why the shape differs.** The background under this box (escape peaks and Compton tail) is far
+  larger than study B's 1 count per channel. The −19/N law was fitted to that clean case.
+- **For F90:** the default (P1, 2026-11-24) is confirmed on real data. Study B's size of the bias
+  does not carry over to a box on the scatter.
+
+## 3. Si escape fraction (escape peak over its parent)
+
+**Two estimates:**
+- **the fit:** `escape` × Reed, with the escape's position and width tied to the parent;
+- **a model-free template:** in E0 − 1.74 − 0.55 … E0 − 1.74 + 0.35 keV, n(E) = f · n(E + 1.740) +
+  quadratic, with the parent taken from the measured spectrum itself.
+
+Spectra with Cu Kα under the Compton escape (8.04 against 8.07 keV, at 10 keV) are left out.
+
+| Beam (keV) | Readout | n | Fit / Reed | Template / Reed | Reed | Measured fraction (fit) |
 |---|---|---|---|---|---|---|
 | 6.1 | B | 4 | 1.12 (1.09–1.15) | 1.17 (1.05–1.23) | 0.337 % | 0.38 % |
 | 7.2 | B | 4 | 1.08 (1.04–1.10) | 1.19 (1.00–1.38) | 0.235 % | 0.25 % |
@@ -131,67 +174,48 @@ left out.
 | 9.2 | B | 4 | 1.44 (1.38–1.55) | 1.55 (1.42–1.64) | 0.128 % | 0.18 % |
 | 10.0 | A | 2 | 0.82 (0.77–0.88) | 1.02 (0.98–1.07) | 0.102 % | 0.08–0.10 % |
 
-- **Is the generator right?** Within about 10 % at 6–7.4 keV.
-- **Above 8 keV, on readout B**, Reed's fraction is too small:
-  - by 27–44 % (fit) or 46–55 % (template);
-  - the measured fraction falls more slowly with energy than Reed's
-    (×2.1 from 6.1 to 9.2 keV, against ×2.6).
-- **At 10 keV, on readout A**, it is right to about 20 %.
-- **For study B's case (10 keV, an elastic escape at 8.26 keV):** Reed's
-  0.10 % stands. On readout B it may be 1.5 × that, but that cannot be
-  measured at 10 keV here, because of Cu.
-- **Robustness:** the escape hardly moves when the O 1s wing is pinned at 0
-  or 1 (`profile`, section 2).
+- **The escape hardly moves** when the O 1s wing is pinned at 0 or 1 (section 4).
+- **Item 3 (10.05 and 10.52 keV) cannot be answered.** The private data hold no spectrum at 9.9–9.99,
+  10.05 or 10.52 keV. Those energies appear in the SPEC files of one run whose `vortex/` folder
+  holds only 7 spectra (at about 10 keV and a mislabelled 20 keV).
+- **30 keV cannot be answered either.** The 30 keV headers do not match their spectra (no elastic
+  line).
+- **6.21 and 7.51 keV.** The spectra at exactly these energies sit on the samples' edges and carry
+  their lines. The 6.1 and 7.4 keV pre-edge sums are the nearest scatter-only cases.
 
-## 2. The O 1s Compton wing
+## 4. O 1s Compton wing, and its trade-off with the detector tail
 
-**What was fitted.** `core` is the wing's size against water's
-impulse-approximation wing, with the generator's hydrogenic shape (1 is
-the generator). Its trade-off with the detector tail was tested by
-refitting with `core` fixed:
+`core` is the wing's size against water's impulse-approximation wing, with the generator's
+hydrogenic shape. Each spectrum was refitted with `core` fixed:
 - `profile_ddev_core1`: the deviance rise at `core` = 1;
 - `profile_ddev_core0`: the deviance rise at `core` = 0.
 
-Both are divided by the fit's deviance/dof, with the tail and every other
-term free.
+Both are divided by the fit's deviance/dof, with the tail and every other term free.
 
-| Beam (keV) | Readout | n | `core` fitted | Rise at core = 1 | Rise at core = 0 | Low tail (fraction, decay) | High tail |
-|---|---|---|---|---|---|---|---|
-| 10.0 | A | 7 | 0.84 (0.78–0.87) | 55 (38–70) | 228 (144–438) | 2.0 %, 0.64 keV | 0–1.4 % |
-| 10.0 | B | 3 | 0.37 (0.32–0.70) | 543 (508–608) | 155 (121–309) | 3–12 %, 0.33–0.40 keV | 7–10 % |
-| 9.2 | B | 4 | 0.14 (0.01–0.21) | 182 (96–238) | 12 (0–17) | 6.8 %, 0.33 keV | 1.8 % |
-| 8.3 | B | 4 | 0.18 (0.10–0.19) | 126 (99–172) | 14 (4–21) | 5.6 %, 0.31 keV | 0.9 % |
-| 7.4 | B | 4 | 0.31 (0.28–0.35) | 1253 (834–1336) | 178 (120–216) | 5.2 %, 0.42 keV | 6.7 % |
-| 7.2 | B | 4 | 0.15 (0.01–0.36) | 559 (229–888) | 45 (0–149) | 4.4 %, 0.48 keV | 4.3 % |
-| 6.1 | B | 4 | 0.25 (0.15–0.33) | 754 (254–1593) | 69 (59–69) | 3.6 %, 0.46 keV | 2.6 % |
+| Beam (keV) | Readout | `core` | Rise at 1 | Rise at 0 |
+|---|---|---|---|---|
+| 10.0 | A | 0.84 (0.78–0.87) | 55 (38–70) | 228 (144–438) |
+| 10.0 | B | 0.37 (0.32–0.70) | 543 (508–608) | 155 (121–309) |
+| 9.2 | B | 0.14 (0.01–0.21) | 182 (96–238) | 12 (0–17) |
+| 8.3 | B | 0.18 (0.10–0.19) | 126 (99–172) | 14 (4–21) |
+| 7.4 | B | 0.31 (0.28–0.35) | 1253 (834–1336) | 178 (120–216) |
+| 7.2 | B | 0.15 (0.01–0.36) | 559 (229–888) | 45 (0–149) |
+| 6.1 | B | 0.25 (0.15–0.33) | 754 (254–1593) | 69 (59–69) |
 
-**Is the generator right?**
+- **A water-sized wing is rejected everywhere.**
+- **On readout A** the wing is measured at 0.8: zero is rejected too. That lies between B7's ½ and
+  1, so the 10 keV Zn case stays out of reach, as the owner concluded on 2026-11-24.
+- **On readout B** the wing and the broad tail trade against each other. At 7.2–9.2 keV a zero wing
+  is nearly as good.
+- **The window measure** (counts in E_C − 2 … E_C − 0.5 keV over the Compton photons, the table
+  above) is model-free in the data:
+  - readout A: 1.2 × the generator's;
+  - readout B: 1.6 × at 10 keV and 2.2–2.4 × at 6–9 keV.
 
-- **Readout A, 10 keV.** The generator's wing is too large by 15–20 %. The
-  data reject both 1 and 0 decisively, and readout A has a small tail
-  (2 %).
-  - B7 of study B has a wing of ½ or 1. The measured 0.8 lies between them.
-  - So the 10 keV Zn case stays a failure for every fit, as the owner
-    concluded on 2026-11-24.
-- **Readout B.** The data reject a water-sized wing everywhere. What they
-  measure is wing + tail, and they cannot split the two well: at 7.2–9.2 keV
-  a zero wing is nearly as good.
-  - The hydrogenic O 1s shape is itself from memory (study B, §2), so
-    "`core`" means the amplitude of that shape.
+## 5. What lies under a line: the band against the generator
 
-**Asymmetry of the detected Compton peak.** The ratio of its half-widths,
-low over high, is 1.01–1.05 on readout A at 10 keV and 1.04–1.21 on readout
-B. The shell model gives the same ratio with or without the O 1s part, to
-0.01. So the asymmetry does not measure the wing; the band below does.
-
-## 3. What lies under a line: real against the generator
-
-The band runs from E0 − 1.55 keV to the Compton peak − 0.35 keV (8.45–9.46 keV
-at 10 keV, where Zn Kα lies). The counts in it, after the fitted lines and
-the flat background, are taken per parent (elastic + Compton) photon per
-keV. They are compared with the generator's hard case, which has the same
-photons and angle but the generator's detector and Compton
-(`GENERATOR_HARD`).
+The band runs from E0 − 1.55 keV to the Compton peak − 0.35 keV. The counts in it, after the fitted
+lines and the flat background, are taken per parent photon per keV.
 
 | Beam (keV) | Readout | Real / generator |
 |---|---|---|
@@ -203,77 +227,121 @@ photons and angle but the generator's detector and Compton
 | 7.2 | B | 2.09 (1.90–2.57) |
 | 6.1 | B | 2.89 (2.57–3.18) |
 
-**For F90:**
+**The window sum's failure** (study B) holds on real data, more strongly on readout B. B7's two axes
+miss a third: the detector's own tails.
 
-- **The window sum.** The real scatter under a line is at least the
-  generator's. So study B's verdict on the window sum, that it fails
-  whenever scatter lies under its box, holds on real data. It holds more
-  strongly on readout B.
-- **The gauntlet's two axes are not the only ones.** On readout B what
-  lies under the line is mostly the detector's own tails. A broad low tail
-  and a high-energy tail are a third axis that B7 does not sweep.
-- **Readout A at 10 keV** is the generator's hard case to within 5 % (one
-  run 23 %). Its wing is 0.8 rather than 1, and its tail is broader and
-  smaller.
+## 6. Setup: calibration, angle, counting (per example in `quantities.csv`)
 
-## 4. Resolution and the Compton peak
+**Calibration (read and measured).**
+- **Elastic residual with the file's calibration** (`#@CALIB` a, b, c; c = 0 in every file):
+  - readout A: +4 … +51 eV;
+  - readout B: +7 … +27 eV.
+- **Ar Kα (air, 2.957 keV) residual with the file's calibration:**
+  - readout A: +1 … +2 eV;
+  - readout B: +3 … +20 eV.
+- **Ar Kα with the measured calibration** (gain from the elastic across energies, or elastic +
+  Ar Kα; offset refitted per spectrum): −3 … −50 eV.
+- **What that means.** Either the beam energy in the header differs from the true one by a few tens
+  of eV, or the gain is off by about 0.5 %. These spectra cannot separate the two.
+- **Effect on the study:** under 2 eV on the Compton shift, and under 10 eV on the escape position.
 
-| Beam (keV) | Readout | Elastic FWHM, measured (keV) | Generator (keV) | Compton FWHM, measured / generator (keV) | Momentum widths × water's | 2θ (°) | Compton / Rayleigh photons |
-|---|---|---|---|---|---|---|---|
-| 10.0 | A | 0.206 (0.179–0.280) | 0.194 | 0.282 / 0.276 | 0.97 (0.95–1.04) | 91.2 (90.4–91.9) | 2.0 (1.9–2.2) |
-| 10.0 | B | 0.190 (0.190–0.227) | 0.194 | 0.290 / 0.276 | 1.16 (1.15–1.51) | 91.1 (88.8–91.2) | 2.6 (2.5–3.3) |
-| 9.2 | B | 0.179 (0.176–0.182) | 0.189 | 0.267 / 0.239 | 1.65 (1.58–1.69) | 74 (70–76) | 0.73 (0.61–0.93) |
-| 8.3 | B | 0.170 (0.167–0.173) | 0.183 | 0.238 / 0.226 | 1.44 (1.30–1.59) | 77 (73–81) | 0.69 (0.58–0.80) |
-| 7.4 | B | 0.166 (0.163–0.173) | 0.178 | 0.239 / 0.226 | 1.43 (1.30–1.50) | 92 (88–93) | 1.8 (1.6–1.9) |
-| 7.2 | B | 0.161 (0.157–0.166) | 0.176 | 0.221 / 0.217 | 1.40 (1.24–1.45) | 87 (86–92) | 1.6 (1.0–1.9) |
-| 6.1 | B | 0.154 (0.148–0.190) | 0.169 | 0.202 / 0.204 | 1.29 (1.27–1.37) | 94 (85–98) | 1.3 (1.0–1.7) |
+**Angle.** The detector's position is not logged. 2θ comes from the Compton shift:
+- the shells fit and `compton_energy` at the detected peak agree to 1–2° on readout A;
+- they differ by up to 30° on readout B, where the elastic and the Compton line are not resolved
+  below 8 keV.
 
-- **Resolution.** The generator's default (noise 0.12 keV, Fano 0.115) is
-  within −9 … +15 % of the measured FWHM, apart from one readout A run at
-  0.28 keV (+45 %). P2 ("width from the detector") calibrates the noise on
-  the elastic line, so the default matters only for synthetic data.
-- **Compton.** The free-electron Compton formula holds at the fitted angle,
-  with the impulse-approximation shift built in:
-  - the angle is about 90° on readout A, consistent across 9 runs;
-  - on readout B the angle spreads over 70–98° across elements;
-  - the momentum widths are water's to 5 % on readout A. On readout B they
-    are 1.15–1.7 × water's, which folds in the spread of angles over one
-    element.
-- **Compton / Rayleigh.** It is 2.0 at 90° on readout A, against the
-  generator's default of 1 (a free parameter of the gauntlet).
+**Counting.**
+- **Readout A:** real and live times are in `#@CTIME`. The dead time is 4–20 %.
+- **Readout B:** it writes real = live. `#@DCT` has a first field of about 10⁴–4 × 10⁵ (median per spectrum), whose meaning
+  is not documented here (`dct_first_field_median`, marked as read).
+
+## 7. Where the spectra are (row 2)
+
+| Kind of scan | `#V` line in the SPEC block | Spectra in the SPEC block | Separate `_mca` file |
+|---|---|---|---|
+| Energy scan (`escan`, MCAscanpt) | yes, 176 of 180 (a pointer: `#V <datafile>_<scan>_mca`) | no | yes |
+| Fluorescence burn (`ascan ih`) | yes, 71 of 72 | no | yes |
+| `hklscan` (XFNTR) | yes, 541 of 541 | no | yes |
+| `getandsave_mca` | yes, 166 of 166 | no | yes |
+| other `ascan`, `a2scan` | 47 of 57; 1 of 27 | no | yes |
+
+**The `_mca` file, `vortex/<datafile>_<scan>_mca`:**
+- one `#S n mca_save_point Point:p Scan:s Datafile:d` block per point and per detector element;
+- in each block `#T`, `#Q` (H K L), `#Energy` (SPEC's `en`; 0 in one run, wrong in the 20 and 30 keV
+  headers), `#Monc`, `#@CTIME` (preset, real, live), `#@CALIB` (eV or keV per channel) and `@A`;
+- readout B adds `#@CHANNEL k` and `#@DCT`.
+
+1043 files from 12 runs were checked.
+
+## Which spectra
+
+- **The energy scans cross absorption edges** of the samples' elements. Each scan's pre-edge points
+  (30–150 eV below the edge) were aligned to their mean beam energy (`rebin_shift`) and summed, per
+  element. These give the 6.1, 7.2, 7.4, 8.3 and 9.2 keV cases.
+- **At 10 keV, whole scans were summed.** Most carry traces of Cu and Zn below 10⁻³ of the elastic
+  photons.
+- **Tiers:**
+  - **clean:** no line above 10⁻⁴ of the elastic photons in E0 − 2.4 … E0 + 0.6 keV;
+  - **trace:** lines below 10⁻³;
+  - **line:** stronger lines.
+- **38 spectra were fitted** and 30 give good fits. The rest are listed on S2 with their reasons.
+- **The model** (the tool's docstring has every term):
+  - the generator's physics with every uncertain axis free;
+  - a high-energy tail;
+  - nuisance K lines;
+  - a flat background;
+  - Poisson likelihood.
+- **Fit quality:** deviance/dof 0.6–1.0 on the pre-edge sums, and 2–19 on the 10 keV sums (up to
+  2 × 10⁸ counts).
+- **Errors** are statistical, scaled by √(deviance/dof).
+- **The model is checked on known truth** (a synthetic spectrum's wing, escape and tails):
+  `tests/test_mca_scatter.py`, slow.
 
 ## What the generator should change
 
-These are recommendations only. Nothing was changed here, because the
-owner has paused synthetic MCA work (physics_notes, 2026-11-24).
+These are recommendations only. Nothing was changed, because synthetic MCA work is paused.
 
-1. An **O 1s wing of 0.8** on a readout like A, and a sweep of 0–0.4 for one
-   like B.
-2. A **high-energy tail** term (0–10 %, 0.2–0.3 keV decay).
-3. A **broader low tail**: 2–12 %, with a 0.3–0.65 keV decay in place of
-   0.15 keV.
-4. **Reed's escape × 1.0** below 8 keV and × 1.3–1.5 at 8–9 keV
-   (readout B).
+1. An **O 1s wing of 0.8** on a readout like A, and 0–0.4 swept for one like B.
+2. A **high-energy tail** term: 0–10 %, with a 0.15–0.3 keV decay.
+3. A **broader low tail**: 2–12 %, with a 0.3–0.65 keV decay in place of 0.15 keV.
+4. **Reed's escape × 1.0–1.1** below 8 keV, and × 1.3–1.5 at 8–9 keV (readout B).
 5. **Compton/Rayleigh ≈ 2** at 90°.
+6. **Fano 0.11–0.14** with noise 0.065–0.11 keV, rather than 0.115 with 0.12.
 
-## Held back for privacy
+## Held back for privacy, and questions for the owner
 
-- All spectra apart from the four public examples. The examples are 10 keV
-  sums with only traces of Cu and Zn (`tests/reference/mca_scatter/`).
-- Their sources, times, Qz ranges and scan numbers. They are in a private
-  key under `sample_data/private/mca_scatter/`.
-- Beam energies are given to 0.1 keV. Pre-edge spectra sit just below the
-  edges the samples were studied at, so even rounded energies hint at the
-  elements studied. **Question for the owner:** may the beam energies stay
-  in the public table, and may the pre-edge spectra (6.1–9.2 keV) be
-  published as examples like the 10 keV ones?
+**Held back:**
+- every spectrum;
+- all runs, times, Qz values and scan numbers;
+- the burn series' element, which is named only as "a line near 8 keV".
+
+The private inventory, the label-to-source key and the scripts are under
+`sample_data/private/mca_scatter/` (git-ignored).
+
+**Blank candidates for the owner.** These are scrubbed scatter-only spectra (`energy_keV,counts`
+over E0 − 2.5 … E0 + 0.7 keV, with no channel, time or Qz). They are held privately, ready to commit
+only with the owner's yes:
+- 10 keV, readout A: E10-k (clean), E10-f (clean), E10-j (trace Cu);
+- 10 keV, readout B: E10-d and E10-i (trace Cu and Zn);
+- 9.2 keV, readout B: E9.2-a … E9.2-d (clean);
+- 6.1 keV, readout B: E6.1-a … E6.1-d (clean).
+
+The pre-edge sums sit just below the edges the samples were studied at, so even their rounded beam
+energies hint at the elements studied.
+
+**Questions for the owner:**
+- May any of these be committed as test fixtures?
+- May the beam energies (to 0.1 keV) stay in the public tables?
 
 ## Figures and files
 
 | File | What it shows |
 |---|---|
-| `S1_examples.png` | the four public 10 keV examples, each with the data, the fit, the generator's hard case (same photons and angle), the fit without the O 1s wing, the band (shaded), residuals and the fitted numbers |
 | `S2_vs_energy.png` | escape / Reed, band ratio, resolution, O 1s wing, tails and Compton / Rayleigh against beam energy, for both readouts; the spectra not shown are listed with their reasons |
+| `S3_p1_real_series.png` | the bias of data weights and of P1 on 19 real series against the line counts, with study B's −19/N |
 | `scatter_fits.csv` | every fitted number of the 38 spectra (anonymised), with errors, flags and the profile's deviance rises |
-| `S1_example_fits.csv` | the refit of the public examples (reproducible here) |
-| `numbers.json` | medians and ranges per energy and readout (the tables above) |
+| `quantities.csv` | every quantity per example in long form (calibration, widths, Fano, tails, Compton, escape, wing window, boxes, windows, counting, the P1 series), each marked measured, read or computed |
+| `numbers.json` | medians and ranges per energy and readout |
+
+S1 (the example spectra with their fits) is drawn only from a folder of spectra given with
+`--fixtures`. It is private until the owner agrees.

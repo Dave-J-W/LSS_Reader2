@@ -1,9 +1,8 @@
 """The real-scatter study's tool (tests/tools/mca_scatter.py, DATA_NEEDS row 3): its public files are
 anonymised and sane, its model-free pieces recover known truth, and its figures are made from public
-files alone. The full model's recovery of known truth is in the slow suite."""
+files alone. The full model's recovery of known truth, and S1 on a synthetic example, are slow."""
 import csv
 import json
-import math
 import os
 import re
 import sys
@@ -18,20 +17,17 @@ import mca_scatter as ms                  # noqa: E402
 from synthetic import mca                 # noqa: E402
 
 ROOT = os.path.dirname(HERE)
-FIX = os.path.join(HERE, 'reference', 'mca_scatter')
 TABLE = os.path.join(ROOT, 'docs', 'studies', 'mca_scatter', 'scatter_fits.csv')
+QTABLE = os.path.join(ROOT, 'docs', 'studies', 'mca_scatter', 'quantities.csv')
 
 
-def test_the_example_spectra_are_anonymised_10_keV_scatter():
-    files = sorted(f for f in os.listdir(FIX) if f.endswith('.csv'))
-    assert files and all(re.fullmatch(r'E10-[a-z]\.csv', f) for f in files)
-    for f in files:
-        head, e, n = ms.read_fixture(os.path.join(FIX, f))
-        assert not re.search(r'(19|20)\d\d[-/]?\d\d|scan|#S|\.mac|vortex|_mca', head, re.I), head
-        assert np.all(np.diff(e) > 0) and np.all(n >= 0) and np.all(n == np.round(n))
-        assert 7.4 < e[0] < 7.6 and 10.6 < e[-1] < 10.8          # E0 - 2.5 ... E0 + 0.7 keV only
-        top = e[np.argmax(n)]
-        assert 9.7 < top < 10.05                                  # the elastic + Compton peak
+def test_no_real_spectrum_is_committed():
+    """Scrubbed spectra are published only with the owner's yes (coordinator, 2026-11-24): until then
+    the repository holds derived numbers only."""
+    assert not os.path.isdir(os.path.join(HERE, 'reference', 'mca_scatter'))
+    with open(TABLE, encoding='utf-8') as fh:
+        head = fh.readline()
+    assert 'counts' not in head.split(',')[:3]
 
 
 def test_the_public_table_holds_no_identifying_columns_and_rounded_energies():
@@ -45,6 +41,20 @@ def test_the_public_table_holds_no_identifying_columns_and_rounded_energies():
         assert re.fullmatch(r'\d+\.\d', r['beam_keV'])
         assert r['readout'] in ('A', 'B')
     assert len({r['id'] for r in rows}) == len(rows)
+
+
+def test_the_quantities_table_is_long_form_and_marks_its_evidence():
+    with open(QTABLE, encoding='utf-8') as fh:
+        rows = list(csv.DictReader(fh))
+    assert list(rows[0]) == ['energy_kev', 'example', 'quantity', 'value', 'error', 'method', 'n_spectra', 'evidence']
+    assert {r['evidence'] for r in rows} <= {'measured', 'read', 'computed'}
+    for r in rows:
+        assert re.fullmatch(r'[ES]\d+(\.\d)?-[a-z]', r['example']), r['example']
+        assert not re.search(r'(19|20)\d\d-?\d\d-?\d\d|#S |scan \d|\.mac\b|vortex|_mca', r['method']), r['method']
+    q = {r['quantity'] for r in rows}
+    for need in ('fwhm_elastic_keV', 'escape_x_reed_fit', 'wing_window_counts_over_compton_data', 'box_Zn_over_elastic',
+                 'p1_bias_poisson', 'p1_bias_data_weights', 'dead_time_fraction'):
+        assert need in q, need
 
 
 def test_the_escape_template_recovers_a_known_escape_fraction():
@@ -66,9 +76,10 @@ def test_rebin_shift_keeps_the_counts_and_moves_the_peak():
     assert abs(np.sum(e * m) / m.sum() - 5.123) < 1e-3
 
 
-def test_the_figure_of_numbers_against_energy_from_the_public_table(tmp_path):
-    made = ms.main(['--out', str(tmp_path), '--only', 'S2'])
-    assert (tmp_path / 'S2_vs_energy.png').is_file() and len(made) == 1
+def test_the_figures_from_the_public_tables(tmp_path):
+    made = ms.main(['--out', str(tmp_path), '--only', 'S2,S3'])
+    assert (tmp_path / 'S2_vs_energy.png').is_file() and (tmp_path / 'S3_p1_real_series.png').is_file()
+    assert len(made) == 2
     numbers = json.loads((tmp_path / 'numbers.json').read_text(encoding='utf-8'))
     assert '10.0 keV, readout A' in numbers
     # the study's headline on readout A at 10 keV, as measured (characterisation)
@@ -79,7 +90,7 @@ def test_the_figure_of_numbers_against_energy_from_the_public_table(tmp_path):
 
 @pytest.mark.slow
 def test_the_model_recovers_a_known_wing_escape_and_tails():
-    """A synthetic spectrum with the generator's 'shells' Compton at 0.5 of water's wing and 1.5 × Reed's
+    """A synthetic spectrum with the generator's 'shells' Compton at 0.5 of water's wing and 1.5 x Reed's
     escape: the fit (with the extra high tail at zero truth) finds them."""
     rng = np.random.default_rng(11)
     beam = mca.Beam(energy=9.0, angle=85.0, compton_ratio=2.0, compton_model='shells', core_scale=0.5)
@@ -95,3 +106,26 @@ def test_the_model_recovers_a_known_wing_escape_and_tails():
     assert abs(P['escape'] - 1.5) < max(4 * E['escape'], 0.15)
     assert abs(P['core'] - 0.5) < max(4 * E['core'], 0.15)
     assert abs(P['noise'] - 0.11) < 0.01
+
+
+@pytest.mark.slow
+def test_the_example_figure_refits_a_folder_of_spectra(tmp_path):
+    """S1 on a synthetic 'example' (real ones stay private until the owner agrees)."""
+    rng = np.random.default_rng(5)
+    s = mca.spectrum({}, elastic=1e6, beam=mca.Beam(energy=10.0, compton_ratio=2.0, compton_model='shells',
+                                                    core_scale=0.8),
+                     detector=mca.Detector(tail=0.02, tail_slope=0.5), background=2.0)
+    n = s.draw(rng)
+    sel = (s.energy > 7.5) & (s.energy < 10.7)
+    fx = tmp_path / 'fx'
+    fx.mkdir()
+    with open(fx / 'E10-z.csv', 'w', encoding='utf-8') as fh:
+        fh.write('# synthetic\nenergy_keV,counts\n')
+        for e, c in zip(s.energy[sel], n[sel]):
+            fh.write('%.4f,%d\n' % (e, c))
+    ms.main(['--out', str(tmp_path), '--only', 'S1', '--fixtures', str(fx), '--jobs', '1'])
+    assert (tmp_path / 'S1_examples.png').is_file()
+    with open(tmp_path / 'S1_example_fits.csv', encoding='utf-8') as fh:
+        rows = list(csv.DictReader(fh))
+    core = [float(r['value']) for r in rows if r['parameter'] == 'core'][0]
+    assert abs(core - 0.8) < 0.15

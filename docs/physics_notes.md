@@ -5809,8 +5809,9 @@ examples of the scattered beam (Rayleigh, Compton and its low-energy wing,
 Si escape peaks). It fitted them with the generator's own physics
 (`tests/synthetic/mca.py`), every uncertain axis free, by Poisson
 likelihood. Study: `docs/studies/mca_scatter/summary.md`; tool:
-`tests/tools/mca_scatter.py`; public examples:
-`tests/reference/mca_scatter/`.
+`tests/tools/mca_scatter.py`; per-example numbers:
+`docs/studies/mca_scatter/quantities.csv`. No spectrum is committed: blank
+candidates wait for the owner's yes (listed in the summary).
 
 **Row 2 (where the spectra are), answered.**
 - No SPEC data file holds a spectrum: 1043 MCA files from 12 runs were
@@ -5857,7 +5858,24 @@ likelihood. Study: `docs/studies/mca_scatter/summary.md`; tool:
 - No default and no generator value was changed: synthetic MCA work is
   paused (owner, 2026-11-24).
 
-Verified: measured (fits to the private spectra). The model recovers a
-known wing, escape and tail on synthetic data
-(`tests/test_mca_scatter.py`, slow). The public examples are refitted by
-the tool.
+**The Zn box (8.26–9.00 keV) at 10 keV.** It holds 0.020 of the elastic
+photopeak counts on readout A and 0.062 on readout B. The generator gives
+0.014 and 0.021 at the same photons and angle; study B's hard case is about
+0.008. The Fe box (6.24–6.56 keV) holds 0.003–0.021 of the elastic at
+7.2–9.2 keV.
+
+**P1 on real data (C53).** 19 series of 21 repeated spectra at 10 keV, with a
+line near 8 keV on the Compton and elastic escapes, fitted with the reader's
+`peaks.fit_series`. The truth is the summed spectrum's fit / N.
+- **Data weights:** −28.0 % ± 1.4 % at 25–50 line counts, −27 % at 200,
+  −4 % at 1470, and about −1 % by 3000. That is not study B's −19/N: the
+  background here is far larger.
+- **P1:** +3.5 % ± 1.5 % at 25–50 counts, and within its errors from 200
+  counts up.
+- So the default (P1) is confirmed on real data.
+
+**Not in the data:** 10.05, 10.52 and 30 keV.
+
+Verified: measured (fits to the private spectra; the reader's own
+`fit_series` for C53). The model recovers a known wing, escape and tail on
+synthetic data (`tests/test_mca_scatter.py`, slow).

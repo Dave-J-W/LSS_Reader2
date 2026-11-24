@@ -4,10 +4,15 @@ draw the study's figures (``docs/studies/mca_scatter/summary.md``).
 
     python tests/tools/mca_scatter.py --out docs/studies/mca_scatter
 
-The figures come from public files only: the anonymised table of fitted numbers
-(``docs/studies/mca_scatter/scatter_fits.csv``, made by the owner's non-cloud agent from the private
-spectra) and the anonymised 10 keV example spectra (``tests/reference/mca_scatter/E10-*.csv``), which
-this tool refits. The private spectra never enter the repository.
+The figures come from public files only:
+* ``scatter_fits.csv``: the anonymised table of fitted numbers, made by the owner's non-cloud agent
+  from the private spectra with this module's model;
+* ``quantities.csv``: every quantity per example in long form, including the P1 check on real
+  series.
+
+S1 (example spectra, refitted) runs only on a folder of example spectra named with ``--fixtures``
+(``energy_keV,counts`` CSV files). None are committed: a scrubbed spectrum is published only with
+the owner's yes. Until then S1 is a private figure.
 
 The model, over E0 − 2.4 to E0 + 0.6 keV, by Poisson maximum likelihood (deviance residuals):
 
@@ -495,6 +500,48 @@ def figure_vs_energy(rows, out):
     return path
 
 
+def figure_p1(q, out):
+    """S3: the bias of data weights and of Poisson weights (P1) on real series of repeated spectra,
+    against the line counts per spectrum; truth = the fit of the summed spectrum / N."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    by = {}
+    for r in q:
+        if r['quantity'].startswith('p1_'):
+            by.setdefault(r['example'], {})[r['quantity']] = (_f(r['value']), _f(r['error']))
+    ex = sorted(by, key=lambda k: by[k]['p1_series_mean_line_counts'][0])
+    if not ex:
+        raise SystemExit('S3: no p1_ rows in the quantities table')
+    x = np.array([by[k]['p1_series_mean_line_counts'][0] for k in ex])
+    fig, ax = plt.subplots(1, 1, figsize=(8.5, 5.6))
+    for key, m, c, lab, dx in (('p1_bias_data_weights', 's', 'C3', "data weights (weights='data', before)", 0.97),
+                               ('p1_bias_poisson', 'o', 'C0', "Poisson weights (weights='poisson', P1, the default)", 1.03)):
+        y = np.array([100 * by[k][key][0] for k in ex]); e = np.array([100 * by[k][key][1] for k in ex])
+        ax.errorbar(x * dx, y, yerr=e, fmt=m, color=c, ms=5, capsize=2, lw=0.8, label=lab)
+    xx = np.logspace(np.log10(x.min() * 0.8), np.log10(x.max() * 1.2), 100)
+    ax.plot(xx, -1900 / xx, 'k--', lw=0.8, label='study B, synthetic: -19 / line counts')
+    ax.axhline(0, color='0.5', lw=0.6)
+    ax.set_xscale('log')
+    ax.set_ylim(-45, 20)
+    ax.set_xlabel('line counts per spectrum (fit of the summed spectrum / N)')
+    ax.set_ylabel('bias of the mean of N fits (%), ± its standard error')
+    n = int(by[ex[0]]['p1_series_N'][0])
+    ax.set_title('P1 on real data: %d series of %d repeated spectra (one run, one readout, 10 keV beam);\n'
+                 "a line near 8 keV, Gaussian on a quadratic, box ±2 FWHM (the reader's defaults)" % (len(ex), n),
+                 fontsize=9.5)
+    ax.legend(fontsize=8, loc='lower right')
+    fig.text(0.01, 0.01, "The box sits on the 10 keV Compton and elastic escape peaks, a far larger background than "
+             "study B's clean line.\nData weights: near -27 % up to ~200 counts (smaller than -19/N below ~70, larger "
+             "above), ~-1 % by 3000.\nP1: within its errors from 200 counts up; +2 to +6 % at 25-50 counts.",
+             fontsize=7)
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    path = os.path.join(out, 'S3_p1_real_series.png')
+    fig.savefig(path, dpi=110)
+    plt.close(fig)
+    return path
+
+
 def summarise(rows):
     """Per beam energy and readout: medians and ranges of the headline numbers (good fits only)."""
     out = {}
@@ -525,16 +572,21 @@ def main(argv=None):
     ap.add_argument('--out', default='docs/studies/mca_scatter', help='folder for the figures and CSV')
     ap.add_argument('--table', default='docs/studies/mca_scatter/scatter_fits.csv',
                     help='the anonymised table of fitted numbers (from the private spectra)')
-    ap.add_argument('--fixtures', default='tests/reference/mca_scatter', help='folder of the example spectra (E10-*.csv)')
-    ap.add_argument('--only', default='S1,S2', help='figures to make: S1 (examples, refitted: about 1 min per '
-                    'spectrum), S2 (numbers against beam energy)')
+    ap.add_argument('--quantities', default='docs/studies/mca_scatter/quantities.csv',
+                    help='the per-example quantities in long form (for S3)')
+    ap.add_argument('--fixtures', default='', help='folder of example spectra (energy_keV,counts CSV) for S1; '
+                    'none are committed (private until the owner agrees)')
+    ap.add_argument('--only', default='S2,S3', help='figures to make: S1 (examples, refitted: about 1 min per '
+                    'spectrum; needs --fixtures), S2 (numbers against beam energy), S3 (P1 on real series)')
     ap.add_argument('--jobs', type=int, default=4, help='processes for the refits')
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
     only = set(a.only.split(','))
     rows = _read_table(a.table)
     made = []
-    if 'S1' in only:
+    if 'S1' in only and not a.fixtures:
+        print('S1 skipped: no --fixtures folder (example spectra are private until the owner agrees)')
+    if 'S1' in only and a.fixtures:
         paths = sorted(os.path.join(a.fixtures, f) for f in os.listdir(a.fixtures) if f.endswith('.csv'))
         if a.jobs > 1 and len(paths) > 1:
             from multiprocessing import Pool
@@ -564,6 +616,8 @@ def main(argv=None):
         made.append(figure_vs_energy(rows, a.out))
         with open(os.path.join(a.out, 'numbers.json'), 'w', encoding='utf-8') as fh:
             json.dump(summarise(rows), fh, indent=1)
+    if 'S3' in only:
+        made.append(figure_p1(_read_table(a.quantities), a.out))
     for p in made:
         print(p)
     return made
