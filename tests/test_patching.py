@@ -236,7 +236,9 @@ def test_nx_school_scans_6_to_9():
     assert [round(j.factor, 6) for j in res.joins] == [0.02298, 0.064474, 0.103695]
     assert np.sqrt(res.Sigma[3, 3]) == pytest.approx(0.00845, abs=3e-4)
     assert not res.joins[0].flags and not res.joins[2].flags
-    assert 'no adequate fit' in res.joins[1].flags[0] and 'error inflated' in res.joins[1].flags[0]
+    # the note says what the guard did (2026-11-24): an adequate fit that missed p 0.3, inflated ×1.17
+    # (it said "no adequate fit (chi2 p < 0.3 everywhere) ... error inflated")
+    assert 'best fit of the ladder' in res.joins[1].flags[0] and 'error inflated ×1.17' in res.joins[1].flags[0]
     assert res.joins[1].err / res.joins[1].err_counting == pytest.approx(1.17, abs=0.02)
     wide = patching.chain(scans, n_ext=6)
     assert wide.joins[2].order == 6 and 'first adequate fit' in wide.joins[2].flags[0] and not wide.joins[0].flags
@@ -319,3 +321,26 @@ def test_rung_fit_is_the_joint_fit_at_one_rung_and_returns_its_curve():
     q = np.linspace(qa[r.ia].min(), qb[r.ib].max(), 9)
     assert r.curve(q) == pytest.approx(lnr(q), abs=1e-7)
     assert math.exp(r.delta) == pytest.approx(3.7, rel=1e-8)
+
+
+def test_the_join_note_says_what_the_guard_did():
+    """2026-11-24 (Main): when no rung reached the guard's p, the note said
+    "no adequate fit ... error inflated" even for a good fit (p 0.46) whose
+    error was not inflated (chi2/dof < 1). The guard's p is a preference
+    among rungs; a fit is called inadequate only below ADEQUATE_P, and the
+    inflation is named only when applied, with its factor."""
+    a, b, truth = _fringe_minimum_join()
+    j = patching.joint_factor(a, b, guard_p=0.7)
+    p = scipy_chi2_sf(j.chi2, j.dof)
+    assert patching.ADEQUATE_P <= p < 0.7
+    note = '; '.join(j.flags)
+    assert 'best fit of the ladder' in note and 'no adequate fit' not in note
+    assert ('inflated' in note) == (j.chi2 / j.dof > 1)
+    # a join no rung can fit (one overlap point 30 % off): called inadequate, with the inflation factor
+    y = a.y.copy()
+    k = int(np.argmin(np.abs(a.q - b.q[1])))
+    y[k] *= 1.3
+    bad = patching.joint_factor(patching.Scan(a.q, y, a.sigma), b, guard_p=0.7)
+    note = '; '.join(bad.flags)
+    assert scipy_chi2_sf(bad.chi2, bad.dof) < patching.ADEQUATE_P
+    assert 'no adequate fit (chi2 p < 0.01 everywhere)' in note and 'inflated ×' in note

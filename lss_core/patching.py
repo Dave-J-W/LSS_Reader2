@@ -133,6 +133,10 @@ MAX_ORDER = 7      # the guard's highest polynomial order (guard_ladder)
 # the guard keeps the first fit whose chi2 p-value is at least this (2026-11-22, the gauntlet:
 # 0.01 let model bias of 0.2-0.4 sigma through at 4 of 21 synthetic joins, 0.3 passes 19 of 21)
 GUARD_P = 0.3
+# below this chi2 p-value even the best rung is called inadequate in the join's note (the guard's
+# threshold is a preference among rungs, not a test of adequacy; 2026-11-24, Main): 0.01, the guard
+# of before 2026-11-22
+ADEQUATE_P = 0.01
 # points either side of the overlap (2026-11-22, the gauntlet with the owner's monitor model:
 # 4 let a 0.4-sigma model bias through at water's first join, 2 passes 17 of 18 joins)
 N_EXT = 2
@@ -317,10 +321,17 @@ def joint_factor(a, b, order=4, n_ext=N_EXT, space='rrf', qc=QC, qoff=0.0, likel
             return result(r, o, e)
         if best is None or p > best[0]:
             best = (p, r, o, e)
-    if best is not None:              # none adequate: the most adequate one, its error inflated by its chi2
-        _, r, o, e = best
-        flags.append('no adequate fit (chi2 p < %g everywhere): order %d, %d either side, chi2/dof %.2f, '
-                     'error inflated' % (guard_p, o, e, r['chi2'] / max(r['dof'], 1)))
+    if best is not None:              # none reached guard_p: the most adequate one, its error inflated by its chi2
+        p, r, o, e = best
+        red = r['chi2'] / max(r['dof'], 1)
+        infl = unc.inflate(1.0, r['chi2'], r['dof']) if inflate else 1.0
+        how = ', error inflated ×%.2f' % infl if infl > 1.0 else ''
+        if p >= ADEQUATE_P:           # an adequate fit that missed the guard's preference: say so, without alarm
+            flags.append('order %d, %d either side: the best fit of the ladder (chi2 p %.2f, chi2/dof %.2f; none '
+                         'reached p %g)%s' % (o, e, p, red, guard_p, how))
+        else:
+            flags.append('no adequate fit (chi2 p < %g everywhere): order %d, %d either side, chi2/dof %.2f%s'
+                         % (ADEQUATE_P, o, e, red, how))
         return result(r, o, e)
     raise ValueError('no joint fit possible at this join: %s' % last_err)
 

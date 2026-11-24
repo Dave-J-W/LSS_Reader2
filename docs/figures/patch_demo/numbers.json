@@ -1241,10 +1241,10 @@
     "legacy": [],
     "interp_log": [],
     "joint": [
-     "join 1: no adequate fit (chi2 p < 0.3 everywhere): order 4, 1 either side, chi2/dof 17.50, error inflated"
+     "join 1: no adequate fit (chi2 p < 0.01 everywhere): order 4, 1 either side, chi2/dof 17.50, error inflated \u00d74.18"
     ],
     "joint_raw": [
-     "join 1: no adequate fit (chi2 p < 0.3 everywhere): order 2, 0 either side, chi2/dof 478.49, error inflated"
+     "join 1: no adequate fit (chi2 p < 0.01 everywhere): order 2, 0 either side, chi2/dof 478.49, error inflated \u00d721.87"
     ]
    },
    "replicates": 100,
