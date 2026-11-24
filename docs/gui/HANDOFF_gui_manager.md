@@ -7,30 +7,28 @@ permission: merge my branch into `main` by PR + "Create a merge commit"
 once the quick suite (and, for GUI changes, the sweep) pass; then merge
 `main` back into the branch.
 
-## State of `claude/funny-noether-09opxa`
+## State (updated 2026-11-24, 03:00 UTC)
 
-- **Merged into main earlier:** ngui (#4), ngui candidates (#21), and others.
-- **Tested but not yet merged (07ad9e7; quick suite 871 passed; pushed):**
-  - removals: Beamlines menu, `peakfit2`/`peakfitpara`, the Command line row, the Apex tab (its colour map moved to `pilCMapComboBox`);
-  - tabs addressed by widget, not by index;
-  - Quit and Documentation;
-  - D59 (panes in `paneHost`, under the tabs);
-  - F85 badges;
-  - two sweep-found crash fixes (Drop past the last join; one-scan Export);
-  - the F86 answer recorded.
-- **The sweep on 07ad9e7** is running in the worktree `scratchpad/wt_sweep`, output in `scratchpad/sweep2.out`. The first sweep found 2 new random-walk sites, now fixed; check that this one passes.
-- **Committed after 07ad9e7, local only (not pushed yet):**
-  - a906e99, F86: the Reduction options page (quick suite 876 passed);
-  - 6840e1f, Q-GID-5 GID Patch and Worksheet buttons (map and ngui tests pass; full quick suite still to rerun).
-- **Subagent (worktree) building F88 sticky display and F69 movie:** it reports back with a branch to merge. Review it, merge into my branch, run quick suite and sweep, then PR.
+- **On main:** everything through #32 (4b0cc45):
+  - the Q14 removals; Quit and Documentation; D59 panes;
+  - F85 badges; F86 Reduction options (with the test-speed session's keys sum_all_legacy_average, gisaxs_raw_counts, repeats_legacy_average);
+  - the Q-GID-5 buttons; the Q-UI-A10 grey-out;
+  - the crash fixes.
+
+  My branch equals main.
+- **Subagent (worktree `.claude/worktrees/agent-a8f7f050e5d54f80a`, branch `worktree-agent-a8f7f050e5d54f80a`):** building F88 (sticky display, Home/Fit all) and the F69 movie, keeping the display per Monc (pilFrameNormalised / pilSumNormalised; tests/test_monc_normalised must pass unchanged). On its report:
+  1. merge its branch, then main;
+  2. quick suite; full sweep in `scratchpad/wt_sweep`;
+  3. PR;
+  4. tell Main the image display is free, so it can do the list item-data plumbing.
+- **The image display functions are reserved** for that work: updatePilPlotData, pilMovieShow, update2dPlots, the pilMin/Max sliders.
 
 ## Next, in order
 
-1. If sweep2 passed, push, then PR-merge 07ad9e7 or the branch head, whichever was swept. Rerun the quick suite and the sweep for a906e99 and 6840e1f first.
-2. Merge the subagent's F88/F69 branch: review, quick suite, sweep, PR.
-3. Greyed-out tool groups (Q-UI-A10: grey out with a tooltip saying what is needed, by series kind; enable everything when the kind is unknown).
-4. F95, F96, display side of F97, F74 weighted residuals. Message Main before editing Ref Patch functions (F96).
-5. Then the timeline (F83, `docs/gui/timeline/research.md`): phases 1a and 1b need no owner answers.
+1. Merge the F88/F69 subagent's work (above).
+2. F96 Ref Patch window: Back; a Cancel that does not abandon silently; a join table kept with the result; the provenance line under results. Message Main with the function list first.
+3. F95 (wire the bad-pixel controls; Ref Patch warnings as messages and marks), F97 display side (saturation cue; one ROI close-up panel), F74 weighted residuals panel.
+4. Timeline (F83): 1a, the super-Gaussian fit as new functions in lss_core/peaks.py, leaving height_scan_options and is_height_scan unchanged; 1b, lss_core/timeline.py. Ask the owner whether the tab goes in the main window (Main reads it so).
 
 ## Lessons
 
