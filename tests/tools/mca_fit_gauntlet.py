@@ -384,6 +384,9 @@ def robust():
     for n in (100, 300, 3000, 10000):
         g['robust_counts%g' % n] = Cond('Zn %g photons on 1e6 elastic' % n, factor='robust counts', photons=float(n),
                                         beam=HARD_BEAM, detector=HARD_DET)
+    for e0 in (11.0, 12.0):     # the beam further above the Zn K edge: escapes and Compton move away from Kα
+        g['robust_beam%g' % e0] = Cond('the hard case at a %g keV beam (same photons in the line and the elastic)' % e0,
+                                       factor='robust beam energy', beam=replace(HARD_BEAM, energy=e0), detector=HARD_DET)
     return g
 
 

@@ -258,7 +258,8 @@ FEATURES = [('smooth', 'baseline (smooth)'), ('escape_x1', 'escape, Reed'), ('es
             ('compton_core_0.05', 'O 1s wing ×0.25'), ('compton_core_0.2', 'O 1s wing ×1 (water)'),
             ('compton_fwhm_0.3', 'Doppler ×1.6'), ('tail_0.03', 'tail 3 %'), ('shelf_0.005', 'shelf 0.5 %'),
             ('gain_+0.005', 'gain +0.5 %'), ('offset_+0.03', 'offset +30 eV'), ('counts_x0.3', '270 counts'),
-            ('hard', 'all at once (hard)')]
+            ('hard', 'all at once (hard), 10 keV'), ('robust_beam11', 'the hard case at 11 keV'),
+            ('robust_beam12', 'the hard case at 12 keV')]
 
 
 def b4(gdir, out):
@@ -366,7 +367,7 @@ def b6(gdir, out):
                 ax.text(j, i, '%.0f %%' % (100 * share[i, j]), ha='center', va='center', fontsize=7,
                         color='w' if share[i, j] < 0.6 else 'k')
     ax.set_xticks(range(len(classes)))
-    ax.set_xticklabels(['%s\n(%d)' % (k, n) for k, n in zip(classes, count)], fontsize=7)
+    ax.set_xticklabels(['%s\n(%d)' % (k, n) for k, n in zip(classes, count)], fontsize=7, rotation=20, ha='right')
     ax.set_yticks(range(len(meths)))
     ax.set_yticklabels([NAMES[m] for m in meths], fontsize=8)
     fig.colorbar(im, ax=ax, label='share within 1 % of the true line, no failure')
@@ -379,31 +380,41 @@ def b6(gdir, out):
 
 
 def b7(gdir, out):
+    """Each cell is judged on the bias of the fits that did not fail; the
+    share that failed is printed, and a cell where most of an estimator's
+    fits failed is grey for a conclusion about it."""
     idx, _ = _verdict(gdir)
     esc, core = (0.0, 0.5, 1.0, 2.0, 3.0), (0.0, 0.5, 1.0, 2.0)
-    concl = [('P1 at least as good as today\'s fit', lambda b: abs(b['p1']) <= abs(b['fit']) + 0.002),
-             ('P1+P2+P3 the best fit', lambda b: abs(b['p1p2p3']) <= min(abs(b[m]) for m in FITS) + 0.002),
-             ('P1+P2+P3 within 1 %', lambda b: abs(b['p1p2p3']) < 0.01),
-             ('the window sum fails (> 1 %)', lambda b: abs(b['window']) > 0.01)]
+    concl = [('P1 at least as good as today\'s fit', ('p1', 'fit'), lambda b: abs(b['p1']) <= abs(b['fit']) + 0.002),
+             ('P1+P2+P3 the best fit', FITS, lambda b: abs(b['p1p2p3']) <= min(abs(b[m]) for m in FITS) + 0.002),
+             ('P1+P2+P3 within 1 %', ('p1p2p3',), lambda b: abs(b['p1p2p3']) < 0.01),
+             ('the window sum fails (> 1 %)', ('window',), lambda b: abs(b['window']) > 0.01)]
     table = []
-    fig, axes = plt.subplots(1, len(concl), figsize=(4.2 * len(concl), 3.8))
-    for ax, (title, rule) in zip(axes, concl):
+    fig, axes = plt.subplots(1, len(concl), figsize=(4.4 * len(concl), 4.0))
+    for ax, (title, uses, rule) in zip(axes, concl):
         grid = np.full((len(core), len(esc)), np.nan)
         for i, c in enumerate(core):
             for j, e in enumerate(esc):
                 name = 'robust_esc%g_core%g' % (e, c)
-                b = {m: _f(idx[(name, m)]['rel_bias']) if idx[(name, m)]['failed'] == '0' else math.inf
-                     for m in ('window',) + FITS if (name, m) in idx}
-                if len(b) < 1 + len(FITS):
+                if any((name, m) not in idx for m in ('window',) + FITS):
                     continue
-                ok = bool(rule(b))
-                grid[i, j] = ok
-                table.append(dict(conclusion=title, escape=e, wing=c, holds=ok,
-                                  **{'bias_' + m: b[m] for m in ('window',) + FITS}))
-                ax.text(j, i, 'P1P2P3 %+.1f\nfit %+.1f' % (100 * b['p1p2p3'], 100 * b['fit'])
-                        if np.isfinite(b['p1p2p3']) and np.isfinite(b['fit']) else 'failed', ha='center',
-                        va='center', fontsize=6)
-        ax.imshow(grid, cmap='RdYlGn', vmin=0, vmax=1, origin='lower', aspect='auto', alpha=0.8)
+                b = {m: _f(idx[(name, m)]['rel_bias']) for m in ('window',) + FITS}
+                fail = {m: _f(idx[(name, m)]['failed']) / max(_f(idx[(name, m)]['n']), 1) for m in ('window',) + FITS}
+                judged = all(fail[m] <= 0.5 and np.isfinite(b[m]) for m in uses)
+                ok = bool(rule(b)) if judged else None
+                grid[i, j] = np.nan if ok is None else float(ok)
+                table.append(dict(conclusion=title, escape=e, wing=c, holds='' if ok is None else ok,
+                                  **{'bias_' + m: b[m] for m in ('window',) + FITS},
+                                  **{'failed_' + m: fail[m] for m in ('window',) + FITS}))
+                lines = []
+                for m in ('p1p2p3', 'fit'):
+                    lines.append('%s %s%s' % ('P1P2P3' if m == 'p1p2p3' else 'fit', '%+.1f' % (100 * b[m])
+                                              if np.isfinite(b[m]) else '—',
+                                              ' (%d%% f)' % round(100 * fail[m]) if fail[m] > 0 else ''))
+                ax.text(j, i, '\n'.join(lines), ha='center', va='center', fontsize=5.5)
+        show = np.ma.masked_invalid(grid)
+        ax.imshow(np.zeros_like(grid), cmap='Greys', vmin=0, vmax=4, origin='lower', aspect='auto')
+        ax.imshow(show, cmap='RdYlGn', vmin=0, vmax=1, origin='lower', aspect='auto', alpha=0.8)
         ax.set_xticks(range(len(esc)))
         ax.set_xticklabels(['%g' % e for e in esc])
         ax.set_yticks(range(len(core)))
@@ -411,8 +422,8 @@ def b7(gdir, out):
         ax.set_xlabel('Si escape (× Reed)')
         ax.set_ylabel('O 1s wing (× water)')
         ax.set_title(title, fontsize=8)
-    fig.suptitle('B7. Robustness: where each conclusion holds (green), the hard case\'s other features fixed; '
-                 'numbers: bias %', fontsize=9)
+    fig.suptitle('B7. Robustness over escape × O 1s wing (the hard case\'s other features fixed): green holds, red does '
+                 'not, grey: most of the fits failed; numbers: bias % (share of fits failed)', fontsize=9)
     fig.tight_layout()
     fig.savefig(os.path.join(out, 'B7_robustness.png'), dpi=110)
     plt.close(fig)
