@@ -1109,6 +1109,8 @@ flowchart TD
 | `pilCMapComboBox` CMap: | i | B |  | i | B |  |  | i | i |  |  |  |  |  |
 | `pilAspectComboBox` Aspect: |  | S |  |  | i |  |  | i | i |  |  |  |  |  |
 | `pilMplWidget`  | i | i |  | i | i |  |  | i | i |  |  |  |  |  |
+| `pilRoiLogCheckBox` Log | i |  |  | i |  |  |  |  |  |  |  |  |  |  |
+| `pilRoiCuesLabel` off centre 30 % · clipped 2 % | i |  |  | i |  |  |  |  |  |  |  |  |  |  |
 | `pilLogIntCheckBox` Log Int | i | B |  | i | B |  |  | i | i |  |  |  |  |  |
 | `pilPinholeCheckBox` Pinhole |  | i |  |  | B |  |  |  | B |  |  |  |  |  |
 | `pilMoviePushButton` Movie | i | B |  | i | B |  |  |  |  |  |  |  |  | i |
@@ -1152,6 +1154,12 @@ flowchart TD
 | `pilMovieSpeedComboBox`  | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
 | `pilMovieLoopCheckBox` Loop | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
 | `pilMovieInfoLabel`  | i | B |  | i | i |  |  |  |  |  |  |  |  | i |
+
+### Pilatus, beside the frame (splitter)
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `pilRoiPanel`  | i |  |  | i |  |  |  |  |  |  |  |  |  |  |
 
 ### Plot
 
@@ -1226,6 +1234,8 @@ flowchart TD
 | `refAcceptPushButton` Accept |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refAnalyzeAllPushButton` Analyze All |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refADDataPlotWidget`  |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
+| `refRoiLogCheckBox` Log |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
+| `refRoiCuesLabel` off centre 30 % · clipped 2 % |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
 | `refBadPixListWidget` Bad Pixels: |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
 | `refQLineEdit` Q: |  |  |  | i |  |  |  |  |  |  |  |  |  |  |
 | `refRLineEdit` R: |  |  |  | i |  |  |  |  |  |  |  |  |  |  |

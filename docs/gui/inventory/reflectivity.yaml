@@ -151,7 +151,29 @@
   needs: "a Qz selected"
   shown: always
   tooltip: false
-  notes: "Empty after Ref Patch (no close-up of any frame of the patch); see F71 (ROI close-up for reflectivity). Has a matplotlib toolbar."
+  notes: "Since 2026-11-24 (F71): the ROI close-up panel (roipanel.RoiPanel), the same as the Pilatus tab's: boxes as outlines from sumROI's arithmetic (the burned-in borders and the 2 px misplaced background box gone), profiles, sums, checks; Log box and labels beside it. Has a matplotlib toolbar."
+- id: refRoiLogCheckBox
+  kind: checkbox
+  label: "Log"
+  where: "Reflectivity > ROI close-up"
+  handler: roiLogChanged
+  does: "Log colour scale of the close-up and log profiles; the same setting as the Pilatus tab's"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-24 (F71)."
+- id: refRoiCuesLabel
+  kind: label
+  label: "off centre 30 % · clipped 2 %"
+  where: "Reflectivity > ROI close-up"
+  handler: refRoiShow
+  does: "The checks of the boxes on the selected Qz's frame, as on the Pilatus tab"
+  workflows: [reflectivity]
+  needs: "a Qz selected"
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-24 (F97, Q-IMG-7)."
 - id: refBadPixListWidget
   kind: list
   label: "Bad Pixels:"

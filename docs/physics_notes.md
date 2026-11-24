@@ -48,6 +48,7 @@ exists.
 | I35 | L is Qz in Å⁻¹ (the beamline's SPEC lattice): L = (2π/λ)(sin α + sin β), α = In_Rot, β = Out_Rot; in a specular scan 4π sin α/λ. On NX school every scan at fixed L agrees to better than 0.001 % (scans 4, 5, 10–15; scan 12 at the raised GID level, β = 6.5°); a fixed-L scan off by more than 1 % is noted at load (`LMismatch`) | `test_lattice.py::test_nx_l_is_qz_at_every_fixed_l_scan` |
 | I36 | Ref Patch steps are reversible: going Back (undoing a drop, or an accepted join) and doing the same steps again gives the same curve value for value as never going back; a cancelled patch leaves the curve on show and its Script line as they were (F96, owner Q-UI-B7). Not yet held: an accepted join must not change when live data arrive (B7's added rule; the live replay is not built) | `test_gui_ref_patch_steps.py::test_back_then_the_same_steps_give_the_same_reflectivity`, `::test_cancel_says_so_and_leaves_the_result_on_show` |
 | I37 | The residual panel shows what the fit minimised: over the fitted points Σ((y − fit)/σ)² = χ²/dof × (N − p), N − p an integer with p the fit's parameter count; for Poisson data with σ = √y and a right model the weighted residuals have mean ≈ 0 and SD ≈ 1 (F74). For burn trends Σr² is the best model's χ² itself (to 1e-9, every model on the synthetic burn) | `test_residuals.py::test_the_residuals_are_those_the_fit_minimised`, `::test_burn_trends_get_the_best_models_residuals` |
+| I38 | The ROI close-up outlines the pixels the reduction sums: summing a frame over `lss_core.display.roi_boxes(slit, cen, bg, direction)` gives `TwoDDetector.sumROI`'s signal and background values exactly, for any slit, centre, offset and direction (its slit − 2 and integer background centres included, PHYSICS_ISSUES P12) | `test_roi_boxes.py::test_summing_over_the_drawn_boxes_gives_sumROIs_values` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5422,4 +5423,48 @@ needs no real data, but the owner's answer on it is still pending, with
 the guard's p (TODO, "For the owner").
 
 Verified: nothing measured (a decision).
+### 2026-11-24 — F71 / F97: the ROI close-up panel
+
+The owner's Q-IMG-7: a side panel always visible beside the frame, the
+same on both tabs, with the cue thresholds as proposed. F71: a healthy
+zoom that still shows the diffuse scattering and the background zones,
+log helps. Built (a subagent's draft, finished by the GUI manager after a
+container restart cut it off). Verified by: tested (`test_roi_boxes.py`,
+`test_roi_cues.py`, `test_gui_roi_panel.py`) and measured.
+
+- **Boxes:** `lss_core.display.roi_boxes` reproduces `sumROI`'s
+  arithmetic (invariant I38). The burned-in borders of the old strip are
+  gone, and so is its right background box drawn 2 px from the one summed
+  (`image_display.md` §1.5). The reduction is untouched (no sum is made in
+  the panel; the export fixtures are unchanged).
+- **The panel:**
+  - the frame zoomed to the boxes plus a margin, on its own colour scale
+    from the signal box (the 99.9th percentile), log by default;
+  - the column and row profiles;
+  - the sums and the checks;
+  - on the Pilatus tab beside the frame, following the movie; on the
+    Reflectivity tab in its close-up canvas, following the Qz list;
+  - the boxes before the peak search, drawn dashed.
+- **Checks (display only, owner's thresholds):**
+  - off centre beyond 25 % of the half-width;
+  - clipped, more than 1 % of the net on or beyond the box edge;
+  - a background box 2 px or less from the signal box;
+  - pixels above the count-rate limits (F97);
+  - the direct beam inside a box;
+  - a box off the frame.
+  Position and clipping are judged only when the net signal is above 3σ (an
+  assumption, so that noise is not called off centre).
+- **Measured** (NX scan 7, movie, 1600 × 1000 offscreen): 0.138 s per
+  frame with the panel against 0.092 s without, 46 ms more; within the
+  0.5 s of the default 2 fps.
+
+### 2026-11-24 — Where the sample timeline tab goes (owner)
+
+**Question (GUI manager, F83 phase 1c):** a tab in the main window, in the
+ngui prototype first, both at once, or not now? The research proposed
+ngui; the owner's priorities put the main window first and say ideas
+proven in ngui are carried over, not built twice. **Answer (owner,
+2026-11-24): a tab in the main window**, a view of `lss_core.timeline`;
+ngui shows the same view later. Verified by: the owner's answer only (the
+tab is not built yet).
 
