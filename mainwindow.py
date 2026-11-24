@@ -2268,6 +2268,12 @@ class MainWindow (QMainWindow):
         off by default since 2026-11-23, F91)."""
         return bool(self.prefs.get('sum_all_legacy_average',False))
 
+    def mcaFitLegacyWeights(self):
+        """True when "Fit lines" weights each spectrum by its data's σ, as
+        before 2026-11-24 (preference 'mca_fit_legacy_weights'; the Reduction
+        options page, F86); off by default: Poisson maximum likelihood (F90 P1)."""
+        return bool(self.prefs.get('mca_fit_legacy_weights',False))
+
     def gisaxsRawCounts(self):
         """True when GISAXS keeps the raw counts it showed until 2026-11-23
         (preference 'gisaxs_raw_counts', for the Reduction options page, F86;
@@ -6429,7 +6435,8 @@ class MainWindow (QMainWindow):
         fl.setObjectName('mcaFitLinesPushButton')
         fl.setToolTip('Fit the fluorescence line(s) of all selected spectra (F22a, owner\'s rule): the sum of the spectra '
                       'is fitted within the range in the Sum All field for the lines\' positions and widths; then every '
-                      'spectrum is fitted with those fixed, heights and background only (a Gaussian on a quadratic '
+                      'spectrum is fitted with those fixed, heights and background only, by Poisson maximum likelihood (F90; '
+                      'the Reduction options keep the legacy weights) (a Gaussian on a quadratic '
                       'background by default, for the Rayleigh spill-over). The intensity of the line asked for (the first '
                       'energy given in Fit options, the element\'s; the strongest when none is given), as its '
                       'area over the channel width (the same units as Sum All, background removed), goes to the '
@@ -7017,7 +7024,8 @@ class MainWindow (QMainWindow):
                 o=dataclasses.replace(o,x_range=(lo,hi))
             except ValueError:
                 pass
-        ref,each=peaks.fit_series(x,[d[:,1] for d in data],[d[:,2] for d in data],o)
+        ref,each=peaks.fit_series(x,[d[:,1] for d in data],[d[:,2] for d in data],o,
+                                  weights='data' if self.mcaFitLegacyWeights() else 'poisson')
         if not each:
             self.notify('Fit lines: %s' % (ref.message or 'no line found'),title='Fit lines')
             return
@@ -7048,8 +7056,9 @@ class MainWindow (QMainWindow):
         except Exception:
             pass
         p=ref.peaks[j]
-        self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background' % (
-            listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background)
+        self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background%s' % (
+            listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background,
+            ', legacy weights' if self.mcaFitLegacyWeights() else '')
         self.ui.commandLineEdit.setText(self.command)
         self.notify('Fit lines: sum of %d spectra: %s. Intensities of the line at %.4g (area / channel width) in the '
                     'integral plot.' % (len(each),ref.summary(),p.centre),title='Fit lines',level='info')

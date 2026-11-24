@@ -448,12 +448,42 @@ def line_index(result, centres=()):
     return int(np.argmin([abs(p.centre - c) for p in result.peaks]))
 
 
-def fit_series(x, spectra, sigmas=None, options=None):
+WEIGHTS = ('poisson', 'data')
+
+
+def _poisson_step(A, y, s, coef, iters=20):
+    """The per-spectrum linear fit by Poisson maximum likelihood (F90 P1,
+    the owner, 2026-11-24): least squares iterated with σ² = k·model, where
+    k = σ²/y is the spectrum's own scale (τ/M for a normalised MCA
+    spectrum). At convergence Σ (y/μ − 1) ∂μ/∂a = 0, the Poisson condition
+    (W. Cash, ApJ 228, 939, 1979). Weights from the data, σ² ∝ y, give
+    upward fluctuations less weight and pull low-count areas low (Neyman's
+    χ²): −21 % at 90 counts, −5.8 % at 270 (C42). Returns (coef, σ used)."""
+    pos = y > 0
+    k = float(np.median(s[pos] ** 2 / y[pos])) if pos.any() else float(np.median(s) ** 2)
+    floor = 0.1 * k                                   # a tenth of a count: the model never weighs a channel infinitely
+    for _ in range(iters):
+        sm = np.sqrt(k * np.maximum(A @ coef, floor))
+        new = np.linalg.lstsq(A / sm[:, None], y / sm, rcond=None)[0]
+        done = np.allclose(new, coef, rtol=1e-10, atol=1e-12 * max(np.abs(coef).max(), 1e-300))
+        coef = new
+        if done:
+            break
+    return coef, np.sqrt(k * np.maximum(A @ coef, floor))
+
+
+def fit_series(x, spectra, sigmas=None, options=None, weights='poisson'):
     """A series of spectra with the same lines (MCA, EXAFS, XFNTR): the sum
     of all spectra is fitted (``fit``) for the centres, widths and shape;
     each spectrum is then fitted with those fixed, its heights and
-    background by linear least squares (weighted by its σ when given).
-    Returns (the sum's FitResult, [FitResult per spectrum])."""
+    background linear. With σ given, ``weights`` 'poisson' (the default
+    since 2026-11-24, F90 P1) fits each spectrum by Poisson maximum
+    likelihood (``_poisson_step``); 'data' is the legacy least squares
+    weighted by the given σ. Without σ the fit is unweighted, errors scaled
+    by the residual, either way. Returns (the sum's FitResult, [FitResult
+    per spectrum])."""
+    if weights not in WEIGHTS:
+        raise ValueError('weights %r: use one of %s' % (weights, ', '.join(WEIGHTS)))
     o = (options or FitOptions()).check()
     Y = np.asarray(spectra, float)
     S = None if sigmas is None else np.asarray(sigmas, float)
@@ -476,6 +506,9 @@ def fit_series(x, spectra, sigmas=None, options=None):
         s = noise_sigma(y, None if S is None else S[k][w])
         Aw = A / s[:, None]
         coef, *_ = np.linalg.lstsq(Aw, y / s, rcond=None)
+        if S is not None and weights == 'poisson':
+            coef, s = _poisson_step(A, y, s, coef)
+            Aw = A / s[:, None]
         cov = np.linalg.pinv(Aw.T @ Aw)
         dof = max(len(y) - A.shape[1], 1)
         chi2 = float(np.sum(((y - A @ coef) / s) ** 2) / dof)
@@ -488,7 +521,8 @@ def fit_series(x, spectra, sigmas=None, options=None):
             pk.append(Peak(p.centre, 0.0, p.fwhm, 0.0, h, he, _area(h, p.fwhm, p.eta, p.shape),
                            abs(_area(he, p.fwhm, p.eta, p.shape)), p.shape, p.eta))
         out.append(FitResult(pk, coef[len(ref.peaks):], ref.x0, ref.xs, chi2, ref.window, int(w.sum()), True,
-                             'centres and widths from the sum of %d spectra' % len(Y), o))
+                             'centres and widths from the sum of %d spectra%s' % (
+                                 len(Y), '; Poisson weights' if S is not None and weights == 'poisson' else ''), o))
     return ref, out
 
 

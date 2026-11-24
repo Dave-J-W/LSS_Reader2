@@ -52,6 +52,7 @@ def test_settings_are_saved_and_read_back(window, qapp, recorder):
                       'select_whole_series': True,
                       'sum_all_legacy_average': False, 'gisaxs_raw_counts': False,   # per Monc, ΣN/ΣM (F91, 2026-11-23)
                       'repeats_legacy_average': False,                                # repeats as ΣN/ΣM (F81, 2026-11-23)
+                      'mca_fit_legacy_weights': False,                                # Fit lines by Poisson (F90 P1, 2026-11-24)
                       'ngui': False}                                        # the ngui prototype, off (F82, 2026-11-23)
     assert preferences.load() == stored
     assert recorder.exceptions == []

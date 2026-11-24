@@ -106,6 +106,24 @@ def test_fit_lines_reports_the_elements_line_not_the_tallest(loaded, qapp, datas
     assert 'line at 6.4' in loaded.command
 
 
+def test_fit_lines_legacy_weights_switch(loaded, qapp, dataset, recorder):
+    """F90 P1: Poisson per-spectrum weights by default; the preference
+    'mca_fit_legacy_weights' brings back the data weights (the command says
+    so)."""
+    sweep.state_mca_frames(loaded, qapp, dataset)
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    poisson = [r[3] for r in loaded.mcaIntData]
+    assert 'legacy weights' not in loaded.command
+    assert 'Poisson weights' in loaded.mcaLineFits[1][0].message
+    loaded.setPreference('mca_fit_legacy_weights', True)
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    assert 'legacy weights' in loaded.command and 'Poisson' not in loaded.mcaLineFits[1][0].message
+    assert [r[3] for r in loaded.mcaIntData] == pytest.approx(poisson, rel=0.05)
+    assert recorder.exceptions == []
+
+
 def test_fit_options_are_kept_between_sessions(loaded, qapp, recorder):
     loaded.cutFitOptionsPushButton.click()
     d = loaded.cutFitDialog

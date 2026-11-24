@@ -46,6 +46,9 @@ DEFAULTS = {
     # Ref Patch, identical scans: repeats merged by counts and monitors, ΣN/ΣM (F81); True:
     # the legacy mean of the normalised repeats
     'repeats_legacy_average': False,
+    # MCA "Fit lines": each spectrum's heights by Poisson maximum likelihood (F90 P1, the owner,
+    # 2026-11-24); True: the legacy least squares weighted by the data's σ (low areas at low counts)
+    'mca_fit_legacy_weights': False,
     # ngui: a second window sketching the proposed layout (non-functional prototype, F82;
     # docs/gui/prototype.md); off by default (owner, 2026-11-23)
     'ngui': False,
