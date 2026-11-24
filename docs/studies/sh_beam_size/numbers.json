@@ -1,0 +1,233 @@
+{
+ "inventory": {
+  "halfcut/cell": 55,
+  "halfcut/metal": 16,
+  "halfcut/sample out": 135,
+  "halfcut/trough": 320,
+  "height/cell": 1027,
+  "height/metal": 70,
+  "height/sample out": 21,
+  "height/trough": 1713,
+  "ih_slit/cell": 124,
+  "ih_slit/sample out": 6,
+  "ih_slit/trough": 213,
+  "sh_scan/cell": 1,
+  "sh_scan/metal": 1,
+  "sh_scan/trough": 2
+ },
+ "height_scans_fitted": 2815,
+ "height_scans_ok": 1995,
+ "rejections": {
+  "rise not scanned from its foot": 127,
+  "edge under-sampled (<2 pts in 10-90 %)": 86,
+  "rise and fall not separated": 501,
+  "short": 84,
+  "chi2/dof > 20": 384,
+  "c1 outside scan": 92,
+  "no fit": 63,
+  "saturated": 4
+ },
+ "classes": [
+  {
+   "energy": "10 keV",
+   "s1_gap_mm": 0.016,
+   "cell": "trough",
+   "n_runs": 9,
+   "n_scans": 556,
+   "sigma_um": 15.34555,
+   "sigma_run_min_um": 13.9967,
+   "sigma_run_max_um": 18.1221,
+   "fwhm_erf_um": 36.136008742024686
+  },
+  {
+   "energy": "10 keV",
+   "s1_gap_mm": 0.02,
+   "cell": "cell",
+   "n_runs": 1,
+   "n_scans": 96,
+   "sigma_um": 16.634149999999998,
+   "sigma_run_min_um": 16.634149999999998,
+   "sigma_run_max_um": 16.634149999999998,
+   "fwhm_erf_um": 39.17042985205156
+  },
+  {
+   "energy": "10 keV",
+   "s1_gap_mm": 0.02,
+   "cell": "trough",
+   "n_runs": 8,
+   "n_scans": 665,
+   "sigma_um": 16.733475,
+   "sigma_run_min_um": 15.70075,
+   "sigma_run_max_um": 19.954,
+   "fwhm_erf_um": 39.40432235302426
+  },
+  {
+   "energy": "10 keV",
+   "s1_gap_mm": 0.04,
+   "cell": "cell",
+   "n_runs": 2,
+   "n_scans": 76,
+   "sigma_um": 17.030450000000002,
+   "sigma_run_min_um": 16.9236,
+   "sigma_run_max_um": 17.1373,
+   "fwhm_erf_um": 40.10364503589734
+  },
+  {
+   "energy": "10 keV",
+   "s1_gap_mm": 0.04,
+   "cell": "trough",
+   "n_runs": 3,
+   "n_scans": 301,
+   "sigma_um": 15.824349999999999,
+   "sigma_run_min_um": 15.6226,
+   "sigma_run_max_um": 16.70695,
+   "fwhm_erf_um": 37.2634965795855
+  },
+  {
+   "energy": "10 keV",
+   "s1_gap_mm": 0.1,
+   "cell": "cell",
+   "n_runs": 1,
+   "n_scans": 3,
+   "sigma_um": 23.447599999999998,
+   "sigma_run_min_um": 23.447599999999998,
+   "sigma_run_max_um": 23.447599999999998,
+   "fwhm_erf_um": 55.21487848786768
+  },
+  {
+   "energy": "6-8 keV",
+   "s1_gap_mm": 0.05,
+   "cell": "cell",
+   "n_runs": 2,
+   "n_scans": 52,
+   "sigma_um": 21.869049999999998,
+   "sigma_run_min_um": 21.665799999999997,
+   "sigma_run_max_um": 22.0723,
+   "fwhm_erf_um": 51.49767730578408
+  },
+  {
+   "energy": "6-8 keV",
+   "s1_gap_mm": 0.07,
+   "cell": "cell",
+   "n_runs": 1,
+   "n_scans": 133,
+   "sigma_um": 22.2319,
+   "sigma_run_min_um": 22.2319,
+   "sigma_run_max_um": 22.2319,
+   "fwhm_erf_um": 52.352123759123565
+  },
+  {
+   "energy": "6-8 keV",
+   "s1_gap_mm": 0.2,
+   "cell": "cell",
+   "n_runs": 2,
+   "n_scans": 103,
+   "sigma_um": 31.750225,
+   "sigma_run_min_um": 25.4693,
+   "sigma_run_max_um": 38.03115,
+   "fwhm_erf_um": 74.76606626424278
+  }
+ ],
+ "image_scans": 244,
+ "image_scans_good": 109,
+ "images": {
+  "n": 109,
+  "runs": 18,
+  "chi2_erf_median": 30.0142,
+  "chi2_core_tail_median": 2.10428,
+  "core_sigma_um": [
+   10.36008,
+   13.5041,
+   21.28414
+  ],
+  "tail_sigma_um": [
+   46.197,
+   55.7406,
+   79.74478
+  ],
+  "tail_fraction": [
+   0.1548242,
+   0.287825,
+   0.4962944
+  ],
+  "fwhm_um": [
+   26.18,
+   33.300000000000004,
+   53.26
+  ],
+  "heff_um": [
+   36.93694,
+   43.2019,
+   62.76780000000001
+  ],
+  "rms_um": [
+   26.69378,
+   34.684,
+   39.553520000000006
+  ],
+  "roi_erf_fwhm_um": [
+   34.63648288554942,
+   40.73344165694086,
+   58.19862387052551
+  ],
+  "heff_over_roi_erf_fwhm": [
+   0.9074941942489817,
+   1.0642502016593045,
+   1.2415614010102634
+  ],
+  "fwhm_over_roi_erf_fwhm": [
+   0.6616458117375752,
+   0.8413118588507065,
+   0.9884754381585793
+  ],
+  "corr_heff_roi": 0.8835587445080865
+ },
+ "ih_at_S1": {
+  "n": 223,
+  "runs": 12,
+  "fwhm_um": [
+   23.991999999999997,
+   32.300000000000004,
+   75.47600000000003
+  ],
+  "f2": [
+   0.0,
+   0.227562,
+   0.6105116
+  ]
+ },
+ "stacked": {
+  "10 keV, S1 0.016-0.02 mm": {
+   "n_scans": 53,
+   "erf_sigma_um": 17.763901087699402,
+   "erf_fwhm_um": 41.830790359261634,
+   "core_sigma_um": 11.970158387530846,
+   "tail_sigma_um": 59.25040453275308,
+   "tail_fraction": 0.3527405159302099,
+   "fwhm_um": 30.30000000000001,
+   "heff_um": 41.758470890851235,
+   "rms_resid_erf": 0.03464115194063743,
+   "rms_resid_core_tail": 0.027098437890871203
+  },
+  "10 keV, S1 0.04 mm": {
+   "n_scans": 20,
+   "erf_sigma_um": 16.803925774813873,
+   "erf_fwhm_um": 39.57022124974394,
+   "core_sigma_um": 13.340399466044667,
+   "tail_sigma_um": 46.514343518996306,
+   "tail_fraction": 0.24205649417212693,
+   "fwhm_um": 33.24000000000001,
+   "heff_um": 40.416279157191276,
+   "rms_resid_erf": 0.02161914036918081,
+   "rms_resid_core_tail": 0.017849945228342382
+  }
+ },
+ "halfcut_30keV": {
+  "direct_sigma_um": 8.00516,
+  "direct_sigma_err_um": 0.32170899999999997,
+  "n_edge": 2,
+  "sum_at_plus50um": 0.04412769960034876,
+  "sum_at_plus100um": 0.02287123871988301,
+  "direct_at_plus30um": 0.0020072333110202185
+ }
+}
