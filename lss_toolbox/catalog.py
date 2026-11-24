@@ -752,6 +752,21 @@ TOOLS = (
          inputs=('docs/studies/mca_fit/gauntlet',),
          repo_out='docs/studies/mca_fit', repo_ok=False),
 
+    Tool('mca_scatter', 'Scatter in real MCA spectra against the generator (F90)', 'fluo', 'figures',
+         'tests/tools/mca_scatter.py',
+         'Real spectra of the scattered beam at 6-10 keV fitted with the synthetic generator\'s own physics, every '
+         'uncertain axis free: the Si escape fraction against Reed\'s, the O 1s Compton wing, the detector tails, the '
+         'resolution and the counts under a line against study B\'s hard case (DATA_NEEDS row 3).',
+         committed=('docs/studies/mca_scatter',),
+         docs=('docs/studies/mca_scatter/summary.md', 'docs/DATA_NEEDS.md#MCA fit gauntlet spectra',
+               'docs/studies/mca_fit/summary.md'),
+         data='public', defaults={'--out': OUT},
+         variations=(V('Numbers against beam energy only', 'S2 from the anonymised table, without refitting the '
+                       'example spectra (a few seconds).',
+                       'docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |', only='S2'),),
+         inputs=('docs/studies/mca_scatter/scatter_fits.csv', 'tests/reference/mca_scatter'),
+         repo_out='docs/studies/mca_scatter', seconds=60.0),
+
     # ------------------------------------------------------------ the reader's window
     Tool('gui_screens', 'Screenshots of every area of the window', 'gui', 'figures',
          'tests/tools/gui_screens.py',

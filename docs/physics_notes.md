@@ -5673,3 +5673,63 @@ Verified by: the owner's statements; nothing checked against data.
 - **Monc upstream of the absorbers:** confirmed by the owner. The reduction's use of the absorber factor and Monc is consistent with that.
 - **Shutter:** closed between burn frames, open in fast mode (wall time = exposure, F98's dose axis must use it); fast mode is a recommended technique, not yet demonstrated (OQ-4).
 - **Timeline placeholders:** notes and stand-ins both, plus automatic flags (F108).
+
+### 2026-11-24 — Real scatter in MCA spectra against the synthetic generator (DATA_NEEDS rows 2 and 3)
+
+The owner's non-cloud agent searched the private beamline data for real
+examples of the scattered beam (Rayleigh, Compton and its low-energy wing,
+Si escape peaks). It fitted them with the generator's own physics
+(`tests/synthetic/mca.py`), every uncertain axis free, by Poisson
+likelihood. Study: `docs/studies/mca_scatter/summary.md`; tool:
+`tests/tools/mca_scatter.py`; public examples:
+`tests/reference/mca_scatter/`.
+
+**Row 2 (where the spectra are), answered.**
+- No SPEC data file holds a spectrum: 1043 MCA files from 12 runs were
+  checked.
+- The scan's block has `#V <datafile>_<scan>_mca`, a pointer only. It is
+  missing from some `a2scan`, `ascan` and `escan` blocks whose file exists.
+- The spectra are in `vortex/<datafile>_<scan>_mca`:
+  - one `mca_save_point Point:p Scan:s` block per point and per detector
+    element;
+  - each block carries `#@CALIB`, `#@CTIME`, `#Energy`, `#Q` and `#Monc`.
+
+**Row 3 (blanks), answered as far as the data go.**
+- **The blanks.** No pure-water blank was recorded. Two kinds of spectra
+  stand in for one:
+  - spectra with no line near the scatter: energy-scan points below the
+    studied edge, aligned and summed;
+  - 10 keV scans with only traces of Cu and Zn.
+- **Coverage.** 6.1, 7.2, 7.4, 8.3, 9.2 and 10 keV beams, on two readouts;
+  30 good fits.
+- **Si escape.** Reed's fraction × 1.01–1.12 at 6–7.4 keV, × 1.27–1.44 (fit)
+  or 1.46–1.55 (template) at 8.3–9.2 keV on readout B, and × 0.8–1.0 at
+  10 keV on readout A.
+  - At 10 keV, Cu Kα (8.04 keV) sits on the Compton escape and hides it in
+    most scans.
+- **O 1s Compton wing.** A water-sized wing (the generator's) is rejected
+  by every spectrum: the deviance rises by 38–1600, scaled.
+  - Readout A, 10 keV: 0.78–0.87 of water's. Zero is also rejected.
+  - Readout B: 0–0.35. It trades against a broad detector tail.
+- **Under a line** (E0 − 1.55 keV to the Compton peak − 0.35 keV), against
+  study B's hard case:
+  - readout A, 10 keV: 1.03–1.23 ×;
+  - readout B: 1.5–1.75 × at 10 keV and 1.9–3.2 × at 6–9 keV, because of
+    detector tails the generator lacks (a low tail of 3–12 % with a
+    0.3–0.5 keV decay, and a high-energy tail of up to 11 %).
+- **Resolution.** −9 … +15 % of the generator's default (one run +45 %).
+- **Compton.** The momentum widths are water's to 5 % on readout A.
+
+**What it means for F90.**
+- The window sum's failure (study B) holds on real data, more strongly on
+  readout B.
+- The 10 keV Zn case stays out of reach: the wing is 0.8, between B7's ½
+  and 1.
+- A third axis, the detector's own tails, is missing from B7.
+- No default and no generator value was changed: synthetic MCA work is
+  paused (owner, 2026-11-24).
+
+Verified: measured (fits to the private spectra). The model recovers a
+known wing, escape and tail on synthetic data
+(`tests/test_mca_scatter.py`, slow). The public examples are refitted by
+the tool.
