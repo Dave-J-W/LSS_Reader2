@@ -97,6 +97,31 @@ def test_gid_peak_is_found_and_followed(estimator):
     assert res['centre'].change.scale == pytest.approx(np.nanmean(values['fwhm'][0]))
 
 
+def test_a_strong_peak_does_not_shrink_the_lit_part():
+    """The lit columns (burn._illuminated, 2026-11-24): on a floor under 5 %
+    of the peak the maximum alone left the floor out, and the window shrank
+    to the peak's core (found with the GID-burn rows of Q-BURN-6, which
+    lower the floor). Half the median keeps the floor lit; where the floor is
+    above 10 % of the peak (these profiles, NX 14 and 15) nothing changes."""
+    prof = _gid_profiles(decay=0.0)
+    mean = np.mean([p[:, 1] for p in prof], axis=0)
+    old = np.flatnonzero(mean > 0.05 * mean.max())
+    assert burn._illuminated(mean) == (old[0] + 2, old[-1] - 2)            # unchanged with a 10 % floor
+    x = prof[0][:, 0]
+    lit = (x > 1.39) & (x < 1.74)
+    weak = []
+    for p in prof:                                                            # the floor and shoulder ÷ 30
+        q = p.copy()
+        q[:, 1] = np.where(lit, p[:, 1] - 0.003 - 0.008 * np.exp(-0.5 * ((x - 1.47) / 0.04) ** 2), 0.0) + \
+            lit * 1e-4
+        weak.append(q)
+    wm = np.mean([p[:, 1] for p in weak], axis=0)
+    first, last = burn._illuminated(wm)
+    assert x[first] == pytest.approx(1.39, abs=0.01) and x[last] == pytest.approx(1.74, abs=0.01)
+    window = burn.measure_gid(weak)[2]
+    assert window[1] - window[0] > 4 * 0.016                                 # ± 3 FWHM, not the peak's core
+
+
 def test_gid_typed_range_and_a_moving_peak():
     prof = _gid_profiles(decay=0.0, shift=0.004, grow=0.0, seed=3)
     values, ref, window, _ = burn.measure_gid(prof, qxy_range=(1.42, 1.52))
@@ -130,6 +155,10 @@ def test_nx_school_burn_pair():
     exp = Experiment(NX)
     r14 = exp.burn(14)
     assert r14.kind == 'gid' and len(r14.t) == 21 and r14.trend_errors == 'scatter'
+    assert r14.rows == (46, 486)          # Q-BURN-6 (2026-11-24): the shadow below the horizon left out
+    every = exp.burn(14, rows=None)       # all rows, as before: the same window, the intensity 0.3 % lower
+    assert every.rows == (0, 486) and every.window == r14.window
+    assert np.mean(every.values['intensity'][0]) / np.mean(r14.values['intensity'][0]) == pytest.approx(0.9973, abs=5e-4)
     assert all(d['chi2_dof'] < 2 for d in r14.frame_fits)
     assert r14.trends['intensity'].stable and r14.trends['fwhm'].stable and not r14.trends['centre'].stable
     assert r14.window[0] == pytest.approx(1.40, abs=0.01) and r14.window[1] == pytest.approx(1.53, abs=0.01)

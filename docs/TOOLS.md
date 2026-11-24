@@ -96,6 +96,7 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [MCA line-fit gauntlet (synthetic, judged)](#mca-fit-gauntlet) | data | Fitted fluorescence lines against the window sum on synthetic MCA spectra with the beam's Rayleigh and Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), judged by hand-off 08's pull rule and a 1 % bias rule. | synthetic (public) |  | `docs/comparisons_data/mca_fit_gauntlet` |
+| [MCA fit demo: the beam-energy story (F90)](#mca-fit-demo) | figures | The same Zn spectrum under 10, 11 and 12 keV beams: its parts stacked, the box, one drawn spectrum with P1's fit, and P1's bias over 200 series on each panel (the window sum's beside it). The wrap-up of the synthetic MCA project (paused 2026-11-24). | synthetic (public) | 17 s | `docs/figures/mca_fit_demo` |
 | [Study B figures: MCA line intensities (F90)](#mca-study) | figures | The owner's study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with every estimator's fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass rates and the robustness map (B1-B7), from the gauntlet's study run. | synthetic (public) |  | `docs/studies/mca_fit` |
 
 ### Synthetic data sets
@@ -270,6 +271,7 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Smoke run | The same figures from a few replicates (seconds instead of minutes). | `docs/reports/patch_demo.md#python tests/tools/patch_demo.py --save DIR` | `python tests/tools/patch_demo.py --save '{out}' --quick` |
+| At today's guard (p 0.7) | The report's figures with the joint fit's guard at the reader's default since 2026-11-24 (p 0.7, study A) instead of the report's p 0.3: pull SDs within 0.05. | `docs/reports/patch_demo.md#Run at the joint fit's guard p 0.3` | `python tests/tools/patch_demo.py --save '{out}' --guard-p 0.7` |
 | The two default views | Only the window's two default views as PNG. | `docs/reports/patch_demo.md#python tests/tools/patch_demo.py --views` | `python tests/tools/patch_demo.py --views '{out}'` |
 | Views: DPPC and a fading burn | The window's two views for a DPPC monolayer and a fading burn. | `docs/reports/patch_demo.md#**Reflectivity controls**: truth` | `python tests/tools/patch_demo.py --views '{out}' --set truth=dppc --set change=fade` |
 
@@ -779,7 +781,7 @@ Counts only, safe for private files: scans and their kinds, sample-height scans,
 Fitted fluorescence lines against the window sum on synthetic MCA spectra with the beam's Rayleigh and Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), judged by hand-off 08's pull rule and a 1 % bias rule.
 
 - Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/mca_fit_gauntlet.py`
-- Explained in: `docs/FEATURE_REQUESTS.md#| F90 |`, `docs/comparisons_data/mca_fit_gauntlet/summary.md`, `docs/COMPARISONS.md#| C42 |`, `docs/SYNTHETIC_DATA.md#**MCA spectra with`, `docs/physics_notes.md#2026-11-23 — F90,`
+- Explained in: `docs/FEATURE_REQUESTS.md#| F90 |`, `docs/reports/mca_fit_demo.md`, `docs/comparisons_data/mca_fit_gauntlet/summary.md`, `docs/COMPARISONS.md#| C42 |`, `docs/SYNTHETIC_DATA.md#**MCA spectra with`, `docs/physics_notes.md#2026-11-23 — F90,`
 - Committed products: `docs/comparisons_data/mca_fit_gauntlet`; not replaced from the window
 - Run:
 
@@ -803,6 +805,33 @@ Variations:
 | Study B run (shells Compton, P1-P3) | The study's run: water's Compton shell by shell, the reader's options P1, P2, P3, the robustness sweep and the counts design (about 25 min; its products are docs/studies/mca_fit/gauntlet). | `docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design all,robust,counts --replicates 200 --methods study --compton shells` |
 | Robustness sweep only | Escape fraction x O 1s wing, Doppler width and counts from the hard case. | `docs/studies/2026-11-24_two_decisions_plan.md#Then the robustness sweep over` | `python tests/tools/mca_fit_gauntlet.py --out '{out}' --design robust --replicates 100 --methods study --compton shells` |
 
+<a id="mca-fit-demo"></a>
+
+### MCA fit demo: the beam-energy story (F90)
+
+The same Zn spectrum under 10, 11 and 12 keV beams: its parts stacked, the box, one drawn spectrum with P1's fit, and P1's bias over 200 series on each panel (the window sum's beside it). The wrap-up of the synthetic MCA project (paused 2026-11-24).
+
+- Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/mca_fit_demo.py`
+- Explained in: `docs/reports/mca_fit_demo.md`, `docs/studies/mca_fit/summary.md`, `docs/COMPARISONS.md#| C47 |`
+- Committed products: `docs/figures/mca_fit_demo`; replaced from the window with the settings that made them (into `docs/figures/mca_fit_demo`)
+- Run:
+
+      python tests/tools/mca_fit_demo.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Beams 10, 12 and 14 keV | The scatter moves up with the beam and Zn Kα stays put: from failing at 10 keV to within 1 % at 12 keV and above. | `docs/reports/mca_fit_demo.md#4.4 The beam-energy route` | `python tests/tools/mca_fit_demo.py --out '{out}' --beams 10,12,14` |
+| Half of water's O 1s wing | A smaller wing than the shell model's: still out of reach at 10 keV, the same at 12 keV. | `docs/reports/mca_fit_demo.md#4.3 Why Zn at 10 keV is out of reach` | `python tests/tools/mca_fit_demo.py --out '{out}' --wing 0.5` |
+| No O 1s wing | The wing taken away: what is left at 10 keV is the escape peak and the shelves. | `docs/reports/mca_fit_demo.md#4.3 Why Zn at 10 keV is out of reach` | `python tests/tools/mca_fit_demo.py --out '{out}' --wing 0` |
+| Escapes three times Reed's | At 11 keV the Compton escape sits on the box's edge and P1 reads low; at 12 keV it has moved away. | `docs/reports/mca_fit_demo.md#**Si escape peaks.**` | `python tests/tools/mca_fit_demo.py --out '{out}' --escape 3` |
+| No escape peaks | The Si escapes taken away (a detector with none). | `docs/reports/mca_fit_demo.md#**Si escape peaks.**` | `python tests/tools/mca_fit_demo.py --out '{out}' --escape 0` |
+| Ten times the line (1e4 photons) | The scatter matters less: no failures at 10 keV, but the wing still pulls P1 6 % high. | `docs/reports/mca_fit_demo.md#- `--photons 1e4`: ten times the line` | `python tests/tools/mca_fit_demo.py --out '{out}' --photons 1e4` |
+| A weak line (300 photons) | Fewer counts: the errors grow, and P1 stays unbiased where it does not fail. | `docs/reports/mca_fit_demo.md#4.1 P1 against data weights` | `python tests/tools/mca_fit_demo.py --out '{out}' --photons 300` |
+| Fe instead of Zn | Fe Kα (6.40 keV) far from the scatter: P1 within 1 % at 10 keV already. | `docs/reports/mca_fit_demo.md#- `--element Fe`: Fe Kα` | `python tests/tools/mca_fit_demo.py --out '{out}' --element Fe` |
+| 12 keV with 40 % fewer line photons | The K excitation falls from 10 to 12 keV: P1 is still unbiased with 600 photons. | `docs/reports/mca_fit_demo.md#**What this assumes.**` | `python tests/tools/mca_fit_demo.py --out '{out}' --beams 12 --photons 600` |
+
 <a id="mca-study"></a>
 
 ### Study B figures: MCA line intensities (F90)
@@ -810,7 +839,7 @@ Variations:
 The owner's study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with every estimator's fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass rates and the robustness map (B1-B7), from the gauntlet's study run.
 
 - Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/mca_study.py`
-- Explained in: `docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line`, `docs/studies/mca_fit/summary.md`, `docs/COMPARISONS.md#| C47 |`
+- Explained in: `docs/reports/mca_fit_demo.md`, `docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line`, `docs/studies/mca_fit/summary.md`, `docs/COMPARISONS.md#| C47 |`
 - Committed products: `docs/studies/mca_fit`; not replaced from the window
 - Run:
 
@@ -847,6 +876,8 @@ Variations:
 | Background ×100 | A diffuse background a hundred times NX's: the ROI background boxes earn their keep at high Qz. | `docs/physics_notes.md#reaching back), 3–5` | `python tests/tools/synthetic_dataset.py --out '{out}' --background 100` |
 | XFNTR series | Fluorescence near total reflection: one MCA file per Qz, a surface and a bulk ion. | `docs/SYNTHETIC_DATA.md#| `gid_levels` |` | `python tests/tools/synthetic_dataset.py --out '{out}' --kind xfntr` |
 | Burn series | One spot measured 21 times, the peak decaying with τ = 400 s. | `docs/SYNTHETIC_DATA.md#| `pilatus_image`, `write_pilatus_tif`` | `python tests/tools/synthetic_dataset.py --out '{out}' --kind burn` |
+| MCA: the hard case (Zn under 10 keV) | Study B's hard case as ten MCA spectra: select them all, Fit lines, and compare with the true line counts in truth.json (the O 1s wing defeats every fit). | `docs/reports/mca_fit_demo.md#**In the reader itself.**` | `python tests/tools/synthetic_dataset.py --out '{out}' --kind mca` |
+| MCA: Zn under a 12 keV beam | The beam-energy route: the scatter has moved away, and Fit lines with Poisson weights (Preferences) finds the line within 1 %. | `docs/reports/mca_fit_demo.md#4.4 The beam-energy route` | `python tests/tools/synthetic_dataset.py --out '{out}' --kind mca --beam 12` |
 
 <a id="gui-screens"></a>
 

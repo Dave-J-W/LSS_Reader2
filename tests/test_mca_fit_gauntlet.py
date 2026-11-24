@@ -26,7 +26,7 @@ def _series(cond, n, seed):
 @pytest.mark.parametrize('weights, step', [('poisson', 'model'), ('data', 'data')])
 def test_the_linear_step_is_the_readers(weights, step):
     """linear_step gives fit_series' per-spectrum heights and errors: data
-    weights its default, model weights its Poisson option (F90 P1), so
+    weights (its default until 2026-11-24), model weights its Poisson step (F90 P1, the default since), so
     fit_known and fit_irls differ from the reader only where they say."""
     cond = g.core()['smooth']
     s, data, x, Y, S = _series(cond, 5, 1)

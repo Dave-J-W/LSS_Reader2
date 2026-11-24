@@ -7,6 +7,12 @@ images as float64 — bit for bit identical to the earlier
 ``TwoDDetector.openFile`` code (checked on every image of the sample sets
 in ``tests/test_lss_core.py``), about ten times faster, and cached in
 memory so that selecting a frame again does not read the file again.
+
+``SHAPE_100K`` is the (rows, columns) of a Pilatus 100K frame as presented
+(the file's 487 × 195 pixels rotated: 487 rows, 195 columns). The window's
+sizes follow the frames it has read; this is what it assumes before any.
+``PIXEL_MM`` is the Pilatus pixel, 0.172 mm square (every Pilatus model):
+the one place the number is written; the modules that use it import it.
 """
 import numpy as np
 from PIL import Image
@@ -15,6 +21,8 @@ from . import diskcache
 from .cache import MemoryCache, file_key
 
 CACHE = MemoryCache()
+SHAPE_100K = (487, 195)          # (rows, columns) as presented; see the module docstring
+PIXEL_MM = 0.172                 # Pilatus pixel (mm); see the module docstring
 
 
 def _read(path):

@@ -11,7 +11,7 @@ pytestmark = pytest.mark.gui
 SWITCHES = {'prefSumAllLegacyCheckBox': 'sum_all_legacy_average', 'prefGisaxsRawCheckBox': 'gisaxs_raw_counts',
             'prefRepeatsLegacyCheckBox': 'repeats_legacy_average',
             'prefMcaFitLegacyCheckBox': 'mca_fit_legacy', 'prefBurnLegacyCheckBox': 'burn_legacy_tab',
-            'prefMcaFitPoissonCheckBox': 'mca_fit_poisson'}       # F90 P1, an option (2026-11-24)
+            'prefMcaFitDataWeightsCheckBox': 'mca_fit_data_weights'}   # F90: P1 the default, data weights legacy (2026-11-24)
 
 
 def test_the_page_comes_first_and_holds_the_switches(window, recorder):

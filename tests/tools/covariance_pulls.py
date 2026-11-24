@@ -106,7 +106,7 @@ def write(path, rows):
         w.writerows(rows)
 
 
-def main():
+def _main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--seeds', type=int, default=300)
     ap.add_argument('--plan', default='nx_like_plan')
@@ -127,6 +127,21 @@ def main():
         write(os.path.join(a.out, 'nx_sigma.csv'), rows)
         for r in rows:
             print(r)
+
+
+# C35 (the downstream covariance study) as run: the joint fit's guard at p 0.3, the default from 2026-11-22 until 2026-11-24, when it
+# became 0.7 (study A, docs/studies/reflectivity_guard). The committed products are that record, so
+# this tool keeps its run at 0.3; the reader's default is not changed by it (restored afterwards).
+GUARD_P_AS_RUN = 0.3
+
+
+def main():
+    from lss_core import patching as _patching
+    saved, _patching.GUARD_P = _patching.GUARD_P, GUARD_P_AS_RUN
+    try:
+        return _main()
+    finally:
+        _patching.GUARD_P = saved
 
 
 if __name__ == '__main__':

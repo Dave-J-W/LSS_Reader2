@@ -5076,6 +5076,10 @@ Verified by: reading only. The numbers are the tools session's, measured on synt
 - **P4:** after the blanks.
 - **Guard:** needs further study; p stays 0.3; the real test is hand-off 08 (not soon).
 - **Numbering clash to note:** the tools session called the blank-spectrum request "F105"; F105 here is the comparison tab with auto-update. The blank spectra are F90's data (DATA_NEEDS row 3).
+
+### 2026-11-24 — GUI questions answered, batch 16 (Q-XFNTR-4, Q-UI-A9, Q-CUTS-3, Q-TL-1)
+
+Verified by: reading only (the SPEC command names are the owner's; not checked against a SPEC file here). No MCA spectrum browser. Reflectivity frame series default to a ROI-zoomed movie. α_f is reserved in the cut interface. New samples on the timeline are detected from `setup_sh_scan`, sh movements and `set sh 0`, asked of the user on the timeline (F106). This begins the timeline questions Q-TL-2–8, which remain open.
   - *Resolved (Main, 2026-11-24).* Every use of "F105" on main was checked (a search of `docs/`, `tests/` and `lss_*`). None calls the blank spectra F105 any longer: tools man corrected `docs/reports/tools_man_handoff.md`, and the study B summary and DATA_NEEDS row 3 use F90. F105 itself, the comparison tab with Export's proposed names (Q-REF-5, Q-REF-6), was not on TODO until 2026-11-24. It is now in TODO area B, for the GUI manager after timeline 1c.
 - *Since (Main, 2026-11-24).*
   - The owner asked for full studies before these decisions stand (entry "The owner asks for full studies…"). So P1's default switch is **held**: P1, P2 and P3 are options, and today's weighting is still the default.
@@ -5468,6 +5472,51 @@ proven in ngui are carried over, not built twice. **Answer (owner,
 ngui shows the same view later. Verified by: the owner's answer only (the
 tab is not built yet).
 
+### 2026-11-24 — Q-BURN-6 built: GID-burn rows from the mean frame
+
+The owner's answer (2026-11-23, batch 14): "GID-burn detector rows default
+from the mean frame". Built by the tools session as `burn.signal_rows`,
+the default of `exp.burn` (`rows='mean'`) and of the burn dialog ("Rows
+from frame"). The rule: a 3 × 3 median of the mean frame per Monc; the
+strongest column peak's columns (the half-height run, widened by its
+width on each side); their row profile less each row's median over the
+same number of columns; the rows where it stays above 10 % of its maximum,
+2 rows either side. For an exponential rod, 10 % keeps 90 % of its counts.
+
+Verified by: test (`tests/test_burn_rows.py`: a synthetic rod's rows,
+noise, a hot pixel, a flat frame, a rod over the whole frame; the GUI
+test in `test_gui_burn_trends.py`) and run (NX 14, 15: rows 46–486, the
+shadow below the horizon left out; intensity +0.3 %; NX 14's 5 % time
+189.6 → 178.4 s). Building it showed a fault in the burn's lit-column rule
+(a peak 20 × its floor shrank the window to its core), fixed the same day
+(`burn._illuminated`, NX unchanged bit for bit). COMPARISONS C49.
+
+### 2026-11-24 — P1 is the default of "Fit lines" (rule 12)
+
+The owner's standing rule 12 (via Main, 2026-11-24): "Make the best
+method the default if it has been comprehensively demonstrated and
+tested and has a demonstrator presentation effort behind it." P1 has
+study B (C47) and the demo (`docs/reports/mca_fit_demo.md`), so "Fit
+lines" now fits each spectrum by Poisson maximum likelihood, and so does
+`peaks.fit_series` by default. The old weighting is the legacy switch
+`mca_fit_data_weights`, off by default. The earlier option
+`mca_fit_poisson` is retired: preferences store every key, so a stored
+"False" would otherwise have kept data weights for everyone who saved
+preferences.
+
+Before → after (synthetic, study B, measured): a clean line's bias
+−23 % → +1.8 % at 100 counts, −5.0 % → +0.4 % at 400, −1.5 % → within
+its errors at 1000; within 0.2 % at 10⁴; the weak XFNTR curve's worst
+point 13 % → 1.2 %. Re-pins: none of the numbers in the suite changed.
+Only tests that named the default changed: `test_gui_workbook`'s switch
+test, the preference key in `test_gui_preferences` and
+`test_gui_reduction_options`, and `test_peaks` names `weights='data'`
+for its comparison. The gauntlet's 'fit' estimators and study B's pass
+`weights='data'`, so C42 and C47 reproduce as run.
+
+Verified by: test (the suites named) and reading; no real spectra here.
+The window sum is left as it is (OUTPUT_DECISIONS).
+
 ### 2026-11-24 — F83 phase 1c: the Timeline tab (first version)
 
 Built in the main window, as the owner chose: `timelineview.TimelineTab`,
@@ -5503,6 +5552,44 @@ It is so: the last tab, after 2D_Plot (seen in a window: SpecPlot,
 Pilatus, Reflectivity, Line/Area Cuts, MCA, Plot, 2D_Plot, Timeline).
 Verified by: test (`test_gui_timeline.py::test_the_tab_is_last_and_says_what_to_do_before_a_file`).
 
+### 2026-11-24 — The owner's rule for defaults, and the join guard made p 0.7
+
+**Owner, 2026-11-24 (to Main):** "Make the best method the default if it has been comprehensively demonstrated and tested and has a demonstrator presentation effort behind it".
+It is AGENTS.md rule 12.
+
+**Applied, the same day:**
+- **The join guard is now p 0.7** (`patching.GUARD_P`). It meets the
+  rule: study A (C48) has six joins on known truth, 400–2000
+  replicates, two robustness maps, downstream fits and the real NX
+  joins. It has tests, figures, a Tools menu item, the summary and the
+  ELI5 rationale.
+- **Before → after, on NX school 6–9:** the factors, rungs and covariance
+  are identical. NX's split test (six real scans cut in two with a known
+  factor 1.25) gives the default an RMS pull of 1.13 before and 1.00
+  after.
+- **The join note came first, in its own commit.** At a strict guard
+  many good fits miss the threshold, and the note had called them "no
+  adequate fit" (117 of 300 smooth synthetic joins at p 0.7, none of
+  them with p < 0.01). Now it reads "the best fit of the ladder". Only
+  below p 0.01 does it read "no adequate fit".
+- **Earlier studies keep their own runs at p 0.3,** with a note in each
+  tool. That is C35 (downstream covariance), C36 (the gauntlet) and C45
+  (biased joins). Their committed products reproduce exactly, the full
+  C36 gauntlet included. So does the patch demonstrator's report, whose
+  text quotes its run: its figures stay at 0.3 (`--guard-p`), with a note
+  and a Tools menu variation at 0.7. Its interactive window uses the
+  reader's default.
+- **P1 for "Fit lines" is not yet the default.** Its demonstrator, the
+  wrap-up the owner asked for (`docs/reports/mca_fit_demo.md`), is not
+  done. It becomes the default with that wrap-up (tools man).
+
+Verified: by tests (`test_patching`, re-pinned with the old state kept
+at p 0.3), and by runs (the audit, the NX survey, C45 and C35
+reproduced).
+
+### 2026-11-24 — GUI questions answered, batch 17 (timeline: Q-TL-3, 4, 6, 7)
+
+Verified by: reading only. The timeline joins several SPEC files on one axis; the sh-scan thumbnail uses SPEC's `Pilatus` counter; the verdict colour depends on width only, the exponent p is shown as a number and the colour thresholds are visual preferences; sx is drawn and coloured by dose per area scaled by a burn test's (F107), with barrier and tensiometer traces shown only if their data exist. Open: Q-TL-2 (a macro-written new-sample line; partly covered by Q-TL-1's answer), Q-TL-5 (the coloured placeholder boxes), Q-TL-8 (environment column names and units), and what a "large" sx change is. **Note on process:** AGENTS.md rule 12 (2026-11-24) now requires a COMPARISONS study, pinning tests and a demonstrator before a default switches; the owner's adoption of the Poisson step P1 as the MCA default (batch 15) falls under it.
 ### 2026-11-24 — Timeline: sample-height scans as thumbnails
 
 The height lane now draws each sh scan small, 64 × 34 px at every zoom:

@@ -7,7 +7,10 @@ the GID worksheet (F61). Where each one acts:
 - ``columns``: pixels summed across each frame around the direct-beam
   column (the window's H slit field); one profile per frame, placed at the
   frame's detector angle.
-- ``row_min``, ``row_max``: detector rows used (β range).
+- ``row_min``, ``row_max``: detector rows used (β range), both included.
+  ``row_max``'s default is the last row of a Pilatus 100K frame (486 of
+  rows 0…486); ``GIDParams.for_detector(shape)`` gives another detector's
+  last row, and ``Experiment.gid`` without ``params`` takes the frames'.
 - ``qz_decimals``: frames are grouped into Qz levels by their Qz rounded
   to this many decimals (at most three levels: low, middle, high; any
   further level goes into "high").
@@ -43,12 +46,16 @@ the GID worksheet (F61). Where each one acts:
 """
 from dataclasses import dataclass, fields
 
+from .images import PIXEL_MM, SHAPE_100K
+
+ROW_MAX_100K = SHAPE_100K[0] - 1        # 486: the last row of a Pilatus 100K frame (487 rows as presented)
+
 
 @dataclass
 class GIDParams:
     columns: int = 3
     row_min: int = 15
-    row_max: int = 486
+    row_max: int = ROW_MAX_100K
     qz_decimals: int = 3
     dth_decimals: int = 3
     area_correction: bool = True
@@ -68,6 +75,14 @@ class GIDParams:
     apply_joins: bool = True          # False: scan and level factors fitted and reported, not applied (as collected)
     angles: str = 'exact'             # pinhole map binning: 'exact' per pixel, or 'per_axis' (before 2026-11-19; C21)
     join_estimator: str = 'ml'        # scan and level factors: 'ml' (likelihood, P46, 2026-11-23) or 'ivw' (before)
+
+    @classmethod
+    def for_detector(cls, shape, **settings):
+        """The defaults on frames of ``shape`` (rows, columns), with ``settings``
+        on top: the last row used is the frames' last (486 on the Pilatus
+        100K, so there the same as ``GIDParams()``)."""
+        settings.setdefault('row_max', int(shape[0]) - 1)
+        return cls(**settings)
 
     def changed(self):
         """Names of the settings that differ from the defaults."""
@@ -145,8 +160,8 @@ def cal_area(areainfo, dth, hslit_px, hard_slit_offset_mm=32.0):
     sam2d = areainfo[5] - hard_slit_offset_mm
     sli2s = areainfo[5] - areainfo[6]
     dth = dth * np.pi / 180.0
-    if s5h > float(hslit_px) * 0.172:
-        s5h = float(hslit_px) * 0.172
+    if s5h > float(hslit_px) * PIXEL_MM:
+        s5h = float(hslit_px) * PIXEL_MM
         sam2d = areainfo[5]
     phi = np.arcsin((s4h + s5h) / 2.0 / np.sqrt((s4h + s5h) ** 2 / 4.0 + (sam2d - sli2s) ** 2))
     dist = (s4h / 2.0 * sam2d + s5h / 2.0 * sli2s) / np.sqrt((s4h + s5h) ** 2 / 4.0 + (sam2d - sli2s) ** 2)
@@ -531,11 +546,25 @@ def products(X, Y, D, E, axes, alpha, wavelength, relax=False):
         yq = k0 * (np.sin(alpha) + np.sin(Y / 180 * np.pi))
         if not relax:
             r = np.where(np.logical_and(xq[0] < xq[-1][-1], xq[0] > xq[-1][0]))
+            if r[0].size == 0:
+                # the rows share no Qxy range (frames that are not a GID series): the grid would be
+                # empty and the integrals below raised IndexError (the GUI manager's sweep, 2026-11-24)
+                raise GIDError('The map\'s rows share no Qxy range, so it cannot be regridded in Q (frames of a '
+                               'GID series are needed). GID Patch Relax fills the corners, or show it in Angles.')
             qxy, qz = np.meshgrid(xq[0][r], yq[:, 0])
             d = griddata((xq.ravel(), yq.ravel()), D.ravel(), (qxy, qz), method='linear')
             e = griddata((xq.ravel(), yq.ravel()), E.ravel(), (qxy, qz), method='linear')
         else:
-            r = np.linspace(np.min(xq), np.max(xq), int(len(xq[0]) * (np.max(xq) - np.min(xq)) / (xq[0][-1] - xq[0][0])))
+            # as many bins as the first row has columns, scaled by the whole map's Qxy span over that row's:
+            # its last − first, in size (it can run backwards), its full span when that is zero, the column
+            # count when that is zero too (the same guard as Show GISAXS, 2026-11-23)
+            row_span = abs(xq[0][-1] - xq[0][0])
+            if not (row_span > 0 and np.isfinite(row_span)):
+                row_span = np.ptp(xq[0])
+            n = len(xq[0])
+            if row_span > 0 and np.isfinite(row_span):
+                n = max(2, int(n * (np.max(xq) - np.min(xq)) / row_span))
+            r = np.linspace(np.min(xq), np.max(xq), n)
             qxy, qz = np.meshgrid(r, yq[:, 0])
             d = griddata((xq.ravel(), yq.ravel()), D.ravel(), (qxy, qz), method='linear', fill_value=1e-10)
             e = griddata((xq.ravel(), yq.ravel()), E.ravel(), (qxy, qz), method='linear', fill_value=1e-10)

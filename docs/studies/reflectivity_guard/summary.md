@@ -12,7 +12,7 @@ polynomial in ln(R/R_F) through both scans. The guard tries curves of
 rising order and narrowing windows, and accepts the first whose χ²
 p-value is at least p₀. Today p₀ = 0.3.
 
-**The answer in one line.** Raise p₀ from 0.3 to **0.7**.
+**The answer in one line.** Raise p₀ from 0.3 to **0.7**. *Done 2026-11-24: p 0.7 is the default (`patching.GUARD_P`), by the owner's rule that the best method, demonstrated, tested and presented, becomes the default.*
 - **The gain:** the bias at the hard joins (fringes or short overlaps)
   halves, from 0.24 to 0.12 errors.
 - **The cost:** error bars at smooth joins become about 4 % too small

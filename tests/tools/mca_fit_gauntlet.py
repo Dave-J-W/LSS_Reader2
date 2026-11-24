@@ -367,6 +367,24 @@ def with_shells(cond):
                                       doppler_scale=b.compton_fwhm / 0.19))
 
 
+def hard_case(beam=10.0, element='Zn', photons=1e3, wing=1.0, escape=1.0):
+    """Study B's hard case ('shells' Compton) at a beam of ``beam`` keV, with
+    ``element``'s ``photons`` K photons, ``wing`` × water's O 1s Compton wing
+    and ``escape`` × Reed's escape fraction (the demo's and the synthetic
+    data set's spectrum, docs/reports/mca_fit_demo.md)."""
+    h = core()['hard']
+    c = replace(h, describe='%s Kα, %g photons, %g keV beam, O 1s wing × %g, escapes × %g'
+                % (element, photons, beam, wing, escape), element=element, photons=float(photons),
+                beam=replace(HARD_BEAM, energy=float(beam), compton_core=0.2 * wing),
+                detector=replace(HARD_DET, escape=float(escape)))
+    return with_shells(c)
+
+
+def excited(cond):
+    """The beam is above the element's K edge: the line exists."""
+    return cond.beam.energy > mca.ELEMENTS[cond.element][0]
+
+
 def robust():
     """Study B's robustness sweep from the hard case: the escape fraction
     (× Reed) against the O 1s wing (× water's), then the Doppler width and
@@ -543,7 +561,7 @@ def estimate(cond, spectra, counts, methods):
                         stripped = ([d[:, 1] for d in sd], [d[:, 2] for d in sd])
                     YY, SS = stripped
                 o = fit_options(cond, [cond.line], **kw)
-                ref, each = peaks.fit_series(x, YY, SS, o)
+                ref, each = peaks.fit_series(x, YY, SS, o, weights='data')    # as C42 ran it (data weights)
                 refs[m] = (ref, o)
                 if not each:
                     out[m] = fail
@@ -554,7 +572,7 @@ def estimate(cond, spectra, counts, methods):
             elif m == 'fit_irls':
                 if 'fit' not in refs:
                     o = fit_options(cond, [cond.line])
-                    refs['fit'] = (peaks.fit_series(x, Y, S, o)[0], o)
+                    refs['fit'] = (peaks.fit_series(x, Y, S, o, weights='data')[0], o)
                 ref, o = refs['fit']
                 if not (ref.ok and ref.peaks):
                     out[m] = fail

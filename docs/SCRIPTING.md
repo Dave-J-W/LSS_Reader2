@@ -169,13 +169,17 @@ Series, stale results and remakes (2026-11-22):
 
 `fit_series` fits the sum of a series of spectra for the lines' positions
 and widths, then each spectrum with those fixed (owner's rule for MCA
-series); `peaks.find_peaks` alone gives the candidates. "Fit peaks" in the
-window writes the `cut.fit(...)` call to the Script pane.
+series); each spectrum by Poisson maximum likelihood (`weights='poisson'`,
+the default since 2026-11-24; `weights='data'` for least squares weighted
+by the σ given, as before). `peaks.find_peaks` alone gives the candidates.
+"Fit peaks" in the window writes the `cut.fit(...)` call to the Script pane.
 
 ## Burn tests (2026-11-21)
 
 ```python
 burn = exp.burn(15)                            # NX school: a GID burn scan
+burn.rows                                      # (46, 486): the rows of the mean frame's signal (Q-BURN-6)
+exp.burn(15, rows=None)                        # every detector row, as before 2026-11-24; or rows=(first, last)
 print(burn.summary())                          # verdicts, best models, the 5 % time
 burn.trends['centre'].table()                  # every model: chi2/dof, AICc, Δ, weight, parameters
 cols, values = burn.data()                     # time and each quantity with its error
@@ -186,7 +190,8 @@ Reflectivity geometry (Det_Th 0): the Ref Patch ROI per Monc (`slit`,
 `bg_offset`, `direction`); GID: the strongest peak's integrated intensity,
 position and FWHM per Monc (`estimator` 'template' (default), 'moments'
 (legacy arithmetic) or 'fit' with `fit=FitOptions(...)`; `qxy_range` to
-choose the peak; `rows` the pixel rows summed). Each quantity over `time`
+choose the peak; `rows` the pixel rows summed: 'mean', the default since
+2026-11-24, where the mean frame's signal is; None, all; or (first, last)). Each quantity over `time`
 ('exposure' default, or 'clock') is compared over `models`
 (`lss_core.trends.MODELS`) by AICc; `trend_errors` 'scatter' (GID default)
 or 'given'. `lss_core.trends.compare(t, y, sigma)` does the comparison for

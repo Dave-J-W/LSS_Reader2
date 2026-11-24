@@ -50,7 +50,7 @@ DEFAULT_FPS = 2.0
 # larger. An assumption to revisit with a 1M detector or wider slits.
 BEAM_HALF = (4, 8)
 
-PIXEL_MM = 0.172                                             # Pilatus pixel
+from .images import PIXEL_MM                    # noqa: E402  Pilatus pixel (mm), written once there
 
 
 def kind_of(series_kind=None, dth_deg=None, monc=None, qz=None):

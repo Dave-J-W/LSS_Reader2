@@ -78,6 +78,11 @@ Each line: feature — where — default — script — notes entry (date).
   the sum fixing position and width; intensities like Sum All). With
   several lines placed, the intensity is the first line given (the
   element's), not the tallest (2026-11-24, F90 P5).
+  Each spectrum is fitted by Poisson maximum likelihood (F90 P1, the
+  default since 2026-11-24, rule 12): unbiased on weak lines, where
+  weighting by the data read them low by about 19 counts. Preferences >
+  Reduction options > "Fit lines: data weights (legacy)" gives the old
+  weighting; the result and the saved command say which was used.
 - Fit options are kept between sessions (preferences) and in the workbook.
 
 ### Monitor and absorbers (affect every tab)
@@ -94,6 +99,13 @@ Each line: feature — where — default — script — notes entry (date).
 ### Burn tests
 - A burn test is analysed as a GID burn when Det_Th > 2°, otherwise as a
   reflectivity burn (owner, 2026-11-23; F87).
+- GID burns sum the detector rows where the mean frame's signal is ("Rows
+  from frame", on by default; owner, 2026-11-23, Q-BURN-6): the strongest
+  peak's columns, the rows where their profile stays above 10 % of its
+  maximum, 2 rows either side; all rows when no peak stands out. The rows
+  found are shown in the field beside it; turn it off to type first:last
+  (empty: all rows, as before 2026-11-24). `exp.burn(scan, rows=...)`:
+  'mean' (default), None (all) or (first, last).
 
 ### SpecPlot
 - Log x or log y with nothing positive to show on that axis (all values
@@ -104,6 +116,12 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- The guard prefers fits with χ² p ≥ 0.7 (since 2026-11-24; 0.3 before):
+  stricter, so a fringe at a join biases the factor half as much.
+- A join's note: "the best fit of the ladder" means no curve reached the
+  guard's preferred p but the fit is fine; "no adequate fit" means even the
+  best curve fails at p 0.01. The error's inflation factor is given when
+  applied (2026-11-24).
 - A join with only one coinciding point (after a Drop, say) uses that
   point's ratio as the factor, with the ratio's counting error
   (2026-11-24; the errors from the join on were infinite before).
@@ -144,7 +162,9 @@ Each line: feature — where — default — script — notes entry (date).
   options dialog, "Save results..." writes a table; `cut.fit(peaks.FitOptions(...))`
   in scripts; `lss_core/peaks.py`. A fit that does not describe the data says so.
 - Line/Area cuts: directions Q H, Q V, Pix H, Pix V; axes Pixels / Angles
-  / Q; "Sum"; pinhole box (on: S4–detector distance at Det_Th > 1°) —
+  / Q; "Sum"; choosing a direction puts its default range in the box, the
+  pixel cuts' spanning the frames' rows or columns (0:485 and 0:194 on the
+  Pilatus 100K; any detector since 2026-11-24, `cuts.default_range`); pinhole box (on: S4–detector distance at Det_Th > 1°) —
   `exp.cut` — Notes 2026-11-18 "Pinhole is the default". Q cuts with empty
   default ranges are a known gap (F59, docket). A user complained (2026-11-18)
   that cuts in Qz/Qxy and I vs β are not documented: I vs β works today as
@@ -189,6 +209,10 @@ Each line: feature — where — default — script — notes entry (date).
 - GID worksheet (GID menu > Worksheet): every patch parameter, Patch,
   Defaults, Fit (pinhole distance, diagnostic only), join table — Notes
   2026-11-18 "Pinhole-geometry GID built", 2026-11-19 "Joining Qz levels".
+  The last row's default is the frames' last row (486 on the Pilatus 100K)
+  and follows the frames until another row is typed; the columns go up to
+  the frames' columns (195 on the 100K). `exp.gid` without `params` takes
+  the frames' last row too (`GIDParams.for_detector`; 2026-11-24).
 - Worksheet: response "fit" (per column), "beam" (along the beam axis, for a narrow beam;
   shows the beam's centre and FWHM on the sample) or "none"; the 2θ resolution
   (S4 + pixel) is shown with the levels.

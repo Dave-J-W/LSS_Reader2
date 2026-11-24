@@ -55,6 +55,8 @@ reduced-data outputs (`S# *_sumcut.txt`, `temp1.ref`, `temp_ref.txt`).
 
 Constants hard-coded in many places: Pilatus pixel 0.172 mm, Bruker pixel
 0.060 mm, a 32 mm hard-slit offset in `calArea`, GID `vroi=[15,486]`.
+(2026-11-24: the Pilatus pixel is written once, `lss_core.images.PIXEL_MM`,
+and the GID last row follows the frames, `GIDParams.for_detector`.)
 
 Invariants that follow and should become tests:
 

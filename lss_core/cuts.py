@@ -15,14 +15,30 @@ Directions, as the window's list names them:
 The Q cuts turn the range into pixels with the frame's geometry and give
 their x axis in Q; the pixel cuts give it in ``axes`` ('Pixels', 'Angles'
 or 'Q'). As coded, the upper pixel limit is inclusive.
+
+``default_range`` is the range the window offers for each direction: the
+Q cuts '0:1' and '1:2'; the pixel cuts the detector's rows ('Pix H') and
+columns ('Pix V'), as before on the Pilatus 100K: '0:485' (one short of
+the last row, as the window has always had it) and '0:194'.
 """
 from dataclasses import dataclass
 
 import numpy as np
 
+from .images import PIXEL_MM     # noqa: F401  (cuts.PIXEL_MM, as before)
+
 DIRECTIONS = ('Q H', 'Q V', 'Pix H', 'Pix V')    # the window's list, in order
 AXES = ('Pixels', 'Angles', 'Q')
-PIXEL_MM = 0.172
+
+
+def default_range(direction, shape=None):
+    """The window's default range text for ``direction`` (an index into
+    DIRECTIONS or its name) on a detector of ``shape`` (rows, columns;
+    default the Pilatus 100K, lss_core.images.SHAPE_100K)."""
+    from .images import SHAPE_100K
+    rows, cols = SHAPE_100K if shape is None else (int(shape[0]), int(shape[1]))
+    d = DIRECTIONS.index(direction) if isinstance(direction, str) else int(direction)
+    return ('0:1', '1:2', '0:%d' % (rows - 2), '0:%d' % (cols - 1))[d]
 
 
 @dataclass

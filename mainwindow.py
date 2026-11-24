@@ -245,6 +245,9 @@ class MainWindow (QMainWindow):
         self.cutDirItems=['Q H Cut [Qz_min : Qz_max]', 'Q V Cut [Qxy_min : Qxy_max]', 'Pix H Cut [Pix_bottom : Pix_top]', 'Pix V Cut [Pix_left : Pix_right]']
         self.ui.pilCutDirComboBox.clear()
         self.ui.pilCutDirComboBox.addItems(self.cutDirItems)
+        self.ui.pilCutDirComboBox.setToolTip('Choosing a direction puts its default range in the box: Q H 0:1 (Qz), Q V 1:2 (Qxy); '
+                                             'Pix H the rows of the frames read last, Pix V their columns (0:485 and 0:194 on '
+                                             'the Pilatus 100K, 487 rows by 195 columns; lss_core.cuts.default_range).')
         self.plotfiles=[]
         self.twodplotfiles=[]
         self.selected2dplotfiles_rows=[]   # rows selected in the 2D_Plot file list
@@ -270,6 +273,7 @@ class MainWindow (QMainWindow):
         self.initPilMovie()
         self.initRoiPanels()
         self.gidParams=gidmod.GIDParams()     # GID patch settings (worksheet, F61)
+        self.gidRowMaxFollows=True            # the last GID row is the frames' last until another is typed (gidEffectiveParams)
         self.gidJoinLog=[]
         self.gidLevels=[]
         self.gidWorksheet=None
@@ -2272,11 +2276,12 @@ class MainWindow (QMainWindow):
                  'Off (default): the MCA tab\'s Fit lines runs the line fit (lss_core.peaks), and the legacy Fit, Fit All '
                  'and Accept buttons are hidden. On: Fit runs the legacy fit dialog, and those buttons show (owner, '
                  '2026-11-23: one Fit action, the switch picks).'),
-                ('mca_fit_poisson','prefMcaFitPoissonCheckBox','Fit lines: Poisson weights (F90 P1)',
-                 'Off (default): Fit lines fits each spectrum\'s line heights by least squares weighted by its error '
-                 'bars, as always; that reads weak lines low (synthetic, COMPARISONS C42: areas at 90 counts 21 % '
-                 'low). On: by Poisson maximum likelihood, the model weighting the points (synthetic: 3.6 % high at '
-                 '90 counts, 0.6 % at 270). An option until the owner\'s study (tools session, 2026-11-24).'),
+                ('mca_fit_data_weights','prefMcaFitDataWeightsCheckBox','Fit lines: data weights (legacy)',
+                 'Off (default since 2026-11-24): Fit lines fits each spectrum\'s line heights by Poisson maximum '
+                 'likelihood, the model weighting the points (F90 P1; synthetic, study B: unbiased from about 60 '
+                 'counts, within 0.2 % of the old weighting at 10^4). On: least squares weighted by each spectrum\'s '
+                 'error bars, as before; that reads a weak line low by about 19 counts (-23 % at 100 counts, -5 % '
+                 'at 400; docs/reports/mca_fit_demo.md).'),
                 ('burn_legacy_tab','prefBurnLegacyCheckBox','Burn test: show the Legacy tab',
                  'Off (default): the burn dialog shows its Trends tab only. On: also its Legacy tab, the original plots '
                  '(owner, 2026-11-23, Q-BURN-4). The REF button and the GID list still open it.')):
@@ -2504,10 +2509,10 @@ class MainWindow (QMainWindow):
 
     def mcaFitPoisson(self):
         """True when "Fit lines" fits each spectrum by Poisson maximum
-        likelihood (F90 P1; preference 'mca_fit_poisson', off by default: the
-        owner wants the study first, 2026-11-24). Off: least squares weighted
-        by the data's σ, as always."""
-        return bool(self.prefs.get('mca_fit_poisson',False))
+        likelihood (F90 P1): the default since 2026-11-24 (rule 12; study B,
+        C47). The legacy switch 'mca_fit_data_weights' (Reduction options)
+        gives least squares weighted by the data's σ, as before."""
+        return not bool(self.prefs.get('mca_fit_data_weights',False))
 
     def gisaxsRawCounts(self):
         """True when GISAXS keeps the raw counts it showed until 2026-11-23
@@ -3957,22 +3962,22 @@ class MainWindow (QMainWindow):
         if axes=='Angles':
             xlabel=r'$2\theta$'+' '+r'$[\deg]$'
             ylabel=r'$\beta$'+' '+r'$[\deg]$'
-            pilYMin=((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
-            pilYMax=((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
+            pilYMin=((pilYMin-self.ycenter)*self.pilatus.pix_size/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
+            pilYMax=((pilYMax-self.ycenter)*self.pilatus.pix_size/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))*180/np.pi
             if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
                 self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
-            pilXMin=(self.dth+(pilXMin-self.xcenter)*0.172/self.distance)*180.0/np.pi
-            pilXMax=(self.dth+(pilXMax-self.xcenter)*0.172/self.distance)*180.0/np.pi
+            pilXMin=(self.dth+(pilXMin-self.xcenter)*self.pilatus.pix_size/self.distance)*180.0/np.pi
+            pilXMax=(self.dth+(pilXMax-self.xcenter)*self.pilatus.pix_size/self.distance)*180.0/np.pi
             pilXCen=self.dth*180.0/np.pi
         elif axes=='Q':
             xlabel=r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$'
             ylabel=r'$Q_z$'+' '+r'$[\AA^{-1}]$'
-            pilYMin=2.0*np.pi*(np.sin((pilYMin-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
-            pilYMax=2.0*np.pi*(np.sin((pilYMax-self.ycenter)*0.172/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
+            pilYMin=2.0*np.pi*(np.sin((pilYMin-self.ycenter)*self.pilatus.pix_size/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
+            pilYMax=2.0*np.pi*(np.sin((pilYMax-self.ycenter)*self.pilatus.pix_size/self.distance+np.arcsin(2*np.sin(self.alpha)-np.sin(self.truealpha)))+np.sin(self.truealpha))/self.wavelength
             if self.ui.pilPinholeCheckBox.checkState()!=0:   # pinhole frames (Det_Th > 1 deg, IDL): S4-detector distance
                 self.distance=np.where(np.degrees(self.dth)>1.0,np.array(self.pilSelected_PDist,dtype=float),self.distance)
-            pilXMin=4.0*np.pi*np.sin((self.dth+(pilXMin-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
-            pilXMax=4.0*np.pi*np.sin((self.dth+(pilXMax-self.xcenter)*0.172/self.distance)/2.0)/self.wavelength
+            pilXMin=4.0*np.pi*np.sin((self.dth+(pilXMin-self.xcenter)*self.pilatus.pix_size/self.distance)/2.0)/self.wavelength
+            pilXMax=4.0*np.pi*np.sin((self.dth+(pilXMax-self.xcenter)*self.pilatus.pix_size/self.distance)/2.0)/self.wavelength
             pilXCen=4.0*np.pi*np.sin(self.dth/2.0)/self.wavelength
         one=np.ones(n)
         return (pilXMin*one,pilXMax*one,pilYMin*one,pilYMax*one,pilXCen*one,xlabel,ylabel)
@@ -5050,7 +5055,7 @@ class MainWindow (QMainWindow):
 
     def burnOptions(self):
         o=dict(models=list(trendmod.MODELS),estimator='template',time='clock',threshold=5.0,auto_peak=True,position_limit=False,
-               errors='auto')
+               errors='auto',rows_auto=True)
         o.update({k:v for k,v in (self.prefs.get('burn') or {}).items() if k in o})
         return o
 
@@ -5059,7 +5064,7 @@ class MainWindow (QMainWindow):
         time with constant, linear, exponential and double-exponential fits
         compared by AICc; the legacy plot moves to its own tab."""
         from PyQt5.QtWidgets import (QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QCheckBox, QComboBox,
-                                     QDoubleSpinBox, QPushButton, QLabel)
+                                     QDoubleSpinBox, QPushButton, QLabel, QLineEdit)
         u=self.uipdburn
         o=self.burnOptions()
         tabs=QTabWidget(u)
@@ -5137,6 +5142,25 @@ class MainWindow (QMainWindow):
         auto.setToolTip('GID: the strongest peak of the mean of the frames, 3 FWHM either side, inside the lit '
                         'columns. Off: the Qxy range typed below.')
         auto.toggled.connect(self.burnOptionsChanged)
+        rauto=QCheckBox('Rows from frame',page)
+        rauto.setObjectName('burnRowsAutoCheckBox')
+        rauto.setChecked(bool(o['rows_auto']))
+        rauto.setToolTip('GID: the detector rows summed are those where the mean of the frames has its signal (owner, '
+                         '2026-11-23, Q-BURN-6): the strongest peak\'s columns, then the run of rows where their '
+                         'profile stays above 10 % of its maximum, 2 rows either side (lss_core.burn.signal_rows); '
+                         'all rows when no peak stands out. On NX scans 14 and 15: rows 46-486 (the shadow below '
+                         'the horizon left out). Off: the rows typed beside it; empty, all rows (as before '
+                         '2026-11-24).')
+        rauto.toggled.connect(self.burnOptionsChanged)
+        rowsEdit=QLineEdit(page)
+        rowsEdit.setObjectName('burnRowsLineEdit')
+        rowsEdit.setPlaceholderText('all rows')
+        rowsEdit.setFixedWidth(rowsEdit.fontMetrics().horizontalAdvance('0000:0000')+16)   # room for first:last
+        rowsEdit.setEnabled(not rauto.isChecked())
+        rowsEdit.setToolTip('GID: the detector rows summed, first:last (both included). With "Rows from frame" on, '
+                            'the rows found are shown here after Analyse; off, type them and press Enter. Empty: all '
+                            'rows.')
+        rowsEdit.returnPressed.connect(self.burnTrends)
         run=QPushButton('Analyse',page)
         run.setObjectName('burnAnalysePushButton')
         run.setToolTip('Measure every selected frame and fit the trends again.')
@@ -5147,7 +5171,7 @@ class MainWindow (QMainWindow):
                         'parameters; the change time) into this SPEC file\'s workbook (Data and Trends sheets).')
         save.clicked.connect(self.saveBurnToWorkbook)
         for w in (QLabel('Estimator',page),est,QLabel('Errors',page),err,QLabel('Time',page),tim,QLabel('Change',page),
-                  thr,poslim,auto,run,save):
+                  thr,poslim,auto,rauto,rowsEdit,run,save):
             row.addWidget(w)
         row.addStretch(1)
         lay.addLayout(row)
@@ -5171,6 +5195,7 @@ class MainWindow (QMainWindow):
         u.burnTabWidget,u.burnEstimatorComboBox,u.burnTimeComboBox,u.burnErrorsComboBox=tabs,est,tim,err
         u.burnThresholdSpinBox,u.burnAutoPeakCheckBox,u.burnAnalysePushButton=thr,auto,run
         u.burnPositionLimitCheckBox=poslim
+        u.burnRowsAutoCheckBox,u.burnRowsLineEdit=rauto,rowsEdit
         u.burnSavePushButton,u.burnTrendPlotWidget,u.burnResultLabel=save,canvas,res
         self.burnResult=None
 
@@ -5180,7 +5205,9 @@ class MainWindow (QMainWindow):
                estimator=str(u.burnEstimatorComboBox.currentText()),time=str(u.burnTimeComboBox.currentText()),
                errors=str(u.burnErrorsComboBox.currentText()),
                threshold=float(u.burnThresholdSpinBox.value()),auto_peak=bool(u.burnAutoPeakCheckBox.isChecked()),
-               position_limit=bool(u.burnPositionLimitCheckBox.isChecked()))
+               position_limit=bool(u.burnPositionLimitCheckBox.isChecked()),
+               rows_auto=bool(u.burnRowsAutoCheckBox.isChecked()))
+        u.burnRowsLineEdit.setEnabled(not o['rows_auto'])
         self.setPreference('burn',o)
         self.burnTrends()
 
@@ -5209,6 +5236,12 @@ class MainWindow (QMainWindow):
         if not o['auto_peak']:
             lo,hi=(float(v) for v in str(u.rangeLineEdit.text()).split(':'))
             kw['qxy_range']=(lo,hi)
+        if not o['rows_auto']:                     # Q-BURN-6: typed rows, or all of them; the default is 'mean'
+            t=str(u.burnRowsLineEdit.text()).strip()
+            v=[int(float(x)) for x in t.split(':')] if t else None
+            if v is not None and len(v)!=2:
+                raise ValueError('rows are typed first:last')
+            kw['rows']=(min(v),max(v)) if v else None
         kw['slit']=tuple(int(v) for v in str(self.ui.refSlitLineEdit.text()).split(','))
         kw['bg_offset']=float(self.ui.refBGOffLineEdit.text())
         kw['direction']=str(self.ui.refBGDirComboBox.currentText())
@@ -5246,6 +5279,8 @@ class MainWindow (QMainWindow):
             return
         self.burnResult=res
         self.plotBurnTrends(res)
+        if 'rows' not in kw and res.rows is not None:      # the rows found in the mean frame (Q-BURN-6)
+            u.burnRowsLineEdit.setText('%d:%d' % tuple(res.rows))
         u.Label.setText('Burn test for Scan #%d' % scan)
         u.burnResultLabel.setText(self.burnShortText(res))
         u.burnResultLabel.setToolTip(self.burnLongText(res))
@@ -5354,9 +5389,9 @@ class MainWindow (QMainWindow):
                 ceny=self.pilY[i]
                 cenx,ceny=self.pilatus.peakLocate(self.pilData[i],self.pilErrorData[i],cen=[cenx,ceny],mon=self.pilMonc[i])
                 if self.dir=='H':
-                    self.bg=bg*self.pil_Dist[i]*np.pi/180/0.172/slitx
+                    self.bg=bg*self.pil_Dist[i]*np.pi/180/self.pilatus.pix_size/slitx
                 else:
-                    self.bg=bg*self.pil_Dist[i]*np.pi/180/0.172/slity
+                    self.bg=bg*self.pil_Dist[i]*np.pi/180/self.pilatus.pix_size/slity
                 self.pilatus.sumROI(slit=self.slit,cen=[cenx,ceny],dir=self.dir,bg=self.bg)
                 net,neterr=self.pilatus.netROI()
                 data.append([ctime*i,net,neterr])
@@ -5395,8 +5430,8 @@ class MainWindow (QMainWindow):
                     ini=float(self.uipdburn.rangeLineEdit.text().split(':')[0]) #get the  ini qz value from lineedit
                     fin=float(self.uipdburn.rangeLineEdit.text().split(':')[1]) #get the final qz value from lineedit
                     cen=self.pilatus.NCOLS-self.pilSelectedX[0]-1
-                    ini=max(int((2.0*np.arcsin(ini*self.pilSelected_Wavelength[0]/4.0/np.pi)-self.pilSelected_Dth[0])*self.pilSelected_PDist[0]/0.172)+cen,0) # conver it to pixel and check with the boundary
-                    fin=min(int((2.0*np.arcsin(fin*self.pilSelected_Wavelength[0]/4.0/np.pi)-self.pilSelected_Dth[0])*self.pilSelected_PDist[0]/0.172)+cen,self.pilatus.NCOLS-1)
+                    ini=max(int((2.0*np.arcsin(ini*self.pilSelected_Wavelength[0]/4.0/np.pi)-self.pilSelected_Dth[0])*self.pilSelected_PDist[0]/self.pilatus.pix_size)+cen,0) # conver it to pixel and check with the boundary
+                    fin=min(int((2.0*np.arcsin(fin*self.pilSelected_Wavelength[0]/4.0/np.pi)-self.pilSelected_Dth[0])*self.pilSelected_PDist[0]/self.pilatus.pix_size)+cen,self.pilatus.NCOLS-1)
                     row=np.arange(self.pilatus.NROWS)
                     col=np.arange(ini,fin+1)
                     col,row=np.meshgrid(col,row)
@@ -5432,15 +5467,15 @@ class MainWindow (QMainWindow):
                     print(y)
                     if self.uipdburn.gidComboBox.currentText()=='Location':
                         self.uipdburn.plotWidget.canvas.ax.set_ylabel('Relative Location '+r'$[\AA^{-1}]$')
-                        y=4.0*np.pi*np.sin((self.pilSelected_Dth[0]+(data[:,1]-cen)*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]
-                        yerr=4.0*np.pi*np.cos((self.pilSelected_Dth[0]+(data[:,1]-cen)*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]*data[:,2]*0.172/2/self.pilSelected_PDist[0]
+                        y=4.0*np.pi*np.sin((self.pilSelected_Dth[0]+(data[:,1]-cen)*self.pilatus.pix_size/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]
+                        yerr=4.0*np.pi*np.cos((self.pilSelected_Dth[0]+(data[:,1]-cen)*self.pilatus.pix_size/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]*data[:,2]*self.pilatus.pix_size/2/self.pilSelected_PDist[0]
                         y=y-y[0]
                     if self.uipdburn.gidComboBox.currentText()=='Width':
                         self.uipdburn.plotWidget.canvas.ax.set_ylabel('FWHM '+r'$[\AA^{-1}]$')
                         y=np.sqrt(y)
                         yerr=0.5/y*yerr
-                        y=4.0*np.pi*np.sin((y*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]
-                        yerr=4.0*np.pi*np.cos((data[:,1]*0.172/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]*data[:,2]*0.172/2/self.pilSelected_PDist[0]
+                        y=4.0*np.pi*np.sin((y*self.pilatus.pix_size/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]
+                        yerr=4.0*np.pi*np.cos((data[:,1]*self.pilatus.pix_size/self.pilSelected_PDist[0])/2.0)/self.pilSelected_Wavelength[0]*data[:,2]*self.pilatus.pix_size/2/self.pilSelected_PDist[0]
                     self.uipdburn.plotWidget.canvas.ax.errorbar(x,y,yerr,fmt='o-')
                     if self.uipdburn.gidComboBox.currentText()=='Intensity':
                         self.uipdburn.plotWidget.canvas.ax.set_ylabel('Intensity')
@@ -5509,10 +5544,10 @@ class MainWindow (QMainWindow):
             ax = self.ui.pilMplWidget.canvas.fig.add_subplot(1, 1, 1)
             ax.set_xlabel(xlabel, fontsize=16)
             ax.set_ylabel(ylabel, fontsize=16)
-            pilY_deg = np.arctan(-(self.ycenter[0] - pilY) * 0.172 / self.distance[0]) + np.arcsin(2 * np.sin(self.alpha[0]) - np.sin(self.truealpha[0]))  # beta in rad
+            pilY_deg = np.arctan(-(self.ycenter[0] - pilY) * self.pilatus.pix_size / self.distance[0]) + np.arcsin(2 * np.sin(self.alpha[0]) - np.sin(self.truealpha[0]))  # beta in rad
             if self.ui.pilPinholeCheckBox.checkState()!= 0:
                 self.distance = np.array(self.pilSelected_PDist)  # distance between S4 & S5 for pinhole setup
-            pilX_deg = self.dth[0] + np.arctan(-(self.xcenter[0] - pilX) * 0.172 / self.distance[0])  # dth in rad
+            pilX_deg = self.dth[0] + np.arctan(-(self.xcenter[0] - pilX) * self.pilatus.pix_size / self.distance[0])  # dth in rad
             pilX_deg, pilY_deg = np.meshgrid(pilX_deg, pilY_deg)  # mesh x-y corrdinates
             self.pilXbin = 2.0 * np.pi / self.wavelength[0] * np.sqrt(np.cos(self.truealpha[0]) ** 2 + np.cos(pilY_deg) ** 2 - 2 * np.cos(self.truealpha[0]) * np.cos(pilY_deg) * np.cos(pilX_deg))
             self.pilYbin = 2.0 * np.pi / self.wavelength[0] * (np.sin(self.truealpha[0]) + np.sin(pilY_deg))
@@ -5615,6 +5650,7 @@ class MainWindow (QMainWindow):
     def showGIDWorksheet(self):
         if self.gidWorksheet is None:
             self.gidWorksheet=self.buildGIDWorksheet()
+        self.gidWorksheetLimits()
         self.gidWorksheetResults()
         self.gidWorksheet.show()
         self.gidWorksheet.raise_()
@@ -5642,13 +5678,17 @@ class MainWindow (QMainWindow):
             w.setValue(val)
             w.setToolTip(tip)
             return w
-        cols=spin('gidColumnsSpinBox',1,195,int(float(self.ui.pilHSlitLineEdit.text() or 3)),
+        nrows,ncols=self.pilShape()
+        cols=spin('gidColumnsSpinBox',1,ncols,int(float(self.ui.pilHSlitLineEdit.text() or 3)),
                   'Pixels summed across each frame, centred on the direct-beam column; the sum is one profile placed at '
                   'the frame\'s detector angle (the H slit field of the GID tab). More columns: more counts, coarser 2theta '
-                  'resolution (the pinhole correction, F45, is to lift that limit).')
+                  'resolution (the pinhole correction, F45, is to lift that limit). At most the frames\' columns '
+                  '(195 on the Pilatus 100K).')
         rows=QHBoxLayout()
         rmin=spin('gidRowMinSpinBox',0,4000,gp.row_min,'First detector row used (beta range). Default 15.')
-        rmax=spin('gidRowMaxSpinBox',0,4000,gp.row_max,'Last detector row used (beta range). Default 486.')
+        rmax=spin('gidRowMaxSpinBox',0,4000,self.gidEffectiveParams().row_max,
+                  'Last detector row used (beta range), included. Default: the frames\' last row (486 on the Pilatus '
+                  '100K, rows 0-486), and it follows the frames until another row is typed.')
         rows.addWidget(rmin)
         rows.addWidget(rmax)
         qzd=spin('gidQzDecimalsSpinBox',1,6,gp.qz_decimals,'Frames are grouped into Qz levels by their Qz rounded to this many '
@@ -5820,7 +5860,7 @@ class MainWindow (QMainWindow):
         again.setToolTip('Patch the selected frames again with these settings')
         reset=QPushButton('Defaults',d)
         reset.setObjectName('gidDefaultsPushButton')
-        reset.setToolTip('Back to the values the program always used')
+        reset.setToolTip('Back to the values the program always used; the last row the frames\' last (486 on the Pilatus 100K)')
         close=QPushButton('Close',d)
         close.setObjectName('gidClosePushButton')
         buttons.addWidget(live)
@@ -5832,7 +5872,9 @@ class MainWindow (QMainWindow):
 
         def apply(*_):
             self.ui.pilHSlitLineEdit.setText(str(cols.value()))
-            self.gidParams=gidmod.GIDParams(columns=cols.value(),row_min=rmin.value(),row_max=rmax.value(),
+            self.gidRowMaxFollows=rmax.value()==self.pilShape()[0]-1      # the frames' last row: keep following them
+            self.gidParams=gidmod.GIDParams(columns=cols.value(),row_min=rmin.value(),
+                                            row_max=gidmod.ROW_MAX_100K if self.gidRowMaxFollows else rmax.value(),
                                             qz_decimals=qzd.value(),dth_decimals=dthd.value(),
                                             area_correction=area.isChecked(),hard_slit_offset_mm=hard.value(),
                                             polarisation=pol.isChecked(),vjoin_kind=kind.currentText(),
@@ -5855,7 +5897,7 @@ class MainWindow (QMainWindow):
             cols.setEnabled(not pin.isChecked())
 
         def defaults():
-            dflt=gidmod.GIDParams()
+            dflt=gidmod.GIDParams.for_detector(self.pilShape())     # the last row: the frames' (486 on the Pilatus 100K)
             for w,v in ((cols,dflt.columns),(rmin,dflt.row_min),(rmax,dflt.row_max),(qzd,dflt.qz_decimals),
                         (dthd,dflt.dth_decimals),(hard,dflt.hard_slit_offset_mm)):
                 w.setValue(v)
@@ -6071,7 +6113,7 @@ class MainWindow (QMainWindow):
         self.pilPatchData=patch
         try:
             self.gidFinishMap()
-        except (IndexError,gidmod.GIDError) as e:      # GIDError: Main's guard in gid.products (planned 2026-11-24)
+        except (IndexError,gidmod.GIDError) as e:   # gid.products refuses an empty Q grid with a GIDError (2026-11-24)
             # frames that are not a GID series can give a map whose rows share no Qxy range: its Q grid
             # is empty and gid.products fails (the crash sweep, 2026-11-24). Refused, with the reason.
             self.log.info('GID map not drawn: %s',e,exc_info=True)
@@ -6092,13 +6134,33 @@ class MainWindow (QMainWindow):
 
     def gidEffectiveParams(self):
         """The worksheet's settings with the H slit field as the column count
-        (the field can be typed without the worksheet)."""
+        (the field can be typed without the worksheet), and the frames' last
+        row as the last row while it is left at its default (486 on the
+        Pilatus 100K, so there no change)."""
         import dataclasses
         try:
             cols=float(self.ui.pilHSlitLineEdit.text())
         except ValueError:
             cols=self.gidParams.columns
-        return dataclasses.replace(self.gidParams,columns=int(cols) if cols==int(cols) else cols)
+        gp=dataclasses.replace(self.gidParams,columns=int(cols) if cols==int(cols) else cols)
+        if getattr(self,'gidRowMaxFollows',True) and gp.row_max==gidmod.ROW_MAX_100K:
+            gp=dataclasses.replace(gp,row_max=self.pilShape()[0]-1)
+        return gp
+
+    def gidWorksheetLimits(self):
+        """The worksheet's detector limits from the frames read last: the
+        columns at most theirs, the last row theirs while it follows them."""
+        d=self.gidWorksheet
+        if d is None:
+            return
+        nrows,ncols=self.pilShape()
+        for w,v in ((d.gidColumnsSpinBox,None),(d.gidRowMaxSpinBox,self.gidEffectiveParams().row_max)):
+            w.blockSignals(True)        # no live patch for a limit
+            if v is None:
+                w.setMaximum(ncols)
+            else:
+                w.setValue(v)
+            w.blockSignals(False)
 
     def gidFrames(self):
         """lss_core.gid.GIDFrame for each selected frame, in selection order."""
@@ -6343,6 +6405,17 @@ class MainWindow (QMainWindow):
         gidmod.save(self.saveFileName,self.gidProducts(axes))
         self.scriptLine(self.gidScript(self.saveFileName,axes))
 
+    def gidScriptSettings(self):
+        """The patch's settings and the names a script must give: those that
+        differ from GIDParams()'s, or the last row alone when only it differs
+        from what exp.gid takes without params (the frames' last row: the
+        100K's 486 typed on a larger detector)."""
+        gp=self.gidEffectiveParams()
+        changed=gp.changed()
+        if not changed and gp!=gidmod.GIDParams.for_detector(self.pilShape()):
+            changed=['row_max']
+        return gp,changed
+
     def gidScript(self,name,axes):
         """The lss_core call that reproduces the GID map just saved."""
         if len(self.ui.backgroundListWidget.selectedItems())>0:
@@ -6355,8 +6428,7 @@ class MainWindow (QMainWindow):
             if chosen!=listed:
                 points[n]=chosen
         kw=['axes=%r' % axes]
-        gp=self.gidEffectiveParams()
-        changed=gp.changed()
+        gp,changed=self.gidScriptSettings()
         head=''
         if changed:
             head='from lss_core.gid import GIDParams\n'
@@ -6428,8 +6500,8 @@ class MainWindow (QMainWindow):
         #sortedFrameNums=np.array(self.selectedPilFramesNums)[np.argsort(np.array(self.pil_Dth))]
         j=0   #for xcenter and ycenter, which are already defined in self.selectedPilFramesNums
         for i in self.selectedPilFramesNums:
-            self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absfac=self.absfac,absnum=[self.pil_AbsNum[i]],cen=[self.pilX[i],self.pilY[i]], hroi=[self.pilxleft[j]-1, self.pilxright[j]-1], vroi=[5,486], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]], gain=self.pilGains([self.pilScanNum[i]]))
-            #ang=((self.pilatus.hintData[:,0]-self.ycenter[j])*0.172/self.distance[0]+np.arcsin(2.0*np.sin(self.pilAlpha[i])-np.sin(self.pilTrueAlpha[i])))*180/np.pi #convert pixle to beta
+            self.pilatus.plotHint({i:self.pilData[i]},{i:self.pilErrorData[i]},absfac=self.absfac,absnum=[self.pil_AbsNum[i]],cen=[self.pilX[i],self.pilY[i]], hroi=[self.pilxleft[j]-1, self.pilxright[j]-1], vroi=[5,self.pilShape()[0]-1], ax_type='Angles', wavelength=[self.pil_Wavelength[i]],s2d_dist=[self.pil_Dist[i]], sh=[self.pil_Sh[i]],alpha=self.pilAlpha[i], truealpha=self.pilTrueAlpha[i], mon=[self.pilMonc[i]], gain=self.pilGains([self.pilScanNum[i]]))
+            #ang=((self.pilatus.hintData[:,0]-self.ycenter[j])*self.pilatus.pix_size/self.distance[0]+np.arcsin(2.0*np.sin(self.pilAlpha[i])-np.sin(self.pilTrueAlpha[i])))*180/np.pi #convert pixle to beta
             #print self.pilatus.hintData[0][0]             
             j=j+1
             ckey=float(format(self.pil_Dth[i]*180/np.pi,'.2f'))
@@ -6477,7 +6549,7 @@ class MainWindow (QMainWindow):
         vmax=np.max(self.pilhintData)
 
 #            if str(self.ui.pilAxesComboBox.currentText())=='Angles':
-#                self.pilYAxs=((self.pilYAxs-self.ycenter[0])*0.172/self.distance[0]+self.alpha[0])*180/np.pi
+#                self.pilYAxs=((self.pilYAxs-self.ycenter[0])*self.pilatus.pix_size/self.distance[0]+self.alpha[0])*180/np.pi
 #                self.pil_ylabel= 'Theta [Degrees]'
         if str(self.ui.pilAxesComboBox.currentText())=='Q':
             self.pilYAxs==2.0*np.pi*(np.sin(self.pilYAxs*np.pi/180.0)+np.sin(self.pilTrueAlpha[0]))/self.wavelength[0] #this coversion is approximation. 
@@ -6639,9 +6711,9 @@ class MainWindow (QMainWindow):
             self.selData={}
             self.selErrorData={}
             if self.dir=='H':
-                self.bg=self.bg*self.pil_Dist[self.selFrameNums[0]]*np.pi/180/0.172/slitx
+                self.bg=self.bg*self.pil_Dist[self.selFrameNums[0]]*np.pi/180/self.pilatus.pix_size/slitx
             else:
-                self.bg=self.bg*self.pil_Dist[self.selFrameNums[0]]*np.pi/180/0.172/slity         
+                self.bg=self.bg*self.pil_Dist[self.selFrameNums[0]]*np.pi/180/self.pilatus.pix_size/slity         
             for i in self.selFrameNums:
                 self.selData[i]=self.pilData[i]
                 self.selErrorData[i]=self.pilErrorData[i]
@@ -7807,15 +7879,16 @@ class MainWindow (QMainWindow):
                 return
 
 
+    def pilShape(self):
+        """(rows, columns) of the Pilatus frames read last; the Pilatus 100K's
+        before any (lss_core.images.SHAPE_100K: 487, 195)."""
+        from lss_core.images import SHAPE_100K
+        return (getattr(self.pilatus,'NROWS',SHAPE_100K[0]),getattr(self.pilatus,'NCOLS',SHAPE_100K[1]))
+
     def updatePilCutRange(self):
-        if self.ui.pilCutDirComboBox.currentIndex()==0:
-            self.ui.pilIntRangeLineEdit.setText('0:1')
-        elif self.ui.pilCutDirComboBox.currentIndex()==1:
-            self.ui.pilIntRangeLineEdit.setText('1:2')
-        elif self.ui.pilCutDirComboBox.currentIndex()==2:
-            self.ui.pilIntRangeLineEdit.setText('0:485')
-        elif self.ui.pilCutDirComboBox.currentIndex() ==3:
-            self.ui.pilIntRangeLineEdit.setText('0:194')
+        d=self.ui.pilCutDirComboBox.currentIndex()
+        if 0<=d<len(cuts.DIRECTIONS):     # the pixel cuts span the detector's rows or columns (lss_core.cuts.default_range)
+            self.ui.pilIntRangeLineEdit.setText(cuts.default_range(d,self.pilShape()))
 
     def updatePilCutData(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
@@ -8023,8 +8096,9 @@ class MainWindow (QMainWindow):
         fl.setObjectName('mcaFitLinesPushButton')
         fl.setToolTip('Fit the fluorescence line(s) of all selected spectra (F22a, owner\'s rule): the sum of the spectra '
                       'is fitted within the range in the Sum All field for the lines\' positions and widths; then every '
-                      'spectrum is fitted with those fixed, heights and background only, weighted by its errors '
-                      '(Poisson maximum likelihood with the preference mca_fit_poisson, F90 P1) (a Gaussian on a quadratic '
+                      'spectrum is fitted with those fixed, heights and background only, by Poisson maximum likelihood '
+                      '(F90 P1, the default since 2026-11-24; the legacy switch "data weights" of the Reduction options '
+                      'weights by its error bars instead) (a Gaussian on a quadratic '
                       'background by default, for the Rayleigh spill-over). The intensity of the line asked for (the first '
                       'energy given in Fit options, the element\'s; the strongest when none is given), as its '
                       'area over the channel width (the same units as Sum All, background removed), goes to the '
@@ -9095,6 +9169,7 @@ class MainWindow (QMainWindow):
         self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background%s' % (
             listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background,
             ''.join(t for t,on in ((', Poisson weights',self.mcaFitPoisson()),
+                                   (', data weights (legacy)',not self.mcaFitPoisson()),
                                    (', width from the detector',lopt['detector_width'] and bool(self.mcaFitOptions.centres)),
                                    (', Si escapes stripped',lopt['strip_escape'])) if on))
         self.notify('Fit lines: sum of %d spectra: %s. Intensities of the line at %.4g (area / channel width) in the '

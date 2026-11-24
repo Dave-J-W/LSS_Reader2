@@ -13,10 +13,11 @@ sys.path.insert(0, os.path.join(HERE, 'tools'))
 import synthetic_dataset  # noqa: E402
 
 
-@pytest.mark.parametrize('kind', ['xrr', 'xfntr', 'burn'])
+@pytest.mark.parametrize('kind', ['xrr', 'xfntr', 'burn', 'mca'])
 def test_each_kind_is_read_back(tmp_path, kind, capsys):
     out = str(tmp_path / kind)
-    extra = ['--counts', '0.1', '--fault', 'slits', '--truth', 'water'] if kind == 'xrr' else []
+    extra = {'xrr': ['--counts', '0.1', '--fault', 'slits', '--truth', 'water'],
+             'mca': ['--beam', '12', '--spectra', '3']}.get(kind, [])
     assert synthetic_dataset.main(['--out', out, '--kind', kind] + extra) == 0
     last = capsys.readouterr().out.strip().splitlines()[-1]
     assert last.startswith('SPEC ')
@@ -35,6 +36,14 @@ def test_each_kind_is_read_back(tmp_path, kind, capsys):
         assert os.path.exists(os.path.join(out, 'truth.csv'))
     if kind == 'xfntr':
         assert len(e.scans) == 18
+    if kind == 'mca':                    # study B's hard case at 12 keV: the box holds the line and a little scatter
+        assert (len(e.scans), info['beam_keV'], info['element']) == (3, 12.0, 'Zn')
+        lo, hi = info['box_keV']
+        rows = e.fluorescence(sorted(e.scans), window=(lo, hi)).rows
+        assert len(rows) == 3
+        mean = sum(r[3] for r in rows) / 3 * 1e6          # counts (monitor 1e6, live = real)
+        assert mean == pytest.approx(info['expected_counts_in_box'], rel=0.1)
+        assert 0.6 < info['true_line_counts_in_box'] / info['expected_counts_in_box'] < 0.8
 
 
 def test_the_fault_changes_only_the_monitor(tmp_path):

@@ -269,6 +269,9 @@ TOOLS = (
          variations=(
              V('Smoke run', 'The same figures from a few replicates (seconds instead of minutes).',
                'docs/reports/patch_demo.md#python tests/tools/patch_demo.py --save DIR', save=OUT, quick=True),
+             V('At today\'s guard (p 0.7)', 'The report\'s figures with the joint fit\'s guard at the reader\'s '
+               'default since 2026-11-24 (p 0.7, study A) instead of the report\'s p 0.3: pull SDs within 0.05.',
+               'docs/reports/patch_demo.md#Run at the joint fit\'s guard p 0.3', save=OUT, guard_p=0.7),
              V('The two default views', 'Only the window\'s two default views as PNG.',
                'docs/reports/patch_demo.md#python tests/tools/patch_demo.py --views', save='', views=OUT),
              V('Views: DPPC and a fading burn', 'The window\'s two views for a DPPC monolayer and a fading burn.',
@@ -655,6 +658,12 @@ TOOLS = (
                'docs/SYNTHETIC_DATA.md#| `gid_levels` |', kind='xfntr'),
              V('Burn series', 'One spot measured 21 times, the peak decaying with τ = 400 s.',
                'docs/SYNTHETIC_DATA.md#| `pilatus_image`, `write_pilatus_tif`', kind='burn'),
+             V('MCA: the hard case (Zn under 10 keV)', 'Study B\'s hard case as ten MCA spectra: select them all, '
+               'Fit lines, and compare with the true line counts in truth.json (the O 1s wing defeats every fit).',
+               'docs/reports/mca_fit_demo.md#**In the reader itself.**', kind='mca'),
+             V('MCA: Zn under a 12 keV beam', 'The beam-energy route: the scatter has moved away, and Fit lines with '
+               'Poisson weights (Preferences) finds the line within 1 %.', 'docs/reports/mca_fit_demo.md#4.4 The beam-energy route',
+               kind='mca', beam='12'),
          ),
          repo_ok=False),
 
@@ -665,7 +674,7 @@ TOOLS = (
          'Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), '
          'judged by hand-off 08\'s pull rule and a 1 % bias rule.',
          committed=('docs/comparisons_data/mca_fit_gauntlet',),
-         docs=('docs/FEATURE_REQUESTS.md#| F90 |', 'docs/comparisons_data/mca_fit_gauntlet/summary.md',
+         docs=('docs/FEATURE_REQUESTS.md#| F90 |', 'docs/reports/mca_fit_demo.md', 'docs/comparisons_data/mca_fit_gauntlet/summary.md',
                'docs/COMPARISONS.md#| C42 |', 'docs/SYNTHETIC_DATA.md#**MCA spectra with', 'docs/physics_notes.md#2026-11-23 — F90,'),
          defaults={'--out': OUT, '--design': 'core', '--replicates': '50'},
          variations=(
@@ -699,14 +708,44 @@ TOOLS = (
          committed_with={'--design': 'all', '--replicates': '200'},
          repo_out='docs/comparisons_data/mca_fit_gauntlet', repo_ok=False, seconds=None),
 
+    Tool('mca_fit_demo', 'MCA fit demo: the beam-energy story (F90)', 'fluo', 'figures',
+         'tests/tools/mca_fit_demo.py',
+         'The same Zn spectrum under 10, 11 and 12 keV beams: its parts stacked, the box, one drawn spectrum with '
+         'P1\'s fit, and P1\'s bias over 200 series on each panel (the window sum\'s beside it). The wrap-up of '
+         'the synthetic MCA project (paused 2026-11-24).',
+         committed=('docs/figures/mca_fit_demo',),
+         docs=('docs/reports/mca_fit_demo.md', 'docs/studies/mca_fit/summary.md', 'docs/COMPARISONS.md#| C47 |'),
+         defaults={'--out': OUT},
+         variations=(
+             V('Beams 10, 12 and 14 keV', 'The scatter moves up with the beam and Zn Kα stays put: from failing at '
+               '10 keV to within 1 % at 12 keV and above.', 'docs/reports/mca_fit_demo.md#4.4 The beam-energy route', beams='10,12,14'),
+             V('Half of water\'s O 1s wing', 'A smaller wing than the shell model\'s: still out of reach at 10 keV, '
+               'the same at 12 keV.', 'docs/reports/mca_fit_demo.md#4.3 Why Zn at 10 keV is out of reach', wing='0.5'),
+             V('No O 1s wing', 'The wing taken away: what is left at 10 keV is the escape peak and the shelves.',
+               'docs/reports/mca_fit_demo.md#4.3 Why Zn at 10 keV is out of reach', wing='0'),
+             V('Escapes three times Reed\'s', 'At 11 keV the Compton escape sits on the box\'s edge and P1 reads '
+               'low; at 12 keV it has moved away.', 'docs/reports/mca_fit_demo.md#**Si escape peaks.**', escape='3'),
+             V('No escape peaks', 'The Si escapes taken away (a detector with none).', 'docs/reports/mca_fit_demo.md#**Si escape peaks.**',
+               escape='0'),
+             V('Ten times the line (1e4 photons)', 'The scatter matters less: no failures at 10 keV, but the wing '
+               'still pulls P1 6 % high.', 'docs/reports/mca_fit_demo.md#- `--photons 1e4`: ten times the line', photons='1e4'),
+             V('A weak line (300 photons)', 'Fewer counts: the errors grow, and P1 stays unbiased where it does not '
+               'fail.', 'docs/reports/mca_fit_demo.md#4.1 P1 against data weights', photons='300'),
+             V('Fe instead of Zn', 'Fe Kα (6.40 keV) far from the scatter: P1 within 1 % at 10 keV already.',
+               'docs/reports/mca_fit_demo.md#- `--element Fe`: Fe Kα', element='Fe'),
+             V('12 keV with 40 % fewer line photons', 'The K excitation falls from 10 to 12 keV: P1 is still '
+               'unbiased with 600 photons.', 'docs/reports/mca_fit_demo.md#**What this assumes.**', beams='12', photons='600'),
+         ),
+         repo_out='docs/figures/mca_fit_demo', seconds=17.0),
+
     Tool('mca_study', 'Study B figures: MCA line intensities (F90)', 'fluo', 'figures',
          'tests/tools/mca_study.py',
          'The owner\'s study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with '
          'every estimator\'s fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass '
          'rates and the robustness map (B1-B7), from the gauntlet\'s study run.',
          committed=('docs/studies/mca_fit',),
-         docs=('docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line', 'docs/studies/mca_fit/summary.md',
-               'docs/COMPARISONS.md#| C47 |'),
+         docs=('docs/reports/mca_fit_demo.md', 'docs/studies/2026-11-24_two_decisions_plan.md#Study B: MCA line',
+               'docs/studies/mca_fit/summary.md', 'docs/COMPARISONS.md#| C47 |'),
          defaults={'--gauntlet': 'docs/studies/mca_fit/gauntlet', '--out': OUT},
          variations=(V('Replicates and anatomy only', 'B1 and B2, which need no gauntlet run (about 20 s).',
                        'docs/studies/2026-11-24_two_decisions_plan.md#B2. Replicates and their fits', only='B1,B2'),),
