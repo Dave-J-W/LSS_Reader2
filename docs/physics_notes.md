@@ -5159,11 +5159,15 @@ tests), not yet tried by the owner.
   the joins and details in its tooltip. "saved vN" is read only from a
   workbook already in memory (opening one can take seconds).
 
-**Seen in passing (measured, synthetic, not investigated):** a Ref Patch of
-a scan and its unmerged repeat (`synth.make_identical_scans_dataset`, scans
-1, 2, 3 with 3 a repeat of 2; joint fit impossible there, the legacy fit
-used) leaves dR NaN at Qz 0.09 and inf at Qz 0.10 in the joined curve, the
-same with and without Back. Reported to Main; not fixed here.
+**Seen in passing (measured, synthetic; corrected the same day):** first
+read as an effect of an unmerged repeat, it is a drop: dropping the **new
+scan's first point** (Drop "0") at a join leaves dR NaN or inf from there to
+the end of the curve, in the window and in `Experiment.reflectivity`, with
+the joint and the legacy fit, on main before F96 (7b9a22b) as on this
+branch. `synth.make_dataset` scans 1, 2: 6 of 14 points from Qz 0.05;
+with the repeat (scans 1, 2, 3): 8 of 14 from Qz 0.04; drops −1 or 1, or no
+drop: all finite. Pinned by the strict xfail
+`tests/test_drop_first_point_errors.py`; handed to Main, not fixed here.
 
 ### 2026-11-24 — F95 (part): Ref Patch checks as one message and marks; the Bad Pixels list wired
 
