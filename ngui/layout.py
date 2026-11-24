@@ -609,6 +609,8 @@ MENUS = [
         C('messageDock_toggleViewAction', 'Messages'),
         C('scriptDock_toggleViewAction', 'Script'),
         C('errorDock_toggleViewAction', 'Errors'),
+        C('actionFitResiduals', 'Residuals above fits',
+          note='One switch for every fit plot: the panels drawn here as the Residuals toggle above each fit plot (F74)'),
     ]},
     {'title': 'Tools', 'replaces': ['menuTools'], 'items': [
         C('actionToolsWindow', 'All tools…', note='The Tools collection (F84, lss_toolbox): every demonstration and '

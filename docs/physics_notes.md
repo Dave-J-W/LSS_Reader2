@@ -47,6 +47,7 @@ exists.
 | I34 | On the Angles axis of a 'Pix V' cut through the reflected beam's columns, the reflected peak of a specular frame is at β = α (α = arcsin(Qz λ/4π)); NX school scans 6, 8, 9 to 2e-4° | `test_true_incidence.py::test_the_reflected_beam_sits_at_beta_equal_alpha` |
 | I35 | L is Qz in Å⁻¹ (the beamline's SPEC lattice): L = (2π/λ)(sin α + sin β), α = In_Rot, β = Out_Rot; in a specular scan 4π sin α/λ. On NX school every scan at fixed L agrees to better than 0.001 % (scans 4, 5, 10–15; scan 12 at the raised GID level, β = 6.5°); a fixed-L scan off by more than 1 % is noted at load (`LMismatch`) | `test_lattice.py::test_nx_l_is_qz_at_every_fixed_l_scan` |
 | I36 | Ref Patch steps are reversible: going Back (undoing a drop, or an accepted join) and doing the same steps again gives the same curve value for value as never going back; a cancelled patch leaves the curve on show and its Script line as they were (F96, owner Q-UI-B7). Not yet held: an accepted join must not change when live data arrive (B7's added rule; the live replay is not built) | `test_gui_ref_patch_steps.py::test_back_then_the_same_steps_give_the_same_reflectivity`, `::test_cancel_says_so_and_leaves_the_result_on_show` |
+| I37 | The residual panel shows what the fit minimised: over the fitted points Σ((y − fit)/σ)² = χ²/dof × (N − p), N − p an integer with p the fit's parameter count; for Poisson data with σ = √y and a right model the weighted residuals have mean ≈ 0 and SD ≈ 1 (F74) | `test_residuals.py::test_the_residuals_are_those_the_fit_minimised` |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5183,4 +5184,30 @@ one frame's box), not yet tried by the owner.
   separate ROI threshold of B3 (the tab's "Bad Pixel Correction fac"
   field), which would change numbers and then needs an OUTPUT_DECISIONS
   row.
+
+### 2026-11-24 — F74 built (first plots): residual panels above fits
+
+The owner's request of 2026-11-22 (a small residuals plot above every plot
+that shows a fit, about 15 % of the height, χ² in the legend, hidden by
+default). Verified by: tested (`tests/test_residuals.py`, 6 tests), not
+yet seen by the owner.
+
+- **What is drawn:** (y − fit)/σ for the points inside the fit's window,
+  as in decay fitting (Lakowicz, *Principles of Fluorescence
+  Spectroscopy*, 3rd ed., Springer 2006, ch. 4; from memory, not rechecked
+  — still the assumption recorded with F74). Where a σ is missing or zero,
+  y − fit, and the axis label says so.
+- **Invariant I37:** the panel's residuals are the ones the fit minimised:
+  their squares sum to χ²/dof × (N − p). Measured on a synthetic Poisson
+  peak (61 points, peak plus linear background): N − p is an integer, p
+  between 3 and 8; mean residual within 0.5 and SD between 0.6 and 1.5 (a
+  weighted fit with σ = √y; the reason to expect SD ≈ 1 is that each
+  weighted residual of a right model is approximately N(0, 1), Bevington
+  and Robinson, *Data Reduction and Error Analysis*, 3rd ed., ch. 8, from
+  memory).
+- **Where:** SpecPlot scan fits (`peaks.fit_scan`) and the cut peak fits
+  (`fitCuts`), with one switch, View > Residuals above fits (preference
+  `fit_residuals`, default False), and one helper (`lss_core/residuals.py`,
+  matplotlib only) for the other fit plots to use. No output number
+  changes.
 

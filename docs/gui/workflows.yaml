@@ -1101,7 +1101,7 @@ workflows:
       - id: cuts.view
         do: Look at the cuts; errorbars, offset, log; Fit peaks
         where: Line/Area Cuts tab
-        controls: [cutErrorbarCheckBox, cutOffsetCheckBox, cutOffsetLineEdit, cutLogYCheckBox, cutClearGraphPushButton, cutFitPushButton, cutFitOptionsPushButton]
+        controls: [cutErrorbarCheckBox, cutOffsetCheckBox, cutOffsetLineEdit, cutLogYCheckBox, cutClearGraphPushButton, cutFitPushButton, cutFitOptionsPushButton, actionFitResiduals]
         user_decides: fit options
         automatic: partly
         could_be_automatic: ""

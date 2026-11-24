@@ -955,7 +955,7 @@ class NguiWindow(QMainWindow):
             menu.setToolTipsVisible(True)
             for it in m['items']:
                 key = _key(it)
-                if m['title'] == 'View':
+                if m['title'] == 'View' and _label(it) in self.panes:
                     d = self.panes[_label(it)]
                     a = d.toggleViewAction()
                     a.setText(_label(it))

@@ -34,6 +34,7 @@ import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
 from lss_core import cuts, mcafiles, paths, scanaxes
+from lss_core import residuals
 from lss_core import gid as gidmod
 from lss_core import pinhole
 from lss_core import peaks
@@ -714,6 +715,7 @@ class MainWindow (QMainWindow):
         self.ui.statusBar.clearMessage()
         self.ui.scanListWidget.clear()
         self.ui.specPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.specPlotMplWidget.canvas.ax,False)   # F74: no fit, no residuals
         self.ui.spXComboBox.clear()
         self.ui.spYComboBox.clear()
         self.ui.spY2ComboBox.clear()
@@ -722,6 +724,7 @@ class MainWindow (QMainWindow):
         self.ui.mcaPlotMplWidget.canvas.draw()
         self.ui.refBadPixListWidget.clear()
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)
         self.ui.cutPlotMplWidget.canvas.draw()
         self.ui.refADDataPlotWidget.canvas.ax.clear()
         self.ui.refADDataPlotWidget.canvas.draw()
@@ -1622,6 +1625,7 @@ class MainWindow (QMainWindow):
             return
         self.ui.statusBar.clearMessage()
         self.ui.specPlotMplWidget.canvas.ax.clear()
+        self.specResidualItems=[]       # F74: the fit drawn, for its residual panel
         self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
         self.specData['YCol']=str(self.ui.spYComboBox.currentText())
         self.specData['NCol']=str(self.ui.spNComboBox.currentText())
@@ -1676,12 +1680,17 @@ class MainWindow (QMainWindow):
                 else:
                     self.ui.specPlotMplWidget.canvas.ax.set_title(title+'\n'+'Peak= '+self.peakPos+', Cen= '+self.peakCenter+', FWHM= '+self.peakFWHM)
                 xf=np.linspace(np.min(x),np.max(x),400)
-                self.ui.specPlotMplWidget.canvas.ax.plot(xf,res.model(xf),'g--',label='Fit (%s)' % res.kind)
+                lab='Fit (%s)' % res.kind
+                if self.fitResidualsShown():
+                    lab=residuals.chi2_label(lab,res.chi2_dof)
+                self.ui.specPlotMplWidget.canvas.ax.plot(xf,res.model(xf),'g--',label=lab)
+                self.specResidualItems=[(x,y,yerr_,res,'g')]
                 self.scanCenter[self.selectedScanNums[-1]]=float(format(p.centre,'.3f'))
             except:
                 self.peakPos='%.4f'%x[np.argmax(y)]
                 self.peakCenter=self.peakPos
                 self.peakFWHM='0'
+        self.drawFitResiduals(self.ui.specPlotMplWidget.canvas.ax,self.specResidualItems)
         self.specPlotSettings()
         if not getattr(self,'specLogKept',''):          # keep the note about a log axis left linear
             self.ui.statusBar.showMessage('Done')
@@ -3085,6 +3094,18 @@ class MainWindow (QMainWindow):
             view.addAction(act)
             if dock.objectName() in shown:
                 dock.show()
+        view.addSeparator()
+        from PyQt5.QtWidgets import QAction
+        act=QAction('Residuals above fits',self)
+        act.setObjectName('actionFitResiduals')
+        act.setCheckable(True)
+        act.setChecked(self.fitResidualsShown())
+        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits): the '
+                       'residuals (y - fit)/sigma of the fitted points, and chi2/dof in the legend. For a good fit '
+                       'with right errors they scatter within about +/-2. Hidden by default; kept between sessions (F74).')
+        act.toggled.connect(self.setFitResiduals)
+        view.addAction(act)
+        self.fitResidualsAction=act
         self.showErrorModel()
 
     def rememberPane(self,dock,on):
@@ -7345,6 +7366,7 @@ class MainWindow (QMainWindow):
     
     def clearCutGraph(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)
         self.ui.cutPlotMplWidget.canvas.draw()
         
     def lineAreaCut(self):   # the Line/Area cut buttons
@@ -7382,6 +7404,7 @@ class MainWindow (QMainWindow):
 
     def updatePilCutData(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)   # F74: the new cuts are not fitted yet
         self.selCutPilData={}
         self.selCutPilErrorData={}
         self.cutData={}
@@ -7506,6 +7529,7 @@ class MainWindow (QMainWindow):
 
     def updatePilGIDCutData(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)
         try:
             start=float(self.ui.pilIntRangeLineEdit.text().split(':')[0])
             end=float(self.ui.pilIntRangeLineEdit.text().split(':')[1])
@@ -7632,6 +7656,55 @@ class MainWindow (QMainWindow):
         c=np.asarray(cd,float)
         return [('GID cut',c[:,0],c[:,1],c[:,2],1.0)] if c.ndim==2 and c.shape[1]>=3 else []
 
+    # ---- F74 (owner, 2026-11-22): residuals above the plots that show a fit ----
+
+    def fitResidualsShown(self):
+        return bool(self.prefs.get('fit_residuals',False))
+
+    def drawFitResiduals(self,ax,items):
+        """The residual panel above ``ax`` for ``items`` = (x, y, σ,
+        lss_core.peaks.FitResult or a list of them, colour): each fit's
+        residuals inside its window, weighted by σ (lss_core.residuals). No
+        panel when the switch is off or nothing is fitted."""
+        rax=residuals.panel(ax,self.fitResidualsShown() and bool(items))
+        if rax is None:
+            moved=getattr(ax,'_lss_title','')
+            if moved and not ax.get_title():          # the title had gone up to the panel
+                ax.set_title(moved)
+            ax._lss_title=''
+            return None
+        for x,y,s,fits,colour in items:
+            x,y=np.asarray(x,float),np.asarray(y,float)
+            s=None if s is None else np.asarray(s,float)*np.ones_like(y)
+            for g in (fits if isinstance(fits,(list,tuple)) else [fits]):
+                if not getattr(g,'peaks',None) or not np.all(np.isfinite(g.window)):
+                    continue
+                m=(x>=min(g.window))&(x<=max(g.window))
+                if m.any():
+                    residuals.draw(rax,x[m],y[m],g.model(x[m]),None if s is None else s[m],color=colour)
+        title=ax.get_title() or getattr(ax,'_lss_title','')
+        rax.set_title(title,fontsize=ax.title.get_fontsize())   # the title above the pair
+        ax._lss_title=title
+        ax.set_title('')
+        return rax
+
+    def drawCutResiduals(self,curves=None):
+        curves=self.cutCurves() if curves is None else curves
+        fits=dict(getattr(self,'cutFitResults',[]) or [])
+        items=[(x,y,s,fits[label],'C%d' % (k%10) if label!='GID cut' else 'k')
+               for k,(label,x,y,s,scale) in enumerate(curves) if label in fits]
+        return self.drawFitResiduals(self.ui.cutPlotMplWidget.canvas.ax,items)
+
+    def setFitResiduals(self,on):
+        """View > Residuals above fits: kept between sessions; redraws the
+        fits on show."""
+        self.setPreference('fit_residuals',bool(on))
+        if getattr(self,'specResidualItems',None):
+            self.updateSpecPlotData()
+        if getattr(self,'cutFitResults',None):
+            self.drawCutResiduals()
+            self.ui.cutPlotMplWidget.canvas.draw()
+
     def fitCuts(self):
         """Fit every plotted cut (the "Fit peaks" button)."""
         curves=self.cutCurves()
@@ -7661,6 +7734,7 @@ class MainWindow (QMainWindow):
             good=[g for g in groups if g.ok]
             text='; '.join(g.summary() for g in groups) if groups else 'no fit'
             self.notify('Fit of %s: %s' % (label,text),title='Peak fit',level='info' if good else 'warning')
+        self.drawCutResiduals(curves)
         self.ui.cutPlotMplWidget.canvas.draw()
         if self.cutFitDialog is not None:
             self.cutFitDialog.findChild(QLabel,'cutFitResultLabel').setText(self.cutFitSummary())

@@ -538,7 +538,7 @@ flowchart TD
 |---|---|---|---|---|---|---|---|---|
 | cuts.frames (shared.frames) | Select the frames (Pilatus) or spectra (MCA) of the selected scans; Select All for all of them | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual) or a subset (left out of the reduction, kept in remakes) | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | code; test tests/test_gui_workflows.py | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
 | cuts.define | Choose the direction (Q H, Q V, Pix H, Pix V), the range, the axes and Sum All; Line/Area Cuts | Pilatus tab | `pilCutDirComboBox`, `pilIntRangeLineEdit`, `pilAxesComboBox`, `gixSumCheckBox`, `pilPinholeCheckBox`, `pilLineAreaPushButton` | direction, range, axes (Angles for I vs beta), summed or per frame | no | one cut interface on every image plot with defaults by scan kind (F68); a range on the detector by default (F59) | code; test tests/test_gui_cuts.py; owner 2026-11-18 (F59) | Q V default range lies off a reflectivity frame: zeros, no message (F59, measured)<br>The cut is defined on the Pilatus tab and shown on another tab |
-| cuts.view | Look at the cuts; errorbars, offset, log; Fit peaks | Line/Area Cuts tab | `cutErrorbarCheckBox`, `cutOffsetCheckBox`, `cutOffsetLineEdit`, `cutLogYCheckBox`, `cutClearGraphPushButton`, `cutFitPushButton`, `cutFitOptionsPushButton` | fit options | partly |  | test tests/test_gui_peak_fit.py |  |
+| cuts.view | Look at the cuts; errorbars, offset, log; Fit peaks | Line/Area Cuts tab | `cutErrorbarCheckBox`, `cutOffsetCheckBox`, `cutOffsetLineEdit`, `cutLogYCheckBox`, `cutClearGraphPushButton`, `cutFitPushButton`, `cutFitOptionsPushButton`, `actionFitResiduals` | fit options | partly |  | test tests/test_gui_peak_fit.py |  |
 | cuts.export | Export (cut files; Script pane records exp.cut) and Save | Line/Area Cuts tab | `cutExportPushButton`, `cutSaveWorkbookPushButton` | file name | partly |  | code; tests/test_cut_script.py; test tests/test_gui_workbook.py |  |
 
 <a id="alignment"></a>
@@ -1060,6 +1060,7 @@ flowchart TD
 | `messageDock_toggleViewAction` Messages |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `scriptDock_toggleViewAction` Script |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `errorDock_toggleViewAction` Errors |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
+| `actionFitResiduals` Residuals above fits |  |  |  |  |  |  |  |  | S |  |  |  | i |  |
 
 ### Messages pane
 
