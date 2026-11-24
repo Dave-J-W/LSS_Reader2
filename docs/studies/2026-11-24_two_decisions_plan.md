@@ -257,15 +257,24 @@ For each decision:
 
 ## Done means
 
-- [ ] `docs/studies/reflectivity_guard/summary.md`: A1–A8, the robustness
-      map, and the five answers.
-- [ ] `docs/studies/mca_fit/summary.md`: B1–B7, the improved generator
-      documented in `docs/SYNTHETIC_DATA.md`, and the five answers.
-- [ ] `docs/studies/eli5_two_decisions.md` and its `.html` copy, with
-      every citation checked.
-- [ ] COMPARISONS rows; catalogue items with their variations;
+Status 2026-11-24, morning.
+- [x] `docs/studies/reflectivity_guard/summary.md`: A1–A8, two
+      robustness maps (R, and RS on staggered grids, added), and the five
+      answers. C48.
+- [x] `docs/studies/mca_fit/summary.md` (tools man): B1–B7, the improved
+      generator documented in `docs/SYNTHETIC_DATA.md`, and the five
+      answers. C47.
+  - The Hartree–Fock tables could not be installed; a shell model
+    stands in, with constants from memory.
+- [x] `docs/studies/eli5_two_decisions.md` and its `.html` copy (MathML).
+  - The citations were checked against publisher and index records,
+    abstracts and secondary sources.
+  - **The full texts were not read**: this environment's network policy
+    blocks the publishers and arXiv. See its References section.
+- [x] COMPARISONS rows (C47, C48); catalogue items with their variations;
       `TOOLS.md` re-rendered.
-- [ ] `DATA_NEEDS.md` updated with exactly what real data would settle,
-      if any.
-- [ ] Quick suite, slow suite and sweep on the merged tree; merged to
-      main.
+- [x] `DATA_NEEDS.md`:
+  - row 3 (blanks) is updated by study B: needed for the 10 keV Zn case;
+  - row 1 notes that study A does not need real data.
+- [x] Quick suite, slow suite and sweep on the merged tree; merged to
+      main: see the pull request of this commit.

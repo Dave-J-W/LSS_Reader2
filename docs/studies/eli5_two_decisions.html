@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Two decisions, explained simply</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Two decisions, explained simply</h1>
+</header>
+<h1 id="two-decisions-explained-simply">Two decisions, explained
+simply</h1>
+<p><em>2026-11-24. The figures and numbers come from the two studies,
+<code>docs/studies/reflectivity_guard/summary.md</code> (A, C48) and
+<code>docs/studies/mca_fit/summary.md</code> (B, C47). Everything
+measured is synthetic data with the truth known, except where NX school
+data are named. The citations were checked as far as this environment
+allows; see References.</em></p>
+<p>This page explains two choices the reader makes when it turns
+detector counts into numbers:</p>
+<ul>
+<li><strong>A.</strong> How strictly the reflectivity patch checks the
+curve it fits where two scans join (the “guard”).</li>
+<li><strong>B.</strong> How a fluorescence line’s intensity is measured
+from an MCA spectrum (window sum or fit, and how the fit weighs the
+channels).</li>
+</ul>
+<p>Each part has five sections:</p>
+<ul>
+<li>the question, with a picture;</li>
+<li>the idea in everyday terms;</li>
+<li>the maths;</li>
+<li>what the study found;</li>
+<li>what we recommend, what it costs if we are wrong, and what would
+change it.</li>
+</ul>
+<p>The detailed studies are
+<code>docs/studies/reflectivity_guard/summary.md</code> (A) and
+<code>docs/studies/mca_fit/summary.md</code> (B).</p>
+<hr />
+<h2 id="a.-the-guard-on-the-reflectivity-join">A. The guard on the
+reflectivity join</h2>
+<h3 id="the-question">The question</h3>
+<p>Two scans overlap in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Q</mi><mi>z</mi></msub><annotation encoding="application/x-tex">Q_z</annotation></semantics></math>.
+They were measured with different absorbers, so one must be scaled by a
+factor
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>
+to meet the other. The reader finds
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>
+by fitting one smooth curve through both scans near the overlap. The
+question is how good that curve must look before the reader trusts
+it.</p>
+<figure>
+<img src="reflectivity_guard/A1_what_the_fit_sees.png"
+alt="What the fit sees" />
+<figcaption aria-hidden="true">What the fit sees</figcaption>
+</figure>
+<h3 id="the-idea">The idea</h3>
+<p>Picture joining two photographs of a winding road, taken with
+different exposures. You find the exposure ratio by drawing one smooth
+line along the road across both photos.</p>
+<ul>
+<li>If the road bends where the photos overlap, a stiff ruler won’t
+follow the bend, and your ratio comes out a little wrong. That is
+<strong>model bias</strong>.</li>
+<li>If you keep switching to bendier rulers until one fits, you have
+chosen the ruler <em>after</em> looking at the photo. The answer then
+looks more certain than it is. That is
+<strong>post-selection</strong>.</li>
+</ul>
+<p>A strict guard does the second more often; a lenient guard leaves
+more of the first. The study measures both and shows the trade-off.</p>
+<h3 id="the-maths">The maths</h3>
+<p>Near the join, with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mo>ln</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>R</mi><mi>/</mi><msub><mi>R</mi><mi>F</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">y = \ln(R/R_F)</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mo>ln</mo><mi>f</mi></mrow><annotation encoding="application/x-tex">\delta = \ln f</annotation></semantics></math>:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>a</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>Q</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><msub><mi>p</mi><mi>m</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>Q</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><msub><mi>ε</mi><mi>i</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>y</mi><mi>b</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>Q</mi><mi>j</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><mi>δ</mi><mo>=</mo><msub><mi>p</mi><mi>m</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>Q</mi><mi>j</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><msub><mi>ε</mi><mi>j</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>p</mi><mi>m</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>Q</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>0</mn></mrow><mi>m</mi></munderover><msub><mi>c</mi><mi>k</mi></msub><msup><mi>Q</mi><mi>k</mi></msup><mi>.</mi></mrow><annotation encoding="application/x-tex">
+y_a(Q_i) = p_m(Q_i) + \varepsilon_i, \qquad
+y_b(Q_j) + \delta = p_m(Q_j) + \varepsilon_j,
+\qquad p_m(Q) = \sum_{k=0}^{m} c_k Q^k .
+</annotation></semantics></math> The coefficients
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>c</mi><mi>k</mi></msub><annotation encoding="application/x-tex">c_k</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>
+are fitted together by maximum likelihood. The <strong>guard</strong>
+tries rungs
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>m</mi><mo>,</mo><mi>e</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">r = (m, e)</annotation></semantics></math>:
+polynomial order
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>,
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>e</mi><annotation encoding="application/x-tex">e</annotation></semantics></math>
+points either side of the overlap. It accepts the first rung whose
+goodness of fit passes
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>r</mi></msub><mo>=</mo><mo>Pr</mo><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><msubsup><mi>χ</mi><msub><mi>ν</mi><mi>r</mi></msub><mn>2</mn></msubsup><mo>≥</mo><msubsup><mi>χ</mi><mrow><mi>r</mi><mo>,</mo><mtext mathvariant="normal">obs</mtext></mrow><mn>2</mn></msubsup><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.222em"></mspace><mo>≥</mo><mspace width="0.222em"></mspace><msub><mi>p</mi><mn>0</mn></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>p</mi><mn>0</mn></msub><mo>=</mo><mn>0.3</mn><mrow><mspace width="0.333em"></mspace><mtext mathvariant="normal"> today.</mtext></mrow></mrow><annotation encoding="application/x-tex">
+p_r = \Pr\!\left(\chi^2_{\nu_r} \ge \chi^2_{r,\text{obs}}\right) \ \ge\ p_0 ,
+\qquad p_0 = 0.3 \text{ today.}
+</annotation></semantics></math></p>
+<p><strong>Why choosing after looking makes the error too
+small.</strong> Let
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>π</mi><mi>r</mi></msub><annotation encoding="application/x-tex">\pi_r</annotation></semantics></math>
+be the chance that rung
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>r</mi><annotation encoding="application/x-tex">r</annotation></semantics></math>
+is chosen,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>μ</mi><mi>r</mi></msub><annotation encoding="application/x-tex">\mu_r</annotation></semantics></math>
+the mean of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>δ</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat\delta</annotation></semantics></math>
+when it is, and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>σ</mi><mi>r</mi></msub><annotation encoding="application/x-tex">\sigma_r</annotation></semantics></math>
+its spread. By the law of total variance, the spread of what we report
+is
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>Var</mo><mrow><mo stretchy="true" form="prefix">(</mo><mover><mi>δ</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><munder><mo>∑</mo><mi>r</mi></munder><msub><mi>π</mi><mi>r</mi></msub><mspace width="0.167em"></mspace><msubsup><mi>σ</mi><mi>r</mi><mn>2</mn></msubsup><mspace width="0.278em"></mspace><mo>+</mo><mspace width="0.278em"></mspace><munder><mo>∑</mo><mi>r</mi></munder><msub><mi>π</mi><mi>r</mi></msub><mspace width="0.167em"></mspace><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>μ</mi><mi>r</mi></msub><mo>−</mo><mover><mi>μ</mi><mo accent="true">‾</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup><mo>,</mo><mspace width="2.0em"></mspace><mover><mi>μ</mi><mo accent="true">‾</mo></mover><mo>=</mo><munder><mo>∑</mo><mi>r</mi></munder><msub><mi>π</mi><mi>r</mi></msub><msub><mi>μ</mi><mi>r</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\operatorname{Var}(\hat\delta) = \sum_r \pi_r\,\sigma_r^2 \;+\; \sum_r \pi_r\,(\mu_r - \bar\mu)^2,
+\qquad \bar\mu = \sum_r \pi_r \mu_r .
+</annotation></semantics></math> The reported error is the chosen rung’s
+own
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>σ</mi><mi>r</mi></msub><annotation encoding="application/x-tex">\sigma_r</annotation></semantics></math>,
+which leaves out the second term. So when the rungs disagree, the pulls
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">(</mo><mover><mi>δ</mi><mo accent="true">̂</mo></mover><mo>−</mo><mi>δ</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mi>σ</mi></mrow><annotation encoding="application/x-tex">(\hat\delta - \delta)/\sigma</annotation></semantics></math>
+spread wider than 1. That is the measured widening of +0.08 at a smooth
+join (it was first reported as 1.13; the study shows most of that was
+sampling noise). Statisticians call this post-selection inference:
+inference after a data-driven choice “enjoys none of the guarantees”
+classical theory gives when the model is fixed in advance (Berk et
+al. 2013).</p>
+<p><strong>Why a lenient guard leaves bias.</strong> If the true curve
+is not a polynomial of order
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>
+over the window (a Kiessig fringe, say), the fit converges to the wrong
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>δ</mi><annotation encoding="application/x-tex">\delta</annotation></semantics></math>
+even with no noise:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi><mo>=</mo><mi mathvariant="normal">E</mi><mrow><mo stretchy="true" form="prefix">[</mo><mover><mi>δ</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">]</mo></mrow><mo>−</mo><mi>δ</mi><mo>≠</mo><mn>0</mn><mspace width="1.0em"></mspace><mtext mathvariant="normal">as counts</mtext><mo>→</mo><mi>∞</mi><mi>.</mi></mrow><annotation encoding="application/x-tex">
+b = \mathrm{E}[\hat\delta] - \delta \neq 0 \quad\text{as counts}\to\infty .
+</annotation></semantics></math> Errors shrink as counts grow, but
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>b</mi><annotation encoding="application/x-tex">b</annotation></semantics></math>
+does not, so the pull mean
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi><mi>/</mi><mi>σ</mi></mrow><annotation encoding="application/x-tex">b/\sigma</annotation></semantics></math>
+grows.</p>
+<p><strong>A third way, averaging.</strong> Instead of choosing one
+rung, weight them all by how well they fit, and keep the spread between
+them in the error:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>δ</mi><mo accent="true">‾</mo></mover><mo>=</mo><munder><mo>∑</mo><mi>r</mi></munder><msub><mi>w</mi><mi>r</mi></msub><msub><mover><mi>δ</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><msup><mi>σ</mi><mn>2</mn></msup><mo>=</mo><munder><mo>∑</mo><mi>r</mi></munder><msub><mi>w</mi><mi>r</mi></msub><mrow><mo stretchy="true" form="prefix">[</mo><msubsup><mi>σ</mi><mi>r</mi><mn>2</mn></msubsup><mo>+</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mover><mi>δ</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>−</mo><mover><mi>δ</mi><mo accent="true">‾</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup><mo stretchy="true" form="postfix">]</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\bar\delta = \sum_r w_r \hat\delta_r, \qquad
+\sigma^2 = \sum_r w_r\left[\sigma_r^2 + (\hat\delta_r - \bar\delta)^2\right].
+</annotation></semantics></math> This is model averaging with weights
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mi>r</mi></msub><mo>∝</mo><msup><mi>e</mi><mrow><mo>−</mo><msub><mi>I</mi><mi>r</mi></msub><mi>/</mi><mn>2</mn></mrow></msup></mrow><annotation encoding="application/x-tex">w_r \propto e^{-I_r/2}</annotation></semantics></math>
+from an information criterion
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>I</mi><mi>r</mi></msub><annotation encoding="application/x-tex">I_r</annotation></semantics></math>.
+The variance above is the revised form (Burnham &amp; Anderson 2002, eq.
+6.12). Buckland, Burnham &amp; Augustin (1997) proposed the square-root
+form,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mrow><mo stretchy="true" form="prefix">[</mo><msub><mo>∑</mo><mi>r</mi></msub><msub><mi>w</mi><mi>r</mi></msub><msqrt><mrow><msubsup><mi>σ</mi><mi>r</mi><mn>2</mn></msubsup><mo>+</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mover><mi>δ</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>−</mo><mover><mi>δ</mi><mo accent="true">‾</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup></mrow></msqrt><mo stretchy="true" form="postfix">]</mo></mrow><mn>2</mn></msup><annotation encoding="application/x-tex">\left[\sum_r w_r \sqrt{\sigma_r^2 + (\hat\delta_r - \bar\delta)^2}\right]^2</annotation></semantics></math>.
+It is a candidate only.</p>
+<h3 id="what-the-study-found">What the study found</h3>
+<figure>
+<img src="reflectivity_guard/A5_decision_curve.png"
+alt="The decision curve" />
+<figcaption aria-hidden="true">The decision curve</figcaption>
+</figure>
+<p>There were 400–2000 synthetic replicates per join, with the truth
+known. Each dot above is one setting of the guard:</p>
+<ul>
+<li>left and right is how honest the error bar is at a smooth join,
+where 1.00 is ideal;</li>
+<li>up and down is how biased the factor is at the five joins where a
+fringe or a short overlap fools the curve, where 0 is ideal.</li>
+</ul>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Choice</th>
+<th>Bias at the hard joins (mean |pull mean|)</th>
+<th>Error-bar size at the hard joins (pull SD)</th>
+<th>At a smooth join (pull SD)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>today, p₀ 0.3</td>
+<td>0.24</td>
+<td>1.02</td>
+<td>1.00</td>
+</tr>
+<tr class="even">
+<td><strong>stricter, p₀ 0.7</strong></td>
+<td><strong>0.12</strong></td>
+<td><strong>0.98</strong></td>
+<td><strong>1.04</strong></td>
+</tr>
+<tr class="odd">
+<td>p₀ 0.01</td>
+<td>0.52</td>
+<td>0.92</td>
+<td>0.92</td>
+</tr>
+<tr class="even">
+<td>no guard</td>
+<td>0.33</td>
+<td>0.47 (bars 3× too big)</td>
+<td>0.92</td>
+</tr>
+<tr class="odd">
+<td>averaging</td>
+<td>0.59</td>
+<td>0.83</td>
+<td>0.92</td>
+</tr>
+<tr class="even">
+<td>old spline ratio</td>
+<td>0.29</td>
+<td>14 (bars meaningless)</td>
+<td>1.47</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>A stricter guard leaves less bias, up to about p₀
+0.7.</strong> From 0.3 to 0.7 the bias at the hard joins halves. Beyond
+0.7 almost nothing changes. No setting removes the bias at a fringe,
+because no polynomial fits a fringe exactly.</li>
+<li><strong>The price is small.</strong> At a smooth join the error bars
+become about 4 % too small (1.04 instead of 1.00).</li>
+<li><strong>Choosing after looking does widen the error a
+little</strong> (+0.08 at p₀ 0.3). But without the guard the bars are
+already slightly too large at a smooth join (0.92), because they are
+only ever inflated, never shrunk. The two nearly cancel.</li>
+<li><strong>The robustness maps,</strong> on two kinds of grid (scans
+sharing their Qz points or not): the strict settings, p₀ 0.5–0.9, are
+best in 23 of 24 combinations of fringe sampling (3–10 points per
+fringe) and count level (1× to 0.01×).</li>
+<li><strong>Real data:</strong> on the public NX school joins every
+setting gives the same factor. The first join agrees with the calibrated
+absorber ratio to within 0.34σ.</li>
+</ul>
+<h3
+id="recommendation-cost-of-being-wrong-what-would-change-it">Recommendation,
+cost of being wrong, what would change it</h3>
+<ul>
+<li><strong>Raise p₀ from 0.3 to 0.7.</strong> In the reader that is one
+constant, with its records and re-pinned tests. On the NX school joins
+nothing changes.</li>
+<li><strong>The cost of either choice is small where it counts.</strong>
+A structural fit of the patched curve moves film thickness and roughness
+by about 0.001 Å, because it uses every point and the full covariance.
+The choice matters for how honest each join’s error bar looks: 0.7 is
+more honest at fringed joins, 0.3 at smooth ones.</li>
+<li><strong>Real data are not needed to decide.</strong> The ranking
+holds across everything the synthetic data could not know.</li>
+<li><strong>What would change it:</strong>
+<ul>
+<li>a design where the 4 % over-confidence grows;</li>
+<li>the owner’s long real series, if it showed joins where the fit and
+the absorber ratio disagree.</li>
+</ul></li>
+<li><strong>How this answer changed overnight.</strong> A first map that
+stopped at p₀ 0.3 said “keep 0.3”. Testing stricter settings showed the
+gain continues to about 0.7.</li>
+</ul>
+<hr />
+<h2 id="b.-measuring-a-fluorescence-line">B. Measuring a fluorescence
+line</h2>
+<h3 id="the-question-1">The question</h3>
+<p>An MCA spectrum has a fluorescence line (Zn Kα, say) sitting on
+scattered X-rays: the elastic peak, Compton scattering and its tails,
+and the detector’s own artefacts. How do we get the line’s photon count
+honestly?</p>
+<figure>
+<img src="mca_fit/B1_anatomy.png" alt="Anatomy of a spectrum" />
+<figcaption aria-hidden="true">Anatomy of a spectrum</figcaption>
+</figure>
+<h3 id="the-idea-1">The idea</h3>
+<ul>
+<li><strong>The window sum</strong> is like counting all the rain in a
+bucket placed under a leak, during a drizzle. You count the leak and the
+drizzle together.</li>
+<li><strong>A fit</strong> models the drizzle, here the scatter under
+the line, and counts only the leak.</li>
+</ul>
+<p><strong>How the fit weighs the channels also matters.</strong></p>
+<ul>
+<li>If you trust each channel by the count it happened to get, the
+channels that came out low look more precise, because their error
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msqrt><mi>n</mi></msqrt><annotation encoding="application/x-tex">\sqrt n</annotation></semantics></math>
+is smaller. Trusting them more drags the answer down.</li>
+<li>Trusting each channel by the count it <em>should</em> have got, the
+model, removes that pull. That is the Poisson (“P1”) weighting.</li>
+</ul>
+<h3 id="the-maths-1">The maths</h3>
+<p>Channel
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
+records
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mi>i</mi></msub><mo>∼</mo><mtext mathvariant="normal">Poisson</mtext><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>μ</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">n_i \sim \text{Poisson}(\mu_i)</annotation></semantics></math>.
+A line of area
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>A</mi><annotation encoding="application/x-tex">A</annotation></semantics></math>
+and shape
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>s</mi><mi>i</mi></msub><annotation encoding="application/x-tex">s_i</annotation></semantics></math>
+(with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>s</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sum_i s_i = 1</annotation></semantics></math>)
+sits on a background
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>B</mi><mi>i</mi></msub><annotation encoding="application/x-tex">B_i</annotation></semantics></math>:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>i</mi></msub><mo>=</mo><mi>A</mi><msub><mi>s</mi><mi>i</mi></msub><mo>+</mo><msub><mi>B</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\mu_i = A s_i + B_i</annotation></semantics></math>.</p>
+<p><strong>Window sum.</strong> Over a box of channels:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>A</mi><mo accent="true">̂</mo></mover><mtext mathvariant="normal">win</mtext></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mtext mathvariant="normal">box</mtext></mrow></munder><msub><mi>n</mi><mi>i</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><mi mathvariant="normal">E</mi><mrow><mo stretchy="true" form="prefix">[</mo><msub><mover><mi>A</mi><mo accent="true">̂</mo></mover><mtext mathvariant="normal">win</mtext></msub><mo stretchy="true" form="postfix">]</mo></mrow><mo>=</mo><mi>A</mi><mspace width="0.167em"></mspace><msub><mi>f</mi><mtext mathvariant="normal">box</mtext></msub><mo>+</mo><msub><mi>B</mi><mtext mathvariant="normal">box</mtext></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\hat A_{\text{win}} = \sum_{i\in\text{box}} n_i, \qquad
+\mathrm{E}[\hat A_{\text{win}}] = A\,f_{\text{box}} + B_{\text{box}},
+</annotation></semantics></math> where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>f</mi><mtext mathvariant="normal">box</mtext></msub><annotation encoding="application/x-tex">f_{\text{box}}</annotation></semantics></math>
+is the share of the line inside the box and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>B</mi><mtext mathvariant="normal">box</mtext></msub><annotation encoding="application/x-tex">B_{\text{box}}</annotation></semantics></math>
+the scatter under it. The bias is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>B</mi><mtext mathvariant="normal">box</mtext></msub><annotation encoding="application/x-tex">B_{\text{box}}</annotation></semantics></math>,
+whatever the counts.</p>
+<p><strong>Data-weighted fit (Neyman’s
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>χ</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\chi^2</annotation></semantics></math>,
+today’s default).</strong> It minimises
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>χ</mi><mi>N</mi><mn>2</mn></msubsup><mo>=</mo><munder><mo>∑</mo><mi>i</mi></munder><mfrac><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>n</mi><mi>i</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup><msub><mi>n</mi><mi>i</mi></msub></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\chi^2_N = \sum_i \frac{(n_i - \mu_i)^2}{n_i} .
+</annotation></semantics></math> For a line alone
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>B</mi><mi>i</mi></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">B_i = 0</annotation></semantics></math>),
+setting the derivative to zero gives
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>A</mi><mo accent="true">̂</mo></mover><mi>N</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>s</mi><mi>i</mi></msub></mrow><mrow><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>s</mi><mi>i</mi><mn>2</mn></msubsup><mi>/</mi><msub><mi>n</mi><mi>i</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\hat A_N = \frac{\sum_i s_i}{\sum_i s_i^2/n_i}.
+</annotation></semantics></math> With
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mi>i</mi></msub><mo>=</mo><msub><mi>μ</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>+</mo><msub><mi>ϵ</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">n_i = \mu_i(1+\epsilon_i)</annotation></semantics></math>,
+to first order in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><msub><mi>μ</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">1/\mu_i</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">E</mi><mrow><mo stretchy="true" form="prefix">[</mo><mn>1</mn><mi>/</mi><msub><mi>n</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">]</mo></mrow><mo>≈</mo><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi>/</mi><msub><mi>μ</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><msub><mi>μ</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\mathrm{E}[1/n_i] \approx (1 + 1/\mu_i)/\mu_i</annotation></semantics></math>.
+Then
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mrow><mi mathvariant="normal">E</mi><mrow><mo stretchy="true" form="prefix">[</mo><msub><mover><mi>A</mi><mo accent="true">̂</mo></mover><mi>N</mi></msub><mo stretchy="true" form="postfix">]</mo></mrow><mo>−</mo><mi>A</mi></mrow><mi>A</mi></mfrac><mspace width="0.278em"></mspace><mo>≈</mo><mspace width="0.278em"></mspace><mo>−</mo><mfrac><mi>m</mi><mi>N</mi></mfrac><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\frac{\mathrm{E}[\hat A_N] - A}{A} \;\approx\; -\frac{m}{N},
+</annotation></semantics></math> with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math>
+the line’s total counts and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>
+the number of channels that carry it: about one count per channel,
+downward, as Baker &amp; Cousins (1984) state for Neyman’s
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>χ</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\chi^2</annotation></semantics></math>.
+With Pearson’s
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>χ</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\chi^2</annotation></semantics></math>
+(weights from the model, but not iterated to the likelihood) the bias
+goes the other way, about half a count per channel. Mighell (1999) shows
+the same for astronomical counts.</p>
+<p><em>Checked by simulation</em> (20 000 spectra per row; a Gaussian
+line on no background; channels with mean &gt; 0.5; zero counts clipped
+to 1; the code is in the appendix):</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Line width σ (channels)</th>
+<th>Counts
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math></th>
+<th><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math></th>
+<th>Data-weighted bias</th>
+<th><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><mi>m</mi><mi>/</mi><mi>N</mi></mrow><annotation encoding="application/x-tex">-m/N</annotation></semantics></math></th>
+<th>Poisson (P1) bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>3</td>
+<td>90</td>
+<td>15</td>
+<td>−12.6 %</td>
+<td>−16.7 %</td>
+<td>+0.00 %</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td>270</td>
+<td>17</td>
+<td>−5.5 %</td>
+<td>−6.3 %</td>
+<td>+0.01 %</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>1000</td>
+<td>21</td>
+<td>−1.8 %</td>
+<td>−2.1 %</td>
+<td>−0.01 %</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>270</td>
+<td>33</td>
+<td>−9.8 %</td>
+<td>−12.2 %</td>
+<td>−0.04 %</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td>1000</td>
+<td>37</td>
+<td>−3.4 %</td>
+<td>−3.7 %</td>
+<td>−0.00 %</td>
+</tr>
+</tbody>
+</table>
+<p>The first-order rule is close from about 1000 counts. Below that it
+overstates the bias, because the clipping of empty channels softens it.
+The Poisson fit is unbiased throughout.</p>
+<p><strong>Poisson maximum likelihood (P1).</strong> It maximises
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>ln</mo><mi>L</mi><mo>=</mo><munder><mo>∑</mo><mi>i</mi></munder><mrow><mo stretchy="true" form="prefix">[</mo><msub><mi>n</mi><mi>i</mi></msub><mo>ln</mo><msub><mi>μ</mi><mi>i</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">]</mo></mrow><mo>,</mo><mspace width="2.0em"></mspace><mfrac><mrow><mi>∂</mi><mo>ln</mo><mi>L</mi></mrow><mrow><mi>∂</mi><msub><mi>a</mi><mi>k</mi></msub></mrow></mfrac><mo>=</mo><munder><mo>∑</mo><mi>i</mi></munder><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><msub><mi>n</mi><mi>i</mi></msub><msub><mi>μ</mi><mi>i</mi></msub></mfrac><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mfrac><mrow><mi>∂</mi><msub><mi>μ</mi><mi>i</mi></msub></mrow><mrow><mi>∂</mi><msub><mi>a</mi><mi>k</mi></msub></mrow></mfrac><mo>=</mo><mn>0</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\ln L = \sum_i \left[n_i \ln \mu_i - \mu_i\right],
+\qquad
+\frac{\partial \ln L}{\partial a_k} = \sum_i \left(\frac{n_i}{\mu_i} - 1\right)\frac{\partial \mu_i}{\partial a_k} = 0 .
+</annotation></semantics></math> For a line alone this gives
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>A</mi><mo accent="true">̂</mo></mover><mo>=</mo><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>n</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\hat A = \sum_i n_i</annotation></semantics></math>,
+which is unbiased. For a linear model, the condition is the weighted
+least-squares equation with weights
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><msub><mi>μ</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">1/\mu_i</annotation></semantics></math>
+from the model. Iterating the weighted fit with weights from the
+previous model (IRLS) reaches the maximum-likelihood answer.</p>
+<ul>
+<li>Minimising Cash’s statistic
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mo>=</mo><mn>2</mn><msub><mo>∑</mo><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>μ</mi><mi>i</mi></msub><mo>−</mo><msub><mi>n</mi><mi>i</mi></msub><mo>ln</mo><msub><mi>μ</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">C = 2\sum_i(\mu_i - n_i\ln\mu_i)</annotation></semantics></math>
+is the same thing, and it is valid at any number of counts per channel
+(Cash 1979).</li>
+<li>With the normalisation free, it keeps the fitted total equal to the
+counts observed (Baker &amp; Cousins 1984). It is not free of bias in
+every case at very low counts, which the study measures.</li>
+</ul>
+<p><strong>Width fixed from the detector (P2).</strong> For a silicon
+detector, the line width follows from electronic noise and charge
+statistics:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mtext mathvariant="normal">FWHM</mtext><mn>2</mn></msup><mrow><mo stretchy="true" form="prefix">(</mo><mi>E</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><msubsup><mtext mathvariant="normal">FWHM</mtext><mtext mathvariant="normal">noise</mtext><mn>2</mn></msubsup><mo>+</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><mn>2.355</mn><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup><mspace width="0.167em"></mspace><mi>F</mi><mspace width="0.167em"></mspace><mi>ε</mi><mspace width="0.167em"></mspace><mi>E</mi><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\text{FWHM}^2(E) = \text{FWHM}_{\text{noise}}^2 + (2.355)^2\,F\,\varepsilon\,E ,
+</annotation></semantics></math> with Fano factor
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation></semantics></math>
+and pair energy
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ε</mi><annotation encoding="application/x-tex">\varepsilon</annotation></semantics></math>
+(for silicon
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>F</mi><mo>≈</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">F \approx 0.1</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ε</mi><mo>≈</mo><mn>3.6</mn></mrow><annotation encoding="application/x-tex">\varepsilon \approx 3.6</annotation></semantics></math>
+eV; textbook values, not checked here). Fixing the width removes a free
+parameter that otherwise trades off against a curved background.</p>
+<p><strong>Escape stripping (P3).</strong> A photon of energy
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>E</mi><annotation encoding="application/x-tex">E</annotation></semantics></math>
+that loses a Si Kα photon (1.74 keV) is recorded at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo>−</mo><mn>1.74</mn></mrow><annotation encoding="application/x-tex">E - 1.74</annotation></semantics></math>
+keV with probability
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>f</mi><mtext mathvariant="normal">esc</mtext></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>E</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">f_{\text{esc}}(E)</annotation></semantics></math>.
+This happens only above the Si K edge at 1.839 keV. Stripping subtracts
+that copy:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mi>′</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>E</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mi>y</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>E</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><msub><mi>f</mi><mtext mathvariant="normal">esc</mtext></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>E</mi><mo>+</mo><mn>1.74</mn><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.167em"></mspace><mi>y</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>E</mi><mo>+</mo><mn>1.74</mn><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+y&#39;(E) = y(E) - f_{\text{esc}}(E + 1.74)\, y(E + 1.74) .
+</annotation></semantics></math> (The escape fraction against energy:
+Reed &amp; Ware 1972.)</p>
+<h3 id="what-the-study-found-1">What the study found</h3>
+<figure>
+<img src="mca_fit/B3_weighting.png" alt="Why weighting matters" />
+<figcaption aria-hidden="true">Why weighting matters</figcaption>
+</figure>
+<p>Tools man’s study (<code>docs/studies/mca_fit/summary.md</code>, C47)
+used synthetic spectra with the truth known. Zn Kα (8.6 keV) under a 10
+keV beam is the hard case: in the ±2 FWHM box the line has 887 counts,
+against 5,681 from the oxygen 1s Compton wing, 570 from escape peaks and
+471 from detector tails (B1).</p>
+<p><strong>The weighting (B3, above).</strong> Data weights read a weak
+line low, by about
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><mi>c</mi><mi>/</mi><mi>N</mi></mrow><annotation encoding="application/x-tex">-c/N</annotation></semantics></math>
+with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi><mo>=</mo><mn>19</mn></mrow><annotation encoding="application/x-tex">c = 19</annotation></semantics></math>
+counts in that box: −23 % at 100 counts, −5 % at 400, −1.5 % at 1000.
+That is the formula above, with the box’s background folded into
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>.
+The Poisson fit (P1) is within its errors from about 60 counts up, and
+matches data weights to 0.2 % at 10 000. Below about 50 counts every fit
+becomes unstable.</p>
+<p><strong>The window sum</strong> is wrong wherever scatter sits under
+the box. It failed in all 20 cells of the robustness map, and is off by
+2.7 % even on smooth scatter.</p>
+<p><strong>The XFNTR curve’s shape</strong> (the worst point’s deviation
+from the true curve):</p>
+<table>
+<thead>
+<tr class="header">
+<th>Curve</th>
+<th>window</th>
+<th>data weights</th>
+<th>P1</th>
+<th>P1 + escape stripping</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>smooth, weak</td>
+<td>24 %</td>
+<td>13 %</td>
+<td><strong>1.2 %</strong></td>
+<td>1.2 %</td>
+</tr>
+<tr class="even">
+<td>hard (Zn under 10 keV)</td>
+<td><strong>68 %</strong></td>
+<td>4.7 %</td>
+<td>4.7 %</td>
+<td><strong>1.4 %</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The Zn-under-10 keV case is not solved by any fit.</strong>
+The best, P1 with a fixed width and escape stripping, reads −7 % with 60
+% of fits failing. What decides it is the oxygen 1s Compton wing under
+the line (B7). The synthetic data cannot pin its real size: the
+tabulated profiles could not be installed here, so the generator uses a
+shell model with constants from memory.</p>
+<p><strong>A practical result:</strong> with a 12 keV beam the same case
+passes with P1 alone, +0.5 % with no failures, because the scatter moves
+away from the line. The line gets weaker: Zn K absorption falls about 40
+% from 10 to 12 keV (from memory).</p>
+<h3
+id="recommendation-cost-of-being-wrong-what-would-change-it-1">Recommendation,
+cost of being wrong, what would change it</h3>
+<ul>
+<li><strong>Make the Poisson fit (P1) the default</strong> for “Fit
+lines”. It removes a bias of −19/N and costs nothing at high counts.
+This needs no real data: it holds whatever the background.</li>
+<li><strong>Stop using the window sum</strong> where beam scatter sits
+under the box. Keep it at most as a legacy option.</li>
+<li><strong>Keep fixed width (P2) and escape stripping (P3) as
+options</strong> until a blank spectrum is in.</li>
+<li><strong>For Zn, consider the beam energy:</strong> 11–12 keV instead
+of 10.</li>
+<li><strong>The cost of being wrong:</strong>
+<ul>
+<li>with the window sum, an XFNTR curve can be distorted by tens of
+percent, misplacing surface against bulk;</li>
+<li>with data weights, the weak high-Qz end reads low (13 % on the weak
+curve).</li>
+</ul></li>
+<li><strong>What would change it:</strong> a blank spectrum (pure water
+or the subphase, the same energy and geometry) measuring the oxygen 1s
+wing and the escape fraction directly (DATA_NEEDS row 3). A wing well
+below the model’s would make the full fit usable at 10 keV.</li>
+</ul>
+<hr />
+<h2 id="references">References</h2>
+<p><strong>How far these were checked.</strong> The bibliographic
+details were confirmed from publisher, ADS and index records. The claims
+were checked against abstracts and against secondary sources that
+restate the papers. <strong>The full texts were not read</strong>: this
+environment’s network policy blocks the publishers and arXiv. Read every
+claim here as checked at that level.</p>
+<ul>
+<li>Baker, S. &amp; Cousins, R. D. (1984). Clarification of the use of
+chi-square and likelihood functions in fits to histograms. <em>Nucl.
+Instrum. Methods Phys. Res.</em> 221(2), 437–442.
+https://doi.org/10.1016/0167-5087(84)90016-4</li>
+<li>Berk, R., Brown, L., Buja, A., Zhang, K. &amp; Zhao, L. (2013).
+Valid post-selection inference. <em>Ann. Statist.</em> 41(2), 802–837.
+https://doi.org/10.1214/12-AOS1077 (open copy: arXiv:1306.1059)</li>
+<li>Buckland, S. T., Burnham, K. P. &amp; Augustin, N. H. (1997). Model
+selection: an integral part of inference. <em>Biometrics</em> 53(2),
+603–618. https://doi.org/10.2307/2533961</li>
+<li>Burnham, K. P. &amp; Anderson, D. R. (2002). <em>Model Selection and
+Multimodel Inference</em>, 2nd ed. Springer, New York (eq. 6.12,
+p. 345). https://doi.org/10.1007/b97636</li>
+<li>Cash, W. (1979). Parameter estimation in astronomy through
+application of the likelihood ratio. <em>Astrophys. J.</em> 228,
+939–947. https://doi.org/10.1086/156922</li>
+<li>Mighell, K. J. (1999). Parameter estimation in astronomy with
+Poisson-distributed data. I. The χ²_γ statistic. <em>Astrophys. J.</em>
+518, 380. https://doi.org/10.1086/307253</li>
+<li>Névot, L. &amp; Croce, P. (1980). Caractérisation des surfaces par
+réflexion rasante de rayons X. <em>Rev. Phys. Appl.</em> 15(3), 761–779.
+https://doi.org/10.1051/rphysap:01980001503076100. Derived for one rough
+surface; applied interface by interface in the recursion, a later
+generalisation.</li>
+<li>Parratt, L. G. (1954). Surface studies of solids by total reflection
+of X-rays. <em>Phys. Rev.</em> 95(2), 359–369.
+https://doi.org/10.1103/PhysRev.95.359</li>
+<li>Biggs, F., Mendelsohn, L. B. &amp; Mann, J. B. (1975). Hartree-Fock
+Compton profiles for the elements. <em>At. Data Nucl. Data Tables</em>
+16(3), 201–309. https://doi.org/10.1016/0092-640X(75)90030-3. Free-atom,
+per-shell profiles; using the O 1s profile for water is our inference.
+The impulse approximation behind them is poor when the energy transfer
+nears the 1s binding energy (about 0.54 keV).</li>
+<li>Reed, S. J. B. &amp; Ware, N. G. (1972). Escape peaks and internal
+fluorescence in X-ray spectra recorded with lithium drifted silicon
+detectors. <em>J. Phys. E: Sci. Instrum.</em> 5(6), 582–583.
+https://doi.org/10.1088/0022-3735/5/6/029</li>
+</ul>
+<hr />
+<h2 id="appendix-the-simulation-of-the-weighting-bias">Appendix: the
+simulation of the weighting bias</h2>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">1</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="op">-</span><span class="dv">40</span>, <span class="dv">41</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> sig <span class="kw">in</span> (<span class="fl">3.0</span>, <span class="fl">6.0</span>):</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> np.exp(<span class="op">-</span>x<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> <span class="dv">2</span> <span class="op">/</span> sig<span class="op">**</span><span class="dv">2</span>)<span class="op">;</span> s <span class="op">/=</span> s.<span class="bu">sum</span>()</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> N <span class="kw">in</span> (<span class="dv">90</span>, <span class="dv">270</span>, <span class="dv">1000</span>):</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        mu <span class="op">=</span> N <span class="op">*</span> s</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        n <span class="op">=</span> rng.poisson(mu, size<span class="op">=</span>(<span class="dv">20000</span>, <span class="bu">len</span>(x))).astype(<span class="bu">float</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        keep <span class="op">=</span> mu <span class="op">&gt;</span> <span class="fl">0.5</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        A_N <span class="op">=</span> s[keep].<span class="bu">sum</span>() <span class="op">/</span> np.<span class="bu">sum</span>(s[keep]<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> np.maximum(n[:, keep], <span class="fl">1.0</span>), axis<span class="op">=</span><span class="dv">1</span>)   <span class="co"># data-weighted</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        A_P <span class="op">=</span> n[:, keep].<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">1</span>) <span class="op">/</span> s[keep].<span class="bu">sum</span>()                                    <span class="co"># Poisson ML</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(sig, N, keep.<span class="bu">sum</span>(), A_N.mean() <span class="op">/</span> N <span class="op">-</span> <span class="dv">1</span>, <span class="op">-</span>keep.<span class="bu">sum</span>() <span class="op">/</span> N, A_P.mean() <span class="op">/</span> N <span class="op">-</span> <span class="dv">1</span>)</span></code></pre></div>
+</body>
+</html>
