@@ -727,6 +727,11 @@ class MainWindow (QMainWindow):
                 self.notify('Scan(s) %s: a data line with a different number of values was left out (in a file '
                             'SPEC is still writing, usually the line being written).' % listText(short),
                             title='SPEC file',level='info')
+            offl=[n for n in scannums if isinstance(self.specPar.get(n),dict) and self.specPar[n].get('LMismatch') is not None]
+            if offl:    # lss_core.lattice: L should be Qz = (2π/λ)(sin In_Rot + sin Out_Rot)
+                self.notify('Scan(s) %s: L differs from the Qz of In_Rot and Out_Rot by %+.1f %% (scan %d); is the SPEC '
+                            'lattice the usual one (L = Qz)?' % (listText(offl),100*self.specPar[offl[0]]['LMismatch'],offl[0]),
+                            title='SPEC file',level='warning')
             odd=[n for n in scannums if isinstance(self.specPar.get(n),dict) and self.specPar[n].get('LabelMismatch')]
             if odd:     # spec_routines: #L and the rows disagree; columns matched by position as before
                 nl,nv=self.specPar[odd[0]]['LabelMismatch']

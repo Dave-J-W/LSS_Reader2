@@ -3,7 +3,7 @@ import sys
 import os
 import re
 import numpy as np
-from lss_core import paths
+from lss_core import lattice, paths
 from lss_core.numbers import spec_number, spec_numbers
 from lss_core.monitor import parse_gain
 from lss_core.series import parse_series, aborted_after
@@ -284,6 +284,11 @@ class specread:
                     if self.Par[num].get('Absorber',absorber_a[0])!=absorber_a[0]:
                         self.Par[num]['AbsorberMotor']=self.Par[num]['Absorber']
                     self.Par[num]['Absorber']=absorber_a[0]
+                # L is Qz (the beamline's lattice): a fixed-L scan whose L disagrees with
+                # (2π/λ)(sin In_Rot + sin Out_Rot) by more than 1 % is noted (lss_core.lattice)
+                lm=lattice.l_mismatch(self.Data[num],self.Par[num])
+                if lm is not None:
+                    extras['LMismatch']=lm
                 if len(self.Par[num])==1:
                     self.Par[num]['Message']='No parameters!!'
                 self.Par[num].update(extras)
