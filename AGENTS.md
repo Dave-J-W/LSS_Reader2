@@ -200,7 +200,8 @@ foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by
    - a new figure generator or demonstration: an item in
      `lss_toolbox/catalog.py` with the variations the documents describe
      (a "change this and regenerate to see that" sentence becomes a
-     variation with its document line), then `python -m lss_toolbox
+     variation citing its passage as `path#text`, a heading or a short
+     quote, never a line number), then `python -m lss_toolbox
      --render`. `tests/test_toolbox.py` fails on a script in `tests/tools/`
      that is not an item, on a variation naming an option its script lacks,
      and on a committed figure no item claims (2026-11-23, F84).
