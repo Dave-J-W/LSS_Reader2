@@ -25,6 +25,31 @@ once the quick suite (and, for GUI changes, the sweep) pass; then merge
 4. F92's mask in the Ref Patch window (core #54): drops recorded as the mask, Restore all, masked points drawn apart, read-only for a second reader.
 5. F98 / F107 with the dose (core #52) when reached; timeline reduced-data and environment lanes; F95 B9/B10; B3 (rule 12).
 
+## APIs received for the next items (2026-11-24)
+
+- **F79 (tools man, #56, `lss_core/fresnel.py`):**
+  - `p = fresnel.propose_qoff(q, r, sigma, qc=...)` gives:
+    - `p.ok`;
+    - `p.qoff`, in refQoffLineEdit's convention (R/R_F divides by R_F(Qz + Qoff));
+    - `p.sigma`, a bootstrap standard error;
+    - `p.note`, one line for the Messages pane;
+    - `p.outliers`, the Qz of the points it down-weighted.
+  - About 0.5 s (`bootstrap=50` is faster). `method='smooth'` gives the owner's by-eye criterion as a second opinion.
+  - `fresnel.SUBPHASES` holds `.name`, `.qc`, `.rho_e` and `.source`; the densities are "from memory". Also `fresnel.subphase(name)` and `fresnel.qc_from_density(rho_e)`.
+  - **Study findings:** set Qc before Qoff; never fit Qc from the curve (it is degenerate with Qoff). NX 6–9 proposes −0.00028 Å⁻¹. Never apply a value by itself (rule 12). The calls are shown in `tests/test_qoff.py`.
+  - **Planned:** a Qc menu of the subphases plus a typed density; Qoff proposed, then filled only when accepted, with the note and ±σ in Messages and the 'smooth' answer in the tooltip.
+- **F97 diffuse axes (main man, #59, `lss_core.cuts`):**
+  - `frame_cut` and `exp.cut` take `axes` from `cuts.DIFFUSE_AXES`: 'beta', 'beta-alpha' and 'Qz' for vertical cuts (Q V, Pix V); 'Qxy' for horizontal ones. The intensities are unchanged (I41).
+  - `cuts.AXIS_FITS[axis]` gives the directions an axis fits; `cuts.axis_label(direction, axes)` gives its label.
+  - **F59:** `cuts.covered_range(direction, geometry, shape)` and `cuts.centred_range(direction, geometry, half_px)`; `self.cutGeometry(j)` gives the geometry. Q cuts' defaults lie off a reflectivity frame, so they sum zeros silently (measured).
+  - **Planned:** a cut-axis choice beside Line/Area Cuts, separate from pilAxesComboBox.
+- **F92 masks (#54) and F98 dose (#52):** see main man's messages of 2026-11-24. In short:
+  - `masks.load/save(wb)` and `Mask.add/restore_all/pairs`;
+  - `exp.reflectivity(..., mask=)`;
+  - `reflectivity.drop_points` returns `(removed, origins)`;
+  - `exp.dose(scan, unit=, beam_mm=)` and `exp.burn(n, axis='dose')`.
+- **Outgoing messages to both sessions fail** since 17:40 UTC with "needs proof of a trusted device". Their messages still arrive here.
+
 ## Lessons
 
 - After `git rm`, stage with `git add -A`, not a path list: a missing path aborts the whole add.
