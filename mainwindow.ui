@@ -694,6 +694,26 @@
             <widget class="QComboBox" name="pilCMapComboBox">
              <item>
               <property name="text">
+               <string>viridis</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>magma</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>inferno</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>cividis</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
                <string>jet</string>
               </property>
              </item>
