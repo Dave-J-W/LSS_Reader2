@@ -6037,6 +6037,7 @@ class MainWindow (QMainWindow):
         self.pilGIDPlot()
 
     def pilGIDpatchData(self):
+        before=(self.pilGIDshow,self.pilGISAXSshow)     # put back if the patch is refused (the crash sweep, 2026-11-24)
         if self.pilGIDshow==0:
             # self.disconnect(self.ui.pilAxesComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
             self.ui.pilAxesComboBox.currentIndexChanged.disconnect(self.update2dPlots)
@@ -6060,10 +6061,24 @@ class MainWindow (QMainWindow):
                 self.absfac=self.absorberModel()
                 patch,self.gidLevels=gidmod.legacy_patch(frames,gp,self.pilatus,log=self.gidJoinLog,warn=self.messageBox)
         except gidmod.GIDError as e:
+            self.gidPatchRefused(before)
             self.messageBox(str(e))
             return
+        except ValueError:
+            self.gidPatchRefused(before)      # the callers say why (gidPatch, gidWorksheetPatch)
+            raise
         self.pilPatchData=patch
         self.gidFinishMap()
+
+    def gidPatchRefused(self,before):
+        """A GID patch that stopped: the frames come back as they were shown.
+        It used to leave the GID display switched on with no patch, so the
+        next redraw (Log Int, Axes, a frame) raised AttributeError or
+        IndexError in pilGIDPlot (the crash sweep, 2026-11-24)."""
+        self.pilGIDshow,self.pilGISAXSshow=before
+        self.pilView=None                  # the figure was cleared: build the frame axes again
+        if not self.pilGIDshow and not self.pilGISAXSshow and len(getattr(self,'selectedPilFramesNums',[]))!=0:
+            self.updatePilPlotData()
 
     def gidEffectiveParams(self):
         """The worksheet's settings with the H slit field as the column count
