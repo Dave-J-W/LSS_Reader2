@@ -244,6 +244,27 @@ def test_pixel_comparison(tmp_path):
     assert compare.difference_rgb(str(tmp_path / 'a.png'), d.mask)[5, 10].tolist() == [255, 255, 255]
 
 
+def test_tables_compare_without_their_timing_column(tmp_path):
+    """The audit compares tables apart from a 'seconds' column (wall time of a
+    fit: ref_patch_survey, gid_method_survey, fit_scan_survey); every other
+    column, the comment lines and non-CSV files byte for byte."""
+    a, b, c, d = (tmp_path / n for n in ('a.csv', 'b.csv', 'c.csv', 'd.csv'))
+    a.write_text('# C37 header\nmethod,factor,seconds\njoint,1.25,0.0004\n')
+    b.write_text('# C37 header\nmethod,factor,seconds\njoint,1.25,0.0007\n')
+    c.write_text('# C37 header\nmethod,factor,seconds\njoint,1.26,0.0004\n')
+    d.write_text('# C37 other header\nmethod,factor,seconds\njoint,1.25,0.0004\n')
+    assert compare.tables_same(a, b)
+    assert not compare.tables_same(a, c) and not compare.tables_same(a, d)
+    e, f = tmp_path / 'e.md', tmp_path / 'f.md'
+    e.write_text('seconds 1\n')
+    f.write_text('seconds 2\n')
+    assert not compare.tables_same(e, f)
+    g, h = tmp_path / 'g.csv', tmp_path / 'h.csv'           # time_s of burn_nx is data, not a timing
+    g.write_text('time_s,I\n0,1\n')
+    h.write_text('time_s,I\n1,1\n')
+    assert not compare.tables_same(g, h)
+
+
 def test_build_args():
     spec = {'actions': [
         {'dest': 'out', 'options': ['--out'], 'kind': 'store', 'default': None, 'choices': None, 'nargs': None,
