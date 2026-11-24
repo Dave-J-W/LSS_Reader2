@@ -177,8 +177,13 @@ ESTIMATORS = ('template', 'moments', 'fit')
 
 def _illuminated(y, frac=0.05, inset=2):
     """(first, last) index of the lit part of a profile: above ``frac`` of
-    its maximum, ``inset`` points in from the edges of the frame's shadow."""
-    idx = np.flatnonzero(y > frac * np.nanmax(y))
+    its maximum or half its median, whichever is lower, ``inset`` points in
+    from the edges of the frame's shadow. The median term (2026-11-24) keeps
+    the lit floor lit beside a peak more than 20 times stronger, which the
+    maximum alone would leave out (the window then shrank to the peak); it
+    changes nothing where the floor is above 10 % of the maximum (NX 14, 15:
+    12-15 %)."""
+    idx = np.flatnonzero(y > min(frac * np.nanmax(y), 0.5 * np.nanmedian(y)))
     if idx.size < 2 * inset + 5:
         return 0, len(y) - 1
     return int(idx[0] + inset), int(idx[-1] - inset)
