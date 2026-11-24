@@ -111,13 +111,14 @@ shared_steps:
   - id: shared.frames-look
     do: Look at the frames (colour scale, log, axes, movie)
     where: Pilatus tab
-    controls: [pilLogIntCheckBox, pilMinLineEdit, pilMaxLineEdit, pilMinHorizontalSlider, pilMaxHorizontalSlider, pilCMapComboBox, pilAxesComboBox, pilAspectComboBox, pilMoviePushButton]
+    controls: [pilLogIntCheckBox, pilMinLineEdit, pilMaxLineEdit, pilMinHorizontalSlider, pilMaxHorizontalSlider, pilCMapComboBox, pilAxesComboBox, pilAspectComboBox, pilMoviePushButton, pilHomePushButton, pilFitAllPushButton, pilAutoScalePushButton, pilViewComboBox, pilMoviePlayPushButton, pilMovieBackPushButton, pilMovieForwardPushButton, pilMovieSlider, pilMovieCounterLabel, pilMovieSpeedComboBox, pilMovieLoopCheckBox, pilMovieInfoLabel]
     user_decides: colour limits, log scale, axes (Pixels, Angles, Q)
     automatic: partly
     could_be_automatic: sticky preferences and intelligent colour scales (F70); movie with sticky zoom (F69)
     known_from: code; owner 2026-11-22 (F69, F70)
     issues:
-      - "Colour limits are reset on every selection (code, imageSelectedScanChanged); see docs/gui/image_display.md"
+      - "Fixed 2026-11-24 (F88): colour limits, zoom and settings were reset on every selection; now sticky until another SPEC file, with Home, Fit all and Auto scale"
+      - "Fixed 2026-11-24 (F69): 3 or more frames play as a non-blocking movie (space, arrow keys); never more than 6 tiles"
 
 workflows:
   - id: day-ref

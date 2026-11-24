@@ -6,7 +6,7 @@ and synthetic data from `tests/synth.py` for MCA / fluorescence, the reflectivit
 (NX has no MCA data). Regenerate the whole folder with the command above; the table is rewritten, the
 Observations section is by hand and is kept.
 
-73 images, 5.8 MB, last run took 48 s.
+73 images, 4.5 MB, last run took 46 s.
 
 | File | What it shows | Data and state |
 |---|---|---|
@@ -23,8 +23,8 @@ Observations section is by hand and is kept.
 | `20_pilatus_scan_selected_no_frames.png` | Pilatus tab, whole window: a scan with images selected, no frame selected yet | Scan 11 (ascan dth, 40 frames) selected, no frame selected |
 | `21_pilatus_one_frame.png` | Pilatus tab, whole window, one frame | Scan 11, frame 1 selected |
 | `21b_pilatus_tab_controls.png` | Pilatus tab page (controls above, image below) | Scan 11, frame 1 |
-| `22_pilatus_three_frames.png` | Pilatus tab with three frames selected | Scan 11, frames 1, 11, 21 selected |
-| `23_pilatus_all_frames_of_a_scan.png` | Pilatus tab with ALL frames of a long scan selected (the many-small-images problem) | Scan 11: all 40 frames selected (drawing took 0.6 s offscreen) |
+| `22_pilatus_three_frames.png` | Pilatus tab with three frames selected (a movie since 2026-11-24, F69) | Scan 11, frames 1, 11, 21 selected |
+| `23_pilatus_all_frames_of_a_scan.png` | Pilatus tab with ALL frames of a long scan selected: the movie (F69; before 2026-11-24, 10 small tiles) | Scan 11: all 40 frames selected (drawing took 0.4 s offscreen) |
 | `23b_pilatus_all_frames_reflectivity_series.png` | Pilatus tab with all frames of the four reflectivity scans selected | Scans 6-9: all 96 frames selected |
 | `30_reflectivity_empty.png` | The Reflectivity tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |
 | `31_refpatch_dialog_first_join.png` | Ref Patch window (opened by Pilatus > Ref Patch), first join | Scans 6-9 all frames; Ref Patch clicked |
@@ -88,7 +88,7 @@ Observations section is by hand and is kept.
 
 - **File**: Open Spec File, Preferences..., Quit
 - **Calculations**: g_l2, g_l3, abs ratio
-- **Tools**: All tools…, -, Burn tests, Reflectivity patching, GID and pinhole geometry, Monitor, scans, SPEC files, Synthetic data sets, The reader's window and manual, Made elsewhere
+- **Tools**: All tools…, -, Burn tests, Reflectivity patching, GID and pinhole geometry, Monitor, scans, SPEC files, Fluorescence (MCA), Synthetic data sets, The reader's window and manual, Made elsewhere
 - **Help**: Documentation, About
 - **View**: Messages, Script, Errors
 

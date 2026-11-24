@@ -79,18 +79,18 @@
   needs: "frames selected"
   shown: always
   tooltip: false
-  notes: "Movie and GISAXS switch it to Q silently. Cut directions in pixels or Q are chosen separately in pilCutDirComboBox, not linked to this."
+  notes: "Kept between sessions until another SPEC file is opened (F88, 2026-11-24); the zoom follows a change of Axes onto the same pixels. GISAXS switches it to Q silently (the Movie no longer does, F69). Cut directions in pixels or Q are chosen separately in pilCutDirComboBox, not linked to this."
 - id: pilCMapComboBox
   kind: combo
   label: "CMap:"
   where: "Pilatus"
   handler: update2dPlots
-  does: "Colour map (jet, gray, hot, summer, winter, rainbow)"
+  does: "Colour map (viridis by default; magma, inferno, cividis, jet, gray, hot, summer, winter, rainbow)"
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: ""
   shown: always
-  tooltip: false
-  notes: "List differs from 2D_Plot ('nipy_spectral' there, formerly 'spectral'; 'rainbow' here). Since 2026-11-23 it also colours the Reflectivity ROI images (refAnalyze), which used the removed Apex tab's map before. Not kept between sessions (F70)."
+  tooltip: true
+  notes: "List differs from 2D_Plot ('nipy_spectral' there, formerly 'spectral'; 'rainbow' here). Since 2026-11-23 it also colours the Reflectivity ROI images (refAnalyze), which used the removed Apex tab's map before. Since 2026-11-24 viridis is the default (owner Q-IMG-14; jet stays), with a tooltip, and the choice is kept between sessions until another SPEC file is opened (F88)."
 - id: pilAspectComboBox
   kind: combo
   label: "Aspect:"
@@ -107,12 +107,45 @@
   label: ""
   where: "Pilatus"
   handler: ""
-  does: "Up to 10 selected frames in a grid, each with a colour bar, or one summed frame, GISAXS or GID map; matplotlib toolbar below"
+  does: "The selected frames (at most 6 tiles, sampled, one shared colour bar), one summed frame, GISAXS or GID map; matplotlib toolbar below with Home, Fit all and Auto scale"
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "frames selected"
   shown: always
   tooltip: false
-  notes: "Measured: 11 frames selected -> 10 drawn (F#0-F#9) with no notice; frame titles, axis labels and colour bars overlap and the suptitle overprints the top row; at the default scale (min -2, max 1) the reflectivity frames are a uniform yellow. No overlay of the ROI, cut band or direct beam column, except a dashed line in Movie (read only). Phase-2 subject (image_display.md)."
+  notes: "Measured: 11 frames selected -> 10 drawn (F#0-F#9) with no notice; frame titles, axis labels and colour bars overlap and the suptitle overprints the top row; at the default scale (min -2, max 1) the reflectivity frames are a uniform yellow. No overlay of the ROI, cut band or direct beam column, except a dashed line in Movie (read only). Phase-2 subject (image_display.md). Since 2026-11-24 (F88): redrawn in place, zoom kept across redraws, scans and sessions; nearest pixels; per-tile titles 'S# n pt k' and cursor readouts of the tile under the cursor; the house icon does Fit all."
+- id: pilHomePushButton
+  kind: button
+  label: "Home"
+  where: "Pilatus (image toolbar)"
+  handler: pilHome
+  does: "Back to the remembered zoom: the last box drawn with the zoom tool (the whole frame if none)"
+  workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid, general]
+  needs: "frames shown"
+  shown: always
+  tooltip: true
+  notes: "F88 (owner Q9, 2026-11-23: every axis gets Home and Fit all). The zoom box sets it; a pan does not. On the GID map or GISAXS it fits every axes, as Fit all."
+- id: pilFitAllPushButton
+  kind: button
+  label: "Fit all"
+  where: "Pilatus (image toolbar)"
+  handler: pilFitAll
+  does: "Shows the whole frame; the remembered zoom stays for Home"
+  workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid, general]
+  needs: "an image shown"
+  shown: always
+  tooltip: true
+  notes: "F88. matplotlib's own Home (house icon) does the same since 2026-11-24 (its view stack no longer matches the in-place redraws)."
+- id: pilAutoScalePushButton
+  kind: button
+  label: "Auto scale"
+  where: "Pilatus (image toolbar)"
+  handler: pilAutoScale
+  does: "Forgets the typed Min and Max of this kind of frame: automatic limits again"
+  workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid, general]
+  needs: "frames shown"
+  shown: always
+  tooltip: true
+  notes: "F88/F70: automatic = 99.9th percentile of the selection per Monc with the direct beam masked, 1st percentile at the bottom (owner Q8, Q-IMG-4; lss_core.display.robust_limits)."
 - id: pilLogIntCheckBox
   kind: checkbox
   label: "Log Int"
@@ -122,8 +155,8 @@
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: ""
   shown: always
-  tooltip: false
-  notes: "Off by default although most frames need it (observed). Name differs from LogX/LogY elsewhere."
+  tooltip: true
+  notes: "Since 2026-11-24 the default follows the kind of frame (owner Q8: log for reflectivity, GID, GISAXS; linear for direct beam and dark) and the user's choice is kept per kind until another SPEC file (F88); tooltip. Name differs from LogX/LogY elsewhere."
 - id: pilPinholeCheckBox
   kind: checkbox
   label: "Pinhole"
@@ -140,23 +173,122 @@
   label: "Movie"
   where: "Pilatus"
   handler: pilMovieShow
-  does: "Shows the selected frames one after another (0.5 s each) in Q axes, ending on the last"
-  workflows: [burn-ref, burn-gid, gid, general]
-  needs: "frames selected"
+  does: "Plays the selected frames as a movie (also 2 frames), without blocking; the movie bar under the image controls it"
+  workflows: [reflectivity, gid, burn-ref, burn-gid, general]
+  needs: "2 or more frames selected"
   shown: always
   tooltip: false
-  notes: "Blocks the window while it plays (time.sleep in the draw loop; read only); no stop, step, speed or loop control; switches Axes to Q and leaves it there. Owner wants movie as the default view (F69)."
+  notes: "Before 2026-11-24 a blocking loop (0.5 s per frame, no stop) that set Axes to Q and left it there, and ticked Pinhole while it played; now neither (F69). 3 or more frames play as a movie without it (owner Q7)."
+- id: pilViewComboBox
+  kind: combo
+  label: ""
+  where: "Pilatus (movie bar under the image)"
+  handler: pilViewChanged
+  does: "How 3 or more selected frames are shown: Movie (default), Tiles: 4 or Tiles: 6, sampled first to last"
+  workflows: [reflectivity, gid, burn-ref, burn-gid, general]
+  needs: "3 or more frames selected"
+  shown: always
+  tooltip: true
+  notes: "F69 (owner Q7: a movie whenever 3 or more frames are selected). Never more than 6 tiles; the title says '4 of 41 shown (sampled)'. Kept until another SPEC file."
+- id: pilMovieBackPushButton
+  kind: button
+  label: "◀"
+  where: "Pilatus (movie bar under the image)"
+  handler: pilMovieStep
+  does: "Pauses, then one frame back"
+  workflows: [reflectivity, gid, burn-ref, burn-gid, general]
+  needs: "a movie shown"
+  shown: always
+  tooltip: true
+  notes: "F69; also the Left, Up and Back keys on the image (Q7). Greyed when no movie is shown."
+- id: pilMoviePlayPushButton
+  kind: button
+  label: "▶"
+  where: "Pilatus (movie bar under the image)"
+  handler: pilMoviePlay
+  does: "Plays or pauses the movie (QTimer; zoom, map and scale stay)"
+  workflows: [reflectivity, gid, burn-ref, burn-gid, general]
+  needs: "a movie shown"
+  shown: always
+  tooltip: true
+  notes: "F69; also the space bar on the image (Q7). At the last frame without Loop it plays from the start."
+- id: pilMovieForwardPushButton
+  kind: button
+  label: "▶|"
+  where: "Pilatus (movie bar under the image)"
+  handler: pilMovieStep
+  does: "Pauses, then one frame forward"
+  workflows: [reflectivity, gid, burn-ref, burn-gid, general]
+  needs: "a movie shown"
+  shown: always
+  tooltip: true
+  notes: "F69; also the Right, Down and Forward keys on the image (Q7)."
+- id: pilMovieSlider
+  kind: slider
+  label: ""
+  where: "Pilatus (movie bar under the image)"
+  handler: pilMovieSliderMoved
+  does: "The frame shown, in the order of the selection; the image list marks it as the current row"
+  workflows: [reflectivity, gid, burn-ref, burn-gid, general]
+  needs: "a movie shown"
+  shown: always
+  tooltip: true
+  notes: "F69. The list selection itself does not change."
+- id: pilMovieCounterLabel
+  kind: label
+  label: "1 / 41"
+  where: "Pilatus (movie bar under the image)"
+  handler: 
+  does: "Position of the frame shown in the selection"
+  workflows: [reflectivity, gid, burn-ref, burn-gid, general]
+  needs: "a movie shown"
+  shown: always
+  tooltip: true
+  notes: "F69."
+- id: pilMovieSpeedComboBox
+  kind: combo
+  label: ""
+  where: "Pilatus (movie bar under the image)"
+  handler: pilMovieSettingsChanged
+  does: "Frames per second: 0.5, 1, 2 (default), 5, 10"
+  workflows: [reflectivity, gid, burn-ref, burn-gid, general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "F69. Kept between sessions. One frame update measured at 0.07 s offscreen on NX school frames (2026-11-24)."
+- id: pilMovieLoopCheckBox
+  kind: checkbox
+  label: "Loop"
+  where: "Pilatus (movie bar under the image)"
+  handler: pilMovieSettingsChanged
+  does: "Starts again after the last frame; off: stops on the last frame"
+  workflows: [reflectivity, gid, burn-ref, burn-gid, general]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "F69. Off by default (an assumption: the movie plays once and stops). Kept between sessions."
+- id: pilMovieInfoLabel
+  kind: label
+  label: ""
+  where: "Pilatus (movie bar under the image)"
+  handler: 
+  does: "The frame shown: scan, point, Qz (reflectivity) or 2θ (GID), time since the first frame, absorber, Monc"
+  workflows: [reflectivity, gid, burn-ref, burn-gid, general]
+  needs: "a movie shown"
+  shown: always
+  tooltip: true
+  notes: "F69, image_display.md M3; lss_core.display.frame_text, times from lss_core.timing."
 - id: pilMinHorizontalSlider
   kind: slider
   label: "Min (%):"
   where: "Pilatus"
   handler: updatePilMinSlider
-  does: "Lower end of the colour scale as a percentage of the image range"
+  does: "Lower end of the colour scale, from the smallest to the largest value shown (evenly in log10 on a log scale)"
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "frames selected"
   shown: always
   tooltip: false
-  notes: "Acts on release only."
+  notes: "Acts on release only. Before 2026-11-24 it gave slider x (max - min) / 100 without adding min; now min + ..., and a value set here is kept for the kind of frame (F88)."
 - id: pilMinLineEdit
   kind: lineedit
   label: ""
@@ -166,14 +298,14 @@
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "frames selected"
   shown: always
-  tooltip: false
-  notes: "Observed '-2.0' under the label 'Min (%)': the field holds an intensity (log10 when Log Int), not a percent. Same on 2D_Plot."
+  tooltip: true
+  notes: "Observed '-2.0' under the label 'Min (%)': the field holds an intensity (log10 when Log Int), not a percent. Same on 2D_Plot. Since 2026-11-24 filled automatically (1st percentile; of the positive pixels on a log scale, so a negative Min can no longer make the log view NaN) and kept when typed (F88)."
 - id: pilMaxHorizontalSlider
   kind: slider
   label: "Max (%):"
   where: "Pilatus"
   handler: updatePilMaxSlider
-  does: "Upper end of the colour scale as a percentage of the image range"
+  does: "Upper end of the colour scale, from the smallest to the largest value shown (evenly in log10 on a log scale)"
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "frames selected"
   shown: always
@@ -188,8 +320,8 @@
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "frames selected"
   shown: always
-  tooltip: false
-  notes: "Observed 1.0 for S# 3 frames and 5.0 for S# 11: defaults that saturate."
+  tooltip: true
+  notes: "Observed 1.0 for S# 3 frames and 5.0 for S# 11: defaults that saturate. Since 2026-11-24 filled automatically (99.9th percentile of the selection per Monc, direct beam masked; owner Q8, Q-IMG-4); a typed value (Enter) is kept for the kind of frame until Auto scale or another SPEC file (F88)."
 - id: pilMergeSameQzCheckBox
   kind: checkbox
   label: "Merge Same Qzs"

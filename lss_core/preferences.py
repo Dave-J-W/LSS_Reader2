@@ -62,6 +62,10 @@ DEFAULTS = {
     # Reduction options (F86, owner 2026-11-23): legacy paths, off by default
     'mca_fit_legacy': False,
     'burn_legacy_tab': False,
+    # the Pilatus frames display (F88, owner 2026-11-23, Q9): colour map, aspect, Axes, log per kind of
+    # frame, typed limits per kind, the zoom and the Home zoom, and (F69) the movie's view, speed and
+    # loop. Kept between sessions; reset when another SPEC file is opened ('spec' says which file)
+    'pil_display': {},
 }
 
 

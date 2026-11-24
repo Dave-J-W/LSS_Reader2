@@ -2,9 +2,13 @@
 tooltip saying what is needed (owner, 2026-11-23, Q-UI-A10). Only for a known
 kind (reflectivity, GID, burn, GISAXS); unknown or mixed selections leave
 every tool enabled, so a wrong guess never blocks an action."""
+import os
+
 import pytest
 
 import sweep
+
+NX = os.path.join('sample_data', 'NX_school', '2026sep', '20260923')
 
 pytestmark = pytest.mark.gui
 
@@ -43,6 +47,22 @@ def test_gid_patch_with_nothing_selected_says_so(window, qapp, recorder):
     assert any('GID scans and their frames first' in m for m in recorder.messages)
 
 
+@pytest.mark.skipif(not os.path.exists(NX), reason='NX_school sample data not present')
+def test_gid_patch_with_frames_selected_runs(window, qapp, recorder, tmp_path):
+    """The guard above read the selected frames with 'x or []': once frames are
+    selected they are a numpy array, whose truth value raised ValueError, so GID
+    Patch never ran (found by the crash sweep's GID walk, 2026-11-24)."""
+    window.openSpecFile(fname=NX)
+    window.directory = str(tmp_path)
+    sweep._select_scans(window, qapp, [11])                      # scan 12: 4 GID frames
+    sweep._select_images(window, qapp)
+    window.flushPendingSelection()
+    window.gidPatchPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert window.pilGIDshow == 1
+
+
 def test_gid_patch_on_frames_without_gid_levels_says_so(loaded, qapp, dataset, recorder):
     """Found by the crash sweep (2026-11-24): GID Patch on reflectivity frames
     raised ValueError (an empty array tested for truth in the GID patch). The
@@ -54,4 +74,15 @@ def test_gid_patch_on_frames_without_gid_levels_says_so(loaded, qapp, dataset, r
     qapp.processEvents()
     assert recorder.exceptions == []
     # the patch's own GIDError message since the test-speed session's #29, else gidPatch's safety net
+    assert any('no GID levels' in m or 'nothing to patch' in m for m in recorder.messages)
+
+
+def test_worksheet_patch_on_frames_without_gid_levels_says_so(loaded, qapp, dataset, recorder):
+    """The worksheet's own Patch button reached the same ValueError as GID
+    Patch on reflectivity frames (the crash sweep, 2026-11-24): now the same
+    message."""
+    sweep.state_pilatus_one_frame(loaded, qapp, dataset)
+    loaded.gidWorksheetPatch()
+    qapp.processEvents()
+    assert recorder.exceptions == []
     assert any('no GID levels' in m or 'nothing to patch' in m for m in recorder.messages)
