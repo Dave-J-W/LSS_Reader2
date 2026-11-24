@@ -19,6 +19,7 @@ Observations section is by hand and is kept.
 | `12_specplot_tab_crop.png` | SpecPlot tab page: controls and plot | Scan 4 selected |
 | `13_specplot_two_scans.png` | SpecPlot with two scans selected (legend, N-scan controls) | Scans 4 and 5 selected |
 | `13b_specplot_beam_off_scan.png` | SpecPlot of scan 1 (a motor scan with the beam off) | Scan 1 selected |
+| `14_timeline_tab.png` | Timeline tab (F83): events, sx, sample-height scans and scans on one time axis | NX school file opened; Timeline tab shown (fitted to the whole file) |
 | `20_pilatus_empty.png` | The Pilatus tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |
 | `20_pilatus_scan_selected_no_frames.png` | Pilatus tab, whole window: a scan with images selected, no frame selected yet | Scan 11 (ascan dth, 40 frames) selected, no frame selected |
 | `21_pilatus_one_frame.png` | Pilatus tab, whole window, one frame | Scan 11, frame 1 selected |
@@ -149,4 +150,5 @@ fonts), where font metrics may differ a little from the owner's desktop.
 - A finished "Reading Scan #1, 100 %, Abort" progress window from an earlier step sometimes appeared late, and was caught as `81d_plot_scale_window.png` with the real window as `81d_*b.png`. The tool now leaves progress windows out. Not reproduced by opening the NX file and waiting 6 s; the SPEC reader keeps the window referenced (`spec_routines.py:236`), so Qt's show-if-slow timer could show it after reading (cause guessed; TODO area I).
 - Reflectivity screenshots (`30_*`, `32_*`, `33_*`) retaken for the "+ covariance" box after the reflectivity Save.
 - Ref Patch window (`31_*`, `31c_*`) and Reflectivity tab (`30_*`, `31b_*`, `32_*`, `33_*`) retaken 2026-11-24 for F96: Back, Cancel and the join table in the window; the line under the Reflectivity plot.
+- Pilatus (`21_*`, `22_*`, `23_*`, `23b_*`) and Reflectivity (`30_*`, `32_*`, `33_*`) screenshots retaken 2026-11-24 for the ROI close-up panel (F71, F97): beside the frame on the Pilatus tab, in the close-up on the Reflectivity tab.
 - `99_menu_view.png` retaken 2026-11-24 for F74 (View > Residuals above fits). The Pilatus screenshots show no saturation cue (F97): no NX frame here is above 1e5 counts/s. **Most whole-window screenshots now differ from a rerun** (changes by several sessions since 2026-11-23, not checked one by one); they are left for a full retake.

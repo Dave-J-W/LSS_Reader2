@@ -286,7 +286,7 @@ INVENTORY = {
     'scriptDock_toggleViewAction': ('action', 'Script', 'Menu bar > View', 'Shows or hides the Script pane'),
     'errorDock_toggleViewAction': ('action', 'Errors', 'Menu bar > View', 'Shows or hides the Errors pane (error model)'),
     'actionFitResiduals': ('action', 'Residuals above fits', 'Menu bar > View', "Shows a small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends): the residuals (y − fit)/σ of the fitted points, and χ²/dof in the fit's legend label"),
-    'PlotWidget': ('tab', 'SpecPlot | Pilatus | Reflectivity | Line/Area Cuts | MCA | Plot | 2D_Plot', 'Main window (right of the left panel)', 'The tabs of the window (the hidden Apex tab was removed 2026-11-23, owner Q14)'),
+    'PlotWidget': ('tab', 'SpecPlot | Pilatus | Reflectivity | Line/Area Cuts | MCA | Plot | 2D_Plot | Timeline', 'Main window (right of the left panel)', 'The tabs of the window (the hidden Apex tab was removed 2026-11-23, owner Q14)'),
     'messageDock': ('pane', 'Messages', 'Bottom dock (tabbed with Script and Errors)', 'Collects every message to the user (warnings, fit results, absorber notes) with the time; nothing blocks'),
     'messageView': ('pane', '', 'Messages pane', 'Read-only text of the messages (last 2000 blocks)'),
     'scriptDock': ('pane', 'Script', 'Bottom dock (tabbed with Messages and Errors)', 'Shows, for actions that have one, the lss_core Python that does the same thing, ready to copy (F48)'),
@@ -317,6 +317,9 @@ INVENTORY = {
     'pilCMapComboBox': ('combo', 'CMap:', 'Pilatus', 'Colour map (viridis by default; magma, inferno, cividis, jet, gray, hot, summer, winter, rainbow)'),
     'pilAspectComboBox': ('combo', 'Aspect:', 'Pilatus', 'Image aspect auto or equal'),
     'pilMplWidget': ('plot', '', 'Pilatus', 'The selected frames (at most 6 tiles, sampled, one shared colour bar), one summed frame, GISAXS or GID map; matplotlib toolbar below with Home, Fit all and Auto scale'),
+    'pilRoiPanel': ('plot', '', 'Pilatus, beside the frame (splitter)', "The ROI close-up of the frame on show (F71): signal and background boxes drawn from sumROI's arithmetic, the profiles, the sums and the checks; follows the movie"),
+    'pilRoiLogCheckBox': ('checkbox', 'Log', 'Pilatus > ROI close-up', 'Log colour scale of the close-up and log profiles; one setting for both tabs'),
+    'pilRoiCuesLabel': ('label', 'off centre 30 % · clipped 2 %', 'Pilatus > ROI close-up', 'The checks of the boxes on this frame: off centre (> 25 % of the half-width), clipped (> 1 % on or beyond the edge), background within 2 px, saturation, direct beam in a box, box off the frame'),
     'pilHomePushButton': ('button', 'Home', 'Pilatus (image toolbar)', 'Back to the remembered zoom: the last box drawn with the zoom tool (the whole frame if none)'),
     'pilFitAllPushButton': ('button', 'Fit all', 'Pilatus (image toolbar)', 'Shows the whole frame; the remembered zoom stays for Home'),
     'pilAutoScalePushButton': ('button', 'Auto scale', 'Pilatus (image toolbar)', 'Forgets the typed Min and Max of this kind of frame: automatic limits again'),
@@ -398,6 +401,8 @@ INVENTORY = {
     'refAcceptPushButton': ('button', 'Accept', 'Reflectivity > top', 'Adds the analysed point (Qz, R, error, comment) to the Ref list and replots'),
     'refAnalyzeAllPushButton': ('button', 'Analyze All', 'Reflectivity > top', 'Analyzes and accepts every Qz in the list in turn, with a modal progress dialog'),
     'refADDataPlotWidget': ('plot', '', 'Reflectivity > top', 'ROI close-up of the selected Qz: without correction (top/left) and, after Analyze, with correction'),
+    'refRoiLogCheckBox': ('checkbox', 'Log', 'Reflectivity > ROI close-up', "Log colour scale of the close-up and log profiles; the same setting as the Pilatus tab's"),
+    'refRoiCuesLabel': ('label', 'off centre 30 % · clipped 2 %', 'Reflectivity > ROI close-up', "The checks of the boxes on the selected Qz's frame, as on the Pilatus tab"),
     'refBadPixListWidget': ('list', 'Bad Pixels:', 'Reflectivity > top', 'Lists, by Qz, the bad pixels corrected inside the signal box of each frame of the Ref Patch on show (scan, frame, pixels x, y); those points carry a cross on the plot'),
     'refQLineEdit': ('lineedit', 'Q:', 'Reflectivity > middle', 'Shows the Qz of the analysed point'),
     'refRLineEdit': ('lineedit', 'R:', 'Reflectivity > middle', 'Shows the net ROI intensity of the analysed point (per monitor, times absorber factor; not normalised)'),
@@ -443,6 +448,10 @@ INVENTORY = {
     'spLegendLocComboBox': ('combo', '', 'SpecPlot', 'Legend position'),
     'spExportPushButton': ('button', 'Export', 'SpecPlot', 'Writes one text file per selected scan (x, y, error; y2 and normalised variants) named after the columns'),
     'specSaveWorkbookPushButton': ('button', 'Save', 'SpecPlot', "Saves the plotted curves (and fit) into the SPEC file's workbook as a new version, asking for a note"),
+    'timelineTab': ('tab', 'Timeline', 'Main window tabs, last', "The sample timeline: events (set sh 0 as new sample?, re-referencing, aborts, macro loads, session restarts, gaps), sx, sample-height scans with FWHM and p, scan bars by kind, on the file's local clock"),
+    'timelineView': ('plot', '', 'Timeline', 'The lanes (QGraphicsView): wheel zooms the time axis about the cursor, drag pans, double-click fits; a click on a scan bar or an sh scan selects that scan'),
+    'timelineFitPushButton': ('button', 'Fit all', 'Timeline > top', 'Shows the whole file'),
+    'timelineInfoLabel': ('label', '20260923: 15 scans, 09:32 to 11:23, 1 set sh 0 (new sample?)', 'Timeline > top', 'What is shown: the file, the number of scans, the time range on its local clock, the set sh 0 count; its tooltip says where each lane comes from'),
 }
 
 COMBO_ITEMS = {

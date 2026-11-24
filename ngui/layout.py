@@ -387,7 +387,10 @@ REFLECTIVITY = {
         [SPECIAL('tabs', name='ref_roiTabs', pages=[
             ('ROI close-up', [PLOT('refADDataPlotWidget', 'ROI movie (log)', 'roi',
                   note='Opens on log scale, zoomed to a box holding the ROI and both background zones with a margin of '
-                       'diffuse scattering around them: a healthy zoom, not too close (owner 2026-11-23; F71)')]),
+                       'diffuse scattering around them: a healthy zoom, not too close (owner 2026-11-23; F71)'),
+                  C('refRoiLogCheckBox', 'Log'),
+                  C('refRoiCuesLabel', 'off centre 30 % · clipped 2 %', kind='label',
+                    note='The checks of the boxes (Q-IMG-7), the reasons in the tooltip')]),
             ('Checks', [NEW('ref_centreChecks', 'Beam centre off', 'list',
                             'Frames whose beam centre is more than 2 px off; in the main window since 2026-11-24 a '
                             'message and open squares on the curve (F95)'),
@@ -736,6 +739,13 @@ RETIRED = {
     'peakfit2': 'Dialog never shown: ' + Q14,
     'peakfitpara': 'Dialog never shown: ' + Q14,
     'refBPCFacLineEdit': 'Defunct: read and never used (inventory); bad pixels are set in Frames > Reduce',
+    'timelineTab': 'Built in the main window first (owner, 2026-11-24); ngui is to show the same view, timelineview.TimelineView',
+    'timelineView': 'The main window\'s Timeline tab (F83); ngui is to reuse it',
+    'timelineFitPushButton': 'Part of the main window\'s Timeline tab (F83)',
+    'timelineInfoLabel': 'Part of the main window\'s Timeline tab (F83)',
+    'pilRoiPanel': 'One ROI close-up in this layout (Reflectivity > ROI close-up); the main window also has it beside the frame',
+    'pilRoiLogCheckBox': 'One ROI close-up in this layout: its Log box is Reflectivity > ROI close-up > Log',
+    'pilRoiCuesLabel': 'One ROI close-up in this layout: its checks are under Reflectivity > ROI close-up',
     'pilPeakCenDialog.peakCenTextBrowser': 'Removed 2026-11-24 (F95, Q-UI-B6): a message and marks instead of a modal box',
     'pilBadPixDialog.peakCenTextBrowser': 'Removed 2026-11-24 (F95, Q-UI-B6): the Bad Pixels list (Checks) instead of a modal box',
     # dialog chrome made unnecessary by inline groups

@@ -8,6 +8,8 @@ from PyQt5.Qt import *
 from spec_routines import specread, is_spec_file
 from mca_routines import mcaread
 from mplwidget import MplWidget, errorbars, mesh
+import roipanel
+from roipanel import RoiPanel
 from matplotlib.widgets import MultiCursor
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.gridspec as gridspec
@@ -266,6 +268,7 @@ class MainWindow (QMainWindow):
         self.initToolsMenu()
         self.initPilDisplay()
         self.initPilMovie()
+        self.initRoiPanels()
         self.gidParams=gidmod.GIDParams()     # GID patch settings (worksheet, F61)
         self.gidJoinLog=[]
         self.gidLevels=[]
@@ -273,6 +276,7 @@ class MainWindow (QMainWindow):
         self.ui.gidComboBox.addItem('Save to workbook')
         self.initGIDButtons()
         self.initRefProvenance()
+        self.initTimelineTab()
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
@@ -726,9 +730,8 @@ class MainWindow (QMainWindow):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
         residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)
         self.ui.cutPlotMplWidget.canvas.draw()
-        self.ui.refADDataPlotWidget.canvas.ax.clear()
-        self.ui.refADDataPlotWidget.canvas.draw()
-        self.ui.refQzListWidget.clear() 
+        self.roiClearPanels()      # the ROI close-ups (F71), on both tabs
+        self.ui.refQzListWidget.clear()
         # self.connect(self.ui.scanListWidget, SIGNAL('itemSelectionChanged()'),self.scanListChanged)
         # self.connect(self.ui.imageListWidget, SIGNAL('itemSelectionChanged()'),self.imageSelectedScanChanged)
         # self.connect(self.ui.refQzListWidget, SIGNAL('itemSelectionChanged()'),self.refQzListSelectionChanged)
@@ -1242,6 +1245,8 @@ class MainWindow (QMainWindow):
         self.updateSeries()
         grown=[n for n in scannums if n in old_pts and self.scanPoints.get(n,0)>old_pts[n]]
         self.checkStaleResults()
+        if (new or grown) and self.ui.PlotWidget.currentWidget() is getattr(self,'timelineTab',None):
+            self.updateTimeline()       # F83: the timeline on show follows the growing file
         return new,grown
 
     def liveUpdate(self):
@@ -3816,6 +3821,8 @@ class MainWindow (QMainWindow):
             self.pilApplyDisplay()
             if hasattr(self.ui,'pilViewComboBox'):
                 self.pilApplyMovieSettings()
+            if hasattr(self.ui,'pilRoiLogCheckBox'):
+                self.roiApplySettings()
             self.pilSaveDisplay()
 
     def pilRememberDisplay(self,*args):
@@ -4080,7 +4087,10 @@ class MainWindow (QMainWindow):
             for ax in axs:
                 ax.callbacks.connect('xlim_changed',self.pilLimitsChanged)
                 ax.callbacks.connect('ylim_changed',self.pilLimitsChanged)
-            self.pilView={'key':key,'axes':axs,'images':ims,'lines':lines,'cbar':cbar,'sats':sats,'satnotes':notes}
+            # F71 R2: the ROI boxes summed, as outlines (no longer burned into pixels)
+            rois=[self.pilRoiPatches(ax) for ax in axs]
+            self.pilView={'key':key,'axes':axs,'images':ims,'lines':lines,'cbar':cbar,'sats':sats,'satnotes':notes,
+                          'rois':rois}
         self.pilUpdateImages(arrays)
         bg=len(self.ui.backgroundListWidget.selectedItems())!=0
         self.pilView['cbar'].update_normal(self.pilView['images'][0])
@@ -4105,6 +4115,8 @@ class MainWindow (QMainWindow):
         frames=list(self.selectedPilFramesNums)
         self._pilSettingLimits=True
         cued=False
+        rois={}                               # position in the selection -> its ROI (F71), for the panel too
+        roiset=self.pilRoiSettings()
         try:
             for k,(ax,im,line) in enumerate(zip(v['axes'],v['images'],v['lines'])):
                 p=self.pilShown[k]
@@ -4134,12 +4146,16 @@ class MainWindow (QMainWindow):
                 if k==0:
                     self.Zdata=arr
                     self.extent=extent
+                if self.pilMode!='sum':
+                    rois[p]=self.pilRoiOf(frames[p],p,roiset)
+                self.pilRoiOutline(v.get('rois',[None]*len(v['axes']))[k],rois.get(p),extent,arr.shape)
             # the cue explained where it is shown (rule 9); no tooltip over the frames otherwise
             self.ui.pilMplWidget.setToolTip(self.SATURATION_TIP % (display._short(display.SOFT_CPS),
                                             display._short(display.HARD_CPS)) if cued else '')
             self.pilApplyZoom(draw=False)
         finally:
             self._pilSettingLimits=False
+        self.pilRoiPanelShow(rois.get(self.pilShown[0]) if self.pilMode!='sum' and self.pilShown else None)
 
     SATURATION_TIP=('Amber pixels: above %s counts per second (the soft limit); red: above %s counts per second, '
                     'an absorber is needed (owner, 2026-11-23, Q-IMG-10). Counts per second are the raw counts over '
@@ -4549,6 +4565,333 @@ class MainWindow (QMainWindow):
         else:
             self.pilMovieStep(act)
         return True
+
+    # ---- the reflectivity ROI close-up (F71; image_display.md §2.4 R1-R6). Owner, 2026-11-23: a side
+    # panel, always visible beside the frame, the same for both tabs (Q-IMG-7); one panel, the box moved to
+    # the found peak and the old box dashed (Q-IMG-16); the cue thresholds 25 %, 1 %, 2 px (Q-IMG-7).
+    # Display only: the sums shown are the reduction's own (sumROI, netROI), made on a detector of the
+    # display's (self._roiDetector), so the window's own detector state is never touched.
+
+    ROI_PANEL_TIP=('The ROI close-up (F71): the frame zoomed to the signal box (white), both background boxes '
+                   '(cyan) and a margin of diffuse scattering around them, on its own colour scale (the top at the '
+                   '99.9th percentile of the signal box). The boxes are drawn from sumROI\'s own arithmetic '
+                   '(lss_core.display.roi_boxes): the pixels outlined are the pixels summed. Dashed: the boxes '
+                   'before the peak search (owner, Q-IMG-16). Below: each column summed over the signal box\'s '
+                   'rows and each row over its columns, the boxes shaded and the background level subtracted '
+                   'dotted. Squares: pixels above the count-rate limits; ×: the direct beam')
+
+    def initRoiPanels(self):
+        from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QSplitter, QSizePolicy
+        from mpl2dwidget import MplCanvas
+        self._roiDetector=TwoDDetector('Pilatus')
+
+        def parts(prefix,host):
+            log=QCheckBox('Log',host)
+            log.setToolTip('Log colour scale of the close-up and log profiles (the default: the reflected beam and '
+                           'the diffuse scattering around it both show, owner F71). The close-up has its own scale, '
+                           'from its signal box; the frame\'s Log Int is not changed. One setting for both tabs, '
+                           'kept until another SPEC file is opened')
+            numbers=QLabel('',host)
+            cues=QLabel('',host)
+            cues.setWordWrap(True)
+            cursor=QLabel('',host)
+            cursor.setToolTip('The pixel under the cursor on the close-up (column, row: value, in the units of its '
+                              'colour bar), or the profile value under it')
+            for name,w in (('RoiLogCheckBox',log),('RoiNumbersLabel',numbers),('RoiCuesLabel',cues),
+                           ('RoiCursorLabel',cursor)):
+                w.setObjectName(prefix+name)
+                setattr(self.ui,prefix+name,w)
+            for w in (numbers,cues,cursor):
+                w.setSizePolicy(QSizePolicy.Ignored,QSizePolicy.Preferred)
+                w.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            return log,numbers,cues,cursor
+
+        # the Pilatus tab: a panel beside the frame, in a splitter (either side can be widened)
+        host=self.ui.pilMplWidget
+        layout=self._layoutHolding(host)
+        panel=QWidget()
+        panel.setObjectName('pilRoiPanel')
+        self.ui.pilRoiPanel=panel
+        canvas=MplCanvas()
+        canvas.setObjectName('pilRoiCanvas')
+        canvas.setToolTip(self.ROI_PANEL_TIP)
+        canvas.setMinimumSize(180,240)
+        log,numbers,cues,cursor=parts('pil',panel)
+        v=QVBoxLayout(panel)
+        v.setContentsMargins(0,0,0,0)
+        v.addWidget(canvas,1)
+        row=QHBoxLayout()
+        row.addWidget(log)
+        row.addWidget(cursor,1)
+        v.addLayout(row)
+        numbers.setWordWrap(True)
+        v.addWidget(numbers)
+        v.addWidget(cues)
+        split=QSplitter(Qt.Horizontal)
+        split.setObjectName('pilRoiSplitter')
+        split.setChildrenCollapsible(False)
+        if layout is not None:
+            if hasattr(layout,'getItemPosition'):
+                pos=layout.getItemPosition(layout.indexOf(host))
+                layout.removeWidget(host)
+                layout.addWidget(split,*pos)
+            else:
+                k=layout.indexOf(host)
+                layout.removeWidget(host)
+                layout.insertWidget(k,split,1)
+        split.addWidget(host)
+        split.addWidget(panel)
+        split.setStretchFactor(0,3)
+        split.setStretchFactor(1,1)
+        split.setSizes([3000,1000])
+        self.pilRoi=RoiPanel(canvas,numbers,cues,cursor,log,wide=False)
+        # the Reflectivity tab: the same panel in its close-up canvas, with its labels on one row
+        rhost=self.ui.refADDataPlotWidget
+        rhost.canvas.setToolTip(self.ROI_PANEL_TIP)
+        rlog,rnumbers,rcues,rcursor=parts('ref',rhost)
+        row=QHBoxLayout()
+        for w,stretch in ((rlog,0),(rnumbers,2),(rcues,3),(rcursor,1)):
+            row.addWidget(w,stretch)
+        rhost.vbl.insertLayout(1,row)
+        self.refRoi=RoiPanel(rhost.canvas,rnumbers,rcues,rcursor,rlog,wide=True)
+        self.roiApplySettings()
+        for box in (log,rlog):
+            box.stateChanged.connect(self.roiLogChanged)
+        for sig in (self.ui.refSlitLineEdit.returnPressed,self.ui.refBGOffLineEdit.returnPressed,
+                    self.ui.refBGDirComboBox.currentIndexChanged,self.ui.pilLowQzCorCheckBox.stateChanged):
+            sig.connect(self.pilRoiSettingsChanged)
+        panel.setVisible(False)          # until reflectivity frames are shown
+
+    @staticmethod
+    def _layoutHolding(widget):
+        """The layout (of its parent, or nested in it) that holds ``widget``, or None."""
+        def walk(lay):
+            if lay is None:
+                return None
+            if lay.indexOf(widget)>=0:
+                return lay
+            for k in range(lay.count()):
+                found=walk(lay.itemAt(k).layout())
+                if found is not None:
+                    return found
+            return None
+        parent=widget.parentWidget()
+        return walk(parent.layout()) if parent is not None else None
+
+    def roiApplySettings(self):
+        """The close-ups' Log box from the display settings (log by default, owner F71)."""
+        on=bool(self.pilDisplay.get('roi_log',True))
+        for box in (self.ui.pilRoiLogCheckBox,self.ui.refRoiLogCheckBox):
+            box.blockSignals(True)
+            box.setChecked(on)
+            box.blockSignals(False)
+
+    def roiClearPanels(self):
+        """Both close-ups empty (another SPEC file)."""
+        if not hasattr(self,'refRoi'):
+            return
+        self.roiApplySettings()
+        self.pilRoi.clear('Select reflectivity frames')
+        self.refRoi.clear('Select a Qz')
+
+    def roiLogChanged(self,state):
+        on=bool(state)
+        self.pilDisplay['roi_log']=on
+        self.roiApplySettings()
+        self.pilSaveDisplay()
+        for panel in (self.pilRoi,self.refRoi):
+            if panel.view is not None:
+                panel.show(panel.view)
+
+    def pilRoiSettings(self):
+        """(slit, background offset in degrees, direction) from the Reflectivity tab's fields, read as Ref
+        Patch reads them; or a str saying why there is no ROI."""
+        try:
+            parts=str(self.ui.refSlitLineEdit.text()).split(',')
+            slit=[int(parts[0]),int(parts[1])]
+            bg=float(self.ui.refBGOffLineEdit.text())
+        except (ValueError,IndexError):
+            return 'No ROI: the Reflectivity tab\'s Slit(H,V) must be two whole numbers and BG Offset a number'
+        return slit,bg,str(self.ui.refBGDirComboBox.currentText())
+
+    def pilRoiOf(self,i,p,settings):
+        """The ROI of frame ``i`` (position ``p`` of the selection) as Ref Patch sums it
+        (lss_core.reflectivity.frame_row: the centre found by peakLocate, the low-Qz slit as Ref Patch
+        applies it): a dict for the close-up and the outlines, or a str saying why there is none."""
+        kind=self.pilFrameKind(i)
+        if kind not in display.ROI_KINDS:
+            return 'No ROI: a %s frame (the close-up shows reflectivity frames)' % kind
+        if isinstance(settings,str):
+            return settings
+        slit,bg_deg,direction=settings
+        det=self._roiDetector
+        det.errors=self.pilatus.errors
+        try:
+            frames=list(self.selectedPilFramesNums)
+            first=next(j for j in frames if self.pilScanNum[j]==self.pilScanNum[i])==i
+            low=first or self.ui.pilLowQzCorCheckBox.checkState()!=0     # as Ref Patch (P18)
+            qz=float(self.pilFileQzs[i])
+            row,info=reflectivity.frame_row(det,self.pilData[i],self.pilErrorData[i],self.pilMonc[i],
+                                            (self.pilX[i],self.pilY[i]),qz,list(slit),bg_deg,direction,
+                                            self.pil_Dist[i],low_qz_slit=low)
+            sums=tuple(float(x) for x in det.roiParts['values'])+(float(row[1]),float(row[2]))
+            boxes=display.roi_boxes(info['slit'],info['centre'],info['bg'],direction)
+            moved=tuple(info['centre'])!=tuple(info['expected'])
+            old=display.roi_boxes(info['slit'],info['expected'],info['bg'],direction) if moved else None
+        except (ValueError,IndexError,KeyError,TypeError,ZeroDivisionError) as e:
+            return 'No ROI on this frame: %s' % e
+        image,error=det.imageData,det.errorData
+        region=display.roi_region(boxes+(old or []),image.shape,direction)
+        if region is None:
+            return 'No ROI: the boxes are off the frame'
+        soft,hard,_=display.saturation(self.pilData[i],self.pilSeconds(i))
+        try:
+            beam=display.direct_beam_pixel(float(self.xcenter[p]),float(self.ycenter[p]),float(self.alpha[p]),
+                                           float(self.truealpha[p]),float(self.dth[p]),
+                                           float(self._pilDistance0[p]))
+        except (AttributeError,IndexError,TypeError,ValueError):
+            beam=None
+        saturated=None if soft is None else (soft,hard)
+        cues=display.roi_cues(image,error,boxes,sums,direction,beam,saturated,kind)
+        sb=dict(boxes)['signal']
+        centres=', '.join('%s %g' % (n,(b[2]+b[3]-1)/2.0 if direction=='H' else (b[0]+b[1]-1)/2.0)
+                          for n,b in boxes[1:])
+        tip=('Frame by frame as Ref Patch sums it (lss_core.reflectivity.frame_row). Centre found by peakLocate: '
+             'column %d, row %d; SPEC beam position %d, %d%s. Slit typed %d,%d%s, summed %d × %d px (slit − 2, '
+             'PHYSICS_ISSUES P12). BG offset %g° = %.1f px typed; the background boxes are centred at %s '
+             '(sumROI: int(centre ± offset × (slit − 2)/slit)). Units: counts per Monc, before the absorber and '
+             'join factors of Ref Patch.'
+             % (info['centre'][0],info['centre'][1],info['expected'][0],info['expected'][1],
+                ' (dashed boxes)' if moved else '',slit[0],slit[1],
+                ', height 5 at 0.02 < Qz < 0.03 (low-Qz slit, as Ref Patch)' if list(info['slit'])!=list(slit) else '',
+                sb[3]-sb[2],sb[1]-sb[0],bg_deg,
+                info['bg']*(slit[0] if direction=='H' else slit[1]),centres or 'none'))
+        return {'image':image,'error':error,'region':region,'boxes':boxes,'old':old,'direction':direction,
+                'sums':sums,'cues':cues,'saturated':saturated,'beam':beam,'kind':kind,
+                'title':'%s · Qz %.4f' % (self.pilTitle(i),qz),'units':'counts / Monc (as Ref Patch sums)',
+                'tip':tip,'cmap':getattr(self,'pilCmap',None),'frame':i}
+
+    def pilRoiPatches(self,ax):
+        """Three outlines (signal, two backgrounds) on a frame's axes, hidden until a ROI is drawn (R2)."""
+        from matplotlib.patches import Rectangle
+        out=[]
+        for k in range(3):
+            r=Rectangle((0,0),1,1,fill=False,ec=roipanel.SIGNAL_COLOUR if k==0 else roipanel.BG_COLOUR,lw=1.0,
+                        zorder=3.5,path_effects=roipanel.STROKE)
+            r.set_visible(False)
+            ax.add_patch(r)
+            out.append(r)
+        return out
+
+    def pilRoiOutline(self,patches,roi,extent,shape):
+        """The boxes of ``roi`` as outlines on a frame drawn over ``extent`` (any Axes choice: the extent is
+        linear in pixels); hidden when there is no ROI."""
+        if not patches:
+            return
+        boxes=roi['boxes'] if isinstance(roi,dict) else []
+        x0,x1,y0,y1=[float(t) for t in extent]
+        dx,dy=(x1-x0)/shape[1],(y1-y0)/shape[0]
+        for k,patch in enumerate(patches):
+            on=display.box_on_frame(boxes[k][1],shape) if k<len(boxes) else None
+            if on is None:
+                patch.set_visible(False)
+                continue
+            patch.set_bounds(x0+on[2]*dx,y0+on[0]*dy,(on[3]-on[2])*dx,(on[1]-on[0])*dy)
+            patch.set_visible(True)
+
+    def pilRoiPanelShow(self,roi):
+        """The Pilatus tab's close-up for the frame on show (the movie's, or the first tile): shown for
+        reflectivity frames, hidden otherwise (the frame keeps the width)."""
+        panel=getattr(self,'pilRoi',None)
+        if panel is None:
+            return
+        on=self.pilKind in display.ROI_KINDS and self.pilFramesShown()
+        if self.ui.pilRoiPanel.isHidden()==on:
+            self.ui.pilRoiPanel.setVisible(on)
+        if not on:
+            return
+        if self.pilMode=='sum':
+            panel.clear('"Sum All" is on: the close-up shows single frames, as Ref Patch sums them')
+        elif isinstance(roi,dict):
+            panel.show(roi)
+        else:
+            panel.clear(roi or 'No ROI')
+
+    def pilRoiSettingsChanged(self,*args):
+        """The ROI fields (or the low-Qz slit) changed: the outlines and the close-up of the frames on show
+        follow at once (the Reflectivity tab's are redrawn by refQzListSelectionChanged)."""
+        if not self.pilFramesShown() or getattr(self,'pilMode','')=='sum':
+            return
+        frames=list(self.selectedPilFramesNums)
+        shown=list(self.pilShown)
+        if not frames or not shown or max(shown)>=len(frames) or len(self.pilExt[0])!=len(frames):
+            return
+        disp=self.pilDisplayData(frames)
+        self.pilUpdateImages([disp[frames[p]] for p in shown])
+        self.ui.pilMplWidget.canvas.draw_idle()
+
+    def refRoiShow(self,cen,sums=None,old=None):
+        """The Reflectivity tab's close-up of the Qz selected: the frames at that Qz per Monc,
+        absorber-corrected (their mean when several: sumFiles), as Analyze sums them; the boxes at ``cen``
+        with ``sums`` (sumROI, netROI; made here before Analyze); ``old``: the centre before the peak
+        search, its boxes dashed."""
+        panel=getattr(self,'refRoi',None)
+        if panel is None:
+            return
+        det=self.pilatus
+        analysed=sums is not None
+        try:
+            boxes=display.roi_boxes(self.slit,cen,self.bg,self.dir)
+            oldboxes=display.roi_boxes(self.slit,old,self.bg,self.dir) if old is not None else None
+            if sums is None:
+                d=self._roiDetector
+                d.imageData,d.errorData,d.errors,d.monitorTerms=det.imageData,det.errorData,det.errors,det.monitorTerms
+                vals=d.sumROI(slit=list(self.slit),cen=list(cen),dir=self.dir,bg=self.bg)
+                net,neterr=d.netROI()
+                sums=tuple(vals)+(net,neterr)
+            sums=tuple(float(x) for x in sums)
+        except (ValueError,IndexError,TypeError) as e:
+            panel.clear('No ROI: %s' % e)
+            return
+        image,error=det.imageData,det.errorData
+        region=display.roi_region(boxes+(oldboxes or []),image.shape,self.dir)
+        if region is None:
+            panel.clear('No ROI: the boxes are off the frame')
+            return
+        frames=list(self.selFrameNums)
+        kind=self.pilFrameKind(frames[0])
+        soft=hard=None
+        for i in frames:
+            s,h,_=display.saturation(self.pilData[i],self.pilSeconds(i))
+            if s is not None:
+                soft,hard=(s,h) if soft is None else (soft|s,hard|h)
+        try:
+            j=list(self.selectedPilFramesNums).index(frames[0])
+            beam=display.direct_beam_pixel(float(self.xcenter[j]),float(self.ycenter[j]),float(self.alpha[j]),
+                                           float(self.truealpha[j]),float(self.dth[j]),
+                                           float(self._pilDistance0[j]))
+        except (AttributeError,IndexError,TypeError,ValueError):
+            beam=None
+        cues=display.roi_cues(image,error,boxes,sums,self.dir,beam,None if soft is None else (soft,hard),kind)
+        name=str(self.ui.pilCMapComboBox.currentText())
+        try:
+            cm=mpl.colormaps[name]
+        except KeyError:
+            cm=mpl.colormaps[display.DEFAULT_CMAP]
+        sb=dict(boxes)['signal']
+        what=('after Analyze: the boxes at the peak found (peakFind)%s; the numbers are R, R_Err and %%R_Err'
+              % (', those before the search dashed' if old is not None else ', where the search started')
+              if analysed else
+              'before Analyze: the boxes at the starting centre (the SPEC beam position, or the typed Cen)')
+        tip=('The frame%s at this Qz per Monc, absorber-corrected (sumFiles), as Analyze sums it; %s. Centre column '
+             '%d, row %d; slit typed %d,%d, summed %d × %d px (slit − 2, PHYSICS_ISSUES P12).'
+             % ('s' if len(frames)>1 else '',what,cen[0],cen[1],self.slit[0],self.slit[1],sb[3]-sb[2],sb[1]-sb[0]))
+        title='Qz %.4f · %s' % (float(self.refQzSelected),self.pilTitle(frames[0]) if len(frames)==1 else
+                                 'mean of %d frames' % len(frames))
+        panel.show({'image':image,'error':error,'region':region,'boxes':boxes,'old':oldboxes,'direction':self.dir,
+                    'sums':sums,'cues':cues,'saturated':None if soft is None else (soft,hard),'beam':beam,
+                    'kind':kind,'title':title,'units':'counts / Monc, absorber-corrected','tip':tip,
+                    'cmap':cm.with_extremes(bad=cm(0.0))})
 
     def gioxsDisplay(self):
         if len(self.selectedBgFrameNums)==0 or len(self.selectedPilFramesNums)==0:
@@ -5694,6 +6037,7 @@ class MainWindow (QMainWindow):
         self.pilGIDPlot()
 
     def pilGIDpatchData(self):
+        before=(self.pilGIDshow,self.pilGISAXSshow)     # put back if the patch is refused (the crash sweep, 2026-11-24)
         if self.pilGIDshow==0:
             # self.disconnect(self.ui.pilAxesComboBox, SIGNAL('currentIndexChanged(int)'), self.update2dPlots)
             self.ui.pilAxesComboBox.currentIndexChanged.disconnect(self.update2dPlots)
@@ -5717,10 +6061,33 @@ class MainWindow (QMainWindow):
                 self.absfac=self.absorberModel()
                 patch,self.gidLevels=gidmod.legacy_patch(frames,gp,self.pilatus,log=self.gidJoinLog,warn=self.messageBox)
         except gidmod.GIDError as e:
+            self.gidPatchRefused(before)
             self.messageBox(str(e))
             return
+        except ValueError:
+            self.gidPatchRefused(before)      # the callers say why (gidPatch, gidWorksheetPatch)
+            raise
         self.pilPatchData=patch
-        self.gidFinishMap()
+        try:
+            self.gidFinishMap()
+        except IndexError as e:
+            # frames that are not a GID series can give a map whose rows share no Qxy range: its Q grid
+            # is empty and gid.products fails (the crash sweep, 2026-11-24). Refused, with the reason.
+            self.log.info('GID map not drawn: %s',e,exc_info=True)
+            self.gidPatchRefused(before)
+            self.notify('GID Patch: the patched map has no Qxy range common to its rows, so it cannot be shown in '
+                        'Q (frames of a GID series are needed; GID Patch Relax fills the corners). Detail in the log.',
+                        title='GID Patch')
+
+    def gidPatchRefused(self,before):
+        """A GID patch that stopped: the frames come back as they were shown.
+        It used to leave the GID display switched on with no patch, so the
+        next redraw (Log Int, Axes, a frame) raised AttributeError or
+        IndexError in pilGIDPlot (the crash sweep, 2026-11-24)."""
+        self.pilGIDshow,self.pilGISAXSshow=before
+        self.pilView=None                  # the figure was cleared: build the frame axes again
+        if not self.pilGIDshow and not self.pilGISAXSshow and len(getattr(self,'selectedPilFramesNums',[]))!=0:
+            self.updatePilPlotData()
 
     def gidEffectiveParams(self):
         """The worksheet's settings with the H slit field as the column count
@@ -6158,16 +6525,6 @@ class MainWindow (QMainWindow):
         else:
             return 'x=%.2f, y=%.2f'%(x, y)
     
-    def format_coord_ref(self,x,y):
-        numrows, numcols = self.refZdata.shape
-        col = int(np.abs((x-self.extent[0]))*numrows/np.abs((self.extent[1]-self.extent[0])))
-        row = int(np.abs((y-self.extent[3]))*numcols/np.abs((self.extent[3]-self.extent[2])))
-        if col>=0 and col<numcols and row>=0 and row<numrows:
-            z = self.refZdata[row,col]
-            return 'x=%d,y=%d,z=%.1e'%(x, y, z)
-        else:
-            return 'x=%d, y=%d'%(x, y)
-        
     def refPlotWin(self):
 #        if self.ui.gixSumCheckBox.checkState()==0:
 #            self.ui.gixSumCheckBox.setCheckState(2)
@@ -6256,9 +6613,7 @@ class MainWindow (QMainWindow):
             return   #nothing selected in the Qz list, nothing to redraw
         if self.refFramesGone():
             return False
-        self.ui.refADDataPlotWidget.canvas.fig.clf()
-        cmap=str(self.ui.pilCMapComboBox.currentText())
-        self.refQzSelectedItems=self.ui.refQzListWidget.selectedItems()        
+        self.refQzSelectedItems=self.ui.refQzListWidget.selectedItems()
         self.refQzSelected=itemQz(self.refQzSelectedItems[0])
         self.absfac=self.absorberModel()       
         self.dir=str(self.ui.refBGDirComboBox.currentText())
@@ -6292,32 +6647,21 @@ class MainWindow (QMainWindow):
             self.pilatus.setROI(self.selData,self.selErrorData,absfac=self.absfac,absnum=self.absnum,slit=self.slit,cen=self.cen,bg=self.bg,dir=self.dir,mon=self.mon,gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
             slit=[self.slit[1], self.slit[0]]
             cen=[self.cen[1], self.cen[0]]
-            self.ax={}
+            # the region of the strip drawn here until 2026-11-24 (setROI's centres) and its top, kept as
+            # they were (tests/test_walk_crashes.py); the close-up is now the ROI panel (F71, refRoiShow)
             if self.dir=='H':
                 self.refextent=[max(0,self.pilatus.bglcen-slit[1]), self.pilatus.bgrcen+slit[1]+1, cen[0]-slit[0], cen[0]+slit[0]+1]
-                self.ax[1]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(2,1,1)
                 self.vmax=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, max(0,self.pilatus.bglcen-slit[1]):self.pilatus.bgrcen+slit[1]+1])
-               # self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, max(0,self.pilatus.bglcen-slit[1]):self.pilatus.bgrcen+slit[1]+1])
-                self.refZdata=self.pilatus.imageData
-                p=self.ax[1].imshow(self.pilatus.imageROI[cen[0]-slit[0]:cen[0]+slit[0]+1, max(0,self.pilatus.bglcen-slit[1]):self.pilatus.bgrcen+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[1].set_ylabel('w/o Corr')
-                self.ax[1].format_coord=self.format_coord_ref
             else:
                 self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], max(0,self.pilatus.bgucen-slit[0]), self.pilatus.bgdcen+slit[0]+1]
-                self.ax[1]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(1,2,1)            
                 # the region shown: the vertical background's centres (bglcen/bgrcen are the horizontal
                 # one's, set only for 'H': AttributeError or a stale region; 2026-11-23)
                 self.vmax=np.max(self.pilatus.imageData[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1])
-                #self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
-                self.refZdata=self.pilatus.imageData
-                p=self.ax[1].imshow(self.pilatus.imageROI[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[1].set_ylabel('w/o Corr')
-                self.ax[1].format_coord=self.format_coord_ref
-            self.ui.refADDataPlotWidget.canvas.fig.colorbar(p)
-            self.ui.refADDataPlotWidget.canvas.draw()
-         
-        
-        
+            self.refZdata=self.pilatus.imageData
+            self.refRoiStart=list(self.cen)       # the boxes before Analyze's peak search (dashed after it)
+            self.refRoiShow(self.cen)
+
+
     def refAnalyzeFromField(self):
         #Enter pressed in a parameter field: silent when no Qz is selected
         if len(self.ui.refQzListWidget.selectedItems())==0:
@@ -6330,7 +6674,6 @@ class MainWindow (QMainWindow):
             return
         if self.refQzListSelectionChanged() is False:
             return False   #the frames of the list are gone; refFramesGone said so
-        cmap=str(self.ui.pilCMapComboBox.currentText())   # the Pilatus colour map (was the hidden Apex tab's; owner Q14)
         if self.det=='Pilatus':
             self.ui.refBadPixListWidget.clear()
             fac=float(self.ui.refSeaWinLineEdit.text())
@@ -6338,36 +6681,17 @@ class MainWindow (QMainWindow):
             #Peak searching is dummy it is not doing anything#
             if self.ui.refCenCheckBox.checkState()!=0:
                 self.cen=[int(self.ui.refCenLineEdit.text().split(',')[0]),int(self.ui.refCenLineEdit.text().split(',')[1])]
+            start=list(self.cen)
             self.par=self.pilatus.peakFind(self.selData,self.selErrorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,fac=fac,mon=self.mon,cenfit=self.cenfit,gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
             self.cen=[int(np.floor(self.par[1])), int(np.floor(self.par[3]))]
-            slit=[self.slit[1], self.slit[0]]
-            cen=[self.cen[1], self.cen[0]]
             bfac=float(self.ui.refBPCFacLineEdit.text())
             sig,sigerr,lbg,lbgerr,rbg,rbgerr=self.pilatus.sumROI(slit=self.slit,cen=self.cen,dir=self.dir,bg=self.bg)
             net,neterr=self.pilatus.netROI()
-            self.pilatus.setROI(self.pilatus.imageData,self.pilatus.errorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,bg=self.bg,dir=self.dir,mon=None)  
-            if self.dir=='H':
-                self.refextent=[max(0,self.pilatus.bglcen-slit[1]), self.pilatus.bgrcen+slit[1]+1, cen[0]-slit[0], cen[0]+slit[0]+1]
-                self.ax[2]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(2,1,2)
-                self.vmax=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, max(0,self.pilatus.bglcen-slit[1]):self.pilatus.bgrcen+slit[1]+1])
-               # self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
-                self.refZdata=self.pilatus.imageData
-                p=self.ax[2].imshow(self.pilatus.imageROI[cen[0]-slit[0]:cen[0]+slit[0]+1, max(0,self.pilatus.bglcen-slit[1]):self.pilatus.bgrcen+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[2].set_ylabel('w Corr')
-                self.ax[2].format_coord=self.format_coord_ref
-            else:
-                self.refextent=[cen[1]+slit[1]+1, cen[1]-slit[1], max(0,self.pilatus.bgucen-slit[0]), self.pilatus.bgdcen+slit[0]+1]
-                self.ax[2]=self.ui.refADDataPlotWidget.canvas.fig.add_subplot(1,2,2)            
-                # the region shown: the vertical background's centres (bglcen/bgrcen are the horizontal
-                # one's, set only for 'H': AttributeError or a stale region; 2026-11-23)
-                self.vmax=np.max(self.pilatus.imageData[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1])
-                #self.vmin=np.max(self.pilatus.imageData[cen[0]-slit[0]:cen[0]+slit[0]+1, self.pilatus.bglcen-slit[1]:self.pilatus.bgrcen+slit[1]+1])
-                self.refZdata=self.pilatus.imageData
-                p=self.ax[2].imshow(self.pilatus.imageROI[max(0,self.pilatus.bgucen-slit[0]):self.pilatus.bgdcen+slit[0]+1,cen[1]-slit[1]:cen[1]+slit[1]+1], origin='lower', aspect='auto', vmax=self.vmax, cmap=cmap, extent=self.refextent, interpolation='nearest')
-                self.ax[2].set_ylabel('w Corr')
-                self.ax[2].format_coord=self.format_coord_ref
-        self.ui.refADDataPlotWidget.canvas.fig.colorbar(p)
-        self.ui.refADDataPlotWidget.canvas.draw()
+            self.pilatus.setROI(self.pilatus.imageData,self.pilatus.errorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,bg=self.bg,dir=self.dir,mon=None)
+            self.refZdata=self.pilatus.imageData
+            # one panel: the boxes at the peak found, those before the search dashed (owner, Q-IMG-16; F71)
+            self.refRoiShow(self.cen,sums=(sig,sigerr,lbg,lbgerr,rbg,rbgerr,net,neterr),
+                            old=start if list(start)!=list(self.cen) else None)
         self.fsig=net
         self.fsigerr=neterr
         self.fsigerrper=self.fsigerr/self.fsig*100.0
@@ -7746,6 +8070,68 @@ class MainWindow (QMainWindow):
             return out
         c=np.asarray(cd,float)
         return [('GID cut',c[:,0],c[:,1],c[:,2],1.0)] if c.ndim==2 and c.shape[1]>=3 else []
+
+    # ---- F83 phase 1c (owner, 2026-11-24: a tab in the main window): the sample timeline ----
+
+    def initTimelineTab(self):
+        """The Timeline tab, last: a view of lss_core.timeline, built when the
+        tab is shown and rebuilt when the SPEC file changed (a new file, or
+        scans added by Update or Live)."""
+        from timelineview import TimelineTab
+        tab=TimelineTab(self.ui.PlotWidget)
+        self.timelineTab=tab
+        self.timelineKey=None
+        self.ui.PlotWidget.addTab(tab,'Timeline')
+        self.ui.PlotWidget.setTabToolTip(self.ui.PlotWidget.indexOf(tab),
+            'The sample timeline (F83): scans, "set sh 0" (new sample?), re-referencing, aborts, sx moves and '
+            'the sample-height scans with their width and flatness, on one time axis')
+        tab.view.scanClicked.connect(self.timelineScanClicked)
+        self.ui.PlotWidget.currentChanged.connect(self.timelineTabShown)
+        tab.show_message('Open a SPEC file: its timeline is drawn here.')
+
+    def timelineTabShown(self,*args):
+        if self.ui.PlotWidget.currentWidget() is getattr(self,'timelineTab',None):
+            self.updateTimeline()
+
+    def updateTimeline(self,force=False):
+        """Read the timeline of the open SPEC file again if it changed."""
+        tab=getattr(self,'timelineTab',None)
+        spec=getattr(self,'specFileName',None)
+        if tab is None:
+            return
+        if not spec or not os.path.exists(spec):
+            self.timelineKey=None
+            tab.show_message('Open a SPEC file: its timeline is drawn here.')
+            return
+        key=(spec,os.path.getmtime(spec),os.path.getsize(spec))
+        if key==self.timelineKey and not force:
+            return
+        from lss_core.experiment import Experiment
+        from lss_core import timeline as timelinemod
+        try:
+            tl=timelinemod.build(Experiment(spec))
+        except Exception as e:
+            self.log.info('timeline of %s not drawn: %s',spec,e,exc_info=True)
+            tab.show_message('The timeline could not be read: %s (detail in the log).' % e)
+            self.timelineKey=None
+            return
+        tab.show_timeline(tl,os.path.basename(spec))
+        self.timelineKey=key
+
+    def timelineScanClicked(self,scan):
+        """A scan bar or an sh scan clicked on the timeline: select that scan."""
+        lw=self.ui.scanListWidget
+        rows=[r for r in range(lw.count()) if itemScan(lw.item(r))==int(scan)]
+        if not rows:
+            self.notify('Scan %d is not in the scan list (Update the SPEC file).' % scan,title='Timeline',level='info')
+            return
+        lw.blockSignals(True)
+        lw.clearSelection()
+        lw.item(rows[0]).setSelected(True)
+        lw.setCurrentRow(rows[0])
+        lw.blockSignals(False)
+        lw.scrollToItem(lw.item(rows[0]))
+        lw.itemSelectionChanged.emit()
 
     # ---- F74 (owner, 2026-11-22): residuals above the plots that show a fit ----
 

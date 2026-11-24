@@ -362,6 +362,44 @@ Each line: feature — where — default — script — notes entry (date).
   the fit's note. It stays with the result: it is in the tooltip of the line
   under the plot, and it is saved with the result in the workbook.
 
+### The Timeline tab (F83, 2026-11-24)
+- The last tab shows the session on one time axis, on the file's local
+  clock. From top to bottom:
+  - **Events:** a red dashed line marked "new sample?" where the sample
+    height was set to 0 ("set sh 0": almost always a new sample, sometimes
+    the same one after conditions changed, so it is a guess for you to
+    confirm); orange dots for re-referencing after an sh scan (in µm);
+    crosses for aborted scans; small grey dots for macro files loaded; a
+    dotted line where SPEC reopened the file.
+  - **sx:** the sample's x position, from each scan's header.
+  - **Sample height:** each sh scan with its FWHM and flatness p (a grey dot
+    when the scan saw no reflected beam).
+  - **Scans:** one bar per scan, coloured by kind (reflectivity blue, GID
+    green, sample height purple, burn red); aborted scans are paler.
+  - Long gaps without scans are hatched across every lane.
+- The wheel zooms the time axis around the cursor; drag to pan;
+  double-click or **Fit all** shows the whole file. Hover anything for
+  details. Click a scan bar or an sh scan to select that scan (it opens on
+  SpecPlot, with its fit).
+- The tab reads the SPEC file when it is shown, and again after Update or
+  a live read when the file has grown.
+
+### The ROI close-up (F71, F97, 2026-11-24, Q-IMG-7)
+- Beside the frame on the Pilatus tab (reflectivity, burn and direct-beam
+  frames), and in the close-up on the Reflectivity tab, one panel shows the
+  ROI: the frame zoomed to the signal box (white), both background boxes
+  (cyan) and some diffuse scattering around them, on its own colour scale.
+  It follows the movie and the Qz list. Drag the splitter to widen it.
+- The boxes are exactly the pixels the reduction sums. Dashed boxes show
+  where they were before the peak search moved them.
+- Below: the column and row profiles across the boxes, the sums (signal,
+  backgrounds, net ± σ), and the checks: peak off centre (more than 25 % of
+  the half-width), clipped (more than 1 % on or beyond the box edge), a
+  background box 2 px or less from the signal box, saturation, the direct
+  beam in a box. Each check's reason is in its tooltip.
+- **Log** (one box for both tabs, on by default) switches the close-up's
+  colour scale and profiles; the frame's own Log Int is not changed.
+
 ### Saturation cue on the frames (F97, 2026-11-24, Q-IMG-10)
 - On the Pilatus tab, pixels counting faster than **1e5 counts per second**
   are drawn amber, and faster than **1.5e5** red: there an absorber is
