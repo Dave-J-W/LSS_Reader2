@@ -421,3 +421,40 @@ def test_concat_adds_the_link_to_every_scan_of_the_second_set():
     assert np.linalg.eigvalsh(j.Sigma).min() > -1e-14
     with pytest.raises(ValueError, match='share scans'):
         a.concat(a, 0.01)
+
+
+def test_error_interpolation_falls_back_to_linear_where_the_cubic_is_not_positive():
+    """Hand-off §3.1: a cubic interpolant of an error column can dip below
+    zero next to a sharp change; there the linear value is used and the
+    point is listed (XModFit refuses σ_meas ≤ 0). Review 2026-11-24: the
+    fallback had no test of its own."""
+    x2 = np.arange(6.0)
+    s2 = np.array([1.0, 1e-3, 1e-3, 1e-3, 1e-3, 1.0])
+    x = np.array([0.5, 1.5, 2.5, 3.5, 4.5])
+    cubic = interp1d(x2, s2, kind='cubic')(x)
+    assert np.any(cubic <= 0)
+    v, fb = ce._interp_error(x2, s2, x)
+    assert fb == [int(i) for i in np.flatnonzero(cubic <= 0)]
+    assert np.all(v > 0)
+    assert np.array_equal(v[fb], np.interp(x[fb], x2, s2))
+    keep = np.setdiff1d(np.arange(len(x)), fb)
+    assert np.array_equal(v[keep], cubic[keep])
+
+
+@pytest.mark.parametrize('kw', [dict(mask=[(1, 8)]), dict(mask=[(2, 0)], method='legacy')])
+def test_masked_reduction_gets_a_matching_sidecar(dataset, tmp_path, kw):
+    """F92 (points left out by a mask, 2026-11-23): the replay starts from
+    the masked scans the result holds, so the sidecar matches the files."""
+    from lss_core.experiment import Experiment
+    res = Experiment(dataset).reflectivity([1, 2], **kw)
+    assert res.masked
+    name = str(tmp_path / 'm')
+    res.save(name, covariance='sidecar')
+    plain = str(tmp_path / 'p')
+    res.save(plain)
+    for kind in ('ref', 'rrf'):
+        with open('%s_%s.txt' % (name, kind), 'rb') as f, open('%s_%s.txt' % (plain, kind), 'rb') as g:
+            assert f.read() == g.read()
+        sc = gls.load('%s_%s.cov.json' % (name, kind))
+        d = np.loadtxt('%s_%s.txt' % (name, kind))
+        assert not sc.match_problems(d[:, 0], d[:, 1])
