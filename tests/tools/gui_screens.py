@@ -446,6 +446,14 @@ def run_nx(app, ctx, skip_slow):
                  'SpecPlot of scan 1 (a motor scan with the beam off)', 'Scan 1 selected')
     specplot()
 
+    @step('timeline')
+    def timeline_tab():
+        tab(w, app, 'Timeline')
+        save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '14_timeline_tab.png',
+                 'Timeline tab (F83): events, sx, sample-height scans and scans on one time axis',
+                 'NX school file opened; Timeline tab shown (fitted to the whole file)')
+    timeline_tab()
+
     # --- Pilatus
     @step('pilatus')
     def pilatus():

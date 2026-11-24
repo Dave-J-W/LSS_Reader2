@@ -276,6 +276,7 @@ class MainWindow (QMainWindow):
         self.ui.gidComboBox.addItem('Save to workbook')
         self.initGIDButtons()
         self.initRefProvenance()
+        self.initTimelineTab()
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
@@ -1244,6 +1245,8 @@ class MainWindow (QMainWindow):
         self.updateSeries()
         grown=[n for n in scannums if n in old_pts and self.scanPoints.get(n,0)>old_pts[n]]
         self.checkStaleResults()
+        if (new or grown) and self.ui.PlotWidget.currentWidget() is getattr(self,'timelineTab',None):
+            self.updateTimeline()       # F83: the timeline on show follows the growing file
         return new,grown
 
     def liveUpdate(self):
@@ -8043,6 +8046,68 @@ class MainWindow (QMainWindow):
             return out
         c=np.asarray(cd,float)
         return [('GID cut',c[:,0],c[:,1],c[:,2],1.0)] if c.ndim==2 and c.shape[1]>=3 else []
+
+    # ---- F83 phase 1c (owner, 2026-11-24: a tab in the main window): the sample timeline ----
+
+    def initTimelineTab(self):
+        """The Timeline tab, last: a view of lss_core.timeline, built when the
+        tab is shown and rebuilt when the SPEC file changed (a new file, or
+        scans added by Update or Live)."""
+        from timelineview import TimelineTab
+        tab=TimelineTab(self.ui.PlotWidget)
+        self.timelineTab=tab
+        self.timelineKey=None
+        self.ui.PlotWidget.addTab(tab,'Timeline')
+        self.ui.PlotWidget.setTabToolTip(self.ui.PlotWidget.indexOf(tab),
+            'The sample timeline (F83): scans, "set sh 0" (new sample?), re-referencing, aborts, sx moves and '
+            'the sample-height scans with their width and flatness, on one time axis')
+        tab.view.scanClicked.connect(self.timelineScanClicked)
+        self.ui.PlotWidget.currentChanged.connect(self.timelineTabShown)
+        tab.show_message('Open a SPEC file: its timeline is drawn here.')
+
+    def timelineTabShown(self,*args):
+        if self.ui.PlotWidget.currentWidget() is getattr(self,'timelineTab',None):
+            self.updateTimeline()
+
+    def updateTimeline(self,force=False):
+        """Read the timeline of the open SPEC file again if it changed."""
+        tab=getattr(self,'timelineTab',None)
+        spec=getattr(self,'specFileName',None)
+        if tab is None:
+            return
+        if not spec or not os.path.exists(spec):
+            self.timelineKey=None
+            tab.show_message('Open a SPEC file: its timeline is drawn here.')
+            return
+        key=(spec,os.path.getmtime(spec),os.path.getsize(spec))
+        if key==self.timelineKey and not force:
+            return
+        from lss_core.experiment import Experiment
+        from lss_core import timeline as timelinemod
+        try:
+            tl=timelinemod.build(Experiment(spec))
+        except Exception as e:
+            self.log.info('timeline of %s not drawn: %s',spec,e,exc_info=True)
+            tab.show_message('The timeline could not be read: %s (detail in the log).' % e)
+            self.timelineKey=None
+            return
+        tab.show_timeline(tl,os.path.basename(spec))
+        self.timelineKey=key
+
+    def timelineScanClicked(self,scan):
+        """A scan bar or an sh scan clicked on the timeline: select that scan."""
+        lw=self.ui.scanListWidget
+        rows=[r for r in range(lw.count()) if itemScan(lw.item(r))==int(scan)]
+        if not rows:
+            self.notify('Scan %d is not in the scan list (Update the SPEC file).' % scan,title='Timeline',level='info')
+            return
+        lw.blockSignals(True)
+        lw.clearSelection()
+        lw.item(rows[0]).setSelected(True)
+        lw.setCurrentRow(rows[0])
+        lw.blockSignals(False)
+        lw.scrollToItem(lw.item(rows[0]))
+        lw.itemSelectionChanged.emit()
 
     # ---- F74 (owner, 2026-11-22): residuals above the plots that show a fit ----
 

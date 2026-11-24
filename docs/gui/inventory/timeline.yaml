@@ -1,0 +1,47 @@
+# Inventory: the sample timeline tab (F83 phase 1c, 2026-11-24; owner: a tab in the
+# main window). Schema: docs/gui/README.md. Code-built in MainWindow.initTimelineTab
+# (timelineview.py), a view of lss_core.timeline.
+- id: timelineTab
+  kind: tab
+  label: "Timeline"
+  where: "Main window tabs, last"
+  handler: timelineTabShown
+  does: "The sample timeline: events (set sh 0 as new sample?, re-referencing, aborts, macro loads, session restarts, gaps), sx, sample-height scans with FWHM and p, scan bars by kind, on the file's local clock"
+  workflows: [session]
+  needs: "a SPEC file"
+  shown: always
+  tooltip: true
+  notes: "Read when the tab is shown and again when the file changed (Update, Live); 36 ms for the NX file. Research: docs/gui/timeline/research.md."
+- id: timelineView
+  kind: plot
+  label: ""
+  where: "Timeline"
+  handler: timelineScanClicked
+  does: "The lanes (QGraphicsView): wheel zooms the time axis about the cursor, drag pans, double-click fits; a click on a scan bar or an sh scan selects that scan"
+  workflows: [session]
+  needs: "a SPEC file"
+  shown: always
+  tooltip: true
+  notes: "Every item has a tooltip (rule 9). Not yet: thumbnails of the sh scans, notes, the reduced-data and environment lanes (research section 5)."
+- id: timelineFitPushButton
+  kind: button
+  label: "Fit all"
+  where: "Timeline > top"
+  handler: fit_all
+  does: "Shows the whole file"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""
+- id: timelineInfoLabel
+  kind: label
+  label: "20260923: 15 scans, 09:32 to 11:23, 1 set sh 0 (new sample?)"
+  where: "Timeline > top"
+  handler: show_timeline
+  does: "What is shown: the file, the number of scans, the time range on its local clock, the set sh 0 count; its tooltip says where each lane comes from"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: ""

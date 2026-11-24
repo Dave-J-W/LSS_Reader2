@@ -286,7 +286,7 @@ INVENTORY = {
     'scriptDock_toggleViewAction': ('action', 'Script', 'Menu bar > View', 'Shows or hides the Script pane'),
     'errorDock_toggleViewAction': ('action', 'Errors', 'Menu bar > View', 'Shows or hides the Errors pane (error model)'),
     'actionFitResiduals': ('action', 'Residuals above fits', 'Menu bar > View', "Shows a small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends): the residuals (y − fit)/σ of the fitted points, and χ²/dof in the fit's legend label"),
-    'PlotWidget': ('tab', 'SpecPlot | Pilatus | Reflectivity | Line/Area Cuts | MCA | Plot | 2D_Plot', 'Main window (right of the left panel)', 'The tabs of the window (the hidden Apex tab was removed 2026-11-23, owner Q14)'),
+    'PlotWidget': ('tab', 'SpecPlot | Pilatus | Reflectivity | Line/Area Cuts | MCA | Plot | 2D_Plot | Timeline', 'Main window (right of the left panel)', 'The tabs of the window (the hidden Apex tab was removed 2026-11-23, owner Q14)'),
     'messageDock': ('pane', 'Messages', 'Bottom dock (tabbed with Script and Errors)', 'Collects every message to the user (warnings, fit results, absorber notes) with the time; nothing blocks'),
     'messageView': ('pane', '', 'Messages pane', 'Read-only text of the messages (last 2000 blocks)'),
     'scriptDock': ('pane', 'Script', 'Bottom dock (tabbed with Messages and Errors)', 'Shows, for actions that have one, the lss_core Python that does the same thing, ready to copy (F48)'),
@@ -448,6 +448,10 @@ INVENTORY = {
     'spLegendLocComboBox': ('combo', '', 'SpecPlot', 'Legend position'),
     'spExportPushButton': ('button', 'Export', 'SpecPlot', 'Writes one text file per selected scan (x, y, error; y2 and normalised variants) named after the columns'),
     'specSaveWorkbookPushButton': ('button', 'Save', 'SpecPlot', "Saves the plotted curves (and fit) into the SPEC file's workbook as a new version, asking for a note"),
+    'timelineTab': ('tab', 'Timeline', 'Main window tabs, last', "The sample timeline: events (set sh 0 as new sample?, re-referencing, aborts, macro loads, session restarts, gaps), sx, sample-height scans with FWHM and p, scan bars by kind, on the file's local clock"),
+    'timelineView': ('plot', '', 'Timeline', 'The lanes (QGraphicsView): wheel zooms the time axis about the cursor, drag pans, double-click fits; a click on a scan bar or an sh scan selects that scan'),
+    'timelineFitPushButton': ('button', 'Fit all', 'Timeline > top', 'Shows the whole file'),
+    'timelineInfoLabel': ('label', '20260923: 15 scans, 09:32 to 11:23, 1 set sh 0 (new sample?)', 'Timeline > top', 'What is shown: the file, the number of scans, the time range on its local clock, the set sh 0 count; its tooltip says where each lane comes from'),
 }
 
 COMBO_ITEMS = {
