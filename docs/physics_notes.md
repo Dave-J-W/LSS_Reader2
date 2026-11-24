@@ -5503,3 +5503,13 @@ It is so: the last tab, after 2D_Plot (seen in a window: SpecPlot,
 Pilatus, Reflectivity, Line/Area Cuts, MCA, Plot, 2D_Plot, Timeline).
 Verified by: test (`test_gui_timeline.py::test_the_tab_is_last_and_says_what_to_do_before_a_file`).
 
+### 2026-11-24 — Timeline: sample-height scans as thumbnails
+
+The height lane now draws each sh scan small, 64 × 34 px at every zoom:
+its Pilatus/Monc points (grey), and its super-Gaussian (purple) when
+fitted. `lss_core.timeline.HeightScan` keeps the points (x, y), with y
+the values fitted, on the mean monitor's scale. Seen on NX (scan 4's
+noise in a grey frame; scans 5, 10 and 13 flat-topped). Verified by:
+tested (`test_gui_timeline.py::test_the_sample_height_scans_are_drawn_as_thumbnails`).
+No output number changes.
+

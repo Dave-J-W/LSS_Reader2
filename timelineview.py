@@ -28,7 +28,8 @@ from PyQt5.QtWidgets import (QGraphicsEllipseItem, QGraphicsItem, QGraphicsPathI
                              QPushButton, QVBoxLayout, QWidget)
 
 AXIS_H = 22                                   # px at the top for the time axis
-LANES = (('events', 'Events', 46), ('sx', 'sx (mm)', 46), ('height', 'Sample height', 54), ('scans', 'Scans', 34))
+LANES = (('events', 'Events', 46), ('sx', 'sx (mm)', 46), ('height', 'Sample height', 64), ('scans', 'Scans', 34))
+THUMB_W, THUMB_H = 64, 34                     # px: a sample-height scan's thumbnail
 KIND_COLOURS = {'reflectivity': '#1f77b4', 'gid': '#2ca02c', 'height': '#9467bd', 'burn': '#d62728',
                 'xfntr': '#ff7f0e', 'gisaxs': '#17becf', 'energy': '#bcbd22', 'other': '#8c8c8c'}
 EVENT_COLOURS = {'set-zero': '#d00000', 'reset': '#e08000', 'abort': '#555555', 'macro': '#9a9a9a',
@@ -55,6 +56,54 @@ def tick_step(span_s, target=8):
         if span_s / s <= target:
             return s
     return TICK_STEPS[-1] * max(1, int(span_s / TICK_STEPS[-1] / target))
+
+
+class HeightThumb(QGraphicsItem):
+    """A sample-height scan drawn small: the data (grey) and its
+    super-Gaussian fit (purple), at a fixed size in pixels (it ignores the
+    zoom); framed purple when fitted, grey when there was no beam."""
+
+    def __init__(self, x, y, model=None, ok=True):
+        super().__init__()
+        self.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+        self.points, self.fit = self._map(x, y, model)
+        self.ok = ok
+
+    @staticmethod
+    def _map(x, y, model):
+        import numpy as np
+        if x is None or y is None or len(x) < 2:
+            return [], []
+        x, y = np.asarray(x, float), np.asarray(y, float)
+        good = np.isfinite(x) & np.isfinite(y)
+        x, y = x[good], y[good]
+        if len(x) < 2 or np.ptp(x) == 0:
+            return [], []
+        xf = np.linspace(x.min(), x.max(), 60)
+        yf = model(xf) if model is not None else None
+        allv = np.r_[y, yf] if yf is not None else y
+        lo, hi = float(np.min(allv)), float(np.max(allv))
+        span = hi - lo if hi > lo else 1.0
+
+        def pts(xx, yy):
+            return [((xi - x.min()) / np.ptp(x) * (THUMB_W - 6) + 3, THUMB_H - 3 - (yi - lo) / span * (THUMB_H - 6))
+                    for xi, yi in zip(xx, yy)]
+        return pts(x, y), (pts(xf, yf) if yf is not None else [])
+
+    def boundingRect(self):
+        return QRectF(0, 0, THUMB_W, THUMB_H)
+
+    def paint(self, painter, option, widget=None):
+        from PyQt5.QtCore import QPointF
+        painter.setBrush(QBrush(QColor('white')))
+        painter.setPen(QPen(QColor(KIND_COLOURS['height'] if self.ok else '#bdbdbd'), 1.2))
+        painter.drawRect(self.boundingRect())
+        if self.points:
+            painter.setPen(QPen(QColor('#555555'), 1.0))
+            painter.drawPolyline(*[QPointF(px, py) for px, py in self.points])
+        if self.fit:
+            painter.setPen(QPen(QColor(KIND_COLOURS['height']), 1.4))
+            painter.drawPolyline(*[QPointF(px, py) for px, py in self.fit])
 
 
 class TimelineView(QGraphicsView):
@@ -174,17 +223,21 @@ class TimelineView(QGraphicsView):
             f = hs.fit
             x = self._x(hs.t)
             if f.ok:
-                tip = ('S# %d, sample-height scan (sx %s mm): %s. A usable scan is wide (about 65 µm or more) and '
-                       'flatter than a Gaussian, p > 2 (owner, F78); no verdict is drawn: the thresholds are the '
-                       'owner\'s to give. Click: open the scan with its fit.'
+                tip = ('S# %d, sample-height scan (sx %s mm): %s. Grey: Pilatus/Monc; purple: the super-Gaussian. '
+                       'A usable scan is wide (about 65 µm or more) and flatter than a Gaussian, p > 2 (owner, F78); '
+                       'no verdict is drawn: the thresholds are the owner\'s to give. Click: open the scan with its fit.'
                        % (hs.scan, hs.sx, f.summary('µm', 1000.0)))
-                item = self._marker(x, y + 14, 5, KIND_COLOURS['height'], tip, ('scan', hs.scan))
-                self._label('%.0f µm' % (f.fwhm * 1000.0), x, y + 22, tip=tip)
-                self._label('p %.1f' % f.p, x, y + 34, colour='#666666', tip=tip)
+                text = '%.0f µm · p %.1f' % (f.fwhm * 1000.0, f.p)
             else:
                 tip = 'S# %d, sample-height scan: %s. Click: open the scan.' % (hs.scan, f.message)
-                item = self._marker(x, y + 14, 5, '#bdbdbd', tip, ('scan', hs.scan), outline='#8c8c8c')
-                self._label('no beam', x, y + 22, colour='#8c8c8c', tip=tip)
+                text = 'no beam'
+            item = HeightThumb(hs.x, hs.y, f.model if f.ok else None, f.ok)
+            item.setPos(x, y + 4)
+            item.setToolTip(tip)
+            item.setData(0, ('scan', hs.scan))
+            item.setCursor(Qt.PointingHandCursor)
+            self.scene().addItem(item)
+            self._label(text, x, y + 4 + THUMB_H + 2, colour='#333333' if f.ok else '#8c8c8c', tip=tip, size=7)
             self.items['heights'][hs.scan] = item
 
     def _steps(self, tl, motor='Sample_X'):

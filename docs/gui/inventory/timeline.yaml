@@ -22,7 +22,7 @@
   needs: "a SPEC file"
   shown: always
   tooltip: true
-  notes: "Every item has a tooltip (rule 9). Not yet: thumbnails of the sh scans, notes, the reduced-data and environment lanes (research section 5)."
+  notes: "Every item has a tooltip (rule 9). The sh scans are thumbnails (points and fit, a fixed size in pixels) since 2026-11-24. Not yet: notes, the reduced-data and environment lanes (research section 5)."
 - id: timelineFitPushButton
   kind: button
   label: "Fit all"

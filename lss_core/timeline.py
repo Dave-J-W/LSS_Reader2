@@ -109,6 +109,8 @@ class HeightScan:
     t: float
     fit: peaks.SuperGaussianFit
     sx: float = None
+    x: np.ndarray = None            # sh, as scanned
+    y: np.ndarray = None            # Pilatus / Monc, on the mean monitor's scale (what is fitted)
 
 
 @dataclass
@@ -283,10 +285,14 @@ def build(exp, motors=DEFAULT_MOTORS, gap_minutes=GAP_MINUTES, fit_heights=True)
             continue
         cols = exp.scans[s.scan].columns
         sx = exp.scans[s.scan].parameters.get('Sample_X')
+        x = y = None
         if fit_heights and 'Pilatus' in cols and 'Monc' in cols and cols:
-            x = cols[next(iter(cols))]
+            x = np.asarray(cols[next(iter(cols))], float)
+            m = np.asarray(cols['Monc'], float)
+            with np.errstate(divide='ignore', invalid='ignore'):
+                y = np.asarray(cols['Pilatus'], float) / m * float(np.mean(m))
             fit = peaks.fit_super_gaussian(x, cols['Pilatus'], cols['Monc'])
         else:
             fit = peaks.SuperGaussianFit(False, 'no Pilatus and Monc columns' if fit_heights else 'not fitted')
-        tl.heights.append(HeightScan(s.scan, s.t0, fit, sx if isinstance(sx, (int, float)) else None))
+        tl.heights.append(HeightScan(s.scan, s.t0, fit, sx if isinstance(sx, (int, float)) else None, x, y))
     return tl

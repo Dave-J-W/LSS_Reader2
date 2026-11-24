@@ -118,3 +118,20 @@ def test_tick_steps_are_clock_friendly():
     assert timelineview.tick_step(3600) == 600
     assert timelineview.tick_step(7 * 3600) == 3600
     assert timelineview.tick_step(10 * 86400) >= 86400
+
+
+@needs_nx
+def test_the_sample_height_scans_are_drawn_as_thumbnails(nx, qapp, recorder):
+    """Each sh scan small: its Pilatus/Monc points and, when fitted, the
+    super-Gaussian; a fixed size in pixels at every zoom; a click opens it."""
+    v = _show(nx, qapp).view
+    th = v.items['heights']
+    assert all(isinstance(t, timelineview.HeightThumb) for t in th.values())
+    assert len(th[10].points) == len(nx.timelineTab.view.timeline.heights[2].x) and th[10].fit and th[10].ok
+    assert th[4].points and not th[4].fit and not th[4].ok          # no beam: the points, no fit, grey
+    r = th[10].mapRectToScene(th[10].boundingRect())
+    v.zoom(4.0)
+    assert th[10].boundingRect().width() == timelineview.THUMB_W    # ignores the zoom
+    assert th[10].data(0) == ('scan', 10)
+    assert recorder.exceptions == []
+

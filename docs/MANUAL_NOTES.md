@@ -366,8 +366,9 @@ Each line: feature — where — default — script — notes entry (date).
     crosses for aborted scans; small grey dots for macro files loaded; a
     dotted line where SPEC reopened the file.
   - **sx:** the sample's x position, from each scan's header.
-  - **Sample height:** each sh scan with its FWHM and flatness p (a grey dot
-    when the scan saw no reflected beam).
+  - **Sample height:** each sh scan as a small picture of its points (grey)
+    and its super-Gaussian fit (purple), with its FWHM and flatness p under
+    it; a grey frame and "no beam" when the scan saw no reflected beam.
   - **Scans:** one bar per scan, coloured by kind (reflectivity blue, GID
     green, sample height purple, burn red); aborted scans are paler.
   - Long gaps without scans are hatched across every lane.
