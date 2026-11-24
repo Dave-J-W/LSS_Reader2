@@ -185,7 +185,7 @@
   label: "View"
   where: "Menu bar"
   handler: ""
-  does: "Show or hide the Messages, Script and Errors panes"
+  does: "Show or hide the Messages, Script and Errors panes; the residual panels above fits (F74)"
   workflows: [session]
   needs: ""
   shown: always
@@ -224,3 +224,15 @@
   shown: always
   tooltip: false
   notes: "The error model changes every error bar; hiding its only control in View leaves no cue of which model is in use."
+
+- id: actionFitResiduals
+  kind: action
+  label: "Residuals above fits"
+  where: "Menu bar > View"
+  handler: setFitResiduals
+  does: "Shows a small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits): the residuals (y − fit)/σ of the fitted points, and χ²/dof in the fit's legend label"
+  workflows: [session]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-24 (F74, owner 2026-11-22: hidden by default). Checkable, kept between sessions (preference fit_residuals). Not yet on the MCA line fits, burn trends, the Ref Patch join preview or the older fit dialogs."

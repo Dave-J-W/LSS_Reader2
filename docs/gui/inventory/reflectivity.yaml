@@ -156,13 +156,13 @@
   kind: list
   label: "Bad Pixels:"
   where: "Reflectivity > top"
-  handler: ""
-  does: "Nothing today: only ever cleared"
+  handler: promoteRefFlags
+  does: "Lists, by Qz, the bad pixels corrected inside the signal box of each frame of the Ref Patch on show (scan, frame, pixels x, y); those points carry a cross on the plot"
   workflows: [reflectivity]
-  needs: ""
+  needs: "a Ref Patch with bad-pixel correction finding pixels in the box"
   shown: always
-  tooltip: false
-  notes: "Defunct (read only: no code adds items). Bad pixels in the ROI are reported instead by the modal pilBadPixDialog during Ref Patch."
+  tooltip: true
+  notes: "Wired 2026-11-24 (F95, owner Q-UI-B3); was only ever cleared, the modal pilBadPixDialog reported instead. Filled when the patch is on show; a cancelled patch leaves it. The separate ROI threshold of B3 (refBPCFacLineEdit) is not built: it would change output numbers."
 
 # ---- middle: readout of the analysed point ----
 - id: refQLineEdit
@@ -310,6 +310,17 @@
   shown: always
   tooltip: false
   notes: "Title 'File: <path> S# ...' takes the scan list from the left panel at plot time and is clipped at the top (observed). Legend labels '#0', '#1'... Has a matplotlib toolbar."
+- id: refProvenanceLabel
+  kind: label
+  label: "joint patch · legacy errors · calibrated foils · scans 6, 7, 8, 9 · 2 points dropped · saved v3"
+  where: "Reflectivity > under the result plot"
+  handler: updateRefProvenance
+  does: "One line on how the curve on show was made: patch method, error model, absorber model, scans, dropped points, saved version; the joins and details in its tooltip"
+  workflows: [reflectivity]
+  needs: "a curve"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F96, owner Q-UI-B5, 2026-11-24). Describes the result as it was made (a later change of preference does not alter it); 'saved vN' is read from the workbook in memory only, so it is absent until the workbook has been opened in the session."
 - id: refExportPushButton
   kind: button
   label: "Export"

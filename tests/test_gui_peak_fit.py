@@ -43,6 +43,29 @@ def test_fit_button_fits_the_plotted_cut(frame, qapp, recorder):
     assert any('Fit of' in m for m in recorder.messages)
 
 
+@pytest.mark.parametrize('redraw', ['clear graph', 'new cut'])
+def test_fit_again_after_the_plot_was_redrawn(frame, qapp, recorder, redraw):
+    """Found by the crash sweep's random walk (2026-11-24, seed 1 of
+    pilatus_two_scans_all_frames): Fit peaks, then Clear graph or a new
+    cut, then Fit peaks again raised NotImplementedError in fitCuts. The
+    old fit lines were removed from axes that ax.clear() had already
+    emptied, and matplotlib 3.11 refuses to remove a detached artist."""
+    _hcut(frame, qapp)
+    frame.cutFitPushButton.click()
+    qapp.processEvents()
+    if redraw == 'clear graph':
+        frame.clearCutGraph()
+        _hcut(frame, qapp)
+    else:
+        _hcut(frame, qapp)
+    frame.cutFitPushButton.click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert len(frame.cutFitResults) == 1
+    ax = frame.ui.cutPlotMplWidget.canvas.ax
+    assert all(a.axes is ax for a in frame.cutFitArtists)        # the new fit lines are on the plot
+
+
 def test_fit_options_dialog_changes_the_fit(frame, qapp, recorder, tmp_path, monkeypatch):
     _hcut(frame, qapp)
     frame.cutFitOptionsPushButton.click()

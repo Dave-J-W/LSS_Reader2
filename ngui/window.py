@@ -46,8 +46,8 @@ SAMPLES = {
     'plotFileListWidget': ['#1  run3/water_ref.txt', '#2  run3/lipid_ref.txt', '#3  run3/gid_map.txt'],
     'scanInfoDialog.impInfoTextBrowser': ['#S 12 ascan sh -0.2 0.2 40 1', 'Energy 10.0 keV · abs 0',
                                           'sh 0.0000 · Det_Th 0.00'],
-    'pilPeakCenDialog.peakCenTextBrowser': ['S# 8 pt 3: centre 2 px off the ROI centre'],
-    'pilBadPixDialog.peakCenTextBrowser': ['S# 9 pt 10: 1 hot pixel in the ROI (corrected)'],
+    'ref_centreChecks': ['S# 8 pt 3: centre 2 px off the ROI centre'],
+    'refBadPixListWidget': ['Qz 0.0450  S# 9 F# 10: (212, 97)'],
 }
 TABLE_HEADERS = {
     'gidJoinTable': ['join', 'direction', 'from', 'to', 'points', 'factor', 'χ²/dof'],
@@ -632,7 +632,16 @@ class NguiWindow(QMainWindow):
     def _provenance(self, key, text, note_button, parent):
         h = QHBoxLayout()
         h.setSpacing(6)
-        if text:
+        if isinstance(text, dict):          # the main window's line under the plot (F96): a label, as there
+            lab = QLabel(text.get('label') or '', parent)
+            lab.setObjectName(_oname(text['id']))
+            lab.setProperty('nguiProvenance', True)
+            lab.setMinimumWidth(80)
+            lab.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)  # clipped, never widening the window
+            lab.setToolTip(tooltip(text))
+            self.controls[text['id']] = lab
+            h.addWidget(lab, 1)
+        elif text:
             b = QPushButton(text, parent)
             b.setObjectName(_oname(key + '_provenance'))
             b.setProperty('nguiProvenance', True)
@@ -742,10 +751,15 @@ class NguiWindow(QMainWindow):
         t.setMaximumHeight(112)
         t.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         t.setEnabled(False)
-        t.setToolTip('New in ngui: every join at once. ' + NOT_FUNCTIONAL)
+        if sp.get('table'):              # the main window's join table (F96): its inventory entry
+            t.setToolTip(tooltip(sp['table']))
+            t.setObjectName(_oname(sp['table']['id']))
+            self.controls[sp['table']['id']] = t
+        else:
+            t.setToolTip('New in ngui: every join at once. ' + NOT_FUNCTIONAL)
         v.addWidget(t)
         ctl = sp['controls']
-        self._add_items([{'row': ctl[:2]}, {'row': ctl[2:]}], v, f)
+        self._add_items([{'row': ctl[:2]}, {'row': ctl[2:4]}, {'row': ctl[4:]}], v, f)
         tw = QTabWidget(f)
         tw.setObjectName('ngui_ref_joinPlots')
         for name, pl in sp['pages']:
@@ -941,7 +955,7 @@ class NguiWindow(QMainWindow):
             menu.setToolTipsVisible(True)
             for it in m['items']:
                 key = _key(it)
-                if m['title'] == 'View':
+                if m['title'] == 'View' and _label(it) in self.panes:
                     d = self.panes[_label(it)]
                     a = d.toggleViewAction()
                     a.setText(_label(it))

@@ -34,6 +34,7 @@ import reader_log
 from lss_core.resources import resource
 from lss_core import stitching, reflectivity, fluorescence, normalise
 from lss_core import cuts, mcafiles, paths, scanaxes
+from lss_core import residuals
 from lss_core import gid as gidmod
 from lss_core import pinhole
 from lss_core import peaks
@@ -271,6 +272,7 @@ class MainWindow (QMainWindow):
         self.gidWorksheet=None
         self.ui.gidComboBox.addItem('Save to workbook')
         self.initGIDButtons()
+        self.initRefProvenance()
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
@@ -713,6 +715,7 @@ class MainWindow (QMainWindow):
         self.ui.statusBar.clearMessage()
         self.ui.scanListWidget.clear()
         self.ui.specPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.specPlotMplWidget.canvas.ax,False)   # F74: no fit, no residuals
         self.ui.spXComboBox.clear()
         self.ui.spYComboBox.clear()
         self.ui.spY2ComboBox.clear()
@@ -721,6 +724,7 @@ class MainWindow (QMainWindow):
         self.ui.mcaPlotMplWidget.canvas.draw()
         self.ui.refBadPixListWidget.clear()
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)
         self.ui.cutPlotMplWidget.canvas.draw()
         self.ui.refADDataPlotWidget.canvas.ax.clear()
         self.ui.refADDataPlotWidget.canvas.draw()
@@ -1621,6 +1625,7 @@ class MainWindow (QMainWindow):
             return
         self.ui.statusBar.clearMessage()
         self.ui.specPlotMplWidget.canvas.ax.clear()
+        self.specResidualItems=[]       # F74: the fit drawn, for its residual panel
         self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
         self.specData['YCol']=str(self.ui.spYComboBox.currentText())
         self.specData['NCol']=str(self.ui.spNComboBox.currentText())
@@ -1675,12 +1680,17 @@ class MainWindow (QMainWindow):
                 else:
                     self.ui.specPlotMplWidget.canvas.ax.set_title(title+'\n'+'Peak= '+self.peakPos+', Cen= '+self.peakCenter+', FWHM= '+self.peakFWHM)
                 xf=np.linspace(np.min(x),np.max(x),400)
-                self.ui.specPlotMplWidget.canvas.ax.plot(xf,res.model(xf),'g--',label='Fit (%s)' % res.kind)
+                lab='Fit (%s)' % res.kind
+                if self.fitResidualsShown():
+                    lab=residuals.chi2_label(lab,res.chi2_dof)
+                self.ui.specPlotMplWidget.canvas.ax.plot(xf,res.model(xf),'g--',label=lab)
+                self.specResidualItems=[(x,y,yerr_,res,'g')]
                 self.scanCenter[self.selectedScanNums[-1]]=float(format(p.centre,'.3f'))
             except:
                 self.peakPos='%.4f'%x[np.argmax(y)]
                 self.peakCenter=self.peakPos
                 self.peakFWHM='0'
+        self.drawFitResiduals(self.ui.specPlotMplWidget.canvas.ax,self.specResidualItems)
         self.specPlotSettings()
         if not getattr(self,'specLogKept',''):          # keep the note about a log axis left linear
             self.ui.statusBar.showMessage('Done')
@@ -3098,6 +3108,18 @@ class MainWindow (QMainWindow):
             view.addAction(act)
             if dock.objectName() in shown:
                 dock.show()
+        view.addSeparator()
+        from PyQt5.QtWidgets import QAction
+        act=QAction('Residuals above fits',self)
+        act.setObjectName('actionFitResiduals')
+        act.setCheckable(True)
+        act.setChecked(self.fitResidualsShown())
+        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits): the '
+                       'residuals (y - fit)/sigma of the fitted points, and chi2/dof in the legend. For a good fit '
+                       'with right errors they scatter within about +/-2. Hidden by default; kept between sessions (F74).')
+        act.toggled.connect(self.setFitResiduals)
+        view.addAction(act)
+        self.fitResidualsAction=act
         self.showErrorModel()
 
     def rememberPane(self,dock,on):
@@ -4023,11 +4045,17 @@ class MainWindow (QMainWindow):
             axs=[fig.add_subplot(rows,cols,k+1) for k in range(n)]
             ims=[ax.imshow(np.zeros((2,2)),origin='lower',interpolation=display.INTERPOLATION) for ax in axs]
             lines=[ax.plot([0,0],[0,1],'w--',linewidth=1.5)[0] for ax in axs]
+            # F97: pixels near or above the count-rate limit, over the frame
+            sats=[ax.imshow(np.zeros((2,2,4)),origin='lower',interpolation=display.INTERPOLATION,zorder=3)
+                  for ax in axs]
+            notes=[ax.text(0.02,0.97,'',transform=ax.transAxes,ha='left',va='top',fontsize='small',color='white',
+                           zorder=4,bbox=dict(boxstyle='round,pad=0.2',fc=(0.75,0.0,0.0,0.8),ec='none'))
+                   for ax in axs]
             cbar=fig.colorbar(ims[0],ax=axs,format='%.1e')
             for ax in axs:
                 ax.callbacks.connect('xlim_changed',self.pilLimitsChanged)
                 ax.callbacks.connect('ylim_changed',self.pilLimitsChanged)
-            self.pilView={'key':key,'axes':axs,'images':ims,'lines':lines,'cbar':cbar}
+            self.pilView={'key':key,'axes':axs,'images':ims,'lines':lines,'cbar':cbar,'sats':sats,'satnotes':notes}
         self.pilUpdateImages(arrays)
         bg=len(self.ui.backgroundListWidget.selectedItems())!=0
         self.pilView['cbar'].update_normal(self.pilView['images'][0])
@@ -4051,6 +4079,7 @@ class MainWindow (QMainWindow):
         aspect=str(self.ui.pilAspectComboBox.currentText())
         frames=list(self.selectedPilFramesNums)
         self._pilSettingLimits=True
+        cued=False
         try:
             for k,(ax,im,line) in enumerate(zip(v['axes'],v['images'],v['lines'])):
                 p=self.pilShown[k]
@@ -4063,6 +4092,13 @@ class MainWindow (QMainWindow):
                 ax.set_aspect(aspect)
                 ax.set_xlabel(xlabel)
                 ax.set_ylabel(ylabel)
+                which=frames if self.pilMode=='sum' else [frames[p]]
+                cue=self.pilSaturationCue(v.get('sats',[None]*len(v['axes']))[k],which,extent)
+                cued=cued or bool(cue)
+                note=v.get('satnotes',[None]*len(v['axes']))[k]
+                if note is not None:          # inside the frame: the title stays the frame's name
+                    note.set_text(cue)
+                    note.set_visible(bool(cue))
                 if self.pilMode=='sum':
                     ax.set_title('Sum of %d frames' % len(frames))
                 else:
@@ -4073,9 +4109,45 @@ class MainWindow (QMainWindow):
                 if k==0:
                     self.Zdata=arr
                     self.extent=extent
+            # the cue explained where it is shown (rule 9); no tooltip over the frames otherwise
+            self.ui.pilMplWidget.setToolTip(self.SATURATION_TIP % (display._short(display.SOFT_CPS),
+                                            display._short(display.HARD_CPS)) if cued else '')
             self.pilApplyZoom(draw=False)
         finally:
             self._pilSettingLimits=False
+
+    SATURATION_TIP=('Amber pixels: above %s counts per second (the soft limit); red: above %s counts per second, '
+                    'an absorber is needed (owner, 2026-11-23, Q-IMG-10). Counts per second are the raw counts over '
+                    'the point\'s counting time (SPEC Seconds); whether the detector already corrected its counts '
+                    'for rate is not known here. In a sum, any frame above the limit marks the pixel (F97).')
+
+    def pilSeconds(self,i):
+        """The counting time of frame i (its point's SPEC 'Seconds'), or None."""
+        try:
+            return float(self.specData[int(self.pilScanNum[i])]['Seconds'][int(self.pilFrameNum[i])])
+        except (KeyError,IndexError,TypeError,ValueError):
+            return None
+
+    def pilSaturationCue(self,overlay,frames,extent):
+        """Mark the pixels of ``frames`` above the count-rate limits on
+        ``overlay`` (F97); returns the short note for the title."""
+        soft=hard=None
+        for i in frames:
+            s,h,_=display.saturation(self.pilData[i],self.pilSeconds(i))
+            if s is None:
+                continue
+            soft=s if soft is None else (soft|s)
+            hard=h if hard is None else (hard|h)
+        n_soft=0 if soft is None else int(soft.sum())
+        n_hard=0 if hard is None else int(hard.sum())
+        if overlay is not None:
+            if n_soft:
+                overlay.set_data(display.saturation_rgba(soft,hard))
+                overlay.set_extent(extent)
+            overlay.set_visible(bool(n_soft))
+        self.pilSaturated=getattr(self,'pilSaturated',{})
+        self.pilSaturated[tuple(frames)]=(n_soft,n_hard)
+        return display.saturation_text(n_soft,n_hard)
 
     def pilCoordFormatter(self,arr,extent):
         """The cursor readout of one image (before: every tile read the last tile's data)."""
@@ -6283,11 +6355,13 @@ class MainWindow (QMainWindow):
             self.messageBox('Please select a Qz and analyze it first')
             return
         if self.refpatchindex==0: #regular ref
+            self.promoteRefFlags()          # F95: no checks for Analyze; clears those of an earlier patch
             comments=str(self.refQzSelectedItems[0].text()).split('\t')[1:]
             self.refData.append([itemQz(self.refQzSelectedItems[0]),self.fsig,self.fsigerr])
             self.refInfo.append('#'+comments[0]+'\t'+comments[1]+'\t#Comments:'+str(self.ui.refComLineEdit.text()))
             self.ui.refDataListWidget.addItem('%.4f'%itemQz(self.refQzSelectedItems[0])+'\t'+'%.4e'%self.fsig+'\t'+'%.4e'%self.fsigerr+'\t'+self.refInfo[-1])
         else:  #pilatus patch ref
+            self.promoteRefFlags()          # F95: the checks of this patch, now on show
             self.ui.refDataListWidget.clear()
             self.ui.refNormRefListWidget.clear()
             for i in range(len(self.refData)):
@@ -6343,7 +6417,24 @@ class MainWindow (QMainWindow):
         if self.det!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]))==0 or len(getattr(self,'selectedScanNums',[]))==0:
             self.messageBox('Please load a Pilatus scan and select its images before using Ref Patch')
             return
+        old=getattr(self,'uirefpatch',None)
+        if old is not None and old.isVisible() and not getattr(self,'refPatchEnded',True):
+            self.refPatchEnded=True        # its Cancel message would describe the new patch
+            old.close()
+            self.refRestorePrevious()      # the result on show, before the unfinished patch began
+            self.notify('The unfinished Ref Patch was abandoned for this new one.',title='Ref Patch',level='info')
+        same=getattr(self,'uirefpatchsamescan',None)
+        if same is not None and same.isVisible() and not getattr(self,'refSameEnded',True):
+            self.refSameEnded=True
+            same.close()
+            self.refRestorePrevious()
+            self.notify('The unfinished Ref Patch was abandoned for this new one.',title='Ref Patch',level='info')
+        # what describes the result on show, put back if this patch is cancelled (F96)
+        self.refPrevResult={a:getattr(self,a) for a in self.REF_RESULT_ATTRS if hasattr(self,a)}
         self.refpatchindex=1
+        self.refJoins=[]
+        self.refResultJoins=[]  # the join table of the result on show (F96)
+        self.refAbsorberUsed=self.absorberModel()
         self.refDrops={}       # join number -> list of drop actions, for the script console
         self.refFactors={}     # join number -> (factor, error) used instead of the fitted one
         method=self.refPatchMethod()
@@ -6373,6 +6464,8 @@ class MainWindow (QMainWindow):
         self.scanqzmon={}    # the monitor of each of those points, for merging repeats (F81)
         self.pilRefPeakCen=[]
         self.pilBadPixInf = []  # build a list for the detailed info for corrected bad pix in RF signal ROI, which is shown for users
+        self.refQzOf={}         # (scan, frame) -> the Qz of its point, for the marks (F95)
+        self.refFlagsPending=[]
         self.refErrorModel=self.errorModel   # recorded for the Script pane
         for i in self.selectedPilFramesNums:
             # one point per frame: the same code a script uses (lss_core.reflectivity)
@@ -6399,6 +6492,7 @@ class MainWindow (QMainWindow):
                 self.pilBadPixInf.append([qkey,self.pilFrameNum[i],pilbadpixloc])
             self.scanqzframe[qkey]=row if first else np.vstack((self.scanqzframe[qkey],row))
             self.scanqzmon.setdefault(qkey,[]).append(float(self.pilMonc[i]))
+            self.refQzOf[(int(qkey),int(self.pilFrameNum[i]))]=float(np.atleast_1d(row)[0])
         try:
             self.pilrefsort=list(self.sortedScans(self.scanqzframe, mtype='qz'))
         except:
@@ -6406,10 +6500,7 @@ class MainWindow (QMainWindow):
 
         #print(self.scanqzframe)
         #print (self.pilrefsort)
-        if len(self.pilRefPeakCen) != 0:
-            self.pilRefPeakCenDis()  # display peak center offest (>2) for each frame
-        if len(self.pilBadPixInf) != 0:
-            self.pilBadPixInfDis()  # display bad pix correction in signal ROI for each frame
+        self.refPatchChecks()   # beam off centre, bad pixels in the ROI: a message and marks, no modal box (F95)
         if len(self.pilrefsort)==0:
             self.messageBox('Warning: no frame selected!!!')
         elif len(self.pilrefsort)==1:
@@ -6437,32 +6528,87 @@ class MainWindow (QMainWindow):
             else:
                 self.pilRefPatch()
                 
-    def pilRefPeakCenDis(self):
-        Dialog=QDialog(self)
-        ui=uic.loadUi(resource('pilPeakCenDialog.ui'),Dialog)
-        ui.show()
-        line='Scan\tFrame\tAxis\t# of Pixels off\n'
-        for i in range(len(self.pilRefPeakCen)):
-            line=line+str(self.pilRefPeakCen[i][0])+'\t'+str(self.pilRefPeakCen[i][1])+'\t'+self.pilRefPeakCen[i][2]+'\t'+str(self.pilRefPeakCen[i][3])+'\n'
-        ui.peakCenTextBrowser.append(line)
-        
-        Dialog.exec_()
+    def refPatchChecks(self):
+        """F95 (owner, 2026-11-23, Q-UI-B6 and B3): frames whose beam centre
+        is more than 2 px from the expected one, and frames with corrected
+        bad pixels inside the signal box. One message (the details in the
+        log) instead of two modal boxes; the points are marked on the
+        Reflectivity plot and the bad pixels listed per Qz once the patch is
+        on show (updateRefDataList promotes these flags)."""
+        qz=getattr(self,'refQzOf',{})
+        flags=[]
+        for scan,frame,axis,off in self.pilRefPeakCen:
+            flags.append(dict(kind='centre',scan=int(scan),frame=int(frame),qz=qz.get((int(scan),int(frame))),
+                              axis=str(axis),pixels=float(off)))
+        for scan,frame,pix in self.pilBadPixInf:
+            flags.append(dict(kind='badpix',scan=int(scan),frame=int(frame),qz=qz.get((int(scan),int(frame))),
+                              pixels=[[int(x),int(y)] for x,y in pix]))
+        self.refFlagsPending=flags
+        if not flags:
+            return
+        parts=[]
+        for kind,what in (('centre','the beam centre is more than 2 px from the expected one'),
+                          ('badpix','corrected bad pixels lie inside the signal box')):
+            fr=sorted({(f['scan'],f['frame']) for f in flags if f['kind']==kind})
+            if fr:
+                parts.append('%s in %d frame%s (%s)' % (what,len(fr),'s' if len(fr)!=1 else '',self.refFramesText(fr)))
+        self.notify('Ref Patch: '+'; '.join(parts)+'. These points are marked on the Reflectivity plot (open square: '
+                    'beam off centre; cross: bad pixels), the bad pixels are listed per Qz under Bad Pixels, and the '
+                    'details are in the log.',title='Ref Patch',level='warning')
+        for f in flags:
+            self.log.info('Ref Patch check: scan %d frame %d (Qz %s): %s',f['scan'],f['frame'],f['qz'],
+                          'beam centre %.1f px off in %s' % (f['pixels'],f['axis']) if f['kind']=='centre'
+                          else 'corrected bad pixels in the signal box at (x, y) %s' % f['pixels'])
 
-    def pilBadPixInfDis(self):
-        Dialog = QDialog(self)
-        ui = uic.loadUi(resource('pilBadPixDialog.ui'), Dialog)
-        ui.pushButton.setIcon(QIcon(resource('stop.png')))
-        ui.pushButton.setIconSize(QSize(100, 100))
-        ui.show()
-        line = 'Scan\tFrame\tPixel(s)\n'
-       # print self.pilBadPixInf
-        for i in range(len(self.pilBadPixInf)):
-            line = line + str(self.pilBadPixInf[i][0]) + '\t' + str(self.pilBadPixInf[i][1]) + '\t' + \
-                   str(self.pilBadPixInf[i][2]) + '\n'
-        ui.peakCenTextBrowser.append(line)
+    @staticmethod
+    def refFramesText(frames,most=8):
+        """'scan 7: frames 3, 4; scan 8: frame 0' for (scan, frame) pairs, cut after ``most`` frames."""
+        out,shown=[],0
+        for scan in sorted({s for s,_ in frames}):
+            fs=[f for s,f in frames if s==scan]
+            take=fs[:max(most-shown,0)]
+            if not take:
+                break
+            shown+=len(take)
+            out.append('scan %d: frame%s %s%s' % (scan,'s' if len(take)>1 else '',listText(take),', ...' if len(take)<len(fs) else ''))
+        text='; '.join(out)
+        return text+('; ...' if shown<len(frames) and not text.endswith('...') else '')
 
-        Dialog.exec_()
-                
+    def promoteRefFlags(self):
+        """The checks of the patch now on show become the result's (F95)."""
+        self.refFlags=list(getattr(self,'refFlagsPending',[])) if getattr(self,'refpatchindex',0)==1 else []
+        w=self.ui.refBadPixListWidget
+        w.clear()
+        bad=sorted((f for f in self.refFlags if f['kind']=='badpix'),
+                   key=lambda f:(f['qz'] if f['qz'] is not None else np.inf,f['scan'],f['frame']))
+        for f in bad:
+            w.addItem('Qz %s  S# %d F# %d: %s' % ('%.4f' % f['qz'] if f['qz'] is not None else '?',f['scan'],f['frame'],
+                                                 ', '.join('(%d, %d)' % tuple(p) for p in f['pixels'])))
+
+    def drawRefFlags(self,ax,qz0,x,y):
+        """Mark the points of the frames the Ref Patch checks flagged (F95):
+        matched to the curve by their Qz; a point dropped from the curve has
+        no mark."""
+        self.refFlagMarks={}         # check -> the marked rows of the curve
+        flags=getattr(self,'refFlags',[]) if getattr(self,'refpatchindex',0)==1 else []
+        if not flags or len(qz0)==0:
+            return
+        qz0=np.asarray(qz0,dtype=float)
+        styles=(('centre',dict(marker='s',ms=11,mfc='none',mec='tab:orange',mew=1.5,ls='none',
+                               label='beam off centre (> 2 px)')),
+                ('badpix',dict(marker='x',ms=10,color='tab:red',mew=1.5,ls='none',label='bad pixels in the ROI')))
+        for kind,style in styles:
+            idx=set()
+            for f in flags:
+                if f['kind']==kind and f['qz'] is not None:
+                    k=int(np.argmin(np.abs(qz0-f['qz'])))
+                    if abs(qz0[k]-f['qz'])<5e-5:
+                        idx.add(k)
+            if idx:
+                idx=sorted(idx)
+                ax.plot(np.asarray(x)[idx],np.asarray(y)[idx],**style)
+                self.refFlagMarks[kind]=idx
+
     def pilRefPatch(self):            
         Dialog=QDialog(self)                
         self.uirefpatch=uic.loadUi(resource('refpatch.ui'), Dialog)
@@ -6482,6 +6628,7 @@ class MainWindow (QMainWindow):
         lay.insertWidget(lay.indexOf(self.uirefpatch.nextPushButton),box)
         self.uirefpatch.knownRatioCheckBox,self.uirefpatch.knownRatioLabel=box,lab
         box.toggled.connect(self.pilRefPatchKnownToggled)
+        self.initRefPatchSteps(Dialog)   # F96: Back, Cancel, the join table
         self.refScale={self.pilrefsort[0]:1.0}   # scale already applied to each scan's data
         # unscaled copies of the scans as the joins start (the joins scale them in place, trap T3):
         # the covariance export replays the patch from these
@@ -6489,6 +6636,191 @@ class MainWindow (QMainWindow):
         self.refPatchOrder=list(self.pilrefsort)
         self.refInfoShown=None
         self.pilRefPatchPlot()
+
+    # ---- F96 (owner, 2026-11-23, Q-UI-B7): Back, a Cancel that says so, the join table ----
+
+    REF_JOIN_COLUMNS=('Join','Scans','Factor','± %','From','Dropped','Note')
+    # what describes the reflectivity on show (Script pane, recipe, provenance line); a cancelled patch puts them back
+    REF_RESULT_ATTRS=('refpatchindex','refDrops','refFactors','refMethodUsed','refKnownOverride','refMerged',
+                      'refRepeatsUsed','refDroppedScans','refScanList','refPoints','slit','dir','command',
+                      'refErrorModel','refPatchInput','refPatchOrder','refScale','refResultJoins','refAbsorberUsed')
+
+    def initRefPatchSteps(self,Dialog):
+        """Back, Cancel and the join table of the patch window. Every Drop
+        and every Next is a step that Back undoes; Cancel, Esc or closing the
+        window stops the patch and says so (never silently)."""
+        from PyQt5.QtWidgets import QPushButton, QTableWidget, QHeaderView, QAbstractItemView
+        ui=self.uirefpatch
+        lay=ui.horizontalLayout
+        back=QPushButton('<< Back',Dialog)
+        back.setObjectName('backPushButton')
+        back.setToolTip('Undo the last step: the last Drop, or the last join accepted with Next (that join comes '
+                        'back as you left it, its drops kept, so that you can drop more or change the known ratio). '
+                        'Press again to go further back, down to the first join as it opened.')
+        lay.insertWidget(lay.indexOf(ui.nextPushButton),back)
+        cancel=QPushButton('Cancel',Dialog)
+        cancel.setObjectName('cancelPushButton')
+        cancel.setToolTip('Stop this Ref Patch. The Reflectivity tab keeps what it showed before. The Messages pane '
+                          'says at which join the patch stopped, and the log lists the joins accepted so far. Esc '
+                          'and closing the window do the same.')
+        lay.addWidget(cancel)
+        table=QTableWidget(0,len(self.REF_JOIN_COLUMNS),Dialog)
+        table.setObjectName('joinTableWidget')
+        table.setHorizontalHeaderLabels(list(self.REF_JOIN_COLUMNS))
+        table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        table.setSelectionMode(QAbstractItemView.NoSelection)
+        table.verticalHeader().setVisible(False)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        table.horizontalHeader().setStretchLastSection(True)
+        rows3=table.horizontalHeader().sizeHint().height()+3*table.verticalHeader().defaultSectionSize()+6
+        table.setMinimumHeight(rows3)      # three joins visible (NX 6-9 has three), then it scrolls
+        table.setMaximumHeight(rows3+table.verticalHeader().defaultSectionSize())
+        table.setToolTip('The joins of this patch: those accepted with Next, then the one on show (in italics). '
+                         'Factor: what scales the new scan (± its error in per cent); From: joint (the joint fit), '
+                         'legacy (the legacy fit) or known ratio (the calibrated foils); Dropped: the point numbers typed for Drop. The table is '
+                         'kept with the result: in the tooltip of the line under the Reflectivity plot, and in the '
+                         'workbook\'s Saved settings when the result is saved.')
+        ui.gridLayout.addWidget(table,3,0)
+        Dialog.resize(max(Dialog.width(),720),max(Dialog.height(),620))   # room for the table under the plot
+        ui.backPushButton,ui.cancelPushButton,ui.joinTableWidget=back,cancel,table
+        back.clicked.connect(self.pilRefPatchBack)
+        cancel.clicked.connect(Dialog.reject)
+        Dialog.finished.connect(lambda result,d=Dialog: self.pilRefPatchFinished(d))
+        self.refHistory=[]        # snapshots before each step, for Back
+        self.refJoins=[]          # the accepted joins (refJoinRow)
+        self.refPatchEnded=False  # set when the patch finishes or stops with a message of its own
+
+    def refPatchEnd(self,finished=True):
+        """Close the patch window without the Cancel message: the patch
+        finished, or (``finished`` False) stopped with a message of its own,
+        which leaves the result on show as it was."""
+        self.refPatchEnded=True
+        self.uirefpatch.close()
+        if not finished:
+            self.refRestorePrevious()
+
+    def refRestorePrevious(self):
+        """Put back what describes the reflectivity on show (Script pane,
+        recipe, provenance line) after a patch that did not finish."""
+        prev=getattr(self,'refPrevResult',None)
+        if prev is None:
+            return
+        for a in self.REF_RESULT_ATTRS:
+            if a in prev:
+                setattr(self,a,prev[a])
+            elif hasattr(self,a):
+                delattr(self,a)
+        self.refPrevResult=None
+
+    def refSnapshot(self):
+        """What a step can change: kept so that Back can restore it (the joins
+        scale the scans in place, trap T3, so the arrays are copied)."""
+        data=getattr(self,'pilrefdata',None)
+        return dict(order=self.pilreforder,
+                    frames={k:np.array(v,copy=True) for k,v in self.scanqzframe.items()},
+                    data=None if data is None else np.array(data,copy=True),
+                    scale=dict(self.refScale),factors=dict(self.refFactors),
+                    drops={k:[list(d) for d in v] for k,v in self.refDrops.items()},
+                    known=dict(self.refKnownOverride),joins=[dict(r) for r in self.refJoins])
+
+    def pilRefPatchBack(self):
+        if not getattr(self,'refHistory',None):
+            self.notify('Nothing to go back to: this is the first join as it opened.',title='Ref Patch',level='info')
+            return
+        s=self.refHistory.pop()
+        self.pilreforder=s['order']
+        self.scanqzframe=s['frames']
+        if s['data'] is not None:
+            self.pilrefdata=s['data']
+        self.refScale,self.refFactors,self.refDrops=s['scale'],s['factors'],s['drops']
+        self.refKnownOverride,self.refJoins=s['known'],s['joins']
+        self.refInfoShown=None
+        self.uirefpatch.nextPushButton.setText('Next>>')
+        self.pilRefPatchPlot()
+
+    def pilRefPatchFinished(self,dialog):
+        """The patch window closed: by the patch itself (finished, or stopped
+        with its own message), or by Cancel, Esc or the window's close button,
+        which must not abandon the patch silently (Q-UI-B7)."""
+        if dialog is not getattr(self,'uirefpatch',None) or getattr(self,'refPatchEnded',True):
+            return
+        self.refPatchEnded=True
+        self.refRestorePrevious()
+        n=len(self.pilrefsort)-1
+        j=min(self.pilreforder,n-1)
+        done=len(self.refJoins)
+        self.log.info('Ref Patch cancelled; joins accepted:\n%s',self.refJoinsText() or 'none')
+        self.notify('Ref Patch cancelled at join %d of %d (scans %s and %s): the Reflectivity tab is unchanged. '
+                    '%s Press Ref Patch to start again.'
+                    % (j+1,n,self.pilrefsort[j],self.pilrefsort[j+1],
+                       'The %d join%s accepted so far %s listed in the log.' % (done,'s' if done!=1 else '','are' if done!=1 else 'is')
+                       if done else 'No join had been accepted.'),
+                    title='Ref Patch',level='warning')
+
+    def refJoinRow(self,info,factor):
+        """One row of the join table for the join of ``info`` (refJoinInfo),
+        accepted with ``factor`` ((value, error), or None: the fitted one)."""
+        j=info['join']
+        note=str(info.get('note','') or '')
+        # the words of the script's method= and factors= (a live replay rebuilds the joins from them)
+        if j in getattr(self,'refFactors',{}):
+            source='known ratio'
+        elif self.refActiveMethod()=='legacy' or 'legacy fit used' in note:
+            source='legacy'        # the note says when the joint fit was impossible
+        else:
+            source='joint'
+        fe=factor if factor is not None else info.get('patch')
+        f,e=(None,None) if fe is None else (float(fe[0]),float(fe[1]))
+        return dict(join=j+1,scans=[int(info['a']),int(info['b'])],factor=f,error=e,source=source,
+                    dropped=[int(d) for ds in self.refDrops.get(j,[]) for d in ds],note=note)
+
+    def refJoinCells(self,r):
+        rel='' if not r['factor'] or r['error'] is None else '%.2f' % (100*abs(r['error']/r['factor']))
+        return [str(r['join']),'%d → %d' % tuple(r['scans']),'' if r['factor'] is None else '%.5g' % r['factor'],rel,
+                r['source'],', '.join(str(d) for d in r['dropped']),r['note']]
+
+    def refJoinsText(self,joins=None):
+        """The join table as text (log, tooltips)."""
+        rows=self.refJoins if joins is None else joins
+        lines=[]
+        for r in rows:
+            join,scans,f,rel,source,dropped,note=(c or '-' for c in self.refJoinCells(r))
+            line='join %s, scans %s: factor %s ± %s %% (%s)' % (join,scans,f,rel,source)
+            if r['dropped']:
+                line+=', dropped %s' % dropped
+            if r['note']:
+                line+='; %s' % note
+            lines.append(line)
+        return '\n'.join(lines)
+
+    def updateRefJoinTable(self):
+        """The accepted joins, then the one on show (italic)."""
+        from PyQt5.QtWidgets import QTableWidgetItem
+        table=getattr(self.uirefpatch,'joinTableWidget',None)
+        if table is None:
+            return
+        rows=[(r,False) for r in self.refJoins]
+        info=self.refInfoShown
+        if info is not None and info.get('join')==self.pilreforder and self.pilreforder<len(self.pilrefsort)-1:
+            known=info['known'] is not None and self.uirefpatch.knownRatioCheckBox.isChecked()
+            factor=(info['known'][0],info['known'][0]*info['known'][1]) if known else None
+            r=self.refJoinRow(info,factor)
+            if known:
+                r['source']='known ratio'
+            r['note']=('on show; '+r['note']) if r['note'] else 'on show'
+            rows.append((r,True))
+        table.setRowCount(len(rows))
+        for i,(r,pending) in enumerate(rows):
+            for k,text in enumerate(self.refJoinCells(r)):
+                item=QTableWidgetItem(text)
+                if k==len(self.REF_JOIN_COLUMNS)-1 and text:
+                    item.setToolTip(text)          # the note in full (the column elides it)
+                if pending:
+                    f=item.font()
+                    f.setItalic(True)
+                    item.setFont(f)
+                table.setItem(i,k,item)
+        self.uirefpatch.backPushButton.setEnabled(bool(self.refHistory))
 
     def refMonitorChange(self,a,b):
         """Monc/Monp of scan b over scan a at their overlap (P29), or None."""
@@ -6591,11 +6923,24 @@ class MainWindow (QMainWindow):
             'normalised repeats is a preference (repeats_legacy_average).')
         # self.connect(self.uirefpatchsamescan.nextPushButton, SIGNAL('clicked()'),self.pilRefSSNext) #go to the next overlap
         self.uirefpatchsamescan.nextPushButton.clicked.connect(self.pilRefSSNext)
+        self.refSameEnded=False
+        Dialog.finished.connect(lambda result,d=Dialog: self.pilRefSameScanFinished(d))
         self.pilRefSameScanPlot()
+
+    def pilRefSameScanFinished(self,dialog):
+        """The identical-scans window closed before its Finish: the Ref Patch
+        stops, and says so (F96, as the patch window's Cancel)."""
+        if dialog is not getattr(self,'uirefpatchsamescan',None) or getattr(self,'refSameEnded',True):
+            return
+        self.refSameEnded=True
+        self.refRestorePrevious()
+        self.notify('Ref Patch cancelled in the identical-scans window: the Reflectivity tab is unchanged. '
+                    'Press Ref Patch to start again.',title='Ref Patch',level='warning')
     
     def pilRefSameScanPlot(self):  
         if self.pilrefsamescanorder==len(self.pilrefsamescannum):
             self.pilrefsort=list(self.sortedScans(self.scanqzframe, mtype='qz'))
+            self.refSameEnded=True
             self.uirefpatchsamescan.close()
             if len(self.pilrefsort)==0:
                 self.messageBox('All scans were dropped; there is no reflectivity to patch.')
@@ -6665,7 +7010,8 @@ class MainWindow (QMainWindow):
     
     def pilRefPatchPlot(self):
         if self.pilreforder==len(self.pilrefsort)-1:
-            self.uirefpatch.close()
+            self.refPatchEnd()
+            self.refResultJoins=list(self.refJoins)   # the join table, kept with the result (F96)
             self.refData=list(self.pilrefdata)
             self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
           #  print self.pilrefdata
@@ -6676,14 +7022,14 @@ class MainWindow (QMainWindow):
             self.uirefpatch.Label.setText('Reflectivity Patch between Scans '+str(self.pilrefsort[self.pilreforder])+' and '+str(self.pilrefsort[self.pilreforder+1]))
             if self.scanqzframe[self.pilrefsort[self.pilreforder]][-1][0]<self.scanqzframe[self.pilrefsort[self.pilreforder+1]][0][0]:
                 self.messageBox('Warning: no overlap qz between slected frames from scan '+str(self.pilrefsort[self.pilreforder])+' and '+str(self.pilrefsort[self.pilreforder+1])+'!!!')
-                self.uirefpatch.close()
+                self.refPatchEnd(finished=False)
             else:
                #print self.scanqzframe[self.pilrefsort[self.pilreforder]],self.scanqzframe[self.pilrefsort[self.pilreforder+1]]
                 try:
                     fac,xmin,xmax,ymin,ymax=self.oneDjoin(self.scanqzframe[self.pilrefsort[self.pilreforder]],self.scanqzframe[self.pilrefsort[self.pilreforder+1]],mtype='fac')
                 except:
                     self.messageBox('Warning: Scan ' + str(self.pilrefsort[self.pilreforder]) + ' or ' + str(self.pilrefsort[self.pilreforder+1]) + ' does not have enough points for patching!')
-                    self.uirefpatch.close()
+                    self.refPatchEnd(finished=False)
                     return
 
                 #print self.scanqzframe[self.pilrefsort[self.pilreforder]],self.scanqzframe[self.pilrefsort[self.pilreforder+1]]                
@@ -6709,6 +7055,7 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
               #  print xmin,xmax,ymin,ymax, fac
                 self.uirefpatch.plotWidget.canvas.draw()
+                self.updateRefJoinTable()
         else:
             if self.pilreforder==len(self.pilrefsort)-2:
                 self.uirefpatch.nextPushButton.setText('Finish!')
@@ -6720,7 +7067,7 @@ class MainWindow (QMainWindow):
                     fac,xmin,xmax,ymin,ymax=self.oneDjoin(self.pilrefdata,self.scanqzframe[self.pilrefsort[self.pilreforder+1]],mtype='fac')
                 except:
                     self.messageBox('Warning: Scan ' + str(self.pilrefsort[self.pilreforder]) + ' or ' + str(self.pilrefsort[self.pilreforder+1]) + ' does not have enough points for patching!')
-                    self.uirefpatch.close()
+                    self.refPatchEnd(finished=False)
                     return
                 kfac=self.refShowKnown()
                 if kfac is None:
@@ -6744,6 +7091,7 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
             #    print xmin,xmax,ymin,ymax, fac
                 self.uirefpatch.plotWidget.canvas.draw()
+                self.updateRefJoinTable()
     
     def pilRefPatchDrop(self):
         if self.pilreforder>=len(self.pilrefsort)-1:     # no join left (found by the crash sweep, 2026-11-23)
@@ -6761,6 +7109,7 @@ class MainWindow (QMainWindow):
         except IndexError:
             self.messageBox('Point '+listText([d for d in dropnumbers if not -len(old)<=d<len(new)] or dropnumbers)+' does not exist; nothing was dropped.')
             return
+        self.refHistory.append(self.refSnapshot())     # Back undoes this drop (F96)
         self.scanqzframe[self.pilrefsort[self.pilreforder+1]]=new2
         if self.pilreforder==0:
             self.scanqzframe[self.pilrefsort[0]]=old2
@@ -6780,6 +7129,7 @@ class MainWindow (QMainWindow):
         info=self.refInfoShown
         if info is None or info['join']!=self.pilreforder or self.refActiveMethod()!='legacy':
             info=self.refJoinInfo()     # the joint fit: always on the data as they are now (drops)
+        self.refHistory.append(self.refSnapshot())     # Back returns to this join as it is now (F96)
         a,b=self.pilrefsort[self.pilreforder],self.pilrefsort[self.pilreforder+1]
         factor=None
         if info['known'] is not None and self.uirefpatch.knownRatioCheckBox.isChecked():
@@ -6804,6 +7154,8 @@ class MainWindow (QMainWindow):
             self.pilrefdata=self.oneDjoin(self.pilrefdata,self.scanqzframe[self.pilrefsort[self.pilreforder+1]],mtype='merge')
         used=factor[0] if factor is not None else (info['patch'][0] if info['patch'] else 1.0)
         self.refScale[b]=used     # fitted against the curve joined so far: already relative to the first scan
+        self.refJoins.append(self.refJoinRow(info,factor if factor is not None else
+                                             ((used,info['patch'][1]) if info['patch'] else None)))
         self.pilreforder=self.pilreforder+1
         self.pilRefPatchPlot()
         
@@ -6855,6 +7207,7 @@ class MainWindow (QMainWindow):
             if self.refpatchindex==0:
                 self.refInfoNew=[self.refInfo[i] for i in np.argsort(data[:,0])]
                 data=data[np.argsort(data[:,0])]
+            qz0=data[:,0].copy()     # before Qoff and Qz^2: what the F95 marks are matched on
             if data[0,0]<self.refQc:
                 norm=np.max(data[np.where(data[:,0]<self.refQc)][:,1]) #use the max intensity for the q below qc as the normalization factor. 
                 
@@ -6903,6 +7256,7 @@ class MainWindow (QMainWindow):
                 self.ui.refRefDataPlotwidget.canvas.ax.errorbar(data[:,0],data[:,6],fmt='-',label='rb')
             else: 
                 self.ui.refRefDataPlotwidget.canvas.ax.errorbar(data[:,0],data[:,1],data[:,2],fmt='o',label='#0')
+            self.drawRefFlags(self.ui.refRefDataPlotwidget.canvas.ax,qz0,data[:,0],data[:,1] if len(data[0])==3 else data[:,3])
         else:
             print ('no current ref data to plot')
      #plot selected ref files
@@ -6927,12 +7281,13 @@ class MainWindow (QMainWindow):
         if self.ui.refLegendCheckBox.checkState()!=0:
             self.ui.refRefDataPlotwidget.canvas.ax.legend(loc=self.ui.refLegendLocComboBox.currentIndex()+1,frameon=False,scatterpoints=0,numpoints=1)
         try:
-            self.ui.refRefDataPlotwidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
+            self.ui.refRefDataPlotwidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(self.refResultScans()))
         except:
             pass
         self.ui.refRefDataPlotwidget.canvas.draw()
         self.saveTemData()
-        
+        self.updateRefProvenance()      # F96: how the result on show was made
+
     def saveRefData(self):
         if self.det!='Pilatus' or len(self.refData)==0 or getattr(self,'normRefData',None) is None:
             self.messageBox('There is no reflectivity data to save yet')
@@ -7075,6 +7430,7 @@ class MainWindow (QMainWindow):
     
     def clearCutGraph(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)
         self.ui.cutPlotMplWidget.canvas.draw()
         
     def lineAreaCut(self):   # the Line/Area cut buttons
@@ -7112,6 +7468,7 @@ class MainWindow (QMainWindow):
 
     def updatePilCutData(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)   # F74: the new cuts are not fitted yet
         self.selCutPilData={}
         self.selCutPilErrorData={}
         self.cutData={}
@@ -7236,6 +7593,7 @@ class MainWindow (QMainWindow):
 
     def updatePilGIDCutData(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
+        residuals.panel(self.ui.cutPlotMplWidget.canvas.ax,False)
         try:
             start=float(self.ui.pilIntRangeLineEdit.text().split(':')[0])
             end=float(self.ui.pilIntRangeLineEdit.text().split(':')[1])
@@ -7363,6 +7721,55 @@ class MainWindow (QMainWindow):
         c=np.asarray(cd,float)
         return [('GID cut',c[:,0],c[:,1],c[:,2],1.0)] if c.ndim==2 and c.shape[1]>=3 else []
 
+    # ---- F74 (owner, 2026-11-22): residuals above the plots that show a fit ----
+
+    def fitResidualsShown(self):
+        return bool(self.prefs.get('fit_residuals',False))
+
+    def drawFitResiduals(self,ax,items):
+        """The residual panel above ``ax`` for ``items`` = (x, y, σ,
+        lss_core.peaks.FitResult or a list of them, colour): each fit's
+        residuals inside its window, weighted by σ (lss_core.residuals). No
+        panel when the switch is off or nothing is fitted."""
+        rax=residuals.panel(ax,self.fitResidualsShown() and bool(items))
+        if rax is None:
+            moved=getattr(ax,'_lss_title','')
+            if moved and not ax.get_title():          # the title had gone up to the panel
+                ax.set_title(moved)
+            ax._lss_title=''
+            return None
+        for x,y,s,fits,colour in items:
+            x,y=np.asarray(x,float),np.asarray(y,float)
+            s=None if s is None else np.asarray(s,float)*np.ones_like(y)
+            for g in (fits if isinstance(fits,(list,tuple)) else [fits]):
+                if not getattr(g,'peaks',None) or not np.all(np.isfinite(g.window)):
+                    continue
+                m=(x>=min(g.window))&(x<=max(g.window))
+                if m.any():
+                    residuals.draw(rax,x[m],y[m],g.model(x[m]),None if s is None else s[m],color=colour)
+        title=ax.get_title() or getattr(ax,'_lss_title','')
+        rax.set_title(title,fontsize=ax.title.get_fontsize())   # the title above the pair
+        ax._lss_title=title
+        ax.set_title('')
+        return rax
+
+    def drawCutResiduals(self,curves=None):
+        curves=self.cutCurves() if curves is None else curves
+        fits=dict(getattr(self,'cutFitResults',[]) or [])
+        items=[(x,y,s,fits[label],'C%d' % (k%10) if label!='GID cut' else 'k')
+               for k,(label,x,y,s,scale) in enumerate(curves) if label in fits]
+        return self.drawFitResiduals(self.ui.cutPlotMplWidget.canvas.ax,items)
+
+    def setFitResiduals(self,on):
+        """View > Residuals above fits: kept between sessions; redraws the
+        fits on show."""
+        self.setPreference('fit_residuals',bool(on))
+        if getattr(self,'specResidualItems',None):
+            self.updateSpecPlotData()
+        if getattr(self,'cutFitResults',None):
+            self.drawCutResiduals()
+            self.ui.cutPlotMplWidget.canvas.draw()
+
     def fitCuts(self):
         """Fit every plotted cut (the "Fit peaks" button)."""
         curves=self.cutCurves()
@@ -7371,9 +7778,13 @@ class MainWindow (QMainWindow):
             return
         ax=self.ui.cutPlotMplWidget.canvas.ax
         for a in self.cutFitArtists:
+            # only lines still on the plot: ax.clear() (Clear graph, a new cut) has detached the others,
+            # and matplotlib refuses to remove a detached artist (the crash sweep, 2026-11-24)
+            if getattr(a,'axes',None) is not ax:
+                continue
             try:
                 a.remove()
-            except (ValueError,AttributeError):
+            except (ValueError,AttributeError,NotImplementedError):
                 pass
         self.cutFitArtists=[]
         self.cutFitResults=[]
@@ -7392,6 +7803,7 @@ class MainWindow (QMainWindow):
             good=[g for g in groups if g.ok]
             text='; '.join(g.summary() for g in groups) if groups else 'no fit'
             self.notify('Fit of %s: %s' % (label,text),title='Peak fit',level='info' if good else 'warning')
+        self.drawCutResiduals(curves)
         self.ui.cutPlotMplWidget.canvas.draw()
         if self.cutFitDialog is not None:
             self.cutFitDialog.findChild(QLabel,'cutFitResultLabel').setText(self.cutFitSummary())
@@ -7851,16 +8263,138 @@ class MainWindow (QMainWindow):
         if self.det!='Pilatus' or len(getattr(self,'refData',[]))==0 or getattr(self,'normRefData',None) is None:
             self.saveNotice('There is no reflectivity data to save yet')
             return
-        scans=sorted(int(n) for n in self.selectedScanNums)
+        self.saveToWorkbook('reflectivity',self.refWorkbookItems(),auto=getattr(self,'autoSaving',False))
+        self.updateRefProvenance()      # 'saved vN' under the plot
+
+    def refWorkbookItems(self):
+        """The reflectivity on show as workbook items (R, and R/RF when made);
+        a Ref Patch's join table goes into the settings (F96)."""
+        scans=self.refResultScans()
         d=np.asarray(self.normRefData,float)
         cols=['Qz','R','dR','dQz'][:d.shape[1]]
-        items=[dict(scans=scans,data=d,columns=cols,label='R',settings=dict(command=str(getattr(self,'command',''))),
+        settings=dict(command=str(getattr(self,'command','')))
+        if getattr(self,'refpatchindex',0)==1 and getattr(self,'refResultJoins',None):
+            settings['joins']=[dict(r) for r in self.refResultJoins]
+        items=[dict(scans=scans,data=d,columns=cols,label='R',settings=settings,
                     recipe=self.recipe(self.reflectivityScript))]
         rrf=getattr(self,'RrfData',None)
         if rrf is not None and len(rrf):
             r=np.asarray(rrf,float)
             items.append(dict(scans=scans,data=r,columns=['Qz','R/RF','d(R/RF)','dQz'][:r.shape[1]],label='R/RF'))
-        self.saveToWorkbook('reflectivity',items,auto=getattr(self,'autoSaving',False))
+        return items
+
+    def refResultScans(self):
+        """The scans of the reflectivity on show: those of the Ref Patch (less
+        any dropped in the identical-scans window), not the scans selected
+        now (TODO area I, 2026-11-22); for Analyze, the selection."""
+        if getattr(self,'refpatchindex',0)==1 and hasattr(self,'refScanList'):
+            return [int(n) for n in self.refScanList if n not in getattr(self,'refDroppedScans',[])]
+        return sorted(int(n) for n in self.selectedScanNums)
+
+    # ---- F96 (owner, 2026-11-23, Q-UI-B5): one line under the result saying how it was made ----
+
+    def initRefProvenance(self):
+        from PyQt5.QtWidgets import QLabel
+        lab=QLabel('',self.ui.refTab)
+        lab.setObjectName('refProvenanceLabel')
+        lab.setStyleSheet('color: #555; font-size: 9pt;')
+        lab.setToolTip('How the reflectivity on show was made. Nothing to show yet.')
+        lay=self.ui.refTab.layout()
+        lay.insertWidget(lay.indexOf(self.ui.splitter_2)+1,lab)
+        self.refProvenanceLabel=lab
+        self.ui.refBadPixListWidget.setToolTip(
+            'Bad pixels corrected inside the signal box of each frame of the Ref Patch on show, by Qz: '
+            'scan, frame and the pixels (x, y). The correction is the Pilatus tab\'s (Bad pixel: iterations, '
+            'factor). Those points are marked with a cross on the plot below (F95).')
+
+    def refSavedState(self):
+        """(short text, sentence) on whether the result on show is in the
+        workbook, read only from the workbook already in memory (opening one
+        can take seconds)."""
+        cached=getattr(self,'workbookCache',None)
+        try:
+            if not cached or cached[0]!=self.workbookPath():
+                return '','Saved: not checked (the workbook has not been opened in this session).'
+            items=self.refWorkbookItems()
+            wb=cached[2]
+            rid=wb.find_content(workbookmod.content_key('reflectivity',**items[0]))
+        except Exception as e:
+            return '','Saved: not checked (%s).' % e
+        if rid is None:
+            return 'not saved','Saved: no, this result is not in the workbook %s.' % os.path.basename(cached[0])
+        row=next((r for r in wb.results('reflectivity') if r['id']==rid),{})
+        return ('saved v%s' % row.get('version','?'),
+                'Saved: %s v%s (id %s) in %s.' % (row.get('label') or 'R',row.get('version','?'),rid,os.path.basename(cached[0])))
+
+    def refProvenance(self):
+        """(line, tooltip) for the reflectivity on show: method, error model,
+        absorber model, scans, dropped points, saved version (Q-UI-B5)."""
+        if len(getattr(self,'refData',[]))==0:
+            return '','How the reflectivity on show was made. Nothing to show yet.'
+        parts,tip=[],['How the reflectivity on show was made:']
+        patched=getattr(self,'refpatchindex',0)==1 and hasattr(self,'refScanList')
+        if patched:
+            scans=[n for n in self.refScanList if n not in getattr(self,'refDroppedScans',[])]
+            joins=getattr(self,'refResultJoins',[]) or []
+            method=getattr(self,'refMethodUsed',None) or self.refPatchMethod()
+            if len(scans)<2:
+                parts.append('one scan, no joins')
+                tip.append('Ref Patch of one scan: nothing to join.')
+            else:
+                known=sum(1 for r in joins if r.get('source')=='known ratio')
+                parts.append('%s patch%s' % (method,', %d known ratio%s' % (known,'s' if known!=1 else '') if known else ''))
+                tip.append('Ref Patch, %s fit at each join (Reduction options); the joins:' % method)
+                tip+=['  '+t for t in self.refJoinsText(joins).split('\n') if t] or ['  (not recorded)']
+        else:
+            scans=[]
+            parts.append('Analyze, point by point')
+            tip.append('Analyze: one Qz point at a time from the Qz list, no joins.')
+        em=getattr(self,'refErrorModel',None) or self.errorModel
+        parts.append('budget errors' if em.budget else 'legacy errors')
+        tip.append('Errors: %s.' % em.describe())
+        ab=getattr(self,'refAbsorberUsed',None) or self.absorberModel()
+        if isinstance(ab,absorbers.Foils):
+            parts.append('calibrated foils')
+            tip.append('Absorbers: the calibrated foils (File > Preferences), as in use when the patch was made.')
+        else:
+            parts.append('absfac %s' % ab)
+            tip.append('Absorbers: absfac^n with absfac %s (the Absorber factor field), as in use when the patch was made.' % ab)
+        if patched:
+            parts.append('scans %s' % listText(scans))
+            extra=[]
+            if getattr(self,'refDroppedScans',None):
+                extra.append('dropped in the identical-scans window: %s' % listText(self.refDroppedScans))
+            if getattr(self,'refMerged',None):
+                extra.append('repeats merged: %s (%s)' % ('; '.join(listText(g) for g in self.refMerged),
+                             'ΣN/ΣM' if getattr(self,'refRepeatsUsed','monitors')=='monitors' else 'legacy mean'))
+            if getattr(self,'refPoints',None):
+                extra.append('only some frames of scan%s %s' % ('s' if len(self.refPoints)>1 else '',listText(sorted(self.refPoints))))
+            tip.append('Scans: %s%s.' % (listText(scans),'; '+'; '.join(extra) if extra else ''))
+            fl=getattr(self,'refFlags',[]) or []
+            nc=len({(f['scan'],f['frame']) for f in fl if f['kind']=='centre'})
+            nb=len({(f['scan'],f['frame']) for f in fl if f['kind']=='badpix'})
+            if nc or nb:
+                tip.append('Checks: beam centre more than 2 px off in %d frame%s (open squares), corrected bad pixels '
+                           'in the signal box in %d frame%s (crosses).' % (nc,'s' if nc!=1 else '',nb,'s' if nb!=1 else ''))
+            nd=sum(len(d) for v in getattr(self,'refDrops',{}).values() for d in v)
+            parts.append('%d point%s dropped' % (nd,'s' if nd!=1 else '') if nd else 'no points dropped')
+        saved,said=self.refSavedState()
+        if saved:
+            parts.append(saved)
+        tip.append(said)
+        return ' · '.join(parts),'\n'.join(tip)
+
+    def updateRefProvenance(self):
+        lab=getattr(self,'refProvenanceLabel',None)
+        if lab is None:
+            return
+        try:
+            line,tip=self.refProvenance()
+        except Exception as e:          # a description must never break the plot it describes
+            self.log.info('provenance line: %s',e,exc_info=True)
+            line,tip='','How the reflectivity on show was made: not known (%s).' % e
+        lab.setText(line)
+        lab.setToolTip(tip)
 
     def saveCutsToWorkbook(self):
         curves=self.cutCurves()
