@@ -51,7 +51,7 @@ def test_a_map_file_is_drawn_in_every_colour_map_and_scale(window, qapp, recorde
 
 
 def test_every_colour_map_offered_exists(window, recorder):
-    for name in ('pilCMapComboBox', 'gixCMapComboBox', 'twodCMapComboBox'):
+    for name in ('pilCMapComboBox', 'twodCMapComboBox'):      # gixCMapComboBox went with the Apex tab (Q14)
         combo = getattr(window.ui, name)
         for i in range(combo.count()):
             assert combo.itemText(i) in matplotlib.colormaps, (name, combo.itemText(i))

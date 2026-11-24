@@ -620,7 +620,7 @@ workflows:
       - id: ref.patch
         do: Ref Patch - one point per frame (ROI minus background per Monc), scans sorted by Qz; pop-ups for beams > 2 px off and bad pixels in the ROI
         where: Pilatus tab > Ref Patch
-        controls: [pilRefPatchPushButton, commandLineEdit]
+        controls: [pilRefPatchPushButton]
         user_decides: ""
         automatic: yes
         could_be_automatic: offer Ref Patch when a reflectivity series is selected (F60)

@@ -140,7 +140,6 @@ class MainWindow (QMainWindow):
         QMainWindow.__init__(self, parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.ui.PlotWidget.setTabVisible(1, False)   # the Apex (CCD) tab: that detector is defunct
         self.pilatus=TwoDDetector('Pilatus')
         np.seterr(invalid='ignore',divide='ignore')
         self.mcaDirName='vortex'
@@ -183,7 +182,7 @@ class MainWindow (QMainWindow):
         self.selectedPilFramesNums=[]
         self.pilScanNum=[]
         self.selectedplotfiles_rows=[]
-        self.ui.PlotWidget.setCurrentIndex(0)
+        self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
         self.directory=os.getcwd()
         self.pilGIDshow=0
         self.pilGISAXSshow=0
@@ -211,6 +210,7 @@ class MainWindow (QMainWindow):
         self.wrapReductionsForAutoSave()        # before the signals: every connection reaches the wrapped method
         self.init_signals()
         self.log=reader_log.get_logger()
+        self.initPaneHost()
         self.initMessagePane()
         self.initScriptPane()
         self.initErrorPane()
@@ -222,12 +222,13 @@ class MainWindow (QMainWindow):
         self.gidJoinLog=[]
         self.gidLevels=[]
         self.gidWorksheet=None
-        self.ui.gidComboBox.addItem('Worksheet')
         self.ui.gidComboBox.addItem('Save to workbook')
+        self.initGIDButtons()
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
         self.initValidator()
+        self.initStateBadges()
         self.nguiWindow=None
         if self.prefs.get('ngui',False):
             self.setNgui(True)
@@ -236,13 +237,18 @@ class MainWindow (QMainWindow):
     def init_signals(self):
         # self.connect(self.ui.actionAbout, SIGNAL('triggered()'),self.showAbout)
         self.ui.actionAbout.triggered.connect(self.showAbout)
+        # File > Quit and Help > Documentation were not connected (owner, 2026-11-23, Q-UI-A12)
+        from PyQt5.QtGui import QKeySequence
+        self.ui.actionQuit.setShortcut(QKeySequence('Ctrl+Q'))   # explicit: Windows has no standard Quit key
+        self.ui.actionQuit.setToolTip('Close the reader (Ctrl+Q). Results are already saved in the workbook.')
+        self.ui.actionQuit.triggered.connect(self.close)
+        self.ui.actionDocumentation.setToolTip('Open the scripting guide (docs/SCRIPTING.md) until the manual exists; '
+                                               'from a packaged build without the docs folder, its page on GitHub.')
+        self.ui.actionDocumentation.triggered.connect(self.showDocumentation)
         # self.connect(self.ui.actionOpen_Spec_File, SIGNAL('triggered()'),self.openSpecFile)
         self.ui.actionOpen_Spec_File.triggered.connect(lambda x:self.openSpecFile(fname=None))
         # self.connect(self.ui.speUpSpeFilePushButton, SIGNAL('clicked()'),self.readSpecFile)
         self.ui.speUpSpeFilePushButton.clicked.connect(self.updateSpecFile)
-        # self.connect(self.ui.actionAPS_15IDC, SIGNAL('triggered()'),self.selectAPS_15IDC)
-        self.ui.actionAPS_15IDC.triggered.connect(self.selectAPS_15IDC)
-        self.ui.actionAPS_9IDC.setVisible(False)   # 9-ID-C is not supported (owner, 2026-11-17)
         # self.connect(self.ui.actionG_l2, SIGNAL('triggered()'), self.calg_l2)
         self.ui.actionG_l2.triggered.connect(self.calg_l2)
         # self.connect(self.ui.actionG_l3, SIGNAL('triggered()'), self.calg_l3)
@@ -573,13 +579,19 @@ class MainWindow (QMainWindow):
 
 
 
-    def selectAPS_15IDC(self):
-        # 15-ID-C is the only beamline; the menu entry stays checked
-        self.ui.statusBar.clearMessage()
-        self.beamline='APS-15IDC'
-        self.ui.actionAPS_15IDC.setChecked(True)
-        self.ui.statusBar.showMessage('APS-15IDC Selected')
-        
+    DOCS_URL='https://github.com/Dave-J-W/LSS_Reader2/blob/main/docs/SCRIPTING.md'
+
+    def showDocumentation(self):
+        """Help > Documentation: the scripting guide for now, the manual when it
+        exists (owner, 2026-11-23, Q-UI-A12). The local file when present, else
+        its page on GitHub (a packaged build carries no docs folder)."""
+        from PyQt5.QtGui import QDesktopServices
+        from PyQt5.QtCore import QUrl
+        path=resource(os.path.join('docs','SCRIPTING.md'))
+        url=QUrl.fromLocalFile(path) if os.path.exists(path) else QUrl(self.DOCS_URL)
+        if not QDesktopServices.openUrl(url):
+            self.notify('Could not open the documentation; it is at %s' % url.toString(),title='Documentation')
+
     def showAbout(self):
         cwd=os.path.dirname(resource('mainwindow.py'))
         files=['mainwindow.py','mainwindow.ui','LSS_Reader.py','mca_routines.py','mpl2dwidget.py','mplwidget.py','spec_routines.py','TwoDDetector.py','logo.png']
@@ -662,8 +674,6 @@ class MainWindow (QMainWindow):
         self.ui.refBadPixListWidget.clear()
         self.ui.cutPlotMplWidget.canvas.ax.clear()
         self.ui.cutPlotMplWidget.canvas.draw()
-        self.ui.gixMplWidget.canvas.ax.clear()
-        self.ui.gixMplWidget.canvas.draw()
         self.ui.refADDataPlotWidget.canvas.ax.clear()
         self.ui.refADDataPlotWidget.canvas.draw()
         self.ui.refQzListWidget.clear() 
@@ -877,6 +887,7 @@ class MainWindow (QMainWindow):
                 where.setdefault(n,(s,'scan %d of %s' % (i,'?' if s.n is None else s.n),s.kind))
             for n,r in s.aux:
                 where.setdefault(n,(s,r,'alignment' if r=='align' else s.kind))
+        self.seriesWhere=where          # scan -> (series, role, kind): the tools' availability uses it
         box.setCurrentIndex(0)
         box.setEnabled(bool(self.seriesList))
         box.blockSignals(False)
@@ -1391,6 +1402,7 @@ class MainWindow (QMainWindow):
         self.selectedScans=self.ui.scanListWidget.selectedItems()
         #self.selectedScanNums=[self.ui.scanListWidget.row(items) for items in self.selectedScans]
         self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
+        self.updateToolAvailability()
         self.ui.scansLineEdit.setText(listText(self.selectedScanNums))
         if self.checkSameScans()==False or self.selectedScanNums==[]:
             self.messageBox('Error:: The scans are not identical or some scans have no data!!')
@@ -1448,12 +1460,12 @@ class MainWindow (QMainWindow):
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Vortex':
                 self.updateMcaImageList()
                 self.ui.imagesLabel.setText('Vortex:')
-                self.ui.PlotWidget.setCurrentIndex(0)
+                self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Unsupported':
                 self.messageBox('Bruker CCD images (.sfrm) are no longer supported by this reader.')
             if self.specPar[self.selectedScanNums[0]]['Detector']=='Pilatus':
                 self.updatePilImageList()
-                self.ui.PlotWidget.setCurrentIndex(0)
+                self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
                 self.ui.imagesLabel.setText('Pilatus:')
         self.ui.statusBar.showMessage('Done')
             
@@ -1466,6 +1478,7 @@ class MainWindow (QMainWindow):
         try:
             self.selectedScans=self.ui.scanListWidget.selectedItems()
             self.selectedScanNums=[int(str(items.text()).split()[1]) for items in self.selectedScans]
+            self.updateToolAvailability()
             try:    # deselect the currently selected numbers
                 for item in self.selectedScans:
                     item.setSelected(False)
@@ -1552,7 +1565,7 @@ class MainWindow (QMainWindow):
             return
         self.ui.statusBar.clearMessage()
         self.ui.specPlotMplWidget.canvas.ax.clear()
-        self.ui.PlotWidget.setCurrentIndex(0)
+        self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
         self.specData['YCol']=str(self.ui.spYComboBox.currentText())
         self.specData['NCol']=str(self.ui.spNComboBox.currentText())
         title='File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums))
@@ -2047,8 +2060,8 @@ class MainWindow (QMainWindow):
                         'is not (+5.5 % on a thick film\'s fringes, P1) and with honest errors (the legacy ones are '
                         '1.1-4.8 times too small), measured on synthetic scans '
                         '(tests/tools/ref_patch_gauntlet.py). Legacy fit: scan b interpolated at the overlap points '
-                        'and one ratio fitted, as before; it reproduces older files exactly.')
-        hl.addWidget(meth)
+                        'and one ratio fitted, as before; it reproduces older files exactly. Ctrl+click on Ref Patch '
+                        'uses the other fit once.')
         lay.addWidget(g2)
         g3=QGroupBox('Fluorescence detector',d)
         g3.setToolTip('Multi-element detector (7-element Xspress3): the elements summed into one spectrum per '
@@ -2132,8 +2145,56 @@ class MainWindow (QMainWindow):
                         '(F82; docs/gui/prototype.md).')
         ngui.toggled.connect(self.setNgui)
         l5.addWidget(ngui)
+        badges=QComboBox(g5)
+        badges.setObjectName('prefBadgesComboBox')
+        for text,key in (('State badges: on','on'),('State badges: when not default','when_not_default'),
+                         ('State badges: off','off')):
+            badges.addItem(text,key)
+        badges.setCurrentIndex(max(0,badges.findData(self.prefs.get('state_badges','on'))))
+        badges.setToolTip('The badges at the right of the status bar: error model, monitor normalisation and '
+                          'reflectivity patch method (F85). "When not default" shows only those changed from '
+                          'their defaults; a changed one is drawn amber either way. Clicking a badge opens its '
+                          'setting.')
+        badges.currentIndexChanged.connect(lambda i:self.setPreference('state_badges',badges.itemData(i)))
+        l5.addWidget(badges)
         lay.addWidget(g5)
+        g0=QGroupBox('Reduction options',d)
+        g0.setObjectName('prefReductionGroup')
+        g0.setToolTip('Which path an action takes where the program has a legacy one and a new one (owner, 2026-11-23, '
+                      'Q13: nothing is removed). Ctrl+click on Ref Patch or on Fit lines runs the other path once and '
+                      'says so in the Messages pane (F86).')
+        f0=QFormLayout(g0)
+        f0.addRow('Reflectivity patch',meth)
+        legacy={}
+        for key,name,text,tip in (
+                ('sum_all_legacy_average','prefSumAllLegacyCheckBox','Sum All: average of normalised frames (legacy)',
+                 'Off (default): Sum All adds the counts and the monitors, then normalises once, Sigma N / Sigma M '
+                 '(owner, 2026-11-23; F91). On: the mean of the frames each normalised alone, as before.'),
+                ('repeats_legacy_average','prefRepeatsLegacyCheckBox','Ref Patch repeats: average (legacy)',
+                 'Off (default): repeated reflectivity scans merged in Ref Patch add their counts and monitors, then '
+                 'normalise once, Sigma N / Sigma M (owner, 2026-11-23; F81). On: the equal-weight mean, as before.'),
+                ('gisaxs_raw_counts','prefGisaxsRawCheckBox','GISAXS: raw counts (legacy)',
+                 'Off (default): GISAXS sums frames per Monc (Sigma N / Sigma M, F91). On: the raw counts, as before.'),
+                ('mca_fit_legacy','prefMcaFitLegacyCheckBox','Fluorescence fit: legacy Fit dialog',
+                 'Off (default): the MCA tab\'s Fit lines runs the line fit (lss_core.peaks), and the legacy Fit, Fit All '
+                 'and Accept buttons are hidden. On: Fit runs the legacy fit dialog, and those buttons show (owner, '
+                 '2026-11-23: one Fit action, the switch picks).'),
+                ('burn_legacy_tab','prefBurnLegacyCheckBox','Burn test: show the Legacy tab',
+                 'Off (default): the burn dialog shows its Trends tab only. On: also its Legacy tab, the original plots '
+                 '(owner, 2026-11-23, Q-BURN-4). The REF button and the GID list still open it.')):
+            box=QCheckBox(text,g0)
+            box.setObjectName(name)
+            box.setChecked(bool(self.prefs.get(key,False)))
+            box.setToolTip(tip)
+            box.toggled.connect(lambda on,k=key:self.setPreference(k,bool(on)))
+            f0.addRow(box)
+            legacy[name]=box
+        lay.insertWidget(0,g0)
+        d.prefReductionGroup=g0
+        for name,box in legacy.items():
+            setattr(d,name,box)
         d.prefNguiCheckBox=ngui
+        d.prefBadgesComboBox=badges
         close=QPushButton('Close',d)
         close.setObjectName('prefClosePushButton')
         close.clicked.connect(d.close)
@@ -2168,10 +2229,77 @@ class MainWindow (QMainWindow):
         ch=self.prefs.get('mca_channels',[])
         return [int(c) for c in ch if isinstance(c,int) and not isinstance(c,bool)]
 
+    BADGE_STYLE='QLabel { border: 1px solid #8a8f98; border-radius: 8px; padding: 0px 6px; }'
+    BADGE_CHANGED_STYLE='QLabel { border: 1px solid #b35c00; border-radius: 8px; padding: 0px 6px; background: #fff1e0; }'
+
+    def initStateBadges(self):
+        """State badges at the right of the status bar (F85; owner, 2026-11-23,
+        Q12): the settings that change numbers everywhere, as short labels
+        with the detail in their tooltips (rule 9). A setting away from its
+        default is drawn amber. Preferences > Display chooses on, on when not
+        default, or off. Clicking a badge opens its setting."""
+        self.badges={}
+        for key in ('errors','norm','patch'):
+            lab=QLabel(self.ui.statusBar)
+            lab.setObjectName('%sBadgeLabel' % key)
+            lab.setCursor(Qt.PointingHandCursor)
+            lab.mousePressEvent=lambda ev,k=key: self.badgeClicked(k)
+            self.ui.statusBar.addPermanentWidget(lab)
+            self.badges[key]=lab
+        self.updateBadges()
+
+    def badgeStates(self):
+        """badge -> (text, is the default, tooltip)."""
+        budget=self.errorModeComboBox.currentIndex()==1
+        mode=self.monitorMode()
+        patch=str(self.prefs.get('ref_patch_method',reflectivity.DEFAULT_PATCH_METHOD))
+        return {
+            'errors':('budget errors' if budget else 'legacy errors',not budget,
+                      'Error model: %s. Budget adds the monitor\'s scatter to the counting errors; legacy gives the '
+                      'numbers the program always gave. Applies to what is computed from now on. Default: legacy '
+                      '(the owner decides, TODO B2). Click: the Errors pane.' % ('budget' if budget else 'legacy')),
+            'norm':({'photons':'/ photon','gain':'/ Monc / gain'}.get(mode,'/ Monc'),mode is False,
+                    'Monitor normalisation: %s. Default: Monc counts. Set with "/ gain" and "/ photon" on the SpecPlot '
+                    'and MCA tabs (one setting). Click: the SpecPlot tab.'
+                    % {'photons':'per incident photon','gain':'Monc current (counts x gain)'}.get(mode,'Monc counts')),
+            'patch':('%s patch' % patch,patch==reflectivity.DEFAULT_PATCH_METHOD,
+                     'Reflectivity patch factor: %s fit (default: %s). Click: Preferences.'
+                     % (patch,reflectivity.DEFAULT_PATCH_METHOD)),
+        }
+
+    def updateBadges(self):
+        if not getattr(self,'badges',None):
+            return
+        mode=self.prefs.get('state_badges','on')
+        for key,(text,default,tip) in self.badgeStates().items():
+            lab=self.badges[key]
+            lab.setText(text)
+            lab.setToolTip(tip)
+            lab.setStyleSheet(self.BADGE_STYLE if default else self.BADGE_CHANGED_STYLE)
+            lab.setVisible(mode=='on' or (mode=='when_not_default' and not default))
+
+    def badgeClicked(self,key):
+        if key=='errors':
+            self.errorDock.show()
+            self.errorDock.raise_()
+        elif key=='norm':
+            self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
+            self.spGainCheckBox.setFocus()
+        else:
+            self.showPreferences()
+
     def setPreference(self,key,value):
         if self.prefs.get(key)==value:
             return
         self.prefs[key]=value
+        if key in ('ref_patch_method','state_badges'):
+            self.updateBadges()
+        if key=='mca_fit_legacy':
+            self.applyMcaFitMode()
+        if key=='burn_legacy_tab' and getattr(self,'uipdburn',None) is not None:
+            tabs=getattr(self.uipdburn,'burnTabWidget',None)
+            if tabs is not None:
+                tabs.setTabVisible(1,bool(value))
         err=prefs_store.save(self.prefs)
         if err and not getattr(self,'prefsSaveNoted',False):
             self.prefsSaveNoted=True
@@ -2214,6 +2342,7 @@ class MainWindow (QMainWindow):
         if (gain,photons)==(self.monitorGain,self.monitorPhotons):
             return
         self.monitorGain,self.monitorPhotons=gain,photons
+        self.updateBadges()
         what=('per incident photon, N = (M - D t) q(E) S/(500 nA/V) (xray_fluxor route D)' if photons else
               'Monc current, M x S/(5 uA/V), S from "#M Monc Gain"' if gain else 'Monc counts M (gain not used)')
         self.notify('Monitor normalisation: '+what
@@ -2369,7 +2498,7 @@ class MainWindow (QMainWindow):
         self.selectedMcaScanNums=[self.ui.imageListWidget.row(items) for items in self.selectedMcaScans]
         self.mcafitplotstatus=0
         try:
-            self.ui.PlotWidget.setCurrentIndex(5)
+            self.ui.PlotWidget.setCurrentWidget(self.ui.mcaTab)
             self.updateMcaPlotData()
         except:
             self.ui.statusBar.showMessage('Warning:: Some scans maybe missing!')
@@ -2586,7 +2715,6 @@ class MainWindow (QMainWindow):
                                len(self.selectedMcaScanNums)==self.ui.imageListWidget.count())
             self.mcaMerges=[]       # Merge actions since this Sum All, for the Script pane
             self.command='Flu Sum, scans=['+listText(np.sort(self.selectedScanNums))+'], energy range=['+str(ini)+':'+str(fin)+']'
-            self.ui.commandLineEdit.setText(self.command)
         except:
             self.messageBox('Please input the proper sum range in the format of "min:max"!')
             self.ui.mcaRanLineEdit.setText('1:1000')
@@ -2780,6 +2908,24 @@ class MainWindow (QMainWindow):
             self.selectedmcafiles_rows.append(self.ui.mcaFileListWidget.row(item))
         self.updateMcaIntPlot()
 
+    def initPaneHost(self):
+        """The tab area and the bottom panes in one inner window (D59, owner
+        2026-11-22/23): the panes sit under the tabs only, so the selection
+        panel on the left keeps the window's full height. The tab widget moves
+        out of the main splitter into the inner window, which takes its place."""
+        pw=self.ui.PlotWidget
+        split=pw.parentWidget()
+        at=split.indexOf(pw)
+        host=QMainWindow(self)
+        host.setObjectName('paneHost')
+        host.setWindowFlags(Qt.Widget)
+        host.setDockOptions(QMainWindow.AnimatedDocks|QMainWindow.AllowTabbedDocks)
+        host.setCentralWidget(pw)
+        split.insertWidget(at,host)
+        for k in range(split.count()):           # the tab area takes the extra width, as the tab widget did
+            split.setStretchFactor(k,1 if k==at else 0)
+        self.paneHost=host
+
     def initMessagePane(self):
         """A dock at the bottom of the window that collects messages.
 
@@ -2797,8 +2943,8 @@ class MainWindow (QMainWindow):
         self.messageView.setMaximumBlockCount(2000)
         self.messageView.setMinimumHeight(60)
         self.messageDock.setWidget(self.messageView)
-        self.addDockWidget(Qt.BottomDockWidgetArea,self.messageDock)
-        self.messageDock.hide()   # appears with the first message
+        self.paneHost.addDockWidget(Qt.BottomDockWidgetArea,self.messageDock)
+        self.messageDock.hide()   # appears with the first warning (owner, Q11: raises only on warnings)
 
     def initScriptPane(self):
         """A dock showing, for actions that have one, the Python that does the
@@ -2810,9 +2956,9 @@ class MainWindow (QMainWindow):
         self.scriptView.setReadOnly(True)
         self.scriptView.setPlainText('from lss_core.experiment import Experiment\n')
         self.scriptDock.setWidget(self.scriptView)
-        self.addDockWidget(Qt.BottomDockWidgetArea,self.scriptDock)
-        self.tabifyDockWidget(self.messageDock,self.scriptDock)
-        self.scriptDock.hide()   # View it from the dock area's context menu, or it appears with the first line
+        self.paneHost.addDockWidget(Qt.BottomDockWidgetArea,self.scriptDock)
+        self.paneHost.tabifyDockWidget(self.messageDock,self.scriptDock)
+        self.scriptDock.hide()   # View > Script only; it never shows itself (D59)
 
     def initErrorPane(self):
         """A dock with the error model (lss_core.errors). 'Legacy' gives the
@@ -2867,14 +3013,27 @@ class MainWindow (QMainWindow):
         self.errorModeComboBox.currentIndexChanged.connect(self.setErrorModel)
         self.monitorKindComboBox.currentIndexChanged.connect(self.setErrorModel)
         self.errorDock.setWidget(w)
-        self.addDockWidget(Qt.BottomDockWidgetArea,self.errorDock)
-        self.tabifyDockWidget(self.messageDock,self.errorDock)
+        self.paneHost.addDockWidget(Qt.BottomDockWidgetArea,self.errorDock)
+        self.paneHost.tabifyDockWidget(self.messageDock,self.errorDock)
         self.errorDock.hide()
         view=self.ui.menuBar.addMenu('View')
         view.setObjectName('menuView')
+        shown=set(self.prefs.get('panes_shown',[]) or [])
         for dock in (self.messageDock,self.scriptDock,self.errorDock):
-            view.addAction(dock.toggleViewAction())
+            act=dock.toggleViewAction()
+            act.setToolTip('Show or hide the %s pane, under the tabs. Hidden by default; the choice is kept '
+                           'between sessions. Messages also appears by itself on a warning.' % dock.windowTitle())
+            act.triggered.connect(lambda on,d=dock: self.rememberPane(d,on))   # the user's choice only
+            view.addAction(act)
+            if dock.objectName() in shown:
+                dock.show()
         self.showErrorModel()
+
+    def rememberPane(self,dock,on):
+        """Keep the panes the user showed from the View menu (D59)."""
+        shown=set(self.prefs.get('panes_shown',[]) or [])
+        (shown.add if on else shown.discard)(dock.objectName())
+        self.setPreference('panes_shown',sorted(shown))
 
     def showErrorModel(self):
         """Enable the fields the chosen monitor model uses; describe the model."""
@@ -2916,6 +3075,7 @@ class MainWindow (QMainWindow):
             self.showErrorModel()
             return
         self.errorModel=new
+        self.updateBadges()
         self.pilatus.errors=new
         self.showErrorModel()
         self.notify('Error model: '+new.describe()+'. Spectra and background-subtracted images on show are '
@@ -2953,26 +3113,34 @@ class MainWindow (QMainWindow):
         """Append Python to the Script pane and the log."""
         self.log.info('script: %s',text.replace('\n',' | '))
         try:
-            self.scriptView.appendPlainText(text)
-            self.scriptDock.show()
+            self.scriptView.appendPlainText(text)   # the pane does not show itself (D59)
         except RuntimeError:
             pass
 
-    def notify(self,text,title='Warning',level='warning'):
-        """Tell the user something without stopping them, and log it."""
+    def notify(self,text,title='Warning',level='warning',show=None):
+        """Tell the user something without stopping them, and log it. The
+        Messages pane shows itself (and comes to the front) only for warnings
+        and errors (owner, 2026-11-23, Q11); an 'info' notice is kept in the
+        pane and shown in the status bar. ``show`` overrides."""
         text=str(text)
         stamp=time.strftime('%H:%M:%S')
         self.messages.append((stamp,title,text))
         getattr(self.log,level,self.log.warning)('%s: %s',title,text.replace('\n',' | '))
+        if show is None:
+            show=level in ('warning','error','critical')
         try:
             self.messageView.appendPlainText(stamp+'  '+text.replace('\n','\n          '))
-            self.messageDock.show()
+            if show:
+                self.messageDock.show()
+                self.messageDock.raise_()
+            else:
+                self.ui.statusBar.showMessage(text.split('\n')[0],8000)
         except RuntimeError:   # window already being destroyed
             pass
 
     def reportFailure(self,text):
         """Called by the process-wide exception handler (reader_log)."""
-        self.notify(text,title='Error',level='info')   # the traceback is logged separately
+        self.notify(text,title='Error',level='info',show=True)   # the traceback is logged separately; an error shows the pane
         try:
             self.ui.statusBar.showMessage(text.split('. Details')[0])
         except RuntimeError:
@@ -3299,7 +3467,7 @@ class MainWindow (QMainWindow):
         self.ui.pilMinHorizontalSlider.setValue(0)
         self.ui.pilMaxHorizontalSlider.setValue(100)
 #        try:
-        self.ui.PlotWidget.setCurrentIndex(2)
+        self.ui.PlotWidget.setCurrentWidget(self.ui.pilatusTab)
         self.updatePilPlotData()
 #        except:
 #            self.messageBox('Warning:: Some scans maybe missing')
@@ -3709,7 +3877,6 @@ class MainWindow (QMainWindow):
         self.uipdgioxs.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums))+'\nbg S# '+listText(np.unique(np.sort(self.selectedBgScanNum))))
         self.uipdgioxs.plotWidget.canvas.draw()
         self.command='GIOXS, singal scans=['+listText(np.sort(self.selectedScanNums))+'], bg scans=['+listText(np.unique(np.sort(self.selectedBgScanNum)))+'], ave_frames='+str(aveframe)+', ave_points='+str(avepoint)
-        self.ui.commandLineEdit.setText(self.command)                
         
     def pilGioxsSub(self, data1, data2): #for Gioxs 1d data substration
         data1x=data1[:,0]
@@ -3884,8 +4051,12 @@ class MainWindow (QMainWindow):
         tabs.addTab(u.plotWidget,'Legacy')
         tabs.setTabToolTip(1,'The program\'s original burn plots (REF button, GID list): raw counts against count time '
                              '× frame (P30), one quantity at a time, an exponential for the intensity only.')
-        u.refPushButton.clicked.connect(lambda: tabs.setCurrentIndex(1))
-        u.gidComboBox.activated.connect(lambda i: i and tabs.setCurrentIndex(1))
+        tabs.setTabVisible(1,bool(self.prefs.get('burn_legacy_tab',False)))   # behind the Reduction options (Q-BURN-4)
+        def legacyTab():
+            tabs.setTabVisible(1,True)
+            tabs.setCurrentIndex(1)
+        u.refPushButton.clicked.connect(legacyTab)
+        u.gidComboBox.activated.connect(lambda i: i and legacyTab())
         u.burnTabWidget,u.burnEstimatorComboBox,u.burnTimeComboBox,u.burnErrorsComboBox=tabs,est,tim,err
         u.burnThresholdSpinBox,u.burnAutoPeakCheckBox,u.burnAnalysePushButton=thr,auto,run
         u.burnPositionLimitCheckBox=poslim
@@ -4092,7 +4263,6 @@ class MainWindow (QMainWindow):
                 self.uipdburn.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
                 self.uipdburn.plotWidget.canvas.draw()
                 self.command='REF Burn, scan='+str(self.selectedScanNums)
-                self.ui.commandLineEdit.setText(self.command)
             except:
                 self.messageBox('Warning: It seems there is not enough data points for burn test fitting (min: 3 points)!')
                 return
@@ -4171,7 +4341,6 @@ class MainWindow (QMainWindow):
                     self.uipdburn.plotWidget.canvas.ax.set_title('File: '+self.specFileName+' S# '+listText(np.sort(self.selectedScanNums)))
                     self.uipdburn.plotWidget.canvas.draw()
                     self.command='GID Burn, scan='+str(self.selectedScanNums)+', Qz range=['+str(self.uipdburn.rangeLineEdit.text())+'], mode='+str(self.uipdburn.gidComboBox.currentText())
-                    self.ui.commandLineEdit.setText(self.command)
                 except:
                     self.messageBox('Warning: It seems there is either not enough data points for burn test fitting (min: 3 points) or selected Qxy range is not correct!')
                     return
@@ -4285,19 +4454,49 @@ class MainWindow (QMainWindow):
         except:
             self.messageBox("Warning: No GISAXS data available!")
 
-    def pilGID(self):
-        if str(self.ui.gidComboBox.currentText())=='GID Patch': 
-            self.pilGIDRelax=0
+    def initGIDButtons(self):
+        """GID Patch as a button, with the worksheet beside it (owner, 2026-11-23, Q-GID-1, Q-GID-5: GID Patch
+        is the common action; the worksheet/options sit next to it). The GID drop-down keeps the rarer actions."""
+        lay=self.ui.horizontalLayout_29
+        at=lay.indexOf(self.ui.gidComboBox)
+        patch=QPushButton('GID Patch',self)
+        patch.setObjectName('gidPatchPushButton')
+        patch.setToolTip('Patch the GID levels of the selected scans into a map (pinhole geometry by default, D40), '
+                         'with the settings of the worksheet beside it. The map is shown here and saved automatically.')
+        sheet=QPushButton('Worksheet...',self)
+        sheet.setObjectName('gidWorksheetPushButton')
+        sheet.setToolTip('The GID patching worksheet: the patch\'s settings (geometry, response, joins), editable, and '
+                         'what each join did (F61).')
+        lay.insertWidget(at+1,patch)
+        lay.insertWidget(at+2,sheet)
+        patch.clicked.connect(self.gidPatch)
+        sheet.clicked.connect(self.showGIDWorksheet)
+        self.gidPatchPushButton,self.gidWorksheetPushButton=patch,sheet
+        self.ui.gidComboBox.setToolTip('More GID actions: GID Patch Relax, Save GID, Form Factor, Save to workbook. '
+                                       'GID Patch and the worksheet are the buttons beside it.')
+
+    def gidPatch(self):
+        # nothing to patch: say so (the crash sweep found the button raising in pinhole.shared_edges, 2026-11-24)
+        frames=getattr(self,'selectedPilFramesNums',None)     # a numpy array: len, never its truth value
+        if getattr(self,'det',None)!='Pilatus' or frames is None or len(frames)==0:
+            self.notify('Select the GID scans and their frames first (Select All), then GID Patch.',title='GID Patch')
+            return
+        self.pilGIDRelax=0
+        try:
             self.pilGIDpatchData()
-        elif str(self.ui.gidComboBox.currentText())=='GID Patch Relax':
+        except ValueError as e:     # frames without GID levels (the crash sweep, 2026-11-24): say so, log the detail
+            self.log.info('GID Patch refused: %s',e,exc_info=True)
+            self.notify('GID Patch: the selected frames hold no GID levels to patch (frames of a GID series are '
+                        'needed). Detail in the log.',title='GID Patch')
+
+    def pilGID(self):
+        if str(self.ui.gidComboBox.currentText())=='GID Patch Relax':
             self.pilGIDRelax=1
             self.pilGIDpatchData()
         elif str(self.ui.gidComboBox.currentText())=='Save GID':
             self.saveGIDData()
         elif str(self.ui.gidComboBox.currentText())=='Form Factor':
             self.setGIDFormFactor()
-        elif str(self.ui.gidComboBox.currentText())=='Worksheet':
-            self.showGIDWorksheet()
         elif str(self.ui.gidComboBox.currentText())=='Save to workbook':
             self.saveGIDToWorkbook()
             
@@ -4990,8 +5189,7 @@ class MainWindow (QMainWindow):
         self.ui.pilMplWidget.canvas.fig.tight_layout()
         self.ui.pilMplWidget.canvas.fig.subplots_adjust(top=0.9)
         self.ui.pilMplWidget.canvas.draw()
-        self.command=str(self.ui.gidComboBox.currentText())+', scans=['+listText(np.sort(self.selectedScanNums))+'], sli=['+self.ui.pilHSlitLineEdit.text()+'], /'+self.ui.pilAxesComboBox.currentText()
-        self.ui.commandLineEdit.setText(self.command)
+        self.command=('GID Patch Relax' if getattr(self,'pilGIDRelax',0) else 'GID Patch')+', scans=['   # as the drop-down's text gave it (Q-GID-5)+listText(np.sort(self.selectedScanNums))+'], sli=['+self.ui.pilHSlitLineEdit.text()+'], /'+self.ui.pilAxesComboBox.currentText()
         
     def saveGIDData(self):
         axes=str(self.ui.pilAxesComboBox.currentText())
@@ -5204,7 +5402,7 @@ class MainWindow (QMainWindow):
         if self.det!='Pilatus' or len(getattr(self,'selectedPilFramesNums',[]))==0:
             self.messageBox('Please load a scan and select its images before opening the reflectivity analysis')
             return
-        self.ui.PlotWidget.setCurrentIndex(3)
+        self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
         self.ui.refCenCheckBox.setCheckState(0)
         self.ui.refComLineEdit.clear()
         if self.refpatchindex==1:
@@ -5356,7 +5554,7 @@ class MainWindow (QMainWindow):
             return
         if self.refQzListSelectionChanged() is False:
             return False   #the frames of the list are gone; refFramesGone said so
-        cmap=str(self.ui.gixCMapComboBox.currentText())
+        cmap=str(self.ui.pilCMapComboBox.currentText())   # the Pilatus colour map (was the hidden Apex tab's; owner Q14)
         if self.det=='Pilatus':
             self.ui.refBadPixListWidget.clear()
             fac=float(self.ui.refSeaWinLineEdit.text())
@@ -5470,7 +5668,12 @@ class MainWindow (QMainWindow):
         self.refpatchindex=1
         self.refDrops={}       # join number -> list of drop actions, for the script console
         self.refFactors={}     # join number -> (factor, error) used instead of the fitted one
-        self.refMethodUsed=self.refPatchMethod()   # one method for the whole patch (the script line says it)
+        method=self.refPatchMethod()
+        if self.ctrlClicked():    # F86: Ctrl+click runs the other path once
+            method='legacy' if method=='joint' else 'joint'
+            self.notify('Ctrl+click: this Ref Patch uses the %s fit (Reduction options: %s).' % (method,self.refPatchMethod()),
+                        title='Ref Patch',level='info')
+        self.refMethodUsed=method   # one method for the whole patch (the script line says it)
         self.refKnownOverride={}   # join number -> the user's choice in the patch window
         self.refMerged=[]      # groups merged in the identical-scans dialog
         self.refRepeatsUsed='monitors'   # how they were merged (F81; 'mean' with the legacy preference)
@@ -5488,7 +5691,6 @@ class MainWindow (QMainWindow):
         self.dir=str(self.ui.refBGDirComboBox.currentText()) #get the background offset direction
         bg=float(self.ui.refBGOffLineEdit.text())  #get the background offset
         self.command='Ref Patch, scans=['+listText(np.sort(self.selectedScanNums))+'], slits=['+listText(self.slit)+'], bg_angle='+str(bg)+', bg_direction='+str(self.dir)
-        self.ui.commandLineEdit.setText(self.command)         #update the command lineedit
         self.scanqzframe={}  #build a dictionary for all scans with their qz ranges and data for sorting the scans.
         self.scanqzmon={}    # the monitor of each of those points, for merging repeats (F81)
         self.pilRefPeakCen=[]
@@ -5535,7 +5737,7 @@ class MainWindow (QMainWindow):
         elif len(self.pilrefsort)==1:
             self.refData=list(np.atleast_2d(self.scanqzframe[self.pilrefsort[0]]))   #a single frame is a 1-D row
            #print self.refData
-            self.ui.PlotWidget.setCurrentIndex(3)
+            self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
             self.updateRefDataList()
         else:
             self.pilrefscanrag={}  #find the identical scans
@@ -5721,7 +5923,7 @@ class MainWindow (QMainWindow):
                 self.messageBox('All scans were dropped; there is no reflectivity to patch.')
             elif len(self.pilrefsort)==1:   # one scan left: nothing to patch, use it as it is
                 self.refData=list(np.atleast_2d(self.scanqzframe[self.pilrefsort[0]]))
-                self.ui.PlotWidget.setCurrentIndex(3)
+                self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
                 self.updateRefDataList()
             else:
                 self.pilRefPatch()
@@ -5787,7 +5989,7 @@ class MainWindow (QMainWindow):
         if self.pilreforder==len(self.pilrefsort)-1:
             self.uirefpatch.close()
             self.refData=list(self.pilrefdata)
-            self.ui.PlotWidget.setCurrentIndex(3)
+            self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
           #  print self.pilrefdata
             self.updateRefDataList()
         elif self.pilreforder==0:
@@ -5866,6 +6068,9 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.draw()
     
     def pilRefPatchDrop(self):
+        if self.pilreforder>=len(self.pilrefsort)-1:     # no join left (found by the crash sweep, 2026-11-23)
+            self.notify('Every join is done: there is no next scan to drop points from.',title='Ref Patch')
+            return
         try:
             dropnumbers=[int(t) for t in str(self.uirefpatch.dropLineEdit.text()).split(',')]
         except ValueError:
@@ -6060,9 +6265,11 @@ class MainWindow (QMainWindow):
         if self.det=='Pilatus':
             reffile=self.saveFileName+'_ref.txt'
             rrffile=self.saveFileName+'_rrf.txt'
-            np.savetxt(reffile,self.normRefData,fmt='%.4e\t%.4e\t%.4e')
+            # Qz, R, dR: a one-scan patch keeps more columns (signal and background apart), which the
+            # three-column format could not write (found by the crash sweep's random walk, 2026-11-23)
+            np.savetxt(reffile,np.asarray(self.normRefData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
             try:
-                np.savetxt(rrffile,self.RrfData,fmt='%.4e\t%.4e\t%.4e')
+                np.savetxt(rrffile,np.asarray(self.RrfData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
             except:
                 print ('No rrf data available!')
             if self.refCovarianceCheckBox.isChecked():
@@ -6439,7 +6646,9 @@ class MainWindow (QMainWindow):
         fo.setToolTip('Shape, background, number of lines or their energies, sensitivity, for "Fit lines".')
         self.ui.horizontalLayout_37.addWidget(fl)
         self.ui.horizontalLayout_37.addWidget(fo)
-        fl.clicked.connect(self.mcaFitLines)
+        fl.clicked.connect(self.mcaFitAction)
+        self.mcaFitLinesPushButton=fl
+        self.applyMcaFitMode()
         fo.clicked.connect(self.showMcaFitOptions)
         self.mcaFitLinesPushButton,self.mcaFitOptionsPushButton=fl,fo
         # one-click Save into the SPEC file's workbook beside every Export (owner, 2026-11-21)
@@ -6999,6 +7208,64 @@ class MainWindow (QMainWindow):
                     recipe=self.recipe(lambda name:self.gidScript(name,'Q')))]
         self.saveToWorkbook('gid map',items,auto=getattr(self,'autoSaving',False))
 
+    # tools that fit one series kind (owner, 2026-11-23, Q-UI-A10: grey out, with a tooltip saying what is needed)
+    TOOL_KINDS={'pilRefPushButton':'reflectivity','pilRefPatchPushButton':'reflectivity','gidPatchPushButton':'gid',
+                'gidComboBox':'gid','pilBurnPushButton':'burn'}
+    TOOL_NEEDS={'reflectivity':'a reflectivity series','gid':'a GID series','burn':'a burn scan'}
+
+    def selectionKind(self):
+        """The one series kind of the selected scans (alignment scans aside), or None when unknown or mixed."""
+        where=getattr(self,'seriesWhere',{}) or {}
+        nums=list(getattr(self,'selectedScanNums',[]) or [])
+        if not nums or not all(n in where for n in nums):
+            return None
+        kinds={where[n][2] for n in nums}
+        kinds.discard('alignment')
+        return kinds.pop() if len(kinds)==1 else None
+
+    def updateToolAvailability(self):
+        """Grey out the Pilatus tools that do not fit the selected series kind, saying why in the tooltip.
+        Only when the kind is known and one of reflectivity, GID, burn or GISAXS; otherwise all stay enabled,
+        so a wrong or missing guess never blocks an action."""
+        kind=self.selectionKind()
+        restrict=kind in ('reflectivity','gid','burn','gisaxs')
+        for name,fits in self.TOOL_KINDS.items():
+            w=getattr(self.ui,name,None) or getattr(self,name,None)
+            if w is None:
+                continue
+            if w.property('baseToolTip') is None:
+                w.setProperty('baseToolTip',w.toolTip())
+            base=str(w.property('baseToolTip') or '')
+            ok=(not restrict) or kind==fits
+            w.setEnabled(ok)
+            w.setToolTip(base if ok else 'Greyed out: the selected scans are a %s series; this needs %s. %s'
+                         % (kind,self.TOOL_NEEDS[fits],base))
+
+    def ctrlClicked(self):
+        """True when Ctrl is held: a Ctrl+click runs an action's other path once (F86)."""
+        from PyQt5.QtWidgets import QApplication
+        return bool(QApplication.keyboardModifiers() & Qt.ControlModifier)
+
+    def applyMcaFitMode(self):
+        """The MCA tab's fit buttons for the Reduction options' choice (F86; owner, 2026-11-23: one Fit
+        action per tab, the switch picks; nothing removed)."""
+        legacy=bool(self.prefs.get('mca_fit_legacy',False))
+        for b in (self.ui.mcaFitPushButton,self.ui.mcaFitAllPushButton,self.ui.mcaAcceptPushButton):
+            b.setVisible(legacy)
+        fl=getattr(self,'mcaFitLinesPushButton',None)
+        if fl is not None:
+            fl.setText('Fit (legacy)' if legacy else 'Fit lines')
+
+    def mcaFitAction(self):
+        """Fit lines, or the legacy fit when the Reduction options say so; Ctrl+click: the other, once."""
+        legacy=bool(self.prefs.get('mca_fit_legacy',False))
+        if self.ctrlClicked():
+            legacy=not legacy
+            self.notify('Ctrl+click: this fit uses the %s (Reduction options: %s).'
+                        % ('legacy Fit dialog' if legacy else 'line fit',
+                           'legacy' if self.prefs.get('mca_fit_legacy',False) else 'line fit'),title='Fit',level='info')
+        return self.mcaPeakFit() if legacy else self.mcaFitLines()
+
     def mcaFitLines(self):
         """Fit the selected spectra's lines (lss_core.peaks.fit_series)."""
         nums=list(getattr(self,'selectedMcaScanNums',[]) or [])
@@ -7050,7 +7317,6 @@ class MainWindow (QMainWindow):
         p=ref.peaks[j]
         self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background' % (
             listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background)
-        self.ui.commandLineEdit.setText(self.command)
         self.notify('Fit lines: sum of %d spectra: %s. Intensities of the line at %.4g (area / channel width) in the '
                     'integral plot.' % (len(each),ref.summary(),p.centre),title='Fit lines',level='info')
         if self.mcaFitDialog is not None:
@@ -7071,7 +7337,7 @@ class MainWindow (QMainWindow):
     def updateCutPlotData(self):
         if self.det!='Pilatus':   # no cut plotted: display options do nothing
             return
-        self.ui.PlotWidget.setCurrentIndex(4) 
+        self.ui.PlotWidget.setCurrentWidget(self.ui.cutAreaTab) 
         self.cutLogX=self.ui.cutLogXCheckBox.checkState()
         self.cutLogY=self.ui.cutLogYCheckBox.checkState()
         self.cutGrid=self.ui.cutGridCheckBox.checkState()
