@@ -63,6 +63,7 @@ INVENTORY = {
     'prefRepeatsLegacyCheckBox': ('checkbox', 'Ref Patch repeats: average (legacy)', 'Preferences > Reduction options', 'Off: repeated scans merged in Ref Patch are Sigma N / Sigma M (F81); on: the old equal-weight mean'),
     'prefGisaxsRawCheckBox': ('checkbox', 'GISAXS: raw counts (legacy)', 'Preferences > Reduction options', 'Off: GISAXS per Monc (F91); on: raw counts as before'),
     'prefMcaFitLegacyCheckBox': ('checkbox', 'Fluorescence fit: legacy Fit dialog', 'Preferences > Reduction options', 'Off: the MCA Fit lines button runs the line fit and the legacy Fit/Fit All/Accept are hidden; on: it runs the legacy fit and they show'),
+    'prefMcaFitPoissonCheckBox': ('checkbox', 'Fit lines: Poisson weights (F90 P1)', 'Preferences > Reduction options', "On: the MCA tab's Fit lines fits each spectrum's line heights by Poisson maximum likelihood (MainWindow.mcaFitPoisson); off: least squares weighted by the error bars, as always"),
     'prefBurnLegacyCheckBox': ('checkbox', 'Burn test: show the Legacy tab', 'Preferences > Reduction options', 'Off: the burn dialog shows Trends only; on: also its Legacy tab (the REF button and GID list still open it)'),
     'prefBadgesComboBox': ('combo', 'State badges: on / when not default / off', 'Preferences > Layout', 'Chooses whether the status-bar state badges are shown always, only when a setting differs from its default, or never'),
     'prefClosePushButton': ('button', 'Close', 'Preferences', 'Closes the dialog'),

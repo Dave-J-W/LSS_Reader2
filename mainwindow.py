@@ -2246,6 +2246,11 @@ class MainWindow (QMainWindow):
                  'Off (default): the MCA tab\'s Fit lines runs the line fit (lss_core.peaks), and the legacy Fit, Fit All '
                  'and Accept buttons are hidden. On: Fit runs the legacy fit dialog, and those buttons show (owner, '
                  '2026-11-23: one Fit action, the switch picks).'),
+                ('mca_fit_poisson','prefMcaFitPoissonCheckBox','Fit lines: Poisson weights (F90 P1)',
+                 'Off (default): Fit lines fits each spectrum\'s line heights by least squares weighted by its error '
+                 'bars, as always; that reads weak lines low (synthetic, COMPARISONS C42: areas at 90 counts 21 % '
+                 'low). On: by Poisson maximum likelihood, the model weighting the points (synthetic: 3.6 % high at '
+                 '90 counts, 0.6 % at 270). An option until the owner\'s study (tools session, 2026-11-24).'),
                 ('burn_legacy_tab','prefBurnLegacyCheckBox','Burn test: show the Legacy tab',
                  'Off (default): the burn dialog shows its Trends tab only. On: also its Legacy tab, the original plots '
                  '(owner, 2026-11-23, Q-BURN-4). The REF button and the GID list still open it.')):

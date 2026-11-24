@@ -417,7 +417,10 @@ Each line: feature — where — default — script — notes entry (date).
   the old average. **GISAXS**: per Monc (default) or raw counts. **Fluorescence fit**: the MCA tab's one Fit action
   runs the line fit (default) or, when on, the legacy Fit dialog, and then
   also shows the legacy Fit, Fit All and Accept buttons. **Burn test**: shows
-  the dialog's Legacy tab.
+  the dialog's Legacy tab. **Fit lines: Poisson weights** (2026-11-24, F90
+  P1): when on, each spectrum's line heights are fitted by Poisson maximum
+  likelihood instead of least squares weighted by the error bars (which
+  reads weak lines low); off by default until the owner's study.
 - **Ctrl+click** on Ref Patch or on Fit lines runs the other path once and
   writes a line in the Messages pane saying so; no dialog.
 
