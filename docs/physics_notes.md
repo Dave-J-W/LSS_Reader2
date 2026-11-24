@@ -5233,3 +5233,32 @@ TIFF header's own exposure time. Whether the Pilatus counts are already
 rate-corrected by the detector is not known; if they are, the true
 incident rate is higher than shown. No output number changes.
 
+### 2026-11-24 — Study A answered: keep the join guard at p 0.3; C45's "1.13" was mostly sampling
+
+The owner asked for a full study (entry above, "The owner asks for full
+studies").
+
+**The answer for the guard.** The details are in
+`docs/studies/reflectivity_guard/summary.md`, and in the ELI5 version,
+`docs/studies/eli5_two_decisions.md`. Keep p₀ = 0.3.
+- **The evidence:** synthetic joins with known truth, C45 reproduced
+  exactly, 400–2000 replicates. p 0.3 is the only setting with pull SD
+  ≈ 1.0 at both smooth and fringed joins.
+- **The robustness map:** it is best in all 12 cells, 3–10 points per
+  fringe × flux 1 to 0.01.
+- **Real data are not needed:** the choice moves a downstream structural
+  fit by about 0.001 Å, and the NX school joins give identical factors
+  under every choice.
+- **Next checks:** p 0.5 in the robustness map, and staggered grids.
+
+**Correction to C45 and to the entry "Why five gauntlet joins are
+biased".** The smooth first join's "pull SD 1.13" was mostly sampling
+noise of the first 300–400 seeds. Over 2000 seeds p 0.3 gives
+1.001 ± 0.016, and the guard off gives 0.918. The guard's widening is
+real but smaller, +0.083 ± 0.008, measured paired on the same
+replicates. It roughly cancels the guard-off error's inflate-only
+conservatism: 0.978 on the counting error alone, and 41 % of its errors
+are inflated.
+
+Verified: run, `tests/tools/ref_guard_study.py`. Rerun by Main, every
+CSV and PNG byte-identical. C47.

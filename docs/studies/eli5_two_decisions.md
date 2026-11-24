@@ -81,7 +81,8 @@ $$
 The reported error is the chosen rung's own $\sigma_r$, which leaves out
 the second term. So when the rungs disagree, the pulls
 $(\hat\delta - \delta)/\sigma$ spread wider than 1. That is the measured
-pull SD of 1.13 at the first join. Statisticians call this
+widening of +0.08 at a smooth join (it was first reported as 1.13; the
+study shows most of that was sampling noise). Statisticians call this
 post-selection inference: inference after a data-driven choice "enjoys
 none of the guarantees" classical theory gives when the model is fixed
 in advance (Berk et al. 2013).
@@ -110,11 +111,54 @@ It is a candidate only.
 
 ### What the study found
 
-⟨A2, A3, A5, A6, A7, A8 numbers; the decision curve.⟩
+![The decision curve](reflectivity_guard/A5_decision_curve.png)
+
+There were 400–2000 synthetic replicates per join, with the truth known.
+Each dot above is one setting of the guard:
+- left and right is how honest the error bar is at a smooth join, where
+  1.00 is ideal;
+- up and down is how biased the factor is at the five joins where a
+  fringe or a short overlap fools the curve, where 0 is ideal.
+
+| Choice | Bias at the hard joins (mean \|pull mean\|) | Error-bar size at the hard joins (pull SD) | At a smooth join (pull SD) |
+|---|---|---|---|
+| **today, p₀ 0.3** | **0.24** | **1.02** | **1.00** |
+| p₀ 0.01 | 0.52 | 0.92 | 0.92 |
+| no guard | 0.33 | 0.47 (bars 3× too big) | 0.92 |
+| averaging | 0.59 | 0.83 | 0.92 |
+| old spline ratio | 0.29 | 14 (bars meaningless) | 1.47 |
+
+- **Today's guard is the only setting with right-sized error bars at
+  both kinds of join.**
+- **A stricter guard leaves less bias, a looser one more.** No setting
+  removes the bias at a fringe, because no polynomial fits a fringe
+  exactly.
+- **Choosing after looking does widen the error a little** (+0.08). But
+  without the guard the bars are already slightly too large at a smooth
+  join (0.92), because they are only ever inflated, never shrunk. The two
+  cancel, and today's guard lands at 1.00.
+- **The robustness map:** today's setting is the best in all 12
+  combinations of fringe sampling (3–10 points per fringe) and count
+  level (1× to 0.01×).
+- **Real data:** on the public NX school joins every setting gives the
+  same factor. The first join agrees with the calibrated absorber ratio
+  to within 0.34σ.
 
 ### Recommendation, cost of being wrong, what would change it
 
-⟨from study A⟩
+- **Keep p₀ = 0.3.** Nothing changes in the reader.
+- **The cost of a different choice is small where it counts.** A
+  structural fit of the patched curve moves film thickness and roughness
+  by about 0.001 Å, because it uses every point and the full covariance.
+  The choice matters for how honest each join's error bar looks.
+- **Real data are not needed to decide.** The ranking holds across
+  everything the synthetic data could not know.
+- **What would change it:**
+  - p₀ 0.5 is a little less biased (0.16) at a slightly wide smooth join
+    (1.03), and is worth one more check;
+  - a robustness map on staggered grids;
+  - the owner's long real series, if it showed joins where the fit and
+    the absorber ratio disagree.
 
 ---
 
