@@ -85,7 +85,10 @@ class Beamline:
     "monc doesn't have poisson noise, it's more like a strict 0.05 %
     uncertainty" (an ion chamber read through a current amplifier and a
     V2F converter; xray_fluxor). For that model: monitor_poisson=False,
-    monitor_jitter=0.0005 (``REAL_MONITOR``)."""
+    monitor_jitter=0.0005 (``REAL_MONITOR``). ``angle_offset_deg``: the true
+    incident angle is the recorded one plus this (F79): R is drawn at
+    Qz_true = (4π/λ) sin(asin(Qz λ/4π) + δα) while the rows keep the recorded
+    Qz, so the reader's Qoff should be (4π/λ) cos α δα (``qoff_of``)."""
     flux: float = 2.5e12
     monc_rate: float = 1.1e5
     monp_rate: float = 2.15e5
@@ -95,6 +98,7 @@ class Beamline:
     monitor_jitter: float = 0.0
     energy_kev: float = xrr.ENERGY_KEV
     monitor_poisson: bool = True
+    angle_offset_deg: float = 0.0
 
     @property
     def wavelength(self):
@@ -247,7 +251,7 @@ def measure(profile, plan, beamline=None, resolution=None, errors='counting', se
         qz = np.atleast_1d(np.asarray(spec.qz, dtype=float))
         t = np.broadcast_to(np.asarray(spec.seconds, dtype=float), qz.shape).copy()
         trend = np.ones_like(qz) if spec.trend is None else np.asarray(spec.trend(qz), float)
-        R = profile.reflectivity(qz, bl.wavelength, resolution)
+        R = profile.reflectivity(true_qz(qz, bl), bl.wavelength, resolution)
         g = float(spec.slit_gain)
         h = g if spec.monitor_gain is None else float(spec.monitor_gain)
         n = spec.absorber
@@ -286,6 +290,22 @@ def measure(profile, plan, beamline=None, resolution=None, errors='counting', se
         records[num] = ScanRecord(num, qz, int(n), t, monc, monp, c, core, b, a_nom, a_true, g, h,
                                   a_true * bl.monc_rate / (bl.flux * g / h))
     return ReducedScans(per_scan, records, order_scans(per_scan), profile, bl, resolution, errors, seed)
+
+
+def true_qz(qz, beamline):
+    """The Qz the sample really sees for recorded ``qz`` (``Beamline.angle_offset_deg``)."""
+    if not beamline.angle_offset_deg:
+        return qz
+    k = 4 * math.pi / beamline.wavelength
+    return k * np.sin(np.arcsin(np.asarray(qz, float) / k) + math.radians(beamline.angle_offset_deg))
+
+
+def qoff_of(angle_offset_deg, qz=0.02, beamline=None):
+    """The Qz offset (true − recorded) of an angle offset at ``qz``; constant
+    to 0.2 % below α = 3° (physics_notes, F79)."""
+    bl = Beamline(angle_offset_deg=angle_offset_deg) if beamline is None else beamline
+    q = np.asarray(qz, float)
+    return true_qz(q, Beamline(**{**bl.__dict__, 'angle_offset_deg': angle_offset_deg})) - q
 
 
 # ---- plans --------------------------------------------------------------------

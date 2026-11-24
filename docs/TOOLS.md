@@ -56,6 +56,7 @@ container on 2026-11-23 with the defaults shown.
 | [Fit demonstrator report figures](#patch-demo-figures) | figures | The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per survey). | synthetic (public) |  | `docs/figures/patch_demo` |
 | [Patching gauntlet (synthetic, judged)](#ref-patch-gauntlet) | data | Every patching method on many noise replicates of synthetic reflectivity under many conditions, judged by hand-off 08's rules (\|mean pull\| < 0.2, pull SD 0.9-1.15). | synthetic (public) |  | `docs/comparisons_data/ref_patch_gauntlet` |
 | [Why five gauntlet joins are biased (extension 4)](#ref-patch-biased-joins) | data | The default joint fit's five biased designed joins and the covariance study's first join, redrawn with the gauntlet's seeds and fitted with the guard off, other orders and windows, noise-free. | synthetic (public) | 15 s | `docs/comparisons_data/ref_patch_biased_joins` |
+| [Qoff and Qc of R/R_F: the proposer's study (F79)](#qoff-study) | figures | Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and least squares) and the joint Qc + Qoff fit against the truth over offsets, samples, counts, outliers, resolution, a wrong Qc and the reader's patch; the NX school scans at the GUI's preset and at the proposals: figures Q1-Q5. | public (NX school or committed tables) |  | `docs/studies/qoff` |
 | [Study A: how strict the joint fit's guard should be](#ref-guard-study) | figures | The guard's p from 0.001 to 0.9, the guard off, an AICc average and the legacy factor on C45's six joins (C45 reproduced first), a downstream fit, the NX school joins beside the foil ratio, and a robustness map over fringe sampling and counts, on coinciding and staggered grids: figures A1-A8, R and RS. | public (NX school or committed tables) | 54 s | `docs/studies/reflectivity_guard` |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
 | [Downstream fits with and without the covariance](#covariance-pulls) | data | Synthetic NX-like scans of a 25 Å film reduced by each patch method and fitted for thickness, density and roughness under four error treatments: pull SD is 1 only with the full covariance. | synthetic (public) | 3 s | `docs/comparisons_data/downstream_covariance` |
@@ -324,6 +325,29 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Fewer replicates | A quick look: 100 replicates per join and 100 seeds of the covariance study; the default's pulls no longer match the gauntlet's exactly. | `tests/tools/ref_patch_biased_joins.py` | `python tests/tools/ref_patch_biased_joins.py --out '{out}' --replicates 100 --covariance-seeds 100` |
+
+<a id="qoff-study"></a>
+
+### Qoff and Qc of R/R_F: the proposer's study (F79)
+
+Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and least squares) and the joint Qc + Qoff fit against the truth over offsets, samples, counts, outliers, resolution, a wrong Qc and the reader's patch; the NX school scans at the GUI's preset and at the proposals: figures Q1-Q5.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/qoff_study.py`
+- Explained in: `docs/studies/qoff/summary.md`, `docs/COMPARISONS.md#| C50 |`, `docs/FEATURE_REQUESTS.md#| F79 |`
+- Committed products: `docs/studies/qoff`; not replaced from the window
+- Run:
+
+      python tests/tools/qoff_study.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| The anatomy and NX only | Q1 and Q5, which need no replicates (about 20 s): what a wrong Qoff does at the edge, and the NX school proposal against the preset. | `docs/studies/qoff/summary.md### 6. The NX school scans` | `python tests/tools/qoff_study.py --out '{out}' --only Q1,Q5` |
+| Outliers | One or two points off by 30 %, and the worst case, the first point above the edge: the edge fit holds, the roughness is pulled. | `docs/studies/qoff/summary.md### 2. Outliers` | `python tests/tools/qoff_study.py --out '{out}' --design outliers` |
+| Resolution | A Qz resolution of 0.0002 to 0.001 Å⁻¹ FWHM smears the edge and reads as a negative Qoff. | `docs/studies/qoff/summary.md### 3. Resolution` | `python tests/tools/qoff_study.py --out '{out}' --design resolution` |
+| A wrong Qc | 1 M NaCl reduced at water's Qc and the other way round: Qoff absorbs the error one for one; the joint fit lies on Qc − Qoff = constant. | `docs/studies/qoff/summary.md### 4. A wrong Qc, and Qc with Qoff` | `python tests/tools/qoff_study.py --out '{out}' --design qc` |
+| More replicates (200) | Every design with 200 replicates (about 15 min). | `docs/studies/qoff/summary.md### 1. Do they find the offset?` | `python tests/tools/qoff_study.py --out '{out}' --replicates 200` |
 
 <a id="ref-guard-study"></a>
 

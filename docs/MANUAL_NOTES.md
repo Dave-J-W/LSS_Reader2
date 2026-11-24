@@ -116,6 +116,15 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- Qc and Qoff of R/R_F (F79, 2026-11-24): `lss_core.fresnel` proposes
+  Qoff from the data (the edge fit by default; the smoothness of R/R_F as
+  the owner judges it by eye) with its error, and gives Qc from the
+  subphase (a list of densities with their sources, or a typed electron
+  density). It proposes; it never applies. The window's "Propose" buttons
+  beside Qoff and Qc are the GUI manager's (F96). Notes for the manual:
+  the Qz resolution reads as a slightly negative Qoff, and a wrong Qc
+  moves Qoff by the same amount, so set Qc from the subphase first
+  (`docs/studies/qoff/summary.md`).
 - The guard prefers fits with χ² p ≥ 0.7 (since 2026-11-24; 0.3 before):
   stricter, so a fringe at a join biases the factor half as much.
 - A join's note: "the best fit of the ladder" means no curve reached the
@@ -172,6 +181,21 @@ Each line: feature — where — default — script — notes entry (date).
   Since 2026-11-23 each frame of a reflectivity scan has its own incidence
   angle (from its Qz; the scan header's In_Rot is the position before the
   scan moved, P47), so the reflected beam sits at β = α on that axis.
+- **Diffuse cuts** (F97, F59; 2026-11-24, core only; the window's choice of
+  axis is to come): the owner's axes are β, β − α, Qz and Qxy. A how-to for
+  the manual, by script today:
+  1. **The specular rod and the diffuse scatter beside it:** a vertical cut
+     over a narrow Qxy band about the beam, `exp.cut([7], 'Q V',
+     cuts.centred_range('Q V', g, 10), axes='beta-alpha')` (±10 columns).
+     The specular sits at β − α = 0, with the diffuse wings either side.
+  2. **Off-specular:** the same cut over a Qxy band away from 0; the
+     detector's range is `cuts.covered_range('Q V', g, shape)`.
+  3. **I vs Qxy at a fixed exit angle:** a horizontal cut, `'Pix H'` over a
+     few rows, `axes='Qxy'`.
+  - **Why the window's Q cuts used to plot nothing:** their default ranges
+    (Qz 0–1, Qxy 1–2) lie off a reflectivity frame (measured: the Q V cut
+    over 1–2 sums zeros).
+  - `lss_core/cuts.py` (its docstring has the formulas); notes 2026-11-24.
 - Background images and background-subtracted frames (not scriptable yet).
 - The frames display is sticky (F88, owner Q9, 2026-11-24): zoom, colour
   map, aspect, Axes, log (per kind of frame) and typed limits (per kind)
