@@ -288,6 +288,7 @@ BURN = {
             NEW('burn_showRoi', 'Show the ROI on the frames', 'checkbox', 'Q-BURN-5'),
             C('pdburn.rangeLineEdit', 'GID peak Qxy (a – b)', note='Single peak only'),
             ROW(C('burnAutoPeakCheckBox', 'Find peak'), C('burnPositionLimitCheckBox', 'Keep in range')),
+            ROW(C('burnRowsAutoCheckBox', 'Rows from frame'), C('burnRowsLineEdit', 'Rows (first:last)')),
         ]),
         G('Reduce', 'Reduce', [
             CAPTION('Models compared'),
@@ -677,7 +678,7 @@ PREFERENCES = [
         C('prefRepeatsLegacyCheckBox', 'Ref Patch repeats: average (legacy)'),
         C('prefGisaxsRawCheckBox', 'GISAXS: raw counts (legacy)'),
         C('prefMcaFitLegacyCheckBox', 'Fluorescence fit: legacy dialog'),
-        C('prefMcaFitPoissonCheckBox', 'Fit lines: Poisson weights', note='F90 P1, an option until the owner\'s study'),
+        C('prefMcaFitDataWeightsCheckBox', 'Fit lines: data weights (legacy)', note='F90: P1 (Poisson) the default since 2026-11-24'),
         C('prefBurnLegacyCheckBox', 'Burn: Legacy tab'),
         C('prefClosePushButton', 'Close'),
     ]),

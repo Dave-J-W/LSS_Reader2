@@ -48,7 +48,7 @@ DEFAULTS = {
     'repeats_legacy_average': False,
     # MCA "Fit lines": True fits each spectrum's heights by Poisson maximum likelihood (F90 P1);
     # off by default until the owner's study (2026-11-24): least squares weighted by the data's σ
-    'mca_fit_poisson': False,
+    'mca_fit_data_weights': False,      # Fit lines: least squares weighted by the data (legacy); off: Poisson (F90 P1, 2026-11-24)
     # MCA "Fit lines" options (F90 P2, P3; options, not defaults, 2026-11-24): the line width from
     # the detector's resolution (its electronic noise FWHM, keV) and Si escape stripping
     'mca_line_options': {'detector_width': False, 'noise_kev': 0.12, 'strip_escape': False},

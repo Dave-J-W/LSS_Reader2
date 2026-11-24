@@ -267,10 +267,10 @@ def test_line_index_is_the_first_given_line_not_the_tallest():
 
 
 def test_series_fits_each_spectrum_by_poisson_likelihood():
-    """F90 P1 (an option until the owner's study, 2026-11-24): each
-    spectrum's heights by Poisson maximum likelihood. A line of ~300 counts
-    on 1 count per channel: the default data weights read it low (Neyman's
-    χ²), the Poisson step does not; at high counts the two agree."""
+    """F90 P1 (the default since 2026-11-24, rule 12): each spectrum's
+    heights by Poisson maximum likelihood. A line of ~300 counts on 1 count
+    per channel: the old data weights read it low (Neyman's χ²), the
+    Poisson step does not; at high counts the two agree."""
     e = np.linspace(5.6, 7.2, 161)
     got = {'poisson': [], 'data': []}
     for seed in range(40):
@@ -287,7 +287,8 @@ def test_series_fits_each_spectrum_by_poisson_likelihood():
     hi = 100.0 + _gauss(e, 6.40, 0.15, 2000.0)
     y = _poisson(hi, 3)
     a = peaks.fit_series(e, [y], [np.sqrt(y)], peaks.FitOptions(centres=(6.40,)), weights='poisson')[1][0].peaks[0].height
-    b = peaks.fit_series(e, [y], [np.sqrt(y)], peaks.FitOptions(centres=(6.40,)))[1][0].peaks[0].height
+    b = peaks.fit_series(e, [y], [np.sqrt(y)], peaks.FitOptions(centres=(6.40,)), weights='data')[1][0].peaks[0].height
     assert a == pytest.approx(b, rel=0.01)
+    assert peaks.fit_series(e, [y], [np.sqrt(y)], peaks.FitOptions(centres=(6.40,)))[1][0].peaks[0].height == a   # the default
     with pytest.raises(ValueError):
         peaks.fit_series(e, [y], [np.sqrt(y)], weights='neyman')

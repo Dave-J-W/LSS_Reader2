@@ -7,8 +7,9 @@ frame each time. The reader measures per frame
 - reflectivity geometry (Det_Th ≈ 0): the reflected intensity, background-
   subtracted ROI per monitor count (the Ref Patch arithmetic,
   ``Experiment.reflectivity`` on the one scan);
-- GID geometry: the strongest peak of the frame's horizontal profile (all
-  rows summed, per monitor, x in Qxy with the pinhole distance), fitted
+- GID geometry: the strongest peak of the frame's horizontal profile (the
+  rows where the mean frame's signal is summed, ``signal_rows``; all rows
+  before 2026-11-24; per monitor, x in Qxy with the pinhole distance), fitted
   with ``lss_core.peaks``: its integrated intensity, position and FWHM. The
   peak is found automatically on the mean of the frames (F22a 4: "largest
   peak by default"), or taken in a typed Qxy range (the override);
@@ -77,6 +78,7 @@ class BurnResult:
     notes: list = field(default_factory=list)
     threshold: float = 0.05
     seconds: np.ndarray = None    # count time of each frame
+    rows: tuple = None            # GID: the detector rows summed (first, last), both included
     limit_quantities: tuple = ('intensity', 'fwhm')   # what sets the limit (position: the user's choice)
 
     def safe_time(self, quantities=None):
@@ -174,11 +176,90 @@ def is_gid(dth_deg):
 
 ESTIMATORS = ('template', 'moments', 'fit')
 
+ROWS_FRACTION = 0.1        # signal_rows: the peak's row profile above this fraction of its maximum
+ROWS_PAD = 2               # rows added on each side
+ROWS_MIN_SIGNIFICANCE = 5.0   # the column peak and the row profile's maximum over their noise; below, no rows
+
+
+def _noise(y):
+    """Robust point-to-point noise of a profile: the median absolute
+    difference of neighbours, as a standard deviation of one point."""
+    d = np.diff(np.asarray(y, float))
+    return float(1.4826 * np.median(np.abs(d - np.median(d))) / math.sqrt(2)) if d.size else 0.0
+
+
+def _smooth(y, n=5):
+    k = np.ones(n) / n
+    return np.convolve(np.pad(y, n // 2, mode='edge'), k, mode='valid')
+
+
+def signal_rows(mean, fraction=ROWS_FRACTION, pad=ROWS_PAD):
+    """(first, last) detector rows of a GID burn where the mean frame's
+    signal is (owner, 2026-11-23, Q-BURN-6: "GID-burn detector rows default
+    from the mean frame"), both included; None when no peak stands out
+    (then all rows are summed, as before).
+
+    ``mean``: the mean of the burn's frames per monitor count, rows ×
+    columns. The rule:
+
+    1. a 3 × 3 median of the mean frame, so that a hot pixel is not a peak;
+    2. the column profile (summed over rows) less its median: the peak's
+       columns are the run around the strongest column above half its
+       height, widened by that run's width on each side;
+    3. the row profile of those columns less as many columns of each row's
+       median (the background beside the peak), smoothed over 5 rows: the
+       peak's own profile along the rows (β);
+    4. the rows: the run around that profile's maximum where it stays above
+       ``fraction`` of the maximum, widened by ``pad`` rows, inside the
+       frame. For a rod falling exponentially with β, a fraction of 0.1
+       keeps 90 % of its counts and leaves out rows of background only
+       (below the horizon, above where the rod has faded).
+
+    The peak is the strongest in the mean frame, as the burn's own
+    automatic choice is; with a typed Qxy range the rows are still this
+    peak's."""
+    from scipy.ndimage import median_filter
+    a = np.nan_to_num(np.asarray(mean, float))
+    m = median_filter(a, size=3, mode='nearest')
+    nrows, ncols = m.shape
+    cp = m.sum(axis=0)
+    cp = cp - np.median(cp)
+    c = int(np.argmax(cp))
+    cu = a.sum(axis=0)                  # noise from the unfiltered frame (the median correlates neighbours)
+    if cp[c] <= 0 or cp[c] < ROWS_MIN_SIGNIFICANCE * _noise(cu):
+        return None
+    lo = c
+    while lo > 0 and cp[lo - 1] > cp[c] / 2:
+        lo -= 1
+    hi = c
+    while hi < ncols - 1 and cp[hi + 1] > cp[c] / 2:
+        hi += 1
+    w = hi - lo + 1
+    cols = np.arange(max(lo - w, 0), min(hi + w, ncols - 1) + 1)
+    rp = _smooth(m[:, cols].sum(axis=1) - len(cols) * np.median(m, axis=1))
+    raw = a[:, cols].sum(axis=1) - len(cols) * np.median(a, axis=1)
+    r = int(np.argmax(rp))
+    if rp[r] <= 0 or rp[r] < ROWS_MIN_SIGNIFICANCE * _noise(raw) / math.sqrt(5):     # the 5-row mean's noise
+        return None
+    top = fraction * rp[r]
+    a = r
+    while a > 0 and rp[a - 1] > top:
+        a -= 1
+    b = r
+    while b < nrows - 1 and rp[b + 1] > top:
+        b += 1
+    return max(a - pad, 0), min(b + pad, nrows - 1)
+
 
 def _illuminated(y, frac=0.05, inset=2):
     """(first, last) index of the lit part of a profile: above ``frac`` of
-    its maximum, ``inset`` points in from the edges of the frame's shadow."""
-    idx = np.flatnonzero(y > frac * np.nanmax(y))
+    its maximum or half its median, whichever is lower, ``inset`` points in
+    from the edges of the frame's shadow. The median term (2026-11-24) keeps
+    the lit floor lit beside a peak more than 20 times stronger, which the
+    maximum alone would leave out (the window then shrank to the peak); it
+    changes nothing where the floor is above 10 % of the maximum (NX 14, 15:
+    12-15 %)."""
+    idx = np.flatnonzero(y > min(frac * np.nanmax(y), 0.5 * np.nanmedian(y)))
     if idx.size < 2 * inset + 5:
         return 0, len(y) - 1
     return int(idx[0] + inset), int(idx[-1] - inset)
@@ -424,6 +505,8 @@ def summary_text(res):
         out.append('errors: %s' % res.trend_errors)
     if res.window is not None:
         out.append('Qxy %.3f–%.3f' % tuple(res.window))
+    if getattr(res, 'rows', None) is not None:
+        out.append('rows %d–%d' % tuple(res.rows))
     return '\n'.join(out)
 
 

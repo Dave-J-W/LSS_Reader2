@@ -6,7 +6,7 @@ import array
 import pylab
 from scipy.optimize import leastsq
 import traceback
-from lss_core.images import read_pilatus
+from lss_core.images import read_pilatus, PIXEL_MM
 from lss_core.errors import LEGACY, MonitorTerms
 from lss_core.absorbers import attenuation
   
@@ -17,7 +17,7 @@ class TwoDDetector:
         self.path=None
         #pylab.rc('text', usetex=True)
         if det=='Pilatus':
-            self.pix_size=0.172
+            self.pix_size=PIXEL_MM
             #self.hroi=[0,194]
             #self.vroi=[0,486]
         else:
@@ -205,7 +205,7 @@ class TwoDDetector:
                 y=(np.sin(y1+np.arcsin(2*np.sin(alpha)-np.sin(truealpha)))+np.sin(truealpha))*2*pylab.pi/wavelength
         self.hintData=np.vstack((y, hint, hinterr)).transpose()
 
-    def plotVint(self, data, errordata, absfac=1,absnum=None,  hroi=None,  vroi=None, alpha=None,dth=None, sh=None, wavelength=None, pix_size=0.172,cen=None, s2d_dist=None,ax_type='Pixels', mon=None, terms=None, gain=None):
+    def plotVint(self, data, errordata, absfac=1,absnum=None,  hroi=None,  vroi=None, alpha=None,dth=None, sh=None, wavelength=None, pix_size=PIXEL_MM,cen=None, s2d_dist=None,ax_type='Pixels', mon=None, terms=None, gain=None):
         """Plots the Integrated intensity along vertical direction as a function of pixels along horizontal direction"""
         if hroi==None:
             hroi=self.hroi

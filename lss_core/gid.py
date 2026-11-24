@@ -7,7 +7,10 @@ the GID worksheet (F61). Where each one acts:
 - ``columns``: pixels summed across each frame around the direct-beam
   column (the window's H slit field); one profile per frame, placed at the
   frame's detector angle.
-- ``row_min``, ``row_max``: detector rows used (β range).
+- ``row_min``, ``row_max``: detector rows used (β range), both included.
+  ``row_max``'s default is the last row of a Pilatus 100K frame (486 of
+  rows 0…486); ``GIDParams.for_detector(shape)`` gives another detector's
+  last row, and ``Experiment.gid`` without ``params`` takes the frames'.
 - ``qz_decimals``: frames are grouped into Qz levels by their Qz rounded
   to this many decimals (at most three levels: low, middle, high; any
   further level goes into "high").
@@ -43,12 +46,16 @@ the GID worksheet (F61). Where each one acts:
 """
 from dataclasses import dataclass, fields
 
+from .images import PIXEL_MM, SHAPE_100K
+
+ROW_MAX_100K = SHAPE_100K[0] - 1        # 486: the last row of a Pilatus 100K frame (487 rows as presented)
+
 
 @dataclass
 class GIDParams:
     columns: int = 3
     row_min: int = 15
-    row_max: int = 486
+    row_max: int = ROW_MAX_100K
     qz_decimals: int = 3
     dth_decimals: int = 3
     area_correction: bool = True
@@ -68,6 +75,14 @@ class GIDParams:
     apply_joins: bool = True          # False: scan and level factors fitted and reported, not applied (as collected)
     angles: str = 'exact'             # pinhole map binning: 'exact' per pixel, or 'per_axis' (before 2026-11-19; C21)
     join_estimator: str = 'ml'        # scan and level factors: 'ml' (likelihood, P46, 2026-11-23) or 'ivw' (before)
+
+    @classmethod
+    def for_detector(cls, shape, **settings):
+        """The defaults on frames of ``shape`` (rows, columns), with ``settings``
+        on top: the last row used is the frames' last (486 on the Pilatus
+        100K, so there the same as ``GIDParams()``)."""
+        settings.setdefault('row_max', int(shape[0]) - 1)
+        return cls(**settings)
 
     def changed(self):
         """Names of the settings that differ from the defaults."""
@@ -145,8 +160,8 @@ def cal_area(areainfo, dth, hslit_px, hard_slit_offset_mm=32.0):
     sam2d = areainfo[5] - hard_slit_offset_mm
     sli2s = areainfo[5] - areainfo[6]
     dth = dth * np.pi / 180.0
-    if s5h > float(hslit_px) * 0.172:
-        s5h = float(hslit_px) * 0.172
+    if s5h > float(hslit_px) * PIXEL_MM:
+        s5h = float(hslit_px) * PIXEL_MM
         sam2d = areainfo[5]
     phi = np.arcsin((s4h + s5h) / 2.0 / np.sqrt((s4h + s5h) ** 2 / 4.0 + (sam2d - sli2s) ** 2))
     dist = (s4h / 2.0 * sam2d + s5h / 2.0 * sli2s) / np.sqrt((s4h + s5h) ** 2 / 4.0 + (sam2d - sli2s) ** 2)
