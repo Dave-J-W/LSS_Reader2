@@ -5711,3 +5711,7 @@ Verified by: the owner's statements; nothing checked against data.
 - **Monc upstream of the absorbers:** confirmed by the owner. The reduction's use of the absorber factor and Monc is consistent with that.
 - **Shutter:** closed between burn frames, open in fast mode (wall time = exposure, F98's dose axis must use it); fast mode is a recommended technique, not yet demonstrated (OQ-4).
 - **Timeline placeholders:** notes and stand-ins both, plus automatic flags (F108).
+
+### 2026-11-24 — Qoff: typical size and resolution (F79, C50; asked for tools man, batch 19)
+
+Verified by: the owner's statements; nothing computed here. The owner called the typical Qz offset "roughly −5e-4" Å⁻¹ (asked: the resolution ΔQ near Qc; the question and the answer are about different quantities, so ΔQ remains unmeasured and a request for the local data agent is `DATA_NEEDS.md` row 13). Context: the study's proposal for NX school scans 6–9 is −0.00028 Å⁻¹ (−0.0016°), the same sign and order as the owner's typical offset, and the owner says offsets of that size are usual, so proposing a Qoff by default (nothing applied automatically) matches practice. The synthetic study's rule of thumb, a resolution reads as Qoff ≈ −0.15 × ΔQ (FWHM), is the tools session's, not rechecked: if the owner's −5e-4 were all resolution it would mean ΔQ ≈ 3e-3 Å⁻¹, which is larger than the 5e-4 to 1e-3 range the question assumed, so the two readings need the measurement of row 13.
