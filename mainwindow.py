@@ -2464,6 +2464,20 @@ class MainWindow (QMainWindow):
         off by default since 2026-11-23, F91)."""
         return bool(self.prefs.get('sum_all_legacy_average',False))
 
+    def mcaLineOptions(self):
+        """The MCA "Fit lines" options F90 P2 and P3 (preference
+        'mca_line_options'): detector_width (bool), noise_kev, strip_escape."""
+        lo=dict(prefs_store.DEFAULTS['mca_line_options'])
+        lo.update(self.prefs.get('mca_line_options') or {})
+        return lo
+
+    def mcaFitPoisson(self):
+        """True when "Fit lines" fits each spectrum by Poisson maximum
+        likelihood (F90 P1; preference 'mca_fit_poisson', off by default: the
+        owner wants the study first, 2026-11-24). Off: least squares weighted
+        by the data's σ, as always."""
+        return bool(self.prefs.get('mca_fit_poisson',False))
+
     def gisaxsRawCounts(self):
         """True when GISAXS keeps the raw counts it showed until 2026-11-23
         (preference 'gisaxs_raw_counts', for the Reduction options page, F86;
@@ -7658,7 +7672,8 @@ class MainWindow (QMainWindow):
         fl.setObjectName('mcaFitLinesPushButton')
         fl.setToolTip('Fit the fluorescence line(s) of all selected spectra (F22a, owner\'s rule): the sum of the spectra '
                       'is fitted within the range in the Sum All field for the lines\' positions and widths; then every '
-                      'spectrum is fitted with those fixed, heights and background only (a Gaussian on a quadratic '
+                      'spectrum is fitted with those fixed, heights and background only, weighted by its errors '
+                      '(Poisson maximum likelihood with the preference mca_fit_poisson, F90 P1) (a Gaussian on a quadratic '
                       'background by default, for the Rayleigh spill-over). The intensity of the line asked for (the first '
                       'energy given in Fit options, the element\'s; the strongest when none is given), as its '
                       'area over the channel width (the same units as Sum All, background removed), goes to the '
@@ -7875,6 +7890,26 @@ class MainWindow (QMainWindow):
                       ('x range (min:max)',rng),('Centres',cen)):
             form.addRow(lab,w)
         form.addRow(fix)
+        if which=='mca':        # F90 P2, P3: options, not defaults (the owner, 2026-11-24)
+            lo=self.mcaLineOptions()
+            dw=QCheckBox('width from the detector',d); dw.setObjectName('mcaFitDetectorWidthCheckBox')
+            dw.setChecked(lo['detector_width'])
+            dw.setToolTip('Fix the line width at the detector\'s resolution at the first centre (the element\'s line): '
+                          'FWHM = sqrt(noise^2 + 8 ln2 x 3.65 eV x 0.115 x E). A free width trades off against a '
+                          'curved background (synthetic: +45 % with the elastic\'s escape peak under Zn Ka, C42). '
+                          'Needs a centre; the Fixed FWHM above is then ignored.')
+            noise=QDoubleSpinBox(d); noise.setObjectName('mcaFitNoiseSpinBox'); noise.setRange(0.0,1.0)
+            noise.setDecimals(3); noise.setSingleStep(0.005); noise.setSuffix(' keV'); noise.setValue(lo['noise_kev'])
+            noise.setToolTip('The detector\'s electronic noise as a FWHM (keV): calibrate it on a strong peak, '
+                             'noise^2 = FWHM^2 - 8 ln2 x 3.65 eV x 0.115 x E (0.12 keV is typical of a Vortex; an assumption).')
+            esc=QCheckBox('strip Si escape peaks',d); esc.setObjectName('mcaFitEscapeCheckBox')
+            esc.setChecked(lo['strip_escape'])
+            esc.setToolTip('Before fitting, subtract each spectrum\'s Si K escape spectrum: what was measured 1.740 keV '
+                           'higher, times Reed\'s escape fraction (about 0.1 % at 10 keV; constants from memory). Under '
+                           '10 keV the elastic\'s escape peak at 8.26 keV sits under Zn Ka (C42).')
+            form.addRow(dw)
+            form.addRow('Detector noise (FWHM)',noise)
+            form.addRow(esc)
         lay.addLayout(form)
         res=QLabel(self.cutFitSummary() if which=='cut' else self.mcaFitSummary(),d)
         res.setObjectName('%sFitResultLabel' % which); res.setWordWrap(True)
@@ -7907,6 +7942,9 @@ class MainWindow (QMainWindow):
                                  x_range=xr,centres=cs,fix_centres=fix.isChecked(),fwhm=fw.value())
             setattr(self,attr,new)
             self.setPreference(pref,peaks.options_to_dict(new))          # kept between sessions
+            if which=='mca':
+                self.setPreference('mca_line_options',{'detector_width':dw.isChecked(),'noise_kev':noise.value(),
+                                                       'strip_escape':esc.isChecked()})
         for w in (shape,bg):
             w.currentIndexChanged.connect(apply)
         for w in (npk,mpk,prom,win,fw):
@@ -7914,6 +7952,10 @@ class MainWindow (QMainWindow):
         for w in (rng,cen):
             w.editingFinished.connect(apply)
         fix.toggled.connect(apply)
+        if which=='mca':
+            dw.toggled.connect(apply)
+            esc.toggled.connect(apply)
+            noise.valueChanged.connect(apply)
         go.clicked.connect(lambda: (apply(),self.fitCuts() if which=='cut' else self.mcaFitLines()))
         if which=='cut':
             save.clicked.connect(self.saveCutFits)
@@ -8470,15 +8512,21 @@ class MainWindow (QMainWindow):
         if any(len(d)!=len(data[0]) or not np.allclose(d[:,0],data[0][:,0]) for d in data):
             self.messageBox('The selected spectra have different energy axes; fit them in groups with the same axis.')
             return
+        lopt=self.mcaLineOptions()
+        if lopt['strip_escape']:      # F90 P3: the Si escape spectrum off each spectrum first
+            data=[fluorescence.strip_escape(d) for d in data]
         x=data[0][:,0]
         o=self.mcaFitOptions
+        if lopt['detector_width'] and o.centres:   # F90 P2: the width at the element's line from the detector
+            o=dataclasses.replace(o,fwhm=fluorescence.detector_fwhm(o.centres[0],lopt['noise_kev']))
         if o.x_range is None:
             try:
                 lo,hi=(float(t) for t in str(self.ui.mcaRanLineEdit.text()).split(':'))
                 o=dataclasses.replace(o,x_range=(lo,hi))
             except ValueError:
                 pass
-        ref,each=peaks.fit_series(x,[d[:,1] for d in data],[d[:,2] for d in data],o)
+        ref,each=peaks.fit_series(x,[d[:,1] for d in data],[d[:,2] for d in data],o,
+                                  weights='poisson' if self.mcaFitPoisson() else 'data')
         if not each:
             self.notify('Fit lines: %s' % (ref.message or 'no line found'),title='Fit lines')
             return
@@ -8509,8 +8557,11 @@ class MainWindow (QMainWindow):
         except Exception:
             pass
         p=ref.peaks[j]
-        self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background' % (
-            listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background)
+        self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background%s' % (
+            listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background,
+            ''.join(t for t,on in ((', Poisson weights',self.mcaFitPoisson()),
+                                   (', width from the detector',lopt['detector_width'] and bool(self.mcaFitOptions.centres)),
+                                   (', Si escapes stripped',lopt['strip_escape'])) if on))
         self.notify('Fit lines: sum of %d spectra: %s. Intensities of the line at %.4g (area / channel width) in the '
                     'integral plot.' % (len(each),ref.summary(),p.centre),title='Fit lines',level='info')
         if self.mcaFitDialog is not None:

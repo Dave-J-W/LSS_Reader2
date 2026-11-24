@@ -524,7 +524,7 @@ workflows:
       - id: burn-fluo.line
         do: Measure the line in each spectrum - Fit lines (sum fixes position and width, each spectrum amplitude and background) or a window Sum All
         where: MCA tab
-        controls: [mcaRanLineEdit, mcaFitLinesPushButton, mcaFitOptionsPushButton, mcaSumAllPushButton, mcaXAxisComboBox]
+        controls: [mcaRanLineEdit, mcaFitLinesPushButton, mcaFitOptionsPushButton, mcaFitDetectorWidthCheckBox, mcaFitNoiseSpinBox, mcaFitEscapeCheckBox, mcaSumAllPushButton, mcaXAxisComboBox]
         user_decides: the line window; fitted lines (owner D47 - lines count, not the Vortex counter) or window sum; x axis Frame
         automatic: no
         could_be_automatic: a burn dialog for MCA series (TODO - feed fit_series through trends.compare)

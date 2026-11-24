@@ -106,6 +106,58 @@ def test_fit_lines_reports_the_elements_line_not_the_tallest(loaded, qapp, datas
     assert 'line at 6.4' in loaded.command
 
 
+def test_fit_lines_poisson_switch(loaded, qapp, dataset, recorder):
+    """F90 P1: data weights by default (until the owner's study); the
+    preference 'mca_fit_poisson' fits each spectrum by Poisson maximum
+    likelihood (the command and each result say so)."""
+    sweep.state_mca_frames(loaded, qapp, dataset)
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    data = [r[3] for r in loaded.mcaIntData]
+    assert 'Poisson' not in loaded.command and 'Poisson' not in loaded.mcaLineFits[1][0].message
+    loaded.setPreference('mca_fit_poisson', True)
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    assert 'Poisson weights' in loaded.command and 'Poisson weights' in loaded.mcaLineFits[1][0].message
+    assert [r[3] for r in loaded.mcaIntData] == pytest.approx(data, rel=0.05)
+    assert recorder.exceptions == []
+
+
+def test_fit_lines_detector_width_and_escape_options(loaded, qapp, dataset, recorder, monkeypatch):
+    """F90 P2, P3 (options, not defaults): the Fit options dialog's three
+    MCA controls are stored in 'mca_line_options'; with them on, the fit
+    gets the detector's FWHM at the first centre and spectra stripped of
+    their Si escapes (the command says so)."""
+    from lss_core import fluorescence, peaks
+    sweep.state_mca_frames(loaded, qapp, dataset)
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    centre = loaded.mcaLineFits[0].peaks[0].centre
+    loaded.mcaFitOptions = peaks.FitOptions(centres=(centre,), n_peaks=1, background='quadratic')
+    loaded.showMcaFitOptions()
+    d = loaded.mcaFitDialog
+    from PyQt5.QtWidgets import QCheckBox, QDoubleSpinBox
+    d.findChild(QDoubleSpinBox, 'mcaFitNoiseSpinBox').setValue(0.15)
+    d.findChild(QCheckBox, 'mcaFitDetectorWidthCheckBox').setChecked(True)
+    d.findChild(QCheckBox, 'mcaFitEscapeCheckBox').setChecked(True)
+    assert loaded.prefs['mca_line_options'] == {'detector_width': True, 'noise_kev': 0.15, 'strip_escape': True}
+    loaded.mcaFitOptions = peaks.FitOptions(centres=(centre,), n_peaks=1, background='quadratic')
+    seen = {}
+    real = peaks.fit_series
+
+    def spy(x, spectra, sigmas=None, options=None, **kw):
+        seen['fwhm'], seen['first'] = options.fwhm, np.array(spectra[0])
+        return real(x, spectra, sigmas, options, **kw)
+    monkeypatch.setattr(peaks, 'fit_series', spy)
+    stripped = fluorescence.strip_escape(loaded.nomMcaData[loaded.selectedMcaScanNums[0]])
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    assert seen['fwhm'] == pytest.approx(fluorescence.detector_fwhm(centre, 0.15))
+    assert np.allclose(seen['first'], stripped[:, 1])
+    assert 'width from the detector' in loaded.command and 'Si escapes stripped' in loaded.command
+    assert recorder.exceptions == []
+
+
 def test_fit_options_are_kept_between_sessions(loaded, qapp, recorder):
     loaded.cutFitOptionsPushButton.click()
     d = loaded.cutFitDialog

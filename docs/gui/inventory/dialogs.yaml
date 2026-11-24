@@ -1468,6 +1468,39 @@
   shown: always
   tooltip: true
   notes: ""
+- id: mcaFitDetectorWidthCheckBox
+  kind: checkbox
+  label: "width from the detector"
+  where: "Fluorescence line fit options"
+  handler: apply
+  does: "Fixes the line width at the detector's resolution at the first centre, from the detector noise (F90 P2; preference mca_line_options)"
+  workflows: [xfntr]
+  needs: "a centre given (the element's line)"
+  shown: "MCA dialog only"
+  tooltip: true
+  notes: "An option, not a default (owner, 2026-11-24); overrides the Fixed FWHM field when on."
+- id: mcaFitNoiseSpinBox
+  kind: spinbox
+  label: "Detector noise (FWHM)"
+  where: "Fluorescence line fit options"
+  handler: apply
+  does: "The detector's electronic noise FWHM (keV) for the width from the detector"
+  workflows: [xfntr]
+  needs: "width from the detector on"
+  shown: "MCA dialog only"
+  tooltip: true
+  notes: "0.12 keV default (an assumption for a Vortex); calibrate on a strong peak."
+- id: mcaFitEscapeCheckBox
+  kind: checkbox
+  label: "strip Si escape peaks"
+  where: "Fluorescence line fit options"
+  handler: apply
+  does: "Subtracts each spectrum's Si K escape spectrum (Reed's fraction) before Fit lines (F90 P3; preference mca_line_options)"
+  workflows: [xfntr]
+  needs: "spectra on an energy axis"
+  shown: "MCA dialog only"
+  tooltip: true
+  notes: "An option, not a default (owner, 2026-11-24)."
 - id: cutFitResultLabel
   kind: label
   label: ""

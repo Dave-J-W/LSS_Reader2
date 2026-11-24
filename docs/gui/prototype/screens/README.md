@@ -21,7 +21,7 @@ Made by `python tests/tools/ngui_screens.py` (do not edit by hand). The window i
 | [`11_preferences.png`](11_preferences.png) | File > Preferences…: what stays in the dialog | 480 × 569 |
 | [`20_left_selection_panel.png`](20_left_selection_panel.png) | Close-up: the selection panel (series, scans, frames with the display mode, background frames folded) | 250 × 823 |
 | [`21_left_scans.png`](21_left_scans.png) | Close-up: the Scans tab's left column, every group open | 336 × 803 |
-| [`22_left_frames.png`](22_left_frames.png) | Close-up: the Frames tab's left column, every group open | 322 × 932 |
+| [`22_left_frames.png`](22_left_frames.png) | Close-up: the Frames tab's left column, every group open | 322 × 988 |
 | [`23_left_burn.png`](23_left_burn.png) | Close-up: the Burn tab's left column, every group open | 336 × 803 |
 | [`24_left_reflectivity.png`](24_left_reflectivity.png) | Close-up: the Reflectivity tab's left column, every group open | 322 × 992 |
 | [`25_left_gid.png`](25_left_gid.png) | Close-up: the GID tab's left column, every group open | 430 × 1077 |
