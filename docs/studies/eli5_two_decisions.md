@@ -1,9 +1,11 @@
 # Two decisions, explained simply
 
-*Draft, 2026-11-24, 1 am onward. The figures and the numbers marked
-⟨…⟩ come from the two studies, and this page is filled in when they are
-in. The citations were checked as far as this environment allows; see
-References.*
+*2026-11-24. The figures and numbers come from the two studies,
+`docs/studies/reflectivity_guard/summary.md` (A, C47) and
+`docs/studies/mca_fit/summary.md` (B, C46). Everything measured is
+synthetic data with the truth known, except where NX school data are
+named. The citations were checked as far as this environment allows;
+see References.*
 
 This page explains two choices the reader makes when it turns detector
 counts into numbers:
@@ -285,11 +287,64 @@ $$
 
 ### What the study found
 
-⟨B2–B7 numbers from study B.⟩
+![Why weighting matters](mca_fit/B3_weighting.png)
+
+Tools man's study (`docs/studies/mca_fit/summary.md`, C46) used
+synthetic spectra with the truth known. Zn Kα (8.6 keV) under a 10 keV
+beam is the hard case: in the ±2 FWHM box the line has 887 counts,
+against 5,681 from the oxygen 1s Compton wing, 570 from escape peaks and
+471 from detector tails (B1).
+
+**The weighting (B3, above).** Data weights read a weak line low, by
+about $-c/N$ with $c = 19$ counts in that box: −23 % at 100 counts,
+−5 % at 400, −1.5 % at 1000. That is the formula above, with the box's
+background folded into $c$. The Poisson fit (P1) is within its errors
+from about 60 counts up, and matches data weights to 0.2 % at 10 000.
+Below about 50 counts every fit becomes unstable.
+
+**The window sum** is wrong wherever scatter sits under the box. It
+failed in all 20 cells of the robustness map, and is off by 2.7 % even
+on smooth scatter.
+
+**The XFNTR curve's shape** (the worst point's deviation from the true
+curve):
+
+| Curve | window | data weights | P1 | P1 + escape stripping |
+|---|---|---|---|---|
+| smooth, weak | 24 % | 13 % | **1.2 %** | 1.2 % |
+| hard (Zn under 10 keV) | **68 %** | 4.7 % | 4.7 % | **1.4 %** |
+
+**The Zn-under-10 keV case is not solved by any fit.** The best, P1 with
+a fixed width and escape stripping, reads −7 % with 60 % of fits failing.
+What decides it is the oxygen 1s Compton wing under the line (B7). The
+synthetic data cannot pin its real size: the tabulated profiles could
+not be installed here, so the generator uses a shell model with
+constants from memory.
+
+**A practical result:** with a 12 keV beam the same case passes with P1
+alone, +0.5 % with no failures, because the scatter moves away from the
+line. The line gets weaker: Zn K absorption falls about 40 % from 10 to
+12 keV (from memory).
 
 ### Recommendation, cost of being wrong, what would change it
 
-⟨from study B⟩
+- **Make the Poisson fit (P1) the default** for "Fit lines". It removes
+  a bias of −19/N and costs nothing at high counts. This needs no real
+  data: it holds whatever the background.
+- **Stop using the window sum** where beam scatter sits under the box.
+  Keep it at most as a legacy option.
+- **Keep fixed width (P2) and escape stripping (P3) as options** until a
+  blank spectrum is in.
+- **For Zn, consider the beam energy:** 11–12 keV instead of 10.
+- **The cost of being wrong:**
+  - with the window sum, an XFNTR curve can be distorted by tens of
+    percent, misplacing surface against bulk;
+  - with data weights, the weak high-Qz end reads low (13 % on the weak
+    curve).
+- **What would change it:** a blank spectrum (pure water or the
+  subphase, the same energy and geometry) measuring the oxygen 1s wing
+  and the escape fraction directly (DATA_NEEDS row 3). A wing well below
+  the model's would make the full fit usable at 10 keV.
 
 ---
 
