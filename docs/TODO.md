@@ -325,6 +325,7 @@ and dark rate, photons-in, half-cuts and an sh scan beside each GID level,
 | `#A` and the `Absorber` motor of `#P4` both set the absorber; the later line wins (`#A`, in NX) | a macro writing `#A` first would make the motor's value win | R; NX order | prefer `#A` explicitly |
 | SpecPlot's default x: column 2 (L) whenever the first column is H; default y: the last column | an hklscan along H or K is plotted against a constant L | R | the column that varies, or the `#S` command |
 | L is Qz in Å⁻¹, H is Qx (the beamline's SPEC lattice) | a changed lattice scales every Qz silently | M: NX scan 11, L = 4π sin(In_Rot)/λ to 0.06 % | document; check at load on fixed-α scans |
+| The Tools catalogue cites documents by line number (`docs/physics_notes.md:NNN`, 25 of them) | every row inserted above them (an invariant) moves them all; two sessions inserting at once need a hand re-pointing by text (done in the merge of 2026-11-24); `test_toolbox` checks only the range | M: the 2026-11-24 merge | cite headings (anchors) instead, checked to exist; tools man |
 
 **K. Questions for the owner in one batch — new**: P10–P12, P19, P35
 ("may be intended" behaviours never put to the owner), P21 (dark offset),
