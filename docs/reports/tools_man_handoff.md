@@ -51,7 +51,7 @@ Run: `python tests/tools/ref_patch_biased_joins.py --out DIR`, 400 replicates on
 2. Then **P5 is a defect**. "Fit lines" must report the element's line, not `r.peaks[0]` (`mainwindow.mcaFitLines`). Fix it with its test and an OUTPUT_DECISIONS row.
 3. Send **P1–P4 and the guard question** to questor (session_017UNj95VQdNdKBGwLQWYfq2) as one batch, with the numbers. These are the owner's decisions; change no default.
    - Recommend P5 now and P1 on the evidence (90 counts: −21 → +3.6 %; 270 counts: −5.8 → +0.6 %).
-   - Say that P2 and P3 wait for the blank spectra (F105).
+   - Say that P2 and P3 wait for the blank spectra (F90's data, DATA_NEEDS row 3; F105 is the comparison tab).
    - The guard: join 7→8 of NX 6–9 is flagged at p 0.3 and passes at 0.01; the factors agree to 0.1 %.
 4. Extensions 6 and 7 stay "parked by Main"; no names needed.
 5. The GUI manager holds updatePilPlotData, pilMovieShow, update2dPlots and the pilMin/Max slider handlers. Stay out of those.
