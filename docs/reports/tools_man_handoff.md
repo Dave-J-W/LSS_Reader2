@@ -55,3 +55,10 @@ Run: `python tests/tools/ref_patch_biased_joins.py --out DIR`, 400 replicates on
    - The guard: join 7→8 of NX 6–9 is flagged at p 0.3 and passes at 0.01; the factors agree to 0.1 %.
 4. Extensions 6 and 7 stay "parked by Main"; no names needed.
 5. The GUI manager holds updatePilPlotData, pilMovieShow, update2dPlots and the pilMin/Max slider handlers. Stay out of those.
+
+## Main, 00:14 UTC on 2026-11-24
+
+- Main's #27 is merged (P47, F81, the SPEC partial-line guard). Merge main before every commit.
+- My invariant stays **I33**; Main's became I34.
+- Main re-pointed all 25 of the catalogue's `physics_notes.md:NNN` references by the text they cite.
+- **New item, after extension 4 and P5** (TODO area L, last row): in `catalog.py`'s variation sources, cite headings or a short unique quote instead of line numbers, e.g. `docs/physics_notes.md#<heading text>`. `test_toolbox` must check that the anchor exists.
