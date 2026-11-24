@@ -5010,3 +5010,60 @@ otherwise each repeat weighs by its monitor.
 
 Verified by tests (`test_repeats_merge.py`: the core function, the
 script, the window and the legacy preference). Measured: none.
+
+### 2026-11-24 — Why five gauntlet joins are biased, and the first join's pull SD of 1.13 (tools man, extension 4)
+
+Verified by: runs. The command is `tests/tools/ref_patch_biased_joins.py --out
+docs/comparisons_data/ref_patch_biased_joins`, with 400 replicates per
+join on the gauntlet's own seeds; the default's pulls come back exactly as
+committed in C36. The study is C45.
+
+**The five biased designed joins** of the default (`joint_o4_e2`; the
+not-undersampled ones of C36) are layer_dppc j3 (−0.21), layer_film150
+j2 (−0.31), overlap_3_staggered j3 (+0.25), overlap_6 j1 (+0.24) and
+scans_5 j2 (−0.33). They are model bias, not noise:
+- **Noise-free bias.** Fitting the same plans without noise
+  (`expected=True`) leaves the default off by −1.03, −0.64, +0.27,
+  +0.73 and −0.63 of its median error, at the order and window it
+  chooses there.
+- **No fixed order or window removes it everywhere.** Order 4 with
+  2 either side gives +0.42, −0.42, +0.27, +0.57, +0.01. One point
+  either side helps overlap_6 and scans_5 (−0.09, −0.11) but not dppc or
+  film150 (−0.65, −0.49).
+- **The ladder mixes opposite biases.** Near a fringe every polynomial
+  order is somewhat wrong, and the ladder picks different rungs on
+  different noise. In layer_dppc j3, order 7 (43 % of replicates) has a
+  mean pull of +0.39 and order 6 (28 %) −1.26.
+- The log likelihood changes nothing.
+
+**The first join's pull SD of 1.13** (the downstream-covariance study,
+C35: 25 Å film, NX-like plan, 300 seeds) comes from the guard ladder's
+post-selection:
+- 75 % of seeds pass p ≥ 0.3 at order 4 with 2 either side, the same
+  fit as without the guard (pull SD 1.10).
+- The other 25 % fail there. The ladder then accepts the first rung
+  whose χ² looks adequate (orders 5–7, or a smaller window), and those
+  rungs' errors are too small (pull SD 1.17–1.62).
+- Without the ladder, the same seeds keep order 4 with their error
+  inflated by √(χ²/dof), and the pull SD is 1.05. The guard at p 0.01
+  also gives 1.05. The noise-free bias is 0.
+
+**For the owner, a trade-off** (no default changed; sent through
+questor):
+- The stricter guard (p 0.3, the default) keeps the biased joins
+  smaller.
+- The looser one (p 0.01) makes them worse (−0.68, −0.70, +0.25, +0.51,
+  −0.61) but cures the 1.13.
+- A third way would give the accepted fit an error that accounts for
+  the choice, for example the spread of δ over the adequate rungs. It is
+  not built.
+
+### 2026-11-24 — Decisions on the MCA line fit (P1–P4) and the patching guard, asked for the tools session (batch 15)
+
+Verified by: reading only. The numbers are the tools session's, measured on synthetic data (COMPARISONS C42, C45, and its physics_notes entries "F90, the MCA line-fit gauntlet: synthetic half" and "Why five gauntlet joins are biased"); they were not rerun here.
+
+- **P1 adopted** as the default: with counts N_i and model μ_i the Poisson maximum-likelihood condition for the linear coefficients is Σ (N_i/μ_i − 1) ∂μ_i/∂a = 0, weighting by the model instead of by the data N_i, which is what biases low-count areas low (a data-weighted least-squares gives smaller weights to fluctuations upward, so areas come out low; see Cash, *Astrophys. J.* 228, 939 (1979), doi:10.1086/156922, from memory, not rechecked). Legacy weighting stays behind the Reduction options.
+- **P2, P3:** options now, defaults only after blank spectra (DATA_NEEDS row 3).
+- **P4:** after the blanks.
+- **Guard:** needs further study; p stays 0.3; the real test is hand-off 08 (not soon).
+- **Numbering clash to note:** the tools session called the blank-spectrum request "F105"; F105 here is the comparison tab with auto-update. The blank spectra are F90's data (DATA_NEEDS row 3).

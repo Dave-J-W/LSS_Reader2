@@ -6627,7 +6627,8 @@ class MainWindow (QMainWindow):
         fl.setToolTip('Fit the fluorescence line(s) of all selected spectra (F22a, owner\'s rule): the sum of the spectra '
                       'is fitted within the range in the Sum All field for the lines\' positions and widths; then every '
                       'spectrum is fitted with those fixed, heights and background only (a Gaussian on a quadratic '
-                      'background by default, for the Rayleigh spill-over). The intensity of the strongest line, as its '
+                      'background by default, for the Rayleigh spill-over). The intensity of the line asked for (the first '
+                      'energy given in Fit options, the element\'s; the strongest when none is given), as its '
                       'area over the channel width (the same units as Sum All, background removed), goes to the '
                       'integral plot and list like Sum All. "Fit options..." beside it sets the shape, background, lines.')
         fo=QPushButton('Fit options...',self)
@@ -7278,10 +7279,11 @@ class MainWindow (QMainWindow):
             self.notify('Fit lines: %s' % (ref.message or 'no line found'),title='Fit lines')
             return
         step=float(np.median(np.abs(np.diff(x))))
+        j=peaks.line_index(ref,o.centres)           # the element's line, not the tallest peak (F90, P5)
         self.mcaIntData=[]
         self.ui.mcaDataListWidget.clear()
         for n,r in zip(nums,each):
-            p=r.peaks[0]
+            p=r.peaks[j]
             inten,err=p.area/step,p.area_err/step
             frame=n+1
             qz=self.mcaPar[n]['Q'][2]
@@ -7302,7 +7304,7 @@ class MainWindow (QMainWindow):
             self.ui.mcaPlotMplWidget.canvas.draw()
         except Exception:
             pass
-        p=ref.peaks[0]
+        p=ref.peaks[j]
         self.command='Flu Fit lines, scans=[%s], line at %.4g (FWHM %.3g), %s on %s background' % (
             listText(np.sort(self.selectedScanNums)),p.centre,p.fwhm,o.shape,o.background)
         self.notify('Fit lines: sum of %d spectra: %s. Intensities of the line at %.4g (area / channel width) in the '

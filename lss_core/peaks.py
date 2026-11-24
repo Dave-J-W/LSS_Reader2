@@ -434,6 +434,20 @@ def fit_lines(energy, counts, lines, sigma=None, options=None):
     return fit(energy, counts, sigma, o)
 
 
+def line_index(result, centres=()):
+    """Index in ``result.peaks`` of the line asked for: the peak nearest the
+    first of ``centres`` (the element's line, placed first; F90), or the
+    strongest (index 0) when no centre is given. None when nothing was
+    fitted. ``fit_series`` keeps its results' peaks in its sum's order, so
+    the same index serves every spectrum."""
+    if not result.peaks:
+        return None
+    if not centres:
+        return 0
+    c = float(centres[0])
+    return int(np.argmin([abs(p.centre - c) for p in result.peaks]))
+
+
 def fit_series(x, spectra, sigmas=None, options=None):
     """A series of spectra with the same lines (MCA, EXAFS, XFNTR): the sum
     of all spectra is fitted (``fit``) for the centres, widths and shape;
