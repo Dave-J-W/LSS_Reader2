@@ -56,7 +56,9 @@ working list, one table per area, each row with its source. Rows marked
 | Qz offset from sh-scan images — **new** | F42 |
 | Per-second option — **new** | F20 |
 | Qoff proposed from the continuity of R/R_F across the joins (robust to one or two outliers); Qc from a subphase list or typed electron density — **new** 2026-11-23 | F79; F42 |
+| **For the owner (2026-11-24 studies):** the join guard, p 0.7 (study A's recommendation) or keep 0.3; MCA Fit lines with P1 as the default and the window sum retired under scatter (study B). The batch 15 decisions were held for these studies; questor records the answers | `docs/studies/eli5_two_decisions.md` |
 | Saved reflectivities of the workbook overlaid by series, time or sx, with ratios, to check stability — **new** 2026-11-23 | F80 |
+| **Comparison of reduced curves in a tab fed by the workbook, updating itself; Export proposes a file name from the sample and series and hands over to xmodfit** (owner, 2026-11-23, Q-REF-5, Q-REF-6; recorded by questor in batch 14 but not put on this list until 2026-11-24) — GUI manager, after timeline 1c, with F80 | F105; physics_notes 2026-11-23 batch 14 |
 | ~~Repeated macros summed by counts and monitors (the identical-scans merge averages with equal weights today)~~ **done 2026-11-23** (F81, `test_repeats_merge.py`) | F81; physics_notes 2026-11-23 |
 | ORSO, HDF5 export; steps and parameters recorded — **new** (F30) | F25, F30, R7 |
 | Synthetic K = 3–5 generator; hand-off tests 2–6 | hand-off §5; input 4 |
@@ -134,6 +136,7 @@ working list, one table per area, each row with its source. Rows marked
 | Burns at several absorbers on dose and time axes: beam damage or a changing sample — **new** 2026-11-23 | F76; physics_notes 2026-11-23 |
 | Predicting a safe absorber from a short high-flux burn (research; needs burn pairs at two fluxes) — **new** 2026-11-23 | F77 |
 | Sample height scan: super-Gaussian fit (width, exponent) beside the sample's earlier sh scans; verdict thresholds from the owner. The test-speed session's commit 35f41c3 (on main) skips flat and weak sh scans and fits a sample height scan only when its FWHM is above 20 µm, the owner's plausibility floor; the 65 µm here is the quality verdict, so they do not conflict — **new** 2026-11-23 | F78; F43 |
+| **GID-burn detector rows default from the mean frame** (owner, 2026-11-23, Q-BURN-6; recorded by questor in batch 14, not listed until 2026-11-24) — tools man, after the Pilatus sizes | physics_notes 2026-11-23 batch 14 |
 
 **H. Detectors and inputs (Stage 4)**: 1M (F17–F19, F38, D11), 100K/200K
 models (F33), ME7 tab (F34, F35), new-format SPEC (F28), HDF5 (F29). All
