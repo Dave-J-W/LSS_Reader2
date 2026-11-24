@@ -357,7 +357,7 @@ is about one tranche of code, tests and docs).
 | Phase | Content | Depends on | Size |
 |---|---|---|---|
 | 0 (done) | This research, mock, survey tool | — | — |
-| 1a | F78 super-Gaussian fit in `lss_core.peaks` with the no-beam guard; synthetic known-truth tests; shown in the Scans tab | — | 1 |
+| 1a | F78 super-Gaussian fit in `lss_core.peaks` with the no-beam guard; synthetic known-truth tests; shown in the Scans tab — **built 2026-11-24** (`peaks.fit_super_gaussian`, SpecPlot; `tests/test_super_gaussian.py`) | — | 1 |
 | 1b | `lss_core/timeline.py`: events (`reset`, abort, `do`, session restart, gaps), mnemonic map, sh scans, sx steps, scan spans; reset comments collected in `spec_routines` (`Par['Resets']`, with a test); incremental update | — | 1–2 |
 | 1c | ngui Timeline tab: QGraphicsView lanes (events, sx, sh thumbnails, scans), zoom and pan, level of detail, tooltips, click to open the scan; live append | ngui shell, 1a, 1b | 2–3 |
 | 1d | Reduced lane from the workbook (one-pass read, pixmap cache by `content`), placeholders, click to open the result; notes as Saved rows of kind `note` with Add/Edit; "new sample?" confirm/reject | 1c | 1–2 |

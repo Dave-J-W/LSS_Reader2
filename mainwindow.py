@@ -1626,6 +1626,7 @@ class MainWindow (QMainWindow):
         self.ui.statusBar.clearMessage()
         self.ui.specPlotMplWidget.canvas.ax.clear()
         self.specResidualItems=[]       # F74: the fit drawn, for its residual panel
+        self.specHeightFit=None         # F78: the super-Gaussian of a sample-height scan
         self.ui.PlotWidget.setCurrentWidget(self.ui.specPlotTab)
         self.specData['YCol']=str(self.ui.spYComboBox.currentText())
         self.specData['NCol']=str(self.ui.spNComboBox.currentText())
@@ -1686,6 +1687,8 @@ class MainWindow (QMainWindow):
                 self.ui.specPlotMplWidget.canvas.ax.plot(xf,res.model(xf),'g--',label=lab)
                 self.specResidualItems=[(x,y,yerr_,res,'g')]
                 self.scanCenter[self.selectedScanNums[-1]]=float(format(p.centre,'.3f'))
+                if kw:              # a sample-height scan against sh: its width and flatness (F78)
+                    self.specHeightFit=self.drawHeightScanFit(x,y,yerr_)
             except:
                 self.peakPos='%.4f'%x[np.argmax(y)]
                 self.peakCenter=self.peakPos
@@ -1695,6 +1698,23 @@ class MainWindow (QMainWindow):
         if not getattr(self,'specLogKept',''):          # keep the note about a log axis left linear
             self.ui.statusBar.showMessage('Done')
         
+    def drawHeightScanFit(self,x,y,yerr):
+        """F78 (owner, 2026-11-23): on a sample-height scan, the
+        super-Gaussian A exp(-|(h-h0)/w|^p) + b (lss_core.peaks.
+        fit_super_gaussian) drawn over the data, and its FWHM in µm (sh is in
+        mm), p and the Gaussian's χ²/dof on the title's last line: wide and
+        flatter than a Gaussian (p > 2) is what a usable scan looks like. No
+        verdict: the thresholds are the owner's to give."""
+        yerr=np.asarray(yerr,float)
+        sg=peaks.fit_super_gaussian(x,y,sigma=yerr if np.all(yerr>0) else None)
+        if not sg.ok:
+            return sg
+        ax=self.ui.specPlotMplWidget.canvas.ax
+        xf=np.linspace(np.min(x),np.max(x),400)
+        ax.plot(xf,sg.model(xf),'-.',color='tab:purple',label='Super-Gaussian (p %.2f)' % sg.p)
+        ax.set_title(ax.get_title()+'\n'+sg.summary('µm',1000.0))
+        return sg
+
     def specSaveData(self):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
             self.messageBox('Please select a scan with data to save first!')

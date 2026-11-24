@@ -364,6 +364,17 @@ Each line: feature — where — default — script — notes entry (date).
 - The limits are the owner's figures for the Pilatus 100K. Whether the
   detector already corrected its counts for rate is not known here.
 
+### Sample-height scans: width and flatness (F78, 2026-11-24)
+- A sample-height scan (sh, or sh with oh) plotted against sh on the
+  SpecPlot tab gets a second fit: a super-Gaussian, drawn dash-dotted in
+  purple. The title's last line gives its FWHM in µm, the exponent p and,
+  for comparison, how well a plain Gaussian fits (χ²/dof).
+- p = 2 is a Gaussian; a larger p is flatter-topped. A usable scan is wide
+  and flatter than a Gaussian (owner: FWHM of about 65 µm or more, "more
+  squashed than a gaussian"). The program gives the numbers, not a verdict.
+- A scan with no reflected beam (the peak not 10σ above the edges) is not
+  fitted.
+
 ### Residuals above fits (F74, 2026-11-24)
 - **View > Residuals above fits** adds a small panel above each plot that
   shows a fit: the SpecPlot scan fit, the cut peak fits and the burn

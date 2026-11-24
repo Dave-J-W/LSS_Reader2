@@ -5246,3 +5246,38 @@ synthetic decay being noiseless), so the σ drawn is the one fitted (ĉ = 1
 here; with ĉ > 1 the fit's covariance is scaled but χ² is not). No output
 number changes.
 
+### 2026-11-24 — F78 / timeline phase 1a: the super-Gaussian fit of sample-height scans
+
+**Question (owner, F78):** is a sample-height scan wide enough and "more
+squashed than a gaussian", flat-topped? **Built:**
+`lss_core.peaks.fit_super_gaussian`, I = A exp(−|(h − h0)/w|^p) + b with
+FWHM = 2 w (ln 2)^(1/p). p = 2 is a Gaussian; larger p is flatter. This is
+the higher-order Gaussian, the shape of the generalised normal distribution
+(Nadarajah, J. Appl. Stat. 32, 685 (2005),
+[doi:10.1080/02664760500079464](https://doi.org/10.1080/02664760500079464);
+the flat-top beam use, e.g. Shealy and Hoffnagle, Appl. Opt. 45, 5118
+(2006); both cited from memory, not rechecked).
+
+- **The FWHM error** propagates the covariance of (w, p): ∂F/∂w = F/w and
+  ∂F/∂p = −F ln(ln 2)/p², with ln(ln 2) = −0.367.
+- **The guard** (research §2): a peak less than 10σ above the edges, or
+  fewer than 3 points above half the peak, means no reflected beam, and the
+  fit is refused.
+- **Verified by:** tested (`tests/test_super_gaussian.py`, 6 tests), and
+  measured:
+  - synthetic Poisson scans (FWHM 80.8 µm, p 3.4, 41 points), 300 seeds:
+    FWHM pull mean 0.02 and SD 0.95; p pull SD 0.98; χ²/dof mean 1.015. The
+    errors are right.
+  - NX school (Pilatus/Monc, Poisson errors): scan 5 FWHM 82.1 ± 0.5 µm,
+    p 3.36 ± 0.08; scan 10 81.1 ± 0.5 µm, p 3.38 ± 0.08; scan 13
+    81.5 ± 0.5 µm, p 3.53 ± 0.09. A Gaussian's χ²/dof is 28–34 against
+    2.6–5.2. Scan 4: no reflected beam. These are the research's numbers.
+- **The box shape** that `fit_scan` already chooses for these scans gives
+  the same widths to 0.2 µm, with a better χ² (COMPARISONS C46). The
+  super-Gaussian's gain is the flatness number and the Gaussian comparison.
+- **On screen:** SpecPlot draws it on a sample-height scan plotted against
+  sh, with FWHM (µm), p and both χ²/dof on the title's last line. The
+  existing fit is unchanged.
+- **No verdict:** the owner gives the thresholds. No output number changes;
+  the fit is not saved.
+
