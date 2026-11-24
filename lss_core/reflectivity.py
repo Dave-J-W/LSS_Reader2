@@ -125,6 +125,63 @@ def apply_drops(data1, data2, drops):
     return data1, data2
 
 
+def _drop_actions(drops, j):
+    acts = (drops or {}).get(j)
+    if not acts:
+        return []
+    return [acts] if not isinstance(acts[0], (list, tuple)) else acts
+
+
+def drop_points(per_scan, order, points, drops):
+    """The raw points the patch dialog's drops remove, and where every row
+    of the patched curve comes from (F92: drops kept as a mask).
+
+    ``per_scan``: {scan: rows} (Qz first) as ``patch`` takes them; ``points``:
+    {scan: [point number of each row]}; ``drops`` as for ``patch``. Each
+    row of the curve joined so far sits at the Qz of one raw point:
+    ``stitching.join`` keeps the earlier curve's points through the overlap
+    (averaged there with the new scan, interpolated) and the new scan's
+    beyond it. So a drop of row k of either is a drop of that row's point.
+
+    Returns (removed, origins): the (scan, point) of every dropped row, in
+    the order of the presses, and the (scan, point) of each row of the
+    patched curve. Masking ``removed`` from the start gives the same curve
+    as the drops wherever a dropped point had not yet been used at an
+    earlier join (every drop of the new scan, and of the first scan at the
+    first join); a point dropped from the curve joined so far at a later
+    join was used by the earlier joins' fits, and the mask leaves it out of
+    those too (D2: the mask is over the raw data)."""
+    def rows(k):
+        q = np.atleast_2d(np.asarray(per_scan[k], float))[:, 0]
+        o = [(int(k), int(p)) for p in points[k]]
+        if len(o) != len(q):
+            raise ValueError('scan %s: %d points for %d rows' % (k, len(o), len(q)))
+        return q, o
+    data_q, data_o = rows(order[0])
+    removed = []
+    for j, key in enumerate(order[1:]):
+        new_q, new_o = rows(key)
+        for action in _drop_actions(drops, j):
+            for d in sorted(action, key=abs, reverse=True):
+                if d >= 0:
+                    removed.append(new_o.pop(d))
+                    new_q = np.delete(new_q, d)
+                else:
+                    removed.append(data_o.pop(d))
+                    data_q = np.delete(data_q, d)
+        o1 = np.where(data_q >= new_q[0])[0]
+        o2 = np.where(new_q <= data_q[-1])[0]
+        if not o1.size or not o2.size:
+            raise ValueError('join %d: scan %s does not overlap the curve so far' % (j, key))
+        if data_q[-1] >= new_q[-1]:
+            tail_q, tail_o = data_q[o1[-1] + 1:], data_o[o1[-1] + 1:]
+        else:
+            tail_q, tail_o = new_q[o2[-1] + 1:], new_o[o2[-1] + 1:]
+        data_q = np.concatenate([data_q[:o1[-1] + 1], tail_q])
+        data_o = data_o[:o1[-1] + 1] + list(tail_o)
+    return removed, data_o
+
+
 PATCH_METHODS = ('joint', 'legacy')
 DEFAULT_PATCH_METHOD = 'joint'     # 2026-11-22, the gauntlet (OUTPUT_DECISIONS, COMPARISONS C36)
 
