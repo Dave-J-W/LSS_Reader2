@@ -231,6 +231,10 @@ burn = exp.burn(14, estimator='moments', time='clock', threshold=0.10, qxy_range
 d = exp.dose(14)                               # photons each point gives the sample (lss_core.dose, F98)
 d.per_point, d.cumulative(), d.total(), d.unit, d.notes, d.bounds
 exp.dose(14, unit='monitor')                   # Monc counts at 5 uA/V with the absorbers taken out: M/(A g)
+from lss_core import reciprocity               # beam damage or the sample by itself? (F76)
+v = reciprocity.dose_or_time([reciprocity.from_result(exp.burn(n), 'centre') for n in (14, 15)])
+v.verdict, v.beta, v.beta_ci, v.weight_dose    # NX: 'neither', 0.85 [0.80, 0.89], 1.00 (on counting errors alone)
+reciprocity.dose_or_time(burns, strip_scatter=0.88 / 3600)   # admit the strips' own scatter (C54: 88 %/h)
 exp.dose(14, beam_mm=(2.0, 0.1))               # photons/mm2 of footprint, for a beam of that width and height
 exp.dose(14, shutter='open')                   # fast mode: the beam also between points (from the point times)
 h = exp.beam_height(near=7)                    # the beam's height from the height scans' rising edge (#60's rule)

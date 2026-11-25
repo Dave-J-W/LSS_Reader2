@@ -106,6 +106,14 @@ Each line: feature — where — default — script — notes entry (date).
   found are shown in the field beside it; turn it off to type first:last
   (empty: all rows, as before 2026-11-24). `exp.burn(scan, rows=...)`:
   'mean' (default), None (all) or (first, last).
+- Beam damage or a sample changing by itself (F76, 2026-11-25): from two
+  or more burns of one kind of sample at different absorbers,
+  `lss_core.reciprocity.dose_or_time` says whether the drift rate goes
+  with the flux (the dose: beam damage) or not (time: the sample by
+  itself), as rate ∝ flux^β with β's interval, or that the data cannot
+  tell. Scripts only for now; the window's several-burns view is the GUI
+  manager's (F98). It assumes reciprocity (the same dose gives the same
+  change at any rate).
 
 ### SpecPlot
 - Log x or log y with nothing positive to show on that axis (all values
