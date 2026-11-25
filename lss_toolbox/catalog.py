@@ -227,6 +227,18 @@ TOOLS = (
          ),
          repo_out='docs/studies/reciprocity', repo_ok=False, seconds=85.0),
 
+    Tool('reciprocity_walkthrough', 'Walkthrough: from the frames to the dose-or-time verdict (F76, ELI5)', 'burn',
+         'figures', 'tests/tools/reciprocity_walkthrough.py',
+         'The whole chain on public data, for the owner\'s standing order (2026-11-25): an NX school frame and its '
+         'line cut, one position per frame, the straight-line drift with its residuals, the rates against flux '
+         'with chi2(beta), C54\'s strip scatter by REML, one real series under three error models, and the '
+         'calibration of the intervals: figures W1-W6.',
+         committed=('docs/studies/reciprocity/walkthrough',),
+         docs=('docs/studies/reciprocity/walkthrough.md', 'docs/studies/reciprocity/summary.md'),
+         data='public', defaults={'--out': OUT},
+         inputs=('docs/studies/xr_burns/burns.csv',),
+         repo_out='docs/studies/reciprocity/walkthrough', repo_ok=False, seconds=60.0),
+
     Tool('reciprocity_real', 'Dose or time on C54\'s 19 real burn series, and the strip scatter (F76)', 'burn',
          'figures', 'tests/tools/reciprocity_real.py',
          'lss_core.reciprocity on the public, anonymised rates of the real reflectivity burns (C54): the strip '
