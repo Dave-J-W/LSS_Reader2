@@ -76,6 +76,8 @@ routines step by step (`merge-to-main`, `review-local-data-pr`, `issue-watch`).
 | #74, #81 | D1 core: the workbook's lock, a read-only second reader | `lss_core/readerlock.py`, `Workbook(read_only=)` |
 | #82 | C61: the guard's error on real joins is per-point scatter | `docs/studies/guard_error/`, `tests/tools/guard_error_study.py` |
 | #89 | C61's walkthrough (rule 13): W1–W6, one join from two scans to the verdict; a real NX split | `docs/studies/guard_error/walkthrough.md`, `tests/tools/guard_error_walkthrough.py` |
+| #94, #97 | C62: a bad-pixel pass on the reflectivity ROI (F95 B3); factor 10 on the three boxes the candidate; the GUI manager built the core and the field (#95, off) | `docs/studies/roi_bad_pixels/`, `tests/tools/roi_bad_pixel_study.py` |
+| #98 | merged the local agent's #96 (C63) through my branch, after a COMPARISONS conflict | |
 | #92 | F109's core: the dose as peak and average, the 10/90 split; the beam's width from S1 slit scans | `exp.dose_summary`, `exp.beam_width`, `dose.dose_map`, `dose.slit_profile` |
 | #66 | merged the former patching session's four review branches | |
 
@@ -83,7 +85,12 @@ Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam heigh
 
 ## Open threads, in priority order
 
-1. **C61's remedy: an excess term in the per-point error budget** (`lss_core.errors`, budget mode).
+1. **C61's remedy, now sized by C63** (#96, merged via #98; `docs/studies/excess_scatter/`): within a scan σ is
+   about 12 % small (s 1.12); between scans at shared Qz a core of 0.39 % of R, about 2.7 % at Qz ≥ 0.25; 4–6 %
+   of residuals wild. **Next (mine, announced on #55):** a rule-12 study of the joint fit with σ × s, a
+   Qz-dependent between-scan term and a robust (core + outlier or Student-t) likelihood, alone and together,
+   on C61's joins with C63's excess and outliers, then the NX split. The text below is the earlier plan.
+1b. **C61's remedy: an excess term in the per-point error budget** (`lss_core.errors`, budget mode).
    - **The finding:** C61 showed the real-data under-coverage of the join error (C56: pull SD 1.24) is
      reproduced by 1 % of hidden per-point scatter. Join-level inflations fail at fringed joins; honest
      per-point errors fix both kinds of join.
@@ -108,8 +115,10 @@ Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam heigh
    - Then tell mca-scatter to delete the branch.
 3a. **B3, the ROI bad-pixel pass (C62, `docs/studies/roi_bad_pixels/`):** factor 10 on the ROI's three boxes
    is the candidate default. Waiting for Local yokel's count on the owner's sparse high-Qz frames (DATA_NEEDS
-   16); then the core option in `lss_core` (`Experiment.reflectivity(roi_bad_pixel_factor=)`, applied before
-   `frame_row`), tests, the GUI manager's field (off by default), and rule 12.
+   16); the core option and the field are the GUI manager's (#95: `reflectivity.roi_bad_pixel_pass`,
+   `frame_row(roi_bad_pixel_factor=)`, off by default). Then rule 12 (mine): the switch to 10, with its
+   OUTPUT_DECISIONS row. Watch the GUI manager's "as coded" case: a lone count of 6 on a frame with no
+   background is removed even at factor 40.
 3b. **F109's open ends:** the extents' choice (90 % of the dose, asked through questor); the motor names and
    shapes of real S1 slit scans (asked of Local yokel, #55); then `S1_H_MOTORS` and the guards to the real
    scans, with a test. The dialog is the GUI manager's, after B10's docks.
