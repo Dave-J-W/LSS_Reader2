@@ -387,14 +387,21 @@ def read_trace(run_dir):
         return None
 
 
-def run_item(item, spec, timeout=3600, committed=False):
+def run_item(item, spec, timeout=3600, committed=False, extra_env=None, run_dir=None):
     """Run ``item`` with its defaults (``committed``: with the settings of
     its committed products) into a new run folder, without a window
     (``python -m lss_toolbox --audit``), through ``lss_toolbox.trace``
     (``trace.json`` in the run folder: what it imported and read); returns
-    (run folder, exit code)."""
+    (run folder, exit code). ``extra_env``: variables added to the run's
+    environment (the audit's stamp run sets ``compare.STAMP_ENV``);
+    ``run_dir``: this folder instead of a new one."""
     import subprocess
-    run_dir = new_run_dir(item.id)
+    if run_dir is None:
+        run_dir = new_run_dir(item.id)
+    else:
+        os.makedirs(run_dir, exist_ok=True)
+    env = environment(run_dir)
+    env.update(extra_env or {})
     args = default_args(item, spec, run_dir, committed)
     started = datetime.datetime.now().isoformat(timespec='seconds')
     write_record(run_dir, item.id, item.script, args, started)
@@ -402,7 +409,7 @@ def run_item(item, spec, timeout=3600, committed=False):
         try:
             r = subprocess.run([interpreter(), '-m', 'lss_toolbox.trace', os.path.join(run_dir, TRACE), '--',
                                 os.path.join(ROOT, item.script)] + args, cwd=ROOT,
-                               env=environment(run_dir), stdout=f, stderr=subprocess.STDOUT, timeout=timeout)
+                               env=env, stdout=f, stderr=subprocess.STDOUT, timeout=timeout)
             code = r.returncode
         except subprocess.TimeoutExpired:
             code = -9

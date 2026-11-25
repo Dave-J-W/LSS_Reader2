@@ -34,8 +34,11 @@ so don't drift"):
   each time (`lss_toolbox.introspect`), never copied;
 - `python -m lss_toolbox --audit` reruns every item with the settings that
   made its committed products and compares: images pixel for pixel, tables
-  byte for byte (the measured staleness; the last audit is
-  `docs/reports/tools_audit.md`). With `--record` it keeps, for each item
+  and text apart from how they were run (the command line they echo, their
+  timings, the lines an item names as `volatile`), and a figure that prints
+  its git revision apart from that stamp (found by a second run with a dummy
+  revision, `LSS_TOOLS_REVISION`). This is the measured staleness; the last
+  audit is `docs/reports/tools_audit.md`. With `--record` it keeps, for each item
   whose products matched, the fingerprints of the modules the run actually
   imported, the files it read and the products it reproduced, in
   `lss_toolbox/verified.json`;

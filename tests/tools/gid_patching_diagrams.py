@@ -136,6 +136,9 @@ def data():
 
 
 def revision():
+    # LSS_TOOLS_REVISION, when set, is printed instead: the Tools audit finds the stamp with a dummy one
+    if os.environ.get('LSS_TOOLS_REVISION'):
+        return os.environ['LSS_TOOLS_REVISION']
     try:
         return subprocess.run(['git', 'describe', '--always', '--dirty'], cwd=ROOT, capture_output=True,
                               text=True).stdout.strip()

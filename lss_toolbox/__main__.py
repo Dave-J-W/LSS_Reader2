@@ -37,22 +37,35 @@ def stale_report():
 SKIP_TEXT = ('output.txt', 'log.txt', 'run.json')     # run logs, timings: differ by nature
 
 
+def _prints_revision(tool):
+    """Whether the tool's script takes its printed revision from
+    ``compare.STAMP_ENV`` (the audit can then find the stamp)."""
+    try:
+        with open(os.path.join(ROOT, tool.script), encoding='utf-8') as f:
+            from . import compare
+            return compare.STAMP_ENV in f.read()
+    except OSError:
+        return False
+
+
 def record_verdict(image_kinds, counts):
     """Whether an audited item's products are verified, from the reasons
     its images differ ({'environment': n, 'code': n, ...}) and the counts
     {kind: (same, differ, not made)}: 'same' when every product it made is
-    identical, 'environment' when only images differ and the products' own
-    commit run here gives what the new code gives (the committed images
-    were drawn elsewhere), None otherwise (nothing compared, a table
-    differs, or the code changed a product)."""
+    identical; 'stamp' when only images differ, and only where the tool
+    prints its git revision (``compare.stamp_boxes``); 'environment' when
+    the products' own commit run here gives what the new code gives (the
+    committed images were drawn elsewhere), for some or all of them, the
+    rest differing only by their stamp; None otherwise (nothing compared, a
+    table differs, or the code changed a product)."""
     same = sum(c[0] for c in counts.values())
     image_differ, text_differ = counts['image'][1], counts['text'][1]
     if same == 0 and image_differ == 0 or text_differ:
         return None
     if image_differ == 0:
         return 'same'
-    if set(image_kinds) == {'environment'} and sum(image_kinds.values()) == image_differ:
-        return 'environment'
+    if image_kinds and set(image_kinds) <= {'environment', 'stamp'} and sum(image_kinds.values()) == image_differ:
+        return 'environment' if 'environment' in image_kinds else 'stamp'
     return None
 
 
@@ -79,13 +92,15 @@ def audit(only=None, max_seconds=None, report=None, record=False):
     lines = ['| Item | git says | Exit | Images same / differ / not made | Tables same / differ / not made | '
              'Why images differ | Differences |', '|---|---|---|---|---|---|---|']
 
-    def same_file(a, b):
-        if os.path.splitext(a)[1].lower() in runner.IMAGES:
-            return compare.compare(a, b).state == 'same'
-        return compare.tables_same(a, b)          # a CSV apart from its timing columns
-
     recorded = {}
     for t in items:
+        volatile = getattr(t, 'volatile', ())
+
+        def same_file(a, b):
+            if os.path.splitext(a)[1].lower() in runner.IMAGES:
+                return compare.compare(a, b).state == 'same'
+            return compare.tables_same(a, b, volatile=volatile)     # apart from how it was run
+
         st = staleness.product_status(t)
         run_dir, code = runner.run_item(t, specs[t.script], committed=True)
         new = runner.product_files(t, run_dir)
@@ -116,6 +131,19 @@ def audit(only=None, max_seconds=None, report=None, record=False):
             missing.extend(b[n] for n in set(b) - set(a))
             counts[kind] = (same, differ, len(set(b) - set(a)))
         why, kinds = '—', {}
+        stamped = []
+        if differing and _prints_revision(t):
+            # the same code with a dummy revision: what moves is the stamp; compare the rest
+            sdir, scode = runner.run_item(t, specs[t.script], committed=True, run_dir=run_dir + '-stamp',
+                                          extra_env={compare.STAMP_ENV: compare.STAMP_DUMMY})
+            sfiles = runner.product_files(t, sdir) if scode == 0 else {}
+            for n in differing:
+                if n in sfiles and compare.same_outside(new[n], old[n], compare.stamp_boxes(new[n], sfiles[n])):
+                    stamped.append(n)
+            if stamped:
+                kinds['stamp'] = len(stamped)
+                why = 'stamp %d' % len(stamped)
+        differing = [n for n in differing if n not in stamped]
         products_commit = st.products_commit or staleness.last_commit(list(t.committed))
         if differing and products_commit:
             # the products' own commit, run here: separates a change of code from a change of environment
@@ -142,8 +170,7 @@ def audit(only=None, max_seconds=None, report=None, record=False):
         trace = runner.read_trace(run_dir)
         if record and verdict and trace:
             rel = lambda p: os.path.relpath(p, ROOT).replace(os.sep, '/')   # noqa: E731
-            products = [rel(p) for p in matched] + ([rel(old[n]) for n in differing] if verdict == 'environment'
-                                                    else [])
+            products = [rel(p) for p in matched] + [rel(old[n]) for n in differing + stamped]
             recorded[t.id] = staleness.verification(t, trace, products, verdict,
                                                     unverified=[rel(p) for p in missing])
             staleness.save_verified({t.id: recorded[t.id]})          # item by item: a long audit keeps what it has
