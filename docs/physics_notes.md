@@ -6991,3 +6991,16 @@ its numbers as read. This entry is the review.
   - σ × 1.12 is the candidate (DATA_NEEDS 17a: the real splits);
   - the between-scan part needs real joins against the foils and the wild pairs' positions (17b, 17c);
   - clipping only with a guard.
+
+### 2026-11-25 — The budget model's counting scale (C64's candidate, an option)
+
+Verified by: tests (`tests/test_counting_scale.py`, 3). C64's corrected verdict: the within-scan σ × 1.12 (C63)
+explains the real split tests' under-coverage and fixes it. So the scale belongs in each point's error
+budget, not only in the joint fit: the curve's error column, the joins and the covariance all follow it.
+- **`ErrorModel(counting_scale=s)`, budget mode only,** multiplies the counting part of a reflectivity point's
+  error (`TwoDDetector.netROI`: s² × [σ_S² + (σ_L² + σ_R²)/4]/M²). The monitor term and every value are
+  unchanged.
+- **Tested:** err(s)² − err(1)² = (s² − 1) × the counting part, to 1e-9. Through `Experiment.reflectivity`,
+  every value is identical and every error is 1 to 1.12 × larger.
+- **The legacy model refuses a scale:** its numbers never change (rule 3).
+- **1 by default.** The switch to 1.12 waits for DATA_NEEDS 17a and the owner's word.
