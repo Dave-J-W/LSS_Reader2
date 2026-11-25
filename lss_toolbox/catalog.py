@@ -227,6 +227,17 @@ TOOLS = (
          ),
          repo_out='docs/studies/reciprocity', repo_ok=False, seconds=85.0),
 
+    Tool('qoff_walkthrough', 'Walkthrough: the Qz offset from the raw frames to the judgment (F79, ELI5)', 'refl',
+         'figures', 'tests/tools/qoff_walkthrough.py',
+         'The whole chain on NX school scans 6-9, for the owner\'s standing order (2026-11-25): a raw frame and its '
+         'counted box, R and R/R_F at the edge at Qoff 0 and at the proposal, the edge fit drawn over its data '
+         'with its residuals (chi2/dof 75: the rounded edge), the bootstrap, and what the beamline\'s resolution '
+         'reads as: figures QW1-QW5.',
+         committed=('docs/studies/qoff/walkthrough',),
+         docs=('docs/studies/qoff/walkthrough.md', 'docs/studies/qoff/summary.md'),
+         data='public', defaults={'--out': OUT},
+         repo_out='docs/studies/qoff/walkthrough', repo_ok=False, seconds=60.0),
+
     Tool('reciprocity_walkthrough', 'Walkthrough: from the frames to the dose-or-time verdict (F76, ELI5)', 'burn',
          'figures', 'tests/tools/reciprocity_walkthrough.py',
          'The whole chain on public data, for the owner\'s standing order (2026-11-25): an NX school frame and its '

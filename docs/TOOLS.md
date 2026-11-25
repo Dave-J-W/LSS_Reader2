@@ -65,6 +65,7 @@ container on 2026-11-23 with the defaults shown.
 
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
+| [Walkthrough: the Qz offset from the raw frames to the judgment (F79, ELI5)](#qoff-walkthrough) | figures | The whole chain on NX school scans 6-9, for the owner's standing order (2026-11-25): a raw frame and its counted box, R and R/R_F at the edge at Qoff 0 and at the proposal, the edge fit drawn over its data with its residuals (chi2/dof 75: the rounded edge), the bootstrap, and what the beamline's resolution reads as: figures QW1-QW5. | public (NX school or committed tables) | 60 s | `docs/studies/qoff/walkthrough` |
 | [Fit demonstrator (window)](#patch-demo) | window | Reflectivity patching on synthetic scans with known truth: every method, the denoised data, pulls, factors, error bands; space bar for a new noise replicate. | synthetic (public) |  | — |
 | [Fit demonstrator: survey over replicates](#patch-demo-survey) | text | Every patching method over many noise replicates of the demonstrator's synthetic scans: bias, pull mean and pull SD per join, failures (the numbers behind the window's single replicate). | synthetic (public) | 4 s | — |
 | [Fit demonstrator report figures](#patch-demo-figures) | figures | The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per survey). | synthetic (public) |  | `docs/figures/patch_demo` |
@@ -290,6 +291,20 @@ Variations:
 | Nominal foils (1.4247 per unit) | The flux ratio of the docs' "4.1x" instead of the calibrated 4.68: the dose ratio of the drifts moves from 0.79 to 0.90. | `docs/physics_notes.md#The position drifts` | `python tests/tools/burn_dose_figure.py --out '{out}' --absorbers nominal` |
 | One spot measured twice | Scan 15's dose and time follow scan 14's: 15 starts where 14 ended, as one spot would. | `docs/handoff_out/07-burn-trends.md#scans at different` | `python tests/tools/burn_dose_figure.py --out '{out}' --join` |
 | Moments estimator | The legacy moments instead of the template. | `docs/handoff_out/07-burn-trends.md` | `python tests/tools/burn_dose_figure.py --out '{out}' --estimator moments` |
+
+<a id="qoff-walkthrough"></a>
+
+### Walkthrough: the Qz offset from the raw frames to the judgment (F79, ELI5)
+
+The whole chain on NX school scans 6-9, for the owner's standing order (2026-11-25): a raw frame and its counted box, R and R/R_F at the edge at Qoff 0 and at the proposal, the edge fit drawn over its data with its residuals (chi2/dof 75: the rounded edge), the bootstrap, and what the beamline's resolution reads as: figures QW1-QW5.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/qoff_walkthrough.py`
+- Explained in: `docs/studies/qoff/walkthrough.md`, `docs/studies/qoff/summary.md`
+- Committed products: `docs/studies/qoff/walkthrough`; not replaced from the window
+- Run:
+
+      python tests/tools/qoff_walkthrough.py --out '{out}'
+
 
 <a id="patch-demo"></a>
 
