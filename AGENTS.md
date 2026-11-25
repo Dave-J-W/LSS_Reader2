@@ -87,7 +87,10 @@ directions are refused, between cloud sessions and the owner's computer
 and into a session the owner has approved for their trusted devices
 (main man's is). main man watches the issues and new `claude/local-data-*`
 pull requests every minute, and reviews and merges the local data agent's
-pull requests (it does not merge them itself); questor reads the issue
+pull requests (it does not merge them itself). Standing rule (owner,
+2026-11-24): main man merges such a pull request once it passes main man's
+privacy review and the quick suite in the cloud, and asks the owner only
+when something private or doubtful shows up; questor reads the issue
 when the owner starts a turn with it. GUI priorities: the main window first, then
 the sample timeline tab (F83), then the new layout prototype (`ngui/`);
 ideas proven in ngui are carried into the main window, not built twice.
@@ -136,10 +139,10 @@ sessions do not edit the same lines.
 ## Commands
 
     pip install -r requirements-dev.txt   # a fresh cloud session lacks PyQt5 etc.: ~10 s
-    pytest                 # fast suite, ~2 min; run before every commit
+    pytest                 # fast suite, ~5 min (1176 tests, 2026-11-24); run before every commit
     pytest -m slow         # real-data regressions, ~4 min
     pytest -m bench -s     # rewrites docs/timings.md
-    pytest -m sweep        # crash inventory, ~20 min: start it in the background; run after GUI-facing changes
+    pytest -m sweep        # crash inventory, ~9 min (forked copies, 2026-11-24): start it in the background; run after GUI-facing changes
     python -m lss_toolbox  # the Tools window on its own; --render rewrites docs/TOOLS.md, --stale, --audit
 
 No display is needed. Run from the repository root. Every suite runs in

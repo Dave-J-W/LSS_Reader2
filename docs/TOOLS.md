@@ -126,7 +126,7 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [Absorber steps and foils (hand-off 03 answer)](#absorber-answer-figures) | external | Figures of the owner's analysing repository (tools/absorber_steps.py, absorber_review.py, absorber_trust.py) from private data: measured steps, foil fits, the review of anomalous joins. Not regenerable here; the numbers behind them are in figdata/ and joins.csv. | private (not in the repository) |  | `docs/handoff_out/03-answer/figures` |
-| [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
+| [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, the guards, rise against fall and what the meniscus does. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
 | [Real reflectivity burns: trends, dose or time (private data)](#xr-burns) | external | The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): each series at several absorbers against time and dose, the drift rate against flux and the dose-or-time verdicts. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/xr_burns` |
 | [Qz resolution near the critical edge (private data)](#qz-resolution) | external | The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NEEDS row 13, F79): the resolution per run and S1 gap, the fit's sensitivity, a known-truth check and the coverage of the fits' errors. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/qz_resolution` |
 | [Reflectivity patching on real series (private data)](#ref-patch-real) | external | Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the non-cloud agent from tests/tools/ref_patch_survey.py on private files; not regenerable here; the numbers are the CSVs beside the figure. | private (not in the repository) |  | `docs/studies/ref_patch_real` |
@@ -149,9 +149,9 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| Fade | Intensity falls at constant shape: every estimator should see it as intensity only. | `docs/SYNTHETIC_DATA.md#**GID burn profiles**` | `python tests/tools/patch_demo.py --mode burn --set change=fade` |
+| Fade | Intensity falls at constant shape; every estimator under-reads it (the window holds part of the shoulder), and the Gaussian fit also reads a +13 % broadening. | `docs/reports/patch_demo.md#fade: spurious FWHM` | `python tests/tools/patch_demo.py --mode burn --set change=fade` |
 | Broadening at constant area | The template estimator reads a broadening as a shift and a gain (the report's caveat on the default estimator). | `docs/reports/patch_demo.md#Gaussian fit reads a fade as +13 % FWHM` | `python tests/tools/patch_demo.py --mode burn --set change=broaden` |
-| Fade under a 3x shoulder | A peak fading under a broad shoulder: where moments mislead. | `docs/SYNTHETIC_DATA.md#**GID burn profiles**` | `python tests/tools/patch_demo.py --mode burn --set change=shoulder` |
+| Fade under a 3x shoulder | A peak fading by 20 % under a broad shoulder: the template reads -9 %, the moments -4 %, the Gaussian fit a gain (+3 %). | `docs/reports/patch_demo.md#fade under a 3× shoulder (−20 %)` | `python tests/tools/patch_demo.py --mode burn --set change=shoulder` |
 | Low counts (monitor 1e5) | "Lower monitor until each estimator fails": the counts per frame at which each estimator becomes unusable. | `docs/handoff_out/07-burn-trends.md#4. **Noise level.**` | `python tests/tools/patch_demo.py --mode burn --set monitor=1e5` |
 | No change | A stable spot: the trends should find no significant change (false alarms). | `docs/SYNTHETIC_DATA.md#**GID burn profiles**` | `python tests/tools/patch_demo.py --mode burn --set change=none` |
 
@@ -236,7 +236,7 @@ Variations:
 | DPPC monolayer | A lipid monolayer's gentle modulation. | `docs/reports/patch_demo.md#**Reflectivity controls**: truth` | `python tests/tools/patch_demo.py --set truth=dppc` |
 | Thick film (250 Å) | Kiessig fringes of period 2π/d = 0.025 Å⁻¹: denser fringes at the joins. | `docs/SYNTHETIC_DATA.md#(Qc/2Qz)⁴ with a` | `python tests/tools/patch_demo.py --set thickness=250` |
 | Staggered overlaps | No coinciding points at the joins: the coinciding-points ratio is unavailable, curve models must interpolate. | `docs/reports/patch_demo.md#**Reflectivity controls**: truth` | `python tests/tools/patch_demo.py --set plan=nx_staggered` |
-| Critical-edge aside | A staggered overlap across Qc (P1): the legacy factor is 16.7 % low; the owner does not patch there. | `docs/reports/patch_demo.md#the default joint fit is +2.44 %` | `python tests/tools/patch_demo.py --set truth=water --set plan=edge` |
+| Critical-edge aside | A staggered overlap across Qc (P1): the legacy factor is 16.6 % low; the owner does not patch there. | `docs/reports/patch_demo.md#the default joint fit is +2.44 %` | `python tests/tools/patch_demo.py --set truth=water --set plan=edge` |
 | Counts x100 | Every method within 0.15 % of the truth: what remains is bias, not noise. | `docs/reports/patch_demo.md#0.15 % of` | `python tests/tools/patch_demo.py --set counts=100` |
 | Poisson monitor | Monc as Poisson counts (the older model) instead of the owner's strict 0.05 %: legacy pull SD 1.3-1.4. | `docs/reports/patch_demo.md#a Poisson Monc is` | `python tests/tools/patch_demo.py --set monitor=poisson` |
 
@@ -1097,10 +1097,10 @@ Figures of the owner's analysing repository (tools/absorber_steps.py, absorber_r
 
 ### sh-scan beam size (private data)
 
-The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them.
+The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, the guards, rise against fall and what the meniscus does. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them.
 
 - Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
-- Explained in: `docs/studies/sh_beam_size/summary.md`
+- Explained in: `docs/studies/sh_beam_size/summary.md`, `docs/studies/sh_beam_size/height_scans.md`
 - Committed products: `docs/studies/sh_beam_size`; not replaced from the window
 
 <a id="xr-burns"></a>

@@ -264,10 +264,326 @@ def control_keys(make_window, app, recorder, part=None):
     return keys if part is None else keys[part[0]::part[1]]
 
 
-def run_state(make_window, app, recorder, spec, state, part=None):
+def fork_available():
+    """True when controls run in forked copies of one state window.
+
+    ``LSS_SWEEP_FORK=0`` turns it off (a fresh window is then built and put
+    into the state for every control, as before 2026-11-22); there is no
+    fork on Windows.
+    """
+    return hasattr(os, 'fork') and os.environ.get('LSS_SWEEP_FORK', '1') != '0'
+
+
+def fingerprint(w):
+    """What a control could see of the window and of its files.
+
+    Every named control's value, the selected scans and images, the output
+    folder (names and sizes) and the preferences file. Used to show that
+    each forked copy starts exactly where a freshly built window starts.
+    """
+    import hashlib
+    out = []
+    for b in w.findChildren(QtWidgets.QAbstractButton):
+        if b.objectName() and b.isCheckable():
+            out.append(('check', b.objectName(), b.isChecked()))
+    for c in w.findChildren(QtWidgets.QComboBox):
+        if c.objectName():
+            out.append(('combo', c.objectName(), c.currentIndex(), c.count()))
+    for e in w.findChildren(QtWidgets.QLineEdit):
+        if e.objectName() and not e.objectName().startswith('qt_'):
+            out.append(('edit', e.objectName(), e.text()))
+    for s in w.findChildren(QtWidgets.QAbstractSpinBox):
+        if s.objectName():
+            out.append(('spin', s.objectName(), s.text()))
+    for name in ('scanListWidget', 'imageListWidget'):
+        lw = getattr(w.ui, name)
+        out.append((name, lw.count(), tuple(sorted(lw.row(i) for i in lw.selectedItems()))))
+    d = getattr(w, 'directory', None)
+    files = []
+    if d and os.path.isdir(d):
+        for root, _dirs, names in os.walk(d):
+            for n in names:
+                p = os.path.join(root, n)
+                files.append((os.path.relpath(p, d), os.path.getsize(p)))
+    out.append(('files', tuple(sorted(files))))
+    from lss_core import preferences
+    try:
+        with open(preferences.path(), 'rb') as f:
+            prefs = hashlib.sha256(f.read()).hexdigest()
+    except OSError:
+        prefs = None
+    out.append(('prefs', prefs))
+    return sorted(out, key=repr)
+
+
+def _pool_threads():
+    """Number of threads of Qt's thread pools in this process (Linux)."""
+    n = 0
+    try:
+        for t in os.listdir('/proc/self/task'):
+            with open('/proc/self/task/%s/comm' % t) as f:
+                n += f.read().startswith('Thread (pooled)')
+    except OSError:
+        return 0
+    return n
+
+
+def _no_pool_threads(wait=40.0):
+    """Wait until Qt's global thread pool has no threads left.
+
+    Qt converts and scales large images on QThreadPool.globalInstance(). A
+    forked child has none of its parent's threads, yet the pool would hand
+    work to the idle ones it remembers and wait for it for ever. With an
+    expiry time of 0 (set in run_state) its threads end as soon as they are
+    idle (_ForkDriver sets it), so this only waits for those finishing.
+    """
+    import select
+    end = time.monotonic() + wait
+    while _pool_threads() and time.monotonic() < end:
+        select.select([], [], [], 0.005)      # time.sleep is stubbed out by the recorder fixture
+
+
+class _ForkDriver:
+    """Builds the window in the state once; every control runs in a copy.
+
+    The copy is a forked child process: it starts with the window exactly
+    as it was after the state was set up (memory copied, nothing rebuilt),
+    runs one control, reports, and exits, so no control sees anything left
+    by another. Files are the only thing children share; the two a fresh
+    window would read, its own output folder and the preferences file, are
+    put back to what they were after the setup before each control.
+    """
+
+    TIMEOUT = float(os.environ.get('LSS_SWEEP_CHILD_TIMEOUT', '900'))
+
+    def __init__(self, make_window, app, recorder, spec, state):
+        self.make_window, self.app, self.recorder = make_window, app, recorder
+        self.spec, self.setup = spec, STATES[state]
+        self.w = None
+        self.broken = None
+        self.out_dir = self.pristine = None
+        self.prefs = None
+        self.frozen = False
+        from PyQt5.QtCore import QThreadPool
+        self.pool = QThreadPool.globalInstance()
+        self.expiry = self.pool.expiryTimeout()
+        self.pool.setExpiryTimeout(0)        # no idle Qt pool threads when forking (_no_pool_threads)
+
+    def build(self):
+        """The window in the state; True when it is ready for controls."""
+        import gc
+        import shutil
+        import tempfile
+        from lss_core import preferences
+        rec = self.recorder
+        self.w = self.make_window()
+        made = self.w.directory
+        rec.exceptions.clear()
+        try:
+            self.setup(self.w, self.app, self.spec)
+        except Exception as exc:
+            self.broken = '%s @ setup' % type(exc).__name__
+            return False
+        if rec.exceptions:
+            self.broken = _first(rec)
+            return False
+        if self.w.directory != made and os.path.isdir(self.w.directory):
+            self.out_dir = self.w.directory       # the state's own folder (state_spec_loaded)
+            self.pristine = os.path.join(tempfile.mkdtemp(prefix='lss-sweep-pristine-'), 'out')
+            shutil.copytree(self.out_dir, self.pristine)
+        try:
+            with open(preferences.path(), 'rb') as f:
+                self.prefs = f.read()
+        except OSError:
+            self.prefs = None
+        gc.collect()
+        gc.freeze()          # the children's collections then leave these objects' pages alone
+        self.frozen = True
+        return True
+
+    def _restore_files(self):
+        import shutil
+        from lss_core import preferences
+        if self.out_dir:
+            shutil.rmtree(self.out_dir, ignore_errors=True)
+            shutil.copytree(self.pristine, self.out_dir)
+        p = preferences.path()
+        if self.prefs is None:
+            if os.path.exists(p):
+                os.remove(p)
+        else:
+            with open(p, 'wb') as f:
+                f.write(self.prefs)
+
+    def run(self, job):
+        """``job(window)`` in a forked copy of the state window; its JSON result.
+
+        A child that dies or hangs gives {'err': '... @ child'}, so a
+        segmentation fault becomes an inventory entry instead of ending the run.
+        """
+        import json
+        import select
+        import signal
+        import sys
+        import warnings
+        _no_pool_threads()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        r, wfd = os.pipe()
+        with warnings.catch_warnings():
+            # the other threads are BLAS worker pools, which re-create themselves
+            # in a child (pthread_atfork); Qt's pool threads are gone (_no_pool_threads)
+            warnings.simplefilter('ignore', DeprecationWarning)
+            pid = os.fork()
+        if pid == 0:                                   # the child
+            code = 0
+            try:
+                os.close(r)
+                self._restore_files()
+                self.recorder.exceptions.clear()
+                data = json.dumps(job(self.w)).encode()
+                while data:
+                    data = data[os.write(wfd, data):]
+            except BaseException:
+                traceback.print_exc()
+                code = 3
+            finally:
+                try:
+                    sys.stdout.flush()
+                    sys.stderr.flush()
+                finally:
+                    os._exit(code)
+        os.close(wfd)
+        chunks = []
+        deadline = time.monotonic() + self.TIMEOUT
+        timed_out = False
+        while True:
+            left = deadline - time.monotonic()
+            if left <= 0 or not select.select([r], [], [], left)[0]:
+                timed_out = True
+                os.kill(pid, signal.SIGKILL)
+                break
+            b = os.read(r, 65536)
+            if not b:
+                break
+            chunks.append(b)
+        os.close(r)
+        _pid, status = os.waitpid(pid, 0)
+        if timed_out:
+            return {'err': 'Timeout @ child'}
+        if not chunks:
+            if os.WIFSIGNALED(status):
+                return {'err': 'Signal%d @ child' % os.WTERMSIG(status)}
+            return {'err': 'Exit%d @ child' % os.WEXITSTATUS(status)}
+        return json.loads(b''.join(chunks))
+
+    def close(self):
+        import gc
+        import shutil
+        if self.frozen:
+            gc.unfreeze()
+            self.frozen = False
+        if self.pristine:
+            shutil.rmtree(os.path.dirname(self.pristine), ignore_errors=True)
+            self.pristine = None
+        if self.w is not None:
+            dispose(self.w, self.app, self.recorder)
+            self.w = None
+        self.pool.setExpiryTimeout(self.expiry)
+
+
+def _trigger(app, recorder, fn):
+    """Run one control; return 'Type @ where' or None."""
+    try:
+        fn()
+        app.processEvents()
+    except Exception as exc:           # raised outside a slot
+        return '%s @ direct' % type(exc).__name__
+    if recorder.exceptions:
+        return _first(recorder)
+    return None
+
+
+def run_state(make_window, app, recorder, spec, state, part=None, exercised=None):
     """Trigger every control once in ``state``; return {key: 'Type @ where'}.
 
-    Every control gets a fresh window in that state. When a control opens a
+    Every control starts from the window as the state leaves it. When a
+    control opens a dialog, every control of that dialog is triggered too
+    (one level deep), reopening the dialog each time; those keys read
+    'parent > child'. ``part`` = (i, n): only the controls ``control_keys``
+    gives for that part, and their dialogs' (the sweep's tests share a state
+    this way). ``exercised``, if a list, receives every key triggered.
+
+    With fork (``fork_available``, the default where there is one) the state
+    window is built once and each control runs in a forked copy of it
+    (``_ForkDriver``; 2026-11-22, ported 2026-11-24); otherwise a new window is
+    built and put into the state for every control (``_run_state_rebuild``).
+    """
+    if not fork_available():
+        return _run_state_rebuild(make_window, app, recorder, spec, state, part, exercised)
+    failures = {}
+    keys = control_keys(make_window, app, recorder, part)
+    drv = _ForkDriver(make_window, app, recorder, spec, state)
+
+    def first(w, key):
+        fn = controls(w).get(key)
+        if fn is None:
+            return {'missing': True}
+        t0 = time.perf_counter()
+        err = _trigger(app, recorder, fn)
+        _log_time(state, key, t0)
+        if err:
+            return {'err': err}
+        dialogs = _visible_dialogs(w)
+        return {'children': list(controls(dialogs[-1])) if dialogs else []}
+
+    def second(w, key, ck):
+        parent = controls(w).get(key)
+        if parent is None or _trigger(app, recorder, parent):
+            return {'stop': True}
+        dialogs = _visible_dialogs(w)
+        if not dialogs:
+            return {'stop': True}
+        child = controls(dialogs[-1]).get(ck)
+        if child is None:
+            return {'missing': True}
+        recorder.exceptions.clear()
+        t0 = time.perf_counter()
+        err = _trigger(app, recorder, child)
+        _log_time(state, '%s > %s' % (key, ck), t0)
+        return {'err': err}
+
+    try:
+        if not drv.build():
+            failures['<setup>'] = drv.broken
+            return failures
+        for key in keys:
+            res = drv.run(lambda w: first(w, key))
+            if res.get('missing'):
+                continue
+            if exercised is not None:
+                exercised.append(key)
+            if res.get('err'):
+                failures[key] = res['err']
+                continue
+            for ck in res.get('children', []):
+                res2 = drv.run(lambda w: second(w, key, ck))
+                if res2.get('stop'):
+                    break
+                if res2.get('missing'):
+                    continue
+                if exercised is not None:
+                    exercised.append('%s > %s' % (key, ck))
+                if res2.get('err'):
+                    failures['%s > %s' % (key, ck)] = res2['err']
+    finally:
+        drv.close()
+    return failures
+
+
+def _run_state_rebuild(make_window, app, recorder, spec, state, part=None, exercised=None):
+    """``run_state`` without fork: a fresh window is built and put into the
+    state for every control (the sweep before forking; ``LSS_SWEEP_FORK=0``). When a control opens a
     dialog, every control of that dialog is triggered too (one level deep),
     reopening the dialog each time; those keys read 'parent > child'.
     ``part`` = (i, n): only the controls ``control_keys`` gives for that
@@ -287,6 +603,8 @@ def run_state(make_window, app, recorder, spec, state, part=None):
         err = drv.trigger(fn)
         _log_time(state, key, t0)
         del fn
+        if exercised is not None:
+            exercised.append(key)
         if err:
             failures[key] = err
             continue
@@ -307,6 +625,8 @@ def run_state(make_window, app, recorder, spec, state, part=None):
             if child is None:
                 continue
             recorder.exceptions.clear()
+            if exercised is not None:
+                exercised.append('%s > %s' % (key, ck))
             t0 = time.perf_counter()
             err = drv.trigger(child)
             _log_time(state, '%s > %s' % (key, ck), t0)

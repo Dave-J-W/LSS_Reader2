@@ -7839,7 +7839,9 @@ class MainWindow (QMainWindow):
             kw.append(script_kw(getattr(self,'refErrorModel',self.errorModel)))
         if getattr(self,'refMethodUsed',reflectivity.DEFAULT_PATCH_METHOD)!=reflectivity.DEFAULT_PATCH_METHOD:
             kw.append('method=%r' % self.refMethodUsed)
-        lines=['ref = exp.reflectivity(%r, %s)' % (scans,', '.join(kw)),'ref.save(%r)' % name]
+        cov=getattr(self,'refCovarianceCheckBox',None)   # the sidecars too, as Export wrote them
+        save=('ref.save(%r, covariance=%r)' % (name,'sidecar')) if (cov is not None and cov.isChecked()) else ('ref.save(%r)' % name)
+        lines=['ref = exp.reflectivity(%r, %s)' % (scans,', '.join(kw)),save]
         if len(self.ui.backgroundListWidget.selectedItems())>0:
             lines.insert(0,'# note: background images were subtracted in the window; scripts cannot do that yet')
         return '\n'.join(lines)
