@@ -7,32 +7,43 @@ permission: merge my branch into `main` by PR + "Create a merge commit"
 once the quick suite (and, for GUI changes, the sweep) pass; then merge
 `main` back into the branch.
 
-## State (updated 2026-11-25, evening, Chicago time)
+## State (updated 2026-11-25, 10 am Chicago time)
 
-- **On main:** everything through #73 (78aebd1):
-  - F105 Export naming (`lss_core/naming.py`), F79 Subphase and Propose
-    beside Qc and Qoff, F97/F59 cut axes and Q bands, the peakLocate NaN fix;
-  - before that: the Timeline and Compare tabs, the ROI close-up, F96, F95
-    part, F74, F78, the GID refusal fixes.
-- **On the branch, not yet on main:** F92's window side (415d20a): drops
-  kept as the workbook's mask, left out from the start, grey crosses,
-  Restore all. The quick suite passed (1233); the sweep was running. If it
-  passed: PR into main, merge commit, then fast-forward the branch.
-- **Work in:** the main checkout, branch `claude/funny-noether-09opxa`. The
-  crash sweep runs in the worktree `scratchpad/wt_sweep` (detached at the
-  commit swept), so the main checkout stays free.
-- **Messages:** GitHub issue #55 only (owner's instruction), "GUI manager →
-  main man:", with the footer. The status of 2026-11-25 asked main man for
-  the next work and whether D1 (second reader read-only, yellow light) is
-  mine.
+- **On main:** through #83 (137c09c): F105, F79, F97/F59, the peakLocate
+  fix (#73); F92 masks, the closed patch window fix (#77); D1's yellow
+  light (#78); F98 in the burn dialog (#83).
+- **On the branch, next PR:** the screenshots remade whole and recorded by
+  the Tools audit, with gui_screens made reproducible (d82d09c, swept);
+  F107 the timeline's dose colouring (0e30404); the merge of main
+  (22e7466). The sweep on 0e30404 and the quick suite on 22e7466 were
+  running. If both passed: PR, merge commit, fast-forward.
+- **Questions for the owner** went to questor on issue #55 (2026-11-25,
+  13 numbered: the Q-cut band, Restore all's reach, masks in exports, when
+  D1 locks, saving after read-only, the default ρ, the beam width default,
+  OQ-4, the series id in names, F107's own-burn rule, one spot, sh scans).
+  Watch #55 for "questor → GUI manager" and apply the answers.
+- **Evidence since:** tools man's real-data ρ = 1.13 (0.88–1.50) for the
+  strip scatter (issue #55, #84). Rule 12 holds the default at 0 until a
+  decision. When tools man's `strip_scatter_fit` lands, the Dose or time
+  tab can offer "from repeats".
+- **The screenshot tool:** keeps the Messages clock at 12:00:00, holds the
+  frame movie on its frame, stops the text cursor blinking, waits for the
+  GISAXS view's timers, and keeps the committed Observations. After a
+  change to the window, remake with `python tests/tools/gui_screens.py`
+  and record with `python -m lss_toolbox --audit --record --only
+  gui_screens` (and dump_tooltips, gui_map, ngui_inventory after a
+  mainwindow.py change).
+- **Work in:** the main checkout, branch `claude/funny-noether-09opxa`.
+  The crash sweep runs in the worktree `scratchpad/wt_sweep` (re-created
+  after a restart with `git worktree add --detach`).
+- **Messages:** GitHub issue #55 only. Wake-up timers don't survive a
+  session restart (scheduled tasks are off for the organisation).
 
-## Next, in order
+## Next, in order (main man's of 2026-11-25)
 
-1. If F92's sweep passed: merge it (PR, merge commit).
-2. Read issue #55 for main man's answer. Without one: F98/F107 with the
-   dose in the window (`exp.dose`, burns against dose), then the
-   timeline's reduced-data and environment lanes; D1 if assigned; F95
-   B9/B10; B3 (rule 12).
+1. Merge the branch (above).
+2. The timeline's reduced-data and environment lanes.
+3. F95 B9/B10; B3 (needs rule 12); the owner's answers from questor.
 
 ## APIs received for the next items (2026-11-24)
 
