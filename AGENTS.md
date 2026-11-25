@@ -109,6 +109,8 @@ sessions do not edit the same lines.
 | `docs/SCOPE.md` | The plan: target structure and stages, with every request placed |
 | `docs/PHYSICS_ISSUES.md` | Numbered list of physics and mathematics issues, with sizes and how each is known |
 | `docs/TODO.md` | What to do next, what is waiting on the owner, what is done |
+| `docs/HANDOFF_main_man.md`, `docs/gui/HANDOFF_gui_manager.md` | Hand-offs: how the orchestrator and the GUI manager work, what is open, who is on what |
+| `.claude/skills/` | Project skills: `merge-to-main` (D60, step by step), `review-local-data-pr` (privacy review and merge of the local data agent's pull requests), `issue-watch` (the #55 watch and how to post) |
 | `docs/DATA_NEEDS.md` | Every dataset a work item waits for, what it must answer, where it goes, who supplies it (the owner's non-cloud agent for large private sets) |
 | `docs/TESTING.md` | How the test suite works and how to extend it |
 | `docs/physics_notes.md` | Invariants table and a dated question-and-answer log |
