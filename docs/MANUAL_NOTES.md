@@ -404,6 +404,18 @@ Each line: feature — where — default — script — notes entry (date).
   the fit's note. It stays with the result: it is in the tooltip of the line
   under the plot, and it is saved with the result in the workbook.
 
+### Export names (F105, 2026-11-25, Q-REF-6)
+- **Export** on the Reflectivity tab proposes a file name made of the SPEC
+  file's name, the sample and the scans, e.g. `20260923_S6-9`. The writer
+  adds `_ref.txt` and `_rrf.txt` (and the covariance sidecar with
+  "+ covariance"), the files XModFit reads.
+- **The sample** is taken from the macro that ran the series, when the
+  SPEC file records it (newer macros write `#U SeriesMacro`); otherwise it
+  is left out.
+- **The folder** is the one the last Export went to, kept between
+  sessions, so exports go straight to your XModFit folder. If that folder
+  is gone, it falls back to the output folder.
+
 ### The Compare tab (F80, F105, 2026-11-24)
 - Just left of Timeline, the **Compare** tab lists every reflectivity
   saved in the SPEC file's workbook, whether saved automatically or with

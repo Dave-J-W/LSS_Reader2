@@ -348,12 +348,12 @@
   label: "Export"
   where: "Reflectivity > bottom"
   handler: saveRefData
-  does: "Writes <name>_ref.txt (normalised R) and <name>_rrf.txt (R/RF if computed); adds the lss_core line to the Script pane"
+  does: "Writes <name>_ref.txt (normalised R) and <name>_rrf.txt (R/RF if computed), the files XModFit reads; adds the lss_core line to the Script pane"
   workflows: [reflectivity]
   needs: "a curve"
   shown: always
-  tooltip: false
-  notes: "_rrf.txt is the R/RF of the last plot with R/RF ticked; if never ticked it is silently skipped (print only)."
+  tooltip: true
+  notes: "_rrf.txt is the R/RF of the last plot with R/RF ticked; if never ticked it is silently skipped (print only). Since 2026-11-25 (F105, Q-REF-6) the dialog proposes <SPEC file>_<sample>_S<scans> (the sample from #U SeriesMacro when recorded; lss_core.naming) in the folder of the last Export (preference export_folder)."
 - id: refCovarianceCheckBox
   kind: checkbox
   label: "+ covariance"

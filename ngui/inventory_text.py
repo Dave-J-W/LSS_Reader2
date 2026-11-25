@@ -428,7 +428,7 @@ INVENTORY = {
     'refNormRefListWidget': ('list', 'Norm Ref', 'Reflectivity > bottom > Norm Ref', 'Points normalised to the plateau below Qc (and by Norm Factor): Qz, R, error, % error'),
     'refRefDataPlotwidget': ('plot', '', 'Reflectivity > bottom', 'The reflectivity curve (R or R/RF vs Qz or Qz^2) with any files from disk'),
     'refProvenanceLabel': ('label', 'joint patch · legacy errors · calibrated foils · scans 6, 7, 8, 9 · 2 points dropped · saved v3', 'Reflectivity > under the result plot', 'One line on how the curve on show was made: patch method, error model, absorber model, scans, dropped points, saved version; the joins and details in its tooltip'),
-    'refExportPushButton': ('button', 'Export', 'Reflectivity > bottom', 'Writes <name>_ref.txt (normalised R) and <name>_rrf.txt (R/RF if computed); adds the lss_core line to the Script pane'),
+    'refExportPushButton': ('button', 'Export', 'Reflectivity > bottom', 'Writes <name>_ref.txt (normalised R) and <name>_rrf.txt (R/RF if computed), the files XModFit reads; adds the lss_core line to the Script pane'),
     'refCovarianceCheckBox': ('checkbox', '+ covariance', 'Reflectivity > bottom, after Save', "When ticked, Export also writes <name>_ref.cov.json and <name>_rrf.cov.json (the stitch factors' covariance, hand-off 19 schema v1) beside the unchanged text files"),
     'refSaveWorkbookPushButton': ('button', 'Save', 'Reflectivity > bottom', "Saves R and R/RF with recipe into the SPEC file's workbook, asking for a note"),
     'refQcLineEdit': ('lineedit', 'Qc:', 'Reflectivity > bottom', 'Critical Qz used for the plateau normalisation and for R_F'),

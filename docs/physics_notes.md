@@ -6011,3 +6011,22 @@ names the script and the command that regenerates it. A figure must not be remov
 the commit that added it would reach main's history, so the branch is rebuilt without it. Recorded in
 AGENTS.md's row for `sample_data/private/`.
 
+### 2026-11-25 — F105: Export proposes a name from the sample and the scans (Q-REF-6)
+
+The owner's Q-REF-6 (2026-11-23): "Straight into xmodfit; the reader
+proposes a file name from the sample and series". Built:
+- **`lss_core.naming`:** `export_base` builds `<SPEC file>_<sample>_S<scans>`,
+  with a run of scans written as `S6-9`.
+  - **The sample:** the SPEC files carry no sample name (none in the NX
+    file, measured by search). The nearest is the series macro's file name
+    (`#U SeriesMacro`, newer macros), less a trailing measurement word
+    (`_xr`, `_gid`, …). It is left out when not recorded.
+- **The dialog** opens in the folder of the last Export (preference
+  `export_folder`), so repeated exports land in XModFit's folder.
+- **The files** are unchanged: the golden export tests pass byte for byte,
+  and the covariance sidecar is the contract's. No output number changes.
+
+Verified by: tested (`tests/test_naming.py`, `tests/test_gui_export_name.py`).
+**Open:** whether the owner wants the series id (from `#U Series`) in the
+name as well. It is left out, so the name stays short.
+

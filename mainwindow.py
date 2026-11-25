@@ -442,6 +442,11 @@ class MainWindow (QMainWindow):
         self.ui.refSeaWinLineEdit.returnPressed.connect(self.refAnalyzeFromField)
      #    self.connect(self.ui.refExportPushButton,SIGNAL('clicked()'), self.saveRefData)
         self.ui.refExportPushButton.clicked.connect(self.saveRefData)
+        self.ui.refExportPushButton.setToolTip(
+            'Write the reflectivity as <name>_ref.txt (Qz, R, dR) and <name>_rrf.txt (R/R_F), the files XModFit '
+            'reads; with "+ covariance", the sidecar XModFit fits with. The name is proposed from the SPEC file, the '
+            'sample (the macro that ran the series, when the file records it) and the scans; the folder is the one '
+            'of the last Export (F105)')
      #    self.connect(self.ui.refAddFilePushButton, SIGNAL('clicked()'), self.addRefFiles)
         self.ui.refAddFilePushButton.clicked.connect(self.addRefFiles)
      #    self.connect(self.ui.refRemoveFilePushButton, SIGNAL('clicked()'), self.removeRefFiles)
@@ -7715,9 +7720,16 @@ class MainWindow (QMainWindow):
         if self.det!='Pilatus' or len(self.refData)==0 or getattr(self,'normRefData',None) is None:
             self.messageBox('There is no reflectivity data to save yet')
             return
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Save Reflectivity',directory=self.directory)[0]
+        # F105 (owner, Q-REF-6): a name proposed from the sample and the scans, in the folder of the last Export
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export Reflectivity (the name gets _ref.txt, _rrf.txt)',
+                                                      directory=self.exportProposal())[0]
         if not self.saveFileName:
             return   #dialog cancelled
+        for end in ('_ref.txt','_rrf.txt','.txt'):          # a proposed or typed name given with an ending
+            if self.saveFileName.endswith(end):
+                self.saveFileName=self.saveFileName[:-len(end)]
+                break
+        self.setPreference('export_folder',os.path.dirname(os.path.abspath(self.saveFileName)))
         if self.det=='Pilatus':
             reffile=self.saveFileName+'_ref.txt'
             rrffile=self.saveFileName+'_rrf.txt'
@@ -7731,6 +7743,24 @@ class MainWindow (QMainWindow):
             if self.refCovarianceCheckBox.isChecked():
                 self.saveRefCovariance(self.saveFileName)
             self.scriptLine(self.reflectivityScript(self.saveFileName))
+
+    def exportSample(self):
+        """The sample of the reflectivity on show, from the macro that ran its
+        series (#U SeriesMacro of its first scan), or '' (lss_core.naming)."""
+        from lss_core import naming
+        scans=self.refResultScans()
+        par=self.specPar.get(scans[0],{}) if scans else {}
+        return naming.sample_from_macro(par.get('SeriesMacro','') if isinstance(par,dict) else '')
+
+    def exportProposal(self):
+        """Where the Export dialog opens: the folder of the last Export (else the
+        output folder) and the name <SPEC file>_<sample>_S<scans> (F105)."""
+        from lss_core import naming
+        folder=self.prefs.get('export_folder') or ''
+        if not folder or not os.path.isdir(folder):
+            folder=self.directory
+        return os.path.join(folder,naming.export_base(getattr(self,'specFileName',''),self.refResultScans(),
+                                                      self.exportSample()))
 
     def setupRefCovarianceBox(self):
         """The Ref Patch export's "+ covariance" option, just after its Save button."""
