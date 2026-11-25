@@ -1,0 +1,6 @@
+case,core_x,outlier_share,outlier_scale,smooth_pull_sd,biased_mean_pull_sd,reps
+no excess,0.0,0.0,0.0,1.1418,0.9825,200
+core 0.4 %,0.004,0.0,0.0,1.3587,1.0532,200
+core 1 %,0.01,0.0,0.0,1.5572,1.2571,200
+core 0.4 % + 3 % outliers,0.004,0.03,0.7,1.2433,1.1202,200
+3 % outliers only,0.0,0.03,0.7,1.1588,1.0278,200
