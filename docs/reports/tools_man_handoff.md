@@ -22,13 +22,24 @@ Merged in main:
 - #80: tools freshness (the verified record);
 - #84: F76 on C54's real series, the likelihood fix under ρ, the Qoff note.
 
-On the branch: the F76 walkthrough (W1–W6), rule 13, the three skills.
+Done for the standing order, on the branch (2026-11-25):
+- the F76 walkthrough (`docs/studies/reciprocity/walkthrough.md`, W1–W6);
+- the Qoff walkthrough (`docs/studies/qoff/walkthrough.md`, QW1–QW5);
+- an ELI5 of how the Tools audit decides (`docs/reports/tools_audit.md`);
+- rule 13;
+- the three skills;
+- the questions and insights, on #55.
 
-**Still to do for the standing order:**
-- a Qoff walkthrough (F79): NX scans → R/R_F at the edge → the edge fit with residuals → bootstrap σ →
-  resolution → judgment;
-- an ELI5 section in `docs/reports/tools_audit.md` on how the audit decides (an example of the stamp mask);
-- the P44 study is presented the same way from the start.
+**The Qoff walkthrough found two things:**
+- **The edge fit's χ²/dof on NX is 75** (the rounded edge), so the proposal's ± is about ×9 too small. This
+  is in TODO: scale σ by √(χ²/dof), or fit R_F convolved with the measured resolution.
+- **Resolution is between a quarter and nine tenths of NX's offset** on NX's own grid, about half at the
+  median. Earlier today I quoted a linear −1.0 to −1.9 × 10⁻⁴; that is corrected in the summary and
+  physics_notes.
+
+**Next:**
+- P44, presented as a walkthrough from the start;
+- then the proposer's σ (TODO), with a study first (rule 12).
 
 ## Unanswered questions (posted for questor on #55, 2026-11-25)
 
