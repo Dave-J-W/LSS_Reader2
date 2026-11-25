@@ -1,0 +1,12 @@
+method,sets,median_sqrt_sigma_last_pct,p90_sqrt_sigma_last_pct,median_max_total_over_meas
+legacy,377,1.955,11.46,5.912
+interp,377,2.143,12.66,6.283
+coincident,334,2.779,19.06,8.907
+joint_o2_e0,370,2.014,11.65,6.432
+joint_o4_e2,375,1.961,12.66,6
+joint_o4_e4,375,1.853,12.17,5.69
+joint_default_p07,375,1.961,12.66,6
+joint_default_p03,375,1.921,12.13,5.692
+joint_o4_e2_noguard,375,1.912,13.24,6.203
+joint_o4_e4_log,380,1.883,13.29,5.692
+joint_o4_e4_prior,375,1.717,9.882,5.789

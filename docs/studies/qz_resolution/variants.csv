@@ -1,0 +1,8 @@
+variant,label,scans,sigma_median,fwhm_median,shift_vs_chosen
+q0.030_p2r,chosen (q ≤ 0.030),378,0.0003777,0.0008895,0
+q0.028_p2r,q ≤ 0.028,378,0.0003717,0.0008752,-6.035e-06
+q0.034_p2r,q ≤ 0.034,378,0.0003816,0.0008987,3.934e-06
+q0.030_p2r_abs0,absorption ×0,378,0.0004266,0.001005,4.89e-05
+q0.030_p2r_abs2,absorption ×2,378,0.0003165,0.0007454,-6.119e-05
+q0.028_slope,"linear factor, least squares",378,0.0003892,0.0009164,1.144e-05
+q0.028,"no factor, least squares",378,0.0004039,0.0009512,2.623e-05

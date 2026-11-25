@@ -6012,6 +6012,102 @@ the sketch is derived. Study: `docs/studies/sh_beam_size/height_scans.md` (figur
 - **How sure:** a run's median σ_rise ± 0.3 µm statistically; as a size, about ± 10 % (one erf for a core +
   tail profile). No number of the dose rule changes.
 
+
+### 2026-11-24 — Real reflectivity burns: trends, and the beam or the clock (DATA_NEEDS row 11, F76, F77)
+
+Verified by: a run of the reader's `Experiment.burn` (both axes, defaults) on 78 real reflectivity burns
+from the owner's private data (14 runs, 10 keV), by the non-cloud agent. Study, figures and tables:
+`docs/studies/xr_burns/summary.md` (C54).
+- **The reader's verdicts:** 28 of 78 stable (frame 1 left out). Stability falls with flux: 10 of 18 below
+  3 × 10⁹ photons/s, 5–7 of about 20 in each bin above.
+- **The old ROI-total rule dilutes the change.** The background-subtracted specular part is a median 0.37
+  of the ROI total. Over 41 burns that change by ≥ 3σ, the ROI total drifts at a median 0.61 of the
+  specular rate, and those burns' median fraction is 0.60. The old rule calls 11 changing burns stable.
+- **Dose or time (F76):** across a series at several absorbers, rate_t ∝ flux^β, β = 1 for the dose and 0
+  for the clock. Two strips at one absorber differ by 88 %/h (64–122) beyond their counting errors. With
+  counting errors alone, 8 of 19 series reject both. With the strip scatter: 4 dose, 0 time, 10
+  undecidable. Where β is determined it runs from 0.2 to more than 2 (≈ 1 in 3 series).
+- **F77:** reciprocity holds in 3 of 8 series. β > 1 makes a high-flux test overstate the damage (safe);
+  β < 1 makes it understate it (unsafe). Since β varies between samples, one short high-flux test does not
+  predict a safe absorber. Two fluxes at least ×10 apart, each on two strips, can.
+- **For the core:** any automatic dose-or-time verdict needs a between-strip term, or it will call most
+  real series "neither". One real burn makes `Experiment.burn` fail with a NaN change time (a ValueError in
+  converting it). The 30 keV burns, a Pilatus 1M run, are not read by the burn at all.
+
+### 2026-11-24 — The Qz resolution near the critical edge (DATA_NEEDS row 13, F79, C50, C55)
+
+Verified by: a fit of the edge's width in 400 real reflectivity scans (the first scan of every series
+crossing the edge; 17 runs, 10 keV, steps of 0.001 Å⁻¹) by the non-cloud agent, with a known-truth check
+on synthetic scans of the same sampling. Study: `docs/studies/qz_resolution/summary.md`.
+- **ΔQ FWHM = 8.9 × 10⁻⁴ Å⁻¹ at 10 keV** (σ_Q 3.8 × 10⁻⁴), the median of 378 scans. Run medians are
+  6.5–12.6 × 10⁻⁴, and scans within a run scatter by ±15 %. The subphase's absorption is the largest model
+  term, ±15 % for β wrong by ×2.
+- **Not the slits:** S1 at 0.04 and at 0.2 mm in one run give the same width (σ_Q 3.38 ± 0.08 and
+  3.41 ± 0.75 × 10⁻⁴). The footprint grows ×5 and the width does not change. S1 at 0.02 mm is not
+  determined.
+- **The cause:** the beam's convergence, 37 µrad rms. The specular spot is as narrow as the direct beam
+  (0.245 px, 95 % in one pixel), so the meniscus slope spread is ≲ 1.5 × 10⁻⁴ in σ_Q. Si(111) bandwidth
+  contributes 1 × 10⁻⁶.
+- **For Qoff:** C50's −0.15 ΔQ turns this into a proposed Qoff of −1.3 × 10⁻⁴ Å⁻¹ (runs −1.0 to −1.9). That
+  is about half of NX's −2.8 × 10⁻⁴ and a quarter of the owner's typical −5 × 10⁻⁴. The rest is angle (or
+  Qc).
+- The fits' own errors are 3.5× too small against the scatter within a run (per-point angle errors); quote
+  the scatter.
+
+### 2026-11-24 — Reflectivity patching on real series (DATA_NEEDS row 1, hand-off 08, C56)
+
+Verified by: a run of hand-off 08's survey (`tests/tools/ref_patch_survey.py`) on 380 private reflectivity
+series, 1832 joins (18 files, 10 keV), by the non-cloud agent. It added the guard at p 0.3 and the guard off
+beside the default (p 0.7). Study: `docs/studies/ref_patch_real/summary.md`.
+- **The joint fit is confirmed as the default on real data.** In 1091 real-curve split tests (truth
+  f = 1.25) its bias is +0.10 % [−0.10, +0.32]. The legacy factor's is −0.55 % [−1.16, −0.22], with errors
+  2.4× too small.
+- **p 0.7 or 0.3 makes no difference on real data.** The factor is identical at 67 % of joins and more than
+  1σ apart at 3.7 %. The calibration is the same (pull SD 1.24, 1.23), and so is the foil z. Study A's
+  choice stands, and the foils do not disagree with the fits at real joins.
+- **New: the guard leaves the errors too small on real joins.** The pull SD is 1.24 [1.09, 1.40] with the
+  guard and 1.00 [0.93, 1.03] without it, a difference of +0.24 [0.11, 0.38] (bootstrap over files). The
+  ladder climbs to order 5, χ²/dof about 0.8, so inflate-only never acts. Without the guard, χ²/dof is
+  about 1.5 and the errors inflate. A remedy is proposed in the study; nothing is changed (rule 12).
+- The share of joins with χ² p < 0.01 rises with Qz, 5 → 11 → 17 % (default): there is excess per-point
+  scatter at high Qz.
+
+### 2026-11-24 — Row 8: overlaps below 10 keV, and the copper foils at 30 keV (DATA_NEEDS row 8, P28, F49)
+
+Verified by: the reflectivity survey of row 1 (every readable series and its energy), the owner's analysing
+repository's beam energies per run, and its absorber-step measurement at 30 keV (read here, not rerun). By
+the non-cloud agent.
+- **No reflectivity series with overlaps at 6–7 keV exists** in the owner's private data: every readable
+  series is at 10 keV, and the only other energy is one run at 30 keV. P28 below 10 keV stays open.
+- **Cu at 30 keV (F49):** that run gives 16 same-slit overlaps between absorber settings (ROI totals, not
+  background-subtracted). The factor per unit has a median of 1.212 (interquartile 1.15–1.27, 10th–90th
+  1.08–1.33). A log-ratio fit weighted by Δabsorber gives 1.262 ± 0.035. With μ/ρ of copper at 30 keV of
+  about 10.9 cm²/g (NIST; an assumption to check against SRD 126 before it goes into `absorbers.py`) and
+  8.96 g/cm³, ln f / μ is **about 20 µm (median) to 24 ± 3 µm (fit) of Cu per unit**. Rough: one run, and
+  most overlaps share only one point.
+- **Not in the data:** foil tolerance and alloy. The reader cannot read that run's frames (Pilatus 1M,
+  F38), so the background-subtracted check is not possible yet.
+
+### 2026-11-24 — Does a reflectivity join need coincident Qz points? (owner's question, C57)
+
+The owner asked whether a join should always include at least one coincident point, and whether one is
+enough, so that each scan could use its own spacing. Verified by a synthetic known-truth run (21,600 joins:
+water, DPPC and a 100 Å film; joins at Qz 0.05, 0.15 and 0.30; 12 overlap geometries; the reader's own patch
+code) and by C56's 1832 real joins. Study: `docs/studies/coincident_points/summary.md`. By the non-cloud agent.
+- **Shared Qz are not needed; an overlap is.** With 4 or more points of each scan in the overlap, the default
+  joint fit has the same precision whether the points coincide or are staggered (4+4 staggered: 1.72 %;
+  5 coincident: 1.70 %). It is unbiased within 0.1 % and honest (pull SD 0.96–1.05). With no overlap, no
+  method answers.
+- **One shared point alone** gives an unbiased factor at about twice the error (3.3 % against 1.5–1.7 %).
+  The real joins agree: 2.1×, robust SD of the difference 0.93. The default joint fit refuses that geometry,
+  because its order-4 ladder needs more points.
+- **With 2 points per scan**, a fast fringe (film at 0.30, 6 points per fringe) biases the default by −2.0 %
+  (0.6 of its error). At 3 or more points, there is no bias.
+- **The legacy factor's error is wrong at small overlaps:** pull SD 4–106 with 2 coincident points and 11–336
+  with staggered 2+2.
+- **For planning:** different spacing per scan is fine. Overlap by at least 4 points of each scan, 6 or more
+  per fringe on a fast fringe. Keep a shared Qz only as a cross-check.
+
 ### 2026-11-25 — The owner: frame-by-frame curves of private burns are not published
 
 Verified by: the owner's answer in main man's session, on PR #68's figure B1 (each real reflectivity burn frame
