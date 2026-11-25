@@ -389,6 +389,23 @@ TOOLS = (
          ),
          repo_out='docs/studies/qoff', repo_ok=False),
 
+    Tool('guard_error_study', 'The guard\'s error: why join error bars are too small on real data', 'refl', 'figures',
+         'tests/tools/guard_error_study.py',
+         'Study A\'s six joins with hidden per-point scatter (0-3 %): today\'s error rule against inflating by the '
+         'unguarded fit\'s chi2, the larger inflation, the larger error, the guard off, and an oracle per-point '
+         'budget; the NX school split. Figures G1-G3: only honest per-point errors fix both smooth and fringed joins.',
+         committed=('docs/studies/guard_error',),
+         docs=('docs/studies/guard_error/summary.md', 'docs/studies/ref_patch_real/summary.md',
+               'docs/COMPARISONS.md#| C61 |'),
+         data='public', defaults={'--out': 'docs/studies/guard_error'},
+         variations=(
+             V('Quick look', 'Every figure from 40 replicates per case (about 5 s): the pattern, not the decimals.',
+               'docs/studies/guard_error/summary.md#400 replicates per join and condition', reps='40'),
+             V('Synthetic only', 'Without the NX school split (3 scans long enough: too few to decide).',
+               'docs/studies/guard_error/summary.md#too few to decide anything', no_nx=True),
+         ),
+         inputs=(NX,), repo_out='docs/studies/guard_error', seconds=35),
+
     Tool('ref_guard_study', 'Study A: how strict the joint fit\'s guard should be', 'refl', 'figures',
          'tests/tools/ref_guard_study.py',
          'The guard\'s p from 0.001 to 0.9, the guard off, an AICc average and the legacy factor on C45\'s six '

@@ -6427,3 +6427,25 @@ state"). Built:
 Verified by: tested (`tests/test_gui_reader_lock.py`, 6 tests). Not tried
 across two computers on a network share; the core's assumptions (clocks
 within 180 s) stand.
+
+### 2026-11-25 — The guard's error on real joins: per-point scatter, not the join rule
+
+Verified by: a run (`tests/tools/guard_error_study.py`, synthetic data with known truth, 400 replicates per case;
+C61, `docs/studies/guard_error/summary.md`). No default changed.
+
+- **The question:** the local data agent's survey (C56) found the join guard leaving the errors about 24 % too
+  small on 1091 real split scans. It proposed inflating by the unguarded fit's χ², or taking the larger error.
+- **Reproduced:** with 1 % excess per-point scatter that the stated errors miss, the guard climbs on 94 % of
+  smooth joins and today's errors are 39 % too small (pull SD 1.64; 2.45 at 3 %). The ladder accepts a curve
+  that fits the noise.
+- **The proposals fail at fringed joins:**
+  - they repair smooth joins (1.04–1.14), but at the five fringed or short-overlap joins the pull SD falls to
+    0.50–0.84;
+  - the errors there are 3.1–4.6 × today's;
+  - the unguarded fit's χ² there is model misfit, not noise.
+- **Honest per-point errors fix both** with today's guard: pull SD 0.94–1.07 everywhere, at errors 1.2–1.5 ×
+  today's.
+- **So:** no change to the join's rule. The remedy is an excess term in the per-point error budget, once it
+  can be estimated from data. That is a next study, together with the real excess by Qz class from the
+  owner's data.
+
