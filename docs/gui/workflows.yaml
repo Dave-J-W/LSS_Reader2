@@ -676,16 +676,16 @@ workflows:
       - id: ref.view
         do: The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files
         where: Reflectivity tab (Ref / Norm Ref lists, plot)
-        controls: [refDataListWidget, refNormRefListWidget, refProvenanceLabel, refRRFCheckBox, refQcLineEdit, refQoffLineEdit, refLogYCheckBox, refQzSqrCheckBox, refNormFacCheckBox, refNormLineEdit, refDelPushButton, refRefFileListWidget, refAddFilePushButton, refRemoveFilePushButton, refLegendCheckBox]
+        controls: [refDataListWidget, refNormRefListWidget, refProvenanceLabel, refRRFCheckBox, refQcLineEdit, refQcSubphaseToolButton, refQoffLineEdit, refQoffProposePushButton, refLogYCheckBox, refQzSqrCheckBox, refNormFacCheckBox, refNormLineEdit, refDelPushButton, refRefFileListWidget, refAddFilePushButton, refRemoveFilePushButton, refLegendCheckBox]
         user_decides: "Qc (0.0217 preset: water, the same Qc at every energy, physics_notes 2026-11-23; changed for lighter or denser subphases); Qoff tweaked until R/R_F is continuous apart from one or two outliers (owner 2026-11-23); reference curves to compare"
         automatic: partly
-        could_be_automatic: Qoff proposed from the continuity of R/R_F across the joins, Qc from the subphase (F79); Qoff from the sh-scan images (F42)
-        known_from: code (updateRefPlotData); test tests/test_gui_workflows.py (tab 3 after Finish); owner 2026-11-23
+        could_be_automatic: "Qoff proposed and Qc from the subphase are offered by Propose and Subphase (F79, 2026-11-25), never applied by themselves (rule 12: a default only after real-data checks); Qoff from the sh-scan images (F42)"
+        known_from: code (updateRefPlotData, proposeRefQoff); tests tests/test_gui_workflows.py (tab 3 after Finish), tests/test_gui_fresnel_propose.py; owner 2026-11-23
         decision: "R/R_F continuous?"
         goto: {"no: change Qoff or Qc": ref.view}
         issues:
           - "Qc and Qoff change the R/R_F file but are typed fields among display options"
-          - "Qoff is found by trial: type, press Enter, look, repeat"
+          - "Qoff is found by trial: type, press Enter, look, repeat (eased 2026-11-25: Propose offers the fitted value)"
       - id: ref.export
         do: Export - <name>_ref.txt and <name>_rrf.txt (Q, R, sigma); the Script pane records exp.reflectivity(...)
         where: Reflectivity tab > Export
@@ -1110,13 +1110,13 @@ workflows:
       - id: cuts.define
         do: Choose the direction (Q H, Q V, Pix H, Pix V), the range, the axes and Sum All; Line/Area Cuts
         where: Pilatus tab
-        controls: [pilCutDirComboBox, pilIntRangeLineEdit, pilAxesComboBox, gixSumCheckBox, pilPinholeCheckBox, pilLineAreaPushButton]
-        user_decides: direction, range, axes (Angles for I vs beta), summed or per frame
-        automatic: no
-        could_be_automatic: one cut interface on every image plot with defaults by scan kind (F68); a range on the detector by default (F59)
-        known_from: code; test tests/test_gui_cuts.py; owner 2026-11-18 (F59)
+        controls: [pilCutDirComboBox, cutAxisComboBox, pilIntRangeLineEdit, pilAxesComboBox, gixSumCheckBox, pilPinholeCheckBox, pilLineAreaPushButton]
+        user_decides: "direction, range, the cut's x axis (as the image, or beta, beta - alpha, Qz, Qxy: F97), summed or per frame"
+        automatic: partly
+        could_be_automatic: one cut interface on every image plot with defaults by scan kind (F68)
+        known_from: code; tests tests/test_gui_cuts.py, tests/test_gui_cut_axis.py; owner 2026-11-18 (F59), 2026-11-23 (Q-IMG-12)
         issues:
-          - "Q V default range lies off a reflectivity frame: zeros, no message (F59, measured)"
+          - "~~Q V default range lies off a reflectivity frame: zeros, no message (F59, measured)~~ 2026-11-25: with frames shown the Q cuts default to a band about the beam, and a range off the detector is refused with a message"
           - "The cut is defined on the Pilatus tab and shown on another tab"
       - id: cuts.view
         do: Look at the cuts; errorbars, offset, log; Fit peaks

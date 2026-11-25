@@ -128,8 +128,13 @@ Each line: feature — where — default — script — notes entry (date).
   Qoff from the data (the edge fit by default; the smoothness of R/R_F as
   the owner judges it by eye) with its error, and gives Qc from the
   subphase (a list of densities with their sources, or a typed electron
-  density). It proposes; it never applies. The window's "Propose" buttons
-  beside Qoff and Qc are the GUI manager's (F96). Notes for the manual:
+  density). It proposes; it never applies. In the window (2026-11-25):
+  "Subphase" right of Qc is a menu of subphases (each entry's tooltip
+  gives its density and source) and "From an electron density..."; it
+  sets Qc when an entry is picked. "Propose" right of Qoff fits the curve
+  on show at the Qc in the field and offers two values in a menu, the
+  edge fit with its error and the roughness criterion as a second
+  opinion; Qoff changes only when one is picked. Notes for the manual:
   the Qz resolution reads as a slightly negative Qoff, and a wrong Qc
   moves Qoff by the same amount, so set Qc from the subphase first
   (`docs/studies/qoff/summary.md`).
@@ -183,15 +188,23 @@ Each line: feature — where — default — script — notes entry (date).
   pixel cuts' spanning the frames' rows or columns (0:485 and 0:194 on the
   Pilatus 100K; any detector since 2026-11-24, `cuts.default_range`); pinhole box (on: S4–detector distance at Det_Th > 1°) —
   `exp.cut` — Notes 2026-11-18 "Pinhole is the default". Q cuts with empty
-  default ranges are a known gap (F59, docket). A user complained (2026-11-18)
+  default ranges were a known gap (F59), closed 2026-11-25: with frames
+  shown, a Q cut's default is a band about the beam (half the reflectivity
+  ROI, Slit H,V, either side: 5 rows in Qz, 10 columns in Qxy by default),
+  and a range off the detector is refused with a message that puts the band
+  in the box. A user complained (2026-11-18)
   that cuts in Qz/Qxy and I vs β are not documented: I vs β works today as
   "Pix V" with axes "Angles"; write this part of the manual first.
   Since 2026-11-23 each frame of a reflectivity scan has its own incidence
   angle (from its Qz; the scan header's In_Rot is the position before the
   scan moved, P47), so the reflected beam sits at β = α on that axis.
-- **Diffuse cuts** (F97, F59; 2026-11-24, core only; the window's choice of
-  axis is to come): the owner's axes are β, β − α, Qz and Qxy. A how-to for
-  the manual, by script today:
+- **Diffuse cuts** (F97, F59; core 2026-11-24; in the window 2026-11-25):
+  the owner's axes are β, β − α, Qz and Qxy. In the window, "x: …" right
+  of the cut direction chooses the cut's x axis ("as image" by
+  default; the axes that do not fit the direction are greyed out, and each
+  entry's tooltip gives its formula); the intensities do not change. A
+  how-to for the manual (the window: Q V, x: β − α, the default band; by
+  script):
   1. **The specular rod and the diffuse scatter beside it:** a vertical cut
      over a narrow Qxy band about the beam, `exp.cut([7], 'Q V',
      cuts.centred_range('Q V', g, 10), axes='beta-alpha')` (±10 columns).
@@ -411,6 +424,18 @@ Each line: feature — where — default — script — notes entry (date).
   came from (joint fit, legacy fit, or known ratio), the points dropped, and
   the fit's note. It stays with the result: it is in the tooltip of the line
   under the plot, and it is saved with the result in the workbook.
+
+### Export names (F105, 2026-11-25, Q-REF-6)
+- **Export** on the Reflectivity tab proposes a file name made of the SPEC
+  file's name, the sample and the scans, e.g. `20260923_S6-9`. The writer
+  adds `_ref.txt` and `_rrf.txt` (and the covariance sidecar with
+  "+ covariance"), the files XModFit reads.
+- **The sample** is taken from the macro that ran the series, when the
+  SPEC file records it (newer macros write `#U SeriesMacro`); otherwise it
+  is left out.
+- **The folder** is the one the last Export went to, kept between
+  sessions, so exports go straight to your XModFit folder. If that folder
+  is gone, it falls back to the output folder.
 
 ### The Compare tab (F80, F105, 2026-11-24)
 - Just left of Timeline, the **Compare** tab lists every reflectivity
