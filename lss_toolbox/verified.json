@@ -1438,7 +1438,7 @@
   "verdict": "same"
  },
  "gui_screens": {
-  "commit": "b5e9c17768",
+  "commit": "ee5056b861",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -1457,9 +1457,16 @@
    "scipy": "1.18.1"
   },
   "modified": [
-   "mainwindow.py",
-   "mainwindow.ui",
-   "pdgioxs.ui"
+   "g_l2Dialog.ui",
+   "g_l3Dialog.ui",
+   "mcamerge.ui",
+   "pdburn.ui",
+   "pdformfac.ui",
+   "pdgioxs.ui",
+   "peakfit.ui",
+   "plotscale.ui",
+   "refpatch.ui",
+   "scanInfoDialog.ui"
   ],
   "modules": {
    "TwoDDetector.py": "cacf7c8dacbc4290",
@@ -1607,17 +1614,17 @@
    "docs/gui/screens/README.md": "84d07e5b35898b42"
   },
   "reads": {
-   "g_l2Dialog.ui": "17f34cee4eaad587",
-   "g_l3Dialog.ui": "e97ca3e6c61c8cfb",
+   "g_l2Dialog.ui": "1f2a112d2d3435bb",
+   "g_l3Dialog.ui": "64d207548d1a54cd",
    "mainwindow.py": "66435f166dfbf7f7",
    "mainwindow.ui": "15b21fcbc32d69c6",
-   "mcamerge.ui": "bbdf1f2e09b6d591",
-   "pdburn.ui": "ad666a5c7cd6a542",
-   "pdformfac.ui": "f865f8fa161cf59a",
-   "pdgioxs.ui": "5060bccb924aaf29",
-   "peakfit.ui": "6a3048aaf216aa86",
-   "plotscale.ui": "8419b09ee1f59b82",
-   "refpatch.ui": "f691eff42992dc42",
+   "mcamerge.ui": "5681168b51fdb306",
+   "pdburn.ui": "ce2716bc0b3a483d",
+   "pdformfac.ui": "02ba1a90ff242cf2",
+   "pdgioxs.ui": "da5faa2633488750",
+   "peakfit.ui": "edcb72a7d75720a4",
+   "plotscale.ui": "c1896086074de8dc",
+   "refpatch.ui": "26a62c0a04edebf2",
    "sample_data/NX_school/2026sep/20260923": "c5550d0c328d3fb6",
    "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-11_0000.tif": "00515b83cf6f5c77",
    "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-11_0001.tif": "dcc1563892ed36d1",
@@ -1802,7 +1809,7 @@
    "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-9_0026.tif": "574efbb4100f5fb1",
    "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-9_0027.tif": "917fb2a2239a1545",
    "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-9_0028.tif": "696ffb32b4a7876d",
-   "scanInfoDialog.ui": "23784abf8b924cef"
+   "scanInfoDialog.ui": "228ef30f8599e947"
   },
   "unverified": [],
   "verdict": "same"
@@ -2082,7 +2089,7 @@
   "verdict": "same"
  },
  "ngui_screens": {
-  "commit": "b5e9c17768",
+  "commit": "ee5056b861",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -2100,10 +2107,7 @@
    "python": "3.13.18",
    "scipy": "1.18.1"
   },
-  "modified": [
-   "ngui/inventory_text.py",
-   "ngui/layout.py"
-  ],
+  "modified": [],
   "modules": {
    "ngui/__init__.py": "ad2e13b69c4fc1fd",
    "ngui/inventory_text.py": "71050d118538841b",
