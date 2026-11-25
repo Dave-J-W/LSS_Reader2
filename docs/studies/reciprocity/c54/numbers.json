@@ -1,0 +1,212 @@
+{
+ "groups": [
+  {
+   "series_id": "R03-S3",
+   "absorber": "24",
+   "rates": [
+    [
+     -209.9,
+     39.33
+    ],
+    [
+     136.5,
+     48.69
+    ]
+   ]
+  },
+  {
+   "series_id": "R06-S1",
+   "absorber": "16",
+   "rates": [
+    [
+     -270.7,
+     84.95
+    ],
+    [
+     -88.0,
+     78.18
+    ]
+   ]
+  },
+  {
+   "series_id": "R07-S1",
+   "absorber": "12",
+   "rates": [
+    [
+     -9483.0,
+     1390.0
+    ],
+    [
+     -18.34,
+     9.566
+    ],
+    [
+     -11.35,
+     9.54
+    ]
+   ]
+  },
+  {
+   "series_id": "R11-S1",
+   "absorber": "16",
+   "rates": [
+    [
+     25.39,
+     33.17
+    ],
+    [
+     110.6,
+     21.28
+    ],
+    [
+     140.8,
+     17.03
+    ]
+   ]
+  },
+  {
+   "series_id": "R11-S5",
+   "absorber": "20",
+   "rates": [
+    [
+     -61.73,
+     6.23
+    ],
+    [
+     21.68,
+     6.078
+    ],
+    [
+     -82.75,
+     6.972
+    ]
+   ]
+  },
+  {
+   "series_id": "R11-S5",
+   "absorber": "23",
+   "rates": [
+    [
+     -4.566,
+     10.7
+    ],
+    [
+     2.36,
+     14.72
+    ]
+   ]
+  }
+ ],
+ "tau": 90.13689763973734,
+ "tau_ci": [
+  65.52118392982945,
+  127.235526517143
+ ],
+ "rho": 1.128811458339115,
+ "rho_ci": [
+  0.8794553025944123,
+  1.50146720906799
+ ],
+ "tau_c54": 88.0,
+ "minus_log_likelihood": {
+  "none": 153.5803144102191,
+  "tau": 73.60681800570671,
+  "rho": 54.202064565346106
+ },
+ "tallies": {
+  "counting": {
+   "dose": 2,
+   "neither": 8,
+   "no change": 3,
+   "opposite signs": 5,
+   "time": 1
+  },
+  "tau": {
+   "cannot tell": 1,
+   "dose": 5,
+   "neither": 2,
+   "no change": 10,
+   "opposite signs": 1
+  },
+  "tau_c54": {
+   "cannot tell": 2,
+   "dose": 5,
+   "neither": 2,
+   "no change": 9,
+   "opposite signs": 1
+  },
+  "rho": {
+   "cannot tell": 5,
+   "dose": 5,
+   "no change": 3,
+   "opposite signs": 5,
+   "time": 1
+  },
+  "c54_drop1": {
+   "dose": 2,
+   "neither": 8,
+   "no change": 3,
+   "opposite signs": 5,
+   "time": 1
+  },
+  "c54_strip": {
+   "cannot tell": 2,
+   "dose": 4,
+   "neither": 2,
+   "no change": 10,
+   "opposite signs": 1
+  }
+ },
+ "agreement": {
+  "counting vs C54 drop1": 19,
+  "tau_c54 vs C54 drop1+strip": 18
+ },
+ "series": 19,
+ "design": [
+  {
+   "span": 10.0,
+   "strips_per_flux": 2,
+   "replicates": 200,
+   "dose_right": 0.0,
+   "dose_wrong": 0.0,
+   "time_right": 0.0,
+   "time_wrong": 0.0
+  },
+  {
+   "span": 10.0,
+   "strips_per_flux": 4,
+   "replicates": 200,
+   "dose_right": 0.025,
+   "dose_wrong": 0.0,
+   "time_right": 0.025,
+   "time_wrong": 0.0
+  },
+  {
+   "span": 10.0,
+   "strips_per_flux": 8,
+   "replicates": 200,
+   "dose_right": 0.535,
+   "dose_wrong": 0.0,
+   "time_right": 0.525,
+   "time_wrong": 0.0
+  },
+  {
+   "span": 10.0,
+   "strips_per_flux": 12,
+   "replicates": 200,
+   "dose_right": 0.79,
+   "dose_wrong": 0.0,
+   "time_right": 0.79,
+   "time_wrong": 0.0
+  },
+  {
+   "span": 10.0,
+   "strips_per_flux": 16,
+   "replicates": 200,
+   "dose_right": 0.895,
+   "dose_wrong": 0.0,
+   "time_right": 0.895,
+   "time_wrong": 0.0
+  }
+ ]
+}

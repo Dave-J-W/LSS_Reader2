@@ -246,6 +246,9 @@ from lss_core import reciprocity               # beam damage or the sample by it
 v = reciprocity.dose_or_time([reciprocity.from_result(exp.burn(n), 'centre') for n in (14, 15)])
 v.verdict, v.beta, v.beta_ci, v.weight_dose    # NX: 'neither', 0.85 [0.80, 0.89], 1.00 (on counting errors alone)
 reciprocity.dose_or_time(burns, strip_scatter=0.88 / 3600)   # admit the strips' own scatter (C54: 88 %/h)
+reciprocity.dose_or_time(burns, strip_relative=1.13)          # as a share of each rate: C54's repeats fit this better
+reciprocity.dose_or_time_rates(fluxes, rates, errors)         # from a table of drift rates (any unit, the same for all)
+reciprocity.strip_scatter_fit(groups, relative=True)          # ρ (or τ) by REML from repeats: [(rate, σ), ...] per flux
 exp.dose(14, beam_mm=(2.0, 0.1))               # photons/mm2 of footprint, for a beam of that width and height
 exp.dose(14, shutter='open')                   # fast mode: the beam also between points (from the point times)
 h = exp.beam_height(near=7)                    # the beam's height from the height scans' rising edge (#60's rule)
