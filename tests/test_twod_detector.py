@@ -110,6 +110,16 @@ def test_peak_locate_finds_shifted_peak(det):
     assert det.peakLocate(img, np.sqrt(img), cen=[97, 100], mon=1.0) == (99, 102)
 
 
+def test_peak_locate_on_a_dark_frame_keeps_the_brightest_pixel(det):
+    """No counts about the peak: the centroid is 0/0. It used to raise
+    (int(NaN), the crash sweep's random walk, 2026-11-25); now the search
+    window's brightest pixel (its first, when all are equal) is kept."""
+    img = np.zeros((synth.PIL_W, synth.PIL_H))
+    assert det.peakLocate(img, np.sqrt(img), cen=[97, 100], mon=1.0) == (94, 97)
+    img[101, 98] = 5.0                                   # one count, outside the centroid's ±2 of a dark maximum: found
+    assert det.peakLocate(img, np.sqrt(img), cen=[97, 100], mon=1.0) == (98, 101)
+
+
 def test_peak_locate_normalises_by_monitor(det):
     img = synth.pilatus_image(peak=(97, 100))
     mon = 250.0

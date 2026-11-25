@@ -357,8 +357,11 @@ class TwoDDetector:
         row=np.arange(maxpix[1]-locwin,maxpix[1]+locwin+1)
         col=np.arange(maxpix[0]-locwin,maxpix[0]+locwin+1)
         col,row=np.meshgrid(col,row)
-        locx=np.sum(locdata*col)/np.sum(locdata)
-        locy=np.sum(locdata*row)/np.sum(locdata)
+        with np.errstate(invalid='ignore',divide='ignore'):
+            locx=np.sum(locdata*col)/np.sum(locdata)
+            locy=np.sum(locdata*row)/np.sum(locdata)
+        if not (np.isfinite(locx) and np.isfinite(locy)):   # no counts about the peak (a dark frame): the brightest pixel
+            return int(maxpix[0]), int(maxpix[1])           # (was: ValueError, int(NaN); found by the crash sweep 2026-11-25)
         return int(round(locx,0)), int(round(locy,0))
 
     def peakFind(self, data, errordata, absfac=1,absnum=None,  slit=[10, 10],  cen=[10, 10], fac=1, min=0, max=1000, bg=None, cmap='gray', dir='h',mon=None,cenfit=0,gain=None):
