@@ -99,6 +99,7 @@ container on 2026-11-23 with the defaults shown.
 | [MCA line-fit gauntlet (synthetic, judged)](#mca-fit-gauntlet) | data | Fitted fluorescence lines against the window sum on synthetic MCA spectra with the beam's Rayleigh and Compton scatter, Si escape peaks, tails and shelves under them (F90; the hard case Zn Kα under 10 keV), judged by hand-off 08's pull rule and a 1 % bias rule. | synthetic (public) |  | `docs/comparisons_data/mca_fit_gauntlet` |
 | [MCA fit demo: the beam-energy story (F90)](#mca-fit-demo) | figures | The same Zn spectrum under 10, 11 and 12 keV beams: its parts stacked, the box, one drawn spectrum with P1's fit, and P1's bias over 200 series on each panel (the window sum's beside it). The wrap-up of the synthetic MCA project (paused 2026-11-24). | synthetic (public) | 17 s | `docs/figures/mca_fit_demo` |
 | [Study B figures: MCA line intensities (F90)](#mca-study) | figures | The owner's study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with every estimator's fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass rates and the robustness map (B1-B7), from the gauntlet's study run. | synthetic (public) |  | `docs/studies/mca_fit` |
+| [Scatter in real MCA spectra against the generator (F90)](#mca-scatter) | figures | Real spectra of the scattered beam at 6-10 keV fitted with the synthetic generator's own physics, every uncertain axis free: the Si escape fraction against Reed's, the O 1s Compton wing, the detector tails, the resolution and the counts under a line against study B's hard case (DATA_NEEDS row 3); and P1 against data weights on real series of repeated spectra. From the anonymised tables only. | public (NX school or committed tables) | 8 s | `docs/studies/mca_scatter` |
 
 ### Synthetic data sets
 
@@ -124,7 +125,7 @@ container on 2026-11-23 with the defaults shown.
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
 | [Absorber steps and foils (hand-off 03 answer)](#absorber-answer-figures) | external | Figures of the owner's analysing repository (tools/absorber_steps.py, absorber_review.py, absorber_trust.py) from private data: measured steps, foil fits, the review of anomalous joins. Not regenerable here; the numbers behind them are in figdata/ and joins.csv. | private (not in the repository) |  | `docs/handoff_out/03-answer/figures` |
-| [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
+| [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, the guards, rise against fall and what the meniscus does. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
 
 ## Items
 
@@ -144,9 +145,9 @@ Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| Fade | Intensity falls at constant shape: every estimator should see it as intensity only. | `docs/SYNTHETIC_DATA.md#**GID burn profiles**` | `python tests/tools/patch_demo.py --mode burn --set change=fade` |
+| Fade | Intensity falls at constant shape; every estimator under-reads it (the window holds part of the shoulder), and the Gaussian fit also reads a +13 % broadening. | `docs/reports/patch_demo.md#fade: spurious FWHM` | `python tests/tools/patch_demo.py --mode burn --set change=fade` |
 | Broadening at constant area | The template estimator reads a broadening as a shift and a gain (the report's caveat on the default estimator). | `docs/reports/patch_demo.md#Gaussian fit reads a fade as +13 % FWHM` | `python tests/tools/patch_demo.py --mode burn --set change=broaden` |
-| Fade under a 3x shoulder | A peak fading under a broad shoulder: where moments mislead. | `docs/SYNTHETIC_DATA.md#**GID burn profiles**` | `python tests/tools/patch_demo.py --mode burn --set change=shoulder` |
+| Fade under a 3x shoulder | A peak fading by 20 % under a broad shoulder: the template reads -9 %, the moments -4 %, the Gaussian fit a gain (+3 %). | `docs/reports/patch_demo.md#fade under a 3× shoulder (−20 %)` | `python tests/tools/patch_demo.py --mode burn --set change=shoulder` |
 | Low counts (monitor 1e5) | "Lower monitor until each estimator fails": the counts per frame at which each estimator becomes unusable. | `docs/handoff_out/07-burn-trends.md#4. **Noise level.**` | `python tests/tools/patch_demo.py --mode burn --set monitor=1e5` |
 | No change | A stable spot: the trends should find no significant change (false alarms). | `docs/SYNTHETIC_DATA.md#**GID burn profiles**` | `python tests/tools/patch_demo.py --mode burn --set change=none` |
 
@@ -231,7 +232,7 @@ Variations:
 | DPPC monolayer | A lipid monolayer's gentle modulation. | `docs/reports/patch_demo.md#**Reflectivity controls**: truth` | `python tests/tools/patch_demo.py --set truth=dppc` |
 | Thick film (250 Å) | Kiessig fringes of period 2π/d = 0.025 Å⁻¹: denser fringes at the joins. | `docs/SYNTHETIC_DATA.md#(Qc/2Qz)⁴ with a` | `python tests/tools/patch_demo.py --set thickness=250` |
 | Staggered overlaps | No coinciding points at the joins: the coinciding-points ratio is unavailable, curve models must interpolate. | `docs/reports/patch_demo.md#**Reflectivity controls**: truth` | `python tests/tools/patch_demo.py --set plan=nx_staggered` |
-| Critical-edge aside | A staggered overlap across Qc (P1): the legacy factor is 16.7 % low; the owner does not patch there. | `docs/reports/patch_demo.md#the default joint fit is +2.44 %` | `python tests/tools/patch_demo.py --set truth=water --set plan=edge` |
+| Critical-edge aside | A staggered overlap across Qc (P1): the legacy factor is 16.6 % low; the owner does not patch there. | `docs/reports/patch_demo.md#the default joint fit is +2.44 %` | `python tests/tools/patch_demo.py --set truth=water --set plan=edge` |
 | Counts x100 | Every method within 0.15 % of the truth: what remains is bias, not noise. | `docs/reports/patch_demo.md#0.15 % of` | `python tests/tools/patch_demo.py --set counts=100` |
 | Poisson monitor | Monc as Poisson counts (the older model) instead of the owner's strict 0.05 %: legacy pull SD 1.3-1.4. | `docs/reports/patch_demo.md#a Poisson Monc is` | `python tests/tools/patch_demo.py --set monitor=poisson` |
 
@@ -876,6 +877,25 @@ Variations:
 |---|---|---|---|
 | Replicates and anatomy only | B1 and B2, which need no gauntlet run (about 20 s). | `docs/studies/2026-11-24_two_decisions_plan.md#B2. Replicates and their fits` | `python tests/tools/mca_study.py --gauntlet docs/studies/mca_fit/gauntlet --out '{out}' --only B1,B2` |
 
+<a id="mca-scatter"></a>
+
+### Scatter in real MCA spectra against the generator (F90)
+
+Real spectra of the scattered beam at 6-10 keV fitted with the synthetic generator's own physics, every uncertain axis free: the Si escape fraction against Reed's, the O 1s Compton wing, the detector tails, the resolution and the counts under a line against study B's hard case (DATA_NEEDS row 3); and P1 against data weights on real series of repeated spectra. From the anonymised tables only.
+
+- Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/mca_scatter.py`
+- Explained in: `docs/studies/mca_scatter/summary.md`, `docs/DATA_NEEDS.md#MCA fit gauntlet spectra`, `docs/studies/mca_fit/summary.md`
+- Committed products: `docs/studies/mca_scatter`; replaced from the window with the settings that made them (into `docs/studies/mca_scatter`)
+- Run:
+
+      python tests/tools/mca_scatter.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Numbers against beam energy only | S2 from the anonymised table (a few seconds). | `docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |` | `python tests/tools/mca_scatter.py --out '{out}' --only S2` |
+
 <a id="synthetic-dataset"></a>
 
 ### Open a synthetic data set
@@ -1053,10 +1073,10 @@ Figures of the owner's analysing repository (tools/absorber_steps.py, absorber_r
 
 ### sh-scan beam size (private data)
 
-The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them.
+The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, the guards, rise against fall and what the meniscus does. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them.
 
 - Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
-- Explained in: `docs/studies/sh_beam_size/summary.md`
+- Explained in: `docs/studies/sh_beam_size/summary.md`, `docs/studies/sh_beam_size/height_scans.md`
 - Committed products: `docs/studies/sh_beam_size`; not replaced from the window
 
 ## The Tools window

@@ -56,8 +56,7 @@ def audit(only=None, max_seconds=None, report=None):
     def same_file(a, b):
         if os.path.splitext(a)[1].lower() in runner.IMAGES:
             return compare.compare(a, b).state == 'same'
-        with open(a, 'rb') as fa, open(b, 'rb') as fb:
-            return fa.read() == fb.read()
+        return compare.tables_same(a, b)          # a CSV apart from its timing columns
 
     for t in items:
         st = staleness.product_status(t)

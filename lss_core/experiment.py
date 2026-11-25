@@ -615,6 +615,39 @@ class Experiment:
                                      errors=te)
         return res
 
+    def beam_height(self, scans=None, near=None, counter='Pilatus', monitor='Monc'):
+        """The beam's height at the sample for the dose (lss_core.dose,
+        BeamHeight): 1.0645 × the median rising-edge FWHM of the accepted
+        sample-height scans among ``scans`` (default every height scan of
+        the file), or, with ``near`` a scan number, of the NEAR_SCANS nearest
+        height scans with that scan's S1 gap; the study's default where none
+        is accepted and its conditions hold."""
+        from . import dose as dosemod
+        from . import peaks
+        cand = [n for n in sorted(self.scans if scans is None else scans)
+                if peaks.is_height_scan(self.scans[n].command) and counter in self.scans[n].columns]
+        ref = self.scans[near].parameters if near is not None else (self.scans[cand[0]].parameters if cand else
+                                                                     next(iter(self.scans.values())).parameters)
+        if near is not None:
+            gap = dosemod.s1_gap_mm(ref)
+            cand = [n for n in cand if gap is not None and dosemod.s1_gap_mm(self.scans[n].parameters) is not None
+                    and abs(dosemod.s1_gap_mm(self.scans[n].parameters) - gap) < 1e-3]
+        edges, refused = [], []
+        for n in cand:
+            x, y, s = dosemod.height_scan_data(self.scans[n].columns, counter, monitor)
+            e = dosemod.rising_edge(x, y, s, scan=n)
+            (edges if e.ok else refused).append(e)
+        if near is not None:
+            edges = sorted(edges, key=lambda e: (abs(e.scan - near), e.scan))[:dosemod.NEAR_SCANS]
+        if not edges:
+            h = dosemod.default_height(ref)
+            h.refused = refused
+            return h
+        fw = float(np.median([e.fwhm for e in edges]))
+        spread = (float(np.std([e.fwhm for e in edges], ddof=1)) / fw) if len(edges) > 1 else None
+        return dosemod.BeamHeight(fw * dosemod.HEIGHT_PER_RISE_FWHM, 'height scans', spread, edges, refused,
+                                  'median rising FWHM %.4f mm of scans %s' % (fw, ', '.join(str(e.scan) for e in edges)))
+
     def dose(self, scan, points=None, unit='photons', beam_mm=None, absfac=None, monitor='Monc', shutter='closed'):
         """The dose each point of ``scan`` gives the sample (lss_core.dose.scan_dose:
         photons, or Monc counts at 5 µA/V with the absorbers taken out; per mm²
