@@ -6657,3 +6657,7 @@ cm², %). So the lane draws **any column** the user chooses:
 
 Verified by: tested (`tests/test_timeline_env.py`, 3;
 `tests/test_gui_timeline_env.py`, 2).
+
+### 2026-11-25 — Answers to questions from GUI manager, main man and tools man, posted on issue #55 (batch 21)
+
+Verified by: the owner's statements; nothing computed here. **Q cuts:** the default band is half the ROI on either side. **Dose:** show the average and the peak dose, the peak split into the top 10 % of the area and the other 90 %, with a 1 mm default width and a Gauss fit of an S1 horizontal slit scan to model the beam if one exists (F109). For a beam of Gaussian profile in one dimension the dose is highest at the centre; the share of the area at or above a given level follows the error function, so a "top 10 % of the area" is defined from the profile once it is known. **Excess point scatter:** the owner does not know its size; measure it from data (`DATA_NEEDS.md` row 15). **Foil prior:** stays optional for now. **Local agent's report:** blank spectra are committed; 0.1 keV energies are kept; row 7 waits. Questions still open from those three posts: the GUI manager's 2 to 7 and 9 to 13, main man's MQ-1, 2, 4, 6 to 12, tools man's 3 to 6.
