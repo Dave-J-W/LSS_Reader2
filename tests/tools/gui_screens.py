@@ -133,6 +133,36 @@ def grab_window(w, app):
     return qimage_to_pil(w.grab())
 
 
+def wait(app, seconds=0.3):
+    """Let pending timers fire (deferred redraws: a colour bar, a slider) before
+    a picture is taken; three processEvents alone left the GISAXS shot
+    different from run to run (the Tools audit, 2026-11-25). Not for every
+    shot: a frame movie's timer would advance its frame."""
+    end = time.time() + seconds
+    while time.time() < end:
+        app.processEvents()
+        time.sleep(0.01)
+
+
+def grab_docked(app, d, name, shows, state):
+    """A window the reader shows in a dock (F95 B10): its dialog, as a picture
+    of its own (the dock's insides)."""
+    settle(app)
+    unfocus(d, app)
+    save_png(d.grab(), name, shows, state)
+
+
+def unfocus(d, app):
+    """No control of a window drawn with the keyboard focus: which one has it
+    (a table's first cell, a field) depended on window activation timing
+    offscreen, so dialog shots differed from run to run (the Tools audit,
+    2026-11-25)."""
+    fw = d.focusWidget()
+    if fw is not None:
+        fw.clearFocus()
+        settle(app)
+
+
 def getw(w, name):
     """A control of the window: on the generated ``ui`` or on the window itself."""
     return getattr(w.ui, name, None) or getattr(w, name)
@@ -156,7 +186,11 @@ def union(*rects):
 
 def new_window(app, spec=None, directory=None):
     import mainwindow
+    mainwindow.MainWindow.messageStamp = lambda self: '12:00:00'     # the same pictures from run to run (audit)
     w = mainwindow.MainWindow()
+    timer = getattr(w, 'pilMovieTimer', None)
+    if timer is not None:                     # the movie plays but stays on its frame: a shot does not depend on timing
+        timer.timeout.disconnect(w.pilMovieTick)
     w.resize(WIN_W, WIN_H)
     w.show()
     if spec:
@@ -213,6 +247,7 @@ class Dialogs:
 
     def grab_widget(self, d, name, shows, state):
         settle(self.app)
+        unfocus(d, self.app)
         save_png(d.grab(), name, shows, state)
 
 
@@ -291,6 +326,7 @@ def grab_toplevels(app, before, prefix, shows, state, ctx=None, skip=()):
     k = 0
     for t in new:
         name = prefix if k == 0 else prefix.replace('.png', '%s.png' % chr(ord('a') + k))
+        unfocus(t, app)
         save_png(t.grab(), name, shows if k == 0 else shows + ' (another window opened by the same action)', state)
         k += 1
     return new
@@ -452,6 +488,12 @@ def run_nx(app, ctx, skip_slow):
         save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '14_timeline_tab.png',
                  'Timeline tab (F83): events, sx, sample-height scans and scans on one time axis',
                  'NX school file opened; Timeline tab shown (fitted to the whole file)')
+        w.timelineTab.doseCheckBox.setChecked(True)            # F107: the burns 14 and 15 are analysed
+        save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '14b_timeline_dose.png',
+                 'Timeline with Dose on (F107): the sx line coloured by each spot\'s dose as a fraction of the '
+                 'burn test\'s dose to a 5 % change',
+                 'NX school file; Dose ticked (beam 1 mm wide, its height from the sample-height scans)')
+        w.timelineTab.doseCheckBox.setChecked(False)
     timeline_tab()
 
     # --- Pilatus
@@ -567,11 +609,10 @@ def run_nx(app, ctx, skip_slow):
         for t in ('Pilatus', '2D_Plot', 'Plot', 'Line/Area Cuts'):
             tab(w, app, t)
         tab(w, app, 'Pilatus')
-        before = visible_tops(app)
         w.gidWorksheetPushButton.click(); settle(app)
         settle(app)
-        grab_toplevels(app, before, '42_gid_worksheet_window.png', 'GID worksheet window (GID drop-down > Worksheet)',
-                       'After GID Patch of scans 11-12', skip=[w])
+        grab_docked(app, w.gidWorksheet, '42_gid_worksheet_window.png', 'GID worksheet (GID drop-down > Worksheet), docked on the right (F95 B10)',
+                    'After GID Patch of scans 11-12')
         ws = getattr(w, 'gidWorksheet', None)
         if ws is not None and ws.isVisible():
             ws.close()
@@ -604,10 +645,9 @@ def run_nx(app, ctx, skip_slow):
         settle(app)
         save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '61_cuts_after_peak_fit.png',
                  'Line/Area Cuts after Fit peaks', 'Same cut; Fit peaks clicked')
-        before = visible_tops(app)
         w.cutFitOptionsPushButton.click()
         settle(app)
-        grab_toplevels(app, before, '62_cuts_fit_options_dialog.png', 'Fit options... dialog of the cut fits', 'Cut plotted and fitted', skip=[w])
+        grab_docked(app, w.cutFitDialog, '62_cuts_fit_options_dialog.png', 'Fit options of the cut fits, docked on the right (F95 B10)', 'Cut plotted and fitted')
         if getattr(w, 'cutFitDialog', None) is not None:
             w.cutFitDialog.close()
         tab(w, app, 'Pilatus')
@@ -645,6 +685,7 @@ def run_nx(app, ctx, skip_slow):
             if t is not w:
                 t.close()
         combo_do(w, app, w.ui.gisaxsComboBox, 'Show GISAXS')
+        wait(app)                                # its colour bar and slider are drawn by timers
         save_png(grab_window(w, app), '91_gisaxs_show.png', 'Whole window after GISAXS drop-down > Show GISAXS',
                  'Scan 11 frame 1 with a background; tab: %s' % w.ui.PlotWidget.tabText(w.ui.PlotWidget.currentIndex()))
     gisaxs()
@@ -845,10 +886,10 @@ def run_xfntr(app, ctx):
         save_png(grab_window(w, app), '75_mca_fit_lines_result.png', 'MCA tab after Fit lines (fluorescence result)',
                  'Synthetic XFNTR; all spectra; Fit lines clicked')
         grab_toplevels(app, before, '75b_mca_fit_lines_other_window.png', 'Window opened by Fit lines', 'Synthetic XFNTR', skip=[w])
-        before = visible_tops(app)
         w.mcaFitOptionsPushButton.click()
         settle(app)
-        grab_toplevels(app, before, '76_mca_fit_options_dialog.png', 'MCA Fit options... dialog', 'Synthetic XFNTR', skip=[w])
+        grab_docked(app, w.mcaFitDialog, '76_mca_fit_options_dialog.png',
+                    'MCA Fit options, docked on the right (F95 B10)', 'Synthetic XFNTR')
         if getattr(w, 'mcaFitDialog', None) is not None:
             w.mcaFitDialog.close()
         arm(ctx, '77_mca_merge_dialog.png', 'MCA > Merge dialog (merge window)', 'Synthetic XFNTR; after Sum All')
@@ -995,11 +1036,13 @@ def run_plot_tabs(app, ctx, plot_files):
 def write_readme(out, wall):
     path = os.path.join(out, 'README.md')
     keep = ''
-    if os.path.exists(path):
-        txt = open(path, encoding='utf-8').read()
-        m = re.search(r'^## Observations.*', txt, re.S | re.M)
-        if m:
-            keep = m.group(0)
+    committed = os.path.join(ROOT, 'docs', 'gui', 'screens', 'README.md')
+    for src in (path, committed):        # a run into a new folder (the Tools audit) keeps the committed section
+        if os.path.exists(src):
+            m = re.search(r'^## Observations.*', open(src, encoding='utf-8').read(), re.S | re.M)
+            if m:
+                keep = m.group(0)
+                break
     total = sum(os.path.getsize(f) for f in glob.glob(os.path.join(out, '*.png')))
     lines = ['# Screenshots of the reader window (GUI overhaul, phase 1a)', '',
              'Made by `python tests/tools/gui_screens.py` (offscreen Qt, scale 1; the window cannot be narrower than about',
@@ -1031,6 +1074,7 @@ def main():
         os.remove(f)
     from PyQt5 import QtWidgets
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(['lss-screens'])
+    app.setCursorFlashTime(0)                    # no blinking text cursor: the same pictures from run to run
     ctx = install_patches(app)
     ctx['plot_files'] = []
     w = run_nx(app, ctx, a.skip_slow)

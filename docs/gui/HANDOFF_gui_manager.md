@@ -9,30 +9,33 @@ once the quick suite (and, for GUI changes, the sweep) pass; then merge
 
 ## State (updated 2026-11-25, evening, Chicago time)
 
-- **On main:** everything through #73 (78aebd1):
-  - F105 Export naming (`lss_core/naming.py`), F79 Subphase and Propose
-    beside Qc and Qoff, F97/F59 cut axes and Q bands, the peakLocate NaN fix;
-  - before that: the Timeline and Compare tabs, the ROI close-up, F96, F95
-    part, F74, F78, the GID refusal fixes.
-- **On the branch, not yet on main:** F92's window side (415d20a): drops
-  kept as the workbook's mask, left out from the start, grey crosses,
-  Restore all. The quick suite passed (1233); the sweep was running. If it
-  passed: PR into main, merge commit, then fast-forward the branch.
-- **Work in:** the main checkout, branch `claude/funny-noether-09opxa`. The
-  crash sweep runs in the worktree `scratchpad/wt_sweep` (detached at the
-  commit swept), so the main checkout stays free.
-- **Messages:** GitHub issue #55 only (owner's instruction), "GUI manager →
-  main man:", with the footer. The status of 2026-11-25 asked main man for
-  the next work and whether D1 (second reader read-only, yellow light) is
-  mine.
+- **On main:** through #100 (3a7934e): F95 B10's docks, F109's dialog side
+  (#93, #95), B3's ROI pass on the three boxes by C62's arithmetic, off
+  by default (#95), F74 at the Ref Patch join (#100).
+- **On the branch, next PR:** F74 on the older Fit Peak dialog (Plot and
+  MCA tabs, fee1024; quick suite 1331), being swept.
+- **F74 is then done in the window**, apart from tools man's MCA line
+  fits (`mcaFitLines`). If main man makes C64's 4σ clipping or robust
+  weights the joint fit's default, `reflectivity.join_fit_residuals` must
+  follow the fit's weights so that Σ r² stays the fit's χ² (I45); I told
+  him on #55.
+- **B3's default** (factor 10) is main man's, after DATA_NEEDS 16 and
+  rule 12: the field's empty text in `mainwindow.py`
+  (`refBPCFacLineEdit.setText('')`) and `exp.reflectivity`'s keyword.
+- **The owner's answers so far** (questor, issue #55, batch 21): Q1 yes
+  (half the ROI); Q8 prefill 1 mm, and show the peak and the average
+  dose, the peak split into the top 10 % of the area against the other
+  90 % (F109). The rest of my 13 (2–7, 9–13) are still with questor.
+- **tools man's P44** (the burn template) may reach the burn dialog later:
+  it is to be built on the docked dialog (main man's note).
 
 ## Next, in order
 
-1. If F92's sweep passed: merge it (PR, merge commit).
-2. Read issue #55 for main man's answer. Without one: F98/F107 with the
-   dose in the window (`exp.dose`, burns against dose), then the
-   timeline's reduced-data and environment lanes; D1 if assigned; F95
-   B9/B10; B3 (rule 12).
+1. Merge the branch (above), report on #55.
+2. The owner's further answers from questor (questions 2–7, 9–13 of
+   comment 7165770764); F109's extent once the owner chooses.
+3. What main man assigns; else the GUI priorities (main window, then the
+   timeline tab F83, then ngui).
 
 ## APIs received for the next items (2026-11-24)
 

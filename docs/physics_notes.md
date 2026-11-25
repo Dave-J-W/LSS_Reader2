@@ -54,6 +54,8 @@ exists.
 | I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own`; in the window `test_gui_cut_axis.py::test_diffuse_axes_change_x_only`, `::test_beta_minus_alpha_puts_the_specular_row_at_zero` (2026-11-25) | 2026-11-24 |
 | I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
 | I43 | At most one reader holds a workbook's lock at a time, even when two take over a stale lock at once (each reads the lock back after writing it); a read-only workbook never writes (`save` raises `WorkbookReadOnly`, the file and its folder untouched) | `test_readerlock.py` (every test); in the window `test_gui_reader_lock.py` (2026-11-25) | 2026-11-25 |
+| I44 | The dose map's peak is the dose per area `scan_dose` gives with the same beam, Σ N_i sin α_i / (width · height) (√(2π)σ each); the map holds the whole dose (captured above 0.9999, footprints 60 × apart); for one incidence and a Gaussian beam peak/average = −ln(1 − P)/P for extents P, and the top-10 % and other-90 % means are their closed forms; every per-area value scales as 1/(width · height) | `test_dose_map.py`; NX 14 and 15 (slow) | 2026-11-25 |
+| I45 | The residuals drawn under a fit add up to the χ² it reports: Σ r² = χ², r = (y − μ)/√var with the fit's own variance (the Ref Patch joint fit: Poisson var = σ²μ/max(\|y\|, σ)); the older Fit Peak dialog: r = (y − fit)/σ, Σ r²/(n − parameters) = its χ²/dof | tested: `test_ref_join_residuals.py` (to 1e-9), `test_gui_peakfit_residuals.py` (Plot and MCA tabs) |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -6428,6 +6430,82 @@ Verified by: tested (`tests/test_gui_reader_lock.py`, 6 tests). Not tried
 across two computers on a network share; the core's assumptions (clocks
 within 180 s) stand.
 
+### 2026-11-25 — Qoff on the NX scans: resolution or angle offset? (F79, C50, C55)
+
+The Qoff study left open how much of NX's proposed −2.8 × 10⁻⁴ Å⁻¹ comes
+from the beamline's resolution (`docs/studies/qoff/summary.md`, section 6).
+The non-cloud agent measured ΔQ at the edge, at 10 keV, from 378 real scans:
+8.9 × 10⁻⁴ Å⁻¹ FWHM, with run medians 6.5–12.6 × 10⁻⁴
+(`docs/studies/qz_resolution/summary.md`, #68).
+
+- By the study's resolution table (synthetic, measured: an edge fit reads a
+  Gaussian resolution as Qoff ≈ −0.15 ΔQ FWHM), that resolution alone gives
+  about −1.3 × 10⁻⁴. **Corrected the same day** (the Qoff walkthrough,
+  step 5, on NX's own Qz points): −1.33 × 10⁻⁴ at the median ΔQ, but
+  −0.64 to −2.52 × 10⁻⁴ over the runs' range, not the linear −1.0 to −1.9.
+  So resolution is between a quarter and nine tenths of NX's offset, about
+  half at the median. The walkthrough also measured the edge fit's χ²/dof
+  on NX: 75, with the rounded edge's signature in the residuals (31σ below
+  the edge, 6–10σ above it). So the proposal's ± (counting noise only, 0.07
+  × 10⁻⁴) is about ×9 too small there; an honest error is ±0.6 × 10⁻⁴.
+- So of NX's −2.8 × 10⁻⁴, about **−1.5 × 10⁻⁴ (−0.9 to −1.8) is left.**
+  That remainder is either an angle offset of about −0.0009°, or a Qc about
+  1.5 × 10⁻⁴ above water's 0.0217. A wrong Qc moves Qoff one for one
+  (section 4), so this data set cannot tell the two apart.
+- The proposal still makes R/R_F continuous, which is the owner's criterion.
+  It equals the angle offset only once the resolution is allowed for.
+- A candidate option, not built: the edge fit with R_F convolved with the
+  measured resolution, which would propose the angle offset itself.
+
+Verified by: arithmetic on measured numbers (the study's table, the
+resolution study's median and run range). Assumed, not measured: that NX's
+own resolution is the station's typical one. Its edge width was not fitted;
+the NX school scans are from the same station.
+
+### 2026-11-25 — F76 on C54's real series: the strip scatter is relative, about the rate itself
+
+main man (#55) asked tools man to compare `reciprocity.dose_or_time` with
+C54's 19 real series, giving C54 its own ρ in view of its measured strip
+scatter of 88 %/h. Answered from the public, anonymised C54 tables
+(`docs/studies/xr_burns/burns.csv`: one rate per burn) by
+`tests/tools/reciprocity_real.py` (`docs/studies/reciprocity/summary.md`,
+section 6; C58).
+
+- **The same test, the same answers.** With counting errors,
+  `dose_or_time_rates` gives C54's verdict in 19 of 19 series. With C54's
+  τ of 88 %/h it gives 18 of 19.
+- **The strip scatter grows with the rate.** C54 has six groups that repeat
+  an absorber on another strip. Fitted by REML:
+  - as one additive τ: 90 %/h (66–127), against C54's 88 (64–122);
+  - as a share of the rate: ρ 1.13 (0.88–1.50).
+  - −log L is 153.6 with no strip scatter, 73.6 with τ and 54.2 with ρ. So
+    the relative form is far better (Δ(−2 log L) = 39, one parameter each).
+    Two strips of one sample at one flux differ by about their own rate,
+    and two of the groups change sign.
+- **Under ρ:** 5 dose, 1 time, 5 cannot tell, 3 no change, 5 rise and fall.
+  - One τ had hidden the rises and falls, because it exceeds the slow
+    series' rates.
+  - R06-S3 (C54's "β ≈ 0.2") reads time: β 0.23 [−0.11, 0.58].
+  - Single calls at ρ ≈ 1 are overconfident. With few burns the 95 %
+    interval covers about 0.87 (synthetic, four burns, ρ 1).
+- **Design:** at ρ 1.13, two fluxes ×10 apart need 12–16 strips per flux
+  (0.79 and 0.90 called right, never the other law). One flux's mean rate is
+  known only to ±ρ/√k. Finding why strips differ comes first.
+- **Two corrections to `dose_or_time` found on the way,** both in
+  OUTPUT_DECISIONS with before and after:
+  - with ρ, k is fitted by maximum likelihood and the verdict uses
+    likelihood-ratio tests. Reweighted least squares on χ² could shrink χ²
+    by inflating k's own variance: C54's R11-S1 got 0.72 [0.68, 0.76] at
+    ρ 1.13, and now gets 0.52 [0.16, 0.96]. The study's "as ρ" rows were
+    rerun: at 50 %, dose 0.55 → 0.80 and time 0.53 → 0.81;
+  - repeated strips at one flux are pooled for the "no change" and
+    "opposite signs" rules.
+
+Verified by: run (the tool on the committed tables; the study rerun) and
+tested (`tests/test_reciprocity.py`, `tests/test_reciprocity_study.py`).
+The cause of the strip scatter is not known. C54 suspects the specular spot
+moving in the ROI.
+
 ### 2026-11-25 — The guard's error on real joins: per-point scatter, not the join rule
 
 Verified by: a run (`tests/tools/guard_error_study.py`, synthetic data with known truth, 400 replicates per case;
@@ -6449,12 +6527,350 @@ C61, `docs/studies/guard_error/summary.md`). No default changed.
   can be estimated from data. That is a next study, together with the real excess by Qz class from the
   owner's data.
 
-### 2026-11-25 — The XRF shootout on real scatter: the owner's blanks with synthetic lines (C63)
+### 2026-11-25 — C61's walkthrough: a real split missed by 2.2 errors, from a zig-zag χ² cannot see
 
+Verified by: a run (`tests/tools/guard_error_walkthrough.py`, figure W6, `walkthrough/numbers.json`) and the
+SPEC columns of NX school scan 9 (measured). The owner's standing order (rule 13) asked for the whole chain;
+this is what the real example of that chain showed.
+
+- **The split** (C56's test with a known truth): NX scan 9 (29 points, Qz 0.17–0.45), the first half and the
+  even middle points in half a, the odd middle points and the second half in half b, × 0.8; true δ = ln 1.25.
+- **Today's default** passes the first curve (order 4, ±2, p 0.99, χ²/dof 0.08) and gives δ = 0.2341 ±
+  0.0050, against 0.2231: a pull of 2.19.
+- **The cause:** the unsplit scan over the same window (χ²/dof 1.03, ordinary) zig-zags about a smooth curve,
+  the even points +0.24 to +0.70 %, the odd −0.27 to −0.76 %. The interleaved split turns the zig-zag into a
+  factor between the halves, and the fit absorbs it into δ, leaving tiny residuals. Point-to-point structure
+  moved the factor while χ² could not see it: C61's mechanism, on one real join.
+- **Not the monitor:** Monc falls smoothly through the window. Cause unknown; a pull of 2.19 or more happens
+  2.9 % of the time with honest errors. One join decides nothing: the other two NX splits give −0.73 and 0.71,
+  and the evidence stays C56's 1091 splits.
+
+### 2026-11-25 — F98 in the burn dialog: the dose, the beam, fast mode, several burns (F76's verdict)
+
+The window side of main man's `lss_core.dose` (#52, #63) and tools man's
+`lss_core.reciprocity` (#72). Built:
+- **Axis:** the trends against time (default) or the dose
+  (`exp.burn(axis='dose')`); the change limit is then a dose, and the
+  short text says it in the dose's unit (it said "s" whatever the axis:
+  fixed, display only).
+- **The dose's settings,** passed whatever the axis (the verdict uses the
+  dose): the unit (photons, or Monc counts; photons fall back to counts
+  when the chamber's gain is unknown, and the result says so); the beam,
+  width typed and height from `exp.beam_height(near=burn)` (shown greyed,
+  its source and note in the tooltip; typed to override), for a dose per
+  mm² of **footprint** (the height stretched along the surface by 1/sin α:
+  on the synthetic burn at α 0.1°, 0.04 mm becomes 22.9 mm, measured);
+  fast mode (`shutter='open'`).
+- **Several burns at once:** the frames of two or more burn scans (each
+  scan's frames at one Qz and Qx; a scan that moves is refused, naming
+  it). Each is analysed; one is drawn at a time ("S# …").
+- **Dose or time tab:** each burn's quantity relative to its first frame
+  (a position: its change) against time and against the dose, and
+  `dose_or_time` with the strip scatter as ρ (default 0, the core's).
+- **Measured with known truth** (synthetic, two reflectivity burns, the
+  second at 4 × the monitor, intensity falling as exp(−k φ^β t)): β = 1
+  is called "dose" and β = 0 "time", β within 0.1 of the truth, the flux
+  ratio 4.00 from the doses. **NX 14/15 in the window:** intensity "no
+  change"; position "neither", β 0.85 [0.80, 0.89] on counting errors, and
+  "dose" from ρ = 10 % (5 %: still "neither"), as tools man found in the
+  core.
+
+Verified by: tested (`tests/test_gui_burn_dose.py`, 5 quick and 1 slow on
+NX).
+
+### 2026-11-25 — F107: the timeline's sx line coloured by the dose received
+
+The owner's Q-TL-7 (2026-11-24): the sx trace "coloured by the radiation
+dose per area received at each position, scaled by the dose per area of
+the relevant burn test (so colour says how close a spot is to the damage
+threshold)". Built (`lss_core.timeline.dose_track`, the Timeline's Dose
+switch):
+- **Each scan's dose** per mm² of footprint (`Experiment.dose`, photons)
+  is added to the spot its sx is at, in time order. Positions within half
+  the beam's width are one spot.
+- **The scale** is the dose per mm² at which a burn test changes by 5 %
+  (`Experiment.burn(axis='dose')`, its 95 % confident `safe_time`), or the
+  burn's own dose as a lower bound when it does not change. The burn is
+  the sample's own, between the same two "new sample?" guesses (a set sh 0
+  not answered "same sample"), else the nearest in time.
+- **Why the beam's size does not matter:** a spot's dose and the burn's are
+  both divided by the same footprint area w·h/sin α, apart from each
+  scan's sin α, so their ratio depends on the angles only. That holds when
+  one beam is used for the file (assumed). The window uses 1 mm (or the
+  burn dialog's width) and the file's beam height.
+- **Measured on NX school** (beam 1 mm × the height from its sh scans):
+  - burn 14 changes by 5 % (intensity) at 1.26 × 10¹² photons/mm², burn 15
+    (width) at 1.87 × 10¹²; these are confident bounds, not lower bounds;
+  - scans 1–4 (before the set sh 0) have no burn of their own and are
+    scaled by 14, the nearest in time;
+  - the four reflectivity scans at sx 16 bring that spot to about the
+    burn's dose (drawn red), and the burns' spot at sx 10 to about twice it.
+    So on this sample, a whole reflectivity series gives about the dose a
+    burn needs to change by 5 %.
+- **Assumptions** (asked through questor, 2026-11-25): which burn is the
+  sample's own; that Sample_X moves across the beam, so the width sets the
+  spot; that sample-height scans count in full, although the beam is
+  only partly on the sample during them.
+
+Verified by: tested (`tests/test_timeline_dose.py`, 7, with known truth;
+`tests/test_gui_timeline_dose.py`, 2 quick and 1 slow on NX); the NX numbers
+were measured by the slow test and read from its picture
+(`docs/gui/screens/14b_timeline_dose.png`).
+
+### 2026-11-25 — The timeline's Reduced lane (F83 phase 1d)
+
+Display only; no output number changes. Built:
+- **`Workbook.all_data()`** reads every result's data in one pass over the
+  Data sheet, the research's measured remedy (`data(rid)` scans the whole
+  sheet for each id: 0.48 s per result on a 300-result workbook, against
+  0.37 s for all of them). Tested equal to `data` for every result.
+- **`timeline.reduced_items`** places each saved result at its scans' times:
+  the latest version of each kind, scans and label, and a reflectivity as R
+  only. Results whose scans have no time are left out. A series (now kept on
+  the Timeline, `tl.series`) of a reducible kind with no result on any of
+  its scans gets a "not reduced" placeholder.
+- **The lane:** thumbnails of the first two columns (log R against Qz for a
+  reflectivity), amber and dashed when stale. A click opens a reflectivity
+  on the Compare tab, and another kind by selecting its scans. The workbook
+  is not created just to look.
+- **NX school (measured):** its five series (3; 6–9; GID 11–12; burns 14,
+  15) show as "not reduced" until something is saved.
+
+Verified by: tested (`tests/test_timeline_reduced.py`, 3;
+`tests/test_gui_timeline_reduced.py`, 2).
+
+### 2026-11-25 — The timeline's Environment lane (F83 phase 2)
+
+Display only; no output number changes. The macros will write the
+tensiometer, barrier and O₂ readings as columns of every point (owner,
+F75). Their names are not known yet; Q-TL-8 gave the units only (mN/m,
+cm², %). So the lane draws **any column** the user chooses:
+- `timeline.environment_columns` lists every data column, putting names
+  that look like such readings first (the timeline mock's pattern: tens,
+  barr, oxy, o2, temp, press, humid, wilh, trough, pi). The first of those
+  is chosen by itself.
+- `column_track` gives a column's values over every scan that has it, at
+  the middle of each point's count (its start plus half its Seconds), with
+  one line per scan.
+- **Measured:** a synthetic file (surface pressure rising 20 → 30.5 mN/m,
+  barrier 100 then 80 cm², O₂ 1 %) gives its values at the expected times
+  (start + 1 s, the second scan 600 s later). NX has no environment column,
+  and its Monc (276 points) stands in.
+
+Verified by: tested (`tests/test_timeline_env.py`, 3;
+`tests/test_gui_timeline_env.py`, 2).
+
+### 2026-11-25 — Answers to questions from GUI manager, main man and tools man, posted on issue #55 (batch 21)
+
+Verified by: the owner's statements; nothing computed here. **Q cuts:** the default band is half the ROI on either side. **Dose:** show the average and the peak dose, the peak split into the top 10 % of the area and the other 90 %, with a 1 mm default width and a Gauss fit of an S1 horizontal slit scan to model the beam if one exists (F109). For a beam of Gaussian profile in one dimension the dose is highest at the centre; the share of the area at or above a given level follows the error function, so a "top 10 % of the area" is defined from the profile once it is known. **Excess point scatter:** the owner does not know its size; measure it from data (`DATA_NEEDS.md` row 15). **Foil prior:** stays optional for now. **Local agent's report:** blank spectra are committed; 0.1 keV energies are kept; row 7 waits. Questions still open from those three posts: the GUI manager's 2 to 7 and 9 to 13, main man's MQ-1, 2, 4, 6 to 12, tools man's 3 to 6.
+
+### 2026-11-25 — F109's core: the dose as peak and average, and the beam's width from S1 slit scans
+
+Verified by: tests (`tests/test_dose_map.py`, 11, with known truth: closed forms, synthetic slit scans;
+I44) and a run on NX school burns 14 and 15 (the slow test; measured). The owner's answer (GUI manager Q8,
+MQ-5, through questor): prefill the width with 1 mm, but look first for an S1 horizontal slit scan to fit; show
+the average and the peak dose, the peak split into the top 10 % of the area against the other 90 %, the
+average over reasonable extents.
+
+- **The chain, ELI5.**
+  - **Photons:** the monitor gives the photons each point sent onto the sample (F98, `exp.dose`).
+  - **Where they land:** the beam is a spot about 1 mm wide and 0.03 mm tall. At a grazing angle α it lies
+    stretched along the surface by 1/sin α: at 0.1° the 0.033 mm becomes about 19 mm. So the photons spread over
+    a long thin ellipse, densest at its middle.
+  - **The dose map:** the photons per mm² at each place of that ellipse. With a Gaussian beam of √(2π)σ = width
+    and height, its middle (the **peak**) holds Σ N_i sin α_i / (width · height), which is exactly the dose per
+    area the reader has shown since F98.
+  - **The average:** dividing all the photons by "the footprint" needs a boundary, and a Gaussian has none. So
+    the reader takes the smallest area that received 90 % of the dose (for one Gaussian footprint, the 90 %
+    ellipse) and averages there.
+  - **The split:** within that area, the most exposed 10 % against the other 90 %.
+  - **For one angle and a Gaussian beam the ratios are fixed:** peak = 2.56 × average, the most exposed 10 % =
+    2.29 ×, the other 90 % = 0.86 ×. With several angles (a reflectivity series) the footprints differ in
+    length and the map is computed point by point.
+- **Measured on NX school** (beam 1 mm × 0.0333 mm, the file's height scans; one incidence each):
+
+  | burn | peak | average | over | top 10 % | other 90 % |
+  |---|---|---|---|---|---|
+  | 14 | 1.54 × 10¹² | 6.02 × 10¹¹ | 43.2 mm² | 1.38 × 10¹² | 5.16 × 10¹¹ |
+  | 15 | 7.18 × 10¹² | 2.81 × 10¹² | 43.2 mm² | 6.42 × 10¹² | 2.41 × 10¹² |
+
+  (photons/mm²; the peak equals `exp.dose(n, beam_mm=(1, 0.0333)).total()` to 10⁻⁹.)
+  - `exp.dose_summary(14)` with no beam given refuses: no height scan of the file has the burn's S1 gap
+    (0.1 mm), and the reader does not borrow one from another gap.
+- **The width from S1 slit scans** (`exp.beam_width`, `dose.slit_profile`): a scan is read by the shape that
+  fits best.
+  - **A peak** is a narrow gap moved across the beam: the beam convolved with the gap. It is corrected as
+    σ² = σ_fit² − g²/12. Without the correction, a 0.5 mm gap over a beam of σ 0.4 mm reads 6 % wide.
+  - **An edge** is one blade moved: its error-function FWHM is the beam's.
+  - **A box** is a wide gap moved: each edge gives the beam's FWHM.
+  - **On synthetic scans with known σ:** within 1 % (peak) and 2 % (edge, box).
+  - **NX school has no S1 slit scan,** so the width there is the prefill.
+- **Open:**
+  - the extents (90 % is this project's choice; the 50 % ellipse would give peak = 1.39 × average), asked
+    through questor;
+  - the motor names and shapes of real S1 slit scans, asked of the local agent (#55);
+  - the owner's open question whether the profile's upper tail is light through the downstream meniscus.
+
+### 2026-11-25 — A bad-pixel pass on the reflectivity ROI (F95 B3, C62)
+
+Verified by: a run (`tests/tools/roi_bad_pixel_study.py`, synthetic frames with known truth reduced by the
+reader's `frame_row`; 30 replicates × 96 frames × 3 beams × 3 hot-pixel rates; the public NX school frames;
+`docs/studies/roi_bad_pixels/walkthrough.md`). No default changed. The question came from the owner's
+Q-UI-B3 ("wire them": a bad-pixel threshold for the ROI) and the GUI manager's warning that a pass could
+replace sparse real signal.
+
+- **The test** is the reader's own (`TwoDDetector.removeBadPix`), applied to the ROI's three boxes. A pixel
+  is replaced by its 4 neighbours' mean when it exceeds both 4 × factor × that mean and the frame's floor,
+  (√(the frame's mean) + 2)² (about 4.5 counts on a sparse frame).
+- **Hot pixels hurt only on sparse frames, and there badly.** At 0.5 per frame (3–300 counts):
+  - at the end of a weak curve (Qz ≥ 0.3, about 8 counts in the box), a point gains 11.2 error bars of extra
+    scatter;
+  - a hot pixel in the signal box moves its point by +535 % on average, one in a background box by −337 %;
+  - the join factors' pull SD goes from 1.21 to 1.42.
+  - On bright (NX-like) frames hot pixels add at most 0.4 error bars, and no pass matters.
+- **The ROI pass at factor 10:**
+  - removes 90 % of the hot pixels on the sparse high-Qz frames;
+  - brings the joins back to 1.22;
+  - **touched no frame without a hot pixel** (21,702 frames; the closest came to 0.89 of its threshold).
+- **Factors 3–4 occasionally take real signal:** on sparse high-Qz frames, the ROI pass at factor 3 and the
+  whole-frame pass at factor 4 (today's Frames > Reduce option) changed 0.2–0.9 % of the clean frames,
+  removing 35–59 % of each such point. The GUI manager's worry is real, at those factors.
+- **Factor 40** leaves 2.9 % bias at the end of the curve.
+- **A pass on one kind of box is worse than none** (+19 %): background only gives +107 %, the signal box only
+  −87 % (6.9 error bars; joins 1.30). Each removes the hot pixels that were cancelling the others. **The pass
+  must cover all three boxes.** The signal-only arm was added after the window's first version (#95) applied
+  the pass to the signal box only.
+- **NX school (real):** no ROI pixel of scans 6–9 is replaced at any factor (closest 0.72 at factor 3, 0.57 at
+  10). Its frames are bright, so this does not test the risky case.
+- **Next:**
+  - the owner's sparse high-Qz frames, counted by the local agent (DATA_NEEDS row 16). Hot pixels there would
+    also be a candidate for C61's per-point excess, which C56 found concentrated at Qz ≥ 0.25;
+  - then the core option, the field off by default, and rule 12.
+
+### 2026-11-25 — F109 in the burn dialog: the peak and the average dose
+
+The owner (via questor, Q8 and MQ-5): "show both the average and the peak
+dose", the peak split into the most exposed 10 % of the area against the
+rest; the width from an S1 horizontal slit scan when there is one, else
+1 mm. Main man's core (`lss_core.dose`, #92). Built in the dialog:
+- **The width field's default is `exp.beam_width()`:** the slit-scan model
+  when one is accepted, else the owner's 1 mm (read as √(2π) σx). It is
+  shown greyed, with its source and note in the tooltip; a typed value
+  overrides it.
+- **"Dose: peak …, average …"** for the burn on show, from
+  `exp.dose_summary` with the dialog's own beam, unit and shutter. The
+  split and the provenance are in the tooltip. The peak equals the per-mm²
+  dose the trends use (main man), so the dose axis does not change.
+- **The extent** of the average (90 % of the dose) is the core's default.
+  The owner's choice is pending, and it is not hard-coded here.
+- **Measured on NX** (scan 15, 1 mm × 0.04 mm): peak 5.98 × 10¹², average
+  2.34 × 10¹² photons/mm² over 51.9 mm²; the top 10 % 5.34 × 10¹², the
+  rest 2.0 × 10¹².
+
+Verified by: tested (`tests/test_gui_burn_dose.py`).
+
+### 2026-11-25 — F95 B3: the ROI's own bad-pixel pass, wired and off
+
+The owner's Q-UI-B3 (2026-11-23): "a separate threshold for the ROI". The
+Reflectivity tab's "Bad Pixel Correction fac" was read but never used. It
+is now the core option C62 asked for: `reflectivity.roi_bad_pixel_pass`,
+with main man's study's arithmetic (C62, `docs/studies/roi_bad_pixels/`).
+- **What it does:** `removeBadPix`'s test on the frame's counts, with the
+  floor and the neighbours taken over the whole frame, applied only to the
+  ROI's three boxes (`display.roi_boxes`, sumROI's geometry), before the
+  sums.
+- **Where:** `frame_row(roi_bad_pixel_factor=)`, which locates the beam
+  again on the corrected frame; `exp.reflectivity`, Ref Patch (the pixels
+  corrected are listed with the result) and Analyze (one frame).
+- **Measured** (`tests/test_roi_bad_pixels.py`, synthetic):
+  - `bad_pixel_pass` without a region gives `removeBadPix`'s numbers and
+    pixels exactly (edges and corners included, 1 and 2 iterations);
+  - through `exp.reflectivity`, a 5000-count pixel in a background box of
+    the weakest frame takes half its excess from that point when the pass
+    is off (net = signal − (left + right)/2, C62's mechanism); at factor 10
+    the point is restored within 0.1 % and every other point is the same;
+  - a 4 × 10⁵-count zinger in the signal box, or in a background box, of a
+    5000-count peak is the only pixel corrected at factor 10, and the sum
+    returns to the clean one within 0.2 %;
+  - a clean peak is untouched, and so is a pixel outside the boxes;
+  - on a frame with no background at all, six real counts in one pixel are
+    removed even at factor 40 (as coded: the floor of an empty frame is
+    about 4). C62's realistic sparse frames (with background) never had a
+    clean frame touched at factor 10.
+- **Off by default** (the field empty; its old .ui default 10 is gone), so
+  no output number changes. C62's candidate default is factor 10 on the
+  three boxes, after the owner's sparse frames (DATA_NEEDS 16) and rule 12.
+
+Verified by: tested (7).
+
+### 2026-11-25 — F74 at the Ref Patch join: which residuals, against which σ?
+
+The joint fit (`lss_core.patching`, the default since 2026-11-22) fits
+both scans' window with one curve and the factor, by Poisson maximum
+likelihood. Its χ² is Σ (y − μ)²/var with var = σ²μ/max(|y|, σ): each
+point's stated variance, rescaled from the measured value to the model's.
+So the residuals in the join's panel are (y − μ)/√var, not (y − μ)/σ. The
+two differ little where μ ≈ y. Only this choice makes the squares add up to
+the χ² in the legend, and so lets the panel and the label agree (I45).
+- **Measured** (`tests/test_ref_join_residuals.py`, the synthetic data set,
+  two scans through one foil):
+  - Σ r² equals the fit's χ² to 1e-9;
+  - the factor is `join_factor`'s, and the foil's to 2 %;
+  - the curve passes through the earlier scan's points to 3 %;
+  - one point made 30 % high has the largest residual, and χ² grows
+    more than tenfold.
+- **Shown only with View > Residuals above fits on** (hidden by default,
+  F74), so the window's default view is unchanged. No output number
+  changes: the curve is the fit the factor already came from.
+
+Verified by: tested (4).
+
+### 2026-11-25 — How much do reflectivity points scatter beyond counting statistics? (DATA_NEEDS row 15, MQ-3, C63)
+
+Verified by: a run of `tests/tools/excess_scatter.py` (known truth) and of the non-cloud agent's private
+generators, which import its estimators, on 384 real reflectivity series (18 runs, 10 keV). Study:
+`docs/studies/excess_scatter/summary.md`; walkthrough beside it. The owner: "I don't know the size; measure
+it from data".
+- **Two estimators.** The ratio at Qz measured by two scans (model-free, between scans) and a 6-point
+  difference within a scan that cancels any curve up to Qz⁴. Each is fitted as a core plus outliers, with
+  τ ≥ 10 % of R. On known truth the shared-Qz core is within 0.09 % of R of the truth for X 0–3 %, with or
+  without 3 % outliers. One Gaussian reports 7 % whenever outliers are present.
+- **Within a scan:** the stated σ is about 12 % too small (s 1.12 [1.10, 1.12]). As a fraction of R the
+  excess falls with the counts (1.4 % below 10³ counts, 0.13 % above 10⁵), so it is a scale on σ plus a
+  floor of about 0.1 %, not a fixed percentage.
+- **Between scans:** 0.39 % of R [0.30, 0.48] overall (s 1.42), about 2.7 % at Qz ≥ 0.25. Low counts, a large
+  background share and minutes between the points go together there and are not told apart. 4–6 % of the
+  residuals are wild, typically 70–90 % off.
+- **It explains C56:** a 0.4 % core on C61's joins gives today's joint fit pull SD 1.36 on the smooth join
+  (1.24 with 3 % outliers), against the real 1.24 [1.09, 1.40].
+- **For the budget** (no number changed; rule 12): not one percentage. A scale of about 1.12 on σ, a
+  Qz-dependent between-scan term, and robust handling of the wild points.
+- **Open:** sample height (the height scans not yet paired with the points); a 20-frame repeat of one Qz
+  point; repeated high-Qz scans minutes apart.
+
+### 2026-11-25 — The join's error budget with the measured excess (C64)
+
+Verified by: a run (`tests/tools/excess_remedy_study.py`, C61's six synthetic joins, 400 replicates each,
+with C63's measured excess drawn in and with none; the NX school split; `docs/studies/excess_remedy/`). No
+default changed. It follows C63 (the owner's MQ-3: "measure it from data"; no excess term before a
+measurement and the owner's word).
+
+- **Wild points are the main harm, and the pull SD hides them.** With C63's 3 % wild points, 16 % of
+  today's joins miss by more than 5 oracle errors. The guard then keeps a poor curve and inflates the error
+  by √(χ²/dof) as much as the miss, so the pull stays near 1 (E3: a miss of 19 errors, the error inflated
+  18.5 ×).
+- **4σ clipping** cuts the catastrophic misses to 0.6 % and gives the oracle's pull SD (1.05 / 0.98). It
+  clips nothing when there is no excess. Student-t (ν 4) and Cauchy re-weighting only halve the misses.
+- **σ × 1.12 ⊕ X** fixes the core under-coverage (smooth pull 1.26 → 1.10). Without an excess it widens
+  the errors by 14–17 %.
+- **The key of X:** the Qz-keyed X (2.65 % at Qz ≥ 0.25) quadruples the error of NX scan 9, which is bright
+  (unsplit χ²/dof 1.03). Keyed to counts (C63's table by 1/var), it adds 30 %. On the owner's data Qz,
+  counts and background move together, so the real splits must decide (DATA_NEEDS row 17).
+- **The candidate for rule 12:** 4σ clipping first and alone; the budget's terms after the real check.
+### 2026-11-25 — The XRF shootout on real scatter: the owner's blanks with synthetic lines (C66)
 Verified by: a run (`tests/tools/xrf_blanks.py`; real scatter-only blanks with synthetic lines of known
 photons, 192 conditions x 500 spectra; `docs/studies/xrf_shootout/summary.md` section 10). No default
 changed.
-
 - **The owner's question:** had the shootout been tested on real data blanks, which capture the excitation
   scatter accurately, combined with synthetic fluorescence lines? **Not until then:** sections 1-9 used the
   generator's scatter with settings fitted to the blanks.
@@ -6466,11 +6882,9 @@ changed.
   as a line: P1 +22 % on Ni at line = background, and 26-35 photons per 100 background counts on the bare blank.
 - **P2's fixed width costs 4 % on readout A** (Fano 0.137 against P2's 0.115): Zn at 10 keV -4.4 % with
   P1+P2+P3, +0.2 % with P1+P3.
-### 2026-11-25 — The XRF shootout on real lines: the 19 private burn series (C64)
-
+### 2026-11-25 — The XRF shootout on real lines: the 19 private burn series (C67)
 Verified by: a run (`tests/tools/xrf_real_series.py`, the private MCA bundle decrypted with the owner's key;
 `docs/studies/xrf_shootout/summary.md` section 11). Summary values only. No default changed.
-
 - **Resampled twins** (Poisson draws from a series' own sum / 21) give each method a known answer on real
   shapes. The real counts are Poisson: the line window's variance after drift removal is 1.09 x its mean.
 - **At 27-58 line counts per spectrum** P1+P2+P3 is the least biased (-2 to -7.5 %); P1 reads -6 to -25 %.
@@ -6480,12 +6894,9 @@ Verified by: a run (`tests/tools/xrf_real_series.py`, the private MCA bundle dec
   P2 would need the line's own width.
 - **The scatter study's self-consistency check is blind** to a bias shared by the sum: P1 reads 0.0 % there,
   while the twins show -7 to -25 % at the lowest counts.
-
-### 2026-11-25 — Can a model stand in for the real scatter? (C65)
-
+### 2026-11-25 — Can a model stand in for the real scatter? (C68)
 Verified by: runs (`tests/tools/xrf_models.py` scatter and compare, `tests/tools/xrf_blanks.py --blank-dir` on
 scatter-only twins of the 10 clean public blanks; `docs/studies/xrf_models/README.md` part 1). No default changed.
-
 - **The owner's question:** should every test use scaled and shifted real excitation scatter, or can a model
   describe its low-energy half well enough?
 - **Measured:** under a line, the generator's defaults miss the real scatter by 12-36 % and a Gaussian detector
@@ -6497,22 +6908,19 @@ scatter-only twins of the 10 clean public blanks; `docs/studies/xrf_models/READM
 - **The real blanks hold a Cu-shaped feature** (1-11 % of a Cu box at 10 and 9.2 keV) that no twin has.
 - **Answer:** keep real blanks wherever one exists; use the full model with a measured parameter set elsewhere,
   with the floor reported.
-
-### 2026-11-25 — Real line shapes on both detectors (C66)
-
+### 2026-11-25 — Real line shapes on both detectors (C69)
 Verified by: runs (`tests/tools/xrf_lineshape.py` on the private bundle, derived numbers only;
 `tests/tools/xrf_blanks.py --line-shape`; `docs/studies/xrf_models/README.md` part 2). No default changed.
-
 - **The owner's question:** is a Gaussian enough to describe a real fluorescence line, and is that what
   synthetic data should use? Compare the 7-element detector with the single-element one.
 - **Readout A (single element): nearly.** About 5 % of a line is outside a Gaussian (a short tail; a flat
   part the fit calls a shelf may be background). But the width belongs to the detector setup: 1.03 x the
   resolution measured on the scatter in E10-k's setup, 1.19-1.24 x in E10-f's. The burn series were recorded
-  in E10-f's setup and `xrf_shootout.MEASURED_DET` is E10-k's: that is C64's "line 21 % wider".
+  in E10-f's setup and `xrf_shootout.MEASURED_DET` is E10-k's: that is C67's "line 21 % wider".
 - **Readout B (one element of the 7-element detector): no.** 23-81 % of each line (median 46 %) is in a
   48-87 eV low-energy skew; the shape is the element's (the same in both files), elements 2 and 5 cleanest,
   6 and 7 worst. The elastic-derived tail does not describe it.
 - **A header trap:** in one file the header gain of elements 5-7 is 8.6 % off; their raw channels line up
   with elements 1-4. Summing by header calibration smears the summed line to 1.37 x the resolution.
-- **Effect on the shootout (C63 rerun):** Gaussian lines change no verdict (median change 1.4 %). Real-shaped
+- **Effect on the shootout (C66 rerun):** Gaussian lines change no verdict (median change 1.4 %). Real-shaped
   B lines cost P1+P2+P3 6 % (its fixed width misses the skew); P1+P3 stays within 2 % except La L.

@@ -111,9 +111,27 @@ Each line: feature — where — default — script — notes entry (date).
   `lss_core.reciprocity.dose_or_time` says whether the drift rate goes
   with the flux (the dose: beam damage) or not (time: the sample by
   itself), as rate ∝ flux^β with β's interval, or that the data cannot
-  tell. Scripts only for now; the window's several-burns view is the GUI
-  manager's (F98). It assumes reciprocity (the same dose gives the same
-  change at any rate).
+  tell. It assumes reciprocity (the same dose gives the same change at
+  any rate). In the window (F98, 2026-11-25): select the frames of two or
+  more burn scans and press Burn Test; each is analysed ("S# …" chooses
+  whose trends are drawn), and the **Dose or time** tab draws each burn
+  against time and against the dose, with the verdict below (the rates in
+  its tooltip). "Compare" chooses the quantity (the position for GID
+  burns, where NX 14/15 decide), "Strip scatter" ρ the extra scatter
+  between strips (0 by default; on real reflectivity burns it is about
+  1.13, strips differing by about their own rate, so a verdict with ρ 0 is
+  overconfident: C58, tools man, 2026-11-25; the default is the owner's).
+- The dose in the burn dialog (F98, 2026-11-25): "Axis" fits the trends
+  against time or the dose; "Dose in" photons (needs the Monc chamber's
+  gain) or Monc counts; "Beam (mm)" width (greyed: from the S1 horizontal
+  slit scans when one is accepted, else the owner's 1 mm; F109) and height (greyed: from
+  the nearest sample-height scans, or the study's default; its tooltip
+  says which) give a dose per mm² of footprint; "Fast mode" counts the
+  wall time (the shutter open between frames). "Dose: …" beside them gives
+  the peak dose (at the beam's centre; the trends use it) and the average
+  over the area that receives most of it, with the most exposed 10 %
+  against the rest in its tooltip (F109). Terms to define: dose,
+  footprint, fast mode.
 
 ### SpecPlot
 - Log x or log y with nothing positive to show on that axis (all values
@@ -124,6 +142,48 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- Timeline, Environment lane (F83 phase 2, 2026-11-25): "Environment: …" in
+  the toolbar draws any column of the SPEC file over the session, one line
+  per scan. The tensiometer, barrier and O₂ readings (once the macros write
+  them, F75) are listed first and chosen by themselves, in mN/m, cm² and %;
+  any other column works too (Monc shows the beam over the session).
+- Timeline, Reduced lane (F83 phase 1d, 2026-11-25): every result saved in
+  the workbook, as a small picture at its scans' times (a reflectivity as
+  log R against Qz); amber and dashed when its scans have grown since; a
+  dashed "not reduced" box for a series not yet reduced. Hover for the id,
+  version, time saved and note; click to open it (a reflectivity on the
+  Compare tab, other kinds by selecting their scans). It follows the
+  workbook: a new result appears when the tab is shown again.
+- Timeline, Dose (F107, 2026-11-25): ticked, the sx line is coloured by
+  the dose each spot has received so far, as a fraction of the dose at
+  which the burn test changed by 5 %: teal none, yellow half, red the
+  burn's dose, dark red twice it. The burn is the sample's own (between
+  the same two "new sample?" guesses), else the nearest in time; each
+  segment's tooltip gives the scan's dose, the spot's total and the burn
+  used. One beam is assumed for the whole file, so its size cancels.
+  Terms to define: spot, dose per mm² of footprint.
+- Export and Save (F95, owner Q-UI-B9, 2026-11-25): **Export** always
+  writes text files, **Save** always stores into the SPEC file's workbook,
+  and both sit beside every result. Renamed: Export GID, Export GISAXS
+  (the drop-downs), Export Gradient (Plot tab), Export in the GIOXS
+  window, Export results... in the cut fit options. New: Export in the burn
+  dialog (<name>_burn.txt and _burn_trends.txt); Save beside Export
+  Spectrum (MCA) and on the Plot tab (the selected files, as read).
+- Docked windows (F95, Q-UI-B10, 2026-11-25): the burn test opens under the
+  tab area (tabbed with Messages and Script when they are shown); the GID
+  worksheet and the two fit options open on the right of the tab area,
+  tabbed together. Each scrolls inside its dock. Close hides it; drag its
+  title to another edge, or double-click it to float it as a window.
+- "Bad Pixel Correction fac" (Reflectivity tab; F95 B3, 2026-11-25): a
+  bad-pixel pass over the reflectivity ROI's three boxes (signal and
+  backgrounds), on the frame's counts before the sums. Empty (the default)
+  means none. Set, its corrections are listed with the result. main man's
+  study (C62) found factor 10 removes 90 % of hot pixels on sparse frames
+  without touching clean ones; it stays off until the owner's own sparse
+  frames are checked (rule 12).
+- Window titles (F95, Q-UI-B10, 2026-11-25): each dialog's title says what
+  it is (Ref Patch, Burn test, GIOXS, MCA merge, Plot scale, ...); they
+  were "Dialog" or "Scan Details".
 - Two readers on one SPEC file (D1, 2026-11-25): the first to need the
   workbook writes it; a second shows a yellow "read-only" light at the
   right of the status bar (its tooltip names who has it open) and saves
@@ -547,8 +607,17 @@ Each line: feature — where — default — script — notes entry (date).
   model or the errors are wrong.
 - Off by default; the choice is kept between sessions. The plot's title
   moves above the panel while it is shown.
-- Not yet on: MCA line fits (the tools session's), the Ref Patch join
-  preview, the older fit dialogs.
+- In the Ref Patch window (2026-11-25), the switch also draws the joint
+  fit's curve over the join (dashed, on the earlier scan's scale: the new
+  scan, times its factor, should lie on it) and the residuals of both
+  scans' fitted points, blue and orange as the scans. These residuals use
+  the fit's own variance, so their squares add up to the χ² in the label.
+  With the legacy fit nothing is drawn, as there is no curve.
+- The Fit Peak dialog of the Plot and MCA tabs (2026-11-25) shows the
+  residuals its fit minimised, at the points inside the fit range; the
+  curve's legend label gains χ²/dof. Fit All, which runs through the
+  frames one by one, shows none.
+- Not yet on: MCA line fits (the tools session's).
 
 ### Ref Patch checks: a message and marks (F95, 2026-11-24, Q-UI-B6, B3)
 - Before joining, Ref Patch checks each frame: is the reflected beam more

@@ -20,7 +20,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Scan Details</string>
+   <string>Bad pixels</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>

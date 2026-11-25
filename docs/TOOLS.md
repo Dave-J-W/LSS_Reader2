@@ -56,13 +56,16 @@ container on 2026-11-23 with the defaults shown.
 | [Burn line-cut demonstrator (window)](#patch-demo-burn) | window | GID line cuts of one spot over time: every burn estimator (template, moments, fit) against the known change; space bar for a new noise replicate. | synthetic (public) |  | — |
 | [Burn estimators: survey over replicates](#patch-demo-burn-survey) | text | Every burn estimator over many noise replicates of a synthetic burn: the change it reads against the truth (bias, scatter) and how often it calls a quantity stable. | synthetic (public) | 19 s | — |
 | [Burn trends of NX scans 14 and 15](#burn-figures) | figures | Burn tests over time as the Trends tab draws them (every model, the confident 5 % time) for the template and legacy moments estimators, and the three estimators compared. | public (NX school or committed tables) | 5 s | `docs/figures/burn_trends`<br>`docs/comparisons_data/burn_nx` |
-| [Beam damage or the sample by itself? The dose-or-time test (F76)](#reciprocity-study) | figures | Synthetic burns at several fluxes with a known law (the dose, time, a dose-rate effect, a mixture, no change) and strip-to-strip scatter: how often lss_core.reciprocity calls each truth right, beta's pulls, and NX school burns 14 and 15: figures R1-R5. | public (NX school or committed tables) | 35 s | `docs/studies/reciprocity` |
+| [Beam damage or the sample by itself? The dose-or-time test (F76)](#reciprocity-study) | figures | Synthetic burns at several fluxes with a known law (the dose, time, a dose-rate effect, a mixture, no change) and strip-to-strip scatter: how often lss_core.reciprocity calls each truth right, beta's pulls, and NX school burns 14 and 15: figures R1-R5. | public (NX school or committed tables) | 85 s | `docs/studies/reciprocity` |
+| [Walkthrough: from the frames to the dose-or-time verdict (F76, ELI5)](#reciprocity-walkthrough) | figures | The whole chain on public data, for the owner's standing order (2026-11-25): an NX school frame and its line cut, one position per frame, the straight-line drift with its residuals, the rates against flux with chi2(beta), C54's strip scatter by REML, one real series under three error models, and the calibration of the intervals: figures W1-W6. | public (NX school or committed tables) | 60 s | `docs/studies/reciprocity/walkthrough` |
+| [Dose or time on C54's 19 real burn series, and the strip scatter (F76)](#reciprocity-real) | figures | lss_core.reciprocity on the public, anonymised rates of the real reflectivity burns (C54): the strip scatter from the six repeated absorbers (additive and relative, REML), each series' verdict and beta under counting errors, tau and rho beside C54's, and how many strips per flux would decide at that rho: figure R6. | public (NX school or committed tables) | 90 s | `docs/studies/reciprocity/c54` |
 | [Burns against dose: damage or a changing sample?](#burn-dose-figure) | figures | NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil transmission): a beam-driven change coincides against dose, a sample changing by itself against time. | NX school by default; any SPEC file | 3 s | `docs/figures/burn_dose` |
 
 ### Reflectivity patching
 
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
+| [Walkthrough: the Qz offset from the raw frames to the judgment (F79, ELI5)](#qoff-walkthrough) | figures | The whole chain on NX school scans 6-9, for the owner's standing order (2026-11-25): a raw frame and its counted box, R and R/R_F at the edge at Qoff 0 and at the proposal, the edge fit drawn over its data with its residuals (chi2/dof 75: the rounded edge), the bootstrap, and what the beamline's resolution reads as: figures QW1-QW5. | public (NX school or committed tables) | 60 s | `docs/studies/qoff/walkthrough` |
 | [Fit demonstrator (window)](#patch-demo) | window | Reflectivity patching on synthetic scans with known truth: every method, the denoised data, pulls, factors, error bands; space bar for a new noise replicate. | synthetic (public) |  | — |
 | [Fit demonstrator: survey over replicates](#patch-demo-survey) | text | Every patching method over many noise replicates of the demonstrator's synthetic scans: bias, pull mean and pull SD per join, failures (the numbers behind the window's single replicate). | synthetic (public) | 4 s | — |
 | [Fit demonstrator report figures](#patch-demo-figures) | figures | The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per survey). | synthetic (public) |  | `docs/figures/patch_demo` |
@@ -70,6 +73,11 @@ container on 2026-11-23 with the defaults shown.
 | [Why five gauntlet joins are biased (extension 4)](#ref-patch-biased-joins) | data | The default joint fit's five biased designed joins and the covariance study's first join, redrawn with the gauntlet's seeds and fitted with the guard off, other orders and windows, noise-free. | synthetic (public) | 15 s | `docs/comparisons_data/ref_patch_biased_joins` |
 | [Do joins need coincident Qz? (synthetic)](#coincidence-synth) | figures | Two synthetic scans of known curves meeting at a join with no overlap, k coincident points, a staggered overlap or a coarser second grid, fitted by every patching method and scored against the truth: bias, pull SD, error size, share answered. | synthetic (public) | 10 s | `docs/studies/coincident_points` |
 | [Qoff and Qc of R/R_F: the proposer's study (F79)](#qoff-study) | figures | Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and least squares) and the joint Qc + Qoff fit against the truth over offsets, samples, counts, outliers, resolution, a wrong Qc and the reader's patch; the NX school scans at the GUI's preset and at the proposals: figures Q1-Q5. | public (NX school or committed tables) |  | `docs/studies/qoff` |
+| [The join's error budget with the measured excess: scale, X, robust weights, clipping (C64)](#excess-remedy-study) | figures | C61's six synthetic joins with C63's measured excess drawn in (and with none), fitted by today's joint fit with the stated sigma, sigma x 1.12, the budget with X by Qz or by counts, Student-t or Cauchy re-weighting, 4-sigma clipping, or an oracle; the NX school split. Figures E1-E3: the pulls, the catastrophic misses the pull SD hides, and one join with a wild point fitted two ways. | public (NX school or committed tables) | 45 s | `docs/studies/excess_remedy` |
+| [A bad-pixel pass on the reflectivity ROI: hot pixels, sparse frames, the factor (F95 B3, C62)](#roi-bad-pixel-study) | figures | Synthetic frames with known truth (bright, sharp and sparse beams; 0-0.5 hot pixels per frame) reduced by the reader's frame_row after no pass, the whole-frame pass at factor 4, the ROI pass at factors 3, 10 and 40, or the background boxes only; the NX school frames. Figures R1-R5: one sparse frame, the extra scatter per point, the threshold, the join pulls, and how close clean frames come to a correction. | public (NX school or committed tables) | 110 s | `docs/studies/roi_bad_pixels` |
+| [Walkthrough: why join error bars are too small, from two scans to the verdict (C61, ELI5)](#guard-error-walkthrough) | figures | The whole chain of the guard's-error study, for the owner's standing order (2026-11-25): two scans and the factor read off their shared points, with and without 2 % hidden scatter; the joint fit drawn over its data with its residuals; the guard's ladder of p-values; the pulls and coverage over 400 replicates, today's rule against honest per-point errors; a fringed join, where inflating by the order-4 chi2 fails; and a real NX school scan split with a known factor: figures W1-W6. | public (NX school or committed tables) | 6 s | `docs/studies/guard_error/walkthrough` |
+| [Scatter beyond counting statistics: the estimators on known truth (DATA_NEEDS row 15)](#excess-scatter) | figures | Synthetic reflectivity series (water, DPPC, a 100 Å film) with a known per-point excess X, a slow drift or 3 % outliers: the shared-Qz estimator (one Gaussian, and a core plus outliers) and the 6-point within-scan difference, each against the truth (figure X1); then the pull SD of today's joint fit on C61's joins with the excess measured on real data (pulls.csv). | synthetic (public) | 900 s | `docs/studies/excess_scatter/X1_known_truth.png`<br>`docs/studies/excess_scatter/known_truth.csv`<br>`docs/studies/excess_scatter/pulls.csv`<br>`docs/studies/excess_scatter/numbers.json` |
+| [Walkthrough: scatter beyond counting, from two scans to the verdict (DATA_NEEDS row 15, ELI5)](#excess-scatter-walkthrough) | figures | The whole chain of the excess-scatter study (rule 13): two NX school scans and their shared Qz; the ratio at the shared points with its mean and residuals; the 6-point difference within a scan; the likelihood and the core + outlier model on known truth; the real results by what they might follow, from the committed derived tables: figures W1-W5. | public (NX school or committed tables) | 40 s | `docs/studies/excess_scatter/walkthrough` |
 | [The guard's error: why join error bars are too small on real data](#guard-error-study) | figures | Study A's six joins with hidden per-point scatter (0-3 %): today's error rule against inflating by the unguarded fit's chi2, the larger inflation, the larger error, the guard off, and an oracle per-point budget; the NX school split. Figures G1-G3: only honest per-point errors fix both smooth and fringed joins. | public (NX school or committed tables) | 35 s | `docs/studies/guard_error` |
 | [Study A: how strict the joint fit's guard should be](#ref-guard-study) | figures | The guard's p from 0.001 to 0.9, the guard off, an AICc average and the legacy factor on C45's six joins (C45 reproduced first), a downstream fit, the NX school joins beside the foil ratio, and a robustness map over fringe sampling and counts, on coinciding and staggered grids: figures A1-A8, R and RS. | public (NX school or committed tables) | 54 s | `docs/studies/reflectivity_guard` |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
@@ -119,7 +127,7 @@ container on 2026-11-23 with the defaults shown.
 | [XRF shootout on real blanks: synthetic lines in measured scatter](#xrf-blanks) | data | Synthetic fluorescence lines of known photons (Zn, Cu, Ni, Cr, Ti K and La L) injected into the 10 clean real scatter-only blanks the owner allowed (tests/reference/mca_scatter), each thinned to 1000 or 3000 background counts in the line box and given its own measured detector; every method of the shootout scored on them, and the false line each reports on the bare blank. Needs the shootout packages; about 50 minutes on 22 CPUs as committed. | public (NX school or committed tables) |  | `docs/studies/xrf_shootout/run_blanks`<br>`docs/studies/xrf_shootout/run_blanks_options`<br>`docs/studies/xrf_models/scatter/run_full`<br>`docs/studies/xrf_models/scatter/run_generator`<br>`docs/studies/xrf_models/scatter/run_gaussian`<br>`docs/studies/xrf_models/scatter/run_full_redraw`<br>`docs/studies/xrf_models/shape` |
 | [XRF shootout on real lines: the private burn series](#xrf-real-series) | data | Every shootout method on the 19 private burn series (readout A, 10 keV, a line near 8 keV), each against 20 resampled twins with the series own shape and a known answer, successive-difference pulls and agreement on the sums. Needs the decrypted private bundle (docs/studies/xrf_shootout/README.md, step 2f) and the shootout packages; writes summary values only. | private (not in the repository) |  | `docs/studies/xrf_shootout/run_real` |
 | [Scatter models against the real blanks](#xrf-models-scatter) | data | Every committed blank fitted by three scatter models (the synthetic shootout's generator, a Gaussian detector, the full model with tails and shelf free): the misfit in the boxes a line is fitted in, at full counts and at the shootout's, the nuisance lines each fit puts in, and a model twin of each clean blank drawn from its scatter alone (for xrf_blanks.py --blank-dir). About 4 minutes on 13 CPUs. | public (NX school or committed tables) |  | `docs/studies/xrf_models/scatter/ladder.csv`<br>`docs/studies/xrf_models/scatter/residuals.csv`<br>`docs/studies/xrf_models/scatter/twins_full`<br>`docs/studies/xrf_models/scatter/twins_generator`<br>`docs/studies/xrf_models/scatter/twins_gaussian`<br>`docs/studies/xrf_models/scatter/twins_full_redraw` |
-| [Scatter models: the twins' shootout against the real blanks'](#xrf-models-compare) | data | Every method's bias on the model twins of the blanks against its bias on the real blanks (C63), per condition, and the verdicts: whether a scatter model can stand in for the real scatter in tests of line fits. Reads the runs of xrf_blanks.py on the twins (seconds). | public (NX school or committed tables) |  | `docs/studies/xrf_models/scatter/compare.csv`<br>`docs/studies/xrf_models/scatter/compare_zero.csv`<br>`docs/studies/xrf_models/scatter/compare_summary.csv` |
+| [Scatter models: the twins' shootout against the real blanks'](#xrf-models-compare) | data | Every method's bias on the model twins of the blanks against its bias on the real blanks (C66), per condition, and the verdicts: whether a scatter model can stand in for the real scatter in tests of line fits. Reads the runs of xrf_blanks.py on the twins (seconds). | public (NX school or committed tables) |  | `docs/studies/xrf_models/scatter/compare.csv`<br>`docs/studies/xrf_models/scatter/compare_zero.csv`<br>`docs/studies/xrf_models/scatter/compare_summary.csv` |
 | [Real line shapes on both detectors](#xrf-lineshape) | data | Real fluorescence lines of the single-element readout (an L family at 10^6 counts, the burn series' K line) and of every element of the seven-element readout, fitted with a ladder of shapes from a Gaussian at the resolution to two tails and a shelf: is a Gaussian enough? Needs the decrypted private bundle; the public table holds derived numbers only (about a minute). | private (not in the repository) |  | `docs/studies/xrf_models/lines` |
 | [Scatter at beam energies with no data: leave one energy out](#xrf-scatter-energy) | data | How to synthesise the excitation scatter at a beam energy with no measured spectrum: every readout B pre-edge sum fitted with the scatter model, each energy held out in turn and predicted from the others by the generator's defaults, the nearest spectrum shifted, smooth parameters, and a whole measured parameter set carried by the physics (the recommended one); and readout B's sets tried on readout A. Needs the decrypted private bundle; its tables and figures stay private (about 15 minutes on 8 CPUs). | private (not in the repository) |  | — |
 | [Models study figures (M1-M5)](#xrf-models-figures) | figures | The scatter models on four public blanks with residuals, their misfit in the line boxes, every method's bias on the model twins against the real blanks, the shape ladder on real lines (numbers only), and the verdicts with Gaussian and real-shaped lines. | public (NX school or committed tables) |  | `docs/studies/xrf_models/M*.png` |
@@ -152,6 +160,7 @@ container on 2026-11-23 with the defaults shown.
 | [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, the guards, rise against fall and what the meniscus does. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
 | [GID stray light over many sets (private data)](#gid-stray-light-private) | external | P40 on every private GID set (DATA_NEEDS row 10): light past S5 and beyond the footprint at both arm heights, per beamtime, and the beam-path background from frames with the sample lowered. Made by the non-cloud agent's private generator (sample_data/private/gid/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/gid_stray_light` |
 | [GID defaults judged on many sets (private data)](#gid-method-survey-private) | external | Hand-off 06 on every private GID set (DATA_NEEDS row 12): the S4-detector distance calibration per beamtime, the column responses ranked by frames agree, the joins as collected and fitted, the split test and the single frames as ground truth. Made by tests/tools/gid_method_survey.py on the private sets and the non-cloud agent's private aggregation (sample_data/private/gid/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/gid_method_survey` |
+| [Real reflectivity: scatter beyond counting statistics (private data)](#xr-excess-scatter) | external | The excess per-point scatter of 384 real reflectivity series (DATA_NEEDS row 15): the core excess and the outlier share, between scans (shared Qz) and within a scan, overall and by Qz, counts, time, background, monitor and absorber. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the real_*.csv beside the study, and the walkthrough draws them (W5). | private (not in the repository) |  | `docs/studies/excess_scatter/real_overall.csv`<br>`docs/studies/excess_scatter/real_by.csv`<br>`docs/studies/excess_scatter/real_runs.csv`<br>`docs/studies/excess_scatter/real_tails.csv`<br>`docs/studies/excess_scatter/real_scale.csv`<br>`docs/studies/excess_scatter/real_time_by_qz.csv`<br>`docs/studies/excess_scatter/real_numbers.json` |
 | [Real reflectivity burns: trends, dose or time (private data)](#xr-burns) | external | The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): the drift rate against flux and the dose-or-time verdicts per series. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. The frame-by-frame curves (B1) are private (owner, 2026-11-25). | private (not in the repository) |  | `docs/studies/xr_burns` |
 | [Qz resolution near the critical edge (private data)](#qz-resolution) | external | The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NEEDS row 13, F79): the resolution per run and S1 gap, the fit's sensitivity, a known-truth check and the coverage of the fits' errors. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/qz_resolution` |
 | [Reflectivity patching on real series (private data)](#ref-patch-real) | external | Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the non-cloud agent from tests/tools/ref_patch_survey.py on private files; not regenerable here; the numbers are the CSVs beside the figure. | private (not in the repository) |  | `docs/studies/ref_patch_real` |
@@ -243,6 +252,41 @@ Variations:
 | Few frames, little change | 11-41 frames, 0.3-3 % noise, a 2-20 % fall: when time cannot be shown. | `docs/studies/reciprocity/summary.md## 3. Few frames, little change` | `python tests/tools/reciprocity_study.py --out '{out}' --design frames,noise,change` |
 | More replicates (1000) | Every design with 1000 replicates (about 2 min). | `docs/studies/reciprocity/summary.md## 1. How often is each truth called right?` | `python tests/tools/reciprocity_study.py --out '{out}' --replicates 1000` |
 
+<a id="reciprocity-walkthrough"></a>
+
+### Walkthrough: from the frames to the dose-or-time verdict (F76, ELI5)
+
+The whole chain on public data, for the owner's standing order (2026-11-25): an NX school frame and its line cut, one position per frame, the straight-line drift with its residuals, the rates against flux with chi2(beta), C54's strip scatter by REML, one real series under three error models, and the calibration of the intervals: figures W1-W6.
+
+- Menu: Tools > Burn tests; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/reciprocity_walkthrough.py`
+- Explained in: `docs/studies/reciprocity/walkthrough.md`, `docs/studies/reciprocity/summary.md`
+- Committed products: `docs/studies/reciprocity/walkthrough`; not replaced from the window
+- Run:
+
+      python tests/tools/reciprocity_walkthrough.py --out '{out}'
+
+
+<a id="reciprocity-real"></a>
+
+### Dose or time on C54's 19 real burn series, and the strip scatter (F76)
+
+lss_core.reciprocity on the public, anonymised rates of the real reflectivity burns (C54): the strip scatter from the six repeated absorbers (additive and relative, REML), each series' verdict and beta under counting errors, tau and rho beside C54's, and how many strips per flux would decide at that rho: figure R6.
+
+- Menu: Tools > Burn tests; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/reciprocity_real.py`
+- Explained in: `docs/studies/reciprocity/summary.md## 6. C54's 19 real series (2026-11-25)`, `docs/studies/xr_burns/summary.md`, `docs/COMPARISONS.md#| C58 |`
+- Committed products: `docs/studies/reciprocity/c54`; not replaced from the window
+- Run:
+
+      python tests/tools/reciprocity_real.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Without the design (seconds) | Only the strip scatter, the verdicts and R6; no strips-per-flux simulation. | `docs/studies/reciprocity/summary.md## 6. C54's 19 real series (2026-11-25)` | `python tests/tools/reciprocity_real.py --out '{out}' --design-replicates 0` |
+| Strips per flux, 1000 replicates | The design at the fitted rho with 1000 replicates per cell (about 7 min). | `docs/studies/reciprocity/summary.md#12–16 strips per flux` | `python tests/tools/reciprocity_real.py --out '{out}' --design-replicates 1000` |
+| Another additive strip scatter | C54's tau replaced (here 150 %/h) beside the one fitted. | `docs/studies/xr_burns/summary.md#88 %/h (64–122)` | `python tests/tools/reciprocity_real.py --out '{out}' --tau-c54 150` |
+
 <a id="burn-dose-figure"></a>
 
 ### Burns against dose: damage or a changing sample?
@@ -263,6 +307,20 @@ Variations:
 | Nominal foils (1.4247 per unit) | The flux ratio of the docs' "4.1x" instead of the calibrated 4.68: the dose ratio of the drifts moves from 0.79 to 0.90. | `docs/physics_notes.md#The position drifts` | `python tests/tools/burn_dose_figure.py --out '{out}' --absorbers nominal` |
 | One spot measured twice | Scan 15's dose and time follow scan 14's: 15 starts where 14 ended, as one spot would. | `docs/handoff_out/07-burn-trends.md#scans at different` | `python tests/tools/burn_dose_figure.py --out '{out}' --join` |
 | Moments estimator | The legacy moments instead of the template. | `docs/handoff_out/07-burn-trends.md` | `python tests/tools/burn_dose_figure.py --out '{out}' --estimator moments` |
+
+<a id="qoff-walkthrough"></a>
+
+### Walkthrough: the Qz offset from the raw frames to the judgment (F79, ELI5)
+
+The whole chain on NX school scans 6-9, for the owner's standing order (2026-11-25): a raw frame and its counted box, R and R/R_F at the edge at Qoff 0 and at the proposal, the edge fit drawn over its data with its residuals (chi2/dof 75: the rounded edge), the bootstrap, and what the beamline's resolution reads as: figures QW1-QW5.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/qoff_walkthrough.py`
+- Explained in: `docs/studies/qoff/walkthrough.md`, `docs/studies/qoff/summary.md`
+- Committed products: `docs/studies/qoff/walkthrough`; not replaced from the window
+- Run:
+
+      python tests/tools/qoff_walkthrough.py --out '{out}'
+
 
 <a id="patch-demo"></a>
 
@@ -421,6 +479,98 @@ Variations:
 | Resolution | A Qz resolution of 0.0002 to 0.001 Å⁻¹ FWHM smears the edge and reads as a negative Qoff. | `docs/studies/qoff/summary.md### 3. Resolution` | `python tests/tools/qoff_study.py --out '{out}' --design resolution` |
 | A wrong Qc | 1 M NaCl reduced at water's Qc and the other way round: Qoff absorbs the error one for one; the joint fit lies on Qc − Qoff = constant. | `docs/studies/qoff/summary.md### 4. A wrong Qc, and Qc with Qoff` | `python tests/tools/qoff_study.py --out '{out}' --design qc` |
 | More replicates (200) | Every design with 200 replicates (about 15 min). | `docs/studies/qoff/summary.md### 1. Do they find the offset?` | `python tests/tools/qoff_study.py --out '{out}' --replicates 200` |
+
+<a id="excess-remedy-study"></a>
+
+### The join's error budget with the measured excess: scale, X, robust weights, clipping (C64)
+
+C61's six synthetic joins with C63's measured excess drawn in (and with none), fitted by today's joint fit with the stated sigma, sigma x 1.12, the budget with X by Qz or by counts, Student-t or Cauchy re-weighting, 4-sigma clipping, or an oracle; the NX school split. Figures E1-E3: the pulls, the catastrophic misses the pull SD hides, and one join with a wild point fitted two ways.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/excess_remedy_study.py`
+- Explained in: `docs/studies/excess_remedy/walkthrough.md`, `docs/studies/excess_remedy/summary.md`, `docs/COMPARISONS.md#| C64 |`
+- Committed products: `docs/studies/excess_remedy`; not replaced from the window
+- Run:
+
+      python tests/tools/excess_remedy_study.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Quick look | Every figure from 40 replicates per join (about 5 s): the pattern, not the decimals. | `docs/studies/excess_remedy/walkthrough.md#Each is drawn 400 times` | `python tests/tools/excess_remedy_study.py --out '{out}' --reps 40` |
+| Synthetic only | Without the NX school split. | `docs/studies/excess_remedy/walkthrough.md#A real check: the NX school split` | `python tests/tools/excess_remedy_study.py --out '{out}' --no-nx` |
+
+<a id="roi-bad-pixel-study"></a>
+
+### A bad-pixel pass on the reflectivity ROI: hot pixels, sparse frames, the factor (F95 B3, C62)
+
+Synthetic frames with known truth (bright, sharp and sparse beams; 0-0.5 hot pixels per frame) reduced by the reader's frame_row after no pass, the whole-frame pass at factor 4, the ROI pass at factors 3, 10 and 40, or the background boxes only; the NX school frames. Figures R1-R5: one sparse frame, the extra scatter per point, the threshold, the join pulls, and how close clean frames come to a correction.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/roi_bad_pixel_study.py`
+- Explained in: `docs/studies/roi_bad_pixels/walkthrough.md`, `docs/studies/roi_bad_pixels/summary.md`, `docs/COMPARISONS.md#| C62 |`
+- Committed products: `docs/studies/roi_bad_pixels`; not replaced from the window
+- Run:
+
+      python tests/tools/roi_bad_pixel_study.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Quick look | Every figure from 5 replicates (about 20 s): the pattern, not the decimals. | `docs/studies/roi_bad_pixels/walkthrough.md#30 replicates` | `python tests/tools/roi_bad_pixel_study.py --out '{out}' --reps 5` |
+| Synthetic only | Without the NX school frames. | `docs/studies/roi_bad_pixels/walkthrough.md#NX school (real, public)` | `python tests/tools/roi_bad_pixel_study.py --out '{out}' --no-nx` |
+
+<a id="guard-error-walkthrough"></a>
+
+### Walkthrough: why join error bars are too small, from two scans to the verdict (C61, ELI5)
+
+The whole chain of the guard's-error study, for the owner's standing order (2026-11-25): two scans and the factor read off their shared points, with and without 2 % hidden scatter; the joint fit drawn over its data with its residuals; the guard's ladder of p-values; the pulls and coverage over 400 replicates, today's rule against honest per-point errors; a fringed join, where inflating by the order-4 chi2 fails; and a real NX school scan split with a known factor: figures W1-W6.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/guard_error_walkthrough.py`
+- Explained in: `docs/studies/guard_error/walkthrough.md`, `docs/studies/guard_error/summary.md`
+- Committed products: `docs/studies/guard_error/walkthrough`; not replaced from the window
+- Run:
+
+      python tests/tools/guard_error_walkthrough.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Quick look | The pulls of W4 from 40 replicates (about 2 s): the pattern, not the decimals. | `docs/studies/guard_error/walkthrough.md#Over 400 replicates of this join` | `python tests/tools/guard_error_walkthrough.py --out '{out}' --reps 40` |
+
+<a id="excess-scatter"></a>
+
+### Scatter beyond counting statistics: the estimators on known truth (DATA_NEEDS row 15)
+
+Synthetic reflectivity series (water, DPPC, a 100 Å film) with a known per-point excess X, a slow drift or 3 % outliers: the shared-Qz estimator (one Gaussian, and a core plus outliers) and the 6-point within-scan difference, each against the truth (figure X1); then the pull SD of today's joint fit on C61's joins with the excess measured on real data (pulls.csv).
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/excess_scatter.py`
+- Explained in: `docs/studies/excess_scatter/summary.md`, `docs/COMPARISONS.md#| C63 |`
+- Committed products: `docs/studies/excess_scatter/X1_known_truth.png`, `docs/studies/excess_scatter/known_truth.csv`, `docs/studies/excess_scatter/pulls.csv`, `docs/studies/excess_scatter/numbers.json`; replaced from the window with the settings that made them (into `docs/studies/excess_scatter`)
+- Run:
+
+      python tests/tools/excess_scatter.py --out '{out}' --trials 40 --pulls 200
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Quick look | 5 estimates per cell and no pull check: the pattern of X1 in about a minute. | `docs/studies/excess_scatter/summary.md## The known-truth check` | `python tests/tools/excess_scatter.py --out '{out}' --trials 5 --pulls 0` |
+
+<a id="excess-scatter-walkthrough"></a>
+
+### Walkthrough: scatter beyond counting, from two scans to the verdict (DATA_NEEDS row 15, ELI5)
+
+The whole chain of the excess-scatter study (rule 13): two NX school scans and their shared Qz; the ratio at the shared points with its mean and residuals; the 6-point difference within a scan; the likelihood and the core + outlier model on known truth; the real results by what they might follow, from the committed derived tables: figures W1-W5.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/excess_scatter_walkthrough.py`
+- Explained in: `docs/studies/excess_scatter/walkthrough.md`, `docs/studies/excess_scatter/summary.md`
+- Committed products: `docs/studies/excess_scatter/walkthrough`; not replaced from the window
+- Run:
+
+      python tests/tools/excess_scatter_walkthrough.py --out '{out}'
+
 
 <a id="guard-error-study"></a>
 
@@ -1099,7 +1249,7 @@ Variations:
 
 ### Scatter models: the twins' shootout against the real blanks'
 
-Every method's bias on the model twins of the blanks against its bias on the real blanks (C63), per condition, and the verdicts: whether a scatter model can stand in for the real scatter in tests of line fits. Reads the runs of xrf_blanks.py on the twins (seconds).
+Every method's bias on the model twins of the blanks against its bias on the real blanks (C66), per condition, and the verdicts: whether a scatter model can stand in for the real scatter in tests of line fits. Reads the runs of xrf_blanks.py on the twins (seconds).
 
 - Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_models.py`
 - Explained in: `docs/studies/xrf_models/README.md`
@@ -1394,6 +1544,16 @@ Hand-off 06 on every private GID set (DATA_NEEDS row 12): the S4-detector distan
 - Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
 - Explained in: `docs/studies/gid_method_survey/summary.md`, `docs/handoff_out/06-gid-method-comparison.md`
 - Committed products: `docs/studies/gid_method_survey`; not replaced from the window
+
+<a id="xr-excess-scatter"></a>
+
+### Real reflectivity: scatter beyond counting statistics (private data)
+
+The excess per-point scatter of 384 real reflectivity series (DATA_NEEDS row 15): the core excess and the outlier share, between scans (shared Qz) and within a scan, overall and by Qz, counts, time, background, monitor and absorber. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the real_*.csv beside the study, and the walkthrough draws them (W5).
+
+- Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
+- Explained in: `docs/studies/excess_scatter/summary.md`
+- Committed products: `docs/studies/excess_scatter/real_overall.csv`, `docs/studies/excess_scatter/real_by.csv`, `docs/studies/excess_scatter/real_runs.csv`, `docs/studies/excess_scatter/real_tails.csv`, `docs/studies/excess_scatter/real_scale.csv`, `docs/studies/excess_scatter/real_time_by_qz.csv`, `docs/studies/excess_scatter/real_numbers.json`; not replaced from the window
 
 <a id="xr-burns"></a>
 

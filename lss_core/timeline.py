@@ -123,6 +123,7 @@ class Timeline:
     notes: list = field(default_factory=list)
     utc_offset: float = 0.0         # s by which the file's local clock is ahead of UTC (0 when not known)
     positions: dict = field(default_factory=dict)   # motor -> [(scan, scan start, value at its #P)]
+    series: list = field(default_factory=list)      # (series id, kind, [data scans]) of lss_core.series
 
     def of_kind(self, kind):
         return [e for e in self.events if e.kind == kind]
@@ -229,6 +230,7 @@ def build(exp, motors=DEFAULT_MOTORS, gap_minutes=GAP_MINUTES, fit_heights=True)
     for g in sermod.all_series(list(info.values())):
         for n in set(g.scans.values()):
             kind_of[n] = g.kind
+        tl.series.append((str(g.id), g.kind, sorted(set(int(n) for n in g.scans.values()))))
     offset = None
     for n in nums:
         p = exp.scans[n].parameters
@@ -364,3 +366,314 @@ def answers(notes, tolerance=1.0):
         return max(hits, key=lambda n: (n.rid, n.version)).answer
     return of
 
+
+
+# ---- F107 (owner, 2026-11-24, Q-TL-7): the dose each spot has received ----
+#
+# "The sx trace ... coloured by the radiation dose per area received at each
+# position, scaled by the dose per area of the relevant burn test (so colour
+# says how close a spot is to the damage threshold)." Each scan's dose per mm²
+# of footprint (lss_core.dose, through Experiment.dose) is added to the spot
+# its sx is at; the scale is the dose per mm² at which a burn test changes by
+# CHANGE (5 %), from Experiment.burn(axis='dose'). The burn is the sample's
+# own (one between the same two "new sample?" guesses, a set sh 0 not
+# answered "same sample"), else the nearest in time (the owner's rule; the
+# "own" reading is an assumption, asked through questor 2026-11-25).
+#
+# Assumptions, said in the window: one beam for the whole file, so that the
+# fraction does not depend on the beam's size, only on each scan's footprint
+# (its incidence angle); positions within ``same_spot_mm`` (half the beam's
+# width) are one spot; every scan counts in full, sample-height scans too,
+# although the beam is only partly on the sample during them.
+
+import bisect as _bisect
+
+CHANGE = 0.05
+
+
+@dataclass
+class SpotDose:
+    """One scan's dose at its spot: ``dose`` received during the scan, and
+    ``cumulative`` at the spot after it (per mm², in the track's unit);
+    ``fraction`` of the scale's dose (None: no scale)."""
+    scan: int
+    t0: float
+    t1: float
+    sx: float
+    spot: int
+    dose: float
+    cumulative: float
+    fraction: float = None
+    burn: int = None
+    own: bool = None               # the scale is this sample's own burn (False: the nearest in time)
+
+
+@dataclass
+class DoseScale:
+    """The dose per mm² (the track's unit) at which burn ``burn`` changes by
+    CHANGE in ``quantity``; ``lower_bound``: it did not change within its own
+    dose, so the scale is at least that."""
+    burn: int
+    dose: float
+    quantity: str
+    lower_bound: bool = False
+    note: str = ''
+
+    def describe(self, unit=''):
+        return 'S# %d: %s%.3g %s to a %.0f %% change%s' % (
+            self.burn, '≥ ' if self.lower_bound else '', self.dose, unit or 'per mm²', 100 * CHANGE,
+            ' in %s' % self.quantity if self.quantity else ' (%s)' % self.note if self.note else '')
+
+
+@dataclass
+class DoseTrack:
+    rows: list
+    unit: str = ''
+    scales: dict = field(default_factory=dict)      # burn scan -> DoseScale (None: not worked out)
+    notes: list = field(default_factory=list)
+
+
+def sample_segments(tl, notes=()):
+    """(segment of a time, the times splitting the file into samples): a new
+    sample at each 'set-zero' event not answered 'same sample'."""
+    of = answers(notes)
+    cuts = sorted(e.t for e in tl.of_kind('set-zero') if of(e) != 'same sample')
+    return (lambda t: _bisect.bisect_right(cuts, t)), cuts
+
+
+def _base_unit(unit, scale):
+    """'1e+12 photons/mm2' with scale 1e12 -> 'photons/mm2'."""
+    head, _, rest = str(unit).partition(' ')
+    try:
+        float(head)
+        return rest
+    except ValueError:
+        return str(unit)
+
+
+def burn_scale(exp, burn, beam_mm, unit='photons', **kw):
+    """The DoseScale of burn scan ``burn`` (Experiment.burn on the dose axis)."""
+    res = exp.burn(burn, axis='dose', beam_mm=beam_mm, dose_unit=unit, threshold=CHANGE, **kw)
+    scale = float(res.dose_scale or 1.0)
+    d, q = res.safe_time()
+    if d is not None and np.isfinite(d):
+        return DoseScale(burn, float(d) * scale, q), _base_unit(res.dose_unit, scale)
+    total = float(res.dose_total or 0.0) * scale
+    return DoseScale(burn, total, '', lower_bound=True,
+                     note='no %.0f %% change within its own dose' % (100 * CHANGE)), _base_unit(res.dose_unit, scale)
+
+
+def dose_track(exp, tl, beam_mm, notes=(), motor='Sample_X', same_spot_mm=None, unit='photons', scale_of=None):
+    """The dose of every scan with a position, by spot, and its fraction of
+    the relevant burn test's dose to a CHANGE change (module notes above).
+    ``scale_of``: burn scan -> (DoseScale, unit), for tests (default
+    ``burn_scale``)."""
+    scale_of = scale_of or (lambda n: burn_scale(exp, n, beam_mm, unit))
+    tol = float(same_spot_mm) if same_spot_mm is not None else float(beam_mm[0]) / 2.0
+    where = {n: v for n, _t, v in tl.positions.get(motor, [])}
+    out = DoseTrack([])
+    spots, totals = [], {}
+    for s in sorted(tl.spans, key=lambda s: s.t0):
+        if s.scan not in where:
+            continue
+        try:
+            d = exp.dose(s.scan, unit=unit, beam_mm=beam_mm)
+        except Exception as e:          # a scan without a monitor, an energy, an angle: said, left out
+            out.notes.append('S# %d: no dose (%s)' % (s.scan, e))
+            continue
+        if not out.unit:
+            out.unit = d.unit
+        elif d.unit != out.unit:
+            out.notes.append('S# %d: dose in %s, not %s: left out' % (s.scan, d.unit, out.unit))
+            continue
+        sx = float(where[s.scan])
+        k = next((i for i, v in enumerate(spots) if abs(v - sx) <= tol), None)
+        if k is None:
+            spots.append(sx)
+            k = len(spots) - 1
+        totals[k] = totals.get(k, 0.0) + d.total()
+        out.rows.append(SpotDose(s.scan, s.t0, s.t1, sx, k, d.total(), totals[k]))
+    burns = [s for s in tl.spans if s.kind == 'burn']
+    if not burns:
+        out.notes.append('no burn test in this file: no scale')
+        return out
+    seg, _cuts = sample_segments(tl, notes)
+    mid = {b.scan: (b.t0 + b.t1) / 2.0 for b in burns}
+    for r in out.rows:
+        t = (r.t0 + r.t1) / 2.0
+        own = [b for b in burns if seg(mid[b.scan]) == seg(t)]
+        pick = min(own or burns, key=lambda b: abs(mid[b.scan] - t))
+        if pick.scan not in out.scales:
+            try:
+                sc, u = scale_of(pick.scan)
+                if u != out.unit:
+                    out.notes.append('S# %d: its dose is in %s, not %s: no scale' % (pick.scan, u, out.unit))
+                    sc = None
+            except Exception as e:
+                out.notes.append('S# %d: no scale (%s)' % (pick.scan, e))
+                sc = None
+            out.scales[pick.scan] = sc
+        sc = out.scales[pick.scan]
+        if sc is not None and sc.dose > 0:
+            r.fraction, r.burn, r.own = r.cumulative / sc.dose, pick.scan, bool(own)
+    return out
+
+
+# colours of a fraction of the scale: 0 teal, 0.5 yellow, 1 red-orange, 2 and above dark red
+DOSE_COLOURS = ((0.0, (42, 157, 143)), (0.5, (233, 196, 106)), (1.0, (231, 111, 81)), (2.0, (155, 34, 38)))
+
+
+def dose_colour(fraction):
+    """(r, g, b) of a fraction (None: grey)."""
+    if fraction is None or not np.isfinite(fraction):
+        return (140, 140, 140)
+    f = max(0.0, float(fraction))
+    for (f0, c0), (f1, c1) in zip(DOSE_COLOURS, DOSE_COLOURS[1:]):
+        if f <= f1:
+            w = (f - f0) / (f1 - f0)
+            return tuple(int(round(a + w * (b - a))) for a, b in zip(c0, c1))
+    return DOSE_COLOURS[-1][1]
+
+
+# ---- phase 1d (research §4): the reduced data on the timeline, from the workbook ----
+
+# the workbook kinds a series kind's results are saved as, and the label drawn (one per result)
+RESULT_KINDS = {'reflectivity': ('reflectivity',), 'gid': ('gid map', 'gid cut'), 'burn': ('burn test',),
+                'xfntr': ('fluorescence',), 'gisaxs': ('other',)}
+REDUCIBLE = ('reflectivity', 'gid', 'burn', 'xfntr')      # a series of these kinds without a result: "not reduced"
+
+
+@dataclass
+class Reduced:
+    """One result on the reduced lane (``rid``), or a placeholder (``rid``
+    empty; ``placeholder`` says why): its scans' time span."""
+    rid: str
+    kind: str
+    label: str
+    version: int
+    scans: list
+    t0: float
+    t1: float
+    stale: bool = False
+    origin: str = ''
+    note: str = ''
+    saved: str = ''
+    series: str = ''
+    placeholder: str = ''
+    data: np.ndarray = field(default=None, repr=False)
+
+
+def reduced_items(tl, rows, data=None):
+    """The results of the workbook's Saved ``rows`` placed at their scans'
+    times (the latest version of each kind, scans and label; a reflectivity
+    as R, not R/RF), and a placeholder "not reduced" for each series of a
+    REDUCIBLE kind with no result on any of its scans. ``data``: {id: array}
+    (Workbook.all_data) for the thumbnails. Results whose scans have no time
+    are left out."""
+    span = {s.scan: (s.t0, s.t1) for s in tl.spans}
+    latest = {}
+    for r in rows:
+        kind = str(r.get('kind') or '')
+        if kind in ('note', 'scan', ''):
+            continue
+        label = str(r.get('label') or '')
+        if kind == 'reflectivity' and label not in ('R', ''):
+            continue
+        scans = [int(s) for s in str(r.get('scans') or '').split(',') if s.strip()]
+        key = (kind, tuple(scans), label)
+        if key not in latest or int(r.get('version') or 0) > int(latest[key].get('version') or 0):
+            latest[key] = r
+    out, covered = [], set()
+    for (kind, scans, label), r in latest.items():
+        ts = [span[n] for n in scans if n in span]
+        if not ts:
+            continue
+        covered |= set(scans)
+        rid = str(r.get('id') or '')
+        out.append(Reduced(rid, kind, label, int(r.get('version') or 0), list(scans), min(t[0] for t in ts),
+                           max(t[1] for t in ts), bool(r.get('stale')), str(r.get('origin') or ''),
+                           str(r.get('note') or ''), str(r.get('saved') or ''), str(r.get('series') or ''),
+                           data=(data or {}).get(rid)))
+    for sid, kind, scans in tl.series:
+        if kind not in REDUCIBLE or covered & set(scans):
+            continue
+        ts = [span[n] for n in scans if n in span]
+        if ts:
+            out.append(Reduced('', kind, '', 0, list(scans), min(t[0] for t in ts), max(t[1] for t in ts),
+                               series=sid, placeholder='not reduced'))
+    return sorted(out, key=lambda x: (x.t0, x.rid))
+
+
+# ---- phase 2 (research §1, F75): an environment lane, any column as a strip chart ----
+#
+# The macros will write the tensiometer, the barrier and the oxygen reading as
+# columns of every point (owner, F75); their names are not known yet (Q-TL-8
+# gave the units only: surface pressure mN/m, barrier area cm², oxygen %). So
+# the lane draws any column the user chooses, the names that look like such
+# readings offered first (the timeline mock's ENV_WORDS).
+
+ENV_WORDS = re.compile(r'tens|barr|oxy|(^|_)o2|temp|press|humid|wilh|trough|^pi$|surf_?press', re.I)
+ENV_UNITS = ((re.compile(r'press|tens|wilh|^pi$', re.I), 'mN/m'), (re.compile(r'barr|trough', re.I), 'cm²'),
+             (re.compile(r'oxy|(^|_)o2', re.I), '%'))      # the owner's units, Q-TL-8 (2026-11-25); others unknown
+
+
+def env_unit(name):
+    """The unit of an environment column by its name (Q-TL-8), or ''."""
+    for rx, unit in ENV_UNITS:
+        if rx.search(str(name)):
+            return unit
+    return ''
+
+
+@dataclass
+class ColumnTrack:
+    """A column over the file: its values ``y`` at the middle of each point's
+    count (``t``, Unix s), the scan of each point (``scans``)."""
+    name: str
+    unit: str = ''
+    t: np.ndarray = None
+    y: np.ndarray = None
+    scans: np.ndarray = None
+    notes: list = field(default_factory=list)
+
+
+def environment_columns(exp):
+    """[(name, number of scans with it, looks like an environment reading)]
+    of every data column of the file: the environment-like first, then by
+    how many scans have it, then by name."""
+    count = {}
+    for n in exp.scans:
+        for c in (exp.scans[n].columns or {}):
+            count[c] = count.get(c, 0) + 1
+    return sorted(((c, k, bool(ENV_WORDS.search(c))) for c, k in count.items()),
+                  key=lambda x: (not x[2], -x[1], x[0].lower()))
+
+
+def column_track(exp, name):
+    """The values of column ``name`` over every scan that has it, at the
+    middle of each point's count (its start plus half its Seconds)."""
+    ts, ys, ss, notes = [], [], [], []
+    for n in sorted(exp.scans):
+        cols = exp.scans[n].columns or {}
+        if name not in cols or cols[name] is None:
+            continue
+        try:
+            pt = exp.point_times(n)
+        except (KeyError, ValueError, TypeError) as e:
+            notes.append('S# %d: no times (%s)' % (n, e))
+            continue
+        if pt.start is None or not len(pt.start):
+            notes.append('S# %d: no times' % n)
+            continue
+        y = np.asarray(cols[name], float)
+        t = np.asarray(pt.start, float)
+        sec = cols.get('Seconds')
+        if sec is not None and len(sec) == len(t):
+            t = t + np.asarray(sec, float) / 2.0
+        m = min(len(t), len(y))
+        ts.append(t[:m])
+        ys.append(y[:m])
+        ss.append(np.full(m, n))
+    if not ts:
+        return ColumnTrack(name, env_unit(name), np.zeros(0), np.zeros(0), np.zeros(0, int), notes or ['no scan has it'])
+    return ColumnTrack(name, env_unit(name), np.concatenate(ts), np.concatenate(ys), np.concatenate(ss), notes)

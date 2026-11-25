@@ -109,6 +109,8 @@ sessions do not edit the same lines.
 | `docs/SCOPE.md` | The plan: target structure and stages, with every request placed |
 | `docs/PHYSICS_ISSUES.md` | Numbered list of physics and mathematics issues, with sizes and how each is known |
 | `docs/TODO.md` | What to do next, what is waiting on the owner, what is done |
+| `docs/HANDOFF_main_man.md`, `docs/gui/HANDOFF_gui_manager.md` | Hand-offs: how the orchestrator and the GUI manager work, what is open, who is on what |
+| `.claude/skills/` | Project skills: `merge-to-main` (D60, step by step), `review-local-data-pr` (privacy review and merge of the local data agent's pull requests), `issue-watch` (the #55 watch and how to post) |
 | `docs/DATA_NEEDS.md` | Every dataset a work item waits for, what it must answer, where it goes, who supplies it (the owner's non-cloud agent for large private sets) |
 | `docs/TESTING.md` | How the test suite works and how to extend it |
 | `docs/physics_notes.md` | Invariants table and a dated question-and-answer log |
@@ -231,6 +233,21 @@ foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by
    - a demonstrator: a document and a Tools menu item, `docs/studies/` or `docs/reports/`.
    Then make the switch, with its OUTPUT_DECISIONS row and the re-pins named one by one. Committed
    products of earlier studies keep the default they were run at (they set it for their own run).
+
+13. **Show the whole chain, explained simply** (owner, 2026-11-25, a standing order: "I always need to
+   see the entire chain of data processing, ending with the statistics and judgment. That means data
+   fit examples, explanations of statistics, all ELI5"). Every study, report or answer that ends in a
+   number or a verdict shows, in order:
+   - the raw data, as it comes in (a frame, a scan, the counts, with their errors);
+   - each processing step, on one real example where the data are public (synthetic otherwise),
+     with what it does to the numbers;
+   - at least one fit drawn over its data, with its residuals and what the fitted numbers mean;
+   - every statistic used, explained as for a newcomer: what it measures, how it is computed here,
+     what a good and a bad value look like (χ², p-values, intervals, likelihood, pulls, coverage);
+   - the judgment, and how sure it is, in plain words.
+   Each figure comes from a tool in `tests/tools/` (rule 11). A walkthrough document beside the study
+   (`docs/studies/<topic>/walkthrough.md`) is the usual form; `.claude/skills/known-truth-study`
+   says how.
 
 ## Things that will bite you
 

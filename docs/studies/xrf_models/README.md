@@ -1,6 +1,6 @@
-# Can models stand in for the real scatter and the real lines? (C65, C66)
+# Can models stand in for the real scatter and the real lines? (C68, C69)
 
-2026-11-25. This study sits underneath the XRF shootout (`docs/studies/xrf_shootout/`, C62–C64). It
+2026-11-25. This study sits underneath the XRF shootout (`docs/studies/xrf_shootout/`, C65–C67). It
 asks whether the shootout's synthetic spectra are good enough to rank line-fitting methods. The
 owner's questions (2026-11-25):
 
@@ -108,7 +108,7 @@ amplitude ≥ 0).
 **The "clean" blanks are not quite clean.** The full model puts a Cu-shaped line into every
 10 keV and 9.2 keV blank, worth 1–11 % of the counts in a Cu box (`line_Cu_box_fraction`). At
 10 keV Cu Kα (8.04 keV) sits on the Compton escape (8.07 keV), so part of it may be escape misfit
-the model absorbed. Either way it is in the real blanks, and C63's Cu results on them include it.
+the model absorbed. Either way it is in the real blanks, and C66's Cu results on them include it.
 The twins below are drawn from the scatter alone (elastic, Compton, background), without the
 fitted lines. So where the twins and the real blanks disagree on Cu, this feature is the first
 suspect.
@@ -116,7 +116,7 @@ suspect.
 ### 1b. The twins in the shootout
 
 Each scatter fit becomes a **model twin** of its blank: one Poisson draw of the scatter on the
-blank's channels (`scatter/twins_<model>/`). `xrf_blanks.py --blank-dir` then runs the C63
+blank's channels (`scatter/twins_<model>/`). `xrf_blanks.py --blank-dir` then runs the C66
 shootout on the twins, exactly as on the real blanks: the same 240 conditions, 50 series of 10 and
 8 methods. If a method's biases on the twins match its biases on the real blanks, the model can
 replace the real scatter for testing line fits.
@@ -152,7 +152,7 @@ Conditions where P1+P2+P3 (the reader's options) is accurate:
 
 | | Cr K | Cu K | Ni K | Zn K | Ti K | La L |
 |---|---|---|---|---|---|---|
-| real blanks (C63) | 5 | 19 | 18 | 3 | **2** | **2** |
+| real blanks (C66) | 5 | 19 | 18 | 3 | **2** | **2** |
 | full-model twins, two draws | 12, 9 | 24, 23 | 12, 11 | 1, 1 | 9, 14 | 8, 8 |
 
 **What it says:**
@@ -217,7 +217,7 @@ holds derived numbers only: no spectrum, peak position or element.
 - **Width.** In E10-k's setup (A-L1, L3, L4, L5) a Gaussian is 1.03 × the resolution measured
   on the scatter. In E10-f's setup (A-L2, and the burn series A-K) it is 1.19–1.24 × it.
 
-  **This explains C64's "line 21 % wider than the measured resolution":** the burn series were
+  **This explains C67's "line 21 % wider than the measured resolution":** the burn series were
   recorded in E10-f's setup. The line has the width of its setup, and
   `xrf_shootout.MEASURED_DET` assumes E10-k's (from E10-g and E10-k). So **P2's fixed width must come from
   the same setup as the data** (Q12 in the shootout's QUESTIONS.md).
@@ -261,13 +261,13 @@ the header.
   45.8 % over 58 eV.
 
 The width stays each blank's. Each method is calibrated on a clean twin of the same shape, as in
-C63.
+C66.
 
-**Results (measured;** `shape/run_gaussian`, `shape/run_line` **against C63's** `run_blanks`**,
-figure M5).** The blanks, thinnings and seeds are C63's; only the injected line's shape differs.
+**Results (measured;** `shape/run_gaussian`, `shape/run_line` **against C66's** `run_blanks`**,
+figure M5).** The blanks, thinnings and seeds are C66's; only the injected line's shape differs.
 "Strong" means the line has 3 × the background in its box.
 
-| Method | Readout | Accurate: elastic-shaped (C63) | Gaussian | Real-shaped | Median bias, strong lines: elastic → real-shaped |
+| Method | Readout | Accurate: elastic-shaped (C66) | Gaussian | Real-shaped | Median bias, strong lines: elastic → real-shaped |
 |---|---|---|---|---|---|
 | P1+P2+P3 | B | 41 of 160 | 32 | **19** | +0.4 % → **−6.0 %** |
 | P1+P2+P3 | A | 8 of 32 | 7 | 6 | −3.3 % → −4.2 % |
@@ -285,7 +285,7 @@ figure M5).** The blanks, thinnings and seeds are C63's; only the injected line'
   replicates' noise.
 - **The real shape on readout B costs P2 6 %.** P2 fixes the width at the resolution, so a line
   with 46 % in a 58 eV skew reads low by the part outside a Gaussian of that width: −6 to −7 % on
-  the Cr, Cu, Ni and Ti lines. That is C64's finding again, from the other side: P2 needs the
+  the Cr, Cu, Ni and Ti lines. That is C67's finding again, from the other side: P2 needs the
   line's own width, not the detector's.
 - **With the width free and the escape stripped (P1+P3) the shape hardly matters:** within 2 % on
   every target, except La L under 6.1 keV (+12.5 % → +5.6 %).
@@ -340,7 +340,7 @@ water's profiles, the Compton/Rayleigh cross-section ratio, Reed's escape fracti
 For tests of line fitting (the shootout and its successors). Measured above unless marked.
 
 1. **Scatter: use the real blanks, scaled and shifted, wherever one exists** for the readout,
-   setup and beam energy (C63's `xrf_blanks.py`). They carry what no model does: the traces and
+   setup and beam energy (C66's `xrf_blanks.py`). They carry what no model does: the traces and
    escape structure (1a). Real scatter differs by 10–25 % under a line between detector elements,
    count rates and setups (part 3), so test on several blanks, not one.
 2. **Where no blank exists, use the full model with a whole measured parameter set** carried to the
@@ -358,7 +358,7 @@ For tests of line fitting (the shootout and its successors). Measured above unle
    elements, use the range per element: 23–30 % (elements 2 and 5) to 81 % (element 7).
 6. **P2's fixed width (the reader's option) must come from the data's own setup and shape:** from
    the line's own width, not the detector's nominal resolution. On readout B's real shape it reads
-   6 % low; on readout A in E10-f's setup, 11 % low (C64).
+   6 % low; on readout A in E10-f's setup, 11 % low (C67).
 7. **Before summing the elements of a 7-element detector, check each element's calibration against
    a known line.** One file's header puts elements 5–7 8.6 % off (2b). (Reasoned, from one file:
    the reader does not yet sum elements.)
@@ -401,9 +401,9 @@ detectors" and "Models study figures (M1-M5)".
 | `scatter/residuals.csv` | per channel of every public blank: counts, the model, its scatter part, the deviance residual |
 | `scatter/twins_<model>/` | the model twins of the ten clean blanks (blank files) |
 | `scatter/twins_full_redraw/` | a second, independent draw of the full model's twins: the floor |
-| `scatter/run_<model>/`, `run_full_redraw/` | the C63 shootout on them (`xrf_blanks.py`'s outputs) |
+| `scatter/run_<model>/`, `run_full_redraw/` | the C66 shootout on them (`xrf_blanks.py`'s outputs) |
 | `scatter/compare*.csv` | twin against real, per condition × method, and summaries |
-| `shape/run_<shape>/` | the C63 shootout with Gaussian and real-shaped lines |
+| `shape/run_<shape>/` | the C66 shootout with Gaussian and real-shaped lines |
 | `lines/line_shapes.csv` | the shape ladder on the real lines: derived numbers only |
 | `M1`…`M5` | figures (`tests/tools/xrf_models_figures.py`) |
 | `scatter_energy.md` | part 3: scatter at beam energies with no data (`tests/tools/xrf_scatter_energy.py`) |
@@ -419,6 +419,6 @@ detectors" and "Models study figures (M1-M5)".
   is one more), and the real blanks' traces (1a) are not in them.
 - **The floor is measured for the full model only.** The other models' twins are far enough off
   that a floor of the same size would not change the verdict (reasoned).
-- **The line-shape runs share C63's seeds,** so their differences are the shape's, but the 2 %
+- **The line-shape runs share C66's seeds,** so their differences are the shape's, but the 2 %
   "accurate" test still flips verdicts near the edge (Gaussian against elastic: up to 16 % of
   conditions per method).

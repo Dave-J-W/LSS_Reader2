@@ -166,11 +166,20 @@ NX school scans 6–9 (DPPC on water, 10 keV), at Qc 0.0217 (figure Q5):
   above its neighbours (the spike in figure Q5). At −0.00028 R/R_F rises
   smoothly from the plateau into the monolayer's shape.
 - The two estimators agree to 3 × 10⁻⁶ Å⁻¹ (−0.000280 and −0.000278).
-- **Resolution or angle?** Part of the −0.00028 may be resolution
-  (section 3): extrapolating its −0.15 ΔQ, a resolution of 0.002 Å⁻¹ alone
-  would give about −0.0003. The proposal
-  makes R/R_F continuous either way. Whether it is a true angle offset
-  needs the resolution.
+- **Resolution or angle?** About half each (updated 2026-11-25, with the
+  resolution #68 measured). The beamline's ΔQ at the edge is 8.9 × 10⁻⁴ Å⁻¹
+  FWHM at 10 keV (`docs/studies/qz_resolution/summary.md`, 378 real scans;
+  run medians 6.5–12.6 × 10⁻⁴). On NX's own Qz points and errors it reads as
+  a Qoff of −1.33 × 10⁻⁴ at the median, and −0.64 to −2.52 × 10⁻⁴ over the
+  runs' range: the reading rises faster than linearly (`walkthrough.md`,
+  step 5; corrected 2026-11-25 from a linear −1.0 to −1.9). So of NX's
+  −2.8 × 10⁻⁴, about −1.5 × 10⁻⁴ is left at the median, and between −0.3
+  and −2.2 over the range. That remainder is a true angle offset (about
+  −0.0009° at the median), or a Qc about 1.5 × 10⁻⁴ above
+  water's 0.0217 (section 4: a wrong Qc moves Qoff one for one); the data
+  cannot tell which. Assumption: NX's ΔQ is the station's typical one (the
+  NX scans are from the same station; their own edge width was not fitted).
+  The proposal makes R/R_F continuous either way, which is the owner's aim.
 
 ## 7. Recommendation
 
@@ -186,8 +195,19 @@ NX school scans 6–9 (DPPC on water, 10 keV), at Qc 0.0217 (figure Q5):
 4. **Nothing applies the value**, and no default changes. A default "apply
    the proposal" would need, by rule 12, this study, its tests and a
    demonstrator: this document and its Tools item are the first two parts.
-   Real-data checks on more files and the beamline's resolution would
-   complete it.
+   The beamline's resolution is now measured (8.9 × 10⁻⁴ FWHM, #68); what
+   is left is real-data checks on more files. Since the resolution alone
+   gives −1.3 × 10⁻⁴, a proposal is an angle offset only after that is
+   allowed for: an edge fit with R_F convolved with the measured resolution
+   would give the angle offset itself (not built; a candidate option).
+
+**Step by step, with the edge fit drawn over NX's data, its residuals and the
+bootstrap explained:** `walkthrough.md` (figures QW1–QW5). It also shows two
+things the tables above do not:
+- the edge fit's χ²/dof on NX is 75: a sharp R_F cannot follow the rounded
+  edge;
+- so the proposal's ± (counting noise only) is about ×9 too small there:
+  −2.8 ± 0.6 × 10⁻⁴ once scaled by √(χ²/dof).
 
 ## Figures
 

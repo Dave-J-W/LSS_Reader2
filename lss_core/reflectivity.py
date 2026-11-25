@@ -30,8 +30,58 @@ from . import stitching
 from .images import PIXEL_MM                    # noqa: E402  Pilatus pixel (mm), written once there
 
 
+def bad_pixel_pass(data, iterations=1, factor=1.0, region=None):
+    """``TwoDDetector.removeBadPix``'s test and replacement, restricted to
+    ``region`` (a boolean mask of ``data``'s shape; None: the whole frame,
+    the same numbers as removeBadPix). The neighbours and the floor
+    (√mean + 2)² are the whole frame's, so a pixel at a box's edge is
+    tested against its real neighbours (C62). A pixel above
+    (2 + 2/iterations) × ``factor`` × the mean of its four neighbours (edges
+    replicated) and above the floor takes that mean. Returns (the corrected
+    array, a boolean mask of the pixels replaced)."""
+    data = np.asarray(data, float).copy()
+    avg = (np.sqrt(np.average(data)) + 2) ** 2
+    tre = (2 + 2 * iterations) / iterations
+    changed = np.zeros(data.shape, bool)
+    for _ in range(int(iterations)):
+        big = np.pad(data, 1, mode='edge')
+        nb = 0.25 * (big[:-2, 1:-1] + big[2:, 1:-1] + big[1:-1, :-2] + big[1:-1, 2:])
+        bad = (data > tre * nb * float(factor)) & (data > avg)
+        if region is not None:
+            bad &= region
+        data = np.where(bad, nb, data)
+        changed |= bad
+    return data, changed
+
+
+def roi_bad_pixel_pass(image, centre, slit, bg, direction, factor, iterations=1):
+    """A bad-pixel pass over the ROI's three boxes only (F95 B3; owner,
+    Q-UI-B3: "a separate threshold for the ROI"), on a frame's counts, by
+    the arithmetic main man's study measured (C62,
+    ``docs/studies/roi_bad_pixels``): ``bad_pixel_pass`` with the region the
+    signal and background boxes ``sumROI`` sums
+    (``lss_core.display.roi_boxes``). A hot pixel in the signal box adds to
+    the point and one in a background box takes half its counts away, so
+    both kinds are cleared together. Returns (the corrected counts, the
+    pixels replaced as (column, row)).
+
+    Off unless asked (the reader's default): C62 found factor 10 on the
+    three boxes a candidate default (90 % of hot pixels removed on sparse
+    frames, no clean frame touched in 21,702 synthetic and 96 NX frames) that
+    still waits for the owner's sparse frames (DATA_NEEDS 16) before rule 12.
+    """
+    from .display import roi_boxes
+    data = np.asarray(image, float)
+    mask = np.zeros(data.shape, bool)
+    for _name, (r0, r1, c0, c1) in roi_boxes(slit, centre, bg=bg, direction=direction):
+        mask[max(r0, 0):max(r1, 0), max(c0, 0):max(c1, 0)] = True
+    data, changed = bad_pixel_pass(data, iterations, factor, mask)
+    rows, cols = np.nonzero(changed)
+    return data, [(int(c), int(r)) for r, c in zip(rows, cols)]
+
+
 def frame_row(detector, image, error, monitor, beam_xy, qz, slit, bg_offset_deg,
-              direction, distance, low_qz_slit):
+              direction, distance, low_qz_slit, roi_bad_pixel_factor=None):
     """One reflectivity point from one frame (see module docstring).
 
     Returns (row, info); info holds the beam centre found, the expected
@@ -51,12 +101,20 @@ def frame_row(detector, image, error, monitor, beam_xy, qz, slit, bg_offset_deg,
     else:
         bg = bg_offset_deg * distance * np.pi / 180 / PIXEL_MM / slity
     use = [slitx, 5] if (low_qz_slit and 0.02 < qz < 0.03) else [slitx, slity]
+    corrected = []
+    if roi_bad_pixel_factor:                # F95 B3: the frame's counts corrected in the three boxes, then the sums
+        image, corrected = roi_bad_pixel_pass(image, (cenx, ceny), use, bg, direction, roi_bad_pixel_factor)
+        if corrected:
+            error = np.array(error, float, copy=True)
+            for c, r in corrected:
+                error[r, c] = np.sqrt(max(image[r, c], 0.0))
+            cenx, ceny = detector.peakLocate(image, error, cen=scen, mon=monitor)   # detector's arrays from the corrected frame
     sig, sigerr, lbg, lbgerr, rbg, rbgerr = detector.sumROI(slit=use, cen=[cenx, ceny],
                                                            dir=direction, bg=bg)
     net, neterr = detector.netROI()     # legacy: sqrt(sigerr² + (lbgerr² + rbgerr²)/4)
     row = np.array([qz, net, neterr, sig, sigerr, lbg, rbg])
     info = {'centre': (cenx, ceny), 'expected': tuple(scen), 'slit': use, 'bg': bg,
-            'offset': (cenx - scen[0], ceny - scen[1])}
+            'offset': (cenx - scen[0], ceny - scen[1]), 'roi_corrected': corrected}
     return row, info
 
 
@@ -211,6 +269,46 @@ def join_factor(old, new, method=DEFAULT_PATCH_METHOD):
         f, e = stitching.fitted_factor(old, new)
         return float(f), float(e), 'joint fit impossible (%s): the legacy fit used' % err
     return j.factor, j.factor * j.err, '; '.join(j.flags)
+
+
+def join_fit_residuals(old, new, points=200):
+    """F74 at a join: the joint fit as ``join_factor`` makes it
+    (``patching.joint_factor`` with its guard), with the chosen rung fitted
+    alone for its curve (``patching.rung_fit``, the same δ). Returns a dict:
+    ``q`` and ``mu_a``, the fitted curve over the window on scan a's scale
+    (scan b × factor lies on it); ``a`` and ``b``, each scan's (Qz,
+    residual) at the points the fit used, the residual (y − μ)/√var with the
+    fit's own variance (Poisson likelihood: var = σ²μ/max(|y|, σ); log:
+    var = σ²), so that the squares add up to the χ² the fit reports;
+    ``factor``, ``chi2``, ``dof``, ``order``, ``n_ext``. None where
+    ``join_factor`` would fall back on the legacy fit (too few points)."""
+    from . import patching
+    old, new = np.atleast_2d(np.asarray(old, float)), np.atleast_2d(np.asarray(new, float))
+    a = patching.Scan(old[:, 0], old[:, 1], old[:, 2])
+    b = patching.Scan(new[:, 0], new[:, 1], new[:, 2])
+    try:
+        j = patching.joint_factor(a, b)
+        rf = patching.rung_fit(a, b, j.order, j.n_ext, space=j.space, likelihood=j.likelihood)
+    except (ValueError, np.linalg.LinAlgError):
+        return None
+
+    def mu(q, on_b):
+        base = np.log(patching.fresnel(q, patching.QC)) if rf.space == 'rrf' else 0.0
+        return np.exp(base + rf.curve(q) - (rf.delta if on_b else 0.0))
+    out = {}
+    for key, sc, idx, on_b in (('a', a, rf.ia, False), ('b', b, rf.ib, True)):
+        q, y, sg = sc.q[idx], sc.y[idx], sc.sigma[idx]
+        m = mu(q, on_b)
+        if j.likelihood == 'poisson':
+            r = (y - m) / np.sqrt(sg ** 2 / np.maximum(np.abs(y), sg) * m)
+        else:                                   # the log fit: its χ² is in ln y, weights (y/σ)²
+            r = (np.log(np.where(y > 0, y, np.nan)) - np.log(m)) * y / sg
+        out[key] = (q, r)
+    lo = min(a.q[rf.ia].min(), b.q[rf.ib].min())
+    hi = max(a.q[rf.ia].max(), b.q[rf.ib].max())
+    qq = np.linspace(lo, hi, int(points))
+    return dict(q=qq, mu_a=mu(qq, False), a=out['a'], b=out['b'], factor=j.factor, chi2=j.chi2, dof=j.dof,
+                order=j.order, n_ext=j.n_ext)
 
 
 def patch(per_scan, order, drops=None, factors=None, method=DEFAULT_PATCH_METHOD, notes=None):

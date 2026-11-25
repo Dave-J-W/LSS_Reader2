@@ -35,6 +35,7 @@ Options, with the window's defaults for Pilatus data:
 | `merge=[[2, 3]]` | | groups merged in the identical-scans dialog |
 | `points={7: [0, 1, 3]}` | all points | frames selected in the image list |
 | `mask=[(7, 3), (8, 0)]` | none | dropped points kept in the workbook (F92; `lss_core.masks`) |
+| `roi_bad_pixel_factor=10` | none | the Reflectivity tab's "Bad Pixel Correction fac": a bad-pixel pass over the ROI's three boxes (F95 B3, C62; off by default) |
 | `bad_pixel_iterations=0`, `bad_pixel_factor=1` | | BPC iterations, factor |
 
 `result` holds the per-scan points (`per_scan`, columns Qz, net signal,
@@ -246,12 +247,23 @@ from lss_core import reciprocity               # beam damage or the sample by it
 v = reciprocity.dose_or_time([reciprocity.from_result(exp.burn(n), 'centre') for n in (14, 15)])
 v.verdict, v.beta, v.beta_ci, v.weight_dose    # NX: 'neither', 0.85 [0.80, 0.89], 1.00 (on counting errors alone)
 reciprocity.dose_or_time(burns, strip_scatter=0.88 / 3600)   # admit the strips' own scatter (C54: 88 %/h)
+reciprocity.dose_or_time(burns, strip_relative=1.13)          # as a share of each rate: C54's repeats fit this better
+reciprocity.dose_or_time_rates(fluxes, rates, errors)         # from a table of drift rates (any unit, the same for all)
+reciprocity.strip_scatter_fit(groups, relative=True)          # ρ (or τ) by REML from repeats: [(rate, σ), ...] per flux
 exp.dose(14, beam_mm=(2.0, 0.1))               # photons/mm2 of footprint, for a beam of that width and height
 exp.dose(14, shutter='open')                   # fast mode: the beam also between points (from the point times)
 h = exp.beam_height(near=7)                    # the beam's height from the height scans' rising edge (#60's rule)
 h.height_mm, h.source, h.note, h.refused       # 1.0645 x the median rising FWHM; or the default 0.040 mm (10 keV, S1 <= 0.04)
 exp.dose(7, beam_mm=(1.0, h.height_mm))        # the peak dose per mm2 (the width typed: it is not measured)
 burn = exp.burn(14, axis='dose')               # trends against the dose; the limit is a dose
+r = exp.dose_summary(14, beam_mm=(1.0, h.height_mm))   # the dose as peak and average, the peak split (F109)
+r.peak, r.average, r.top, r.rest, r.area_mm2, r.text() # NX 14: 1.54e12 peak, 6.0e11 over 43 mm2 (90 % of the dose)
+exp.dose_summary(14, beam_mm=(1.0, 0.033), extent=0.5)  # the extents: the area that received 50 % of the dose
+w = exp.beam_width()                           # sqrt(2 pi) sigma_x from S1 horizontal slit scans; else the 1 mm prefill
+w.width_mm, w.fwhm_mm, w.source, w.profiles, w.refused
+exp.beam_width(scans=[31, 32], counter='Pilatus', monitor=None)   # named scans; the counter as recorded
+from lss_core import dose
+dose.dose_map(per_point, sin_alpha, width_mm, height_mm)   # the same from any doses and incidences
 burn.dose, burn.dose_unit, burn.dose_scale     # the axis: NX 14 in '1e+12 photons' (dose_scale 1e12), 28.9 at the end
 ```
 

@@ -112,13 +112,13 @@ shared_steps:
   - id: shared.timeline
     do: "See the session on one time axis: when samples changed (set sh 0), sh scans and their width and flatness, sx moves, scans by kind; click a scan to open it"
     where: Timeline tab
-    controls: [timelineTab, timelineView, timelineFitPushButton, timelineInfoLabel]
-    user_decides: "whether a 'set sh 0' was a new sample (right-click; kept as a note in the workbook); notes at a time; which scan to open"
+    controls: [timelineTab, timelineView, timelineFitPushButton, timelineDoseCheckBox, timelineEnvComboBox, timelineInfoLabel]
+    user_decides: "whether a 'set sh 0' was a new sample (right-click; kept as a note in the workbook); notes at a time; which scan to open; whether a spot has had too much dose (Dose: the sx line coloured by the dose received against the burn test's, F107)"
     automatic: yes
     could_be_automatic: "a verdict on each sh scan once the owner gives the thresholds (F78, Q-TL-6)"
-    known_from: owner 2026-11-23 (F83), 2026-11-24 (main-window tab); test tests/test_gui_timeline.py
+    known_from: owner 2026-11-23 (F83), 2026-11-24 (main-window tab, Q-TL-7); tests tests/test_gui_timeline.py, tests/test_gui_timeline_dose.py
     issues:
-      - "No reduced-data or environment lanes yet (phase 1c)"
+      - "~~No reduced-data lane~~ (phase 1d built 2026-11-25: the Reduced lane from the workbook); ~~no environment lane~~ (phase 2 built 2026-11-25: any column; the tensiometer, barrier and O2 columns once the macros write them, F75)"
   - id: shared.frames-look
     do: Look at the frames (colour scale, log, axes, movie)
     where: Pilatus tab
@@ -336,12 +336,12 @@ workflows:
         could_be_automatic: open (or offer) it when a burn series is selected (F60)
         known_from: test tests/test_gui_burn_trends.py; code (pilBurnTest)
         issues:
-          - "Refused with a message when frames of several scans or several Qz are selected; comparing two burns needs two dialogs one after the other"
+          - "~~Refused with a message when frames of several scans are selected~~ 2026-11-25 (F98): several burns at once, each analysed, one drawn at a time, compared on the Dose or time tab; frames moving in Qz or Qx are still refused"
           - "Burn Test sits on the Pilatus tab among GID/GISAXS/cut actions"
       - id: burn-ref.options
         do: Choose the models, the time axis, the errors and the change threshold; Analyse re-runs
         where: Burn test dialog > Trends
-        controls: [burnConstantCheckBox, burnLinearCheckBox, burnExponentialCheckBox, burnDoubleExponentialCheckBox, burnTimeComboBox, burnErrorsComboBox, burnThresholdSpinBox, burnAnalysePushButton]
+        controls: [burnConstantCheckBox, burnLinearCheckBox, burnExponentialCheckBox, burnDoubleExponentialCheckBox, burnTimeComboBox, burnErrorsComboBox, burnThresholdSpinBox, burnAnalysePushButton, burnScanComboBox, burnAxisComboBox, burnDoseUnitComboBox, burnBeamWidthLineEdit, burnBeamHeightLineEdit, burnFastModeCheckBox, burnDoseSummaryLabel]
         user_decides: models (all four by default), time clock (default, owner 2026-11-21) or exposure, errors auto (counting for reflectivity), threshold 5 %
         automatic: yes
         could_be_automatic: ""
@@ -351,8 +351,8 @@ workflows:
       - id: burn-ref.judge
         do: "Read the verdict: stable (a constant fits as well as a line) or changing, the best model, the 95 % confident time to a 5 % change"
         where: Burn test dialog > Trends (summary beside the panel; details in the label's tooltip)
-        controls: [burnResultLabel, burnTrendPlotWidget]
-        user_decides: "which absorber to change to and repeat, until no change over about 400 s (owner 2026-11-23); whether the sample is changing by itself rather than being damaged"
+        controls: [burnResultLabel, burnTrendPlotWidget, burnVerdictQuantityComboBox, burnStripSpinBox, burnVerdictPlotWidget, burnVerdictLabel]
+        user_decides: "which absorber to change to and repeat, until no change over about 400 s (owner 2026-11-23); whether the sample is changing by itself rather than being damaged (2026-11-25: the Dose or time tab answers it from two or more burns at different absorbers, F76)"
         automatic: partly
         could_be_automatic: state the verdict against the planned reflectivity exposure (needs the plan; F39 macro lines)
         known_from: owner 2026-11-21 ("flat line as good as a line means a good regime"; "a confident time for < 5 % change")
@@ -384,7 +384,7 @@ workflows:
       - id: burn-ref.save
         uses: shared.workbook
         do: The analysis is saved automatically (kind 'burn test', Data and Trends sheets); Save adds a version with a note
-        controls: [burnSavePushButton]
+        controls: [burnSavePushButton, burnExportPushButton]
         known_from: owner 2026-11-22 (D56); test tests/test_gui_workbook.py (burn saved when done)
       - id: burn-ref.live
         uses: shared.live
@@ -452,7 +452,7 @@ workflows:
       - id: burn-gid.options
         do: Choose estimator, models, time, errors, threshold and whether the position counts in the limit
         where: Burn test dialog > Trends
-        controls: [burnEstimatorComboBox, burnConstantCheckBox, burnLinearCheckBox, burnExponentialCheckBox, burnDoubleExponentialCheckBox, burnTimeComboBox, burnErrorsComboBox, burnThresholdSpinBox, burnPositionLimitCheckBox, burnAnalysePushButton]
+        controls: [burnEstimatorComboBox, burnConstantCheckBox, burnLinearCheckBox, burnExponentialCheckBox, burnDoubleExponentialCheckBox, burnTimeComboBox, burnErrorsComboBox, burnThresholdSpinBox, burnPositionLimitCheckBox, burnAnalysePushButton, burnScanComboBox, burnAxisComboBox, burnDoseUnitComboBox, burnBeamWidthLineEdit, burnBeamHeightLineEdit, burnFastModeCheckBox, burnDoseSummaryLabel]
         user_decides: estimator template (default), moments (legacy) or fit; errors auto = scatter for GID; position in limit off (owner - the position judgment is the user's)
         automatic: yes
         could_be_automatic: ""
@@ -462,10 +462,10 @@ workflows:
       - id: burn-gid.judge
         do: Read the three verdicts and the 5 % time; compare with the other burn of the same spot
         where: Burn test dialog > Trends
-        controls: [burnResultLabel, burnTrendPlotWidget]
+        controls: [burnResultLabel, burnTrendPlotWidget, burnVerdictQuantityComboBox, burnStripSpinBox, burnVerdictPlotWidget, burnVerdictLabel]
         user_decides: whether the GID exposure is acceptable; whether a position drift matters (owner - the user's judgment)
         automatic: partly
-        could_be_automatic: overlay two burns of one spot against dose (TODO 'Dose axis')
+        could_be_automatic: "~~overlay two burns of one spot against dose~~ (F98, 2026-11-25: the Dose or time tab, with F76's verdict)"
         known_from: owner 2026-11-21; physics_notes 2026-11-21 (NX 14 vs 15 measured)
         decision: "Acceptable change in the GID exposure time?"
         goto: {"no: shorter exposure, more absorbers or a new spot": burn-gid.series}
@@ -483,7 +483,7 @@ workflows:
       - id: burn-gid.save
         uses: shared.workbook
         do: Saved automatically; Save adds a version with a note
-        controls: [burnSavePushButton]
+        controls: [burnSavePushButton, burnExportPushButton]
       - id: burn-gid.live
         uses: shared.live
         do: A growing burn scan is re-analysed as frames arrive
@@ -1224,9 +1224,9 @@ workflows:
         known_from: code
         issues: []
       - id: mca.export
-        do: Export Spectrum
+        do: Export Spectrum (text files), or Save it into the workbook
         where: MCA tab
-        controls: [mcaExportPushButton]
+        controls: [mcaExportPushButton, mcaSpectraSaveWorkbookPushButton]
         user_decides: file name
         automatic: no
         could_be_automatic: ""
@@ -1246,7 +1246,7 @@ workflows:
       - id: flex.plot
         do: Add files, plot, rescale, peak fit, gradient
         where: Plot tab
-        controls: [plotAddFilePushButton, plotRemoveFilePushButton, plotFileListWidget, plotRSPushButton, plotPFPushButton, graPushButton, savegraPushButton, plotLogYCheckBox]
+        controls: [plotAddFilePushButton, plotRemoveFilePushButton, plotFileListWidget, plotRSPushButton, plotPFPushButton, graPushButton, savegraPushButton, plotSaveWorkbookPushButton, plotLogYCheckBox]
         user_decides: files
         automatic: no
         could_be_automatic: ""

@@ -134,6 +134,12 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   the absorbers taken out, per mm² of footprint when the beam size is given;
   burns fitted against dose (`exp.burn(axis='dose')`). NX 14 (measured):
   2.9e13 photons in 210 s through absorber 12.
+- The dose as peak and average, with the peak split (F109's core,
+  2026-11-25): a Gaussian beam's map over every point's footprint, its
+  average over the smallest area that received 90 % of the dose, and the
+  most exposed 10 % of that area against the rest (`exp.dose_summary`); the
+  beam's width from S1 horizontal slit scans (`exp.beam_width`). NX 14
+  (measured): peak 1.54e12, average 6.0e11 photons/mm² over 43 mm².
 - Dropped points as a mask over raw points (`lss_core.masks`, 2026-11-24,
   F92's core): kept in the workbook, applied by `exp.reflectivity(mask=...)`;
   the patch dialog's typed drops turned into raw points, and every row of a
@@ -175,6 +181,24 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   box (off). On synthetic film fits, pull SDs are 0.97–1.07 with the
   covariance and 1.7–4.2 with the legacy error column (measured,
   `reports/downstream_covariance.md`).
+- Why the join errors are too small on real data (C61, 2026-11-25): hidden
+  per-point scatter reproduces the survey's under-coverage, join-level
+  inflations fail at fringed joins, honest per-point errors fix both
+  (measured, synthetic with known truth; `docs/studies/guard_error/`). Its
+  walkthrough (`walkthrough.md`, rule 13) follows one join from the two scans
+  to the verdict, with a real NX school split whose miss came from a zig-zag
+  that χ² cannot see.
+- A bad-pixel pass on the reflectivity ROI (C62, F95 B3, 2026-11-25): on
+  sparse frames hot pixels add up to 11 error bars per point; the ROI pass at
+  factor 10 removes 90 % of them and touched no clean frame, while factors 3–4
+  can take half a real sparse point (measured, synthetic with known truth; NX
+  school unchanged at any factor; `docs/studies/roi_bad_pixels/`).
+- The join's error budget with C63's measured excess (C64, 2026-11-25): wild
+  points make 16 % of today's joins miss by over 5 oracle errors behind
+  inflated error bars; 4σ clipping cuts that to 0.6 % and reaches the
+  oracle's pull SD; σ × 1.12 ⊕ X fixes the core under-coverage at 14–17 %
+  wider errors (measured, synthetic with known truth;
+  `docs/studies/excess_remedy/`). Waits for C56's real splits (DATA_NEEDS 17).
 
 ## Series, saving and live updates (2026-11-19 to 22)
 

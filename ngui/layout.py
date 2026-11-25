@@ -237,7 +237,7 @@ FRAMES = {
     'right': [
         [SPECIAL('frame_viewer',
                  views=[('Frames', None), ('GISAXS', C('gisaxsComboBox', 'GISAXS', kind='button',
-                                                       note='The GISAXS combo becomes a view switch; "Save GISAXS" '
+                                                       note='The GISAXS combo becomes a view switch; "Export GISAXS" '
                                                             'is File > Export…')),
                         ('GIOXS', C('pilGioxsPushButton', 'GIOXS', kind='button',
                                     note='Switches to the GIOXS view; its settings are in Views'))],
@@ -295,12 +295,21 @@ BURN = {
             CAPTION('Models compared'),
             ROW(C('burnConstantCheckBox'), C('burnLinearCheckBox')),
             ROW(C('burnExponentialCheckBox'), C('burnDoubleExponentialCheckBox')),
-            C('burnTimeComboBox', 'Time axis', items=['clock', 'exposure', 'dose'],
-              note='"dose" is new (F76)'),
+            C('burnTimeComboBox', 'Time axis', items=['clock', 'exposure']),
+            ROW(C('burnAxisComboBox', 'Axis', items=['time', 'dose']),
+                C('burnDoseUnitComboBox', 'Dose in', items=['photons', 'Monc counts'])),
+            ROW(C('burnBeamWidthLineEdit', 'Beam width (mm)'), C('burnBeamHeightLineEdit', 'height (mm)')),
+            C('burnFastModeCheckBox', 'Fast mode (shutter open)'),
+            C('burnScanComboBox', 'Burn on show', note='Several burns at once (F98, built 2026-11-25)'),
             C('burnEstimatorComboBox', 'Estimator', items=['template', 'moments', 'fit']),
             C('burnErrorsComboBox', 'Errors', items=['auto', 'scatter', 'counting']),
             C('burnThresholdSpinBox', 'Change that matters (%)'),
             C('burnAnalysePushButton', 'Analyse'),
+        ]),
+        G('Dose or time', 'Dose or time', [
+            CAPTION('Two or more burns at different absorbers (F76)'),
+            ROW(C('burnVerdictQuantityComboBox', 'Compare'), C('burnStripSpinBox', 'Strip scatter ρ (%)')),
+            C('burnVerdictLabel', 'Dose: β = 0.97 [0.88, 1.06]', kind='label'),
         ]),
         G('Display', 'Display', [
             NEW('burn_trendPanels', 'Panels: intensity, position, width', 'checkbox', 'One panel per trend'),
@@ -319,6 +328,7 @@ BURN = {
         [PLOT('burnTrendPlotWidget', 'ROI intensity vs time, with the fitted models', 'trend', residuals=True,
               provenance='S# 40 · 41 frames · exposure time · scatter errors · saved B0003 v1', stretch=3,
               note_button=SAVE('burnSavePushButton'))],
+        [PLOT('burnVerdictPlotWidget', 'Each burn against time and against the dose (F76, F98)', 'trend')],
         [PLOT(None, 'Barrier, surface pressure, oxygen vs time (F75)', 'env', name='burn_envPlot')],
     ],
 }
@@ -483,7 +493,7 @@ GID = {
               provenance='S# 22–31 · pinhole patch · 3 levels · joins applied · / Monc · saved G0002 v1', stretch=2,
               note_button=C('gidComboBox', 'Save…', kind='button',
                             note=SAVE_TIP + '. The GID combo (a menu of actions) becomes buttons: Patch (Joins), '
-                                 'Patch relax and Form factor (Tools), Save GID (File > Export…), and its "Save to '
+                                 'Patch relax and Form factor (Tools), Export GID (File > Export…), and its "Save to '
                                  'workbook" item, this Save… button')),
          SPECIAL('column', items=[PLOT(None, 'Qxy cut', 'cut', name='gid_qxyCut'),
                                   PLOT(None, 'Qz cut (Bragg rod)', 'rod', name='gid_qzCut')])],
@@ -708,8 +718,8 @@ EXPORT = [
         C('cutFitSavePushButton', 'Peak fit results', kind='radio'),
         C('mcaExportPushButton', 'Spectra', kind='radio'),
         C('mcaExportIntPushButton', 'Fluorescence integral (_flu.txt)', kind='radio'),
-        NEW('export_gid', 'GID map (Save GID)', 'radio', 'Was the "Save GID" item of the GID combo'),
-        NEW('export_gisaxs', 'GISAXS', 'radio', 'Was the "Save GISAXS" item of the GISAXS combo'),
+        NEW('export_gid', 'GID map (Export GID)', 'radio', 'Was the "Export GID" item of the GID combo (Save GID until 2026-11-25)'),
+        NEW('export_gisaxs', 'GISAXS', 'radio', 'Was the "Export GISAXS" item of the GISAXS combo (Save GISAXS until 2026-11-25)'),
         C('pdgioxs.savePushButton', 'GIOXS profiles', kind='radio'),
         C('savegraPushButton', 'Gradient (Files)', kind='radio'),
         ROW(C('peakfit.exportFitPushButton', 'Legacy fit: curve', kind='radio'),
@@ -726,6 +736,14 @@ EXPORT = [
 Q14 = 'dead today; retired pending owner question 14'
 INLINE = 'nothing to close: the window\'s contents are now inline'
 RETIRED = {
+    'burnDoseSummaryLabel': 'The Burn tab\'s verdict card in this layout; the main window shows it in the burn dock (F109)',
+    'burnDock': 'The Burn tab in this layout; the main window docks the burn window (F95 B10)',
+    'worksheetDock': 'GID > Worksheet group in this layout; the main window docks the worksheet (F95 B10)',
+    'cutfitDock': 'The fit options are inline groups in this layout; the main window docks them (F95 B10)',
+    'mcafitDock': 'The fit options are inline groups in this layout; the main window docks them (F95 B10)',
+    'burnExportPushButton': 'File > Export… (Burn test) in this layout; the main window puts it beside Save (F95 B9)',
+    'mcaSpectraSaveWorkbookPushButton': 'One Save… per result in this layout (D61); the main window has it beside Export Spectrum (F95 B9)',
+    'plotSaveWorkbookPushButton': 'One Save… per result in this layout (D61); the main window has it on the Plot tab (F95 B9)',
     # the Apex tab (Bruker Apex CCD, hidden at start)
     'apexTab': 'Apex tab, hidden since the CCD left: ' + Q14,
     **{cid: 'Apex tab, unconnected or a copy of a Pilatus control: ' + Q14 for cid in (
@@ -753,6 +771,8 @@ RETIRED = {
     'timelineTab': 'Built in the main window first (owner, 2026-11-24); ngui is to show the same view, timelineview.TimelineView',
     'timelineView': 'The main window\'s Timeline tab (F83); ngui is to reuse it',
     'timelineFitPushButton': 'Part of the main window\'s Timeline tab (F83)',
+    'timelineDoseCheckBox': 'Part of the main window\'s Timeline tab (F107)',
+    'timelineEnvComboBox': 'Part of the main window\'s Timeline tab (phase 2, F75)',
     'timelineInfoLabel': 'Part of the main window\'s Timeline tab (F83)',
     'pilRoiPanel': 'One ROI close-up in this layout (Reflectivity > ROI close-up); the main window also has it beside the frame',
     'pilRoiLogCheckBox': 'One ROI close-up in this layout: its Log box is Reflectivity > ROI close-up > Log',

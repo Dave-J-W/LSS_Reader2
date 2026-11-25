@@ -278,6 +278,7 @@ class MainWindow (QMainWindow):
         self.gidJoinLog=[]
         self.gidLevels=[]
         self.gidWorksheet=None
+        self.burnDock=self.worksheetDock=self.cutfitDock=self.mcafitDock=None   # F95 B10: built when first shown (dockWindow)
         self.ui.gidComboBox.addItem('Save to workbook')
         self.initGIDButtons()
         self.initRefProvenance()
@@ -631,6 +632,17 @@ class MainWindow (QMainWindow):
         self.ui.refBGOffLineEdit.setValidator(qdoublevalidator0)
         self.ui.refSeaWinLineEdit.setValidator(qdoublevalidator0)
         self.ui.refBPCFacLineEdit.setValidator(qintvaliator1)
+        self.ui.refBPCFacLineEdit.setText('')                     # F95 B3: the ROI's own pass, off by default (rule 12)
+        self.ui.refBPCFacLineEdit.setPlaceholderText('off')
+        self.ui.refBPCFacLineEdit.setToolTip(
+            'A bad-pixel pass over the ROI\'s three boxes, signal and backgrounds (owner, Q-UI-B3: "a separate '
+            'threshold for the ROI"), on the frame\'s counts before the sums: a pixel above 4 × this factor × the '
+            'mean of its four neighbours, and above the frame\'s noise floor, takes the neighbours\' mean; the '
+            'pixels corrected are listed with the result. Empty (the default): no pass, the numbers as before. '
+            'Off until a study of the owner\'s sparse high-Qz frames: main man\'s study (C62, 2026-11-25) found '
+            'factor 10 removes 90 % of hot pixels on sparse synthetic frames and never touched a clean frame, '
+            'while factor 3 can take half of a real sparse point (rule 12). Used by Ref Patch and Analyze; '
+            'scripted as exp.reflectivity(..., roi_bad_pixel_factor=)')
         self.ui.refNormLineEdit.setValidator(qdoublevalidator0)
         self.ui.refQcLineEdit.setValidator(qdoublevalidator0)
         self.ui.refQoffLineEdit.setValidator(QDoubleValidator())
@@ -1737,7 +1749,7 @@ class MainWindow (QMainWindow):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
             self.messageBox('Please select a scan with data to save first!')
             return
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Save SPEC scans', directory=self.directory)[0]
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export SPEC scans', directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
         cols=[str(c.currentText()) for c in (self.ui.spXComboBox,self.ui.spYComboBox,self.ui.spNComboBox)]
@@ -2767,14 +2779,17 @@ class MainWindow (QMainWindow):
              fit=np.array(self.peakfitdata)
              xran=np.abs(fit[:,0][-1]-fit[:,0][0])
              yran=np.max(fit[:,1])-np.min(fit[:,1])
-             self.ui.mcaPlotMplWidget.canvas.ax.plot(fit[:,0],fit[:,1],'r-',zorder=1)
+             self.ui.mcaPlotMplWidget.canvas.ax.plot(fit[:,0],fit[:,1],'r-',zorder=1,label=self.peakFitLabel())
+             if self.fitResidualsShown() and self.ui.mcaLegendCheckBox.checkState()!=0:     # the label's χ²/dof
+                 self.ui.mcaPlotMplWidget.canvas.ax.legend(loc=self.ui.mcaLegendLocComboBox.currentIndex()+1,frameon=False,scatterpoints=0,numpoints=1)
              self.ui.mcaPlotMplWidget.canvas.ax.set_xlim(fit[:,0][0]-0.25*xran,fit[:,0][-1]+0.25*xran)
              self.ui.mcaPlotMplWidget.canvas.ax.set_ylim(np.min(fit[:,1])-0.2*yran,np.max(fit[:,1])+0.2*yran)
+        self.drawPeakFitResiduals(self.ui.mcaPlotMplWidget.canvas.ax,self.mcafitplotstatus==1)   # F74
         self.ui.mcaPlotMplWidget.canvas.ax.autoscale(tight=True)
         self.ui.mcaPlotMplWidget.canvas.draw()
             
     def saveMcaData(self):
-        self.saveMcaFileName=QFileDialog.getSaveFileName(caption='Save Mca data',directory=self.directory)[0]
+        self.saveMcaFileName=QFileDialog.getSaveFileName(caption='Export MCA spectra',directory=self.directory)[0]
         if self.saveMcaFileName=='':   # dialog cancelled: write nothing
             return
         for i in self.selectedMcaScanNums:
@@ -2961,7 +2976,7 @@ class MainWindow (QMainWindow):
         
     def mcaSaveIntData(self):
         try:
-            self.saveFileName=QFileDialog.getSaveFileName(caption='Save Fluorescence Integral Data',directory=self.directory)[0]
+            self.saveFileName=QFileDialog.getSaveFileName(caption='Export fluorescence integrals',directory=self.directory)[0]
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
             fid=open(self.saveFileName+'_flu.txt','w')
@@ -3051,6 +3066,63 @@ class MainWindow (QMainWindow):
         for k in range(split.count()):           # the tab area takes the extra width, as the tab widget did
             split.setStretchFactor(k,1 if k==at else 0)
         self.paneHost=host
+
+    # ---- F95 B10 (owner, Q-UI-B10: "dock the frequent ones"): the burn test, the worksheet, the fit options ----
+
+    DOCK_AREAS={'burn':'bottom','worksheet':'right','cutfit':'right','mcafit':'right'}
+    DOCK_NAMES={'burn':'burnDock','worksheet':'worksheetDock','cutfit':'cutfitDock','mcafit':'mcafitDock'}   # built when first shown
+
+    def dockWindow(self,key,dialog):
+        """Show ``dialog`` (built as before, still the same object for the code
+        that uses it) in a dock beside the tab area: the burn test under it,
+        tabbed with the panes (it is wide); the worksheet and the fit options
+        on the right, tabbed together. The dialog sits in a scroll area, so a
+        dock never forces the window wider; a double-click on its title floats
+        it as a window of its own. Its Close (or Esc) hides the dock."""
+        from PyQt5.QtWidgets import QDockWidget, QScrollArea
+        host=getattr(self,'paneHost',None) or self
+        docks=self.__dict__.setdefault('docks',{})
+        dock=docks.get(key)
+        area=Qt.BottomDockWidgetArea if self.DOCK_AREAS.get(key)=='bottom' else Qt.RightDockWidgetArea
+        if dock is None:
+            dock=QDockWidget(dialog.windowTitle(),self)
+            dock.setObjectName(self.DOCK_NAMES.get(key,'%sDock' % key))
+            dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+            scroll=QScrollArea(dock)
+            scroll.setObjectName('%sDockScrollArea' % key)
+            scroll.setWidgetResizable(True)
+            dock.setWidget(scroll)
+            host.addDockWidget(area,dock)
+            setattr(self,dock.objectName(),dock)
+            near=[d for k,d in docks.items() if host.dockWidgetArea(d)==area]
+            if area==Qt.BottomDockWidgetArea:      # with the panes on show (hidden ones form no tabs)
+                near=[d for d in (getattr(self,'messageDock',None),getattr(self,'scriptDock',None)) if d is not None]+near
+            near=[d for d in near if d.isVisible()]
+            if near:
+                host.tabifyDockWidget(near[0],dock)
+            docks[key]=dock
+            first=True
+        else:
+            first=False
+        scroll=dock.widget()
+        if scroll.widget() is not dialog:
+            old=scroll.takeWidget()
+            if old is not None:
+                old.hide()
+                old.deleteLater()
+            dialog.setWindowFlags(Qt.Widget)
+            scroll.setWidget(dialog)
+            dialog.finished.connect(lambda *_a,d=dock: d.hide())
+        dock.setWindowTitle(dialog.windowTitle())
+        dialog.show()
+        dock.show()
+        dock.raise_()
+        if first:                    # room to work in: the burn plot 460 px high, the side panels 520 px wide
+            if area==Qt.BottomDockWidgetArea:
+                host.resizeDocks([dock],[460],Qt.Vertical)
+            else:
+                host.resizeDocks([dock],[520],Qt.Horizontal)
+        return dock
 
     def initMessagePane(self):
         """A dock at the bottom of the window that collects messages.
@@ -3159,7 +3231,8 @@ class MainWindow (QMainWindow):
         act.setObjectName('actionFitResiduals')
         act.setCheckable(True)
         act.setChecked(self.fitResidualsShown())
-        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends): the '
+        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends, the '
+                       'Ref Patch join with its fitted curve, the Fit Peak dialog on the Plot and MCA tabs): the '
                        'residuals (y - fit)/sigma of the fitted points, and chi2/dof in the legend. For a good fit '
                        'with right errors they scatter within about +/-2. Hidden by default; kept between sessions (F74).')
         act.toggled.connect(self.setFitResiduals)
@@ -3255,13 +3328,18 @@ class MainWindow (QMainWindow):
         except RuntimeError:
             pass
 
+    def messageStamp(self):
+        """The clock time a message is stamped with (the screenshot tool pins
+        it, so that its pictures are the same from run to run)."""
+        return time.strftime('%H:%M:%S')
+
     def notify(self,text,title='Warning',level='warning',show=None):
         """Tell the user something without stopping them, and log it. The
         Messages pane shows itself (and comes to the front) only for warnings
         and errors (owner, 2026-11-23, Q11); an 'info' notice is kept in the
         pane and shown in the status bar. ``show`` overrides."""
         text=str(text)
-        stamp=time.strftime('%H:%M:%S')
+        stamp=self.messageStamp()
         self.messages.append((stamp,title,text))
         getattr(self.log,level,self.log.warning)('%s: %s',title,text.replace('\n',' | '))
         if show is None:
@@ -4928,7 +5006,7 @@ class MainWindow (QMainWindow):
         self.uipdgioxs.close()
         
     def pilGioxsSave(self):
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Save gioxs data',directory=self.directory)[0]
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export GIOXS data',directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled: write nothing
             return
         for i in range(len(self.gioxsdata)):
@@ -5041,10 +5119,14 @@ class MainWindow (QMainWindow):
             self.messageBox('Please select the Pilatus images of a burn test scan first!')
             return
         self.pilSelectedQxs=[self.pilFileQxs[i] for i in self.selectedPilFramesNums]
-        if  self.pilSelectedQxs.count(self.pilSelectedQxs[0])!=len(self.pilSelectedQxs) or self.pilSelectedQzs.count(self.pilSelectedQzs[0])!=len(self.pilSelectedQzs) or self.pilSelectedScanNum.count(self.pilSelectedScanNum[0])!=len(self.pilSelectedScanNum):
-            self.messageBox('Warning: It is not a burn test scan or multiple scans are selected!')
+        same={}       # F98: several burns at once, each scan's frames at one Qz and Qx
+        for i in self.selectedPilFramesNums:
+            same.setdefault(self.pilScanNum[i],set()).add((self.pilFileQzs[i],self.pilFileQxs[i]))
+        if any(len(v)!=1 for v in same.values()):
+            self.messageBox('Warning: not a burn test: the selected frames of scan%s %s move in Qz or Qx.'
+                            % ('s' if len(same)>1 else '',listText(sorted(int(k) for k,v in same.items() if len(v)!=1))))
         else:
-            self.buildBurnDialog().show()
+            self.dockWindow('burn',self.buildBurnDialog())
             self.burnTrends()
 
     def buildBurnDialog(self):
@@ -5064,7 +5146,8 @@ class MainWindow (QMainWindow):
 
     def burnOptions(self):
         o=dict(models=list(trendmod.MODELS),estimator='template',time='clock',threshold=5.0,auto_peak=True,position_limit=False,
-               errors='auto',rows_auto=True)
+               errors='auto',rows_auto=True,axis='time',dose_unit='photons',beam_width='',fast=False,
+               verdict_quantity='intensity',strip_relative=0.0)
         o.update({k:v for k,v in (self.prefs.get('burn') or {}).items() if k in o})
         return o
 
@@ -5179,8 +5262,16 @@ class MainWindow (QMainWindow):
         save.setToolTip('Save the values over time and the trend table (every model: chi2/dof, AICc, weight, '
                         'parameters; the change time) into this SPEC file\'s workbook (Data and Trends sheets).')
         save.clicked.connect(self.saveBurnToWorkbook)
+        export=QPushButton('Export',page)
+        export.setObjectName('burnExportPushButton')
+        export.setToolTip('Write the burn test on show as text files (F95, owner Q-UI-B9: Export writes text files, '
+                          'Save the workbook): <name>_burn.txt, the values over time (and dose) with their errors, '
+                          'and <name>_burn_trends.txt, every model\'s fit (chi2/dof, AICc, weight, parameters, the '
+                          'change time)')
+        export.clicked.connect(self.exportBurn)
+        u.burnExportPushButton=export
         for w in (QLabel('Estimator',page),est,QLabel('Errors',page),err,QLabel('Time',page),tim,QLabel('Change',page),
-                  thr,poslim,auto,rauto,rowsEdit,run,save):
+                  thr,poslim,auto,rauto,rowsEdit,run,export,save):
             row.addWidget(w)
         row.addStretch(1)
         lay.addLayout(row)
@@ -5191,6 +5282,7 @@ class MainWindow (QMainWindow):
         res.setObjectName('burnResultLabel')
         res.setWordWrap(True)
         lay.addWidget(res)
+        lay.insertLayout(1,self.burnDoseRow(page,o))
         tabs.addTab(page,'Trends')
         tabs.addTab(u.plotWidget,'Legacy')
         tabs.setTabToolTip(1,'The program\'s original burn plots (REF button, GID list): raw counts against count time '
@@ -5206,7 +5298,12 @@ class MainWindow (QMainWindow):
         u.burnPositionLimitCheckBox=poslim
         u.burnRowsAutoCheckBox,u.burnRowsLineEdit=rauto,rowsEdit
         u.burnSavePushButton,u.burnTrendPlotWidget,u.burnResultLabel=save,canvas,res
+        tabs.addTab(self.burnVerdictPage(),'Dose or time')
+        tabs.setTabToolTip(2,'Several burns of one kind of sample at different absorbers: does the change follow the '
+                             'dose (beam damage) or the clock (the sample changing by itself)? F76; '
+                             'lss_core.reciprocity')
         self.burnResult=None
+        self.burnResults={}
 
     def burnOptionsChanged(self,*args):
         u=self.uipdburn
@@ -5215,7 +5312,11 @@ class MainWindow (QMainWindow):
                errors=str(u.burnErrorsComboBox.currentText()),
                threshold=float(u.burnThresholdSpinBox.value()),auto_peak=bool(u.burnAutoPeakCheckBox.isChecked()),
                position_limit=bool(u.burnPositionLimitCheckBox.isChecked()),
-               rows_auto=bool(u.burnRowsAutoCheckBox.isChecked()))
+               rows_auto=bool(u.burnRowsAutoCheckBox.isChecked()),
+               axis=str(u.burnAxisComboBox.currentData()),dose_unit=str(u.burnDoseUnitComboBox.currentData()),
+               beam_width=str(u.burnBeamWidthLineEdit.text()).strip(),fast=bool(u.burnFastModeCheckBox.isChecked()),
+               verdict_quantity=str(u.burnVerdictQuantityComboBox.currentData()),
+               strip_relative=float(u.burnStripSpinBox.value()))
         u.burnRowsLineEdit.setEnabled(not o['rows_auto'])
         self.setPreference('burn',o)
         self.burnTrends()
@@ -5229,13 +5330,26 @@ class MainWindow (QMainWindow):
             self._burnExperiment=(key,Experiment(self.specFileName))
         return self._burnExperiment[1]
 
-    def burnArguments(self):
+    def burnScans(self):
+        """The burn scans of the selected frames, in order (F98: several at once)."""
+        return sorted({int(self.pilScanNum[i]) for i in self.selectedPilFramesNums})
+
+    def burnArguments(self,scan=None):
         """(scan, keywords) for Experiment.burn from the selection and the window's settings."""
         u=self.uipdburn
         o=self.burnOptions()
-        scan=int(self.pilScanNum[self.selectedPilFramesNums[0]])
-        kw=dict(points=[int(self.pilFrameNum[i]) for i in self.selectedPilFramesNums],time=o['time'],
-                models=tuple(o['models']),threshold=o['threshold']/100.0,estimator=o['estimator'])
+        scan=int(self.pilScanNum[self.selectedPilFramesNums[0]]) if scan is None else int(scan)
+        kw=dict(points=[int(self.pilFrameNum[i]) for i in self.selectedPilFramesNums if int(self.pilScanNum[i])==scan],
+                time=o['time'],models=tuple(o['models']),threshold=o['threshold']/100.0,estimator=o['estimator'])
+        if o['axis']=='dose':                      # F98: the trends against the dose
+            kw['axis']='dose'
+        if o['dose_unit']!='photons':
+            kw['dose_unit']=o['dose_unit']
+        beam=self.burnBeam(scan)
+        if beam is not None:
+            kw['beam_mm']=beam
+        if o['fast']:
+            kw['shutter']='open'
         if o['position_limit']:
             kw['limit']=('intensity','fwhm','centre')
         if o['errors']!='auto':
@@ -5270,29 +5384,62 @@ class MainWindow (QMainWindow):
         if self.det!='Pilatus' or len(self.selectedPilFramesNums)==0 or not getattr(self,'specFileName',None):
             u.burnResultLabel.setText('Select the Pilatus frames of a burn scan first.')
             return
+        scans=self.burnScans()
         try:
-            scan,kw=self.burnArguments()
+            allkw={n:self.burnArguments(n)[1] for n in scans}
         except (ValueError,IndexError) as e:
             u.burnResultLabel.setText('Not analysed: the settings could not be read (%s).' % e)
             return
-        if not kw['models']:
+        if not allkw[scans[0]]['models']:
             u.burnResultLabel.setText('Tick at least one model.')
             return
-        try:
-            res=self.burnExperiment().burn(scan,errors=self.errorModel,**kw)
-        except (ValueError,KeyError,OSError) as e:
-            self.burnResult=None
-            u.burnResultLabel.setText('Not analysed: %s' % e)
+        results,failed={},[]
+        for n in scans:
+            try:
+                results[n]=self.burnExperiment().burn(n,errors=self.errorModel,**allkw[n])
+            except (ValueError,KeyError,OSError) as e:
+                failed.append('scan %d: %s' % (n,e))
+                self.log.info('burn test of scan %d not analysed: %s',n,e)
+        if not results:
+            self.burnResult,self.burnResults=None,{}
+            u.burnResultLabel.setText('Not analysed: %s' % '; '.join(failed))
             u.burnResultLabel.setToolTip('')
-            self.log.info('burn test of scan %d not analysed: %s',scan,e)
+            self.burnVerdict()
             return
-        self.burnResult=res
+        self.burnResults,self.burnKeywords,self.burnFailed=results,allkw,failed
+        shown=getattr(self,'burnShownScan',None)
+        shown=shown if shown in results else min(results)
+        box=u.burnScanComboBox
+        box.blockSignals(True)
+        box.clear()
+        for n in results:
+            box.addItem('S# %d' % n,n)
+        box.setCurrentIndex(box.findData(shown))
+        box.blockSignals(False)
+        box.setVisible(len(results)>1)
+        self.burnShowScan(shown)
+        self.burnVerdict()
+
+    def burnShowScan(self,scan=None):
+        """Draw the trends of one of the analysed burns (the chooser's, when several)."""
+        u=self.uipdburn
+        if scan is None:
+            scan=u.burnScanComboBox.currentData()
+        res=self.burnResults.get(scan)
+        if res is None:
+            return
+        kw=self.burnKeywords[scan]
+        self.burnResult,self.burnShownScan=res,scan
         self.plotBurnTrends(res)
         if 'rows' not in kw and res.rows is not None:      # the rows found in the mean frame (Q-BURN-6)
             u.burnRowsLineEdit.setText('%d:%d' % tuple(res.rows))
-        u.Label.setText('Burn test for Scan #%d' % scan)
-        u.burnResultLabel.setText(self.burnShortText(res))
+        u.Label.setText('Burn test for Scan #%d' % scan if len(self.burnResults)==1 else
+                        'Burn tests of scans %s (trends of S# %d)' % (listText(sorted(self.burnResults)),scan))
+        failed=getattr(self,'burnFailed',[])
+        u.burnResultLabel.setText(self.burnShortText(res)+('; not analysed: %s' % '; '.join(failed) if failed else ''))
         u.burnResultLabel.setToolTip(self.burnLongText(res))
+        self.burnShowHeight(scan)
+        self.burnShowDose(scan,kw)
         args=dict(kw)
         args.pop('models') if tuple(args.get('models',()))==trendmod.MODELS else None
         for k,v in (('time','clock'),('threshold',0.05),('estimator','template'),('slit',(21,11)),
@@ -5306,6 +5453,272 @@ class MainWindow (QMainWindow):
         self.burnScript=head+'burn = exp.burn(%d%s%s)\nprint(burn.summary())' % (
             scan,''.join(', %s=%r' % (k,v) for k,v in args.items()),', '+extra if extra else '')
 
+    # ---- F98 (owner Q-BURN-2, Q-BURN-5; cores lss_core.dose and lss_core.reciprocity) ----
+
+    def burnDoseRow(self,page,o):
+        """The Trends tab's second row: the axis (time or dose), the dose's
+        unit, the beam's size, fast mode; the burn on show when several."""
+        from PyQt5.QtWidgets import QHBoxLayout, QComboBox, QLineEdit, QCheckBox, QLabel
+        u=self.uipdburn
+        row=QHBoxLayout()
+        scan=QComboBox(page)
+        scan.setObjectName('burnScanComboBox')
+        scan.setToolTip('Several burns are selected: whose trends are drawn here. All of them are analysed; the Dose '
+                        'or time tab compares them; Save stores the one on show')
+        scan.setVisible(False)
+        scan.currentIndexChanged.connect(lambda *_: self.burnShowScan())
+        axis=QComboBox(page)
+        axis.setObjectName('burnAxisComboBox')
+        for text,key in (('time','time'),('dose','dose')):
+            axis.addItem(text,key)
+        axis.setCurrentIndex(max(0,axis.findData(o['axis'])))
+        axis.setToolTip('What the trends are fitted against: time (default), or the dose received since the first '
+                        'frame began, at the middle of each frame (F98, lss_core.dose; the change limit is then a '
+                        'dose). The dose is worked out either way, for the Dose or time tab')
+        unit=QComboBox(page)
+        unit.setObjectName('burnDoseUnitComboBox')
+        for text,key in (('photons','photons'),('Monc counts','monitor')):
+            unit.addItem(text,key)
+        unit.setCurrentIndex(max(0,unit.findData(o['dose_unit'])))
+        unit.setToolTip('The dose in photons at the Monc chamber\'s exit (5 uA/V; the absorbers taken out), or in '
+                        'monitor counts. Photons need the chamber\'s gain: when it is not known, monitor counts are '
+                        'used and the result says so')
+        width=QLineEdit(o['beam_width'],page)
+        width.setObjectName('burnBeamWidthLineEdit')
+        width.setPlaceholderText('width')
+        width.setFixedWidth(width.fontMetrics().horizontalAdvance('0.000 mm')+16)
+        width.setToolTip('The beam\'s width at the sample (mm), for the dose per mm² of footprint. Empty: from the '
+                         'S1 horizontal slit scans of the file when one is accepted, else the owner\'s 1 mm '
+                         '(exp.beam_width; F109), shown greyed; type to override')
+        height=QLineEdit(page)
+        height.setObjectName('burnBeamHeightLineEdit')
+        height.setFixedWidth(width.width())
+        height.setToolTip('The beam\'s height at the sample (mm). Empty: from the sample-height scans nearest the '
+                          'burn with its S1 gap (exp.beam_height), shown greyed; type to override')
+        fast=QCheckBox('Fast mode',page)
+        fast.setObjectName('burnFastModeCheckBox')
+        fast.setChecked(bool(o['fast']))
+        fast.setToolTip('The shutter stays open between frames (fast mode): the dose counts the wall time, not only '
+                        'the exposures. Off (default): the shutter closes between frames (owner, 2026-11-24). The '
+                        'file does not say which (OQ-4)')
+        axis.currentIndexChanged.connect(self.burnOptionsChanged)
+        unit.currentIndexChanged.connect(self.burnOptionsChanged)
+        width.returnPressed.connect(self.burnOptionsChanged)
+        height.returnPressed.connect(self.burnTrends)
+        fast.toggled.connect(self.burnOptionsChanged)
+        summary=QLabel('',page)
+        summary.setObjectName('burnDoseSummaryLabel')
+        summary.setToolTip('The dose of the burn on show (lss_core.dose.dose_summary, F109): the peak, at the beam\'s '
+                           'centre, and the average over the area that receives most of it, with the most exposed 10 % '
+                           'of that area against the rest (owner, 2026-11-25: show both). The trends use the peak')
+        for w in (scan,QLabel('Axis',page),axis,QLabel('Dose in',page),unit,QLabel('Beam (mm)',page),width,
+                  QLabel('×',page),height,fast,summary):
+            row.addWidget(w)
+        row.addStretch(1)
+        u.burnDoseSummaryLabel=summary
+        u.burnScanComboBox,u.burnAxisComboBox,u.burnDoseUnitComboBox=scan,axis,unit
+        u.burnBeamWidthLineEdit,u.burnBeamHeightLineEdit,u.burnFastModeCheckBox=width,height,fast
+        return row
+
+    def burnVerdictPage(self):
+        """The Dose or time tab: each burn's quantity against time and against
+        the dose, and F76's verdict (lss_core.reciprocity.dose_or_time)."""
+        from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QDoubleSpinBox, QLabel
+        u=self.uipdburn
+        o=self.burnOptions()
+        page=QWidget()
+        lay=QVBoxLayout(page)
+        row=QHBoxLayout()
+        q=QComboBox(page)
+        q.setObjectName('burnVerdictQuantityComboBox')
+        for key in ('intensity','fwhm','centre'):
+            q.addItem(burnmod.LABELS.get(key,key),key)
+        q.setCurrentIndex(max(0,q.findData(o['verdict_quantity'])))
+        q.setToolTip('The quantity whose drift rate is compared: intensity (reflectivity and GID), or the GID '
+                     'peak\'s width or position. A rate is the slope of ln y (of y for the position)')
+        rho=QDoubleSpinBox(page)
+        rho.setObjectName('burnStripSpinBox')
+        rho.setRange(0.0,100.0)
+        rho.setDecimals(0)
+        rho.setSuffix(' %')
+        rho.setValue(100*float(o['strip_relative']))
+        rho.setToolTip('Strip scatter ρ: how much the rate differs between two strips of one sample at one flux, '
+                       'beyond counting, as a fraction of the rate (lss_core.reciprocity, strip_relative). 0 '
+                       '(default): counting errors only. The study (docs/studies/reciprocity, C58): ignoring a '
+                       'real 20 % scatter drops the dose calls to 12 %; as ρ it restores 96 %. On real reflectivity '
+                       'burns (19 series, six repeat groups) ρ is about 1.13 (0.88-1.50): strips differ by about '
+                       'their own rate, so with ρ 0 a verdict on real data is overconfident, and even at ρ about 1 '
+                       'single verdicts are (the 95 % interval covers about 0.87). The default stays 0 until the '
+                       'owner decides (rule 12; asked through questor)')
+        q.currentIndexChanged.connect(self.burnVerdictOptionsChanged)
+        rho.valueChanged.connect(self.burnVerdictOptionsChanged)
+        for w in (QLabel('Compare',page),q,QLabel('Strip scatter',page),rho):
+            row.addWidget(w)
+        row.addStretch(1)
+        lay.addLayout(row)
+        canvas=MplWidget(page)
+        canvas.setObjectName('burnVerdictPlotWidget')
+        lay.addWidget(canvas)
+        lab=QLabel(page)
+        lab.setObjectName('burnVerdictLabel')
+        lab.setWordWrap(True)
+        lay.addWidget(lab)
+        u.burnVerdictQuantityComboBox,u.burnStripSpinBox,u.burnVerdictPlotWidget,u.burnVerdictLabel=q,rho,canvas,lab
+        return page
+
+    def burnVerdictOptionsChanged(self,*args):
+        o=self.burnOptions()
+        u=self.uipdburn
+        o.update(verdict_quantity=str(u.burnVerdictQuantityComboBox.currentData()),
+                 strip_relative=float(u.burnStripSpinBox.value())/100.0)
+        self.setPreference('burn',o)
+        self.burnVerdict()
+
+    def burnBeam(self,scan):
+        """(width, height) in mm for a dose per mm², or None without a width."""
+        u=self.uipdburn
+        w=str(u.burnBeamWidthLineEdit.text()).strip()
+        width=float(w) if w else self.burnAutoWidth().width_mm
+        h=str(u.burnBeamHeightLineEdit.text()).strip()
+        height=float(h) if h else self.burnAutoHeight(scan).height_mm
+        if height is None or width is None or not width>0 or not height>0:
+            raise ValueError('the beam size must be positive, and its height known (%s)' % self.burnAutoHeight(scan).note)
+        return (float(width),float(height))
+
+    def burnAutoWidth(self):
+        """exp.beam_width() (F109): from the file's S1 horizontal slit scans, else the owner's 1 mm."""
+        exp=self.burnExperiment()
+        cache=getattr(self,'_burnWidth',None)
+        if cache is None or cache[0] is not exp:
+            cache=self._burnWidth=(exp,exp.beam_width())
+        return cache[1]
+
+    def burnAutoHeight(self,scan):
+        """exp.beam_height(near=scan), kept while the SPEC file is unchanged."""
+        exp=self.burnExperiment()
+        cache=getattr(self,'_burnHeights',None)
+        if cache is None or cache[0] is not exp:
+            cache=self._burnHeights=(exp,{})
+        if scan not in cache[1]:
+            cache[1][scan]=exp.beam_height(near=scan)
+        return cache[1][scan]
+
+    def burnShowDose(self,scan,kw):
+        """The width field's automatic value, and the dose summary of the burn on show (F109)."""
+        from lss_core import dose as dosemod
+        u=self.uipdburn
+        try:
+            bw=self.burnAutoWidth()
+            u.burnBeamWidthLineEdit.setPlaceholderText('%.3g' % bw.width_mm)
+            u.burnBeamWidthLineEdit.setToolTip(u.burnBeamWidthLineEdit.toolTip().split('\n')[0]+'\nNow: %.3g mm (%s). %s'
+                                               % (bw.width_mm,bw.source,bw.note))
+        except (ValueError,KeyError,OSError) as e:
+            self.log.info('beam width: %s',e)
+        try:
+            r=self.burnExperiment().dose_summary(scan,points=kw.get('points'),beam_mm=kw.get('beam_mm'),
+                                                 unit=kw.get('dose_unit','photons'),shutter=kw.get('shutter','closed'))
+            u.burnDoseSummaryLabel.setText('Dose: %s' % r.text().split(';')[0])
+            u.burnDoseSummaryLabel.setToolTip(u.burnDoseSummaryLabel.toolTip().split('\n')[0]+'\n'+r.text()+'\n'+
+                                              '\n'.join(r.notes))
+        except (dosemod.DoseError,ValueError,KeyError,OSError) as e:
+            u.burnDoseSummaryLabel.setText('Dose: not known')
+            u.burnDoseSummaryLabel.setToolTip(u.burnDoseSummaryLabel.toolTip().split('\n')[0]+'\n'+str(e))
+
+    def burnShowHeight(self,scan):
+        u=self.uipdburn
+        try:
+            bh=self.burnAutoHeight(scan)
+        except (ValueError,KeyError,OSError) as e:
+            u.burnBeamHeightLineEdit.setPlaceholderText('height')
+            self.log.info('beam height near scan %d: %s',scan,e)
+            return
+        if bh.height_mm is not None:
+            u.burnBeamHeightLineEdit.setPlaceholderText('%.3g' % bh.height_mm)
+        base=('The beam\'s height at the sample (mm). Empty: from the sample-height scans nearest the burn with its '
+              'S1 gap (exp.beam_height), shown greyed; type to override.')
+        u.burnBeamHeightLineEdit.setToolTip('%s\nNear S# %d: %s mm, %s%s. %s' % (base,scan,
+            '%.3g' % bh.height_mm if bh.height_mm is not None else 'not known',bh.source or 'no source',
+            ' (±%.0f %%)' % (100*bh.uncertainty_rel) if bh.uncertainty_rel else '',bh.note))
+
+    def burnVerdict(self):
+        """F76's question in the window: across the selected burns, does the
+        drift rate follow the flux (dose: beam damage) or not (time: the
+        sample changing by itself)? lss_core.reciprocity.dose_or_time."""
+        from lss_core import reciprocity
+        u=getattr(self,'uipdburn',None)
+        if u is None or not hasattr(u,'burnVerdictLabel'):
+            return
+        results=getattr(self,'burnResults',{}) or {}
+        o=self.burnOptions()
+        q=str(u.burnVerdictQuantityComboBox.currentData() or 'intensity')
+        fig=u.burnVerdictPlotWidget.canvas.fig
+        fig.clf()
+        self.burnVerdictResult=None
+        text,tip='',''
+        if len(results)<2:
+            text=('Select the frames of two or more burns of one kind of sample at different absorbers (fluxes) to '
+                  'tell beam damage (the change follows the dose) from a sample changing by itself (it follows the '
+                  'clock); F76.')
+        else:
+            res=list(results.values())
+            missing=[r.scan for r in res if q not in r.values]
+            units={r.dose_unit for r in res}
+            if missing:
+                text='Not compared: scan%s %s %s no %s.' % ('s' if len(missing)>1 else '',listText(missing),
+                                                            'have' if len(missing)>1 else 'has',burnmod.LABELS.get(q,q).lower())
+            elif len(units)>1:
+                text='Not compared: the burns\' doses are in different units (%s).' % ', '.join(sorted(map(str,units)))
+            else:
+                try:
+                    burns=[reciprocity.from_result(r,q) for r in res]
+                    v=reciprocity.dose_or_time(burns,strip_relative=float(u.burnStripSpinBox.value())/100.0)
+                except (ValueError,KeyError,ZeroDivisionError) as e:
+                    text='Not compared: %s.' % e
+                else:
+                    self.burnVerdictResult=v
+                    head={'dose':'Dose: the change follows the dose (beam damage)',
+                          'time':'Time: the change follows the clock (the sample changing by itself)',
+                          'cannot tell':'Cannot tell dose from time with these burns',
+                          'neither':'Neither the dose nor time alone',
+                          'no change':'No change to compare','opposite signs':'Opposite signs: no single law'}
+                    text=head.get(v.verdict,v.verdict)
+                    if v.beta==v.beta:
+                        text+='; β = %.2f [%.2f, %.2f], weight of the dose %.2f' % (v.beta,v.beta_ci[0],v.beta_ci[1],
+                                                                                v.weight_dose)
+                    tip='%s\nβ = 1 is the dose, β = 0 time (rate ∝ flux^β). Rates (per s):\n%s' % (v.summary(),
+                        '\n'.join('  %s: flux %.3g, rate %.3g ± %.2g' % r for r in v.rates))
+            self.burnVerdictPlot(fig,res,q)
+        u.burnVerdictLabel.setText(text)
+        u.burnVerdictLabel.setToolTip(tip)
+        u.burnVerdictPlotWidget.canvas.draw()
+
+    def burnVerdictPlot(self,fig,res,q):
+        """Each burn's quantity, relative to its first frame (the position: its
+        change), against time and against the dose."""
+        from lss_core import reciprocity
+        rel=reciprocity.RELATIVE.get(q,True)
+        at,ad=fig.add_subplot(121),fig.add_subplot(122)
+        for k,r in enumerate(res):
+            if q not in r.values:
+                continue
+            y=np.asarray(r.values[q][0],float)
+            y=y/y[0] if rel and y[0] else y-y[0]
+            lab='S# %d' % r.scan
+            at.plot(np.asarray(r.t,float),y,'o-',ms=3,color='C%d' % k,label=lab)
+            if r.dose is not None:
+                ad.plot(np.asarray(r.dose,float),y,'o-',ms=3,color='C%d' % k,label=lab)
+        ylab='%s / first frame' % burnmod.LABELS.get(q,q) if rel else '%s change' % burnmod.LABELS.get(q,q)
+        at.set_xlabel('time (s)')
+        at.set_ylabel(ylab)
+        ad.set_xlabel('dose (%s)' % (res[0].dose_unit or ''))
+        at.set_title('against time',fontsize='small')
+        ad.set_title('against the dose',fontsize='small')
+        at.legend(fontsize='small',frameon=False)
+        try:
+            fig.tight_layout()
+        except Exception:
+            pass
+
     def burnShortText(self,res):
         parts=[]
         for q,c in res.trends.items():
@@ -5316,8 +5729,9 @@ class MainWindow (QMainWindow):
         t,q=res.safe_time()
         if q:
             ch=res.trends[q].change
-            parts.append('%.0f %% change in ≥ %.3g s (%s, %.0f %% confidence%s)' % (
-                100*res.threshold,t,burnmod.LABELS[q].lower(),100*ch.confidence,', extrapolated' if ch.extrapolated else ''))
+            parts.append('%.0f %% change in ≥ %.3g %s (%s, %.0f %% confidence%s)' % (
+                100*res.threshold,t,res.x_unit(),burnmod.LABELS[q].lower(),100*ch.confidence,
+                ', extrapolated' if ch.extrapolated else ''))
         elif res.trends:
             parts.append('no %.0f %% change within the horizon' % (100*res.threshold))
         return '; '.join(parts)
@@ -5348,6 +5762,38 @@ class MainWindow (QMainWindow):
         except Exception:
             pass
         canvas.draw()
+
+    def exportBurn(self):
+        """The burn test on show as two text files (F95 B9)."""
+        res=getattr(self,'burnResult',None)
+        if res is None:
+            self.notify('Analyse a burn test first.',title='Burn test')
+            return
+        base=os.path.join(self.directory,'%s_S%d' % (os.path.basename(self.specFileName),res.scan))
+        name=QFileDialog.getSaveFileName(caption='Export the burn test (the name gets _burn.txt, _burn_trends.txt)',
+                                         directory=base)[0]
+        if not name:
+            return
+        for end in ('_burn.txt','_burn_trends.txt','.txt'):
+            if name.endswith(end):
+                name=name[:-len(end)]
+                break
+        cols,arr=res.data()
+        head='%s S# %d, %s burn; %s\n%s' % (os.path.basename(self.specFileName),res.scan,res.kind,
+                                            '; '.join(res.notes) or 'no notes','\t'.join(cols))
+        np.savetxt(name+'_burn.txt',arr,fmt='%.6g',delimiter='\t',header=head)
+        rows=res.table()
+        keys=[]
+        for r in rows:
+            keys+=[k for k in r if k not in keys]
+        with open(name+'_burn_trends.txt','w') as f:
+            f.write('# %s S# %d: the trend fits (one row per quantity and model)\n' % (os.path.basename(self.specFileName),res.scan))
+            f.write('\t'.join(keys)+'\n')
+            for r in rows:
+                f.write('\t'.join('' if r.get(k) is None else ('%.6g' % r[k] if isinstance(r.get(k),float) else str(r[k]))
+                                  for k in keys)+'\n')
+        self.notify('Exported %s_burn.txt and %s_burn_trends.txt.' % (os.path.basename(name),os.path.basename(name)),
+                    title='Burn test',level='info')
 
     def saveBurnToWorkbook(self):
         res=getattr(self,'burnResult',None)
@@ -5504,7 +5950,7 @@ class MainWindow (QMainWindow):
     def pilGISAXS(self):
         if str(self.ui.gisaxsComboBox.currentText())=='Show GISAXS':
             self.showPilGISAXS()
-        elif str(self.ui.gisaxsComboBox.currentText())=='Save GISAXS':
+        elif str(self.ui.gisaxsComboBox.currentText())=='Export GISAXS':
             self.savePilGISAXS()
 
     def showPilGISAXS(self):
@@ -5598,7 +6044,7 @@ class MainWindow (QMainWindow):
 
     def savePilGISAXS(self):
         try:
-            self.saveFileName = QFileDialog.getSaveFileName(caption='Save gioxs data', directory=self.directory)[0]
+            self.saveFileName = QFileDialog.getSaveFileName(caption='Export GIOXS data', directory=self.directory)[0]
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
             data2d = []
@@ -5628,7 +6074,7 @@ class MainWindow (QMainWindow):
         patch.clicked.connect(self.gidPatch)
         sheet.clicked.connect(self.showGIDWorksheet)
         self.gidPatchPushButton,self.gidWorksheetPushButton=patch,sheet
-        self.ui.gidComboBox.setToolTip('More GID actions: GID Patch Relax, Save GID, Form Factor, Save to workbook. '
+        self.ui.gidComboBox.setToolTip('More GID actions: GID Patch Relax, Export GID (text files), Form Factor, Save to workbook. '
                                        'GID Patch and the worksheet are the buttons beside it.')
 
     def gidPatch(self):
@@ -5649,7 +6095,7 @@ class MainWindow (QMainWindow):
         if str(self.ui.gidComboBox.currentText())=='GID Patch Relax':
             self.pilGIDRelax=1
             self.pilGIDpatchData()
-        elif str(self.ui.gidComboBox.currentText())=='Save GID':
+        elif str(self.ui.gidComboBox.currentText())=='Export GID':
             self.saveGIDData()
         elif str(self.ui.gidComboBox.currentText())=='Form Factor':
             self.setGIDFormFactor()
@@ -5661,8 +6107,7 @@ class MainWindow (QMainWindow):
             self.gidWorksheet=self.buildGIDWorksheet()
         self.gidWorksheetLimits()
         self.gidWorksheetResults()
-        self.gidWorksheet.show()
-        self.gidWorksheet.raise_()
+        self.dockWindow('worksheet',self.gidWorksheet)
 
     def buildGIDWorksheet(self):
         """GID patching worksheet (F61): the patch's settings, editable, and
@@ -6408,7 +6853,7 @@ class MainWindow (QMainWindow):
         if axes not in ('Angles','Q') or getattr(self,'pilGIDData',None) is None:
             self.messageBox('Make a GID map first, with the axes in Angles or Q, then save it.')
             return
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save gioxs data', directory=self.directory)[0])
+        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export GIOXS data', directory=self.directory)[0])
         if self.saveFileName=='':   # dialog cancelled: write nothing
             return
         gidmod.save(self.saveFileName,self.gidProducts(axes))
@@ -6744,6 +7189,17 @@ class MainWindow (QMainWindow):
             self.refRoiShow(self.cen)
 
 
+    def refRoiBadPixelFactor(self):
+        """The factor of the ROI's own bad-pixel pass (F95 B3), or None: the
+        field empty (the default) leaves the ROI as the frame's correction
+        left it."""
+        t=str(self.ui.refBPCFacLineEdit.text()).strip()
+        try:
+            v=float(t) if t else None
+        except ValueError:
+            return None
+        return v if v and v>0 else None
+
     def refAnalyzeFromField(self):
         #Enter pressed in a parameter field: silent when no Qz is selected
         if len(self.ui.refQzListWidget.selectedItems())==0:
@@ -6766,7 +7222,21 @@ class MainWindow (QMainWindow):
             start=list(self.cen)
             self.par=self.pilatus.peakFind(self.selData,self.selErrorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,fac=fac,mon=self.mon,cenfit=self.cenfit,gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
             self.cen=[int(np.floor(self.par[1])), int(np.floor(self.par[3]))]
-            bfac=float(self.ui.refBPCFacLineEdit.text())
+            bfac=self.refRoiBadPixelFactor()                  # F95 B3: the ROI's own bad-pixel pass, off unless set
+            if bfac and len(self.selFrameNums)==1:            # on the frame's counts at the boxes found, then the search again
+                counts,fixed=reflectivity.roi_bad_pixel_pass(self.selData[0],self.cen,self.slit,self.bg,self.dir,bfac)
+                if fixed:
+                    err=np.array(self.selErrorData[0],float,copy=True)
+                    for c,r in fixed:
+                        err[r,c]=np.sqrt(max(counts[r,c],0.0))
+                        self.ui.refBadPixListWidget.addItem('ROI pass: x %d, y %d' % (c,r))
+                    self.par=self.pilatus.peakFind([counts],[err],slit=self.slit,cen=start,absfac=self.absfac,absnum=self.absnum,
+                                                   fac=fac,mon=self.mon,cenfit=self.cenfit,
+                                                   gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
+                    self.cen=[int(np.floor(self.par[1])), int(np.floor(self.par[3]))]
+            elif bfac:
+                self.notify('The ROI bad-pixel pass works on one frame at a time; %d are selected, none corrected.'
+                            % len(self.selFrameNums),title='Reflectivity',level='info')
             sig,sigerr,lbg,lbgerr,rbg,rbgerr=self.pilatus.sumROI(slit=self.slit,cen=self.cen,dir=self.dir,bg=self.bg)
             net,neterr=self.pilatus.netROI()
             self.pilatus.setROI(self.pilatus.imageData,self.pilatus.errorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,bg=self.bg,dir=self.dir,mon=None)
@@ -6902,6 +7372,7 @@ class MainWindow (QMainWindow):
         self.refMaskedRows={}   # scan -> its rows left out by the mask, drawn apart (F92)
         self.refFlagsPending=[]
         self.refErrorModel=self.errorModel   # recorded for the Script pane
+        self.refRoiFactorUsed=self.refRoiBadPixelFactor()   # F95 B3, for the Script pane
         for i in self.selectedPilFramesNums:
             # one point per frame: the same code a script uses (lss_core.reflectivity)
             qkey=self.pilScanNum[i]
@@ -6909,14 +7380,15 @@ class MainWindow (QMainWindow):
             row,info=reflectivity.frame_row(self.pilatus,self.pilData[i],self.pilErrorData[i],
                 self.pilMonc[i],(self.pilX[i],self.pilY[i]),self.pilFileQzs[i],[slitx,slity],bg,
                 self.dir,self.pil_Dist[i],
-                low_qz_slit=first or self.ui.pilLowQzCorCheckBox.checkState()!=0)   # as coded: always on the first frame (PHYSICS_ISSUES P18)
+                low_qz_slit=first or self.ui.pilLowQzCorCheckBox.checkState()!=0,   # as coded: always on the first frame (PHYSICS_ISSUES P18)
+                roi_bad_pixel_factor=self.refRoiBadPixelFactor())                     # F95 B3: off unless set
             (cenx,ceny),(scenx,sceny)=info['centre'],info['expected']
             self.slit,self.bg=info['slit'],info['bg']
             if np.abs(cenx-scenx)>2:
                 self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'x', np.abs(cenx-scenx)])
             if np.abs(ceny-sceny)>2:
                 self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'y', np.abs(ceny-sceny)])
-            pilbadpixloc=[]   # corrected bad pixels inside the signal box, shown to the user
+            pilbadpixloc=[list(p) for p in info.get('roi_corrected',[])]   # corrected inside the signal box, shown to the user (B3's pass first)
             badpix=self.pilbadpixLoc.get(i,[])   # not recorded when a background image is subtracted
             for j in range(len(badpix)):
                 pilbadpixX=badpix[j][1]
@@ -7092,7 +7564,8 @@ class MainWindow (QMainWindow):
     REF_RESULT_ATTRS=('refpatchindex','refDrops','refFactors','refMethodUsed','refKnownOverride','refMerged',
                       'refMaskUsed','refMaskedRows',
                       'refRepeatsUsed','refDroppedScans','refScanList','refPoints','slit','dir','command',
-                      'refErrorModel','refPatchInput','refPatchOrder','refScale','refResultJoins','refAbsorberUsed')
+                      'refErrorModel','refPatchInput','refPatchOrder','refScale','refResultJoins','refAbsorberUsed',
+                      'refRoiFactorUsed')
 
     def initRefPatchSteps(self,Dialog):
         """Back, Cancel and the join table of the patch window. Every Drop
@@ -7513,6 +7986,7 @@ class MainWindow (QMainWindow):
                     if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
                         self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
+                self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
                 self.uirefpatch.plotWidget.canvas.ax.set_xlim(xmin,xmax)
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
@@ -7550,6 +8024,7 @@ class MainWindow (QMainWindow):
                     if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
                         self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
+                self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
                 self.uirefpatch.plotWidget.canvas.ax.set_xlim(xmin,xmax)
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
@@ -7822,8 +8297,12 @@ class MainWindow (QMainWindow):
         qoff.setToolTip('Propose Qoff from the reflectivity on show at the Qc in the field (lss_core.fresnel.'
                         'propose_qoff: a fit of the plateau and the edge, its error by bootstrap over the counting '
                         'errors; the roughness of ln R/R_F, the by-eye criterion, as a second opinion). A menu '
-                        'offers the values; the field changes only when one is picked. The Qz resolution reads as a '
-                        'slightly negative Qoff; the proposal still makes R/R_F continuous (tools session study)')
+                        'offers the values; the field changes only when one is picked. Set Qc first: Qc and Qoff '
+                        'correlate at +0.9 to +1.0, so a wrong Qc moves Qoff with it. The Qz resolution near the '
+                        'edge reads as a slightly negative Qoff (about half of the NX file\'s -0.00028; the rest is '
+                        'an angle offset or a Qc above water\'s, which these data cannot tell apart): the proposal '
+                        'makes R/R_F continuous, but it is an angle offset only once R_F is convolved with the '
+                        'resolution, which the reader does not do yet (docs/studies/qoff/summary.md)')
         qoff.clicked.connect(self.proposeRefQoff)
         if lay is not None:
             lay.insertWidget(lay.indexOf(self.ui.refQcLineEdit)+1,qc)
@@ -8067,6 +8546,38 @@ class MainWindow (QMainWindow):
         if len(m):
             ax.plot(m[:,0],m[:,1],'x',color='0.45',ms=8,mew=1.5,label='masked (%d)' % len(m),gid='masked')
 
+    def refDrawJoinFit(self,ax):
+        """F74 in the Ref Patch window: with View > Residuals above fits on
+        and the joint fit, the fitted curve over the join's window (dashed,
+        on the old scan's scale, χ²/dof in its label) and the residuals of
+        both scans' fitted points in the panel above, weighted by the fit's
+        own variance (lss_core.reflectivity.join_fit_residuals). Nothing,
+        and no panel, otherwise. Returns the fit drawn or None."""
+        fit=None
+        if self.fitResidualsShown() and self.refActiveMethod()=='joint' and self.pilreforder+1<len(self.pilrefsort):
+            j=self.pilreforder
+            old=self.scanqzframe[self.pilrefsort[j]] if j==0 else self.pilrefdata
+            fit=reflectivity.join_fit_residuals(old,self.scanqzframe[self.pilrefsort[j+1]])
+        rax=residuals.panel(ax,fit is not None)
+        if fit is None:
+            return None
+        red=fit['chi2']/fit['dof'] if fit['dof']>0 else None
+        ax.plot(fit['q'],fit['mu_a'],'--',color='k',lw=1,gid='joint fit',
+                label=residuals.chi2_label('joint fit (order %d)' % fit['order'],red))
+        for key,colour in (('a','C0'),('b','C1')):
+            q,r=fit[key]
+            residuals.draw(rax,q,r,np.zeros(len(r)),np.ones(len(r)),color=colour)
+        return fit
+
+    def refRedrawPreview(self):
+        """Redraw the Ref Patch window's join on show, when one is open (a
+        finished or closed patch is left alone)."""
+        w=getattr(self,'uirefpatch',None)
+        if (w is None or not w.isVisible() or not getattr(self,'pilrefsort',None)
+                or getattr(self,'pilreforder',0)+1>=len(self.pilrefsort)):
+            return
+        self.pilRefPatchPlot()
+
     def drawRefMasked(self,ax,norm):
         """Masked points on the Reflectivity tab: grey crosses at their Qz and R,
         scaled like their scans and normalised, offset and divided by R_F as the
@@ -8205,6 +8716,8 @@ class MainWindow (QMainWindow):
             kw.append('low_qz_slit=True')
         if self.refPoints:
             kw.append('points=%r' % self.refPoints)
+        if getattr(self,'refRoiFactorUsed',None):
+            kw.append('roi_bad_pixel_factor=%r' % self.refRoiFactorUsed)
         if int(self.ui.pilBPCiteSpinBox.value())!=0:
             kw.append('bad_pixel_iterations=%d, bad_pixel_factor=%d' % (int(self.ui.pilBPCiteSpinBox.value()),int(self.ui.pilBPCfacSpinBox.value())))
         if script_kw(getattr(self,'refErrorModel',self.errorModel)):
@@ -8623,7 +9136,9 @@ class MainWindow (QMainWindow):
         for name,export,handler in (('spec',self.ui.spExportPushButton,self.saveSpecToWorkbook),
                                     ('ref',self.ui.refExportPushButton,self.saveRefToWorkbook),
                                     ('cut',self.ui.cutExportPushButton,self.saveCutsToWorkbook),
-                                    ('mca',self.ui.mcaExportIntPushButton,self.saveMcaToWorkbook)):
+                                    ('mca',self.ui.mcaExportIntPushButton,self.saveMcaToWorkbook),
+                                    ('mcaSpectra',self.ui.mcaExportPushButton,self.saveMcaSpectraToWorkbook),   # F95 B9
+                                    ('plot',self.ui.savegraPushButton,self.savePlotToWorkbook)):
             self.saveButtons[name]=self.addSaveButton(export,handler,name)
         self.setupRefCovarianceBox()
 
@@ -8726,8 +9241,12 @@ class MainWindow (QMainWindow):
             'The sample timeline (F83): scans, "set sh 0" (new sample?), re-referencing, aborts, sx moves and '
             'the sample-height scans with their width and flatness, on one time axis')
         tab.view.scanClicked.connect(self.timelineScanClicked)
+        tab.view.resultClicked.connect(self.timelineResultClicked)
         tab.view.answerGiven.connect(self.timelineAnswer)
         tab.view.noteWanted.connect(self.timelineAddNote)
+        tab.doseCheckBox.setChecked(bool(self.prefs.get('timeline_dose',False)))
+        tab.doseCheckBox.toggled.connect(self.timelineDoseToggled)
+        tab.envComboBox.currentIndexChanged.connect(self.timelineEnvChanged)
         self.ui.PlotWidget.currentChanged.connect(self.timelineTabShown)
         tab.show_message('Open a SPEC file: its timeline is drawn here.')
 
@@ -8752,14 +9271,61 @@ class MainWindow (QMainWindow):
         from lss_core.experiment import Experiment
         from lss_core import timeline as timelinemod
         try:
-            tl=timelinemod.build(Experiment(spec))
+            exp=Experiment(spec)
+            tl=timelinemod.build(exp)
         except Exception as e:
             self.log.info('timeline of %s not drawn: %s',spec,e,exc_info=True)
             tab.show_message('The timeline could not be read: %s (detail in the log).' % e)
             self.timelineKey=None
             return
+        tab.view.dose=None
+        tab.view.reduced=self.timelineReduced(tl)
+        tab.view.env=self.timelineEnvChoices(exp)
         tab.show_timeline(tl,os.path.basename(spec),self.timelineNotes())
         self.timelineKey=key
+        if tab.doseCheckBox.isChecked():
+            self.updateTimelineDose()
+
+    # ---- F107 (owner, 2026-11-24, Q-TL-7): the sx line coloured by the dose received ----
+
+    def timelineDoseToggled(self,on):
+        self.setPreference('timeline_dose',bool(on))
+        self.updateTimelineDose()
+
+    def updateTimelineDose(self):
+        """Work out the dose each spot has received (lss_core.timeline.dose_track)
+        and colour the sx line by it; kept while the file is unchanged."""
+        from lss_core import timeline as timelinemod
+        from lss_core import dose as dosemod
+        tab=getattr(self,'timelineTab',None)
+        if tab is None or tab.view.timeline is None:
+            return
+        if not tab.doseCheckBox.isChecked():
+            tab.view.set_dose(None)
+            return
+        cached=getattr(self,'timelineDoseCache',(None,None))
+        if cached[0]==self.timelineKey and cached[1] is not None:
+            tab.view.set_dose(cached[1])
+            return
+        try:
+            exp=self.burnExperiment()
+            width=float((self.prefs.get('burn') or {}).get('beam_width') or exp.beam_width().width_mm or 1.0)   # F109
+            bh=exp.beam_height()
+            height=bh.height_mm if bh.height_mm else dosemod.DEFAULT_HEIGHT_MM
+            self.ui.statusBar.showMessage('Timeline: working out the dose of every scan and the burn tests...',5000)
+            track=timelinemod.dose_track(exp,tab.view.timeline,(width,height),notes=self.timelineNotes())
+        except Exception as e:
+            self.log.info('timeline dose not worked out: %s',e,exc_info=True)
+            self.notify('The dose could not be worked out for the timeline: %s' % e,title='Timeline')
+            tab.view.set_dose(None)
+            return
+        self.timelineDoseCache=(self.timelineKey,track)
+        tab.view.set_dose(track)
+        scales=[s for s in track.scales.values() if s is not None]
+        tab.doseCheckBox.setToolTip(tab.doseCheckBox.toolTip().split('\n\n')[0]+'\n\n'+'\n'.join(
+            ['%d scans, %s; beam %g x %.3g mm (%s).' % (len(track.rows),track.unit or 'no dose',width,height,
+                                                      bh.source or 'default')]
+            +['Scale: %s' % s.describe(track.unit) for s in scales]+track.notes))
 
     def timelineNotes(self):
         """The timeline's notes and answers, from the workbook's Saved rows of
@@ -8810,6 +9376,72 @@ class MainWindow (QMainWindow):
         before=[s.scan for s in getattr(self.timelineTab.view.timeline,'spans',[]) if s.t0<=t]
         item=timelinemod.note_item(t,text.split('\n',1)[0][:60],text,scans=before[-1:])
         self.timelineSaveNote(item)
+
+    def timelineEnvChoices(self,exp):
+        """Fill the Environment choice with the file's columns (environment-like
+        names first) and return the chosen one's track: the remembered column
+        if the file has it, else the first environment-like one, else none."""
+        from lss_core import timeline as timelinemod
+        box=self.timelineTab.envComboBox
+        cols=timelinemod.environment_columns(exp)
+        want=str(self.prefs.get('timeline_env') or '')
+        names=[c for c,_k,_e in cols]
+        pick=want if want in names else next((c for c,_k,env in cols if env),'')
+        box.blockSignals(True)
+        box.clear()
+        box.addItem('Environment: none','')
+        for c,k,env in cols:
+            box.addItem('Environment: %s%s' % (c,' (environment?)' if env else ''),c)
+            box.setItemData(box.count()-1,'%s: in %d scan%s%s' % (c,k,'s' if k!=1 else '',
+                            '; its name looks like an environment reading' if env else ''),Qt.ToolTipRole)
+        box.setCurrentIndex(max(0,box.findData(pick)))
+        box.blockSignals(False)
+        self.timelineExperiment=exp
+        return timelinemod.column_track(exp,pick) if pick else None
+
+    def timelineEnvChanged(self,*args):
+        from lss_core import timeline as timelinemod
+        tab=getattr(self,'timelineTab',None)
+        exp=getattr(self,'timelineExperiment',None)
+        if tab is None or exp is None:
+            return
+        name=str(tab.envComboBox.currentData() or '')
+        self.setPreference('timeline_env',name)
+        tab.view.set_env(timelinemod.column_track(exp,name) if name else None)
+
+    def timelineReduced(self,tl):
+        """The reduced lane's items (phase 1d): the workbook's saved results at
+        their scans' times, read in one pass; placeholders only when there is
+        no workbook yet (it is not created to look)."""
+        from lss_core import timeline as timelinemod
+        rows,data=[],{}
+        if os.path.exists(self.workbookPath()):
+            try:
+                wb=self.openWorkbook()
+                rows,data=wb.results(),wb.all_data()
+            except Exception as e:
+                self.log.info('timeline: the workbook was not read: %s',e,exc_info=True)
+        return timelinemod.reduced_items(tl,rows,data)
+
+    def timelineResultClicked(self,rid):
+        """A saved result clicked on the reduced lane: a reflectivity is ticked on
+        the Compare tab; another kind's scans are selected."""
+        item=next((it for it in getattr(self.timelineTab.view,'reduced',[]) if it.rid==rid),None)
+        if item is None:
+            return
+        if item.kind=='reflectivity' and getattr(self,'compareTab',None) is not None:
+            self.ui.PlotWidget.setCurrentWidget(self.compareTab)
+            self.refreshCompare(force=True)
+            self.compareTab.tick(rid)
+            return
+        self.timelineScanClicked(item.scans[0])
+        lw=self.ui.scanListWidget
+        want={int(n) for n in item.scans}
+        lw.blockSignals(True)
+        for r in range(lw.count()):
+            lw.item(r).setSelected(itemScan(lw.item(r)) in want)
+        lw.blockSignals(False)
+        lw.itemSelectionChanged.emit()
 
     def timelineScanClicked(self,scan):
         """A scan bar or an sh scan clicked on the timeline: select that scan."""
@@ -8865,6 +9497,27 @@ class MainWindow (QMainWindow):
                for k,(label,x,y,s,scale) in enumerate(curves) if label in fits]
         return self.drawFitResiduals(self.ui.cutPlotMplWidget.canvas.ax,items)
 
+    def peakFitLabel(self):
+        """The older Fit Peak dialog's curve label: 'fit', with χ²/dof while
+        the residuals are shown (F74); None (no legend entry, as before) otherwise."""
+        item=getattr(self,'peakFitResiduals',None)
+        if not self.fitResidualsShown() or item is None:
+            return None
+        return residuals.chi2_label('fit',item[2])
+
+    def drawPeakFitResiduals(self,ax,fitted):
+        """F74 on the older Fit Peak dialog's plots (Plot tab, MCA tab): the
+        residuals the fit minimised, (y − fit)/σ at the fitted points, in
+        the panel above ``ax`` when the switch is on and ``fitted``; the
+        panel removed otherwise."""
+        item=getattr(self,'peakFitResiduals',None) if fitted else None
+        rax=residuals.panel(ax,self.fitResidualsShown() and item is not None)
+        if rax is None:
+            return None
+        x,r,_red=item
+        residuals.draw(rax,x,r,np.zeros(len(r)),np.ones(len(r)),color='r')
+        return rax
+
     def setFitResiduals(self,on):
         """View > Residuals above fits: kept between sessions; redraws the
         fits on show."""
@@ -8877,6 +9530,11 @@ class MainWindow (QMainWindow):
         if getattr(self,'burnResult',None) is not None and getattr(self,'uipdburn',None) is not None \
                 and hasattr(self.uipdburn,'burnTrendPlotWidget'):
             self.plotBurnTrends(self.burnResult)
+        self.refRedrawPreview()
+        if getattr(self,'fitplotstatus',0)!=0:          # the older Fit Peak dialog's fits on show
+            self.updatePlotPlot()
+        if getattr(self,'mcafitplotstatus',0)==1:
+            self.updateMcaPlotData()
 
     def fitCuts(self):
         """Fit every plotted cut (the "Fit peaks" button)."""
@@ -8937,7 +9595,7 @@ class MainWindow (QMainWindow):
         if not self.cutFitResults:
             self.messageBox('Fit the cuts first.')
             return
-        name=QFileDialog.getSaveFileName(self,'Save the peak fits',os.path.join(self.directory,'peak_fits.txt'),
+        name=QFileDialog.getSaveFileName(self,'Export the peak fits',os.path.join(self.directory,'peak_fits.txt'),
                                          'Text (*.txt *.csv)')[0]
         if not name:
             return
@@ -8953,8 +9611,7 @@ class MainWindow (QMainWindow):
     def showCutFitOptions(self):
         if self.cutFitDialog is None:
             self.cutFitDialog=self.buildCutFitDialog()
-        self.cutFitDialog.show()
-        self.cutFitDialog.raise_()
+        self.dockWindow('cutfit',self.cutFitDialog)
 
     def buildCutFitDialog(self,which='cut'):
         """The options of "Fit peaks" (``which`` 'cut') or of the MCA's "Fit
@@ -9031,7 +9688,7 @@ class MainWindow (QMainWindow):
         lay.addWidget(res)
         buttons=QHBoxLayout()
         go=QPushButton('Fit now',d); go.setObjectName('cutFitNowPushButton'); go.setToolTip('Fit the plotted cuts with these options')
-        save=QPushButton('Save results...',d); save.setObjectName('cutFitSavePushButton')
+        save=QPushButton('Export results...',d); save.setObjectName('cutFitSavePushButton')
         save.setToolTip('Write the last fits as a tab-separated table (cut, peak, centre, FWHM, height, area with errors, chi2/dof).')
         close=QPushButton('Close',d)
         for w in (go,save,close):
@@ -9633,6 +10290,45 @@ class MainWindow (QMainWindow):
                               recipe='' if label=='GID cut' else self.recipe(self.cutScript)))
         self.saveToWorkbook('gid cut' if curves[0][0]=='GID cut' else 'line cut',items,auto=getattr(self,'autoSaving',False))
 
+    def saveMcaSpectraToWorkbook(self):
+        """The selected MCA spectra (normalised, as Export writes them) into the
+        workbook, one result each (F95 B9: the spectra get a Save)."""
+        sel=list(getattr(self,'selectedMcaScanNums',[]) or [])
+        spectra=getattr(self,'nomMcaData',{}) or {}
+        items=[]
+        for i in sel:
+            d=spectra.get(i) if isinstance(spectra,dict) else (spectra[i] if i<len(spectra) else None)
+            if d is None:
+                continue
+            it=self.ui.imageListWidget.item(i)
+            scan=itemScan(it)
+            items.append(dict(scans=[scan],data=np.asarray(d,float)[:,:3],columns=['energy','I','dI'],
+                              label='spectrum %s' % ' '.join(itemLabels(it)),
+                              settings=dict(command=str(getattr(self,'command','')))))
+        if not items:
+            self.saveNotice('Select MCA spectra first.')
+            return
+        self.saveToWorkbook('fluorescence',items)
+
+    def savePlotToWorkbook(self):
+        """The Plot tab's selected files, as read, into the workbook (kind
+        'other', labelled by file name, tied to no scan; F95 B9)."""
+        rows=list(getattr(self,'selectedplotfiles_rows',[]) or [])
+        items=[]
+        for r in rows:
+            path=str(self.plotfiles[r])
+            try:
+                d=np.atleast_2d(np.loadtxt(path,comments='#'))
+            except (OSError,ValueError) as e:
+                self.notify('%s not saved: %s' % (os.path.basename(path),e),title='Save')
+                continue
+            items.append(dict(scans=[],data=d[:,:workbookmod.MAX_VALUES],columns=['c%d' % (k+1) for k in range(min(d.shape[1],workbookmod.MAX_VALUES))],
+                              label=os.path.basename(path),settings=dict(file=path)))
+        if not items:
+            self.saveNotice('Select files on the Plot tab first.')
+            return
+        self.saveToWorkbook('other',items)
+
     def saveMcaToWorkbook(self):
         rows=getattr(self,'mcaIntData',None)
         if not rows:
@@ -9792,8 +10488,7 @@ class MainWindow (QMainWindow):
     def showMcaFitOptions(self):
         if self.mcaFitDialog is None:
             self.mcaFitDialog=self.buildCutFitDialog('mca')
-        self.mcaFitDialog.show()
-        self.mcaFitDialog.raise_()
+        self.dockWindow('mcafit',self.mcaFitDialog)
 
     def updateCutPlotData(self):
         if self.det!='Pilatus':   # no cut plotted: display options do nothing
@@ -9843,7 +10538,7 @@ class MainWindow (QMainWindow):
             if (summed and -1 not in self.cutData) or (not summed and any(i not in self.cutData for i in frames)) or (not summed and len(frames)==0):
                 self.messageBox('The frame selection or the "Sum" option changed after the cut was made. Please make the cut again before saving.')
                 return
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Save Cuts', directory=self.directory)[0]
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export cuts', directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
         if self.det=='Pilatus':
@@ -10130,8 +10825,9 @@ class MainWindow (QMainWindow):
         if self.fitplotstatus!=0:  #add fit result
             fitdata=np.array(self.peakfitdata)
             fitbgdata=np.array(self.peakbgfitdata)
-            self.ui.PlotMplWidget.canvas.ax.plot(fitdata[:,0],fitdata[:,1],'r-')
+            self.ui.PlotMplWidget.canvas.ax.plot(fitdata[:,0],fitdata[:,1],'r-',label=self.peakFitLabel())
             self.ui.PlotMplWidget.canvas.ax.plot(fitbgdata[:,0],fitbgdata[:,1],'g-')
+        self.drawPeakFitResiduals(self.ui.PlotMplWidget.canvas.ax,self.fitplotstatus!=0)   # F74
         if self.ui.plotLogXCheckBox.checkState()!=0:
             self.ui.PlotMplWidget.canvas.ax.set_xscale('log')
         if self.ui.plotLogYCheckBox.checkState()!=0:
@@ -10182,7 +10878,7 @@ class MainWindow (QMainWindow):
         
     def saveGraPlotData(self): #save the derivative data
         try:
-            self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Derivative Data',directory=self.directory)[0])
+            self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export the gradient',directory=self.directory)[0])
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
             fitfile=self.saveFileName+'_der.txt'
@@ -10485,6 +11181,7 @@ class MainWindow (QMainWindow):
             #print(info,errmsg,ier)
             residual=self.peakres(pfit,x,y,yerr,flag)
             self.chisquare=np.sum(residual**2)/(len(x)-len(p0))
+            self.peakFitResiduals=(np.array(x,float),np.array(residual,float),float(self.chisquare))   # F74
             self.fiterror=[np.sqrt(self.chisquare*pcov[i,i]) for i in range(len(p0))]
             if flag[0]==0:
                 self.peakfitdatay=sum(self.gaufun(x0,pfit[3*i:3*i+3]) for i in range(flag[1]))+self.polyfun(x0,pfit[3*flag[1]:])
@@ -10524,6 +11221,8 @@ class MainWindow (QMainWindow):
             
             self.peakresult=minimize(self.peak2min, self.peakparameter, args=(x,y,yerr))
             print(fit_report(self.peakresult))
+            self.peakFitResiduals=(np.array(x,float),np.array(self.peak2min(self.peakresult.params,x,y,yerr),float),
+                                   float(self.peakresult.redchi))   # F74: the residuals the fit minimised
 
             peakfitres=[self.peakresult.params[self.peakparaname[i]].value for i in range(peaknumber*3)]
             bgfitres=[self.peakresult.params[self.peakbgparaname[i]].value for i in range(bgorder+1)]
@@ -10543,6 +11242,7 @@ class MainWindow (QMainWindow):
             self.updateMcaPlotData()
         else:
             self.ui.mcaPlotMplWidget.canvas.ax.clear()
+            residuals.panel(self.ui.mcaPlotMplWidget.canvas.ax,False)   # F74: Fit All steps through the frames
             errorbars(self.ui.mcaPlotMplWidget.canvas.ax,data[:,0],data[:,1],data[:,2],fmt='o-',label=self.mcaLabelOne)
             self.ui.mcaPlotMplWidget.canvas.ax.plot(x0,self.peakfitdatay,'r-')
             fit=np.array(self.peakfitdata)
@@ -10618,7 +11318,7 @@ class MainWindow (QMainWindow):
         if not hasattr(self,'peakfitdata'):
             self.messageBox('There is no fit to save yet; press "Fit" first.')
             return
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Fit Data',directory=self.directory)[0])
+        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export fit data',directory=self.directory)[0])
         if self.saveFileName=='':
             return
         fitfile=self.saveFileName+'_fit.txt'

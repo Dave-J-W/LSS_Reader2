@@ -4,6 +4,9 @@
 (400 replicates per join and condition, about 30 s on 4 CPUs; synthetic data with known truth, and the
 public NX school file). C61 in `docs/COMPARISONS.md`. No default is changed.*
 
+*The whole chain, one example at a time, with every fit drawn and every statistic explained:
+`walkthrough.md` beside this file (AGENTS.md rule 13).*
+
 **The question** (the local data agent's survey of 1832 real joins, `docs/studies/ref_patch_real/`, C56).
 - **The finding:** on 1091 real scans split with a known factor, the join guard leaves the errors about 24 %
   too small: pull SD 1.24 [1.09, 1.40], against 1.00 with the guard off.

@@ -464,6 +464,22 @@ class Workbook:
             out.append(r)
         return out
 
+    def all_data(self):
+        """{id: (N, k) array} of every result, in one pass over the Data sheet
+        (``data`` scans the whole sheet for each id: 0.48 s per result on a
+        300-result workbook, against 0.37 s for all of them this way; the
+        timeline research, F83)."""
+        rows = {}
+        for r in self._rows('Data'):
+            rows.setdefault(r['id'], []).append(r)
+        out = {}
+        for rid, rs in rows.items():
+            rs.sort(key=lambda r: r['point'])
+            k = max((j for j in range(1, MAX_VALUES + 1) if any(r['v%d' % j] is not None for r in rs)), default=0)
+            out[rid] = np.array([[np.nan if r['v%d' % j] is None else r['v%d' % j] for j in range(1, k + 1)]
+                                 for r in rs], float) if k else np.zeros((0, 0))
+        return out
+
     def data(self, rid):
         """The data vector of result ``rid``: (N, k) array."""
         rows = [r for r in self._rows('Data') if r['id'] == rid]

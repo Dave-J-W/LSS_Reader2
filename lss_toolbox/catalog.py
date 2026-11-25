@@ -225,7 +225,52 @@ TOOLS = (
              V('More replicates (1000)', 'Every design with 1000 replicates (about 2 min).',
                'docs/studies/reciprocity/summary.md## 1. How often is each truth called right?', replicates='1000'),
          ),
-         repo_out='docs/studies/reciprocity', repo_ok=False, seconds=35.0),
+         repo_out='docs/studies/reciprocity', repo_ok=False, seconds=85.0),
+
+    Tool('qoff_walkthrough', 'Walkthrough: the Qz offset from the raw frames to the judgment (F79, ELI5)', 'refl',
+         'figures', 'tests/tools/qoff_walkthrough.py',
+         'The whole chain on NX school scans 6-9, for the owner\'s standing order (2026-11-25): a raw frame and its '
+         'counted box, R and R/R_F at the edge at Qoff 0 and at the proposal, the edge fit drawn over its data '
+         'with its residuals (chi2/dof 75: the rounded edge), the bootstrap, and what the beamline\'s resolution '
+         'reads as: figures QW1-QW5.',
+         committed=('docs/studies/qoff/walkthrough',),
+         docs=('docs/studies/qoff/walkthrough.md', 'docs/studies/qoff/summary.md'),
+         data='public', defaults={'--out': OUT},
+         repo_out='docs/studies/qoff/walkthrough', repo_ok=False, seconds=60.0),
+
+    Tool('reciprocity_walkthrough', 'Walkthrough: from the frames to the dose-or-time verdict (F76, ELI5)', 'burn',
+         'figures', 'tests/tools/reciprocity_walkthrough.py',
+         'The whole chain on public data, for the owner\'s standing order (2026-11-25): an NX school frame and its '
+         'line cut, one position per frame, the straight-line drift with its residuals, the rates against flux '
+         'with chi2(beta), C54\'s strip scatter by REML, one real series under three error models, and the '
+         'calibration of the intervals: figures W1-W6.',
+         committed=('docs/studies/reciprocity/walkthrough',),
+         docs=('docs/studies/reciprocity/walkthrough.md', 'docs/studies/reciprocity/summary.md'),
+         data='public', defaults={'--out': OUT},
+         inputs=('docs/studies/xr_burns/burns.csv',),
+         repo_out='docs/studies/reciprocity/walkthrough', repo_ok=False, seconds=60.0),
+
+    Tool('reciprocity_real', 'Dose or time on C54\'s 19 real burn series, and the strip scatter (F76)', 'burn',
+         'figures', 'tests/tools/reciprocity_real.py',
+         'lss_core.reciprocity on the public, anonymised rates of the real reflectivity burns (C54): the strip '
+         'scatter from the six repeated absorbers (additive and relative, REML), each series\' verdict and beta '
+         'under counting errors, tau and rho beside C54\'s, and how many strips per flux would decide at that rho: '
+         'figure R6.',
+         committed=('docs/studies/reciprocity/c54',),
+         docs=('docs/studies/reciprocity/summary.md## 6. C54\'s 19 real series (2026-11-25)',
+               'docs/studies/xr_burns/summary.md', 'docs/COMPARISONS.md#| C58 |'),
+         data='public', defaults={'--out': OUT},
+         inputs=('docs/studies/xr_burns/burns.csv', 'docs/studies/xr_burns/series_dose_or_time.csv'),
+         variations=(
+             V('Without the design (seconds)', 'Only the strip scatter, the verdicts and R6; no strips-per-flux '
+               'simulation.', 'docs/studies/reciprocity/summary.md## 6. C54\'s 19 real series (2026-11-25)',
+               design_replicates='0'),
+             V('Strips per flux, 1000 replicates', 'The design at the fitted rho with 1000 replicates per cell (about '
+               '7 min).', 'docs/studies/reciprocity/summary.md#12–16 strips per flux', design_replicates='1000'),
+             V('Another additive strip scatter', 'C54\'s tau replaced (here 150 %/h) beside the one fitted.',
+               'docs/studies/xr_burns/summary.md#88 %/h (64–122)', tau_c54='150'),
+         ),
+         repo_out='docs/studies/reciprocity/c54', repo_ok=False, seconds=90.0),
 
     Tool('burn_dose_figure', 'Burns against dose: damage or a changing sample?', 'burn', 'figures',
          'tests/tools/burn_dose_figure.py',
@@ -388,6 +433,83 @@ TOOLS = (
                replicates='200'),
          ),
          repo_out='docs/studies/qoff', repo_ok=False),
+
+    Tool('excess_remedy_study', 'The join\'s error budget with the measured excess: scale, X, robust weights, '
+         'clipping (C64)', 'refl', 'figures', 'tests/tools/excess_remedy_study.py',
+         'C61\'s six synthetic joins with C63\'s measured excess drawn in (and with none), fitted by today\'s joint '
+         'fit with the stated sigma, sigma x 1.12, the budget with X by Qz or by counts, Student-t or Cauchy '
+         're-weighting, 4-sigma clipping, or an oracle; the NX school split. Figures E1-E3: the pulls, the '
+         'catastrophic misses the pull SD hides, and one join with a wild point fitted two ways.',
+         committed=('docs/studies/excess_remedy',),
+         docs=('docs/studies/excess_remedy/walkthrough.md', 'docs/studies/excess_remedy/summary.md',
+               'docs/COMPARISONS.md#| C64 |'),
+         data='public', defaults={'--out': OUT},
+         variations=(
+             V('Quick look', 'Every figure from 40 replicates per join (about 5 s): the pattern, not the decimals.',
+               'docs/studies/excess_remedy/walkthrough.md#Each is drawn 400 times', reps='40'),
+             V('Synthetic only', 'Without the NX school split.',
+               'docs/studies/excess_remedy/walkthrough.md#A real check: the NX school split', no_nx=True),
+         ),
+         repo_out='docs/studies/excess_remedy', repo_ok=False, seconds=45.0),
+
+    Tool('roi_bad_pixel_study', 'A bad-pixel pass on the reflectivity ROI: hot pixels, sparse frames, the factor '
+         '(F95 B3, C62)', 'refl', 'figures', 'tests/tools/roi_bad_pixel_study.py',
+         'Synthetic frames with known truth (bright, sharp and sparse beams; 0-0.5 hot pixels per frame) reduced by '
+         'the reader\'s frame_row after no pass, the whole-frame pass at factor 4, the ROI pass at factors 3, 10 and '
+         '40, or the background boxes only; the NX school frames. Figures R1-R5: one sparse frame, the extra scatter '
+         'per point, the threshold, the join pulls, and how close clean frames come to a correction.',
+         committed=('docs/studies/roi_bad_pixels',),
+         docs=('docs/studies/roi_bad_pixels/walkthrough.md', 'docs/studies/roi_bad_pixels/summary.md',
+               'docs/COMPARISONS.md#| C62 |'),
+         data='public', defaults={'--out': OUT},
+         variations=(
+             V('Quick look', 'Every figure from 5 replicates (about 20 s): the pattern, not the decimals.',
+               'docs/studies/roi_bad_pixels/walkthrough.md#30 replicates', reps='5'),
+             V('Synthetic only', 'Without the NX school frames.',
+               'docs/studies/roi_bad_pixels/walkthrough.md#NX school (real, public)', no_nx=True),
+         ),
+         repo_out='docs/studies/roi_bad_pixels', repo_ok=False, seconds=110.0),
+
+    Tool('guard_error_walkthrough', 'Walkthrough: why join error bars are too small, from two scans to the verdict '
+         '(C61, ELI5)', 'refl', 'figures', 'tests/tools/guard_error_walkthrough.py',
+         'The whole chain of the guard\'s-error study, for the owner\'s standing order (2026-11-25): two scans and the '
+         'factor read off their shared points, with and without 2 % hidden scatter; the joint fit drawn over its data '
+         'with its residuals; the guard\'s ladder of p-values; the pulls and coverage over 400 replicates, today\'s '
+         'rule against honest per-point errors; a fringed join, where inflating by the order-4 chi2 fails; and a '
+         'real NX school scan split with a known factor: figures W1-W6.',
+         committed=('docs/studies/guard_error/walkthrough',),
+         docs=('docs/studies/guard_error/walkthrough.md', 'docs/studies/guard_error/summary.md'),
+         data='public', defaults={'--out': OUT},
+         variations=(
+             V('Quick look', 'The pulls of W4 from 40 replicates (about 2 s): the pattern, not the decimals.',
+               'docs/studies/guard_error/walkthrough.md#Over 400 replicates of this join', reps='40'),
+         ),
+         repo_out='docs/studies/guard_error/walkthrough', repo_ok=False, seconds=6.0),
+    Tool('excess_scatter', 'Scatter beyond counting statistics: the estimators on known truth (DATA_NEEDS row 15)',
+         'refl', 'figures', 'tests/tools/excess_scatter.py',
+         'Synthetic reflectivity series (water, DPPC, a 100 Å film) with a known per-point excess X, a slow drift '
+         'or 3 % outliers: the shared-Qz estimator (one Gaussian, and a core plus outliers) and the 6-point '
+         'within-scan difference, each against the truth (figure X1); then the pull SD of today\'s joint fit on '
+         'C61\'s joins with the excess measured on real data (pulls.csv).',
+         committed=('docs/studies/excess_scatter/X1_known_truth.png', 'docs/studies/excess_scatter/known_truth.csv',
+                    'docs/studies/excess_scatter/pulls.csv', 'docs/studies/excess_scatter/numbers.json'),
+         docs=('docs/studies/excess_scatter/summary.md', 'docs/COMPARISONS.md#| C63 |'),
+         defaults={'--out': OUT, '--trials': '40', '--pulls': '200'},
+         variations=(
+             V('Quick look', '5 estimates per cell and no pull check: the pattern of X1 in about a minute.',
+               'docs/studies/excess_scatter/summary.md## The known-truth check', trials='5', pulls='0'),
+         ),
+         repo_out='docs/studies/excess_scatter', seconds=900),
+    Tool('excess_scatter_walkthrough', 'Walkthrough: scatter beyond counting, from two scans to the verdict '
+         '(DATA_NEEDS row 15, ELI5)', 'refl', 'figures', 'tests/tools/excess_scatter_walkthrough.py',
+         'The whole chain of the excess-scatter study (rule 13): two NX school scans and their shared Qz; the ratio '
+         'at the shared points with its mean and residuals; the 6-point difference within a scan; the likelihood '
+         'and the core + outlier model on known truth; the real results by what they might follow, from the '
+         'committed derived tables: figures W1-W5.',
+         committed=('docs/studies/excess_scatter/walkthrough',),
+         docs=('docs/studies/excess_scatter/walkthrough.md', 'docs/studies/excess_scatter/summary.md'),
+         data='public', defaults={'--out': OUT},
+         repo_out='docs/studies/excess_scatter/walkthrough', repo_ok=False, seconds=40.0),
 
     Tool('guard_error_study', 'The guard\'s error: why join error bars are too small on real data', 'refl', 'figures',
          'tests/tools/guard_error_study.py',
@@ -964,7 +1086,7 @@ TOOLS = (
          repo_out='docs/studies/xrf_models/scatter', repo_ok=False, seconds=None),
     Tool('xrf_models_compare', "Scatter models: the twins' shootout against the real blanks'", 'fluo', 'data',
          'tests/tools/xrf_models.py',
-         "Every method's bias on the model twins of the blanks against its bias on the real blanks (C63), per "
+         "Every method's bias on the model twins of the blanks against its bias on the real blanks (C66), per "
          "condition, and the verdicts: whether a scatter model can stand in for the real scatter in tests of line "
          "fits. Reads the runs of xrf_blanks.py on the twins (seconds).",
          committed=('docs/studies/xrf_models/scatter/compare.csv', 'docs/studies/xrf_models/scatter/compare_zero.csv',
@@ -1041,7 +1163,8 @@ TOOLS = (
          data='public', defaults={'--out': OUT},
          variations=(V('Quick (skip the slow areas)', 'Leaves out Ref Patch, GID patch, cuts and burn on the real '
                        'data.', 'tests/tools/gui_screens.py', skip_slow=True),),
-         inputs=UI + ('docs/gui/screens/README.md',), seconds=None),
+         inputs=UI + ('docs/gui/screens/README.md',), seconds=None,
+         volatile=(r'last run took', r'drawing took [0-9.]+ s')),          # README.md's timings
     Tool('plot_speed_mca', 'Plot speed: MCA spectra', 'gui', 'text',
          'tests/tools/plot_speed.py',
          'How long the real window takes to plot N MCA spectra (linear and log y, and switching log y on) on '
@@ -1131,6 +1254,19 @@ TOOLS = (
                       'aggregation (sample_data/private/gid/); not regenerable here; the numbers are the CSVs beside them.',
          committed=('docs/studies/gid_method_survey',), docs=('docs/studies/gid_method_survey/summary.md',
                                                               'docs/handoff_out/06-gid-method-comparison.md'),
+         data='private', repo_ok=False),
+    Tool('xr_excess_scatter', 'Real reflectivity: scatter beyond counting statistics (private data)', 'external',
+         'external',
+         demonstrates="The excess per-point scatter of 384 real reflectivity series (DATA_NEEDS row 15): the core "
+                      'excess and the outlier share, between scans (shared Qz) and within a scan, overall and by '
+                      "Qz, counts, time, background, monitor and absorber. Made by the non-cloud agent's private "
+                      'generator (sample_data/private/xr/); not regenerable here; the numbers are the real_*.csv '
+                      'beside the study, and the walkthrough draws them (W5).',
+         committed=('docs/studies/excess_scatter/real_overall.csv', 'docs/studies/excess_scatter/real_by.csv',
+                    'docs/studies/excess_scatter/real_runs.csv', 'docs/studies/excess_scatter/real_tails.csv',
+                    'docs/studies/excess_scatter/real_scale.csv', 'docs/studies/excess_scatter/real_time_by_qz.csv',
+                    'docs/studies/excess_scatter/real_numbers.json'),
+         docs=('docs/studies/excess_scatter/summary.md',),
          data='private', repo_ok=False),
     Tool('xr_burns', 'Real reflectivity burns: trends, dose or time (private data)', 'external', 'external',
          demonstrates="The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): the drift "
