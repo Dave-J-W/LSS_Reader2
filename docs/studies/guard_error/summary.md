@@ -67,6 +67,14 @@ errors unchanged. The error rules, all on the rung the guard keeps at p 0.7:
 
 ## Recommendation
 
+> **Update, 2026-11-25 (C63, C64 corrected):** the excess is now measured. Within a scan the counting σ is
+> about 12 % too small (C63: s 1.12, 0.12–0.19 % of R, about 0.3 % wild points). Under that truth today's join
+> errors give pull SD 1.19 / 1.08, against the real splits' 1.24, and σ × 1.12 brings them to 1.08 / 1.01.
+> So the per-point fix stands, but its size is σ × 1.12, not the 1 % used here: that was C61's working value,
+> chosen to reproduce the failure. C63's larger between-scan numbers describe a change between scans at the
+> shared points, not per-point noise (`docs/studies/excess_remedy/`). The option exists:
+> `errors={'mode': 'budget', 'counting_scale': 1.12}`, 1 by default until rule 12 and the owner's word.
+
 - **Do not change the join's error rule.** None of the proposals is better than today across both kinds of
   join.
 - **Add an excess term to the per-point error budget** (`lss_core.errors`, budget mode). It is the remedy
