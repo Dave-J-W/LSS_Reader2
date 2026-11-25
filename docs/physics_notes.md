@@ -6190,6 +6190,93 @@ removal of its figure B1) and checking its arithmetic here; nothing measured by 
   - the Refl1D guide to resolution in reflectometry, on the angular and wavelength terms and their
     convolution with the model, https://refl1d.readthedocs.io/en/latest/guide/resolution.html.
 
+
+### 2026-11-24 — Stray light and beam-path background in pinhole GID frames, on the private data (DATA_NEEDS row 10, P40)
+
+Verified by: measurement on private data by the non-cloud agent (every inferred GID set with frames: 189
+sets, 286 Qz levels, 18 beamtimes; and one beamtime's off-specular frames with the sample lowered). Study:
+`docs/studies/gid_stray_light/summary.md`.
+
+- **What exists of what row 10 asked for:** no GID set of a bare subphase and no GID frames with the sample
+  lowered; 94 same-slit, same-absorber level pairs (arm level and raised to β0 6.5°), of which only 4–6 are
+  nearly free of GID signal; S5 is the same at both heights in every pair (never nearly closed at the raised
+  arm); the lower level was repeated after the upper in 26 pairs. One beamtime's off-specular scans include 7
+  with the sample lowered 2 mm and the same slits.
+- **P40b, the streak past S5's high edge at the raised arm, is in every beamtime:** 31× the level arm's light in
+  those columns (median of 94 pairs; 16–84 % 13–110×; beamtime medians 7–146×); none past S5's low edge
+  (0.77×). The P39 decision to keep IDL's high edge on raised-arm frames stays right; a fixed mask width would
+  not fit every beamtime.
+- **P40a:** beyond the footprint but inside S5, 0.41 of the usable columns' light near the horizon at the level
+  arm (0.33–0.50), 1.34× more at the raised arm; below the horizon 1.6 % in the usable columns and 22 % beyond the
+  footprint. The usable columns see the same light at both heights at β 5–9° (0.93×).
+- **Beam path alone** (sample lowered, off-specular geometry, not GID): 10–14 % of the frame near the horizon,
+  33–49 % at β 3–6°, flat in β.
+- **No reader number changes.** P40 stays open; subtracting P40a needs GID background frames that the data do
+  not hold (same slits, sample lowered, both arm heights).
+
+### 2026-11-24 — GISAXS and GIOXS examples in the private data (DATA_NEEDS row 4, F104, P35)
+
+Verified by: reading every SPEC header of the private copy (8255 scans) by the non-cloud agent, and
+measurement on the frames of the GISAXS set (the brightest column). Study:
+`docs/studies/gisaxs_gioxs_inventory/summary.md`.
+
+- **GISAXS: one beamtime**, 67 scans of 2 frames × 10 s on the 200K: α 0.09°, Det_Th 0.45°, wide S4 (3 + 10 mm)
+  and S5 (7.4 + 14 mm), the detector moved back (header S2D 1022.5 mm, pinhole 685 mm). No background, no beam
+  stop. **Its header geometry is off:** in all 67 scans the brightest column lies 4.97 ± 0.02 columns above
+  what DBPos and Det_Th predict at the header S2D, so q needs a direct-beam calibration first, and P35 (the
+  GISAXS view one column off) cannot be settled from it.
+- **GIOXS in the sense of off-specular scattering below the critical angle (GIXOS): one beamtime, two files**:
+  36 sample scans and 7 with the sample lowered 2 mm, α 0.10°, Det_Th 0.3°, S4 and S5 0.12 mm wide (the slits
+  fix the in-plane angle; the rows give β). The lowered scans are the background (same slits): the beam path
+  is 10–14 % of the frame near the horizon, 33–49 % at β 3–6° (`docs/studies/gid_stray_light/`).
+- **The diffuse around the specular** (F104's own wording for GIOXS) is recorded by the Pilatus 1M
+  reflectivity frames of two beamtimes (1043 × 981 pixels, 30 keV and 6.2 keV); no dedicated off-specular
+  scans there.
+- What the reader would need is listed per set in the study (β profiles of a column band with background
+  subtraction for GIXOS; q mapping after a geometry calibration for GISAXS; the F38 geometry for the 1M).
+  Nothing is copied into the repository; the frames stay private.
+
+### 2026-11-24 — Stage 4 inputs: which requested formats exist in the private data (DATA_NEEDS row 6)
+
+Verified by: reading by the non-cloud agent (every SPEC header of the private copy, the TIFF header of one
+frame per imaging scan, the document files of the one bluesky folder). Study: `docs/studies/stage4_inputs/summary.md`.
+
+- **Full two-module 200K frame (F63): no.** All 6506 sampled 200K scans in 21 run folders save one module
+  (TIFF 487 × 195, 32-bit).
+- **New-format fluorescence/GID SPEC file (F28): not identified.** One header layout throughout; the only newer
+  layout is the per-point MCA files (row 2). GID with fluorescence exists only as alternating Vortex and
+  Pilatus scans at a fixed Det_Th.
+- **HDF5/bluesky (F29): yes, but no surface data.** A commissioning run at the other station: 307 runs as JSONL
+  event documents and 100 small HDF5 files written by a Dante MCA; beamline scans only, no area detector.
+- **Pilatus + Vortex in one scan (F53): yes**, two usable scans (alignment-type, a frame and a per-point MCA file
+  for every point) and one with frames but no spectra.
+- **1M geometry (F38): yes.** Two beamtimes, TIFF 1043 × 981; `#B5 x y D 0` gives the beam pixel and the
+  sample–detector distance (2654.6 and 2038.7 mm in two installations); in one beamtime the detector stage
+  height changes from scan to scan (tracked mode) but is logged only at each scan's start.
+
+### 2026-11-24 — The GID defaults judged on the private data (hand-off 06, DATA_NEEDS row 12)
+
+Verified by: measurement on private data by the non-cloud agent, with the reader's own survey tool
+(`tests/tools/gid_method_survey.py --split`, unchanged) on 194 inferred GID sets in 18 beamtimes. Study:
+`docs/studies/gid_method_survey/summary.md`; COMPARISONS C59, C60.
+
+- **Response:** `beam` is the safest: best on 122 of 239 levels, median 1.00× the best frames-agree χ²/dof,
+  worst 2.85×; the default `fit` median 1.13×, worst 14×, and 1.61× at Det_Th < 10° where the column-to-beam
+  mapping moves fastest. Not uniform: `fit` is better in 3 of 15 beamtimes (by 8–49 %). Every pinhole
+  response gives the same ground truth (patched FWHM / single frames 1.01; the legacy patch 1.52). Split test:
+  `beam` within 1 % of 1.25 in 37 of 38 levels, `fit` 34 (median 1.257, P42's residue).
+- **Joins:** as collected, 37 % of level joins and 29 % of scan joins are within 5 % of 1; keep them applied.
+  9 % of scan joins are outside 0.5–2 under every method (likely different samples or settings inside one
+  inferred series). 18 sets in 7 beamtimes cannot be patched by any pinhole method (a middle level does not
+  overlap in β with the ones below); legacy patches them.
+- **Distance:** reliable calibration on 30 % of levels (no peak in ≥ 5 frames, frames that disagree or drift,
+  and Det_Th steps too coarse for 6 frames per 2θ are the reasons); median 267.2 mm against the header's 271;
+  not stable within a beamtime at the stated errors, so no per-beamtime value. Calibrating moves the patched
+  peak's centre onto the single frames' (within 2σ in 91 % against 65 %), not its width.
+- **Proposed, not applied** (rule 12 first): response default `fit` → `beam`; the distance calibrated per set
+  when reliable. Rows for OUTPUT_DECISIONS are in the study.
+- **Defect found:** a one-point Det_Th scan in a GID set makes `Experiment.frames` raise `KeyError: 'monc'`
+  (4 sets).
 ### 2026-11-25 — F105: Export proposes a name from the sample and the scans (Q-REF-6)
 
 The owner's Q-REF-6 (2026-11-23): "Straight into xmodfit; the reader

@@ -921,6 +921,22 @@ TOOLS = (
                       'behind the figures are the CSVs beside them.',
          committed=('docs/studies/sh_beam_size',), docs=('docs/studies/sh_beam_size/summary.md', 'docs/studies/sh_beam_size/height_scans.md'),
          data='private', repo_ok=False),
+    Tool('gid_stray_light_private', 'GID stray light over many sets (private data)', 'external', 'external',
+         demonstrates='P40 on every private GID set (DATA_NEEDS row 10): light past S5 and beyond the footprint at '
+                      'both arm heights, per beamtime, and the beam-path background from frames with the sample '
+                      'lowered. Made by the non-cloud agent\'s private generator (sample_data/private/gid/); not '
+                      'regenerable here; the numbers behind the figures are the CSVs beside them.',
+         committed=('docs/studies/gid_stray_light',), docs=('docs/studies/gid_stray_light/summary.md',),
+         data='private', repo_ok=False),
+    Tool('gid_method_survey_private', 'GID defaults judged on many sets (private data)', 'external', 'external',
+         demonstrates='Hand-off 06 on every private GID set (DATA_NEEDS row 12): the S4-detector distance '
+                      'calibration per beamtime, the column responses ranked by frames agree, the joins as '
+                      'collected and fitted, the split test and the single frames as ground truth. Made by '
+                      'tests/tools/gid_method_survey.py on the private sets and the non-cloud agent\'s private '
+                      'aggregation (sample_data/private/gid/); not regenerable here; the numbers are the CSVs beside them.',
+         committed=('docs/studies/gid_method_survey',), docs=('docs/studies/gid_method_survey/summary.md',
+                                                              'docs/handoff_out/06-gid-method-comparison.md'),
+         data='private', repo_ok=False),
     Tool('xr_burns', 'Real reflectivity burns: trends, dose or time (private data)', 'external', 'external',
          demonstrates="The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): the drift "
                       'rate against flux and the dose-or-time verdicts per series. Made by the non-cloud '
