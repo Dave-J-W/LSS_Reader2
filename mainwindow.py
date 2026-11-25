@@ -3228,7 +3228,8 @@ class MainWindow (QMainWindow):
         act.setObjectName('actionFitResiduals')
         act.setCheckable(True)
         act.setChecked(self.fitResidualsShown())
-        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends): the '
+        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends, the '
+                       'Ref Patch join with its fitted curve): the '
                        'residuals (y - fit)/sigma of the fitted points, and chi2/dof in the legend. For a good fit '
                        'with right errors they scatter within about +/-2. Hidden by default; kept between sessions (F74).')
         act.toggled.connect(self.setFitResiduals)
@@ -7982,6 +7983,7 @@ class MainWindow (QMainWindow):
                     if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
                         self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
+                self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
                 self.uirefpatch.plotWidget.canvas.ax.set_xlim(xmin,xmax)
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
@@ -8019,6 +8021,7 @@ class MainWindow (QMainWindow):
                     if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
                         self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
+                self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
                 self.uirefpatch.plotWidget.canvas.ax.set_xlim(xmin,xmax)
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
@@ -8539,6 +8542,38 @@ class MainWindow (QMainWindow):
         m=self.refMaskedArray(scale)
         if len(m):
             ax.plot(m[:,0],m[:,1],'x',color='0.45',ms=8,mew=1.5,label='masked (%d)' % len(m),gid='masked')
+
+    def refDrawJoinFit(self,ax):
+        """F74 in the Ref Patch window: with View > Residuals above fits on
+        and the joint fit, the fitted curve over the join's window (dashed,
+        on the old scan's scale, χ²/dof in its label) and the residuals of
+        both scans' fitted points in the panel above, weighted by the fit's
+        own variance (lss_core.reflectivity.join_fit_residuals). Nothing,
+        and no panel, otherwise. Returns the fit drawn or None."""
+        fit=None
+        if self.fitResidualsShown() and self.refActiveMethod()=='joint' and self.pilreforder+1<len(self.pilrefsort):
+            j=self.pilreforder
+            old=self.scanqzframe[self.pilrefsort[j]] if j==0 else self.pilrefdata
+            fit=reflectivity.join_fit_residuals(old,self.scanqzframe[self.pilrefsort[j+1]])
+        rax=residuals.panel(ax,fit is not None)
+        if fit is None:
+            return None
+        red=fit['chi2']/fit['dof'] if fit['dof']>0 else None
+        ax.plot(fit['q'],fit['mu_a'],'--',color='k',lw=1,gid='joint fit',
+                label=residuals.chi2_label('joint fit (order %d)' % fit['order'],red))
+        for key,colour in (('a','C0'),('b','C1')):
+            q,r=fit[key]
+            residuals.draw(rax,q,r,np.zeros(len(r)),np.ones(len(r)),color=colour)
+        return fit
+
+    def refRedrawPreview(self):
+        """Redraw the Ref Patch window's join on show, when one is open (a
+        finished or closed patch is left alone)."""
+        w=getattr(self,'uirefpatch',None)
+        if (w is None or not w.isVisible() or not getattr(self,'pilrefsort',None)
+                or getattr(self,'pilreforder',0)+1>=len(self.pilrefsort)):
+            return
+        self.pilRefPatchPlot()
 
     def drawRefMasked(self,ax,norm):
         """Masked points on the Reflectivity tab: grey crosses at their Qz and R,
@@ -9471,6 +9506,7 @@ class MainWindow (QMainWindow):
         if getattr(self,'burnResult',None) is not None and getattr(self,'uipdburn',None) is not None \
                 and hasattr(self.uipdburn,'burnTrendPlotWidget'):
             self.plotBurnTrends(self.burnResult)
+        self.refRedrawPreview()
 
     def fitCuts(self):
         """Fit every plotted cut (the "Fit peaks" button)."""

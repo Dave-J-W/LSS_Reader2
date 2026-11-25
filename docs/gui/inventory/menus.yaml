@@ -230,9 +230,9 @@
   label: "Residuals above fits"
   where: "Menu bar > View"
   handler: setFitResiduals
-  does: "Shows a small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends): the residuals (y − fit)/σ of the fitted points, and χ²/dof in the fit's legend label"
+  does: "Shows a small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends, the Ref Patch join with the joint fit's curve): the residuals (y − fit)/σ of the fitted points, and χ²/dof in the fit's legend label"
   workflows: [session]
   needs: ""
   shown: always
   tooltip: true
-  notes: "Added 2026-11-24 (F74, owner 2026-11-22: hidden by default). Checkable, kept between sessions (preference fit_residuals). Burn trends since 2026-11-24 too. Not yet on the MCA line fits, the Ref Patch join preview or the older fit dialogs."
+  notes: "Added 2026-11-24 (F74, owner 2026-11-22: hidden by default). Checkable, kept between sessions (preference fit_residuals). Burn trends since 2026-11-24 too. The Ref Patch join since 2026-11-25: the joint fit's curve is drawn only with the switch on, and the residuals use the fit's Poisson variance (lss_core.reflectivity.join_fit_residuals). Not yet on the MCA line fits or the older fit dialogs."

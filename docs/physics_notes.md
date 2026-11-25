@@ -55,6 +55,7 @@ exists.
 | I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
 | I43 | At most one reader holds a workbook's lock at a time, even when two take over a stale lock at once (each reads the lock back after writing it); a read-only workbook never writes (`save` raises `WorkbookReadOnly`, the file and its folder untouched) | `test_readerlock.py` (every test); in the window `test_gui_reader_lock.py` (2026-11-25) | 2026-11-25 |
 | I44 | The dose map's peak is the dose per area `scan_dose` gives with the same beam, Σ N_i sin α_i / (width · height) (√(2π)σ each); the map holds the whole dose (captured above 0.9999, footprints 60 × apart); for one incidence and a Gaussian beam peak/average = −ln(1 − P)/P for extents P, and the top-10 % and other-90 % means are their closed forms; every per-area value scales as 1/(width · height) | `test_dose_map.py`; NX 14 and 15 (slow) | 2026-11-25 |
+| I45 | The residuals drawn under a fit add up to the χ² it reports: Σ r² = χ², r = (y − μ)/√var with the fit's own variance (the Ref Patch joint fit: Poisson var = σ²μ/max(\|y\|, σ)) | tested: `test_ref_join_residuals.py` (to 1e-9) |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -6801,6 +6802,28 @@ with main man's study's arithmetic (C62, `docs/studies/roi_bad_pixels/`).
   three boxes, after the owner's sparse frames (DATA_NEEDS 16) and rule 12.
 
 Verified by: tested (7).
+
+### 2026-11-25 — F74 at the Ref Patch join: which residuals, against which σ?
+
+The joint fit (`lss_core.patching`, the default since 2026-11-22) fits
+both scans' window with one curve and the factor, by Poisson maximum
+likelihood. Its χ² is Σ (y − μ)²/var with var = σ²μ/max(|y|, σ): each
+point's stated variance, rescaled from the measured value to the model's.
+So the residuals in the join's panel are (y − μ)/√var, not (y − μ)/σ. The
+two differ little where μ ≈ y. Only this choice makes the squares add up to
+the χ² in the legend, and so lets the panel and the label agree (I45).
+- **Measured** (`tests/test_ref_join_residuals.py`, the synthetic data set,
+  two scans through one foil):
+  - Σ r² equals the fit's χ² to 1e-9;
+  - the factor is `join_factor`'s, and the foil's to 2 %;
+  - the curve passes through the earlier scan's points to 3 %;
+  - one point made 30 % high has the largest residual, and χ² grows
+    more than tenfold.
+- **Shown only with View > Residuals above fits on** (hidden by default,
+  F74), so the window's default view is unchanged. No output number
+  changes: the curve is the fit the factor already came from.
+
+Verified by: tested (4).
 
 ### 2026-11-25 — How much do reflectivity points scatter beyond counting statistics? (DATA_NEEDS row 15, MQ-3, C63)
 
