@@ -70,7 +70,10 @@ lock = readerlock.ReaderLock('20260923_reader.xlsx')
 wb = Workbook('20260923_reader.xlsx', read_only=not lock.acquire())   # save() raises WorkbookReadOnly when read-only
 lock.describe()        # 'this reader writes the workbook', or who has it open
 lock.refresh()         # every 30 s while open; False if another reader took it meanwhile
-lock.release()         # on close
+lock.release()         # on close, or the one click that gives up the write access (owner, Q5)
+lock.request_release(note='')   # a read-only reader asks the holder (writes <workbook>.lock.request)
+lock.release_requested()        # the holder: the pending request (who, when, note) or None
+lock.decline_request()          # the holder keeps it; the next acquire() clears any request left
 ```
 
 Not yet available from scripts: background images, single-scan export,

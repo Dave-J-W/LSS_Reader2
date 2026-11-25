@@ -6940,3 +6940,23 @@ Verified by: the owner's statement; nothing run. The owner replaced the batch 22
 ### 2026-11-25 — Burn and timeline defaults (batch 25; GUI manager's Q7, Q10 to Q13)
 
 Verified by: the owner's statements; nothing run. **Strip scatter ρ** starts at 0 until measured (DATA_NEEDS row 14). **Export name:** no series id (the owner's second answer; a collision gets a numeric suffix, not an overwrite, an assumption). **Timeline colour scale:** the sample's own burn, else the nearest in time. **One spot:** positions within half the beam width (Sample_X moves across the beam). **Sample-height scans** count half of their dose. The half is a rough weight for the partly illuminated sample (the owner's choice, not derived here): if a height scan sweeps the sample through the beam, the average fraction of the beam on the sample is between 0 and 1 and depends on the scan range and the beam's profile, which the dose code could compute instead; left to the GUI manager.
+
+
+### 2026-11-25 — D1 after the owner's revised Q5: asking the holder to release
+
+Verified by: tests (`tests/test_readerlock.py`, 2 new, 11 in all). The owner (Q5, through questor, batch 24)
+said the workbook lock is taken on the SPEC file's first opening, and giving up the write access is one
+click, after which the next reader takes the lock. Questor left three points for the sessions to settle.
+This core settles two of them; the third is the window's.
+
+- **A crashed or sleeping holder:** already handled since D1's core.
+  - The holder refreshes its lock every 30 s; a lock not refreshed for 180 s is stale and is taken over (read
+    back, so two takers cannot both win; I43).
+  - A holder waking from sleep learns on its next refresh that it has lost the lock, and goes read-only.
+- **Asking for the write access:** new.
+  - A read-only reader's `request_release(note)` writes `<workbook>.lock.request`, naming it.
+  - The holder's `release_requested()`, checked with each refresh, returns the request, so its window can
+    offer the one-click release. Nothing changes hands by itself.
+  - `decline_request()` removes it. The next successful `acquire()` clears any request left over.
+- **Q6's rule** (only results made after the lock is gained are saved) is the window's (GUI manager). With
+  the lock taken at opening, it covers only a reader that opened second.

@@ -44,8 +44,9 @@ routines step by step (`merge-to-main`, `review-local-data-pr`, `issue-watch`).
 - **Rule 12:** the best method becomes the default only after a study with known truth and figures, tests
   that pin the new numbers, and a demonstrator (a document and a Tools item). Then the switch, with its
   OUTPUT_DECISIONS row and the re-pins named. Committed products of earlier studies keep their run's default.
-- **Do not merge `claude/local-data-mca-encrypted`** (141 MB of encrypted private spectra). Delete it, via
-  mca-scatter, once the data has been read.
+- **Do not merge `claude/local-data-mca-encrypted`** (141 MB of encrypted private spectra). The owner
+  (MQ-9, 2026-11-25): it is meant to be on the public branch, its safety rests on the passphrase; MQ-8: no
+  purge of GitHub's records of removed files.
 - **Rule 13 (owner, 2026-11-25): show the whole chain, ELI5.** Every study, report or answer that ends in a
   number or a verdict shows the raw data, each processing step, a fit drawn over its data with residuals,
   every statistic explained for a newcomer, and the judgment with how sure it is. The usual form is
@@ -94,7 +95,9 @@ Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam heigh
    joins miss by > 5 oracle errors, hidden by inflated errors); 4σ clipping cuts it to 0.6 % and reaches the
    oracle; σ × 1.12 ⊕ X fixes the core at 14–17 % wider errors; X by Qz or by counts is open (NX scan 9 says
    counts). **Next:** DATA_NEEDS 17 (the arms on C56's 1091 real splits, by the local agent), then the core
-   option in `patching` (clipping first), tests, the owner's word, rule 12.
+   option in `patching` (clipping first), tests, the owner's word, rule 12. When it switches, tell the GUI
+   manager the function: `reflectivity.join_fit_residuals` (#100, F74, invariant I45: Σ r² = the reported χ²)
+   must follow the fit's points and weights, so the Ref Patch residual panel and its label keep agreeing.
 1b. **C61's remedy: an excess term in the per-point error budget** (`lss_core.errors`, budget mode).
    - **The finding:** C61 showed the real-data under-coverage of the join error (C56: pull SD 1.24) is
      reproduced by 1 % of hidden per-point scatter. Join-level inflations fail at fringed joins; honest
