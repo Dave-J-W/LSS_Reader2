@@ -359,6 +359,7 @@ INVENTORY = {
     'pilBurnPushButton': ('button', 'Burn Test', 'Pilatus', 'Opens the Burn test dialog (ROI or GID intensity vs time, trends, fits) for repeated frames at one Q'),
     'pilGioxsPushButton': ('button', 'GIOXS', 'Pilatus', 'Opens the GIOXS dialog (background-subtracted 1D profiles averaged over frames and points)'),
     'pilCutDirComboBox': ('combo', '', 'Pilatus', 'Cut direction: Q H, Q V, Pix H, Pix V; resets the range field to a default'),
+    'cutAxisComboBox': ('combo', 'x: as image', 'Pilatus, right of the cut direction', 'The x axis of a cut of frames: as the image (the Axes box), or β, β − α (α from Qz), Qz for vertical cuts and Qxy for horizontal ones; the intensities are unchanged'),
     'pilIntRangeLineEdit': ('lineedit', 'Int Range: min:max', 'Pilatus', 'Integration band of the cut, typed as min:max (Enter recuts)'),
     'pilLineAreaPushButton': ('button', 'Line/Area Cuts', 'Pilatus', 'Makes the cut of each selected frame (or of the sum/map) and switches to the Line/Area Cuts tab'),
     'gidWorksheetPushButton': ('button', 'Worksheet...', 'Pilatus > bottom, after GID Patch', "Opens the GID patching worksheet (was the drop-down's Worksheet)"),

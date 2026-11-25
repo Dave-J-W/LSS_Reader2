@@ -511,8 +511,10 @@ stated assumption until the answer arrives.
       ln(Vortex/Monc), outlier check against the group median, alignment).
 - [x] P36, P37 (legacy GID with three Qz levels): fixed 2026-11-23 with the
       synthetic three-level GID data set; outputs change only for such maps.
-- [ ] Docket (2026-11-18): F59 cuts for diffuse scattering (I vs β, β − α;
-      the Q cuts' default ranges miss the detector and plot zeros silently),
+- [ ] Docket (2026-11-18): ~~F59 cuts for diffuse scattering (I vs β, β − α;
+      the Q cuts' default ranges miss the detector and plot zeros silently)~~
+      (core main man #59; window GUI manager 2026-11-25: the cut's x axis,
+      bands about the beam, a message for a range off the detector),
       F60 contextual/automatic reduction. Not to be built yet.
 - [x] F61 GID worksheet (2026-11-18): the patch's settings editable, joins
       tabulated; defaults reproduce the patch exactly.

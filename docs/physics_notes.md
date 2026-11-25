@@ -51,7 +51,7 @@ exists.
 | I38 | The ROI close-up outlines the pixels the reduction sums: summing a frame over `lss_core.display.roi_boxes(slit, cen, bg, direction)` gives `TwoDDetector.sumROI`'s signal and background values exactly, for any slit, centre, offset and direction (its slit − 2 and integer background centres included, PHYSICS_ISSUES P12) | `test_roi_boxes.py::test_summing_over_the_drawn_boxes_gives_sumROIs_values` |
 | I39 | The dose of a point is what the reduction already divides by: in monitor counts it is the point's weight in "Sum All", M/(A·g) (`cuts.frame_normaliser`); in photons, the flux route's photons/s × its seconds / A (`flux.photons_per_second`); a scan's dose is the sum of its points'; at a constant monitor rate and absorber the dose axis is the exposure axis × that rate, so a burn's dose limit is its time limit × the rate | `test_dose.py` (every test; the last on the synthetic burn, to 1e-6) | 2026-11-24 |
 | I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
-| I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own` | 2026-11-24 |
+| I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own`; in the window `test_gui_cut_axis.py::test_diffuse_axes_change_x_only`, `::test_beta_minus_alpha_puts_the_specular_row_at_zero` (2026-11-25) | 2026-11-24 |
 | I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
@@ -6068,3 +6068,38 @@ Verified by: tested (`tests/test_naming.py`, `tests/test_gui_export_name.py`).
 **Open:** whether the owner wants the series id (from `#U Series`) in the
 name as well. It is left out, so the name stays short.
 
+### 2026-11-25 — F97 and F59 in the window: the cut's x axis, Q ranges about the beam
+
+The window side of main man's diffuse axes (#59, `lss_core.cuts`; owner
+Q-IMG-12: "β, β − α (α from Qz) and Qz and Qxy"). Built:
+- **"x: …"** right of the cut direction (`cutAxisComboBox`): as the image
+  (the default, unchanged output), β, β − α, Qz for vertical cuts, Qxy for
+  horizontal ones; an axis that does not fit is greyed out. Only the x
+  column changes; the intensities and errors are the pixel cut's (I41,
+  tested in the window on the synthetic frame; the β − α peak within one
+  row of 0, the Qz peak at the frame's 0.01 within 2e-4).
+- **The x label** is the axis the cut is on (`cuts.axis_label`). Before, a
+  pixel cut was labelled "Pixels" whatever the Axes box said, and a Q H cut
+  "Qxy" although its x is the window's 4π sin θ/λ (labelled "Q" now; equal
+  to Qxy within 1e-5 relative at 0.1°, per the cuts docstring).
+- **F59, the Q cuts' ranges:** with frames shown (no GID or GISAXS map),
+  choosing a Q cut puts a band about the first selected frame's beam in
+  the box (`cuts.centred_range`), half the reflectivity ROI either side:
+  Slit H,V 21,11 gives ±5 rows (a Qz band for Q H) and ±10 columns (a Qxy
+  band for Q V). The rows were chosen so that the direct beam, 2α below
+  the reflected one, stays out of the Qz band (at Qz 0.01 it is about 7
+  rows below on the synthetic frame, computed) — an assumption, recorded
+  in OUTPUT_DECISIONS. A Q range that lies off the detector on every
+  selected frame (`cuts.covered_range`) is refused with a message, and the
+  band is put in the box; before, the cut summed zeros silently.
+- **A test changed on purpose (rule 1):**
+  `test_detector_sizes.py::test_window_cut_ranges_before_and_after_frames`
+  pinned '0:1' and '1:2' after frames were shown. On the synthetic frames
+  the Q H default is now '-0.004526:0.02453' (Qz) and the Q V default a
+  Qxy band symmetric about 0; before any frame, and for the pixel cuts,
+  the defaults are unchanged.
+
+Verified by: tested (`tests/test_gui_cut_axis.py`, 6 tests;
+`tests/test_gui_cuts.py`, `tests/test_cut_script.py` unchanged and
+passing). Not measured on real diffuse data: the public NX file has no
+off-specular frames worth the name.

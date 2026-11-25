@@ -281,6 +281,7 @@ class MainWindow (QMainWindow):
         self.initGIDButtons()
         self.initRefProvenance()
         self.initFresnelButtons()
+        self.initCutAxis()
         self.initTimelineTab()
         self.initCompareTab()
         self.initSpecPointLabels()
@@ -8032,7 +8033,136 @@ class MainWindow (QMainWindow):
     def updatePilCutRange(self):
         d=self.ui.pilCutDirComboBox.currentIndex()
         if 0<=d<len(cuts.DIRECTIONS):     # the pixel cuts span the detector's rows or columns (lss_core.cuts.default_range)
-            self.ui.pilIntRangeLineEdit.setText(cuts.default_range(d,self.pilShape()))
+            # F59: a Q cut of shown frames gets a band about the beam instead of 0:1 or 1:2, which lie off a reflectivity frame
+            self.ui.pilIntRangeLineEdit.setText((self.cutBand(d) if d in (0,1) else '') or cuts.default_range(d,self.pilShape()))
+
+    # ---- F97, F59 (owner Q-IMG-12, 2026-11-23; main man's core, lss_core.cuts): the cut's x axis; Q ranges ----
+
+    CUT_AXIS_ITEMS=(('as image',None),('β','beta'),('β − α','beta-alpha'),('Qz','Qz'),('Qxy','Qxy'))
+    CUT_AXIS_TIPS={
+        None:'The axis of the image (the Axes box): pixels, angles or Q for the pixel cuts; Q for the Q cuts',
+        'beta':'The exit angle β from the row: β = δ + arcsin(2 sin α − sin α_i), δ = arctan((r − r0) p / D_S2D). '
+               'Vertical cuts (Q V, Pix V)',
+        'beta-alpha':'β − α, with α from the frame\'s Qz (α = arcsin(Qz λ / 4π)): the specular row is at 0 even on a '
+                     'tilted sample (the owner\'s choice). Vertical cuts (Q V, Pix V)',
+        'Qz':'Qz = (2π/λ)(sin β + sin α_i) from the row. Vertical cuts (Q V, Pix V)',
+        'Qxy':'Qxy = ±(2π/λ)√(cos²α_i + cos²β − 2 cos α_i cos β cos 2θ), exact, at the β of the band\'s middle row. '
+              'Horizontal cuts (Q H, Pix H)'}
+
+    def initCutAxis(self):
+        """'x: …' right of the cut direction: the cut's x axis, apart from the
+        image's Axes box (F97). The intensities are the cut's own; only the x
+        values are converted from its pixels (lss_core.cuts, invariant I41).
+        An axis that does not fit the direction is greyed out."""
+        from PyQt5.QtWidgets import QComboBox
+        box=QComboBox(self)
+        box.setObjectName('cutAxisComboBox')
+        for k,(text,key) in enumerate(self.CUT_AXIS_ITEMS):
+            box.addItem('x: '+text,key)
+            box.setItemData(k,self.CUT_AXIS_TIPS[key],Qt.ToolTipRole)
+        box.setToolTip('The x axis of the cuts of frames (not of a GID patch): as the image, or the diffuse-scattering '
+                       'axes β, β − α (α from Qz), Qz (vertical cuts) and Qxy (horizontal cuts). The intensities are the '
+                       'same; only x is converted from the pixels (lss_core.cuts; owner, Q-IMG-12). Hover an entry for '
+                       'its formula')
+        lay=self._layoutHolding(self.ui.pilCutDirComboBox)
+        if lay is not None:
+            lay.insertWidget(lay.indexOf(self.ui.pilCutDirComboBox)+1,box)
+        self.cutAxisComboBox=box
+        self.ui.pilIntRangeLineEdit.setMinimumWidth(self.ui.pilIntRangeLineEdit.fontMetrics().width('-0.004526:0.02453 '))
+        self.ui.pilCutDirComboBox.currentIndexChanged.connect(self.cutAxisFits)
+        self.cutAxisFits()
+
+    def cutAxisFits(self,*_):
+        """Grey out the axes that do not fit the cut direction; back to 'as image' if the one chosen does not."""
+        box=getattr(self,'cutAxisComboBox',None)
+        if box is None:
+            return
+        d=self.ui.pilCutDirComboBox.currentIndex()
+        for k,(_,key) in enumerate(self.CUT_AXIS_ITEMS):
+            item=box.model().item(k)
+            if item is not None:
+                item.setEnabled(key is None or d in cuts.AXIS_FITS[key])
+        key=box.currentData()
+        if key is not None and d not in cuts.AXIS_FITS[key]:
+            box.setCurrentIndex(0)
+
+    def cutAxes(self):
+        """The axes argument of lss_core.cuts.frame_cut: the diffuse axis chosen, or the image's Axes."""
+        box=getattr(self,'cutAxisComboBox',None)
+        key=box.currentData() if box is not None else None
+        return key if key else str(self.ui.pilAxesComboBox.currentText())
+
+    def cutXLabel(self,d):
+        """The cut plot's x label: the Q cuts' x is Q unless a diffuse axis is chosen (frame_cut)."""
+        axes=self.cutAxes()
+        if d in (0,1) and axes not in cuts.DIFFUSE_AXES:
+            axes='Q'
+        return cuts.axis_label(d,axes)
+
+    def cutGeometries(self):
+        """The geometry of every selected frame, or [] when it is not known (no frame shown)."""
+        try:
+            return [self.cutGeometry(j) for j in range(len(self.selectedPilFramesNums))]
+        except (AttributeError,IndexError,TypeError):
+            return []
+
+    def cutHalfWidth(self,d):
+        """Half the band of a Q cut, in pixels: half the reflectivity ROI across
+        the cut (Slit H,V of the Reflectivity tab; 21,11 by default): its rows
+        for a Q H cut (a Qz band: the reflected beam, not the direct beam 2α
+        below), its columns for a Q V cut (a Qxy band: the specular rod).
+        F59, an assumption recorded in OUTPUT_DECISIONS."""
+        try:
+            h,v=(int(float(t)) for t in str(self.ui.refSlitLineEdit.text()).split(',')[:2])
+        except ValueError:
+            h,v=21,11
+        return max(1,(v if d==0 else h)//2)
+
+    def cutBand(self,d):
+        """'lo:hi' of a Q cut ``cutHalfWidth`` pixels either side of the beam of
+        the first selected frame (lss_core.cuts.centred_range; F59), or '' when
+        no frame is shown or a GID or GISAXS map is (their Q ranges are the map's)."""
+        if self.det!='Pilatus' or getattr(self,'pilGIDshow',0) or getattr(self,'pilGISAXSshow',0):
+            return ''
+        geos=self.cutGeometries()
+        if not geos:
+            return ''
+        try:
+            lo,hi=cuts.centred_range(d,geos[0],self.cutHalfWidth(d))
+        except (ValueError,ZeroDivisionError,TypeError):
+            return ''
+        if not (np.isfinite(lo) and np.isfinite(hi)):
+            return ''
+        return '%.4g:%.4g' % (lo,hi)
+
+    def cutRangeMisses(self,d,lo,hi):
+        """True, with a message, when a Q cut's range lies off the detector on
+        every selected frame: it would sum nothing and plot zeros (F59: "nothing
+        happens when I try to use Qxy or Qz"). The box then holds a band about
+        the beam, for the user to cut again."""
+        if d not in (0,1):
+            return False
+        spans=[]
+        for g in self.cutGeometries():
+            try:
+                spans.append(cuts.covered_range(d,g,self.pilShape()))
+            except (ValueError,ZeroDivisionError,TypeError):
+                pass
+        spans=[s for s in spans if np.all(np.isfinite(s))]
+        if not spans:
+            return False
+        a,b=min(lo,hi),max(lo,hi)
+        if any(b>=s[0] and a<=s[1] for s in spans):
+            return False
+        c0,c1=min(s[0] for s in spans),max(s[1] for s in spans)
+        band=self.cutBand(d)
+        if band:
+            self.ui.pilIntRangeLineEdit.setText(band)
+        self.notify('The %s range %g:%g lies off the detector (it covers %.4g to %.4g here), so the cut would sum '
+                    'nothing.%s' % ('Qz' if d==0 else 'Qxy',lo,hi,c0,c1,
+                                    ' The box now holds a band of %d pixels either side of the beam (%s): cut again.'
+                                    % (self.cutHalfWidth(d),band) if band else ''),title='Line/Area Cuts')
+        return True
 
     def updatePilCutData(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
@@ -8047,6 +8177,9 @@ class MainWindow (QMainWindow):
         except:
             self.messageBox('Please enter the range with the format "min:max"')
             self.updatePilCutRange()
+            return
+        direction=self.ui.pilCutDirComboBox.currentIndex()
+        if self.cutRangeMisses(direction,ini,fin):
             return
         budget=self.errorModel.budget
         self.selCutTerms={}   # budget error model: monitor parts, applied to each cut point's whole sum
@@ -8072,8 +8205,7 @@ class MainWindow (QMainWindow):
                 if self.selCutTerms.get(i) is not None:
                     self.selCutTerms[-1].extend(self.selCutTerms[i],wk)
         # the cut itself is lss_core.cuts.frame_cut, shared with Experiment.cut
-        direction=self.ui.pilCutDirComboBox.currentIndex()
-        axes=str(self.ui.pilAxesComboBox.currentText())
+        axes=self.cutAxes()
         if self.ui.gixSumCheckBox.checkState()!=0:
             frames=self.selectedPilFramesNums
             d,e=[self.selCutPilData[i] for i in frames],[self.selCutPilErrorData[i] for i in frames]
@@ -8127,7 +8259,7 @@ class MainWindow (QMainWindow):
             if chosen!=listed:
                 points[n]=chosen
         lo,hi=(float(t) for t in str(self.ui.pilIntRangeLineEdit.text()).split(':'))
-        axes=str(self.ui.pilAxesComboBox.currentText())
+        axes=self.cutAxes()
         kw=['%r' % cuts.DIRECTIONS[self.ui.pilCutDirComboBox.currentIndex()],'(%r, %r)' % (lo,hi)]
         if axes!='Pixels':
             kw.append('axes=%r' % axes)
@@ -9350,16 +9482,17 @@ class MainWindow (QMainWindow):
             cutrange=str(self.ui.pilIntRangeLineEdit.text())
         if currentcutindex==2:
             self.ui.cutPlotMplWidget.canvas.ax.set_title(title+'\n'+'H Cut     Vint Range['+cutrange+']', fontsize=16)
-            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel('Pixels', fontsize=16)
         elif currentcutindex==3:
             self.ui.cutPlotMplWidget.canvas.ax.set_title(title+'\n'+'V Cut     Hint Range['+cutrange+']', fontsize=16)
-            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel('Pixels', fontsize=16)
         elif currentcutindex==0:
             self.ui.cutPlotMplWidget.canvas.ax.set_title(title+'\n'+'Q H Cut     Qz Range['+cutrange+']', fontsize=16)
-            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel(r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$', fontsize=16)
         else:
             self.ui.cutPlotMplWidget.canvas.ax.set_title(title+'\n'+'Q V Cut     Qxy Range['+cutrange+']', fontsize=16)
-            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel(r'$Q_z$'+' '+r'$[\AA^{-1}]$', fontsize=16)
+        if self.pilGIDshow==0 and self.pilGISAXSshow==0:   # F97: the axis the cut was made on (lss_core.cuts.axis_label)
+            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel(self.cutXLabel(currentcutindex), fontsize=16)
+        else:                                             # a cut of the GID or GISAXS map: Qxy or Qz, as before
+            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel(r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$' if currentcutindex==0 else
+                                                          r'$Q_z$'+' '+r'$[\AA^{-1}]$', fontsize=16)
         if self.cutLogX!=0:
             self.ui.cutPlotMplWidget.canvas.ax.set_xscale('log')
         if self.cutLogY!=0:

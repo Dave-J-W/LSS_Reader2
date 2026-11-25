@@ -1110,13 +1110,13 @@ workflows:
       - id: cuts.define
         do: Choose the direction (Q H, Q V, Pix H, Pix V), the range, the axes and Sum All; Line/Area Cuts
         where: Pilatus tab
-        controls: [pilCutDirComboBox, pilIntRangeLineEdit, pilAxesComboBox, gixSumCheckBox, pilPinholeCheckBox, pilLineAreaPushButton]
-        user_decides: direction, range, axes (Angles for I vs beta), summed or per frame
-        automatic: no
-        could_be_automatic: one cut interface on every image plot with defaults by scan kind (F68); a range on the detector by default (F59)
-        known_from: code; test tests/test_gui_cuts.py; owner 2026-11-18 (F59)
+        controls: [pilCutDirComboBox, cutAxisComboBox, pilIntRangeLineEdit, pilAxesComboBox, gixSumCheckBox, pilPinholeCheckBox, pilLineAreaPushButton]
+        user_decides: "direction, range, the cut's x axis (as the image, or beta, beta - alpha, Qz, Qxy: F97), summed or per frame"
+        automatic: partly
+        could_be_automatic: one cut interface on every image plot with defaults by scan kind (F68)
+        known_from: code; tests tests/test_gui_cuts.py, tests/test_gui_cut_axis.py; owner 2026-11-18 (F59), 2026-11-23 (Q-IMG-12)
         issues:
-          - "Q V default range lies off a reflectivity frame: zeros, no message (F59, measured)"
+          - "~~Q V default range lies off a reflectivity frame: zeros, no message (F59, measured)~~ 2026-11-25: with frames shown the Q cuts default to a band about the beam, and a range off the detector is refused with a message"
           - "The cut is defined on the Pilatus tab and shown on another tab"
       - id: cuts.view
         do: Look at the cuts; errorbars, offset, log; Fit peaks

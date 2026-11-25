@@ -263,7 +263,8 @@ FRAMES = {
                            'side or stacked (owner 2026-11-23)'),
                  # the "Line cuts" sub-tab; its band is drawn on the raw image
                  cuts=SPECIAL('cut_panel',
-                 toolbar=[C('pilCutDirComboBox', 'Cut'), C('pilIntRangeLineEdit', 'Range (a – b)'),
+                 toolbar=[C('pilCutDirComboBox', 'Cut'), C('cutAxisComboBox', 'x: as image'),
+                          C('pilIntRangeLineEdit', 'Range (a – b)'),
                           C('pilLineAreaPushButton', 'Cut', note='Draws the cut; the band can also be dragged on '
                                                                  'the image (F68)')],
                  plot=PLOT('cutPlotMplWidget', 'Line cut', 'cut'),

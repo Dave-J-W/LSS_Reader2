@@ -180,15 +180,23 @@ Each line: feature — where — default — script — notes entry (date).
   pixel cuts' spanning the frames' rows or columns (0:485 and 0:194 on the
   Pilatus 100K; any detector since 2026-11-24, `cuts.default_range`); pinhole box (on: S4–detector distance at Det_Th > 1°) —
   `exp.cut` — Notes 2026-11-18 "Pinhole is the default". Q cuts with empty
-  default ranges are a known gap (F59, docket). A user complained (2026-11-18)
+  default ranges were a known gap (F59), closed 2026-11-25: with frames
+  shown, a Q cut's default is a band about the beam (half the reflectivity
+  ROI, Slit H,V, either side: 5 rows in Qz, 10 columns in Qxy by default),
+  and a range off the detector is refused with a message that puts the band
+  in the box. A user complained (2026-11-18)
   that cuts in Qz/Qxy and I vs β are not documented: I vs β works today as
   "Pix V" with axes "Angles"; write this part of the manual first.
   Since 2026-11-23 each frame of a reflectivity scan has its own incidence
   angle (from its Qz; the scan header's In_Rot is the position before the
   scan moved, P47), so the reflected beam sits at β = α on that axis.
-- **Diffuse cuts** (F97, F59; 2026-11-24, core only; the window's choice of
-  axis is to come): the owner's axes are β, β − α, Qz and Qxy. A how-to for
-  the manual, by script today:
+- **Diffuse cuts** (F97, F59; core 2026-11-24; in the window 2026-11-25):
+  the owner's axes are β, β − α, Qz and Qxy. In the window, "x: …" right
+  of the cut direction chooses the cut's x axis ("as image" by
+  default; the axes that do not fit the direction are greyed out, and each
+  entry's tooltip gives its formula); the intensities do not change. A
+  how-to for the manual (the window: Q V, x: β − α, the default band; by
+  script):
   1. **The specular rod and the diffuse scatter beside it:** a vertical cut
      over a narrow Qxy band about the beam, `exp.cut([7], 'Q V',
      cuts.centred_range('Q V', g, 10), axes='beta-alpha')` (±10 columns).

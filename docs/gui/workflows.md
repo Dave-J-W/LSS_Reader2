@@ -15,7 +15,7 @@ In the flowcharts, rounded green boxes are steps that are automatic today; diamo
 | [xfntr](#xfntr) | 4 | 13 | 2 / 4 / 7 | 12 |
 | [exafs](#exafs) | 5 | 7 | 1 / 2 / 4 | 9 |
 | [gisaxs](#gisaxs) | 6 | 3 | 0 / 0 / 3 | 3 |
-| [cuts](#cuts) | 6 | 4 | 0 / 2 / 2 | 4 |
+| [cuts](#cuts) | 6 | 4 | 0 / 3 / 1 | 4 |
 | [alignment](#alignment) | 6 | 5 | 0 / 2 / 3 | 4 |
 | [mca-look](#mca-look) | 6 | 3 | 0 / 0 / 3 | 2 |
 | [flex-plot](#flex-plot) | 6 | 2 | 0 / 0 / 2 | 0 |
@@ -540,7 +540,7 @@ flowchart TD
 | Step | Do | Where | Controls | User decides | Automatic | Could be automatic | Known from | Issues |
 |---|---|---|---|---|---|---|---|---|
 | cuts.frames (shared.frames) | Select the frames (Pilatus) or spectra (MCA) of the selected scans; Select All for all of them | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual) or a subset (left out of the reduction, kept in remakes) | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | code; test tests/test_gui_workflows.py | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
-| cuts.define | Choose the direction (Q H, Q V, Pix H, Pix V), the range, the axes and Sum All; Line/Area Cuts | Pilatus tab | `pilCutDirComboBox`, `pilIntRangeLineEdit`, `pilAxesComboBox`, `gixSumCheckBox`, `pilPinholeCheckBox`, `pilLineAreaPushButton` | direction, range, axes (Angles for I vs beta), summed or per frame | no | one cut interface on every image plot with defaults by scan kind (F68); a range on the detector by default (F59) | code; test tests/test_gui_cuts.py; owner 2026-11-18 (F59) | Q V default range lies off a reflectivity frame: zeros, no message (F59, measured)<br>The cut is defined on the Pilatus tab and shown on another tab |
+| cuts.define | Choose the direction (Q H, Q V, Pix H, Pix V), the range, the axes and Sum All; Line/Area Cuts | Pilatus tab | `pilCutDirComboBox`, `cutAxisComboBox`, `pilIntRangeLineEdit`, `pilAxesComboBox`, `gixSumCheckBox`, `pilPinholeCheckBox`, `pilLineAreaPushButton` | direction, range, the cut's x axis (as the image, or beta, beta - alpha, Qz, Qxy: F97), summed or per frame | partly | one cut interface on every image plot with defaults by scan kind (F68) | code; tests tests/test_gui_cuts.py, tests/test_gui_cut_axis.py; owner 2026-11-18 (F59), 2026-11-23 (Q-IMG-12) | ~~Q V default range lies off a reflectivity frame: zeros, no message (F59, measured)~~ 2026-11-25: with frames shown the Q cuts default to a band about the beam, and a range off the detector is refused with a message<br>The cut is defined on the Pilatus tab and shown on another tab |
 | cuts.view | Look at the cuts; errorbars, offset, log; Fit peaks | Line/Area Cuts tab | `cutErrorbarCheckBox`, `cutOffsetCheckBox`, `cutOffsetLineEdit`, `cutLogYCheckBox`, `cutClearGraphPushButton`, `cutFitPushButton`, `cutFitOptionsPushButton`, `actionFitResiduals` | fit options | partly |  | test tests/test_gui_peak_fit.py |  |
 | cuts.export | Export (cut files; Script pane records exp.cut) and Save | Line/Area Cuts tab | `cutExportPushButton`, `cutSaveWorkbookPushButton` | file name | partly |  | code; tests/test_cut_script.py; test tests/test_gui_workbook.py |  |
 
@@ -1189,6 +1189,12 @@ flowchart TD
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `pilRoiPanel`  | i |  |  | i |  |  |  |  |  |  |  |  |  |  |
+
+### Pilatus, right of the cut direction
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `cutAxisComboBox` x: as image |  |  |  |  |  |  |  |  | B |  |  |  |  |  |
 
 ### Plot
 
