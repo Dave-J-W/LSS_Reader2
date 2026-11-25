@@ -5936,8 +5936,8 @@ Verified by: tests (`test_beam_height.py`, I42) on synthetic knife edges; a run 
   - **The study's guards:** the first point below 25 % of the peak; at least 2 points on the edge; the
     centre inside the scan; the edges more than 3 σ apart; χ²/dof ≤ 20.
   - **The height:** 1.0645 × the median rising FWHM of the accepted scans.
-  - **With `near=n`:** only the scans with n's S1 gap count (S1T + S1B; whether these are half-openings is
-    OQ-1), and the nearest `NEAR_SCANS` = 3 of them are used. The 3 is an assumption.
+  - **With `near=n`:** only the scans with n's S1 gap count (S1T + S1B, the two half-openings: OQ-1, answered
+    2026-11-25), and the nearest `NEAR_SCANS` = 3 of them are used. The 3 is an assumption.
   - **Without an accepted scan:** the default where its conditions hold, otherwise no height, with the reason.
 - **NX school, run:**
   - Scans 5, 10 and 13 are accepted: rising FWHM 0.029–0.032 mm, height 0.0333 mm, scatter 3.8 %.
