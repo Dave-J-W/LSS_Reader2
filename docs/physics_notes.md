@@ -6176,3 +6176,6 @@ light, still to build).
   the workbook read-only and shows the yellow light when it doesn't have the lock (tooltip: `describe()`), tries
   again from time to time, and releases it on close.
 
+### 2026-11-25 — OQ-1, OQ-4, Q-TL-8 (batch 20)
+
+Verified by: the owner's statements; the arithmetic below is mine. **OQ-1:** the header's slit values are half-openings, so the opening is twice the value: S1 of scan 14 reads 1.00/1.00/0.05/0.05 (L/R/T/B) and so is 2.0 × 0.1 mm. This gives the slit-defined aperture only; the footprint needs the mirror-focused vertical size (OQ-2, the local agent's work on it is in its own PR) and for a Gaussian the choice of FWHM or second moment for the dose (open). **OQ-4:** unknown to the owner; the reader cannot yet recognise fast mode, so the dose default stays "shutter closed" and a user mark is the fallback. **Q-TL-8:** units are mN/m (surface pressure), cm² (barrier area) and percent (O₂); names and whether every scan writes them are still unknown, so F75's columns stay synthetic.
