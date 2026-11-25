@@ -5131,7 +5131,7 @@ class MainWindow (QMainWindow):
 
     def burnOptions(self):
         o=dict(models=list(trendmod.MODELS),estimator='template',time='clock',threshold=5.0,auto_peak=True,position_limit=False,
-               errors='auto',rows_auto=True,axis='time',dose_unit='photons',beam_width='1.0',fast=False,
+               errors='auto',rows_auto=True,axis='time',dose_unit='photons',beam_width='',fast=False,
                verdict_quantity='intensity',strip_relative=0.0)
         o.update({k:v for k,v in (self.prefs.get('burn') or {}).items() if k in o})
         return o
@@ -5424,6 +5424,7 @@ class MainWindow (QMainWindow):
         u.burnResultLabel.setText(self.burnShortText(res)+('; not analysed: %s' % '; '.join(failed) if failed else ''))
         u.burnResultLabel.setToolTip(self.burnLongText(res))
         self.burnShowHeight(scan)
+        self.burnShowDose(scan,kw)
         args=dict(kw)
         args.pop('models') if tuple(args.get('models',()))==trendmod.MODELS else None
         for k,v in (('time','clock'),('threshold',0.05),('estimator','template'),('slit',(21,11)),
@@ -5471,10 +5472,9 @@ class MainWindow (QMainWindow):
         width.setObjectName('burnBeamWidthLineEdit')
         width.setPlaceholderText('width')
         width.setFixedWidth(width.fontMetrics().horizontalAdvance('0.000 mm')+16)
-        width.setToolTip('The beam\'s width at the sample (mm): with it the dose is per mm² of footprint. Prefilled '
-                         '1 mm (owner, 2026-11-25: "prefill 1 mm"; most of the energy is in about 1 mm horizontally); '
-                         'a beam modelled from an S1 horizontal slit scan, with the peak and the average dose, is to '
-                         'come (F109). Empty: the total dose')
+        width.setToolTip('The beam\'s width at the sample (mm), for the dose per mm² of footprint. Empty: from the '
+                         'S1 horizontal slit scans of the file when one is accepted, else the owner\'s 1 mm '
+                         '(exp.beam_width; F109), shown greyed; type to override')
         height=QLineEdit(page)
         height.setObjectName('burnBeamHeightLineEdit')
         height.setFixedWidth(width.width())
@@ -5491,10 +5491,16 @@ class MainWindow (QMainWindow):
         width.returnPressed.connect(self.burnOptionsChanged)
         height.returnPressed.connect(self.burnTrends)
         fast.toggled.connect(self.burnOptionsChanged)
+        summary=QLabel('',page)
+        summary.setObjectName('burnDoseSummaryLabel')
+        summary.setToolTip('The dose of the burn on show (lss_core.dose.dose_summary, F109): the peak, at the beam\'s '
+                           'centre, and the average over the area that receives most of it, with the most exposed 10 % '
+                           'of that area against the rest (owner, 2026-11-25: show both). The trends use the peak')
         for w in (scan,QLabel('Axis',page),axis,QLabel('Dose in',page),unit,QLabel('Beam (mm)',page),width,
-                  QLabel('×',page),height,fast):
+                  QLabel('×',page),height,fast,summary):
             row.addWidget(w)
         row.addStretch(1)
+        u.burnDoseSummaryLabel=summary
         u.burnScanComboBox,u.burnAxisComboBox,u.burnDoseUnitComboBox=scan,axis,unit
         u.burnBeamWidthLineEdit,u.burnBeamHeightLineEdit,u.burnFastModeCheckBox=width,height,fast
         return row
@@ -5557,13 +5563,20 @@ class MainWindow (QMainWindow):
         """(width, height) in mm for a dose per mm², or None without a width."""
         u=self.uipdburn
         w=str(u.burnBeamWidthLineEdit.text()).strip()
-        if not w:
-            return None
+        width=float(w) if w else self.burnAutoWidth().width_mm
         h=str(u.burnBeamHeightLineEdit.text()).strip()
         height=float(h) if h else self.burnAutoHeight(scan).height_mm
-        if height is None or not float(w)>0 or not height>0:
+        if height is None or width is None or not width>0 or not height>0:
             raise ValueError('the beam size must be positive, and its height known (%s)' % self.burnAutoHeight(scan).note)
-        return (float(w),float(height))
+        return (float(width),float(height))
+
+    def burnAutoWidth(self):
+        """exp.beam_width() (F109): from the file's S1 horizontal slit scans, else the owner's 1 mm."""
+        exp=self.burnExperiment()
+        cache=getattr(self,'_burnWidth',None)
+        if cache is None or cache[0] is not exp:
+            cache=self._burnWidth=(exp,exp.beam_width())
+        return cache[1]
 
     def burnAutoHeight(self,scan):
         """exp.beam_height(near=scan), kept while the SPEC file is unchanged."""
@@ -5574,6 +5587,27 @@ class MainWindow (QMainWindow):
         if scan not in cache[1]:
             cache[1][scan]=exp.beam_height(near=scan)
         return cache[1][scan]
+
+    def burnShowDose(self,scan,kw):
+        """The width field's automatic value, and the dose summary of the burn on show (F109)."""
+        from lss_core import dose as dosemod
+        u=self.uipdburn
+        try:
+            bw=self.burnAutoWidth()
+            u.burnBeamWidthLineEdit.setPlaceholderText('%.3g' % bw.width_mm)
+            u.burnBeamWidthLineEdit.setToolTip(u.burnBeamWidthLineEdit.toolTip().split('\n')[0]+'\nNow: %.3g mm (%s). %s'
+                                               % (bw.width_mm,bw.source,bw.note))
+        except (ValueError,KeyError,OSError) as e:
+            self.log.info('beam width: %s',e)
+        try:
+            r=self.burnExperiment().dose_summary(scan,points=kw.get('points'),beam_mm=kw.get('beam_mm'),
+                                                 unit=kw.get('dose_unit','photons'),shutter=kw.get('shutter','closed'))
+            u.burnDoseSummaryLabel.setText('Dose: %s' % r.text().split(';')[0])
+            u.burnDoseSummaryLabel.setToolTip(u.burnDoseSummaryLabel.toolTip().split('\n')[0]+'\n'+r.text()+'\n'+
+                                              '\n'.join(r.notes))
+        except (dosemod.DoseError,ValueError,KeyError,OSError) as e:
+            u.burnDoseSummaryLabel.setText('Dose: not known')
+            u.burnDoseSummaryLabel.setToolTip(u.burnDoseSummaryLabel.toolTip().split('\n')[0]+'\n'+str(e))
 
     def burnShowHeight(self,scan):
         u=self.uipdburn
@@ -9196,7 +9230,7 @@ class MainWindow (QMainWindow):
             return
         try:
             exp=self.burnExperiment()
-            width=float((self.prefs.get('burn') or {}).get('beam_width') or 1.0)
+            width=float((self.prefs.get('burn') or {}).get('beam_width') or exp.beam_width().width_mm or 1.0)   # F109
             bh=exp.beam_height()
             height=bh.height_mm if bh.height_mm else dosemod.DEFAULT_HEIGHT_MM
             self.ui.statusBar.showMessage('Timeline: working out the dose of every scan and the burn tests...',5000)

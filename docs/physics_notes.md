@@ -6709,3 +6709,25 @@ average over reasonable extents.
     through questor;
   - the motor names and shapes of real S1 slit scans, asked of the local agent (#55);
   - the owner's open question whether the profile's upper tail is light through the downstream meniscus.
+
+### 2026-11-25 — F109 in the burn dialog: the peak and the average dose
+
+The owner (via questor, Q8 and MQ-5): "show both the average and the peak
+dose", the peak split into the most exposed 10 % of the area against the
+rest; the width from an S1 horizontal slit scan when there is one, else
+1 mm. Main man's core (`lss_core.dose`, #92). Built in the dialog:
+- **The width field's default is `exp.beam_width()`:** the slit-scan model
+  when one is accepted, else the owner's 1 mm (read as √(2π) σx). It is
+  shown greyed, with its source and note in the tooltip; a typed value
+  overrides it.
+- **"Dose: peak …, average …"** for the burn on show, from
+  `exp.dose_summary` with the dialog's own beam, unit and shutter. The
+  split and the provenance are in the tooltip. The peak equals the per-mm²
+  dose the trends use (main man), so the dose axis does not change.
+- **The extent** of the average (90 % of the dose) is the core's default.
+  The owner's choice is pending, and it is not hard-coded here.
+- **Measured on NX** (scan 15, 1 mm × 0.04 mm): peak 5.98 × 10¹², average
+  2.34 × 10¹² photons/mm² over 51.9 mm²; the top 10 % 5.34 × 10¹², the
+  rest 2.0 × 10¹².
+
+Verified by: tested (`tests/test_gui_burn_dose.py`).
