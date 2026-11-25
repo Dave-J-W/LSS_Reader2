@@ -58,15 +58,23 @@ X_BINS = ((0.0, 0.10, 0.0020), (0.10, 0.25, 0.0040), (0.25, 9.0, 0.0265))   # C6
 XN_BINS = ((0.0, 300.0, 0.0501), (300.0, 3000.0, 0.0270), (3000.0, 30000.0, 0.0040), (30000.0, 1e300, 0.0036))
 OUTLIER_SHARE, OUTLIER_SCALE = 0.03, 0.70         # C63: 4-6 % of pair residuals wild, ~70-90 % off
 NU, ITERS = 4.0, 4
-ARMS = ('today', 'scale', 'budget', 'budgetN', 'robust', 'cauchy', 'clip', 'clipN', 'oracle')
+ARMS = ('today', 'scale', 'scaleclip', 'budget', 'budgetN', 'robust', 'cauchy', 'clip', 'clipN', 'oracle')
 CLIP_K, CLIP_MAX = 4.0, 6
 CATASTROPHE = 5.0                                  # a miss beyond 5 × the oracle's median error
-TRUTHS = ('c63', 'none')                           # C63's excess, or none (the cost of the remedies)
+TRUTHS = ('c63', 'within', 'join', 'none')
+# c63:    C63's between-scan numbers put on every point of both scans: the first, mistaken, reading (kept to show it)
+# within: what C63's within-scan estimator measured on every point: σ × 1.12 and 0.3 % wild points (× exp(0.46 z));
+#         what C56's splits (two halves of one scan) can see
+# join:   within, plus the between-scan part where the pairs estimator measured it, on the later scan's overlap
+#         points only: √2 X(Qz) (a pair's variance 2X², put on one side) and 5 % wild (× exp(0.73 z))
+# none:   no excess (the cost of the remedies)
+WITHIN_WILD, WITHIN_WILD_SCALE = 0.003, 0.46       # C63 within: 1.8 % of 6-point windows, scale 0.46
+JOIN_WILD, JOIN_WILD_SCALE = 0.05, 0.73            # C63 pairs: 6 % of pair residuals, scale 0.73
 LABEL = {'today': 'today (stated σ)', 'scale': 'σ × 1.12', 'budget': 'σ × 1.12 ⊕ X(Qz)',
-         'budgetN': 'σ × 1.12 ⊕ X(counts)', 'clipN': 'X(counts) + 4σ clipping',
+         'budgetN': 'σ × 1.12 ⊕ X(counts)', 'clipN': 'X(counts) + 4σ clipping', 'scaleclip': 'σ × 1.12 + 4σ clipping',
          'robust': 'budget + Student-t (ν 4)', 'cauchy': 'budget + Cauchy (ν 1)', 'clip': 'budget + 4σ clipping',
          'oracle': 'oracle (true σ, wild points out)'}
-COLOR = {'today': '#222222', 'scale': '#888888', 'budget': '#2a78d6', 'budgetN': '#7fb3ea', 'robust': '#1baf7a',
+COLOR = {'today': '#222222', 'scale': '#888888', 'scaleclip': '#ff9f1c', 'budget': '#2a78d6', 'budgetN': '#7fb3ea', 'robust': '#1baf7a',
          'cauchy': '#9b59b6', 'clip': '#d23', 'clipN': '#f08a8a', 'oracle': '#d4a017'}
 
 
@@ -92,6 +100,33 @@ def corrupt(scan, seed, truth):
     y = (scan.y + extra) * core * mult
     true_sigma = np.sqrt((SCALE * scan.sigma) ** 2 + (x_of(scan.q) * scan.y) ** 2)
     return patching.Scan(scan.q, y, scan.sigma), true_sigma, wild
+
+
+def corrupt_pair(a, b, seed, truth):
+    """Both scans of a join with ``truth``'s excess drawn in (stated σ unchanged): (a, b, (σ_a, σ_b, wild_a,
+    wild_b)) with each point's true σ and the wild points."""
+    if truth in ('none', 'c63'):
+        ca, cb = corrupt(a, seed('a'), truth), corrupt(b, seed('b'), truth)
+        return ca[0], cb[0], (ca[1], cb[1], ca[2], cb[2])
+    out = []
+    for side, sc in (('a', a), ('b', b)):
+        rng = np.random.default_rng(seed(side))
+        n = len(sc.y)
+        y = sc.y + math.sqrt(SCALE ** 2 - 1) * sc.sigma * rng.standard_normal(n)
+        wild = rng.random(n) < WITHIN_WILD
+        mult = np.where(wild, np.exp(WITHIN_WILD_SCALE * rng.standard_normal(n)), 1.0)
+        tsig = SCALE * sc.sigma
+        if truth == 'join' and side == 'b':
+            ov = sc.q <= a.q.max() + 1e-9                  # the later scan's points in the overlap
+            xb = math.sqrt(2) * x_of(sc.q) * ov
+            mult = mult * (1 + xb * rng.standard_normal(n))
+            jw = ov & (rng.random(n) < JOIN_WILD)
+            mult = np.where(jw, mult * np.exp(JOIN_WILD_SCALE * rng.standard_normal(n)), mult)
+            wild = wild | jw
+            tsig = np.sqrt(tsig ** 2 + (xb * sc.y) ** 2)
+        out.append((patching.Scan(sc.q, y * mult, sc.sigma), tsig, wild))
+    (ca, sa, wa), (cb, sb, wb) = out
+    return ca, cb, (sa, sb, wa, wb)
 
 
 def x_of_counts(scan):
@@ -175,6 +210,8 @@ def estimate(a, b, arm, true=None):
             f = _fit(a, b)
         elif arm == 'scale':
             f = _fit(patching.Scan(a.q, a.y, SCALE * a.sigma), patching.Scan(b.q, b.y, SCALE * b.sigma))
+        elif arm == 'scaleclip':
+            f = clip_fit(patching.Scan(a.q, a.y, SCALE * a.sigma), patching.Scan(b.q, b.y, SCALE * b.sigma))
         elif arm == 'budget':
             f = _fit(patching.Scan(a.q, a.y, budget_sigma(a)), patching.Scan(b.q, b.y, budget_sigma(b)))
         elif arm == 'budgetN':
@@ -204,10 +241,8 @@ def task(args):
     patching.GUARD_P = GUARD
     a0, b0, t, _r, _m = A.draw_join(key, rep)
     seed = lambda side: zlib.crc32(('%s|%d|%s|%s' % (key, rep, truth, side)).encode())
-    a, sa, wa = corrupt(a0, seed('a'), truth)
-    b, sb, wb = corrupt(b0, seed('b'), truth)
-    return dict(key=key, rep=rep, truth=truth, t=t,
-                **{arm: estimate(a, b, arm, (sa, sb, wa, wb)) for arm in ARMS})
+    a, b, true = corrupt_pair(a0, b0, seed, truth)
+    return dict(key=key, rep=rep, truth=truth, t=t, **{arm: estimate(a, b, arm, true) for arm in ARMS})
 
 
 def stats(rows):
@@ -268,67 +303,68 @@ def figures(st, out):
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     joins = list(A.JOINS)
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.2), sharey=True)
-    for ax, truth in zip(axes, TRUTHS):
-        w = 0.09
-        for i, arm in enumerate(ARMS):
-            v = [next(r['pull_sd'] for r in st if r['truth'] == truth and r['join'] == k and r['arm'] == arm)
-                 for k in joins]
-            ax.bar(np.arange(len(joins)) + (i - 4) * w, v, w, color=COLOR[arm], label=LABEL[arm])
-        ax.axhline(1, color='k', lw=0.8)
-        ax.set_xticks(range(len(joins)))
-        ax.set_xticklabels([('smooth\n' if k == G.SMOOTH else '') + k.replace(':', '\njoin ') for k in joins],
-                           fontsize=6)
-        ax.set_title('truth: %s' % ('C63\'s excess (σ × 1.12, X by Qz, 3 % wild points)' if truth == 'c63'
-                                    else 'no excess at all (what the remedies cost)'), fontsize=9)
-    axes[0].set_ylabel('pull SD of the join factor (1: honest)')
-    axes[0].legend(fontsize=7, frameon=False)
-    fig.suptitle('E1. Which error budget gives honest join errors? C61\'s six joins, 400 replicates each', fontsize=10)
-    fig.tight_layout()
-    fig.savefig(os.path.join(out, 'E1_pull_sd.png'), dpi=A.DPI)
-    plt.close(fig)
-
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.2))
-    st63 = [r for r in st if r['truth'] == 'c63']
-    for ax, key, ylab, logy in ((axes[0], 'rms_oracle', 'RMS miss, in units of the oracle\'s median error', True),
-                                (axes[1], 'catastrophic', 'share of misses beyond 5 × the oracle\'s error', False)):
-        w = 0.09
-        for i, arm in enumerate(ARMS):
-            v = [next(r[key] for r in st63 if r['join'] == k and r['arm'] == arm) for k in joins]
-            ax.bar(np.arange(len(joins)) + (i - 4) * w, v, w, color=COLOR[arm], label=LABEL[arm])
-        ax.set_xticks(range(len(joins)))
-        ax.set_xticklabels([k.replace(':', '\njoin ') for k in joins], fontsize=6)
-        ax.set_ylabel(ylab)
-        if logy:
-            ax.set_yscale('log')
-            ax.axhline(1, color='k', lw=0.6)
-    axes[1].legend(fontsize=6, frameon=False)
-    fig.suptitle('E2. The misses the pull SD hides: with C63\'s wild points, how far off the factor really is', fontsize=10)
-    fig.tight_layout()
-    fig.savefig(os.path.join(out, 'E2_tails.png'), dpi=A.DPI)
-    plt.close(fig)
+    titles = {'c63': 'C63\'s between-scan numbers on every point (the first, mistaken reading)',
+              'within': 'within a scan, as measured: σ × 1.12, 0.3 % wild points (what splits see)',
+              'join': 'within, plus the between-scan part on the later scan\'s overlap points',
+              'none': 'no excess at all (what the remedies cost)'}
+    w = 0.08
+    for name, key, ylab, ylim in (('E1_pull_sd.png', 'pull_sd', 'pull SD (1: honest)', (0, 1.6)),
+                                  ('E2_tails.png', 'catastrophic', 'share of misses beyond 5 × the oracle\'s error',
+                                   None)):
+        fig, axes = plt.subplots(2, 2, figsize=(13, 7.5), sharey=True)
+        for ax, truth in zip(axes.ravel(), TRUTHS):
+            for i, arm in enumerate(ARMS):
+                v = [next(r[key] for r in st if r['truth'] == truth and r['join'] == k and r['arm'] == arm)
+                     for k in joins]
+                ax.bar(np.arange(len(joins)) + (i - 4.5) * w, v, w, color=COLOR[arm], label=LABEL[arm])
+            if key == 'pull_sd':
+                ax.axhline(1, color='k', lw=0.8)
+            if ylim:
+                ax.set_ylim(*ylim)
+            ax.set_xticks(range(len(joins)))
+            ax.set_xticklabels([k.replace(':', '\njoin ') for k in joins], fontsize=6)
+            ax.set_title(titles[truth], fontsize=8)
+            ax.set_ylabel(ylab, fontsize=8)
+        axes[0, 0].legend(fontsize=6, frameon=False, ncol=2)
+        fig.suptitle('%s. %s, C61\'s six joins, 400 replicates each' % (
+            name[:2], 'Which error budget gives honest join errors' if key == 'pull_sd'
+            else 'The misses the pull SD hides'), fontsize=10)
+        fig.tight_layout()
+        fig.savefig(os.path.join(out, name), dpi=A.DPI)
+        plt.close(fig)
 
 
-def example(out, key=None, reps=300):
-    """E3: one join with a wild point in its window, fitted today and with the budget and 4σ clipping:
-    the points, both curves and the residuals. The first replicate where today misses by more than
-    CATASTROPHE oracle errors and clipping by less than 1.5."""
+def example(out, key=None, reps=400, truth='join', mode='rescue', name='E3_one_join.png'):
+    """One join fitted today and with 4σ clipping: the points, both curves and the residuals. ``mode``
+    'rescue' (E3): the first replicate where today misses by more than CATASTROPHE oracle errors and
+    clipping (on the budget) by less than 1.5; 'failure' (E4): the first where clipping on σ × 1.12 alone
+    misses by more than 6 of its own errors (it removed good points)."""
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     key = key or G.SMOOTH
     for rep in range(reps):
         a0, b0, t, _r, _m = A.draw_join(key, rep)
-        seed = lambda side: zlib.crc32(('%s|%d|%s|%s' % (key, rep, 'c63', side)).encode())
-        a, sa, wa = corrupt(a0, seed('a'), 'c63')
-        b, sb, wb = corrupt(b0, seed('b'), 'c63')
-        o = estimate(a, b, 'oracle', (sa, sb, wa, wb))
+        seed = lambda side: zlib.crc32(('%s|%d|%s|%s' % (key, rep, truth, side)).encode())
+        a, b, true = corrupt_pair(a0, b0, seed, truth)
+        sa, sb, wa, wb = true
+        o = estimate(a, b, 'oracle', true)
         ft = _fit(a, b)
-        ab, bb = patching.Scan(a.q, a.y, budget_sigma(a)), patching.Scan(b.q, b.y, budget_sigma(b))
-        fc, ka, kb = clip_fit(ab, bb, masks=True)
+        if mode == 'rescue':
+            ab, bb = patching.Scan(a.q, a.y, budget_sigma(a)), patching.Scan(b.q, b.y, budget_sigma(b))
+        else:
+            ab, bb = patching.Scan(a.q, a.y, SCALE * a.sigma), patching.Scan(b.q, b.y, SCALE * b.sigma)
+        try:
+            fc, ka, kb = clip_fit(ab, bb, masks=True)
+        except (ValueError, np.linalg.LinAlgError):
+            continue
         ia, ib = np.asarray(ft.ia), np.asarray(ft.ib)
-        if o and abs(ft.delta - t) > CATASTROPHE * o[1] and abs(fc.delta - t) < 1.5 * o[1] and \
+        if not o:
+            continue
+        if mode == 'rescue' and abs(ft.delta - t) > CATASTROPHE * o[1] and abs(fc.delta - t) < 1.5 * o[1] and \
                 (wa[ia].any() or wb[ib].any()):
+            break
+        if mode == 'failure' and abs(fc.delta - t) > 6 * fc.err:
             break
     else:
         return None
@@ -338,7 +374,9 @@ def example(out, key=None, reps=300):
     for col, (title, aa, bb, f, keep_a, keep_b) in enumerate((
             ('today: stated σ, every point (δ off by %.1f oracle errors)' % (abs(ft.delta - t) / o[1]), a, b, ft,
              np.ones(len(a.y), bool), np.ones(len(b.y), bool)),
-            ('σ × 1.12 ⊕ X(Qz), 4σ clipping (δ off by %.1f)' % (abs(fc.delta - t) / o[1]), ab, bb, fc, ka, kb))):
+            ('%s, 4σ clipping (δ off by %.1f oracle errors, %.1f of its own)'
+             % ('σ × 1.12 ⊕ X(Qz)' if mode == 'rescue' else 'σ × 1.12 alone', abs(fc.delta - t) / o[1],
+                abs(fc.delta - t) / fc.err), ab, bb, fc, ka, kb))):
         ax = fig.add_subplot(gs[0, col])
         rax = fig.add_subplot(gs[1, col], sharex=ax)
         A2, B2 = patching.Scan(aa.q[keep_a], aa.y[keep_a], aa.sigma[keep_a]), \
@@ -379,11 +417,12 @@ def example(out, key=None, reps=300):
         rax.set_xlabel('Qz (Å⁻¹)')
         info['today' if col == 0 else 'clip'] = dict(delta=f.delta, err=f.err, chi2_dof=f.chi2 / max(f.dof, 1),
                                                      rung=[f.order, f.n_ext])
-    fig.suptitle('E3. One join (%s, replicate %d) with a wild point: true δ %.4f, the oracle %.4f ± %.4f'
-                 % (key, rep, t, o[0], o[1]), fontsize=9)
-    fig.savefig(os.path.join(out, 'E3_one_join.png'), dpi=A.DPI, bbox_inches='tight')
+    fig.suptitle('%s. One join (%s, replicate %d, truth \'%s\')%s: true δ %.4f, the oracle %.4f ± %.4f'
+                 % (name[:2], key, rep, truth, ' with a wild point' if mode == 'rescue'
+                    else ': clipping removes good points', t, o[0], o[1]), fontsize=9)
+    fig.savefig(os.path.join(out, name), dpi=A.DPI, bbox_inches='tight')
     plt.close(fig)
-    return dict(join=key, rep=rep, truth=t, oracle=list(o), **info,
+    return dict(join=key, rep=rep, truth_model=truth, mode=mode, truth=t, oracle=list(o), **info,
                 wild_in_window=int(wa[ia].sum() + wb[ib].sum()), left_out=int((~ka).sum() + (~kb).sum()))
 
 
@@ -426,6 +465,7 @@ def main(argv=None):
         json.dump(nums, f, indent=1)
     figures(st, o.out)
     nums['example'] = example(o.out)
+    nums['failure'] = example(o.out, mode='failure', name='E4_clipping_fails.png')
     with open(os.path.join(o.out, 'numbers.json'), 'w') as f:
         json.dump(nums, f, indent=1)
     print(json.dumps(nums, indent=1))

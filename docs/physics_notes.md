@@ -6960,3 +6960,34 @@ This core settles two of them; the third is the window's.
   - `decline_request()` removes it. The next successful `acquire()` clears any request left over.
 - **Q6's rule** (only results made after the lock is gained are saved) is the window's (GUI manager). With
   the lock taken at opening, it covers only a reader that opened second.
+
+### 2026-11-25 — C64 corrected: C63's between-scan numbers are not per-point noise
+
+Verified by: reading C63's tables (`docs/studies/excess_scatter/real_by.csv`, `real_time_by_qz.csv`) and a
+rerun of `tests/tools/excess_remedy_study.py` with corrected truths (C61's six joins, 400 replicates each).
+The owner asked whether main man still works things out or rubber-stamps. The honest answer was that #96
+(C63) had been merged after a privacy review, without a review of its science, and that C64 had been built on
+its numbers as read. This entry is the review.
+
+- **What C63 measured, by estimator:**
+  - within a scan (every point): an excess of 0.19 / 0.12 / 0.16 % of R (Qz 0.04–0.1 / 0.1–0.25 / ≥ 0.25),
+    and about 0.1–0.3 % wild points;
+  - between scans (shared points only): 0.20 / 0.40 / 2.65 %, and 2–4 % wild pairs. It grows with the time
+    between the two points: 0.08 % under a minute apart, 0.33 % at 1–2 minutes (low Qz); the 2.65 % comes from
+    pairs 2–4 minutes apart.
+  - Independent per-point scatter would show in both alike. **So the between-scan numbers describe a change
+    between scans** (a drift, or the later scan's first points), not noise on every point.
+- **C63's own reading** ("a 0.4 % core plus 3 % outliers on C61's joins gives pull SD 1.24, as C56's
+  splits") put between-scan numbers on a within-scan test. A split never leaves its scan. The within-scan σ ×
+  1.12 alone gives 1.19 / 1.08 (smooth / hard), as close.
+- **C64's first version** made the same reading: X(Qz) and 3 % wild points on every point of both scans. Its
+  "16 % of today's joins miss catastrophically; 4σ clipping fixes it" is withdrawn.
+- **Corrected results:**
+  - within-scan truth: σ × 1.12 gives a pull SD of 1.08 / 1.01;
+  - between-scan part on the later scan's overlap points: today 13 % catastrophic misses;
+  - 4σ clipping cuts the misses, but in 2 of 400 smooth-join replicates it removes good points next to two
+    wild ones and reports a factor 28–59 of its own errors off (E4: pitfall 5, a false minimum).
+- **Next:**
+  - σ × 1.12 is the candidate (DATA_NEEDS 17a: the real splits);
+  - the between-scan part needs real joins against the foils and the wild pairs' positions (17b, 17c);
+  - clipping only with a guard.
