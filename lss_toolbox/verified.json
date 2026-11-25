@@ -1430,7 +1430,7 @@
   "verdict": "same"
  },
  "gui_screens": {
-  "commit": "e621ae45d5",
+  "commit": "847d4e43d4",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -1448,11 +1448,7 @@
    "python": "3.13.18",
    "scipy": "1.18.1"
   },
-  "modified": [
-   "lss_core/timeline.py",
-   "mainwindow.py",
-   "timelineview.py"
-  ],
+  "modified": [],
   "modules": {
    "TwoDDetector.py": "cacf7c8dacbc4290",
    "comparetab.py": "60bfa3ad6462b8b2",
@@ -1498,7 +1494,7 @@
    "lss_core/trends.py": "687ff0ee1b74ae3a",
    "lss_core/uncertainty.py": "9cc2848f5ade825c",
    "lss_core/workbook.py": "0f3b8e7fbc877ae8",
-   "lss_toolbox/catalog.py": "c8123edd0b64a36b",
+   "lss_toolbox/catalog.py": "8e67c2451e49061d",
    "lss_toolbox/compare.py": "783bae8d75ba7cd2",
    "lss_toolbox/fingerprint.py": "3ae81cd598e4ec8a",
    "lss_toolbox/introspect.py": "3ab708ed997dfcf0",
@@ -2067,7 +2063,7 @@
   "verdict": "same"
  },
  "ngui_screens": {
-  "commit": "137c09c4e9",
+  "commit": "847d4e43d4",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -2088,8 +2084,8 @@
   "modified": [],
   "modules": {
    "ngui/__init__.py": "ad2e13b69c4fc1fd",
-   "ngui/inventory_text.py": "b4fead48e18a97e1",
-   "ngui/layout.py": "bddc9bd3dca4d686",
+   "ngui/inventory_text.py": "59aba67ac04bfb3c",
+   "ngui/layout.py": "687f1c9be635d8da",
    "ngui/theme.py": "44039650e1ebb95c",
    "ngui/window.py": "2e907c9fd80568b2",
    "tests/tools/ngui_screens.py": "90907582840b144e"
@@ -2106,7 +2102,7 @@
    "docs/gui/prototype/screens/05_gid.png": "ca065d28e1817852",
    "docs/gui/prototype/screens/06_fluorescence.png": "c1b70716f99ab149",
    "docs/gui/prototype/screens/07_files.png": "4ea875c5aa5b7252",
-   "docs/gui/prototype/screens/08_retired_controls.png": "d14deda04d504ad0",
+   "docs/gui/prototype/screens/08_retired_controls.png": "ab080c3cc1107558",
    "docs/gui/prototype/screens/09_file_export.png": "49126136e453def3",
    "docs/gui/prototype/screens/10_legacy_reflectivity.png": "05ce0d23f0e2c5ed",
    "docs/gui/prototype/screens/11_preferences.png": "0868036c97d7c580",
