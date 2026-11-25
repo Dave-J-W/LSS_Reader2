@@ -324,7 +324,9 @@ def test_a_run_writes_its_record_and_output(parsers, tmp_path):
     with open(os.path.join(run_dir, runner.STDOUT), encoding='utf-8') as f:
         assert '963 joins at 10 keV' in f.read()
     assert runner.past_runs(item.id) == [run_dir]
-    assert list(runner.product_files(item, run_dir)) == [runner.STDOUT]
+    assert list(runner.product_files(item, run_dir)) == [runner.STDOUT]           # the trace is not a product
+    trace = runner.read_trace(run_dir)                                          # what the run used (2026-11-25)
+    assert item.script in trace['modules'] and 'docs/handoff_out/03-answer/joins.csv' in trace['reads']
     figs = runner.product_files(catalog.get('pinhole_figures'), 'committed')
     assert 'case1_lab_frame_and_detector.png' in figs
     env = runner.environment(run_dir)

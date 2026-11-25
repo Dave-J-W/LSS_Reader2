@@ -17,14 +17,20 @@ so don't drift"):
   usually the defaults);
 - the options a page offers are read from the script's own argparse parser
   each time (`lss_toolbox.introspect`), never copied;
-- an item's committed products are flagged **possibly stale** when the
-  script, a repository file it imports, or a named input changed in a
-  commit after the products' last commit (`lss_toolbox.staleness`;
-  `python -m lss_toolbox --stale` lists them all);
 - `python -m lss_toolbox --audit` reruns every item with the settings that
   made its committed products and compares: images pixel for pixel, tables
   byte for byte (the measured staleness; the last audit is
-  `docs/reports/tools_audit.md`);
+  `docs/reports/tools_audit.md`). With `--record` it keeps, for each item
+  whose products matched, the fingerprints of the modules the run actually
+  imported, the files it read and the products it reproduced, in
+  `lss_toolbox/verified.json`;
+- an item's committed products are **current** while that record holds:
+  nothing the rerun used has changed since. A fingerprint of Python code
+  ignores docstrings and comments (`lss_toolbox.fingerprint`). Without a
+  record, or after the products changed, they are flagged **possibly
+  stale** when the script, a repository file it imports, or a named input
+  changed its code after the products' last commit (`lss_toolbox.staleness`;
+  `python -m lss_toolbox --stale` lists them all);
 - the tests check that every script in `tests/tools/` is an item (or a
   listed helper), that every option a variation sets exists in its script,
   and that every figure committed under `docs/` belongs to an item.
@@ -1119,7 +1125,7 @@ Opened from the reader (Tools > All tools…, or any item) or on its own (`pytho
 | `runButton` | Run | Run the script as it is in the repository now, in its own process, into a new folder (~/.lss_reader/tools/<item>/<date-time>, or $LSS_READER_TOOLS_DIR). The reader stays usable while it runs. |
 | `stopButton` | Stop | Stop the running script. |
 | `repoCheck` | Replace the committed products | Write into the repository folders that hold this item's committed products instead of a run folder. Only with the settings that made them (the defaults, or the variation "As committed") and public data. Commit them with the change that made them stale (AGENTS.md rule 11). |
-| `statusLabel` | — | Whether the committed products are older than the code that makes them: the script, the repository files it imports and its named inputs, from git history. "May be stale" is a hint; Run with the defaults and compare with the committed products to know. |
+| `statusLabel` | — | Whether the committed products are older than the code that makes them. First from the verified record (lss_toolbox/verified.json, written by python -m lss_toolbox --audit --record): a rerun matched the committed products, and nothing it imported or read has changed since. Otherwise from git history: the script, the repository files it imports and its named inputs. Changes to comments and docstrings do not count. "May be stale" is a hint; Run with the defaults and compare with the committed products to know. |
 | `docsBox` | Docs | The documents that explain this item; each button opens one. |
 | `log` | Output | What the script prints, as it runs. |
 | `runCombo` | Show | Which products to show: a run of this item (newest first) or the committed products in the repository. |

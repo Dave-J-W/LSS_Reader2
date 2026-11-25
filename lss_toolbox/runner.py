@@ -11,7 +11,10 @@ nothing beside the SPEC files and leaves the user's preferences alone.
 
 ``run.json`` in the run folder records the command, the times, the exit
 code, the git commit and whether the working tree differed from it, so
-that a figure on disk says what code made it.
+that a figure on disk says what code made it. A run without a window (the
+audit) goes through ``lss_toolbox.trace``, whose ``trace.json`` lists the
+repository modules the script imported and the files it read: what the
+products actually depend on (``staleness.verification``).
 """
 import datetime
 import glob
@@ -24,6 +27,7 @@ from . import ROOT
 
 OUT = '{out}'
 RECORD = 'run.json'
+TRACE = 'trace.json'
 STDOUT = 'output.txt'
 IMAGES = ('.png', '.jpg', '.jpeg', '.svg', '.gif')
 TEXTS = ('.md', '.txt', '.csv', '.json', '.log')
@@ -283,7 +287,7 @@ def read_record(run_dir):
         return None
 
 
-def outputs(folder, skip=(RECORD, 'preferences.json')):
+def outputs(folder, skip=(RECORD, TRACE, 'preferences.json')):
     """(images, texts): files under ``folder`` (recursive, relative paths,
     sorted), the run's own bookkeeping and logs left out."""
     images, texts = [], []
@@ -307,14 +311,14 @@ def repo_path(rel):
     return os.path.join(ROOT, rel)
 
 
-def product_files(item, source):
+def product_files(item, source, root=ROOT):
     """{relative name: absolute path} of a run folder or, for source
-    'committed', of the item's committed products (names relative to each
-    committed folder, so that they match a run's)."""
+    'committed', of the item's committed products under ``root`` (names
+    relative to each committed folder, so that they match a run's)."""
     out = {}
     if source == 'committed':
         for c in item.committed:
-            full = os.path.join(ROOT, c)
+            full = os.path.join(root, c)
             if os.path.isdir(full):
                 images, txts = outputs(full, skip=())
                 for rel in images + txts:
@@ -345,10 +349,23 @@ def default_args(item, spec, out_dir, committed=False):
     return build_args(spec, vals, out_dir, free=item.free)
 
 
+def read_trace(run_dir):
+    """What a traced run used ({'modules': [...], 'reads': [...]}, paths
+    relative to the repository), or None when the run was not traced or
+    did not finish."""
+    try:
+        with open(os.path.join(run_dir, TRACE), encoding='utf-8') as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
 def run_item(item, spec, timeout=3600, committed=False):
     """Run ``item`` with its defaults (``committed``: with the settings of
     its committed products) into a new run folder, without a window
-    (``python -m lss_toolbox --audit``); returns (run folder, exit code)."""
+    (``python -m lss_toolbox --audit``), through ``lss_toolbox.trace``
+    (``trace.json`` in the run folder: what it imported and read); returns
+    (run folder, exit code)."""
     import subprocess
     run_dir = new_run_dir(item.id)
     args = default_args(item, spec, run_dir, committed)
@@ -356,7 +373,8 @@ def run_item(item, spec, timeout=3600, committed=False):
     write_record(run_dir, item.id, item.script, args, started)
     with open(os.path.join(run_dir, STDOUT), 'w', encoding='utf-8') as f:
         try:
-            r = subprocess.run([interpreter(), os.path.join(ROOT, item.script)] + args, cwd=ROOT,
+            r = subprocess.run([interpreter(), '-m', 'lss_toolbox.trace', os.path.join(run_dir, TRACE), '--',
+                                os.path.join(ROOT, item.script)] + args, cwd=ROOT,
                                env=environment(run_dir), stdout=f, stderr=subprocess.STDOUT, timeout=timeout)
             code = r.returncode
         except subprocess.TimeoutExpired:
