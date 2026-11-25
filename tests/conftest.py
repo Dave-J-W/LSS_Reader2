@@ -51,7 +51,7 @@ import pytest  # noqa: E402
 # benchmarks (-m bench), and regenerating stored results (LSS_UPDATE_CRASHES,
 # LSS_UPDATE_GOLDEN), whose tests rewrite shared files.
 SERIAL_ENV = ('LSS_UPDATE_CRASHES', 'LSS_UPDATE_GOLDEN')
-WORKER_MEMORY_MB = 2048          # a worker of the quick suite peaks near 1 GB (2026-11-23)
+WORKER_MEMORY_MB = 2048          # a worker of the quick suite peaks near 1.6 GB (measured 2026-11-24)
 
 
 def _wants_serial(config):
