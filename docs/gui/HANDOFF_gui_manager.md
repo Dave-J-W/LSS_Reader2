@@ -7,35 +7,30 @@ permission: merge my branch into `main` by PR + "Create a merge commit"
 once the quick suite (and, for GUI changes, the sweep) pass; then merge
 `main` back into the branch.
 
-## State (updated 2026-11-25, afternoon, Chicago time)
+## State (updated 2026-11-25, late afternoon, Chicago time)
 
-- **On main:** through #88 (b5e9c17): F105, F79, F97/F59, F92, D1, F98,
-  F107, the Reduced lane (phase 1d), the Environment lane (phase 2), the
-  screenshots recorded by the Tools audit.
-- **On the branch, next PR:** F95 B9 (Export writes text files, Save the
-  workbook; ee5056b) and the dialog titles (B10's first half). Sweep and
-  quick suite before the PR.
-- **Questions for the owner** with questor on issue #55 (13, 2026-11-25).
-  None answered yet. Tools man's evidence: rho about 1.13 on real burns
-  (the default stays 0, rule 12).
-- **GitHub hiccups seen today:** POST pulls and PUT merge answered 500
-  while succeeding, or failing until a retry; git push 503 (credential
-  service). Retry, and check the PR's state before trying again.
-- **The screenshot routine:** after a window change, `python
-  tests/tools/gui_screens.py` (and `ngui_screens.py` after ngui/layout.py),
-  then `python -m lss_toolbox --audit --record --only gui_screens
-  ngui_screens dump_tooltips gui_map ngui_inventory`. After a merge of
-  main, `verified.json` conflicts: keep my items, main's others, re-record.
-- **Work in:** the main checkout; the sweep in `scratchpad/wt_sweep`.
-- **Messages:** issue #55 only.
+- **On main:** through #90 (ab6f51f): everything up to F95 B9 and the
+  dialog titles.
+- **On the branch, next PR:** F95 B10's docks (a8db894, swept: 194), the
+  beam width prefilled 1 mm and the Q-cut band confirmed (54fa71a: the
+  owner's Q8 and Q1), a merge of main with F109's core (414909f). The
+  sweep and the quick suite on 414909f were running; then PR, merge.
+- **The owner's answers so far** (questor, issue #55, batch 21): Q1 yes
+  (half the ROI); Q8 prefill 1 mm, and show the peak and the average
+  dose, the peak split into the top 10 % of the area against the other
+  90 % (F109). The rest of my 13 (2–7, 9–13) are being asked next.
+- **F109 window side is mine** once main man posts the API (its core is on
+  main: `lss_core.dose.BeamWidth`, `DoseSummary`, `slit_profile`,
+  `dose_map`). In the burn dialog: the average and the peak dose, the
+  split, the beam's width from an S1 slit scan when there is one.
+- **tools man's P44** (the burn template) may reach the burn dialog later:
+  it is to be built on the docked dialog (main man's note).
 
 ## Next, in order
 
-1. Merge the branch (B9, titles).
-2. F95 B10's docks: the burn dialog, the GID worksheet and the fit
-   options as dock widgets or side panels (owner: "dock the frequent
-   ones").
-3. B3 (rule 12); the owner's answers from questor.
+1. Merge the branch (above).
+2. F109's dialog side when main man posts its API.
+3. The owner's further answers from questor; B3 (rule 12).
 
 ## APIs received for the next items (2026-11-24)
 
