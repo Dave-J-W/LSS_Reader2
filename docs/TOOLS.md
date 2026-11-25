@@ -128,6 +128,7 @@ container on 2026-11-23 with the defaults shown.
 | [Absorber steps and foils (hand-off 03 answer)](#absorber-answer-figures) | external | Figures of the owner's analysing repository (tools/absorber_steps.py, absorber_review.py, absorber_trust.py) from private data: measured steps, foil fits, the review of anomalous joins. Not regenerable here; the numbers behind them are in figdata/ and joins.csv. | private (not in the repository) |  | `docs/handoff_out/03-answer/figures` |
 | [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, the guards, rise against fall and what the meniscus does. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
 | [GID stray light over many sets (private data)](#gid-stray-light-private) | external | P40 on every private GID set (DATA_NEEDS row 10): light past S5 and beyond the footprint at both arm heights, per beamtime, and the beam-path background from frames with the sample lowered. Made by the non-cloud agent's private generator (sample_data/private/gid/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/gid_stray_light` |
+| [GID defaults judged on many sets (private data)](#gid-method-survey-private) | external | Hand-off 06 on every private GID set (DATA_NEEDS row 12): the S4-detector distance calibration per beamtime, the column responses ranked by frames agree, the joins as collected and fitted, the split test and the single frames as ground truth. Made by tests/tools/gid_method_survey.py on the private sets and the non-cloud agent's private aggregation (sample_data/private/gid/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/gid_method_survey` |
 
 ## Items
 
@@ -1113,6 +1114,16 @@ P40 on every private GID set (DATA_NEEDS row 10): light past S5 and beyond the f
 - Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
 - Explained in: `docs/studies/gid_stray_light/summary.md`
 - Committed products: `docs/studies/gid_stray_light`; not replaced from the window
+
+<a id="gid-method-survey-private"></a>
+
+### GID defaults judged on many sets (private data)
+
+Hand-off 06 on every private GID set (DATA_NEEDS row 12): the S4-detector distance calibration per beamtime, the column responses ranked by frames agree, the joins as collected and fitted, the split test and the single frames as ground truth. Made by tests/tools/gid_method_survey.py on the private sets and the non-cloud agent's private aggregation (sample_data/private/gid/); not regenerable here; the numbers are the CSVs beside them.
+
+- Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
+- Explained in: `docs/studies/gid_method_survey/summary.md`, `docs/handoff_out/06-gid-method-comparison.md`
+- Committed products: `docs/studies/gid_method_survey`; not replaced from the window
 
 ## The Tools window
 

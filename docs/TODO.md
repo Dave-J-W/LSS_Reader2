@@ -33,7 +33,7 @@ working list, one table per area, each row with its source. Rows marked
 
 | Item | Source |
 |---|---|
-| Final defaults from many data sets (distance, response, joins) | hand-off 06; input 19 |
+| Final defaults from many data sets (distance, response, joins): **survey done 2026-11-24** (`docs/studies/gid_method_survey/`): proposed `beam` response and per-set distance calibration when reliable, joins kept; the switch needs rule 12 (tests, demonstrator). Also found: 18 sets the pinhole patch cannot join (a middle level not overlapping in β); `KeyError: 'monc'` on a one-point Det_Th scan | hand-off 06; input 19 |
 | ~~Scan join against everything joined so far~~ **done 2026-11-22** (P41) | P41 |
 | Stray light, streak mask, background frames: sizes measured on 94 private level pairs (2026-11-24, `docs/studies/gid_stray_light/`); background frames still to be taken at a beamtime | P40; input 17 |
 | Exact angles for cut axes, display, distance fit | P38 remainder |
@@ -366,7 +366,7 @@ stated assumption until the answer arrives.
 | 16 | ~~Half-cut sh scans for the beam's vertical profile (F43; owner, 2026-11-19)~~ answered 2026-11-24 from the height scans' rising edges (`docs/studies/sh_beam_size/summary.md`): dose height 0.040 mm at 10 keV, S1 ≤ 0.04 mm; profile core + tail | a measured beam for response 'beam' and for P39 | the profile fitted from the GID data |
 | 17 | GID frames with little signal (mostly background) at both arm heights (P40; owner offered, 2026-11-19). **Searched 2026-11-24** (`docs/studies/gid_stray_light/`): none in the private data with the sample lowered; streak and beyond-footprint light measured on 94 pairs; the beam path measured on off-specular frames of one beamtime. Frames taken on purpose are still wanted | stray light and beam-path background in GID maps | P40 open |
 | 18 | GID overlap pixels: ΣN/ΣW (built) vs IDL's error-weighted mean (the owner chose "as the IDL code does", 2026-11-18; the error weights are biased at low counts, IDL review) | GID map values | ΣN/ΣW, to confirm |
-| 19 | ~~S4–detector distance (P43)~~: calibrate from single frames (owner, 2026-11-21): built (5fbebf8), worksheet Fit; automatic calibration and the final GID defaults: large-data survey, `docs/handoff_out/06-gid-method-comparison.md` | — | header value until Fit |
+| 19 | ~~S4–detector distance (P43)~~: calibrate from single frames (owner, 2026-11-21): built (5fbebf8), worksheet Fit; automatic calibration and the final GID defaults: large-data survey, `docs/handoff_out/06-gid-method-comparison.md`; **done 2026-11-24**, `docs/studies/gid_method_survey/` (calibrate per set when reliable; not per beamtime) | — | header value until Fit |
 
 ### Stage 3 work list
 - [x] Proposal for the "scan i of N" line (`docs/handoff_out/05-scan-series-syntax.md`).

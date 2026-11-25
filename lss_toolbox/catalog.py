@@ -906,6 +906,15 @@ TOOLS = (
                       'regenerable here; the numbers behind the figures are the CSVs beside them.',
          committed=('docs/studies/gid_stray_light',), docs=('docs/studies/gid_stray_light/summary.md',),
          data='private', repo_ok=False),
+    Tool('gid_method_survey_private', 'GID defaults judged on many sets (private data)', 'external', 'external',
+         demonstrates='Hand-off 06 on every private GID set (DATA_NEEDS row 12): the S4-detector distance '
+                      'calibration per beamtime, the column responses ranked by frames agree, the joins as '
+                      'collected and fitted, the split test and the single frames as ground truth. Made by '
+                      'tests/tools/gid_method_survey.py on the private sets and the non-cloud agent\'s private '
+                      'aggregation (sample_data/private/gid/); not regenerable here; the numbers are the CSVs beside them.',
+         committed=('docs/studies/gid_method_survey',), docs=('docs/studies/gid_method_survey/summary.md',
+                                                              'docs/handoff_out/06-gid-method-comparison.md'),
+         data='private', repo_ok=False),
 )
 
 BY_ID = {t.id: t for t in TOOLS}

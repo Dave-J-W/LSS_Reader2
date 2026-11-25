@@ -6145,3 +6145,27 @@ frame per imaging scan, the document files of the one bluesky folder). Study: `d
 - **1M geometry (F38): yes.** Two beamtimes, TIFF 1043 × 981; `#B5 x y D 0` gives the beam pixel and the
   sample–detector distance (2654.6 and 2038.7 mm in two installations); in one beamtime the detector stage
   height changes from scan to scan (tracked mode) but is logged only at each scan's start.
+
+### 2026-11-24 — The GID defaults judged on the private data (hand-off 06, DATA_NEEDS row 12)
+
+Verified by: measurement on private data by the non-cloud agent, with the reader's own survey tool
+(`tests/tools/gid_method_survey.py --split`, unchanged) on 194 inferred GID sets in 18 beamtimes. Study:
+`docs/studies/gid_method_survey/summary.md`; COMPARISONS C59, C60.
+
+- **Response:** `beam` is the safest: best on 122 of 239 levels, median 1.00× the best frames-agree χ²/dof,
+  worst 2.85×; the default `fit` median 1.13×, worst 14×, and 1.61× at Det_Th < 10° where the column-to-beam
+  mapping moves fastest. Not uniform: `fit` is better in 3 of 15 beamtimes (by 8–49 %). Every pinhole
+  response gives the same ground truth (patched FWHM / single frames 1.01; the legacy patch 1.52). Split test:
+  `beam` within 1 % of 1.25 in 37 of 38 levels, `fit` 34 (median 1.257, P42's residue).
+- **Joins:** as collected, 37 % of level joins and 29 % of scan joins are within 5 % of 1; keep them applied.
+  9 % of scan joins are outside 0.5–2 under every method (likely different samples or settings inside one
+  inferred series). 18 sets in 7 beamtimes cannot be patched by any pinhole method (a middle level does not
+  overlap in β with the ones below); legacy patches them.
+- **Distance:** reliable calibration on 30 % of levels (no peak in ≥ 5 frames, frames that disagree or drift,
+  and Det_Th steps too coarse for 6 frames per 2θ are the reasons); median 267.2 mm against the header's 271;
+  not stable within a beamtime at the stated errors, so no per-beamtime value. Calibrating moves the patched
+  peak's centre onto the single frames' (within 2σ in 91 % against 65 %), not its width.
+- **Proposed, not applied** (rule 12 first): response default `fit` → `beam`; the distance calibrated per set
+  when reliable. Rows for OUTPUT_DECISIONS are in the study.
+- **Defect found:** a one-point Det_Th scan in a GID set makes `Experiment.frames` raise `KeyError: 'monc'`
+  (4 sets).
