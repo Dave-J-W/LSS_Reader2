@@ -71,6 +71,7 @@ centroid, the three box sums, the legacy error).
 | whole frame, factor 4 | what a user gets by switching on today's Frames > Reduce pass |
 | ROI, factor 3 / 10 / 40 | the same test, only inside the three boxes (10: the Reflectivity tab's field) |
 | background boxes, factor 10 | the test only where no signal is expected |
+| signal box only, factor 10 | the test only where the beam is (as first proposed for the window) |
 
 **The yardstick.** Every point is compared with **the same frame reduced clean**: no hot pixel, no pass. So
 the numbers below measure only what hot pixels and passes add, not the counting noise both share.
@@ -95,8 +96,12 @@ the numbers below measure only what hot pixels and passes add, not the counting 
   - The point moves by +535 % on average when its hot pixels land in the signal box, and by −337 % when they
     land in a background box (`stats.csv`).
   - Any pass on the three boxes cuts this to 0.2–0.9.
-  - **The background-only pass is worse than none:** it removes the background hot pixels that were partly
-    cancelling the signal-box ones, so its bias reaches +107 % (against +19 % with no pass).
+  - **A pass on one kind of box is worse than none.** It removes the hot pixels of that box and leaves the
+    ones that were partly cancelling them:
+    - the background-only pass leaves the signal-box ones: +107 % bias (against +19 % with no pass);
+    - the signal-box-only pass leaves the background ones: −87 % bias and 6.9 error bars. It removes only 35 %
+      of the hot pixels, those that happen to land in the signal box.
+    - **A pass must cover all three boxes.**
 
 ## Step 4. Which hot pixels a pass removes: the threshold (figure R3)
 
@@ -142,7 +147,7 @@ pixel is replaced. The histogram shows how close clean frames come.
 **What the bars show:**
 - **Bright frames:** hot pixels and passes move the pull SD by at most 0.05, within the noise.
 - **Sparse frames at 0.5 hot pixels per frame:** no pass gives 1.42, and the passes on the three boxes bring
-  it back to 1.22–1.24, the clean value. The background-only pass gives 1.34.
+  it back to 1.22–1.24, the clean value. The background-only pass gives 1.34, the signal-only pass 1.30.
 
 ## Step 7. The judgment
 
@@ -155,7 +160,7 @@ hot-pixel rate, which is assumed.
 - **Factor 3, and the whole-frame pass at factor 4,** occasionally take half of a real sparse point (0.2–0.9 %
   of such frames).
 - **Factor 40** leaves more hot pixels behind: 2.9 % bias at the end of the curve.
-- **Never use a background-only pass.**
+- **Never use a pass on one kind of box,** background only (+107 %) or signal only (−87 %).
 
 **The verdict:**
 - **Factor 10 on the three boxes is the best setting tested.** It is the field's existing default.
