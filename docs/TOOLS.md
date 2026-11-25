@@ -57,6 +57,7 @@ container on 2026-11-23 with the defaults shown.
 | [Burn estimators: survey over replicates](#patch-demo-burn-survey) | text | Every burn estimator over many noise replicates of a synthetic burn: the change it reads against the truth (bias, scatter) and how often it calls a quantity stable. | synthetic (public) | 19 s | — |
 | [Burn trends of NX scans 14 and 15](#burn-figures) | figures | Burn tests over time as the Trends tab draws them (every model, the confident 5 % time) for the template and legacy moments estimators, and the three estimators compared. | public (NX school or committed tables) | 5 s | `docs/figures/burn_trends`<br>`docs/comparisons_data/burn_nx` |
 | [Beam damage or the sample by itself? The dose-or-time test (F76)](#reciprocity-study) | figures | Synthetic burns at several fluxes with a known law (the dose, time, a dose-rate effect, a mixture, no change) and strip-to-strip scatter: how often lss_core.reciprocity calls each truth right, beta's pulls, and NX school burns 14 and 15: figures R1-R5. | public (NX school or committed tables) | 85 s | `docs/studies/reciprocity` |
+| [Walkthrough: from the frames to the dose-or-time verdict (F76, ELI5)](#reciprocity-walkthrough) | figures | The whole chain on public data, for the owner's standing order (2026-11-25): an NX school frame and its line cut, one position per frame, the straight-line drift with its residuals, the rates against flux with chi2(beta), C54's strip scatter by REML, one real series under three error models, and the calibration of the intervals: figures W1-W6. | public (NX school or committed tables) | 60 s | `docs/studies/reciprocity/walkthrough` |
 | [Dose or time on C54's 19 real burn series, and the strip scatter (F76)](#reciprocity-real) | figures | lss_core.reciprocity on the public, anonymised rates of the real reflectivity burns (C54): the strip scatter from the six repeated absorbers (additive and relative, REML), each series' verdict and beta under counting errors, tau and rho beside C54's, and how many strips per flux would decide at that rho: figure R6. | public (NX school or committed tables) | 90 s | `docs/studies/reciprocity/c54` |
 | [Burns against dose: damage or a changing sample?](#burn-dose-figure) | figures | NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil transmission): a beam-driven change coincides against dose, a sample changing by itself against time. | NX school by default; any SPEC file | 3 s | `docs/figures/burn_dose` |
 
@@ -64,6 +65,7 @@ container on 2026-11-23 with the defaults shown.
 
 | Item | Kind | What it demonstrates | Data | Time | Committed products |
 |---|---|---|---|---|---|
+| [Walkthrough: the Qz offset from the raw frames to the judgment (F79, ELI5)](#qoff-walkthrough) | figures | The whole chain on NX school scans 6-9, for the owner's standing order (2026-11-25): a raw frame and its counted box, R and R/R_F at the edge at Qoff 0 and at the proposal, the edge fit drawn over its data with its residuals (chi2/dof 75: the rounded edge), the bootstrap, and what the beamline's resolution reads as: figures QW1-QW5. | public (NX school or committed tables) | 60 s | `docs/studies/qoff/walkthrough` |
 | [Fit demonstrator (window)](#patch-demo) | window | Reflectivity patching on synthetic scans with known truth: every method, the denoised data, pulls, factors, error bands; space bar for a new noise replicate. | synthetic (public) |  | — |
 | [Fit demonstrator: survey over replicates](#patch-demo-survey) | text | Every patching method over many noise replicates of the demonstrator's synthetic scans: bias, pull mean and pull SD per join, failures (the numbers behind the window's single replicate). | synthetic (public) | 4 s | — |
 | [Fit demonstrator report figures](#patch-demo-figures) | figures | The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per survey). | synthetic (public) |  | `docs/figures/patch_demo` |
@@ -234,6 +236,20 @@ Variations:
 | Few frames, little change | 11-41 frames, 0.3-3 % noise, a 2-20 % fall: when time cannot be shown. | `docs/studies/reciprocity/summary.md## 3. Few frames, little change` | `python tests/tools/reciprocity_study.py --out '{out}' --design frames,noise,change` |
 | More replicates (1000) | Every design with 1000 replicates (about 2 min). | `docs/studies/reciprocity/summary.md## 1. How often is each truth called right?` | `python tests/tools/reciprocity_study.py --out '{out}' --replicates 1000` |
 
+<a id="reciprocity-walkthrough"></a>
+
+### Walkthrough: from the frames to the dose-or-time verdict (F76, ELI5)
+
+The whole chain on public data, for the owner's standing order (2026-11-25): an NX school frame and its line cut, one position per frame, the straight-line drift with its residuals, the rates against flux with chi2(beta), C54's strip scatter by REML, one real series under three error models, and the calibration of the intervals: figures W1-W6.
+
+- Menu: Tools > Burn tests; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/reciprocity_walkthrough.py`
+- Explained in: `docs/studies/reciprocity/walkthrough.md`, `docs/studies/reciprocity/summary.md`
+- Committed products: `docs/studies/reciprocity/walkthrough`; not replaced from the window
+- Run:
+
+      python tests/tools/reciprocity_walkthrough.py --out '{out}'
+
+
 <a id="reciprocity-real"></a>
 
 ### Dose or time on C54's 19 real burn series, and the strip scatter (F76)
@@ -275,6 +291,20 @@ Variations:
 | Nominal foils (1.4247 per unit) | The flux ratio of the docs' "4.1x" instead of the calibrated 4.68: the dose ratio of the drifts moves from 0.79 to 0.90. | `docs/physics_notes.md#The position drifts` | `python tests/tools/burn_dose_figure.py --out '{out}' --absorbers nominal` |
 | One spot measured twice | Scan 15's dose and time follow scan 14's: 15 starts where 14 ended, as one spot would. | `docs/handoff_out/07-burn-trends.md#scans at different` | `python tests/tools/burn_dose_figure.py --out '{out}' --join` |
 | Moments estimator | The legacy moments instead of the template. | `docs/handoff_out/07-burn-trends.md` | `python tests/tools/burn_dose_figure.py --out '{out}' --estimator moments` |
+
+<a id="qoff-walkthrough"></a>
+
+### Walkthrough: the Qz offset from the raw frames to the judgment (F79, ELI5)
+
+The whole chain on NX school scans 6-9, for the owner's standing order (2026-11-25): a raw frame and its counted box, R and R/R_F at the edge at Qoff 0 and at the proposal, the edge fit drawn over its data with its residuals (chi2/dof 75: the rounded edge), the bootstrap, and what the beamline's resolution reads as: figures QW1-QW5.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/qoff_walkthrough.py`
+- Explained in: `docs/studies/qoff/walkthrough.md`, `docs/studies/qoff/summary.md`
+- Committed products: `docs/studies/qoff/walkthrough`; not replaced from the window
+- Run:
+
+      python tests/tools/qoff_walkthrough.py --out '{out}'
+
 
 <a id="patch-demo"></a>
 

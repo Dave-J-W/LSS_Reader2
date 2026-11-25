@@ -7,6 +7,9 @@ which uses the public NX school burns. **No default changes**: the test is
 offered to scripts; the window's several-burns view is the GUI manager's
 (F98).
 
+**Step by step, from the raw frames to the verdict, with the fits and every statistic explained:**
+`walkthrough.md` (figures W1–W6; the owner's standing order, AGENTS.md rule 13).
+
 **Regenerate:**
 
     python tests/tools/reciprocity_study.py --out docs/studies/reciprocity        # about 1.5 min

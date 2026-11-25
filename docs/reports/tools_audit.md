@@ -26,6 +26,28 @@ record or pin". Everything here was measured in this container on
 2026-11-25, at the head of `claude/gracious-knuth-e7ry2y` (main at
 ef15766, then 78aebd1 merged, plus this work).
 
+### How the audit decides, ELI5 (rule 13)
+
+The question: is the picture in the repository still what today's code would draw?
+1. **Rerun the tool** with the settings that made the committed picture, into a scratch folder, through a
+   tracer that writes down every repository file the run opened (`trace.json`).
+2. **Compare, pixel by pixel**, the new picture with the committed one.
+   - Identical: **current**, and the fingerprints of everything the run used go into `verified.json`.
+   - Different: find out why, in order:
+     - **the revision stamp?** Some figures print the git version. The tool is run once more with a dummy
+       version (`WWWW…`); the pixels that change are where the stamp is. Hide them and compare the rest.
+       Example: `gid_patching_diagrams`, 8 figures, all identical once their footer is masked;
+     - **the environment?** Run the code of the commit that made the picture, here. If that gives today's
+       picture too, the code did not change it: another computer drew the committed one (fonts, freetype).
+       Example: `mca_scatter`, drawn on the owner's computer, 10 % of pixels different;
+     - **otherwise the code changed it: stale.** Regenerate it, reread the text that quotes it, and audit
+       again. Example: `pinhole_figures`, two figures moved by under a pixel.
+3. **Tables** are compared line by line, leaving out what records how they ran, not what they found: the
+   command line they echo, timings, and an item's own `volatile` lines (wall times).
+4. **Afterwards, `--stale` needs no rerun.** For each recorded item it fingerprints the files the rerun
+   used. A Python file is fingerprinted without its comments and docstrings, so prose edits don't count.
+   Any other change marks the item "may be stale" until the next audit.
+
 ### What changed
 
 - **The audit keeps what it verified.** `python -m lss_toolbox --audit

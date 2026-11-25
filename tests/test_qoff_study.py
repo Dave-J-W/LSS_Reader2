@@ -6,6 +6,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tools'))
+import pytest                  # noqa: E402
 import qoff_study as S          # noqa: E402
 
 
@@ -28,3 +29,21 @@ def test_a_tiny_run(tmp_path):
     assert {r['estimator'] for r in rows} == set(S.ESTIMATORS)
     assert len(rows) == (6 + 3) * len(S.ESTIMATORS)
     assert json.loads((out / 'numbers.json').read_text())['settings']['replicates'] == 2
+
+
+@pytest.mark.slow
+def test_the_qoff_walkthrough_on_nx(tmp_path):
+    """The Qoff walkthrough's quoted numbers (2026-11-25): on NX scans 6-9
+    the edge fit proposes -0.00028 with chi2/dof about 75 (a sharp R_F
+    cannot follow the rounded edge), and on NX's own Qz points the
+    beamline's median resolution reads as -1.33e-4."""
+    import qoff_walkthrough as QW
+    from lss_core.experiment import Experiment
+    e = Experiment(QW.NX)
+    ref = e.reflectivity([6, 7, 8, 9]).ref
+    q, r, s = ref[:, 0], ref[:, 1], ref[:, 2]
+    fit = QW.qw3(str(tmp_path), q, r, s)
+    assert fit['qoff'] == pytest.approx(-0.00028, abs=1e-5) and 60 < fit['chi2'] / fit['dof'] < 90
+    keep = q < 2.5 * QW.QC
+    reads = {x['fwhm']: x['qoff'] for x in QW.qw5(str(tmp_path), q[keep], (s / r)[keep], fwhms=(0.0, 8.9e-4))}
+    assert reads[0.0] == pytest.approx(0.0, abs=1e-6) and reads[8.9e-4] == pytest.approx(-1.33e-4, abs=0.05e-4)
