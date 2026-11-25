@@ -18,7 +18,10 @@ for the anatomy and Compton figures). Writes:
 - ``X6_anatomy.png``: the new synthetic cases, part by part;
 - ``X7_compton.png``: the three Compton models under the Zn line, and the
   remembered constants against xraylib;
-- ``X8_speed.png``: seconds per spectrum.
+- ``X8_speed.png``: seconds per spectrum;
+- ``X9_blank_example.png``, ``X10_blank_bias.png``, ``X11_blank_scoreboard.png``
+  and ``blanks_tables.md``: synthetic lines injected into the real blanks
+  (``tests/tools/xrf_blanks.py``'s run, ``--blanks``).
 
 Colours: the dataviz reference palette in its fixed order (one hue per
 method, the same in every figure); the diverging map runs from its blue
@@ -39,21 +42,23 @@ from matplotlib.colors import LinearSegmentedColormap              # noqa: E402
 
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, os.path.join(os.getcwd(), 'tests'))
+sys.path.insert(0, os.path.join(os.getcwd(), 'tests', 'tools'))
 
 SURFACE, INK, INK2, MUTED, GRID, AXIS = '#fcfcfb', '#0b0b0b', '#52514e', '#898781', '#e1e0d9', '#c3c2b7'
 COLOR = {'p1': '#2a78d6', 'pymca': '#eb6834', 'pymca_best': '#eb6834', 'larch': '#1baf7a', 'pyxrf': '#eda100', 'xeray': '#e87ba4',
-         'p1p2p3': '#008300', 'window': '#6250d6', 'fit_data': '#e34948'}
+         'p1p2p3': '#008300', 'window': '#6250d6', 'fit_data': '#e34948', 'p1p2': '#86b6ef', 'p1p3': '#7cc47c'}
 LABEL = {'window': 'reader: window sum', 'fit_data': 'reader: fit, data weights (old)', 'p1': 'reader: fit, Poisson (default)',
-         'p1p2p3': 'reader: Poisson + width + escape strip', 'xeray': 'XeRay (port)', 'pymca': 'PyMca',
+         'p1p2p3': 'reader: Poisson + width + escape strip', 'p1p2': 'reader: Poisson + width',
+         'p1p3': 'reader: Poisson + escape strip', 'xeray': 'XeRay (port)', 'pymca': 'PyMca',
          'pymca_tails': 'PyMca, Hypermet tails', 'pyxrf': 'PyXRF (scikit-beam)', 'larch': 'Larch (series)',
          'larch_each': 'Larch (each spectrum)', 'pymca_snip60': 'PyMca, SNIP 60', 'pymca_snip100': 'PyMca, SNIP 100',
          'pymca_poly': 'PyMca, polynomial continuum', 'pymca_best': 'PyMca, best of 5 settings (picked with the truth)'}
-SHORT = {'window': 'window', 'fit_data': 'fit (data)', 'p1': 'P1 (default)', 'p1p2p3': 'P1+P2+P3', 'xeray': 'XeRay',
+SHORT = {'window': 'window', 'fit_data': 'fit (data)', 'p1': 'P1 (default)', 'p1p2p3': 'P1+P2+P3', 'p1p2': 'P1+P2', 'p1p3': 'P1+P3', 'xeray': 'XeRay',
          'pymca': 'PyMca', 'pymca_tails': 'PyMca tails', 'pyxrf': 'PyXRF', 'larch': 'Larch', 'larch_each': 'Larch each',
          'pymca_snip60': 'PyMca SNIP60', 'pymca_snip100': 'PyMca SNIP100', 'pymca_poly': 'PyMca poly',
          'pymca_best': 'PyMca best'}
 ORDER = ['window', 'fit_data', 'p1', 'p1p2p3', 'xeray', 'pymca', 'pymca_best', 'pyxrf', 'larch', 'larch_each']
-TABLE_ORDER = ORDER[:6] + ['pymca_tails', 'pymca_snip60', 'pymca_snip100', 'pymca_poly'] + ORDER[6:]
+TABLE_ORDER = ORDER[:4] + ['p1p2', 'p1p3'] + ORDER[4:6] + ['pymca_tails', 'pymca_snip60', 'pymca_snip100', 'pymca_poly'] + ORDER[6:]
 READER = ('window', 'fit_data', 'p1', 'p1p2p3')
 PYMCA_ALL = ('pymca', 'pymca_tails', 'pymca_snip60', 'pymca_snip100', 'pymca_poly')
 VERDICT_OTHERS = ('xeray', 'pymca_best', 'pyxrf', 'larch', 'larch_each')
@@ -605,11 +610,264 @@ def write_tables(run, out):
         f.write('\n'.join(lines) + '\n')
 
 
+# ---- X9-X11: lines injected into the real blanks (tests/tools/xrf_blanks.py) ------------------
+
+BLANK_LINES = ['p1', 'p1p3', 'p1p2p3', 'fit_data', 'xeray', 'pymca', 'pymca_best', 'pyxrf', 'larch']
+BLANK_TARGETS = [(10.0, 'Zn K'), (10.0, 'Cu K'), (9.2, 'Cu K'), (9.2, 'Ni K'), (6.1, 'Cr K'), (6.1, 'Ti K'),
+                 (6.1, 'La L')]
+
+
+def _blank_key(name):
+    """'E10-k|Zn K|1000|0.3' -> ('E10-k', 'Zn K', 1000.0, 0.3)."""
+    b, t, bg, r = name.split('|')
+    return b, t, float(bg), float(r)
+
+
+def blank_scores(blanks):
+    """{(blank, target, background, ratio, method): score row} (with
+    'pymca_best' as for the synthetic conditions)."""
+    return {_blank_key(n) + (m,): r for (n, m), r in scores(blanks).items()}
+
+
+def blank_beam(blank_id):
+    return float(blank_id[1:].split('-')[0])
+
+
+def blank_summary(bs, beam, target, bg, ratio, m):
+    """Over the blanks of one beam: (mean bias, min, max, mean failed share,
+    the rows). A blank where every fit failed adds to the failures only."""
+    rows = [r for (b, t, g, q, mm), r in bs.items()
+            if blank_beam(b) == beam and t == target and g == bg and q == ratio and mm == m]
+    v = [r['bias'] for r in rows if np.isfinite(r.get('bias', math.nan)) and failed_share(r) < 0.99]
+    f = [failed_share(r) for r in rows]
+    if not v:
+        return math.nan, math.nan, math.nan, (float(np.mean(f)) if f else math.nan), rows
+    return float(np.mean(v)), float(np.min(v)), float(np.max(v)), float(np.mean(f)), rows
+
+
+def fig_blank_example(out):
+    """Two real blanks, thinned as the run thins them, with lines of the
+    run's size drawn on each (the same channels, the blank's detector)."""
+    import xrf_blanks as xb
+    fig, axes = plt.subplots(1, 2, figsize=(10.5, 3.8))
+    hues = ['#2a78d6', '#eb6834', '#1baf7a']
+    for ax, (bid, targets) in zip(axes, (('E10-k', ('Zn K', 'Cu K')), ('E6.1-a', ('Ti K', 'La L', 'Cr K')))):
+        b = xb.load_blank(os.path.join(xb.BLANKS, bid + '.csv'))
+        e = b['energy']
+        first = None
+        for k, t in enumerate(targets):
+            bc = xb.BlankCond(b, t, 1000, 1.0)
+            first = first or bc
+            lo, hi = bc.cond.box_range()
+            ax.axvspan(lo, hi, color=GRID, alpha=0.7, linewidth=0)
+            ax.text(0.5 * (lo + hi), 1.02 + 0.06 * (k % 2), t, transform=ax.get_xaxis_transform(), ha='center',
+                    fontsize=7, color=INK2)
+            ax.plot(e, bc.spectra().expected, color=hues[k], linewidth=1.5,
+                    label='%s injected: %d photons, the measured detector' % (t, bc.photons))
+        thin = b['counts'] * first.p
+        ax.step(e, thin, where='mid', color=INK, linewidth=0.9,
+                label='real blank %s, scaled to 1000 counts in the %s box' % (bid, targets[0]))
+        ax.set_yscale('log')
+        ax.set_ylim(0.3, max(thin.max(), 1) * 4)
+        esc = b['beam'] - 1.74
+        j = int(np.argmin(np.abs(e - esc)))
+        ax.annotate('Si escape of the scatter', (esc, thin[j]), xytext=(esc - 0.05, thin[j] * 6), fontsize=7,
+                    color=INK2, ha='right', arrowprops=dict(arrowstyle='-', color=MUTED, linewidth=0.8))
+        ax.set_xlabel('energy, keV')
+        ax.set_ylabel('counts per channel (expected)')
+        ax.set_title('%g keV beam, readout %s' % (b['beam'], b['readout']), loc='left', pad=30)
+        ax.legend(fontsize=6.5, loc='upper left')
+    fig.suptitle('X9. What the methods face: real scatter (a measured blank) plus a synthetic line of known photons '
+                 '(grey: each line\'s box, ±2 FWHM)', x=0.01, ha='left', fontsize=10, fontweight='bold')
+    fig.tight_layout()
+    fig.savefig(os.path.join(out, 'X9_blank_example.png'), dpi=150)
+    plt.close(fig)
+
+
+def fig_blank_bias(blanks, out, bg=1000.0):
+    bs = blank_scores(blanks)
+    present = {k[4] for k in bs}
+    meths = [m for m in BLANK_LINES if m in present]
+    ratios = sorted({k[3] for k in bs})
+    fig, axes = plt.subplots(2, 4, figsize=(13, 6.6), sharey=True)
+    lim = 0.5
+    for ax, (beam, t) in zip(axes.flat, BLANK_TARGETS):
+        ax.axhspan(-ACCURATE, ACCURATE, color=GRID, alpha=0.8, linewidth=0)
+        ax.axhline(0, color=AXIS, linewidth=0.8)
+        nb = 0
+        for j, m in enumerate(meths):
+            x, y, lo, hi, fails = [], [], [], [], []
+            for q in ratios:
+                mean, mn, mx, f, rows = blank_summary(bs, beam, t, bg, q, m)
+                nb = max(nb, len(rows))
+                x.append(q * (1 + 0.035 * (j - len(meths) / 2)))
+                y.append(mean)
+                lo.append(mn)
+                hi.append(mx)
+                fails.append(f)
+            x, y, lo, hi, fails = map(np.asarray, (x, y, lo, hi, fails))
+            c = COLOR.get(m, MUTED)
+            ax.plot(x, np.clip(y, -lim, lim), '--' if m == 'pymca' else '-', color=c, linewidth=1.6,
+                    label=LABEL.get(m, m) if ax is axes.flat[0] else None, zorder=3)
+            ax.vlines(x, np.clip(lo, -lim, lim), np.clip(hi, -lim, lim), color=c, linewidth=1.0, alpha=0.6)
+            for xi, yi, fi in zip(x, y, fails):
+                if not np.isfinite(yi):
+                    continue
+                mk = 'o' if abs(yi) <= lim else ('^' if yi > 0 else 'v')
+                ax.plot(xi, np.clip(yi, -lim, lim), mk, ms=4.5, mfc=SURFACE if fi > FAIL_SHARE else c, mec=c,
+                        zorder=4)
+        ax.set_xscale('log')
+        ax.set_xticks(ratios)
+        ax.set_xticklabels(['%g' % q for q in ratios])
+        ax.minorticks_off()
+        ax.set_ylim(-lim * 1.08, lim * 1.08)
+        ax.set_yticks([-0.5, -0.2, -0.1, 0, 0.1, 0.2, 0.5])
+        ax.set_yticklabels(['≤−50', '−20', '−10', '0', '+10', '+20', '≥+50'])
+        ax.set_title('%s at %g keV (%d blanks)' % (t, beam, nb), loc='left', fontsize=9)
+        ax.set_xlabel('line photons / background counts in the box')
+    for ax in axes[:, 0]:
+        ax.set_ylabel('calibrated bias, %')
+    leg = axes.flat[-1]
+    leg.axis('off')
+    h, l = axes.flat[0].get_legend_handles_labels()
+    leg.legend(h, l, loc='center left', fontsize=7.5, title='line: mean over the blanks; bar: their range\n'
+               'hollow: over 20 % of fits failed\ngrey band: ±2 %', title_fontsize=7.5)
+    fig.suptitle('X10. Real scatter, synthetic line: bias against line strength, %d background counts in the box '
+                 '(500 spectra per point and blank; the window sum is off scale)' % bg,
+                 x=0.01, ha='left', fontsize=10, fontweight='bold')
+    fig.tight_layout()
+    fig.savefig(os.path.join(out, 'X10_blank_bias.png'), dpi=150)
+    plt.close(fig)
+
+
+def blank_false(blanks):
+    """{(blank, target, background, method): zero.csv row}."""
+    out = {}
+    for r in read(os.path.join(blanks, 'zero.csv')):
+        out[(r['blank'], r['target'], num(r['background']), r['method'])] = {
+            k: (num(v) if k not in ('condition', 'blank', 'target', 'method') else v) for k, v in r.items()}
+    return out
+
+
+def blank_accurate_counts(bs, m):
+    return [sum(1 for (b, t, g, q, mm), r in bs.items() if mm == m and blank_beam(b) == beam and accurate(r))
+            for beam in (10.0, 9.2, 6.1)]
+
+
+def fig_blank_scoreboard(blanks, out):
+    bs = blank_scores(blanks)
+    zf = blank_false(blanks)
+    present = {k[4] for k in bs}
+    meths = [m for m in ['window', 'fit_data', 'p1', 'p1p2', 'p1p3', 'p1p2p3', 'xeray', 'pymca', 'pymca_best', 'pyxrf',
+                         'larch']
+             if m in present]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(12.5, 0.38 * len(meths) + 1.6), gridspec_kw={'width_ratios': [1.1, 1]})
+    shades = (1.0, 0.65, 0.35)
+    y = np.arange(len(meths))[::-1]
+    for m_i, m in enumerate(meths):
+        left = 0
+        for n, sh in zip(blank_accurate_counts(bs, m), shades):
+            a1.barh(y[m_i], n, left=left, color=COLOR.get(m, MUTED), alpha=sh, height=0.62, edgecolor=SURFACE,
+                    linewidth=1)
+            left += n
+        a1.text(left + 1, y[m_i], '%d' % left, va='center', fontsize=7.5, color=INK2)
+    ncond = len({k[:4] for k in bs})
+    a1.set_yticks(y)
+    a1.set_yticklabels([SHORT[m] for m in meths])
+    a1.set_xlabel('accurate conditions, of %d (10 blanks × their lines × 2 backgrounds × 4 strengths)' % ncond)
+    a1.set_title('Accurate on real scatter (|bias| ≤ 2 %, ≤ 5 % failed, known to 1 %)\n'
+                 'shade: 10 keV (dark), 9.2 keV, 6.1 keV (light)', loc='left', fontsize=9)
+    for m_i, m in enumerate(meths):
+        if m == 'pymca_best':
+            continue
+        v = [(r.get('false_per100', math.nan), failed_share(r)) for (b, t, g, mm), r in zf.items()
+             if mm == m and g == 3000]
+        xs = [a for a, f in v if np.isfinite(a) and f < 0.99]
+        fl = [f for a, f in v]
+        jitter = np.linspace(-0.18, 0.18, max(len(xs), 1))
+        a2.scatter(np.clip(xs, -30, 30), y[m_i] + jitter[:len(xs)], s=14, color=COLOR.get(m, MUTED), zorder=3)
+        if fl and np.mean(fl) > 0.05:
+            a2.text(32, y[m_i], 'fails %.0f %%' % (100 * np.mean(fl)), va='center', fontsize=7, color=INK2)
+    a2.axvline(0, color=INK2, linewidth=0.8)
+    a2.set_xlim(-32, 44)
+    a2.set_yticks(y)
+    a2.set_yticklabels([SHORT[m] if m != 'pymca_best' else '' for m in meths])
+    a2.set_xlabel('photons reported per 100 background counts in the box (clipped at ±30)')
+    a2.set_title('Nothing injected: the line each method reports on pure real scatter\n'
+                 'one dot per blank × line (3000 counts); "fails": fits that refused',
+                 loc='left', fontsize=9)
+    fig.suptitle('X11. The real-blank scoreboard', x=0.01, ha='left', fontsize=10, fontweight='bold')
+    fig.tight_layout()
+    fig.savefig(os.path.join(out, 'X11_blank_scoreboard.png'), dpi=150)
+    plt.close(fig)
+
+
+def write_blank_tables(blanks, out):
+    """``blanks_tables.md``: mean bias over the blanks per beam, line,
+    background and strength; the accurate counts; the false signal."""
+    bs = blank_scores(blanks)
+    zf = blank_false(blanks)
+    present = {k[4] for k in bs}
+    meths = [m for m in TABLE_ORDER if m in present]
+    ratios = sorted({k[3] for k in bs})
+    bgs = sorted({k[2] for k in bs})
+    L = ['# XRF shootout on real blanks: tables (generated by tests/tools/xrf_shootout_figures.py; do not edit)', '',
+         'Synthetic lines of known photons injected into the 10 clean committed blanks '
+         '(`tests/reference/mca_scatter/`), thinned to the background counts shown (`tests/tools/xrf_blanks.py`). '
+         'Each cell: the mean calibrated bias over the blanks of that beam energy, %, with [the range over the '
+         'blanks] and the failed share when any.', '']
+    for bg in bgs:
+        L += ['## %d background counts in the box' % bg, '',
+              '| Line | beam keV | line/background | ' + ' | '.join(SHORT[m] for m in meths) + ' |',
+              '|---|---|---|' + '---|' * len(meths)]
+        for beam, t in BLANK_TARGETS:
+            for q in ratios:
+                cells = []
+                for m in meths:
+                    mean, mn, mx, f, rows = blank_summary(bs, beam, t, bg, q, m)
+                    if not rows:
+                        cells.append('')
+                        continue
+                    txt = '%+.1f [%+.0f, %+.0f]' % (100 * mean, 100 * mn, 100 * mx) if np.isfinite(mean) else 'n/a'
+                    if f > 0.005:
+                        txt += ' (%.0f %% fail)' % (100 * f)
+                    cells.append(txt)
+                L.append('| %s | %g | %g | %s |' % (t, beam, q, ' | '.join(cells)))
+        L.append('')
+    L += ['## Accurate conditions (|bias| ≤ 2 %% or 2 SE, ≤ 5 %% failed, SE ≤ 1 %%), of %d' % len({k[:4] for k in bs}),
+          '', '| Method | 10 keV | 9.2 keV | 6.1 keV | all |', '|---|---|---|---|---|']
+    for m in meths:
+        n = blank_accurate_counts(bs, m)
+        L.append('| %s | %d | %d | %d | %d |' % (SHORT[m], n[0], n[1], n[2], sum(n)))
+    zm = [m for m in meths if m != 'pymca_best']
+    L += ['', '## False line on the bare blank: photons per 100 background counts in the box '
+          '(mean over the spectra; failed share when any)', '',
+          '| Blank | line | background | ' + ' | '.join(SHORT[m] for m in zm) + ' |', '|---|---|---|' + '---|' * len(zm)]
+    for key in sorted({k[:3] for k in zf}, key=lambda k: (-blank_beam(k[0]), k[0], k[1], k[2])):
+        cells = []
+        for m in zm:
+            r = zf.get(key + (m,))
+            if not r:
+                cells.append('')
+                continue
+            v, f = r.get('false_per100', math.nan), failed_share(r)
+            txt = '%+.1f' % v if np.isfinite(v) else '—'
+            if f > 0.005:
+                txt += ' (%.0f %% fail)' % (100 * f)
+            cells.append(txt)
+        L.append('| %s | %s | %d | %s |' % (key[0], key[1], key[2], ' | '.join(cells)))
+    with open(os.path.join(out, 'blanks_tables.md'), 'w', encoding='utf-8', newline='\n') as f:
+        f.write('\n'.join(L) + '\n')
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--run', default=os.path.join('docs', 'studies', 'xrf_shootout', 'run'))
     ap.add_argument('--out', default=os.path.join('docs', 'studies', 'xrf_shootout'))
-    ap.add_argument('--only', default=None, help='comma-separated figure numbers, e.g. 1,3')
+    ap.add_argument('--only', default=None, help='comma-separated figure numbers, e.g. 1,3 (b: blanks_tables.md)')
+    ap.add_argument('--blanks', default=','.join(os.path.join('docs', 'studies', 'xrf_shootout', f)
+                                                 for f in ('run_blanks', 'run_blanks_options')),
+                    help="xrf_blanks.py's run folder, for X10, X11 and blanks_tables.md (skipped when absent)")
     a = ap.parse_args(argv)
     style()
     want = set(a.only.split(',')) if a.only else None
@@ -617,8 +875,15 @@ def main(argv=None):
             '3': lambda: fig_xfntr(a.run, a.out), '4': lambda: fig_honesty(a.run, a.out),
             '5': lambda: fig_wins(a.run, a.out), '6': lambda: fig_anatomy(a.out),
             '7': lambda: fig_compton(a.out, os.path.join(a.out, 'physics_check.csv')),
-            '8': lambda: fig_speed(a.run, a.out), 't': lambda: write_tables(a.run, a.out)}
+            '8': lambda: fig_speed(a.run, a.out), 't': lambda: write_tables(a.run, a.out),
+            '9': lambda: fig_blank_example(a.out), '10': lambda: fig_blank_bias(a.blanks, a.out),
+            '11': lambda: fig_blank_scoreboard(a.blanks, a.out), 'b': lambda: write_blank_tables(a.blanks, a.out)}
+    have_blanks = os.path.exists(os.path.join(a.blanks.split(',')[0], 'scores.csv'))
     for k, f in figs.items():
+        if k in ('10', '11', 'b') and not have_blanks:
+            if want and k in want:
+                print('figure', k, 'skipped: no', os.path.join(a.blanks.split(',')[0], 'scores.csv'))
+            continue
         if want is None or k in want:
             f()
             print('figure', k)

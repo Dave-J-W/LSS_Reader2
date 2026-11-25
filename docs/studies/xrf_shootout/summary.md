@@ -1,16 +1,19 @@
 # XRF shootout: the reader's line intensities against PyMca, PyXRF, Larch and XeRay
 
 2026-11-25, overnight session (local, the owner's PC: 16 cores, 128 GB).
-**Everything here is measured on synthetic spectra with known truth.**
-The one real-data input is the detector and scatter measured on the
-owner's blanks (`docs/studies/mca_scatter`), which define the
-"measured" conditions. No default of the reader was changed.
+**Everything here is measured on spectra with known truth.** Sections 1–9
+use synthetic spectra; their one real-data input is the detector and
+scatter measured on the owner's blanks (`docs/studies/mca_scatter`),
+which define the "measured" conditions. **Section 10 uses the real
+blanks themselves**, with synthetic lines of known photons added. No
+default of the reader was changed.
 
 - Questions and short answers: `QUESTIONS.md`
 - Survey of other packages: `survey.md`
 - How to reproduce: `README.md`
 - Every number below comes from `tables.md` (generated, with all
-  methods and conditions) and from `wins.csv`
+  methods and conditions), from `wins.csv`, and for section 10 from
+  `blanks_tables.md`
 
 ## The question
 
@@ -237,6 +240,101 @@ can choose without the truth.**
 | PyXRF | 0.18 (up to 18) |
 | Larch (each) | 1.2 |
 
+### 10. Real scatter, synthetic lines: the owner's blanks (X9–X11)
+
+The owner asked (2026-11-25) whether the methods had been tested on real
+blanks, which capture the beam's scatter exactly, combined with
+synthetic fluorescence lines. Sections 1–9 had not: their scatter is the
+generator's, with settings fitted to the blanks. This section is that
+test (`tests/tools/xrf_blanks.py`; tables in `blanks_tables.md`).
+
+**How.** These are the 10 committed real blanks with no line in their
+region (`tests/reference/mca_scatter/`):
+- E10-k and E10-f: 10 keV, readout A;
+- E9.2-a…d and E6.1-a…d: 9.2 and 6.1 keV, readout B, pre-edge sums.
+
+E10-d, E10-i and E10-j hold traces of Cu and Zn, so they were not used.
+Each spectrum is built in three steps:
+- **Thin the blank.** Each count is kept with probability p (p ≤ 0.23),
+  so that 1000 or 3000 counts remain in the line's box. That is a fresh
+  Poisson spectrum with the real shape.
+- **Add a synthetic line family** (xraylib's lines and ratios) with
+  0.1, 0.3, 1 or 3 times those counts in photons.
+- **Shape the line** with the detector **measured on that blank**:
+  its width and Fano factor, low tail, shelf and escape.
+
+Everything under the line is therefore real: the Compton profile, the
+tails, and the **Si escape peak of the scatter itself**, 1.74 keV below
+the beam (X9).
+
+The lines tested, 192 conditions × 500 spectra in all, plus the bare
+blanks:
+- 10 keV: Zn K and Cu K;
+- 9.2 keV: Cu K and Ni K;
+- 6.1 keV: Cr K, Ti K and La L.
+
+The single-option variants P1+P2 and P1+P3 ran on the same spectra (the
+same seeds).
+
+**Accurate conditions of 192** (|bias| ≤ 2 %, ≤ 5 % failed, known to 1 %;
+X11):
+
+| Method | Accurate | Median \|bias\|, line ≥ background | Pull SD |
+|---|---|---|---|
+| P1+P3 (escape strip, free width) | **49** | 2.2 % | 1.08 |
+| P1+P2+P3 | 47 | 2.3 % | 1.01 |
+| fit (data) | 33 | 5.0 % | 1.11 |
+| P1 (default) | 31 | 4.9 % | 1.06 |
+| P1+P2 | 25 | 4.0 % | 0.98 |
+| PyMca, best single setting (tails) | 20 | 6.4 % | 1.79 |
+| PyMca (default) | 17 | 7.0 % | 1.56 |
+| PyXRF | 15 | 10.9 % | none |
+| XeRay | 6 | 9.9 % | 1.13 |
+| Larch | 1 | 46 % | none |
+| window | 0 | +110 % and more | — |
+| *PyMca, best of 5 per condition, picked with the truth* | *56* | *1.8 %* | *1.87* |
+
+**What the real scatter shows that the synthetic spectra did not:**
+
+- **The escape peak of the scatter fools a fit that ignores it.** It sits
+  at 7.46 keV under a 9.2 keV beam, on Ni Kα (7.47), and at 4.36 keV
+  under 6.1 keV, beside Ti Kα (4.51) and La Lα (4.65).
+  - P1 alone reads Ni at +22 % when line = background, and +6 % at
+    three times.
+  - On the bare blank it reports a Ni line of 26–35 photons per 100
+    background counts, and its fit does not fail.
+  - With the strip and the fixed width (P1+P2+P3), Ni is within 0.6 % at
+    every strength from 0.3 up, and the false line falls to 3–4 per 100.
+    With the strip alone (P1+P3), Ni reads +2.5 % at line = background
+    and +16 % at 0.3.
+- **Zn under a 10 keV beam is measurable on the real readout A once the
+  line is as strong as the background under it.** P1+P3 reads +0.2 %
+  (line = background) and −0.2 % (three times). P1+P2+P3 reads −4.4 %
+  and −3.7 %, because P2 fixes the width at Fano 0.115 and this
+  detector's is 0.137; that is the same −4 to −5 % seen on the
+  synthetic measured detector (§8). PyMca's default reads −29 % and
+  −5 %. §1's "nobody" holds for weaker lines (0.05 of the box's
+  background there): at 0.1 every method is off by more than 2 %.
+- **PyMca's error bars are again too small** (pull SD 1.56–1.87). The
+  reader's are again honest (0.98–1.08).
+- **No method is accurate at line = 0.1 × background.** At 0.3, P1+P2+P3
+  is the most accurate (7 conditions), and the fixed width is what helps
+  there.
+
+**Where the reader still loses on real scatter:**
+- **Ti K at 6.1 keV, line = background:** P1+P3 −12 %, P1+P2+P3 −7 %;
+  PyMca's best setting is +2.6 %. P1 alone reads +16 % there, so the
+  strip over-corrects next to Ti.
+- **La L at 6.1 keV:** P1+P2+P3 +10 % at line = background; PyMca's best
+  setting is +3 %. The box holds Lα only; the Lβ lines at 5.0–5.4 keV
+  sit outside it and in the scatter.
+
+**The verdict on real scatter.** The reader with the escape strip is the
+most accurate method that a user can run without knowing the answer:
+49 conditions against 20 for the best fixed PyMca setting. Its error
+bars are the only honest ones. PyMca beats it only when its background
+setting is chosen per condition with the truth (56).
+
 ## Better, the same or worse? The verdict
 
 1. **Better: the shape of XFNTR curves and the error bars.**
@@ -250,9 +348,15 @@ can choose without the truth.**
      whole-spectrum fit, from not using Kβ and from a quadratic
      background;
    - **overlapping lines**: Ga beside Zn, Co beside Fe.
-4. **Nobody can measure Zn Kα under a 10 keV beam within 2 %.** The
-   reader refuses. The others answer −20 % (PyMca), −100 % (PyXRF) or
-   worse.
+4. **Nobody can measure a weak Zn Kα under a 10 keV beam within 2 %**
+   (line 0.05 of the scatter under it). The reader refuses. The others
+   answer −20 % (PyMca), −100 % (PyXRF) or worse. Once the line is as
+   strong as the background under it, P1+P3 is within 0.2 % on the real
+   readout A blanks (§10).
+5. **On the real blanks (§10) the reader with its escape strip is the
+   most accurate method run blind**: 49 of 192 conditions, against 20
+   for the best fixed PyMca setting. Without the strip, the escape peak
+   of the scatter is read as a line (Ni +22 % under 9.2 keV).
 
 ## What would close the gaps
 
@@ -266,6 +370,10 @@ its own study.
 - **Use Kβ and a lighter background when the box is clean**: a linear
   background option, or a joint Kα+Kβ fit at the tabulated ratio. That
   would win back the precision.
+- **The escape strip (P3) on by default**, once rule 12's steps are
+  done: on the real blanks it is what separates the reader's methods
+  (P1 31 conditions, P1+P3 49). It needs the detector's escape factor,
+  which `docs/studies/mca_scatter` measured per readout.
 - **P2's width from the detector's own Fano factor and noise**,
   calibrated on the elastic peak, instead of the textbook Fano 0.115.
 - **Kβ/Kα in `mca.ELEMENTS` is 16–28 % low** against xraylib. Only the
@@ -273,9 +381,16 @@ its own study.
 
 ## Limits of this study
 
-- **All synthetic.** The generator is checked against xraylib (constants,
-  Compton profiles) and against the owner's real blanks (detector
-  shape), but no real spectrum with a known line was fitted.
+- **Sections 1–9 are synthetic; section 10 has real scatter but
+  synthetic lines.** The lines are drawn with the detector measured on
+  each blank, without its high-energy tail (0–2 % on these blanks).
+  No real spectrum with a line of known strength was fitted. That would
+  need a standard (a known film or solution) measured on the beamline.
+- **Ten blanks, two readouts, three beam energies.** Readout A at 10 keV
+  has two blanks; 9.2 and 6.1 keV are pre-edge sums on readout B
+  (rebinned, counts rounded). Thinning one blank many times gives
+  replicates that share at most 23 % of their counts, so the between-blank
+  range in `blanks_tables.md` is the better measure of spread.
 - **PyXRF and Larch were configured from their documentation and
   source, not by their authors.** Both showed fits that land on the
   wrong solution with water's Compton scatter near the line. With more
@@ -301,3 +416,7 @@ its own study.
 | `X6_anatomy.png` | the new synthetic spectra, part by part |
 | `X7_compton_and_constants.png` | three Compton models under Zn; remembered constants against xraylib |
 | `X8_speed.png` | seconds per spectrum |
+| `X9_blank_example.png` | two real blanks with injected lines: what the methods face, with the escape peak of the scatter |
+| `X10_blank_bias.png` | real scatter, synthetic lines: bias against line strength, per line and beam |
+| `X11_blank_scoreboard.png` | accurate conditions on the real blanks, and the false line on the bare blank |
+| `blanks_tables.md` | every real-blank number: bias per method, line, background and strength; accurate counts; false lines |

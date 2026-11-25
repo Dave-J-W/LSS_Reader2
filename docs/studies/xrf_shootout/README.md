@@ -45,11 +45,18 @@ and `XeLineshape.m` of github.com/ZhiliangGong/xeray as of 2026-11-25.
     python tests/tools/xrf_shootout.py --out docs/studies/xrf_shootout/run_pymca --replicates 100 \
         --series-replicates 40 --chunk 5 --jobs 30 --methods pymca_snip60,pymca_snip100,pymca_poly
 
-    # 3. figures, tables.md and wins.csv
+    # 2d. lines injected into the real blanks (tests/reference/mca_scatter): 240 conditions x 50 series of 10
+    #     (about 50 minutes, 22 workers)
+    python tests/tools/xrf_blanks.py --out docs/studies/xrf_shootout/run_blanks --replicates 50 --chunk 5 --jobs 22
+    # 2e. the reader's single options (P1+P2, P1+P3) on the same spectra (a minute)
+    python tests/tools/xrf_blanks.py --out docs/studies/xrf_shootout/run_blanks_options --replicates 50 --chunk 5 \
+        --jobs 24 --methods p1p2,p1p3
+
+    # 3. figures, tables.md and wins.csv (and X9-X11 and blanks_tables.md from run_blanks)
     python tests/tools/xrf_shootout_figures.py --out docs/studies/xrf_shootout \
         --run docs/studies/xrf_shootout/run,docs/studies/xrf_shootout/run_measured,docs/studies/xrf_shootout/run_pymca
 
-All three are in the Tools menu under Fluorescence (MCA). `--rows` makes
+All of them are in the Tools menu under Fluorescence (MCA). `--rows` makes
 step 2 also write `estimates.csv`, every estimate (tens of MB; not
 committed).
 
@@ -62,3 +69,8 @@ committed).
   error.
 - Larch prints "No conda env active, defaulting to base" on import. This
   is harmless.
+- Larch's fit window (`larch.xafs.xafsft.ftwindow`) indexes the energy
+  array as if it began at 0 keV, so a spectrum that starts higher (the
+  real blanks start 2.5 keV below the beam) fails with an IndexError. The
+  shootout pads such spectra with empty channels down to 0 keV
+  (`_larch_pad`).

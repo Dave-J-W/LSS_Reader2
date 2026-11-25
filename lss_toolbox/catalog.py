@@ -884,19 +884,49 @@ TOOLS = (
          ),
          committed_with={'--replicates': '100', '--series-replicates': '40', '--methods': 'all'},
          repo_out='docs/studies/xrf_shootout/run', repo_ok=False, seconds=None),
-    Tool('xrf_shootout_figures', 'XRF shootout figures (X1-X8)', 'fluo', 'figures',
+    Tool('xrf_blanks', 'XRF shootout on real blanks: synthetic lines in measured scatter', 'fluo', 'data',
+         'tests/tools/xrf_blanks.py',
+         'Synthetic fluorescence lines of known photons (Zn, Cu, Ni, Cr, Ti K and La L) injected into the 10 clean '
+         'real scatter-only blanks the owner allowed (tests/reference/mca_scatter), each thinned to 1000 or 3000 '
+         'background counts in the line box and given its own measured detector; every method of the shootout '
+         'scored on them, and the false line each reports on the bare blank. Needs the shootout packages; about '
+         '50 minutes on 22 CPUs as committed.',
+         committed=('docs/studies/xrf_shootout/run_blanks', 'docs/studies/xrf_shootout/run_blanks_options'),
+         docs=('docs/studies/xrf_shootout/summary.md', 'docs/studies/xrf_shootout/README.md',
+               'docs/studies/xrf_shootout/QUESTIONS.md'),
+         data='public',
+         defaults={'--out': OUT, '--replicates': '2', '--blanks': 'E10-k,E6.1-a',
+                   '--methods': 'window,p1,p1p2p3,xeray'},
+         variations=(
+             V('As committed', 'Every method but Larch one spectrum at a time, the ten clean blanks, 50 series of 10 '
+               'per condition (about 50 minutes on 22 CPUs).',
+               'docs/studies/xrf_shootout/README.md#2d. lines injected into the real blanks', replicates='50',
+               blanks='E10-k,E10-f,E9.2-a,E9.2-b,E9.2-c,E9.2-d,E6.1-a,E6.1-b,E6.1-c,E6.1-d', methods='all'),
+             V('The single options', 'P1+P2 and P1+P3 on the same spectra: which of the two options helps on real '
+               'scatter (about a minute).', "docs/studies/xrf_shootout/README.md#2e. the reader's single options",
+               replicates='50', blanks='E10-k,E10-f,E9.2-a,E9.2-b,E9.2-c,E9.2-d,E6.1-a,E6.1-b,E6.1-c,E6.1-d',
+               methods='p1p2,p1p3'),
+         ),
+         inputs=('tests/reference/mca_scatter', 'docs/studies/mca_scatter/scatter_fits.csv',
+                 'docs/studies/mca_scatter/quantities.csv', 'tests/synthetic/data/xrf_tables.json'),
+         committed_with={'--replicates': '50', '--blanks': 'E10-k,E10-f,E9.2-a,E9.2-b,E9.2-c,E9.2-d,E6.1-a,E6.1-b,'
+                         'E6.1-c,E6.1-d', '--methods': 'all'},
+         repo_out='docs/studies/xrf_shootout/run_blanks', repo_ok=False, seconds=None),
+    Tool('xrf_shootout_figures', 'XRF shootout figures (X1-X11)', 'fluo', 'figures',
          'tests/tools/xrf_shootout_figures.py',
          'The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, '
          'the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, '
-         'the three Compton models with the remembered constants checked, and speed.',
+         'the three Compton models with the remembered constants checked, speed, and the lines injected into the '
+         'real blanks (X9-X11, blanks_tables.md).',
          committed=('docs/studies/xrf_shootout/X*.png', 'docs/studies/xrf_shootout/wins.csv',
-                    'docs/studies/xrf_shootout/tables.md'),
+                    'docs/studies/xrf_shootout/tables.md', 'docs/studies/xrf_shootout/blanks_tables.md'),
          docs=('docs/studies/xrf_shootout/summary.md',),
          defaults={'--run': 'docs/studies/xrf_shootout/run', '--out': OUT},
          variations=(V('Synthetic spectra only', 'X6 and X7, which need no shootout run (seconds).',
                        'docs/studies/xrf_shootout/README.md#3. figures, tables.md and wins.csv', only='6,7'),),
          inputs=('docs/studies/xrf_shootout/run', 'docs/studies/xrf_shootout/run_measured',
-                 'docs/studies/xrf_shootout/run_pymca', 'docs/studies/xrf_shootout/physics_check.csv'),
+                 'docs/studies/xrf_shootout/run_pymca', 'docs/studies/xrf_shootout/run_blanks',
+                 'docs/studies/xrf_shootout/physics_check.csv', 'tests/reference/mca_scatter'),
          repo_out='docs/studies/xrf_shootout', repo_ok=False),
 
     # ------------------------------------------------------------ the reader's window

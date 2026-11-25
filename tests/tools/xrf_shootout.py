@@ -15,7 +15,9 @@ built). A method whose package is missing is skipped and said so.
 - ``fit_data``: "Fit lines" with data weights (the default until 2026-11-24);
 - ``p1``: "Fit lines" by Poisson likelihood (the default since 2026-11-24);
 - ``p1p2p3``: ``p1`` with the width fixed at the detector's resolution and
-  the Si escape peaks stripped (the reader's options).
+  the Si escape peaks stripped (the reader's options);
+- ``p1p2``, ``p1p3``: ``p1`` with one of the two options only (asked for by
+  name with ``--methods``; not in ``all``).
 
 All four work in the **box**, the main line ± 2 FWHM of the detector; the
 fits are a Gaussian on a quadratic, centres and widths from the sum of the
@@ -101,6 +103,7 @@ from lss_core import fluorescence as fluo, peaks           # noqa: E402
 from synthetic import mca, mca_more as mm, xfntr            # noqa: E402
 
 READER = ('window', 'fit_data', 'p1', 'p1p2p3')
+SINGLE_OPTIONS = ('p1p2', 'p1p3')       # P1 with one option only: by name, not in 'all'
 OTHERS = ('xeray', 'pymca', 'pymca_tails', 'pyxrf', 'larch', 'larch_each', 'pymca_snip60', 'pymca_snip100', 'pymca_poly')
 # PyMca's background settings: (strip with SNIP, SNIP width in channels, continuum). 'pymca' is SNIP 30 (2 FWHM),
 # the variants a wider SNIP and no strip with PyMca's linear polynomial continuum (order 5) instead
@@ -140,11 +143,15 @@ class XCond:
     compton: str = 'biggs'
     box: float = 2.0
     series: int = 10
+    calib: tuple = mca.CALIB       # keV = a + b·channel (channel 1 first); every method is told this one
+    channels: int = mca.CHANNELS
+    e_range: tuple = None          # (lo, hi) keV that the spectrum covers, when it is not the whole MCA
 
     def spectrum(self, scale_line=1.0, elastic=None):
         ls = {k: v * (scale_line if k == self.target else 1.0) for k, v in self.lines.items()}
         return mm.spectrum(ls, self.elastic if elastic is None else elastic, self.beam, self.detector,
-                           self.background, self.slope, offset=self.offset, gain=self.gain, compton=self.compton)
+                           self.background, self.slope, calib=self.calib, channels=self.channels,
+                           offset=self.offset, gain=self.gain, compton=self.compton)
 
     def twin(self):
         return replace(self, lines={self.target: TWIN_PHOTONS}, elastic=0.0, background=1.0, slope=0.0,
@@ -165,7 +172,10 @@ class XCond:
         """The full-spectrum fitters' range: 1.5 keV below the lowest main
         line present to 0.6 keV above the beam."""
         lows = [mm.main_line(k, self.beam.energy)[0] for k in self.lines if mm.family_lines(k, self.beam.energy)]
-        return max(1.0, min(lows) - 1.5), self.beam.energy + 0.6
+        lo, hi = max(1.0, min(lows) - 1.5), self.beam.energy + 0.6
+        if self.e_range:
+            lo, hi = max(lo, self.e_range[0]), min(hi, self.e_range[1])
+        return lo, hi
 
     @property
     def elements(self):
@@ -311,8 +321,9 @@ def reader(method, cond, spectra, counts):
     if method == 'window':
         return [(v * SCALE, e * SCALE) for v, e, _, _ in (fluo.window_sum(d, lo, hi) for d in data)]
     kw = {}
-    if method == 'p1p2p3':
+    if method in ('p1p2p3', 'p1p3'):
         data = [fluo.strip_escape(d, cond.detector.escape) for d in data]
+    if method in ('p1p2p3', 'p1p2'):
         kw['fwhm'] = fluo.detector_fwhm(cond.line, cond.detector.noise)
     o = peaks.FitOptions(shape='gaussian', background='quadratic', n_peaks=1, centres=(cond.line,),
                          x_range=(lo, hi), window=50.0, **kw)
@@ -366,14 +377,14 @@ _PYMCA = {}
 def _pymca_theory(cond, tails, background=(1, 30, 0)):
     from PyMca5.PyMcaPhysics.xrf import ClassMcaTheory
     key = (tuple(sorted(cond.elements)), cond.beam.energy, cond.detector.noise, cond.detector.fano, tails,
-           cond.fit_range(), background)
+           cond.fit_range(), background, tuple(cond.calib))
     if key in _PYMCA:
         return _PYMCA[key]
     m = ClassMcaTheory.McaTheory()
     c = m.configure()
     c['peaks'] = {k.split()[0]: k.split()[1] for k in cond.elements}
     lo, hi = cond.fit_range()
-    a, b, _ = mca.CALIB
+    a, b, _ = cond.calib
     xmin, xmax = int(round((lo - a) / b)), int(round((hi - a) / b))
     c['fit'].update(energy=[cond.beam.energy], energyweight=[1.0], energyflag=[1], energyscatter=[1], scatterflag=1,
                     escapeflag=1, sumflag=0, stripflag=background[0], stripalgorithm=1, snipwidth=background[1],
@@ -391,7 +402,7 @@ def _pymca_theory(cond, tails, background=(1, 30, 0)):
 def pymca(cond, spectra, counts, tails=False, background=(1, 30, 0)):
     m, xmin, xmax = _pymca_theory(cond, tails, background)
     group = '%s %s' % tuple(cond.target.split())
-    a, b, _ = mca.CALIB
+    a, b, _ = cond.calib
     x = np.arange(1, len(counts[0]) + 1, dtype=float)
     out = []
     for y in counts:
@@ -411,7 +422,7 @@ def pymca(cond, spectra, counts, tails=False, background=(1, 30, 0)):
 def _sk_params(cond):
     from skbeam.core.fitting.base.parameter_data import get_para
     p = copy.deepcopy(get_para())
-    a, b, _ = mca.CALIB
+    a, b, _ = cond.calib
     p['e_offset']['value'], p['e_linear']['value'], p['e_quadratic']['value'] = a, b, 0.0
     p['fwhm_offset']['value'] = cond.detector.noise
     p['fwhm_fanoprime']['value'] = cond.detector.eps * cond.detector.fano / p['non_fitting_values']['epsilon']
@@ -460,12 +471,26 @@ def pyxrf(cond, spectra, counts):
 
 # ---- Larch ---------------------------------------------------------------------------
 
-def _larch_model(cond):
+def _larch_pad(energy, y):
+    """Larch's fit window (``xafsft.ftwindow``) indexes the energy array as
+    if it started at 0 keV: a spectrum that starts higher (the real blanks
+    start 2.5 keV below the beam) is padded with empty channels down to it.
+    The full synthetic MCA starts at one channel and is left as it is."""
+    energy = np.asarray(energy, float)
+    step = float(np.median(np.diff(energy)))
+    n0 = int(round(energy[0] / step))
+    if n0 <= 10:
+        return energy, np.asarray(y, float), 0
+    pad = energy[0] - step * np.arange(n0, 0, -1)
+    return np.concatenate([pad, energy]), np.concatenate([np.zeros(n0), np.asarray(y, float)]), n0
+
+
+def _larch_model(cond, e_first=None):
     from larch.xrf.xrf_model import xrf_model
     lo, hi = cond.fit_range()
-    a, b, _ = mca.CALIB
+    a, b, _ = cond.calib
     m = xrf_model(xray_energy=1000.0 * cond.beam.energy, count_time=1.0, energy_min=lo, energy_max=hi)
-    m.set_detector(thickness=0.45, material='Si', cal_offset=a + b, cal_slope=b, vary_cal_offset=False,
+    m.set_detector(thickness=0.45, material='Si', cal_offset=a + b if e_first is None else e_first, cal_slope=b, vary_cal_offset=False,
                    vary_cal_slope=False, peak_step=1e-3, vary_peak_step=True, peak_tail=0.01, vary_peak_tail=True,
                    noise=cond.detector.noise / (2 * math.sqrt(2 * math.log(2))), vary_noise=False)
     m.add_scatter_peak(name='elastic', center=cond.beam.energy, amplitude=1e5, step=0.01, tail=0.5, sigmax=1.0,
@@ -478,10 +503,10 @@ def _larch_model(cond):
 
 
 def _larch_fit(cond, energy, y):
-    m = _larch_model(cond)
+    energy, y, n0 = _larch_pad(energy, y)
+    m = _larch_model(cond, energy[0] if n0 else None)
     lo, hi = cond.fit_range()
-    res = m.fit_spectrum(SimpleNamespace(energy=energy, counts=np.asarray(y, float)), energy_min=lo, energy_max=hi,
-                         max_nfev=3000)
+    res = m.fit_spectrum(SimpleNamespace(energy=energy, counts=y), energy_min=lo, energy_max=hi, max_nfev=3000)
     return m, res
 
 
@@ -506,10 +531,12 @@ def larch(cond, spectra, counts, each=False):
     names = list(m.eigenvalues.keys())
     j = names.index(key)
     lo, hi = cond.fit_range()
+    e, _, n0 = _larch_pad(e, e)
     sel = (e >= lo) & (e <= hi)
     T = np.asarray(m.transfer_matrix, float)[sel]
     out = []
     for y in counts:
+        y = _larch_pad(spectra[0].energy, y)[1]
         # Larch's own decompose_spectrum multiplies the counts, not the components, by its Hanning fit
         # window; this is the same least-squares step on the fit range alone, weighted by the counts
         try:
@@ -523,7 +550,7 @@ def larch(cond, spectra, counts, each=False):
 
 
 def run_method(method, cond, spectra, counts):
-    if method in READER:
+    if method in READER + SINGLE_OPTIONS:
         return reader(method, cond, spectra, counts)
     if method == 'xeray':
         return xeray(cond, spectra, counts)

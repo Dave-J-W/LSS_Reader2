@@ -6449,3 +6449,20 @@ C61, `docs/studies/guard_error/summary.md`). No default changed.
   can be estimated from data. That is a next study, together with the real excess by Qz class from the
   owner's data.
 
+### 2026-11-25 — The XRF shootout on real scatter: the owner's blanks with synthetic lines (C63)
+
+Verified by: a run (`tests/tools/xrf_blanks.py`; real scatter-only blanks with synthetic lines of known
+photons, 192 conditions x 500 spectra; `docs/studies/xrf_shootout/summary.md` section 10). No default
+changed.
+
+- **The owner's question:** had the shootout been tested on real data blanks, which capture the excitation
+  scatter accurately, combined with synthetic fluorescence lines? **Not until then:** sections 1-9 used the
+  generator's scatter with settings fitted to the blanks.
+- **Measured:** the reader with the escape strip (P1+P3) is accurate in 49 of 192 conditions and P1+P2+P3 in 47.
+  The best fixed PyMca setting manages 20; PyMca reaches 56 only with its setting picked per condition using
+  the truth.
+- **New physics the synthetic spectra missed:** the Si escape peak of the scattered beam (E0 - 1.74 keV) sits
+  on Ni Ka under a 9.2 keV beam and beside Ti Ka and La La under 6.1 keV. A box fit without the strip reads it
+  as a line: P1 +22 % on Ni at line = background, and 26-35 photons per 100 background counts on the bare blank.
+- **P2's fixed width costs 4 % on readout A** (Fano 0.137 against P2's 0.115): Zn at 10 keV -4.4 % with
+  P1+P2+P3, +0.2 % with P1+P3.
