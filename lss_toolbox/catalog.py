@@ -811,7 +811,11 @@ TOOLS = (
                'docs/studies/mca_fit/summary.md'),
          data='public', defaults={'--out': OUT},
          variations=(V('Numbers against beam energy only', 'S2 from the anonymised table (a few seconds).',
-                       'docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |', only='S2'),),
+                       'docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |', only='S2'),
+                     V('Example fits on the committed blanks', 'S1: the 13 real scatter-only blanks the owner '
+                       'allowed, refitted with their parts and residuals (about a minute).',
+                       'docs/studies/mca_scatter/summary.md#Committed blanks (`tests/reference/mca_scatter/`)', only='S1',
+                       fixtures='tests/reference/mca_scatter')),
          inputs=('docs/studies/mca_scatter/scatter_fits.csv', 'docs/studies/mca_scatter/quantities.csv'),
          repo_out='docs/studies/mca_scatter', seconds=8.0),
 

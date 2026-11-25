@@ -919,6 +919,7 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Numbers against beam energy only | S2 from the anonymised table (a few seconds). | `docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |` | `python tests/tools/mca_scatter.py --out '{out}' --only S2` |
+| Example fits on the committed blanks | S1: the 13 real scatter-only blanks the owner allowed, refitted with their parts and residuals (about a minute). | `docs/studies/mca_scatter/summary.md#Committed blanks (`tests/reference/mca_scatter/`)` | `python tests/tools/mca_scatter.py --out '{out}' --only S1 --fixtures tests/reference/mca_scatter` |
 
 <a id="synthetic-dataset"></a>
 
