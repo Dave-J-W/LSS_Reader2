@@ -175,6 +175,13 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   box (off). On synthetic film fits, pull SDs are 0.97–1.07 with the
   covariance and 1.7–4.2 with the legacy error column (measured,
   `reports/downstream_covariance.md`).
+- Why the join errors are too small on real data (C61, 2026-11-25): hidden
+  per-point scatter reproduces the survey's under-coverage, join-level
+  inflations fail at fringed joins, honest per-point errors fix both
+  (measured, synthetic with known truth; `docs/studies/guard_error/`). Its
+  walkthrough (`walkthrough.md`, rule 13) follows one join from the two scans
+  to the verdict, with a real NX school split whose miss came from a zig-zag
+  that χ² cannot see.
 
 ## Series, saving and live updates (2026-11-19 to 22)
 

@@ -434,6 +434,22 @@ TOOLS = (
          ),
          repo_out='docs/studies/qoff', repo_ok=False),
 
+    Tool('guard_error_walkthrough', 'Walkthrough: why join error bars are too small, from two scans to the verdict '
+         '(C61, ELI5)', 'refl', 'figures', 'tests/tools/guard_error_walkthrough.py',
+         'The whole chain of the guard\'s-error study, for the owner\'s standing order (2026-11-25): two scans and the '
+         'factor read off their shared points, with and without 2 % hidden scatter; the joint fit drawn over its data '
+         'with its residuals; the guard\'s ladder of p-values; the pulls and coverage over 400 replicates, today\'s '
+         'rule against honest per-point errors; a fringed join, where inflating by the order-4 chi2 fails; and a '
+         'real NX school scan split with a known factor: figures W1-W6.',
+         committed=('docs/studies/guard_error/walkthrough',),
+         docs=('docs/studies/guard_error/walkthrough.md', 'docs/studies/guard_error/summary.md'),
+         data='public', defaults={'--out': OUT},
+         variations=(
+             V('Quick look', 'The pulls of W4 from 40 replicates (about 2 s): the pattern, not the decimals.',
+               'docs/studies/guard_error/walkthrough.md#Over 400 replicates of this join', reps='40'),
+         ),
+         repo_out='docs/studies/guard_error/walkthrough', repo_ok=False, seconds=6.0),
+
     Tool('guard_error_study', 'The guard\'s error: why join error bars are too small on real data', 'refl', 'figures',
          'tests/tools/guard_error_study.py',
          'Study A\'s six joins with hidden per-point scatter (0-3 %): today\'s error rule against inflating by the '
