@@ -470,24 +470,26 @@ TOOLS = (
     Tool('excess_scatter', 'Scatter beyond counting statistics: the estimators on known truth (DATA_NEEDS row 15)',
          'refl', 'figures', 'tests/tools/excess_scatter.py',
          'Synthetic reflectivity series (water, DPPC, a 100 Å film) with a known per-point excess X, a slow drift '
-         'or 3 % outliers: the shared-Qz estimator (one Gaussian, and a core plus outliers) and the 6-point '
-         'within-scan difference, each against the truth (figure X1); then the pull SD of today\'s joint fit on '
-         'C61\'s joins with the excess measured on real data (pulls.csv).',
+         'or outliers (0.3 % and 3 % of points): the 6-point within-scan difference (core plus outliers, one '
+         'Gaussian, median) against the truth (figure X1); a stated σ too small by a known s, and the scale model '
+         'that finds it (figure X2); then the pull SD of today\'s joint fit on C61\'s joins with the within-scan '
+         'excess measured on real data (pulls.csv).',
          committed=('docs/studies/excess_scatter/X1_known_truth.png', 'docs/studies/excess_scatter/known_truth.csv',
+                    'docs/studies/excess_scatter/X2_scale_known_truth.png',
+                    'docs/studies/excess_scatter/known_truth_scale.csv',
                     'docs/studies/excess_scatter/pulls.csv', 'docs/studies/excess_scatter/numbers.json'),
          docs=('docs/studies/excess_scatter/summary.md', 'docs/COMPARISONS.md#| C63 |'),
-         defaults={'--out': OUT, '--trials': '40', '--pulls': '200'},
+         defaults={'--out': OUT, '--trials': '40', '--pulls': '400'},
          variations=(
-             V('Quick look', '5 estimates per cell and no pull check: the pattern of X1 in about a minute.',
+             V('Quick look', '5 estimates per cell and no pull check: the pattern of X1 and X2 in a few minutes.',
                'docs/studies/excess_scatter/summary.md## The known-truth check', trials='5', pulls='0'),
          ),
          repo_out='docs/studies/excess_scatter', seconds=900),
-    Tool('excess_scatter_walkthrough', 'Walkthrough: scatter beyond counting, from two scans to the verdict '
+    Tool('excess_scatter_walkthrough', 'Walkthrough: scatter beyond counting, from one scan to the verdict '
          '(DATA_NEEDS row 15, ELI5)', 'refl', 'figures', 'tests/tools/excess_scatter_walkthrough.py',
-         'The whole chain of the excess-scatter study (rule 13): two NX school scans and their shared Qz; the ratio '
-         'at the shared points with its mean and residuals; the 6-point difference within a scan; the likelihood '
-         'and the core + outlier model on known truth; the real results by what they might follow, from the '
-         'committed derived tables: figures W1-W5.',
+         'The whole chain of the excess-scatter study (rule 13): one NX school scan with its counting errors; the '
+         '6-point difference within the scan; the likelihood and the core + outlier model on known truth; the '
+         'real within-scan results by what they might follow, from the committed derived tables: figures W1-W4.',
          committed=('docs/studies/excess_scatter/walkthrough',),
          docs=('docs/studies/excess_scatter/walkthrough.md', 'docs/studies/excess_scatter/summary.md'),
          data='public', defaults={'--out': OUT},
@@ -1062,13 +1064,13 @@ TOOLS = (
     Tool('xr_excess_scatter', 'Real reflectivity: scatter beyond counting statistics (private data)', 'external',
          'external',
          demonstrates="The excess per-point scatter of 384 real reflectivity series (DATA_NEEDS row 15): the core "
-                      'excess and the outlier share, between scans (shared Qz) and within a scan, overall and by '
-                      "Qz, counts, time, background, monitor and absorber. Made by the non-cloud agent's private "
-                      'generator (sample_data/private/xr/); not regenerable here; the numbers are the real_*.csv '
-                      'beside the study, and the walkthrough draws them (W5).',
+                      'excess, the scale on σ and the outlier share within a scan, overall and by Qz, counts, '
+                      'background and monitor (between-scan numbers set aside, owner 2026-11-25). Made by the '
+                      "non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the "
+                      'numbers are the real_*.csv beside the study, and the walkthrough draws them (W4).',
          committed=('docs/studies/excess_scatter/real_overall.csv', 'docs/studies/excess_scatter/real_by.csv',
                     'docs/studies/excess_scatter/real_runs.csv', 'docs/studies/excess_scatter/real_tails.csv',
-                    'docs/studies/excess_scatter/real_scale.csv', 'docs/studies/excess_scatter/real_time_by_qz.csv',
+                    'docs/studies/excess_scatter/real_scale.csv',
                     'docs/studies/excess_scatter/real_numbers.json'),
          docs=('docs/studies/excess_scatter/summary.md',),
          data='private', repo_ok=False),

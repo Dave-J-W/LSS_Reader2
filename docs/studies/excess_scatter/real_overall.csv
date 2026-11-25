@@ -1,5 +1,2 @@
 estimator,by,bin,n_terms,n_runs,core_x,core_x_lo,core_x_hi,outlier_share,outlier_share_lo,outlier_share_hi,outlier_scale,gauss_x,gauss_x_lo,gauss_x_hi,median_x,chi2_dof_at_0
-pairs,all,all,2106,18,0.00394,0.003,0.00485,0.05964,0.04294,0.07383,0.73323,0.12422,0.10237,0.13706,0.00535,476.69998
 within,all,all,26182,18,0.00144,0.00129,0.00175,0.01781,0.01317,0.02476,0.46402,0.06139,0.04169,0.07309,0.00169,234.54604
-pairs,kind,joins,2097,18,0.00393,0.00323,0.00485,0.05806,0.04625,0.0725,0.68986,0.11511,0.09514,0.12905,0.00533,455.90387
-pairs,kind,repeats,9,1,0.00916,nan,nan,0.56077,nan,nan,1.41475,0.2,nan,nan,0.38227,5322.19362
