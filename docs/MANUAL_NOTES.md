@@ -111,9 +111,21 @@ Each line: feature — where — default — script — notes entry (date).
   `lss_core.reciprocity.dose_or_time` says whether the drift rate goes
   with the flux (the dose: beam damage) or not (time: the sample by
   itself), as rate ∝ flux^β with β's interval, or that the data cannot
-  tell. Scripts only for now; the window's several-burns view is the GUI
-  manager's (F98). It assumes reciprocity (the same dose gives the same
-  change at any rate).
+  tell. It assumes reciprocity (the same dose gives the same change at
+  any rate). In the window (F98, 2026-11-25): select the frames of two or
+  more burn scans and press Burn Test; each is analysed ("S# …" chooses
+  whose trends are drawn), and the **Dose or time** tab draws each burn
+  against time and against the dose, with the verdict below (the rates in
+  its tooltip). "Compare" chooses the quantity (the position for GID
+  burns, where NX 14/15 decide), "Strip scatter" ρ the extra scatter
+  between strips (0 by default).
+- The dose in the burn dialog (F98, 2026-11-25): "Axis" fits the trends
+  against time or the dose; "Dose in" photons (needs the Monc chamber's
+  gain) or Monc counts; "Beam (mm)" width typed and height (greyed: from
+  the nearest sample-height scans, or the study's default; its tooltip
+  says which) give a dose per mm² of footprint; "Fast mode" counts the
+  wall time (the shutter open between frames). Terms to define: dose,
+  footprint, fast mode.
 
 ### SpecPlot
 - Log x or log y with nothing positive to show on that axis (all values

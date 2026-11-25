@@ -83,8 +83,9 @@ def test_burn_dialog_refuses_a_scan_that_varies(loaded, qapp, dataset, recorder)
     button.click()
     qapp.processEvents()
     assert recorder.exceptions == []
+    # since 2026-11-25 (F98) several burn scans are allowed, so the message names the scans that move
     assert recorder.messages == [
-        'Warning: It is not a burn test scan or multiple scans are selected!']
+        'Warning: not a burn test: the selected frames of scans 1, 2 move in Qz or Qx.']
 
 
 @pytest.mark.slow

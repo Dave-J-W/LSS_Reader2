@@ -6518,3 +6518,35 @@ C61, `docs/studies/guard_error/summary.md`). No default changed.
   can be estimated from data. That is a next study, together with the real excess by Qz class from the
   owner's data.
 
+### 2026-11-25 — F98 in the burn dialog: the dose, the beam, fast mode, several burns (F76's verdict)
+
+The window side of main man's `lss_core.dose` (#52, #63) and tools man's
+`lss_core.reciprocity` (#72). Built:
+- **Axis:** the trends against time (default) or the dose
+  (`exp.burn(axis='dose')`); the change limit is then a dose, and the
+  short text says it in the dose's unit (it said "s" whatever the axis:
+  fixed, display only).
+- **The dose's settings,** passed whatever the axis (the verdict uses the
+  dose): the unit (photons, or Monc counts; photons fall back to counts
+  when the chamber's gain is unknown, and the result says so); the beam,
+  width typed and height from `exp.beam_height(near=burn)` (shown greyed,
+  its source and note in the tooltip; typed to override), for a dose per
+  mm² of **footprint** (the height stretched along the surface by 1/sin α:
+  on the synthetic burn at α 0.1°, 0.04 mm becomes 22.9 mm, measured);
+  fast mode (`shutter='open'`).
+- **Several burns at once:** the frames of two or more burn scans (each
+  scan's frames at one Qz and Qx; a scan that moves is refused, naming
+  it). Each is analysed; one is drawn at a time ("S# …").
+- **Dose or time tab:** each burn's quantity relative to its first frame
+  (a position: its change) against time and against the dose, and
+  `dose_or_time` with the strip scatter as ρ (default 0, the core's).
+- **Measured with known truth** (synthetic, two reflectivity burns, the
+  second at 4 × the monitor, intensity falling as exp(−k φ^β t)): β = 1
+  is called "dose" and β = 0 "time", β within 0.1 of the truth, the flux
+  ratio 4.00 from the doses. **NX 14/15 in the window:** intensity "no
+  change"; position "neither", β 0.85 [0.80, 0.89] on counting errors, and
+  "dose" from ρ = 10 % (5 %: still "neither"), as tools man found in the
+  core.
+
+Verified by: tested (`tests/test_gui_burn_dose.py`, 5 quick and 1 slow on
+NX).

@@ -644,6 +644,116 @@
   shown: always
   tooltip: true
   notes: ""
+- id: burnScanComboBox
+  kind: combo
+  label: "S# …"
+  where: "Dialog (Burn test) > Trends, second row"
+  handler: burnShowScan
+  does: "Several burns selected: whose trends are drawn; all are analysed, the Dose or time tab compares them, Save stores the one on show"
+  workflows: [burn-ref, burn-gid]
+  needs: "several burn scans selected"
+  shown: when several burns
+  tooltip: true
+  notes: "Added in code (F98, 2026-11-25). Hidden for one burn."
+- id: burnAxisComboBox
+  kind: combo
+  label: "Axis: time | dose"
+  where: "Dialog (Burn test) > Trends, second row"
+  handler: burnOptionsChanged
+  does: "The axis the trends are fitted against: time (default) or the dose since the first frame began (exp.burn(axis='dose')); the change limit is then a dose"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added in code (F98, owner Q-BURN-2; core lss_core.dose by main man). Kept as a preference."
+- id: burnDoseUnitComboBox
+  kind: combo
+  label: "Dose in: photons | Monc counts"
+  where: "Dialog (Burn test) > Trends, second row"
+  handler: burnOptionsChanged
+  does: "The dose's unit: photons at the Monc chamber's exit (needs its gain; monitor counts are used and said when unknown) or monitor counts"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added in code (F98, 2026-11-25)."
+- id: burnBeamWidthLineEdit
+  kind: lineedit
+  label: "Beam (mm) width"
+  where: "Dialog (Burn test) > Trends, second row"
+  handler: burnOptionsChanged
+  does: "The beam's width at the sample, typed: with it the dose is per mm² of footprint (beam_mm)"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added in code (F98, 2026-11-25). Empty: the total dose. Kept as a preference."
+- id: burnBeamHeightLineEdit
+  kind: lineedit
+  label: "× height"
+  where: "Dialog (Burn test) > Trends, second row"
+  handler: burnTrends
+  does: "The beam's height at the sample: shown greyed from exp.beam_height(near=burn), the sample-height scans nearest the burn with its S1 gap, or the study's default; type to override"
+  workflows: [burn-ref, burn-gid]
+  needs: "a width typed"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F98, 2026-11-25; core main man #63). The tooltip gives the source, its uncertainty and its note."
+- id: burnFastModeCheckBox
+  kind: checkbox
+  label: "Fast mode"
+  where: "Dialog (Burn test) > Trends, second row"
+  handler: burnOptionsChanged
+  does: "The shutter stays open between frames: the dose counts the wall time (shutter='open')"
+  workflows: [burn-ref, burn-gid]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added in code (F98, 2026-11-25). Off by default (owner: the shutter closes between frames). The file does not say which (OQ-4)."
+- id: burnVerdictQuantityComboBox
+  kind: combo
+  label: "Compare: Intensity | FWHM | Position"
+  where: "Dialog (Burn test) > Dose or time"
+  handler: burnVerdictOptionsChanged
+  does: "The quantity whose drift rates are compared across the burns"
+  workflows: [burn-ref, burn-gid]
+  needs: "several burns"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F98/F76, 2026-11-25; core lss_core.reciprocity by tools man)."
+- id: burnStripSpinBox
+  kind: spin
+  label: "Strip scatter ρ %"
+  where: "Dialog (Burn test) > Dose or time"
+  handler: burnVerdictOptionsChanged
+  does: "How much the rate differs between strips of one sample beyond counting, as a fraction of the rate (strip_relative); 0 by default"
+  workflows: [burn-ref, burn-gid]
+  needs: "several burns"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F98/F76, 2026-11-25). Default 0 (the core's; no default chosen, rule 12). NX 14/15: 'neither' at 0 and 5 %, 'dose' at 10 %."
+- id: burnVerdictPlotWidget
+  kind: plot
+  label: "against time | against the dose"
+  where: "Dialog (Burn test) > Dose or time"
+  handler: burnVerdictPlot
+  does: "Each burn's quantity relative to its first frame (a position: its change), against time and against the dose"
+  workflows: [burn-ref, burn-gid]
+  needs: "several burns"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F98, 2026-11-25). The burns coincide on the left panel for a sample changing by itself, on the right for beam damage."
+- id: burnVerdictLabel
+  kind: label
+  label: "Dose: the change follows the dose (beam damage); β = …"
+  where: "Dialog (Burn test) > Dose or time"
+  handler: burnVerdict
+  does: "F76's verdict: dose, time, cannot tell, neither, no change or opposite signs, with β's interval and the weight of the dose; the rates in the tooltip"
+  workflows: [burn-ref, burn-gid]
+  needs: "several burns"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F98/F76, 2026-11-25). With one burn it says how to compare."
 - id: burnTimeComboBox
   kind: combo
   label: "Time"
