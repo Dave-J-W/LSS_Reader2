@@ -417,7 +417,18 @@
   needs: "valid indices"
   shown: always
   tooltip: false
-  notes: "Back undoes a drop (F96, 2026-11-24); dropped points disappear from the plot, and the join table and the Script line's drops= record them."
+  notes: "Back undoes a drop (F96, 2026-11-24); dropped points disappear from the plot, and the join table and the Script line's drops= record them. Since 2026-11-25 (F92) the drops of a finished patch are kept as the workbook's mask and left out of the next patch of those scans from the start (Script line: mask=)."
+- id: refpatch.restoreAllPushButton
+  kind: button
+  label: "Restore all"
+  where: "Dialog (Reflectivity Patch), right of the drop field"
+  handler: refRestoreAll
+  does: "Clears the mask of the patch's scans (the drops of earlier patches) and this patch's drops; the patch starts again from the first join"
+  workflows: [reflectivity]
+  needs: "a masked or dropped point (else it says there is nothing to restore)"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F92, owner 2026-11-23, 2026-11-25; core lss_core.masks by main man, #54). Only the scans of this patch are cleared, not the masks of other scans. A finished patch's drops become (scan, point) pairs in the workbook's Settings sheet; the next Ref Patch of those scans leaves them out from the start, says so, and draws them as grey crosses in this window and on the Reflectivity tab. The second reader's read-only mode (D1) is not built: whichever reader finishes a patch writes the mask."
 - id: refpatch.dropLineEdit
   kind: lineedit
   label: "0"

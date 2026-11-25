@@ -61,6 +61,17 @@ masks.save(wb, m.restore_all()); wb.save()      # "Restore all"
 `origins` is the (scan, point) of each row of the patched curve: every row
 sits at one raw point's Qz.
 
+One reader writes a workbook; a second opens it read-only (D1, 2026-11-25):
+
+```python
+from lss_core import readerlock
+lock = readerlock.ReaderLock('20260923_reader.xlsx')
+wb = Workbook('20260923_reader.xlsx', read_only=not lock.acquire())   # save() raises WorkbookReadOnly when read-only
+lock.describe()        # 'this reader writes the workbook', or who has it open
+lock.refresh()         # every 30 s while open; False if another reader took it meanwhile
+lock.release()         # on close
+```
+
 Not yet available from scripts: background images, single-scan export,
 GISAXS. (GID, cuts, peak fits and burn tests followed: sections below.)
 

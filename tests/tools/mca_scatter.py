@@ -316,19 +316,44 @@ def generator_vector(sm, p):
 
 
 def read_fixture(path):
-    """(meta comment, energy keV, counts) of an anonymised example spectrum."""
+    """(header comment lines, energy keV, counts) of an anonymised example spectrum: one or more
+    leading '#' lines, then energy_keV,counts."""
     with open(path, encoding='utf-8') as fh:
-        head = fh.readline().strip()
-        rows = list(csv.DictReader(fh))
+        lines = fh.read().splitlines()
+    k = 0
+    while k < len(lines) and lines[k].startswith('#'):
+        k += 1
+    head = '\n'.join(lines[:k])
+    rows = list(csv.DictReader(lines[k:]))
     e = np.array([float(r['energy_keV']) for r in rows])
     n = np.array([float(r['counts']) for r in rows])
     return head, e, n
 
 
-def fit_fixture(path, e0=10.0):
+def fixture_meta(head):
+    """The 'key: value' lines of a fixture header (tests/reference/mca_scatter/), as a dict."""
+    meta = {}
+    for line in head.splitlines():
+        body = line.lstrip('#').strip()
+        if ':' in body and ' ' not in body.split(':', 1)[0]:
+            key, val = body.split(':', 1)
+            meta[key.strip()] = val.strip()
+    return meta
+
+
+def fixture_beam(head, default=10.0):
+    try:
+        return float(fixture_meta(head)['beam_keV'])
+    except (KeyError, ValueError):
+        return default
+
+
+def fit_fixture(path, e0=None):
     """Refit an example spectrum (its energy axis is already calibrated: gain from the file, offset
-    fitted again)."""
+    fitted again). The beam energy is the header's (to 0.1 keV) unless given."""
     head, e, n = read_fixture(path)
+    if e0 is None:
+        e0 = fixture_beam(head)
     b = float(np.median(np.diff(e)))
     a = e[0] - b                                        # channel 1 at e[0]
     sm = ScatterModel(n, (a, b, 0.0), e0)
@@ -585,7 +610,7 @@ def main(argv=None):
     rows = _read_table(a.table)
     made = []
     if 'S1' in only and not a.fixtures:
-        print('S1 skipped: no --fixtures folder (example spectra are private until the owner agrees)')
+        print('S1 skipped: no --fixtures folder (the committed blanks are tests/reference/mca_scatter)')
     if 'S1' in only and a.fixtures:
         paths = sorted(os.path.join(a.fixtures, f) for f in os.listdir(a.fixtures) if f.endswith('.csv'))
         if a.jobs > 1 and len(paths) > 1:
@@ -599,7 +624,7 @@ def main(argv=None):
         for r in raw:
             head, e, n = read_fixture(r['path'])
             b = float(np.median(np.diff(e)))
-            sm = ScatterModel(n, (e[0] - b, b, 0.0), 10.0)
+            sm = ScatterModel(n, (e[0] - b, b, 0.0), fixture_beam(head))
             name = os.path.splitext(os.path.basename(r['path']))[0]
             fits.append(dict(r, sm=sm, readout=readout.get(name, '?')))
         made.append(figure_examples(fits, a.out))

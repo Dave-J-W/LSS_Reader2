@@ -280,6 +280,8 @@ class MainWindow (QMainWindow):
         self.ui.gidComboBox.addItem('Save to workbook')
         self.initGIDButtons()
         self.initRefProvenance()
+        self.initFresnelButtons()
+        self.initCutAxis()
         self.initTimelineTab()
         self.initCompareTab()
         self.initSpecPointLabels()
@@ -442,6 +444,11 @@ class MainWindow (QMainWindow):
         self.ui.refSeaWinLineEdit.returnPressed.connect(self.refAnalyzeFromField)
      #    self.connect(self.ui.refExportPushButton,SIGNAL('clicked()'), self.saveRefData)
         self.ui.refExportPushButton.clicked.connect(self.saveRefData)
+        self.ui.refExportPushButton.setToolTip(
+            'Write the reflectivity as <name>_ref.txt (Qz, R, dR) and <name>_rrf.txt (R/R_F), the files XModFit '
+            'reads; with "+ covariance", the sidecar XModFit fits with. The name is proposed from the SPEC file, the '
+            'sample (the macro that ran the series, when the file records it) and the scans; the folder is the one '
+            'of the last Export (F105)')
      #    self.connect(self.ui.refAddFilePushButton, SIGNAL('clicked()'), self.addRefFiles)
         self.ui.refAddFilePushButton.clicked.connect(self.addRefFiles)
      #    self.connect(self.ui.refRemoveFilePushButton, SIGNAL('clicked()'), self.removeRefFiles)
@@ -6888,6 +6895,9 @@ class MainWindow (QMainWindow):
         self.pilRefPeakCen=[]
         self.pilBadPixInf = []  # build a list for the detailed info for corrected bad pix in RF signal ROI, which is shown for users
         self.refQzOf={}         # (scan, frame) -> the Qz of its point, for the marks (F95)
+        self.refRowPoints={}    # scan -> the point (frame) number of each of its rows, for the mask (F92)
+        self.refMaskUsed=[]     # (scan, point) left out by the mask (F92)
+        self.refMaskedRows={}   # scan -> its rows left out by the mask, drawn apart (F92)
         self.refFlagsPending=[]
         self.refErrorModel=self.errorModel   # recorded for the Script pane
         for i in self.selectedPilFramesNums:
@@ -6915,6 +6925,7 @@ class MainWindow (QMainWindow):
                 self.pilBadPixInf.append([qkey,self.pilFrameNum[i],pilbadpixloc])
             self.scanqzframe[qkey]=row if first else np.vstack((self.scanqzframe[qkey],row))
             self.scanqzmon.setdefault(qkey,[]).append(float(self.pilMonc[i]))
+            self.refRowPoints.setdefault(qkey,[]).append(int(self.pilFrameNum[i]))
             self.refQzOf[(int(qkey),int(self.pilFrameNum[i]))]=float(np.atleast_1d(row)[0])
         try:
             self.pilrefsort=list(self.sortedScans(self.scanqzframe, mtype='qz'))
@@ -6927,6 +6938,7 @@ class MainWindow (QMainWindow):
         if len(self.pilrefsort)==0:
             self.messageBox('Warning: no frame selected!!!')
         elif len(self.pilrefsort)==1:
+            self.refApplyMask()
             self.refData=list(np.atleast_2d(self.scanqzframe[self.pilrefsort[0]]))   #a single frame is a 1-D row
            #print self.refData
             self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
@@ -7037,6 +7049,7 @@ class MainWindow (QMainWindow):
         self.uirefpatch=uic.loadUi(resource('refpatch.ui'), Dialog)
         self.uirefpatch.show()
         self.pilreforder=0
+        self.refApplyMask()                  # F92: masked points left out from the start, after repeats are merged
         # self.connect(self.uirefpatch.dropPushButton, SIGNAL('clicked()'),self.pilRefPatchDrop)  #drop the data
         self.uirefpatch.dropPushButton.clicked.connect(self.pilRefPatchDrop)
         # self.connect(self.uirefpatch.nextPushButton,SIGNAL('clicked()'),self.pilRefPatchNext) #go to the next overlap
@@ -7052,11 +7065,21 @@ class MainWindow (QMainWindow):
         self.uirefpatch.knownRatioCheckBox,self.uirefpatch.knownRatioLabel=box,lab
         box.toggled.connect(self.pilRefPatchKnownToggled)
         self.initRefPatchSteps(Dialog)   # F96: Back, Cancel, the join table
+        restore=QPushButton('Restore all',Dialog)
+        restore.setObjectName('restoreAllPushButton')
+        restore.setToolTip('Bring back every masked point of these scans (the drops of earlier patches, kept in the '
+                           'workbook as the mask) and the drops of this patch: the patch starts again from the first '
+                           'join with all the selected frames (owner, F92). Undo of single drops is Back')
+        lay=self.uirefpatch.horizontalLayout
+        lay.insertWidget(lay.indexOf(self.uirefpatch.dropLineEdit)+1,restore)
+        self.uirefpatch.restoreAllPushButton=restore
+        restore.clicked.connect(self.refRestoreAll)
         self.refScale={self.pilrefsort[0]:1.0}   # scale already applied to each scan's data
         # unscaled copies of the scans as the joins start (the joins scale them in place, trap T3):
         # the covariance export replays the patch from these
         self.refPatchInput={k:np.array(v,dtype=float) for k,v in self.scanqzframe.items()}
         self.refPatchOrder=list(self.pilrefsort)
+        self.refPatchPoints={k:list(self.refRowPoints.get(k,[])) for k in self.scanqzframe}   # each row's point (F92)
         self.refInfoShown=None
         self.pilRefPatchPlot()
 
@@ -7065,6 +7088,7 @@ class MainWindow (QMainWindow):
     REF_JOIN_COLUMNS=('Join','Scans','Factor','± %','From','Dropped','Note')
     # what describes the reflectivity on show (Script pane, recipe, provenance line); a cancelled patch puts them back
     REF_RESULT_ATTRS=('refpatchindex','refDrops','refFactors','refMethodUsed','refKnownOverride','refMerged',
+                      'refMaskUsed','refMaskedRows',
                       'refRepeatsUsed','refDroppedScans','refScanList','refPoints','slit','dir','command',
                       'refErrorModel','refPatchInput','refPatchOrder','refScale','refResultJoins','refAbsorberUsed')
 
@@ -7146,7 +7170,17 @@ class MainWindow (QMainWindow):
                     drops={k:[list(d) for d in v] for k,v in self.refDrops.items()},
                     known=dict(self.refKnownOverride),joins=[dict(r) for r in self.refJoins])
 
+    def refPatchClosed(self):
+        """True when no patch window is open: its step buttons then do
+        nothing. A closed window's buttons cannot be pressed by a person, but
+        the crash sweep presses hidden buttons, and after a cancel or a
+        Restore all whose new patch did not open, what they act on is gone
+        (found by the sweep, 2026-11-25)."""
+        return getattr(self,'refPatchEnded',True)
+
     def pilRefPatchBack(self):
+        if self.refPatchClosed():
+            return
         if not getattr(self,'refHistory',None):
             self.notify('Nothing to go back to: this is the first join as it opened.',title='Ref Patch',level='info')
             return
@@ -7327,6 +7361,8 @@ class MainWindow (QMainWindow):
         return info['known'][0] if use else None
 
     def pilRefPatchKnownToggled(self,on):
+        if self.refPatchClosed():
+            return
         self.refKnownOverride[self.pilreforder]=bool(on)
         self.pilRefPatchPlot()
         
@@ -7435,6 +7471,7 @@ class MainWindow (QMainWindow):
         if self.pilreforder==len(self.pilrefsort)-1:
             self.refPatchEnd()
             self.refResultJoins=list(self.refJoins)   # the join table, kept with the result (F96)
+            self.refRecordMask()                      # F92: the drops kept as the mask
             self.refData=list(self.pilrefdata)
             self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
           #  print self.pilrefdata
@@ -7473,6 +7510,7 @@ class MainWindow (QMainWindow):
                 for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder+1]])): 
                     if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
                         self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
+                self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
                 self.uirefpatch.plotWidget.canvas.ax.set_xlim(xmin,xmax)
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
@@ -7509,6 +7547,7 @@ class MainWindow (QMainWindow):
                 for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder+1]])): 
                     if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
                         self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
+                self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
                 self.uirefpatch.plotWidget.canvas.ax.set_xlim(xmin,xmax)
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
@@ -7519,6 +7558,8 @@ class MainWindow (QMainWindow):
     def pilRefPatchDrop(self):
         if self.pilreforder>=len(self.pilrefsort)-1:     # no join left (found by the crash sweep, 2026-11-23)
             self.notify('Every join is done: there is no next scan to drop points from.',title='Ref Patch')
+            return
+        if self.refPatchClosed():
             return
         try:
             dropnumbers=[int(t) for t in str(self.uirefpatch.dropLineEdit.text()).split(',')]
@@ -7548,6 +7589,8 @@ class MainWindow (QMainWindow):
         new=self.scanqzframe[self.pilrefsort[self.pilreforder+1]]
         if np.atleast_2d(old)[-1][0]<np.atleast_2d(new)[0][0]:   # hand-off trap T11
             self.messageBox('Scans '+str(self.pilrefsort[self.pilreforder])+' and '+str(self.pilrefsort[self.pilreforder+1])+' do not overlap in Qz; they cannot be patched. Select frames that overlap.')
+            return
+        if self.refPatchClosed():
             return
         info=self.refInfoShown
         if info is None or info['join']!=self.pilreforder or self.refActiveMethod()!='legacy':
@@ -7631,8 +7674,10 @@ class MainWindow (QMainWindow):
                 self.refInfoNew=[self.refInfo[i] for i in np.argsort(data[:,0])]
                 data=data[np.argsort(data[:,0])]
             qz0=data[:,0].copy()     # before Qoff and Qz^2: what the F95 marks are matched on
+            refnorm=1.0          # what the curve is divided by, for the masked points drawn apart (F92)
             if data[0,0]<self.refQc:
-                norm=np.max(data[np.where(data[:,0]<self.refQc)][:,1]) #use the max intensity for the q below qc as the normalization factor. 
+                norm=np.max(data[np.where(data[:,0]<self.refQc)][:,1]) #use the max intensity for the q below qc as the normalization factor.
+                refnorm=norm
                 
                 #norm=data[0,1]
                 #normerr=data[0,2]
@@ -7650,6 +7695,7 @@ class MainWindow (QMainWindow):
                         self.ui.refNormRefListWidget.addItem('%.4f'%data[i,0]+'\t'+'%.4e'%data[i,1]+'\t'+'%.4e'%data[i,2]+'\t'+'%.4f'%perErr[i])
             if self.ui.refNormFacCheckBox.checkState()>0:
                 norm=float(self.ui.refNormLineEdit.text())
+                refnorm=refnorm*norm
                 #normerr=np.sqrt(norm)
                 data[:,1]=data[:,1]/norm
                 data[:,2]=data[:,2]/norm                
@@ -7680,6 +7726,7 @@ class MainWindow (QMainWindow):
             else: 
                 self.ui.refRefDataPlotwidget.canvas.ax.errorbar(data[:,0],data[:,1],data[:,2],fmt='o',label='#0')
             self.drawRefFlags(self.ui.refRefDataPlotwidget.canvas.ax,qz0,data[:,0],data[:,1] if len(data[0])==3 else data[:,3])
+            self.drawRefMasked(self.ui.refRefDataPlotwidget.canvas.ax,refnorm)
         else:
             print ('no current ref data to plot')
      #plot selected ref files
@@ -7715,9 +7762,16 @@ class MainWindow (QMainWindow):
         if self.det!='Pilatus' or len(self.refData)==0 or getattr(self,'normRefData',None) is None:
             self.messageBox('There is no reflectivity data to save yet')
             return
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Save Reflectivity',directory=self.directory)[0]
+        # F105 (owner, Q-REF-6): a name proposed from the sample and the scans, in the folder of the last Export
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export Reflectivity (the name gets _ref.txt, _rrf.txt)',
+                                                      directory=self.exportProposal())[0]
         if not self.saveFileName:
             return   #dialog cancelled
+        for end in ('_ref.txt','_rrf.txt','.txt'):          # a proposed or typed name given with an ending
+            if self.saveFileName.endswith(end):
+                self.saveFileName=self.saveFileName[:-len(end)]
+                break
+        self.setPreference('export_folder',os.path.dirname(os.path.abspath(self.saveFileName)))
         if self.det=='Pilatus':
             reffile=self.saveFileName+'_ref.txt'
             rrffile=self.saveFileName+'_rrf.txt'
@@ -7731,6 +7785,310 @@ class MainWindow (QMainWindow):
             if self.refCovarianceCheckBox.isChecked():
                 self.saveRefCovariance(self.saveFileName)
             self.scriptLine(self.reflectivityScript(self.saveFileName))
+
+    # ---- F79 (owner; tools man's core, lss_core.fresnel): Qc from the subphase, Qoff proposed ----
+
+    def initFresnelButtons(self):
+        """'Subphase ▾' beside Qc and 'Propose' beside Qoff on the Reflectivity
+        tab. Nothing is applied by itself (rule 12): a menu offers the values
+        and the field changes only when one is picked. Qc first: a wrong Qc
+        moves the proposed Qoff one for one (docs/studies/qoff/summary.md)."""
+        from PyQt5.QtWidgets import QToolButton, QPushButton, QMenu
+        from lss_core import fresnel
+        lay=self._layoutHolding(self.ui.refQcLineEdit)
+        qc=QToolButton(self)
+        qc.setObjectName('refQcSubphaseToolButton')
+        qc.setText('Subphase')
+        qc.setPopupMode(QToolButton.InstantPopup)
+        qc.setToolTip('Set Qc from the subphase: its tabulated density gives the electron density and so '
+                      'Qc = 4 sqrt(pi r_e rho_e) (lss_core.fresnel). Set Qc before proposing Qoff: a wrong Qc moves '
+                      'Qoff one for one. The densities are from memory (each entry says its source)')
+        menu=QMenu(qc)
+        for sp in fresnel.SUBPHASES:
+            act=menu.addAction('%s  (Qc %.5f)' % (sp.name,sp.qc))
+            act.setToolTip('%s: %.4f g/cm3 at %g C, %.4f e/A3. Source: %s' % (sp.name,sp.mass_density,
+                           sp.temperature_c,sp.rho_e,sp.source))
+            act.triggered.connect(lambda _=False,v=sp.qc,n=sp.name: self.setRefQc(v,n))
+        menu.addSeparator()
+        act=menu.addAction('From an electron density...')
+        act.triggered.connect(self.refQcFromDensity)
+        menu.setToolTipsVisible(True)
+        qc.setMenu(menu)
+        self.refQcMenu=menu
+        qoff=QPushButton('Propose',self)
+        qoff.setObjectName('refQoffProposePushButton')
+        qoff.setToolTip('Propose Qoff from the reflectivity on show at the Qc in the field (lss_core.fresnel.'
+                        'propose_qoff: a fit of the plateau and the edge, its error by bootstrap over the counting '
+                        'errors; the roughness of ln R/R_F, the by-eye criterion, as a second opinion). A menu '
+                        'offers the values; the field changes only when one is picked. The Qz resolution reads as a '
+                        'slightly negative Qoff; the proposal still makes R/R_F continuous (tools session study)')
+        qoff.clicked.connect(self.proposeRefQoff)
+        if lay is not None:
+            lay.insertWidget(lay.indexOf(self.ui.refQcLineEdit)+1,qc)
+            lay.insertWidget(lay.indexOf(self.ui.refQoffLineEdit)+1,qoff)
+        self.refQcSubphaseToolButton,self.refQoffProposePushButton=qc,qoff
+        self.refQoffMenu=None
+
+    def setRefQc(self,qc,name=''):
+        self.ui.refQcLineEdit.setText('%.5f' % qc)
+        self.notify('Qc %.5f A^-1%s; propose Qoff again if it was proposed at the old Qc.'
+                    % (qc,' for %s' % name if name else ''),title='Reflectivity',level='info')
+        if len(getattr(self,'refData',[])):
+            self.updateRefPlotData()
+
+    def refQcFromDensity(self):
+        from PyQt5.QtWidgets import QInputDialog
+        from lss_core import fresnel
+        text,ok=QInputDialog.getText(self,'Qc from the electron density',
+                                     'Electron density of the subphase (e/A3; water 0.334):',text='0.3344')
+        if not ok:
+            return
+        try:
+            rho=float(text)
+            if not 0<rho<10:
+                raise ValueError(text)
+        except ValueError:
+            self.notify('Qc not set: %r is not an electron density in e/A3.' % text,title='Reflectivity')
+            return
+        self.setRefQc(fresnel.qc_from_density(rho),'%.4f e/A3' % rho)
+
+    def proposeRefQoff(self):
+        """Fit Qoff on the reflectivity on show and offer the values in a menu."""
+        from PyQt5.QtWidgets import QMenu
+        from lss_core import fresnel
+        try:
+            data=np.asarray(getattr(self,'refData',[]),dtype=float)
+        except ValueError:
+            data=np.zeros((0,3))
+        if data.ndim!=2 or len(data)<5 or data.shape[1]<3:
+            self.notify('Propose Qoff: make a reflectivity first (Ref Patch or Analyze).',title='Reflectivity')
+            return
+        try:
+            qc=float(self.ui.refQcLineEdit.text())
+        except ValueError:
+            self.notify('Propose Qoff: Qc is not a number.',title='Reflectivity')
+            return
+        q,r,e=data[:,0],data[:,1],data[:,2]
+        try:
+            edge=fresnel.propose_qoff(q,r,e,qc=qc,method='edge',bootstrap=50)
+            smooth=fresnel.propose_qoff(q,r,e,qc=qc,method='smooth',bootstrap=0)
+        except (ValueError,np.linalg.LinAlgError) as err:
+            self.log.info('Qoff not proposed: %s',err,exc_info=True)
+            self.notify('Propose Qoff: %s' % err,title='Reflectivity')
+            return
+        self.notify('Proposed: %s' % edge.note,title='Reflectivity',level='info')
+        menu=QMenu(self)
+        for prop,what in ((edge,'edge fit'),(smooth,'roughness')):
+            if not prop.ok:
+                act=menu.addAction('%s: %s' % (what,prop.note[:80]))
+                act.setEnabled(False)
+                continue
+            text=('Use %+.5f +/- %.5f (%s)' % (prop.qoff,prop.sigma,what) if prop.sigma
+                  else 'Use %+.5f (%s, a second opinion)' % (prop.qoff,what))
+            act=menu.addAction(text)
+            act.setToolTip(prop.note)
+            act.triggered.connect(lambda _=False,v=prop.qoff: self.setRefQoff(v))
+        menu.setToolTipsVisible(True)
+        self.refQoffMenu=menu
+        self.refQoffProposal=(edge,smooth)
+        menu.exec_(self.refQoffProposePushButton.mapToGlobal(self.refQoffProposePushButton.rect().bottomLeft()))
+
+    def setRefQoff(self,qoff):
+        self.ui.refQoffLineEdit.setText('%.5f' % qoff)
+        self.updateRefPlotData()
+
+    # ---- F92 (owner, 2026-11-23; main man's core, lss_core.masks): drops kept as a mask ----
+
+    def refMask(self):
+        """The workbook's reflectivity mask (lss_core.masks), or an empty one
+        when no SPEC file is open or the workbook cannot be read."""
+        from lss_core import masks
+        if not getattr(self,'specFileName',None):
+            return masks.Mask()
+        try:
+            return masks.load(self.openWorkbook())
+        except Exception as e:
+            self.log.info('mask not read: %s',e,exc_info=True)
+            return masks.Mask()
+
+    def refApplyMask(self):
+        """Leave the masked points out of the scans about to be patched, after
+        repeats are merged, as exp.reflectivity(mask=) does: a point of a repeat
+        merged away masks the same position of the scan it went into. A scan
+        whose every selected point is masked is kept whole, with a message
+        (left out, Restore all would be out of reach)."""
+        self.refMaskUsed,self.refMaskedRows=[],{}
+        mask=self.refMask()
+        if not mask.pairs():
+            return
+        alias={}
+        for group in getattr(self,'refMerged',[]):
+            for m in group[1:]:
+                alias[int(m)]=group[0]
+        pts={int(k):v for k,v in getattr(self,'refRowPoints',{}).items()}
+        want={}
+        for s_,p_ in mask.pairs():
+            tgt=s_
+            while tgt in alias:
+                tgt=int(alias[tgt])
+            if tgt!=s_:
+                if s_ not in pts or p_ not in pts[s_] or tgt not in pts:
+                    continue
+                p_=pts[tgt][pts[s_].index(p_)]
+            want.setdefault(tgt,set()).add(p_)
+        for k in list(self.scanqzframe):
+            n=int(k)
+            if n not in want or n not in pts:
+                continue
+            rows=np.atleast_2d(self.scanqzframe[k])
+            if len(pts[n])!=len(rows):
+                continue
+            keep=[i for i,p_ in enumerate(pts[n]) if p_ not in want[n]]
+            gone=[i for i,p_ in enumerate(pts[n]) if p_ in want[n]]
+            if not gone:
+                continue
+            if not keep:
+                self.notify('Every selected point of scan %d is masked; the scan is used whole. Restore all in the '
+                            'patch window clears its mask.' % n,title='Ref Patch')
+                continue
+            self.refMaskedRows[n]=rows[gone].copy()
+            self.refMaskUsed+=[(n,pts[n][i]) for i in gone]
+            self.scanqzframe[k]=rows[keep]
+            self.refRowPoints[k]=[pts[n][i] for i in keep]
+            if k in getattr(self,'scanqzmon',{}) and len(self.scanqzmon[k])==len(rows):
+                self.scanqzmon[k]=[self.scanqzmon[k][i] for i in keep]
+        self.refMaskUsed.sort()
+        if self.refMaskUsed:
+            self.notify('Ref Patch: %d masked point%s left out from the start (%s; kept in the workbook). Restore all '
+                        'in the patch window brings them back.' % (len(self.refMaskUsed),'s' if len(self.refMaskUsed)!=1
+                        else '',', '.join('S%d pt %d' % sp for sp in self.refMaskUsed)),title='Ref Patch',level='info')
+
+    def refRecordMask(self):
+        """Keep the finished patch's drops as the mask, over raw points
+        (lss_core.reflectivity.drop_points): the next Ref Patch of these scans
+        leaves them out from the start (owner F92: "saved as a mask in the
+        config file")."""
+        from lss_core import masks
+        if not getattr(self,'refDrops',None) or not getattr(self,'specFileName',None):
+            return
+        try:
+            order=list(self.refPatchOrder)
+            pts={k:self.refPatchPoints[k] for k in order}
+            removed,_=reflectivity.drop_points({k:self.refPatchInput[k] for k in order},order,pts,self.refDrops)
+        except (KeyError,IndexError,ValueError) as e:
+            self.log.info('drops not kept as the mask: %s',e,exc_info=True)
+            self.notify('The drops of this patch could not be kept as the mask (%s); the curve is as shown.' % e,
+                        title='Ref Patch')
+            return
+        removed=[(int(a),int(b)) for a,b in removed]
+        try:
+            wb=self.openWorkbook()
+            mask=masks.load(wb)
+            mask.add(removed)
+            masks.save(wb,mask)
+            self.saveWorkbook(wb)
+        except Exception as e:
+            self.workbookCache=None
+            self.notify('The drops could not be kept as the mask in %s: %s' % (self.workbookPath(),e),title='Ref Patch')
+            return
+        self.notify('Dropped points kept as the mask in %s (%s): the next Ref Patch of these scans leaves them out '
+                    'from the start; Restore all in the patch window brings them back.'
+                    % (os.path.basename(self.workbookPath()),', '.join('S%d pt %d' % sp for sp in removed)),
+                    title='Ref Patch',level='info')
+
+    def refRestoreAll(self):
+        """The patch window's Restore all: the mask of these scans emptied and
+        the drops of this patch undone; the patch starts again (owner F92)."""
+        from lss_core import masks
+        if self.refPatchClosed():
+            return
+        scans={int(k) for k in getattr(self,'refRowPoints',{})}
+        mask=self.refMask()
+        mine=[tuple(sp) for sp in mask.pairs() if sp[0] in scans]
+        nd=sum(len(d) for v in getattr(self,'refDrops',{}).values() for d in v)
+        if not mine and not nd:
+            self.notify('Nothing to restore: no point of scans %s is masked and none was dropped in this patch.'
+                        % listText(sorted(scans)),title='Ref Patch',level='info')
+            return
+        if mine:
+            try:
+                wb=self.openWorkbook()
+                mask=masks.load(wb)
+                mask.remove(mine)
+                masks.save(wb,mask)
+                self.saveWorkbook(wb)
+            except Exception as e:
+                self.workbookCache=None
+                self.notify('The mask could not be cleared in %s: %s' % (self.workbookPath(),e),title='Ref Patch')
+                return
+        self.notify('Restored %d masked point%s of scans %s%s; the patch starts again from the first join.'
+                    % (len(mine),'s' if len(mine)!=1 else '',listText(sorted(scans)),
+                       ' and the %d dropped in this patch' % nd if nd else ''),title='Ref Patch',level='info')
+        self.refPatchEnded=True
+        self.uirefpatch.close()
+        self.refRestorePrevious()
+        self.pilRefPatchData()
+
+    def refMaskedArray(self,scale):
+        """The masked rows (Qz, R, dR) of the scans with a scale in ``scale``
+        ({scan: factor}), each scaled like its scan; empty (0, 3) if none."""
+        out=[]
+        for n,rows in getattr(self,'refMaskedRows',{}).items():
+            f=None
+            for k,v in scale.items():
+                if int(k)==n:
+                    f=v
+            if f is None:
+                continue
+            r=np.array(np.atleast_2d(rows)[:,:3],dtype=float)
+            r[:,1:3]*=f
+            out.append(r)
+        return np.vstack(out) if out else np.zeros((0,3))
+
+    def refDrawMasked(self,ax,fac):
+        """Masked points in the patch window: grey crosses, scaled like their
+        scans (the next scan by the factor on show)."""
+        scale=dict(getattr(self,'refScale',{}))
+        if self.pilreforder+1<len(self.pilrefsort):
+            scale[self.pilrefsort[self.pilreforder+1]]=fac
+        m=self.refMaskedArray(scale)
+        if len(m):
+            ax.plot(m[:,0],m[:,1],'x',color='0.45',ms=8,mew=1.5,label='masked (%d)' % len(m),gid='masked')
+
+    def drawRefMasked(self,ax,norm):
+        """Masked points on the Reflectivity tab: grey crosses at their Qz and R,
+        scaled like their scans and normalised, offset and divided by R_F as the
+        curve is; not in the files (they were left out of the reduction)."""
+        if getattr(self,'refpatchindex',0)!=1 or not getattr(self,'refMaskedRows',None):
+            return
+        m=self.refMaskedArray(getattr(self,'refScale',{}) or {})
+        if not len(m) or not norm:
+            return
+        m[:,1:3]/=norm
+        if self.ui.refRRFCheckBox.checkState()!=0:
+            m[:,0]=m[:,0]+self.refQoff
+            m[:,1]=m[:,1]/self.fresnel(m[:,0],self.refQc)
+        if self.ui.refQzSqrCheckBox.checkState()!=0:
+            m[:,0]=m[:,0]**2
+        ax.plot(m[:,0],m[:,1],'x',color='0.45',ms=8,mew=1.5,label='masked (%d)' % len(m),gid='masked')
+
+    def exportSample(self):
+        """The sample of the reflectivity on show, from the macro that ran its
+        series (#U SeriesMacro of its first scan), or '' (lss_core.naming)."""
+        from lss_core import naming
+        scans=self.refResultScans()
+        par=self.specPar.get(scans[0],{}) if scans else {}
+        return naming.sample_from_macro(par.get('SeriesMacro','') if isinstance(par,dict) else '')
+
+    def exportProposal(self):
+        """Where the Export dialog opens: the folder of the last Export (else the
+        output folder) and the name <SPEC file>_<sample>_S<scans> (F105)."""
+        from lss_core import naming
+        folder=self.prefs.get('export_folder') or ''
+        if not folder or not os.path.isdir(folder):
+            folder=self.directory
+        return os.path.join(folder,naming.export_base(getattr(self,'specFileName',''),self.refResultScans(),
+                                                      self.exportSample()))
 
     def setupRefCovarianceBox(self):
         """The Ref Patch export's "+ covariance" option, just after its Save button."""
@@ -7821,6 +8179,8 @@ class MainWindow (QMainWindow):
             kw.append('norm_factor=%r' % float(self.ui.refNormLineEdit.text()))
         if self.ui.refRRFCheckBox.checkState()==0:
             kw.append('rrf=False')
+        if getattr(self,'refMaskUsed',None):
+            kw.append('mask=%r' % [list(sp) for sp in self.refMaskUsed])
         if self.refDrops:
             kw.append('drops=%r' % {k:v for k,v in sorted(self.refDrops.items())})
         if getattr(self,'refFactors',None):
@@ -7890,7 +8250,136 @@ class MainWindow (QMainWindow):
     def updatePilCutRange(self):
         d=self.ui.pilCutDirComboBox.currentIndex()
         if 0<=d<len(cuts.DIRECTIONS):     # the pixel cuts span the detector's rows or columns (lss_core.cuts.default_range)
-            self.ui.pilIntRangeLineEdit.setText(cuts.default_range(d,self.pilShape()))
+            # F59: a Q cut of shown frames gets a band about the beam instead of 0:1 or 1:2, which lie off a reflectivity frame
+            self.ui.pilIntRangeLineEdit.setText((self.cutBand(d) if d in (0,1) else '') or cuts.default_range(d,self.pilShape()))
+
+    # ---- F97, F59 (owner Q-IMG-12, 2026-11-23; main man's core, lss_core.cuts): the cut's x axis; Q ranges ----
+
+    CUT_AXIS_ITEMS=(('as image',None),('β','beta'),('β − α','beta-alpha'),('Qz','Qz'),('Qxy','Qxy'))
+    CUT_AXIS_TIPS={
+        None:'The axis of the image (the Axes box): pixels, angles or Q for the pixel cuts; Q for the Q cuts',
+        'beta':'The exit angle β from the row: β = δ + arcsin(2 sin α − sin α_i), δ = arctan((r − r0) p / D_S2D). '
+               'Vertical cuts (Q V, Pix V)',
+        'beta-alpha':'β − α, with α from the frame\'s Qz (α = arcsin(Qz λ / 4π)): the specular row is at 0 even on a '
+                     'tilted sample (the owner\'s choice). Vertical cuts (Q V, Pix V)',
+        'Qz':'Qz = (2π/λ)(sin β + sin α_i) from the row. Vertical cuts (Q V, Pix V)',
+        'Qxy':'Qxy = ±(2π/λ)√(cos²α_i + cos²β − 2 cos α_i cos β cos 2θ), exact, at the β of the band\'s middle row. '
+              'Horizontal cuts (Q H, Pix H)'}
+
+    def initCutAxis(self):
+        """'x: …' right of the cut direction: the cut's x axis, apart from the
+        image's Axes box (F97). The intensities are the cut's own; only the x
+        values are converted from its pixels (lss_core.cuts, invariant I41).
+        An axis that does not fit the direction is greyed out."""
+        from PyQt5.QtWidgets import QComboBox
+        box=QComboBox(self)
+        box.setObjectName('cutAxisComboBox')
+        for k,(text,key) in enumerate(self.CUT_AXIS_ITEMS):
+            box.addItem('x: '+text,key)
+            box.setItemData(k,self.CUT_AXIS_TIPS[key],Qt.ToolTipRole)
+        box.setToolTip('The x axis of the cuts of frames (not of a GID patch): as the image, or the diffuse-scattering '
+                       'axes β, β − α (α from Qz), Qz (vertical cuts) and Qxy (horizontal cuts). The intensities are the '
+                       'same; only x is converted from the pixels (lss_core.cuts; owner, Q-IMG-12). Hover an entry for '
+                       'its formula')
+        lay=self._layoutHolding(self.ui.pilCutDirComboBox)
+        if lay is not None:
+            lay.insertWidget(lay.indexOf(self.ui.pilCutDirComboBox)+1,box)
+        self.cutAxisComboBox=box
+        self.ui.pilIntRangeLineEdit.setMinimumWidth(self.ui.pilIntRangeLineEdit.fontMetrics().width('-0.004526:0.02453 '))
+        self.ui.pilCutDirComboBox.currentIndexChanged.connect(self.cutAxisFits)
+        self.cutAxisFits()
+
+    def cutAxisFits(self,*_):
+        """Grey out the axes that do not fit the cut direction; back to 'as image' if the one chosen does not."""
+        box=getattr(self,'cutAxisComboBox',None)
+        if box is None:
+            return
+        d=self.ui.pilCutDirComboBox.currentIndex()
+        for k,(_,key) in enumerate(self.CUT_AXIS_ITEMS):
+            item=box.model().item(k)
+            if item is not None:
+                item.setEnabled(key is None or d in cuts.AXIS_FITS[key])
+        key=box.currentData()
+        if key is not None and d not in cuts.AXIS_FITS[key]:
+            box.setCurrentIndex(0)
+
+    def cutAxes(self):
+        """The axes argument of lss_core.cuts.frame_cut: the diffuse axis chosen, or the image's Axes."""
+        box=getattr(self,'cutAxisComboBox',None)
+        key=box.currentData() if box is not None else None
+        return key if key else str(self.ui.pilAxesComboBox.currentText())
+
+    def cutXLabel(self,d):
+        """The cut plot's x label: the Q cuts' x is Q unless a diffuse axis is chosen (frame_cut)."""
+        axes=self.cutAxes()
+        if d in (0,1) and axes not in cuts.DIFFUSE_AXES:
+            axes='Q'
+        return cuts.axis_label(d,axes)
+
+    def cutGeometries(self):
+        """The geometry of every selected frame, or [] when it is not known (no frame shown)."""
+        try:
+            return [self.cutGeometry(j) for j in range(len(self.selectedPilFramesNums))]
+        except (AttributeError,IndexError,TypeError):
+            return []
+
+    def cutHalfWidth(self,d):
+        """Half the band of a Q cut, in pixels: half the reflectivity ROI across
+        the cut (Slit H,V of the Reflectivity tab; 21,11 by default): its rows
+        for a Q H cut (a Qz band: the reflected beam, not the direct beam 2α
+        below), its columns for a Q V cut (a Qxy band: the specular rod).
+        F59, an assumption recorded in OUTPUT_DECISIONS."""
+        try:
+            h,v=(int(float(t)) for t in str(self.ui.refSlitLineEdit.text()).split(',')[:2])
+        except ValueError:
+            h,v=21,11
+        return max(1,(v if d==0 else h)//2)
+
+    def cutBand(self,d):
+        """'lo:hi' of a Q cut ``cutHalfWidth`` pixels either side of the beam of
+        the first selected frame (lss_core.cuts.centred_range; F59), or '' when
+        no frame is shown or a GID or GISAXS map is (their Q ranges are the map's)."""
+        if self.det!='Pilatus' or getattr(self,'pilGIDshow',0) or getattr(self,'pilGISAXSshow',0):
+            return ''
+        geos=self.cutGeometries()
+        if not geos:
+            return ''
+        try:
+            lo,hi=cuts.centred_range(d,geos[0],self.cutHalfWidth(d))
+        except (ValueError,ZeroDivisionError,TypeError):
+            return ''
+        if not (np.isfinite(lo) and np.isfinite(hi)):
+            return ''
+        return '%.4g:%.4g' % (lo,hi)
+
+    def cutRangeMisses(self,d,lo,hi):
+        """True, with a message, when a Q cut's range lies off the detector on
+        every selected frame: it would sum nothing and plot zeros (F59: "nothing
+        happens when I try to use Qxy or Qz"). The box then holds a band about
+        the beam, for the user to cut again."""
+        if d not in (0,1):
+            return False
+        spans=[]
+        for g in self.cutGeometries():
+            try:
+                spans.append(cuts.covered_range(d,g,self.pilShape()))
+            except (ValueError,ZeroDivisionError,TypeError):
+                pass
+        spans=[s for s in spans if np.all(np.isfinite(s))]
+        if not spans:
+            return False
+        a,b=min(lo,hi),max(lo,hi)
+        if any(b>=s[0] and a<=s[1] for s in spans):
+            return False
+        c0,c1=min(s[0] for s in spans),max(s[1] for s in spans)
+        band=self.cutBand(d)
+        if band:
+            self.ui.pilIntRangeLineEdit.setText(band)
+        self.notify('The %s range %g:%g lies off the detector (it covers %.4g to %.4g here), so the cut would sum '
+                    'nothing.%s' % ('Qz' if d==0 else 'Qxy',lo,hi,c0,c1,
+                                    ' The box now holds a band of %d pixels either side of the beam (%s): cut again.'
+                                    % (self.cutHalfWidth(d),band) if band else ''),title='Line/Area Cuts')
+        return True
 
     def updatePilCutData(self):
         self.ui.cutPlotMplWidget.canvas.ax.clear()
@@ -7905,6 +8394,9 @@ class MainWindow (QMainWindow):
         except:
             self.messageBox('Please enter the range with the format "min:max"')
             self.updatePilCutRange()
+            return
+        direction=self.ui.pilCutDirComboBox.currentIndex()
+        if self.cutRangeMisses(direction,ini,fin):
             return
         budget=self.errorModel.budget
         self.selCutTerms={}   # budget error model: monitor parts, applied to each cut point's whole sum
@@ -7930,8 +8422,7 @@ class MainWindow (QMainWindow):
                 if self.selCutTerms.get(i) is not None:
                     self.selCutTerms[-1].extend(self.selCutTerms[i],wk)
         # the cut itself is lss_core.cuts.frame_cut, shared with Experiment.cut
-        direction=self.ui.pilCutDirComboBox.currentIndex()
-        axes=str(self.ui.pilAxesComboBox.currentText())
+        axes=self.cutAxes()
         if self.ui.gixSumCheckBox.checkState()!=0:
             frames=self.selectedPilFramesNums
             d,e=[self.selCutPilData[i] for i in frames],[self.selCutPilErrorData[i] for i in frames]
@@ -7985,7 +8476,7 @@ class MainWindow (QMainWindow):
             if chosen!=listed:
                 points[n]=chosen
         lo,hi=(float(t) for t in str(self.ui.pilIntRangeLineEdit.text()).split(':'))
-        axes=str(self.ui.pilAxesComboBox.currentText())
+        axes=self.cutAxes()
         kw=['%r' % cuts.DIRECTIONS[self.ui.pilCutDirComboBox.currentIndex()],'(%r, %r)' % (lo,hi)]
         if axes!='Pixels':
             kw.append('axes=%r' % axes)
@@ -8985,6 +9476,11 @@ class MainWindow (QMainWindow):
                            'in the signal box in %d frame%s (crosses).' % (nc,'s' if nc!=1 else '',nb,'s' if nb!=1 else ''))
             nd=sum(len(d) for v in getattr(self,'refDrops',{}).values() for d in v)
             parts.append('%d point%s dropped' % (nd,'s' if nd!=1 else '') if nd else 'no points dropped')
+            nm=len(getattr(self,'refMaskUsed',[]) or [])
+            if nm:
+                parts.append('%d masked' % nm)
+                tip.append('Masked (left out from the start, kept in the workbook; Restore all in the patch window): %s.'
+                           % ', '.join('S%d pt %d' % (a,b) for a,b in self.refMaskUsed))
         saved,said=self.refSavedState()
         if saved:
             parts.append(saved)
@@ -9208,16 +9704,17 @@ class MainWindow (QMainWindow):
             cutrange=str(self.ui.pilIntRangeLineEdit.text())
         if currentcutindex==2:
             self.ui.cutPlotMplWidget.canvas.ax.set_title(title+'\n'+'H Cut     Vint Range['+cutrange+']', fontsize=16)
-            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel('Pixels', fontsize=16)
         elif currentcutindex==3:
             self.ui.cutPlotMplWidget.canvas.ax.set_title(title+'\n'+'V Cut     Hint Range['+cutrange+']', fontsize=16)
-            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel('Pixels', fontsize=16)
         elif currentcutindex==0:
             self.ui.cutPlotMplWidget.canvas.ax.set_title(title+'\n'+'Q H Cut     Qz Range['+cutrange+']', fontsize=16)
-            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel(r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$', fontsize=16)
         else:
             self.ui.cutPlotMplWidget.canvas.ax.set_title(title+'\n'+'Q V Cut     Qxy Range['+cutrange+']', fontsize=16)
-            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel(r'$Q_z$'+' '+r'$[\AA^{-1}]$', fontsize=16)
+        if self.pilGIDshow==0 and self.pilGISAXSshow==0:   # F97: the axis the cut was made on (lss_core.cuts.axis_label)
+            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel(self.cutXLabel(currentcutindex), fontsize=16)
+        else:                                             # a cut of the GID or GISAXS map: Qxy or Qz, as before
+            self.ui.cutPlotMplWidget.canvas.ax.set_xlabel(r'$Q_{xy}$'+' '+r'$[\AA^{-1}]$' if currentcutindex==0 else
+                                                          r'$Q_z$'+' '+r'$[\AA^{-1}]$', fontsize=16)
         if self.cutLogX!=0:
             self.ui.cutPlotMplWidget.canvas.ax.set_xscale('log')
         if self.cutLogY!=0:

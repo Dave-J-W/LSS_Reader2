@@ -263,7 +263,8 @@ FRAMES = {
                            'side or stacked (owner 2026-11-23)'),
                  # the "Line cuts" sub-tab; its band is drawn on the raw image
                  cuts=SPECIAL('cut_panel',
-                 toolbar=[C('pilCutDirComboBox', 'Cut'), C('pilIntRangeLineEdit', 'Range (a – b)'),
+                 toolbar=[C('pilCutDirComboBox', 'Cut'), C('cutAxisComboBox', 'x: as image'),
+                          C('pilIntRangeLineEdit', 'Range (a – b)'),
                           C('pilLineAreaPushButton', 'Cut', note='Draws the cut; the band can also be dragged on '
                                                                  'the image (F68)')],
                  plot=PLOT('cutPlotMplWidget', 'Line cut', 'cut'),
@@ -351,10 +352,8 @@ REFLECTIVITY = {
             C('pilRefPatchPushButton', 'Patch'),
         ]),
         G('Result', 'Result', [
-            NEW('ref_subphase', 'Subphase', 'combo', 'Sets Qc and the electron density (F79)',
-                items=['water', 'D₂O', 'other…']),
-            ROW(C('refQcLineEdit', 'Qc (1/Å)'), NEW('ref_rho', 'ρe 0.334 e/Å³', 'label', 'F79')),
-            ROW(C('refQoffLineEdit', 'Qoff (1/Å)'), NEW('ref_proposeQoff', 'Propose', 'button', 'F79')),
+            ROW(C('refQcLineEdit', 'Qc (1/Å)'), C('refQcSubphaseToolButton', 'Subphase ▾')),
+            ROW(C('refQoffLineEdit', 'Qoff (1/Å)'), C('refQoffProposePushButton', 'Propose')),
             ROW(C('refNormFacCheckBox', 'Divide by'), C('refNormLineEdit', '')),
         ]),
         G('Display', 'Display', [
@@ -402,6 +401,8 @@ REFLECTIVITY = {
                  controls=[C('refpatch.knownRatioCheckBox', 'Known ratio'),
                            C('refpatch.knownRatioLabel', 'fit ±0.4 %, foils ±1.5 %'),
                            C('refpatch.dropLineEdit', 'Drop points'), C('refpatch.dropPushButton', 'Drop'),
+                           C('refpatch.restoreAllPushButton', 'Restore all',
+                             note='Clears the mask of these scans and starts again (F92, built 2026-11-25)'),
                            C('refpatch.backPushButton', '◂ Back',
                              note='Undoes the last drop or accepted join (F96, built in the main window 2026-11-24)'),
                            C('refpatch.nextPushButton', 'Next doubtful ▸',

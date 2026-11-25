@@ -17,8 +17,8 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 
 | Session | Now | Next |
 |---|---|---|
-| main man (orchestrator; "Main" until 2026-11-24) | ~~F81, F91, F87, P47, half-written SPEC lines~~ (2026-11-23); ~~the two decision studies and the ELI5 rationale~~, ~~the join guard at p 0.7~~ (#47), ~~area L, the fragile assumptions~~ (#50), ~~F98's core: the dose of each point, burns against dose~~ (#52), ~~F92's core: dropped points as a mask~~ (#54, 2026-11-24); ~~F97's diffuse cut axes, the core~~ (#59), ~~PR #60 reviewed and merged~~ (2026-11-24); ~~the dose height from the sh scans' rising edge~~ (#60's rule; 2026-11-24) | to be assigned |
-| GUI manager | ~~F88 sticky display, F69 movie~~ (merged #34, 2026-11-24: the image display functions are free); ~~F86 Reduction options~~, ~~Q-GID-5~~, ~~Q-UI-A10~~ (#32); **F96** Ref Patch window: Back, Cancel, join table, the line under the Reflectivity plot (built 2026-11-24; the live replay of accepted joins later); **F95** B6 and the B3 list, **F74** residual panels on scan, cut and burn fits, **F97** saturation cue, **F78** super-Gaussian height-scan fit (timeline 1a) (built 2026-11-24) | F105's Export name and xmodfit hand-over (the Compare tab, F80 + F105, is built); timeline's reduced-data and environment lanes (the tab, sh thumbnails, notes and 'new sample?' answers are built); F95's ROI threshold, B9, B10; F97's diffuse axes (the ROI close-up built 2026-11-24); then ngui |
+| main man (orchestrator; "Main" until 2026-11-24) | ~~F81, F91, F87, P47, half-written SPEC lines~~ (2026-11-23); ~~the two decision studies and the ELI5 rationale~~, ~~the join guard at p 0.7~~ (#47), ~~area L, the fragile assumptions~~ (#50), ~~F98's core: the dose of each point, burns against dose~~ (#52), ~~F92's core: dropped points as a mask~~ (#54, 2026-11-24); ~~F97's diffuse cut axes, the core~~ (#59), ~~PR #60 reviewed and merged~~ (2026-11-24); ~~the dose height from the sh scans' rising edge~~ (#60's rule; 2026-11-24) | ~~D1's core: the workbook's lock, a second reader read-only~~ (2026-11-25) |
+| GUI manager | ~~F88 sticky display, F69 movie~~ (merged #34, 2026-11-24: the image display functions are free); ~~F86 Reduction options~~, ~~Q-GID-5~~, ~~Q-UI-A10~~ (#32); **F96** Ref Patch window: Back, Cancel, join table, the line under the Reflectivity plot (built 2026-11-24; the live replay of accepted joins later); **F95** B6 and the B3 list, **F74** residual panels on scan, cut and burn fits, **F97** saturation cue, **F78** super-Gaussian height-scan fit (timeline 1a) (built 2026-11-24) | (F80, F105 built: the Compare tab, Export's proposed name); timeline's reduced-data and environment lanes (the tab, sh thumbnails, notes and 'new sample?' answers are built); F95's ROI threshold, B9, B10; F97's diffuse axes (the ROI close-up built 2026-11-24); then ngui |
 | Main (orchestrator) | ~~F81, F91, F87, P47, half-written SPEC lines~~ (2026-11-23); ~~the two decision studies and the ELI5 rationale~~, ~~the join guard at p 0.7~~ (#47), ~~area L, the fragile assumptions~~ (#50), ~~F98's core: the dose of each point, burns against dose~~ (#52), ~~F92's core: dropped points as a mask~~ (2026-11-24) | F97 diffuse cut axes (the core), then what Main assigns next |
 | tools man | ~~F79: Qc from the subphase, Qoff proposed~~ (#56, 2026-11-24); ~~F76: beam damage or a changing sample~~ (#72, 2026-11-25); ~~the review's Tools items: `--stale` by a verified record and code fingerprints, the two figures' environment, four small fixes~~ (2026-11-25) | **P44**: a burn estimator with the shoulder held unstretched (prototype unbiased on Gaussian shoulders, 2–4× smaller errors on others; study, NX, then rule 12); F77 when DATA_NEEDS row 14 has data |
 | questor | the owner's questions and their answers in `docs/`; the data needs (`docs/DATA_NEEDS.md`, with tools man's blank-spectrum request) | (its own order) |
@@ -56,7 +56,7 @@ working list, one table per area, each row with its source. Rows marked
 | Same-absorber scans share a factor: send the question to the hand-off author — **new** | F41 |
 | Qz offset from sh-scan images — **new** | F42 |
 | Per-second option — **new** | F20 |
-| ~~Qoff proposed from the continuity of R/R_F across the joins (robust to one or two outliers); Qc from a subphase list or typed electron density~~ **core and study done 2026-11-24** (tools man: `lss_core.fresnel.propose_qoff`, `SUBPHASES`; `docs/studies/qoff/summary.md`, C50; NX proposes −0.00028 Å⁻¹ where the preset is 0). Left: the window's Propose buttons beside Qoff and Qc (GUI manager, F96); the beamline's Qz resolution near the edge (owner, via questor); a default only after real-data checks (rule 12) | F79; F42 |
+| ~~Qoff proposed from the continuity of R/R_F across the joins (robust to one or two outliers); Qc from a subphase list or typed electron density~~ **core and study done 2026-11-24** (tools man: `lss_core.fresnel.propose_qoff`, `SUBPHASES`; `docs/studies/qoff/summary.md`, C50; NX proposes −0.00028 Å⁻¹ where the preset is 0). ~~the window's Propose buttons beside Qoff and Qc~~ (GUI manager, 2026-11-25: "Subphase" menu right of Qc, "Propose" right of Qoff, offered not applied; `tests/test_gui_fresnel_propose.py`). Left: the beamline's Qz resolution near the edge (owner, via questor); a default only after real-data checks (rule 12) | F79; F42 |
 | **The owner's rule (2026-11-24): the best method, demonstrated, tested and presented, becomes the default.** ~~The join guard p 0.7~~ **done 2026-11-24** (C48). ~~MCA Fit lines with P1 as the default~~ **done 2026-11-24** after the demo wrap-up (`docs/reports/mca_fit_demo.md`; tools man, OUTPUT_DECISIONS); the window sum left as it is: which spectra have scatter under the box needs a blank (DATA_NEEDS row 3) | AGENTS.md rule 12 |
 | Saved reflectivities of the workbook overlaid by series, time or sx, with ratios, to check stability — **new** 2026-11-23 | F80 |
 | **Comparison of reduced curves in a tab fed by the workbook, updating itself; Export proposes a file name from the sample and series and hands over to xmodfit** (owner, 2026-11-23, Q-REF-5, Q-REF-6; recorded by questor in batch 14 but not put on this list until 2026-11-24) — GUI manager, after timeline 1c, with F80 | F105; physics_notes 2026-11-23 batch 14 |
@@ -125,7 +125,7 @@ working list, one table per area, each row with its source. Rows marked
 | ~~Workbook results tied to series id and scans used; stale flag when a series gains scans~~ **done 2026-11-22**: Saved gains series, series_kind, series_scans, series_status, recipe, stale; "Update Specfile" marks changed results | F66; review R3 |
 | Reopen a SPEC file with its workbook's settings | F66 |
 | The workbook and D1–D3 (config beside the SPEC file, read-only second instance, yellow light): record how they relate — **new** | D1–D3, D53 |
-| Dropped points as masks in the config file, "Restore all" in the patch dialog (owner, 2026-11-23: F92) | F16, D2, F92 |
+| ~~Dropped points as masks in the config file, "Restore all" in the patch dialog (owner, 2026-11-23: F92)~~ core #54 (main man), window 2026-11-25 (GUI manager: drops kept as the mask, left out from the start, grey crosses, Restore all). Left: the second reader read-only (D1, not built); click to drop (F94, low priority) | F16, D2, F92 |
 | Disk-cache settings dialog with the per-SPEC state — **new** in the Stage 3 list | Stage 2 list |
 
 **G. Fitting, burn tests, beam**
@@ -521,8 +521,10 @@ stated assumption until the answer arrives.
       ln(Vortex/Monc), outlier check against the group median, alignment).
 - [x] P36, P37 (legacy GID with three Qz levels): fixed 2026-11-23 with the
       synthetic three-level GID data set; outputs change only for such maps.
-- [ ] Docket (2026-11-18): F59 cuts for diffuse scattering (I vs β, β − α;
-      the Q cuts' default ranges miss the detector and plot zeros silently),
+- [ ] Docket (2026-11-18): ~~F59 cuts for diffuse scattering (I vs β, β − α;
+      the Q cuts' default ranges miss the detector and plot zeros silently)~~
+      (core main man #59; window GUI manager 2026-11-25: the cut's x axis,
+      bands about the beam, a message for a range off the detector),
       F60 contextual/automatic reduction. Not to be built yet.
 - [x] F61 GID worksheet (2026-11-18): the patch's settings editable, joins
       tabulated; defaults reproduce the patch exactly.
@@ -754,7 +756,7 @@ reruns the quick, real-data and export-fixture checks, and commits.
       for `DATA_NEEDS.md` row 3, 2026-11-23. Mark private files as such (they stay under
       `sample_data/private/`).
 - [ ] **All data needs are listed in `docs/DATA_NEEDS.md` (2026-11-23)**: read it before asking the owner for data; the owner's non-cloud agent will supply the large private sets (reflectivity series for hand-off 08 "not soon"; GISAXS and GIOXS examples later).
-- [ ] **Open beam and shutter questions OQ-1 to OQ-4 (2026-11-24):** slit values half or full openings; the vertical beam size after the mirror focus and before the APS shutdown; how fast mode appears in a SPEC file. Full text and why in `docs/gui/questions.md` ("Open questions added on 2026-11-24"). They block the dose per area of F98 and the sx colouring of F107; until they are answered the beam size stays a typed value.
+- [ ] **Open beam and shutter questions OQ-1 to OQ-4 (2026-11-24; OQ-1 answered 2026-11-25: half-openings; OQ-4 "don't know yet"):** slit values half or full openings; the vertical beam size after the mirror focus and before the APS shutdown; how fast mode appears in a SPEC file. Full text and why in `docs/gui/questions.md` ("Open questions added on 2026-11-24"). They block the dose per area of F98 and the sx colouring of F107; until they are answered the beam size stays a typed value.
 - [ ] Decide how sample data should be hosted (`bu` is 1.7 GB, local to the
       session only, git-ignored; NX school is committed at 104 MB).
 - [ ] Questions in `ASSESSMENT.md` sections 6 and 7 still open: reference

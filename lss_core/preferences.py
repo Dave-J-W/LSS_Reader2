@@ -68,6 +68,9 @@ DEFAULTS = {
     'pil_display': {},
     # residual panels above the plots that show a fit (F74, owner 2026-11-22: hidden by default)
     'fit_residuals': False,
+    # the folder the last reflectivity Export went to, proposed for the next one (F105, Q-REF-6: straight into
+    # XModFit's working folder); '' until the first Export
+    'export_folder': '',
 }
 
 

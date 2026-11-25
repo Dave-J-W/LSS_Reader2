@@ -464,7 +464,18 @@
   needs: ""
   shown: always
   tooltip: true
-  notes: "Range syntax is in the item text ('[Qz_min : Qz_max]'). Defaults (lss_core.cuts.default_range, 2026-11-24): 0:1, 1:2, then the rows and columns of the frames read last (0:485, 0:194 on the Pilatus 100K; were hard-coded), in the tooltip. Q cuts on GID/GISAXS maps, pixel cuts on frames."
+  notes: "Range syntax is in the item text ('[Qz_min : Qz_max]'). Defaults (lss_core.cuts.default_range, 2026-11-24): 0:1, 1:2, then the rows and columns of the frames read last (0:485, 0:194 on the Pilatus 100K; were hard-coded), in the tooltip. Q cuts on GID/GISAXS maps, pixel cuts on frames. F59 (2026-11-25): with frames shown (no GID or GISAXS map), a Q cut's default is a band about the beam, half the reflectivity ROI either side (Slit 21,11: 5 rows in Qz, 10 columns in Qxy; cuts.centred_range); a Q range that lies off the detector on every selected frame is refused with a message, and that band is put in the box."
+- id: cutAxisComboBox
+  kind: combo
+  label: "x: as image"
+  where: "Pilatus, right of the cut direction"
+  handler: cutAxisFits
+  does: "The x axis of a cut of frames: as the image (the Axes box), or β, β − α (α from Qz), Qz for vertical cuts and Qxy for horizontal ones; the intensities are unchanged"
+  workflows: [cuts]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added in code (F97, owner Q-IMG-12, 2026-11-25; core lss_core.cuts.DIFFUSE_AXES by main man, #59). Axes that do not fit the direction are greyed out (cuts.AXIS_FITS), and the choice falls back to 'as image' when the direction changes to one it does not fit. Each entry's tooltip gives its formula. Not used by cuts of a GID or GISAXS map. Scripted as exp.cut(..., axes='beta-alpha')."
 - id: pilIntRangeLineEdit
   kind: lineedit
   label: "Int Range: min:max"

@@ -45,11 +45,14 @@ def test_window_cut_ranges_before_and_after_frames(loaded, qapp, recorder, datas
     assert _ranges(w, qapp) == LEGACY_RANGES
     sweep.state_pilatus_two_scans_all_frames(w, qapp, dataset)
     assert (w.pilatus.NROWS, w.pilatus.NCOLS) == SHAPE_100K
-    assert _ranges(w, qapp) == LEGACY_RANGES
+    # with frames shown, the Q cuts get a band about the beam (F59, 2026-11-25; '0:1' and '1:2' before,
+    # which lie off a reflectivity frame); the pixel cuts keep the detector's rows and columns
+    bands = tuple(w.cutBand(d) for d in (0, 1))
+    assert all(bands) and _ranges(w, qapp) == bands + LEGACY_RANGES[2:]
     monkeypatch.setattr(w.pilatus, 'NROWS', LARGER[0])
     monkeypatch.setattr(w.pilatus, 'NCOLS', LARGER[1])
     assert w.pilShape() == LARGER
-    assert _ranges(w, qapp) == ('0:1', '1:2', '0:1041', '0:980')
+    assert _ranges(w, qapp) == bands + ('0:1041', '0:980')
     assert recorder.exceptions == []
 
 
