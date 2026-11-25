@@ -276,7 +276,7 @@ class Experiment:
                      qc=0.0217, qoff=0.0, norm_factor=None, rrf=True,
                      drops=None, merge_repeats=False, merge=None, repeats='monitors', low_qz_slit=False, points=None,
                      bad_pixel_iterations=0, bad_pixel_factor=1, errors=None, factors=None,
-                     method=refl.DEFAULT_PATCH_METHOD, mask=None):
+                     method=refl.DEFAULT_PATCH_METHOD, mask=None, roi_bad_pixel_factor=None):
         """Specular reflectivity of ``scans``, as the window's Ref Patch with
         the same settings (defaults are the window's defaults for Pilatus
         data). ``drops``: {join number: [indices]} as typed into the patch
@@ -296,7 +296,9 @@ class Experiment:
         pairs left out (F92, ``lss_core.masks``), after repeats are merged:
         a point of a repeat merged into the group's first scan masks that
         point of the merged scan (where the window's drops are made);
-        ``drops`` then apply to what is left."""
+        ``drops`` then apply to what is left. ``roi_bad_pixel_factor``: a
+        bad-pixel pass over each frame's three ROI boxes with this factor
+        (reflectivity.roi_bad_pixel_pass, C62's arithmetic; F95 B3, off by default until rule 12)."""
         from TwoDDetector import TwoDDetector
         det = TwoDDetector('Pilatus')
         det.errors = as_model(errors)
@@ -309,7 +311,8 @@ class Experiment:
             first = f.scan not in per_scan
             row, info = refl.frame_row(det, image, error, f.monitor, f.beam_xy, f.qz,
                                       slit, bg_offset, direction, f.distance,
-                                      low_qz_slit=(first or low_qz_slit))
+                                      low_qz_slit=(first or low_qz_slit),
+                                      roi_bad_pixel_factor=roi_bad_pixel_factor)
             per_scan[f.scan] = row if first else np.vstack((per_scan[f.scan], row))
             mons.setdefault(f.scan, []).append(f.monitor)
             pts.setdefault(f.scan, []).append(f.index)

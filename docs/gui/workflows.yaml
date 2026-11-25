@@ -341,7 +341,7 @@ workflows:
       - id: burn-ref.options
         do: Choose the models, the time axis, the errors and the change threshold; Analyse re-runs
         where: Burn test dialog > Trends
-        controls: [burnConstantCheckBox, burnLinearCheckBox, burnExponentialCheckBox, burnDoubleExponentialCheckBox, burnTimeComboBox, burnErrorsComboBox, burnThresholdSpinBox, burnAnalysePushButton, burnScanComboBox, burnAxisComboBox, burnDoseUnitComboBox, burnBeamWidthLineEdit, burnBeamHeightLineEdit, burnFastModeCheckBox]
+        controls: [burnConstantCheckBox, burnLinearCheckBox, burnExponentialCheckBox, burnDoubleExponentialCheckBox, burnTimeComboBox, burnErrorsComboBox, burnThresholdSpinBox, burnAnalysePushButton, burnScanComboBox, burnAxisComboBox, burnDoseUnitComboBox, burnBeamWidthLineEdit, burnBeamHeightLineEdit, burnFastModeCheckBox, burnDoseSummaryLabel]
         user_decides: models (all four by default), time clock (default, owner 2026-11-21) or exposure, errors auto (counting for reflectivity), threshold 5 %
         automatic: yes
         could_be_automatic: ""
@@ -452,7 +452,7 @@ workflows:
       - id: burn-gid.options
         do: Choose estimator, models, time, errors, threshold and whether the position counts in the limit
         where: Burn test dialog > Trends
-        controls: [burnEstimatorComboBox, burnConstantCheckBox, burnLinearCheckBox, burnExponentialCheckBox, burnDoubleExponentialCheckBox, burnTimeComboBox, burnErrorsComboBox, burnThresholdSpinBox, burnPositionLimitCheckBox, burnAnalysePushButton, burnScanComboBox, burnAxisComboBox, burnDoseUnitComboBox, burnBeamWidthLineEdit, burnBeamHeightLineEdit, burnFastModeCheckBox]
+        controls: [burnEstimatorComboBox, burnConstantCheckBox, burnLinearCheckBox, burnExponentialCheckBox, burnDoubleExponentialCheckBox, burnTimeComboBox, burnErrorsComboBox, burnThresholdSpinBox, burnPositionLimitCheckBox, burnAnalysePushButton, burnScanComboBox, burnAxisComboBox, burnDoseUnitComboBox, burnBeamWidthLineEdit, burnBeamHeightLineEdit, burnFastModeCheckBox, burnDoseSummaryLabel]
         user_decides: estimator template (default), moments (legacy) or fit; errors auto = scatter for GID; position in limit off (owner - the position judgment is the user's)
         automatic: yes
         could_be_automatic: ""

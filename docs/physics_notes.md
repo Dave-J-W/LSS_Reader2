@@ -6746,6 +6746,62 @@ replace sparse real signal.
     also be a candidate for C61's per-point excess, which C56 found concentrated at Qz ≥ 0.25;
   - then the core option, the field off by default, and rule 12.
 
+### 2026-11-25 — F109 in the burn dialog: the peak and the average dose
+
+The owner (via questor, Q8 and MQ-5): "show both the average and the peak
+dose", the peak split into the most exposed 10 % of the area against the
+rest; the width from an S1 horizontal slit scan when there is one, else
+1 mm. Main man's core (`lss_core.dose`, #92). Built in the dialog:
+- **The width field's default is `exp.beam_width()`:** the slit-scan model
+  when one is accepted, else the owner's 1 mm (read as √(2π) σx). It is
+  shown greyed, with its source and note in the tooltip; a typed value
+  overrides it.
+- **"Dose: peak …, average …"** for the burn on show, from
+  `exp.dose_summary` with the dialog's own beam, unit and shutter. The
+  split and the provenance are in the tooltip. The peak equals the per-mm²
+  dose the trends use (main man), so the dose axis does not change.
+- **The extent** of the average (90 % of the dose) is the core's default.
+  The owner's choice is pending, and it is not hard-coded here.
+- **Measured on NX** (scan 15, 1 mm × 0.04 mm): peak 5.98 × 10¹², average
+  2.34 × 10¹² photons/mm² over 51.9 mm²; the top 10 % 5.34 × 10¹², the
+  rest 2.0 × 10¹².
+
+Verified by: tested (`tests/test_gui_burn_dose.py`).
+
+### 2026-11-25 — F95 B3: the ROI's own bad-pixel pass, wired and off
+
+The owner's Q-UI-B3 (2026-11-23): "a separate threshold for the ROI". The
+Reflectivity tab's "Bad Pixel Correction fac" was read but never used. It
+is now the core option C62 asked for: `reflectivity.roi_bad_pixel_pass`,
+with main man's study's arithmetic (C62, `docs/studies/roi_bad_pixels/`).
+- **What it does:** `removeBadPix`'s test on the frame's counts, with the
+  floor and the neighbours taken over the whole frame, applied only to the
+  ROI's three boxes (`display.roi_boxes`, sumROI's geometry), before the
+  sums.
+- **Where:** `frame_row(roi_bad_pixel_factor=)`, which locates the beam
+  again on the corrected frame; `exp.reflectivity`, Ref Patch (the pixels
+  corrected are listed with the result) and Analyze (one frame).
+- **Measured** (`tests/test_roi_bad_pixels.py`, synthetic):
+  - `bad_pixel_pass` without a region gives `removeBadPix`'s numbers and
+    pixels exactly (edges and corners included, 1 and 2 iterations);
+  - through `exp.reflectivity`, a 5000-count pixel in a background box of
+    the weakest frame takes half its excess from that point when the pass
+    is off (net = signal − (left + right)/2, C62's mechanism); at factor 10
+    the point is restored within 0.1 % and every other point is the same;
+  - a 4 × 10⁵-count zinger in the signal box, or in a background box, of a
+    5000-count peak is the only pixel corrected at factor 10, and the sum
+    returns to the clean one within 0.2 %;
+  - a clean peak is untouched, and so is a pixel outside the boxes;
+  - on a frame with no background at all, six real counts in one pixel are
+    removed even at factor 40 (as coded: the floor of an empty frame is
+    about 4). C62's realistic sparse frames (with background) never had a
+    clean frame touched at factor 10.
+- **Off by default** (the field empty; its old .ui default 10 is gone), so
+  no output number changes. C62's candidate default is factor 10 on the
+  three boxes, after the owner's sparse frames (DATA_NEEDS 16) and rule 12.
+
+Verified by: tested (7).
+
 ### 2026-11-25 — How much do reflectivity points scatter beyond counting statistics? (DATA_NEEDS row 15, MQ-3, C63)
 
 Verified by: a run of `tests/tools/excess_scatter.py` (known truth) and of the non-cloud agent's private

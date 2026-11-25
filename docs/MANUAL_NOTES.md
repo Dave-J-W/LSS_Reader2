@@ -123,11 +123,14 @@ Each line: feature — where — default — script — notes entry (date).
   overconfident: C58, tools man, 2026-11-25; the default is the owner's).
 - The dose in the burn dialog (F98, 2026-11-25): "Axis" fits the trends
   against time or the dose; "Dose in" photons (needs the Monc chamber's
-  gain) or Monc counts; "Beam (mm)" width (prefilled 1 mm, owner
-  2026-11-25) and height (greyed: from
+  gain) or Monc counts; "Beam (mm)" width (greyed: from the S1 horizontal
+  slit scans when one is accepted, else the owner's 1 mm; F109) and height (greyed: from
   the nearest sample-height scans, or the study's default; its tooltip
   says which) give a dose per mm² of footprint; "Fast mode" counts the
-  wall time (the shutter open between frames). Terms to define: dose,
+  wall time (the shutter open between frames). "Dose: …" beside them gives
+  the peak dose (at the beam's centre; the trends use it) and the average
+  over the area that receives most of it, with the most exposed 10 %
+  against the rest in its tooltip (F109). Terms to define: dose,
   footprint, fast mode.
 
 ### SpecPlot
@@ -171,6 +174,13 @@ Each line: feature — where — default — script — notes entry (date).
   worksheet and the two fit options open on the right of the tab area,
   tabbed together. Each scrolls inside its dock. Close hides it; drag its
   title to another edge, or double-click it to float it as a window.
+- "Bad Pixel Correction fac" (Reflectivity tab; F95 B3, 2026-11-25): a
+  bad-pixel pass over the reflectivity ROI's three boxes (signal and
+  backgrounds), on the frame's counts before the sums. Empty (the default)
+  means none. Set, its corrections are listed with the result. main man's
+  study (C62) found factor 10 removes 90 % of hot pixels on sparse frames
+  without touching clean ones; it stays off until the owner's own sparse
+  frames are checked (rule 12).
 - Window titles (F95, Q-UI-B10, 2026-11-25): each dialog's title says what
   it is (Ref Patch, Burn test, GIOXS, MCA merge, Plot scale, ...); they
   were "Dialog" or "Scan Details".
