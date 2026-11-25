@@ -652,6 +652,7 @@ STATUS = [
     C('errorsBadgeLabel', 'legacy errors', kind='badge'),
     C('normBadgeLabel', '/ Monc', kind='badge'),
     C('patchBadgeLabel', 'joint patch', kind='badge'),
+    C('readOnlyLightLabel', 'read-only', kind='badge'),
 ]
 
 STATE_BAR = [
