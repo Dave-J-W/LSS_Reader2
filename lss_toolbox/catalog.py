@@ -411,6 +411,23 @@ TOOLS = (
          ),
          repo_out='docs/studies/qoff', repo_ok=False),
 
+    Tool('guard_error_study', 'The guard\'s error: why join error bars are too small on real data', 'refl', 'figures',
+         'tests/tools/guard_error_study.py',
+         'Study A\'s six joins with hidden per-point scatter (0-3 %): today\'s error rule against inflating by the '
+         'unguarded fit\'s chi2, the larger inflation, the larger error, the guard off, and an oracle per-point '
+         'budget; the NX school split. Figures G1-G3: only honest per-point errors fix both smooth and fringed joins.',
+         committed=('docs/studies/guard_error',),
+         docs=('docs/studies/guard_error/summary.md', 'docs/studies/ref_patch_real/summary.md',
+               'docs/COMPARISONS.md#| C61 |'),
+         data='public', defaults={'--out': 'docs/studies/guard_error'},
+         variations=(
+             V('Quick look', 'Every figure from 40 replicates per case (about 5 s): the pattern, not the decimals.',
+               'docs/studies/guard_error/summary.md#400 replicates per join and condition', reps='40'),
+             V('Synthetic only', 'Without the NX school split (3 scans long enough: too few to decide).',
+               'docs/studies/guard_error/summary.md#too few to decide anything', no_nx=True),
+         ),
+         inputs=(NX,), repo_out='docs/studies/guard_error', seconds=35),
+
     Tool('ref_guard_study', 'Study A: how strict the joint fit\'s guard should be', 'refl', 'figures',
          'tests/tools/ref_guard_study.py',
          'The guard\'s p from 0.001 to 0.9, the guard off, an AICc average and the legacy factor on C45\'s six '
@@ -942,6 +959,22 @@ TOOLS = (
                       'agent\'s private generator (sample_data/private/sh_beam/); not regenerable here; the numbers '
                       'behind the figures are the CSVs beside them.',
          committed=('docs/studies/sh_beam_size',), docs=('docs/studies/sh_beam_size/summary.md', 'docs/studies/sh_beam_size/height_scans.md'),
+         data='private', repo_ok=False),
+    Tool('gid_stray_light_private', 'GID stray light over many sets (private data)', 'external', 'external',
+         demonstrates='P40 on every private GID set (DATA_NEEDS row 10): light past S5 and beyond the footprint at '
+                      'both arm heights, per beamtime, and the beam-path background from frames with the sample '
+                      'lowered. Made by the non-cloud agent\'s private generator (sample_data/private/gid/); not '
+                      'regenerable here; the numbers behind the figures are the CSVs beside them.',
+         committed=('docs/studies/gid_stray_light',), docs=('docs/studies/gid_stray_light/summary.md',),
+         data='private', repo_ok=False),
+    Tool('gid_method_survey_private', 'GID defaults judged on many sets (private data)', 'external', 'external',
+         demonstrates='Hand-off 06 on every private GID set (DATA_NEEDS row 12): the S4-detector distance '
+                      'calibration per beamtime, the column responses ranked by frames agree, the joins as '
+                      'collected and fitted, the split test and the single frames as ground truth. Made by '
+                      'tests/tools/gid_method_survey.py on the private sets and the non-cloud agent\'s private '
+                      'aggregation (sample_data/private/gid/); not regenerable here; the numbers are the CSVs beside them.',
+         committed=('docs/studies/gid_method_survey',), docs=('docs/studies/gid_method_survey/summary.md',
+                                                              'docs/handoff_out/06-gid-method-comparison.md'),
          data='private', repo_ok=False),
     Tool('xr_burns', 'Real reflectivity burns: trends, dose or time (private data)', 'external', 'external',
          demonstrates="The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): the drift "

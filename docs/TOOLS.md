@@ -71,6 +71,7 @@ container on 2026-11-23 with the defaults shown.
 | [Why five gauntlet joins are biased (extension 4)](#ref-patch-biased-joins) | data | The default joint fit's five biased designed joins and the covariance study's first join, redrawn with the gauntlet's seeds and fitted with the guard off, other orders and windows, noise-free. | synthetic (public) | 15 s | `docs/comparisons_data/ref_patch_biased_joins` |
 | [Do joins need coincident Qz? (synthetic)](#coincidence-synth) | figures | Two synthetic scans of known curves meeting at a join with no overlap, k coincident points, a staggered overlap or a coarser second grid, fitted by every patching method and scored against the truth: bias, pull SD, error size, share answered. | synthetic (public) | 10 s | `docs/studies/coincident_points` |
 | [Qoff and Qc of R/R_F: the proposer's study (F79)](#qoff-study) | figures | Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and least squares) and the joint Qc + Qoff fit against the truth over offsets, samples, counts, outliers, resolution, a wrong Qc and the reader's patch; the NX school scans at the GUI's preset and at the proposals: figures Q1-Q5. | public (NX school or committed tables) |  | `docs/studies/qoff` |
+| [The guard's error: why join error bars are too small on real data](#guard-error-study) | figures | Study A's six joins with hidden per-point scatter (0-3 %): today's error rule against inflating by the unguarded fit's chi2, the larger inflation, the larger error, the guard off, and an oracle per-point budget; the NX school split. Figures G1-G3: only honest per-point errors fix both smooth and fringed joins. | public (NX school or committed tables) | 35 s | `docs/studies/guard_error` |
 | [Study A: how strict the joint fit's guard should be](#ref-guard-study) | figures | The guard's p from 0.001 to 0.9, the guard off, an AICc average and the legacy factor on C45's six joins (C45 reproduced first), a downstream fit, the NX school joins beside the foil ratio, and a robustness map over fringe sampling and counts, on coinciding and staggered grids: figures A1-A8, R and RS. | public (NX school or committed tables) | 54 s | `docs/studies/reflectivity_guard` |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
 | [Downstream fits with and without the covariance](#covariance-pulls) | data | Synthetic NX-like scans of a 25 Å film reduced by each patch method and fitted for thickness, density and roughness under four error treatments: pull SD is 1 only with the full covariance. | synthetic (public) | 3 s | `docs/comparisons_data/downstream_covariance` |
@@ -140,6 +141,8 @@ container on 2026-11-23 with the defaults shown.
 |---|---|---|---|---|---|
 | [Absorber steps and foils (hand-off 03 answer)](#absorber-answer-figures) | external | Figures of the owner's analysing repository (tools/absorber_steps.py, absorber_review.py, absorber_trust.py) from private data: measured steps, foil fits, the review of anomalous joins. Not regenerable here; the numbers behind them are in figdata/ and joins.csv. | private (not in the repository) |  | `docs/handoff_out/03-answer/figures` |
 | [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, the guards, rise against fall and what the meniscus does. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
+| [GID stray light over many sets (private data)](#gid-stray-light-private) | external | P40 on every private GID set (DATA_NEEDS row 10): light past S5 and beyond the footprint at both arm heights, per beamtime, and the beam-path background from frames with the sample lowered. Made by the non-cloud agent's private generator (sample_data/private/gid/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/gid_stray_light` |
+| [GID defaults judged on many sets (private data)](#gid-method-survey-private) | external | Hand-off 06 on every private GID set (DATA_NEEDS row 12): the S4-detector distance calibration per beamtime, the column responses ranked by frames agree, the joins as collected and fitted, the split test and the single frames as ground truth. Made by tests/tools/gid_method_survey.py on the private sets and the non-cloud agent's private aggregation (sample_data/private/gid/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/gid_method_survey` |
 | [Real reflectivity burns: trends, dose or time (private data)](#xr-burns) | external | The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): the drift rate against flux and the dose-or-time verdicts per series. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. The frame-by-frame curves (B1) are private (owner, 2026-11-25). | private (not in the repository) |  | `docs/studies/xr_burns` |
 | [Qz resolution near the critical edge (private data)](#qz-resolution) | external | The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NEEDS row 13, F79): the resolution per run and S1 gap, the fit's sensitivity, a known-truth check and the coverage of the fits' errors. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/qz_resolution` |
 | [Reflectivity patching on real series (private data)](#ref-patch-real) | external | Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the non-cloud agent from tests/tools/ref_patch_survey.py on private files; not regenerable here; the numbers are the CSVs beside the figure. | private (not in the repository) |  | `docs/studies/ref_patch_real` |
@@ -430,6 +433,26 @@ Variations:
 | Resolution | A Qz resolution of 0.0002 to 0.001 Å⁻¹ FWHM smears the edge and reads as a negative Qoff. | `docs/studies/qoff/summary.md### 3. Resolution` | `python tests/tools/qoff_study.py --out '{out}' --design resolution` |
 | A wrong Qc | 1 M NaCl reduced at water's Qc and the other way round: Qoff absorbs the error one for one; the joint fit lies on Qc − Qoff = constant. | `docs/studies/qoff/summary.md### 4. A wrong Qc, and Qc with Qoff` | `python tests/tools/qoff_study.py --out '{out}' --design qc` |
 | More replicates (200) | Every design with 200 replicates (about 15 min). | `docs/studies/qoff/summary.md### 1. Do they find the offset?` | `python tests/tools/qoff_study.py --out '{out}' --replicates 200` |
+
+<a id="guard-error-study"></a>
+
+### The guard's error: why join error bars are too small on real data
+
+Study A's six joins with hidden per-point scatter (0-3 %): today's error rule against inflating by the unguarded fit's chi2, the larger inflation, the larger error, the guard off, and an oracle per-point budget; the NX school split. Figures G1-G3: only honest per-point errors fix both smooth and fringed joins.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/guard_error_study.py`
+- Explained in: `docs/studies/guard_error/summary.md`, `docs/studies/ref_patch_real/summary.md`, `docs/COMPARISONS.md#| C61 |`
+- Committed products: `docs/studies/guard_error`; replaced from the window with the settings that made them (into `docs/studies/guard_error`)
+- Run:
+
+      python tests/tools/guard_error_study.py --out docs/studies/guard_error
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Quick look | Every figure from 40 replicates per case (about 5 s): the pattern, not the decimals. | `docs/studies/guard_error/summary.md#400 replicates per join and condition` | `python tests/tools/guard_error_study.py --out docs/studies/guard_error --reps 40` |
+| Synthetic only | Without the NX school split (3 scans long enough: too few to decide). | `docs/studies/guard_error/summary.md#too few to decide anything` | `python tests/tools/guard_error_study.py --out docs/studies/guard_error --no-nx` |
 
 <a id="ref-guard-study"></a>
 
@@ -1160,6 +1183,26 @@ The beam's vertical profile at the sample from the rising edge of every height s
 - Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
 - Explained in: `docs/studies/sh_beam_size/summary.md`, `docs/studies/sh_beam_size/height_scans.md`
 - Committed products: `docs/studies/sh_beam_size`; not replaced from the window
+
+<a id="gid-stray-light-private"></a>
+
+### GID stray light over many sets (private data)
+
+P40 on every private GID set (DATA_NEEDS row 10): light past S5 and beyond the footprint at both arm heights, per beamtime, and the beam-path background from frames with the sample lowered. Made by the non-cloud agent's private generator (sample_data/private/gid/); not regenerable here; the numbers behind the figures are the CSVs beside them.
+
+- Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
+- Explained in: `docs/studies/gid_stray_light/summary.md`
+- Committed products: `docs/studies/gid_stray_light`; not replaced from the window
+
+<a id="gid-method-survey-private"></a>
+
+### GID defaults judged on many sets (private data)
+
+Hand-off 06 on every private GID set (DATA_NEEDS row 12): the S4-detector distance calibration per beamtime, the column responses ranked by frames agree, the joins as collected and fitted, the split test and the single frames as ground truth. Made by tests/tools/gid_method_survey.py on the private sets and the non-cloud agent's private aggregation (sample_data/private/gid/); not regenerable here; the numbers are the CSVs beside them.
+
+- Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
+- Explained in: `docs/studies/gid_method_survey/summary.md`, `docs/handoff_out/06-gid-method-comparison.md`
+- Committed products: `docs/studies/gid_method_survey`; not replaced from the window
 
 <a id="xr-burns"></a>
 
