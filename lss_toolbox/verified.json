@@ -608,7 +608,7 @@
   "verdict": "same"
  },
  "dump_tooltips": {
-  "commit": "942501a009",
+  "commit": "1a4b5c8772",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -626,10 +626,7 @@
    "python": "3.13.18",
    "scipy": "1.18.1"
   },
-  "modified": [
-   "lss_core/reflectivity.py",
-   "mainwindow.py"
-  ],
+  "modified": [],
   "modules": {
    "TwoDDetector.py": "cacf7c8dacbc4290",
    "comparetab.py": "60bfa3ad6462b8b2",
@@ -668,7 +665,7 @@
    "lss_core/stitching.py": "af4e152fd36e0dcf",
    "lss_core/trends.py": "687ff0ee1b74ae3a",
    "lss_core/workbook.py": "0f3b8e7fbc877ae8",
-   "lss_toolbox/catalog.py": "f0bf4c7aaeaaa922",
+   "lss_toolbox/catalog.py": "0da2706f005f57da",
    "lss_toolbox/compare.py": "783bae8d75ba7cd2",
    "lss_toolbox/fingerprint.py": "3ae81cd598e4ec8a",
    "lss_toolbox/introspect.py": "3ab708ed997dfcf0",
@@ -688,7 +685,7 @@
    "timelineview.py": "62c792d5abbf0f98"
   },
   "products": {
-   "docs/manual/controls.md": "c7a052bc982ccd57"
+   "docs/manual/controls.md": "da5043cde671a9df"
   },
   "reads": {
    "mainwindow.py": "351295eb357aa6f9",
@@ -1377,7 +1374,7 @@
   "verdict": "same"
  },
  "gui_map": {
-  "commit": "942501a009",
+  "commit": "1a4b5c8772",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -1395,10 +1392,7 @@
    "python": "3.13.18",
    "scipy": "1.18.1"
   },
-  "modified": [
-   "docs/gui/inventory/menus.yaml",
-   "mainwindow.py"
-  ],
+  "modified": [],
   "modules": {
    "tests/tools/gui_map.py": "a38d471fc76f2631"
   },
@@ -1434,7 +1428,7 @@
   "verdict": "same"
  },
  "gui_screens": {
-  "commit": "55d8112257",
+  "commit": "1a4b5c8772",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -1452,9 +1446,7 @@
    "python": "3.13.18",
    "scipy": "1.18.1"
   },
-  "modified": [
-   "lss_toolbox/catalog.py"
-  ],
+  "modified": [],
   "modules": {
    "TwoDDetector.py": "cacf7c8dacbc4290",
    "comparetab.py": "60bfa3ad6462b8b2",
@@ -1489,7 +1481,7 @@
    "lss_core/preferences.py": "cde2cdd47924ec27",
    "lss_core/readerlock.py": "5d36feedd34c5b84",
    "lss_core/reciprocity.py": "617ab5d4e0cfc06f",
-   "lss_core/reflectivity.py": "4b1580d9798d2745",
+   "lss_core/reflectivity.py": "04253e4e329a02e9",
    "lss_core/residuals.py": "0292e57020900835",
    "lss_core/resources.py": "d62d494a88757e2c",
    "lss_core/scanaxes.py": "5dbb3f0528ad2d68",
@@ -1500,7 +1492,7 @@
    "lss_core/trends.py": "687ff0ee1b74ae3a",
    "lss_core/uncertainty.py": "9cc2848f5ade825c",
    "lss_core/workbook.py": "0f3b8e7fbc877ae8",
-   "lss_toolbox/catalog.py": "f0bf4c7aaeaaa922",
+   "lss_toolbox/catalog.py": "0da2706f005f57da",
    "lss_toolbox/compare.py": "783bae8d75ba7cd2",
    "lss_toolbox/fingerprint.py": "3ae81cd598e4ec8a",
    "lss_toolbox/introspect.py": "3ab708ed997dfcf0",
@@ -1509,7 +1501,7 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "c4530fb9c2f99e72",
+   "mainwindow.py": "351295eb357aa6f9",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
    "mplwidget.py": "437655a13b3d5ac2",
@@ -1603,7 +1595,7 @@
   "reads": {
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "c4530fb9c2f99e72",
+   "mainwindow.py": "351295eb357aa6f9",
    "mainwindow.ui": "073ed202167ced0a",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",
@@ -2072,7 +2064,7 @@
   "verdict": "same"
  },
  "ngui_screens": {
-  "commit": "55d8112257",
+  "commit": "1a4b5c8772",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -2093,7 +2085,7 @@
   "modified": [],
   "modules": {
    "ngui/__init__.py": "ad2e13b69c4fc1fd",
-   "ngui/inventory_text.py": "1877571911f7700f",
+   "ngui/inventory_text.py": "da9f968e72c59a22",
    "ngui/layout.py": "f343d97e9e76953e",
    "ngui/theme.py": "44039650e1ebb95c",
    "ngui/window.py": "2e907c9fd80568b2",
