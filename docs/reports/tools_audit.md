@@ -102,5 +102,8 @@ images differ").
 
 Two lessons for the tool, built in: a pixel difference can come from the
 environment, so run records name the libraries; and a table with a timing
-column needs comparing without it.
+column needs comparing without it. (The second was claimed here but the audit still compared
+tables byte for byte, so `ref_patch_survey` read "joins.csv: differs" from
+its `seconds` column alone; since 2026-11-24 `compare.tables_same` leaves
+out a CSV's `seconds` columns, measured: `ref_patch_survey` 4 / 0 / 0.)
 

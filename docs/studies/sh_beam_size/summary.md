@@ -15,6 +15,12 @@ scan's own fitted edge, binned over many scans, so no motor position, count,
 image, scan number, file name or date is published. Tools menu: "sh-scan beam
 size (private data)" (external, not regenerable from the repository).
 
+**Single scans and their fits:** [`height_scans.md`](height_scans.md) shows real height scans with
+their fits and residuals, what the guards reject, both edges compared and what the meniscus does
+(figures S6–S9; the owner made height-scan ROI data unrestricted on 2026-11-24, so single curves
+are published there, still without file names, scan numbers or dates). It also refines one point here:
+the falling edge is a cut through the same beam too (its width follows the rise's), not loss alone.
+
 ## The answer, in four lines
 
 1. **Yes, but not from half-cuts.** Users do the half-cut by hand on the live
@@ -109,7 +115,7 @@ into the ROI and almost none are lost (the images' balance: lost ≤ 3 % up to
 the plateau in the scans examined). Raising further moves the footprint upstream until the
 curved upstream end starts losing light (transmission past the critical
 angle). **That falling side is a loss edge of the surface, not a beam edge,
-and is never used here.**
+and is never used here.** (It does sweep through the same beam, though: see `height_scans.md`.)
 
 Sizes of the distortions (derived from the geometry, not measured):
 

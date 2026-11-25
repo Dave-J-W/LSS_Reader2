@@ -113,9 +113,15 @@ def _main():
     ap.add_argument('--nx', action='store_true')
     ap.add_argument('--poisson-monitor', action='store_true', help='Monc with Poisson noise (before 2026-11-22)')
     ap.add_argument('--out', default=os.path.join(ROOT, 'docs', 'comparisons_data', 'downstream_covariance'))
+    ap.add_argument('--guard-p', type=float, default=None,
+                    help='the joint fit\'s guard (default: %g, as C35 was run; the reader\'s default is 0.7 since '
+                         '2026-11-24); give an --out outside the committed record' % GUARD_P_AS_RUN)
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     warnings.simplefilter('ignore')
+    if a.guard_p is not None:
+        from lss_core import patching as _patching
+        _patching.GUARD_P = a.guard_p
     rows = run(a.plan, a.seeds, poisson_monitor=a.poisson_monitor)
     write(os.path.join(a.out, 'pulls_%s%s.csv' % (a.plan, '_poisson_monitor' if a.poisson_monitor else '')), rows)
     for r in rows:

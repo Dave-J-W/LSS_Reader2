@@ -52,6 +52,7 @@ exists.
 | I39 | The dose of a point is what the reduction already divides by: in monitor counts it is the point's weight in "Sum All", M/(A·g) (`cuts.frame_normaliser`); in photons, the flux route's photons/s × its seconds / A (`flux.photons_per_second`); a scan's dose is the sum of its points'; at a constant monitor rate and absorber the dose axis is the exposure axis × that rate, so a burn's dose limit is its time limit × the rate | `test_dose.py` (every test; the last on the synthetic burn, to 1e-6) | 2026-11-24 |
 | I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
 | I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own` | 2026-11-24 |
+| I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5802,6 +5803,84 @@ and the Compare tab. Verified by: tested (`tests/test_compare.py`,
   No output number changes.
 
 
+### 2026-11-24 — Real scatter in MCA spectra against the synthetic generator (DATA_NEEDS rows 2 and 3)
+
+The owner's non-cloud agent searched the private beamline data for real
+examples of the scattered beam (Rayleigh, Compton and its low-energy wing,
+Si escape peaks). It fitted them with the generator's own physics
+(`tests/synthetic/mca.py`), every uncertain axis free, by Poisson
+likelihood. Study: `docs/studies/mca_scatter/summary.md`; tool:
+`tests/tools/mca_scatter.py`; per-example numbers:
+`docs/studies/mca_scatter/quantities.csv`. No spectrum is committed: blank
+candidates wait for the owner's yes (listed in the summary).
+
+**Row 2 (where the spectra are), answered.**
+- No SPEC data file holds a spectrum: 1043 MCA files from 12 runs were
+  checked.
+- The scan's block has `#V <datafile>_<scan>_mca`, a pointer only. It is
+  missing from some `a2scan`, `ascan` and `escan` blocks whose file exists.
+- The spectra are in `vortex/<datafile>_<scan>_mca`:
+  - one `mca_save_point Point:p Scan:s` block per point and per detector
+    element;
+  - each block carries `#@CALIB`, `#@CTIME`, `#Energy`, `#Q` and `#Monc`.
+
+**Row 3 (blanks), answered as far as the data go.**
+- **The blanks.** No pure-water blank was recorded. Two kinds of spectra
+  stand in for one:
+  - spectra with no line near the scatter: energy-scan points below the
+    studied edge, aligned and summed;
+  - 10 keV scans with only traces of Cu and Zn.
+- **Coverage.** 6.1, 7.2, 7.4, 8.3, 9.2 and 10 keV beams, on two readouts;
+  30 good fits.
+- **Si escape.** Reed's fraction × 1.01–1.12 at 6–7.4 keV, × 1.27–1.44 (fit)
+  or 1.46–1.55 (template) at 8.3–9.2 keV on readout B, and × 0.8–1.0 at
+  10 keV on readout A.
+  - At 10 keV, Cu Kα (8.04 keV) sits on the Compton escape and hides it in
+    most scans.
+- **O 1s Compton wing.** A water-sized wing (the generator's) is rejected
+  by every spectrum: the deviance rises by 38–1600, scaled.
+  - Readout A, 10 keV: 0.78–0.87 of water's. Zero is also rejected.
+  - Readout B: 0–0.35. It trades against a broad detector tail.
+- **Under a line** (E0 − 1.55 keV to the Compton peak − 0.35 keV), against
+  study B's hard case:
+  - readout A, 10 keV: 1.03–1.23 ×;
+  - readout B: 1.5–1.75 × at 10 keV and 1.9–3.2 × at 6–9 keV, because of
+    detector tails the generator lacks (a low tail of 3–12 % with a
+    0.3–0.5 keV decay, and a high-energy tail of up to 11 %).
+- **Resolution.** −9 … +15 % of the generator's default (one run +45 %).
+- **Compton.** The momentum widths are water's to 5 % on readout A.
+
+**What it means for F90.**
+- The window sum's failure (study B) holds on real data, more strongly on
+  readout B.
+- The 10 keV Zn case stays out of reach: the wing is 0.8, between B7's ½
+  and 1.
+- A third axis, the detector's own tails, is missing from B7.
+- No default and no generator value was changed: synthetic MCA work is
+  paused (owner, 2026-11-24).
+
+**The Zn box (8.26–9.00 keV) at 10 keV.** It holds 0.020 of the elastic
+photopeak counts on readout A and 0.062 on readout B. The generator gives
+0.014 and 0.021 at the same photons and angle; study B's hard case is about
+0.008. The Fe box (6.24–6.56 keV) holds 0.003–0.021 of the elastic at
+7.2–9.2 keV.
+
+**P1 on real data (C53).** 19 series of 21 repeated spectra at 10 keV, with a
+line near 8 keV on the Compton and elastic escapes, fitted with the reader's
+`peaks.fit_series`. The truth is the summed spectrum's fit / N.
+- **Data weights:** −28.0 % ± 1.4 % at 25–50 line counts, −27 % at 200,
+  −4 % at 1470, and about −1 % by 3000. That is not study B's −19/N: the
+  background here is far larger.
+- **P1:** +3.5 % ± 1.5 % at 25–50 counts, and within its errors from 200
+  counts up.
+- So the default (P1) is confirmed on real data.
+
+**Not in the data:** 10.05, 10.52 and 30 keV.
+
+Verified: measured (fits to the private spectra; the reader's own
+`fit_series` for C53). The model recovers a known wing, escape and tail on
+synthetic data (`tests/test_mca_scatter.py`, slow).
+
 ### 2026-11-24 — The beam's vertical size at the sample, from height scans (DATA_NEEDS row 9, F43, OQ-2)
 
 Verified by: measurement on private data by the non-cloud agent (spec files and Pilatus images of 21 runs);
@@ -5841,3 +5920,94 @@ the geometry argument is derived, not measured. Study: `docs/studies/sh_beam_siz
 - **Still open for the owner:** whether the peak dose (this rule) or the footprint-average is the dose meant
   (OQ-2's last part); the width (not measured here); the upper tail's share of light transmitted through the
   downstream meniscus.
+
+### 2026-11-24 — The beam's height for the dose, from the height scans (the local data agent's rule, #60)
+
+Verified by: tests (`test_beam_height.py`, I42) on synthetic knife edges; a run on NX school's height scans
+(public). The rule and its numbers are the local data agent's study (`docs/studies/sh_beam_size/summary.md`).
+
+- **What the study found:** the rising edge of a routine height scan is a knife edge of the beam. The
+  dose's height is √(2π)·σ_rise = 1.0645 × `fit_box`'s rising FWHM, which gives the peak dose per area. The
+  default is 0.040 mm (±15 %) at 10 keV with S1 ≤ 0.04 mm.
+- **What the reader does now:** `exp.beam_height(scans=None, near=None)` applies `dose.rising_edge` to every
+  height scan. It uses `peaks.is_height_scan`, the first column as the height and Pilatus/Monc as the signal,
+  with Poisson + 1 % weights.
+  - **The study's guards:** the first point below 25 % of the peak; at least 2 points on the edge; the
+    centre inside the scan; the edges more than 3 σ apart; χ²/dof ≤ 20.
+  - **The height:** 1.0645 × the median rising FWHM of the accepted scans.
+  - **With `near=n`:** only the scans with n's S1 gap count (S1T + S1B; whether these are half-openings is
+    OQ-1), and the nearest `NEAR_SCANS` = 3 of them are used. The 3 is an assumption.
+  - **Without an accepted scan:** the default where its conditions hold, otherwise no height, with the reason.
+- **NX school, run:**
+  - Scans 5, 10 and 13 are accepted: rising FWHM 0.029–0.032 mm, height 0.0333 mm, scatter 3.8 %.
+  - Scan 4 is refused: the stopped scan starts at 54 % of the peak.
+  - At S1 0.016 mm that is a little below the study's run medians, 0.035–0.045 mm.
+  - Burn 14 ran with S1 at 0.100 mm, so `near=14` gives no height. Its height scans were at 0.016 mm, and the
+    default is only for ≤ 0.04 mm. That refusal is the rule working: the beam depends on the gap.
+- **The width is not measured** (the study: about 1.05 mm between the 5 and 95 % points in one earlier
+  image study), so `beam_mm` takes it as typed.
+
+### 2026-11-24 — The owner: sample-height scans from the ROI are unrestricted data
+
+Verified by: the owner's statement in the orchestrator's session ("sample height scans from ROI are
+unrestricted data"). So the ROI counter, monitor and sh columns of sample-height scans, and anything derived
+from them, may be published: per-scan curves, edges, widths, and the inventory behind the beam-height study
+(#60), if the local data agent wishes. Detector images of those scans stay private, as do the other private
+data and their identifiers (names, scan numbers, dates) unless the owner says otherwise. Recorded in
+AGENTS.md's row for `sample_data/private/`.
+
+### 2026-11-24 — Review of the covariance export (owner: "review their subject areas")
+
+Checked on origin/main 9e706a7: the export's own tests, the reflectivity
+tests and the window's Ref Patch since the GUI work (F96 Back, F92 masks,
+F81 repeats as ΣN/ΣM, the one-point-overlap error, the guard at p 0.7).
+The sidecars still match the written files: tested again, and new tests
+cover Back after a Drop, masked reductions and the §3.1 linear fallback.
+One defect, fixed: the Script pane's line for an Export with "+
+covariance" said `ref.save(name)`, so a script wrote no sidecars. It now
+says `covariance='sidecar'` (tested by running it).
+
+Measured: at the new guard p 0.7 the joint chain's Σ is about 10 % small
+at every join (scan-level pull SDs 1.11–1.15, 300 seeds). Downstream
+fits with the covariance stay honest (pull SDs 0.98–1.11). Report §6;
+the remedy is the owner's (TODO B2, with C45's question).
+
+Read only: in the contract layout, `_ref_legacy.txt` is the legacy
+factor fit on the scans as the result holds them. With repeats merged
+as ΣN/ΣM (F81, the default since 2026-11-23) it is therefore not the
+pre-2026-11-22 file for reductions with repeats.
+
+### 2026-11-24 — What a height scan tells you, and both of its edges (the owner's question on the fits)
+
+Verified by: measurement on private spec files by the non-cloud agent (1995 accepted height scans, 21 runs);
+the sketch is derived. Study: `docs/studies/sh_beam_size/height_scans.md` (figures S6–S9).
+
+- **Single scans, fitted, are now shown** (the owner made height-scan ROI data unrestricted): one accepted scan
+  per class and one rejected scan per guard, with residuals. χ²/dof is 3–13 (10–90 %), not 1, because one erf
+  misses the beam's core + tail: points sit above the fit in the foot and wobble about the edge. The per-scan
+  fit error on σ_rise (median 1.0 µm) equals the scan-to-scan scatter within a run (median 1.0 µm).
+- **Correction to the entry above: the falling edge is also a cut through the beam, not only "loss".** The
+  rise and fall widths are rank-correlated scan to scan in all 21 run series (ρ +0.29 to +0.79, median
+  +0.57). σ_fall / σ_rise is 0.89 at 10 keV in the full fit, and 0.96 when each edge is fitted on its own
+  half with a sloping plateau (6–8 keV: 0.98 and 1.03). So both ends of the trough see the same beam. The
+  fall stays a cross-check only: its position depends on α_c − α, the reflectivity and the ROI.
+- **The residual shape matches the images.** One erf fitted to the images' median core + tail (13.5 / 56 µm,
+  29 %) has σ = 16.2 µm, against σ_rise 15–17 µm at 10 keV, and leaves the same wiggle the ROI scans show.
+- **Meniscus.** The curved ends set where the knife cuts (the tangent point) and the plateau length (α × the
+  flat length), not the rise's width. Too short a plateau is rejected. A non-flat plateau narrows the full
+  fit's σ_fall by about 9 % and σ_rise by about 2 %. Within a run σ_rise falls slightly as the plateau
+  lengthens (median ρ −0.20), unexplained, about 1 µm.
+- **How sure:** a run's median σ_rise ± 0.3 µm statistically; as a size, about ± 10 % (one erf for a core +
+  tail profile). No number of the dose rule changes.
+
+### 2026-11-25 — The owner: frame-by-frame curves of private burns are not published
+
+Verified by: the owner's answer in main man's session, on PR #68's figure B1 (each real reflectivity burn frame
+by frame, normalised to its first frames, against time and dose, about 19 anonymised series): "Don't publish
+B1, but don't forget how to make it!" So such curves of private data stay private, normalised and anonymised
+or not; the summary values (each burn's rate, the series' β and verdict, the CSVs of PR #68) are published.
+The figure and its generator are kept under `sample_data/private/` (git-ignored), and the public study page
+names the script and the command that regenerates it. A figure must not be removed by a later commit only:
+the commit that added it would reach main's history, so the branch is rebuilt without it. Recorded in
+AGENTS.md's row for `sample_data/private/`.
+

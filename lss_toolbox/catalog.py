@@ -157,13 +157,15 @@ TOOLS = (
          docs=('docs/reports/patch_demo.md', 'docs/handoff_out/07-burn-trends.md'),
          defaults={'--mode': 'burn'},
          variations=(
-             V('Fade', 'Intensity falls at constant shape: every estimator should see it as intensity only.',
-               'docs/SYNTHETIC_DATA.md#**GID burn profiles**', mode='burn', set='change=fade'),
+             V('Fade', 'Intensity falls at constant shape; every estimator under-reads it (the window holds part of the '
+               'shoulder), and the Gaussian fit also reads a +13 % broadening.',
+               'docs/reports/patch_demo.md#fade: spurious FWHM', mode='burn', set='change=fade'),
              V('Broadening at constant area', 'The template estimator reads a broadening as a shift and a gain '
                '(the report\'s caveat on the default estimator).', 'docs/reports/patch_demo.md#Gaussian fit reads a fade as +13 % FWHM',
                mode='burn', set='change=broaden'),
-             V('Fade under a 3x shoulder', 'A peak fading under a broad shoulder: where moments mislead.',
-               'docs/SYNTHETIC_DATA.md#**GID burn profiles**', mode='burn', set='change=shoulder'),
+             V('Fade under a 3x shoulder', 'A peak fading by 20 % under a broad shoulder: the template reads -9 %, the '
+               'moments -4 %, the Gaussian fit a gain (+3 %).',
+               'docs/reports/patch_demo.md#fade under a 3× shoulder (−20 %)', mode='burn', set='change=shoulder'),
              V('Low counts (monitor 1e5)', '"Lower monitor until each estimator fails": the counts per frame at '
                'which each estimator becomes unusable.', 'docs/handoff_out/07-burn-trends.md#4. **Noise level.**',
                mode='burn', set='monitor=1e5'),
@@ -235,7 +237,7 @@ TOOLS = (
                'docs/SYNTHETIC_DATA.md#(Qc/2Qz)⁴ with a', set='thickness=250'),
              V('Staggered overlaps', 'No coinciding points at the joins: the coinciding-points ratio is unavailable, '
                'curve models must interpolate.', 'docs/reports/patch_demo.md#**Reflectivity controls**: truth', set='plan=nx_staggered'),
-             V('Critical-edge aside', 'A staggered overlap across Qc (P1): the legacy factor is 16.7 % low; the '
+             V('Critical-edge aside', 'A staggered overlap across Qc (P1): the legacy factor is 16.6 % low; the '
                'owner does not patch there.', 'docs/reports/patch_demo.md#the default joint fit is +2.44 %', set=['truth=water', 'plan=edge']),
              V('Counts x100', 'Every method within 0.15 % of the truth: what remains is bias, not noise.',
                'docs/reports/patch_demo.md#0.15 % of', set='counts=100'),
@@ -776,6 +778,21 @@ TOOLS = (
          inputs=('docs/studies/mca_fit/gauntlet',),
          repo_out='docs/studies/mca_fit', repo_ok=False),
 
+    Tool('mca_scatter', 'Scatter in real MCA spectra against the generator (F90)', 'fluo', 'figures',
+         'tests/tools/mca_scatter.py',
+         "Real spectra of the scattered beam at 6-10 keV fitted with the synthetic generator's own physics, every "
+         "uncertain axis free: the Si escape fraction against Reed's, the O 1s Compton wing, the detector tails, the "
+         "resolution and the counts under a line against study B's hard case (DATA_NEEDS row 3); and P1 against data "
+         "weights on real series of repeated spectra. From the anonymised tables only.",
+         committed=('docs/studies/mca_scatter',),
+         docs=('docs/studies/mca_scatter/summary.md', 'docs/DATA_NEEDS.md#MCA fit gauntlet spectra',
+               'docs/studies/mca_fit/summary.md'),
+         data='public', defaults={'--out': OUT},
+         variations=(V('Numbers against beam energy only', 'S2 from the anonymised table (a few seconds).',
+                       'docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |', only='S2'),),
+         inputs=('docs/studies/mca_scatter/scatter_fits.csv', 'docs/studies/mca_scatter/quantities.csv'),
+         repo_out='docs/studies/mca_scatter', seconds=8.0),
+
     # ------------------------------------------------------------ the reader's window
     Tool('gui_screens', 'Screenshots of every area of the window', 'gui', 'figures',
          'tests/tools/gui_screens.py',
@@ -854,10 +871,11 @@ TOOLS = (
     Tool('sh_beam_size', 'sh-scan beam size (private data)', 'external', 'external',
          demonstrates='The beam\'s vertical profile at the sample from the rising edge of every height scan and the '
                       'direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the '
-                      'core + tail profile, the factor to the dose height, a liquid half-cut. Made by the non-cloud '
+                      'core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, '
+                      'the guards, rise against fall and what the meniscus does. Made by the non-cloud '
                       'agent\'s private generator (sample_data/private/sh_beam/); not regenerable here; the numbers '
                       'behind the figures are the CSVs beside them.',
-         committed=('docs/studies/sh_beam_size',), docs=('docs/studies/sh_beam_size/summary.md',),
+         committed=('docs/studies/sh_beam_size',), docs=('docs/studies/sh_beam_size/summary.md', 'docs/studies/sh_beam_size/height_scans.md'),
          data='private', repo_ok=False),
 )
 

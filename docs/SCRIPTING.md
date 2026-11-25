@@ -233,6 +233,9 @@ d.per_point, d.cumulative(), d.total(), d.unit, d.notes, d.bounds
 exp.dose(14, unit='monitor')                   # Monc counts at 5 uA/V with the absorbers taken out: M/(A g)
 exp.dose(14, beam_mm=(2.0, 0.1))               # photons/mm2 of footprint, for a beam of that width and height
 exp.dose(14, shutter='open')                   # fast mode: the beam also between points (from the point times)
+h = exp.beam_height(near=7)                    # the beam's height from the height scans' rising edge (#60's rule)
+h.height_mm, h.source, h.note, h.refused       # 1.0645 x the median rising FWHM; or the default 0.040 mm (10 keV, S1 <= 0.04)
+exp.dose(7, beam_mm=(1.0, h.height_mm))        # the peak dose per mm2 (the width typed: it is not measured)
 burn = exp.burn(14, axis='dose')               # trends against the dose; the limit is a dose
 burn.dose, burn.dose_unit, burn.dose_scale     # the axis: NX 14 in '1e+12 photons' (dose_scale 1e12), 28.9 at the end
 ```

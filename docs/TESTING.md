@@ -26,13 +26,15 @@ Times measured 2026-11-23 on a 4-CPU, 16 GB cloud container, parallel
 
 | Command | What | Time |
 |---|---|---|
-| `pytest` | fast suite: unit tests and GUI workflows on synthetic data | ~2 min (761 tests; 9 min 44 s in one process before 2026-11-23) |
+| `pytest` | fast suite: unit tests and GUI workflows on synthetic data | ~5 min (1176 tests, 2026-11-24: 6 min 13 s on 4 workers beside another agent's job, 861 s CPU in all, at most 1.6 GB per worker and 4.9 GB together; ~2 min at 761 tests on 2026-11-23; 9 min 44 s in one process before 2026-11-23) |
 | `pytest -m slow` | regressions on real data in `sample_data/` | ~4 min (487 tests; ~25 min in one process) |
 | `pytest -m bench -s` | timing table, rewrites `docs/timings.md` (always in one process) | ~30 s |
-| `pytest -m sweep` | crash inventory (see below); each state shared by 8 tests (`SWEEP_PARTS`), so more CPUs finish it sooner | ~20 min (193 tests; ~3 h in one process before 2026-11-23): longer than a foreground command may run, so start it in the background |
+| `pytest -m sweep` | crash inventory (see below); each state shared by 8 tests (`SWEEP_PARTS`), so more CPUs finish it sooner | ~9 min (194 tests, 2026-11-24, each control in a forked copy of the state window; 21 min 26 s building a window per control, `LSS_SWEEP_FORK=0`; ~3 h in one process before 2026-11-23): start it in the background |
 | `LSS_UPDATE_CRASHES=1 pytest -m sweep` | regenerate the crash baselines (always in one process) | longer: one process |
 | `LSS_SWEEP_TIMES=FILE pytest -m sweep` | also append each control's time (state, control, seconds) to FILE, to find a slow one | |
 | `pytest -n0 …` | in this one process (debuggers, `--pdb`) | |
+
+Test windows open at their minimum size (`w.resize(1, 1)` in the `window` fixture and the sweep's `make_window`; 2461 × 693 since the window grew, not `mainwindow.ui`'s 3367 × 1281): every plot is still drawn, on about 40 % of the pixels. Measured 2026-11-24 on three GUI test files, 107 s → 94 s of CPU (the archived commit 69d8585, ported).
 
 `slow`, `bench` and `sweep` are deselected by default (`pyproject.toml`).
 
@@ -77,7 +79,7 @@ cannot run on a current SciPy.
 |---|---|
 | `conftest.py` | Fixtures (below). Sets offscreen Qt and the working directory. |
 | `synth.py` | Writes synthetic SPEC, Pilatus TIFF and MCA files (outputs must not change; new generators go in `synthetic/`, see `docs/SYNTHETIC_DATA.md`). |
-| `sweep.py` | Drives the window: application states, control enumeration, fresh-window driver, random walks, `dispose`. |
+| `sweep.py` | Drives the window: application states, control enumeration, the fork driver (a forked copy of the state window per control) and the fresh-window driver, random walks, `dispose`. |
 | `test_walk_crashes.py` | Three crashes the sweep's random walks reached (2026-11-23), each fixed: the Ref Patch close-up with vertical background, SpecPlot's log scale with nothing positive, an empty typed Pilatus distance. |
 | `test_test_infrastructure.py` | The suite's own machinery: windows really freed, nothing left on disk, the parallel defaults. |
 | `test_plot_speed.py`, `test_mcafiles.py`, `test_gid_redraw.py` | Plots drawn fast and the same (MCA error bars as one path, `pcolor` maps as one mesh); MCA files parsed once per file version; the GID map regridded to Q once per map, not on every redraw (2026-11-23). |
@@ -212,10 +214,28 @@ The stated goal is that no sequence of selections and button presses raises.
 each of seven states (nothing loaded; SPEC file loaded; a motor scan, a
 Pilatus scan, one frame, two scans with all frames, or MCA frames selected).
 Every push button, check box, menu action, combo box, line edit and spin box
-is then triggered once, each in a fresh window. When a control opens a
-dialog, every control of that dialog is triggered as well. Each state is run
-twice: with every file dialog cancelled, and with every file dialog
-returning a usable path (keys ending `+paths`).
+is then triggered once, each starting from the window exactly as the state
+leaves it. When a control opens a dialog, every control of that dialog is
+triggered as well. Each state is run twice: with every file dialog
+cancelled, and with every file dialog returning a usable path (keys ending
+`+paths`).
+
+How each control gets its own window (2026-11-24, the archived commit
+29ade46 of 2026-11-22, ported): the window is built in the state once, and
+each control runs in a **forked copy** of it (`sweep._ForkDriver`). The copy
+starts with that window as it is (nothing rebuilt), triggers the control
+(and the dialog child), reports through a pipe and exits. The two files a
+fresh window reads, its output folder and the preferences file, are put
+back before each control, so no control sees what another did (more strictly
+than before: rebuilt windows shared the preferences file). A copy that dies
+or hangs becomes an inventory entry ('Signal11 @ child', 'Timeout @ child',
+`LSS_SWEEP_CHILD_TIMEOUT` seconds) instead of ending the run. Before a fork
+the driver waits until Qt's thread pool has no threads (its expiry is set to
+0 while the sweep runs). `LSS_SWEEP_FORK=0`, and every platform without
+fork, build a fresh window per control as before.
+`test_every_forked_copy_starts_from_the_state` and
+`test_a_child_that_dies_is_an_inventory_entry` (quick suite) and
+`test_fork_and_rebuild_trigger_the_same_controls` (in the sweep) check it.
 
 `tests/known_crashes.json` records every control that raises, with the
 exception type and the function it came from. The test fails if a control
