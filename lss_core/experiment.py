@@ -648,6 +648,62 @@ class Experiment:
         return dosemod.BeamHeight(fw * dosemod.HEIGHT_PER_RISE_FWHM, 'height scans', spread, edges, refused,
                                   'median rising FWHM %.4f mm of scans %s' % (fw, ', '.join(str(e.scan) for e in edges)))
 
+    def beam_width(self, scans=None, counter='Pilatus', monitor=None, motors=None):
+        """The beam's width at the sample for the dose (lss_core.dose,
+        BeamWidth, F109): √(2π)σx from the median FWHM of the accepted S1
+        horizontal slit scans among ``scans`` (default every scan of
+        ``motors``, dose.S1_H_MOTORS), each fitted by ``dose.slit_profile``
+        (a peak corrected for the scan's S1 gap, an edge, or a box); the
+        owner's 1 mm prefill when none is accepted. ``monitor``: None (the
+        default) uses the counter as recorded, since a monitor downstream of
+        S1 would divide the profile out."""
+        from . import dose as dosemod
+        motors = tuple(m.lower() for m in (motors or dosemod.S1_H_MOTORS))
+        cand = [n for n in sorted(self.scans if scans is None else scans)
+                if (scans is not None or dosemod.is_slit_scan(self.scans[n].command, motors))
+                and counter in self.scans[n].columns]
+        good, refused = [], []
+        for n in cand:
+            cols = self.scans[n].columns
+            x = np.asarray(cols[next(iter(cols))], float)
+            c = np.asarray(cols[counter], float)
+            m = np.ones_like(c) if monitor is None else np.asarray(cols[monitor], float)
+            pr = dosemod.slit_profile(x, c / m, np.sqrt(np.maximum(c, 1.0) + (0.01 * c) ** 2) / m,
+                                      gap_mm=dosemod.s1_hgap_mm(self.scans[n].parameters), scan=n)
+            (good if pr.ok else refused).append(pr)
+        if not good:
+            w = dosemod.default_width()
+            w.refused = refused
+            return w
+        fw = float(np.median([p.fwhm for p in good]))
+        return dosemod.BeamWidth(fw / dosemod.GAUSS_FWHM_PER_SIGMA * dosemod.WIDTH_PER_SIGMA, 'slit scans', fw, good,
+                                 refused, 'median FWHM %.4f mm of S1 slit scans %s'
+                                 % (fw, ', '.join(str(p.scan) for p in good)))
+
+    def dose_summary(self, scan, points=None, beam_mm=None, unit='photons', absfac=None, monitor='Monc',
+                     shutter='closed', extent=None, top=None):
+        """The dose ``scan`` (its ``points``) gave the sample as peak, average
+        and the split of F109 (lss_core.dose.dose_map, DoseSummary).
+        ``beam_mm`` (width, height), √(2π)σ each; default the width from
+        ``beam_width()`` and the height from ``beam_height(near=scan)``."""
+        from . import dose as dosemod
+        notes = []
+        if beam_mm is None:
+            bw, bh = self.beam_width(), self.beam_height(near=scan)
+            if bh.height_mm is None:
+                raise dosemod.DoseError('no beam height: %s; give beam_mm=(width, height)' % bh.note)
+            beam_mm = (bw.width_mm, bh.height_mm)
+            notes += ['width: %s' % (bw.note or bw.source), 'height: %s' % (bh.note or bh.source)]
+        d = self.dose(scan, points, unit=unit, absfac=absfac, monitor=monitor, shutter=shutter)
+        sc = self.scans[scan]
+        alpha = dosemod.point_incidence(sc.columns, sc.parameters, d.points)
+        unit_name = 'photons' if d.unit == 'photons' else d.unit
+        r = dosemod.dose_map(d.per_point, np.sin(alpha), beam_mm[0], beam_mm[1],
+                             dosemod.EXTENT_SHARE if extent is None else extent,
+                             dosemod.TOP_AREA_SHARE if top is None else top, unit=unit_name)
+        r.notes = list(d.notes) + notes + r.notes
+        return r
+
     def dose(self, scan, points=None, unit='photons', beam_mm=None, absfac=None, monitor='Monc', shutter='closed'):
         """The dose each point of ``scan`` gives the sample (lss_core.dose.scan_dose:
         photons, or Monc counts at 5 µA/V with the absorbers taken out; per mm²
