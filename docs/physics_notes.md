@@ -6094,3 +6094,21 @@ measurement on the frames of the GISAXS set (the brightest column). Study:
 - What the reader would need is listed per set in the study (β profiles of a column band with background
   subtraction for GIXOS; q mapping after a geometry calibration for GISAXS; the F38 geometry for the 1M).
   Nothing is copied into the repository; the frames stay private.
+
+### 2026-11-24 — Stage 4 inputs: which requested formats exist in the private data (DATA_NEEDS row 6)
+
+Verified by: reading by the non-cloud agent (every SPEC header of the private copy, the TIFF header of one
+frame per imaging scan, the document files of the one bluesky folder). Study: `docs/studies/stage4_inputs/summary.md`.
+
+- **Full two-module 200K frame (F63): no.** All 6506 sampled 200K scans in 21 run folders save one module
+  (TIFF 487 × 195, 32-bit).
+- **New-format fluorescence/GID SPEC file (F28): not identified.** One header layout throughout; the only newer
+  layout is the per-point MCA files (row 2). GID with fluorescence exists only as alternating Vortex and
+  Pilatus scans at a fixed Det_Th.
+- **HDF5/bluesky (F29): yes, but no surface data.** A commissioning run at the other station: 307 runs as JSONL
+  event documents and 100 small HDF5 files written by a Dante MCA; beamline scans only, no area detector.
+- **Pilatus + Vortex in one scan (F53): yes**, two usable scans (alignment-type, a frame and a per-point MCA file
+  for every point) and one with frames but no spectra.
+- **1M geometry (F38): yes.** Two beamtimes, TIFF 1043 × 981; `#B5 x y D 0` gives the beam pixel and the
+  sample–detector distance (2654.6 and 2038.7 mm in two installations); in one beamtime the detector stage
+  height changes from scan to scan (tracked mode) but is logged only at each scan's start.
