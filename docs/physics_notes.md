@@ -6011,3 +6011,36 @@ names the script and the command that regenerates it. A figure must not be remov
 the commit that added it would reach main's history, so the branch is rebuilt without it. Recorded in
 AGENTS.md's row for `sample_data/private/`.
 
+### 2026-11-25 — F76: beam damage or a sample changing by itself, as a test
+
+Asked by main man for the owner's F76. Built as
+`lss_core.reciprocity.dose_or_time` (tests: `tests/test_reciprocity.py`).
+
+- **The test.** Damage by the beam follows the dose D = φ t; a sample
+  changing by itself follows t. Across burns at fluxes φ_b, the rate against
+  time goes as rate_b = k φ_b^β: β = 1 the dose, β = 0 time. It is the
+  convention of the real-burn study (C54), so the two agree. β is profiled
+  with k fitted at each β. The verdict: "dose" when β = 1 passes
+  (χ², n − 1 dof, p ≥ 0.05) and β = 0 fails, "time" the reverse, "cannot
+  tell" both, "neither" neither (β̂ shows a dose-rate effect), with "no
+  change" and "opposite signs" first. How strongly: β̂'s intervals and the
+  Akaike weight of β = 1 against β = 0.
+- **The assumption:** reciprocity (Bunsen–Roscoe): the same dose gives the
+  same change at any rate. It fails through dose-rate effects and, at a
+  liquid surface, through molecules exchanging into the footprint. β ≠ 1
+  measures the failure; it does not assume it away.
+- **The drift rate is the slope of ln y** for a relative quantity. A
+  straight line through y itself reads an exponential fall's rate low, the
+  more so the faster it falls, so a dose truth at fluxes 1, 4.7 and 10
+  (10 % fall at the lowest) came out "neither" with β < 1. Through ln y it
+  is exact for first-order kinetics. Measured (`test_reciprocity.py`).
+- **NX school burns 14 and 15** (one spot, absorbers 12 then 8; flux
+  ×4.68 by the calibrated foils): the position drifts 1.09 × 10⁻⁵ and
+  4.03 × 10⁻⁵ Å⁻¹/s, so β = 0.85 ± 0.04. That is far from time (β = 0 fails,
+  p 10⁻¹⁵⁴) and close to the dose. On counting errors alone β = 1 fails
+  narrowly (p 0.004): "neither", with the Akaike weight 1.00 on the dose.
+  With a 10 % strip scatter it reads "dose". Caveat: 15 was measured on
+  the same spot after 14, so it started with 14's dose. A sub-linear β
+  could be saturation as well as a dose-rate effect. The intensity changes
+  in neither burn ("no change"). Measured 2026-11-25.
+
