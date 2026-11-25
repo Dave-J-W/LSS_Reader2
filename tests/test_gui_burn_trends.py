@@ -47,7 +47,7 @@ def test_dialog_opens_on_the_analysed_trends(burn, qapp, recorder):
     assert axes[0].child_axes and '% of t = 0' in axes[0].child_axes[0].get_ylabel()   # normalised, right axis
     side = ''.join(t.get_text() for a in d.burnTrendPlotWidget.canvas.fig.axes for t in a.texts)
     assert 'Intensity' in side and 'best: exp' in side and '5 % in ≥ 20.5 s' in side     # summary beside
-    assert 'exp.burn(1)' in burn.burnScript
+    assert 'exp.burn(1, beam_mm=(1.0, 0.04))' in burn.burnScript        # the prefilled 1 mm beam (owner, 2026-11-25)
     d.refPushButton.click()                                    # the legacy plot: its own tab
     assert d.burnTabWidget.currentIndex() == 1
 
@@ -89,7 +89,7 @@ def test_save_puts_values_and_trends_in_the_workbook(burn, qapp, recorder):
     best = [x for x in rows if x['best']]
     assert len(best) == 1 and best[0]['model'] == 'exponential'
     assert best[0]['change_time_confident'] == pytest.approx(20.5, abs=0.2) and best[0]['time_axis'] == 'exposure'
-    assert any('exp.burn(1)' in l for l in burn.scriptView.toPlainText().splitlines())
+    assert any('exp.burn(1, beam_mm=(1.0, 0.04))' in l for l in burn.scriptView.toPlainText().splitlines())
 
 
 @pytest.mark.slow

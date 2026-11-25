@@ -73,6 +73,7 @@ container on 2026-11-23 with the defaults shown.
 | [Why five gauntlet joins are biased (extension 4)](#ref-patch-biased-joins) | data | The default joint fit's five biased designed joins and the covariance study's first join, redrawn with the gauntlet's seeds and fitted with the guard off, other orders and windows, noise-free. | synthetic (public) | 15 s | `docs/comparisons_data/ref_patch_biased_joins` |
 | [Do joins need coincident Qz? (synthetic)](#coincidence-synth) | figures | Two synthetic scans of known curves meeting at a join with no overlap, k coincident points, a staggered overlap or a coarser second grid, fitted by every patching method and scored against the truth: bias, pull SD, error size, share answered. | synthetic (public) | 10 s | `docs/studies/coincident_points` |
 | [Qoff and Qc of R/R_F: the proposer's study (F79)](#qoff-study) | figures | Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and least squares) and the joint Qc + Qoff fit against the truth over offsets, samples, counts, outliers, resolution, a wrong Qc and the reader's patch; the NX school scans at the GUI's preset and at the proposals: figures Q1-Q5. | public (NX school or committed tables) |  | `docs/studies/qoff` |
+| [A bad-pixel pass on the reflectivity ROI: hot pixels, sparse frames, the factor (F95 B3, C62)](#roi-bad-pixel-study) | figures | Synthetic frames with known truth (bright, sharp and sparse beams; 0-0.5 hot pixels per frame) reduced by the reader's frame_row after no pass, the whole-frame pass at factor 4, the ROI pass at factors 3, 10 and 40, or the background boxes only; the NX school frames. Figures R1-R5: one sparse frame, the extra scatter per point, the threshold, the join pulls, and how close clean frames come to a correction. | public (NX school or committed tables) | 110 s | `docs/studies/roi_bad_pixels` |
 | [Walkthrough: why join error bars are too small, from two scans to the verdict (C61, ELI5)](#guard-error-walkthrough) | figures | The whole chain of the guard's-error study, for the owner's standing order (2026-11-25): two scans and the factor read off their shared points, with and without 2 % hidden scatter; the joint fit drawn over its data with its residuals; the guard's ladder of p-values; the pulls and coverage over 400 replicates, today's rule against honest per-point errors; a fringed join, where inflating by the order-4 chi2 fails; and a real NX school scan split with a known factor: figures W1-W6. | public (NX school or committed tables) | 6 s | `docs/studies/guard_error/walkthrough` |
 | [Scatter beyond counting statistics: the estimators on known truth (DATA_NEEDS row 15)](#excess-scatter) | figures | Synthetic reflectivity series (water, DPPC, a 100 Å film) with a known per-point excess X, a slow drift or 3 % outliers: the shared-Qz estimator (one Gaussian, and a core plus outliers) and the 6-point within-scan difference, each against the truth (figure X1); then the pull SD of today's joint fit on C61's joins with the excess measured on real data (pulls.csv). | synthetic (public) | 900 s | `docs/studies/excess_scatter/X1_known_truth.png`<br>`docs/studies/excess_scatter/known_truth.csv`<br>`docs/studies/excess_scatter/pulls.csv`<br>`docs/studies/excess_scatter/numbers.json` |
 | [Walkthrough: scatter beyond counting, from two scans to the verdict (DATA_NEEDS row 15, ELI5)](#excess-scatter-walkthrough) | figures | The whole chain of the excess-scatter study (rule 13): two NX school scans and their shared Qz; the ratio at the shared points with its mean and residuals; the 6-point difference within a scan; the likelihood and the core + outlier model on known truth; the real results by what they might follow, from the committed derived tables: figures W1-W5. | public (NX school or committed tables) | 40 s | `docs/studies/excess_scatter/walkthrough` |
@@ -468,6 +469,26 @@ Variations:
 | A wrong Qc | 1 M NaCl reduced at water's Qc and the other way round: Qoff absorbs the error one for one; the joint fit lies on Qc − Qoff = constant. | `docs/studies/qoff/summary.md### 4. A wrong Qc, and Qc with Qoff` | `python tests/tools/qoff_study.py --out '{out}' --design qc` |
 | More replicates (200) | Every design with 200 replicates (about 15 min). | `docs/studies/qoff/summary.md### 1. Do they find the offset?` | `python tests/tools/qoff_study.py --out '{out}' --replicates 200` |
 
+<a id="roi-bad-pixel-study"></a>
+
+### A bad-pixel pass on the reflectivity ROI: hot pixels, sparse frames, the factor (F95 B3, C62)
+
+Synthetic frames with known truth (bright, sharp and sparse beams; 0-0.5 hot pixels per frame) reduced by the reader's frame_row after no pass, the whole-frame pass at factor 4, the ROI pass at factors 3, 10 and 40, or the background boxes only; the NX school frames. Figures R1-R5: one sparse frame, the extra scatter per point, the threshold, the join pulls, and how close clean frames come to a correction.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/roi_bad_pixel_study.py`
+- Explained in: `docs/studies/roi_bad_pixels/walkthrough.md`, `docs/studies/roi_bad_pixels/summary.md`, `docs/COMPARISONS.md#| C62 |`
+- Committed products: `docs/studies/roi_bad_pixels`; not replaced from the window
+- Run:
+
+      python tests/tools/roi_bad_pixel_study.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Quick look | Every figure from 5 replicates (about 20 s): the pattern, not the decimals. | `docs/studies/roi_bad_pixels/walkthrough.md#30 replicates` | `python tests/tools/roi_bad_pixel_study.py --out '{out}' --reps 5` |
+| Synthetic only | Without the NX school frames. | `docs/studies/roi_bad_pixels/walkthrough.md#NX school (real, public)` | `python tests/tools/roi_bad_pixel_study.py --out '{out}' --no-nx` |
+
 <a id="guard-error-walkthrough"></a>
 
 ### Walkthrough: why join error bars are too small, from two scans to the verdict (C61, ELI5)
@@ -494,7 +515,7 @@ Variations:
 Synthetic reflectivity series (water, DPPC, a 100 Å film) with a known per-point excess X, a slow drift or 3 % outliers: the shared-Qz estimator (one Gaussian, and a core plus outliers) and the 6-point within-scan difference, each against the truth (figure X1); then the pull SD of today's joint fit on C61's joins with the excess measured on real data (pulls.csv).
 
 - Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/excess_scatter.py`
-- Explained in: `docs/studies/excess_scatter/summary.md`, `docs/COMPARISONS.md#| C62 |`
+- Explained in: `docs/studies/excess_scatter/summary.md`, `docs/COMPARISONS.md#| C63 |`
 - Committed products: `docs/studies/excess_scatter/X1_known_truth.png`, `docs/studies/excess_scatter/known_truth.csv`, `docs/studies/excess_scatter/pulls.csv`, `docs/studies/excess_scatter/numbers.json`; replaced from the window with the settings that made them (into `docs/studies/excess_scatter`)
 - Run:
 

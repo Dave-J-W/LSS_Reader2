@@ -134,6 +134,12 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   the absorbers taken out, per mm² of footprint when the beam size is given;
   burns fitted against dose (`exp.burn(axis='dose')`). NX 14 (measured):
   2.9e13 photons in 210 s through absorber 12.
+- The dose as peak and average, with the peak split (F109's core,
+  2026-11-25): a Gaussian beam's map over every point's footprint, its
+  average over the smallest area that received 90 % of the dose, and the
+  most exposed 10 % of that area against the rest (`exp.dose_summary`); the
+  beam's width from S1 horizontal slit scans (`exp.beam_width`). NX 14
+  (measured): peak 1.54e12, average 6.0e11 photons/mm² over 43 mm².
 - Dropped points as a mask over raw points (`lss_core.masks`, 2026-11-24,
   F92's core): kept in the workbook, applied by `exp.reflectivity(mask=...)`;
   the patch dialog's typed drops turned into raw points, and every row of a
@@ -182,6 +188,11 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   walkthrough (`walkthrough.md`, rule 13) follows one join from the two scans
   to the verdict, with a real NX school split whose miss came from a zig-zag
   that χ² cannot see.
+- A bad-pixel pass on the reflectivity ROI (C62, F95 B3, 2026-11-25): on
+  sparse frames hot pixels add up to 11 error bars per point; the ROI pass at
+  factor 10 removes 90 % of them and touched no clean frame, while factors 3–4
+  can take half a real sparse point (measured, synthetic with known truth; NX
+  school unchanged at any factor; `docs/studies/roi_bad_pixels/`).
 
 ## Series, saving and live updates (2026-11-19 to 22)
 

@@ -736,6 +736,10 @@ EXPORT = [
 Q14 = 'dead today; retired pending owner question 14'
 INLINE = 'nothing to close: the window\'s contents are now inline'
 RETIRED = {
+    'burnDock': 'The Burn tab in this layout; the main window docks the burn window (F95 B10)',
+    'worksheetDock': 'GID > Worksheet group in this layout; the main window docks the worksheet (F95 B10)',
+    'cutfitDock': 'The fit options are inline groups in this layout; the main window docks them (F95 B10)',
+    'mcafitDock': 'The fit options are inline groups in this layout; the main window docks them (F95 B10)',
     'burnExportPushButton': 'File > Export… (Burn test) in this layout; the main window puts it beside Save (F95 B9)',
     'mcaSpectraSaveWorkbookPushButton': 'One Save… per result in this layout (D61); the main window has it beside Export Spectrum (F95 B9)',
     'plotSaveWorkbookPushButton': 'One Save… per result in this layout (D61); the main window has it on the Plot tab (F95 B9)',

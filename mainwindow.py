@@ -278,6 +278,7 @@ class MainWindow (QMainWindow):
         self.gidJoinLog=[]
         self.gidLevels=[]
         self.gidWorksheet=None
+        self.burnDock=self.worksheetDock=self.cutfitDock=self.mcafitDock=None   # F95 B10: built when first shown (dockWindow)
         self.ui.gidComboBox.addItem('Save to workbook')
         self.initGIDButtons()
         self.initRefProvenance()
@@ -3052,6 +3053,63 @@ class MainWindow (QMainWindow):
             split.setStretchFactor(k,1 if k==at else 0)
         self.paneHost=host
 
+    # ---- F95 B10 (owner, Q-UI-B10: "dock the frequent ones"): the burn test, the worksheet, the fit options ----
+
+    DOCK_AREAS={'burn':'bottom','worksheet':'right','cutfit':'right','mcafit':'right'}
+    DOCK_NAMES={'burn':'burnDock','worksheet':'worksheetDock','cutfit':'cutfitDock','mcafit':'mcafitDock'}   # built when first shown
+
+    def dockWindow(self,key,dialog):
+        """Show ``dialog`` (built as before, still the same object for the code
+        that uses it) in a dock beside the tab area: the burn test under it,
+        tabbed with the panes (it is wide); the worksheet and the fit options
+        on the right, tabbed together. The dialog sits in a scroll area, so a
+        dock never forces the window wider; a double-click on its title floats
+        it as a window of its own. Its Close (or Esc) hides the dock."""
+        from PyQt5.QtWidgets import QDockWidget, QScrollArea
+        host=getattr(self,'paneHost',None) or self
+        docks=self.__dict__.setdefault('docks',{})
+        dock=docks.get(key)
+        area=Qt.BottomDockWidgetArea if self.DOCK_AREAS.get(key)=='bottom' else Qt.RightDockWidgetArea
+        if dock is None:
+            dock=QDockWidget(dialog.windowTitle(),self)
+            dock.setObjectName(self.DOCK_NAMES.get(key,'%sDock' % key))
+            dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+            scroll=QScrollArea(dock)
+            scroll.setObjectName('%sDockScrollArea' % key)
+            scroll.setWidgetResizable(True)
+            dock.setWidget(scroll)
+            host.addDockWidget(area,dock)
+            setattr(self,dock.objectName(),dock)
+            near=[d for k,d in docks.items() if host.dockWidgetArea(d)==area]
+            if area==Qt.BottomDockWidgetArea:      # with the panes on show (hidden ones form no tabs)
+                near=[d for d in (getattr(self,'messageDock',None),getattr(self,'scriptDock',None)) if d is not None]+near
+            near=[d for d in near if d.isVisible()]
+            if near:
+                host.tabifyDockWidget(near[0],dock)
+            docks[key]=dock
+            first=True
+        else:
+            first=False
+        scroll=dock.widget()
+        if scroll.widget() is not dialog:
+            old=scroll.takeWidget()
+            if old is not None:
+                old.hide()
+                old.deleteLater()
+            dialog.setWindowFlags(Qt.Widget)
+            scroll.setWidget(dialog)
+            dialog.finished.connect(lambda *_a,d=dock: d.hide())
+        dock.setWindowTitle(dialog.windowTitle())
+        dialog.show()
+        dock.show()
+        dock.raise_()
+        if first:                    # room to work in: the burn plot 460 px high, the side panels 520 px wide
+            if area==Qt.BottomDockWidgetArea:
+                host.resizeDocks([dock],[460],Qt.Vertical)
+            else:
+                host.resizeDocks([dock],[520],Qt.Horizontal)
+        return dock
+
     def initMessagePane(self):
         """A dock at the bottom of the window that collects messages.
 
@@ -5053,7 +5111,7 @@ class MainWindow (QMainWindow):
             self.messageBox('Warning: not a burn test: the selected frames of scan%s %s move in Qz or Qx.'
                             % ('s' if len(same)>1 else '',listText(sorted(int(k) for k,v in same.items() if len(v)!=1))))
         else:
-            self.buildBurnDialog().show()
+            self.dockWindow('burn',self.buildBurnDialog())
             self.burnTrends()
 
     def buildBurnDialog(self):
@@ -5073,7 +5131,7 @@ class MainWindow (QMainWindow):
 
     def burnOptions(self):
         o=dict(models=list(trendmod.MODELS),estimator='template',time='clock',threshold=5.0,auto_peak=True,position_limit=False,
-               errors='auto',rows_auto=True,axis='time',dose_unit='photons',beam_width='',fast=False,
+               errors='auto',rows_auto=True,axis='time',dose_unit='photons',beam_width='1.0',fast=False,
                verdict_quantity='intensity',strip_relative=0.0)
         o.update({k:v for k,v in (self.prefs.get('burn') or {}).items() if k in o})
         return o
@@ -5413,8 +5471,10 @@ class MainWindow (QMainWindow):
         width.setObjectName('burnBeamWidthLineEdit')
         width.setPlaceholderText('width')
         width.setFixedWidth(width.fontMetrics().horizontalAdvance('0.000 mm')+16)
-        width.setToolTip('The beam\'s width at the sample (mm), typed: with it the dose is per mm² of footprint. '
-                         'Empty: the total dose (owner: most of the energy is in about 1 mm horizontally)')
+        width.setToolTip('The beam\'s width at the sample (mm): with it the dose is per mm² of footprint. Prefilled '
+                         '1 mm (owner, 2026-11-25: "prefill 1 mm"; most of the energy is in about 1 mm horizontally); '
+                         'a beam modelled from an S1 horizontal slit scan, with the peak and the average dose, is to '
+                         'come (F109). Empty: the total dose')
         height=QLineEdit(page)
         height.setObjectName('burnBeamHeightLineEdit')
         height.setFixedWidth(width.width())
@@ -5998,8 +6058,7 @@ class MainWindow (QMainWindow):
             self.gidWorksheet=self.buildGIDWorksheet()
         self.gidWorksheetLimits()
         self.gidWorksheetResults()
-        self.gidWorksheet.show()
-        self.gidWorksheet.raise_()
+        self.dockWindow('worksheet',self.gidWorksheet)
 
     def buildGIDWorksheet(self):
         """GID patching worksheet (F61): the patch's settings, editable, and
@@ -9413,8 +9472,7 @@ class MainWindow (QMainWindow):
     def showCutFitOptions(self):
         if self.cutFitDialog is None:
             self.cutFitDialog=self.buildCutFitDialog()
-        self.cutFitDialog.show()
-        self.cutFitDialog.raise_()
+        self.dockWindow('cutfit',self.cutFitDialog)
 
     def buildCutFitDialog(self,which='cut'):
         """The options of "Fit peaks" (``which`` 'cut') or of the MCA's "Fit
@@ -10291,8 +10349,7 @@ class MainWindow (QMainWindow):
     def showMcaFitOptions(self):
         if self.mcaFitDialog is None:
             self.mcaFitDialog=self.buildCutFitDialog('mca')
-        self.mcaFitDialog.show()
-        self.mcaFitDialog.raise_()
+        self.dockWindow('mcafit',self.mcaFitDialog)
 
     def updateCutPlotData(self):
         if self.det!='Pilatus':   # no cut plotted: display options do nothing

@@ -6,7 +6,7 @@ and synthetic data from `tests/synth.py` for MCA / fluorescence, the reflectivit
 (NX has no MCA data). Regenerate the whole folder with the command above; the table is rewritten, the
 Observations section is by hand and is kept.
 
-76 images, 4.8 MB, last run took 52 s.
+76 images, 4.8 MB, last run took 48 s.
 
 | File | What it shows | Data and state |
 |---|---|---|
@@ -26,7 +26,7 @@ Observations section is by hand and is kept.
 | `21_pilatus_one_frame.png` | Pilatus tab, whole window, one frame | Scan 11, frame 1 selected |
 | `21b_pilatus_tab_controls.png` | Pilatus tab page (controls above, image below) | Scan 11, frame 1 |
 | `22_pilatus_three_frames.png` | Pilatus tab with three frames selected (a movie since 2026-11-24, F69) | Scan 11, frames 1, 11, 21 selected |
-| `23_pilatus_all_frames_of_a_scan.png` | Pilatus tab with ALL frames of a long scan selected: the movie (F69; before 2026-11-24, 10 small tiles) | Scan 11: all 40 frames selected (drawing took 0.5 s offscreen) |
+| `23_pilatus_all_frames_of_a_scan.png` | Pilatus tab with ALL frames of a long scan selected: the movie (F69; before 2026-11-24, 10 small tiles) | Scan 11: all 40 frames selected (drawing took 0.4 s offscreen) |
 | `23b_pilatus_all_frames_reflectivity_series.png` | Pilatus tab with all frames of the four reflectivity scans selected | Scans 6-9: all 96 frames selected |
 | `30_reflectivity_empty.png` | The Reflectivity tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |
 | `31_refpatch_dialog_first_join.png` | Ref Patch window (opened by Pilatus > Ref Patch), first join | Scans 6-9 all frames; Ref Patch clicked |
@@ -39,7 +39,7 @@ Observations section is by hand and is kept.
 | `40_gid_controls_before_patch.png` | Pilatus tab with scans 11-12 selected: the GID drop-down (GID, GID Patch, ..., Worksheet) and neighbours | Scans 11-12 all frames selected |
 | `40b_gid_dropdown.png` | The GID drop-down opened | Pilatus tab, scans 11-12 |
 | `41_gid_patch_pinhole.png` | Whole window after GID Patch of scans 11-12 (pinhole mode, the default) | Scans 11-12 all frames; GID drop-down > GID Patch; tab now: Pilatus |
-| `42_gid_worksheet_window.png` | GID worksheet window (GID drop-down > Worksheet) | After GID Patch of scans 11-12 |
+| `42_gid_worksheet_window.png` | GID worksheet (GID drop-down > Worksheet), docked on the right (F95 B10) | After GID Patch of scans 11-12 |
 | `43_gid_form_factor_dialog.png` | Form Factor window (GID drop-down > Form Factor) | After GID Patch of scans 11-12 |
 | `50_burn_gid_trends_view.png` | Burn-test window, Trends tab, GID burn (scan 15) | Scan 15 (20 frames at one position) selected; Pilatus > Burn Test |
 | `50b_burn_main_window_behind.png` | Main window behind the burn-test window | Scan 15, burn window open |
@@ -51,7 +51,7 @@ Observations section is by hand and is kept.
 | `60_cuts_empty.png` | The Line/Area Cuts tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |
 | `60_cuts_gid_qz_cut.png` | Line/Area Cuts tab with a cut of the patched GID map (Qz 0.0:0.2 vs Qxy) | GID patch of scans 11-12; Pilatus tab: Q H Cut 0.0:0.2, Line/Area Cuts clicked |
 | `61_cuts_after_peak_fit.png` | Line/Area Cuts after Fit peaks | Same cut; Fit peaks clicked |
-| `62_cuts_fit_options_dialog.png` | Fit options... dialog of the cut fits | Cut plotted and fitted |
+| `62_cuts_fit_options_dialog.png` | Fit options of the cut fits, docked on the right (F95 B10) | Cut plotted and fitted |
 | `63_cuts_gid_qxy_rod.png` | Line/Area Cuts with a second cut added (Qxy 1.25:1.35 vs Qz, the Bragg rod) | Same map; second cut added to the plot |
 | `70_mca_empty.png` | The MCA tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |
 | `70_mca_one_spectrum.png` | MCA tab, whole window, one spectrum | Synthetic XFNTR data (9 getandsave_mca scans, Qz 0.012-0.036); frame 5 selected |
@@ -61,7 +61,7 @@ Observations section is by hand and is kept.
 | `73_mca_peak_fit_dialog.png` | MCA > Fit window (peak fit of one spectrum) | Synthetic XFNTR; frame 5; Fit clicked |
 | `74_mca_peak_fit_dialog_fitted.png` | MCA peak-fit window after Fit | Range 5.6:7.2, guess 6.3 keV |
 | `75_mca_fit_lines_result.png` | MCA tab after Fit lines (fluorescence result) | Synthetic XFNTR; all spectra; Fit lines clicked |
-| `76_mca_fit_options_dialog.png` | MCA Fit options... dialog | Synthetic XFNTR |
+| `76_mca_fit_options_dialog.png` | MCA Fit options, docked on the right (F95 B10) | Synthetic XFNTR |
 | `77_mca_merge_dialog.png` | MCA > Merge dialog (merge window) | Synthetic XFNTR; after Sum All |
 | `80_plot_empty.png` | The Plot tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |
 | `80b_plot_two_files.png` | Plot tab, whole window, two files from disk plotted | Files: a patched NX reflectivity export (if available) and a synthetic peak (Qz, I, error) |
