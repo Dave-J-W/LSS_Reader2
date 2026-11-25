@@ -6466,3 +6466,17 @@ changed.
   as a line: P1 +22 % on Ni at line = background, and 26-35 photons per 100 background counts on the bare blank.
 - **P2's fixed width costs 4 % on readout A** (Fano 0.137 against P2's 0.115): Zn at 10 keV -4.4 % with
   P1+P2+P3, +0.2 % with P1+P3.
+### 2026-11-25 — The XRF shootout on real lines: the 19 private burn series (C64)
+
+Verified by: a run (`tests/tools/xrf_real_series.py`, the private MCA bundle decrypted with the owner's key;
+`docs/studies/xrf_shootout/summary.md` section 11). Summary values only. No default changed.
+
+- **Resampled twins** (Poisson draws from a series' own sum / 21) give each method a known answer on real
+  shapes. The real counts are Poisson: the line window's variance after drift removal is 1.09 x its mean.
+- **At 27-58 line counts per spectrum** P1+P2+P3 is the least biased (-2 to -7.5 %); P1 reads -6 to -25 %.
+  P1+P2+P3's pull SD is 0.95-1.11 in every series.
+- **The line near 8 keV is 21 % wider (5-37 %) than readout A's resolution measured on the blanks.** P2's
+  fixed width (0.93 x that resolution) therefore reads 11 % below the other methods on the high-count sums.
+  P2 would need the line's own width.
+- **The scatter study's self-consistency check is blind** to a bias shared by the sum: P1 reads 0.0 % there,
+  while the twins show -7 to -25 % at the lowest counts.

@@ -117,7 +117,8 @@ container on 2026-11-23 with the defaults shown.
 | [X-ray tables from xraylib for the synthetic spectra](#xrf-tables) | data | Line energies and relative intensities (K and L families, at each beam energy) and water's Hartree-Fock Compton profiles, from xraylib, written as the JSON the extended generator reads (tests/synthetic/mca_more.py); and every constant the generator took from memory against xraylib. Needs xraylib. | synthetic (public) |  | `tests/synthetic/data/xrf_tables.json`<br>`docs/studies/xrf_shootout/physics_check.csv` |
 | [XRF shootout: the reader against PyMca, PyXRF, Larch and XeRay](#xrf-shootout) | data | The reader's window sum and line fits against the open-source XRF packages on synthetic spectra with known truth: 43 conditions (scatter, counts, overlaps, other elements and L lines, calibration and detector errors, a measured detector) and 8 XFNTR curves. Needs PyMca5, scikit-beam and xraylarch (a method whose package is missing is skipped); about an hour on 30 CPUs as committed. | synthetic (public) |  | `docs/studies/xrf_shootout/run`<br>`docs/studies/xrf_shootout/run_measured`<br>`docs/studies/xrf_shootout/run_pymca` |
 | [XRF shootout on real blanks: synthetic lines in measured scatter](#xrf-blanks) | data | Synthetic fluorescence lines of known photons (Zn, Cu, Ni, Cr, Ti K and La L) injected into the 10 clean real scatter-only blanks the owner allowed (tests/reference/mca_scatter), each thinned to 1000 or 3000 background counts in the line box and given its own measured detector; every method of the shootout scored on them, and the false line each reports on the bare blank. Needs the shootout packages; about 50 minutes on 22 CPUs as committed. | public (NX school or committed tables) |  | `docs/studies/xrf_shootout/run_blanks`<br>`docs/studies/xrf_shootout/run_blanks_options` |
-| [XRF shootout figures (X1-X11)](#xrf-shootout-figures) | figures | The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, the three Compton models with the remembered constants checked, speed, and the lines injected into the real blanks (X9-X11, blanks_tables.md). | synthetic (public) |  | `docs/studies/xrf_shootout/X*.png`<br>`docs/studies/xrf_shootout/wins.csv`<br>`docs/studies/xrf_shootout/tables.md`<br>`docs/studies/xrf_shootout/blanks_tables.md` |
+| [XRF shootout on real lines: the private burn series](#xrf-real-series) | data | Every shootout method on the 19 private burn series (readout A, 10 keV, a line near 8 keV), each against 20 resampled twins with the series own shape and a known answer, successive-difference pulls and agreement on the sums. Needs the decrypted private bundle (docs/studies/xrf_shootout/README.md, step 2f) and the shootout packages; writes summary values only. | private (not in the repository) |  | `docs/studies/xrf_shootout/run_real` |
+| [XRF shootout figures (X1-X12)](#xrf-shootout-figures) | figures | The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, the three Compton models with the remembered constants checked, speed, and the lines injected into the real blanks (X9-X11, blanks_tables.md) and the real burn series (X12, real_tables.md). | synthetic (public) |  | `docs/studies/xrf_shootout/X*.png`<br>`docs/studies/xrf_shootout/wins.csv`<br>`docs/studies/xrf_shootout/tables.md`<br>`docs/studies/xrf_shootout/blanks_tables.md`<br>`docs/studies/xrf_shootout/real_tables.md` |
 
 ### Synthetic data sets
 
@@ -1045,15 +1046,38 @@ Variations:
 | As committed | Every method but Larch one spectrum at a time, the ten clean blanks, 50 series of 10 per condition (about 50 minutes on 22 CPUs). | `docs/studies/xrf_shootout/README.md#2d. lines injected into the real blanks` | `python tests/tools/xrf_blanks.py --out '{out}' --replicates 50 --blanks E10-k,E10-f,E9.2-a,E9.2-b,E9.2-c,E9.2-d,E6.1-a,E6.1-b,E6.1-c,E6.1-d --methods all` |
 | The single options | P1+P2 and P1+P3 on the same spectra: which of the two options helps on real scatter (about a minute). | `docs/studies/xrf_shootout/README.md#2e. the reader's single options` | `python tests/tools/xrf_blanks.py --out '{out}' --replicates 50 --blanks E10-k,E10-f,E9.2-a,E9.2-b,E9.2-c,E9.2-d,E6.1-a,E6.1-b,E6.1-c,E6.1-d --methods p1p2,p1p3` |
 
+<a id="xrf-real-series"></a>
+
+### XRF shootout on real lines: the private burn series
+
+Every shootout method on the 19 private burn series (readout A, 10 keV, a line near 8 keV), each against 20 resampled twins with the series own shape and a known answer, successive-difference pulls and agreement on the sums. Needs the decrypted private bundle (docs/studies/xrf_shootout/README.md, step 2f) and the shootout packages; writes summary values only.
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_real_series.py`
+- Explained in: `docs/studies/xrf_shootout/summary.md`, `docs/studies/xrf_shootout/README.md`, `docs/studies/xrf_shootout/QUESTIONS.md`
+- Committed products: `docs/studies/xrf_shootout/run_real`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_real_series.py --out '{out}' --twins 2 --methods window,p1,p1p2p3
+
+- The committed products were made with:
+
+      python tests/tools/xrf_real_series.py --out '{out}' --twins 20 --methods all
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| As committed | Every method, 20 twins per series (a few minutes on 19 CPUs). | `docs/studies/xrf_shootout/README.md#2f. real lines in real scatter` | `python tests/tools/xrf_real_series.py --out '{out}' --twins 20 --methods all` |
+
 <a id="xrf-shootout-figures"></a>
 
-### XRF shootout figures (X1-X11)
+### XRF shootout figures (X1-X12)
 
-The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, the three Compton models with the remembered constants checked, speed, and the lines injected into the real blanks (X9-X11, blanks_tables.md).
+The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, the three Compton models with the remembered constants checked, speed, and the lines injected into the real blanks (X9-X11, blanks_tables.md) and the real burn series (X12, real_tables.md).
 
 - Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/xrf_shootout_figures.py`
 - Explained in: `docs/studies/xrf_shootout/summary.md`
-- Committed products: `docs/studies/xrf_shootout/X*.png`, `docs/studies/xrf_shootout/wins.csv`, `docs/studies/xrf_shootout/tables.md`, `docs/studies/xrf_shootout/blanks_tables.md`; not replaced from the window
+- Committed products: `docs/studies/xrf_shootout/X*.png`, `docs/studies/xrf_shootout/wins.csv`, `docs/studies/xrf_shootout/tables.md`, `docs/studies/xrf_shootout/blanks_tables.md`, `docs/studies/xrf_shootout/real_tables.md`; not replaced from the window
 - Run:
 
       python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run --out '{out}'

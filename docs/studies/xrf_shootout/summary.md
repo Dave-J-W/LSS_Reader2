@@ -5,15 +5,16 @@
 use synthetic spectra; their one real-data input is the detector and
 scatter measured on the owner's blanks (`docs/studies/mca_scatter`),
 which define the "measured" conditions. **Section 10 uses the real
-blanks themselves**, with synthetic lines of known photons added. No
-default of the reader was changed.
+blanks themselves**, with synthetic lines of known photons added.
+**Section 11 uses real lines in real scatter** (the private burn series;
+summary values only). No default of the reader was changed.
 
 - Questions and short answers: `QUESTIONS.md`
 - Survey of other packages: `survey.md`
 - How to reproduce: `README.md`
 - Every number below comes from `tables.md` (generated, with all
-  methods and conditions), from `wins.csv`, and for section 10 from
-  `blanks_tables.md`
+  methods and conditions), from `wins.csv`, for section 10 from
+  `blanks_tables.md` and for section 11 from `real_tables.md`
 
 ## The question
 
@@ -335,6 +336,75 @@ most accurate method that a user can run without knowing the answer:
 bars are the only honest ones. PyMca beats it only when its background
 setting is chosen per condition with the truth (56).
 
+### 11. Real lines in real scatter: the 19 private burn series (X12)
+
+With the owner's key (2026-11-25), the private MCA bundle was decrypted
+into the git-ignored `sample_data/private/`. Its 19 burn series are real
+lines on real scatter:
+- readout A, a 10 keV beam;
+- a line near 8 keV;
+- 21 spectra of 15 s each at one spot;
+- 27 to 4500 line counts per spectrum (median 220).
+
+They have no known truth, so `tests/tools/xrf_real_series.py` uses three
+checks that need none. Only summary values per series are published
+(`real_tables.md`), not spectra or frame-by-frame curves.
+
+- **Resampled twins** carry the known answer. Each twin is 21 Poisson
+  draws from the series' own sum ÷ 21, so it has the real line, the real
+  scatter and the real counts. The answer is the method's own reading of
+  the sum ÷ 21, and the bias against it is what fitting noisy spectra
+  costs. (The real counts are Poisson: once a slow drift is removed, the
+  line window's frame-to-frame variance is 1.09 × its mean, and
+  neighbouring channels are uncorrelated.)
+- **Successive differences** of the real estimates test the error bars
+  on the data themselves. On the twins this statistic reads the same as
+  the true pull, so it is calibrated.
+- **Agreement on the sums:** each method's calibrated reading of 21 × the
+  counts, against the median of all the methods.
+
+**Bias at the real counts (twins), by line counts per spectrum:**
+
+| Method | 27–58 counts (9 series) | 220–250 (2) | 1700–4500 (8) | Pull SD (twins) |
+|---|---|---|---|---|
+| P1 (default) | −7 to −25 % | −0.2 to −0.7 % | −0.1 to +0.4 % | 0.99 (4.8 on one) |
+| P1+P3 | −6 to −25 % | −0.2 to −0.8 % | 0.0 to +0.4 % | 0.99 |
+| **P1+P2+P3** | **−2 to −7.5 %** | −2.0 to −3.7 % | −2.1 to +0.4 % | **1.02** (0.95–1.11) |
+| PyMca | −12.5 to +13 % | −22 to −23 % | −2.4 to −6.3 % | 1.03 (0.53–1.63) |
+| PyXRF | median −9.6 % over all | | | none |
+| Larch | median −28 % over all | | | none |
+| fit (data) | median −37 % over all | | | 0.89 |
+
+(`real_tables.md` holds every method and the ranges.)
+
+**What this adds:**
+- **At low counts the fixed width (P2) is what keeps the reader
+  honest.** It holds the bias to −2 to −7.5 %, where a free width gives
+  −6 to −25 %. Its error bars stay honest in every series (0.95–1.11). This
+  confirms the synthetic counts result (§4) on real spectra.
+- **At high counts every reader fit is within 0.4 % of its own answer,
+  except P2-based ones within 2 %.** PyMca reads 2.4–6 % low there and
+  22 % low at about 230 counts. Its error bars are 1.5–2 × too large at
+  low counts (pull SD 0.53–0.69) and 1.5–1.6 × too small at about 230.
+- **The methods disagree by ±11 % on the high-count sums.** The two
+  P2-based reader methods read 11 % below the median. This is the one
+  real-data warning against P2 as built: **the line near 8 keV is 21 %
+  wider than readout A's resolution measured on the blanks** (range
+  5–37 % over the series; the Kα doublet adds 1–2 %), and P2 fixes the
+  width at 0.93 × that resolution. A fixed width needs the measured
+  width of the line, not the detector's nominal resolution.
+- **The self-consistency check the scatter study used** (singles against
+  their own sum) is blind to a bias that also affects the sum. On these
+  series it reads 0.0 % for P1 (median), while the twins show −7 to −25 %
+  at the lowest counts. The twins are the better test.
+- PyMca's polynomial continuum fails on these spectra, as it did on the
+  synthetic ones.
+
+**There is no absolute truth here.** The twins test each method
+against its own answer on the mean spectrum, and the sums test the
+methods against each other. A standard of known concentration measured
+on the beamline is what would settle which absolute number is right.
+
 ## Better, the same or worse? The verdict
 
 1. **Better: the shape of XFNTR curves and the error bars.**
@@ -357,6 +427,12 @@ setting is chosen per condition with the truth (56).
    most accurate method run blind**: 49 of 192 conditions, against 20
    for the best fixed PyMca setting. Without the strip, the escape peak
    of the scatter is read as a line (Ni +22 % under 9.2 keV).
+6. **On real lines (§11)** the reader's P1+P2+P3 has the smallest
+   low-count bias (−2 to −7.5 % at 27–58 counts per spectrum) and honest
+   error bars in every series. At high counts the reader is within
+   0.4 %, and PyMca reads 2.4–6 % low. P2's fixed width, though, is
+   narrower than the real line (by 21 %), so P2-based answers on the sums
+   sit 11 % below the other methods'.
 
 ## What would close the gaps
 
@@ -374,6 +450,10 @@ its own study.
   done: on the real blanks it is what separates the reader's methods
   (P1 31 conditions, P1+P3 49). It needs the detector's escape factor,
   which `docs/studies/mca_scatter` measured per readout.
+- **P2's width from the line itself**: on the real series the line is
+  21 % wider than the detector's measured resolution, so a width taken
+  from the summed series' own fit (as `fit_series` already does for the
+  centres) would keep P2's low-count benefit without its 11 % deficit.
 - **P2's width from the detector's own Fano factor and noise**,
   calibrated on the elastic peak, instead of the textbook Fano 0.115.
 - **Kβ/Kα in `mca.ELEMENTS` is 16–28 % low** against xraylib. Only the
@@ -384,8 +464,14 @@ its own study.
 - **Sections 1–9 are synthetic; section 10 has real scatter but
   synthetic lines.** The lines are drawn with the detector measured on
   each blank, without its high-energy tail (0–2 % on these blanks).
-  No real spectrum with a line of known strength was fitted. That would
-  need a standard (a known film or solution) measured on the beamline.
+  Section 11 fits real lines, but against each method's own answer (the
+  twins) and against the other methods; no line of known strength was
+  fitted. That would need a standard (a known film or solution) measured
+  on the beamline.
+- **Section 11 is one readout, one beam energy and one line** (the 19
+  series the bundle's hand-off selects). The other private
+  spectra (energy scans above the edges, the excluded 10 keV sums) are
+  not yet used.
 - **Ten blanks, two readouts, three beam energies.** Readout A at 10 keV
   has two blanks; 9.2 and 6.1 keV are pre-edge sums on readout B
   (rebinned, counts rounded). Thinning one blank many times gives
@@ -420,3 +506,5 @@ its own study.
 | `X10_blank_bias.png` | real scatter, synthetic lines: bias against line strength, per line and beam |
 | `X11_blank_scoreboard.png` | accurate conditions on the real blanks, and the false line on the bare blank |
 | `blanks_tables.md` | every real-blank number: bias per method, line, background and strength; accurate counts; false lines |
+| `X12_real_series.png` | real lines in real scatter (19 private burn series, summary values): low-count bias on the twins, error-bar honesty, agreement on the sums |
+| `real_tables.md` | every real-series number per method: medians and ranges over the 19 series |

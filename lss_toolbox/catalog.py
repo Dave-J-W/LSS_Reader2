@@ -912,20 +912,39 @@ TOOLS = (
          committed_with={'--replicates': '50', '--blanks': 'E10-k,E10-f,E9.2-a,E9.2-b,E9.2-c,E9.2-d,E6.1-a,E6.1-b,'
                          'E6.1-c,E6.1-d', '--methods': 'all'},
          repo_out='docs/studies/xrf_shootout/run_blanks', repo_ok=False, seconds=None),
-    Tool('xrf_shootout_figures', 'XRF shootout figures (X1-X11)', 'fluo', 'figures',
+    Tool('xrf_real_series', 'XRF shootout on real lines: the private burn series', 'fluo', 'data',
+         'tests/tools/xrf_real_series.py',
+         'Every shootout method on the 19 private burn series (readout A, 10 keV, a line near 8 keV), each '
+         'against 20 resampled twins with the series own shape and a known answer, successive-difference pulls '
+         'and agreement on the sums. Needs the decrypted private bundle (docs/studies/xrf_shootout/README.md, '
+         'step 2f) and the shootout packages; writes summary values only.',
+         committed=('docs/studies/xrf_shootout/run_real',),
+         docs=('docs/studies/xrf_shootout/summary.md', 'docs/studies/xrf_shootout/README.md',
+               'docs/studies/xrf_shootout/QUESTIONS.md'),
+         data='private',
+         defaults={'--out': OUT, '--twins': '2', '--methods': 'window,p1,p1p2p3'},
+         variations=(
+             V('As committed', 'Every method, 20 twins per series (a few minutes on 19 CPUs).',
+               'docs/studies/xrf_shootout/README.md#2f. real lines in real scatter', twins='20', methods='all'),
+         ),
+         committed_with={'--twins': '20', '--methods': 'all'},
+         repo_out='docs/studies/xrf_shootout/run_real', repo_ok=False, seconds=None),
+    Tool('xrf_shootout_figures', 'XRF shootout figures (X1-X12)', 'fluo', 'figures',
          'tests/tools/xrf_shootout_figures.py',
          'The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, '
          'the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, '
          'the three Compton models with the remembered constants checked, speed, and the lines injected into the '
-         'real blanks (X9-X11, blanks_tables.md).',
+         'real blanks (X9-X11, blanks_tables.md) and the real burn series (X12, real_tables.md).',
          committed=('docs/studies/xrf_shootout/X*.png', 'docs/studies/xrf_shootout/wins.csv',
-                    'docs/studies/xrf_shootout/tables.md', 'docs/studies/xrf_shootout/blanks_tables.md'),
+                    'docs/studies/xrf_shootout/tables.md', 'docs/studies/xrf_shootout/blanks_tables.md',
+                    'docs/studies/xrf_shootout/real_tables.md'),
          docs=('docs/studies/xrf_shootout/summary.md',),
          defaults={'--run': 'docs/studies/xrf_shootout/run', '--out': OUT},
          variations=(V('Synthetic spectra only', 'X6 and X7, which need no shootout run (seconds).',
                        'docs/studies/xrf_shootout/README.md#3. figures, tables.md and wins.csv', only='6,7'),),
          inputs=('docs/studies/xrf_shootout/run', 'docs/studies/xrf_shootout/run_measured',
                  'docs/studies/xrf_shootout/run_pymca', 'docs/studies/xrf_shootout/run_blanks',
+                 'docs/studies/xrf_shootout/run_blanks_options', 'docs/studies/xrf_shootout/run_real',
                  'docs/studies/xrf_shootout/physics_check.csv', 'tests/reference/mca_scatter'),
          repo_out='docs/studies/xrf_shootout', repo_ok=False),
 

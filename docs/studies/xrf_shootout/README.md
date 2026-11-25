@@ -51,8 +51,11 @@ and `XeLineshape.m` of github.com/ZhiliangGong/xeray as of 2026-11-25.
     # 2e. the reader's single options (P1+P2, P1+P3) on the same spectra (a minute)
     python tests/tools/xrf_blanks.py --out docs/studies/xrf_shootout/run_blanks_options --replicates 50 --chunk 5 \
         --jobs 24 --methods p1p2,p1p3
+    # 2f. real lines in real scatter: the 19 private burn series (needs the decrypted bundle; a few minutes)
+    python tests/tools/xrf_real_series.py --out docs/studies/xrf_shootout/run_real --twins 20 --jobs 19
 
-    # 3. figures, tables.md and wins.csv (and X9-X11 and blanks_tables.md from run_blanks)
+    # 3. figures, tables.md and wins.csv (and X9-X11, blanks_tables.md from run_blanks, X12, real_tables.md
+    #    from run_real)
     python tests/tools/xrf_shootout_figures.py --out docs/studies/xrf_shootout \
         --run docs/studies/xrf_shootout/run,docs/studies/xrf_shootout/run_measured,docs/studies/xrf_shootout/run_pymca
 
@@ -74,3 +77,11 @@ committed).
   real blanks start 2.5 keV below the beam) fails with an IndexError. The
   shootout pads such spectra with empty channels down to 0 keV
   (`_larch_pad`).
+
+**The private bundle (step 2f).** The spectra travel encrypted on the
+transfer branch `claude/local-data-mca-encrypted` (never merged). Decrypt
+them as `sample_data/encrypted/mca_spectra/README.md` there says, with the
+owner's key in the environment variable `MCA_KEY`, into
+`sample_data/private/mca_scatter_cloud/` (git-ignored). The script finds
+the series' line from the data (`--line auto`) and writes no element
+name, spectrum or frame-by-frame curve: only summary values per series.
