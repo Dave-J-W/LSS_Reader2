@@ -52,7 +52,7 @@ weight of β = 1 against β = 0 (``weight_dose``; both models have one free
 parameter, so the weight is exp(−χ²₁/2) / (exp(−χ²₁/2) + exp(−χ²₀/2))).
 """
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -176,13 +176,26 @@ def dose_or_time(burns, strip_scatter=0.0, strip_relative=0.0, significance=SIGN
     burns = [from_result(b) if not isinstance(b, Burn) else b for b in burns]
     if len(burns) < 2:
         raise ValueError('the test compares two or more burns at different fluxes')
-    phi = np.array([b.flux for b in burns], float)
+    rs = [drift_rate(b) for b in burns]
+    return dose_or_time_rates([b.flux for b in burns], [v[0] for v in rs], [v[1] for v in rs],
+                              [b.label for b in burns], strip_scatter, strip_relative, significance, alpha, grid)
+
+
+def dose_or_time_rates(fluxes, rates, sigmas, labels=None, strip_scatter=0.0, strip_relative=0.0,
+                       significance=SIGNIFICANCE, alpha=ALPHA, grid=BETA_GRID):
+    """``dose_or_time`` from each burn's drift rate and its error, as a
+    table of burns gives them (2026-11-25: C54's real series,
+    ``docs/studies/xr_burns/burns.csv``, % of I(0) per hour); any unit, the
+    same for the rates, their errors and ``strip_scatter``."""
+    phi = np.asarray(fluxes, float)
+    r = np.asarray(rates, float)
+    sr = np.asarray(sigmas, float)
+    if len(phi) < 2:
+        raise ValueError('the test compares two or more burns at different fluxes')
     if not np.all(phi > 0) or np.ptp(np.log(phi)) < 1e-6:
         raise ValueError('the burns need different, positive fluxes (got %s)' % ', '.join('%.3g' % v for v in phi))
-    rs = [drift_rate(b) for b in burns]
-    r = np.array([v[0] for v in rs])
-    sr = np.array([v[1] for v in rs])
-    rates = [(b.label, float(p), float(v), float(e)) for b, p, v, e in zip(burns, phi, r, sr)]
+    labels = list(labels) if labels is not None else [''] * len(phi)
+    rates = [(lb, float(p), float(v), float(e)) for lb, p, v, e in zip(labels, phi, r, sr)]
     if not np.all(np.isfinite(r) & np.isfinite(sr) & (sr > 0)):
         return Verdict('no change', math.nan, (math.nan, math.nan), (math.nan, math.nan), math.nan, math.nan,
                        math.nan, math.nan, rates, strip_scatter,
@@ -195,8 +208,8 @@ def dose_or_time(burns, strip_scatter=0.0, strip_relative=0.0, significance=SIGN
     i = int(np.argmin(chi2))
     beta = float(grid[i])
     ci, ci95 = _interval(grid, chi2, 1.0), _interval(grid, chi2, 3.84)
+    n = len(phi)
     c1, c0 = (float(_profile(x, r, s, np.array([v]), strip_relative)[0][0]) for v in (1.0, 0.0))
-    n = len(burns)
     p1, p0 = _p(c1, n - 1), _p(c0, n - 1)
     m = min(c0, c1)
     wd = float(math.exp(-(c1 - m) / 2) / (math.exp(-(c1 - m) / 2) + math.exp(-(c0 - m) / 2)))
@@ -230,3 +243,37 @@ def dose_or_time(burns, strip_scatter=0.0, strip_relative=0.0, significance=SIGN
         note += '; the rates scatter beyond their errors (χ²/dof %.1f): pass strip_scatter' % (chi2[i] / (n - 2))
     return Verdict(verdict, beta, ci, ci95, wd, p1, p0, float(k[i]), rates, float(strip_scatter), note, grid, chi2,
                    float(strip_relative))
+
+
+def strip_scatter_fit(groups, relative=False, grid=None, level=1.0):
+    """The strip-to-strip scatter of a drift rate, from groups of burns of
+    one sample at one flux on different strips (2026-11-25, for C54's six
+    repeat groups): REML of the one-way model r_j = μ_g + e_j with
+    var e_j = σ_j² + τ² (additive, ``relative`` False: τ in the rates'
+    unit) or σ_j² + (ρ m_g)², m_g the group's mean |rate| (``relative``:
+    ρ a fraction of the rate, ``dose_or_time``'s ``strip_relative``).
+    ``groups``: sequences of (rate, σ) pairs, each with two or more burns.
+    Returns (estimate, (low, high)), the interval where −2 log L is within
+    ``level`` of its minimum (1: about 68 %; 3.84: 95 %). C54 found 88 %/h (64–122) by REML; this
+    gives 90 (66–127) on the same groups (measured)."""
+    gs = [np.asarray(g, float) for g in groups if len(g) > 1]
+    if not gs:
+        raise ValueError('the strip scatter needs a group of two or more burns at one flux')
+    if grid is None:                                         # 0 and a log-spaced grid: 0.2 % resolution
+        scale = 1.0 if relative else float(np.median(np.abs(np.concatenate([g[:, 0] for g in gs])))) or 1.0
+        grid = np.concatenate([[0.0], np.logspace(math.log10(1e-3 * scale), math.log10(20 * scale), 5000)])
+
+    def nll(t):
+        tot = 0.0
+        for g in gs:
+            r, sg = g[:, 0], g[:, 1]
+            v = sg ** 2 + (t * float(np.mean(np.abs(r)))) ** 2 if relative else sg ** 2 + t ** 2
+            w = 1.0 / v
+            mu = float(np.sum(w * r) / np.sum(w))
+            tot += 0.5 * (float(np.sum(np.log(v))) + math.log(float(np.sum(w))) + float(np.sum((r - mu) ** 2 * w)))
+        return tot
+    L = np.array([nll(t) for t in grid])
+    i = int(np.argmin(L))
+    inside = grid[L <= L[i] + 0.5 * level]
+    return float(grid[i]), (float(inside.min()), float(inside.max()))
+

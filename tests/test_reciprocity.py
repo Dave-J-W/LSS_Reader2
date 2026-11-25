@@ -84,3 +84,28 @@ def test_nx_school_burns_14_and_15():
     assert R.dose_or_time([r14, r15]).verdict == 'no change'           # intensity: BurnResults directly
     tau = 0.1 * c.rates[1][2]                                          # 10 % strip scatter: then the dose
     assert R.dose_or_time([R.from_result(r, 'centre') for r in (r14, r15)], strip_scatter=tau).verdict == 'dose'
+
+
+def test_rates_in_and_the_strip_scatter_from_repeats():
+    """dose_or_time_rates takes a table's rates (C54's burns.csv) and gives
+    what dose_or_time gives from the frames; strip_scatter_fit recovers a
+    known strip scatter from repeated strips (REML), additive or relative."""
+    burns, _ = bp.series(beta=1.0, fluxes=(1.0, 4.68, 10.0), change=0.1, noise=0.003, seed=2)
+    frames = R.dose_or_time(burns)
+    rs = [R.drift_rate(b) for b in burns]
+    table = R.dose_or_time_rates([b.flux for b in burns], [v[0] for v in rs], [v[1] for v in rs])
+    assert (table.verdict, table.beta, table.beta_ci) == (frames.verdict, frames.beta, frames.beta_ci)
+    rng = np.random.default_rng(11)
+    true_tau, true_rho = 30.0, 0.4
+    add = [[(100.0 + rng.normal(0, true_tau) + rng.normal(0, 5.0), 5.0) for _ in range(3)] for _ in range(40)]
+    tau, (lo, hi) = R.strip_scatter_fit(add, level=3.84)             # the 95 % interval
+    assert lo <= true_tau <= hi and tau == pytest.approx(true_tau, rel=0.25)
+    rel = []
+    for _ in range(40):
+        mu = rng.uniform(20, 500)
+        rel.append([(mu * (1 + rng.normal(0, true_rho)) + rng.normal(0, 2.0), 2.0) for _ in range(3)])
+    rho, (lo, hi) = R.strip_scatter_fit(rel, relative=True, level=3.84)
+    assert lo <= true_rho <= hi
+    with pytest.raises(ValueError):
+        R.strip_scatter_fit([[(1.0, 1.0)]])
+
