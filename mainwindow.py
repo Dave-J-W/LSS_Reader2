@@ -5131,7 +5131,7 @@ class MainWindow (QMainWindow):
 
     def burnOptions(self):
         o=dict(models=list(trendmod.MODELS),estimator='template',time='clock',threshold=5.0,auto_peak=True,position_limit=False,
-               errors='auto',rows_auto=True,axis='time',dose_unit='photons',beam_width='',fast=False,
+               errors='auto',rows_auto=True,axis='time',dose_unit='photons',beam_width='1.0',fast=False,
                verdict_quantity='intensity',strip_relative=0.0)
         o.update({k:v for k,v in (self.prefs.get('burn') or {}).items() if k in o})
         return o
@@ -5471,8 +5471,10 @@ class MainWindow (QMainWindow):
         width.setObjectName('burnBeamWidthLineEdit')
         width.setPlaceholderText('width')
         width.setFixedWidth(width.fontMetrics().horizontalAdvance('0.000 mm')+16)
-        width.setToolTip('The beam\'s width at the sample (mm), typed: with it the dose is per mm² of footprint. '
-                         'Empty: the total dose (owner: most of the energy is in about 1 mm horizontally)')
+        width.setToolTip('The beam\'s width at the sample (mm): with it the dose is per mm² of footprint. Prefilled '
+                         '1 mm (owner, 2026-11-25: "prefill 1 mm"; most of the energy is in about 1 mm horizontally); '
+                         'a beam modelled from an S1 horizontal slit scan, with the peak and the average dose, is to '
+                         'come (F109). Empty: the total dose')
         height=QLineEdit(page)
         height.setObjectName('burnBeamHeightLineEdit')
         height.setFixedWidth(width.width())

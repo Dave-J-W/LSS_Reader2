@@ -608,7 +608,7 @@
   "verdict": "same"
  },
  "dump_tooltips": {
-  "commit": "ab6f51f43b",
+  "commit": "a8db894b7b",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -676,7 +676,7 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "6517d99a88753eb5",
+   "mainwindow.py": "4c001f3df2ba8cb2",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
    "mplwidget.py": "437655a13b3d5ac2",
@@ -687,10 +687,10 @@
    "timelineview.py": "62c792d5abbf0f98"
   },
   "products": {
-   "docs/manual/controls.md": "d473d38fecce1bb5"
+   "docs/manual/controls.md": "9f7bef10da9139c2"
   },
   "reads": {
-   "mainwindow.py": "6517d99a88753eb5",
+   "mainwindow.py": "4c001f3df2ba8cb2",
    "mainwindow.ui": "15b21fcbc32d69c6",
    "pdburn.ui": "ce2716bc0b3a483d"
   },
@@ -1376,7 +1376,7 @@
   "verdict": "same"
  },
  "gui_map": {
-  "commit": "ab6f51f43b",
+  "commit": "a8db894b7b",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -1395,8 +1395,6 @@
    "scipy": "1.18.1"
   },
   "modified": [
-   "docs/gui/inventory/dialogs.yaml",
-   "docs/gui/inventory/panes.yaml",
    "mainwindow.py"
   ],
   "modules": {
@@ -1427,14 +1425,14 @@
    "docs/gui/questions/inventory_b.md": "138139f0b2af228d",
    "docs/gui/questions/workflows.md": "5f20c85b2e0c727b",
    "docs/gui/workflows.yaml": "3e170f2ef3342482",
-   "mainwindow.py": "6517d99a88753eb5",
+   "mainwindow.py": "4c001f3df2ba8cb2",
    "mainwindow.ui": "15b21fcbc32d69c6"
   },
   "unverified": [],
   "verdict": "same"
  },
  "gui_screens": {
-  "commit": "ab6f51f43b",
+  "commit": "a8db894b7b",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -1453,8 +1451,7 @@
    "scipy": "1.18.1"
   },
   "modified": [
-   "mainwindow.py",
-   "tests/tools/gui_screens.py"
+   "mainwindow.py"
   ],
   "modules": {
    "TwoDDetector.py": "cacf7c8dacbc4290",
@@ -1510,7 +1507,7 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "6517d99a88753eb5",
+   "mainwindow.py": "4c001f3df2ba8cb2",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
    "mplwidget.py": "437655a13b3d5ac2",
@@ -1554,12 +1551,12 @@
    "docs/gui/screens/41_gid_patch_pinhole.png": "fb6b81e090ffbfbe",
    "docs/gui/screens/42_gid_worksheet_window.png": "7641cd7176d594b2",
    "docs/gui/screens/43_gid_form_factor_dialog.png": "4481c82fe3c7fa94",
-   "docs/gui/screens/50_burn_gid_trends_view.png": "31bba8597d93fac1",
-   "docs/gui/screens/50b_burn_main_window_behind.png": "788beb5a0d411190",
-   "docs/gui/screens/51_burn_legacy_ref_view.png": "4c92616cfcfe7e0c",
+   "docs/gui/screens/50_burn_gid_trends_view.png": "45a96972dc097de9",
+   "docs/gui/screens/50b_burn_main_window_behind.png": "c2dcbf236758ce68",
+   "docs/gui/screens/51_burn_legacy_ref_view.png": "ccdd2d30d5bacf1a",
    "docs/gui/screens/52_burn_legacy_gid_view.png": "6be3cd024ecf6b80",
    "docs/gui/screens/53_burn_ref_series_selected.png": "8598d735ed0fa80b",
-   "docs/gui/screens/54_burn_ref_trends_view.png": "885ce964381cd3a7",
+   "docs/gui/screens/54_burn_ref_trends_view.png": "2fef6707fbccb907",
    "docs/gui/screens/55_burn_ref_legacy_view.png": "3e5903d532148ddd",
    "docs/gui/screens/60_cuts_empty.png": "964837b35f42d589",
    "docs/gui/screens/60_cuts_gid_qz_cut.png": "0116df8ae2e50570",
@@ -1599,12 +1596,12 @@
    "docs/gui/screens/99_menu_help.png": "ec1c27e1e311d788",
    "docs/gui/screens/99_menu_tools.png": "9436ce887a45f88b",
    "docs/gui/screens/99_menu_view.png": "9ae4d8b97ae4f67a",
-   "docs/gui/screens/README.md": "d69b5d980b1600ab"
+   "docs/gui/screens/README.md": "9aa031d3779ffece"
   },
   "reads": {
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "6517d99a88753eb5",
+   "mainwindow.py": "4c001f3df2ba8cb2",
    "mainwindow.ui": "15b21fcbc32d69c6",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",
@@ -2008,7 +2005,7 @@
   "verdict": "same"
  },
  "ngui_inventory": {
-  "commit": "ab6f51f43b",
+  "commit": "a8db894b7b",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -2027,8 +2024,6 @@
    "scipy": "1.18.1"
   },
   "modified": [
-   "docs/gui/inventory/dialogs.yaml",
-   "docs/gui/inventory/panes.yaml",
    "mainwindow.py"
   ],
   "modules": {
@@ -2055,7 +2050,7 @@
    "docs/gui/inventory/timeline.yaml": "487789e7b099e606",
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "6517d99a88753eb5",
+   "mainwindow.py": "4c001f3df2ba8cb2",
    "mainwindow.ui": "15b21fcbc32d69c6",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",

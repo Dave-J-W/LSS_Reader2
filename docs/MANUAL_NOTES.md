@@ -123,7 +123,8 @@ Each line: feature — where — default — script — notes entry (date).
   overconfident: C58, tools man, 2026-11-25; the default is the owner's).
 - The dose in the burn dialog (F98, 2026-11-25): "Axis" fits the trends
   against time or the dose; "Dose in" photons (needs the Monc chamber's
-  gain) or Monc counts; "Beam (mm)" width typed and height (greyed: from
+  gain) or Monc counts; "Beam (mm)" width (prefilled 1 mm, owner
+  2026-11-25) and height (greyed: from
   the nearest sample-height scans, or the study's default; its tooltip
   says which) give a dose per mm² of footprint; "Fast mode" counts the
   wall time (the shutter open between frames). Terms to define: dose,
