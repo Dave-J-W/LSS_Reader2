@@ -256,6 +256,236 @@ def default_height(params):
                       note='no accepted height scan: the study\'s default for 10 keV, S1 <= 0.04 mm (+-15 %)')
 
 
+def point_incidence(columns, params, idx):
+    """Each point's incidence α (radians; ``cuts.true_incidence``) for the
+    points ``idx`` of a scan. DoseError when it is unknown or not above 0."""
+    from .cuts import true_incidence
+    cols = {k: np.asarray(v, float) for k, v in columns.items() if k in ('In_Rot', 'H', 'K', 'L')}
+    a0 = params.get('In_Rot')
+    if a0 is None and 'In_Rot' not in cols:
+        raise DoseError('incidence unknown (no In_Rot): no dose per area')
+    wl = params.get('Wavelength')
+    alpha = np.array([true_incidence(cols, i, wl, float(a0) if a0 is not None else 0.0) for i in idx])
+    if np.any(alpha <= 0):
+        raise DoseError('incidence %g° at or below 0: no footprint' % float(np.degrees(alpha.min())))
+    return alpha
+
+
+# ---- F109 (owner, 2026-11-25): the beam's width, and the dose as peak and average ----
+
+GAUSS_FWHM_PER_SIGMA = 2 * math.sqrt(2 * math.log(2))
+WIDTH_PER_SIGMA = math.sqrt(2 * math.pi)  # the dose's convention for a size: √(2π)σ, the inverse of the profile's peak
+DEFAULT_WIDTH_MM = 1.0       # owner (F109): prefill 1 mm; read as √(2π)σx, so a dose with it is the peak dose
+EXTENT_SHARE = 0.90          # the averaged dose's extents: the smallest area that received 90 % of the dose (assumption, asked)
+TOP_AREA_SHARE = 0.10        # owner (F109): the peak split, the most exposed 10 % of that area against the other 90 %
+S1_H_MOTORS = ('s1l', 's1r', 's1hc', 's1hg')   # S1's horizontal motors (assumption: the file's S1L, S1R and pseudo-motors)
+WIDTH_GUARDS = dict(points=3, chi2_dof=20.0)
+
+
+@dataclass
+class SlitProfile:
+    """The beam's horizontal profile from one S1 slit scan: ``kind`` the
+    shape fitted ('peak', 'edge' or 'box', ``peaks.fit_scan``), the beam's
+    ``fwhm`` and ``sigma`` (mm; a peak's after the gap correction), its
+    ``width`` for the dose (√(2π)σ), the ``centre``; ``why`` the guard that
+    refused it ('' when accepted)."""
+    scan: int
+    kind: str
+    fwhm: float
+    sigma: float
+    width: float
+    centre: float
+    why: str = ''
+
+    @property
+    def ok(self):
+        return not self.why
+
+
+@dataclass
+class BeamWidth:
+    """The beam's width at the sample for the dose (mm, √(2π)σx), where it
+    came from ('slit scans' or 'default'), the beam's FWHM, the profiles
+    used and refused."""
+    width_mm: float
+    source: str
+    fwhm_mm: float = None
+    profiles: list = field(default_factory=list)
+    refused: list = field(default_factory=list)
+    note: str = ''
+
+
+def is_slit_scan(command, motors=S1_H_MOTORS):
+    """True for a scan of S1's horizontal motors: ascan, a2scan, dscan or
+    d2scan whose first motor is one of ``motors`` (any case), over a range."""
+    w = str(command).split()
+    if w and w[0] == '#S':
+        w = w[2:]
+    return (len(w) > 3 and w[0] in ('ascan', 'a2scan', 'dscan', 'd2scan') and w[1].lower() in motors
+            and w[2] != w[3])
+
+
+def s1_hgap_mm(params):
+    """S1's horizontal gap (mm): S1L + S1R, two half-openings (OQ-1). None when not recorded."""
+    try:
+        return float(params.get('S1L')) + float(params.get('S1R'))
+    except (TypeError, ValueError):
+        return None
+
+
+def slit_profile(x, y, sigma=None, gap_mm=None, scan=0, guards=None):
+    """The beam's horizontal profile from one S1 slit scan (``x`` the slit's
+    position in mm, ``y`` the signal), by the shape that fits it best
+    (``peaks.fit_scan``):
+
+    - a narrow gap moved across the beam reads the beam convolved with the
+      gap, a **peak**: σ² = σ_fit² − g²/12, ``gap_mm`` g (a uniform gap's
+      variance; none when not given);
+    - one blade moved reads an **edge**, whose error-function FWHM is the
+      beam's;
+    - a gap wider than the beam moved across reads a **box**, each of its
+      edges the beam's FWHM (their mean is used); a box whose plateau is
+      narrower than its edges is read as the peak it is.
+
+    Refused (``why``) when nothing fits, fewer than ``points`` points lie
+    within a FWHM of the centre (of each edge, for a box), the centre is
+    outside the scan, the gap is as wide as a peak, or χ²/dof (when
+    ``sigma`` is given) is above ``chi2_dof``."""
+    from . import peaks
+    g = dict(WIDTH_GUARDS, **(guards or {}))
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    nan = math.nan
+    r = peaks.fit_scan(x, y, sigma)
+    kind = getattr(r, 'kind', '')
+    if not r.ok or not r.peaks:
+        return SlitProfile(scan, kind, nan, nan, nan, nan, 'no fit (%s)' % r.message)
+    if kind == 'box' and 'peak' in getattr(r, 'candidates', {}):
+        (c1, w1), (c2, w2) = r.edges
+        if abs(c2 - c1) < 0.5 * (abs(w1) + abs(w2)):     # a plateau narrower than its edges is a peak
+            r, kind = r.candidates['peak'], 'peak'
+    pk = r.peaks[0]
+    why = ''
+    if kind == 'box':
+        (c1, w1), (c2, w2) = r.edges
+        fwhm, centres = 0.5 * (abs(w1) + abs(w2)), ((c1, abs(w1)), (c2, abs(w2)))
+    else:
+        fwhm, centres = abs(pk.fwhm), ((pk.centre, abs(pk.fwhm)),)
+    sig = fwhm / GAUSS_FWHM_PER_SIGMA
+    if kind == 'peak' and gap_mm:
+        var = sig ** 2 - float(gap_mm) ** 2 / 12.0
+        if var <= 0:
+            why = 'the gap (%.3g mm) is as wide as the profile (FWHM %.3g mm)' % (gap_mm, fwhm)
+        sig = math.sqrt(max(var, 0.0))
+        fwhm = sig * GAUSS_FWHM_PER_SIGMA
+    if not why:
+        for c, w in centres:
+            if not x.min() <= c <= x.max():
+                why = 'the %s is outside the scan' % ('edge' if kind != 'peak' else 'centre')
+            elif int(np.sum(np.abs(x - c) <= w)) < g['points']:
+                why = 'fewer than %d points within a FWHM of the %s' % (g['points'], 'edge' if kind != 'peak' else 'centre')
+            if why:
+                break
+    if not why and sigma is not None and r.chi2_dof is not None and r.chi2_dof > g['chi2_dof']:
+        why = 'chi2/dof %.1f above %g' % (r.chi2_dof, g['chi2_dof'])
+    return SlitProfile(scan, kind, float(fwhm), float(sig), float(sig * WIDTH_PER_SIGMA), float(pk.centre), why)
+
+
+def default_width():
+    """BeamWidth from the owner's prefill (F109): 1 mm, read as √(2π)σx."""
+    return BeamWidth(DEFAULT_WIDTH_MM, 'default', DEFAULT_WIDTH_MM * GAUSS_FWHM_PER_SIGMA / WIDTH_PER_SIGMA,
+                     note='no accepted S1 slit scan: the owner\'s prefill, 1 mm (read as sqrt(2 pi) sigma, FWHM 0.94 mm)')
+
+
+@dataclass
+class DoseSummary:
+    """The dose a scan gave the sample, as a map over the footprint (F109):
+    ``peak`` (the most exposed point), ``average`` (over the extents, the
+    smallest area that received ``extent`` of the dose, ``area_mm2``),
+    ``top`` (the mean of the most exposed ``top_share`` of that area,
+    ``top_area_mm2``) and ``rest`` (the mean of the other part), all in
+    ``unit`` (per mm²); ``total`` what the sample received (``unit``
+    without the /mm2); the beam's ``width_mm`` and ``height_mm`` (√(2π)σ).
+    For one incidence and a Gaussian beam the ratios are fixed: with P the
+    extent, peak/average = −ln(1 − P)/P (2.56 at 90 %)."""
+    unit: str
+    total: float
+    peak: float
+    average: float
+    top: float
+    rest: float
+    area_mm2: float
+    top_area_mm2: float
+    width_mm: float
+    height_mm: float
+    extent: float = EXTENT_SHARE
+    top_share: float = TOP_AREA_SHARE
+    notes: list = field(default_factory=list)
+    captured: float = 1.0          # the share of the dose the map's grid holds (a check: above 0.9999)
+
+    def text(self, fmt='%.3g'):
+        """One line for a dialog: peak, average and the split."""
+        f = lambda v: fmt % v
+        return ('peak %s, average %s %s over %s mm2 (%.0f %% of the dose); most exposed %.0f %% of it %s, '
+                'the other %.0f %% %s' % (f(self.peak), f(self.average), self.unit, f(self.area_mm2),
+                                         100 * self.extent, 100 * self.top_share, f(self.top),
+                                         100 * (1 - self.top_share), f(self.rest)))
+
+
+def dose_map(per_point, sin_alpha, width_mm, height_mm, extent=EXTENT_SHARE, top=TOP_AREA_SHARE, unit='photons',
+             nx=400, ny=700):
+    """DoseSummary of points that gave the sample ``per_point`` (photons, or
+    monitor counts) each at incidence sin α ``sin_alpha``, for a Gaussian beam
+    of ``width_mm`` × ``height_mm`` (√(2π)σ each, the dose's convention).
+
+    The dose per mm² at (x across, y along the beam) is
+    D = f(x) · Σ_i N_i sin α_i g(y sin α_i), f and g the beam's normalised
+    profiles: each point's footprint is the beam stretched by 1/sin α_i along
+    the beam, all centred on one spot. The peak, D(0, 0) = Σ N_i sin α_i /
+    (width · height), is the dose per area ``scan_dose(beam_mm=)`` gives. The
+    rest comes from D on a grid (a quarter, by symmetry; geometric along y, to
+    span the footprints of every α): the cells sorted by D, the extents are
+    the most exposed cells that received ``extent`` of the total, and the top
+    part their most exposed ``top`` share by area."""
+    N = np.atleast_1d(np.asarray(per_point, float))
+    s = np.broadcast_to(np.asarray(sin_alpha, float), N.shape)
+    w, h = float(width_mm), float(height_mm)
+    if not (w > 0 and h > 0):
+        raise DoseError('beam size %g x %g mm: width and height must be positive' % (w, h))
+    if not 0 < extent <= 1 or not 0 < top < 1:
+        raise ValueError('extent %r in (0, 1], top %r in (0, 1)' % (extent, top))
+    if np.any(s <= 0) or np.any(s > 1):
+        raise DoseError('sin(incidence) must be in (0, 1]')
+    keep = N > 0
+    total = float(np.sum(N[keep]))
+    if not total > 0:
+        raise DoseError('no dose: every point gave 0')
+    su, inv = np.unique(np.round(s[keep], 12), return_inverse=True)
+    Nu = np.bincount(inv, weights=N[keep])                      # the dose at each distinct incidence
+    sx, sy = w / WIDTH_PER_SIGMA, h / WIDTH_PER_SIGMA
+    foot = sy / su                                              # σ of each footprint along the beam
+    xe = np.linspace(0.0, 8.0 * sx, nx + 1)
+    ye = np.concatenate([[0.0], np.geomspace(1e-3 * foot.min(), 8.0 * foot.max(), ny)])
+    xm, dx = 0.5 * (xe[1:] + xe[:-1]), np.diff(xe)
+    ym, dy = 0.5 * (ye[1:] + ye[:-1]), np.diff(ye)
+    fx = np.exp(-0.5 * (xm / sx) ** 2) / (WIDTH_PER_SIGMA * sx)
+    gy = (np.exp(-0.5 * (ym[:, None] / foot[None, :]) ** 2) / (WIDTH_PER_SIGMA * foot[None, :])) @ Nu
+    D = (fx[:, None] * gy[None, :]).ravel()
+    A = (4.0 * dx[:, None] * dy[None, :]).ravel()
+    o = np.argsort(-D)
+    cum_a, cum_d = np.cumsum(A[o]), np.cumsum((D * A)[o])
+    a_ext = float(np.interp(extent * total, cum_d, cum_a))
+    a_top = top * a_ext
+    d_top = float(np.interp(a_top, cum_a, cum_d))
+    peak = float(np.sum(Nu * su)) / (w * h)
+    notes = ['beam %g x %g mm (sqrt(2 pi) sigma; FWHM %.3g x %.3g mm), Gaussian; %d incidence%s'
+             % (w, h, w / WIDTH_PER_SIGMA * GAUSS_FWHM_PER_SIGMA, h / WIDTH_PER_SIGMA * GAUSS_FWHM_PER_SIGMA,
+                len(su), '' if len(su) == 1 else 's'),
+             'the extents: the smallest area that received %.0f %% of the dose (%.3g mm2)' % (100 * extent, a_ext)]
+    return DoseSummary(unit + '/mm2', total, peak, extent * total / a_ext, d_top / a_top,
+                       (extent * total - d_top) / (a_ext - a_top), a_ext, a_top, w, h, extent, top, notes,
+                       float(cum_d[-1] / total))
+
+
 def scan_dose(columns, params, points=None, unit='photons', beam_mm=None, absfac=None, monitor='Monc', scan=0,
               shutter='closed', point_times=None):
     """Dose of the points ``points`` (all when None) of one scan, from its
@@ -331,17 +561,10 @@ def scan_dose(columns, params, points=None, unit='photons', beam_mm=None, absfac
         per = m / (A * g)
         name = 'Monc counts'
     if beam_mm is not None:
-        from .cuts import true_incidence
         w, h = (float(x) for x in beam_mm)
         if not (w > 0 and h > 0):
             raise DoseError('beam size %r: width and height must be positive' % (beam_mm,))
-        cols = {k: np.asarray(v, float) for k, v in columns.items() if k in ('In_Rot', 'H', 'K', 'L')}
-        a0 = params.get('In_Rot')
-        if a0 is None and 'In_Rot' not in cols:
-            raise DoseError('incidence unknown (no In_Rot): no dose per area')
-        alpha = np.array([true_incidence(cols, i, wl, float(a0) if a0 is not None else 0.0) for i in idx])
-        if np.any(alpha <= 0):
-            raise DoseError('incidence %g° at or below 0: no footprint' % float(np.degrees(alpha.min())))
+        alpha = point_incidence(columns, params, idx)
         per = per * np.sin(alpha) / (w * h)
         notes.append('per mm2 of footprint, beam %g x %g mm (given), footprint %.3g-%.3g mm long'
                      % (w, h, float(np.min(h / np.sin(alpha))), float(np.max(h / np.sin(alpha)))))
