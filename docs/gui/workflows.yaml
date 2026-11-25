@@ -82,13 +82,14 @@ shared_steps:
   - id: shared.workbook
     do: The finished reduction is saved into <SPEC file>_reader.xlsx automatically; Save stores a version with a note
     where: Save button beside each Export; GID menu 'Save to workbook'
-    controls: [prefAutoSaveCheckBox, prefSaveNoteCheckBox]
+    controls: [prefAutoSaveCheckBox, prefSaveNoteCheckBox, readOnlyLightLabel]
     user_decides: whether to add a 'user' version with a note
     automatic: yes
     could_be_automatic: ""
-    known_from: owner 2026-11-21/22 (D53, D56); test tests/test_gui_workbook.py
+    known_from: owner 2026-11-21/22 (D53, D56), D1; tests tests/test_gui_workbook.py, tests/test_gui_reader_lock.py
     issues:
       - "Automatic saves report in the status bar only; there is no view of the workbook inside the reader"
+      - "A second reader of the same SPEC file saves nothing (D1, 2026-11-25): the yellow light says so, and it saves again once the first closes"
   - id: shared.live
     do: Tick Live while the macro runs (or press Update Specfile); new scans, frames and spectra are read, saved results remade
     where: left panel, beside Update Specfile
@@ -662,7 +663,7 @@ workflows:
         goto: {"drop points": ref.join, "use known ratio": ref.join}
         issues:
           - "One dialog per join (3 for NX 6-9); the method preference is in File > Preferences, not in the dialog"
-          - "Dropped points are typed as indices (F16); Back undoes a drop or a join and Cancel says so (F96, 2026-11-24); since 2026-11-25 a finished patch's drops are kept as the workbook's mask, left out of the next patch from the start, drawn as grey crosses, and Restore all brings them back (F92, D2). Not yet: the second reader read-only (D1), click to drop (F94)"
+          - "Dropped points are typed as indices (F16); Back undoes a drop or a join and Cancel says so (F96, 2026-11-24); since 2026-11-25 a finished patch's drops are kept as the workbook's mask, left out of the next patch from the start, drawn as grey crosses, and Restore all brings them back (F92, D2). A second reader keeps no mask (D1). Not yet: click to drop (F94)"
       - id: ref.compare
         do: "Compare the saved reflectivities of this file: overlaid by series, time or sx, with ratios to the first; new ones appear as they are saved"
         where: Compare tab

@@ -317,6 +317,7 @@ INVENTORY = {
     'errorsBadgeLabel': ('badge', 'legacy errors | budget errors', 'Status bar, right', 'Shows the error model in use; click opens the Errors pane'),
     'normBadgeLabel': ('badge', '/ Monc | / Monc / gain | / photon', 'Status bar, right', 'Shows the monitor normalisation in use; click goes to the SpecPlot tab, where / gain and / photon are'),
     'patchBadgeLabel': ('badge', 'joint patch | legacy patch', 'Status bar, right', 'Shows the reflectivity patch method; click opens Preferences'),
+    'readOnlyLightLabel': ('badge', 'read-only', 'Status bar, right of the state badges', "A yellow light shown while another reader writes this SPEC file's workbook: this reader shows results, notes and masks but saves none of them"),
     'statusBar': ('pane', '', 'Bottom of the window', "Short transient messages: 'Done', 'Plotting....Wait!!', 'Live: ...', 'Saved automatically to <workbook>: R0002 line cut ... v2'"),
     'pilatusTab': ('tab', 'Pilatus', 'Pilatus', 'Shows the selected Pilatus frames and launches every image reduction (reflectivity, GID, GISAXS, burn, GIOXS, cuts)'),
     'pilSpecCheckBox': ('checkbox', 'DB Pos[x,y]:', 'Pilatus', 'On: take the direct-beam pixel and distance from SPEC; off: use the typed values'),

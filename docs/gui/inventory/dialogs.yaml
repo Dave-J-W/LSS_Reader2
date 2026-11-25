@@ -428,7 +428,7 @@
   needs: "a masked or dropped point (else it says there is nothing to restore)"
   shown: always
   tooltip: true
-  notes: "Added in code (F92, owner 2026-11-23, 2026-11-25; core lss_core.masks by main man, #54). Only the scans of this patch are cleared, not the masks of other scans. A finished patch's drops become (scan, point) pairs in the workbook's Settings sheet; the next Ref Patch of those scans leaves them out from the start, says so, and draws them as grey crosses in this window and on the Reflectivity tab. The second reader's read-only mode (D1) is not built: whichever reader finishes a patch writes the mask."
+  notes: "Added in code (F92, owner 2026-11-23, 2026-11-25; core lss_core.masks by main man, #54). Only the scans of this patch are cleared, not the masks of other scans. A finished patch's drops become (scan, point) pairs in the workbook's Settings sheet; the next Ref Patch of those scans leaves them out from the start, says so, and draws them as grey crosses in this window and on the Reflectivity tab. A second reader (D1, read-only, the yellow light) keeps no mask: it says so."
 - id: refpatch.dropLineEdit
   kind: lineedit
   label: "0"

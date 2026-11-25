@@ -53,7 +53,7 @@ exists.
 | I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_gui_ref_mask.py::test_drops_are_kept_and_left_out_from_the_start_next_time` (the window, 2026-11-25), `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
 | I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own`; in the window `test_gui_cut_axis.py::test_diffuse_axes_change_x_only`, `::test_beta_minus_alpha_puts_the_specular_row_at_zero` (2026-11-25) | 2026-11-24 |
 | I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
-| I43 | At most one reader holds a workbook's lock at a time, even when two take over a stale lock at once (each reads the lock back after writing it); a read-only workbook never writes (`save` raises `WorkbookReadOnly`, the file and its folder untouched) | `test_readerlock.py` (every test) | 2026-11-25 |
+| I43 | At most one reader holds a workbook's lock at a time, even when two take over a stale lock at once (each reads the lock back after writing it); a read-only workbook never writes (`save` raises `WorkbookReadOnly`, the file and its folder untouched) | `test_readerlock.py` (every test); in the window `test_gui_reader_lock.py` (2026-11-25) | 2026-11-25 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -6211,8 +6211,36 @@ is included in the patch dialog"). Built:
   expected no "saved" part after a drop because the workbook was not open;
   recording the drop's mask opens it, so the line now ends "not saved"
   (true: the result is not in the workbook).
-- **Not built:** the read-only mask for a second reader of the same SPEC
-  file (D1: no second-instance detection exists yet); click to drop or
-  restore a point (F94, low priority).
+- **Not built:** click to drop or restore a point (F94, low priority). The
+  read-only mask for a second reader came with D1's window side the same
+  day (below).
 
 Verified by: tested (`tests/test_gui_ref_mask.py`, 4 tests).
+
+### 2026-11-25 — D1 in the window: a second reader is read-only, with a yellow light
+
+The window side of main man's `lss_core.readerlock` (owner's D1: "Two
+people can have the same SPEC file open. The second instance opens the
+config read-only, and a small yellow indicator light in the GUI shows that
+state"). Built:
+- **When the lock is taken:** the first time the workbook is needed (a
+  save, a mask, the Compare tab, the timeline's notes), not when the SPEC
+  file is opened, so that nothing is written beside a SPEC file whose
+  workbook is never used (tested: no lock file after opening).
+- **Read-only:** the workbook is opened with `read_only=True`; results,
+  notes and masks are kept in memory and shown, but every save is refused
+  with a plain message (quietly in the status bar for automatic saves).
+  The yellow "read-only" light at the right of the status bar names who
+  has it open and since when (`describe()`).
+- **A timer every 30 s** (`REFRESH_S`) refreshes the lock, or tries again
+  for it. Gaining it is said ("saves to it again") and the workbook is
+  read again; losing it (another reader took a stale lock, after a long
+  sleep) is said and saving stops.
+- **Released** on close and when another SPEC file's workbook is needed.
+- **Two readers in one process** (tested with two windows): the first to
+  need the workbook writes it; the second is read-only until the first
+  closes.
+
+Verified by: tested (`tests/test_gui_reader_lock.py`, 6 tests). Not tried
+across two computers on a network share; the core's assumptions (clocks
+within 180 s) stand.

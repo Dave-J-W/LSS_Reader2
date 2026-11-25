@@ -124,6 +124,11 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- Two readers on one SPEC file (D1, 2026-11-25): the first to need the
+  workbook writes it; a second shows a yellow "read-only" light at the
+  right of the status bar (its tooltip names who has it open) and saves
+  nothing (results, notes, masks), saying so; it saves again once the first
+  closes (tried every 30 s). Terms to define: workbook lock.
 - Dropped points are kept (F92, 2026-11-25): when a Ref Patch finishes,
   its drops are kept as the mask in the SPEC file's workbook, and the next
   Ref Patch of those scans leaves them out from the start (a message says
