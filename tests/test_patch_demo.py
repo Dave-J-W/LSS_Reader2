@@ -322,6 +322,31 @@ def test_the_window_opens_from_code_with_a_parent(qapp, recorder):
     assert recorder.exceptions == []
 
 
+@pytest.mark.gui
+def test_the_window_says_computing_while_a_replicate_is_made(qapp, recorder, monkeypatch):
+    """A burn replicate takes about 1.3 s: the seed label says so while it
+    is made, and returns to the seed after (review, 2026-11-24)."""
+    from demonstrator.window import DemoWindow
+    seen = []
+    real = bm.run_all
+
+    def spy(rep, *a, **k):
+        seen.append(w.seed_label.text())
+        return real(rep, *a, **k)
+    w = DemoWindow(mode='refl', seed=4, refl_config=refl.Config(truth='water', plan='nx'))
+    monkeypatch.setattr(bm, 'run_all', spy)
+    try:
+        w.mode.setCurrentIndex(1)                            # to the burn page: a burn replicate is made
+        assert seen == ['seed 4: computing…'] and w.seed_label.text() == 'seed 4'
+        w.new_replicate()
+        assert seen[-1] == 'seed 5: computing…' and w.seed_label.text() == 'seed 5'
+        w.redraw()                                           # nothing to compute: no note
+        assert len(seen) == 2
+    finally:
+        w.close()
+    assert recorder.exceptions == []
+
+
 def test_set_reaches_the_demonstration_settings():
     """``patch_demo.py --set KEY=VALUE`` (2026-11-23): the documented
     variations of the window and of --views as command lines."""
