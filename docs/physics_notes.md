@@ -54,6 +54,7 @@ exists.
 | I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own`; in the window `test_gui_cut_axis.py::test_diffuse_axes_change_x_only`, `::test_beta_minus_alpha_puts_the_specular_row_at_zero` (2026-11-25) | 2026-11-24 |
 | I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
 | I43 | At most one reader holds a workbook's lock at a time, even when two take over a stale lock at once (each reads the lock back after writing it); a read-only workbook never writes (`save` raises `WorkbookReadOnly`, the file and its folder untouched) | `test_readerlock.py` (every test); in the window `test_gui_reader_lock.py` (2026-11-25) | 2026-11-25 |
+| I44 | The dose map's peak is the dose per area `scan_dose` gives with the same beam, Σ N_i sin α_i / (width · height) (√(2π)σ each); the map holds the whole dose (captured above 0.9999, footprints 60 × apart); for one incidence and a Gaussian beam peak/average = −ln(1 − P)/P for extents P, and the top-10 % and other-90 % means are their closed forms; every per-area value scales as 1/(width · height) | `test_dose_map.py`; NX 14 and 15 (slow) | 2026-11-25 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -6657,3 +6658,54 @@ cm², %). So the lane draws **any column** the user chooses:
 
 Verified by: tested (`tests/test_timeline_env.py`, 3;
 `tests/test_gui_timeline_env.py`, 2).
+
+### 2026-11-25 — Answers to questions from GUI manager, main man and tools man, posted on issue #55 (batch 21)
+
+Verified by: the owner's statements; nothing computed here. **Q cuts:** the default band is half the ROI on either side. **Dose:** show the average and the peak dose, the peak split into the top 10 % of the area and the other 90 %, with a 1 mm default width and a Gauss fit of an S1 horizontal slit scan to model the beam if one exists (F109). For a beam of Gaussian profile in one dimension the dose is highest at the centre; the share of the area at or above a given level follows the error function, so a "top 10 % of the area" is defined from the profile once it is known. **Excess point scatter:** the owner does not know its size; measure it from data (`DATA_NEEDS.md` row 15). **Foil prior:** stays optional for now. **Local agent's report:** blank spectra are committed; 0.1 keV energies are kept; row 7 waits. Questions still open from those three posts: the GUI manager's 2 to 7 and 9 to 13, main man's MQ-1, 2, 4, 6 to 12, tools man's 3 to 6.
+
+### 2026-11-25 — F109's core: the dose as peak and average, and the beam's width from S1 slit scans
+
+Verified by: tests (`tests/test_dose_map.py`, 11, with known truth: closed forms, synthetic slit scans;
+I44) and a run on NX school burns 14 and 15 (the slow test; measured). The owner's answer (GUI manager Q8,
+MQ-5, through questor): prefill the width with 1 mm, but look first for an S1 horizontal slit scan to fit; show
+the average and the peak dose, the peak split into the top 10 % of the area against the other 90 %, the
+average over reasonable extents.
+
+- **The chain, ELI5.**
+  - **Photons:** the monitor gives the photons each point sent onto the sample (F98, `exp.dose`).
+  - **Where they land:** the beam is a spot about 1 mm wide and 0.03 mm tall. At a grazing angle α it lies
+    stretched along the surface by 1/sin α: at 0.1° the 0.033 mm becomes about 19 mm. So the photons spread over
+    a long thin ellipse, densest at its middle.
+  - **The dose map:** the photons per mm² at each place of that ellipse. With a Gaussian beam of √(2π)σ = width
+    and height, its middle (the **peak**) holds Σ N_i sin α_i / (width · height), which is exactly the dose per
+    area the reader has shown since F98.
+  - **The average:** dividing all the photons by "the footprint" needs a boundary, and a Gaussian has none. So
+    the reader takes the smallest area that received 90 % of the dose (for one Gaussian footprint, the 90 %
+    ellipse) and averages there.
+  - **The split:** within that area, the most exposed 10 % against the other 90 %.
+  - **For one angle and a Gaussian beam the ratios are fixed:** peak = 2.56 × average, the most exposed 10 % =
+    2.29 ×, the other 90 % = 0.86 ×. With several angles (a reflectivity series) the footprints differ in
+    length and the map is computed point by point.
+- **Measured on NX school** (beam 1 mm × 0.0333 mm, the file's height scans; one incidence each):
+
+  | burn | peak | average | over | top 10 % | other 90 % |
+  |---|---|---|---|---|---|
+  | 14 | 1.54 × 10¹² | 6.02 × 10¹¹ | 43.2 mm² | 1.38 × 10¹² | 5.16 × 10¹¹ |
+  | 15 | 7.18 × 10¹² | 2.81 × 10¹² | 43.2 mm² | 6.42 × 10¹² | 2.41 × 10¹² |
+
+  (photons/mm²; the peak equals `exp.dose(n, beam_mm=(1, 0.0333)).total()` to 10⁻⁹.)
+  - `exp.dose_summary(14)` with no beam given refuses: no height scan of the file has the burn's S1 gap
+    (0.1 mm), and the reader does not borrow one from another gap.
+- **The width from S1 slit scans** (`exp.beam_width`, `dose.slit_profile`): a scan is read by the shape that
+  fits best.
+  - **A peak** is a narrow gap moved across the beam: the beam convolved with the gap. It is corrected as
+    σ² = σ_fit² − g²/12. Without the correction, a 0.5 mm gap over a beam of σ 0.4 mm reads 6 % wide.
+  - **An edge** is one blade moved: its error-function FWHM is the beam's.
+  - **A box** is a wide gap moved: each edge gives the beam's FWHM.
+  - **On synthetic scans with known σ:** within 1 % (peak) and 2 % (edge, box).
+  - **NX school has no S1 slit scan,** so the width there is the prefill.
+- **Open:**
+  - the extents (90 % is this project's choice; the 50 % ellipse would give peak = 1.39 × average), asked
+    through questor;
+  - the motor names and shapes of real S1 slit scans, asked of the local agent (#55);
+  - the owner's open question whether the profile's upper tail is light through the downstream meniscus.

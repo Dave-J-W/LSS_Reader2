@@ -255,6 +255,14 @@ h = exp.beam_height(near=7)                    # the beam's height from the heig
 h.height_mm, h.source, h.note, h.refused       # 1.0645 x the median rising FWHM; or the default 0.040 mm (10 keV, S1 <= 0.04)
 exp.dose(7, beam_mm=(1.0, h.height_mm))        # the peak dose per mm2 (the width typed: it is not measured)
 burn = exp.burn(14, axis='dose')               # trends against the dose; the limit is a dose
+r = exp.dose_summary(14, beam_mm=(1.0, h.height_mm))   # the dose as peak and average, the peak split (F109)
+r.peak, r.average, r.top, r.rest, r.area_mm2, r.text() # NX 14: 1.54e12 peak, 6.0e11 over 43 mm2 (90 % of the dose)
+exp.dose_summary(14, beam_mm=(1.0, 0.033), extent=0.5)  # the extents: the area that received 50 % of the dose
+w = exp.beam_width()                           # sqrt(2 pi) sigma_x from S1 horizontal slit scans; else the 1 mm prefill
+w.width_mm, w.fwhm_mm, w.source, w.profiles, w.refused
+exp.beam_width(scans=[31, 32], counter='Pilatus', monitor=None)   # named scans; the counter as recorded
+from lss_core import dose
+dose.dose_map(per_point, sin_alpha, width_mm, height_mm)   # the same from any doses and incidences
 burn.dose, burn.dose_unit, burn.dose_scale     # the axis: NX 14 in '1e+12 photons' (dose_scale 1e12), 28.9 at the end
 ```
 
