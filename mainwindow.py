@@ -41,6 +41,7 @@ from lss_core import gid as gidmod
 from lss_core import pinhole
 from lss_core import peaks
 from lss_core import workbook as workbookmod
+from lss_core import readerlock
 from lss_core import absorbers
 from lss_core import preferences as prefs_store
 from lss_core import trends as trendmod
@@ -2357,6 +2358,7 @@ class MainWindow (QMainWindow):
             self.ui.statusBar.addPermanentWidget(lab)
             self.badges[key]=lab
         self.updateBadges()
+        self.initReadOnlyLight()
 
     def badgeStates(self):
         """badge -> (text, is the default, tooltip)."""
@@ -7987,6 +7989,11 @@ class MainWindow (QMainWindow):
             mask.add(removed)
             masks.save(wb,mask)
             self.saveWorkbook(wb)
+        except workbookmod.WorkbookReadOnly:
+            self.workbookCache=None
+            self.notify('The drops are not kept as the mask: %s (the yellow light). The curve is as shown.'
+                        % self.readerLock.describe(),title='Ref Patch')
+            return
         except Exception as e:
             self.workbookCache=None
             self.notify('The drops could not be kept as the mask in %s: %s' % (self.workbookPath(),e),title='Ref Patch')
@@ -8017,6 +8024,11 @@ class MainWindow (QMainWindow):
                 mask.remove(mine)
                 masks.save(wb,mask)
                 self.saveWorkbook(wb)
+            except workbookmod.WorkbookReadOnly:
+                self.workbookCache=None
+                self.notify('The mask is not cleared: %s (the yellow light).' % self.readerLock.describe(),
+                            title='Ref Patch')
+                return
             except Exception as e:
                 self.workbookCache=None
                 self.notify('The mask could not be cleared in %s: %s' % (self.workbookPath(),e),title='Ref Patch')
@@ -9147,6 +9159,14 @@ class MainWindow (QMainWindow):
             for it,i in zip(items,ids):
                 if self.isShownItem(kind,it):
                     self.shownResults[kind]=i
+        except workbookmod.WorkbookReadOnly:
+            self.workbookCache=None
+            if auto:                            # quiet, as automatic saves are
+                self.ui.statusBar.showMessage('Not saved: this reader is read-only (%s)' % self.readerLock.describe(),8000)
+            else:
+                self.notify('Not saved: %s. This reader opened the workbook read-only (the yellow light); it tries '
+                            'again every %d s.' % (self.readerLock.describe(),int(readerlock.REFRESH_S)),title='Save')
+            return []
         except Exception as e:
             self.workbookCache=None             # what was added in memory but not written is dropped
             self.notify('Could not save to the workbook %s: %s' % (self.workbookPath(),e),title='Save')
@@ -9207,13 +9227,101 @@ class MainWindow (QMainWindow):
         (opening one costs about 0.6 s per GID map in it); read again when
         the file changed outside the reader (Excel) or is another file."""
         path=self.workbookPath()
+        ro=not self.workbookLock(path).writable          # D1: another reader writes it
         mtime=os.path.getmtime(path) if os.path.exists(path) else None
         cached=getattr(self,'workbookCache',None)
-        if cached is not None and cached[0]==path and cached[1]==mtime and mtime is not None:
+        if cached is not None and cached[0]==path and cached[1]==mtime and mtime is not None \
+                and bool(getattr(cached[2],'read_only',False))==ro:
             return cached[2]
-        wb=workbookmod.Workbook(path)
+        wb=workbookmod.Workbook(path,read_only=ro)
         self.workbookCache=(path,mtime,wb)
         return wb
+
+    # ---- D1 (owner): a second reader of the same SPEC file opens its workbook read-only ----
+
+    def initReadOnlyLight(self):
+        """The yellow light at the right of the status bar (D1: "a small
+        yellow indicator light in the GUI shows that state"), hidden while
+        this reader writes the workbook; and the timer that keeps the lock
+        alive, or tries again for it (lss_core.readerlock)."""
+        lab=QLabel(' read-only ',self.ui.statusBar)
+        lab.setObjectName('readOnlyLightLabel')
+        lab.setStyleSheet('QLabel{background:#f5c400;color:black;border-radius:3px;padding:0 4px;}')
+        lab.setVisible(False)
+        self.ui.statusBar.addPermanentWidget(lab)
+        self.readOnlyLight=lab
+        self.readerLock=None
+        self.readerLockTimer=QTimer(self)
+        self.readerLockTimer.setInterval(int(readerlock.REFRESH_S*1000))
+        self.readerLockTimer.timeout.connect(self.readerLockTick)
+
+    def workbookLock(self,path=None):
+        """The lock of the workbook at ``path`` (the open SPEC file's): taken
+        the first time the workbook is needed (not when the SPEC file is
+        opened, so that nothing is written beside a SPEC file whose workbook is
+        never used), released when another workbook is needed."""
+        path=path or self.workbookPath()
+        lk=getattr(self,'readerLock',None)
+        if lk is not None and lk.path==path+readerlock.LOCK_SUFFIX:
+            return lk
+        self.releaseReaderLock()
+        lk=readerlock.ReaderLock(path)
+        lk.acquire()
+        self.readerLock=lk
+        self.readerLockTimer.start()
+        self.updateReadOnlyLight()
+        if not lk.writable:
+            self.notify('This workbook is open in another reader: %s. Results, notes and masks are shown but not '
+                        'saved here until it closes (tried again every %d s).' % (lk.describe(),int(readerlock.REFRESH_S)),
+                        title='Workbook')
+        return lk
+
+    def readerLockTick(self):
+        """Every REFRESH_S: keep the lock alive, or try again for it. A change
+        either way is said, and the workbook is opened again as it now is."""
+        lk=getattr(self,'readerLock',None)
+        if lk is None:
+            return
+        was=lk.writable
+        now=lk.refresh() if was else lk.try_again()
+        if bool(now)!=bool(was):
+            self.workbookCache=None
+            self.updateReadOnlyLight()
+            if now:
+                self.notify('The other reader closed this workbook: this reader saves to it again.',title='Workbook',
+                            level='info')
+            else:
+                self.notify('Another reader took this workbook: %s. Nothing more is saved here.' % lk.describe(),
+                            title='Workbook')
+
+    def updateReadOnlyLight(self):
+        lab=getattr(self,'readOnlyLight',None)
+        if lab is None:
+            return
+        lk=getattr(self,'readerLock',None)
+        ro=lk is not None and not lk.writable
+        lab.setVisible(ro)
+        lab.setToolTip(('%s. Results, notes and masks are shown but not saved to %s; the reader tries again every '
+                        '%d s and says when it saves again (D1).' % (lk.describe()[:1].upper()+lk.describe()[1:],
+                        os.path.basename(lk.path[:-len(readerlock.LOCK_SUFFIX)]),int(readerlock.REFRESH_S)))
+                       if ro else '')
+
+    def releaseReaderLock(self):
+        lk=getattr(self,'readerLock',None)
+        if lk is not None:
+            try:
+                lk.release()
+            except OSError as e:
+                self.log.info('lock not released: %s',e)
+        self.readerLock=None
+        timer=getattr(self,'readerLockTimer',None)
+        if timer is not None:
+            timer.stop()
+        self.updateReadOnlyLight()
+
+    def closeEvent(self,event):
+        self.releaseReaderLock()        # D1: the next reader to open the workbook writes it
+        super().closeEvent(event)
 
     def saveWorkbook(self,wb):
         wb.save()
