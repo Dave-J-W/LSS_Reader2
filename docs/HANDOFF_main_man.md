@@ -44,8 +44,9 @@ routines step by step (`merge-to-main`, `review-local-data-pr`, `issue-watch`).
 - **Rule 12:** the best method becomes the default only after a study with known truth and figures, tests
   that pin the new numbers, and a demonstrator (a document and a Tools item). Then the switch, with its
   OUTPUT_DECISIONS row and the re-pins named. Committed products of earlier studies keep their run's default.
-- **Do not merge `claude/local-data-mca-encrypted`** (141 MB of encrypted private spectra). Delete it, via
-  mca-scatter, once the data has been read.
+- **Do not merge `claude/local-data-mca-encrypted`** (141 MB of encrypted private spectra). The owner
+  (MQ-9, 2026-11-25): it is meant to be on the public branch, its safety rests on the passphrase; MQ-8: no
+  purge of GitHub's records of removed files.
 - **Rule 13 (owner, 2026-11-25): show the whole chain, ELI5.** Every study, report or answer that ends in a
   number or a verdict shows the raw data, each processing step, a fit drawn over its data with residuals,
   every statistic explained for a newcomer, and the judgment with how sure it is. The usual form is

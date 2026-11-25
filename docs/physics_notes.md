@@ -6867,3 +6867,22 @@ measurement and the owner's word).
   (unsplit χ²/dof 1.03). Keyed to counts (C63's table by 1/var), it adds 30 %. On the owner's data Qz,
   counts and background move together, so the real splits must decide (DATA_NEEDS row 17).
 - **The candidate for rule 12:** 4σ clipping first and alone; the budget's terms after the real check.
+
+### 2026-11-25 — D1 after the owner's revised Q5: asking the holder to release
+
+Verified by: tests (`tests/test_readerlock.py`, 2 new, 11 in all). The owner (Q5, through questor, batch 24)
+said the workbook lock is taken on the SPEC file's first opening, and giving up the write access is one
+click, after which the next reader takes the lock. Questor left three points for the sessions to settle.
+This core settles two of them; the third is the window's.
+
+- **A crashed or sleeping holder:** already handled since D1's core.
+  - The holder refreshes its lock every 30 s; a lock not refreshed for 180 s is stale and is taken over (read
+    back, so two takers cannot both win; I43).
+  - A holder waking from sleep learns on its next refresh that it has lost the lock, and goes read-only.
+- **Asking for the write access:** new.
+  - A read-only reader's `request_release(note)` writes `<workbook>.lock.request`, naming it.
+  - The holder's `release_requested()`, checked with each refresh, returns the request, so its window can
+    offer the one-click release. Nothing changes hands by itself.
+  - `decline_request()` removes it. The next successful `acquire()` clears any request left over.
+- **Q6's rule** (only results made after the lock is gained are saved) is the window's (GUI manager). With
+  the lock taken at opening, it covers only a reader that opened second.

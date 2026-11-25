@@ -133,3 +133,34 @@ def test_a_read_only_workbook_never_writes(tmp_path):
         Workbook(fresh, read_only=True).save()
     assert not os.path.exists(fresh)
     assert issubclass(WorkbookReadOnly, PermissionError)
+
+
+def test_a_read_only_reader_asks_and_the_holder_releases(tmp_path):
+    """The owner's revised Q5 (2026-11-25): one click gives up the write access, and the next reader takes
+    it. A request changes nothing by itself; the holder sees it, and releasing hands the lock over."""
+    a, b = readerlock.ReaderLock(_wb(tmp_path)), readerlock.ReaderLock(_wb(tmp_path))
+    assert a.acquire() and not b.acquire()
+    assert a.release_requested() is None and b.release_requested() is None
+    assert not a.request_release()                          # the holder does not ask itself
+    assert b.request_release(note='I need to save a fit')
+    req = a.release_requested()
+    assert req['note'] == 'I need to save a fit' and req['host'] and req['asked']
+    assert a.writable and not b.try_again()                 # nothing changed hands by itself
+    a.release()
+    assert b.try_again() and b.writable
+    assert not os.path.exists(b.request_path)               # taking the lock clears the request
+    assert b.release_requested() is None
+    b.release()
+
+
+def test_the_holder_may_decline_and_old_requests_do_not_linger(tmp_path):
+    a, b = readerlock.ReaderLock(_wb(tmp_path)), readerlock.ReaderLock(_wb(tmp_path))
+    assert a.acquire() and b.request_release()
+    a.decline_request()
+    assert a.release_requested() is None and a.writable and not os.path.exists(a.request_path)
+    b.decline_request()                                     # only the holder declines: a no-op here
+    assert b.request_release()
+    a.release()
+    c = readerlock.ReaderLock(_wb(tmp_path))
+    assert c.acquire() and c.release_requested() is None    # a request left from before is cleared
+    c.release()

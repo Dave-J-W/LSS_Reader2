@@ -23,9 +23,16 @@ was taken and last refreshed):
 - ``refresh()`` (every ``REFRESH_S`` seconds, a window timer) keeps the lock
   alive; it returns False if another reader has taken it meanwhile (after a
   long sleep), and this reader is then read-only.
-- ``release()`` removes the lock if it is this reader's.
+- ``release()`` removes the lock if it is this reader's: the owner's "one
+  click" to give up the write access (2026-11-25, Q5; the lock is taken when
+  the SPEC file is first opened).
 - A read-only reader calls ``acquire()`` again from time to time; it gets
-  the lock once the other reader has closed (``try_again``).
+  the lock once the other reader has closed or released (``try_again``).
+- **Asking for it:** a read-only reader's ``request_release()`` writes
+  ``<workbook>.lock.request`` naming it. The holder's ``release_requested()``
+  (checked with each refresh) returns that request, so its window can offer
+  the release; nothing changes hands by itself. ``decline_request()`` removes
+  it; the next ``acquire()`` that succeeds removes any request left.
 
 Staleness is judged from the file's modification time against this host's
 clock, so the hosts' clocks must agree to well within ``STALE_S``; a file
@@ -41,6 +48,7 @@ import socket
 import time
 
 LOCK_SUFFIX = '.lock'
+REQUEST_SUFFIX = '.request'      # beside the lock: <workbook>.lock.request
 REFRESH_S = 30.0     # the holder rewrites the lock this often
 STALE_S = 180.0      # a lock not refreshed for this long is taken over (6 missed refreshes)
 
@@ -80,6 +88,7 @@ class ReaderLock:
         self.me = dict(_me(), token='%s-%d-%.6f' % (socket.gethostname(), os.getpid(), time.time()))
         self.mine = False
         self.holder = None          # who holds it when this reader does not (a dict), or why it could not be taken
+        self.request_path = self.path + REQUEST_SUFFIX
 
     # ---- state -----------------------------------------------------------------
 
@@ -156,6 +165,7 @@ class ReaderLock:
         try:
             self._write_exclusive()
             self.mine, self.holder = True, None
+            self._clear_request()
             return True
         except FileExistsError:
             pass
@@ -174,6 +184,8 @@ class ReaderLock:
         after = self.read()
         self.mine = self._is_mine(after)
         self.holder = None if self.mine else (after or dict(reason='the lock file cannot be read'))
+        if self.mine:
+            self._clear_request()
         return self.mine
 
     try_again = acquire
@@ -195,10 +207,58 @@ class ReaderLock:
         return True
 
     def release(self):
-        """Remove the lock if it is this reader's."""
+        """Remove the lock if it is this reader's (the one click that gives up
+        the write access); a reader that asked for it gets it on its next
+        ``try_again``."""
         if self.mine and self._is_mine(self.read()):
             try:
                 os.remove(self.path)
             except OSError:
                 pass
         self.mine = False
+
+    # ---- asking the holder to release it -------------------------------------------
+
+    def request_release(self, note=''):
+        """A read-only reader asks the holder to give up the write access:
+        writes ``request_path`` naming this reader (and ``note``). True when
+        written; False for the holder itself or when it cannot be written."""
+        if self.mine:
+            return False
+        tmp = '%s.%s.tmp' % (self.request_path, self.me['token'])
+        try:
+            with open(tmp, 'w') as f:
+                json.dump(dict(self.me, asked=time.strftime('%Y-%m-%d %H:%M:%S'), note=str(note)), f)
+            os.replace(tmp, self.request_path)
+        except OSError:
+            return False
+        return True
+
+    def release_requested(self):
+        """The holder: the pending request (a dict naming who asked, when and
+        why) or None. A request this reader wrote itself is ignored."""
+        if not self.mine:
+            return None
+        try:
+            with open(self.request_path) as f:
+                content = json.load(f)
+        except FileNotFoundError:
+            return None
+        except (OSError, ValueError):
+            content = dict(reason='a request that cannot be read')
+        if content.get('token') == self.me['token']:
+            return None
+        return content
+
+    def decline_request(self):
+        """The holder keeps the write access: the pending request is removed."""
+        if self.mine:
+            self._clear_request()
+
+    def _clear_request(self):
+        try:
+            os.remove(self.request_path)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            pass
