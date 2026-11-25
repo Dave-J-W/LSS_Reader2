@@ -135,7 +135,7 @@ def test_gid_low_and_high_qz_scans_can_be_patched(nx, qapp, recorder, tmp_path):
     assert not [m for m in recorder.messages if 'patching' in m]
     assert nx.pilGIDData.shape == (833, 41)
     recorder.save_name = str(tmp_path / 'out')
-    i = nx.ui.gidComboBox.findText('Save GID')
+    i = nx.ui.gidComboBox.findText('Export GID')
     nx.ui.gidComboBox.setCurrentIndex(i)
     nx.ui.gidComboBox.activated.emit(i)
     qapp.processEvents()
@@ -233,7 +233,7 @@ def test_gid_save_cancelled_writes_nothing(nx, qapp, recorder, tmp_path):
     _gid_patch(nx, qapp, [10])
     before = (set(os.listdir(ROOT)), set(os.listdir(str(tmp_path))))
     recorder.save_name = ''
-    i = nx.ui.gidComboBox.findText('Save GID')
+    i = nx.ui.gidComboBox.findText('Export GID')
     nx.ui.gidComboBox.setCurrentIndex(i)
     nx.ui.gidComboBox.activated.emit(i)
     qapp.processEvents()

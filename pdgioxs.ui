@@ -89,7 +89,7 @@
      <item>
       <widget class="QPushButton" name="savePushButton">
        <property name="text">
-        <string>SAVE</string>
+        <string>Export</string>
        </property>
       </widget>
      </item>

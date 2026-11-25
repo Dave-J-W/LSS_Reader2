@@ -174,7 +174,7 @@ def test_footprint_fraction_is_the_windows_calarea(window):
 def test_pinhole_is_the_default_gid_patch(window, qapp, recorder, tmp_path):
     """Owner, 2026-11-18: pinhole is how GID is measured. A fresh window's
     GID Patch is the pinhole map; the display and the raw-frame cuts take
-    the S4-detector distance for frames at Det_Th > 1 deg; Save GID and the
+    the S4-detector distance for frames at Det_Th > 1 deg; Export GID and the
     GID line cuts work on the pinhole map."""
     w = window
     w.openSpecFile(fname=SPEC)
@@ -191,7 +191,7 @@ def test_pinhole_is_the_default_gid_patch(window, qapp, recorder, tmp_path):
     _menu(w, qapp, 'GID Patch')
     assert w.pilGIDData.shape[1] > 150                      # one column per bin, not one per frame
     recorder.save_name = str(tmp_path / 'pin')
-    _menu(w, qapp, 'Save GID')
+    _menu(w, qapp, 'Export GID')
     assert os.path.exists(str(tmp_path / 'pin_qxy_gid.txt'))
     w.ui.pilCutDirComboBox.setCurrentIndex(0)
     w.ui.pilIntRangeLineEdit.setText('0.0:0.2')
@@ -222,7 +222,7 @@ def test_scripted_cut_uses_the_pinhole_distance_above_one_degree():
 def test_pinhole_join_of_nx_scans_11_and_12(window, qapp, recorder, tmp_path):
     """F62 on real data: NX scans 11 (low Qz) and 12 (second level) in
     pinhole mode are joined on one β grid with one factor, logged; 'all'
-    keeps every level's 2θ range with empty cells; Save GID works."""
+    keeps every level's 2θ range with empty cells; Export GID works."""
     from PyQt5.QtWidgets import QPushButton
     w = window
     w.openSpecFile(fname=SPEC)
@@ -243,7 +243,7 @@ def test_pinhole_join_of_nx_scans_11_and_12(window, qapp, recorder, tmp_path):
     qapp.processEvents()
     assert w.pilGIDData.shape[1] >= common[1] and np.isnan(w.pilGIDData).any()
     recorder.save_name = str(tmp_path / 'joined')
-    _menu(w, qapp, 'Save GID')
+    _menu(w, qapp, 'Export GID')
     assert recorder.exceptions == []
 
 

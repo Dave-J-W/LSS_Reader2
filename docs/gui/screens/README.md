@@ -6,7 +6,7 @@ and synthetic data from `tests/synth.py` for MCA / fluorescence, the reflectivit
 (NX has no MCA data). Regenerate the whole folder with the command above; the table is rewritten, the
 Observations section is by hand and is kept.
 
-76 images, 4.8 MB, last run took 58 s.
+76 images, 4.8 MB, last run took 52 s.
 
 | File | What it shows | Data and state |
 |---|---|---|

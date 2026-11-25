@@ -158,6 +158,13 @@ Each line: feature — where — default — script — notes entry (date).
   segment's tooltip gives the scan's dose, the spot's total and the burn
   used. One beam is assumed for the whole file, so its size cancels.
   Terms to define: spot, dose per mm² of footprint.
+- Export and Save (F95, owner Q-UI-B9, 2026-11-25): **Export** always
+  writes text files, **Save** always stores into the SPEC file's workbook,
+  and both sit beside every result. Renamed: Export GID, Export GISAXS
+  (the drop-downs), Export Gradient (Plot tab), Export in the GIOXS
+  window, Export results... in the cut fit options. New: Export in the burn
+  dialog (<name>_burn.txt and _burn_trends.txt); Save beside Export
+  Spectrum (MCA) and on the Plot tab (the selected files, as read).
 - Two readers on one SPEC file (D1, 2026-11-25): the first to need the
   workbook writes it; a second shows a yellow "read-only" light at the
   right of the status bar (its tooltip names who has it open) and saves

@@ -113,7 +113,7 @@
   notes: "Ignores the Rescale factors; no error bars."
 - id: savegraPushButton
   kind: button
-  label: "Save Gradient"
+  label: "Export Gradient"
   where: "Plot"
   handler: saveGraPlotData
   does: "Writes the last derivative to <name>_der.txt"
@@ -121,7 +121,18 @@
   needs: "Gradient pressed"
   shown: always
   tooltip: false
-  notes: "Saves only the last file's derivative when several are selected (read only). No export of scaled data; no workbook Save."
+  notes: "Called Save Gradient until 2026-11-25 (F95 B9: it writes a text file). Writes only the last file's derivative when several are selected (read only). No export of scaled data."
+- id: plotSaveWorkbookPushButton
+  kind: button
+  label: "Save"
+  where: "Plot, right of Export Gradient"
+  handler: savePlotToWorkbook
+  does: "Saves the selected files, as read, into the workbook (kind 'other', labelled by file name, tied to no scan)"
+  workflows: [flex-plot, session]
+  needs: "files selected in the list"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F95, owner Q-UI-B9, 2026-11-25: the Plot tab gets a Save). At most 8 columns of each file."
 - id: plotLogXCheckBox
   kind: checkbox
   label: "LogX"
