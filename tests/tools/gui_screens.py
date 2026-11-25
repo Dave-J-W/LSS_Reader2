@@ -169,6 +169,9 @@ def new_window(app, spec=None, directory=None):
     import mainwindow
     mainwindow.MainWindow.messageStamp = lambda self: '12:00:00'     # the same pictures from run to run (audit)
     w = mainwindow.MainWindow()
+    timer = getattr(w, 'pilMovieTimer', None)
+    if timer is not None:                     # the movie plays but stays on its frame: a shot does not depend on timing
+        timer.timeout.disconnect(w.pilMovieTick)
     w.resize(WIN_W, WIN_H)
     w.show()
     if spec:
@@ -464,6 +467,12 @@ def run_nx(app, ctx, skip_slow):
         save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '14_timeline_tab.png',
                  'Timeline tab (F83): events, sx, sample-height scans and scans on one time axis',
                  'NX school file opened; Timeline tab shown (fitted to the whole file)')
+        w.timelineTab.doseCheckBox.setChecked(True)            # F107: the burns 14 and 15 are analysed
+        save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '14b_timeline_dose.png',
+                 'Timeline with Dose on (F107): the sx line coloured by each spot\'s dose as a fraction of the '
+                 'burn test\'s dose to a 5 % change',
+                 'NX school file; Dose ticked (beam 1 mm wide, its height from the sample-height scans)')
+        w.timelineTab.doseCheckBox.setChecked(False)
     timeline_tab()
 
     # --- Pilatus

@@ -34,6 +34,17 @@
   shown: always
   tooltip: true
   notes: ""
+- id: timelineDoseCheckBox
+  kind: checkbox
+  label: "Dose"
+  where: "Timeline > top, right of Fit all"
+  handler: timelineDoseToggled
+  does: "Colours the sx line by the dose each spot has received, as a fraction of the burn test's dose to a 5 % change (teal none, yellow half, red the burn's dose, dark red twice it)"
+  workflows: [session]
+  needs: "a SPEC file with sx and a burn test (otherwise the line stays grey and the tooltip says why)"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F107, owner Q-TL-7, 2026-11-25; core lss_core.timeline.dose_track). Off by default (a preference). The burns are analysed on the dose axis (a few seconds), then kept while the file is unchanged. The burn is the sample's own (between the same two 'new sample?' guesses) or else the nearest in time; each segment's tooltip says which and the fraction. Assumptions, in the tooltip and asked through questor: one beam for the file (1 mm wide unless the burn dialog's width is typed; its height from the sample-height scans), positions within half the beam's width are one spot, every scan counts in full."
 - id: timelineInfoLabel
   kind: label
   label: "20260923: 15 scans, 09:32 to 11:23, 1 set sh 0 (new sample?)"

@@ -136,6 +136,14 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- Timeline, Dose (F107, 2026-11-25): ticked, the sx line is coloured by
+  the dose each spot has received so far, as a fraction of the dose at
+  which the burn test changed by 5 %: teal none, yellow half, red the
+  burn's dose, dark red twice it. The burn is the sample's own (between
+  the same two "new sample?" guesses), else the nearest in time; each
+  segment's tooltip gives the scan's dose, the spot's total and the burn
+  used. One beam is assumed for the whole file, so its size cancels.
+  Terms to define: spot, dose per mm² of footprint.
 - Two readers on one SPEC file (D1, 2026-11-25): the first to need the
   workbook writes it; a second shows a yellow "read-only" light at the
   right of the status bar (its tooltip names who has it open) and saves

@@ -23,7 +23,7 @@ import time
 
 from PyQt5.QtCore import Qt, QRectF, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen, QTransform
-from PyQt5.QtWidgets import (QGraphicsEllipseItem, QGraphicsItem, QGraphicsPathItem, QGraphicsRectItem,
+from PyQt5.QtWidgets import (QCheckBox, QGraphicsEllipseItem, QGraphicsItem, QGraphicsLineItem, QGraphicsPathItem, QGraphicsRectItem,
                              QGraphicsScene, QGraphicsSimpleTextItem, QGraphicsView, QHBoxLayout, QLabel, QMenu,
                              QPushButton, QVBoxLayout, QWidget)
 
@@ -131,6 +131,8 @@ class TimelineView(QGraphicsView):
         self.items = {'scans': {}, 'heights': {}, 'events': [], 'steps': [], 'gaps': [], 'notes': [], 'set_zero': []}
         self.notes = []
         self.answer_of = lambda event: ''
+        self.dose = None                 # F107: a lss_core.timeline.DoseTrack, drawn over the sx line
+        self._sx_y = None
 
     # ---- building
 
@@ -138,7 +140,8 @@ class TimelineView(QGraphicsView):
         from lss_core import timeline as timelinemod
         sc = self.scene()
         sc.clear()
-        self.items = {'scans': {}, 'heights': {}, 'events': [], 'steps': [], 'gaps': [], 'notes': [], 'set_zero': []}
+        self.items = {'scans': {}, 'heights': {}, 'events': [], 'steps': [], 'gaps': [], 'notes': [], 'set_zero': [],
+                      'dose': []}
         self.timeline = tl
         self.notes = list(notes)
         self.answer_of = timelinemod.answers(self.notes)
@@ -160,6 +163,8 @@ class TimelineView(QGraphicsView):
         self._scans(tl)
         self._heights(tl)
         self._steps(tl)
+        if self.dose is not None:
+            self._dose(tl)
         self._events(tl)
         self._notes()
         self.fit_all()
@@ -252,6 +257,7 @@ class TimelineView(QGraphicsView):
     def _steps(self, tl, motor='Sample_X'):
         y, h = lane_top('sx')
         track = tl.positions.get(motor, [])
+        self._sx_y = None
         if not track:
             self._label('no sx in this file', 4, y + 14, colour='#8c8c8c')
             return
@@ -260,6 +266,7 @@ class TimelineView(QGraphicsView):
 
         def ypos(v):
             return y + h - 8 - (v - lo) * scale if scale else y + h / 2.0
+        self._sx_y = ypos
         path = QPainterPath()
         path.moveTo(self._x(track[0][1]), ypos(track[0][2]))
         for (_na, _ta, va), (_nb, tb, vb) in zip(track, track[1:]):
@@ -278,6 +285,42 @@ class TimelineView(QGraphicsView):
                    'sample-height scan (owner, F78)' % (st.old, st.new, st.scan, self.clock(st.t_before, True),
                                                        self.clock(st.t_after, True)))
             self.items['steps'].append(self._label('%g' % st.new, self._x(st.t_after), ypos(st.new) - 14, tip=tip))
+
+    def set_dose(self, track):
+        """Colour the sx line by the dose each spot has received (F107), or
+        not (None)."""
+        self.dose = track
+        if self.timeline is not None:
+            keep = self.transform(), self.horizontalScrollBar().value()
+            self.set_timeline(self.timeline, self.notes)
+            self.setTransform(keep[0])
+            self.horizontalScrollBar().setValue(keep[1])
+
+    def _dose(self, tl):
+        """Each scan's span over the sx line, coloured by its spot's dose so far
+        as a fraction of the burn test's dose to a 5 % change
+        (lss_core.timeline.dose_colour: teal 0, yellow 50 %, red 100 %, dark red
+        200 % and above; grey without a scale)."""
+        from lss_core import timeline as timelinemod
+        if self._sx_y is None or not self.dose.rows:
+            return
+        tr = self.dose
+        for r in tr.rows:
+            y = self._sx_y(r.sx)
+            line = QGraphicsLineItem(self._x(r.t0), y, self._x(r.t1), y)
+            line.setPen(self._pen(QColor(*timelinemod.dose_colour(r.fraction)), 5.0))
+            line.setZValue(2)
+            sc = tr.scales.get(r.burn) if r.burn is not None else None
+            line.setToolTip('S# %d at sx %g mm (spot %d): %.3g %s during the scan, %.3g at this spot so far%s'
+                            % (r.scan, r.sx, r.spot + 1, r.dose, tr.unit, r.cumulative,
+                               ('\n= %s%.0f %% of %s%s' % ('≤ ' if sc.lower_bound else '', 100 * r.fraction,
+                                                          sc.describe(tr.unit),
+                                                          '' if r.own else ' (the nearest burn in time: this sample '
+                                                                           'has none of its own)'))
+                               if sc is not None and r.fraction is not None else '\nno burn test to scale it by'))
+            line.setData(0, r.scan)
+            self.scene().addItem(line)
+            self.items['dose'].append(line)
 
     def _events(self, tl):
         y, h = lane_top('events')
@@ -442,7 +485,16 @@ class TimelineTab(QWidget):
                                   'a double-click fits too.')
         self.infoLabel = QLabel('', self)
         self.infoLabel.setObjectName('timelineInfoLabel')
+        self.doseCheckBox = QCheckBox('Dose', self)
+        self.doseCheckBox.setObjectName('timelineDoseCheckBox')
+        self.doseCheckBox.setToolTip(
+            'Colour the sx line by the dose each spot has received, as a fraction of the dose at which the burn '
+            'test changes by 5 % (F107): teal none, yellow half, red the burn\'s dose, dark red twice it. The '
+            'burn is the sample\'s own (between the same two "new sample?" guesses) or else the nearest in time. '
+            'Assumptions: one beam for the file (then its size cancels), positions within half the beam\'s width '
+            'are one spot, every scan counts in full. Analysing the burns takes a few seconds')
         top.addWidget(self.fitButton)
+        top.addWidget(self.doseCheckBox)
         top.addWidget(self.infoLabel, 1)
         v.addLayout(top)
         body = QHBoxLayout()

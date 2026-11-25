@@ -112,11 +112,11 @@ shared_steps:
   - id: shared.timeline
     do: "See the session on one time axis: when samples changed (set sh 0), sh scans and their width and flatness, sx moves, scans by kind; click a scan to open it"
     where: Timeline tab
-    controls: [timelineTab, timelineView, timelineFitPushButton, timelineInfoLabel]
-    user_decides: "whether a 'set sh 0' was a new sample (right-click; kept as a note in the workbook); notes at a time; which scan to open"
+    controls: [timelineTab, timelineView, timelineFitPushButton, timelineDoseCheckBox, timelineInfoLabel]
+    user_decides: "whether a 'set sh 0' was a new sample (right-click; kept as a note in the workbook); notes at a time; which scan to open; whether a spot has had too much dose (Dose: the sx line coloured by the dose received against the burn test's, F107)"
     automatic: yes
     could_be_automatic: "a verdict on each sh scan once the owner gives the thresholds (F78, Q-TL-6)"
-    known_from: owner 2026-11-23 (F83), 2026-11-24 (main-window tab); test tests/test_gui_timeline.py
+    known_from: owner 2026-11-23 (F83), 2026-11-24 (main-window tab, Q-TL-7); tests tests/test_gui_timeline.py, tests/test_gui_timeline_dose.py
     issues:
       - "No reduced-data or environment lanes yet (phase 1c)"
   - id: shared.frames-look
