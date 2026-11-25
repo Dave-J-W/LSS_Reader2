@@ -193,6 +193,12 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   factor 10 removes 90 % of them and touched no clean frame, while factors 3–4
   can take half a real sparse point (measured, synthetic with known truth; NX
   school unchanged at any factor; `docs/studies/roi_bad_pixels/`).
+- The join's error budget with C63's measured excess (C64, 2026-11-25): wild
+  points make 16 % of today's joins miss by over 5 oracle errors behind
+  inflated error bars; 4σ clipping cuts that to 0.6 % and reaches the
+  oracle's pull SD; σ × 1.12 ⊕ X fixes the core under-coverage at 14–17 %
+  wider errors (measured, synthetic with known truth;
+  `docs/studies/excess_remedy/`). Waits for C56's real splits (DATA_NEEDS 17).
 
 ## Series, saving and live updates (2026-11-19 to 22)
 
