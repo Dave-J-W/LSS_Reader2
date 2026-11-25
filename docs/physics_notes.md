@@ -6438,7 +6438,14 @@ The non-cloud agent measured ΔQ at the edge, at 10 keV, from 378 real scans:
 
 - By the study's resolution table (synthetic, measured: an edge fit reads a
   Gaussian resolution as Qoff ≈ −0.15 ΔQ FWHM), that resolution alone gives
-  about −1.3 × 10⁻⁴ (−1.0 to −1.9 × 10⁻⁴ over the runs).
+  about −1.3 × 10⁻⁴. **Corrected the same day** (the Qoff walkthrough,
+  step 5, on NX's own Qz points): −1.33 × 10⁻⁴ at the median ΔQ, but
+  −0.64 to −2.52 × 10⁻⁴ over the runs' range, not the linear −1.0 to −1.9.
+  So resolution is between a quarter and nine tenths of NX's offset, about
+  half at the median. The walkthrough also measured the edge fit's χ²/dof
+  on NX: 75, with the rounded edge's signature in the residuals (31σ below
+  the edge, 6–10σ above it). So the proposal's ± (counting noise only, 0.07
+  × 10⁻⁴) is about ×9 too small there; an honest error is ±0.6 × 10⁻⁴.
 - So of NX's −2.8 × 10⁻⁴, about **−1.5 × 10⁻⁴ (−0.9 to −1.8) is left.**
   That remainder is either an angle offset of about −0.0009°, or a Qc about
   1.5 × 10⁻⁴ above water's 0.0217. A wrong Qc moves Qoff one for one

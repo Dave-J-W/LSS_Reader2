@@ -169,10 +169,13 @@ NX school scans 6–9 (DPPC on water, 10 keV), at Qc 0.0217 (figure Q5):
 - **Resolution or angle?** About half each (updated 2026-11-25, with the
   resolution #68 measured). The beamline's ΔQ at the edge is 8.9 × 10⁻⁴ Å⁻¹
   FWHM at 10 keV (`docs/studies/qz_resolution/summary.md`, 378 real scans;
-  run medians 6.5–12.6 × 10⁻⁴). By section 3's table, that reads as a Qoff
-  of about −1.3 × 10⁻⁴ (−1.0 to −1.9 × 10⁻⁴ over the runs). So of NX's
-  −2.8 × 10⁻⁴, about −1.5 × 10⁻⁴ (−0.9 to −1.8) is left. That remainder is
-  a true angle offset of about −0.0009°, or a Qc about 1.5 × 10⁻⁴ above
+  run medians 6.5–12.6 × 10⁻⁴). On NX's own Qz points and errors it reads as
+  a Qoff of −1.33 × 10⁻⁴ at the median, and −0.64 to −2.52 × 10⁻⁴ over the
+  runs' range: the reading rises faster than linearly (`walkthrough.md`,
+  step 5; corrected 2026-11-25 from a linear −1.0 to −1.9). So of NX's
+  −2.8 × 10⁻⁴, about −1.5 × 10⁻⁴ is left at the median, and between −0.3
+  and −2.2 over the range. That remainder is a true angle offset (about
+  −0.0009° at the median), or a Qc about 1.5 × 10⁻⁴ above
   water's 0.0217 (section 4: a wrong Qc moves Qoff one for one); the data
   cannot tell which. Assumption: NX's ΔQ is the station's typical one (the
   NX scans are from the same station; their own edge width was not fitted).
@@ -197,6 +200,14 @@ NX school scans 6–9 (DPPC on water, 10 keV), at Qc 0.0217 (figure Q5):
    gives −1.3 × 10⁻⁴, a proposal is an angle offset only after that is
    allowed for: an edge fit with R_F convolved with the measured resolution
    would give the angle offset itself (not built; a candidate option).
+
+**Step by step, with the edge fit drawn over NX's data, its residuals and the
+bootstrap explained:** `walkthrough.md` (figures QW1–QW5). It also shows two
+things the tables above do not:
+- the edge fit's χ²/dof on NX is 75: a sharp R_F cannot follow the rounded
+  edge;
+- so the proposal's ± (counting noise only) is about ×9 too small there:
+  −2.8 ± 0.6 × 10⁻⁴ once scaled by √(χ²/dof).
 
 ## Figures
 

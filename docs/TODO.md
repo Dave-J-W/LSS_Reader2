@@ -238,6 +238,11 @@ build workflow and macOS signing (input 12); sample-data hosting.
       are started as their own process (`patch_demo.py`, which takes the space
       bar application-wide). A packaged build lists the items and the
       committed figures it holds but disables Run (no tools, no Python inside).
+- [ ] **The Qoff proposal's ± is the counting part only (found 2026-11-25, the Qoff walkthrough).** On NX the
+      edge fit's χ²/dof is 75 (the rounded edge), so its ± 0.07 × 10⁻⁴ is about ×9 too small; ±0.6 × 10⁻⁴ once
+      scaled by √(χ²/dof). Either scale σ when χ²/dof > 1 (as the drift fits do) or fit R_F convolved with the
+      measured resolution (then χ² should approach 1 and Qoff becomes the angle offset). Until then, the GUI
+      manager's Propose tooltip should say so. tools man, with a study (rule 12) before any default.
 - [x] **`--stale` flagged most items wrongly (the former patching
       session's review, 2026-11-24) — fixed 2026-11-25** by tools man:
       `python -m lss_toolbox --audit --record` keeps, for each item whose
