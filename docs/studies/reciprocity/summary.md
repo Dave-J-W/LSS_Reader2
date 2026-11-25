@@ -9,7 +9,7 @@ offered to scripts; the window's several-burns view is the GUI manager's
 
 **Regenerate:**
 
-    python tests/tools/reciprocity_study.py --out docs/studies/reciprocity        # about 35 s
+    python tests/tools/reciprocity_study.py --out docs/studies/reciprocity        # about 1.5 min
 
 The code is `lss_core/reciprocity.py` (`dose_or_time`, `from_result`,
 `drift_rate`); its tests are `tests/test_reciprocity.py`; the synthetic
@@ -101,10 +101,10 @@ Four burns over ×8, the rate of each strip off by a random 20 % or 50 %
 |---|---|---|---|---|---|---|
 | 20 %, ignored | **0.12** | 0.59 | 0.97 | 1.00 | 0.92 | 1.00 |
 | 20 %, as one τ | 0.84 | 0.96 | 0.42 | 0.97 | 0.19 | 0.99 |
-| 20 %, as ρ | **0.96** | **0.94** | 0.58 | 1.00 | 0.27 | 1.00 |
+| 20 %, as ρ | **0.93** | **0.93** | 0.79 | 1.00 | 0.45 | 1.00 |
 | 50 %, ignored | 0.02 | 0.13 | 0.94 | 0.95 | 0.94 | 0.98 |
 | 50 %, as one τ | 0.55 | 0.16 | 0.11 | 0.65 | 0.14 | 0.99 |
-| 50 %, as ρ | 0.55 | 0.53 | 0.08 | 0.56 | 0.04 | 1.00 |
+| 50 %, as ρ | **0.80** | **0.81** | 0.02 | 0.80 | 0.04 | 1.00 |
 
 - **Ignoring a real strip scatter wrecks the test.** The pure laws fail on
   rates that scatter beyond their counting, and nearly everything becomes
@@ -112,15 +112,27 @@ Four burns over ×8, the rate of each strip off by a random 20 % or 50 %
   finding: with counting errors alone, 8 of its 19 real series were
   "neither".
 - **Admitting it in the right form restores the calls and the
-  calibration.** As ρ, the pull SD of β̂ is 1.0–1.06 and the coverage
-  0.66–0.73. As one constant τ (the scatter at the median rate), the fast
+  calibration.** As ρ, the pull SD of β̂ is 1.03–1.09 and the coverage
+  0.66–0.69 (0.68 ideal). As one constant τ (the scatter at the median rate), the fast
   burns get too little and the slow ones too much (pull SD 1.4–1.5,
   coverage 0.52). C54 used one constant and noted it "is far too large for
   the slowly changing series and maybe too small for the fast ones"; the
   relative form answers that.
-- **At 50 % even four burns over ×8 mostly cannot tell** (about half the
-  dose and time truths called right, the rest "cannot tell"). That is the
-  data's limit, not the test's.
+- **At 50 %, four burns over ×8 still tell dose from time** (0.80 and
+  0.81 called right, the other law at most 0.03), but not a dose-rate
+  effect: β = 0.5 is then called dose or time in 0.71 of replicates, its
+  interval reaching one of them. A steep β = 2 is called right in 0.80, with
+  its pulls spoilt (SD 3.6) by intervals cut at the grid's edge.
+- **The ρ rows changed on 2026-11-25.** The variance ρ k φ^β depends on
+  the model, so k is now fitted by maximum likelihood, and the verdict uses
+  likelihood-ratio tests: 'dose' means β = 1 inside the 95 % interval and
+  β = 0 outside. Before, k was fitted by least squares reweighted on χ²
+  alone, which can shrink χ² by inflating k's own variance, and the
+  verdicts used goodness-of-fit p-values. At 20 %, before → after: dose
+  0.96 → 0.93, time 0.94 → 0.93, β 0.5 0.58 → 0.79. At 50 %: dose 0.55 →
+  0.80, time 0.53 → 0.81. Coverage 0.66–0.73 → 0.61–0.69. The τ rows and
+  every other section are unchanged (rerun, byte for byte apart from the ρ
+  rows). The reason it mattered: C54's real strips scatter by about their own rate (ρ ≈ 1.1).
 
 ## 3. Few frames, little change
 

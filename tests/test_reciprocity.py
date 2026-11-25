@@ -59,7 +59,6 @@ def test_strip_scatter_and_refusals():
     assert 'strip scatter' in widened.note
     relative = R.dose_or_time(burns, strip_relative=0.3)     # the scatter as a share of each rate (the truth's form)
     assert relative.p_dose > plain.p_dose and '30 % of the rate' in relative.note
-    assert relative.beta_ci95[0] <= 1.0 <= relative.beta_ci95[1]       # the 95 % interval holds the truth
     with pytest.raises(ValueError):
         R.dose_or_time(burns[:1])
     same = [R.Burn(b.t, b.y, b.sigma, 1.0) for b in burns[:2]]
@@ -109,6 +108,33 @@ def test_rates_in_and_the_strip_scatter_from_repeats():
     with pytest.raises(ValueError):
         R.strip_scatter_fit([[(1.0, 1.0)]])
 
+
+def test_relative_strip_scatter_by_likelihood():
+    """With ρ, k is fitted by maximum likelihood (the variance depends on
+    the model): reweighted least squares on χ² alone could shrink χ² by
+    inflating k's own variance (2026-11-25). The 95 % interval covers the
+    truth at its rate (this replaces one seed's check, which the new fit
+    misses by 0.01 as a 95 % interval should 1 time in 20; measured 0.95
+    over 60 seeds), and C54's real series R11-S1 (7 burns, ×14.6, the
+    public derived rates) no longer gets an interval of 0.08 at ρ 1.13,
+    with strips that differ by about their own rate (before: 0.72
+    [0.68, 0.76]; now 0.52 [0.16, 0.96])."""
+    cover = 0
+    for seed in range(60):
+        burns, _ = bp.series(beta=1.0, fluxes=(1.0, 2.0, 4.0, 8.0), change=0.1, noise=0.001, strip=0.3, seed=seed)
+        v = R.dose_or_time(burns, strip_relative=0.3)
+        cover += v.beta_ci95[0] <= 1.0 <= v.beta_ci95[1]
+    assert cover >= 53                                       # 0.95 expected; 0.88 is 2.5 binomial SD below
+    import csv
+    path = os.path.join(ROOT, 'docs', 'studies', 'xr_burns', 'burns.csv')
+    with open(path, encoding='utf-8') as f:
+        rows = [r for r in csv.DictReader(ln for ln in f if not ln.startswith('"#')) if r['series_id'] == 'R11-S1']
+    args = ([float(r['flux']) for r in rows], [float(r['rate_t_drop1']) for r in rows],
+            [float(r['rate_t_drop1_err']) for r in rows])
+    rho = R.dose_or_time_rates(*args, strip_relative=1.13)
+    assert rho.beta_ci[1] - rho.beta_ci[0] > 0.5                # before: 0.08 wide; now about 0.8
+
+
 def test_repeated_strips_at_one_flux_are_pooled():
     """Strips at one flux that rise and fall are the strip scatter, not two
     processes: with the scatter admitted, the 'opposite signs' rule looks
@@ -121,3 +147,4 @@ def test_repeated_strips_at_one_flux_are_pooled():
     assert calls.count('opposite signs') <= 3
     one, _ = bp.series(beta=1.0, fluxes=(1.0, 10.0), change=0.1, noise=0.003, seed=1)   # no repeats: as before
     assert R.dose_or_time(one).verdict == 'dose'
+

@@ -225,7 +225,7 @@ TOOLS = (
              V('More replicates (1000)', 'Every design with 1000 replicates (about 2 min).',
                'docs/studies/reciprocity/summary.md## 1. How often is each truth called right?', replicates='1000'),
          ),
-         repo_out='docs/studies/reciprocity', repo_ok=False, seconds=35.0),
+         repo_out='docs/studies/reciprocity', repo_ok=False, seconds=85.0),
 
     Tool('burn_dose_figure', 'Burns against dose: damage or a changing sample?', 'burn', 'figures',
          'tests/tools/burn_dose_figure.py',

@@ -136,19 +136,46 @@ class Verdict:
 
 
 def _profile(phi, r, s, grid, rho=0.0, iterations=3):
-    """χ²(β) with k fitted at every β (closed form), and k(β). ``rho``: a
-    relative strip scatter, added to each burn's error as ρ × the model's
-    rate k(β) φ^β (iterated, since k depends on the errors)."""
+    """(χ², k, deviance) at every β of ``grid``, with k fitted at every β.
+
+    ``rho`` 0: k by weighted least squares (closed form); the deviance is
+    χ². ``rho`` > 0, a relative strip scatter (variance s² + (ρ k φ^β)²,
+    which depends on the model): k by maximum likelihood, minimising
+    −2 log L = Σ (r − kφ^β)²/v + Σ log v. The deviance (−2 log L less
+    Σ log s²) gives β̂ and its intervals; χ² (the Pearson sum at that k)
+    gives the p-values. Before 2026-11-25, k was fitted by reweighted least
+    squares on χ² alone, which can shrink χ² by inflating k's own variance:
+    harmless at ρ 0.2, misleading at C54's ρ ≈ 1.1 (an interval on one real
+    series narrower than with counting errors alone). ``iterations`` is
+    kept for callers; the search does not use it."""
     x = phi[None, :] ** grid[:, None]
     s2 = np.broadcast_to(s ** 2, x.shape)
     w = 1.0 / s2
-    for _ in range(iterations if rho else 1):
-        k = np.sum(w * x * r, axis=1) / np.sum(w * x * x, axis=1)
-        if rho:
-            w = 1.0 / (s2 + (rho * k[:, None] * x) ** 2)
     k = np.sum(w * x * r, axis=1) / np.sum(w * x * x, axis=1)
-    chi2 = np.sum(w * (r - k[:, None] * x) ** 2, axis=1)
-    return chi2, k
+    if not rho:
+        chi2 = np.sum(w * (r - k[:, None] * x) ** 2, axis=1)
+        return chi2, k, chi2
+    # k by a search on a multiplicative grid about the least-squares k (its sign kept), then a finer one
+    base = np.where(k != 0, k, 1e-300)
+
+    def dev_of(m):                                         # m: (n_beta, n_m) multipliers of base
+        kk = base[:, None] * m
+        v = s2[:, None, :] + (rho * kk[:, :, None] * x[:, None, :]) ** 2
+        res = r[None, None, :] - kk[:, :, None] * x[:, None, :]
+        return np.sum(res ** 2 / v + np.log(v / s2[:, None, :]), axis=2)
+    m = np.broadcast_to(np.logspace(-2, 2, 161), (len(grid), 161))
+    d = dev_of(m)
+    j = np.argmin(d, axis=1)
+    step = np.log(10) * 4 / 160
+    centre = np.log(m[np.arange(len(grid)), j])
+    fine = np.exp(centre[:, None] + np.linspace(-step, step, 41)[None, :])
+    d2 = dev_of(fine)
+    j2 = np.argmin(d2, axis=1)
+    kbest = base * fine[np.arange(len(grid)), j2]
+    v = s2 + (rho * kbest[:, None] * x) ** 2
+    chi2 = np.sum((r - kbest[:, None] * x) ** 2 / v, axis=1)
+    dev = d2[np.arange(len(grid)), j2]
+    return chi2, kbest, dev
 
 
 def _pooled_z(phi, r, sr, tau, rho, x, k, beta):
@@ -196,7 +223,11 @@ def dose_or_time(burns, strip_scatter=0.0, strip_relative=0.0, significance=SIGN
     same as a fraction of each burn's rate (the model's, k φ^β), for a
     scatter that grows with the rate, as C54 suspected the real one does
     ("far too large for the slowly changing series and maybe too small for
-    the fast ones"); the study (docs/studies/reciprocity) compares them."""
+    the fast ones"); the study (docs/studies/reciprocity) compares them.
+    With ρ the fit is by maximum likelihood and ``p_dose``, ``p_time`` are
+    likelihood-ratio p-values against the best β (2026-11-25), so 'dose'
+    means β = 1 inside the 95 % interval and β = 0 outside; without ρ they
+    are goodness-of-fit p-values at the fixed β, as C54's."""
     burns = [from_result(b) if not isinstance(b, Burn) else b for b in burns]
     if len(burns) < 2:
         raise ValueError('the test compares two or more burns at different fluxes')
@@ -228,13 +259,19 @@ def dose_or_time_rates(fluxes, rates, sigmas, labels=None, strip_scatter=0.0, st
     z = r / s
     gm = float(np.exp(np.mean(np.log(phi))))
     x = phi / gm                                            # fluxes about their geometric mean
-    chi2, k = _profile(x, r, s, grid, strip_relative)
+    pearson, k, chi2 = _profile(x, r, s, grid, strip_relative)        # chi2: the deviance (χ² when ρ is 0)
     i = int(np.argmin(chi2))
     beta = float(grid[i])
     ci, ci95 = _interval(grid, chi2, 1.0), _interval(grid, chi2, 3.84)
     n = len(phi)
-    c1, c0 = (float(_profile(x, r, s, np.array([v]), strip_relative)[0][0]) for v in (1.0, 0.0))
-    p1, p0 = _p(c1, n - 1), _p(c0, n - 1)
+    if strip_relative:
+        # a variance that depends on the model: likelihood-ratio tests of β = 1 and β = 0 (the verdict
+        # follows the 95 % interval), since the Pearson χ² at the likelihood's k is not χ²(n − 1)
+        c1, c0 = (float(_profile(x, r, s, np.array([v]), strip_relative)[2][0]) for v in (1.0, 0.0))
+        p1, p0 = _p(max(c1 - float(chi2[i]), 0.0), 1), _p(max(c0 - float(chi2[i]), 0.0), 1)
+    else:
+        c1, c0 = (float(_profile(x, r, s, np.array([v]), strip_relative)[0][0]) for v in (1.0, 0.0))
+        p1, p0 = _p(c1, n - 1), _p(c0, n - 1)
     m = min(c0, c1)
     wd = float(math.exp(-(c1 - m) / 2) / (math.exp(-(c1 - m) / 2) + math.exp(-(c0 - m) / 2)))
     z = _pooled_z(phi, r, sr, strip_scatter, strip_relative, x, k[i], beta)
