@@ -83,11 +83,13 @@ def test_one_burn_says_how_to_compare(window, qapp, recorder, tmp_path):
 def test_the_dose_axis_the_beam_and_fast_mode(window, qapp, recorder, tmp_path):
     w = window
     d = _open(w, qapp, synth.make_burn_dataset(tmp_path / 'one'), tmp_path, [0])
-    assert d.burnBeamWidthLineEdit.text() == '1.0' and w.burnKeywords[1]['beam_mm'][0] == 1.0   # prefilled (owner)
-    d.burnBeamWidthLineEdit.setText('')                                          # empty: the total dose
-    d.burnBeamWidthLineEdit.returnPressed.emit()
-    assert 'beam_mm' not in w.burnKeywords[1]
-    total = w.burnResult.dose_total
+    # the width: exp.beam_width() (F109), the owner's 1 mm without an S1 slit scan; shown greyed
+    assert d.burnBeamWidthLineEdit.text() == '' and d.burnBeamWidthLineEdit.placeholderText() == '1'
+    assert w.burnKeywords[1]['beam_mm'] == (1.0, 0.04) and 'owner' in d.burnBeamWidthLineEdit.toolTip()
+    assert d.burnDoseSummaryLabel.text().startswith('Dose: peak')                 # F109: peak and average
+    assert 'average' in d.burnDoseSummaryLabel.toolTip()
+    from lss_core.experiment import Experiment
+    total = Experiment(w.specFileName).burn(1).dose_total                         # no beam: the total dose
     d.burnAxisComboBox.setCurrentIndex(d.burnAxisComboBox.findData('dose'))
     res = w.burnResult
     assert res.axis == 'dose' and res.x_unit() in d.burnResultLabel.text()       # the limit as a dose
