@@ -5999,3 +5999,15 @@ the sketch is derived. Study: `docs/studies/sh_beam_size/height_scans.md` (figur
   lengthens (median ρ −0.20), unexplained, about 1 µm.
 - **How sure:** a run's median σ_rise ± 0.3 µm statistically; as a size, about ± 10 % (one erf for a core +
   tail profile). No number of the dose rule changes.
+
+### 2026-11-25 — The owner: frame-by-frame curves of private burns are not published
+
+Verified by: the owner's answer in main man's session, on PR #68's figure B1 (each real reflectivity burn frame
+by frame, normalised to its first frames, against time and dose, about 19 anonymised series): "Don't publish
+B1, but don't forget how to make it!" So such curves of private data stay private, normalised and anonymised
+or not; the summary values (each burn's rate, the series' β and verdict, the CSVs of PR #68) are published.
+The figure and its generator are kept under `sample_data/private/` (git-ignored), and the public study page
+names the script and the command that regenerates it. A figure must not be removed by a later commit only:
+the commit that added it would reach main's history, so the branch is rebuilt without it. Recorded in
+AGENTS.md's row for `sample_data/private/`.
+
