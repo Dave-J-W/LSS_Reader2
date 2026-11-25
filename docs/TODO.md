@@ -125,7 +125,7 @@ working list, one table per area, each row with its source. Rows marked
 | ~~Workbook results tied to series id and scans used; stale flag when a series gains scans~~ **done 2026-11-22**: Saved gains series, series_kind, series_scans, series_status, recipe, stale; "Update Specfile" marks changed results | F66; review R3 |
 | Reopen a SPEC file with its workbook's settings | F66 |
 | The workbook and D1–D3 (config beside the SPEC file, read-only second instance, yellow light): record how they relate — **new** | D1–D3, D53 |
-| Dropped points as masks in the config file, "Restore all" in the patch dialog (owner, 2026-11-23: F92) | F16, D2, F92 |
+| ~~Dropped points as masks in the config file, "Restore all" in the patch dialog (owner, 2026-11-23: F92)~~ core #54 (main man), window 2026-11-25 (GUI manager: drops kept as the mask, left out from the start, grey crosses, Restore all). Left: the second reader read-only (D1, not built); click to drop (F94, low priority) | F16, D2, F92 |
 | Disk-cache settings dialog with the per-SPEC state — **new** in the Stage 3 list | Stage 2 list |
 
 **G. Fitting, burn tests, beam**

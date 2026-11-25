@@ -401,6 +401,8 @@ REFLECTIVITY = {
                  controls=[C('refpatch.knownRatioCheckBox', 'Known ratio'),
                            C('refpatch.knownRatioLabel', 'fit ±0.4 %, foils ±1.5 %'),
                            C('refpatch.dropLineEdit', 'Drop points'), C('refpatch.dropPushButton', 'Drop'),
+                           C('refpatch.restoreAllPushButton', 'Restore all',
+                             note='Clears the mask of these scans and starts again (F92, built 2026-11-25)'),
                            C('refpatch.backPushButton', '◂ Back',
                              note='Undoes the last drop or accepted join (F96, built in the main window 2026-11-24)'),
                            C('refpatch.nextPushButton', 'Next doubtful ▸',
