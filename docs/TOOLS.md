@@ -75,6 +75,8 @@ container on 2026-11-23 with the defaults shown.
 | [Qoff and Qc of R/R_F: the proposer's study (F79)](#qoff-study) | figures | Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and least squares) and the joint Qc + Qoff fit against the truth over offsets, samples, counts, outliers, resolution, a wrong Qc and the reader's patch; the NX school scans at the GUI's preset and at the proposals: figures Q1-Q5. | public (NX school or committed tables) |  | `docs/studies/qoff` |
 | [A bad-pixel pass on the reflectivity ROI: hot pixels, sparse frames, the factor (F95 B3, C62)](#roi-bad-pixel-study) | figures | Synthetic frames with known truth (bright, sharp and sparse beams; 0-0.5 hot pixels per frame) reduced by the reader's frame_row after no pass, the whole-frame pass at factor 4, the ROI pass at factors 3, 10 and 40, or the background boxes only; the NX school frames. Figures R1-R5: one sparse frame, the extra scatter per point, the threshold, the join pulls, and how close clean frames come to a correction. | public (NX school or committed tables) | 110 s | `docs/studies/roi_bad_pixels` |
 | [Walkthrough: why join error bars are too small, from two scans to the verdict (C61, ELI5)](#guard-error-walkthrough) | figures | The whole chain of the guard's-error study, for the owner's standing order (2026-11-25): two scans and the factor read off their shared points, with and without 2 % hidden scatter; the joint fit drawn over its data with its residuals; the guard's ladder of p-values; the pulls and coverage over 400 replicates, today's rule against honest per-point errors; a fringed join, where inflating by the order-4 chi2 fails; and a real NX school scan split with a known factor: figures W1-W6. | public (NX school or committed tables) | 6 s | `docs/studies/guard_error/walkthrough` |
+| [Scatter beyond counting statistics: the estimators on known truth (DATA_NEEDS row 15)](#excess-scatter) | figures | Synthetic reflectivity series (water, DPPC, a 100 Å film) with a known per-point excess X, a slow drift or 3 % outliers: the shared-Qz estimator (one Gaussian, and a core plus outliers) and the 6-point within-scan difference, each against the truth (figure X1); then the pull SD of today's joint fit on C61's joins with the excess measured on real data (pulls.csv). | synthetic (public) | 900 s | `docs/studies/excess_scatter/X1_known_truth.png`<br>`docs/studies/excess_scatter/known_truth.csv`<br>`docs/studies/excess_scatter/pulls.csv`<br>`docs/studies/excess_scatter/numbers.json` |
+| [Walkthrough: scatter beyond counting, from two scans to the verdict (DATA_NEEDS row 15, ELI5)](#excess-scatter-walkthrough) | figures | The whole chain of the excess-scatter study (rule 13): two NX school scans and their shared Qz; the ratio at the shared points with its mean and residuals; the 6-point difference within a scan; the likelihood and the core + outlier model on known truth; the real results by what they might follow, from the committed derived tables: figures W1-W5. | public (NX school or committed tables) | 40 s | `docs/studies/excess_scatter/walkthrough` |
 | [The guard's error: why join error bars are too small on real data](#guard-error-study) | figures | Study A's six joins with hidden per-point scatter (0-3 %): today's error rule against inflating by the unguarded fit's chi2, the larger inflation, the larger error, the guard off, and an oracle per-point budget; the NX school split. Figures G1-G3: only honest per-point errors fix both smooth and fringed joins. | public (NX school or committed tables) | 35 s | `docs/studies/guard_error` |
 | [Study A: how strict the joint fit's guard should be](#ref-guard-study) | figures | The guard's p from 0.001 to 0.9, the guard off, an AICc average and the legacy factor on C45's six joins (C45 reproduced first), a downstream fit, the NX school joins beside the foil ratio, and a robustness map over fringe sampling and counts, on coinciding and staggered grids: figures A1-A8, R and RS. | public (NX school or committed tables) | 54 s | `docs/studies/reflectivity_guard` |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
@@ -147,6 +149,7 @@ container on 2026-11-23 with the defaults shown.
 | [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, the guards, rise against fall and what the meniscus does. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
 | [GID stray light over many sets (private data)](#gid-stray-light-private) | external | P40 on every private GID set (DATA_NEEDS row 10): light past S5 and beyond the footprint at both arm heights, per beamtime, and the beam-path background from frames with the sample lowered. Made by the non-cloud agent's private generator (sample_data/private/gid/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/gid_stray_light` |
 | [GID defaults judged on many sets (private data)](#gid-method-survey-private) | external | Hand-off 06 on every private GID set (DATA_NEEDS row 12): the S4-detector distance calibration per beamtime, the column responses ranked by frames agree, the joins as collected and fitted, the split test and the single frames as ground truth. Made by tests/tools/gid_method_survey.py on the private sets and the non-cloud agent's private aggregation (sample_data/private/gid/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/gid_method_survey` |
+| [Real reflectivity: scatter beyond counting statistics (private data)](#xr-excess-scatter) | external | The excess per-point scatter of 384 real reflectivity series (DATA_NEEDS row 15): the core excess and the outlier share, between scans (shared Qz) and within a scan, overall and by Qz, counts, time, background, monitor and absorber. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the real_*.csv beside the study, and the walkthrough draws them (W5). | private (not in the repository) |  | `docs/studies/excess_scatter/real_overall.csv`<br>`docs/studies/excess_scatter/real_by.csv`<br>`docs/studies/excess_scatter/real_runs.csv`<br>`docs/studies/excess_scatter/real_tails.csv`<br>`docs/studies/excess_scatter/real_scale.csv`<br>`docs/studies/excess_scatter/real_time_by_qz.csv`<br>`docs/studies/excess_scatter/real_numbers.json` |
 | [Real reflectivity burns: trends, dose or time (private data)](#xr-burns) | external | The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): the drift rate against flux and the dose-or-time verdicts per series. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. The frame-by-frame curves (B1) are private (owner, 2026-11-25). | private (not in the repository) |  | `docs/studies/xr_burns` |
 | [Qz resolution near the critical edge (private data)](#qz-resolution) | external | The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NEEDS row 13, F79): the resolution per run and S1 gap, the fit's sensitivity, a known-truth check and the coverage of the fits' errors. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/qz_resolution` |
 | [Reflectivity patching on real series (private data)](#ref-patch-real) | external | Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the non-cloud agent from tests/tools/ref_patch_survey.py on private files; not regenerable here; the numbers are the CSVs beside the figure. | private (not in the repository) |  | `docs/studies/ref_patch_real` |
@@ -504,6 +507,39 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Quick look | The pulls of W4 from 40 replicates (about 2 s): the pattern, not the decimals. | `docs/studies/guard_error/walkthrough.md#Over 400 replicates of this join` | `python tests/tools/guard_error_walkthrough.py --out '{out}' --reps 40` |
+
+<a id="excess-scatter"></a>
+
+### Scatter beyond counting statistics: the estimators on known truth (DATA_NEEDS row 15)
+
+Synthetic reflectivity series (water, DPPC, a 100 Å film) with a known per-point excess X, a slow drift or 3 % outliers: the shared-Qz estimator (one Gaussian, and a core plus outliers) and the 6-point within-scan difference, each against the truth (figure X1); then the pull SD of today's joint fit on C61's joins with the excess measured on real data (pulls.csv).
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/excess_scatter.py`
+- Explained in: `docs/studies/excess_scatter/summary.md`, `docs/COMPARISONS.md#| C63 |`
+- Committed products: `docs/studies/excess_scatter/X1_known_truth.png`, `docs/studies/excess_scatter/known_truth.csv`, `docs/studies/excess_scatter/pulls.csv`, `docs/studies/excess_scatter/numbers.json`; replaced from the window with the settings that made them (into `docs/studies/excess_scatter`)
+- Run:
+
+      python tests/tools/excess_scatter.py --out '{out}' --trials 40 --pulls 200
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Quick look | 5 estimates per cell and no pull check: the pattern of X1 in about a minute. | `docs/studies/excess_scatter/summary.md## The known-truth check` | `python tests/tools/excess_scatter.py --out '{out}' --trials 5 --pulls 0` |
+
+<a id="excess-scatter-walkthrough"></a>
+
+### Walkthrough: scatter beyond counting, from two scans to the verdict (DATA_NEEDS row 15, ELI5)
+
+The whole chain of the excess-scatter study (rule 13): two NX school scans and their shared Qz; the ratio at the shared points with its mean and residuals; the 6-point difference within a scan; the likelihood and the core + outlier model on known truth; the real results by what they might follow, from the committed derived tables: figures W1-W5.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/excess_scatter_walkthrough.py`
+- Explained in: `docs/studies/excess_scatter/walkthrough.md`, `docs/studies/excess_scatter/summary.md`
+- Committed products: `docs/studies/excess_scatter/walkthrough`; not replaced from the window
+- Run:
+
+      python tests/tools/excess_scatter_walkthrough.py --out '{out}'
+
 
 <a id="guard-error-study"></a>
 
@@ -1274,6 +1310,16 @@ Hand-off 06 on every private GID set (DATA_NEEDS row 12): the S4-detector distan
 - Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
 - Explained in: `docs/studies/gid_method_survey/summary.md`, `docs/handoff_out/06-gid-method-comparison.md`
 - Committed products: `docs/studies/gid_method_survey`; not replaced from the window
+
+<a id="xr-excess-scatter"></a>
+
+### Real reflectivity: scatter beyond counting statistics (private data)
+
+The excess per-point scatter of 384 real reflectivity series (DATA_NEEDS row 15): the core excess and the outlier share, between scans (shared Qz) and within a scan, overall and by Qz, counts, time, background, monitor and absorber. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the real_*.csv beside the study, and the walkthrough draws them (W5).
+
+- Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
+- Explained in: `docs/studies/excess_scatter/summary.md`
+- Committed products: `docs/studies/excess_scatter/real_overall.csv`, `docs/studies/excess_scatter/real_by.csv`, `docs/studies/excess_scatter/real_runs.csv`, `docs/studies/excess_scatter/real_tails.csv`, `docs/studies/excess_scatter/real_scale.csv`, `docs/studies/excess_scatter/real_time_by_qz.csv`, `docs/studies/excess_scatter/real_numbers.json`; not replaced from the window
 
 <a id="xr-burns"></a>
 

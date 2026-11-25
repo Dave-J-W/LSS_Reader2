@@ -6801,3 +6801,26 @@ with main man's study's arithmetic (C62, `docs/studies/roi_bad_pixels/`).
   three boxes, after the owner's sparse frames (DATA_NEEDS 16) and rule 12.
 
 Verified by: tested (7).
+
+### 2026-11-25 — How much do reflectivity points scatter beyond counting statistics? (DATA_NEEDS row 15, MQ-3, C63)
+
+Verified by: a run of `tests/tools/excess_scatter.py` (known truth) and of the non-cloud agent's private
+generators, which import its estimators, on 384 real reflectivity series (18 runs, 10 keV). Study:
+`docs/studies/excess_scatter/summary.md`; walkthrough beside it. The owner: "I don't know the size; measure
+it from data".
+- **Two estimators.** The ratio at Qz measured by two scans (model-free, between scans) and a 6-point
+  difference within a scan that cancels any curve up to Qz⁴. Each is fitted as a core plus outliers, with
+  τ ≥ 10 % of R. On known truth the shared-Qz core is within 0.09 % of R of the truth for X 0–3 %, with or
+  without 3 % outliers. One Gaussian reports 7 % whenever outliers are present.
+- **Within a scan:** the stated σ is about 12 % too small (s 1.12 [1.10, 1.12]). As a fraction of R the
+  excess falls with the counts (1.4 % below 10³ counts, 0.13 % above 10⁵), so it is a scale on σ plus a
+  floor of about 0.1 %, not a fixed percentage.
+- **Between scans:** 0.39 % of R [0.30, 0.48] overall (s 1.42), about 2.7 % at Qz ≥ 0.25. Low counts, a large
+  background share and minutes between the points go together there and are not told apart. 4–6 % of the
+  residuals are wild, typically 70–90 % off.
+- **It explains C56:** a 0.4 % core on C61's joins gives today's joint fit pull SD 1.36 on the smooth join
+  (1.24 with 3 % outliers), against the real 1.24 [1.09, 1.40].
+- **For the budget** (no number changed; rule 12): not one percentage. A scale of about 1.12 on σ, a
+  Qz-dependent between-scan term, and robust handling of the wild points.
+- **Open:** sample height (the height scans not yet paired with the points); a 20-frame repeat of one Qz
+  point; repeated high-Qz scans minutes apart.

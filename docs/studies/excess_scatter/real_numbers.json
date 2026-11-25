@@ -1,0 +1,13 @@
+{
+ "files": 29,
+ "runs_with_terms": 18,
+ "sets": 384,
+ "pair_groups": 706,
+ "pair_points": 2812,
+ "repeats": 2,
+ "within_terms": 26182,
+ "bootstrap": 100,
+ "energies": [
+  10.0
+ ]
+}
