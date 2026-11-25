@@ -6340,3 +6340,28 @@ state"). Built:
 Verified by: tested (`tests/test_gui_reader_lock.py`, 6 tests). Not tried
 across two computers on a network share; the core's assumptions (clocks
 within 180 s) stand.
+
+### 2026-11-25 — Qoff on the NX scans: resolution or angle offset? (F79, C50, C55)
+
+The Qoff study left open how much of NX's proposed −2.8 × 10⁻⁴ Å⁻¹ comes
+from the beamline's resolution (`docs/studies/qoff/summary.md`, section 6).
+The non-cloud agent measured ΔQ at the edge, at 10 keV, from 378 real scans:
+8.9 × 10⁻⁴ Å⁻¹ FWHM, with run medians 6.5–12.6 × 10⁻⁴
+(`docs/studies/qz_resolution/summary.md`, #68).
+
+- By the study's resolution table (synthetic, measured: an edge fit reads a
+  Gaussian resolution as Qoff ≈ −0.15 ΔQ FWHM), that resolution alone gives
+  about −1.3 × 10⁻⁴ (−1.0 to −1.9 × 10⁻⁴ over the runs).
+- So of NX's −2.8 × 10⁻⁴, about **−1.5 × 10⁻⁴ (−0.9 to −1.8) is left.**
+  That remainder is either an angle offset of about −0.0009°, or a Qc about
+  1.5 × 10⁻⁴ above water's 0.0217. A wrong Qc moves Qoff one for one
+  (section 4), so this data set cannot tell the two apart.
+- The proposal still makes R/R_F continuous, which is the owner's criterion.
+  It equals the angle offset only once the resolution is allowed for.
+- A candidate option, not built: the edge fit with R_F convolved with the
+  measured resolution, which would propose the angle offset itself.
+
+Verified by: arithmetic on measured numbers (the study's table, the
+resolution study's median and run range). Assumed, not measured: that NX's
+own resolution is the station's typical one. Its edge width was not fitted;
+the NX school scans are from the same station.

@@ -166,11 +166,17 @@ NX school scans 6–9 (DPPC on water, 10 keV), at Qc 0.0217 (figure Q5):
   above its neighbours (the spike in figure Q5). At −0.00028 R/R_F rises
   smoothly from the plateau into the monolayer's shape.
 - The two estimators agree to 3 × 10⁻⁶ Å⁻¹ (−0.000280 and −0.000278).
-- **Resolution or angle?** Part of the −0.00028 may be resolution
-  (section 3): extrapolating its −0.15 ΔQ, a resolution of 0.002 Å⁻¹ alone
-  would give about −0.0003. The proposal
-  makes R/R_F continuous either way. Whether it is a true angle offset
-  needs the resolution.
+- **Resolution or angle?** About half each (updated 2026-11-25, with the
+  resolution #68 measured). The beamline's ΔQ at the edge is 8.9 × 10⁻⁴ Å⁻¹
+  FWHM at 10 keV (`docs/studies/qz_resolution/summary.md`, 378 real scans;
+  run medians 6.5–12.6 × 10⁻⁴). By section 3's table, that reads as a Qoff
+  of about −1.3 × 10⁻⁴ (−1.0 to −1.9 × 10⁻⁴ over the runs). So of NX's
+  −2.8 × 10⁻⁴, about −1.5 × 10⁻⁴ (−0.9 to −1.8) is left. That remainder is
+  a true angle offset of about −0.0009°, or a Qc about 1.5 × 10⁻⁴ above
+  water's 0.0217 (section 4: a wrong Qc moves Qoff one for one); the data
+  cannot tell which. Assumption: NX's ΔQ is the station's typical one (the
+  NX scans are from the same station; their own edge width was not fitted).
+  The proposal makes R/R_F continuous either way, which is the owner's aim.
 
 ## 7. Recommendation
 
@@ -186,8 +192,11 @@ NX school scans 6–9 (DPPC on water, 10 keV), at Qc 0.0217 (figure Q5):
 4. **Nothing applies the value**, and no default changes. A default "apply
    the proposal" would need, by rule 12, this study, its tests and a
    demonstrator: this document and its Tools item are the first two parts.
-   Real-data checks on more files and the beamline's resolution would
-   complete it.
+   The beamline's resolution is now measured (8.9 × 10⁻⁴ FWHM, #68); what
+   is left is real-data checks on more files. Since the resolution alone
+   gives −1.3 × 10⁻⁴, a proposal is an angle offset only after that is
+   allowed for: an edge fit with R_F convolved with the measured resolution
+   would give the angle offset itself (not built; a candidate option).
 
 ## Figures
 
