@@ -608,7 +608,7 @@
   "verdict": "same"
  },
  "dump_tooltips": {
-  "commit": "29f100436a",
+  "commit": "bfe5aeb846",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -665,7 +665,7 @@
    "lss_core/stitching.py": "af4e152fd36e0dcf",
    "lss_core/trends.py": "687ff0ee1b74ae3a",
    "lss_core/workbook.py": "def567f7b40b255d",
-   "lss_toolbox/catalog.py": "3fa72c55721c6673",
+   "lss_toolbox/catalog.py": "9f769fd7b99c88c8",
    "lss_toolbox/compare.py": "783bae8d75ba7cd2",
    "lss_toolbox/fingerprint.py": "3ae81cd598e4ec8a",
    "lss_toolbox/introspect.py": "3ab708ed997dfcf0",
@@ -685,7 +685,7 @@
    "timelineview.py": "4d1ebd8fee686919"
   },
   "products": {
-   "docs/manual/controls.md": "20f57b87e068b720"
+   "docs/manual/controls.md": "12d3fb139decf55e"
   },
   "reads": {
    "mainwindow.py": "7c21db415ecfd636",
@@ -1374,7 +1374,7 @@
   "verdict": "same"
  },
  "gui_map": {
-  "commit": "3ec5966c39",
+  "commit": "bfe5aeb846",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -1397,14 +1397,14 @@
    "tests/tools/gui_map.py": "a38d471fc76f2631"
   },
   "products": {
-   "docs/gui/inventory.md": "d0df9bff9c86858d",
-   "docs/gui/workflows.md": "3aae98718aed51ea"
+   "docs/gui/inventory.md": "d9814ceba7d2aad9",
+   "docs/gui/workflows.md": "68c729151ade8e0a"
   },
   "reads": {
    "docs/gui/inventory/apex.yaml": "3269af5254e2004e",
    "docs/gui/inventory/compare.yaml": "355f02f1001d8fdf",
    "docs/gui/inventory/cuts.yaml": "d2149d5b72adb19c",
-   "docs/gui/inventory/dialogs.yaml": "1459c3fb1a9f05b5",
+   "docs/gui/inventory/dialogs.yaml": "69d4c6c6a4e6f8e5",
    "docs/gui/inventory/left_panel.yaml": "96c47ae7790dfae2",
    "docs/gui/inventory/mca.yaml": "69bf5246ebbd1d42",
    "docs/gui/inventory/menus.yaml": "f4f63bf49450af3a",
@@ -1420,8 +1420,8 @@
    "docs/gui/questions/inventory_a.md": "7fde6e8e5e63e8cb",
    "docs/gui/questions/inventory_b.md": "138139f0b2af228d",
    "docs/gui/questions/workflows.md": "5f20c85b2e0c727b",
-   "docs/gui/workflows.yaml": "b0b22070b37ef7c8",
-   "mainwindow.py": "ff4639569b8314a0",
+   "docs/gui/workflows.yaml": "4da773330ca24656",
+   "mainwindow.py": "7c21db415ecfd636",
    "mainwindow.ui": "f8324cd7d28356be"
   },
   "unverified": [],
@@ -2274,6 +2274,117 @@
    "docs/studies/reciprocity/c54/numbers.json",
    "docs/studies/reciprocity/summary.md"
   ],
+  "verdict": "same"
+ },
+ "reciprocity_walkthrough": {
+  "commit": "bfe5aeb846",
+  "date": "2026-11-25",
+  "environment": {
+   "PIL": "12.3.0",
+   "PyQt5": "5.15.11 (Qt 5.15.14)",
+   "contourpy": "1.4.0",
+   "fontTools": "4.68.0",
+   "freetype": "2.14.3 (local)",
+   "kiwisolver": "1.5.1",
+   "lmfit": "1.3.4",
+   "machine": "x86_64",
+   "matplotlib": "3.11.2",
+   "numpy": "2.5.3",
+   "numpy_simd": "AVX512_SPR",
+   "platform": "Linux-6.18.44-fc-v880-x86_64-with-glibc2.39",
+   "python": "3.13.18",
+   "scipy": "1.18.1"
+  },
+  "modified": [],
+  "modules": {
+   "TwoDDetector.py": "cacf7c8dacbc4290",
+   "lss_core/__init__.py": "ad2e13b69c4fc1fd",
+   "lss_core/absorbers.py": "67c5f42ec563b55a",
+   "lss_core/burn.py": "56c42d35dd1ce92e",
+   "lss_core/cache.py": "e29039ce0ffa84eb",
+   "lss_core/cuts.py": "0e8c402351016594",
+   "lss_core/diskcache.py": "029eff4d025290b8",
+   "lss_core/dose.py": "881a4483fd3d422c",
+   "lss_core/errors.py": "d27198194bdf392d",
+   "lss_core/experiment.py": "ed0351f9788dd12e",
+   "lss_core/fluorescence.py": "401d3a54d0b52375",
+   "lss_core/flux.py": "b30a6b04512a3f05",
+   "lss_core/images.py": "0b51276ca8d45d76",
+   "lss_core/lattice.py": "de321c8f59d5e347",
+   "lss_core/monitor.py": "b376e148a3e5f7ad",
+   "lss_core/normalise.py": "438476729933e342",
+   "lss_core/numbers.py": "9bb658c033452bde",
+   "lss_core/paths.py": "87a80cf735a80c9f",
+   "lss_core/peaks.py": "821faa95240f76ae",
+   "lss_core/reciprocity.py": "617ab5d4e0cfc06f",
+   "lss_core/reflectivity.py": "0fc665fd164c8e61",
+   "lss_core/series.py": "9b34592d231b32b9",
+   "lss_core/stitching.py": "af4e152fd36e0dcf",
+   "lss_core/timing.py": "1d76f28d5d1601d3",
+   "lss_core/trends.py": "687ff0ee1b74ae3a",
+   "spec_routines.py": "a08541869ce7c7e9",
+   "tests/synthetic/__init__.py": "ad2e13b69c4fc1fd",
+   "tests/synthetic/burn_pairs.py": "3e0ae56730cfbb38",
+   "tests/tools/reciprocity_real.py": "29d247b1f9cfd333",
+   "tests/tools/reciprocity_walkthrough.py": "b4673293b8cec858"
+  },
+  "products": {
+   "docs/studies/reciprocity/walkthrough/W1_raw_frame_and_cut.png": "ce4379f5e65a7cb2",
+   "docs/studies/reciprocity/walkthrough/W2_per_frame_positions.png": "221934f63d443989",
+   "docs/studies/reciprocity/walkthrough/W3_drift_fits.png": "7ddaec1d77671a9c",
+   "docs/studies/reciprocity/walkthrough/W4_rates_and_beta.png": "208b774f5eceec73",
+   "docs/studies/reciprocity/walkthrough/W5_strip_scatter.png": "ab6def5ce7627cd5",
+   "docs/studies/reciprocity/walkthrough/W5b_one_real_series.png": "f04c7e00a1bbc57d",
+   "docs/studies/reciprocity/walkthrough/W6_calibration.png": "3b7e0f41d3a10126",
+   "docs/studies/reciprocity/walkthrough/numbers.json": "3e6e563b528a5b2f"
+  },
+  "reads": {
+   "docs/studies/xr_burns/burns.csv": "27e053fe7b098dee",
+   "sample_data/NX_school/2026sep/20260923": "c5550d0c328d3fb6",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0000.tif": "938767b5913d3a5d",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0001.tif": "0eb34e2946cebbec",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0002.tif": "8d77c24bdd3de5e1",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0003.tif": "c30f525a62143832",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0004.tif": "83de07ba64e2f01a",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0005.tif": "fb824034b9fb63f1",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0006.tif": "1e1f93839a9954c2",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0007.tif": "84891cb84b490764",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0008.tif": "3ed4d8a90d73dc28",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0009.tif": "264f7956f794e4fb",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0010.tif": "d0cf749aef2b0baf",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0011.tif": "8d0de1f1430842b5",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0012.tif": "a79d0ebc7d9590b6",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0013.tif": "dcc1c7f7afbc7cd5",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0014.tif": "f9a0df9babb83734",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0015.tif": "fd02a6e620162e1f",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0016.tif": "2b739f8b9dbb679d",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0017.tif": "eb5605801d73e992",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0018.tif": "dba8141f41cdd8c8",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0019.tif": "c3c2a0e044f654ba",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-14_0020.tif": "9ac3fd2e4646f1f5",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0000.tif": "bf61bbd56a174579",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0001.tif": "1b37ae53e96b1a7f",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0002.tif": "8ecd4089be80e859",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0003.tif": "e3fd7200cae07e59",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0004.tif": "ad2228d622092246",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0005.tif": "7844478058c92393",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0006.tif": "10dd6d3bf6328151",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0007.tif": "0919f76e5c3b81b0",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0008.tif": "fce0db52d48a534f",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0009.tif": "19b2f20f5bf12283",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0010.tif": "d7a895816fcf46fb",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0011.tif": "fd2399445638327b",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0012.tif": "46c6998fbff650c7",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0013.tif": "81402f5c6e6356d8",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0014.tif": "730cfa58264dae4f",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0015.tif": "10df378d27911002",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0016.tif": "206af49ea2b27624",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0017.tif": "dbc9540545768da2",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0018.tif": "c0983b6fa4bbb1ca",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0019.tif": "56d127b817393599",
+   "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0020.tif": "0eee70c3fcbf9531"
+  },
+  "unverified": [],
   "verdict": "same"
  },
  "ref_guard_study": {
