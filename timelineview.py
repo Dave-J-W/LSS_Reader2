@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (QCheckBox, QGraphicsEllipseItem, QGraphicsItem, QGr
 
 AXIS_H = 22                                   # px at the top for the time axis
 LANES = (('events', 'Events', 46), ('sx', 'sx (mm)', 46), ('height', 'Sample height', 64), ('scans', 'Scans', 34),
-         ('notes', 'Notes', 34))
+         ('reduced', 'Reduced', 48), ('notes', 'Notes', 34))
 THUMB_W, THUMB_H = 64, 34                     # px: a sample-height scan's thumbnail
 KIND_COLOURS = {'reflectivity': '#1f77b4', 'gid': '#2ca02c', 'height': '#9467bd', 'burn': '#d62728',
                 'xfntr': '#ff7f0e', 'gisaxs': '#17becf', 'energy': '#bcbd22', 'other': '#8c8c8c'}
@@ -107,9 +107,51 @@ class HeightThumb(QGraphicsItem):
             painter.drawPolyline(*[QPointF(px, py) for px, py in self.fit])
 
 
+class ResultThumb(HeightThumb):
+    """A saved result's thumbnail on the reduced lane (phase 1d): its first
+    two columns (log R against Qz for a reflectivity), framed in its kind's
+    colour; amber and dashed when out of date; a dashed grey box saying why
+    for a placeholder."""
+
+    def __init__(self, item):
+        import numpy as np
+        d = item.data
+        x = y = None
+        if d is not None and getattr(d, 'ndim', 0) == 2 and d.shape[0] > 1 and d.shape[1] > 1:
+            x, y = d[:, 0], d[:, 1]
+            if item.kind == 'reflectivity':
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    y = np.where(y > 0, np.log10(np.where(y > 0, y, 1.0)), np.nan)
+        super().__init__(x, y, None, True)
+        self.item = item
+
+    def paint(self, painter, option, widget=None):
+        from PyQt5.QtCore import QPointF
+        it = self.item
+        kind = {'gid map': 'gid', 'gid cut': 'gid', 'burn test': 'burn', 'fluorescence': 'xfntr'}.get(it.kind, it.kind)
+        colour = KIND_COLOURS.get(kind, KIND_COLOURS['other'])
+        if it.placeholder:
+            painter.setBrush(QBrush(QColor('#f4f4f4')))
+            painter.setPen(QPen(QColor('#9a9a9a'), 1.0, Qt.DashLine))
+            painter.drawRect(self.boundingRect())
+            painter.setPen(QPen(QColor('#666666')))
+            f = QFont()
+            f.setPointSize(7)
+            painter.setFont(f)
+            painter.drawText(self.boundingRect(), Qt.AlignCenter | Qt.TextWordWrap, it.placeholder)
+            return
+        painter.setBrush(QBrush(QColor('white')))
+        painter.setPen(QPen(QColor('#e08000' if it.stale else colour), 1.4, Qt.DashLine if it.stale else Qt.SolidLine))
+        painter.drawRect(self.boundingRect())
+        if self.points:
+            painter.setPen(QPen(QColor(colour), 1.0))
+            painter.drawPolyline(*[QPointF(px, py) for px, py in self.points])
+
+
 class TimelineView(QGraphicsView):
     """The lanes. ``scanClicked(n)`` when a scan bar or an sh scan is clicked."""
     scanClicked = pyqtSignal(int)
+    resultClicked = pyqtSignal(str)                 # a saved result's id (the reduced lane)
     answerGiven = pyqtSignal(float, int, str)       # a set-zero's time, the scan before it, the answer
     noteWanted = pyqtSignal(float)                  # the time a note is to be added at
 
@@ -132,6 +174,7 @@ class TimelineView(QGraphicsView):
         self.notes = []
         self.answer_of = lambda event: ''
         self.dose = None                 # F107: a lss_core.timeline.DoseTrack, drawn over the sx line
+        self.reduced = []                # phase 1d: lss_core.timeline.Reduced items, the reduced lane
         self._sx_y = None
 
     # ---- building
@@ -141,7 +184,7 @@ class TimelineView(QGraphicsView):
         sc = self.scene()
         sc.clear()
         self.items = {'scans': {}, 'heights': {}, 'events': [], 'steps': [], 'gaps': [], 'notes': [], 'set_zero': [],
-                      'dose': []}
+                      'dose': [], 'reduced': []}
         self.timeline = tl
         self.notes = list(notes)
         self.answer_of = timelinemod.answers(self.notes)
@@ -161,6 +204,7 @@ class TimelineView(QGraphicsView):
             line.setZValue(-10)
         self._gaps(tl)
         self._scans(tl)
+        self._reduced()
         self._heights(tl)
         self._steps(tl)
         if self.dose is not None:
@@ -285,6 +329,49 @@ class TimelineView(QGraphicsView):
                    'sample-height scan (owner, F78)' % (st.old, st.new, st.scan, self.clock(st.t_before, True),
                                                        self.clock(st.t_after, True)))
             self.items['steps'].append(self._label('%g' % st.new, self._x(st.t_after), ypos(st.new) - 14, tip=tip))
+
+    def set_reduced(self, items):
+        """The reduced lane's items (lss_core.timeline.reduced_items), redrawn."""
+        self.reduced = list(items or [])
+        if self.timeline is not None:
+            keep = self.transform(), self.horizontalScrollBar().value()
+            self.set_timeline(self.timeline, self.notes)
+            self.setTransform(keep[0])
+            self.horizontalScrollBar().setValue(keep[1])
+
+    def _reduced(self):
+        """Each saved result as a thumbnail at its scans' start, a bar under it
+        to their end; placeholders for series not reduced (research §4)."""
+        y, h = lane_top('reduced')
+        if not self.reduced:
+            self._label('nothing saved yet', 4, y + 14, colour='#8c8c8c')
+            return
+        for it in self.reduced:
+            scans = ', '.join(str(n) for n in it.scans)
+            if it.placeholder:
+                tip = ('%s series %s (S# %s): %s. Click: select its first scan.'
+                       % (it.kind, it.series, scans, it.placeholder))
+                data = ('scan', it.scans[0])
+            else:
+                tip = ('%s %s v%d (%s), S# %s, saved %s%s%s%s. Click: open it%s.'
+                       % (it.rid, it.kind, it.version, it.label or '-', scans, it.saved,
+                          ', automatically' if it.origin == 'auto' else '',
+                          '; out of date: its scans have grown since' if it.stale else '',
+                          '\nNote: ' + it.note if it.note else '',
+                          ' on the Compare tab' if it.kind == 'reflectivity' else ' (its scans are selected)'))
+                data = ('result', it.rid)
+            bar = QGraphicsRectItem(self._x(it.t0), y + h - 6, max(self._x(it.t1) - self._x(it.t0), 1e-9), 3)
+            bar.setBrush(QBrush(QColor('#bdbdbd')))
+            bar.setPen(QPen(Qt.NoPen))
+            bar.setToolTip(tip)
+            self.scene().addItem(bar)
+            thumb = ResultThumb(it)
+            thumb.setPos(self._x(it.t0), y + 4)
+            thumb.setToolTip(tip)
+            thumb.setData(0, data)
+            thumb.setCursor(Qt.PointingHandCursor)
+            self.scene().addItem(thumb)
+            self.items['reduced'].append(thumb)
 
     def set_dose(self, track):
         """Colour the sx line by the dose each spot has received (F107), or
@@ -432,6 +519,10 @@ class TimelineView(QGraphicsView):
             data = item.data(0) if item is not None else None
             if isinstance(data, tuple) and data[:1] == ('scan',):
                 self.scanClicked.emit(int(data[1]))
+                ev.accept()
+                return
+            if isinstance(data, tuple) and data[:1] == ('result',):
+                self.resultClicked.emit(str(data[1]))
                 ev.accept()
                 return
         super().mousePressEvent(ev)

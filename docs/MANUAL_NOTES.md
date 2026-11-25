@@ -136,6 +136,13 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- Timeline, Reduced lane (F83 phase 1d, 2026-11-25): every result saved in
+  the workbook, as a small picture at its scans' times (a reflectivity as
+  log R against Qz); amber and dashed when its scans have grown since; a
+  dashed "not reduced" box for a series not yet reduced. Hover for the id,
+  version, time saved and note; click to open it (a reflectivity on the
+  Compare tab, other kinds by selecting their scans). It follows the
+  workbook: a new result appears when the tab is shown again.
 - Timeline, Dose (F107, 2026-11-25): ticked, the sx line is coloured by
   the dose each spot has received so far, as a fraction of the dose at
   which the burn test changed by 5 %: teal none, yellow half, red the

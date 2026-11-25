@@ -118,7 +118,7 @@ shared_steps:
     could_be_automatic: "a verdict on each sh scan once the owner gives the thresholds (F78, Q-TL-6)"
     known_from: owner 2026-11-23 (F83), 2026-11-24 (main-window tab, Q-TL-7); tests tests/test_gui_timeline.py, tests/test_gui_timeline_dose.py
     issues:
-      - "No reduced-data or environment lanes yet (phase 1c)"
+      - "~~No reduced-data lane~~ (phase 1d built 2026-11-25: the Reduced lane from the workbook); no environment lanes yet (F75's columns do not exist)"
   - id: shared.frames-look
     do: Look at the frames (colour scale, log, axes, movie)
     where: Pilatus tab

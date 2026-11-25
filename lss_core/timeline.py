@@ -123,6 +123,7 @@ class Timeline:
     notes: list = field(default_factory=list)
     utc_offset: float = 0.0         # s by which the file's local clock is ahead of UTC (0 when not known)
     positions: dict = field(default_factory=dict)   # motor -> [(scan, scan start, value at its #P)]
+    series: list = field(default_factory=list)      # (series id, kind, [data scans]) of lss_core.series
 
     def of_kind(self, kind):
         return [e for e in self.events if e.kind == kind]
@@ -229,6 +230,7 @@ def build(exp, motors=DEFAULT_MOTORS, gap_minutes=GAP_MINUTES, fit_heights=True)
     for g in sermod.all_series(list(info.values())):
         for n in set(g.scans.values()):
             kind_of[n] = g.kind
+        tl.series.append((str(g.id), g.kind, sorted(set(int(n) for n in g.scans.values()))))
     offset = None
     for n in nums:
         p = exp.scans[n].parameters
@@ -531,3 +533,72 @@ def dose_colour(fraction):
             w = (f - f0) / (f1 - f0)
             return tuple(int(round(a + w * (b - a))) for a, b in zip(c0, c1))
     return DOSE_COLOURS[-1][1]
+
+
+# ---- phase 1d (research §4): the reduced data on the timeline, from the workbook ----
+
+# the workbook kinds a series kind's results are saved as, and the label drawn (one per result)
+RESULT_KINDS = {'reflectivity': ('reflectivity',), 'gid': ('gid map', 'gid cut'), 'burn': ('burn test',),
+                'xfntr': ('fluorescence',), 'gisaxs': ('other',)}
+REDUCIBLE = ('reflectivity', 'gid', 'burn', 'xfntr')      # a series of these kinds without a result: "not reduced"
+
+
+@dataclass
+class Reduced:
+    """One result on the reduced lane (``rid``), or a placeholder (``rid``
+    empty; ``placeholder`` says why): its scans' time span."""
+    rid: str
+    kind: str
+    label: str
+    version: int
+    scans: list
+    t0: float
+    t1: float
+    stale: bool = False
+    origin: str = ''
+    note: str = ''
+    saved: str = ''
+    series: str = ''
+    placeholder: str = ''
+    data: np.ndarray = field(default=None, repr=False)
+
+
+def reduced_items(tl, rows, data=None):
+    """The results of the workbook's Saved ``rows`` placed at their scans'
+    times (the latest version of each kind, scans and label; a reflectivity
+    as R, not R/RF), and a placeholder "not reduced" for each series of a
+    REDUCIBLE kind with no result on any of its scans. ``data``: {id: array}
+    (Workbook.all_data) for the thumbnails. Results whose scans have no time
+    are left out."""
+    span = {s.scan: (s.t0, s.t1) for s in tl.spans}
+    latest = {}
+    for r in rows:
+        kind = str(r.get('kind') or '')
+        if kind in ('note', 'scan', ''):
+            continue
+        label = str(r.get('label') or '')
+        if kind == 'reflectivity' and label not in ('R', ''):
+            continue
+        scans = [int(s) for s in str(r.get('scans') or '').split(',') if s.strip()]
+        key = (kind, tuple(scans), label)
+        if key not in latest or int(r.get('version') or 0) > int(latest[key].get('version') or 0):
+            latest[key] = r
+    out, covered = [], set()
+    for (kind, scans, label), r in latest.items():
+        ts = [span[n] for n in scans if n in span]
+        if not ts:
+            continue
+        covered |= set(scans)
+        rid = str(r.get('id') or '')
+        out.append(Reduced(rid, kind, label, int(r.get('version') or 0), list(scans), min(t[0] for t in ts),
+                           max(t[1] for t in ts), bool(r.get('stale')), str(r.get('origin') or ''),
+                           str(r.get('note') or ''), str(r.get('saved') or ''), str(r.get('series') or ''),
+                           data=(data or {}).get(rid)))
+    for sid, kind, scans in tl.series:
+        if kind not in REDUCIBLE or covered & set(scans):
+            continue
+        ts = [span[n] for n in scans if n in span]
+        if ts:
+            out.append(Reduced('', kind, '', 0, list(scans), min(t[0] for t in ts), max(t[1] for t in ts),
+                               series=sid, placeholder='not reduced'))
+    return sorted(out, key=lambda x: (x.t0, x.rid))

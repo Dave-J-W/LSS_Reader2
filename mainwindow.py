@@ -9019,6 +9019,7 @@ class MainWindow (QMainWindow):
             'The sample timeline (F83): scans, "set sh 0" (new sample?), re-referencing, aborts, sx moves and '
             'the sample-height scans with their width and flatness, on one time axis')
         tab.view.scanClicked.connect(self.timelineScanClicked)
+        tab.view.resultClicked.connect(self.timelineResultClicked)
         tab.view.answerGiven.connect(self.timelineAnswer)
         tab.view.noteWanted.connect(self.timelineAddNote)
         tab.doseCheckBox.setChecked(bool(self.prefs.get('timeline_dose',False)))
@@ -9054,6 +9055,7 @@ class MainWindow (QMainWindow):
             self.timelineKey=None
             return
         tab.view.dose=None
+        tab.view.reduced=self.timelineReduced(tl)
         tab.show_timeline(tl,os.path.basename(spec),self.timelineNotes())
         self.timelineKey=key
         if tab.doseCheckBox.isChecked():
@@ -9149,6 +9151,40 @@ class MainWindow (QMainWindow):
         before=[s.scan for s in getattr(self.timelineTab.view.timeline,'spans',[]) if s.t0<=t]
         item=timelinemod.note_item(t,text.split('\n',1)[0][:60],text,scans=before[-1:])
         self.timelineSaveNote(item)
+
+    def timelineReduced(self,tl):
+        """The reduced lane's items (phase 1d): the workbook's saved results at
+        their scans' times, read in one pass; placeholders only when there is
+        no workbook yet (it is not created to look)."""
+        from lss_core import timeline as timelinemod
+        rows,data=[],{}
+        if os.path.exists(self.workbookPath()):
+            try:
+                wb=self.openWorkbook()
+                rows,data=wb.results(),wb.all_data()
+            except Exception as e:
+                self.log.info('timeline: the workbook was not read: %s',e,exc_info=True)
+        return timelinemod.reduced_items(tl,rows,data)
+
+    def timelineResultClicked(self,rid):
+        """A saved result clicked on the reduced lane: a reflectivity is ticked on
+        the Compare tab; another kind's scans are selected."""
+        item=next((it for it in getattr(self.timelineTab.view,'reduced',[]) if it.rid==rid),None)
+        if item is None:
+            return
+        if item.kind=='reflectivity' and getattr(self,'compareTab',None) is not None:
+            self.ui.PlotWidget.setCurrentWidget(self.compareTab)
+            self.refreshCompare(force=True)
+            self.compareTab.tick(rid)
+            return
+        self.timelineScanClicked(item.scans[0])
+        lw=self.ui.scanListWidget
+        want={int(n) for n in item.scans}
+        lw.blockSignals(True)
+        for r in range(lw.count()):
+            lw.item(r).setSelected(itemScan(lw.item(r)) in want)
+        lw.blockSignals(False)
+        lw.itemSelectionChanged.emit()
 
     def timelineScanClicked(self,scan):
         """A scan bar or an sh scan clicked on the timeline: select that scan."""
