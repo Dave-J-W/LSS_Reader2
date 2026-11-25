@@ -247,7 +247,14 @@ build workflow and macOS signing (input 12); sample-data hosting.
       comments and docstrings (`docs/reports/tools_audit.md`, 2026-11-25).
       Run records name freetype, the machine, numpy's SIMD level and
       matplotlib's helper libraries, and the audit lists what changed since
-      a record when images differ.
+      a record when images differ. Measured: 28 of 30 items current (26
+      stale before), the pinhole figures, a gauntlet table and the MCA
+      study's B3 regenerated.
+- [ ] **The GUI screenshots are stale (measured 2026-11-25, tools man's
+      audit)**: `gui_screens` 52 of 75 differ (many in size since the test
+      windows went to minimum size, #67), `ngui_screens` 6 of 23 changed by
+      code. For the GUI manager: rerun them into the repository, then
+      `python -m lss_toolbox --audit --record --only gui_screens ngui_screens`.
 - [x] **Committed products the audit found stale (new 2026-11-23, F84) —
       remedied 2026-11-23** (`docs/reports/tools_audit.md`, "Remedied"):
       the two figures were an environment difference, not stale code; the

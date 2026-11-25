@@ -1,4 +1,4 @@
-# Tools audit: committed products rerun and compared (2026-11-23)
+# Tools audit: committed products rerun and compared (2026-11-23; 2026-11-25)
 
 Made by `python -m lss_toolbox --audit --report FILE` (F84), which reruns
 every item that has committed figures or tables with the settings that
@@ -15,6 +15,130 @@ Two settings of this run differ from the catalogue's final ones: the
 gauntlet ran with every method (the committed run judged seven; corrected
 since), and `compare_methods` was still credited with the C21 tables (no
 tool writes them; see below).
+
+## 2026-11-25: the verified record (measured)
+
+Tools man, for the former patching session's review (2026-11-24): "`--stale`
+flags 23 of 28 items, mostly wrongly … A rerun that reproduces a product
+exactly commits nothing, so the flag never clears", and "Pixel audits of
+`pinhole_beam_figure` and `gid_stray_light` differ by 1.6 % and 4–16 % …
+record or pin". Everything here was measured in this container on
+2026-11-25, at the head of `claude/gracious-knuth-e7ry2y` (main at
+ef15766, then 78aebd1 merged, plus this work).
+
+### What changed
+
+- **The audit keeps what it verified.** `python -m lss_toolbox --audit
+  --record` runs each tool through `lss_toolbox.trace`, which lists the
+  repository modules the run imported and the files it read. When the
+  products match, it writes `lss_toolbox/verified.json`: fingerprints of
+  those inputs and of the products it reproduced, the commit, and the
+  environment.
+- **`--stale` reads the record first.** Products are current while every
+  recorded input has the same fingerprint. A Python file's fingerprint is
+  its syntax tree without docstrings and comments (the same across
+  Python versions). A module imported only on a path the run never took is
+  not in the record (the static import graph puts the demonstrator's
+  window under `patch_demo_figures`; the trace shows the run never imports
+  it). Without a record, or once the products change, git history decides
+  as before, with prose-only changes dropped.
+- **The comparison leaves out how a product was run.** The command line a
+  text product echoes (it names the run folder), JSON `command` and
+  `seconds` entries, and lines an item names as `volatile` (the guard
+  study's wall times) are left out. Two tools print their git revision in
+  their figures (`pinhole_figures`, `gid_patching_diagrams`); they now take
+  it from `LSS_TOOLS_REVISION` when set, and the audit runs them a second
+  time with a dummy revision: the pixels that move are the stamp, which is
+  masked; the rest must be identical.
+- **Text and check items are audited too:** a text item's printed output
+  is compared with its committed file (`controls.md`), and a check item
+  (`gui_map --check`, `ngui_inventory --check`) is verified when it exits 0.
+  git flagged all three whenever `mainwindow.py` changed.
+- **Run records name what draws a figure:** the machine, numpy's SIMD
+  level, matplotlib's freetype (version and build) and contourpy,
+  kiwisolver and fontTools (not pinned by `packaging/requirements-build.txt`).
+  When images differ from a verified item, the audit lists the differences
+  from the record's environment.
+
+### Before and after
+
+| | current | indirect | stale |
+|---|---|---|---|
+| `--stale` before this work (git only, today's tree) | 3 | 1 | 26 |
+| `--stale` after (the record, else git without prose) | 28 | 0 | 2 |
+
+The two stale ones are measured stale (below); every "current" is a rerun
+that matched. `verified.json` holds 28 items: 26 identical, 1 identical
+apart from its revision stamp, 1 different only through the environment.
+
+### Item by item
+
+Two audits (all 27 figure and data items, then the 20 that the first left
+unverified or that merging main made stale), then the three text and
+check items, which the audit covers since this work. "git said" is
+`--stale` before this work.
+
+| Item | git said | Verdict | Note |
+|---|---|---|---|
+| burn_figures | stale | **same** | 4 figures, 3 tables |
+| reciprocity_study | current | **same** | |
+| burn_dose_figure | stale | **same** | |
+| patch_demo_figures | stale | **same** | the trace: the run never imports the demonstrator's window |
+| ref_patch_gauntlet | stale | **same** | 6 tables (5 committed files are written only by other settings) |
+| ref_patch_biased_joins | stale | **same** | |
+| qoff_study | stale | **same** | |
+| ref_guard_study | stale | **same** | once its wall times were left out (`volatile`) |
+| ref_patch_survey | stale | **same** | |
+| covariance_pulls | stale | **same** | |
+| compare_methods | stale | **same** | 45 tables, once the manifest's command line was left out |
+| pinhole_figures | stale | **regenerated, then same** | 6 of 8 differed only in the stamp; 2 by sub-pixel amounts (an arrowhead in case 1, a dotted curve in case 8): code since 2026-11-20. Rerun into the repository |
+| gid_patching_diagrams | stale | **stamp** | 8 of 8 identical apart from the revision they print |
+| gid_compare_figures | stale | **same** | once the summary's command line was left out |
+| pinhole_beam_figure | stale | **same** | review item 2: identical here |
+| gid_stray_light | stale | **same** | review item 2: identical here |
+| gid_movie | stale | **same** | |
+| gid_column_groups | stale | **same** | |
+| gid_method_survey | stale | **same** | |
+| fit_scan_survey | stale | **same** | |
+| mca_fit_gauntlet | stale | **conditions.csv regenerated, then same** | the tool writes three more columns since Study B2 (`compton_model`, `core_scale`, `doppler_scale`); its six result tables were identical |
+| mca_fit_demo | stale | **same** | once the JSON's `seconds` was left out |
+| mca_study | current | **tool fixed, B3 regenerated, then same** | B3's rows came out in a different order from run to run: four pairs of conditions have the same counts (`counts_30` and `counts_x0.03`, …) and their order came from a set; ties are now broken by name |
+| mca_scatter | current | **environment** | 10 % of pixels differ; its own commit, run here, gives what today's code gives: drawn on another computer |
+| timeline_mock | stale | **same** | |
+| dump_tooltips | stale | **same** | `controls.md` identical to a fresh dump |
+| gui_map | stale | **same** | `--check` passes |
+| ngui_inventory | stale | **same** | `--check` passes |
+| gui_screens | stale | **stale** | 52 of 75 screenshots differ, many in size (test windows at minimum size since #67), 15 also by code; the GUI manager's to remake |
+| ngui_screens | stale | **stale** | 6 of 23 changed by code (ngui since 2026-11-24); the GUI manager's |
+
+Regenerate the record after remaking products (or when `--stale` flags an
+item):
+
+    LSS_READER_TOOLS_DIR=/tmp/audit python -m lss_toolbox --audit --record [--only ID ...]
+
+and commit `lss_toolbox/verified.json` with the products. About 50 min for
+everything here (the gauntlets and the screenshots are most of it).
+
+### The two figures of the review (item 2)
+
+`pinhole_beam_figure` and `gid_stray_light` are **identical** to the
+committed ones in this container (both audits, 2026-11-25), as they were
+when redrawn here on 2026-11-23 (64de896). The reviewer's container drew
+them differently under the same pinned numpy, scipy, matplotlib and pillow.
+What was ruled out here, measured: numpy's run-time SIMD choice (both
+figures identical with the AVX-512 paths switched off,
+`NPY_DISABLE_CPU_FEATURES="X86_V4 AVX512_ICL AVX512_SPR"`). What remains,
+read only: both lay out with `tight_layout`, which places the axes from
+measured text extents, so the fonts found and the freetype matplotlib was
+built with move every axis; contourpy, kiwisolver and fontTools are not
+pinned either. Without the reviewer's container this is **recorded, not
+pinned**: the run records and `verified.json` now name these, so the next
+difference can be traced to its library. To pin instead: add contourpy,
+kiwisolver and fontTools to `packaging/requirements-build.txt` and draw
+committed figures only in an environment built from it (the packaging
+owner's choice).
+
+# The first audit (2026-11-23)
 
 ## The table as the audit wrote it
 
