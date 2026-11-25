@@ -32,10 +32,11 @@ point's incidence (``cuts.true_incidence``), so the dose per area is
 The beam's size is not read from the header (owner, 2026-11-24): the
 slits upstream of the sample (S0, S1) pass more than the beam, which is
 focused vertically by a curved mirror, and most of its energy lies within
-about 1 mm horizontally. Its vertical size, and whether the header's blade
-values are half-openings, are open (questions.md OQ-1 to OQ-3). The area
-is that of a uniform beam; for a Gaussian one, whether the FWHM or the
-second moment is meant is open too. A footprint longer than the sample
+about 1 mm horizontally. The header's blade values are half-openings
+(owner, 2026-11-25, OQ-1), so a slit's opening is the sum of its two. The
+vertical size comes from the height scans (``beam_height``, below); the
+peak dose uses √(2π)σ, the study's choice for a beam with a core and tails
+(OQ-2 asked FWHM or second moment). A footprint longer than the sample
 changes nothing: the dose per area of the illuminated part stays the same.
 
 **Cumulative.** ``Dose.cumulative()``: the dose received since the first
@@ -222,8 +223,8 @@ class BeamHeight:
 
 
 def s1_gap_mm(params):
-    """The S1 slit's vertical gap (mm): S1T + S1B, as the study reads it (whether the header's values are
-    half-openings is open, OQ-1). None when not recorded."""
+    """The S1 slit's vertical gap (mm): S1T + S1B, the two half-openings (owner, 2026-11-25, OQ-1: the
+    header's slit values are half-openings). None when not recorded."""
     t, b = params.get('S1T'), params.get('S1B')
     try:
         return float(t) + float(b)

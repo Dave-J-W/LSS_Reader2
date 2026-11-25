@@ -53,6 +53,7 @@ exists.
 | I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_gui_ref_mask.py::test_drops_are_kept_and_left_out_from_the_start_next_time` (the window, 2026-11-25), `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
 | I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own`; in the window `test_gui_cut_axis.py::test_diffuse_axes_change_x_only`, `::test_beta_minus_alpha_puts_the_specular_row_at_zero` (2026-11-25) | 2026-11-24 |
 | I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
+| I43 | At most one reader holds a workbook's lock at a time, even when two take over a stale lock at once (each reads the lock back after writing it); a read-only workbook never writes (`save` raises `WorkbookReadOnly`, the file and its folder untouched) | `test_readerlock.py` (every test) | 2026-11-25 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5935,8 +5936,8 @@ Verified by: tests (`test_beam_height.py`, I42) on synthetic knife edges; a run 
   - **The study's guards:** the first point below 25 % of the peak; at least 2 points on the edge; the
     centre inside the scan; the edges more than 3 σ apart; χ²/dof ≤ 20.
   - **The height:** 1.0645 × the median rising FWHM of the accepted scans.
-  - **With `near=n`:** only the scans with n's S1 gap count (S1T + S1B; whether these are half-openings is
-    OQ-1), and the nearest `NEAR_SCANS` = 3 of them are used. The 3 is an assumption.
+  - **With `near=n`:** only the scans with n's S1 gap count (S1T + S1B, the two half-openings: OQ-1, answered
+    2026-11-25), and the nearest `NEAR_SCANS` = 3 of them are used. The 3 is an assumption.
   - **Without an accepted scan:** the default where its conditions hold, otherwise no height, with the reason.
 - **NX school, run:**
   - Scans 5, 10 and 13 are accepted: rising FWHM 0.029–0.032 mm, height 0.0333 mm, scatter 3.8 %.
@@ -6147,6 +6148,37 @@ Verified by: tested (`tests/test_gui_cut_axis.py`, 6 tests;
 `tests/test_gui_cuts.py`, `tests/test_cut_script.py` unchanged and
 passing). Not measured on real diffuse data: the public NX file has no
 off-specular frames worth the name.
+
+### 2026-11-25 — D1's core: one reader writes the workbook, a second opens it read-only
+
+Verified by: tests (`test_readerlock.py`, I43); reading only for how the window will use it (the GUI manager's yellow
+light, still to build).
+
+- **Why it was needed:** the owner's D1, "Two people can have the same SPEC file open. The second instance opens the
+  config read-only, and a small yellow indicator light in the GUI shows that state." The per-SPEC workbook is saved
+  by writing a temporary file and replacing the old one. Until now, two readers saving it would each overwrite the
+  other's results, without a word.
+- **The lock** (`lss_core.readerlock.ReaderLock`): a small JSON file beside the workbook, naming its holder (host,
+  process, user, program version, when taken and refreshed).
+  - It is taken by exclusive creation, so taking it is atomic.
+  - The holder refreshes it every 30 s.
+  - It is stale, and taken over, when its file has not been refreshed for 180 s, or when its holder is a process on
+    this host that no longer runs.
+  - A takeover writes the new lock and reads it back, so two readers taking a stale lock at once cannot both write.
+  - A refresh notices if someone took the lock meanwhile, for example after a long sleep.
+  - A lock that cannot be written (a read-only folder) means read-only, never an error (D3's spirit).
+- **The workbook:** `Workbook(path, read_only=True)` reads and changes in memory, but `save` raises `WorkbookReadOnly`
+  (a `PermissionError`) and writes nothing.
+- **Assumptions:** the hosts' clocks agree to well within 180 s, since staleness is the lock file's age on this host's
+  clock; the 30 s and 180 s are choices, not measurements. Windows has no cheap check of whether a process runs, so
+  there only the age decides.
+- **Not yet (the GUI manager):** the window takes the lock when it opens a SPEC file, refreshes it on a timer, opens
+  the workbook read-only and shows the yellow light when it doesn't have the lock (tooltip: `describe()`), tries
+  again from time to time, and releases it on close.
+
+### 2026-11-25 — OQ-1, OQ-4, Q-TL-8 (batch 20)
+
+Verified by: the owner's statements; the arithmetic below is mine. **OQ-1:** the header's slit values are half-openings, so the opening is twice the value: S1 of scan 14 reads 1.00/1.00/0.05/0.05 (L/R/T/B) and so is 2.0 × 0.1 mm. This gives the slit-defined aperture only; the footprint needs the mirror-focused vertical size (OQ-2, the local agent's work on it is in its own PR) and for a Gaussian the choice of FWHM or second moment for the dose (open). **OQ-4:** unknown to the owner; the reader cannot yet recognise fast mode, so the dose default stays "shutter closed" and a user mark is the fallback. **Q-TL-8:** units are mN/m (surface pressure), cm² (barrier area) and percent (O₂); names and whether every scan writes them are still unknown, so F75's columns stay synthetic.
 
 ### 2026-11-25 — F92 in the window: drops kept as the mask, Restore all
 
