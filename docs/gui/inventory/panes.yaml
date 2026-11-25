@@ -233,6 +233,50 @@
   shown: "only when read-only"
   tooltip: true
   notes: "Added in code (D1, owner; 2026-11-25; core lss_core.readerlock by main man). The lock (<workbook>.lock) is taken when the workbook is first needed, not when the SPEC file opens, refreshed every 30 s, released on close or when another SPEC file's workbook is needed. A read-only reader tries again every 30 s and says when it saves again; a reader whose lock was taken away (after a long sleep) says so and stops saving. The tooltip names who has it open and since when."
+- id: burnDock
+  kind: pane
+  label: "Burn test"
+  where: "Main window, under the tab area, tabbed with the panes on show"
+  handler: dockWindow
+  does: "Holds the burn-test window (the same dialog as before) in a dock, in a scroll area so that it never forces the window wider; Close hides it; a double-click on its title floats it as a window of its own"
+  workflows: [general]
+  needs: ""
+  shown: "when the window is opened"
+  tooltip: false
+  notes: "Added in code (F95, owner Q-UI-B10: dock the frequent ones; 2026-11-25). The dialog keeps its name and controls (the tests and the sweep drive it as before)."
+- id: worksheetDock
+  kind: pane
+  label: "GID patching worksheet"
+  where: "Main window, right of the tab area, tabbed with the fit options"
+  handler: dockWindow
+  does: "Holds the GID worksheet (the same dialog as before) in a dock, in a scroll area so that it never forces the window wider; Close hides it; a double-click on its title floats it as a window of its own"
+  workflows: [general]
+  needs: ""
+  shown: "when the window is opened"
+  tooltip: false
+  notes: "Added in code (F95, owner Q-UI-B10: dock the frequent ones; 2026-11-25). The dialog keeps its name and controls (the tests and the sweep drive it as before)."
+- id: cutfitDock
+  kind: pane
+  label: "Peak fit options"
+  where: "Main window, right of the tab area, tabbed with the others"
+  handler: dockWindow
+  does: "Holds the cut fits' options (the same dialog as before) in a dock, in a scroll area so that it never forces the window wider; Close hides it; a double-click on its title floats it as a window of its own"
+  workflows: [general]
+  needs: ""
+  shown: "when the window is opened"
+  tooltip: false
+  notes: "Added in code (F95, owner Q-UI-B10: dock the frequent ones; 2026-11-25). The dialog keeps its name and controls (the tests and the sweep drive it as before)."
+- id: mcafitDock
+  kind: pane
+  label: "Fluorescence line fit options"
+  where: "Main window, right of the tab area, tabbed with the others"
+  handler: dockWindow
+  does: "Holds the fluorescence line fits' options (the same dialog as before) in a dock, in a scroll area so that it never forces the window wider; Close hides it; a double-click on its title floats it as a window of its own"
+  workflows: [general]
+  needs: ""
+  shown: "when the window is opened"
+  tooltip: false
+  notes: "Added in code (F95, owner Q-UI-B10: dock the frequent ones; 2026-11-25). The dialog keeps its name and controls (the tests and the sweep drive it as before)."
 - id: statusBar
   kind: pane
   label: ""

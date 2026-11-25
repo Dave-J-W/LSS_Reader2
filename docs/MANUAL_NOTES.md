@@ -165,6 +165,11 @@ Each line: feature — where — default — script — notes entry (date).
   window, Export results... in the cut fit options. New: Export in the burn
   dialog (<name>_burn.txt and _burn_trends.txt); Save beside Export
   Spectrum (MCA) and on the Plot tab (the selected files, as read).
+- Docked windows (F95, Q-UI-B10, 2026-11-25): the burn test opens under the
+  tab area (tabbed with Messages and Script when they are shown); the GID
+  worksheet and the two fit options open on the right of the tab area,
+  tabbed together. Each scrolls inside its dock. Close hides it; drag its
+  title to another edge, or double-click it to float it as a window.
 - Window titles (F95, Q-UI-B10, 2026-11-25): each dialog's title says what
   it is (Ref Patch, Burn test, GIOXS, MCA merge, Plot scale, ...); they
   were "Dialog" or "Scan Details".

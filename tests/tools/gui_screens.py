@@ -144,6 +144,14 @@ def wait(app, seconds=0.3):
         time.sleep(0.01)
 
 
+def grab_docked(app, d, name, shows, state):
+    """A window the reader shows in a dock (F95 B10): its dialog, as a picture
+    of its own (the dock's insides)."""
+    settle(app)
+    unfocus(d, app)
+    save_png(d.grab(), name, shows, state)
+
+
 def unfocus(d, app):
     """No control of a window drawn with the keyboard focus: which one has it
     (a table's first cell, a field) depended on window activation timing
@@ -601,11 +609,10 @@ def run_nx(app, ctx, skip_slow):
         for t in ('Pilatus', '2D_Plot', 'Plot', 'Line/Area Cuts'):
             tab(w, app, t)
         tab(w, app, 'Pilatus')
-        before = visible_tops(app)
         w.gidWorksheetPushButton.click(); settle(app)
         settle(app)
-        grab_toplevels(app, before, '42_gid_worksheet_window.png', 'GID worksheet window (GID drop-down > Worksheet)',
-                       'After GID Patch of scans 11-12', skip=[w])
+        grab_docked(app, w.gidWorksheet, '42_gid_worksheet_window.png', 'GID worksheet (GID drop-down > Worksheet), docked on the right (F95 B10)',
+                    'After GID Patch of scans 11-12')
         ws = getattr(w, 'gidWorksheet', None)
         if ws is not None and ws.isVisible():
             ws.close()
@@ -638,10 +645,9 @@ def run_nx(app, ctx, skip_slow):
         settle(app)
         save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '61_cuts_after_peak_fit.png',
                  'Line/Area Cuts after Fit peaks', 'Same cut; Fit peaks clicked')
-        before = visible_tops(app)
         w.cutFitOptionsPushButton.click()
         settle(app)
-        grab_toplevels(app, before, '62_cuts_fit_options_dialog.png', 'Fit options... dialog of the cut fits', 'Cut plotted and fitted', skip=[w])
+        grab_docked(app, w.cutFitDialog, '62_cuts_fit_options_dialog.png', 'Fit options of the cut fits, docked on the right (F95 B10)', 'Cut plotted and fitted')
         if getattr(w, 'cutFitDialog', None) is not None:
             w.cutFitDialog.close()
         tab(w, app, 'Pilatus')
@@ -880,10 +886,10 @@ def run_xfntr(app, ctx):
         save_png(grab_window(w, app), '75_mca_fit_lines_result.png', 'MCA tab after Fit lines (fluorescence result)',
                  'Synthetic XFNTR; all spectra; Fit lines clicked')
         grab_toplevels(app, before, '75b_mca_fit_lines_other_window.png', 'Window opened by Fit lines', 'Synthetic XFNTR', skip=[w])
-        before = visible_tops(app)
         w.mcaFitOptionsPushButton.click()
         settle(app)
-        grab_toplevels(app, before, '76_mca_fit_options_dialog.png', 'MCA Fit options... dialog', 'Synthetic XFNTR', skip=[w])
+        grab_docked(app, w.mcaFitDialog, '76_mca_fit_options_dialog.png',
+                    'MCA Fit options, docked on the right (F95 B10)', 'Synthetic XFNTR')
         if getattr(w, 'mcaFitDialog', None) is not None:
             w.mcaFitDialog.close()
         arm(ctx, '77_mca_merge_dialog.png', 'MCA > Merge dialog (merge window)', 'Synthetic XFNTR; after Sum All')

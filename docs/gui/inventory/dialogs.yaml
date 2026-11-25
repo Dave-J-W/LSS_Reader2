@@ -559,7 +559,7 @@
 - id: pdburn
   kind: dialog
   label: "Dialog"
-  where: "Dialog (Burn test)"
+  where: "Burn test dock"
   handler: pilBurnTest
   does: "Burn-test window: Trends tab (four models by AICc, the 5 % change time) and Legacy tab (REF / GID plots)"
   workflows: [burn-ref, burn-gid]
@@ -570,7 +570,7 @@
 - id: burnTabWidget
   kind: tab
   label: "Trends | Legacy"
-  where: "Dialog (Burn test)"
+  where: "Burn test dock"
   handler: ""
   does: "Switches between the trend analysis and the legacy plots"
   workflows: [burn-ref, burn-gid]
@@ -581,7 +581,7 @@
 - id: burnConstantCheckBox
   kind: checkbox
   label: "constant"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnOptionsChanged
   does: "Fits the constant (no change) model to every quantity over time"
   workflows: [burn-ref, burn-gid]
@@ -592,7 +592,7 @@
 - id: burnLinearCheckBox
   kind: checkbox
   label: "linear"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnOptionsChanged
   does: "Fits the linear (steady drift) model to every quantity over time"
   workflows: [burn-ref, burn-gid]
@@ -603,7 +603,7 @@
 - id: burnExponentialCheckBox
   kind: checkbox
   label: "exponential"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnOptionsChanged
   does: "Fits the exponential (decay or growth) model to every quantity over time"
   workflows: [burn-ref, burn-gid]
@@ -614,7 +614,7 @@
 - id: burnDoubleExponentialCheckBox
   kind: checkbox
   label: "double exp."
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnOptionsChanged
   does: "Fits the double-exponential (fast and slow) model to every quantity over time"
   workflows: [burn-ref, burn-gid]
@@ -625,7 +625,7 @@
 - id: burnEstimatorComboBox
   kind: combo
   label: "Estimator"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnOptionsChanged
   does: "How each GID frame's peak is measured: template, moments, fit"
   workflows: [burn-gid]
@@ -636,7 +636,7 @@
 - id: burnErrorsComboBox
   kind: combo
   label: "Errors"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnOptionsChanged
   does: "Error bars of the trend fits: auto, scatter, counting"
   workflows: [burn-ref, burn-gid]
@@ -647,7 +647,7 @@
 - id: burnScanComboBox
   kind: combo
   label: "S# …"
-  where: "Dialog (Burn test) > Trends, second row"
+  where: "Burn test dock > Trends, second row"
   handler: burnShowScan
   does: "Several burns selected: whose trends are drawn; all are analysed, the Dose or time tab compares them, Save stores the one on show"
   workflows: [burn-ref, burn-gid]
@@ -658,7 +658,7 @@
 - id: burnAxisComboBox
   kind: combo
   label: "Axis: time | dose"
-  where: "Dialog (Burn test) > Trends, second row"
+  where: "Burn test dock > Trends, second row"
   handler: burnOptionsChanged
   does: "The axis the trends are fitted against: time (default) or the dose since the first frame began (exp.burn(axis='dose')); the change limit is then a dose"
   workflows: [burn-ref, burn-gid]
@@ -669,7 +669,7 @@
 - id: burnDoseUnitComboBox
   kind: combo
   label: "Dose in: photons | Monc counts"
-  where: "Dialog (Burn test) > Trends, second row"
+  where: "Burn test dock > Trends, second row"
   handler: burnOptionsChanged
   does: "The dose's unit: photons at the Monc chamber's exit (needs its gain; monitor counts are used and said when unknown) or monitor counts"
   workflows: [burn-ref, burn-gid]
@@ -680,7 +680,7 @@
 - id: burnBeamWidthLineEdit
   kind: lineedit
   label: "Beam (mm) width"
-  where: "Dialog (Burn test) > Trends, second row"
+  where: "Burn test dock > Trends, second row"
   handler: burnOptionsChanged
   does: "The beam's width at the sample, typed: with it the dose is per mm² of footprint (beam_mm)"
   workflows: [burn-ref, burn-gid]
@@ -691,7 +691,7 @@
 - id: burnBeamHeightLineEdit
   kind: lineedit
   label: "× height"
-  where: "Dialog (Burn test) > Trends, second row"
+  where: "Burn test dock > Trends, second row"
   handler: burnTrends
   does: "The beam's height at the sample: shown greyed from exp.beam_height(near=burn), the sample-height scans nearest the burn with its S1 gap, or the study's default; type to override"
   workflows: [burn-ref, burn-gid]
@@ -702,7 +702,7 @@
 - id: burnFastModeCheckBox
   kind: checkbox
   label: "Fast mode"
-  where: "Dialog (Burn test) > Trends, second row"
+  where: "Burn test dock > Trends, second row"
   handler: burnOptionsChanged
   does: "The shutter stays open between frames: the dose counts the wall time (shutter='open')"
   workflows: [burn-ref, burn-gid]
@@ -713,7 +713,7 @@
 - id: burnVerdictQuantityComboBox
   kind: combo
   label: "Compare: Intensity | FWHM | Position"
-  where: "Dialog (Burn test) > Dose or time"
+  where: "Burn test dock > Dose or time"
   handler: burnVerdictOptionsChanged
   does: "The quantity whose drift rates are compared across the burns"
   workflows: [burn-ref, burn-gid]
@@ -724,7 +724,7 @@
 - id: burnStripSpinBox
   kind: spin
   label: "Strip scatter ρ %"
-  where: "Dialog (Burn test) > Dose or time"
+  where: "Burn test dock > Dose or time"
   handler: burnVerdictOptionsChanged
   does: "How much the rate differs between strips of one sample beyond counting, as a fraction of the rate (strip_relative); 0 by default"
   workflows: [burn-ref, burn-gid]
@@ -735,7 +735,7 @@
 - id: burnVerdictPlotWidget
   kind: plot
   label: "against time | against the dose"
-  where: "Dialog (Burn test) > Dose or time"
+  where: "Burn test dock > Dose or time"
   handler: burnVerdictPlot
   does: "Each burn's quantity relative to its first frame (a position: its change), against time and against the dose"
   workflows: [burn-ref, burn-gid]
@@ -746,7 +746,7 @@
 - id: burnVerdictLabel
   kind: label
   label: "Dose: the change follows the dose (beam damage); β = …"
-  where: "Dialog (Burn test) > Dose or time"
+  where: "Burn test dock > Dose or time"
   handler: burnVerdict
   does: "F76's verdict: dose, time, cannot tell, neither, no change or opposite signs, with β's interval and the weight of the dose; the rates in the tooltip"
   workflows: [burn-ref, burn-gid]
@@ -757,7 +757,7 @@
 - id: burnTimeComboBox
   kind: combo
   label: "Time"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnOptionsChanged
   does: "Time axis: clock (measured) or exposure"
   workflows: [burn-ref, burn-gid]
@@ -768,7 +768,7 @@
 - id: burnThresholdSpinBox
   kind: spin
   label: "Change"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnOptionsChanged
   does: "The change that matters (default 5 %) for the safe-time estimate"
   workflows: [burn-ref, burn-gid]
@@ -779,7 +779,7 @@
 - id: burnPositionLimitCheckBox
   kind: checkbox
   label: "Position in limit"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnOptionsChanged
   does: "Lets the GID peak position's change set the limit too"
   workflows: [burn-gid]
@@ -790,7 +790,7 @@
 - id: burnAutoPeakCheckBox
   kind: checkbox
   label: "Auto peak"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnOptionsChanged
   does: "Finds the GID peak window automatically; off uses the Qxy range field (below the tabs)"
   workflows: [burn-gid]
@@ -801,7 +801,7 @@
 - id: burnRowsAutoCheckBox
   kind: checkbox
   label: "Rows from frame"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnOptionsChanged
   does: "GID: sums the detector rows where the mean frame's signal is (lss_core.burn.signal_rows, Q-BURN-6); off uses the rows typed beside it"
   workflows: [burn-gid]
@@ -812,7 +812,7 @@
 - id: burnRowsLineEdit
   kind: lineedit
   label: ""
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnTrends
   does: "GID: the rows summed, first:last; shows the rows found while Rows from frame is on (disabled), typed when off (Enter analyses); empty = all rows"
   workflows: [burn-gid]
@@ -823,7 +823,7 @@
 - id: burnAnalysePushButton
   kind: button
   label: "Analyse"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: burnTrends
   does: "Measures every selected frame and fits the trends again"
   workflows: [burn-ref, burn-gid]
@@ -834,7 +834,7 @@
 - id: burnSavePushButton
   kind: button
   label: "Save"
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: saveBurnToWorkbook
   does: "Saves values over time and the trend table into the workbook (Data and Trends sheets)"
   workflows: [burn-ref, burn-gid, session]
@@ -845,7 +845,7 @@
 - id: burnExportPushButton
   kind: button
   label: "Export"
-  where: "Dialog (Burn test) > Trends, left of Save"
+  where: "Burn test dock > Trends, left of Save"
   handler: exportBurn
   does: "Writes <name>_burn.txt (the values over time, and dose, with their errors) and <name>_burn_trends.txt (every model's fit and the change time)"
   workflows: [burn-ref, burn-gid]
@@ -856,7 +856,7 @@
 - id: burnTrendPlotWidget
   kind: plot
   label: ""
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: ""
   does: "Each quantity over time on its own panel with the fitted models and a right axis in percent"
   workflows: [burn-ref, burn-gid]
@@ -867,7 +867,7 @@
 - id: burnResultLabel
   kind: label
   label: ""
-  where: "Dialog (Burn test) > Trends"
+  where: "Burn test dock > Trends"
   handler: ""
   does: "One-line verdict (stable/changing per quantity, the change time); the full model table in its tooltip"
   workflows: [burn-ref, burn-gid]
@@ -878,7 +878,7 @@
 - id: pdburn.plotWidget
   kind: plot
   label: ""
-  where: "Dialog (Burn test) > Legacy"
+  where: "Burn test dock > Legacy"
   handler: ""
   does: "Legacy burn plot: one quantity vs count time x frame, exponential for intensity"
   workflows: [burn-ref, burn-gid]
@@ -889,7 +889,7 @@
 - id: pdburn.refPushButton
   kind: button
   label: "REF"
-  where: "Dialog (Burn test) > below tabs"
+  where: "Burn test dock > below tabs"
   handler: pilRefBurn
   does: "Legacy reflectivity burn: ROI intensity vs time with an exponential; switches to Legacy"
   workflows: [burn-ref]
@@ -900,7 +900,7 @@
 - id: pdburn.gidComboBox
   kind: combo
   label: "GID"
-  where: "Dialog (Burn test) > below tabs"
+  where: "Burn test dock > below tabs"
   handler: pilGidBurn
   does: "Legacy GID burn: Intensity, Location or Width of the peak in the Qxy range vs time; switches to Legacy"
   workflows: [burn-gid]
@@ -911,7 +911,7 @@
 - id: pdburn.rangeLineEdit
   kind: lineedit
   label: "Qxy range (single peak only)"
-  where: "Dialog (Burn test) > below tabs"
+  where: "Burn test dock > below tabs"
   handler: ""
   does: "Qxy window min:max for the legacy GID burn and for Trends with Auto peak off"
   workflows: [burn-gid]
@@ -922,7 +922,7 @@
 - id: pdburn.closePushButton
   kind: button
   label: "Close"
-  where: "Dialog (Burn test) > below tabs"
+  where: "Burn test dock > below tabs"
   handler: pilBurnClose
   does: "Closes the window"
   workflows: [burn-ref, burn-gid]
