@@ -893,10 +893,10 @@ TOOLS = (
          committed=('docs/studies/sh_beam_size',), docs=('docs/studies/sh_beam_size/summary.md', 'docs/studies/sh_beam_size/height_scans.md'),
          data='private', repo_ok=False),
     Tool('xr_burns', 'Real reflectivity burns: trends, dose or time (private data)', 'external', 'external',
-         demonstrates="The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): each "
-                      'series at several absorbers against time and dose, the drift rate against flux and the '
-                      "dose-or-time verdicts. Made by the non-cloud agent's private generator "
-                      '(sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them.',
+         demonstrates="The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): the drift "
+                      'rate against flux and the dose-or-time verdicts per series. Made by the non-cloud '
+                      "agent's private generator (sample_data/private/xr/); not regenerable here; the numbers "
+                      'are the CSVs beside them. The frame-by-frame curves (B1) are private (owner, 2026-11-25).',
          committed=('docs/studies/xr_burns',), docs=('docs/studies/xr_burns/summary.md',),
          data='private', repo_ok=False),
     Tool('qz_resolution', 'Qz resolution near the critical edge (private data)', 'external', 'external',

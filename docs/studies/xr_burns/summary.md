@@ -83,8 +83,8 @@ follows the clock. Across the burns of one series (one sample, fresh strips, sev
 rate of I/I(0) against time should then scale as rate_t ∝ flux^β, with **β = 1 for the dose** and
 **β = 0 for time**. β is fitted on a grid, with the amplitude profiled. The straight-line drift has errors
 scaled by √(χ²/dof) when that exceeds 1. Frame 1 is left out. The verdict is "dose" or "time" when one of
-β = 1 and β = 0 passes at p ≥ 0.05 and the other fails. Figure B1 shows each series against time and
-against dose, with χ²(β). Figure B2 shows the rates against flux.
+β = 1 and β = 0 passes at p ≥ 0.05 and the other fails. Figure B2 shows the rates against flux. The
+curves of each series against time and dose are in the private figure B1 (below).
 
 **Two strips at one absorber do not agree to their counting errors.** Six groups repeat an absorber within
 a series, on another strip and often hours later. Their rates differ by far more than their counting
@@ -145,6 +145,22 @@ strip scatter in the errors. Most series here span only ×2 and leave β open.
 
 What would settle it: pairs of burns at fluxes about ×10 apart, repeated on two strips at each flux, in
 alternating order (high, low, high, low), on 3–4 kinds of sample.
+
+## Private figure B1
+
+**B1 is kept private by the owner's ruling (2026-11-25): "Don't publish B1, but don't forget how to make
+it!"** Frame-by-frame curves of private burns are not published, even normalised and anonymised
+(AGENTS.md, the row for `sample_data/private/`).
+- **What it shows:** each series' burns frame by frame, I/I(0) normalised to the first frames, against
+  elapsed time and against dose, with χ²(β) for the series.
+- **Where it is:** `sample_data/private/figures/xr_burns/B1_series_time_dose.png`, on the owner's computer
+  (git-ignored).
+- **How to make it:** the generator is `sample_data/private/xr/scripts/burns_analyse.py`, which reads the
+  caches `burns_collect.py` and `burns_fraction.py` write. From the repository root:
+
+      python sample_data/private/xr/scripts/burns_analyse.py docs/studies/xr_burns
+
+  It writes B2 and the CSVs to the folder given, and B1 only under `sample_data/private/figures/xr_burns/`.
 
 ## Not shown, and why
 
