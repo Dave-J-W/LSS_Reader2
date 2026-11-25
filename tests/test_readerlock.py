@@ -52,6 +52,7 @@ def test_a_stale_lock_is_taken_over(tmp_path):
     assert lock.acquire() and lock.read()['token'] == lock.me['token']
 
 
+@pytest.mark.skipif(os.name != 'posix', reason='no cheap check of a process on Windows: only the lock\'s age decides')
 def test_a_dead_process_on_this_host_leaves_a_stale_lock(tmp_path):
     p = _wb(tmp_path)
     done = subprocess.Popen([sys.executable, '-c', 'pass'])
@@ -59,6 +60,12 @@ def test_a_dead_process_on_this_host_leaves_a_stale_lock(tmp_path):
     import socket
     _other(p, host=socket.gethostname(), pid=done.pid)
     assert readerlock.ReaderLock(p).acquire()
+
+
+def test_a_live_process_on_this_host_keeps_its_lock(tmp_path):
+    """Everywhere: a fresh lock of a running process is not taken over."""
+    import socket
+    p = _wb(tmp_path)
     _other(p, host=socket.gethostname(), pid=os.getpid())   # alive (this very process, another token)
     assert not readerlock.ReaderLock(p).acquire()
 

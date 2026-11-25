@@ -20,7 +20,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | main man (orchestrator; "Main" until 2026-11-24) | ~~F81, F91, F87, P47, half-written SPEC lines~~ (2026-11-23); ~~the two decision studies and the ELI5 rationale~~, ~~the join guard at p 0.7~~ (#47), ~~area L, the fragile assumptions~~ (#50), ~~F98's core: the dose of each point, burns against dose~~ (#52), ~~F92's core: dropped points as a mask~~ (#54, 2026-11-24); ~~F97's diffuse cut axes, the core~~ (#59), ~~PR #60 reviewed and merged~~ (2026-11-24); ~~the dose height from the sh scans' rising edge~~ (#60's rule; 2026-11-24) | ~~D1's core: the workbook's lock, a second reader read-only~~ (2026-11-25) |
 | GUI manager | ~~F88 sticky display, F69 movie~~ (merged #34, 2026-11-24: the image display functions are free); ~~F86 Reduction options~~, ~~Q-GID-5~~, ~~Q-UI-A10~~ (#32); **F96** Ref Patch window: Back, Cancel, join table, the line under the Reflectivity plot (built 2026-11-24; the live replay of accepted joins later); **F95** B6 and the B3 list, **F74** residual panels on scan, cut and burn fits, **F97** saturation cue, **F78** super-Gaussian height-scan fit (timeline 1a) (built 2026-11-24) | (F80, F105 built: the Compare tab, Export's proposed name); timeline's reduced-data and environment lanes (the tab, sh thumbnails, notes and 'new sample?' answers are built); F95's ROI threshold, B9, B10; F97's diffuse axes (the ROI close-up built 2026-11-24); then ngui |
 | Main (orchestrator) | ~~F81, F91, F87, P47, half-written SPEC lines~~ (2026-11-23); ~~the two decision studies and the ELI5 rationale~~, ~~the join guard at p 0.7~~ (#47), ~~area L, the fragile assumptions~~ (#50), ~~F98's core: the dose of each point, burns against dose~~ (#52), ~~F92's core: dropped points as a mask~~ (2026-11-24) | F97 diffuse cut axes (the core), then what Main assigns next |
-| tools man | ~~F79: Qc from the subphase, Qoff proposed~~ (#56, 2026-11-24) | **F76: beam damage or a changing sample** (burns at several absorbers against dose and time; core, study, NX 14/15), then F77 |
+| tools man | ~~F79: Qc from the subphase, Qoff proposed~~ (#56, 2026-11-24); ~~F76: beam damage or a changing sample~~ (#72, 2026-11-25); ~~the review's Tools items: `--stale` by a verified record and code fingerprints, the two figures' environment, four small fixes~~ (2026-11-25) | **P44**: a burn estimator with the shoulder held unstretched (prototype unbiased on Gaussian shoulders, 2–4× smaller errors on others; study, NX, then rule 12); F77 when DATA_NEEDS row 14 has data |
 | questor | the owner's questions and their answers in `docs/`; the data needs (`docs/DATA_NEEDS.md`, with tools man's blank-spectrum request) | (its own order) |
 
 ## Remaining work by area (regrouped 2026-11-21, review `docs/reviews/2026-11-21-todo-review.md`)
@@ -33,16 +33,16 @@ working list, one table per area, each row with its source. Rows marked
 
 | Item | Source |
 |---|---|
-| Final defaults from many data sets (distance, response, joins) | hand-off 06; input 19 |
+| Final defaults from many data sets (distance, response, joins): **survey done 2026-11-24** (`docs/studies/gid_method_survey/`): proposed `beam` response and per-set distance calibration when reliable, joins kept; the switch needs rule 12 (tests, demonstrator). Also found: 18 sets the pinhole patch cannot join (a middle level not overlapping in β); `KeyError: 'monc'` on a one-point Det_Th scan | hand-off 06; input 19 |
 | ~~Scan join against everything joined so far~~ **done 2026-11-22** (P41) | P41 |
-| Stray light, streak mask, background frames | P40; input 17 |
+| Stray light, streak mask, background frames: sizes measured on 94 private level pairs (2026-11-24, `docs/studies/gid_stray_light/`); background frames still to be taken at a beamtime | P40; input 17 |
 | Exact angles for cut axes, display, distance fit | P38 remainder |
 | ~~Legacy three-level map (synthetic three-level set)~~ **fixed 2026-11-23** | P36, P37 (= P14, P15, P31) |
 | Second 200K module | F63, D43; input 3 |
 | ΣN/ΣW vs IDL error weights | input 18 |
 | Multiple exposures, cosmic rays | F40 |
 | GID scan designer — **new** (only in SCOPE's text) | F32 |
-| GISAXS one column off; GISAXS and background-subtracted GID scriptable | P35 |
+| GISAXS one column off; GISAXS and background-subtracted GID scriptable (private GISAXS and off-specular sets inventoried 2026-11-24, `docs/studies/gisaxs_gioxs_inventory/`; the GISAXS set's own header is 5 columns off, so it cannot settle P35) | P35 |
 | sh scans paired with GID levels (sample height drifts by µm in 30–60 min): read a nearby sh scan per level and report the height change — **new** | physics_notes 2026-11-19 |
 
 **B. Reflectivity and export (Stage 5)**
@@ -238,6 +238,23 @@ build workflow and macOS signing (input 12); sample-data hosting.
       are started as their own process (`patch_demo.py`, which takes the space
       bar application-wide). A packaged build lists the items and the
       committed figures it holds but disables Run (no tools, no Python inside).
+- [x] **`--stale` flagged most items wrongly (the former patching
+      session's review, 2026-11-24) — fixed 2026-11-25** by tools man:
+      `python -m lss_toolbox --audit --record` keeps, for each item whose
+      products matched, the fingerprints of what the rerun imported and
+      read (`lss_toolbox/verified.json`); `--stale` calls them current
+      until one of those changes, and without a record ignores changes to
+      comments and docstrings (`docs/reports/tools_audit.md`, 2026-11-25).
+      Run records name freetype, the machine, numpy's SIMD level and
+      matplotlib's helper libraries, and the audit lists what changed since
+      a record when images differ. Measured: 28 of 30 items current (26
+      stale before), the pinhole figures, a gauntlet table and the MCA
+      study's B3 regenerated.
+- [ ] **The GUI screenshots are stale (measured 2026-11-25, tools man's
+      audit)**: `gui_screens` 52 of 75 differ (many in size since the test
+      windows went to minimum size, #67), `ngui_screens` 6 of 23 changed by
+      code. For the GUI manager: rerun them into the repository, then
+      `python -m lss_toolbox --audit --record --only gui_screens ngui_screens`.
 - [x] **Committed products the audit found stale (new 2026-11-23, F84) —
       remedied 2026-11-23** (`docs/reports/tools_audit.md`, "Remedied"):
       the two figures were an environment difference, not stale code; the
@@ -350,7 +367,7 @@ stated assumption until the answer arrives.
 |---|---|---|---|
 | 1 | Answers on the series proposal (`handoff_out/05`, four questions) | Stage 3 series in the window, live refresh | can proceed on the proposed syntax as provisional |
 | 2 | ~~A complete low + high Qz GID pair~~: private pairs received 2026-11-19 (C22); a **public** pair is still wanted for C14 | C14 comparison, F62 check on real data, P36/P37 need three levels | C14 stays "not like for like" |
-| 3 | One full two-module 200K frame (one module is saved on purpose, D43; the second lies along 2θ, F63); a new-format fluorescence/GID SPEC file (F28); HDF5/bluesky file (F29); ME7 notes (F35; mostly answered by D48, D49); Pilatus + Vortex in one scan (F53); 1M geometry conventions (F38) | Stage 4, item by item | Stage 4 not started |
+| 3 | One full two-module 200K frame (one module is saved on purpose, D43; the second lies along 2θ, F63); a new-format fluorescence/GID SPEC file (F28); HDF5/bluesky file (F29); ME7 notes (F35; mostly answered by D48, D49); Pilatus + Vortex in one scan (F53); 1M geometry conventions (F38). **Inventoried 2026-11-24** (`docs/studies/stage4_inputs/`): no two-module 200K frame; F28 not identified; bluesky JSONL + MCA HDF5 from a commissioning run only; Pilatus + Vortex scans and 1M frames with `#B5` exist privately | Stage 4, item by item | Stage 4 not started |
 | 4 | `lss_reference.py`, `covariance_core.py` (XModJointFit) | Stage 5 hand-off tests 5–6 | independent implementation from the hand-off text |
 | 5 | ~~`Monc`'s own noise~~: not needed (owner, 2026-11-19, D44). Which monitor model the Budget uses by default when it becomes the default: Gaussian 0.04 % (D22, now) or Student t (D26)? | Stage 5: Budget as default | Gaussian stays the Budget's default |
 | 6 | ~~IDL `IMG_COO_CONV`/`LIMG_COO_CONV`, `SCAN_JOIN`, `SPEC_FILE_INFO`~~ received 2026-11-19 (`docs/reference_code/idl/`); still wanted: IDL output for NX 11+12 | checking the pinhole map against IDL numbers | pinhole checked on synthetic data and by reading |
@@ -364,9 +381,9 @@ stated assumption until the answer arrives.
 | 14 | P7 Merge: kept as is (owner). Merge window and XFNTR merging: the owner's rule is F65 (match within 0.1 × grid step, jitter 3e-5 1/Å in the errors, grouping, never across runs); its edge estimator is backlog. `S1T + S1T`: fixed. Per-point MCA files: to be handled (owner: yes, 2026-11-19); channels and dead time answered (D48, D49) | F65, per-point MCA | — |
 | 15 | ~~P39~~: decided 2026-11-19 (D51), exact window to the S4 ramps' inner edges; IDL's as an option | — | — |
 | 16 | ~~Half-cut sh scans for the beam's vertical profile (F43; owner, 2026-11-19)~~ answered 2026-11-24 from the height scans' rising edges (`docs/studies/sh_beam_size/summary.md`): dose height 0.040 mm at 10 keV, S1 ≤ 0.04 mm; profile core + tail | a measured beam for response 'beam' and for P39 | the profile fitted from the GID data |
-| 17 | GID frames with little signal (mostly background) at both arm heights (P40; owner offered, 2026-11-19) | stray light and beam-path background in GID maps | P40 open |
+| 17 | GID frames with little signal (mostly background) at both arm heights (P40; owner offered, 2026-11-19). **Searched 2026-11-24** (`docs/studies/gid_stray_light/`): none in the private data with the sample lowered; streak and beyond-footprint light measured on 94 pairs; the beam path measured on off-specular frames of one beamtime. Frames taken on purpose are still wanted | stray light and beam-path background in GID maps | P40 open |
 | 18 | GID overlap pixels: ΣN/ΣW (built) vs IDL's error-weighted mean (the owner chose "as the IDL code does", 2026-11-18; the error weights are biased at low counts, IDL review) | GID map values | ΣN/ΣW, to confirm |
-| 19 | ~~S4–detector distance (P43)~~: calibrate from single frames (owner, 2026-11-21): built (5fbebf8), worksheet Fit; automatic calibration and the final GID defaults: large-data survey, `docs/handoff_out/06-gid-method-comparison.md` | — | header value until Fit |
+| 19 | ~~S4–detector distance (P43)~~: calibrate from single frames (owner, 2026-11-21): built (5fbebf8), worksheet Fit; automatic calibration and the final GID defaults: large-data survey, `docs/handoff_out/06-gid-method-comparison.md`; **done 2026-11-24**, `docs/studies/gid_method_survey/` (calibrate per set when reliable; not per beamtime) | — | header value until Fit |
 
 ### Stage 3 work list
 - [x] Proposal for the "scan i of N" line (`docs/handoff_out/05-scan-series-syntax.md`).

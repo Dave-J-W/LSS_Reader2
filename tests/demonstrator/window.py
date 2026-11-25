@@ -266,6 +266,8 @@ class DemoWindow(QtWidgets.QMainWindow):
         rc, bc = self._configs()
         key = (mode, self.seed, repr(rc) if mode == 'refl' else repr(bc))
         if key != self._key:
+            self.seed_label.setText('seed %d: computing…' % self.seed)
+            self.seed_label.repaint()                    # at once: a burn replicate takes about 1.3 s
             QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             try:
                 if mode == 'refl':
@@ -281,6 +283,7 @@ class DemoWindow(QtWidgets.QMainWindow):
                     self.clean_results = None
             finally:
                 QtWidgets.QApplication.restoreOverrideCursor()
+                self.seed_label.setText('seed %d' % self.seed)
             self._key = key
         self.redraw()
 

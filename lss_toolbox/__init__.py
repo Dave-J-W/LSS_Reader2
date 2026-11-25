@@ -10,7 +10,10 @@ from what's in the repo and so don't drift").
   argparse parser, captured in a subprocess; its docstring; the repository
   files it imports);
 - ``staleness``: whether committed products predate a change to the code
-  that makes them (git history of the generator and what it imports);
+  that makes them: the verified record the audit writes
+  (``verified.json``), else git history of the generator and what it
+  imports; ``fingerprint`` (code without docstrings and comments) and
+  ``trace`` (what a run imported and read) serve it;
 - ``runner``: the command line of a run, its output folder, its record;
 - ``render``: ``docs/TOOLS.md``, written from the catalogue (a test keeps
   it in step);
@@ -19,7 +22,9 @@ from what's in the repo and so don't drift").
 
 Runs as its own program too: ``python -m lss_toolbox`` (the window),
 ``python -m lss_toolbox --render`` (rewrites docs/TOOLS.md),
-``python -m lss_toolbox --stale`` (staleness of every committed product).
+``python -m lss_toolbox --stale`` (staleness of every committed product),
+``python -m lss_toolbox --audit --record`` (rerun, compare, keep what
+matched).
 Nothing here is imported by ``lss_core``; the GUI-free parts need no Qt.
 """
 import os

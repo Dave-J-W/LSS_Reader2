@@ -441,8 +441,9 @@ def save(fig, isos, path, late=()):
 
 def provenance(f):
     try:
-        rev = subprocess.run(['git', 'describe', '--always', '--dirty'], cwd=ROOT, capture_output=True,
-                             text=True).stdout.strip()
+        # LSS_TOOLS_REVISION, when set, is printed instead: the Tools audit finds the stamp with a dummy one
+        rev = os.environ.get('LSS_TOOLS_REVISION') or subprocess.run(
+            ['git', 'describe', '--always', '--dirty'], cwd=ROOT, capture_output=True, text=True).stdout.strip()
     except OSError:
         rev = '?'
     return ('tests/tools/pinhole_figures.py · lss_core %s · %s scan %d, Det_Th %.1f°'

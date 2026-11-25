@@ -390,6 +390,14 @@ agrees).
 | S7→S8 (31→24) | (cumulative 0.0014797 ± 0.80 %) | 0.064519 ± 0.80 % (χ²/dof 1.96, inflated) | 0.063988 ± 1.09 % | 0.064547 ± 0.81 % | **0.064516 ± 0.50 %** (χ²/dof 1.09) | 0.06555 ± 0.94 % (z −1.5; not used: slits) |
 | S8→S9 (24→18) | (cumulative 0.00015337 ± 0.46 %) | 0.103676 ± 0.46 % | 0.104056 ± 0.71 % | 0.103706 ± 0.46 % | **0.103604 ± 0.41 %** (χ²/dof 1.37) | 0.10386 ± 0.75 % (z −0.3; not used: slits) |
 
+**Later numbers (pointer added 2026-11-25):** this table predates the
+guard ladder (6bb29bf, 2026-11-23) and the guard's default p 0.7
+(2026-11-24). Remade with the ladder, the joint o4 e4 fit takes order 5 at
+S8→S9 (the first adequate fit) and gives 0.103423 ± 0.35 % there; the
+first two joins are unchanged. The current numbers, with the reader's
+default window, are COMPARISONS C33 (`docs/COMPARISONS.md`), regenerated
+by `tests/tools/ref_patch_survey.py`.
+
 - Joint vs legacy/§3.2: +0.30 %, −0.00 %, −0.07 % — within 0.6–0.8 σ of
   the joint fit's errors. The spline (P1) bias on these grids is ≈ 0.01 %
   (table 2), so the differences are noise in which points are used.

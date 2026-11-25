@@ -283,7 +283,12 @@ res = patching.chain(scans, prior=prior, monitor_ratios=[1.005, 4.35, 1.32])   #
 
 `patching.interp_factor`, `coincident_factor` and `global_fit` are the
 alternatives the survey compares (`tests/tools/ref_patch_survey.py`,
-hand-off 08); `lss_core.uncertainty` holds the method-free pieces
+hand-off 08). **`global_fit` is experimental:** it has no guard ladder and
+applies one χ² inflation to every join, so where one window cannot follow
+the curve that join is biased and every join's error is inflated (−3.4 %
+and about ten-fold on a 100 Å film at NX steps; `docs/reports/patch_demo.md`,
+figure 2). Nothing in the reader calls it; use `chain` (with `prior=` for
+correlated foils). `lss_core.uncertainty` holds the method-free pieces
 (`chain_covariance`, `steps_to_phi`, `combine`, `total_sigma`,
 `stitched_covariance`, `pulls`). The legacy patch and export are
 unchanged.
