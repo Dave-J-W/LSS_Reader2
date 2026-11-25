@@ -608,7 +608,7 @@
   "verdict": "same"
  },
  "dump_tooltips": {
-  "commit": "0c800305ec",
+  "commit": "3ec5966c39",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -626,9 +626,7 @@
    "python": "3.13.18",
    "scipy": "1.18.1"
   },
-  "modified": [
-   "lss_toolbox/runner.py"
-  ],
+  "modified": [],
   "modules": {
    "TwoDDetector.py": "cacf7c8dacbc4290",
    "comparetab.py": "af2dc0dc02f06824",
@@ -658,6 +656,7 @@
    "lss_core/peaks.py": "821faa95240f76ae",
    "lss_core/pinhole.py": "4947ac70640d7924",
    "lss_core/preferences.py": "cde2cdd47924ec27",
+   "lss_core/readerlock.py": "5d36feedd34c5b84",
    "lss_core/reflectivity.py": "0fc665fd164c8e61",
    "lss_core/residuals.py": "0292e57020900835",
    "lss_core/resources.py": "d62d494a88757e2c",
@@ -666,7 +665,7 @@
    "lss_core/stitching.py": "af4e152fd36e0dcf",
    "lss_core/trends.py": "687ff0ee1b74ae3a",
    "lss_core/workbook.py": "def567f7b40b255d",
-   "lss_toolbox/catalog.py": "838b8ff4de7f8f01",
+   "lss_toolbox/catalog.py": "d7ebebb2fdbbbcc0",
    "lss_toolbox/compare.py": "783bae8d75ba7cd2",
    "lss_toolbox/fingerprint.py": "3ae81cd598e4ec8a",
    "lss_toolbox/introspect.py": "3ab708ed997dfcf0",
@@ -675,7 +674,7 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "027b0fbfb762a8a1",
+   "mainwindow.py": "ff4639569b8314a0",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
    "mplwidget.py": "437655a13b3d5ac2",
@@ -686,10 +685,10 @@
    "timelineview.py": "4d1ebd8fee686919"
   },
   "products": {
-   "docs/manual/controls.md": "0d54a3d7d3d5318a"
+   "docs/manual/controls.md": "c9a6ad51b7d87393"
   },
   "reads": {
-   "mainwindow.py": "027b0fbfb762a8a1",
+   "mainwindow.py": "ff4639569b8314a0",
    "mainwindow.ui": "f8324cd7d28356be",
    "pdburn.ui": "ad666a5c7cd6a542"
   },
@@ -1375,7 +1374,7 @@
   "verdict": "same"
  },
  "gui_map": {
-  "commit": "0c800305ec",
+  "commit": "3ec5966c39",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -1398,18 +1397,18 @@
    "tests/tools/gui_map.py": "a38d471fc76f2631"
   },
   "products": {
-   "docs/gui/inventory.md": "9d1eeaf0f4e459a9",
-   "docs/gui/workflows.md": "05d030066c385103"
+   "docs/gui/inventory.md": "d0df9bff9c86858d",
+   "docs/gui/workflows.md": "3aae98718aed51ea"
   },
   "reads": {
    "docs/gui/inventory/apex.yaml": "3269af5254e2004e",
    "docs/gui/inventory/compare.yaml": "355f02f1001d8fdf",
    "docs/gui/inventory/cuts.yaml": "d2149d5b72adb19c",
-   "docs/gui/inventory/dialogs.yaml": "a138b534e49c2563",
+   "docs/gui/inventory/dialogs.yaml": "1459c3fb1a9f05b5",
    "docs/gui/inventory/left_panel.yaml": "96c47ae7790dfae2",
    "docs/gui/inventory/mca.yaml": "69bf5246ebbd1d42",
    "docs/gui/inventory/menus.yaml": "f4f63bf49450af3a",
-   "docs/gui/inventory/panes.yaml": "a446373d66d4f729",
+   "docs/gui/inventory/panes.yaml": "cc122ea59aa5b3e9",
    "docs/gui/inventory/pilatus.yaml": "ac56e6ddca0ca683",
    "docs/gui/inventory/plot.yaml": "2040551a77fdf18c",
    "docs/gui/inventory/plot2d.yaml": "2c524aa12a516de9",
@@ -1421,8 +1420,8 @@
    "docs/gui/questions/inventory_a.md": "7fde6e8e5e63e8cb",
    "docs/gui/questions/inventory_b.md": "138139f0b2af228d",
    "docs/gui/questions/workflows.md": "5f20c85b2e0c727b",
-   "docs/gui/workflows.yaml": "1f7fcb66b978ed87",
-   "mainwindow.py": "027b0fbfb762a8a1",
+   "docs/gui/workflows.yaml": "b0b22070b37ef7c8",
+   "mainwindow.py": "ff4639569b8314a0",
    "mainwindow.ui": "f8324cd7d28356be"
   },
   "unverified": [],
@@ -1634,7 +1633,7 @@
   "verdict": "same"
  },
  "ngui_inventory": {
-  "commit": "0c800305ec",
+  "commit": "3ec5966c39",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -1657,18 +1656,18 @@
    "tests/tools/ngui_inventory.py": "97075f0ca6146b03"
   },
   "products": {
-   "ngui/inventory_text.py": "b22e0ada35301683"
+   "ngui/inventory_text.py": "3c4e9679d1645ee1"
   },
   "reads": {
    "absratioDialog.ui": "9136d3b26b115e83",
    "docs/gui/inventory/apex.yaml": "3269af5254e2004e",
    "docs/gui/inventory/compare.yaml": "355f02f1001d8fdf",
    "docs/gui/inventory/cuts.yaml": "d2149d5b72adb19c",
-   "docs/gui/inventory/dialogs.yaml": "a138b534e49c2563",
+   "docs/gui/inventory/dialogs.yaml": "1459c3fb1a9f05b5",
    "docs/gui/inventory/left_panel.yaml": "96c47ae7790dfae2",
    "docs/gui/inventory/mca.yaml": "69bf5246ebbd1d42",
    "docs/gui/inventory/menus.yaml": "f4f63bf49450af3a",
-   "docs/gui/inventory/panes.yaml": "a446373d66d4f729",
+   "docs/gui/inventory/panes.yaml": "cc122ea59aa5b3e9",
    "docs/gui/inventory/pilatus.yaml": "ac56e6ddca0ca683",
    "docs/gui/inventory/plot.yaml": "2040551a77fdf18c",
    "docs/gui/inventory/plot2d.yaml": "2c524aa12a516de9",
@@ -1677,7 +1676,7 @@
    "docs/gui/inventory/timeline.yaml": "0d31c85e101b16c1",
    "g_l2Dialog.ui": "17f34cee4eaad587",
    "g_l3Dialog.ui": "e97ca3e6c61c8cfb",
-   "mainwindow.py": "027b0fbfb762a8a1",
+   "mainwindow.py": "ff4639569b8314a0",
    "mainwindow.ui": "f8324cd7d28356be",
    "mcamerge.ui": "bbdf1f2e09b6d591",
    "pdburn.ui": "ad666a5c7cd6a542",
