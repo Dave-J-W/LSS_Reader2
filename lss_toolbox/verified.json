@@ -608,7 +608,7 @@
   "verdict": "same"
  },
  "dump_tooltips": {
-  "commit": "8a5e6b42e0",
+  "commit": "29f100436a",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -674,7 +674,7 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "ff4639569b8314a0",
+   "mainwindow.py": "7c21db415ecfd636",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
    "mplwidget.py": "437655a13b3d5ac2",
@@ -685,10 +685,10 @@
    "timelineview.py": "4d1ebd8fee686919"
   },
   "products": {
-   "docs/manual/controls.md": "6a58563d993cd544"
+   "docs/manual/controls.md": "20f57b87e068b720"
   },
   "reads": {
-   "mainwindow.py": "ff4639569b8314a0",
+   "mainwindow.py": "7c21db415ecfd636",
    "mainwindow.ui": "f8324cd7d28356be",
    "pdburn.ui": "ad666a5c7cd6a542"
   },
