@@ -73,6 +73,7 @@ container on 2026-11-23 with the defaults shown.
 | [Why five gauntlet joins are biased (extension 4)](#ref-patch-biased-joins) | data | The default joint fit's five biased designed joins and the covariance study's first join, redrawn with the gauntlet's seeds and fitted with the guard off, other orders and windows, noise-free. | synthetic (public) | 15 s | `docs/comparisons_data/ref_patch_biased_joins` |
 | [Do joins need coincident Qz? (synthetic)](#coincidence-synth) | figures | Two synthetic scans of known curves meeting at a join with no overlap, k coincident points, a staggered overlap or a coarser second grid, fitted by every patching method and scored against the truth: bias, pull SD, error size, share answered. | synthetic (public) | 10 s | `docs/studies/coincident_points` |
 | [Qoff and Qc of R/R_F: the proposer's study (F79)](#qoff-study) | figures | Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and least squares) and the joint Qc + Qoff fit against the truth over offsets, samples, counts, outliers, resolution, a wrong Qc and the reader's patch; the NX school scans at the GUI's preset and at the proposals: figures Q1-Q5. | public (NX school or committed tables) |  | `docs/studies/qoff` |
+| [Walkthrough: why join error bars are too small, from two scans to the verdict (C61, ELI5)](#guard-error-walkthrough) | figures | The whole chain of the guard's-error study, for the owner's standing order (2026-11-25): two scans and the factor read off their shared points, with and without 2 % hidden scatter; the joint fit drawn over its data with its residuals; the guard's ladder of p-values; the pulls and coverage over 400 replicates, today's rule against honest per-point errors; a fringed join, where inflating by the order-4 chi2 fails; and a real NX school scan split with a known factor: figures W1-W6. | public (NX school or committed tables) | 6 s | `docs/studies/guard_error/walkthrough` |
 | [The guard's error: why join error bars are too small on real data](#guard-error-study) | figures | Study A's six joins with hidden per-point scatter (0-3 %): today's error rule against inflating by the unguarded fit's chi2, the larger inflation, the larger error, the guard off, and an oracle per-point budget; the NX school split. Figures G1-G3: only honest per-point errors fix both smooth and fringed joins. | public (NX school or committed tables) | 35 s | `docs/studies/guard_error` |
 | [Study A: how strict the joint fit's guard should be](#ref-guard-study) | figures | The guard's p from 0.001 to 0.9, the guard off, an AICc average and the legacy factor on C45's six joins (C45 reproduced first), a downstream fit, the NX school joins beside the foil ratio, and a robustness map over fringe sampling and counts, on coinciding and staggered grids: figures A1-A8, R and RS. | public (NX school or committed tables) | 54 s | `docs/studies/reflectivity_guard` |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
@@ -463,6 +464,25 @@ Variations:
 | Resolution | A Qz resolution of 0.0002 to 0.001 Å⁻¹ FWHM smears the edge and reads as a negative Qoff. | `docs/studies/qoff/summary.md### 3. Resolution` | `python tests/tools/qoff_study.py --out '{out}' --design resolution` |
 | A wrong Qc | 1 M NaCl reduced at water's Qc and the other way round: Qoff absorbs the error one for one; the joint fit lies on Qc − Qoff = constant. | `docs/studies/qoff/summary.md### 4. A wrong Qc, and Qc with Qoff` | `python tests/tools/qoff_study.py --out '{out}' --design qc` |
 | More replicates (200) | Every design with 200 replicates (about 15 min). | `docs/studies/qoff/summary.md### 1. Do they find the offset?` | `python tests/tools/qoff_study.py --out '{out}' --replicates 200` |
+
+<a id="guard-error-walkthrough"></a>
+
+### Walkthrough: why join error bars are too small, from two scans to the verdict (C61, ELI5)
+
+The whole chain of the guard's-error study, for the owner's standing order (2026-11-25): two scans and the factor read off their shared points, with and without 2 % hidden scatter; the joint fit drawn over its data with its residuals; the guard's ladder of p-values; the pulls and coverage over 400 replicates, today's rule against honest per-point errors; a fringed join, where inflating by the order-4 chi2 fails; and a real NX school scan split with a known factor: figures W1-W6.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/guard_error_walkthrough.py`
+- Explained in: `docs/studies/guard_error/walkthrough.md`, `docs/studies/guard_error/summary.md`
+- Committed products: `docs/studies/guard_error/walkthrough`; not replaced from the window
+- Run:
+
+      python tests/tools/guard_error_walkthrough.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Quick look | The pulls of W4 from 40 replicates (about 2 s): the pattern, not the decimals. | `docs/studies/guard_error/walkthrough.md#Over 400 replicates of this join` | `python tests/tools/guard_error_walkthrough.py --out '{out}' --reps 40` |
 
 <a id="guard-error-study"></a>
 

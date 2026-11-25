@@ -46,6 +46,12 @@ routines step by step (`merge-to-main`, `review-local-data-pr`, `issue-watch`).
   OUTPUT_DECISIONS row and the re-pins named. Committed products of earlier studies keep their run's default.
 - **Do not merge `claude/local-data-mca-encrypted`** (141 MB of encrypted private spectra). Delete it, via
   mca-scatter, once the data has been read.
+- **Rule 13 (owner, 2026-11-25): show the whole chain, ELI5.** Every study, report or answer that ends in a
+  number or a verdict shows the raw data, each processing step, a fit drawn over its data with residuals,
+  every statistic explained for a newcomer, and the judgment with how sure it is. The usual form is
+  `docs/studies/<topic>/walkthrough.md` with figures from a tool in `tests/tools/` and a catalogue item.
+  Models: `docs/studies/reciprocity/walkthrough.md` (tools man), `docs/studies/guard_error/walkthrough.md`
+  (mine, C61). The `known-truth-study` skill says how.
 
 ## The sessions now (2026-11-25, 15:00 UTC)
 
@@ -69,6 +75,7 @@ routines step by step (`merge-to-main`, `review-local-data-pr`, `issue-watch`).
 | #67 | test windows at minimum size; the sweep in forked copies (21 → 9 min) | `tests/conftest.py`, `tests/sweep.py` |
 | #74, #81 | D1 core: the workbook's lock, a read-only second reader | `lss_core/readerlock.py`, `Workbook(read_only=)` |
 | #82 | C61: the guard's error on real joins is per-point scatter | `docs/studies/guard_error/`, `tests/tools/guard_error_study.py` |
+| (this) | C61's walkthrough (rule 13): W1–W6, one join from two scans to the verdict; a real NX split | `docs/studies/guard_error/walkthrough.md`, `tests/tools/guard_error_walkthrough.py` |
 | #66 | merged the former patching session's four review branches | |
 
 Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam height), I43 (lock).

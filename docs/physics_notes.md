@@ -6525,6 +6525,24 @@ C61, `docs/studies/guard_error/summary.md`). No default changed.
   can be estimated from data. That is a next study, together with the real excess by Qz class from the
   owner's data.
 
+### 2026-11-25 — C61's walkthrough: a real split missed by 2.2 errors, from a zig-zag χ² cannot see
+
+Verified by: a run (`tests/tools/guard_error_walkthrough.py`, figure W6, `walkthrough/numbers.json`) and the
+SPEC columns of NX school scan 9 (measured). The owner's standing order (rule 13) asked for the whole chain;
+this is what the real example of that chain showed.
+
+- **The split** (C56's test with a known truth): NX scan 9 (29 points, Qz 0.17–0.45), the first half and the
+  even middle points in half a, the odd middle points and the second half in half b, × 0.8; true δ = ln 1.25.
+- **Today's default** passes the first curve (order 4, ±2, p 0.99, χ²/dof 0.08) and gives δ = 0.2341 ±
+  0.0050, against 0.2231: a pull of 2.19.
+- **The cause:** the unsplit scan over the same window (χ²/dof 1.03, ordinary) zig-zags about a smooth curve,
+  the even points +0.24 to +0.70 %, the odd −0.27 to −0.76 %. The interleaved split turns the zig-zag into a
+  factor between the halves, and the fit absorbs it into δ, leaving tiny residuals. Point-to-point structure
+  moved the factor while χ² could not see it: C61's mechanism, on one real join.
+- **Not the monitor:** Monc falls smoothly through the window. Cause unknown; a pull of 2.19 or more happens
+  2.9 % of the time with honest errors. One join decides nothing: the other two NX splits give −0.73 and 0.71,
+  and the evidence stays C56's 1091 splits.
+
 ### 2026-11-25 — F98 in the burn dialog: the dose, the beam, fast mode, several burns (F76's verdict)
 
 The window side of main man's `lss_core.dose` (#52, #63) and tools man's
