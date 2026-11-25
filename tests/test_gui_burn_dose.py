@@ -83,6 +83,10 @@ def test_one_burn_says_how_to_compare(window, qapp, recorder, tmp_path):
 def test_the_dose_axis_the_beam_and_fast_mode(window, qapp, recorder, tmp_path):
     w = window
     d = _open(w, qapp, synth.make_burn_dataset(tmp_path / 'one'), tmp_path, [0])
+    assert d.burnBeamWidthLineEdit.text() == '1.0' and w.burnKeywords[1]['beam_mm'][0] == 1.0   # prefilled (owner)
+    d.burnBeamWidthLineEdit.setText('')                                          # empty: the total dose
+    d.burnBeamWidthLineEdit.returnPressed.emit()
+    assert 'beam_mm' not in w.burnKeywords[1]
     total = w.burnResult.dose_total
     d.burnAxisComboBox.setCurrentIndex(d.burnAxisComboBox.findData('dose'))
     res = w.burnResult

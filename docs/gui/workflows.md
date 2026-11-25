@@ -758,19 +758,7 @@ flowchart TD
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `statusBar`  |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 
-### Compare
-
-| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `compareListWidget` R0003 v2  S# 6–9 |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
-| `comparePlotWidget`  |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
-| `compareOrderComboBox` Order by: series \| time saved \| sx |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
-| `compareRatioCheckBox` Ratio to the first |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
-| `compareRrfCheckBox` R/R_F |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
-| `compareFollowCheckBox` Follow new |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
-| `compareInfoLabel` 2 saved R curves in 20260923_reader.xlsx |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
-
-### Dialog (Burn test)
+### Burn test dock
 
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -808,6 +796,18 @@ flowchart TD
 | `pdburn.gidComboBox` GID |  | B |  |  |  |  |  |  |  |  |  |  |  |  |
 | `pdburn.rangeLineEdit` Qxy range (single peak only) |  | B |  |  |  |  |  |  |  |  |  |  |  |  |
 | `pdburn.closePushButton` Close | i | i |  |  |  |  |  |  |  |  |  |  |  |  |
+
+### Compare
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `compareListWidget` R0003 v2  S# 6–9 |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `comparePlotWidget`  |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `compareOrderComboBox` Order by: series \| time saved \| sx |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `compareRatioCheckBox` Ratio to the first |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `compareRrfCheckBox` R/R_F |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `compareFollowCheckBox` Follow new |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `compareInfoLabel` 2 saved R curves in 20260923_reader.xlsx |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 
 ### Dialog (GIOXS)
 
@@ -1080,11 +1080,30 @@ flowchart TD
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `timelineTab` Timeline |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 
+### Main window, right of the tab area, tabbed with the fit options
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `worksheetDock` GID patching worksheet |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+
+### Main window, right of the tab area, tabbed with the others
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `cutfitDock` Peak fit options |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+| `mcafitDock` Fluorescence line fit options |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
+
 ### Main window, under the left panel and tabs
 
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `commandLineEdit` Command: | i | i |  | i | i | i |  |  |  |  |  |  | i |  |
+
+### Main window, under the tab area, tabbed with the panes on show
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `burnDock` Burn test |  |  |  |  |  |  |  |  |  |  |  |  |  | i |
 
 ### Menu bar
 
