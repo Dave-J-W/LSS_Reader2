@@ -6867,6 +6867,80 @@ measurement and the owner's word).
   (unsplit χ²/dof 1.03). Keyed to counts (C63's table by 1/var), it adds 30 %. On the owner's data Qz,
   counts and background move together, so the real splits must decide (DATA_NEEDS row 17).
 - **The candidate for rule 12:** 4σ clipping first and alone; the budget's terms after the real check.
+### 2026-11-25 — The XRF shootout on real scatter: the owner's blanks with synthetic lines (C66)
+Verified by: a run (`tests/tools/xrf_blanks.py`; real scatter-only blanks with synthetic lines of known
+photons, 192 conditions x 500 spectra; `docs/studies/xrf_shootout/summary.md` section 10). No default
+changed.
+- **The owner's question:** had the shootout been tested on real data blanks, which capture the excitation
+  scatter accurately, combined with synthetic fluorescence lines? **Not until then:** sections 1-9 used the
+  generator's scatter with settings fitted to the blanks.
+- **Measured:** the reader with the escape strip (P1+P3) is accurate in 49 of 192 conditions and P1+P2+P3 in 47.
+  The best fixed PyMca setting manages 20; PyMca reaches 56 only with its setting picked per condition using
+  the truth.
+- **New physics the synthetic spectra missed:** the Si escape peak of the scattered beam (E0 - 1.74 keV) sits
+  on Ni Ka under a 9.2 keV beam and beside Ti Ka and La La under 6.1 keV. A box fit without the strip reads it
+  as a line: P1 +22 % on Ni at line = background, and 26-35 photons per 100 background counts on the bare blank.
+- **P2's fixed width costs 4 % on readout A** (Fano 0.137 against P2's 0.115): Zn at 10 keV -4.4 % with
+  P1+P2+P3, +0.2 % with P1+P3.
+### 2026-11-25 — The XRF shootout on real lines: the 19 private burn series (C67)
+Verified by: a run (`tests/tools/xrf_real_series.py`, the private MCA bundle decrypted with the owner's key;
+`docs/studies/xrf_shootout/summary.md` section 11). Summary values only. No default changed.
+- **Resampled twins** (Poisson draws from a series' own sum / 21) give each method a known answer on real
+  shapes. The real counts are Poisson: the line window's variance after drift removal is 1.09 x its mean.
+- **At 27-58 line counts per spectrum** P1+P2+P3 is the least biased (-2 to -7.5 %); P1 reads -6 to -25 %.
+  P1+P2+P3's pull SD is 0.95-1.11 in every series.
+- **The line near 8 keV is 21 % wider (5-37 %) than readout A's resolution measured on the blanks.** P2's
+  fixed width (0.93 x that resolution) therefore reads 11 % below the other methods on the high-count sums.
+  P2 would need the line's own width.
+- **The scatter study's self-consistency check is blind** to a bias shared by the sum: P1 reads 0.0 % there,
+  while the twins show -7 to -25 % at the lowest counts.
+### 2026-11-25 — Can a model stand in for the real scatter? (C68)
+Verified by: runs (`tests/tools/xrf_models.py` scatter and compare, `tests/tools/xrf_blanks.py --blank-dir` on
+scatter-only twins of the 10 clean public blanks; `docs/studies/xrf_models/README.md` part 1). No default changed.
+- **The owner's question:** should every test use scaled and shifted real excitation scatter, or can a model
+  describe its low-energy half well enough?
+- **Measured:** under a line, the generator's defaults miss the real scatter by 12-36 % and a Gaussian detector
+  by 11-26 % 2 keV below the beam; the full model (tails, shelf, high tail free) is within about 1 % (readout B at
+  6.1 keV: up to 11 %). In the shootout a fit's bias on the twins is a median 9-11 % from the real blank's for the
+  first two, 4.0 % for the full model, against a floor of 2.1 % (a second draw of the full twins).
+- **The full model is close for Cr, Cu, Ni and Zn** (1.3-3.7 x the floor), **not for Ti K and La L under 6.1 keV**
+  (8-9 % against 3-4 %), where its twins make P1+P2+P3 look 4-5 x better than on the real blanks.
+- **The real blanks hold a Cu-shaped feature** (1-11 % of a Cu box at 10 and 9.2 keV) that no twin has.
+- **Answer:** keep real blanks wherever one exists; use the full model with a measured parameter set elsewhere,
+  with the floor reported.
+### 2026-11-25 — Real line shapes on both detectors (C69)
+Verified by: runs (`tests/tools/xrf_lineshape.py` on the private bundle, derived numbers only;
+`tests/tools/xrf_blanks.py --line-shape`; `docs/studies/xrf_models/README.md` part 2). No default changed.
+- **The owner's question:** is a Gaussian enough to describe a real fluorescence line, and is that what
+  synthetic data should use? Compare the 7-element detector with the single-element one.
+- **Readout A (single element): nearly.** About 5 % of a line is outside a Gaussian (a short tail; a flat
+  part the fit calls a shelf may be background). But the width belongs to the detector setup: 1.03 x the
+  resolution measured on the scatter in E10-k's setup, 1.19-1.24 x in E10-f's. The burn series were recorded
+  in E10-f's setup and `xrf_shootout.MEASURED_DET` is E10-k's: that is C67's "line 21 % wider".
+- **Readout B (one element of the 7-element detector): no.** 23-81 % of each line (median 46 %) is in a
+  48-87 eV low-energy skew; the shape is the element's (the same in both files), elements 2 and 5 cleanest,
+  6 and 7 worst. The elastic-derived tail does not describe it.
+- **A header trap:** in one file the header gain of elements 5-7 is 8.6 % off; their raw channels line up
+  with elements 1-4. Summing by header calibration smears the summed line to 1.37 x the resolution.
+- **Effect on the shootout (C66 rerun):** Gaussian lines change no verdict (median change 1.4 %). Real-shaped
+  B lines cost P1+P2+P3 6 % (its fixed width misses the skew); P1+P3 stays within 2 % except La L.
+
+### 2026-11-25 — Masks and the workbook lock (GUI manager's Q2–Q6; batch 22)
+
+Verified by: the owner's statements; nothing run. Masks: "Restore all" is per patch on screen; an all-masked scan is used whole with a message; exports carry only the kept points. **Lock:** held only around a write and released at once, so a second reader is "read-only" only while a write is under way. **Consequence to check with the GUI manager (not asked of the owner):** with a lock held only during writes, the answer to Q6 (nothing saved after the fact) needs a rule for a write that finds the lock taken, presumably a short retry and then a message; and the yellow light of D1 can no longer mean "another reader has this workbook open" but only "a write is in progress", unless a second marker (such as a heartbeat file) is kept. If the GUI manager wants the earlier meaning, it should ask the owner.
+
+### 2026-11-25 — Publishing rulings on main man's MQ-6 to MQ-9 (batch 23)
+
+Verified by: the owner's statements; no file was opened here. Element names in the public scatter file stay; figure S2 is fine as a derived profile; the per-run energies at 0.01 keV and the name "spec master LEVEL_DRIFT" stay; GitHub's own records of removed files are accepted without a purge request; the encrypted spectra stay on their public branch. **For the privacy reviewer:** these are the owner's rulings on those named files only, and do not widen the other standing rules (`AGENTS.md`, the `sample_data/private/` row: no peak locations, raw data or images; frame-by-frame curves of private burns not published). The encrypted branch means the passphrase is the only protection; the owner has been told so in the question.
+
+### 2026-11-25 — The workbook lock, revised (batch 24; GUI manager's Q5)
+
+Verified by: the owner's statement; nothing run. The owner replaced the batch 22 ruling: the reader takes the write lock when it first opens a SPEC file, one click gives the write access up, and the next reader can then take it. This restores the meaning of D1's yellow light ("another reader has this workbook") and removes the retry problem of the write-only lock. **Left for the GUI manager, not asked of the owner:** what a reader does that finds the lock held at opening (open read-only with the light, as D1 says); what happens to the lock when a reader crashes or its computer sleeps (a stale `.lock` needs a rule, such as a heartbeat time or a "take over" button); whether the second reader may ask the first to release; and Q6's rule (results made while read-only are not saved after the fact) now applies from opening to the moment the lock is taken.
+
+### 2026-11-25 — Burn and timeline defaults (batch 25; GUI manager's Q7, Q10 to Q13)
+
+Verified by: the owner's statements; nothing run. **Strip scatter ρ** starts at 0 until measured (DATA_NEEDS row 14). **Export name:** no series id (the owner's second answer; a collision gets a numeric suffix, not an overwrite, an assumption). **Timeline colour scale:** the sample's own burn, else the nearest in time. **One spot:** positions within half the beam width (Sample_X moves across the beam). **Sample-height scans** count half of their dose. The half is a rough weight for the partly illuminated sample (the owner's choice, not derived here): if a height scan sweeps the sample through the beam, the average fraction of the beam on the sample is between 0 and 1 and depends on the scan range and the beam's profile, which the dose code could compute instead; left to the GUI manager.
+
 
 ### 2026-11-25 — D1 after the owner's revised Q5: asking the holder to release
 

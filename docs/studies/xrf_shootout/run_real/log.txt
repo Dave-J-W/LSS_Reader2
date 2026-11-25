@@ -1,0 +1,2 @@
+xrf_real_series 2026-11-25 09:46:15: 19 private series, methods window,fit_data,p1,p1p2p3,xeray,pymca,pymca_tails,pyxrf,larch,pymca_snip60,pymca_snip100,pymca_poly,p1p2,p1p3, 19 jobs (the line is named in the bundle only)
+done in 178 s

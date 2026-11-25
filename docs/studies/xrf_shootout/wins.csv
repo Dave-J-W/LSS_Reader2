@@ -1,0 +1,44 @@
+condition,factor,reader_best,reader_bias,reader_rmse,reader_failed,reader_accurate,other_best,other_bias,other_rmse,other_failed,other_accurate,p1_bias,p1_failed,verdict
+clean,core,p1p2p3,-0.001574,0.01182,0,True,pymca_best:pymca_snip100,8.799e-05,0.01014,0,True,0.0001239,0,others better (precision)
+smooth,core,p1p2p3,-0.03189,0.05941,0,False,pymca_best:pymca_snip60,0.09675,0.111,0,False,-0.04804,0,neither within 2 %
+hard,core,p1p2p3,-0.07559,0.1327,0.7,False,pymca_best:pymca,-0.2056,0.2247,0,False,0.4408,0.8,neither within 2 %
+hard_strong,core,p1p2p3,-0.02074,0.02786,0,False,larch,0.03232,0.101,0,False,0.05302,0,neither within 2 %
+hard_low,core,p1,-0.05158,0.5307,0.72,False,pymca_best:pymca,-0.08316,0.1773,0,False,-0.05158,0.72,neither within 2 %
+hard_11keV,beam energy,p1p2p3,-0.005529,0.06342,0,True,pymca_best:pymca_snip60,0.01279,0.05525,0,True,-0.04199,0,others better (precision)
+hard_12keV,beam energy,p1p2p3,-0.008103,0.0517,0,True,xeray,-0.00699,0.04753,0,True,0.0002758,0,same
+hard_14keV,beam energy,p1p2p3,-0.00652,0.04979,0,True,xeray,-0.00112,0.0465,0,True,0.0009652,0,same
+fe_easy,core,p1p2p3,-0.00744,0.05296,0,True,xeray,-0.005867,0.04542,0,True,-0.003695,0,others better (precision)
+counts_30,counts,p1p2p3,0.02088,0.4846,0,False,pymca_best:pymca_tails,0.06951,0.404,0,False,0.2319,0,neither within 2 %
+counts_60,counts,p1p2p3,-0.006021,0.2749,0,True,pyxrf,0.009931,0.1842,0,True,0.02732,0,others better (precision)
+counts_100,counts,p1p2p3,-0.006194,0.1941,0,True,larch,-0.01131,0.1583,0,True,0.0209,0,others better (precision)
+counts_200,counts,p1p2p3,-0.01125,0.1116,0,True,pymca_best:pymca,0.01917,0.09914,0,True,0.006019,0,others better (precision)
+counts_400,counts,p1p2p3,-0.006643,0.07514,0,True,pymca_best:pymca,-0.001594,0.06107,0,True,0.002509,0,others better (precision)
+counts_1000,counts,p1p2p3,-0.003216,0.04242,0,True,pymca_best:pymca_snip60,0.001617,0.03618,0,True,0.002004,0,others better (precision)
+counts_3000,counts,p1,-0.0009476,0.02323,0,True,pymca_best:pymca_snip100,-0.001619,0.01982,0,True,-0.0009476,0,others better (precision)
+counts_10000,counts,p1p2p3,-0.001079,0.01183,0,True,pymca_best:pymca_snip60,0.0002135,0.0105,0,True,0.0008219,0,others better (precision)
+zn_cu_0.3,overlap,p1p2p3,-0.08217,0.1494,0.78,False,pymca_best:pymca,-0.2164,0.2349,0,False,0.2483,0.85,neither within 2 %
+zn_cu_1,overlap,p1,-0.08852,0.578,0.9,False,pymca_best:pymca,-0.2416,0.2578,0,False,-0.08852,0.9,neither within 2 %
+zn_cu_3,overlap,p1,-0.251,0.6286,0.87,False,pymca_best:pymca,-0.2718,0.2866,0,False,-0.251,0.87,neither within 2 %
+ga_by_zn,overlap,p1p2p3,0.02477,0.3823,0.45,False,pymca_best:pymca,-0.01082,0.2805,0,True,2.027,0.2,others better (accuracy)
+co_by_fe,overlap,p1p2p3,0.5319,0.625,0,False,pymca_best:pymca,0.02842,0.2516,0,False,3.246,0,neither within 2 %
+fe_by_mn,overlap,p1p2p3,0.0695,0.08749,0,False,larch,-0.04111,0.06188,0,False,0.1807,0,neither within 2 %
+as_by_pb,overlap,p1p2p3,0.828,0.8309,0,False,pymca_best:pymca_snip60,-0.107,1.111,0,False,0.8803,0,neither within 2 %
+br_13.6keV,element,p1p2p3,-0.1929,0.4256,0.81,False,pymca_best:pymca_tails,-0.1607,0.4364,0,False,0.2475,0.85,neither within 2 %
+br_14keV,element,p1,0.04505,0.1259,0,False,larch,-0.0957,0.1123,0,False,0.04505,0,neither within 2 %
+sr_16.2keV,element,p1p2p3,-0.1309,0.1928,0.85,False,pymca_best:pymca,-0.3152,0.3353,0,False,-0.4239,0.66,neither within 2 %
+er_L_10keV,element,p1,0.001568,0.09258,0,True,xeray,-0.01011,0.07373,0,True,0.001568,0,others better (precision)
+lu_L_10keV,element,p1p2p3,-0.005072,0.06666,0,True,pymca_best:pymca_poly,-0.04868,0.4158,0,False,0.03446,0,reader better (accuracy)
+offset_-0.02,calibration,p1p2p3,-0.1391,0.1791,0.15,False,larch_each,0.02065,0.8016,0,False,-0.5341,0.93,neither within 2 %
+offset_+0.02,calibration,p1p2p3,0.02363,0.1359,0.88,False,larch_each,0.0477,0.8904,0,False,0.5094,0.96,neither within 2 %
+gain_-0.003,calibration,p1p2p3,-0.1418,0.1863,0.89,False,pymca_best:pymca,-0.2069,0.226,0,False,-0.7666,0.93,neither within 2 %
+gain_+0.003,calibration,p1p2p3,0.05256,0.1188,0.87,False,pymca_best:pymca_poly,0.1867,1.463,0,False,0.9828,0.96,neither within 2 %
+tail_3pc,detector,p1p2p3,-0.08652,0.1492,0.72,False,pymca_best:pymca,-0.2089,0.2279,0,False,0.1863,0.8,neither within 2 %
+shelf_0.5pc,detector,p1p2p3,-0.05122,0.132,0.72,False,pymca_best:pymca,-0.1773,0.2012,0,False,0.3126,0.79,neither within 2 %
+escape_x3,detector,p1p2p3,0.03702,0.1333,0.82,False,pymca_best:pymca,-0.2277,0.2456,0,False,4.651,0.81,neither within 2 %
+fwhm_250,detector,p1p2p3,-0.1075,0.1765,0,False,larch_each,0.4372,1.346,0,False,nan,1,neither within 2 %
+hard_shells,Compton model,p1p2p3,-0.07933,0.1338,0.65,False,larch,-0.04046,0.5029,0,False,0.3663,0.9,neither within 2 %
+hard_wing0.5,Compton model,p1p2p3,-0.02203,0.1034,0.66,False,larch_each,-0.07617,0.7433,0,False,0.8023,0.87,neither within 2 %
+single,series length,p1p2p3,-0.1229,0.1748,0.78,False,pymca_best:pymca,-0.222,0.2405,0,False,-0.3973,0.54,neither within 2 %
+measured,measured,p1p2p3,-0.1328,0.2964,0.67,False,larch_each,0.1117,0.989,0,False,0.8662,0.93,neither within 2 %
+measured_strong,measured,p1,0.06768,0.07265,0,False,larch,0.06668,0.06883,0,False,0.06768,0,neither within 2 %
+measured_12keV,measured,p1,-0.001702,0.06194,0,True,larch,-0.01192,0.04682,0,True,-0.001702,0,others better (precision)

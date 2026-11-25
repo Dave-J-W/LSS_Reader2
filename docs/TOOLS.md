@@ -122,6 +122,16 @@ container on 2026-11-23 with the defaults shown.
 | [MCA fit demo: the beam-energy story (F90)](#mca-fit-demo) | figures | The same Zn spectrum under 10, 11 and 12 keV beams: its parts stacked, the box, one drawn spectrum with P1's fit, and P1's bias over 200 series on each panel (the window sum's beside it). The wrap-up of the synthetic MCA project (paused 2026-11-24). | synthetic (public) | 17 s | `docs/figures/mca_fit_demo` |
 | [Study B figures: MCA line intensities (F90)](#mca-study) | figures | The owner's study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with every estimator's fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass rates and the robustness map (B1-B7), from the gauntlet's study run. | synthetic (public) |  | `docs/studies/mca_fit` |
 | [Scatter in real MCA spectra against the generator (F90)](#mca-scatter) | figures | Real spectra of the scattered beam at 6-10 keV fitted with the synthetic generator's own physics, every uncertain axis free: the Si escape fraction against Reed's, the O 1s Compton wing, the detector tails, the resolution and the counts under a line against study B's hard case (DATA_NEEDS row 3); and P1 against data weights on real series of repeated spectra. From the anonymised tables only. | public (NX school or committed tables) | 8 s | `docs/studies/mca_scatter` |
+| [X-ray tables from xraylib for the synthetic spectra](#xrf-tables) | data | Line energies and relative intensities (K and L families, at each beam energy) and water's Hartree-Fock Compton profiles, from xraylib, written as the JSON the extended generator reads (tests/synthetic/mca_more.py); and every constant the generator took from memory against xraylib. Needs xraylib. | synthetic (public) |  | `tests/synthetic/data/xrf_tables.json`<br>`docs/studies/xrf_shootout/physics_check.csv` |
+| [XRF shootout: the reader against PyMca, PyXRF, Larch and XeRay](#xrf-shootout) | data | The reader's window sum and line fits against the open-source XRF packages on synthetic spectra with known truth: 43 conditions (scatter, counts, overlaps, other elements and L lines, calibration and detector errors, a measured detector) and 8 XFNTR curves. Needs PyMca5, scikit-beam and xraylarch (a method whose package is missing is skipped); about an hour on 30 CPUs as committed. | synthetic (public) |  | `docs/studies/xrf_shootout/run`<br>`docs/studies/xrf_shootout/run_measured`<br>`docs/studies/xrf_shootout/run_pymca` |
+| [XRF shootout on real blanks: synthetic lines in measured scatter](#xrf-blanks) | data | Synthetic fluorescence lines of known photons (Zn, Cu, Ni, Cr, Ti K and La L) injected into the 10 clean real scatter-only blanks the owner allowed (tests/reference/mca_scatter), each thinned to 1000 or 3000 background counts in the line box and given its own measured detector; every method of the shootout scored on them, and the false line each reports on the bare blank. Needs the shootout packages; about 50 minutes on 22 CPUs as committed. | public (NX school or committed tables) |  | `docs/studies/xrf_shootout/run_blanks`<br>`docs/studies/xrf_shootout/run_blanks_options`<br>`docs/studies/xrf_models/scatter/run_full`<br>`docs/studies/xrf_models/scatter/run_generator`<br>`docs/studies/xrf_models/scatter/run_gaussian`<br>`docs/studies/xrf_models/scatter/run_full_redraw`<br>`docs/studies/xrf_models/shape` |
+| [XRF shootout on real lines: the private burn series](#xrf-real-series) | data | Every shootout method on the 19 private burn series (readout A, 10 keV, a line near 8 keV), each against 20 resampled twins with the series own shape and a known answer, successive-difference pulls and agreement on the sums. Needs the decrypted private bundle (docs/studies/xrf_shootout/README.md, step 2f) and the shootout packages; writes summary values only. | private (not in the repository) |  | `docs/studies/xrf_shootout/run_real` |
+| [Scatter models against the real blanks](#xrf-models-scatter) | data | Every committed blank fitted by three scatter models (the synthetic shootout's generator, a Gaussian detector, the full model with tails and shelf free): the misfit in the boxes a line is fitted in, at full counts and at the shootout's, the nuisance lines each fit puts in, and a model twin of each clean blank drawn from its scatter alone (for xrf_blanks.py --blank-dir). About 4 minutes on 13 CPUs. | public (NX school or committed tables) |  | `docs/studies/xrf_models/scatter/ladder.csv`<br>`docs/studies/xrf_models/scatter/residuals.csv`<br>`docs/studies/xrf_models/scatter/twins_full`<br>`docs/studies/xrf_models/scatter/twins_generator`<br>`docs/studies/xrf_models/scatter/twins_gaussian`<br>`docs/studies/xrf_models/scatter/twins_full_redraw` |
+| [Scatter models: the twins' shootout against the real blanks'](#xrf-models-compare) | data | Every method's bias on the model twins of the blanks against its bias on the real blanks (C66), per condition, and the verdicts: whether a scatter model can stand in for the real scatter in tests of line fits. Reads the runs of xrf_blanks.py on the twins (seconds). | public (NX school or committed tables) |  | `docs/studies/xrf_models/scatter/compare.csv`<br>`docs/studies/xrf_models/scatter/compare_zero.csv`<br>`docs/studies/xrf_models/scatter/compare_summary.csv` |
+| [Real line shapes on both detectors](#xrf-lineshape) | data | Real fluorescence lines of the single-element readout (an L family at 10^6 counts, the burn series' K line) and of every element of the seven-element readout, fitted with a ladder of shapes from a Gaussian at the resolution to two tails and a shelf: is a Gaussian enough? Needs the decrypted private bundle; the public table holds derived numbers only (about a minute). | private (not in the repository) |  | `docs/studies/xrf_models/lines` |
+| [Scatter at beam energies with no data: leave one energy out](#xrf-scatter-energy) | data | How to synthesise the excitation scatter at a beam energy with no measured spectrum: every readout B pre-edge sum fitted with the scatter model, each energy held out in turn and predicted from the others by the generator's defaults, the nearest spectrum shifted, smooth parameters, and a whole measured parameter set carried by the physics (the recommended one); and readout B's sets tried on readout A. Needs the decrypted private bundle; its tables and figures stay private (about 15 minutes on 8 CPUs). | private (not in the repository) |  | — |
+| [Models study figures (M1-M5)](#xrf-models-figures) | figures | The scatter models on four public blanks with residuals, their misfit in the line boxes, every method's bias on the model twins against the real blanks, the shape ladder on real lines (numbers only), and the verdicts with Gaussian and real-shaped lines. | public (NX school or committed tables) |  | `docs/studies/xrf_models/M*.png` |
+| [XRF shootout figures (X1-X12)](#xrf-shootout-figures) | figures | The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, the three Compton models with the remembered constants checked, speed, and the lines injected into the real blanks (X9-X11, blanks_tables.md) and the real burn series (X12, real_tables.md). | synthetic (public) |  | `docs/studies/xrf_shootout/X*.png`<br>`docs/studies/xrf_shootout/wins.csv`<br>`docs/studies/xrf_shootout/tables.md`<br>`docs/studies/xrf_shootout/blanks_tables.md`<br>`docs/studies/xrf_shootout/real_tables.md` |
 
 ### Synthetic data sets
 
@@ -1128,6 +1138,209 @@ Variations:
 |---|---|---|---|
 | Numbers against beam energy only | S2 from the anonymised table (a few seconds). | `docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |` | `python tests/tools/mca_scatter.py --out '{out}' --only S2` |
 | Example fits on the committed blanks | S1: the 13 real scatter-only blanks the owner allowed, refitted with their parts and residuals (about a minute). | `docs/studies/mca_scatter/summary.md#Committed blanks (`tests/reference/mca_scatter/`)` | `python tests/tools/mca_scatter.py --out '{out}' --only S1 --fixtures tests/reference/mca_scatter` |
+
+<a id="xrf-tables"></a>
+
+### X-ray tables from xraylib for the synthetic spectra
+
+Line energies and relative intensities (K and L families, at each beam energy) and water's Hartree-Fock Compton profiles, from xraylib, written as the JSON the extended generator reads (tests/synthetic/mca_more.py); and every constant the generator took from memory against xraylib. Needs xraylib.
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_tables.py`
+- Explained in: `docs/studies/xrf_shootout/summary.md`, `docs/studies/xrf_shootout/QUESTIONS.md`
+- Committed products: `tests/synthetic/data/xrf_tables.json`, `docs/studies/xrf_shootout/physics_check.csv`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_tables.py --out '{out}/xrf_tables.json' --check '{out}'
+
+
+<a id="xrf-shootout"></a>
+
+### XRF shootout: the reader against PyMca, PyXRF, Larch and XeRay
+
+The reader's window sum and line fits against the open-source XRF packages on synthetic spectra with known truth: 43 conditions (scatter, counts, overlaps, other elements and L lines, calibration and detector errors, a measured detector) and 8 XFNTR curves. Needs PyMca5, scikit-beam and xraylarch (a method whose package is missing is skipped); about an hour on 30 CPUs as committed.
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_shootout.py`
+- Explained in: `docs/studies/xrf_shootout/summary.md`, `docs/studies/xrf_shootout/survey.md`, `docs/studies/xrf_shootout/README.md`, `docs/studies/xrf_shootout/QUESTIONS.md`
+- Committed products: `docs/studies/xrf_shootout/run`, `docs/studies/xrf_shootout/run_measured`, `docs/studies/xrf_shootout/run_pymca`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_shootout.py --out '{out}' --replicates 10 --series-replicates 4 --methods window,fit_data,p1,p1p2p3,xeray
+
+- The committed products were made with:
+
+      python tests/tools/xrf_shootout.py --out '{out}' --replicates 100 --series-replicates 40 --methods all
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| As committed | Every method, 100 series per condition and 40 per XFNTR curve (about an hour on 30 CPUs). | `docs/studies/xrf_shootout/README.md#2. the shootout: 40 conditions` | `python tests/tools/xrf_shootout.py --out '{out}' --replicates 100 --series-replicates 40 --methods all` |
+| The hard case only | Zn under 10 keV with every method: the case that separates them. | `docs/studies/xrf_shootout/README.md### Commands` | `python tests/tools/xrf_shootout.py --out '{out}' --replicates 10 --series-replicates 4 --methods all --conditions hard,xfntr_hard` |
+
+<a id="xrf-blanks"></a>
+
+### XRF shootout on real blanks: synthetic lines in measured scatter
+
+Synthetic fluorescence lines of known photons (Zn, Cu, Ni, Cr, Ti K and La L) injected into the 10 clean real scatter-only blanks the owner allowed (tests/reference/mca_scatter), each thinned to 1000 or 3000 background counts in the line box and given its own measured detector; every method of the shootout scored on them, and the false line each reports on the bare blank. Needs the shootout packages; about 50 minutes on 22 CPUs as committed.
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_blanks.py`
+- Explained in: `docs/studies/xrf_shootout/summary.md`, `docs/studies/xrf_shootout/README.md`, `docs/studies/xrf_shootout/QUESTIONS.md`, `docs/studies/xrf_models/README.md`
+- Committed products: `docs/studies/xrf_shootout/run_blanks`, `docs/studies/xrf_shootout/run_blanks_options`, `docs/studies/xrf_models/scatter/run_full`, `docs/studies/xrf_models/scatter/run_generator`, `docs/studies/xrf_models/scatter/run_gaussian`, `docs/studies/xrf_models/scatter/run_full_redraw`, `docs/studies/xrf_models/shape`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_blanks.py --out '{out}' --replicates 2 --blanks E10-k,E6.1-a --methods window,p1,p1p2p3,xeray
+
+- The committed products were made with:
+
+      python tests/tools/xrf_blanks.py --out '{out}' --replicates 50 --blanks E10-k,E10-f,E9.2-a,E9.2-b,E9.2-c,E9.2-d,E6.1-a,E6.1-b,E6.1-c,E6.1-d --methods all
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| As committed | Every method but Larch one spectrum at a time, the ten clean blanks, 50 series of 10 per condition (about 50 minutes on 22 CPUs). | `docs/studies/xrf_shootout/README.md#2d. lines injected into the real blanks` | `python tests/tools/xrf_blanks.py --out '{out}' --replicates 50 --blanks E10-k,E10-f,E9.2-a,E9.2-b,E9.2-c,E9.2-d,E6.1-a,E6.1-b,E6.1-c,E6.1-d --methods all` |
+| The single options | P1+P2 and P1+P3 on the same spectra: which of the two options helps on real scatter (about a minute). | `docs/studies/xrf_shootout/README.md#2e. the reader's single options` | `python tests/tools/xrf_blanks.py --out '{out}' --replicates 50 --blanks E10-k,E10-f,E9.2-a,E9.2-b,E9.2-c,E9.2-d,E6.1-a,E6.1-b,E6.1-c,E6.1-d --methods p1p2,p1p3` |
+| On model twins of the blanks | The same shootout on twins drawn from the full scatter model fitted to each blank (tests/tools/xrf_models.py scatter): does the model stand in for the real scatter? Also twins_generator and twins_gaussian (about 40 minutes on 12 CPUs each). | `docs/studies/xrf_models/README.md#1b. The twins in the shootout` | `python tests/tools/xrf_blanks.py --out '{out}' --replicates 50 --blanks E10-k,E10-f,E9.2-a,E9.2-b,E9.2-c,E9.2-d,E6.1-a,E6.1-b,E6.1-c,E6.1-d --methods window,fit_data,p1,p1p3,p1p2p3,xeray,pymca,pyxrf --blank-dir docs/studies/xrf_models/scatter/twins_full` |
+| Real-shaped lines | The lines injected with the shape measured on real lines (readout B: 46 % in a 58 eV tail) instead of the elastic's; also --line-shape gaussian (about 40 minutes on 12 CPUs). | `docs/studies/xrf_models/README.md#2c. Does the line's shape change the verdicts?` | `python tests/tools/xrf_blanks.py --out '{out}' --replicates 50 --blanks E10-k,E10-f,E9.2-a,E9.2-b,E9.2-c,E9.2-d,E6.1-a,E6.1-b,E6.1-c,E6.1-d --methods window,fit_data,p1,p1p3,p1p2p3,xeray,pymca,pyxrf --line-shape line` |
+
+<a id="xrf-real-series"></a>
+
+### XRF shootout on real lines: the private burn series
+
+Every shootout method on the 19 private burn series (readout A, 10 keV, a line near 8 keV), each against 20 resampled twins with the series own shape and a known answer, successive-difference pulls and agreement on the sums. Needs the decrypted private bundle (docs/studies/xrf_shootout/README.md, step 2f) and the shootout packages; writes summary values only.
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_real_series.py`
+- Explained in: `docs/studies/xrf_shootout/summary.md`, `docs/studies/xrf_shootout/README.md`, `docs/studies/xrf_shootout/QUESTIONS.md`
+- Committed products: `docs/studies/xrf_shootout/run_real`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_real_series.py --out '{out}' --twins 2 --methods window,p1,p1p2p3
+
+- The committed products were made with:
+
+      python tests/tools/xrf_real_series.py --out '{out}' --twins 20 --methods all
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| As committed | Every method, 20 twins per series (a few minutes on 19 CPUs). | `docs/studies/xrf_shootout/README.md#2f. real lines in real scatter` | `python tests/tools/xrf_real_series.py --out '{out}' --twins 20 --methods all` |
+
+<a id="xrf-models-scatter"></a>
+
+### Scatter models against the real blanks
+
+Every committed blank fitted by three scatter models (the synthetic shootout's generator, a Gaussian detector, the full model with tails and shelf free): the misfit in the boxes a line is fitted in, at full counts and at the shootout's, the nuisance lines each fit puts in, and a model twin of each clean blank drawn from its scatter alone (for xrf_blanks.py --blank-dir). About 4 minutes on 13 CPUs.
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_models.py`
+- Explained in: `docs/studies/xrf_models/README.md`
+- Committed products: `docs/studies/xrf_models/scatter/ladder.csv`, `docs/studies/xrf_models/scatter/residuals.csv`, `docs/studies/xrf_models/scatter/twins_full`, `docs/studies/xrf_models/scatter/twins_generator`, `docs/studies/xrf_models/scatter/twins_gaussian`, `docs/studies/xrf_models/scatter/twins_full_redraw`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_models.py scatter --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| The floor: a second draw | A second, independent draw of the full model's twins (twins_full_redraw/): how far apart two draws of one truth land in the shootout. | `docs/studies/xrf_models/README.md#One real blank is one Poisson draw` | `python tests/tools/xrf_models.py scatter --out '{out}' --models full --redraw` |
+
+<a id="xrf-models-compare"></a>
+
+### Scatter models: the twins' shootout against the real blanks'
+
+Every method's bias on the model twins of the blanks against its bias on the real blanks (C66), per condition, and the verdicts: whether a scatter model can stand in for the real scatter in tests of line fits. Reads the runs of xrf_blanks.py on the twins (seconds).
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_models.py`
+- Explained in: `docs/studies/xrf_models/README.md`
+- Committed products: `docs/studies/xrf_models/scatter/compare.csv`, `docs/studies/xrf_models/scatter/compare_zero.csv`, `docs/studies/xrf_models/scatter/compare_summary.csv`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_models.py compare --out docs/studies/xrf_models/scatter
+
+
+<a id="xrf-lineshape"></a>
+
+### Real line shapes on both detectors
+
+Real fluorescence lines of the single-element readout (an L family at 10^6 counts, the burn series' K line) and of every element of the seven-element readout, fitted with a ladder of shapes from a Gaussian at the resolution to two tails and a shelf: is a Gaussian enough? Needs the decrypted private bundle; the public table holds derived numbers only (about a minute).
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_lineshape.py`
+- Explained in: `docs/studies/xrf_models/README.md`
+- Committed products: `docs/studies/xrf_models/lines`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_lineshape.py --out '{out}'
+
+- The committed products were made with:
+
+      python tests/tools/xrf_lineshape.py --out '{out}' --public docs/studies/xrf_models/lines
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Also the public table | line_shapes.csv beside the private fits. | `docs/studies/xrf_models/README.md#2a. Probes and shapes` | `python tests/tools/xrf_lineshape.py --out '{out}' --public '{out}'` |
+
+<a id="xrf-scatter-energy"></a>
+
+### Scatter at beam energies with no data: leave one energy out
+
+How to synthesise the excitation scatter at a beam energy with no measured spectrum: every readout B pre-edge sum fitted with the scatter model, each energy held out in turn and predicted from the others by the generator's defaults, the nearest spectrum shifted, smooth parameters, and a whole measured parameter set carried by the physics (the recommended one); and readout B's sets tried on readout A. Needs the decrypted private bundle; its tables and figures stay private (about 15 minutes on 8 CPUs).
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_scatter_energy.py`
+- Explained in: `docs/studies/xrf_models/scatter_energy.md`, `docs/studies/xrf_models/README.md`
+- Run:
+
+      python tests/tools/xrf_scatter_energy.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Leave one energy out only | The validation table from fits already made. | `docs/studies/xrf_models/scatter_energy.md` | `python tests/tools/xrf_scatter_energy.py --out '{out}' --stage loo` |
+
+<a id="xrf-models-figures"></a>
+
+### Models study figures (M1-M5)
+
+The scatter models on four public blanks with residuals, their misfit in the line boxes, every method's bias on the model twins against the real blanks, the shape ladder on real lines (numbers only), and the verdicts with Gaussian and real-shaped lines.
+
+- Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/xrf_models_figures.py`
+- Explained in: `docs/studies/xrf_models/README.md`
+- Committed products: `docs/studies/xrf_models/M*.png`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_models_figures.py --out '{out}'
+
+- The committed products were made with:
+
+      python tests/tools/xrf_models_figures.py --out docs/studies/xrf_models
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| The scatter fits only | M1 and M2, from the ladder (seconds). | `docs/studies/xrf_models/README.md#1a. The ladder` | `python tests/tools/xrf_models_figures.py --out '{out}' --only 1,2` |
+
+<a id="xrf-shootout-figures"></a>
+
+### XRF shootout figures (X1-X12)
+
+The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, the three Compton models with the remembered constants checked, speed, and the lines injected into the real blanks (X9-X11, blanks_tables.md) and the real burn series (X12, real_tables.md).
+
+- Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/xrf_shootout_figures.py`
+- Explained in: `docs/studies/xrf_shootout/summary.md`
+- Committed products: `docs/studies/xrf_shootout/X*.png`, `docs/studies/xrf_shootout/wins.csv`, `docs/studies/xrf_shootout/tables.md`, `docs/studies/xrf_shootout/blanks_tables.md`, `docs/studies/xrf_shootout/real_tables.md`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Synthetic spectra only | X6 and X7, which need no shootout run (seconds). | `docs/studies/xrf_shootout/README.md#3. figures, tables.md and wins.csv` | `python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run --out '{out}' --only 6,7` |
 
 <a id="synthetic-dataset"></a>
 
