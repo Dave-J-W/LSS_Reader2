@@ -6734,8 +6734,11 @@ replace sparse real signal.
 - **Factors 3–4 occasionally take real signal:** on sparse high-Qz frames, the ROI pass at factor 3 and the
   whole-frame pass at factor 4 (today's Frames > Reduce option) changed 0.2–0.9 % of the clean frames,
   removing 35–59 % of each such point. The GUI manager's worry is real, at those factors.
-- **Factor 40** leaves 2.9 % bias at the end of the curve. **A background-only pass** (+107 %) is worse than
-  none (+19 %): it removes only the hot pixels that were cancelling the others.
+- **Factor 40** leaves 2.9 % bias at the end of the curve.
+- **A pass on one kind of box is worse than none** (+19 %): background only gives +107 %, the signal box only
+  −87 % (6.9 error bars; joins 1.30). Each removes the hot pixels that were cancelling the others. **The pass
+  must cover all three boxes.** The signal-only arm was added after the window's first version (#95) applied
+  the pass to the signal box only.
 - **NX school (real):** no ROI pixel of scans 6–9 is replaced at any factor (closest 0.72 at factor 3, 0.57 at
   10). Its frames are bright, so this does not test the risky case.
 - **Next:**
