@@ -608,7 +608,7 @@
   "verdict": "same"
  },
  "dump_tooltips": {
-  "commit": "3ec5966c39",
+  "commit": "f13ef0d7ee",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -665,7 +665,7 @@
    "lss_core/stitching.py": "af4e152fd36e0dcf",
    "lss_core/trends.py": "687ff0ee1b74ae3a",
    "lss_core/workbook.py": "def567f7b40b255d",
-   "lss_toolbox/catalog.py": "d7ebebb2fdbbbcc0",
+   "lss_toolbox/catalog.py": "da9f31bf7e3d52aa",
    "lss_toolbox/compare.py": "783bae8d75ba7cd2",
    "lss_toolbox/fingerprint.py": "3ae81cd598e4ec8a",
    "lss_toolbox/introspect.py": "3ab708ed997dfcf0",
@@ -685,7 +685,7 @@
    "timelineview.py": "4d1ebd8fee686919"
   },
   "products": {
-   "docs/manual/controls.md": "c9a6ad51b7d87393"
+   "docs/manual/controls.md": "20d6e87f770cd775"
   },
   "reads": {
    "mainwindow.py": "ff4639569b8314a0",
@@ -2122,8 +2122,48 @@
   ],
   "verdict": "same"
  },
+ "reciprocity_real": {
+  "commit": "f13ef0d7ee",
+  "date": "2026-11-25",
+  "environment": {
+   "PIL": "12.3.0",
+   "PyQt5": "5.15.11 (Qt 5.15.14)",
+   "contourpy": "1.4.0",
+   "fontTools": "4.68.0",
+   "freetype": "2.14.3 (local)",
+   "kiwisolver": "1.5.1",
+   "lmfit": "1.3.4",
+   "machine": "x86_64",
+   "matplotlib": "3.11.2",
+   "numpy": "2.5.3",
+   "numpy_simd": "AVX512_SPR",
+   "platform": "Linux-6.18.44-fc-v880-x86_64-with-glibc2.39",
+   "python": "3.13.18",
+   "scipy": "1.18.1"
+  },
+  "modified": [],
+  "modules": {
+   "lss_core/__init__.py": "ad2e13b69c4fc1fd",
+   "lss_core/reciprocity.py": "617ab5d4e0cfc06f",
+   "tests/synthetic/__init__.py": "ad2e13b69c4fc1fd",
+   "tests/synthetic/burn_pairs.py": "3e0ae56730cfbb38",
+   "tests/tools/reciprocity_real.py": "29d247b1f9cfd333"
+  },
+  "products": {
+   "docs/studies/reciprocity/c54/R6_real_beta.png": "9c5857011b8ca826",
+   "docs/studies/reciprocity/c54/comparison.csv": "8c0f4b3486dde916",
+   "docs/studies/reciprocity/c54/design.csv": "cc6aed055a0e6d66",
+   "docs/studies/reciprocity/c54/numbers.json": "4fbc9b532e786769"
+  },
+  "reads": {
+   "docs/studies/xr_burns/burns.csv": "27e053fe7b098dee",
+   "docs/studies/xr_burns/series_dose_or_time.csv": "83ca8544cc489e51"
+  },
+  "unverified": [],
+  "verdict": "same"
+ },
  "reciprocity_study": {
-  "commit": "6a96fd7dcf",
+  "commit": "f13ef0d7ee",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -2162,7 +2202,7 @@
    "lss_core/numbers.py": "9bb658c033452bde",
    "lss_core/paths.py": "87a80cf735a80c9f",
    "lss_core/peaks.py": "821faa95240f76ae",
-   "lss_core/reciprocity.py": "dcc96cd225580b1d",
+   "lss_core/reciprocity.py": "617ab5d4e0cfc06f",
    "lss_core/reflectivity.py": "0fc665fd164c8e61",
    "lss_core/series.py": "9b34592d231b32b9",
    "lss_core/stitching.py": "af4e152fd36e0dcf",
@@ -2175,12 +2215,12 @@
   },
   "products": {
    "docs/studies/reciprocity/R1_anatomy.png": "0bf233865c3ef2c0",
-   "docs/studies/reciprocity/R2_calls.png": "4be73deea51ff95c",
-   "docs/studies/reciprocity/R3_beta_pulls.png": "0628a4b57b67affb",
-   "docs/studies/reciprocity/R4_strip.png": "574de9ad38e1a8e2",
+   "docs/studies/reciprocity/R2_calls.png": "a1f117d6c00fcc87",
+   "docs/studies/reciprocity/R3_beta_pulls.png": "72e45cc91add5928",
+   "docs/studies/reciprocity/R4_strip.png": "4effc8d11f67d6d8",
    "docs/studies/reciprocity/R5_nx.png": "9909b889210568c9",
-   "docs/studies/reciprocity/numbers.json": "be2a4716fd6e79ec",
-   "docs/studies/reciprocity/results.csv": "d7d7563ea3c0fee4"
+   "docs/studies/reciprocity/numbers.json": "7b369b2e09c1bd09",
+   "docs/studies/reciprocity/results.csv": "bf114dc120ecfe1c"
   },
   "reads": {
    "sample_data/NX_school/2026sep/20260923": "c5550d0c328d3fb6",
@@ -2228,6 +2268,10 @@
    "sample_data/NX_school/2026sep/pilatus/20260923_SCAN-15_0020.tif": "0eee70c3fcbf9531"
   },
   "unverified": [
+   "docs/studies/reciprocity/c54/R6_real_beta.png",
+   "docs/studies/reciprocity/c54/comparison.csv",
+   "docs/studies/reciprocity/c54/design.csv",
+   "docs/studies/reciprocity/c54/numbers.json",
    "docs/studies/reciprocity/summary.md"
   ],
   "verdict": "same"
