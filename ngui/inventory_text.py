@@ -85,6 +85,7 @@ INVENTORY = {
     'refpatch.Label': ('label', 'Reflectivity Patch between Scans 6 and 7', 'Dialog (Reflectivity Patch)', 'Which join is on show'),
     'refpatch.plotWidget': ('plot', '', 'Dialog (Reflectivity Patch)', 'Overlap of the patched curve (blue, negative indices) and the next scan scaled (red, 0,1,2...)'),
     'refpatch.dropPushButton': ('button', 'Drop', 'Dialog (Reflectivity Patch)', 'Drops the points whose indices are typed (negative: patched side, 0+: next scan) and redraws'),
+    'refpatch.restoreAllPushButton': ('button', 'Restore all', 'Dialog (Reflectivity Patch), right of the drop field', "Clears the mask of the patch's scans (the drops of earlier patches) and this patch's drops; the patch starts again from the first join"),
     'refpatch.dropLineEdit': ('lineedit', '0', 'Dialog (Reflectivity Patch)', "Point indices to drop, e.g. '-1, 0'"),
     'refpatch.knownRatioLabel': ('label', 'fit +/-0.4%, foils +/-1.5%', 'Dialog (Reflectivity Patch)', "Relative error of the fitted factor and of the foils' ratio for this join"),
     'refpatch.knownRatioCheckBox': ('checkbox', 'Known ratio', 'Dialog (Reflectivity Patch)', "Uses the foils' absorber ratio at this join instead of the fitted factor"),

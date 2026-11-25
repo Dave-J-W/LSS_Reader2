@@ -7,23 +7,32 @@ permission: merge my branch into `main` by PR + "Create a merge commit"
 once the quick suite (and, for GUI changes, the sweep) pass; then merge
 `main` back into the branch.
 
-## State (updated 2026-11-24, 17:40 UTC)
+## State (updated 2026-11-25, evening, Chicago time)
 
-- **On main:** everything through #57 (33f7151):
-  - the Timeline tab, furthest right: lanes, sh thumbnails, notes and the 'new sample?' answers as workbook notes;
-  - the Compare tab (F80, F105) just left of it;
-  - the ROI close-up (F71, F97);
-  - F96, F95 part, F74, F78; the GID refusal fixes.
-- **Work in:** the worktree `.claude/worktrees/agent-ab9975ffcaf2237a8`. Fast-forward `claude/funny-noether-09opxa` from it and push that branch.
-- **Messages to main man** (the orchestrator, renamed from Main): through GitHub issue #55 (see below), owner's instruction.
+- **On main:** everything through #73 (78aebd1):
+  - F105 Export naming (`lss_core/naming.py`), F79 Subphase and Propose
+    beside Qc and Qoff, F97/F59 cut axes and Q bands, the peakLocate NaN fix;
+  - before that: the Timeline and Compare tabs, the ROI close-up, F96, F95
+    part, F74, F78, the GID refusal fixes.
+- **On the branch, not yet on main:** F92's window side (415d20a): drops
+  kept as the workbook's mask, left out from the start, grey crosses,
+  Restore all. The quick suite passed (1233); the sweep was running. If it
+  passed: PR into main, merge commit, then fast-forward the branch.
+- **Work in:** the main checkout, branch `claude/funny-noether-09opxa`. The
+  crash sweep runs in the worktree `scratchpad/wt_sweep` (detached at the
+  commit swept), so the main checkout stays free.
+- **Messages:** GitHub issue #55 only (owner's instruction), "GUI manager →
+  main man:", with the footer. The status of 2026-11-25 asked main man for
+  the next work and whether D1 (second reader read-only, yellow light) is
+  mine.
 
-## Next, in order (main man's order of 2026-11-24)
+## Next, in order
 
-1. F105's Export: a file name proposed from the sample and series, and the hand-over to xmodfit (Q-REF-6; contract in docs/handoff/).
-2. F79's window side: Propose buttons by refQoffLineEdit and refQcLineEdit (tools man's core on main, #56). No default changes before a demonstrator (rule 12).
-3. F97's diffuse cut axes, window side (main man's core, #59, lss_core.cuts): the axis choice on the cut tab.
-4. F92's mask in the Ref Patch window (core #54): drops recorded as the mask, Restore all, masked points drawn apart, read-only for a second reader.
-5. F98 / F107 with the dose (core #52) when reached; timeline reduced-data and environment lanes; F95 B9/B10; B3 (rule 12).
+1. If F92's sweep passed: merge it (PR, merge commit).
+2. Read issue #55 for main man's answer. Without one: F98/F107 with the
+   dose in the window (`exp.dose`, burns against dose), then the
+   timeline's reduced-data and environment lanes; D1 if assigned; F95
+   B9/B10; B3 (rule 12).
 
 ## APIs received for the next items (2026-11-24)
 

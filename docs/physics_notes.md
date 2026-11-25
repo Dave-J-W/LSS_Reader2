@@ -50,7 +50,7 @@ exists.
 | I37 | The residual panel shows what the fit minimised: over the fitted points Σ((y − fit)/σ)² = χ²/dof × (N − p), N − p an integer with p the fit's parameter count; for Poisson data with σ = √y and a right model the weighted residuals have mean ≈ 0 and SD ≈ 1 (F74). For burn trends Σr² is the best model's χ² itself (to 1e-9, every model on the synthetic burn) | `test_residuals.py::test_the_residuals_are_those_the_fit_minimised`, `::test_burn_trends_get_the_best_models_residuals` |
 | I38 | The ROI close-up outlines the pixels the reduction sums: summing a frame over `lss_core.display.roi_boxes(slit, cen, bg, direction)` gives `TwoDDetector.sumROI`'s signal and background values exactly, for any slit, centre, offset and direction (its slit − 2 and integer background centres included, PHYSICS_ISSUES P12) | `test_roi_boxes.py::test_summing_over_the_drawn_boxes_gives_sumROIs_values` |
 | I39 | The dose of a point is what the reduction already divides by: in monitor counts it is the point's weight in "Sum All", M/(A·g) (`cuts.frame_normaliser`); in photons, the flux route's photons/s × its seconds / A (`flux.photons_per_second`); a scan's dose is the sum of its points'; at a constant monitor rate and absorber the dose axis is the exposure axis × that rate, so a burn's dose limit is its time limit × the rate | `test_dose.py` (every test; the last on the synthetic burn, to 1e-6) | 2026-11-24 |
-| I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
+| I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_gui_ref_mask.py::test_drops_are_kept_and_left_out_from_the_start_next_time` (the window, 2026-11-25), `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
 | I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own`; in the window `test_gui_cut_axis.py::test_diffuse_axes_change_x_only`, `::test_beta_minus_alpha_puts_the_specular_row_at_zero` (2026-11-25) | 2026-11-24 |
 | I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
 | I43 | At most one reader holds a workbook's lock at a time, even when two take over a stale lock at once (each reads the lock back after writing it); a read-only workbook never writes (`save` raises `WorkbookReadOnly`, the file and its folder untouched) | `test_readerlock.py` (every test) | 2026-11-25 |
@@ -6179,3 +6179,40 @@ light, still to build).
 ### 2026-11-25 — OQ-1, OQ-4, Q-TL-8 (batch 20)
 
 Verified by: the owner's statements; the arithmetic below is mine. **OQ-1:** the header's slit values are half-openings, so the opening is twice the value: S1 of scan 14 reads 1.00/1.00/0.05/0.05 (L/R/T/B) and so is 2.0 × 0.1 mm. This gives the slit-defined aperture only; the footprint needs the mirror-focused vertical size (OQ-2, the local agent's work on it is in its own PR) and for a Gaussian the choice of FWHM or second moment for the dose (open). **OQ-4:** unknown to the owner; the reader cannot yet recognise fast mode, so the dose default stays "shutter closed" and a user mark is the fallback. **Q-TL-8:** units are mN/m (surface pressure), cm² (barrier area) and percent (O₂); names and whether every scan writes them are still unknown, so F75's columns stay synthetic.
+
+### 2026-11-25 — F92 in the window: drops kept as the mask, Restore all
+
+The window side of main man's mask (#54; owner, 2026-11-23: "saved as a
+mask in the config file (the per-SPEC state), and a 'Restore all' button
+is included in the patch dialog"). Built:
+- **Kept:** when a Ref Patch finishes, its drops become (scan, point)
+  pairs (`reflectivity.drop_points` on the scans as the joins started)
+  added to the workbook's mask (`masks.save`), with a message. A patch
+  cancelled, or a drop undone with Back, records nothing.
+- **Left out from the start:** the next Ref Patch of those scans removes
+  the masked points after repeats are merged and before the joins, as
+  `exp.reflectivity(mask=...)` does; the Script line says `mask=[...]`,
+  the provenance line "N masked", and a message lists them. A scan whose
+  every selected point is masked is used whole, with a message (else
+  Restore all would be out of reach).
+- **Drawn apart:** grey crosses, labelled "masked (n)", in the patch
+  window (scaled like their scan; the next scan by the factor on show)
+  and on the Reflectivity tab (scaled, normalised, offset and divided by
+  R_F as the curve is). They are not in the exported files.
+- **Restore all** (patch window): clears the mask of this patch's scans
+  (not of other scans) and this patch's drops, and starts the patch again
+  from the first join.
+- **Measured on the synthetic data set:** a drop of scan 2's first point
+  at the first join, then the next patch with the mask, give the same
+  curve to 1e-12 (I40: no earlier join's fit used that point), and the
+  window's curve equals the script's with `mask=[[2, 0]]` to 1e-10.
+- **A test changed on purpose (rule 1):**
+  `test_gui_ref_patch_steps.py::test_the_line_under_the_plot_says_how_the_result_was_made`
+  expected no "saved" part after a drop because the workbook was not open;
+  recording the drop's mask opens it, so the line now ends "not saved"
+  (true: the result is not in the workbook).
+- **Not built:** the read-only mask for a second reader of the same SPEC
+  file (D1: no second-instance detection exists yet); click to drop or
+  restore a point (F94, low priority).
+
+Verified by: tested (`tests/test_gui_ref_mask.py`, 4 tests).

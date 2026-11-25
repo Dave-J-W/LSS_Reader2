@@ -653,7 +653,7 @@ workflows:
       - id: ref.join
         do: "For each join: the overlap plotted with the factor that Next will use (joint fit), the known foil ratio offered; drop points; Next / Finish!"
         where: Ref Patch dialog (one per join)
-        controls: [refpatch.nextPushButton, refpatch.dropPushButton, refpatch.dropLineEdit, refpatch.knownRatioCheckBox, refpatch.knownRatioLabel, refpatch.backPushButton, refpatch.cancelPushButton, refpatch.joinTableWidget, prefPatchMethodComboBox, prefPatchAutoCheckBox, prefPatchThresholdSpinBox]
+        controls: [refpatch.nextPushButton, refpatch.dropPushButton, refpatch.dropLineEdit, refpatch.restoreAllPushButton, refpatch.knownRatioCheckBox, refpatch.knownRatioLabel, refpatch.backPushButton, refpatch.cancelPushButton, refpatch.joinTableWidget, prefPatchMethodComboBox, prefPatchAutoCheckBox, prefPatchThresholdSpinBox]
         user_decides: accept the fitted factor or use the known ratio; which points to drop (typed indices)
         automatic: partly
         could_be_automatic: accept every join whose fit passes its guard and agrees with the foils, and show only the doubtful ones (owner 2026-11-18 F58 - known ratio automatic where plainly better)
@@ -662,7 +662,7 @@ workflows:
         goto: {"drop points": ref.join, "use known ratio": ref.join}
         issues:
           - "One dialog per join (3 for NX 6-9); the method preference is in File > Preferences, not in the dialog"
-          - "Dropped points are typed as indices, deleted from the arrays, not drawn (F16, D2); Back undoes a drop or a join and Cancel says so (F96, 2026-11-24)"
+          - "Dropped points are typed as indices (F16); Back undoes a drop or a join and Cancel says so (F96, 2026-11-24); since 2026-11-25 a finished patch's drops are kept as the workbook's mask, left out of the next patch from the start, drawn as grey crosses, and Restore all brings them back (F92, D2). Not yet: the second reader read-only (D1), click to drop (F94)"
       - id: ref.compare
         do: "Compare the saved reflectivities of this file: overlaid by series, time or sx, with ratios to the first; new ones appear as they are saved"
         where: Compare tab

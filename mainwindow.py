@@ -6895,6 +6895,9 @@ class MainWindow (QMainWindow):
         self.pilRefPeakCen=[]
         self.pilBadPixInf = []  # build a list for the detailed info for corrected bad pix in RF signal ROI, which is shown for users
         self.refQzOf={}         # (scan, frame) -> the Qz of its point, for the marks (F95)
+        self.refRowPoints={}    # scan -> the point (frame) number of each of its rows, for the mask (F92)
+        self.refMaskUsed=[]     # (scan, point) left out by the mask (F92)
+        self.refMaskedRows={}   # scan -> its rows left out by the mask, drawn apart (F92)
         self.refFlagsPending=[]
         self.refErrorModel=self.errorModel   # recorded for the Script pane
         for i in self.selectedPilFramesNums:
@@ -6922,6 +6925,7 @@ class MainWindow (QMainWindow):
                 self.pilBadPixInf.append([qkey,self.pilFrameNum[i],pilbadpixloc])
             self.scanqzframe[qkey]=row if first else np.vstack((self.scanqzframe[qkey],row))
             self.scanqzmon.setdefault(qkey,[]).append(float(self.pilMonc[i]))
+            self.refRowPoints.setdefault(qkey,[]).append(int(self.pilFrameNum[i]))
             self.refQzOf[(int(qkey),int(self.pilFrameNum[i]))]=float(np.atleast_1d(row)[0])
         try:
             self.pilrefsort=list(self.sortedScans(self.scanqzframe, mtype='qz'))
@@ -6934,6 +6938,7 @@ class MainWindow (QMainWindow):
         if len(self.pilrefsort)==0:
             self.messageBox('Warning: no frame selected!!!')
         elif len(self.pilrefsort)==1:
+            self.refApplyMask()
             self.refData=list(np.atleast_2d(self.scanqzframe[self.pilrefsort[0]]))   #a single frame is a 1-D row
            #print self.refData
             self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
@@ -7044,6 +7049,7 @@ class MainWindow (QMainWindow):
         self.uirefpatch=uic.loadUi(resource('refpatch.ui'), Dialog)
         self.uirefpatch.show()
         self.pilreforder=0
+        self.refApplyMask()                  # F92: masked points left out from the start, after repeats are merged
         # self.connect(self.uirefpatch.dropPushButton, SIGNAL('clicked()'),self.pilRefPatchDrop)  #drop the data
         self.uirefpatch.dropPushButton.clicked.connect(self.pilRefPatchDrop)
         # self.connect(self.uirefpatch.nextPushButton,SIGNAL('clicked()'),self.pilRefPatchNext) #go to the next overlap
@@ -7059,11 +7065,21 @@ class MainWindow (QMainWindow):
         self.uirefpatch.knownRatioCheckBox,self.uirefpatch.knownRatioLabel=box,lab
         box.toggled.connect(self.pilRefPatchKnownToggled)
         self.initRefPatchSteps(Dialog)   # F96: Back, Cancel, the join table
+        restore=QPushButton('Restore all',Dialog)
+        restore.setObjectName('restoreAllPushButton')
+        restore.setToolTip('Bring back every masked point of these scans (the drops of earlier patches, kept in the '
+                           'workbook as the mask) and the drops of this patch: the patch starts again from the first '
+                           'join with all the selected frames (owner, F92). Undo of single drops is Back')
+        lay=self.uirefpatch.horizontalLayout
+        lay.insertWidget(lay.indexOf(self.uirefpatch.dropLineEdit)+1,restore)
+        self.uirefpatch.restoreAllPushButton=restore
+        restore.clicked.connect(self.refRestoreAll)
         self.refScale={self.pilrefsort[0]:1.0}   # scale already applied to each scan's data
         # unscaled copies of the scans as the joins start (the joins scale them in place, trap T3):
         # the covariance export replays the patch from these
         self.refPatchInput={k:np.array(v,dtype=float) for k,v in self.scanqzframe.items()}
         self.refPatchOrder=list(self.pilrefsort)
+        self.refPatchPoints={k:list(self.refRowPoints.get(k,[])) for k in self.scanqzframe}   # each row's point (F92)
         self.refInfoShown=None
         self.pilRefPatchPlot()
 
@@ -7072,6 +7088,7 @@ class MainWindow (QMainWindow):
     REF_JOIN_COLUMNS=('Join','Scans','Factor','± %','From','Dropped','Note')
     # what describes the reflectivity on show (Script pane, recipe, provenance line); a cancelled patch puts them back
     REF_RESULT_ATTRS=('refpatchindex','refDrops','refFactors','refMethodUsed','refKnownOverride','refMerged',
+                      'refMaskUsed','refMaskedRows',
                       'refRepeatsUsed','refDroppedScans','refScanList','refPoints','slit','dir','command',
                       'refErrorModel','refPatchInput','refPatchOrder','refScale','refResultJoins','refAbsorberUsed')
 
@@ -7153,7 +7170,17 @@ class MainWindow (QMainWindow):
                     drops={k:[list(d) for d in v] for k,v in self.refDrops.items()},
                     known=dict(self.refKnownOverride),joins=[dict(r) for r in self.refJoins])
 
+    def refPatchClosed(self):
+        """True when no patch window is open: its step buttons then do
+        nothing. A closed window's buttons cannot be pressed by a person, but
+        the crash sweep presses hidden buttons, and after a cancel or a
+        Restore all whose new patch did not open, what they act on is gone
+        (found by the sweep, 2026-11-25)."""
+        return getattr(self,'refPatchEnded',True)
+
     def pilRefPatchBack(self):
+        if self.refPatchClosed():
+            return
         if not getattr(self,'refHistory',None):
             self.notify('Nothing to go back to: this is the first join as it opened.',title='Ref Patch',level='info')
             return
@@ -7334,6 +7361,8 @@ class MainWindow (QMainWindow):
         return info['known'][0] if use else None
 
     def pilRefPatchKnownToggled(self,on):
+        if self.refPatchClosed():
+            return
         self.refKnownOverride[self.pilreforder]=bool(on)
         self.pilRefPatchPlot()
         
@@ -7442,6 +7471,7 @@ class MainWindow (QMainWindow):
         if self.pilreforder==len(self.pilrefsort)-1:
             self.refPatchEnd()
             self.refResultJoins=list(self.refJoins)   # the join table, kept with the result (F96)
+            self.refRecordMask()                      # F92: the drops kept as the mask
             self.refData=list(self.pilrefdata)
             self.ui.PlotWidget.setCurrentWidget(self.ui.refTab)
           #  print self.pilrefdata
@@ -7480,6 +7510,7 @@ class MainWindow (QMainWindow):
                 for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder+1]])): 
                     if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
                         self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
+                self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
                 self.uirefpatch.plotWidget.canvas.ax.set_xlim(xmin,xmax)
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
@@ -7516,6 +7547,7 @@ class MainWindow (QMainWindow):
                 for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder+1]])): 
                     if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
                         self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
+                self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
                 self.uirefpatch.plotWidget.canvas.ax.set_xlim(xmin,xmax)
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
@@ -7526,6 +7558,8 @@ class MainWindow (QMainWindow):
     def pilRefPatchDrop(self):
         if self.pilreforder>=len(self.pilrefsort)-1:     # no join left (found by the crash sweep, 2026-11-23)
             self.notify('Every join is done: there is no next scan to drop points from.',title='Ref Patch')
+            return
+        if self.refPatchClosed():
             return
         try:
             dropnumbers=[int(t) for t in str(self.uirefpatch.dropLineEdit.text()).split(',')]
@@ -7555,6 +7589,8 @@ class MainWindow (QMainWindow):
         new=self.scanqzframe[self.pilrefsort[self.pilreforder+1]]
         if np.atleast_2d(old)[-1][0]<np.atleast_2d(new)[0][0]:   # hand-off trap T11
             self.messageBox('Scans '+str(self.pilrefsort[self.pilreforder])+' and '+str(self.pilrefsort[self.pilreforder+1])+' do not overlap in Qz; they cannot be patched. Select frames that overlap.')
+            return
+        if self.refPatchClosed():
             return
         info=self.refInfoShown
         if info is None or info['join']!=self.pilreforder or self.refActiveMethod()!='legacy':
@@ -7638,8 +7674,10 @@ class MainWindow (QMainWindow):
                 self.refInfoNew=[self.refInfo[i] for i in np.argsort(data[:,0])]
                 data=data[np.argsort(data[:,0])]
             qz0=data[:,0].copy()     # before Qoff and Qz^2: what the F95 marks are matched on
+            refnorm=1.0          # what the curve is divided by, for the masked points drawn apart (F92)
             if data[0,0]<self.refQc:
-                norm=np.max(data[np.where(data[:,0]<self.refQc)][:,1]) #use the max intensity for the q below qc as the normalization factor. 
+                norm=np.max(data[np.where(data[:,0]<self.refQc)][:,1]) #use the max intensity for the q below qc as the normalization factor.
+                refnorm=norm
                 
                 #norm=data[0,1]
                 #normerr=data[0,2]
@@ -7657,6 +7695,7 @@ class MainWindow (QMainWindow):
                         self.ui.refNormRefListWidget.addItem('%.4f'%data[i,0]+'\t'+'%.4e'%data[i,1]+'\t'+'%.4e'%data[i,2]+'\t'+'%.4f'%perErr[i])
             if self.ui.refNormFacCheckBox.checkState()>0:
                 norm=float(self.ui.refNormLineEdit.text())
+                refnorm=refnorm*norm
                 #normerr=np.sqrt(norm)
                 data[:,1]=data[:,1]/norm
                 data[:,2]=data[:,2]/norm                
@@ -7687,6 +7726,7 @@ class MainWindow (QMainWindow):
             else: 
                 self.ui.refRefDataPlotwidget.canvas.ax.errorbar(data[:,0],data[:,1],data[:,2],fmt='o',label='#0')
             self.drawRefFlags(self.ui.refRefDataPlotwidget.canvas.ax,qz0,data[:,0],data[:,1] if len(data[0])==3 else data[:,3])
+            self.drawRefMasked(self.ui.refRefDataPlotwidget.canvas.ax,refnorm)
         else:
             print ('no current ref data to plot')
      #plot selected ref files
@@ -7857,6 +7897,181 @@ class MainWindow (QMainWindow):
         self.ui.refQoffLineEdit.setText('%.5f' % qoff)
         self.updateRefPlotData()
 
+    # ---- F92 (owner, 2026-11-23; main man's core, lss_core.masks): drops kept as a mask ----
+
+    def refMask(self):
+        """The workbook's reflectivity mask (lss_core.masks), or an empty one
+        when no SPEC file is open or the workbook cannot be read."""
+        from lss_core import masks
+        if not getattr(self,'specFileName',None):
+            return masks.Mask()
+        try:
+            return masks.load(self.openWorkbook())
+        except Exception as e:
+            self.log.info('mask not read: %s',e,exc_info=True)
+            return masks.Mask()
+
+    def refApplyMask(self):
+        """Leave the masked points out of the scans about to be patched, after
+        repeats are merged, as exp.reflectivity(mask=) does: a point of a repeat
+        merged away masks the same position of the scan it went into. A scan
+        whose every selected point is masked is kept whole, with a message
+        (left out, Restore all would be out of reach)."""
+        self.refMaskUsed,self.refMaskedRows=[],{}
+        mask=self.refMask()
+        if not mask.pairs():
+            return
+        alias={}
+        for group in getattr(self,'refMerged',[]):
+            for m in group[1:]:
+                alias[int(m)]=group[0]
+        pts={int(k):v for k,v in getattr(self,'refRowPoints',{}).items()}
+        want={}
+        for s_,p_ in mask.pairs():
+            tgt=s_
+            while tgt in alias:
+                tgt=int(alias[tgt])
+            if tgt!=s_:
+                if s_ not in pts or p_ not in pts[s_] or tgt not in pts:
+                    continue
+                p_=pts[tgt][pts[s_].index(p_)]
+            want.setdefault(tgt,set()).add(p_)
+        for k in list(self.scanqzframe):
+            n=int(k)
+            if n not in want or n not in pts:
+                continue
+            rows=np.atleast_2d(self.scanqzframe[k])
+            if len(pts[n])!=len(rows):
+                continue
+            keep=[i for i,p_ in enumerate(pts[n]) if p_ not in want[n]]
+            gone=[i for i,p_ in enumerate(pts[n]) if p_ in want[n]]
+            if not gone:
+                continue
+            if not keep:
+                self.notify('Every selected point of scan %d is masked; the scan is used whole. Restore all in the '
+                            'patch window clears its mask.' % n,title='Ref Patch')
+                continue
+            self.refMaskedRows[n]=rows[gone].copy()
+            self.refMaskUsed+=[(n,pts[n][i]) for i in gone]
+            self.scanqzframe[k]=rows[keep]
+            self.refRowPoints[k]=[pts[n][i] for i in keep]
+            if k in getattr(self,'scanqzmon',{}) and len(self.scanqzmon[k])==len(rows):
+                self.scanqzmon[k]=[self.scanqzmon[k][i] for i in keep]
+        self.refMaskUsed.sort()
+        if self.refMaskUsed:
+            self.notify('Ref Patch: %d masked point%s left out from the start (%s; kept in the workbook). Restore all '
+                        'in the patch window brings them back.' % (len(self.refMaskUsed),'s' if len(self.refMaskUsed)!=1
+                        else '',', '.join('S%d pt %d' % sp for sp in self.refMaskUsed)),title='Ref Patch',level='info')
+
+    def refRecordMask(self):
+        """Keep the finished patch's drops as the mask, over raw points
+        (lss_core.reflectivity.drop_points): the next Ref Patch of these scans
+        leaves them out from the start (owner F92: "saved as a mask in the
+        config file")."""
+        from lss_core import masks
+        if not getattr(self,'refDrops',None) or not getattr(self,'specFileName',None):
+            return
+        try:
+            order=list(self.refPatchOrder)
+            pts={k:self.refPatchPoints[k] for k in order}
+            removed,_=reflectivity.drop_points({k:self.refPatchInput[k] for k in order},order,pts,self.refDrops)
+        except (KeyError,IndexError,ValueError) as e:
+            self.log.info('drops not kept as the mask: %s',e,exc_info=True)
+            self.notify('The drops of this patch could not be kept as the mask (%s); the curve is as shown.' % e,
+                        title='Ref Patch')
+            return
+        removed=[(int(a),int(b)) for a,b in removed]
+        try:
+            wb=self.openWorkbook()
+            mask=masks.load(wb)
+            mask.add(removed)
+            masks.save(wb,mask)
+            self.saveWorkbook(wb)
+        except Exception as e:
+            self.workbookCache=None
+            self.notify('The drops could not be kept as the mask in %s: %s' % (self.workbookPath(),e),title='Ref Patch')
+            return
+        self.notify('Dropped points kept as the mask in %s (%s): the next Ref Patch of these scans leaves them out '
+                    'from the start; Restore all in the patch window brings them back.'
+                    % (os.path.basename(self.workbookPath()),', '.join('S%d pt %d' % sp for sp in removed)),
+                    title='Ref Patch',level='info')
+
+    def refRestoreAll(self):
+        """The patch window's Restore all: the mask of these scans emptied and
+        the drops of this patch undone; the patch starts again (owner F92)."""
+        from lss_core import masks
+        if self.refPatchClosed():
+            return
+        scans={int(k) for k in getattr(self,'refRowPoints',{})}
+        mask=self.refMask()
+        mine=[tuple(sp) for sp in mask.pairs() if sp[0] in scans]
+        nd=sum(len(d) for v in getattr(self,'refDrops',{}).values() for d in v)
+        if not mine and not nd:
+            self.notify('Nothing to restore: no point of scans %s is masked and none was dropped in this patch.'
+                        % listText(sorted(scans)),title='Ref Patch',level='info')
+            return
+        if mine:
+            try:
+                wb=self.openWorkbook()
+                mask=masks.load(wb)
+                mask.remove(mine)
+                masks.save(wb,mask)
+                self.saveWorkbook(wb)
+            except Exception as e:
+                self.workbookCache=None
+                self.notify('The mask could not be cleared in %s: %s' % (self.workbookPath(),e),title='Ref Patch')
+                return
+        self.notify('Restored %d masked point%s of scans %s%s; the patch starts again from the first join.'
+                    % (len(mine),'s' if len(mine)!=1 else '',listText(sorted(scans)),
+                       ' and the %d dropped in this patch' % nd if nd else ''),title='Ref Patch',level='info')
+        self.refPatchEnded=True
+        self.uirefpatch.close()
+        self.refRestorePrevious()
+        self.pilRefPatchData()
+
+    def refMaskedArray(self,scale):
+        """The masked rows (Qz, R, dR) of the scans with a scale in ``scale``
+        ({scan: factor}), each scaled like its scan; empty (0, 3) if none."""
+        out=[]
+        for n,rows in getattr(self,'refMaskedRows',{}).items():
+            f=None
+            for k,v in scale.items():
+                if int(k)==n:
+                    f=v
+            if f is None:
+                continue
+            r=np.array(np.atleast_2d(rows)[:,:3],dtype=float)
+            r[:,1:3]*=f
+            out.append(r)
+        return np.vstack(out) if out else np.zeros((0,3))
+
+    def refDrawMasked(self,ax,fac):
+        """Masked points in the patch window: grey crosses, scaled like their
+        scans (the next scan by the factor on show)."""
+        scale=dict(getattr(self,'refScale',{}))
+        if self.pilreforder+1<len(self.pilrefsort):
+            scale[self.pilrefsort[self.pilreforder+1]]=fac
+        m=self.refMaskedArray(scale)
+        if len(m):
+            ax.plot(m[:,0],m[:,1],'x',color='0.45',ms=8,mew=1.5,label='masked (%d)' % len(m),gid='masked')
+
+    def drawRefMasked(self,ax,norm):
+        """Masked points on the Reflectivity tab: grey crosses at their Qz and R,
+        scaled like their scans and normalised, offset and divided by R_F as the
+        curve is; not in the files (they were left out of the reduction)."""
+        if getattr(self,'refpatchindex',0)!=1 or not getattr(self,'refMaskedRows',None):
+            return
+        m=self.refMaskedArray(getattr(self,'refScale',{}) or {})
+        if not len(m) or not norm:
+            return
+        m[:,1:3]/=norm
+        if self.ui.refRRFCheckBox.checkState()!=0:
+            m[:,0]=m[:,0]+self.refQoff
+            m[:,1]=m[:,1]/self.fresnel(m[:,0],self.refQc)
+        if self.ui.refQzSqrCheckBox.checkState()!=0:
+            m[:,0]=m[:,0]**2
+        ax.plot(m[:,0],m[:,1],'x',color='0.45',ms=8,mew=1.5,label='masked (%d)' % len(m),gid='masked')
+
     def exportSample(self):
         """The sample of the reflectivity on show, from the macro that ran its
         series (#U SeriesMacro of its first scan), or '' (lss_core.naming)."""
@@ -7964,6 +8179,8 @@ class MainWindow (QMainWindow):
             kw.append('norm_factor=%r' % float(self.ui.refNormLineEdit.text()))
         if self.ui.refRRFCheckBox.checkState()==0:
             kw.append('rrf=False')
+        if getattr(self,'refMaskUsed',None):
+            kw.append('mask=%r' % [list(sp) for sp in self.refMaskUsed])
         if self.refDrops:
             kw.append('drops=%r' % {k:v for k,v in sorted(self.refDrops.items())})
         if getattr(self,'refFactors',None):
@@ -9259,6 +9476,11 @@ class MainWindow (QMainWindow):
                            'in the signal box in %d frame%s (crosses).' % (nc,'s' if nc!=1 else '',nb,'s' if nb!=1 else ''))
             nd=sum(len(d) for v in getattr(self,'refDrops',{}).values() for d in v)
             parts.append('%d point%s dropped' % (nd,'s' if nd!=1 else '') if nd else 'no points dropped')
+            nm=len(getattr(self,'refMaskUsed',[]) or [])
+            if nm:
+                parts.append('%d masked' % nm)
+                tip.append('Masked (left out from the start, kept in the workbook; Restore all in the patch window): %s.'
+                           % ', '.join('S%d pt %d' % (a,b) for a,b in self.refMaskUsed))
         saved,said=self.refSavedState()
         if saved:
             parts.append(saved)

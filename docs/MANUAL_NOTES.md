@@ -124,6 +124,14 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- Dropped points are kept (F92, 2026-11-25): when a Ref Patch finishes,
+  its drops are kept as the mask in the SPEC file's workbook, and the next
+  Ref Patch of those scans leaves them out from the start (a message says
+  which; the line under the plot says "N masked"; the Script line gives
+  `mask=`). They are drawn as grey crosses in the patch window and on the
+  Reflectivity tab, not exported. "Restore all" in the patch window clears
+  the mask of the patch's scans and starts the patch again; Back undoes a
+  single drop while patching. Terms to define: mask, raw point.
 - Qc and Qoff of R/R_F (F79, 2026-11-24): `lss_core.fresnel` proposes
   Qoff from the data (the edge fit by default; the smoothness of R/R_F as
   the owner judges it by eye) with its error, and gives Qc from the
