@@ -476,6 +476,7 @@ INVENTORY = {
     'timelineTab': ('tab', 'Timeline', 'Main window tabs, last', "The sample timeline: events (set sh 0 as new sample?, re-referencing, aborts, macro loads, session restarts, gaps), sx, sample-height scans with FWHM and p, scan bars by kind, on the file's local clock"),
     'timelineView': ('plot', '', 'Timeline', 'The lanes (QGraphicsView): wheel zooms the time axis about the cursor, drag pans, double-click fits; a click on a scan bar or an sh scan selects that scan'),
     'timelineFitPushButton': ('button', 'Fit all', 'Timeline > top', 'Shows the whole file'),
+    'timelineDoseCheckBox': ('checkbox', 'Dose', 'Timeline > top, right of Fit all', "Colours the sx line by the dose each spot has received, as a fraction of the burn test's dose to a 5 % change (teal none, yellow half, red the burn's dose, dark red twice it)"),
     'timelineInfoLabel': ('label', '20260923: 15 scans, 09:32 to 11:23, 1 set sh 0 (new sample?)', 'Timeline > top', 'What is shown: the file, the number of scans, the time range on its local clock, the set sh 0 count; its tooltip says where each lane comes from'),
 }
 

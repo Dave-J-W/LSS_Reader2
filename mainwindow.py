@@ -3255,13 +3255,18 @@ class MainWindow (QMainWindow):
         except RuntimeError:
             pass
 
+    def messageStamp(self):
+        """The clock time a message is stamped with (the screenshot tool pins
+        it, so that its pictures are the same from run to run)."""
+        return time.strftime('%H:%M:%S')
+
     def notify(self,text,title='Warning',level='warning',show=None):
         """Tell the user something without stopping them, and log it. The
         Messages pane shows itself (and comes to the front) only for warnings
         and errors (owner, 2026-11-23, Q11); an 'info' notice is kept in the
         pane and shown in the status bar. ``show`` overrides."""
         text=str(text)
-        stamp=time.strftime('%H:%M:%S')
+        stamp=self.messageStamp()
         self.messages.append((stamp,title,text))
         getattr(self.log,level,self.log.warning)('%s: %s',title,text.replace('\n',' | '))
         if show is None:
@@ -9016,6 +9021,8 @@ class MainWindow (QMainWindow):
         tab.view.scanClicked.connect(self.timelineScanClicked)
         tab.view.answerGiven.connect(self.timelineAnswer)
         tab.view.noteWanted.connect(self.timelineAddNote)
+        tab.doseCheckBox.setChecked(bool(self.prefs.get('timeline_dose',False)))
+        tab.doseCheckBox.toggled.connect(self.timelineDoseToggled)
         self.ui.PlotWidget.currentChanged.connect(self.timelineTabShown)
         tab.show_message('Open a SPEC file: its timeline is drawn here.')
 
@@ -9046,8 +9053,52 @@ class MainWindow (QMainWindow):
             tab.show_message('The timeline could not be read: %s (detail in the log).' % e)
             self.timelineKey=None
             return
+        tab.view.dose=None
         tab.show_timeline(tl,os.path.basename(spec),self.timelineNotes())
         self.timelineKey=key
+        if tab.doseCheckBox.isChecked():
+            self.updateTimelineDose()
+
+    # ---- F107 (owner, 2026-11-24, Q-TL-7): the sx line coloured by the dose received ----
+
+    def timelineDoseToggled(self,on):
+        self.setPreference('timeline_dose',bool(on))
+        self.updateTimelineDose()
+
+    def updateTimelineDose(self):
+        """Work out the dose each spot has received (lss_core.timeline.dose_track)
+        and colour the sx line by it; kept while the file is unchanged."""
+        from lss_core import timeline as timelinemod
+        from lss_core import dose as dosemod
+        tab=getattr(self,'timelineTab',None)
+        if tab is None or tab.view.timeline is None:
+            return
+        if not tab.doseCheckBox.isChecked():
+            tab.view.set_dose(None)
+            return
+        cached=getattr(self,'timelineDoseCache',(None,None))
+        if cached[0]==self.timelineKey and cached[1] is not None:
+            tab.view.set_dose(cached[1])
+            return
+        try:
+            exp=self.burnExperiment()
+            width=float((self.prefs.get('burn') or {}).get('beam_width') or 1.0)
+            bh=exp.beam_height()
+            height=bh.height_mm if bh.height_mm else dosemod.DEFAULT_HEIGHT_MM
+            self.ui.statusBar.showMessage('Timeline: working out the dose of every scan and the burn tests...',5000)
+            track=timelinemod.dose_track(exp,tab.view.timeline,(width,height),notes=self.timelineNotes())
+        except Exception as e:
+            self.log.info('timeline dose not worked out: %s',e,exc_info=True)
+            self.notify('The dose could not be worked out for the timeline: %s' % e,title='Timeline')
+            tab.view.set_dose(None)
+            return
+        self.timelineDoseCache=(self.timelineKey,track)
+        tab.view.set_dose(track)
+        scales=[s for s in track.scales.values() if s is not None]
+        tab.doseCheckBox.setToolTip(tab.doseCheckBox.toolTip().split('\n\n')[0]+'\n\n'+'\n'.join(
+            ['%d scans, %s; beam %g x %.3g mm (%s).' % (len(track.rows),track.unit or 'no dose',width,height,
+                                                      bh.source or 'default')]
+            +['Scale: %s' % s.describe(track.unit) for s in scales]+track.notes))
 
     def timelineNotes(self):
         """The timeline's notes and answers, from the workbook's Saved rows of

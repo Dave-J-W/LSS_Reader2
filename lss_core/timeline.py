@@ -364,3 +364,170 @@ def answers(notes, tolerance=1.0):
         return max(hits, key=lambda n: (n.rid, n.version)).answer
     return of
 
+
+
+# ---- F107 (owner, 2026-11-24, Q-TL-7): the dose each spot has received ----
+#
+# "The sx trace ... coloured by the radiation dose per area received at each
+# position, scaled by the dose per area of the relevant burn test (so colour
+# says how close a spot is to the damage threshold)." Each scan's dose per mm²
+# of footprint (lss_core.dose, through Experiment.dose) is added to the spot
+# its sx is at; the scale is the dose per mm² at which a burn test changes by
+# CHANGE (5 %), from Experiment.burn(axis='dose'). The burn is the sample's
+# own (one between the same two "new sample?" guesses, a set sh 0 not
+# answered "same sample"), else the nearest in time (the owner's rule; the
+# "own" reading is an assumption, asked through questor 2026-11-25).
+#
+# Assumptions, said in the window: one beam for the whole file, so that the
+# fraction does not depend on the beam's size, only on each scan's footprint
+# (its incidence angle); positions within ``same_spot_mm`` (half the beam's
+# width) are one spot; every scan counts in full, sample-height scans too,
+# although the beam is only partly on the sample during them.
+
+import bisect as _bisect
+
+CHANGE = 0.05
+
+
+@dataclass
+class SpotDose:
+    """One scan's dose at its spot: ``dose`` received during the scan, and
+    ``cumulative`` at the spot after it (per mm², in the track's unit);
+    ``fraction`` of the scale's dose (None: no scale)."""
+    scan: int
+    t0: float
+    t1: float
+    sx: float
+    spot: int
+    dose: float
+    cumulative: float
+    fraction: float = None
+    burn: int = None
+    own: bool = None               # the scale is this sample's own burn (False: the nearest in time)
+
+
+@dataclass
+class DoseScale:
+    """The dose per mm² (the track's unit) at which burn ``burn`` changes by
+    CHANGE in ``quantity``; ``lower_bound``: it did not change within its own
+    dose, so the scale is at least that."""
+    burn: int
+    dose: float
+    quantity: str
+    lower_bound: bool = False
+    note: str = ''
+
+    def describe(self, unit=''):
+        return 'S# %d: %s%.3g %s to a %.0f %% change%s' % (
+            self.burn, '≥ ' if self.lower_bound else '', self.dose, unit or 'per mm²', 100 * CHANGE,
+            ' in %s' % self.quantity if self.quantity else ' (%s)' % self.note if self.note else '')
+
+
+@dataclass
+class DoseTrack:
+    rows: list
+    unit: str = ''
+    scales: dict = field(default_factory=dict)      # burn scan -> DoseScale (None: not worked out)
+    notes: list = field(default_factory=list)
+
+
+def sample_segments(tl, notes=()):
+    """(segment of a time, the times splitting the file into samples): a new
+    sample at each 'set-zero' event not answered 'same sample'."""
+    of = answers(notes)
+    cuts = sorted(e.t for e in tl.of_kind('set-zero') if of(e) != 'same sample')
+    return (lambda t: _bisect.bisect_right(cuts, t)), cuts
+
+
+def _base_unit(unit, scale):
+    """'1e+12 photons/mm2' with scale 1e12 -> 'photons/mm2'."""
+    head, _, rest = str(unit).partition(' ')
+    try:
+        float(head)
+        return rest
+    except ValueError:
+        return str(unit)
+
+
+def burn_scale(exp, burn, beam_mm, unit='photons', **kw):
+    """The DoseScale of burn scan ``burn`` (Experiment.burn on the dose axis)."""
+    res = exp.burn(burn, axis='dose', beam_mm=beam_mm, dose_unit=unit, threshold=CHANGE, **kw)
+    scale = float(res.dose_scale or 1.0)
+    d, q = res.safe_time()
+    if d is not None and np.isfinite(d):
+        return DoseScale(burn, float(d) * scale, q), _base_unit(res.dose_unit, scale)
+    total = float(res.dose_total or 0.0) * scale
+    return DoseScale(burn, total, '', lower_bound=True,
+                     note='no %.0f %% change within its own dose' % (100 * CHANGE)), _base_unit(res.dose_unit, scale)
+
+
+def dose_track(exp, tl, beam_mm, notes=(), motor='Sample_X', same_spot_mm=None, unit='photons', scale_of=None):
+    """The dose of every scan with a position, by spot, and its fraction of
+    the relevant burn test's dose to a CHANGE change (module notes above).
+    ``scale_of``: burn scan -> (DoseScale, unit), for tests (default
+    ``burn_scale``)."""
+    scale_of = scale_of or (lambda n: burn_scale(exp, n, beam_mm, unit))
+    tol = float(same_spot_mm) if same_spot_mm is not None else float(beam_mm[0]) / 2.0
+    where = {n: v for n, _t, v in tl.positions.get(motor, [])}
+    out = DoseTrack([])
+    spots, totals = [], {}
+    for s in sorted(tl.spans, key=lambda s: s.t0):
+        if s.scan not in where:
+            continue
+        try:
+            d = exp.dose(s.scan, unit=unit, beam_mm=beam_mm)
+        except Exception as e:          # a scan without a monitor, an energy, an angle: said, left out
+            out.notes.append('S# %d: no dose (%s)' % (s.scan, e))
+            continue
+        if not out.unit:
+            out.unit = d.unit
+        elif d.unit != out.unit:
+            out.notes.append('S# %d: dose in %s, not %s: left out' % (s.scan, d.unit, out.unit))
+            continue
+        sx = float(where[s.scan])
+        k = next((i for i, v in enumerate(spots) if abs(v - sx) <= tol), None)
+        if k is None:
+            spots.append(sx)
+            k = len(spots) - 1
+        totals[k] = totals.get(k, 0.0) + d.total()
+        out.rows.append(SpotDose(s.scan, s.t0, s.t1, sx, k, d.total(), totals[k]))
+    burns = [s for s in tl.spans if s.kind == 'burn']
+    if not burns:
+        out.notes.append('no burn test in this file: no scale')
+        return out
+    seg, _cuts = sample_segments(tl, notes)
+    mid = {b.scan: (b.t0 + b.t1) / 2.0 for b in burns}
+    for r in out.rows:
+        t = (r.t0 + r.t1) / 2.0
+        own = [b for b in burns if seg(mid[b.scan]) == seg(t)]
+        pick = min(own or burns, key=lambda b: abs(mid[b.scan] - t))
+        if pick.scan not in out.scales:
+            try:
+                sc, u = scale_of(pick.scan)
+                if u != out.unit:
+                    out.notes.append('S# %d: its dose is in %s, not %s: no scale' % (pick.scan, u, out.unit))
+                    sc = None
+            except Exception as e:
+                out.notes.append('S# %d: no scale (%s)' % (pick.scan, e))
+                sc = None
+            out.scales[pick.scan] = sc
+        sc = out.scales[pick.scan]
+        if sc is not None and sc.dose > 0:
+            r.fraction, r.burn, r.own = r.cumulative / sc.dose, pick.scan, bool(own)
+    return out
+
+
+# colours of a fraction of the scale: 0 teal, 0.5 yellow, 1 red-orange, 2 and above dark red
+DOSE_COLOURS = ((0.0, (42, 157, 143)), (0.5, (233, 196, 106)), (1.0, (231, 111, 81)), (2.0, (155, 34, 38)))
+
+
+def dose_colour(fraction):
+    """(r, g, b) of a fraction (None: grey)."""
+    if fraction is None or not np.isfinite(fraction):
+        return (140, 140, 140)
+    f = max(0.0, float(fraction))
+    for (f0, c0), (f1, c1) in zip(DOSE_COLOURS, DOSE_COLOURS[1:]):
+        if f <= f1:
+            w = (f - f0) / (f1 - f0)
+            return tuple(int(round(a + w * (b - a))) for a, b in zip(c0, c1))
+    return DOSE_COLOURS[-1][1]
