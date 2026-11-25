@@ -222,7 +222,7 @@ def _bias_se(r):
 def b3(gdir, out):
     idx, rows = _verdict(gdir)
     conds = sorted({r['condition'] for r in rows if r['condition'].startswith('counts_')},
-                   key=lambda c: _f(idx[(c, 'fit')]['ka_counts']))
+                   key=lambda c: (_f(idx[(c, 'fit')]['ka_counts']), c))   # ties (counts_30, counts_x0.03) by name
     table = []
     for c in conds:
         for m in ('fit', 'p1'):

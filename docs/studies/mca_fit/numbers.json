@@ -13,24 +13,6 @@
   "neyman_c": 19.0703878222856,
   "table": [
    {
-    "condition": "counts_x0.03",
-    "method": "fit",
-    "ka_counts": 26.9643,
-    "rel_bias": -0.143838,
-    "se": 0.020937841837925894,
-    "pull_mean": -0.635554,
-    "pull_sd": 0.949896
-   },
-   {
-    "condition": "counts_x0.03",
-    "method": "p1",
-    "ka_counts": 26.9643,
-    "rel_bias": 0.362398,
-    "se": 0.033033644377331424,
-    "pull_mean": 0.170467,
-    "pull_sd": 1.20094
-   },
-   {
     "condition": "counts_30",
     "method": "fit",
     "ka_counts": 26.9643,
@@ -47,6 +29,24 @@
     "se": 0.14917273686518592,
     "pull_mean": 0.0666375,
     "pull_sd": 1.27547
+   },
+   {
+    "condition": "counts_x0.03",
+    "method": "fit",
+    "ka_counts": 26.9643,
+    "rel_bias": -0.143838,
+    "se": 0.020937841837925894,
+    "pull_mean": -0.635554,
+    "pull_sd": 0.949896
+   },
+   {
+    "condition": "counts_x0.03",
+    "method": "p1",
+    "ka_counts": 26.9643,
+    "rel_bias": 0.362398,
+    "se": 0.033033644377331424,
+    "pull_mean": 0.170467,
+    "pull_sd": 1.20094
    },
    {
     "condition": "counts_60",
@@ -175,24 +175,6 @@
     "pull_sd": 1.02543
    },
    {
-    "condition": "counts_x3",
-    "method": "fit",
-    "ka_counts": 2696.43,
-    "rel_bias": -0.0229077,
-    "se": 0.0005601067779986241,
-    "pull_mean": -0.962544,
-    "pull_sd": 1.051
-   },
-   {
-    "condition": "counts_x3",
-    "method": "p1",
-    "ka_counts": 2696.43,
-    "rel_bias": -0.0268777,
-    "se": 0.0005637964400872001,
-    "pull_mean": -1.11924,
-    "pull_sd": 1.05183
-   },
-   {
     "condition": "counts_3000",
     "method": "fit",
     "ka_counts": 2696.43,
@@ -209,6 +191,24 @@
     "se": 0.0004926785903001058,
     "pull_mean": 0.00581441,
     "pull_sd": 1.00117
+   },
+   {
+    "condition": "counts_x3",
+    "method": "fit",
+    "ka_counts": 2696.43,
+    "rel_bias": -0.0229077,
+    "se": 0.0005601067779986241,
+    "pull_mean": -0.962544,
+    "pull_sd": 1.051
+   },
+   {
+    "condition": "counts_x3",
+    "method": "p1",
+    "ka_counts": 2696.43,
+    "rel_bias": -0.0268777,
+    "se": 0.0005637964400872001,
+    "pull_mean": -1.11924,
+    "pull_sd": 1.05183
    },
    {
     "condition": "counts_10000",
