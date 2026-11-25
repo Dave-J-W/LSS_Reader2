@@ -6011,6 +6011,44 @@ names the script and the command that regenerates it. A figure must not be remov
 the commit that added it would reach main's history, so the branch is rebuilt without it. Recorded in
 AGENTS.md's row for `sample_data/private/`.
 
+### 2026-11-25 — The owner asked: what does "ΔQ 8.9 × 10⁻⁴ Å⁻¹ at 10 keV, no S1 dependence" mean?
+
+Verified by: reading the local data agent's study (`docs/studies/qz_resolution/summary.md`, PR #68, pending the
+removal of its figure B1) and checking its arithmetic here; nothing measured by main man.
+
+- **What it is:** the blur in Qz of each reflectivity point near the critical edge, measured from how wide the
+  edge is in 378 real scans from 17 runs. Each scan is fitted with the Fresnel reflectivity convolved with a
+  Gaussian of width σ_Q. The result is FWHM 8.9 × 10⁻⁴ Å⁻¹ (σ_Q 3.8 × 10⁻⁴), run medians 6.5–12.6 × 10⁻⁴,
+  about ±15 % within a run. On synthetic scans of known width the estimator is right within 2 %.
+- **Where it comes from:** the beam's spread of incidence angles, 37 µrad rms. Qz = (4π/λ) sin α, so
+  σ_Q = (4π/λ) cos α σ_α = 10.14 Å⁻¹ × 37 µrad = 3.75 × 10⁻⁴ (computed). The monochromator's bandwidth
+  (Si(111), Δλ/λ ≈ 1.3 × 10⁻⁴) adds about Qc · Δλ/λ ≈ 3 × 10⁻⁶, negligible (computed).
+  - So ΔQ is the same at every Qz. As a fraction it is 4 % at the edge, 0.9 % at 0.1 Å⁻¹ and 0.18 % at
+    0.5 Å⁻¹ (computed).
+  - It washes out Kiessig fringes only for films thicker than about 2π/(2ΔQ) ≈ 3500 Å (computed, a rough
+    criterion).
+- **No S1 dependence (0.04–0.2 mm, one run with both: σ_Q 3.38 ± 0.08 against 3.41 ± 0.75 × 10⁻⁴):** the
+  angular spread is set by the mirror's vertical focusing, not by S1, which here sets the beam's size and
+  footprint. Opening S1 from 0.04 to 0.2 mm (footprint ×5) costs no resolution. Below 0.04 mm it is not
+  determined (0.02 mm: 11 scans, scattered fits). That is why ΔQ varies from run to run, with the focus, and
+  not with the slits.
+- **Why it matters for Qoff (F79):** a blurred edge read without a resolution model looks like an edge
+  shifted down. Tools man's study (C50) found the apparent Qoff to be about −0.15 × ΔQ, so −1.3 × 10⁻⁴ Å⁻¹:
+  about half the NX file's proposed −2.8 × 10⁻⁴, and a quarter of the owner's typical −5 × 10⁻⁴. The
+  reader's R_F has no resolution model; adding one (a Gaussian of σ_Q ≈ 3.8 × 10⁻⁴) would make R/R_F
+  continuous through the edge without a fake Qoff. A default would need rule 12.
+- **Caveats (from the study):**
+  - the subphase's absorption is the one input that matters: ±15 % for a β wrong by ×2, and a saltier
+    subphase would give a narrower ΔQ than quoted;
+  - only 10 keV was measured; a fixed angular spread scales ΔQ ∝ E;
+  - the resolution is assumed Gaussian, although the beam has a core and tails at the sample;
+  - the public NX file cannot measure it: too few points below its edge.
+- **References** (not opened in this session):
+  - J. Als-Nielsen and D. McMorrow, *Elements of Modern X-ray Physics*, 2nd ed., Wiley 2011, ch. 3, on
+    Fresnel reflectivity and the critical edge, https://doi.org/10.1002/9781119998365;
+  - the Refl1D guide to resolution in reflectometry, on the angular and wavelength terms and their
+    convolution with the model, https://refl1d.readthedocs.io/en/latest/guide/resolution.html.
+
 ### 2026-11-25 — F105: Export proposes a name from the sample and the scans (Q-REF-6)
 
 The owner's Q-REF-6 (2026-11-23): "Straight into xmodfit; the reader
