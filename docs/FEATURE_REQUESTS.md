@@ -434,6 +434,8 @@ order"), for a day of reflectivity only; the whole answer is in
 
 | F108 | **Timeline placeholders and automatic flags** (owner, 2026-11-24, Q-TL-5): coloured boxes hold the user's own notes and stand in where a thumbnail cannot be drawn (not reduced, failed, stale); the program adds automatic flags, for example "sh scan narrower than 65 µm" and "40 min since the last sh scan", as marks the user can dismiss (assumption: dismissible, per-SPEC state). Part of F83. |
 
+| F109 | **Dose shown as average and peak, with the peak split** (owner, 2026-11-25, GUI manager Q8, MQ-5): the burn dialog's dose shows both the footprint-averaged dose (over reasonable extents) and the peak dose, the peak dose broken into what the top 10 % of the illuminated area received against the remaining 90 %. The beam width is prefilled with 1 mm; a Gauss fit of an S1 horizontal slit scan, if one can be found, models the beam first. Extends F98, F107. |
+
 Also decided (see `docs/gui/questions.md` Answers): movie at 3 or more frames, space pauses, arrows step when paused (F69); weighted residuals (F74); Apex tab, Beamlines menu, `peakfit2`/`peakfitpara` and the Command line row removed; Quit works and Documentation opens `docs/SCRIPTING.md`; Messages, Errors and Script panes follow D59.
 
 ### Status of built items
