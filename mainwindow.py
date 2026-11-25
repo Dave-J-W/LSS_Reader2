@@ -5456,7 +5456,11 @@ class MainWindow (QMainWindow):
         rho.setToolTip('Strip scatter ρ: how much the rate differs between two strips of one sample at one flux, '
                        'beyond counting, as a fraction of the rate (lss_core.reciprocity, strip_relative). 0 '
                        '(default): counting errors only. The study (docs/studies/reciprocity, C58): ignoring a '
-                       'real 20 % scatter drops the dose calls to 12 %; as ρ it restores 96 %')
+                       'real 20 % scatter drops the dose calls to 12 %; as ρ it restores 96 %. On real reflectivity '
+                       'burns (19 series, six repeat groups) ρ is about 1.13 (0.88-1.50): strips differ by about '
+                       'their own rate, so with ρ 0 a verdict on real data is overconfident, and even at ρ about 1 '
+                       'single verdicts are (the 95 % interval covers about 0.87). The default stays 0 until the '
+                       'owner decides (rule 12; asked through questor)')
         q.currentIndexChanged.connect(self.burnVerdictOptionsChanged)
         rho.valueChanged.connect(self.burnVerdictOptionsChanged)
         for w in (QLabel('Compare',page),q,QLabel('Strip scatter',page),rho):
@@ -8115,8 +8119,12 @@ class MainWindow (QMainWindow):
         qoff.setToolTip('Propose Qoff from the reflectivity on show at the Qc in the field (lss_core.fresnel.'
                         'propose_qoff: a fit of the plateau and the edge, its error by bootstrap over the counting '
                         'errors; the roughness of ln R/R_F, the by-eye criterion, as a second opinion). A menu '
-                        'offers the values; the field changes only when one is picked. The Qz resolution reads as a '
-                        'slightly negative Qoff; the proposal still makes R/R_F continuous (tools session study)')
+                        'offers the values; the field changes only when one is picked. Set Qc first: Qc and Qoff '
+                        'correlate at +0.9 to +1.0, so a wrong Qc moves Qoff with it. The Qz resolution near the '
+                        'edge reads as a slightly negative Qoff (about half of the NX file\'s -0.00028; the rest is '
+                        'an angle offset or a Qc above water\'s, which these data cannot tell apart): the proposal '
+                        'makes R/R_F continuous, but it is an angle offset only once R_F is convolved with the '
+                        'resolution, which the reader does not do yet (docs/studies/qoff/summary.md)')
         qoff.clicked.connect(self.proposeRefQoff)
         if lay is not None:
             lay.insertWidget(lay.indexOf(self.ui.refQcLineEdit)+1,qc)

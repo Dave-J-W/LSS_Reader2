@@ -118,7 +118,9 @@ Each line: feature — where — default — script — notes entry (date).
   against time and against the dose, with the verdict below (the rates in
   its tooltip). "Compare" chooses the quantity (the position for GID
   burns, where NX 14/15 decide), "Strip scatter" ρ the extra scatter
-  between strips (0 by default).
+  between strips (0 by default; on real reflectivity burns it is about
+  1.13, strips differing by about their own rate, so a verdict with ρ 0 is
+  overconfident: C58, tools man, 2026-11-25; the default is the owner's).
 - The dose in the burn dialog (F98, 2026-11-25): "Axis" fits the trends
   against time or the dose; "Dose in" photons (needs the Monc chamber's
   gain) or Monc counts; "Beam (mm)" width typed and height (greyed: from

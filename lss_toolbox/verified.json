@@ -608,7 +608,7 @@
   "verdict": "same"
  },
  "dump_tooltips": {
-  "commit": "e4e0a0586b",
+  "commit": "5096299068",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -627,10 +627,7 @@
    "scipy": "1.18.1"
   },
   "modified": [
-   "comparetab.py",
-   "lss_core/workbook.py",
-   "mainwindow.py",
-   "timelineview.py"
+   "mainwindow.py"
   ],
   "modules": {
    "TwoDDetector.py": "cacf7c8dacbc4290",
@@ -679,7 +676,7 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "4dfe7e600a4bb771",
+   "mainwindow.py": "b0af3cfe7986b494",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
    "mplwidget.py": "437655a13b3d5ac2",
@@ -690,10 +687,10 @@
    "timelineview.py": "47171aa9794d74dc"
   },
   "products": {
-   "docs/manual/controls.md": "130345f296beba8d"
+   "docs/manual/controls.md": "a7deb1fab0944053"
   },
   "reads": {
-   "mainwindow.py": "4dfe7e600a4bb771",
+   "mainwindow.py": "b0af3cfe7986b494",
    "mainwindow.ui": "f8324cd7d28356be",
    "pdburn.ui": "ad666a5c7cd6a542"
   },
@@ -1379,7 +1376,7 @@
   "verdict": "same"
  },
  "gui_map": {
-  "commit": "e4e0a0586b",
+  "commit": "5096299068",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -1398,8 +1395,6 @@
    "scipy": "1.18.1"
   },
   "modified": [
-   "docs/gui/inventory/timeline.yaml",
-   "docs/gui/workflows.yaml",
    "mainwindow.py"
   ],
   "modules": {
@@ -1430,14 +1425,14 @@
    "docs/gui/questions/inventory_b.md": "138139f0b2af228d",
    "docs/gui/questions/workflows.md": "5f20c85b2e0c727b",
    "docs/gui/workflows.yaml": "b13761cc9de28b6d",
-   "mainwindow.py": "4dfe7e600a4bb771",
+   "mainwindow.py": "b0af3cfe7986b494",
    "mainwindow.ui": "f8324cd7d28356be"
   },
   "unverified": [],
   "verdict": "same"
  },
  "gui_screens": {
-  "commit": "ef6d9998ca",
+  "commit": "5096299068",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -1456,12 +1451,7 @@
    "scipy": "1.18.1"
   },
   "modified": [
-   "comparetab.py",
-   "lss_core/timeline.py",
-   "lss_core/workbook.py",
-   "mainwindow.py",
-   "tests/tools/gui_screens.py",
-   "timelineview.py"
+   "mainwindow.py"
   ],
   "modules": {
    "TwoDDetector.py": "cacf7c8dacbc4290",
@@ -1517,7 +1507,7 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "4dfe7e600a4bb771",
+   "mainwindow.py": "b0af3cfe7986b494",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
    "mplwidget.py": "437655a13b3d5ac2",
@@ -1611,7 +1601,7 @@
   "reads": {
    "g_l2Dialog.ui": "17f34cee4eaad587",
    "g_l3Dialog.ui": "e97ca3e6c61c8cfb",
-   "mainwindow.py": "4dfe7e600a4bb771",
+   "mainwindow.py": "b0af3cfe7986b494",
    "mainwindow.ui": "f8324cd7d28356be",
    "mcamerge.ui": "bbdf1f2e09b6d591",
    "pdburn.ui": "ad666a5c7cd6a542",
@@ -2015,7 +2005,7 @@
   "verdict": "same"
  },
  "ngui_inventory": {
-  "commit": "e4e0a0586b",
+  "commit": "5096299068",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -2034,7 +2024,6 @@
    "scipy": "1.18.1"
   },
   "modified": [
-   "docs/gui/inventory/timeline.yaml",
    "mainwindow.py"
   ],
   "modules": {
@@ -2061,7 +2050,7 @@
    "docs/gui/inventory/timeline.yaml": "18d18810b5776ccd",
    "g_l2Dialog.ui": "17f34cee4eaad587",
    "g_l3Dialog.ui": "e97ca3e6c61c8cfb",
-   "mainwindow.py": "4dfe7e600a4bb771",
+   "mainwindow.py": "b0af3cfe7986b494",
    "mainwindow.ui": "f8324cd7d28356be",
    "mcamerge.ui": "bbdf1f2e09b6d591",
    "pdburn.ui": "ad666a5c7cd6a542",
