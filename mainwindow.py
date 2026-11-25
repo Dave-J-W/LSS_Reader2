@@ -7170,7 +7170,17 @@ class MainWindow (QMainWindow):
                     drops={k:[list(d) for d in v] for k,v in self.refDrops.items()},
                     known=dict(self.refKnownOverride),joins=[dict(r) for r in self.refJoins])
 
+    def refPatchClosed(self):
+        """True when no patch window is open: its step buttons then do
+        nothing. A closed window's buttons cannot be pressed by a person, but
+        the crash sweep presses hidden buttons, and after a cancel or a
+        Restore all whose new patch did not open, what they act on is gone
+        (found by the sweep, 2026-11-25)."""
+        return getattr(self,'refPatchEnded',True)
+
     def pilRefPatchBack(self):
+        if self.refPatchClosed():
+            return
         if not getattr(self,'refHistory',None):
             self.notify('Nothing to go back to: this is the first join as it opened.',title='Ref Patch',level='info')
             return
@@ -7351,6 +7361,8 @@ class MainWindow (QMainWindow):
         return info['known'][0] if use else None
 
     def pilRefPatchKnownToggled(self,on):
+        if self.refPatchClosed():
+            return
         self.refKnownOverride[self.pilreforder]=bool(on)
         self.pilRefPatchPlot()
         
@@ -7547,6 +7559,8 @@ class MainWindow (QMainWindow):
         if self.pilreforder>=len(self.pilrefsort)-1:     # no join left (found by the crash sweep, 2026-11-23)
             self.notify('Every join is done: there is no next scan to drop points from.',title='Ref Patch')
             return
+        if self.refPatchClosed():
+            return
         try:
             dropnumbers=[int(t) for t in str(self.uirefpatch.dropLineEdit.text()).split(',')]
         except ValueError:
@@ -7575,6 +7589,8 @@ class MainWindow (QMainWindow):
         new=self.scanqzframe[self.pilrefsort[self.pilreforder+1]]
         if np.atleast_2d(old)[-1][0]<np.atleast_2d(new)[0][0]:   # hand-off trap T11
             self.messageBox('Scans '+str(self.pilrefsort[self.pilreforder])+' and '+str(self.pilrefsort[self.pilreforder+1])+' do not overlap in Qz; they cannot be patched. Select frames that overlap.')
+            return
+        if self.refPatchClosed():
             return
         info=self.refInfoShown
         if info is None or info['join']!=self.pilreforder or self.refActiveMethod()!='legacy':
@@ -7984,6 +8000,8 @@ class MainWindow (QMainWindow):
         """The patch window's Restore all: the mask of these scans emptied and
         the drops of this patch undone; the patch starts again (owner F92)."""
         from lss_core import masks
+        if self.refPatchClosed():
+            return
         scans={int(k) for k in getattr(self,'refRowPoints',{})}
         mask=self.refMask()
         mine=[tuple(sp) for sp in mask.pairs() if sp[0] in scans]

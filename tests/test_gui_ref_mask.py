@@ -130,3 +130,35 @@ def test_back_and_cancel_keep_only_what_was_finished(loaded, qapp, recorder):
     qapp.processEvents()
     assert _stored(w) == [[2, 0]]
     assert recorder.exceptions == []
+
+
+def test_a_closed_patch_windows_buttons_do_nothing(loaded, qapp, recorder):
+    """The crash sweep presses hidden buttons. After a Cancel (the first
+    patch of the session: what it began from had no scale) or a Restore all
+    whose new patch could not open (no frames selected), the closed window's
+    Next raised AttributeError (refScale gone; sweep, 2026-11-25)."""
+    w = loaded
+    _quiet(w)
+    _patch(w, qapp)
+    d = w.uirefpatch
+    _drop(w, qapp, '0')
+    d.reject()                                           # Cancel
+    qapp.processEvents()
+    n = len(recorder.messages)
+    for b in (d.nextPushButton, d.dropPushButton, d.backPushButton, d.restoreAllPushButton):
+        _click(qapp, b)
+    d.knownRatioCheckBox.toggle()
+    qapp.processEvents()
+    assert len(recorder.messages) == n and recorder.exceptions == []
+    _patch(w, qapp)                                      # finished with a drop: masked next time
+    _drop(w, qapp, '0')
+    _click(qapp, w.uirefpatch.nextPushButton)
+    _patch(w, qapp)
+    d = w.uirefpatch
+    w.selectedPilFramesNums = []                         # no frames: the restart cannot open
+    _click(qapp, d.restoreAllPushButton)
+    assert any('select its images' in m for m in recorder.messages)
+    assert _stored(w) == []                              # the mask was cleared all the same
+    _click(qapp, d.nextPushButton)
+    _click(qapp, d.dropPushButton)
+    assert recorder.exceptions == []
