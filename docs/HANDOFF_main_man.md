@@ -75,10 +75,11 @@ routines step by step (`merge-to-main`, `review-local-data-pr`, `issue-watch`).
 | #67 | test windows at minimum size; the sweep in forked copies (21 → 9 min) | `tests/conftest.py`, `tests/sweep.py` |
 | #74, #81 | D1 core: the workbook's lock, a read-only second reader | `lss_core/readerlock.py`, `Workbook(read_only=)` |
 | #82 | C61: the guard's error on real joins is per-point scatter | `docs/studies/guard_error/`, `tests/tools/guard_error_study.py` |
-| (this) | C61's walkthrough (rule 13): W1–W6, one join from two scans to the verdict; a real NX split | `docs/studies/guard_error/walkthrough.md`, `tests/tools/guard_error_walkthrough.py` |
+| #89 | C61's walkthrough (rule 13): W1–W6, one join from two scans to the verdict; a real NX split | `docs/studies/guard_error/walkthrough.md`, `tests/tools/guard_error_walkthrough.py` |
+| #92 | F109's core: the dose as peak and average, the 10/90 split; the beam's width from S1 slit scans | `exp.dose_summary`, `exp.beam_width`, `dose.dose_map`, `dose.slit_profile` |
 | #66 | merged the former patching session's four review branches | |
 
-Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam height), I43 (lock).
+Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam height), I43 (lock), I44 (the dose map).
 
 ## Open threads, in priority order
 
@@ -92,7 +93,9 @@ Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam heigh
      - fourth differences;
      - repeats where they exist.
 
-     Size it with Local yokel's real X by Qz class (asked on #55). Then rule 12.
+     Size it with Local yokel's real X by Qz class (DATA_NEEDS row 15; measured on unsplit scans, since a
+     split's factor absorbs point-to-point structure, #89's W6). Then rule 12. **The owner (MQ-3, 2026-11-25):
+     "I don't know the size; measure it from data"; no excess term before a measurement and the owner's word.**
 2. **`KeyError: 'monc'` on one-point Det_Th scans** (#79's survey, 4 sets). A synthetic one-point scan reads
    fine. Waiting for Local yokel's metadata: the `#L` labels against the row width, the columns, and
    `LabelMismatch`. Then fix `Experiment.frames` (line ~266: `scan.columns['Monc'] if 'Monc' in … else
@@ -103,6 +106,9 @@ Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam heigh
      `sample_data/private/mca_scatter_cloud/` (git-ignored).
    - Then mca-scatter's items 1–3 and 5–9 (#55, 15:00), with derived numbers only.
    - Then tell mca-scatter to delete the branch.
+3b. **F109's open ends:** the extents' choice (90 % of the dose, asked through questor); the motor names and
+   shapes of real S1 slit scans (asked of Local yokel, #55); then `S1_H_MOTORS` and the guards to the real
+   scans, with a test. The dialog is the GUI manager's, after B10's docks.
 4. **The burn NaN crash** (#68: one 10 keV burn whose signal rose about 70 %). The GUI manager's #73 fixed
    `TwoDDetector.peakLocate`'s 0/0 centroid, a likely cause. Waiting for xr-data-needs to rerun on current
    main; tools man owns the fix.
