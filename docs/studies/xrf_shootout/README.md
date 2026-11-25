@@ -1,7 +1,8 @@
 # XRF shootout: how it was run
 
 The study is in `summary.md`, the questions and their answers in
-`QUESTIONS.md`, and the survey of other packages in `survey.md`. This page
+`QUESTIONS.md`, a step-by-step walkthrough of one test in `walkthrough.md`
+(`tests/tools/xrf_walkthrough.py`), and the survey of other packages in `survey.md`. This page
 says how to reproduce it.
 
 ## Environment

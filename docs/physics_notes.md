@@ -6923,7 +6923,9 @@ Verified by: runs (`tests/tools/xrf_lineshape.py` on the private bundle, derived
 - **A header trap:** in one file the header gain of elements 5-7 is 8.6 % off; their raw channels line up
   with elements 1-4. Summing by header calibration smears the summed line to 1.37 x the resolution.
 - **Effect on the shootout (C66 rerun):** Gaussian lines change no verdict (median change 1.4 %). Real-shaped
-  B lines cost P1+P2+P3 6 % (its fixed width misses the skew); P1+P3 stays within 2 % except La L.
+  B lines cost P1+P2+P3 6 %, also on noise-free spectra (a fixed-width Gaussian cannot follow the skew, and
+  the quadratic under it takes up the rest; the calibration twin does not cancel it: `docs/studies/xrf_models/walkthrough.md`
+  step 5); P1+P3 stays within 2 % except La L.
 
 ### 2026-11-25 — Masks and the workbook lock (GUI manager's Q2–Q6; batch 22)
 

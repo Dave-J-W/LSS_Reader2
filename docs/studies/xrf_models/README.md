@@ -14,6 +14,28 @@ owner's questions (2026-11-25):
 - **measured:** fitted to real spectra, or a shootout run;
 - **reasoned:** said so where it is (AGENTS rule 6).
 
+**New to this study? Read `walkthrough.md` first.** It follows one public blank through every step
+(the fits with their residuals, the thinning, a twin, the floor, a line's shape), explains each
+statistic in plain words, and ends with how sure each verdict is. The shootout's own walkthrough
+(`docs/studies/xrf_shootout/walkthrough.md`) shows how one test spectrum is made and scored.
+
+**Words used below:**
+
+| Word | Meaning |
+|---|---|
+| readout A | the single-element detector (all its data at 10 keV) |
+| readout B | one element of the 7-element detector |
+| blank | a real spectrum with scatter only, no sample line in the region |
+| box | where a line is fitted: the line ± 2 detector widths (FWHM); "box residual" uses ± 1 |
+| box residual | real counts / model counts − 1 in a box: what a line fit there inherits |
+| deviance / dof | the Poisson χ²/dof of a fit: about 1 when the model is right |
+| thinning p | the share of a blank's counts kept to make one test spectrum (about 0.02–0.06) |
+| twin | one Poisson draw of a scatter model fitted to a blank, written as a blank |
+| the floor | how far apart two draws of one truth land in the shootout: the test's own noise |
+| ratio | line photons / background counts in the box (0.1, 0.3, 1, 3) |
+| accurate | \|bias\| ≤ max(2 %, 2 × its standard error), over 500 spectra |
+| P1, P2, P3 | the reader's line fit: P1 Poisson likelihood; P2 width fixed at the resolution; P3 Si escapes stripped |
+
 ## Short answer
 
 **Scatter: a model can stand in for the real scatter only partly, and only the full model.**
@@ -283,10 +305,17 @@ figure M5).** The blanks, thinnings and seeds are C66's; only the injected line'
 - **A Gaussian line gives the same verdicts as the elastic-shaped line.** The median change of a
   fit's bias is 1.4 % (0.7 % for lines at least as strong as the background), about the
   replicates' noise.
-- **The real shape on readout B costs P2 6 %.** P2 fixes the width at the resolution, so a line
-  with 46 % in a 58 eV skew reads low by the part outside a Gaussian of that width: −6 to −7 % on
-  the Cr, Cu, Ni and Ti lines. That is C67's finding again, from the other side: P2 needs the
-  line's own width, not the detector's.
+- **The real shape on readout B costs P2 6 %:** −6 to −7 % on the Cr, Cu, Ni and Ti lines.
+  - It is not noise. On the noise-free spectra (thinned blank's mean plus the line), P1+P2+P3
+    reads −4.9 to −7.2 % with the real shape and −1.7 to +1.3 % with the elastic's (walkthrough,
+    step 5).
+  - It is not simply the part of the line outside a Gaussian either: each method is calibrated on
+    a clean twin of the same shape, which takes that part out. A fixed-width Gaussian cannot follow
+    the skew, so the quadratic background bends to take up the rest. Over real scatter that bend
+    costs photons; on the flat, faint background of the calibration twin it does not (reasoned;
+    the size is measured).
+  - That is C67's finding again, from the other side: P2 needs the line's own width and shape, not
+    the detector's resolution.
 - **With the width free and the escape stripped (P1+P3) the shape hardly matters:** within 2 % on
   every target, except La L under 6.1 keV (+12.5 % → +5.6 %).
 - **Without the strip (P1) the skew moves the answer by target.** On strong lines Ti K goes from
@@ -406,6 +435,7 @@ detectors" and "Models study figures (M1-M5)".
 | `shape/run_<shape>/` | the C66 shootout with Gaussian and real-shaped lines |
 | `lines/line_shapes.csv` | the shape ladder on the real lines: derived numbers only |
 | `M1`…`M5` | figures (`tests/tools/xrf_models_figures.py`) |
+| `walkthrough.md`, `walkthrough/` | one blank through every step, with each statistic explained (`tests/tools/xrf_walkthrough.py`) |
 | `scatter_energy.md` | part 3: scatter at beam energies with no data (`tests/tools/xrf_scatter_energy.py`) |
 
 ## Limits

@@ -9,6 +9,9 @@ blanks themselves**, with synthetic lines of known photons added.
 **Section 11 uses real lines in real scatter** (the private burn series;
 summary values only). No default of the reader was changed.
 
+- **New to this study? `walkthrough.md`** follows one test from the raw spectrum to the verdict:
+  the fit over its data with residuals, 500 spectra turned into a bias, pulls and the "accurate"
+  rule, each statistic in plain words
 - Questions and short answers: `QUESTIONS.md`
 - Survey of other packages: `survey.md`
 - How to reproduce: `README.md`
