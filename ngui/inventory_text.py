@@ -309,7 +309,7 @@ INVENTORY = {
     'messageDock_toggleViewAction': ('action', 'Messages', 'Menu bar > View', 'Shows or hides the Messages pane'),
     'scriptDock_toggleViewAction': ('action', 'Script', 'Menu bar > View', 'Shows or hides the Script pane'),
     'errorDock_toggleViewAction': ('action', 'Errors', 'Menu bar > View', 'Shows or hides the Errors pane (error model)'),
-    'actionFitResiduals': ('action', 'Residuals above fits', 'Menu bar > View', "Shows a small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends, the Ref Patch join with the joint fit's curve): the residuals (y − fit)/σ of the fitted points, and χ²/dof in the fit's legend label"),
+    'actionFitResiduals': ('action', 'Residuals above fits', 'Menu bar > View', "Shows a small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends, the Ref Patch join with the joint fit's curve, the Fit Peak dialog on the Plot and MCA tabs): the residuals (y − fit)/σ of the fitted points, and χ²/dof in the fit's legend label"),
     'PlotWidget': ('tab', 'SpecPlot | Pilatus | Reflectivity | Line/Area Cuts | MCA | Plot | 2D_Plot | Compare | Timeline', 'Main window (right of the left panel)', 'The tabs of the window (the hidden Apex tab was removed 2026-11-23, owner Q14)'),
     'messageDock': ('pane', 'Messages', 'Bottom dock (tabbed with Script and Errors)', 'Collects every message to the user (warnings, fit results, absorber notes) with the time; nothing blocks'),
     'messageView': ('pane', '', 'Messages pane', 'Read-only text of the messages (last 2000 blocks)'),

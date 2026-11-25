@@ -2779,9 +2779,12 @@ class MainWindow (QMainWindow):
              fit=np.array(self.peakfitdata)
              xran=np.abs(fit[:,0][-1]-fit[:,0][0])
              yran=np.max(fit[:,1])-np.min(fit[:,1])
-             self.ui.mcaPlotMplWidget.canvas.ax.plot(fit[:,0],fit[:,1],'r-',zorder=1)
+             self.ui.mcaPlotMplWidget.canvas.ax.plot(fit[:,0],fit[:,1],'r-',zorder=1,label=self.peakFitLabel())
+             if self.fitResidualsShown() and self.ui.mcaLegendCheckBox.checkState()!=0:     # the label's χ²/dof
+                 self.ui.mcaPlotMplWidget.canvas.ax.legend(loc=self.ui.mcaLegendLocComboBox.currentIndex()+1,frameon=False,scatterpoints=0,numpoints=1)
              self.ui.mcaPlotMplWidget.canvas.ax.set_xlim(fit[:,0][0]-0.25*xran,fit[:,0][-1]+0.25*xran)
              self.ui.mcaPlotMplWidget.canvas.ax.set_ylim(np.min(fit[:,1])-0.2*yran,np.max(fit[:,1])+0.2*yran)
+        self.drawPeakFitResiduals(self.ui.mcaPlotMplWidget.canvas.ax,self.mcafitplotstatus==1)   # F74
         self.ui.mcaPlotMplWidget.canvas.ax.autoscale(tight=True)
         self.ui.mcaPlotMplWidget.canvas.draw()
             
@@ -3229,7 +3232,7 @@ class MainWindow (QMainWindow):
         act.setCheckable(True)
         act.setChecked(self.fitResidualsShown())
         act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends, the '
-                       'Ref Patch join with its fitted curve): the '
+                       'Ref Patch join with its fitted curve, the Fit Peak dialog on the Plot and MCA tabs): the '
                        'residuals (y - fit)/sigma of the fitted points, and chi2/dof in the legend. For a good fit '
                        'with right errors they scatter within about +/-2. Hidden by default; kept between sessions (F74).')
         act.toggled.connect(self.setFitResiduals)
@@ -9494,6 +9497,27 @@ class MainWindow (QMainWindow):
                for k,(label,x,y,s,scale) in enumerate(curves) if label in fits]
         return self.drawFitResiduals(self.ui.cutPlotMplWidget.canvas.ax,items)
 
+    def peakFitLabel(self):
+        """The older Fit Peak dialog's curve label: 'fit', with χ²/dof while
+        the residuals are shown (F74); None (no legend entry, as before) otherwise."""
+        item=getattr(self,'peakFitResiduals',None)
+        if not self.fitResidualsShown() or item is None:
+            return None
+        return residuals.chi2_label('fit',item[2])
+
+    def drawPeakFitResiduals(self,ax,fitted):
+        """F74 on the older Fit Peak dialog's plots (Plot tab, MCA tab): the
+        residuals the fit minimised, (y − fit)/σ at the fitted points, in
+        the panel above ``ax`` when the switch is on and ``fitted``; the
+        panel removed otherwise."""
+        item=getattr(self,'peakFitResiduals',None) if fitted else None
+        rax=residuals.panel(ax,self.fitResidualsShown() and item is not None)
+        if rax is None:
+            return None
+        x,r,_red=item
+        residuals.draw(rax,x,r,np.zeros(len(r)),np.ones(len(r)),color='r')
+        return rax
+
     def setFitResiduals(self,on):
         """View > Residuals above fits: kept between sessions; redraws the
         fits on show."""
@@ -9507,6 +9531,10 @@ class MainWindow (QMainWindow):
                 and hasattr(self.uipdburn,'burnTrendPlotWidget'):
             self.plotBurnTrends(self.burnResult)
         self.refRedrawPreview()
+        if getattr(self,'fitplotstatus',0)!=0:          # the older Fit Peak dialog's fits on show
+            self.updatePlotPlot()
+        if getattr(self,'mcafitplotstatus',0)==1:
+            self.updateMcaPlotData()
 
     def fitCuts(self):
         """Fit every plotted cut (the "Fit peaks" button)."""
@@ -10797,8 +10825,9 @@ class MainWindow (QMainWindow):
         if self.fitplotstatus!=0:  #add fit result
             fitdata=np.array(self.peakfitdata)
             fitbgdata=np.array(self.peakbgfitdata)
-            self.ui.PlotMplWidget.canvas.ax.plot(fitdata[:,0],fitdata[:,1],'r-')
+            self.ui.PlotMplWidget.canvas.ax.plot(fitdata[:,0],fitdata[:,1],'r-',label=self.peakFitLabel())
             self.ui.PlotMplWidget.canvas.ax.plot(fitbgdata[:,0],fitbgdata[:,1],'g-')
+        self.drawPeakFitResiduals(self.ui.PlotMplWidget.canvas.ax,self.fitplotstatus!=0)   # F74
         if self.ui.plotLogXCheckBox.checkState()!=0:
             self.ui.PlotMplWidget.canvas.ax.set_xscale('log')
         if self.ui.plotLogYCheckBox.checkState()!=0:
@@ -11152,6 +11181,7 @@ class MainWindow (QMainWindow):
             #print(info,errmsg,ier)
             residual=self.peakres(pfit,x,y,yerr,flag)
             self.chisquare=np.sum(residual**2)/(len(x)-len(p0))
+            self.peakFitResiduals=(np.array(x,float),np.array(residual,float),float(self.chisquare))   # F74
             self.fiterror=[np.sqrt(self.chisquare*pcov[i,i]) for i in range(len(p0))]
             if flag[0]==0:
                 self.peakfitdatay=sum(self.gaufun(x0,pfit[3*i:3*i+3]) for i in range(flag[1]))+self.polyfun(x0,pfit[3*flag[1]:])
@@ -11191,6 +11221,8 @@ class MainWindow (QMainWindow):
             
             self.peakresult=minimize(self.peak2min, self.peakparameter, args=(x,y,yerr))
             print(fit_report(self.peakresult))
+            self.peakFitResiduals=(np.array(x,float),np.array(self.peak2min(self.peakresult.params,x,y,yerr),float),
+                                   float(self.peakresult.redchi))   # F74: the residuals the fit minimised
 
             peakfitres=[self.peakresult.params[self.peakparaname[i]].value for i in range(peaknumber*3)]
             bgfitres=[self.peakresult.params[self.peakbgparaname[i]].value for i in range(bgorder+1)]
@@ -11210,6 +11242,7 @@ class MainWindow (QMainWindow):
             self.updateMcaPlotData()
         else:
             self.ui.mcaPlotMplWidget.canvas.ax.clear()
+            residuals.panel(self.ui.mcaPlotMplWidget.canvas.ax,False)   # F74: Fit All steps through the frames
             errorbars(self.ui.mcaPlotMplWidget.canvas.ax,data[:,0],data[:,1],data[:,2],fmt='o-',label=self.mcaLabelOne)
             self.ui.mcaPlotMplWidget.canvas.ax.plot(x0,self.peakfitdatay,'r-')
             fit=np.array(self.peakfitdata)
