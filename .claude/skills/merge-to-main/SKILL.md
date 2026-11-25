@@ -26,7 +26,10 @@ with the owner's standing permission (main man, tools man, the GUI manager) do t
      Say so in the merge commit.
 3. **Run the suites** on the merged tree:
    - **always** the quick suite: `timeout 1200 python -m pytest -q -p no:cacheprovider` (about 4 min);
-   - **real-data tests** for the area when numbers can move: `python -m pytest -q -m slow -k "<area>"`;
+   - **real-data tests** for the area when numbers can move, **or when a dialog or workflow changes what it
+     accepts**: `python -m pytest -q -m slow -k "<area>"` (`burn`, `ref`, `gid`, `timeline`, ...). For
+     example, the burn dialog's 1 mm width prefill made it refuse every burn without a height scan at its S1
+     gap, and only the slow NX tests showed it (2026-11-25);
    - **the crash sweep, in the background,** when the window is touched:
 
          timeout 3000 python -m pytest -q -m sweep -p no:cacheprovider > <scratch>/sweep.txt 2>&1; echo "PYTEST_EXIT=$?" >> <scratch>/sweep.txt

@@ -182,5 +182,8 @@ OQ-3 and OQ-4, and the GUI manager's 13 questions (#55, 2026-11-25 14:45).
   naming an option the script lacks. Run `python -m lss_toolbox --render` after catalogue changes.
 - **`'%d' % nan` and `int(nan)`** both raise "cannot convert float NaN to integer": a message alone doesn't
   locate a crash.
+- **Run the whole slow suite on main** (`pytest -m slow`, about 4 min) after a batch of merges by others, at
+  least once a day. Sessions run the quick suite and the sweep, but rarely the slow one. A burn-dialog
+  regression stayed red there unnoticed for hours (2026-11-25).
 - **The owner's PC** fails 7–8 tests on clean main (paths, workers, ngui, toolbox GUI); its reports of "N
   failed" are environment failures. The cloud run is the check.
