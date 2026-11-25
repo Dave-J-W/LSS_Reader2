@@ -1,0 +1,44 @@
+{
+ "trials": 40,
+ "series_per_estimate": 50,
+ "x_true": [
+  0.0,
+  0.005,
+  0.01,
+  0.02,
+  0.03
+ ],
+ "q_min": 0.04,
+ "snr_min": 5.0,
+ "top_counts": 20000.0,
+ "scans": [
+  [
+   0.03,
+   0.062,
+   0.002
+  ],
+  [
+   0.056,
+   0.124,
+   0.004
+  ],
+  [
+   0.112,
+   0.25,
+   0.006
+  ],
+  [
+   0.232,
+   0.452,
+   0.01
+  ],
+  [
+   0.422,
+   0.65,
+   0.012
+  ]
+ ],
+ "outlier_share": 0.03,
+ "outlier_scale": 0.4,
+ "headline": "Shared Qz with an outlier term recovers the excess within 0.09 % of R on every curve, with or without outliers; a slow drift adds to it"
+}
