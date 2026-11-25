@@ -55,7 +55,21 @@ and merged history is permanent.
 
    The local agent rebuilds its branch without it and force-pushes it. The PR's own record keeps the old
    commits until GitHub Support removes them, which is the owner's call.
-6. **Run the quick suite on the PR merged with today's main,** in a worktree, so your branch is untouched:
+6. **Review the science, not only the privacy.** Before merging, and above all before building on its
+   numbers:
+   - read the estimator or method (the tool in `tests/tools/`), and check its likelihood and its error model
+     against `.claude/skills/fit-statistics-pitfalls`;
+   - check that each headline follows from the PR's own tables. Do two estimators of "the same" quantity
+     agree (e.g. within a scan against between scans)? Does it change with time, Qz or counts in a way the
+     claimed model allows?
+   - check that a comparison applies its numbers where they were measured. A split test never leaves its
+     scan, so between-scan numbers don't belong on it.
+   - If something doesn't follow, say so on #55 before merging, or merge with the caveat recorded in
+     physics_notes.
+   - **Lesson (2026-11-25):** #96 (C63) was merged after a privacy review alone. Its between-scan excess was
+     then read as per-point noise, by C63 and by main man's C64, until a review of its tables showed that it
+     grows with the minutes between scans (C64 corrected, #107).
+7. **Run the quick suite on the PR merged with today's main,** in a worktree, so your branch is untouched:
 
        git worktree add -q --detach <scratch>/wtN origin/<branch>
        cd <scratch>/wtN && git merge -q --no-edit origin/main && timeout 1200 python -m pytest -q -p no:cacheprovider
@@ -64,11 +78,11 @@ and merged history is permanent.
    The owner's PC fails 7–8 tests on clean main (environment), so its counts are not the check; this run is.
    If main moved during the run and touched the same areas (the catalogue, `docs/TOOLS.md`), rerun
    `tests/test_toolbox.py` on the new merge.
-7. **Merge, pinned to the head you reviewed,** so that a push made meanwhile is not merged unreviewed:
+8. **Merge, pinned to the head you reviewed,** so that a push made meanwhile is not merged unreviewed:
 
        gh api -X PUT repos/Dave-J-W/LSS_Reader2/pulls/N/merge -f merge_method=merge -f sha=$(gh api repos/Dave-J-W/LSS_Reader2/pulls/N --jq .head.sha)
 
-8. **Post on issue #55:**
+9. **Post on issue #55:**
    - what was checked;
    - the suite's result;
    - "please delete `<branch>`": cloud sessions cannot delete other branches (proxy 403);

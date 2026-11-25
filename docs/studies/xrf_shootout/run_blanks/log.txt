@@ -1,0 +1,23 @@
+xrf_blanks 2026-11-25 08:49:48: 240 conditions on 10 blanks, methods window,fit_data,p1,p1p2p3,xeray,pymca,pymca_tails,pyxrf,larch,pymca_snip60,pymca_snip100,pymca_poly, 50 replicates of 10, 22 jobs
+calibrated 24 blank × line twins in 13 s
+120/2400 tasks, 145 s
+240/2400 tasks, 320 s
+360/2400 tasks, 456 s
+480/2400 tasks, 589 s
+600/2400 tasks, 665 s
+720/2400 tasks, 871 s
+840/2400 tasks, 1013 s
+960/2400 tasks, 1113 s
+1080/2400 tasks, 1257 s
+1200/2400 tasks, 1348 s
+1320/2400 tasks, 1409 s
+1440/2400 tasks, 1495 s
+1560/2400 tasks, 1581 s
+1680/2400 tasks, 1641 s
+1800/2400 tasks, 1752 s
+1920/2400 tasks, 1815 s
+2040/2400 tasks, 1906 s
+2160/2400 tasks, 1996 s
+2280/2400 tasks, 2053 s
+2400/2400 tasks, 2160 s
+done in 2165 s

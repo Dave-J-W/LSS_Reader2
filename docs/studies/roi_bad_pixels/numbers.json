@@ -1,7 +1,7 @@
 {
  "reps": 30,
  "frames": 25920,
- "seconds": 109.1,
+ "seconds": 120.6,
  "hot_pixels": 5349,
  "clean_margin": {
   "synthetic": {
@@ -45,6 +45,11 @@
    "max_abs_dz": 0.0
   },
   "bg10": {
+   "frames_changed": 0,
+   "pixels": 0,
+   "max_abs_dz": 0.0
+  },
+  "sig10": {
    "frames_changed": 0,
    "pixels": 0,
    "max_abs_dz": 0.0

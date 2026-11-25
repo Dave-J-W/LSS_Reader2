@@ -330,6 +330,9 @@ def _fit_group(x, y, s, weighted, seeds, o, step):
         return FitResult([], np.zeros(0), x0, xs, float('nan'), (float(x.min()) if len(x) else float('nan'),
                          float(x.max()) if len(x) else float('nan')), len(x), False,
                          'too few points in the window (%d) for %d parameters' % (len(x), nfree), o)
+    if not x.max() > x.min():                            # no range: polyfit and the fit would divide by 0
+        return FitResult([], np.zeros(0), x0, 1.0, float('nan'), (float(x.min()), float(x.max())), len(x), False,
+                         'no range: every point is at %g' % float(x.min()), o)
     u = (x - x0) / xs
     if nb:
         edge = np.r_[np.arange(min(3, len(x))), np.arange(max(len(x) - 3, 0), len(x))]
@@ -734,6 +737,9 @@ def fit_scan(x, y, sigma=None, background='linear', min_fwhm=None, min_signal_to
     (kind → FitResult) for the others. Replaces the window's tanh box model
     (P9), which reported 0.406 for a Gaussian of FWHM 0.471.
 
+    A scan whose points all sit at one position (a burn recorded as a
+    zero-range ascan) is not fitted: ``kind`` 'no range'.
+
     A scan with no structure above its noise (``is_flat``: the background
     alone fits it, χ² p-value above FLAT_P) is not fitted: ``kind`` 'flat',
     ``ok`` False (owner, 2026-11-23: no point hammering a flat noisy line
@@ -744,6 +750,13 @@ def fit_scan(x, y, sigma=None, background='linear', min_fwhm=None, min_signal_to
     narrower than this (in x units) are dropped as implausible. The window
     passes both for sample-height scans (``height_scan_options``)."""
     x, y = np.asarray(x, float), np.asarray(y, float)
+    if len(x) and not np.nanmax(x) > np.nanmin(x):       # every point at one position (e.g. a burn as a 0-range ascan)
+        res = FitResult([], np.zeros(0), float(np.nanmin(x)), 1.0, float('nan'),
+                        (float(np.nanmin(x)), float(np.nanmax(x))), len(x), False,
+                        'no range: every point is at %g, so there is no shape to fit' % float(np.nanmin(x)),
+                        FitOptions(background=background))
+        res.kind, res.rss, res.npar, res.candidates = 'no range', float('nan'), 0, {}
+        return res
     weighted = sigma is not None and np.any(np.asarray(sigma, float) > 0)
     s = noise_sigma(y, sigma)
     flat, chi2, dof = is_flat(x, y, s, background)

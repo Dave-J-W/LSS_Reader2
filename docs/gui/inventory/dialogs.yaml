@@ -682,12 +682,23 @@
   label: "Beam (mm) width"
   where: "Burn test dock > Trends, second row"
   handler: burnOptionsChanged
-  does: "The beam's width at the sample, typed: with it the dose is per mm² of footprint (beam_mm)"
+  does: "The beam's width at the sample, for the dose per mm² of footprint; empty: exp.beam_width() (an accepted S1 horizontal slit scan, else the owner's 1 mm), shown greyed"
   workflows: [burn-ref, burn-gid]
   needs: ""
   shown: always
   tooltip: true
-  notes: "Added in code (F98, 2026-11-25). Empty: the total dose. Kept as a preference."
+  notes: "Added in code (F98, 2026-11-25); the automatic width from F109 (main man's core) the same day, with its source and note in the tooltip. Typed: kept as a preference."
+- id: burnDoseSummaryLabel
+  kind: label
+  label: "Dose: peak 5.98e+12, average 2.34e+12 photons/mm2 over 51.9 mm2 (90 % of the dose)"
+  where: "Burn test dock > Trends, second row"
+  handler: burnShowDose
+  does: "The dose of the burn on show: the peak (the beam's centre) and the average over the area that receives most of it; the most exposed 10 % against the rest and the provenance in the tooltip"
+  workflows: [burn-ref, burn-gid]
+  needs: "a burn analysed, the beam's height known"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F109, owner 2026-11-25: show both the average and the peak dose; core lss_core.dose.dose_summary by main man). The extent (90 % of the dose) is the core's default, its choice pending with questor. 'Dose: not known' with the reason when there is no height (NX 14)."
 - id: burnBeamHeightLineEdit
   kind: lineedit
   label: "× height"

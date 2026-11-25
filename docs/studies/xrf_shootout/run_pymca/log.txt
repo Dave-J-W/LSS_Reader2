@@ -1,0 +1,23 @@
+xrf_shootout 2026-11-25 03:33:17: 43 conditions, 8 series, methods pymca_snip60,pymca_snip100,pymca_poly, 100 replicates (40 for series), 30 jobs
+calibrated 51 conditions in 6 s
+24/494 tasks, 18 s
+48/494 tasks, 28 s
+72/494 tasks, 41 s
+96/494 tasks, 47 s
+120/494 tasks, 52 s
+144/494 tasks, 55 s
+168/494 tasks, 60 s
+192/494 tasks, 76 s
+216/494 tasks, 92 s
+240/494 tasks, 104 s
+264/494 tasks, 117 s
+288/494 tasks, 128 s
+312/494 tasks, 138 s
+336/494 tasks, 146 s
+360/494 tasks, 155 s
+384/494 tasks, 163 s
+408/494 tasks, 173 s
+432/494 tasks, 188 s
+456/494 tasks, 341 s
+480/494 tasks, 435 s
+done in 447 s

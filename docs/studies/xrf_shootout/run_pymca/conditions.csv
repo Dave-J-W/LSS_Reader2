@@ -1,0 +1,44 @@
+condition,factor,target,describe,line_kev,fwhm_kev,box,series,beam_kev,compton,fit_range
+clean,core,Zn K,"Zn 1e4 photons, no scatter: the sanity check",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+smooth,core,Zn K,"Zn 1e3 on 1e6 elastic, valence Compton only, ideal detector",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+hard,core,Zn K,"the hard case: Zn 1e3 on 1e6 elastic, water's Compton with its O 1s wing, Si escapes, tail 1 %, shelf 0.2 %",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+hard_strong,core,Zn K,"the hard case, Zn 1e4 (1e-2 of the elastic)",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+hard_low,core,Zn K,"the hard case, Zn 300 on 3e5 elastic",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+hard_11keV,beam energy,Zn K,the hard case at an 11 keV beam,8.63106,0.185714,2,10,11,biggs,7.13-11.60
+hard_12keV,beam energy,Zn K,the hard case at a 12 keV beam,8.63106,0.185714,2,10,12,biggs,7.13-12.60
+hard_14keV,beam energy,Zn K,the hard case at a 14 keV beam,8.63106,0.185714,2,10,14,biggs,7.13-14.60
+fe_easy,core,Fe K,Fe 1e3 on 1e6 elastic: far from the scatter,6.39951,0.171159,2,10,10,biggs,4.90-10.60
+counts_30,counts,Zn K,"clean Zn line, 30 photons",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+counts_60,counts,Zn K,"clean Zn line, 60 photons",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+counts_100,counts,Zn K,"clean Zn line, 100 photons",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+counts_200,counts,Zn K,"clean Zn line, 200 photons",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+counts_400,counts,Zn K,"clean Zn line, 400 photons",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+counts_1000,counts,Zn K,"clean Zn line, 1000 photons",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+counts_3000,counts,Zn K,"clean Zn line, 3000 photons",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+counts_10000,counts,Zn K,"clean Zn line, 10000 photons",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+zn_cu_0.3,overlap,Zn K,Zn under the hard scatter with Cu at 0.3 x Zn (Cu Kb 8.905 keV),8.63106,0.185714,2,10,10,biggs,6.54-10.60
+zn_cu_1,overlap,Zn K,Zn under the hard scatter with Cu at 1 x Zn (Cu Kb 8.905 keV),8.63106,0.185714,2,10,10,biggs,6.54-10.60
+zn_cu_3,overlap,Zn K,Zn under the hard scatter with Cu at 3 x Zn (Cu Kb 8.905 keV),8.63106,0.185714,2,10,10,biggs,6.54-10.60
+ga_by_zn,overlap,Ga K,"Ga 1e2 beside Zn 1e3 at 12 keV (Zn Kb 9.57 keV, Ga Ka 9.25 keV)",9.24256,0.189507,2,10,12,biggs,7.13-12.60
+co_by_fe,overlap,Co K,"Co 1e2 beside Fe 1e3 (Fe Kb 7.06 keV, Co Ka 6.93 keV)",6.92522,0.174697,2,10,10,biggs,4.90-10.60
+fe_by_mn,overlap,Fe K,Fe 1e3 with Mn 1e3 (Mn Kb 6.49 keV under Fe Ka 6.40 keV),6.39951,0.171159,2,10,10,biggs,4.39-10.60
+as_by_pb,overlap,As K,As 1e3 with Pb 1e3 at 14 keV (Pb La 10.55 keV on As Ka 10.54 keV),10.5315,0.197264,2,10,14,biggs,9.03-14.60
+br_13.6keV,element,Br K,"Br 1e3 on 1e6 elastic at 13.6 keV, just above its K edge (13.47)",11.9081,0.205224,2,10,13.6,biggs,10.41-14.20
+br_14keV,element,Br K,Br 1e3 on 1e6 elastic at 14 keV,11.9081,0.205224,2,10,14,biggs,10.41-14.60
+sr_16.2keV,element,Sr K,Sr 1e3 on 1e6 elastic at 16.2 keV (K edge 16.1),14.142,0.217524,2,10,16.2,biggs,12.64-16.80
+er_L_10keV,element,Er L,Er L lines (La 6.95 keV and a dozen more) 1e3 on 1e6 elastic at 10 keV,6.94413,0.174823,2,10,10,biggs,5.44-10.60
+lu_L_10keV,element,Lu L,Lu L lines (La 7.66 keV) 1e3 on 1e6 elastic at 10 keV,7.65042,0.179463,2,10,10,biggs,6.15-10.60
+offset_-0.02,calibration,Zn K,"the hard case, calibration offset -0.02 keV",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+offset_+0.02,calibration,Zn K,"the hard case, calibration offset +0.02 keV",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+gain_-0.003,calibration,Zn K,"the hard case, calibration gain -0.003",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+gain_+0.003,calibration,Zn K,"the hard case, calibration gain +0.003",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+tail_3pc,detector,Zn K,"the hard case, tail 3 %",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+shelf_0.5pc,detector,Zn K,"the hard case, shelf 0.5 %",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+escape_x3,detector,Zn K,"the hard case, Si escape 3 x Reed",8.63106,0.185714,2,10,10,biggs,7.13-10.60
+fwhm_250,detector,Zn K,the hard case at 250 eV FWHM,8.63106,0.250005,2,10,10,biggs,7.13-10.60
+hard_shells,Compton model,Zn K,the hard case with the shell-model Compton (study B),8.63106,0.185714,2,10,10,shells,7.13-10.60
+hard_wing0.5,Compton model,Zn K,the hard case with half the O 1s wing,8.63106,0.185714,2,10,10,biggs,7.13-10.60
+single,series length,Zn K,"the hard case, one spectrum alone",8.63106,0.185714,2,1,10,biggs,7.13-10.60
+measured,measured,Zn K,"Zn 1000 on 1e6 elastic at 10 keV, with readout A's measured detector and scatter (tail 2 % over 0.64 keV, no shelf, Fano 0.137, noise 0.065 keV, Compton/Rayleigh 2.0, O 1s wing 0.84 x water's)",8.63106,0.167803,2,10,10,biggs,7.13-10.60
+measured_strong,measured,Zn K,"Zn 10000 on 1e6 elastic at 10 keV, with readout A's measured detector and scatter (tail 2 % over 0.64 keV, no shelf, Fano 0.137, noise 0.065 keV, Compton/Rayleigh 2.0, O 1s wing 0.84 x water's)",8.63106,0.167803,2,10,10,biggs,7.13-10.60
+measured_12keV,measured,Zn K,"Zn 1000 on 1e6 elastic at 12 keV, with readout A's measured detector and scatter (tail 2 % over 0.64 keV, no shelf, Fano 0.137, noise 0.065 keV, Compton/Rayleigh 2.0, O 1s wing 0.84 x water's)",8.63106,0.167803,2,10,12,biggs,7.13-12.60

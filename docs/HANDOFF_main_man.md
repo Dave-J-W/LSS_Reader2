@@ -44,8 +44,9 @@ routines step by step (`merge-to-main`, `review-local-data-pr`, `issue-watch`).
 - **Rule 12:** the best method becomes the default only after a study with known truth and figures, tests
   that pin the new numbers, and a demonstrator (a document and a Tools item). Then the switch, with its
   OUTPUT_DECISIONS row and the re-pins named. Committed products of earlier studies keep their run's default.
-- **Do not merge `claude/local-data-mca-encrypted`** (141 MB of encrypted private spectra). Delete it, via
-  mca-scatter, once the data has been read.
+- **Do not merge `claude/local-data-mca-encrypted`** (141 MB of encrypted private spectra). The owner
+  (MQ-9, 2026-11-25): it is meant to be on the public branch, its safety rests on the passphrase; MQ-8: no
+  purge of GitHub's records of removed files.
 - **Rule 13 (owner, 2026-11-25): show the whole chain, ELI5.** Every study, report or answer that ends in a
   number or a verdict shows the raw data, each processing step, a fit drawn over its data with residuals,
   every statistic explained for a newcomer, and the judgment with how sure it is. The usual form is
@@ -76,6 +77,8 @@ routines step by step (`merge-to-main`, `review-local-data-pr`, `issue-watch`).
 | #74, #81 | D1 core: the workbook's lock, a read-only second reader | `lss_core/readerlock.py`, `Workbook(read_only=)` |
 | #82 | C61: the guard's error on real joins is per-point scatter | `docs/studies/guard_error/`, `tests/tools/guard_error_study.py` |
 | #89 | C61's walkthrough (rule 13): W1–W6, one join from two scans to the verdict; a real NX split | `docs/studies/guard_error/walkthrough.md`, `tests/tools/guard_error_walkthrough.py` |
+| #94, #97 | C62: a bad-pixel pass on the reflectivity ROI (F95 B3); factor 10 on the three boxes the candidate; the GUI manager built the core and the field (#95, off) | `docs/studies/roi_bad_pixels/`, `tests/tools/roi_bad_pixel_study.py` |
+| #98 | merged the local agent's #96 (C63) through my branch, after a COMPARISONS conflict | |
 | #92 | F109's core: the dose as peak and average, the 10/90 split; the beam's width from S1 slit scans | `exp.dose_summary`, `exp.beam_width`, `dose.dose_map`, `dose.slit_profile` |
 | #66 | merged the former patching session's four review branches | |
 
@@ -83,7 +86,23 @@ Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam heigh
 
 ## Open threads, in priority order
 
-1. **C61's remedy: an excess term in the per-point error budget** (`lss_core.errors`, budget mode).
+1. **C61's remedy, now sized by C63** (#96, merged via #98; `docs/studies/excess_scatter/`): within a scan σ is
+   about 12 % small (s 1.12); between scans at shared Qz a core of 0.39 % of R, about 2.7 % at Qz ≥ 0.25; 4–6 %
+   of residuals wild. **Next (mine, announced on #55):** a rule-12 study of the joint fit with σ × s, a
+   Qz-dependent between-scan term and a robust (core + outlier or Student-t) likelihood, alone and together,
+   on C61's joins with C63's excess and outliers, then the NX split. The text below is the earlier plan.
+   **Done 2026-11-25: C64, corrected the same evening** (`docs/studies/excess_remedy/`). C63's between-scan
+   numbers are a change between scans at the shared points (they grow with the minutes between them), not
+   per-point noise: C63's within-scan estimator finds 0.12–0.19 % and ~0.3 % wild points. σ × 1.12 explains
+   and fixes the splits (1.08 / 1.01); the between-scan part at the overlap makes today miss on 13 % of joins
+   if C63's pairs sit there; 4σ clipping can remove good points and report a confidently wrong factor (E4).
+   **Next:** DATA_NEEDS 17 (a: real splits, b: real joins against the foils, c: where the wild pairs sit),
+   then σ × 1.12 as the core option in `patching` with tests, the owner's word, rule 12; a guarded clipping
+   only after 17c. **Lesson:** review the science of a local data PR, not only its privacy, before building
+   on it. When it switches, tell the GUI
+   manager the function: `reflectivity.join_fit_residuals` (#100, F74, invariant I45: Σ r² = the reported χ²)
+   must follow the fit's points and weights, so the Ref Patch residual panel and its label keep agreeing.
+1b. **C61's remedy: an excess term in the per-point error budget** (`lss_core.errors`, budget mode).
    - **The finding:** C61 showed the real-data under-coverage of the join error (C56: pull SD 1.24) is
      reproduced by 1 % of hidden per-point scatter. Join-level inflations fail at fringed joins; honest
      per-point errors fix both kinds of join.
@@ -108,8 +127,10 @@ Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam heigh
    - Then tell mca-scatter to delete the branch.
 3a. **B3, the ROI bad-pixel pass (C62, `docs/studies/roi_bad_pixels/`):** factor 10 on the ROI's three boxes
    is the candidate default. Waiting for Local yokel's count on the owner's sparse high-Qz frames (DATA_NEEDS
-   16); then the core option in `lss_core` (`Experiment.reflectivity(roi_bad_pixel_factor=)`, applied before
-   `frame_row`), tests, the GUI manager's field (off by default), and rule 12.
+   16); the core option and the field are the GUI manager's (#95: `reflectivity.roi_bad_pixel_pass`,
+   `frame_row(roi_bad_pixel_factor=)`, off by default). Then rule 12 (mine): the switch to 10, with its
+   OUTPUT_DECISIONS row. Watch the GUI manager's "as coded" case: a lone count of 6 on a frame with no
+   background is removed even at factor 40.
 3b. **F109's open ends:** the extents' choice (90 % of the dose, asked through questor); the motor names and
    shapes of real S1 slit scans (asked of Local yokel, #55); then `S1_H_MOTORS` and the guards to the real
    scans, with a test. The dialog is the GUI manager's, after B10's docks.
@@ -161,5 +182,8 @@ OQ-3 and OQ-4, and the GUI manager's 13 questions (#55, 2026-11-25 14:45).
   naming an option the script lacks. Run `python -m lss_toolbox --render` after catalogue changes.
 - **`'%d' % nan` and `int(nan)`** both raise "cannot convert float NaN to integer": a message alone doesn't
   locate a crash.
+- **Run the whole slow suite on main** (`pytest -m slow`, about 4 min) after a batch of merges by others, at
+  least once a day. Sessions run the quick suite and the sweep, but rarely the slow one. A burn-dialog
+  regression stayed red there unnoticed for hours (2026-11-25).
 - **The owner's PC** fails 7–8 tests on clean main (paths, workers, ngui, toolbox GUI); its reports of "N
   failed" are environment failures. The cloud run is the check.

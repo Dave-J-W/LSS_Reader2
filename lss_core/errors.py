@@ -22,6 +22,13 @@ Two models, chosen per reduction (``ErrorModel.mode``):
     So for one frame, var(S/M) = Σσ_i²/M² + (S/M)²·u_M², and for a
     background-subtracted box var = [σ_S² + (σ_L²+σ_R²)/4]/M² + (N/M)²·u_M².
 
+    ``counting_scale`` (budget only; 1, the default, changes nothing):
+    multiplies the counting part of a reflectivity point's error, s² ×
+    [σ_S² + (σ_L²+σ_R²)/4]/M². C63 measured s ≈ 1.12 on the owner's data
+    (the within-scan scatter, 384 series); C64 showed that it explains the
+    real split tests' under-coverage and fixes it. An option until rule 12
+    and the owner's word (MQ-3).
+
 The monitor's relative uncertainty per frame, u_M = σ_M / M, comes from
 ``MonitorModel``, of one of three kinds:
 
@@ -121,12 +128,18 @@ class MonitorModel:
 class ErrorModel:
     mode: str = 'legacy'
     monitor: MonitorModel = None
+    counting_scale: float = 1.0
 
     def __post_init__(self):
         if self.mode not in MODES:
             raise ValueError('error model must be one of %s, not %r' % (MODES, self.mode))
         if self.monitor is None:
             self.monitor = MonitorModel()
+        self.counting_scale = float(self.counting_scale)
+        if not self.counting_scale > 0:
+            raise ValueError('counting_scale must be positive, not %r' % self.counting_scale)
+        if self.mode == 'legacy' and self.counting_scale != 1.0:
+            raise ValueError('counting_scale applies to the budget model only (the legacy numbers never change)')
 
     @property
     def budget(self):
@@ -135,7 +148,8 @@ class ErrorModel:
     def describe(self):
         if not self.budget:
             return 'legacy (per-pixel I/M^2 + I^2/M^3, summed in quadrature)'
-        return 'budget (monitor on whole sums; %s)' % self.monitor.describe()
+        scale = '' if self.counting_scale == 1.0 else '; counting part x %g' % self.counting_scale
+        return 'budget (monitor on whole sums; %s%s)' % (self.monitor.describe(), scale)
 
 
 LEGACY = ErrorModel('legacy')
@@ -151,7 +165,8 @@ def as_model(errors):
     if isinstance(errors, dict):
         d = dict(errors)
         mode = d.pop('mode', 'budget')
-        return ErrorModel(mode, MonitorModel(**d))
+        scale = d.pop('counting_scale', 1.0)
+        return ErrorModel(mode, MonitorModel(**d), scale)
     return ErrorModel(str(errors))
 
 
@@ -159,7 +174,10 @@ def script_kw(model):
     """The ``errors=`` keyword a script needs for ``model`` ('' for legacy)."""
     if not model.budget:
         return ''
-    return 'errors=' + model.monitor.script()
+    lit = model.monitor.script()
+    if model.counting_scale != 1.0:
+        lit = lit[:-1] + ", 'counting_scale': %r}" % model.counting_scale
+    return 'errors=' + lit
 
 
 class MonitorTerms:

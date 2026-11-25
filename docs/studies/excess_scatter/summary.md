@@ -11,7 +11,8 @@ on known truth first.
 **Within a scan only** (owner, 2026-11-25, after review). A first version also compared two scans at the
 Qz they share. Those two points differ by whatever changed between the scans, such as the sample height,
 the footprint, the background boxes at another absorber, or the time apart, and the data do not record any
-of it. So the between-scan numbers were set aside: they are not published and nothing here rests on them.
+of it. So the between-scan numbers were withdrawn: nothing here rests on them, and they should not be used
+(the first version, merged as PR #96, is in the git history; C64 drew one of its truths from it).
 The owner's words: "I do understand this decision could underestimate our uncertainty but at least we
 will be on solid ground." What a within-scan measurement cannot see is listed under "What this does not
 measure".

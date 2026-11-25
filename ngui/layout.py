@@ -736,6 +736,7 @@ EXPORT = [
 Q14 = 'dead today; retired pending owner question 14'
 INLINE = 'nothing to close: the window\'s contents are now inline'
 RETIRED = {
+    'burnDoseSummaryLabel': 'The Burn tab\'s verdict card in this layout; the main window shows it in the burn dock (F109)',
     'burnDock': 'The Burn tab in this layout; the main window docks the burn window (F95 B10)',
     'worksheetDock': 'GID > Worksheet group in this layout; the main window docks the worksheet (F95 B10)',
     'cutfitDock': 'The fit options are inline groups in this layout; the main window docks them (F95 B10)',

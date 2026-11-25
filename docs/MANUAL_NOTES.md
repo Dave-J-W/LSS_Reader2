@@ -123,11 +123,14 @@ Each line: feature — where — default — script — notes entry (date).
   overconfident: C58, tools man, 2026-11-25; the default is the owner's).
 - The dose in the burn dialog (F98, 2026-11-25): "Axis" fits the trends
   against time or the dose; "Dose in" photons (needs the Monc chamber's
-  gain) or Monc counts; "Beam (mm)" width (prefilled 1 mm, owner
-  2026-11-25) and height (greyed: from
+  gain) or Monc counts; "Beam (mm)" width (greyed: from the S1 horizontal
+  slit scans when one is accepted, else the owner's 1 mm; F109) and height (greyed: from
   the nearest sample-height scans, or the study's default; its tooltip
   says which) give a dose per mm² of footprint; "Fast mode" counts the
-  wall time (the shutter open between frames). Terms to define: dose,
+  wall time (the shutter open between frames). "Dose: …" beside them gives
+  the peak dose (at the beam's centre; the trends use it) and the average
+  over the area that receives most of it, with the most exposed 10 %
+  against the rest in its tooltip (F109). Terms to define: dose,
   footprint, fast mode.
 
 ### SpecPlot
@@ -171,6 +174,13 @@ Each line: feature — where — default — script — notes entry (date).
   worksheet and the two fit options open on the right of the tab area,
   tabbed together. Each scrolls inside its dock. Close hides it; drag its
   title to another edge, or double-click it to float it as a window.
+- "Bad Pixel Correction fac" (Reflectivity tab; F95 B3, 2026-11-25): a
+  bad-pixel pass over the reflectivity ROI's three boxes (signal and
+  backgrounds), on the frame's counts before the sums. Empty (the default)
+  means none. Set, its corrections are listed with the result. main man's
+  study (C62) found factor 10 removes 90 % of hot pixels on sparse frames
+  without touching clean ones; it stays off until the owner's own sparse
+  frames are checked (rule 12).
 - Window titles (F95, Q-UI-B10, 2026-11-25): each dialog's title says what
   it is (Ref Patch, Burn test, GIOXS, MCA merge, Plot scale, ...); they
   were "Dialog" or "Scan Details".
@@ -597,8 +607,17 @@ Each line: feature — where — default — script — notes entry (date).
   model or the errors are wrong.
 - Off by default; the choice is kept between sessions. The plot's title
   moves above the panel while it is shown.
-- Not yet on: MCA line fits (the tools session's), the Ref Patch join
-  preview, the older fit dialogs.
+- In the Ref Patch window (2026-11-25), the switch also draws the joint
+  fit's curve over the join (dashed, on the earlier scan's scale: the new
+  scan, times its factor, should lie on it) and the residuals of both
+  scans' fitted points, blue and orange as the scans. These residuals use
+  the fit's own variance, so their squares add up to the χ² in the label.
+  With the legacy fit nothing is drawn, as there is no curve.
+- The Fit Peak dialog of the Plot and MCA tabs (2026-11-25) shows the
+  residuals its fit minimised, at the points inside the fit range; the
+  curve's legend label gains χ²/dof. Fit All, which runs through the
+  frames one by one, shows none.
+- Not yet on: MCA line fits (the tools session's).
 
 ### Ref Patch checks: a message and marks (F95, 2026-11-24, Q-UI-B6, B3)
 - Before joining, Ref Patch checks each frame: is the reflected beam more

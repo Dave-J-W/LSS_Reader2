@@ -193,6 +193,13 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   factor 10 removes 90 % of them and touched no clean frame, while factors 3–4
   can take half a real sparse point (measured, synthetic with known truth; NX
   school unchanged at any factor; `docs/studies/roi_bad_pixels/`).
+- The join's error budget with C63's measured excess (C64, 2026-11-25,
+  corrected the same evening): the within-scan σ × 1.12 explains the real
+  splits' under-coverage and fixes it (1.08 / 1.01); the between-scan part
+  sits at the overlap (today 13 % catastrophic misses if C63's pairs sit
+  there); 4σ clipping as built removes good points in rare cases and reports
+  a confidently wrong factor, so it needs a guard (measured, synthetic with
+  known truth; `docs/studies/excess_remedy/`). Waits for DATA_NEEDS 17.
 
 ## Series, saving and live updates (2026-11-19 to 22)
 

@@ -1,0 +1,4 @@
+condition,factor,target,describe,line_kev,fwhm_kev,box,series,beam_kev,compton,fit_range
+measured,measured,Zn K,"Zn 1000 on 1e6 elastic at 10 keV, with readout A's measured detector and scatter (tail 2 % over 0.64 keV, no shelf, Fano 0.137, noise 0.065 keV, Compton/Rayleigh 2.0, O 1s wing 0.84 x water's)",8.63106,0.167803,2,10,10,biggs,7.13-10.60
+measured_strong,measured,Zn K,"Zn 10000 on 1e6 elastic at 10 keV, with readout A's measured detector and scatter (tail 2 % over 0.64 keV, no shelf, Fano 0.137, noise 0.065 keV, Compton/Rayleigh 2.0, O 1s wing 0.84 x water's)",8.63106,0.167803,2,10,10,biggs,7.13-10.60
+measured_12keV,measured,Zn K,"Zn 1000 on 1e6 elastic at 12 keV, with readout A's measured detector and scatter (tail 2 % over 0.64 keV, no shelf, Fano 0.137, noise 0.065 keV, Compton/Rayleigh 2.0, O 1s wing 0.84 x water's)",8.63106,0.167803,2,10,12,biggs,7.13-12.60

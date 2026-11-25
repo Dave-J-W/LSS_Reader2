@@ -35,6 +35,7 @@ Options, with the window's defaults for Pilatus data:
 | `merge=[[2, 3]]` | | groups merged in the identical-scans dialog |
 | `points={7: [0, 1, 3]}` | all points | frames selected in the image list |
 | `mask=[(7, 3), (8, 0)]` | none | dropped points kept in the workbook (F92; `lss_core.masks`) |
+| `roi_bad_pixel_factor=10` | none | the Reflectivity tab's "Bad Pixel Correction fac": a bad-pixel pass over the ROI's three boxes (F95 B3, C62; off by default) |
 | `bad_pixel_iterations=0`, `bad_pixel_factor=1` | | BPC iterations, factor |
 
 `result` holds the per-scan points (`per_scan`, columns Qz, net signal,
@@ -69,7 +70,10 @@ lock = readerlock.ReaderLock('20260923_reader.xlsx')
 wb = Workbook('20260923_reader.xlsx', read_only=not lock.acquire())   # save() raises WorkbookReadOnly when read-only
 lock.describe()        # 'this reader writes the workbook', or who has it open
 lock.refresh()         # every 30 s while open; False if another reader took it meanwhile
-lock.release()         # on close
+lock.release()         # on close, or the one click that gives up the write access (owner, Q5)
+lock.request_release(note='')   # a read-only reader asks the holder (writes <workbook>.lock.request)
+lock.release_requested()        # the holder: the pending request (who, when, note) or None
+lock.decline_request()          # the holder keeps it; the next acquire() clears any request left
 ```
 
 Not yet available from scripts: background images, single-scan export,
@@ -145,6 +149,8 @@ ref = exp.reflectivity([6, 7, 8, 9],
                                'sigma_scan': 0.00039, 'width': 0.94, 'nu': 4.0})
 ref = exp.reflectivity([6, 7, 8, 9],
                        errors={'mode': 'budget', 'kind': 'counting', 'f': 0.0, 'sigma_dark': 0.0, 'g': 10.0})
+ref = exp.reflectivity([6, 7, 8, 9], errors={'mode': 'budget', 'counting_scale': 1.12})
+#   the counting part of each point's error x 1.12 (C63's within-scan scale; C64): an option, 1 by default
 ```
 
 Budget applies the monitor's relative uncertainty once to each whole sum

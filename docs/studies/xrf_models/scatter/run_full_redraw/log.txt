@@ -1,0 +1,24 @@
+xrf_blanks 2026-11-25 13:40:59: 240 conditions on 10 blanks, methods window,fit_data,p1,p1p3,p1p2p3,xeray,pymca,pyxrf, 50 replicates of 10, 28 jobs
+blanks from docs/studies/xrf_models/scatter/twins_full_redraw
+calibrated 24 blank × line twins in 9 s
+60/1200 tasks, 55 s
+120/1200 tasks, 121 s
+180/1200 tasks, 189 s
+240/1200 tasks, 302 s
+300/1200 tasks, 400 s
+360/1200 tasks, 496 s
+420/1200 tasks, 650 s
+480/1200 tasks, 718 s
+540/1200 tasks, 811 s
+600/1200 tasks, 859 s
+660/1200 tasks, 885 s
+720/1200 tasks, 922 s
+780/1200 tasks, 963 s
+840/1200 tasks, 986 s
+900/1200 tasks, 1035 s
+960/1200 tasks, 1065 s
+1020/1200 tasks, 1102 s
+1080/1200 tasks, 1140 s
+1140/1200 tasks, 1166 s
+1200/1200 tasks, 1206 s
+done in 1210 s

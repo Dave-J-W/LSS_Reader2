@@ -632,6 +632,17 @@ class MainWindow (QMainWindow):
         self.ui.refBGOffLineEdit.setValidator(qdoublevalidator0)
         self.ui.refSeaWinLineEdit.setValidator(qdoublevalidator0)
         self.ui.refBPCFacLineEdit.setValidator(qintvaliator1)
+        self.ui.refBPCFacLineEdit.setText('')                     # F95 B3: the ROI's own pass, off by default (rule 12)
+        self.ui.refBPCFacLineEdit.setPlaceholderText('off')
+        self.ui.refBPCFacLineEdit.setToolTip(
+            'A bad-pixel pass over the ROI\'s three boxes, signal and backgrounds (owner, Q-UI-B3: "a separate '
+            'threshold for the ROI"), on the frame\'s counts before the sums: a pixel above 4 × this factor × the '
+            'mean of its four neighbours, and above the frame\'s noise floor, takes the neighbours\' mean; the '
+            'pixels corrected are listed with the result. Empty (the default): no pass, the numbers as before. '
+            'Off until a study of the owner\'s sparse high-Qz frames: main man\'s study (C62, 2026-11-25) found '
+            'factor 10 removes 90 % of hot pixels on sparse synthetic frames and never touched a clean frame, '
+            'while factor 3 can take half of a real sparse point (rule 12). Used by Ref Patch and Analyze; '
+            'scripted as exp.reflectivity(..., roi_bad_pixel_factor=)')
         self.ui.refNormLineEdit.setValidator(qdoublevalidator0)
         self.ui.refQcLineEdit.setValidator(qdoublevalidator0)
         self.ui.refQoffLineEdit.setValidator(QDoubleValidator())
@@ -2768,9 +2779,12 @@ class MainWindow (QMainWindow):
              fit=np.array(self.peakfitdata)
              xran=np.abs(fit[:,0][-1]-fit[:,0][0])
              yran=np.max(fit[:,1])-np.min(fit[:,1])
-             self.ui.mcaPlotMplWidget.canvas.ax.plot(fit[:,0],fit[:,1],'r-',zorder=1)
+             self.ui.mcaPlotMplWidget.canvas.ax.plot(fit[:,0],fit[:,1],'r-',zorder=1,label=self.peakFitLabel())
+             if self.fitResidualsShown() and self.ui.mcaLegendCheckBox.checkState()!=0:     # the label's χ²/dof
+                 self.ui.mcaPlotMplWidget.canvas.ax.legend(loc=self.ui.mcaLegendLocComboBox.currentIndex()+1,frameon=False,scatterpoints=0,numpoints=1)
              self.ui.mcaPlotMplWidget.canvas.ax.set_xlim(fit[:,0][0]-0.25*xran,fit[:,0][-1]+0.25*xran)
              self.ui.mcaPlotMplWidget.canvas.ax.set_ylim(np.min(fit[:,1])-0.2*yran,np.max(fit[:,1])+0.2*yran)
+        self.drawPeakFitResiduals(self.ui.mcaPlotMplWidget.canvas.ax,self.mcafitplotstatus==1)   # F74
         self.ui.mcaPlotMplWidget.canvas.ax.autoscale(tight=True)
         self.ui.mcaPlotMplWidget.canvas.draw()
             
@@ -3217,7 +3231,8 @@ class MainWindow (QMainWindow):
         act.setObjectName('actionFitResiduals')
         act.setCheckable(True)
         act.setChecked(self.fitResidualsShown())
-        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends): the '
+        act.setToolTip('A small panel above each plot that shows a fit (SpecPlot scan fits, cut peak fits, burn trends, the '
+                       'Ref Patch join with its fitted curve, the Fit Peak dialog on the Plot and MCA tabs): the '
                        'residuals (y - fit)/sigma of the fitted points, and chi2/dof in the legend. For a good fit '
                        'with right errors they scatter within about +/-2. Hidden by default; kept between sessions (F74).')
         act.toggled.connect(self.setFitResiduals)
@@ -5131,7 +5146,7 @@ class MainWindow (QMainWindow):
 
     def burnOptions(self):
         o=dict(models=list(trendmod.MODELS),estimator='template',time='clock',threshold=5.0,auto_peak=True,position_limit=False,
-               errors='auto',rows_auto=True,axis='time',dose_unit='photons',beam_width='1.0',fast=False,
+               errors='auto',rows_auto=True,axis='time',dose_unit='photons',beam_width='',fast=False,
                verdict_quantity='intensity',strip_relative=0.0)
         o.update({k:v for k,v in (self.prefs.get('burn') or {}).items() if k in o})
         return o
@@ -5424,6 +5439,7 @@ class MainWindow (QMainWindow):
         u.burnResultLabel.setText(self.burnShortText(res)+('; not analysed: %s' % '; '.join(failed) if failed else ''))
         u.burnResultLabel.setToolTip(self.burnLongText(res))
         self.burnShowHeight(scan)
+        self.burnShowDose(scan,kw)
         args=dict(kw)
         args.pop('models') if tuple(args.get('models',()))==trendmod.MODELS else None
         for k,v in (('time','clock'),('threshold',0.05),('estimator','template'),('slit',(21,11)),
@@ -5471,10 +5487,9 @@ class MainWindow (QMainWindow):
         width.setObjectName('burnBeamWidthLineEdit')
         width.setPlaceholderText('width')
         width.setFixedWidth(width.fontMetrics().horizontalAdvance('0.000 mm')+16)
-        width.setToolTip('The beam\'s width at the sample (mm): with it the dose is per mm² of footprint. Prefilled '
-                         '1 mm (owner, 2026-11-25: "prefill 1 mm"; most of the energy is in about 1 mm horizontally); '
-                         'a beam modelled from an S1 horizontal slit scan, with the peak and the average dose, is to '
-                         'come (F109). Empty: the total dose')
+        width.setToolTip('The beam\'s width at the sample (mm), for the dose per mm² of footprint. Empty: from the '
+                         'S1 horizontal slit scans of the file when one is accepted, else the owner\'s 1 mm '
+                         '(exp.beam_width; F109), shown greyed; type to override')
         height=QLineEdit(page)
         height.setObjectName('burnBeamHeightLineEdit')
         height.setFixedWidth(width.width())
@@ -5491,10 +5506,16 @@ class MainWindow (QMainWindow):
         width.returnPressed.connect(self.burnOptionsChanged)
         height.returnPressed.connect(self.burnTrends)
         fast.toggled.connect(self.burnOptionsChanged)
+        summary=QLabel('',page)
+        summary.setObjectName('burnDoseSummaryLabel')
+        summary.setToolTip('The dose of the burn on show (lss_core.dose.dose_summary, F109): the peak, at the beam\'s '
+                           'centre, and the average over the area that receives most of it, with the most exposed 10 % '
+                           'of that area against the rest (owner, 2026-11-25: show both). The trends use the peak')
         for w in (scan,QLabel('Axis',page),axis,QLabel('Dose in',page),unit,QLabel('Beam (mm)',page),width,
-                  QLabel('×',page),height,fast):
+                  QLabel('×',page),height,fast,summary):
             row.addWidget(w)
         row.addStretch(1)
+        u.burnDoseSummaryLabel=summary
         u.burnScanComboBox,u.burnAxisComboBox,u.burnDoseUnitComboBox=scan,axis,unit
         u.burnBeamWidthLineEdit,u.burnBeamHeightLineEdit,u.burnFastModeCheckBox=width,height,fast
         return row
@@ -5557,13 +5578,20 @@ class MainWindow (QMainWindow):
         """(width, height) in mm for a dose per mm², or None without a width."""
         u=self.uipdburn
         w=str(u.burnBeamWidthLineEdit.text()).strip()
-        if not w:
-            return None
+        width=float(w) if w else self.burnAutoWidth().width_mm
         h=str(u.burnBeamHeightLineEdit.text()).strip()
         height=float(h) if h else self.burnAutoHeight(scan).height_mm
-        if height is None or not float(w)>0 or not height>0:
+        if height is None or width is None or not width>0 or not height>0:
             raise ValueError('the beam size must be positive, and its height known (%s)' % self.burnAutoHeight(scan).note)
-        return (float(w),float(height))
+        return (float(width),float(height))
+
+    def burnAutoWidth(self):
+        """exp.beam_width() (F109): from the file's S1 horizontal slit scans, else the owner's 1 mm."""
+        exp=self.burnExperiment()
+        cache=getattr(self,'_burnWidth',None)
+        if cache is None or cache[0] is not exp:
+            cache=self._burnWidth=(exp,exp.beam_width())
+        return cache[1]
 
     def burnAutoHeight(self,scan):
         """exp.beam_height(near=scan), kept while the SPEC file is unchanged."""
@@ -5574,6 +5602,27 @@ class MainWindow (QMainWindow):
         if scan not in cache[1]:
             cache[1][scan]=exp.beam_height(near=scan)
         return cache[1][scan]
+
+    def burnShowDose(self,scan,kw):
+        """The width field's automatic value, and the dose summary of the burn on show (F109)."""
+        from lss_core import dose as dosemod
+        u=self.uipdburn
+        try:
+            bw=self.burnAutoWidth()
+            u.burnBeamWidthLineEdit.setPlaceholderText('%.3g' % bw.width_mm)
+            u.burnBeamWidthLineEdit.setToolTip(u.burnBeamWidthLineEdit.toolTip().split('\n')[0]+'\nNow: %.3g mm (%s). %s'
+                                               % (bw.width_mm,bw.source,bw.note))
+        except (ValueError,KeyError,OSError) as e:
+            self.log.info('beam width: %s',e)
+        try:
+            r=self.burnExperiment().dose_summary(scan,points=kw.get('points'),beam_mm=kw.get('beam_mm'),
+                                                 unit=kw.get('dose_unit','photons'),shutter=kw.get('shutter','closed'))
+            u.burnDoseSummaryLabel.setText('Dose: %s' % r.text().split(';')[0])
+            u.burnDoseSummaryLabel.setToolTip(u.burnDoseSummaryLabel.toolTip().split('\n')[0]+'\n'+r.text()+'\n'+
+                                              '\n'.join(r.notes))
+        except (dosemod.DoseError,ValueError,KeyError,OSError) as e:
+            u.burnDoseSummaryLabel.setText('Dose: not known')
+            u.burnDoseSummaryLabel.setToolTip(u.burnDoseSummaryLabel.toolTip().split('\n')[0]+'\n'+str(e))
 
     def burnShowHeight(self,scan):
         u=self.uipdburn
@@ -7140,6 +7189,17 @@ class MainWindow (QMainWindow):
             self.refRoiShow(self.cen)
 
 
+    def refRoiBadPixelFactor(self):
+        """The factor of the ROI's own bad-pixel pass (F95 B3), or None: the
+        field empty (the default) leaves the ROI as the frame's correction
+        left it."""
+        t=str(self.ui.refBPCFacLineEdit.text()).strip()
+        try:
+            v=float(t) if t else None
+        except ValueError:
+            return None
+        return v if v and v>0 else None
+
     def refAnalyzeFromField(self):
         #Enter pressed in a parameter field: silent when no Qz is selected
         if len(self.ui.refQzListWidget.selectedItems())==0:
@@ -7162,7 +7222,21 @@ class MainWindow (QMainWindow):
             start=list(self.cen)
             self.par=self.pilatus.peakFind(self.selData,self.selErrorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,fac=fac,mon=self.mon,cenfit=self.cenfit,gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
             self.cen=[int(np.floor(self.par[1])), int(np.floor(self.par[3]))]
-            bfac=float(self.ui.refBPCFacLineEdit.text())
+            bfac=self.refRoiBadPixelFactor()                  # F95 B3: the ROI's own bad-pixel pass, off unless set
+            if bfac and len(self.selFrameNums)==1:            # on the frame's counts at the boxes found, then the search again
+                counts,fixed=reflectivity.roi_bad_pixel_pass(self.selData[0],self.cen,self.slit,self.bg,self.dir,bfac)
+                if fixed:
+                    err=np.array(self.selErrorData[0],float,copy=True)
+                    for c,r in fixed:
+                        err[r,c]=np.sqrt(max(counts[r,c],0.0))
+                        self.ui.refBadPixListWidget.addItem('ROI pass: x %d, y %d' % (c,r))
+                    self.par=self.pilatus.peakFind([counts],[err],slit=self.slit,cen=start,absfac=self.absfac,absnum=self.absnum,
+                                                   fac=fac,mon=self.mon,cenfit=self.cenfit,
+                                                   gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
+                    self.cen=[int(np.floor(self.par[1])), int(np.floor(self.par[3]))]
+            elif bfac:
+                self.notify('The ROI bad-pixel pass works on one frame at a time; %d are selected, none corrected.'
+                            % len(self.selFrameNums),title='Reflectivity',level='info')
             sig,sigerr,lbg,lbgerr,rbg,rbgerr=self.pilatus.sumROI(slit=self.slit,cen=self.cen,dir=self.dir,bg=self.bg)
             net,neterr=self.pilatus.netROI()
             self.pilatus.setROI(self.pilatus.imageData,self.pilatus.errorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,bg=self.bg,dir=self.dir,mon=None)
@@ -7298,6 +7372,7 @@ class MainWindow (QMainWindow):
         self.refMaskedRows={}   # scan -> its rows left out by the mask, drawn apart (F92)
         self.refFlagsPending=[]
         self.refErrorModel=self.errorModel   # recorded for the Script pane
+        self.refRoiFactorUsed=self.refRoiBadPixelFactor()   # F95 B3, for the Script pane
         for i in self.selectedPilFramesNums:
             # one point per frame: the same code a script uses (lss_core.reflectivity)
             qkey=self.pilScanNum[i]
@@ -7305,14 +7380,15 @@ class MainWindow (QMainWindow):
             row,info=reflectivity.frame_row(self.pilatus,self.pilData[i],self.pilErrorData[i],
                 self.pilMonc[i],(self.pilX[i],self.pilY[i]),self.pilFileQzs[i],[slitx,slity],bg,
                 self.dir,self.pil_Dist[i],
-                low_qz_slit=first or self.ui.pilLowQzCorCheckBox.checkState()!=0)   # as coded: always on the first frame (PHYSICS_ISSUES P18)
+                low_qz_slit=first or self.ui.pilLowQzCorCheckBox.checkState()!=0,   # as coded: always on the first frame (PHYSICS_ISSUES P18)
+                roi_bad_pixel_factor=self.refRoiBadPixelFactor())                     # F95 B3: off unless set
             (cenx,ceny),(scenx,sceny)=info['centre'],info['expected']
             self.slit,self.bg=info['slit'],info['bg']
             if np.abs(cenx-scenx)>2:
                 self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'x', np.abs(cenx-scenx)])
             if np.abs(ceny-sceny)>2:
                 self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'y', np.abs(ceny-sceny)])
-            pilbadpixloc=[]   # corrected bad pixels inside the signal box, shown to the user
+            pilbadpixloc=[list(p) for p in info.get('roi_corrected',[])]   # corrected inside the signal box, shown to the user (B3's pass first)
             badpix=self.pilbadpixLoc.get(i,[])   # not recorded when a background image is subtracted
             for j in range(len(badpix)):
                 pilbadpixX=badpix[j][1]
@@ -7488,7 +7564,8 @@ class MainWindow (QMainWindow):
     REF_RESULT_ATTRS=('refpatchindex','refDrops','refFactors','refMethodUsed','refKnownOverride','refMerged',
                       'refMaskUsed','refMaskedRows',
                       'refRepeatsUsed','refDroppedScans','refScanList','refPoints','slit','dir','command',
-                      'refErrorModel','refPatchInput','refPatchOrder','refScale','refResultJoins','refAbsorberUsed')
+                      'refErrorModel','refPatchInput','refPatchOrder','refScale','refResultJoins','refAbsorberUsed',
+                      'refRoiFactorUsed')
 
     def initRefPatchSteps(self,Dialog):
         """Back, Cancel and the join table of the patch window. Every Drop
@@ -7909,6 +7986,7 @@ class MainWindow (QMainWindow):
                     if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
                         self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
+                self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
                 self.uirefpatch.plotWidget.canvas.ax.set_xlim(xmin,xmax)
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
@@ -7946,6 +8024,7 @@ class MainWindow (QMainWindow):
                     if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
                         self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
+                self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
                 self.uirefpatch.plotWidget.canvas.ax.set_xlim(xmin,xmax)
                 self.uirefpatch.plotWidget.canvas.ax.set_ylim(ymin,ymax)
@@ -8467,6 +8546,38 @@ class MainWindow (QMainWindow):
         if len(m):
             ax.plot(m[:,0],m[:,1],'x',color='0.45',ms=8,mew=1.5,label='masked (%d)' % len(m),gid='masked')
 
+    def refDrawJoinFit(self,ax):
+        """F74 in the Ref Patch window: with View > Residuals above fits on
+        and the joint fit, the fitted curve over the join's window (dashed,
+        on the old scan's scale, χ²/dof in its label) and the residuals of
+        both scans' fitted points in the panel above, weighted by the fit's
+        own variance (lss_core.reflectivity.join_fit_residuals). Nothing,
+        and no panel, otherwise. Returns the fit drawn or None."""
+        fit=None
+        if self.fitResidualsShown() and self.refActiveMethod()=='joint' and self.pilreforder+1<len(self.pilrefsort):
+            j=self.pilreforder
+            old=self.scanqzframe[self.pilrefsort[j]] if j==0 else self.pilrefdata
+            fit=reflectivity.join_fit_residuals(old,self.scanqzframe[self.pilrefsort[j+1]])
+        rax=residuals.panel(ax,fit is not None)
+        if fit is None:
+            return None
+        red=fit['chi2']/fit['dof'] if fit['dof']>0 else None
+        ax.plot(fit['q'],fit['mu_a'],'--',color='k',lw=1,gid='joint fit',
+                label=residuals.chi2_label('joint fit (order %d)' % fit['order'],red))
+        for key,colour in (('a','C0'),('b','C1')):
+            q,r=fit[key]
+            residuals.draw(rax,q,r,np.zeros(len(r)),np.ones(len(r)),color=colour)
+        return fit
+
+    def refRedrawPreview(self):
+        """Redraw the Ref Patch window's join on show, when one is open (a
+        finished or closed patch is left alone)."""
+        w=getattr(self,'uirefpatch',None)
+        if (w is None or not w.isVisible() or not getattr(self,'pilrefsort',None)
+                or getattr(self,'pilreforder',0)+1>=len(self.pilrefsort)):
+            return
+        self.pilRefPatchPlot()
+
     def drawRefMasked(self,ax,norm):
         """Masked points on the Reflectivity tab: grey crosses at their Qz and R,
         scaled like their scans and normalised, offset and divided by R_F as the
@@ -8605,6 +8716,8 @@ class MainWindow (QMainWindow):
             kw.append('low_qz_slit=True')
         if self.refPoints:
             kw.append('points=%r' % self.refPoints)
+        if getattr(self,'refRoiFactorUsed',None):
+            kw.append('roi_bad_pixel_factor=%r' % self.refRoiFactorUsed)
         if int(self.ui.pilBPCiteSpinBox.value())!=0:
             kw.append('bad_pixel_iterations=%d, bad_pixel_factor=%d' % (int(self.ui.pilBPCiteSpinBox.value()),int(self.ui.pilBPCfacSpinBox.value())))
         if script_kw(getattr(self,'refErrorModel',self.errorModel)):
@@ -9196,7 +9309,7 @@ class MainWindow (QMainWindow):
             return
         try:
             exp=self.burnExperiment()
-            width=float((self.prefs.get('burn') or {}).get('beam_width') or 1.0)
+            width=float((self.prefs.get('burn') or {}).get('beam_width') or exp.beam_width().width_mm or 1.0)   # F109
             bh=exp.beam_height()
             height=bh.height_mm if bh.height_mm else dosemod.DEFAULT_HEIGHT_MM
             self.ui.statusBar.showMessage('Timeline: working out the dose of every scan and the burn tests...',5000)
@@ -9384,6 +9497,27 @@ class MainWindow (QMainWindow):
                for k,(label,x,y,s,scale) in enumerate(curves) if label in fits]
         return self.drawFitResiduals(self.ui.cutPlotMplWidget.canvas.ax,items)
 
+    def peakFitLabel(self):
+        """The older Fit Peak dialog's curve label: 'fit', with χ²/dof while
+        the residuals are shown (F74); None (no legend entry, as before) otherwise."""
+        item=getattr(self,'peakFitResiduals',None)
+        if not self.fitResidualsShown() or item is None:
+            return None
+        return residuals.chi2_label('fit',item[2])
+
+    def drawPeakFitResiduals(self,ax,fitted):
+        """F74 on the older Fit Peak dialog's plots (Plot tab, MCA tab): the
+        residuals the fit minimised, (y − fit)/σ at the fitted points, in
+        the panel above ``ax`` when the switch is on and ``fitted``; the
+        panel removed otherwise."""
+        item=getattr(self,'peakFitResiduals',None) if fitted else None
+        rax=residuals.panel(ax,self.fitResidualsShown() and item is not None)
+        if rax is None:
+            return None
+        x,r,_red=item
+        residuals.draw(rax,x,r,np.zeros(len(r)),np.ones(len(r)),color='r')
+        return rax
+
     def setFitResiduals(self,on):
         """View > Residuals above fits: kept between sessions; redraws the
         fits on show."""
@@ -9396,6 +9530,11 @@ class MainWindow (QMainWindow):
         if getattr(self,'burnResult',None) is not None and getattr(self,'uipdburn',None) is not None \
                 and hasattr(self.uipdburn,'burnTrendPlotWidget'):
             self.plotBurnTrends(self.burnResult)
+        self.refRedrawPreview()
+        if getattr(self,'fitplotstatus',0)!=0:          # the older Fit Peak dialog's fits on show
+            self.updatePlotPlot()
+        if getattr(self,'mcafitplotstatus',0)==1:
+            self.updateMcaPlotData()
 
     def fitCuts(self):
         """Fit every plotted cut (the "Fit peaks" button)."""
@@ -10686,8 +10825,9 @@ class MainWindow (QMainWindow):
         if self.fitplotstatus!=0:  #add fit result
             fitdata=np.array(self.peakfitdata)
             fitbgdata=np.array(self.peakbgfitdata)
-            self.ui.PlotMplWidget.canvas.ax.plot(fitdata[:,0],fitdata[:,1],'r-')
+            self.ui.PlotMplWidget.canvas.ax.plot(fitdata[:,0],fitdata[:,1],'r-',label=self.peakFitLabel())
             self.ui.PlotMplWidget.canvas.ax.plot(fitbgdata[:,0],fitbgdata[:,1],'g-')
+        self.drawPeakFitResiduals(self.ui.PlotMplWidget.canvas.ax,self.fitplotstatus!=0)   # F74
         if self.ui.plotLogXCheckBox.checkState()!=0:
             self.ui.PlotMplWidget.canvas.ax.set_xscale('log')
         if self.ui.plotLogYCheckBox.checkState()!=0:
@@ -11041,6 +11181,7 @@ class MainWindow (QMainWindow):
             #print(info,errmsg,ier)
             residual=self.peakres(pfit,x,y,yerr,flag)
             self.chisquare=np.sum(residual**2)/(len(x)-len(p0))
+            self.peakFitResiduals=(np.array(x,float),np.array(residual,float),float(self.chisquare))   # F74
             self.fiterror=[np.sqrt(self.chisquare*pcov[i,i]) for i in range(len(p0))]
             if flag[0]==0:
                 self.peakfitdatay=sum(self.gaufun(x0,pfit[3*i:3*i+3]) for i in range(flag[1]))+self.polyfun(x0,pfit[3*flag[1]:])
@@ -11080,6 +11221,8 @@ class MainWindow (QMainWindow):
             
             self.peakresult=minimize(self.peak2min, self.peakparameter, args=(x,y,yerr))
             print(fit_report(self.peakresult))
+            self.peakFitResiduals=(np.array(x,float),np.array(self.peak2min(self.peakresult.params,x,y,yerr),float),
+                                   float(self.peakresult.redchi))   # F74: the residuals the fit minimised
 
             peakfitres=[self.peakresult.params[self.peakparaname[i]].value for i in range(peaknumber*3)]
             bgfitres=[self.peakresult.params[self.peakbgparaname[i]].value for i in range(bgorder+1)]
@@ -11099,6 +11242,7 @@ class MainWindow (QMainWindow):
             self.updateMcaPlotData()
         else:
             self.ui.mcaPlotMplWidget.canvas.ax.clear()
+            residuals.panel(self.ui.mcaPlotMplWidget.canvas.ax,False)   # F74: Fit All steps through the frames
             errorbars(self.ui.mcaPlotMplWidget.canvas.ax,data[:,0],data[:,1],data[:,2],fmt='o-',label=self.mcaLabelOne)
             self.ui.mcaPlotMplWidget.canvas.ax.plot(x0,self.peakfitdatay,'r-')
             fit=np.array(self.peakfitdata)

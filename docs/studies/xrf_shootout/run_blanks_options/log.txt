@@ -1,0 +1,23 @@
+xrf_blanks 2026-11-25 09:27:32: 240 conditions on 10 blanks, methods p1p2,p1p3, 50 replicates of 10, 24 jobs
+calibrated 24 blank × line twins in 3 s
+120/2400 tasks, 6 s
+240/2400 tasks, 9 s
+360/2400 tasks, 11 s
+480/2400 tasks, 14 s
+600/2400 tasks, 15 s
+720/2400 tasks, 17 s
+840/2400 tasks, 19 s
+960/2400 tasks, 21 s
+1080/2400 tasks, 23 s
+1200/2400 tasks, 25 s
+1320/2400 tasks, 27 s
+1440/2400 tasks, 29 s
+1560/2400 tasks, 31 s
+1680/2400 tasks, 33 s
+1800/2400 tasks, 36 s
+1920/2400 tasks, 38 s
+2040/2400 tasks, 40 s
+2160/2400 tasks, 44 s
+2280/2400 tasks, 47 s
+2400/2400 tasks, 54 s
+done in 55 s
