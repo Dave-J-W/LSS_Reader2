@@ -119,14 +119,22 @@ def _clean(v):
     return str(v)
 
 
+class WorkbookReadOnly(PermissionError):
+    """A read-only workbook was asked to save: another reader writes it
+    (D1, ``lss_core.readerlock``)."""
+
+
 class Workbook:
     """One SPEC file's workbook. Opens the file when it exists, otherwise
     starts the sheets (an older workbook gains any sheet or column it lacks); ``save`` writes it (atomically: a temporary file
-    replaced in one step, so a crash never leaves half a workbook)."""
+    replaced in one step, so a crash never leaves half a workbook). ``read_only``: another reader holds the
+    workbook's lock (``lss_core.readerlock``, D1): everything can be read and changed in memory, but ``save``
+    raises ``WorkbookReadOnly`` and writes nothing."""
 
-    def __init__(self, path):
+    def __init__(self, path, read_only=False):
         import openpyxl
         self.path = path
+        self.read_only = bool(read_only)
         if os.path.exists(path):
             self.wb = openpyxl.load_workbook(path)
             for name in SHEETS:
@@ -183,6 +191,8 @@ class Workbook:
                 yield dict(zip(head, row))
 
     def save(self):
+        if self.read_only:
+            raise WorkbookReadOnly('%s is open read-only: another reader writes it (D1)' % self.path)
         for name in SHEETS:
             ws = self.wb[name]
             ws.auto_filter.ref = ws.dimensions

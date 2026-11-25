@@ -106,7 +106,7 @@ Answers to the open design questions, and new requests that came with them.
 
 | # | Decision or request | Applies to |
 |---|---|---|
-| D1 | Two people can have the same SPEC file open. The second instance opens the config **read-only**, and a small **yellow indicator light** in the GUI shows that state. | F13, F15, F16 |
+| D1 | Two people can have the same SPEC file open. The second instance opens the config **read-only**, and a small **yellow indicator light** in the GUI shows that state. **Core built 2026-11-25 (main man):** the workbook's lock (`lss_core.readerlock`) and the read-only workbook (`Workbook(read_only=True)`); physics_notes 2026-11-25. **Not yet:** the window's light and timer (GUI manager). | F13, F15, F16 |
 | D2 | Dropped points are stored as a mask over raw frames (scan and frame number), not as edited arrays; reduction can always be repeated from raw data and undo/redo is a change to the mask. Confirmed. | F16 |
 | D3 | If the config or log cannot be written beside the SPEC file (an edge case), store it locally somewhere reliable and warn that this was done. Worst case nothing can be written and the user simply gets the defaults. Never an error. | F12, F13 |
 | D4 | The process abort on a raising handler is to be fixed ("a thorn in our side for ages"). Sequence agreed: first a process-wide handler that logs and carries on, then repair of individual handlers. | F10–F12 |
