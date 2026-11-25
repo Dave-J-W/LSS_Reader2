@@ -21,13 +21,43 @@ TABLE = os.path.join(ROOT, 'docs', 'studies', 'mca_scatter', 'scatter_fits.csv')
 QTABLE = os.path.join(ROOT, 'docs', 'studies', 'mca_scatter', 'quantities.csv')
 
 
-def test_no_real_spectrum_is_committed():
-    """Scrubbed spectra are published only with the owner's yes (coordinator, 2026-11-24): until then
-    the repository holds derived numbers only."""
-    assert not os.path.isdir(os.path.join(HERE, 'reference', 'mca_scatter'))
+BLANKS = os.path.join(HERE, 'reference', 'mca_scatter')
+BLANK_IDS = ['E10-d', 'E10-f', 'E10-i', 'E10-j', 'E10-k', 'E9.2-a', 'E9.2-b', 'E9.2-c', 'E9.2-d',
+             'E6.1-a', 'E6.1-b', 'E6.1-c', 'E6.1-d']
+
+
+def test_the_committed_blanks_are_exactly_the_owner_approved_ones():
+    """Owner, 2026-11-24: "Yes, commit them" for these 13 scrubbed blanks, and no other spectrum."""
+    names = sorted(os.path.splitext(f)[0] for f in os.listdir(BLANKS))
+    assert names == sorted(BLANK_IDS)
     with open(TABLE, encoding='utf-8') as fh:
         head = fh.readline()
     assert 'counts' not in head.split(',')[:3]
+
+
+@pytest.mark.parametrize('aid', BLANK_IDS)
+def test_a_blank_loads_with_an_anonymous_header_and_its_elastic_at_the_beam(aid):
+    with open(TABLE, encoding='utf-8') as fh:
+        table = {r['id']: r for r in csv.DictReader(fh)}
+    head, e, n = ms.read_fixture(os.path.join(BLANKS, aid + '.csv'))
+    meta = ms.fixture_meta(head)
+    assert set(meta) == {'beam_keV', 'readout', 'kind', 'gain_keV_per_channel', 'real_time_s', 'live_time_s',
+                         'energy'}
+    # nothing that ties it to a beamtime: no dates, times of day, scan numbers or file names
+    assert not re.search(r'(19|20)\d\d-?\d\d-?\d\d|\d\d:\d\d|#S |scan \d|\.mac\b|vortex|_mca|\.spec\b', head, re.I)
+    assert meta['beam_keV'] == table[aid]['beam_keV'] and meta['readout'] == table[aid]['readout']
+    e0 = float(meta['beam_keV'])
+    b = float(meta['gain_keV_per_channel'])
+    assert np.allclose(np.diff(e), b, atol=2e-4)
+    assert e[0] < e0 - 2.4 and e[-1] > e0 + 0.55
+    assert np.all(n >= 0) and np.all(n == np.round(n)) and n.sum() > 1e5
+    assert 0 < float(meta['live_time_s']) <= float(meta['real_time_s']) * 1.001
+    # the elastic line's high-energy half-maximum edge (model-free; on readout A elastic and Compton blend)
+    # sits at the beam energy plus half the fitted elastic FWHM; the beam is known to 0.1 keV here
+    top = np.argmax(np.where(e > e0 - 0.3, n, 0))
+    edge = e[top + np.argmax(n[top:] < 0.5 * n[top])]
+    want = e0 + 0.5 * float(table[aid]['elastic_fwhm_keV'])
+    assert abs(edge - want) < 0.06, (edge, want)
 
 
 def test_the_public_table_holds_no_identifying_columns_and_rounded_energies():

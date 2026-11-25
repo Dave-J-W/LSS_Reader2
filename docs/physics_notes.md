@@ -5956,6 +5956,17 @@ from them, may be published: per-scan curves, edges, widths, and the inventory b
 data and their identifiers (names, scan numbers, dates) unless the owner says otherwise. Recorded in
 AGENTS.md's row for `sample_data/private/`.
 
+### 2026-11-24 — The owner: the MCA scatter blanks may be committed, beam energies to 0.1 keV
+
+Verified by: the owner's answers to the two questions of `docs/studies/mca_scatter/summary.md`, put to
+them by the data-analysis coordinator and relayed to the local data agent. "Yes, commit them": the 13
+scrubbed scatter-only blanks (E10-d, -f, -i, -j, -k; E9.2-a … d; E6.1-a … d) are now in
+`tests/reference/mca_scatter/`, as `energy_keV,counts` with a header of beam energy, readout, kind, gain and
+summed real and live times, and nothing tying them to a beamtime. "Keep 0.1 keV": beam energies stay
+public to 0.1 keV, so the study's tables are unchanged. `tests/test_mca_scatter.py` loads every blank,
+checks its header carries no date, time, scan or file name, and checks its elastic edge against the
+fitted width. Only these spectra are allowed; other private spectra stay private.
+
 ### 2026-11-24 — Review of the covariance export (owner: "review their subject areas")
 
 Checked on origin/main 9e706a7: the export's own tests, the reflectivity
