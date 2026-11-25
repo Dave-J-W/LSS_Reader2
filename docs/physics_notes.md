@@ -6709,3 +6709,36 @@ average over reasonable extents.
     through questor;
   - the motor names and shapes of real S1 slit scans, asked of the local agent (#55);
   - the owner's open question whether the profile's upper tail is light through the downstream meniscus.
+
+### 2026-11-25 — A bad-pixel pass on the reflectivity ROI (F95 B3, C62)
+
+Verified by: a run (`tests/tools/roi_bad_pixel_study.py`, synthetic frames with known truth reduced by the
+reader's `frame_row`; 30 replicates × 96 frames × 3 beams × 3 hot-pixel rates; the public NX school frames;
+`docs/studies/roi_bad_pixels/walkthrough.md`). No default changed. The question came from the owner's
+Q-UI-B3 ("wire them": a bad-pixel threshold for the ROI) and the GUI manager's warning that a pass could
+replace sparse real signal.
+
+- **The test** is the reader's own (`TwoDDetector.removeBadPix`), applied to the ROI's three boxes. A pixel
+  is replaced by its 4 neighbours' mean when it exceeds both 4 × factor × that mean and the frame's floor,
+  (√(the frame's mean) + 2)² (about 4.5 counts on a sparse frame).
+- **Hot pixels hurt only on sparse frames, and there badly.** At 0.5 per frame (3–300 counts):
+  - at the end of a weak curve (Qz ≥ 0.3, about 8 counts in the box), a point gains 11.2 error bars of extra
+    scatter;
+  - a hot pixel in the signal box moves its point by +535 % on average, one in a background box by −337 %;
+  - the join factors' pull SD goes from 1.21 to 1.42.
+  - On bright (NX-like) frames hot pixels add at most 0.4 error bars, and no pass matters.
+- **The ROI pass at factor 10:**
+  - removes 90 % of the hot pixels on the sparse high-Qz frames;
+  - brings the joins back to 1.22;
+  - **touched no frame without a hot pixel** (21,702 frames; the closest came to 0.89 of its threshold).
+- **Factors 3–4 occasionally take real signal:** on sparse high-Qz frames, the ROI pass at factor 3 and the
+  whole-frame pass at factor 4 (today's Frames > Reduce option) changed 0.2–0.9 % of the clean frames,
+  removing 35–59 % of each such point. The GUI manager's worry is real, at those factors.
+- **Factor 40** leaves 2.9 % bias at the end of the curve. **A background-only pass** (+107 %) is worse than
+  none (+19 %): it removes only the hot pixels that were cancelling the others.
+- **NX school (real):** no ROI pixel of scans 6–9 is replaced at any factor (closest 0.72 at factor 3, 0.57 at
+  10). Its frames are bright, so this does not test the risky case.
+- **Next:**
+  - the owner's sparse high-Qz frames, counted by the local agent (DATA_NEEDS row 16). Hot pixels there would
+    also be a candidate for C61's per-point excess, which C56 found concentrated at Qz ≥ 0.25;
+  - then the core option, the field off by default, and rule 12.

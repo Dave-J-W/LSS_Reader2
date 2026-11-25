@@ -434,6 +434,24 @@ TOOLS = (
          ),
          repo_out='docs/studies/qoff', repo_ok=False),
 
+    Tool('roi_bad_pixel_study', 'A bad-pixel pass on the reflectivity ROI: hot pixels, sparse frames, the factor '
+         '(F95 B3, C62)', 'refl', 'figures', 'tests/tools/roi_bad_pixel_study.py',
+         'Synthetic frames with known truth (bright, sharp and sparse beams; 0-0.5 hot pixels per frame) reduced by '
+         'the reader\'s frame_row after no pass, the whole-frame pass at factor 4, the ROI pass at factors 3, 10 and '
+         '40, or the background boxes only; the NX school frames. Figures R1-R5: one sparse frame, the extra scatter '
+         'per point, the threshold, the join pulls, and how close clean frames come to a correction.',
+         committed=('docs/studies/roi_bad_pixels',),
+         docs=('docs/studies/roi_bad_pixels/walkthrough.md', 'docs/studies/roi_bad_pixels/summary.md',
+               'docs/COMPARISONS.md#| C62 |'),
+         data='public', defaults={'--out': OUT},
+         variations=(
+             V('Quick look', 'Every figure from 5 replicates (about 20 s): the pattern, not the decimals.',
+               'docs/studies/roi_bad_pixels/walkthrough.md#30 replicates', reps='5'),
+             V('Synthetic only', 'Without the NX school frames.',
+               'docs/studies/roi_bad_pixels/walkthrough.md#NX school (real, public)', no_nx=True),
+         ),
+         repo_out='docs/studies/roi_bad_pixels', repo_ok=False, seconds=110.0),
+
     Tool('guard_error_walkthrough', 'Walkthrough: why join error bars are too small, from two scans to the verdict '
          '(C61, ELI5)', 'refl', 'figures', 'tests/tools/guard_error_walkthrough.py',
          'The whole chain of the guard\'s-error study, for the owner\'s standing order (2026-11-25): two scans and the '
