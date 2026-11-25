@@ -280,6 +280,7 @@ class MainWindow (QMainWindow):
         self.ui.gidComboBox.addItem('Save to workbook')
         self.initGIDButtons()
         self.initRefProvenance()
+        self.initFresnelButtons()
         self.initTimelineTab()
         self.initCompareTab()
         self.initSpecPointLabels()
@@ -7743,6 +7744,117 @@ class MainWindow (QMainWindow):
             if self.refCovarianceCheckBox.isChecked():
                 self.saveRefCovariance(self.saveFileName)
             self.scriptLine(self.reflectivityScript(self.saveFileName))
+
+    # ---- F79 (owner; tools man's core, lss_core.fresnel): Qc from the subphase, Qoff proposed ----
+
+    def initFresnelButtons(self):
+        """'Subphase ▾' beside Qc and 'Propose' beside Qoff on the Reflectivity
+        tab. Nothing is applied by itself (rule 12): a menu offers the values
+        and the field changes only when one is picked. Qc first: a wrong Qc
+        moves the proposed Qoff one for one (docs/studies/qoff/summary.md)."""
+        from PyQt5.QtWidgets import QToolButton, QPushButton, QMenu
+        from lss_core import fresnel
+        lay=self._layoutHolding(self.ui.refQcLineEdit)
+        qc=QToolButton(self)
+        qc.setObjectName('refQcSubphaseToolButton')
+        qc.setText('Subphase')
+        qc.setPopupMode(QToolButton.InstantPopup)
+        qc.setToolTip('Set Qc from the subphase: its tabulated density gives the electron density and so '
+                      'Qc = 4 sqrt(pi r_e rho_e) (lss_core.fresnel). Set Qc before proposing Qoff: a wrong Qc moves '
+                      'Qoff one for one. The densities are from memory (each entry says its source)')
+        menu=QMenu(qc)
+        for sp in fresnel.SUBPHASES:
+            act=menu.addAction('%s  (Qc %.5f)' % (sp.name,sp.qc))
+            act.setToolTip('%s: %.4f g/cm3 at %g C, %.4f e/A3. Source: %s' % (sp.name,sp.mass_density,
+                           sp.temperature_c,sp.rho_e,sp.source))
+            act.triggered.connect(lambda _=False,v=sp.qc,n=sp.name: self.setRefQc(v,n))
+        menu.addSeparator()
+        act=menu.addAction('From an electron density...')
+        act.triggered.connect(self.refQcFromDensity)
+        menu.setToolTipsVisible(True)
+        qc.setMenu(menu)
+        self.refQcMenu=menu
+        qoff=QPushButton('Propose',self)
+        qoff.setObjectName('refQoffProposePushButton')
+        qoff.setToolTip('Propose Qoff from the reflectivity on show at the Qc in the field (lss_core.fresnel.'
+                        'propose_qoff: a fit of the plateau and the edge, its error by bootstrap over the counting '
+                        'errors; the roughness of ln R/R_F, the by-eye criterion, as a second opinion). A menu '
+                        'offers the values; the field changes only when one is picked. The Qz resolution reads as a '
+                        'slightly negative Qoff; the proposal still makes R/R_F continuous (tools session study)')
+        qoff.clicked.connect(self.proposeRefQoff)
+        if lay is not None:
+            lay.insertWidget(lay.indexOf(self.ui.refQcLineEdit)+1,qc)
+            lay.insertWidget(lay.indexOf(self.ui.refQoffLineEdit)+1,qoff)
+        self.refQcSubphaseToolButton,self.refQoffProposePushButton=qc,qoff
+        self.refQoffMenu=None
+
+    def setRefQc(self,qc,name=''):
+        self.ui.refQcLineEdit.setText('%.5f' % qc)
+        self.notify('Qc %.5f A^-1%s; propose Qoff again if it was proposed at the old Qc.'
+                    % (qc,' for %s' % name if name else ''),title='Reflectivity',level='info')
+        if len(getattr(self,'refData',[])):
+            self.updateRefPlotData()
+
+    def refQcFromDensity(self):
+        from PyQt5.QtWidgets import QInputDialog
+        from lss_core import fresnel
+        text,ok=QInputDialog.getText(self,'Qc from the electron density',
+                                     'Electron density of the subphase (e/A3; water 0.334):',text='0.3344')
+        if not ok:
+            return
+        try:
+            rho=float(text)
+            if not 0<rho<10:
+                raise ValueError(text)
+        except ValueError:
+            self.notify('Qc not set: %r is not an electron density in e/A3.' % text,title='Reflectivity')
+            return
+        self.setRefQc(fresnel.qc_from_density(rho),'%.4f e/A3' % rho)
+
+    def proposeRefQoff(self):
+        """Fit Qoff on the reflectivity on show and offer the values in a menu."""
+        from PyQt5.QtWidgets import QMenu
+        from lss_core import fresnel
+        try:
+            data=np.asarray(getattr(self,'refData',[]),dtype=float)
+        except ValueError:
+            data=np.zeros((0,3))
+        if data.ndim!=2 or len(data)<5 or data.shape[1]<3:
+            self.notify('Propose Qoff: make a reflectivity first (Ref Patch or Analyze).',title='Reflectivity')
+            return
+        try:
+            qc=float(self.ui.refQcLineEdit.text())
+        except ValueError:
+            self.notify('Propose Qoff: Qc is not a number.',title='Reflectivity')
+            return
+        q,r,e=data[:,0],data[:,1],data[:,2]
+        try:
+            edge=fresnel.propose_qoff(q,r,e,qc=qc,method='edge',bootstrap=50)
+            smooth=fresnel.propose_qoff(q,r,e,qc=qc,method='smooth',bootstrap=0)
+        except (ValueError,np.linalg.LinAlgError) as err:
+            self.log.info('Qoff not proposed: %s',err,exc_info=True)
+            self.notify('Propose Qoff: %s' % err,title='Reflectivity')
+            return
+        self.notify('Proposed: %s' % edge.note,title='Reflectivity',level='info')
+        menu=QMenu(self)
+        for prop,what in ((edge,'edge fit'),(smooth,'roughness')):
+            if not prop.ok:
+                act=menu.addAction('%s: %s' % (what,prop.note[:80]))
+                act.setEnabled(False)
+                continue
+            text=('Use %+.5f +/- %.5f (%s)' % (prop.qoff,prop.sigma,what) if prop.sigma
+                  else 'Use %+.5f (%s, a second opinion)' % (prop.qoff,what))
+            act=menu.addAction(text)
+            act.setToolTip(prop.note)
+            act.triggered.connect(lambda _=False,v=prop.qoff: self.setRefQoff(v))
+        menu.setToolTipsVisible(True)
+        self.refQoffMenu=menu
+        self.refQoffProposal=(edge,smooth)
+        menu.exec_(self.refQoffProposePushButton.mapToGlobal(self.refQoffProposePushButton.rect().bottomLeft()))
+
+    def setRefQoff(self,qoff):
+        self.ui.refQoffLineEdit.setText('%.5f' % qoff)
+        self.updateRefPlotData()
 
     def exportSample(self):
         """The sample of the reflectivity on show, from the macro that ran its

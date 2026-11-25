@@ -351,10 +351,8 @@ REFLECTIVITY = {
             C('pilRefPatchPushButton', 'Patch'),
         ]),
         G('Result', 'Result', [
-            NEW('ref_subphase', 'Subphase', 'combo', 'Sets Qc and the electron density (F79)',
-                items=['water', 'D₂O', 'other…']),
-            ROW(C('refQcLineEdit', 'Qc (1/Å)'), NEW('ref_rho', 'ρe 0.334 e/Å³', 'label', 'F79')),
-            ROW(C('refQoffLineEdit', 'Qoff (1/Å)'), NEW('ref_proposeQoff', 'Propose', 'button', 'F79')),
+            ROW(C('refQcLineEdit', 'Qc (1/Å)'), C('refQcSubphaseToolButton', 'Subphase ▾')),
+            ROW(C('refQoffLineEdit', 'Qoff (1/Å)'), C('refQoffProposePushButton', 'Propose')),
             ROW(C('refNormFacCheckBox', 'Divide by'), C('refNormLineEdit', '')),
         ]),
         G('Display', 'Display', [

@@ -433,6 +433,8 @@ INVENTORY = {
     'refSaveWorkbookPushButton': ('button', 'Save', 'Reflectivity > bottom', "Saves R and R/RF with recipe into the SPEC file's workbook, asking for a note"),
     'refQcLineEdit': ('lineedit', 'Qc:', 'Reflectivity > bottom', 'Critical Qz used for the plateau normalisation and for R_F'),
     'refQoffLineEdit': ('lineedit', 'Qoff:', 'Reflectivity > bottom', 'Qz offset added before dividing by R_F'),
+    'refQcSubphaseToolButton': ('button', 'Subphase', 'Reflectivity > bottom, right of Qc', "A menu of subphases (water, D2O, salt solutions) that sets Qc from each one's tabulated density, and 'From an electron density...' for a typed one"),
+    'refQoffProposePushButton': ('button', 'Propose', 'Reflectivity > bottom, right of Qoff', 'Fits Qoff on the curve on show at the Qc in the field and offers the edge fit (with its error) and the roughness criterion in a menu; picking one sets Qoff and redraws'),
     'refRRFCheckBox': ('checkbox', 'R/RF', 'Reflectivity > bottom', 'Plots R divided by the Fresnel reflectivity (and makes the data that _rrf.txt exports)'),
     'refLogYCheckBox': ('checkbox', 'LogY', 'Reflectivity > bottom', 'Log y axis'),
     'refQzSqrCheckBox': ('checkbox', 'Qz^2', 'Reflectivity > bottom', 'Plots against Qz squared'),

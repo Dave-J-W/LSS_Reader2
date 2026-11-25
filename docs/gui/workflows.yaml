@@ -676,16 +676,16 @@ workflows:
       - id: ref.view
         do: The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files
         where: Reflectivity tab (Ref / Norm Ref lists, plot)
-        controls: [refDataListWidget, refNormRefListWidget, refProvenanceLabel, refRRFCheckBox, refQcLineEdit, refQoffLineEdit, refLogYCheckBox, refQzSqrCheckBox, refNormFacCheckBox, refNormLineEdit, refDelPushButton, refRefFileListWidget, refAddFilePushButton, refRemoveFilePushButton, refLegendCheckBox]
+        controls: [refDataListWidget, refNormRefListWidget, refProvenanceLabel, refRRFCheckBox, refQcLineEdit, refQcSubphaseToolButton, refQoffLineEdit, refQoffProposePushButton, refLogYCheckBox, refQzSqrCheckBox, refNormFacCheckBox, refNormLineEdit, refDelPushButton, refRefFileListWidget, refAddFilePushButton, refRemoveFilePushButton, refLegendCheckBox]
         user_decides: "Qc (0.0217 preset: water, the same Qc at every energy, physics_notes 2026-11-23; changed for lighter or denser subphases); Qoff tweaked until R/R_F is continuous apart from one or two outliers (owner 2026-11-23); reference curves to compare"
         automatic: partly
-        could_be_automatic: Qoff proposed from the continuity of R/R_F across the joins, Qc from the subphase (F79); Qoff from the sh-scan images (F42)
-        known_from: code (updateRefPlotData); test tests/test_gui_workflows.py (tab 3 after Finish); owner 2026-11-23
+        could_be_automatic: "Qoff proposed and Qc from the subphase are offered by Propose and Subphase (F79, 2026-11-25), never applied by themselves (rule 12: a default only after real-data checks); Qoff from the sh-scan images (F42)"
+        known_from: code (updateRefPlotData, proposeRefQoff); tests tests/test_gui_workflows.py (tab 3 after Finish), tests/test_gui_fresnel_propose.py; owner 2026-11-23
         decision: "R/R_F continuous?"
         goto: {"no: change Qoff or Qc": ref.view}
         issues:
           - "Qc and Qoff change the R/R_F file but are typed fields among display options"
-          - "Qoff is found by trial: type, press Enter, look, repeat"
+          - "Qoff is found by trial: type, press Enter, look, repeat (eased 2026-11-25: Propose offers the fitted value)"
       - id: ref.export
         do: Export - <name>_ref.txt and <name>_rrf.txt (Q, R, sigma); the Script pane records exp.reflectivity(...)
         where: Reflectivity tab > Export

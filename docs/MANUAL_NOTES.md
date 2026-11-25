@@ -120,8 +120,13 @@ Each line: feature — where — default — script — notes entry (date).
   Qoff from the data (the edge fit by default; the smoothness of R/R_F as
   the owner judges it by eye) with its error, and gives Qc from the
   subphase (a list of densities with their sources, or a typed electron
-  density). It proposes; it never applies. The window's "Propose" buttons
-  beside Qoff and Qc are the GUI manager's (F96). Notes for the manual:
+  density). It proposes; it never applies. In the window (2026-11-25):
+  "Subphase" right of Qc is a menu of subphases (each entry's tooltip
+  gives its density and source) and "From an electron density..."; it
+  sets Qc when an entry is picked. "Propose" right of Qoff fits the curve
+  on show at the Qc in the field and offers two values in a menu, the
+  edge fit with its error and the roughness criterion as a second
+  opinion; Qoff changes only when one is picked. Notes for the manual:
   the Qz resolution reads as a slightly negative Qoff, and a wrong Qc
   moves Qoff by the same amount, so set Qc from the subphase first
   (`docs/studies/qoff/summary.md`).
