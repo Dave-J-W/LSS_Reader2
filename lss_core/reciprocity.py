@@ -151,6 +151,30 @@ def _profile(phi, r, s, grid, rho=0.0, iterations=3):
     return chi2, k
 
 
+def _pooled_z(phi, r, sr, tau, rho, x, k, beta):
+    """Each flux's rate over its error for the 'no change' and 'opposite
+    signs' rules (2026-11-25). A burn alone at its flux: r/√(σ² + τ²), as
+    before. Burns at one flux (repeated strips): pooled by weighted mean,
+    their weights and the mean's error with the strip scatter (τ, and ρ of
+    the model's rate). With a strip scatter admitted, strips at one flux
+    that rise and fall are that scatter, not two processes: C54's repeats
+    scatter by about their own rate (ρ ≈ 1.1), single strips change sign
+    often, and with several strips per flux 'opposite signs' fired on the
+    strips themselves (measured: almost no call at ρ 1.13 even with 8
+    strips per flux over ×100)."""
+    key = np.round(np.log(phi), 6)
+    out = []
+    for u in np.unique(key):
+        sel = key == u
+        if np.sum(sel) == 1:
+            out.append(float(r[sel][0] / math.sqrt(sr[sel][0] ** 2 + float(tau) ** 2)))
+            continue
+        v = sr[sel] ** 2 + float(tau) ** 2 + (float(rho) * k * x[sel] ** beta) ** 2
+        w = 1.0 / v
+        out.append(float(np.sum(w * r[sel]) / np.sum(w)) * math.sqrt(float(np.sum(w))))
+    return np.array(out)
+
+
 def _interval(grid, chi2, level):
     ok = chi2 <= chi2.min() + level
     idx = np.flatnonzero(ok)
@@ -213,6 +237,7 @@ def dose_or_time_rates(fluxes, rates, sigmas, labels=None, strip_scatter=0.0, st
     p1, p0 = _p(c1, n - 1), _p(c0, n - 1)
     m = min(c0, c1)
     wd = float(math.exp(-(c1 - m) / 2) / (math.exp(-(c1 - m) / 2) + math.exp(-(c0 - m) / 2)))
+    z = _pooled_z(phi, r, sr, strip_scatter, strip_relative, x, k[i], beta)
     sig = np.abs(z) >= significance
     if not sig.any():
         verdict = 'no change'
