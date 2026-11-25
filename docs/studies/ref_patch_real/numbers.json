@@ -1,0 +1,17 @@
+{
+ "files": 18,
+ "sets": 380,
+ "joins": 1832,
+ "energies": {
+  "10 keV": 1832
+ },
+ "default_vs_legacy_abs_diff_pct_p50_p90_p99": [
+  0.09265560871658529,
+  1.0325001568218803,
+  24.790383337515305
+ ],
+ "default_vs_legacy_frac_gt_1pct": 0.1023535851122058,
+ "default_vs_legacy_frac_gt_5pct": 0.041050903119868636,
+ "p07_vs_p03_frac_identical": 0.6748768472906403,
+ "p07_vs_p03_frac_gt1sigma": 0.037219485495347565
+}

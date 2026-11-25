@@ -348,6 +348,21 @@ TOOLS = (
                        'study; the default\'s pulls no longer match the gauntlet\'s exactly.',
                        'tests/tools/ref_patch_biased_joins.py', replicates='100', covariance_seeds='100'),),
          repo_out='docs/comparisons_data/ref_patch_biased_joins', seconds=15),
+    Tool('coincidence_synth', 'Do joins need coincident Qz? (synthetic)', 'refl', 'figures',
+         'tests/tools/coincidence_synth.py',
+         'Two synthetic scans of known curves meeting at a join with no overlap, k coincident points, a '
+         'staggered overlap or a coarser second grid, fitted by every patching method and scored against the '
+         'truth: bias, pull SD, error size, share answered.',
+         committed=('docs/studies/coincident_points',),
+         docs=('docs/studies/coincident_points/summary.md', 'docs/COMPARISONS.md#| C57 |'),
+         defaults={'--out': OUT, '--trials': '200'},
+         variations=(
+             V('Example fits only', 'Figure C1 alone: one join per geometry, in a second or two.',
+               'docs/studies/coincident_points/summary.md### The test', examples=True),
+             V('More trials', '1000 joins per cell: the pooled biases to about ±0.02 %.',
+               'docs/studies/coincident_points/summary.md### The answer', trials='1000'),
+         ),
+         repo_out='docs/studies/coincident_points', seconds=10),
     Tool('qoff_study', 'Qoff and Qc of R/R_F: the proposer\'s study (F79)', 'refl', 'figures',
          'tests/tools/qoff_study.py',
          'Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and '
@@ -902,6 +917,27 @@ TOOLS = (
                       'agent\'s private generator (sample_data/private/sh_beam/); not regenerable here; the numbers '
                       'behind the figures are the CSVs beside them.',
          committed=('docs/studies/sh_beam_size',), docs=('docs/studies/sh_beam_size/summary.md', 'docs/studies/sh_beam_size/height_scans.md'),
+         data='private', repo_ok=False),
+    Tool('xr_burns', 'Real reflectivity burns: trends, dose or time (private data)', 'external', 'external',
+         demonstrates="The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): the drift "
+                      'rate against flux and the dose-or-time verdicts per series. Made by the non-cloud '
+                      "agent's private generator (sample_data/private/xr/); not regenerable here; the numbers "
+                      'are the CSVs beside them. The frame-by-frame curves (B1) are private (owner, 2026-11-25).',
+         committed=('docs/studies/xr_burns',), docs=('docs/studies/xr_burns/summary.md',),
+         data='private', repo_ok=False),
+    Tool('qz_resolution', 'Qz resolution near the critical edge (private data)', 'external', 'external',
+         demonstrates="The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NEEDS row 13, "
+                      "F79): the resolution per run and S1 gap, the fit's sensitivity, a known-truth check and the "
+                      "coverage of the fits' errors. Made by the non-cloud agent's private generator "
+                      "(sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them.",
+         committed=('docs/studies/qz_resolution',), docs=('docs/studies/qz_resolution/summary.md',),
+         data='private', repo_ok=False),
+    Tool('ref_patch_real', 'Reflectivity patching on real series (private data)', 'external', 'external',
+         demonstrates="Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per "
+                      "method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the "
+                      "non-cloud agent from tests/tools/ref_patch_survey.py on private files; not regenerable here; "
+                      "the numbers are the CSVs beside the figure.",
+         committed=('docs/studies/ref_patch_real',), docs=('docs/studies/ref_patch_real/summary.md',),
          data='private', repo_ok=False),
 )
 

@@ -57,6 +57,7 @@ container on 2026-11-23 with the defaults shown.
 | [Fit demonstrator report figures](#patch-demo-figures) | figures | The six figures, numbers.json and summary CSVs of the fit demonstrator report (200 replicates per survey). | synthetic (public) |  | `docs/figures/patch_demo` |
 | [Patching gauntlet (synthetic, judged)](#ref-patch-gauntlet) | data | Every patching method on many noise replicates of synthetic reflectivity under many conditions, judged by hand-off 08's rules (\|mean pull\| < 0.2, pull SD 0.9-1.15). | synthetic (public) |  | `docs/comparisons_data/ref_patch_gauntlet` |
 | [Why five gauntlet joins are biased (extension 4)](#ref-patch-biased-joins) | data | The default joint fit's five biased designed joins and the covariance study's first join, redrawn with the gauntlet's seeds and fitted with the guard off, other orders and windows, noise-free. | synthetic (public) | 15 s | `docs/comparisons_data/ref_patch_biased_joins` |
+| [Do joins need coincident Qz? (synthetic)](#coincidence-synth) | figures | Two synthetic scans of known curves meeting at a join with no overlap, k coincident points, a staggered overlap or a coarser second grid, fitted by every patching method and scored against the truth: bias, pull SD, error size, share answered. | synthetic (public) | 10 s | `docs/studies/coincident_points` |
 | [Qoff and Qc of R/R_F: the proposer's study (F79)](#qoff-study) | figures | Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and least squares) and the joint Qc + Qoff fit against the truth over offsets, samples, counts, outliers, resolution, a wrong Qc and the reader's patch; the NX school scans at the GUI's preset and at the proposals: figures Q1-Q5. | public (NX school or committed tables) |  | `docs/studies/qoff` |
 | [Study A: how strict the joint fit's guard should be](#ref-guard-study) | figures | The guard's p from 0.001 to 0.9, the guard off, an AICc average and the legacy factor on C45's six joins (C45 reproduced first), a downstream fit, the NX school joins beside the foil ratio, and a robustness map over fringe sampling and counts, on coinciding and staggered grids: figures A1-A8, R and RS. | public (NX school or committed tables) | 54 s | `docs/studies/reflectivity_guard` |
 | [Patching methods on real scans (survey)](#ref-patch-survey) | data | Every patching method at every join of a SPEC file's reflectivity series; split scans give known truth on real curves; repeated scans give empirical pulls. | NX school by default; any SPEC file | 1 s | `docs/comparisons_data/ref_patch_nx` |
@@ -127,6 +128,9 @@ container on 2026-11-23 with the defaults shown.
 |---|---|---|---|---|---|
 | [Absorber steps and foils (hand-off 03 answer)](#absorber-answer-figures) | external | Figures of the owner's analysing repository (tools/absorber_steps.py, absorber_review.py, absorber_trust.py) from private data: measured steps, foil fits, the review of anomalous joins. Not regenerable here; the numbers behind them are in figdata/ and joins.csv. | private (not in the repository) |  | `docs/handoff_out/03-answer/figures` |
 | [sh-scan beam size (private data)](#sh-beam-size) | external | The beam's vertical profile at the sample from the rising edge of every height scan and the direct beam in their Pilatus images (DATA_NEEDS row 9, OQ-2): sigma against the S1 gap, the core + tail profile, the factor to the dose height, a liquid half-cut; single height scans with their fits, the guards, rise against fall and what the meniscus does. Made by the non-cloud agent's private generator (sample_data/private/sh_beam/); not regenerable here; the numbers behind the figures are the CSVs beside them. | private (not in the repository) |  | `docs/studies/sh_beam_size` |
+| [Real reflectivity burns: trends, dose or time (private data)](#xr-burns) | external | The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): the drift rate against flux and the dose-or-time verdicts per series. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. The frame-by-frame curves (B1) are private (owner, 2026-11-25). | private (not in the repository) |  | `docs/studies/xr_burns` |
+| [Qz resolution near the critical edge (private data)](#qz-resolution) | external | The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NEEDS row 13, F79): the resolution per run and S1 gap, the fit's sensitivity, a known-truth check and the coverage of the fits' errors. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/qz_resolution` |
+| [Reflectivity patching on real series (private data)](#ref-patch-real) | external | Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the non-cloud agent from tests/tools/ref_patch_survey.py on private files; not regenerable here; the numbers are the CSVs beside the figure. | private (not in the repository) |  | `docs/studies/ref_patch_real` |
 
 ## Items
 
@@ -350,6 +354,26 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Fewer replicates | A quick look: 100 replicates per join and 100 seeds of the covariance study; the default's pulls no longer match the gauntlet's exactly. | `tests/tools/ref_patch_biased_joins.py` | `python tests/tools/ref_patch_biased_joins.py --out '{out}' --replicates 100 --covariance-seeds 100` |
+
+<a id="coincidence-synth"></a>
+
+### Do joins need coincident Qz? (synthetic)
+
+Two synthetic scans of known curves meeting at a join with no overlap, k coincident points, a staggered overlap or a coarser second grid, fitted by every patching method and scored against the truth: bias, pull SD, error size, share answered.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/coincidence_synth.py`
+- Explained in: `docs/studies/coincident_points/summary.md`, `docs/COMPARISONS.md#| C57 |`
+- Committed products: `docs/studies/coincident_points`; replaced from the window with the settings that made them (into `docs/studies/coincident_points`)
+- Run:
+
+      python tests/tools/coincidence_synth.py --out '{out}' --trials 200
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Example fits only | Figure C1 alone: one join per geometry, in a second or two. | `docs/studies/coincident_points/summary.md### The test` | `python tests/tools/coincidence_synth.py --out '{out}' --trials 200 --examples` |
+| More trials | 1000 joins per cell: the pooled biases to about ±0.02 %. | `docs/studies/coincident_points/summary.md### The answer` | `python tests/tools/coincidence_synth.py --out '{out}' --trials 1000` |
 
 <a id="qoff-study"></a>
 
@@ -1103,6 +1127,36 @@ The beam's vertical profile at the sample from the rising edge of every height s
 - Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
 - Explained in: `docs/studies/sh_beam_size/summary.md`, `docs/studies/sh_beam_size/height_scans.md`
 - Committed products: `docs/studies/sh_beam_size`; not replaced from the window
+
+<a id="xr-burns"></a>
+
+### Real reflectivity burns: trends, dose or time (private data)
+
+The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): the drift rate against flux and the dose-or-time verdicts per series. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. The frame-by-frame curves (B1) are private (owner, 2026-11-25).
+
+- Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
+- Explained in: `docs/studies/xr_burns/summary.md`
+- Committed products: `docs/studies/xr_burns`; not replaced from the window
+
+<a id="qz-resolution"></a>
+
+### Qz resolution near the critical edge (private data)
+
+The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NEEDS row 13, F79): the resolution per run and S1 gap, the fit's sensitivity, a known-truth check and the coverage of the fits' errors. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them.
+
+- Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
+- Explained in: `docs/studies/qz_resolution/summary.md`
+- Committed products: `docs/studies/qz_resolution`; not replaced from the window
+
+<a id="ref-patch-real"></a>
+
+### Reflectivity patching on real series (private data)
+
+Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the non-cloud agent from tests/tools/ref_patch_survey.py on private files; not regenerable here; the numbers are the CSVs beside the figure.
+
+- Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
+- Explained in: `docs/studies/ref_patch_real/summary.md`
+- Committed products: `docs/studies/ref_patch_real`; not replaced from the window
 
 ## The Tools window
 
