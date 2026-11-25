@@ -6550,3 +6550,42 @@ The window side of main man's `lss_core.dose` (#52, #63) and tools man's
 
 Verified by: tested (`tests/test_gui_burn_dose.py`, 5 quick and 1 slow on
 NX).
+
+### 2026-11-25 — F107: the timeline's sx line coloured by the dose received
+
+The owner's Q-TL-7 (2026-11-24): the sx trace "coloured by the radiation
+dose per area received at each position, scaled by the dose per area of
+the relevant burn test (so colour says how close a spot is to the damage
+threshold)". Built (`lss_core.timeline.dose_track`, the Timeline's Dose
+switch):
+- **Each scan's dose** per mm² of footprint (`Experiment.dose`, photons)
+  is added to the spot its sx is at, in time order. Positions within half
+  the beam's width are one spot.
+- **The scale** is the dose per mm² at which a burn test changes by 5 %
+  (`Experiment.burn(axis='dose')`, its 95 % confident `safe_time`), or the
+  burn's own dose as a lower bound when it does not change. The burn is
+  the sample's own, between the same two "new sample?" guesses (a set sh 0
+  not answered "same sample"), else the nearest in time.
+- **Why the beam's size does not matter:** a spot's dose and the burn's are
+  both divided by the same footprint area w·h/sin α, apart from each
+  scan's sin α, so their ratio depends on the angles only. That holds when
+  one beam is used for the file (assumed). The window uses 1 mm (or the
+  burn dialog's width) and the file's beam height.
+- **Measured on NX school** (beam 1 mm × the height from its sh scans):
+  - burn 14 changes by 5 % (intensity) at 1.26 × 10¹² photons/mm², burn 15
+    (width) at 1.87 × 10¹²; these are confident bounds, not lower bounds;
+  - scans 1–4 (before the set sh 0) have no burn of their own and are
+    scaled by 14, the nearest in time;
+  - the four reflectivity scans at sx 16 bring that spot to about the
+    burn's dose (drawn red), and the burns' spot at sx 10 to about twice it.
+    So on this sample, a whole reflectivity series gives about the dose a
+    burn needs to change by 5 %.
+- **Assumptions** (asked through questor, 2026-11-25): which burn is the
+  sample's own; that Sample_X moves across the beam, so the width sets the
+  spot; that sample-height scans count in full, although the beam is
+  only partly on the sample during them.
+
+Verified by: tested (`tests/test_timeline_dose.py`, 7, with known truth;
+`tests/test_gui_timeline_dose.py`, 2 quick and 1 slow on NX); the NX numbers
+were measured by the slow test and read from its picture
+(`docs/gui/screens/14b_timeline_dose.png`).

@@ -763,6 +763,7 @@ RETIRED = {
     'timelineTab': 'Built in the main window first (owner, 2026-11-24); ngui is to show the same view, timelineview.TimelineView',
     'timelineView': 'The main window\'s Timeline tab (F83); ngui is to reuse it',
     'timelineFitPushButton': 'Part of the main window\'s Timeline tab (F83)',
+    'timelineDoseCheckBox': 'Part of the main window\'s Timeline tab (F107)',
     'timelineInfoLabel': 'Part of the main window\'s Timeline tab (F83)',
     'pilRoiPanel': 'One ROI close-up in this layout (Reflectivity > ROI close-up); the main window also has it beside the frame',
     'pilRoiLogCheckBox': 'One ROI close-up in this layout: its Log box is Reflectivity > ROI close-up > Log',

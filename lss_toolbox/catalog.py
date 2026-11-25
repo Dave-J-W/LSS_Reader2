@@ -897,7 +897,8 @@ TOOLS = (
          data='public', defaults={'--out': OUT},
          variations=(V('Quick (skip the slow areas)', 'Leaves out Ref Patch, GID patch, cuts and burn on the real '
                        'data.', 'tests/tools/gui_screens.py', skip_slow=True),),
-         inputs=UI + ('docs/gui/screens/README.md',), seconds=None),
+         inputs=UI + ('docs/gui/screens/README.md',), seconds=None,
+         volatile=(r'last run took', r'drawing took [0-9.]+ s')),          # README.md's timings
     Tool('plot_speed_mca', 'Plot speed: MCA spectra', 'gui', 'text',
          'tests/tools/plot_speed.py',
          'How long the real window takes to plot N MCA spectra (linear and log y, and switching log y on) on '
