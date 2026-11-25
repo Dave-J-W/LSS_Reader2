@@ -877,6 +877,13 @@ TOOLS = (
                       'behind the figures are the CSVs beside them.',
          committed=('docs/studies/sh_beam_size',), docs=('docs/studies/sh_beam_size/summary.md', 'docs/studies/sh_beam_size/height_scans.md'),
          data='private', repo_ok=False),
+    Tool('gid_stray_light_private', 'GID stray light over many sets (private data)', 'external', 'external',
+         demonstrates='P40 on every private GID set (DATA_NEEDS row 10): light past S5 and beyond the footprint at '
+                      'both arm heights, per beamtime, and the beam-path background from frames with the sample '
+                      'lowered. Made by the non-cloud agent\'s private generator (sample_data/private/gid/); not '
+                      'regenerable here; the numbers behind the figures are the CSVs beside them.',
+         committed=('docs/studies/gid_stray_light',), docs=('docs/studies/gid_stray_light/summary.md',),
+         data='private', repo_ok=False),
 )
 
 BY_ID = {t.id: t for t in TOOLS}

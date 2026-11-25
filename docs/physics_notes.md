@@ -6049,3 +6049,26 @@ removal of its figure B1) and checking its arithmetic here; nothing measured by 
   - the Refl1D guide to resolution in reflectometry, on the angular and wavelength terms and their
     convolution with the model, https://refl1d.readthedocs.io/en/latest/guide/resolution.html.
 
+
+### 2026-11-24 — Stray light and beam-path background in pinhole GID frames, on the private data (DATA_NEEDS row 10, P40)
+
+Verified by: measurement on private data by the non-cloud agent (every inferred GID set with frames: 189
+sets, 286 Qz levels, 18 beamtimes; and one beamtime's off-specular frames with the sample lowered). Study:
+`docs/studies/gid_stray_light/summary.md`.
+
+- **What exists of what row 10 asked for:** no GID set of a bare subphase and no GID frames with the sample
+  lowered; 94 same-slit, same-absorber level pairs (arm level and raised to β0 6.5°), of which only 4–6 are
+  nearly free of GID signal; S5 is the same at both heights in every pair (never nearly closed at the raised
+  arm); the lower level was repeated after the upper in 26 pairs. One beamtime's off-specular scans include 7
+  with the sample lowered 2 mm and the same slits.
+- **P40b, the streak past S5's high edge at the raised arm, is in every beamtime:** 31× the level arm's light in
+  those columns (median of 94 pairs; 16–84 % 13–110×; beamtime medians 7–146×); none past S5's low edge
+  (0.77×). The P39 decision to keep IDL's high edge on raised-arm frames stays right; a fixed mask width would
+  not fit every beamtime.
+- **P40a:** beyond the footprint but inside S5, 0.41 of the usable columns' light near the horizon at the level
+  arm (0.33–0.50), 1.34× more at the raised arm; below the horizon 1.6 % in the usable columns and 22 % beyond the
+  footprint. The usable columns see the same light at both heights at β 5–9° (0.93×).
+- **Beam path alone** (sample lowered, off-specular geometry, not GID): 10–14 % of the frame near the horizon,
+  33–49 % at β 3–6°, flat in β.
+- **No reader number changes.** P40 stays open; subtracting P40a needs GID background frames that the data do
+  not hold (same slits, sample lowered, both arm heights).

@@ -35,7 +35,7 @@ working list, one table per area, each row with its source. Rows marked
 |---|---|
 | Final defaults from many data sets (distance, response, joins) | hand-off 06; input 19 |
 | ~~Scan join against everything joined so far~~ **done 2026-11-22** (P41) | P41 |
-| Stray light, streak mask, background frames | P40; input 17 |
+| Stray light, streak mask, background frames: sizes measured on 94 private level pairs (2026-11-24, `docs/studies/gid_stray_light/`); background frames still to be taken at a beamtime | P40; input 17 |
 | Exact angles for cut axes, display, distance fit | P38 remainder |
 | ~~Legacy three-level map (synthetic three-level set)~~ **fixed 2026-11-23** | P36, P37 (= P14, P15, P31) |
 | Second 200K module | F63, D43; input 3 |
@@ -364,7 +364,7 @@ stated assumption until the answer arrives.
 | 14 | P7 Merge: kept as is (owner). Merge window and XFNTR merging: the owner's rule is F65 (match within 0.1 × grid step, jitter 3e-5 1/Å in the errors, grouping, never across runs); its edge estimator is backlog. `S1T + S1T`: fixed. Per-point MCA files: to be handled (owner: yes, 2026-11-19); channels and dead time answered (D48, D49) | F65, per-point MCA | — |
 | 15 | ~~P39~~: decided 2026-11-19 (D51), exact window to the S4 ramps' inner edges; IDL's as an option | — | — |
 | 16 | ~~Half-cut sh scans for the beam's vertical profile (F43; owner, 2026-11-19)~~ answered 2026-11-24 from the height scans' rising edges (`docs/studies/sh_beam_size/summary.md`): dose height 0.040 mm at 10 keV, S1 ≤ 0.04 mm; profile core + tail | a measured beam for response 'beam' and for P39 | the profile fitted from the GID data |
-| 17 | GID frames with little signal (mostly background) at both arm heights (P40; owner offered, 2026-11-19) | stray light and beam-path background in GID maps | P40 open |
+| 17 | GID frames with little signal (mostly background) at both arm heights (P40; owner offered, 2026-11-19). **Searched 2026-11-24** (`docs/studies/gid_stray_light/`): none in the private data with the sample lowered; streak and beyond-footprint light measured on 94 pairs; the beam path measured on off-specular frames of one beamtime. Frames taken on purpose are still wanted | stray light and beam-path background in GID maps | P40 open |
 | 18 | GID overlap pixels: ΣN/ΣW (built) vs IDL's error-weighted mean (the owner chose "as the IDL code does", 2026-11-18; the error weights are biased at low counts, IDL review) | GID map values | ΣN/ΣW, to confirm |
 | 19 | ~~S4–detector distance (P43)~~: calibrate from single frames (owner, 2026-11-21): built (5fbebf8), worksheet Fit; automatic calibration and the final GID defaults: large-data survey, `docs/handoff_out/06-gid-method-comparison.md` | — | header value until Fit |
 
