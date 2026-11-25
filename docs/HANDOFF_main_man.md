@@ -94,7 +94,9 @@ Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam heigh
    joins miss by > 5 oracle errors, hidden by inflated errors); 4σ clipping cuts it to 0.6 % and reaches the
    oracle; σ × 1.12 ⊕ X fixes the core at 14–17 % wider errors; X by Qz or by counts is open (NX scan 9 says
    counts). **Next:** DATA_NEEDS 17 (the arms on C56's 1091 real splits, by the local agent), then the core
-   option in `patching` (clipping first), tests, the owner's word, rule 12.
+   option in `patching` (clipping first), tests, the owner's word, rule 12. When it switches, tell the GUI
+   manager the function: `reflectivity.join_fit_residuals` (#100, F74, invariant I45: Σ r² = the reported χ²)
+   must follow the fit's points and weights, so the Ref Patch residual panel and its label keep agreeing.
 1b. **C61's remedy: an excess term in the per-point error budget** (`lss_core.errors`, budget mode).
    - **The finding:** C61 showed the real-data under-coverage of the join error (C56: pull SD 1.24) is
      reproduced by 1 % of hidden per-point scatter. Join-level inflations fail at fringed joins; honest
