@@ -29,6 +29,7 @@ OUT = '{out}'
 RECORD = 'run.json'
 TRACE = 'trace.json'
 STDOUT = 'output.txt'
+ERRORS = 'errors.txt'
 IMAGES = ('.png', '.jpg', '.jpeg', '.svg', '.gif')
 TEXTS = ('.md', '.txt', '.csv', '.json', '.log')
 
@@ -314,7 +315,7 @@ def read_record(run_dir):
         return None
 
 
-def outputs(folder, skip=(RECORD, TRACE, 'preferences.json')):
+def outputs(folder, skip=(RECORD, TRACE, ERRORS, 'preferences.json')):
     """(images, texts): files under ``folder`` (recursive, relative paths,
     sorted), the run's own bookkeeping and logs left out."""
     images, texts = [], []
@@ -376,6 +377,14 @@ def default_args(item, spec, out_dir, committed=False):
     return build_args(spec, vals, out_dir, free=item.free)
 
 
+class _Nothing:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, *a):
+        return False
+
+
 def read_trace(run_dir):
     """What a traced run used ({'modules': [...], 'reads': [...]}, paths
     relative to the repository), or None when the run was not traced or
@@ -387,14 +396,16 @@ def read_trace(run_dir):
         return None
 
 
-def run_item(item, spec, timeout=3600, committed=False, extra_env=None, run_dir=None):
+def run_item(item, spec, timeout=3600, committed=False, extra_env=None, run_dir=None, split_stderr=False):
     """Run ``item`` with its defaults (``committed``: with the settings of
     its committed products) into a new run folder, without a window
     (``python -m lss_toolbox --audit``), through ``lss_toolbox.trace``
     (``trace.json`` in the run folder: what it imported and read); returns
     (run folder, exit code). ``extra_env``: variables added to the run's
     environment (the audit's stamp run sets ``compare.STAMP_ENV``);
-    ``run_dir``: this folder instead of a new one."""
+    ``run_dir``: this folder instead of a new one; ``split_stderr``: what
+    it prints to stderr goes to ``errors.txt``, so that ``output.txt`` is
+    its printed product alone (a text item, as ``repo_stdout``)."""
     import subprocess
     if run_dir is None:
         run_dir = new_run_dir(item.id)
@@ -405,11 +416,12 @@ def run_item(item, spec, timeout=3600, committed=False, extra_env=None, run_dir=
     args = default_args(item, spec, run_dir, committed)
     started = datetime.datetime.now().isoformat(timespec='seconds')
     write_record(run_dir, item.id, item.script, args, started)
-    with open(os.path.join(run_dir, STDOUT), 'w', encoding='utf-8') as f:
+    with open(os.path.join(run_dir, STDOUT), 'w', encoding='utf-8') as f, \
+            open(os.path.join(run_dir, ERRORS), 'w', encoding='utf-8') if split_stderr else _Nothing() as fe:
         try:
             r = subprocess.run([interpreter(), '-m', 'lss_toolbox.trace', os.path.join(run_dir, TRACE), '--',
-                                os.path.join(ROOT, item.script)] + args, cwd=ROOT,
-                               env=env, stdout=f, stderr=subprocess.STDOUT, timeout=timeout)
+                                os.path.join(ROOT, item.script)] + args, cwd=ROOT, env=env, stdout=f,
+                               stderr=fe if split_stderr else subprocess.STDOUT, timeout=timeout)
             code = r.returncode
         except subprocess.TimeoutExpired:
             code = -9

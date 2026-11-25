@@ -37,7 +37,9 @@ so don't drift"):
   and text apart from how they were run (the command line they echo, their
   timings, the lines an item names as `volatile`), and a figure that prints
   its git revision apart from that stamp (found by a second run with a dummy
-  revision, `LSS_TOOLS_REVISION`). This is the measured staleness; the last
+  revision, `LSS_TOOLS_REVISION`); a text item's printed output against its
+  committed file, and a check item by its exit code. This is the measured
+  staleness; the last
   audit is `docs/reports/tools_audit.md`. With `--record` it keeps, for each item
   whose products matched, the fingerprints of the modules the run actually
   imported, the files it read and the products it reproduced, in

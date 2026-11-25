@@ -34,7 +34,11 @@ def stale_report():
     return rows
 
 
-SKIP_TEXT = ('output.txt', 'log.txt', 'run.json')     # run logs, timings: differ by nature
+SKIP_TEXT = ('output.txt', 'errors.txt', 'log.txt', 'run.json')     # run logs, timings: differ by nature
+AUDITED = ('figures', 'data', 'text', 'check')
+# 'text': its printed output is its product (``repo_stdout``); 'check': it checks that its committed files
+# are in step with their sources and exits 0 when they are (2026-11-25: controls.md, the GUI map, the ngui
+# inventory, which git flags whenever mainwindow.py changes)
 
 
 def _prints_revision(tool):
@@ -71,7 +75,8 @@ def record_verdict(image_kinds, counts):
 
 def audit(only=None, max_seconds=None, report=None, record=False):
     """Rerun each item that has committed products with the settings that
-    made them (into run folders) and compare: every image with its committed
+    made them (into run folders) and compare (a 'text' item's printed output
+    with its committed file; a 'check' item verified by its exit code): every image with its committed
     counterpart, pixel for pixel, and every table or text file byte for
     byte. Where images differ, the products' own commit is run here too (a
     temporary git worktree), so that a change of code ('code') is told from
@@ -85,7 +90,7 @@ def audit(only=None, max_seconds=None, report=None, record=False):
     ``lss_toolbox/verified.json``; ``--stale`` and the Tools window then
     call them current until one of those changes."""
     from . import compare, introspect, runner, staleness
-    items = [t for t in catalog.TOOLS if t.runnable and t.committed and t.kind in ('figures', 'data')
+    items = [t for t in catalog.TOOLS if t.runnable and t.committed and t.kind in AUDITED
              and (not only or t.id in only)
              and (max_seconds is None or (t.seconds is not None and t.seconds <= max_seconds))]
     specs = introspect.capture_parsers([t.script for t in items])
@@ -102,9 +107,13 @@ def audit(only=None, max_seconds=None, report=None, record=False):
             return compare.tables_same(a, b, volatile=volatile)     # apart from how it was run
 
         st = staleness.product_status(t)
-        run_dir, code = runner.run_item(t, specs[t.script], committed=True)
+        run_dir, code = runner.run_item(t, specs[t.script], committed=True, split_stderr=t.kind == 'text')
         new = runner.product_files(t, run_dir)
         old = runner.product_files(t, 'committed')
+        if t.kind == 'text' and t.repo_stdout:              # what it prints is the committed file
+            new = {os.path.basename(t.repo_stdout): os.path.join(run_dir, runner.STDOUT)}
+        elif t.kind == 'check':                             # exit 0: its committed files are in step
+            new = dict(old) if code == 0 else {}
         counts, notes, differing, matched, missing = {}, [], [], [], []
         for kind in ('image', 'text'):
             def pick(d):

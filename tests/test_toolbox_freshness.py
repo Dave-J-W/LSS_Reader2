@@ -270,3 +270,15 @@ def test_volatile_lines_and_stamps_named_in_the_catalogue():
             assert any(re.search(p, ln) for ln in lines), (t.id, p)
     assert _prints_revision(catalog.get('pinhole_figures')) and _prints_revision(catalog.get('gid_patching_diagrams'))
     assert not _prints_revision(catalog.get('burn_figures'))
+
+
+def test_the_audit_verifies_a_check_item(tmp_path, monkeypatch):
+    """A 'check' item (gui_map --check) is verified by its exit code, so
+    the files it keeps in step are in the record too (2026-11-25: git
+    flagged controls.md, the GUI map and the ngui inventory whenever
+    mainwindow.py changed; all three were current)."""
+    from lss_toolbox import __main__ as cli
+    monkeypatch.setenv('LSS_READER_TOOLS_DIR', str(tmp_path / 'runs'))
+    lines = cli.audit(only=['gui_map'], record=False)
+    row = lines[-1].split(' | ')
+    assert row[0] == '| gui_map' and row[2] == '0' and row[4] == '2 / 0 / 0'
