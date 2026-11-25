@@ -144,6 +144,17 @@ def wait(app, seconds=0.3):
         time.sleep(0.01)
 
 
+def unfocus(d, app):
+    """No control of a window drawn with the keyboard focus: which one has it
+    (a table's first cell, a field) depended on window activation timing
+    offscreen, so dialog shots differed from run to run (the Tools audit,
+    2026-11-25)."""
+    fw = d.focusWidget()
+    if fw is not None:
+        fw.clearFocus()
+        settle(app)
+
+
 def getw(w, name):
     """A control of the window: on the generated ``ui`` or on the window itself."""
     return getattr(w.ui, name, None) or getattr(w, name)
@@ -228,6 +239,7 @@ class Dialogs:
 
     def grab_widget(self, d, name, shows, state):
         settle(self.app)
+        unfocus(d, self.app)
         save_png(d.grab(), name, shows, state)
 
 
@@ -306,6 +318,7 @@ def grab_toplevels(app, before, prefix, shows, state, ctx=None, skip=()):
     k = 0
     for t in new:
         name = prefix if k == 0 else prefix.replace('.png', '%s.png' % chr(ord('a') + k))
+        unfocus(t, app)
         save_png(t.grab(), name, shows if k == 0 else shows + ' (another window opened by the same action)', state)
         k += 1
     return new
