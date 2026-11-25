@@ -149,6 +149,8 @@ ref = exp.reflectivity([6, 7, 8, 9],
                                'sigma_scan': 0.00039, 'width': 0.94, 'nu': 4.0})
 ref = exp.reflectivity([6, 7, 8, 9],
                        errors={'mode': 'budget', 'kind': 'counting', 'f': 0.0, 'sigma_dark': 0.0, 'g': 10.0})
+ref = exp.reflectivity([6, 7, 8, 9], errors={'mode': 'budget', 'counting_scale': 1.12})
+#   the counting part of each point's error x 1.12 (C63's within-scan scale; C64): an option, 1 by default
 ```
 
 Budget applies the monitor's relative uncertainty once to each whole sum

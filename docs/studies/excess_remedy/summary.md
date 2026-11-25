@@ -28,8 +28,10 @@ was not supported:
 - **An X term on every point is the wrong model** for the between-scan part.
 
 **Recommendation (rule 12):**
-1. **Candidate default: σ × 1.12 in the joint fit.** First the arms on C56's real splits (DATA_NEEDS row 17),
-   the core option with tests, and the owner's word (MQ-3).
+1. **Candidate default: σ × 1.12.** The core option is built: `errors={'mode': 'budget', 'counting_scale':
+   1.12}` scales the counting part of each point's error, so the curve's error column and the joins both
+   follow (`test_counting_scale.py`). Before the switch: the arms on C56's real splits (DATA_NEEDS 17a) and the
+   owner's word (MQ-3).
 2. **The between-scan part:** real joins against the calibrated foils (C56's 906), and where C63's wild pairs
    sit (the first point after an absorber change, or minutes apart).
 3. **Clipping only with a guard** (at most one point, chosen by leave-one-out χ², and checked against the
