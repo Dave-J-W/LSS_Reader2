@@ -608,7 +608,7 @@
   "verdict": "same"
  },
  "dump_tooltips": {
-  "commit": "f13ef0d7ee",
+  "commit": "8a5e6b42e0",
   "date": "2026-11-25",
   "environment": {
    "PIL": "12.3.0",
@@ -665,7 +665,7 @@
    "lss_core/stitching.py": "af4e152fd36e0dcf",
    "lss_core/trends.py": "687ff0ee1b74ae3a",
    "lss_core/workbook.py": "def567f7b40b255d",
-   "lss_toolbox/catalog.py": "da9f31bf7e3d52aa",
+   "lss_toolbox/catalog.py": "3fa72c55721c6673",
    "lss_toolbox/compare.py": "783bae8d75ba7cd2",
    "lss_toolbox/fingerprint.py": "3ae81cd598e4ec8a",
    "lss_toolbox/introspect.py": "3ab708ed997dfcf0",
@@ -685,7 +685,7 @@
    "timelineview.py": "4d1ebd8fee686919"
   },
   "products": {
-   "docs/manual/controls.md": "20d6e87f770cd775"
+   "docs/manual/controls.md": "6a58563d993cd544"
   },
   "reads": {
    "mainwindow.py": "ff4639569b8314a0",
