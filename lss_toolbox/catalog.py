@@ -434,6 +434,24 @@ TOOLS = (
          ),
          repo_out='docs/studies/qoff', repo_ok=False),
 
+    Tool('excess_remedy_study', 'The join\'s error budget with the measured excess: scale, X, robust weights, '
+         'clipping (C64)', 'refl', 'figures', 'tests/tools/excess_remedy_study.py',
+         'C61\'s six synthetic joins with C63\'s measured excess drawn in (and with none), fitted by today\'s joint '
+         'fit with the stated sigma, sigma x 1.12, the budget with X by Qz or by counts, Student-t or Cauchy '
+         're-weighting, 4-sigma clipping, or an oracle; the NX school split. Figures E1-E3: the pulls, the '
+         'catastrophic misses the pull SD hides, and one join with a wild point fitted two ways.',
+         committed=('docs/studies/excess_remedy',),
+         docs=('docs/studies/excess_remedy/walkthrough.md', 'docs/studies/excess_remedy/summary.md',
+               'docs/COMPARISONS.md#| C64 |'),
+         data='public', defaults={'--out': OUT},
+         variations=(
+             V('Quick look', 'Every figure from 40 replicates per join (about 5 s): the pattern, not the decimals.',
+               'docs/studies/excess_remedy/walkthrough.md#Each is drawn 400 times', reps='40'),
+             V('Synthetic only', 'Without the NX school split.',
+               'docs/studies/excess_remedy/walkthrough.md#A real check: the NX school split', no_nx=True),
+         ),
+         repo_out='docs/studies/excess_remedy', repo_ok=False, seconds=45.0),
+
     Tool('roi_bad_pixel_study', 'A bad-pixel pass on the reflectivity ROI: hot pixels, sparse frames, the factor '
          '(F95 B3, C62)', 'refl', 'figures', 'tests/tools/roi_bad_pixel_study.py',
          'Synthetic frames with known truth (bright, sharp and sparse beams; 0-0.5 hot pixels per frame) reduced by '

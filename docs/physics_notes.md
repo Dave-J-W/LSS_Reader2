@@ -6847,3 +6847,23 @@ it from data".
   Qz-dependent between-scan term, and robust handling of the wild points.
 - **Open:** sample height (the height scans not yet paired with the points); a 20-frame repeat of one Qz
   point; repeated high-Qz scans minutes apart.
+
+### 2026-11-25 — The join's error budget with the measured excess (C64)
+
+Verified by: a run (`tests/tools/excess_remedy_study.py`, C61's six synthetic joins, 400 replicates each,
+with C63's measured excess drawn in and with none; the NX school split; `docs/studies/excess_remedy/`). No
+default changed. It follows C63 (the owner's MQ-3: "measure it from data"; no excess term before a
+measurement and the owner's word).
+
+- **Wild points are the main harm, and the pull SD hides them.** With C63's 3 % wild points, 16 % of
+  today's joins miss by more than 5 oracle errors. The guard then keeps a poor curve and inflates the error
+  by √(χ²/dof) as much as the miss, so the pull stays near 1 (E3: a miss of 19 errors, the error inflated
+  18.5 ×).
+- **4σ clipping** cuts the catastrophic misses to 0.6 % and gives the oracle's pull SD (1.05 / 0.98). It
+  clips nothing when there is no excess. Student-t (ν 4) and Cauchy re-weighting only halve the misses.
+- **σ × 1.12 ⊕ X** fixes the core under-coverage (smooth pull 1.26 → 1.10). Without an excess it widens
+  the errors by 14–17 %.
+- **The key of X:** the Qz-keyed X (2.65 % at Qz ≥ 0.25) quadruples the error of NX scan 9, which is bright
+  (unsplit χ²/dof 1.03). Keyed to counts (C63's table by 1/var), it adds 30 %. On the owner's data Qz,
+  counts and background move together, so the real splits must decide (DATA_NEEDS row 17).
+- **The candidate for rule 12:** 4σ clipping first and alone; the budget's terms after the real check.
