@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>GIOXS</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
@@ -89,7 +89,7 @@
      <item>
       <widget class="QPushButton" name="savePushButton">
        <property name="text">
-        <string>SAVE</string>
+        <string>Export</string>
        </property>
       </widget>
      </item>

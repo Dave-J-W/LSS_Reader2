@@ -7,43 +7,35 @@ permission: merge my branch into `main` by PR + "Create a merge commit"
 once the quick suite (and, for GUI changes, the sweep) pass; then merge
 `main` back into the branch.
 
-## State (updated 2026-11-25, 10 am Chicago time)
+## State (updated 2026-11-25, afternoon, Chicago time)
 
-- **On main:** through #83 (137c09c): F105, F79, F97/F59, the peakLocate
-  fix (#73); F92 masks, the closed patch window fix (#77); D1's yellow
-  light (#78); F98 in the burn dialog (#83).
-- **On the branch, next PR:** the screenshots remade whole and recorded by
-  the Tools audit, with gui_screens made reproducible (d82d09c, swept);
-  F107 the timeline's dose colouring (0e30404); the merge of main
-  (22e7466). The sweep on 0e30404 and the quick suite on 22e7466 were
-  running. If both passed: PR, merge commit, fast-forward.
-- **Questions for the owner** went to questor on issue #55 (2026-11-25,
-  13 numbered: the Q-cut band, Restore all's reach, masks in exports, when
-  D1 locks, saving after read-only, the default ρ, the beam width default,
-  OQ-4, the series id in names, F107's own-burn rule, one spot, sh scans).
-  Watch #55 for "questor → GUI manager" and apply the answers.
-- **Evidence since:** tools man's real-data ρ = 1.13 (0.88–1.50) for the
-  strip scatter (issue #55, #84). Rule 12 holds the default at 0 until a
-  decision. When tools man's `strip_scatter_fit` lands, the Dose or time
-  tab can offer "from repeats".
-- **The screenshot tool:** keeps the Messages clock at 12:00:00, holds the
-  frame movie on its frame, stops the text cursor blinking, waits for the
-  GISAXS view's timers, and keeps the committed Observations. After a
-  change to the window, remake with `python tests/tools/gui_screens.py`
-  and record with `python -m lss_toolbox --audit --record --only
-  gui_screens` (and dump_tooltips, gui_map, ngui_inventory after a
-  mainwindow.py change).
-- **Work in:** the main checkout, branch `claude/funny-noether-09opxa`.
-  The crash sweep runs in the worktree `scratchpad/wt_sweep` (re-created
-  after a restart with `git worktree add --detach`).
-- **Messages:** GitHub issue #55 only. Wake-up timers don't survive a
-  session restart (scheduled tasks are off for the organisation).
+- **On main:** through #88 (b5e9c17): F105, F79, F97/F59, F92, D1, F98,
+  F107, the Reduced lane (phase 1d), the Environment lane (phase 2), the
+  screenshots recorded by the Tools audit.
+- **On the branch, next PR:** F95 B9 (Export writes text files, Save the
+  workbook; ee5056b) and the dialog titles (B10's first half). Sweep and
+  quick suite before the PR.
+- **Questions for the owner** with questor on issue #55 (13, 2026-11-25).
+  None answered yet. Tools man's evidence: rho about 1.13 on real burns
+  (the default stays 0, rule 12).
+- **GitHub hiccups seen today:** POST pulls and PUT merge answered 500
+  while succeeding, or failing until a retry; git push 503 (credential
+  service). Retry, and check the PR's state before trying again.
+- **The screenshot routine:** after a window change, `python
+  tests/tools/gui_screens.py` (and `ngui_screens.py` after ngui/layout.py),
+  then `python -m lss_toolbox --audit --record --only gui_screens
+  ngui_screens dump_tooltips gui_map ngui_inventory`. After a merge of
+  main, `verified.json` conflicts: keep my items, main's others, re-record.
+- **Work in:** the main checkout; the sweep in `scratchpad/wt_sweep`.
+- **Messages:** issue #55 only.
 
-## Next, in order (main man's of 2026-11-25)
+## Next, in order
 
-1. Merge the branch (above).
-2. The timeline's reduced-data and environment lanes.
-3. F95 B9/B10; B3 (needs rule 12); the owner's answers from questor.
+1. Merge the branch (B9, titles).
+2. F95 B10's docks: the burn dialog, the GID worksheet and the fit
+   options as dock widgets or side panels (owner: "dock the frequent
+   ones").
+3. B3 (rule 12); the owner's answers from questor.
 
 ## APIs received for the next items (2026-11-24)
 

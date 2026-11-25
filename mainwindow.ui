@@ -1021,7 +1021,7 @@
              </item>
              <item>
               <property name="text">
-               <string>Save GID</string>
+               <string>Export GID</string>
               </property>
              </item>
              <item>
@@ -1058,7 +1058,7 @@
              </item>
              <item>
               <property name="text">
-               <string>Save GISAXS</string>
+               <string>Export GISAXS</string>
               </property>
              </item>
             </widget>
@@ -2788,7 +2788,7 @@ p, li { white-space: pre-wrap; }
                <item>
                 <widget class="QPushButton" name="savegraPushButton">
                  <property name="text">
-                  <string>Save Gradient</string>
+                  <string>Export Gradient</string>
                  </property>
                 </widget>
                </item>

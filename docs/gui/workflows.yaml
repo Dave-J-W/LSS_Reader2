@@ -384,7 +384,7 @@ workflows:
       - id: burn-ref.save
         uses: shared.workbook
         do: The analysis is saved automatically (kind 'burn test', Data and Trends sheets); Save adds a version with a note
-        controls: [burnSavePushButton]
+        controls: [burnSavePushButton, burnExportPushButton]
         known_from: owner 2026-11-22 (D56); test tests/test_gui_workbook.py (burn saved when done)
       - id: burn-ref.live
         uses: shared.live
@@ -483,7 +483,7 @@ workflows:
       - id: burn-gid.save
         uses: shared.workbook
         do: Saved automatically; Save adds a version with a note
-        controls: [burnSavePushButton]
+        controls: [burnSavePushButton, burnExportPushButton]
       - id: burn-gid.live
         uses: shared.live
         do: A growing burn scan is re-analysed as frames arrive
@@ -1224,9 +1224,9 @@ workflows:
         known_from: code
         issues: []
       - id: mca.export
-        do: Export Spectrum
+        do: Export Spectrum (text files), or Save it into the workbook
         where: MCA tab
-        controls: [mcaExportPushButton]
+        controls: [mcaExportPushButton, mcaSpectraSaveWorkbookPushButton]
         user_decides: file name
         automatic: no
         could_be_automatic: ""
@@ -1246,7 +1246,7 @@ workflows:
       - id: flex.plot
         do: Add files, plot, rescale, peak fit, gradient
         where: Plot tab
-        controls: [plotAddFilePushButton, plotRemoveFilePushButton, plotFileListWidget, plotRSPushButton, plotPFPushButton, graPushButton, savegraPushButton, plotLogYCheckBox]
+        controls: [plotAddFilePushButton, plotRemoveFilePushButton, plotFileListWidget, plotRSPushButton, plotPFPushButton, graPushButton, savegraPushButton, plotSaveWorkbookPushButton, plotLogYCheckBox]
         user_decides: files
         automatic: no
         could_be_automatic: ""

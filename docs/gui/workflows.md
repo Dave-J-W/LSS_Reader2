@@ -148,7 +148,7 @@ flowchart TD
 | burn-ref.judge | Read the verdict: stable (a constant fits as well as a line) or changing, the best model, the 95 % confident time to a 5 % change | Burn test dialog > Trends (summary beside the panel; details in the label's tooltip) | `burnResultLabel`, `burnTrendPlotWidget`, `burnVerdictQuantityComboBox`, `burnStripSpinBox`, `burnVerdictPlotWidget`, `burnVerdictLabel` | which absorber to change to and repeat, until no change over about 400 s (owner 2026-11-23); whether the sample is changing by itself rather than being damaged (2026-11-25: the Dose or time tab answers it from two or more burns at different absorbers, F76) | partly | state the verdict against the planned reflectivity exposure (needs the plan; F39 macro lines) | owner 2026-11-21 ("flat line as good as a line means a good regime"; "a confident time for < 5 % change") | No dose axis: burns at different absorbers cannot be put on one curve (TODO, hand-off 07; F76)<br>The barrier position, tensiometer and oxygen readings are not shown beside the trend (F75) |
 | burn-ref.compare | Compare the burns at different absorbers: a change that follows the dose is beam damage, one that follows time is the sample itself | not in the reader (one burn dialog at a time) |  | damage or a changing sample; which absorber is safe | no | the burns of a sample on dose and time axes in one view (F76); a safe absorber predicted from a short high-flux test (F77, research) | owner 2026-11-23 (the need); physics_notes 2026-11-23 (dose versus time, a derivation) | Needs several burn scans in one analysis; the dialog refuses frames of several scans |
 | burn-ref.legacy | Optionally look at the legacy REF burn plot | Burn test dialog > Legacy | `pdburn.refPushButton` |  | no |  | code (pilRefBurn); test tests/test_gui_burn_trends.py | The legacy tab's REF button and GID list are actions on the Legacy tab only; their use today is unknown (Q-BURN-4) |
-| burn-ref.save (shared.workbook) | The analysis is saved automatically (kind 'burn test', Data and Trends sheets); Save adds a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `burnSavePushButton` | whether to add a 'user' version with a note | yes |  | owner 2026-11-22 (D56); test tests/test_gui_workbook.py (burn saved when done) | Automatic saves report in the status bar only; there is no view of the workbook inside the reader<br>A second reader of the same SPEC file saves nothing (D1, 2026-11-25): the yellow light says so, and it saves again once the first closes |
+| burn-ref.save (shared.workbook) | The analysis is saved automatically (kind 'burn test', Data and Trends sheets); Save adds a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `burnSavePushButton`, `burnExportPushButton` | whether to add a 'user' version with a note | yes |  | owner 2026-11-22 (D56); test tests/test_gui_workbook.py (burn saved when done) | Automatic saves report in the status bar only; there is no view of the workbook inside the reader<br>A second reader of the same SPEC file saves nothing (D1, 2026-11-25): the yellow light says so, and it saves again once the first closes |
 | burn-ref.live (shared.live) | With Live on, a burn scan that is still being written is re-analysed as frames arrive (the open dialog follows) | left panel, beside Update Specfile | `liveCheckBox`, `speUpSpeFilePushButton` | live on or off | partly | turn Live on when the file is still growing (a series 'in progress') | test tests/test_gui_live.py (a growing burn scan is remade live) | Live stops by itself only for series with #U Series lines (L4); guessed series need a manual untick |
 
 <a id="burn-gid"></a>
@@ -203,7 +203,7 @@ flowchart TD
 | burn-gid.options | Choose estimator, models, time, errors, threshold and whether the position counts in the limit | Burn test dialog > Trends | `burnEstimatorComboBox`, `burnConstantCheckBox`, `burnLinearCheckBox`, `burnExponentialCheckBox`, `burnDoubleExponentialCheckBox`, `burnTimeComboBox`, `burnErrorsComboBox`, `burnThresholdSpinBox`, `burnPositionLimitCheckBox`, `burnAnalysePushButton`, `burnScanComboBox`, `burnAxisComboBox`, `burnDoseUnitComboBox`, `burnBeamWidthLineEdit`, `burnBeamHeightLineEdit`, `burnFastModeCheckBox` | estimator template (default), moments (legacy) or fit; errors auto = scatter for GID; position in limit off (owner - the position judgment is the user's) | yes |  | owner 2026-11-21; code; test tests/test_gui_burn_trends.py | The template estimator reads a broadening at constant area on a shoulder as an intensity gain (P44, measured on synthetic data); the user is not warned |
 | burn-gid.judge | Read the three verdicts and the 5 % time; compare with the other burn of the same spot | Burn test dialog > Trends | `burnResultLabel`, `burnTrendPlotWidget`, `burnVerdictQuantityComboBox`, `burnStripSpinBox`, `burnVerdictPlotWidget`, `burnVerdictLabel` | whether the GID exposure is acceptable; whether a position drift matters (owner - the user's judgment) | partly | ~~overlay two burns of one spot against dose~~ (F98, 2026-11-25: the Dose or time tab, with F76's verdict) | owner 2026-11-21; physics_notes 2026-11-21 (NX 14 vs 15 measured) | Two burns (e.g. NX 14 and 15, different absorbers) cannot be shown together; the user opens the dialog twice |
 | burn-gid.legacy | Optionally the legacy GID burn plots (constrained Qxy range) | Burn test dialog > Legacy | `pdburn.gidComboBox`, `pdburn.rangeLineEdit` |  | no |  | code (pilGidBurn); owner 2026-11-21 ("the legacy GID burn test did well once the fit range was constrained") |  |
-| burn-gid.save (shared.workbook) | Saved automatically; Save adds a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `burnSavePushButton` | whether to add a 'user' version with a note | yes |  | owner 2026-11-21/22 (D53, D56), D1; tests tests/test_gui_workbook.py, tests/test_gui_reader_lock.py | Automatic saves report in the status bar only; there is no view of the workbook inside the reader<br>A second reader of the same SPEC file saves nothing (D1, 2026-11-25): the yellow light says so, and it saves again once the first closes |
+| burn-gid.save (shared.workbook) | Saved automatically; Save adds a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `burnSavePushButton`, `burnExportPushButton` | whether to add a 'user' version with a note | yes |  | owner 2026-11-21/22 (D53, D56), D1; tests tests/test_gui_workbook.py, tests/test_gui_reader_lock.py | Automatic saves report in the status bar only; there is no view of the workbook inside the reader<br>A second reader of the same SPEC file saves nothing (D1, 2026-11-25): the yellow light says so, and it saves again once the first closes |
 | burn-gid.live (shared.live) | A growing burn scan is re-analysed as frames arrive | left panel, beside Update Specfile | `liveCheckBox`, `speUpSpeFilePushButton` | live on or off | partly | turn Live on when the file is still growing (a series 'in progress') | test tests/test_gui_live.py | Live stops by itself only for series with #U Series lines (L4); guessed series need a manual untick |
 
 <a id="burn-fluo"></a>
@@ -595,7 +595,7 @@ flowchart TD
 flowchart TD
     mca_select["select: Select the frames (Pilatus) or spectra (MCA) of the selecte…"]
     mca_view["view: Spectra with calibration, log, offset; legacy peak fit dial…"]
-    mca_export["export: Export Spectrum"]
+    mca_export["export: Export Spectrum (text files), or Save it into the workbook"]
     mca_select --> mca_view
     mca_view --> mca_export
     classDef auto fill:#e6f4ea,stroke:#4a8;
@@ -605,7 +605,7 @@ flowchart TD
 |---|---|---|---|---|---|---|---|---|
 | mca.select (shared.frames) | Select the frames (Pilatus) or spectra (MCA) of the selected scans; Select All for all of them | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual) or a subset (left out of the reduction, kept in remakes) | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | code; test tests/test_gui_workflows.py | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
 | mca.view | Spectra with calibration, log, offset; legacy peak fit dialog; add files from disk | MCA tab | `mcaCalibCheckBox`, `mcaLogYCheckBox`, `mcaOffsetCheckBox`, `mcaFitPushButton`, `mcaAddFilePushButton`, `mcaRemoveFilePushButton`, `mcaFileListWidget` |  | no | element line markers (F47) | code |  |
-| mca.export | Export Spectrum | MCA tab | `mcaExportPushButton` | file name | no |  | code |  |
+| mca.export | Export Spectrum (text files), or Save it into the workbook | MCA tab | `mcaExportPushButton`, `mcaSpectraSaveWorkbookPushButton` | file name | no |  | code |  |
 
 <a id="flex-plot"></a>
 ## flex-plot — Plot and 2D_Plot tabs on files from disk
@@ -628,7 +628,7 @@ flowchart TD
 
 | Step | Do | Where | Controls | User decides | Automatic | Could be automatic | Known from | Issues |
 |---|---|---|---|---|---|---|---|---|
-| flex.plot | Add files, plot, rescale, peak fit, gradient | Plot tab | `plotAddFilePushButton`, `plotRemoveFilePushButton`, `plotFileListWidget`, `plotRSPushButton`, `plotPFPushButton`, `graPushButton`, `savegraPushButton`, `plotLogYCheckBox` | files | no |  | code |  |
+| flex.plot | Add files, plot, rescale, peak fit, gradient | Plot tab | `plotAddFilePushButton`, `plotRemoveFilePushButton`, `plotFileListWidget`, `plotRSPushButton`, `plotPFPushButton`, `graPushButton`, `savegraPushButton`, `plotSaveWorkbookPushButton`, `plotLogYCheckBox` | files | no |  | code |  |
 | flex.plot2d | Add 2D files, colour map, interpolation | 2D_Plot tab | `twodPlotAddFilePushButton`, `twodPlotFileListWidget`, `twodCMapComboBox`, `twodLogIntCheckBox`, `twodIntPolComboBox`, `twodUpdatePlotPushButton` | files | no |  | code |  |
 
 <a id="session"></a>
@@ -800,6 +800,7 @@ flowchart TD
 | `burnRowsLineEdit`  |  | B |  |  |  |  |  |  |  |  |  |  |  |  |
 | `burnAnalysePushButton` Analyse | B | B |  |  |  |  |  |  |  |  |  |  |  |  |
 | `burnSavePushButton` Save | B | B |  |  |  |  |  |  |  |  |  |  | i |  |
+| `burnExportPushButton` Export | B | B |  |  |  |  |  |  |  |  |  |  |  |  |
 | `burnTrendPlotWidget`  | B | B |  |  |  |  |  |  |  |  |  |  |  |  |
 | `burnResultLabel`  | B | B |  |  |  |  |  |  |  |  |  |  |  |  |
 | `pdburn.plotWidget`  | i | i |  |  |  |  |  |  |  |  |  |  |  |  |
@@ -816,7 +817,7 @@ flowchart TD
 | `pdgioxs.frameLineEdit` ave frames |  |  |  |  |  |  |  | B |  |  |  |  |  |  |
 | `pdgioxs.pointLineEdit` ave points |  |  |  |  |  |  |  | B |  |  |  |  |  |  |
 | `pdgioxs.runPushButton` RUN |  |  |  |  |  |  |  | B |  |  |  |  |  |  |
-| `pdgioxs.savePushButton` SAVE |  |  |  |  |  |  |  | B |  |  |  |  |  |  |
+| `pdgioxs.savePushButton` Export |  |  |  |  |  |  |  | B |  |  |  |  |  |  |
 | `pdgioxs.closePushButton` CLOSE |  |  |  |  |  |  |  | i |  |  |  |  |  |  |
 | `pdgioxs.plotWidget`  |  |  |  |  |  |  |  | i |  |  |  |  |  |  |
 
@@ -1042,6 +1043,7 @@ flowchart TD
 | `mcaLegendCheckBox` Legend |  |  |  |  |  |  |  |  |  |  | i |  |  |  |
 | `mcaLegendLocComboBox`  |  |  |  |  |  |  |  |  |  |  | i |  |  |  |
 | `mcaExportPushButton` Export Spectrum |  |  |  |  |  | i | i |  |  |  | B |  |  |  |
+| `mcaSpectraSaveWorkbookPushButton` Save |  |  |  |  |  | i | i |  |  |  | B |  | i |  |
 | `mcaFitPushButton` Fit |  |  |  |  |  | B |  |  |  |  | B |  |  |  |
 | `mcaFitAllPushButton` Fit All |  |  |  |  |  | B |  |  |  |  |  |  |  |  |
 | `mcaFitLinesPushButton` Fit lines |  |  | S |  |  | B | B |  |  |  |  |  |  |  |
@@ -1138,7 +1140,7 @@ flowchart TD
 | `cutFitFixCheckBox` fix the centres |  |  |  |  | i | i | i |  | i |  |  |  |  |  |
 | `cutFitResultLabel`  |  |  |  |  | i | i | i |  | i |  |  |  |  |  |
 | `cutFitNowPushButton` Fit now |  |  |  |  | i | i | i |  | i |  |  |  |  |  |
-| `cutFitSavePushButton` Save results... / Save to workbook |  |  |  |  | i | i | i |  | i |  |  |  | i |  |
+| `cutFitSavePushButton` Export results... / Save to workbook |  |  |  |  | i | i | i |  | i |  |  |  | i |  |
 
 ### Pilatus
 
@@ -1226,7 +1228,7 @@ flowchart TD
 | `plotRSPushButton` Rescale |  |  |  |  |  |  |  |  |  |  |  | B |  |  |
 | `plotPFPushButton` Peak Fit |  |  |  |  |  |  |  |  |  |  |  | B |  |  |
 | `graPushButton` Gradient |  |  |  |  |  |  |  |  |  |  |  | B |  |  |
-| `savegraPushButton` Save Gradient |  |  |  |  |  |  |  |  |  |  |  | B |  |  |
+| `savegraPushButton` Export Gradient |  |  |  |  |  |  |  |  |  |  |  | B |  |  |
 | `plotLogXCheckBox` LogX |  |  |  |  |  |  |  |  |  |  |  | i |  |  |
 | `plotLogYCheckBox` LogY |  |  |  |  |  |  |  |  |  |  |  | B |  |  |
 | `plotGridCheckBox` Grid |  |  |  |  |  |  |  |  |  |  |  | i |  |  |
@@ -1235,6 +1237,12 @@ flowchart TD
 | `onedStyComboBox` Style: |  |  |  |  |  |  |  |  |  |  |  | i |  |  |
 | `onedLabelSizeSpinBox` Label Size |  |  |  |  |  |  |  |  |  |  |  | i |  |  |
 | `onedTickSizeSpinBox` Tick Size |  |  |  |  |  |  |  |  |  |  |  | i |  |  |
+
+### Plot, right of Export Gradient
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `plotSaveWorkbookPushButton` Save |  |  |  |  |  |  |  |  |  |  |  | B | i |  |
 
 ### Preferences
 

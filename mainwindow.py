@@ -1737,7 +1737,7 @@ class MainWindow (QMainWindow):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
             self.messageBox('Please select a scan with data to save first!')
             return
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Save SPEC scans', directory=self.directory)[0]
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export SPEC scans', directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
         cols=[str(c.currentText()) for c in (self.ui.spXComboBox,self.ui.spYComboBox,self.ui.spNComboBox)]
@@ -2774,7 +2774,7 @@ class MainWindow (QMainWindow):
         self.ui.mcaPlotMplWidget.canvas.draw()
             
     def saveMcaData(self):
-        self.saveMcaFileName=QFileDialog.getSaveFileName(caption='Save Mca data',directory=self.directory)[0]
+        self.saveMcaFileName=QFileDialog.getSaveFileName(caption='Export MCA spectra',directory=self.directory)[0]
         if self.saveMcaFileName=='':   # dialog cancelled: write nothing
             return
         for i in self.selectedMcaScanNums:
@@ -2961,7 +2961,7 @@ class MainWindow (QMainWindow):
         
     def mcaSaveIntData(self):
         try:
-            self.saveFileName=QFileDialog.getSaveFileName(caption='Save Fluorescence Integral Data',directory=self.directory)[0]
+            self.saveFileName=QFileDialog.getSaveFileName(caption='Export fluorescence integrals',directory=self.directory)[0]
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
             fid=open(self.saveFileName+'_flu.txt','w')
@@ -4933,7 +4933,7 @@ class MainWindow (QMainWindow):
         self.uipdgioxs.close()
         
     def pilGioxsSave(self):
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Save gioxs data',directory=self.directory)[0]
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export GIOXS data',directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled: write nothing
             return
         for i in range(len(self.gioxsdata)):
@@ -5189,8 +5189,16 @@ class MainWindow (QMainWindow):
         save.setToolTip('Save the values over time and the trend table (every model: chi2/dof, AICc, weight, '
                         'parameters; the change time) into this SPEC file\'s workbook (Data and Trends sheets).')
         save.clicked.connect(self.saveBurnToWorkbook)
+        export=QPushButton('Export',page)
+        export.setObjectName('burnExportPushButton')
+        export.setToolTip('Write the burn test on show as text files (F95, owner Q-UI-B9: Export writes text files, '
+                          'Save the workbook): <name>_burn.txt, the values over time (and dose) with their errors, '
+                          'and <name>_burn_trends.txt, every model\'s fit (chi2/dof, AICc, weight, parameters, the '
+                          'change time)')
+        export.clicked.connect(self.exportBurn)
+        u.burnExportPushButton=export
         for w in (QLabel('Estimator',page),est,QLabel('Errors',page),err,QLabel('Time',page),tim,QLabel('Change',page),
-                  thr,poslim,auto,rauto,rowsEdit,run,save):
+                  thr,poslim,auto,rauto,rowsEdit,run,export,save):
             row.addWidget(w)
         row.addStretch(1)
         lay.addLayout(row)
@@ -5646,6 +5654,38 @@ class MainWindow (QMainWindow):
             pass
         canvas.draw()
 
+    def exportBurn(self):
+        """The burn test on show as two text files (F95 B9)."""
+        res=getattr(self,'burnResult',None)
+        if res is None:
+            self.notify('Analyse a burn test first.',title='Burn test')
+            return
+        base=os.path.join(self.directory,'%s_S%d' % (os.path.basename(self.specFileName),res.scan))
+        name=QFileDialog.getSaveFileName(caption='Export the burn test (the name gets _burn.txt, _burn_trends.txt)',
+                                         directory=base)[0]
+        if not name:
+            return
+        for end in ('_burn.txt','_burn_trends.txt','.txt'):
+            if name.endswith(end):
+                name=name[:-len(end)]
+                break
+        cols,arr=res.data()
+        head='%s S# %d, %s burn; %s\n%s' % (os.path.basename(self.specFileName),res.scan,res.kind,
+                                            '; '.join(res.notes) or 'no notes','\t'.join(cols))
+        np.savetxt(name+'_burn.txt',arr,fmt='%.6g',delimiter='\t',header=head)
+        rows=res.table()
+        keys=[]
+        for r in rows:
+            keys+=[k for k in r if k not in keys]
+        with open(name+'_burn_trends.txt','w') as f:
+            f.write('# %s S# %d: the trend fits (one row per quantity and model)\n' % (os.path.basename(self.specFileName),res.scan))
+            f.write('\t'.join(keys)+'\n')
+            for r in rows:
+                f.write('\t'.join('' if r.get(k) is None else ('%.6g' % r[k] if isinstance(r.get(k),float) else str(r[k]))
+                                  for k in keys)+'\n')
+        self.notify('Exported %s_burn.txt and %s_burn_trends.txt.' % (os.path.basename(name),os.path.basename(name)),
+                    title='Burn test',level='info')
+
     def saveBurnToWorkbook(self):
         res=getattr(self,'burnResult',None)
         if res is None:
@@ -5801,7 +5841,7 @@ class MainWindow (QMainWindow):
     def pilGISAXS(self):
         if str(self.ui.gisaxsComboBox.currentText())=='Show GISAXS':
             self.showPilGISAXS()
-        elif str(self.ui.gisaxsComboBox.currentText())=='Save GISAXS':
+        elif str(self.ui.gisaxsComboBox.currentText())=='Export GISAXS':
             self.savePilGISAXS()
 
     def showPilGISAXS(self):
@@ -5895,7 +5935,7 @@ class MainWindow (QMainWindow):
 
     def savePilGISAXS(self):
         try:
-            self.saveFileName = QFileDialog.getSaveFileName(caption='Save gioxs data', directory=self.directory)[0]
+            self.saveFileName = QFileDialog.getSaveFileName(caption='Export GIOXS data', directory=self.directory)[0]
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
             data2d = []
@@ -5925,7 +5965,7 @@ class MainWindow (QMainWindow):
         patch.clicked.connect(self.gidPatch)
         sheet.clicked.connect(self.showGIDWorksheet)
         self.gidPatchPushButton,self.gidWorksheetPushButton=patch,sheet
-        self.ui.gidComboBox.setToolTip('More GID actions: GID Patch Relax, Save GID, Form Factor, Save to workbook. '
+        self.ui.gidComboBox.setToolTip('More GID actions: GID Patch Relax, Export GID (text files), Form Factor, Save to workbook. '
                                        'GID Patch and the worksheet are the buttons beside it.')
 
     def gidPatch(self):
@@ -5946,7 +5986,7 @@ class MainWindow (QMainWindow):
         if str(self.ui.gidComboBox.currentText())=='GID Patch Relax':
             self.pilGIDRelax=1
             self.pilGIDpatchData()
-        elif str(self.ui.gidComboBox.currentText())=='Save GID':
+        elif str(self.ui.gidComboBox.currentText())=='Export GID':
             self.saveGIDData()
         elif str(self.ui.gidComboBox.currentText())=='Form Factor':
             self.setGIDFormFactor()
@@ -6705,7 +6745,7 @@ class MainWindow (QMainWindow):
         if axes not in ('Angles','Q') or getattr(self,'pilGIDData',None) is None:
             self.messageBox('Make a GID map first, with the axes in Angles or Q, then save it.')
             return
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save gioxs data', directory=self.directory)[0])
+        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export GIOXS data', directory=self.directory)[0])
         if self.saveFileName=='':   # dialog cancelled: write nothing
             return
         gidmod.save(self.saveFileName,self.gidProducts(axes))
@@ -8924,7 +8964,9 @@ class MainWindow (QMainWindow):
         for name,export,handler in (('spec',self.ui.spExportPushButton,self.saveSpecToWorkbook),
                                     ('ref',self.ui.refExportPushButton,self.saveRefToWorkbook),
                                     ('cut',self.ui.cutExportPushButton,self.saveCutsToWorkbook),
-                                    ('mca',self.ui.mcaExportIntPushButton,self.saveMcaToWorkbook)):
+                                    ('mca',self.ui.mcaExportIntPushButton,self.saveMcaToWorkbook),
+                                    ('mcaSpectra',self.ui.mcaExportPushButton,self.saveMcaSpectraToWorkbook),   # F95 B9
+                                    ('plot',self.ui.savegraPushButton,self.savePlotToWorkbook)):
             self.saveButtons[name]=self.addSaveButton(export,handler,name)
         self.setupRefCovarianceBox()
 
@@ -9355,7 +9397,7 @@ class MainWindow (QMainWindow):
         if not self.cutFitResults:
             self.messageBox('Fit the cuts first.')
             return
-        name=QFileDialog.getSaveFileName(self,'Save the peak fits',os.path.join(self.directory,'peak_fits.txt'),
+        name=QFileDialog.getSaveFileName(self,'Export the peak fits',os.path.join(self.directory,'peak_fits.txt'),
                                          'Text (*.txt *.csv)')[0]
         if not name:
             return
@@ -9449,7 +9491,7 @@ class MainWindow (QMainWindow):
         lay.addWidget(res)
         buttons=QHBoxLayout()
         go=QPushButton('Fit now',d); go.setObjectName('cutFitNowPushButton'); go.setToolTip('Fit the plotted cuts with these options')
-        save=QPushButton('Save results...',d); save.setObjectName('cutFitSavePushButton')
+        save=QPushButton('Export results...',d); save.setObjectName('cutFitSavePushButton')
         save.setToolTip('Write the last fits as a tab-separated table (cut, peak, centre, FWHM, height, area with errors, chi2/dof).')
         close=QPushButton('Close',d)
         for w in (go,save,close):
@@ -10051,6 +10093,45 @@ class MainWindow (QMainWindow):
                               recipe='' if label=='GID cut' else self.recipe(self.cutScript)))
         self.saveToWorkbook('gid cut' if curves[0][0]=='GID cut' else 'line cut',items,auto=getattr(self,'autoSaving',False))
 
+    def saveMcaSpectraToWorkbook(self):
+        """The selected MCA spectra (normalised, as Export writes them) into the
+        workbook, one result each (F95 B9: the spectra get a Save)."""
+        sel=list(getattr(self,'selectedMcaScanNums',[]) or [])
+        spectra=getattr(self,'nomMcaData',{}) or {}
+        items=[]
+        for i in sel:
+            d=spectra.get(i) if isinstance(spectra,dict) else (spectra[i] if i<len(spectra) else None)
+            if d is None:
+                continue
+            it=self.ui.imageListWidget.item(i)
+            scan=itemScan(it)
+            items.append(dict(scans=[scan],data=np.asarray(d,float)[:,:3],columns=['energy','I','dI'],
+                              label='spectrum %s' % ' '.join(itemLabels(it)),
+                              settings=dict(command=str(getattr(self,'command','')))))
+        if not items:
+            self.saveNotice('Select MCA spectra first.')
+            return
+        self.saveToWorkbook('fluorescence',items)
+
+    def savePlotToWorkbook(self):
+        """The Plot tab's selected files, as read, into the workbook (kind
+        'other', labelled by file name, tied to no scan; F95 B9)."""
+        rows=list(getattr(self,'selectedplotfiles_rows',[]) or [])
+        items=[]
+        for r in rows:
+            path=str(self.plotfiles[r])
+            try:
+                d=np.atleast_2d(np.loadtxt(path,comments='#'))
+            except (OSError,ValueError) as e:
+                self.notify('%s not saved: %s' % (os.path.basename(path),e),title='Save')
+                continue
+            items.append(dict(scans=[],data=d[:,:workbookmod.MAX_VALUES],columns=['c%d' % (k+1) for k in range(min(d.shape[1],workbookmod.MAX_VALUES))],
+                              label=os.path.basename(path),settings=dict(file=path)))
+        if not items:
+            self.saveNotice('Select files on the Plot tab first.')
+            return
+        self.saveToWorkbook('other',items)
+
     def saveMcaToWorkbook(self):
         rows=getattr(self,'mcaIntData',None)
         if not rows:
@@ -10261,7 +10342,7 @@ class MainWindow (QMainWindow):
             if (summed and -1 not in self.cutData) or (not summed and any(i not in self.cutData for i in frames)) or (not summed and len(frames)==0):
                 self.messageBox('The frame selection or the "Sum" option changed after the cut was made. Please make the cut again before saving.')
                 return
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Save Cuts', directory=self.directory)[0]
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export cuts', directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
         if self.det=='Pilatus':
@@ -10600,7 +10681,7 @@ class MainWindow (QMainWindow):
         
     def saveGraPlotData(self): #save the derivative data
         try:
-            self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Derivative Data',directory=self.directory)[0])
+            self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export the gradient',directory=self.directory)[0])
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
             fitfile=self.saveFileName+'_der.txt'
@@ -11036,7 +11117,7 @@ class MainWindow (QMainWindow):
         if not hasattr(self,'peakfitdata'):
             self.messageBox('There is no fit to save yet; press "Fit" first.')
             return
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Fit Data',directory=self.directory)[0])
+        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export fit data',directory=self.directory)[0])
         if self.saveFileName=='':
             return
         fitfile=self.saveFileName+'_fit.txt'

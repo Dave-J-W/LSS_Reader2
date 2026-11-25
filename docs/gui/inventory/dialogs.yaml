@@ -841,7 +841,18 @@
   needs: "an analysed burn test"
   shown: always
   tooltip: true
-  notes: "No text export (Export) for burn results, unlike every other reduction."
+  notes: "Since 2026-11-25 (F95 B9) an Export beside it writes the text files."
+- id: burnExportPushButton
+  kind: button
+  label: "Export"
+  where: "Dialog (Burn test) > Trends, left of Save"
+  handler: exportBurn
+  does: "Writes <name>_burn.txt (the values over time, and dose, with their errors) and <name>_burn_trends.txt (every model's fit and the change time)"
+  workflows: [burn-ref, burn-gid]
+  needs: "an analysed burn test"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F95, owner Q-UI-B9, 2026-11-25): Export writes text files, Save the workbook. The name proposed is <SPEC file>_S<scan> in the output folder; an ending typed is not doubled."
 - id: burnTrendPlotWidget
   kind: plot
   label: ""
@@ -1411,7 +1422,7 @@
   notes: ""
 - id: pdgioxs.savePushButton
   kind: button
-  label: "SAVE"
+  label: "Export"
   where: "Dialog (GIOXS)"
   handler: pilGioxsSave
   does: "Writes each profile to <name>_frameA-B_gio.txt and the background to _bg_gio.txt"
@@ -1419,7 +1430,7 @@
   needs: "RUN done"
   shown: always
   tooltip: false
-  notes: "Called SAVE but is an Export (text files); no workbook save."
+  notes: "Called SAVE until 2026-11-25; Export since (F95 B9: it writes text files). No workbook save."
 - id: pdgioxs.closePushButton
   kind: button
   label: "CLOSE"
@@ -1679,7 +1690,7 @@
   notes: ""
 - id: cutFitSavePushButton
   kind: button
-  label: "Save results... / Save to workbook"
+  label: "Export results... / Save to workbook"
   where: "Peak fit options / Fluorescence line fit options"
   handler: saveCutFits / saveMcaToWorkbook
   does: "Cut dialog: writes the fits as a text table; fluorescence dialog: saves into the workbook"
@@ -1687,7 +1698,7 @@
   needs: "a fit"
   shown: always
   tooltip: true
-  notes: "One button, two meanings."
+  notes: "One button, two meanings: in the cut dialog it writes text and is called Export results... since 2026-11-25 (F95 B9); in the fluorescence dialog it saves into the workbook and is called Save to workbook."
 
 # ======================= Legacy peak fit (MCA > Fit / Fit All, Plot > Peak Fit) =======================
 - id: peakfit

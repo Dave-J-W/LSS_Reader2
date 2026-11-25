@@ -1,5 +1,5 @@
 """GID is scriptable (Stage 6 start, 2026-11-19): Experiment.gid uses the same
-lss_core.gid functions as the window, "Save GID" writes the equivalent call
+lss_core.gid functions as the window, "Export GID" writes the equivalent call
 to the Script pane, and running it writes the same three files byte for
 byte, in both geometries, both axes, the relaxed Q grid, a typed column
 count and a subset of frames. Real data: NX school scans 11 + 12."""
@@ -34,7 +34,7 @@ def _menu(w, qapp, text):
 def _save_and_replay(w, qapp, recorder, tmp_path, tag):
     gui = str(tmp_path / ('gui_' + tag))
     recorder.save_name = gui
-    _menu(w, qapp, 'Save GID')
+    _menu(w, qapp, 'Export GID')
     body = w.scriptView.toPlainText().split('\n')
     at = max(k for k, l in enumerate(body) if l.startswith('gid = exp.gid('))
     head = [l for l in body if l.startswith(('from ', 'exp = '))][:2]
@@ -101,6 +101,6 @@ def test_script_result_matches_the_window_map(nx, qapp, recorder):
 def test_saving_without_a_map_or_in_pixels_says_so(window, qapp, recorder, tmp_path):
     window.openSpecFile(fname=SPEC)
     window.directory = str(tmp_path)
-    _menu(window, qapp, 'Save GID')
+    _menu(window, qapp, 'Export GID')
     assert any('Make a GID map first' in m for m in recorder.messages)
     assert recorder.exceptions == []

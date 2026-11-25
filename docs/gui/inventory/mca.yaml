@@ -190,7 +190,18 @@
   needs: "spectra plotted"
   shown: always
   tooltip: false
-  notes: "No Save-to-workbook counterpart for spectra (only for the integral)."
+  notes: "Since 2026-11-25 a Save beside it (mcaSpectraSaveWorkbookPushButton, F95 B9)."
+- id: mcaSpectraSaveWorkbookPushButton
+  kind: button
+  label: "Save"
+  where: "MCA > right, beside Export Spectrum"
+  handler: saveMcaSpectraToWorkbook
+  does: "Saves each selected normalised spectrum (energy, I, dI) into the workbook, kind 'fluorescence', labelled 'spectrum <scan> <frame>'"
+  workflows: [mca-look, xfntr, exafs, session]
+  needs: "spectra plotted"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F95, owner Q-UI-B9, 2026-11-25: the spectra get a Save)."
 - id: mcaFitPushButton
   kind: button
   label: "Fit"

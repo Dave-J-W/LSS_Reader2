@@ -20,7 +20,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Scan Details</string>
+   <string>Scan details</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="1" column="0">
