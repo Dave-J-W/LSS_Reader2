@@ -607,8 +607,13 @@ Each line: feature — where — default — script — notes entry (date).
   model or the errors are wrong.
 - Off by default; the choice is kept between sessions. The plot's title
   moves above the panel while it is shown.
-- Not yet on: MCA line fits (the tools session's), the Ref Patch join
-  preview, the older fit dialogs.
+- In the Ref Patch window (2026-11-25), the switch also draws the joint
+  fit's curve over the join (dashed, on the earlier scan's scale: the new
+  scan, times its factor, should lie on it) and the residuals of both
+  scans' fitted points, blue and orange as the scans. These residuals use
+  the fit's own variance, so their squares add up to the χ² in the label.
+  With the legacy fit nothing is drawn, as there is no curve.
+- Not yet on: MCA line fits (the tools session's), the older fit dialogs.
 
 ### Ref Patch checks: a message and marks (F95, 2026-11-24, Q-UI-B6, B3)
 - Before joining, Ref Patch checks each frame: is the reflected beam more

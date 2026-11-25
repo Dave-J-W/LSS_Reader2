@@ -271,6 +271,46 @@ def join_factor(old, new, method=DEFAULT_PATCH_METHOD):
     return j.factor, j.factor * j.err, '; '.join(j.flags)
 
 
+def join_fit_residuals(old, new, points=200):
+    """F74 at a join: the joint fit as ``join_factor`` makes it
+    (``patching.joint_factor`` with its guard), with the chosen rung fitted
+    alone for its curve (``patching.rung_fit``, the same δ). Returns a dict:
+    ``q`` and ``mu_a``, the fitted curve over the window on scan a's scale
+    (scan b × factor lies on it); ``a`` and ``b``, each scan's (Qz,
+    residual) at the points the fit used, the residual (y − μ)/√var with the
+    fit's own variance (Poisson likelihood: var = σ²μ/max(|y|, σ); log:
+    var = σ²), so that the squares add up to the χ² the fit reports;
+    ``factor``, ``chi2``, ``dof``, ``order``, ``n_ext``. None where
+    ``join_factor`` would fall back on the legacy fit (too few points)."""
+    from . import patching
+    old, new = np.atleast_2d(np.asarray(old, float)), np.atleast_2d(np.asarray(new, float))
+    a = patching.Scan(old[:, 0], old[:, 1], old[:, 2])
+    b = patching.Scan(new[:, 0], new[:, 1], new[:, 2])
+    try:
+        j = patching.joint_factor(a, b)
+        rf = patching.rung_fit(a, b, j.order, j.n_ext, space=j.space, likelihood=j.likelihood)
+    except (ValueError, np.linalg.LinAlgError):
+        return None
+
+    def mu(q, on_b):
+        base = np.log(patching.fresnel(q, patching.QC)) if rf.space == 'rrf' else 0.0
+        return np.exp(base + rf.curve(q) - (rf.delta if on_b else 0.0))
+    out = {}
+    for key, sc, idx, on_b in (('a', a, rf.ia, False), ('b', b, rf.ib, True)):
+        q, y, sg = sc.q[idx], sc.y[idx], sc.sigma[idx]
+        m = mu(q, on_b)
+        if j.likelihood == 'poisson':
+            r = (y - m) / np.sqrt(sg ** 2 / np.maximum(np.abs(y), sg) * m)
+        else:                                   # the log fit: its χ² is in ln y, weights (y/σ)²
+            r = (np.log(np.where(y > 0, y, np.nan)) - np.log(m)) * y / sg
+        out[key] = (q, r)
+    lo = min(a.q[rf.ia].min(), b.q[rf.ib].min())
+    hi = max(a.q[rf.ia].max(), b.q[rf.ib].max())
+    qq = np.linspace(lo, hi, int(points))
+    return dict(q=qq, mu_a=mu(qq, False), a=out['a'], b=out['b'], factor=j.factor, chi2=j.chi2, dof=j.dof,
+                order=j.order, n_ext=j.n_ext)
+
+
 def patch(per_scan, order, drops=None, factors=None, method=DEFAULT_PATCH_METHOD, notes=None):
     """Join the scans in ``order`` (legacy chain: each scan against
     everything joined so far, the overlap averaged, the factor's error
