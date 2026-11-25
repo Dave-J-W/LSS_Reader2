@@ -1,0 +1,23 @@
+xrf_shootout 2026-11-25 03:27:10: 3 conditions, 1 series, methods window,fit_data,p1,p1p2p3,xeray,pymca,pymca_tails,pyxrf,larch,larch_each, 100 replicates (40 for series), 30 jobs
+calibrated 4 conditions in 11 s
+4/80 tasks, 121 s
+8/80 tasks, 125 s
+12/80 tasks, 130 s
+16/80 tasks, 147 s
+20/80 tasks, 165 s
+24/80 tasks, 175 s
+28/80 tasks, 186 s
+32/80 tasks, 202 s
+36/80 tasks, 210 s
+40/80 tasks, 216 s
+44/80 tasks, 222 s
+48/80 tasks, 233 s
+52/80 tasks, 241 s
+56/80 tasks, 261 s
+60/80 tasks, 290 s
+64/80 tasks, 333 s
+68/80 tasks, 339 s
+72/80 tasks, 343 s
+76/80 tasks, 345 s
+80/80 tasks, 350 s
+done in 352 s

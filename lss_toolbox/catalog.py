@@ -853,6 +853,51 @@ TOOLS = (
                        fixtures='tests/reference/mca_scatter')),
          inputs=('docs/studies/mca_scatter/scatter_fits.csv', 'docs/studies/mca_scatter/quantities.csv'),
          repo_out='docs/studies/mca_scatter', seconds=8.0),
+    Tool('xrf_tables', 'X-ray tables from xraylib for the synthetic spectra', 'fluo', 'data',
+         'tests/tools/xrf_tables.py',
+         'Line energies and relative intensities (K and L families, at each beam energy) and water\'s Hartree-Fock '
+         'Compton profiles, from xraylib, written as the JSON the extended generator reads '
+         '(tests/synthetic/mca_more.py); and every constant the generator took from memory against xraylib. '
+         'Needs xraylib.',
+         committed=('tests/synthetic/data/xrf_tables.json', 'docs/studies/xrf_shootout/physics_check.csv'),
+         docs=('docs/studies/xrf_shootout/summary.md', 'docs/studies/xrf_shootout/QUESTIONS.md'),
+         defaults={'--out': OUT + '/xrf_tables.json', '--check': OUT},
+         repo_ok=False, seconds=None),
+    Tool('xrf_shootout', 'XRF shootout: the reader against PyMca, PyXRF, Larch and XeRay', 'fluo', 'data',
+         'tests/tools/xrf_shootout.py',
+         'The reader\'s window sum and line fits against the open-source XRF packages on synthetic spectra with '
+         'known truth: 43 conditions (scatter, counts, overlaps, other elements and L lines, calibration and '
+         'detector errors, a measured detector) and 8 XFNTR curves. Needs PyMca5, scikit-beam and xraylarch (a method whose package is '
+         'missing is skipped); about an hour on 30 CPUs as committed.',
+         committed=('docs/studies/xrf_shootout/run', 'docs/studies/xrf_shootout/run_measured',
+                    'docs/studies/xrf_shootout/run_pymca'),
+         docs=('docs/studies/xrf_shootout/summary.md', 'docs/studies/xrf_shootout/survey.md', 'docs/studies/xrf_shootout/README.md',
+               'docs/studies/xrf_shootout/QUESTIONS.md'),
+         defaults={'--out': OUT, '--replicates': '10', '--series-replicates': '4',
+                   '--methods': 'window,fit_data,p1,p1p2p3,xeray'},
+         variations=(
+             V('As committed', 'Every method, 100 series per condition and 40 per XFNTR curve (about an hour on 30 '
+               'CPUs).', 'docs/studies/xrf_shootout/README.md#2. the shootout: 40 conditions', replicates='100',
+               series_replicates='40', methods='all'),
+             V('The hard case only', 'Zn under 10 keV with every method: the case that separates them.',
+               'docs/studies/xrf_shootout/README.md### Commands', conditions='hard,xfntr_hard', methods='all'),
+         ),
+         committed_with={'--replicates': '100', '--series-replicates': '40', '--methods': 'all'},
+         repo_out='docs/studies/xrf_shootout/run', repo_ok=False, seconds=None),
+    Tool('xrf_shootout_figures', 'XRF shootout figures (X1-X8)', 'fluo', 'figures',
+         'tests/tools/xrf_shootout_figures.py',
+         'The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, '
+         'the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, '
+         'the three Compton models with the remembered constants checked, and speed.',
+         committed=('docs/studies/xrf_shootout/X*.png', 'docs/studies/xrf_shootout/wins.csv',
+                    'docs/studies/xrf_shootout/tables.md'),
+         docs=('docs/studies/xrf_shootout/summary.md',),
+         defaults={'--run': 'docs/studies/xrf_shootout/run', '--out': OUT},
+         variations=(V('Synthetic spectra only', 'X6 and X7, which need no shootout run (seconds).',
+                       'docs/studies/xrf_shootout/README.md#3. figures, tables.md and wins.csv', only='6,7'),),
+         inputs=('docs/studies/xrf_shootout/run', 'docs/studies/xrf_shootout/run_measured',
+                 'docs/studies/xrf_shootout/run_pymca', 'docs/studies/xrf_shootout/physics_check.csv'),
+         repo_out='docs/studies/xrf_shootout', repo_ok=False),
 
     # ------------------------------------------------------------ the reader's window
     Tool('gui_screens', 'Screenshots of every area of the window', 'gui', 'figures',

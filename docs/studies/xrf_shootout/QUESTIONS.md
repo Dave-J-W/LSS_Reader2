@@ -1,0 +1,27 @@
+# XRF shootout: the questions this work answers
+
+Plain-language questions, each with its short answer. The numbers and
+figures behind each answer are in `summary.md`; every table is in
+`tables.md`.
+
+Status:
+- **answered**: measured on synthetic data with known truth;
+- **partly**: measured, with a stated limit;
+- **open**: not measured.
+
+All answers are from synthetic spectra, measured 2026-11-25.
+
+| # | Question | Status | Short answer | Where |
+|---|---|---|---|---|
+| Q1 | What do other people use to get line intensities out of XRF spectra, and how do their methods differ from ours? | answered (reading) | PyMca, PyXRF (scikit-beam), Larch and XRF-Maps fit the **whole spectrum**, scatter peaks included. XeRay (the Lee group's MATLAB tool for XFNTR) fits a box, as the reader does, but unweighted on a straight line. The reader fits a **box** around the line by Poisson likelihood. | `survey.md` |
+| Q2 | When a weak line sits on top of beam scatter, which method gives the right number of counts? | answered | **Under a 10 keV beam none does** for Zn Kα, including on the owner's measured detector. The reader's fits refuse (54–100 % fail their checks); PyMca answers about −20 %, PyXRF −100 %, Larch and XeRay worse. With the beam at 11–12 keV the reader is within 1 % (P1 0.0 % and −0.2 % on the measured detector). PyMca is accurate there only with the right background setting, which needs the truth to choose. Over 43 conditions: P1+P2+P3 accurate in 13, P1 in 11, XeRay 11, PyMca 7 (10 if it may pick its setting with the truth), Larch 4–5, PyXRF 4. | summary §1, §8; X1, X5 |
+| Q3 | Which method reproduces the true shape of an XFNTR curve (intensity against Qz)? | answered | **The reader**: best in 6 of 8 curves, tied in 1. XeRay is better on the Er L curve (1.0 % against 1.7 %). Every PyMca setting puts a 6–12 % step at the critical angle, where the bulk scatter rises. The worst point in the hard 10 keV curve: P1+P2+P3 1.7 %, PyMca 12 %, Larch 20 %, PyXRF 41 %. | summary §2; X3 |
+| Q4 | Are each method's error bars honest, so that a χ² fit downstream means something? | answered | **Only the reader's fits'** (pull SD 1.03 for P1+P2+P3 and 1.07 for P1). PyMca's are 1.3–2× too small under scatter. XeRay's (√counts) are up to 11× too small. Larch's are too large. PyXRF reports none. | summary §3; X4 |
+| Q5 | When counts are low (the high-Qz end of a curve), which methods stay unbiased? | answered | P1+P2+P3 is within 2 % down to 30 photons; P1 from 60 photons (+23 % at 30). The old data weights read −23 % at 100 photons; PyMca (also data weights) reads +16 % at 60. On a clean line the others are 10–25 % **more precise** (they also use Kβ and fit a simpler background): this is the reader's one plain weakness. | summary §4; X2 |
+| Q6 | When two elements' lines overlap, does a fit of a small box hold up against a fit of the whole spectrum? | answered | **No.** A whole-spectrum fit wins when a neighbour's line falls in or beside the box: Ga beside Zn, PyMca −1.1 % against the reader failing; Co beside Fe, PyMca +2.8 % against the reader's +53 %. An exact overlap (As Kα under Pb Lα) and Zn+Cu under the 10 keV scatter defeat everyone. | summary §5 |
+| Q7 | How much does each method suffer from a slightly wrong energy calibration or detector model? | partly | It was tested only on the 10 keV hard case, where every method already fails, so it does not separate them (a limit of the design: rerun at 12 keV). One clear result: the reader's fixed-width option (P2) assumes Fano 0.115. On the measured detector (Fano 0.137) it reads −5.5 %, where P1 alone reads −0.2 %. | summary §6 |
+| Q8 | Does the verdict depend on how we simulated the Compton scatter (our approximation against tabulated Hartree–Fock profiles)? | answered | **No.** Tabulated (Biggs) profiles and study B's shell model agree within 1 % under the Zn line. The reader's and PyMca's results move by under a point between them (P1+P2+P3 −7.6 against −7.9 %, PyMca −20.6 against −19.8 %). Larch swings from +34 % to −4 %, which is its own instability. The total Compton scatter matches xraylib's incoherent scattering function within 1.2 %. | summary §7; X7; `tests/test_mca_more.py` |
+| Q9 | Are the "from memory" physics constants in our synthetic data right, checked against a tabulated library? | answered | Line energies and edges match xraylib to 0.01 %. The Si escape constants are within 1–4 %. The O 1s binding is 0.543 against xraylib's 0.532 keV. **Kβ/Kα in `mca.ELEMENTS` is 16–28 % low** for Fe to Br; this affects the synthetic data only. | `physics_check.csv`; X7 |
+| Q10 | How fast is each method? | answered | Per spectrum, one CPU: window 0.1 ms, P1 4 ms, P1+P2+P3 8 ms, XeRay 13 ms, PyMca 25 ms, Larch (series) 0.14 s, PyXRF 0.18 s, Larch (each) 1.2 s. | summary §9; X8 |
+| Q11 | Where are we worse than others, and what would it take to fix it? | answered (fixes not built) | We are worse in two places. (1) **Precision on isolated lines**: fit Kα+Kβ together and offer a linear background. (2) **Overlapping lines**: place the known neighbours' lines in the box (study B's `fit_known`, made an option). Also take P2's width from the detector's measured Fano and noise. | summary, "What would close the gaps" |
+| Q12 | Is Zn under a 10 keV beam measurable by anyone? | answered | **No method is within 2 %**, on study B's hard case or on the measured detector. Choose the beam energy instead: at 12 keV the reader's default is accurate. | summary §1, §8 |

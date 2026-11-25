@@ -114,6 +114,9 @@ container on 2026-11-23 with the defaults shown.
 | [MCA fit demo: the beam-energy story (F90)](#mca-fit-demo) | figures | The same Zn spectrum under 10, 11 and 12 keV beams: its parts stacked, the box, one drawn spectrum with P1's fit, and P1's bias over 200 series on each panel (the window sum's beside it). The wrap-up of the synthetic MCA project (paused 2026-11-24). | synthetic (public) | 17 s | `docs/figures/mca_fit_demo` |
 | [Study B figures: MCA line intensities (F90)](#mca-study) | figures | The owner's study of how to measure an MCA line (F90): the anatomy of the hard case, replicates with every estimator's fit, the weighting bias against counts, one feature at a time, XFNTR curves, pass rates and the robustness map (B1-B7), from the gauntlet's study run. | synthetic (public) |  | `docs/studies/mca_fit` |
 | [Scatter in real MCA spectra against the generator (F90)](#mca-scatter) | figures | Real spectra of the scattered beam at 6-10 keV fitted with the synthetic generator's own physics, every uncertain axis free: the Si escape fraction against Reed's, the O 1s Compton wing, the detector tails, the resolution and the counts under a line against study B's hard case (DATA_NEEDS row 3); and P1 against data weights on real series of repeated spectra. From the anonymised tables only. | public (NX school or committed tables) | 8 s | `docs/studies/mca_scatter` |
+| [X-ray tables from xraylib for the synthetic spectra](#xrf-tables) | data | Line energies and relative intensities (K and L families, at each beam energy) and water's Hartree-Fock Compton profiles, from xraylib, written as the JSON the extended generator reads (tests/synthetic/mca_more.py); and every constant the generator took from memory against xraylib. Needs xraylib. | synthetic (public) |  | `tests/synthetic/data/xrf_tables.json`<br>`docs/studies/xrf_shootout/physics_check.csv` |
+| [XRF shootout: the reader against PyMca, PyXRF, Larch and XeRay](#xrf-shootout) | data | The reader's window sum and line fits against the open-source XRF packages on synthetic spectra with known truth: 43 conditions (scatter, counts, overlaps, other elements and L lines, calibration and detector errors, a measured detector) and 8 XFNTR curves. Needs PyMca5, scikit-beam and xraylarch (a method whose package is missing is skipped); about an hour on 30 CPUs as committed. | synthetic (public) |  | `docs/studies/xrf_shootout/run`<br>`docs/studies/xrf_shootout/run_measured`<br>`docs/studies/xrf_shootout/run_pymca` |
+| [XRF shootout figures (X1-X8)](#xrf-shootout-figures) | figures | The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, the three Compton models with the remembered constants checked, and speed. | synthetic (public) |  | `docs/studies/xrf_shootout/X*.png`<br>`docs/studies/xrf_shootout/wins.csv`<br>`docs/studies/xrf_shootout/tables.md` |
 
 ### Synthetic data sets
 
@@ -978,6 +981,63 @@ Variations:
 |---|---|---|---|
 | Numbers against beam energy only | S2 from the anonymised table (a few seconds). | `docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |` | `python tests/tools/mca_scatter.py --out '{out}' --only S2` |
 | Example fits on the committed blanks | S1: the 13 real scatter-only blanks the owner allowed, refitted with their parts and residuals (about a minute). | `docs/studies/mca_scatter/summary.md#Committed blanks (`tests/reference/mca_scatter/`)` | `python tests/tools/mca_scatter.py --out '{out}' --only S1 --fixtures tests/reference/mca_scatter` |
+
+<a id="xrf-tables"></a>
+
+### X-ray tables from xraylib for the synthetic spectra
+
+Line energies and relative intensities (K and L families, at each beam energy) and water's Hartree-Fock Compton profiles, from xraylib, written as the JSON the extended generator reads (tests/synthetic/mca_more.py); and every constant the generator took from memory against xraylib. Needs xraylib.
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_tables.py`
+- Explained in: `docs/studies/xrf_shootout/summary.md`, `docs/studies/xrf_shootout/QUESTIONS.md`
+- Committed products: `tests/synthetic/data/xrf_tables.json`, `docs/studies/xrf_shootout/physics_check.csv`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_tables.py --out '{out}/xrf_tables.json' --check '{out}'
+
+
+<a id="xrf-shootout"></a>
+
+### XRF shootout: the reader against PyMca, PyXRF, Larch and XeRay
+
+The reader's window sum and line fits against the open-source XRF packages on synthetic spectra with known truth: 43 conditions (scatter, counts, overlaps, other elements and L lines, calibration and detector errors, a measured detector) and 8 XFNTR curves. Needs PyMca5, scikit-beam and xraylarch (a method whose package is missing is skipped); about an hour on 30 CPUs as committed.
+
+- Menu: Tools > Fluorescence (MCA); kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/xrf_shootout.py`
+- Explained in: `docs/studies/xrf_shootout/summary.md`, `docs/studies/xrf_shootout/survey.md`, `docs/studies/xrf_shootout/README.md`, `docs/studies/xrf_shootout/QUESTIONS.md`
+- Committed products: `docs/studies/xrf_shootout/run`, `docs/studies/xrf_shootout/run_measured`, `docs/studies/xrf_shootout/run_pymca`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_shootout.py --out '{out}' --replicates 10 --series-replicates 4 --methods window,fit_data,p1,p1p2p3,xeray
+
+- The committed products were made with:
+
+      python tests/tools/xrf_shootout.py --out '{out}' --replicates 100 --series-replicates 40 --methods all
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| As committed | Every method, 100 series per condition and 40 per XFNTR curve (about an hour on 30 CPUs). | `docs/studies/xrf_shootout/README.md#2. the shootout: 40 conditions` | `python tests/tools/xrf_shootout.py --out '{out}' --replicates 100 --series-replicates 40 --methods all` |
+| The hard case only | Zn under 10 keV with every method: the case that separates them. | `docs/studies/xrf_shootout/README.md### Commands` | `python tests/tools/xrf_shootout.py --out '{out}' --replicates 10 --series-replicates 4 --methods all --conditions hard,xfntr_hard` |
+
+<a id="xrf-shootout-figures"></a>
+
+### XRF shootout figures (X1-X8)
+
+The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, the three Compton models with the remembered constants checked, and speed.
+
+- Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/xrf_shootout_figures.py`
+- Explained in: `docs/studies/xrf_shootout/summary.md`
+- Committed products: `docs/studies/xrf_shootout/X*.png`, `docs/studies/xrf_shootout/wins.csv`, `docs/studies/xrf_shootout/tables.md`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Synthetic spectra only | X6 and X7, which need no shootout run (seconds). | `docs/studies/xrf_shootout/README.md#3. figures, tables.md and wins.csv` | `python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run --out '{out}' --only 6,7` |
 
 <a id="synthetic-dataset"></a>
 
