@@ -188,6 +188,11 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   walkthrough (`walkthrough.md`, rule 13) follows one join from the two scans
   to the verdict, with a real NX school split whose miss came from a zig-zag
   that χ² cannot see.
+- A bad-pixel pass on the reflectivity ROI (C62, F95 B3, 2026-11-25): on
+  sparse frames hot pixels add up to 11 error bars per point; the ROI pass at
+  factor 10 removes 90 % of them and touched no clean frame, while factors 3–4
+  can take half a real sparse point (measured, synthetic with known truth; NX
+  school unchanged at any factor; `docs/studies/roi_bad_pixels/`).
 
 ## Series, saving and live updates (2026-11-19 to 22)
 

@@ -1,0 +1,80 @@
+{
+ "reps": 30,
+ "frames": 25920,
+ "seconds": 109.1,
+ "hot_pixels": 5349,
+ "clean_margin": {
+  "synthetic": {
+   "f3": 0.7914538759985227,
+   "f10": 0.6498434630959617
+  },
+  "sharp": {
+   "f3": 0.780682158306031,
+   "f10": 0.780682158306031
+  },
+  "sparse": {
+   "f3": 1.3333333333333333,
+   "f10": 0.8865830146892344
+  }
+ },
+ "nx_margin": {
+  "f3": 0.7242113262953306,
+  "f10": 0.5659405651005146,
+  "frame4": 1.0
+ },
+ "clean_check": 0.0,
+ "nx": {
+  "frame4": {
+   "frames_changed": 0,
+   "pixels": 0,
+   "max_abs_dz": 0.0
+  },
+  "roi3": {
+   "frames_changed": 0,
+   "pixels": 0,
+   "max_abs_dz": 0.0
+  },
+  "roi10": {
+   "frames_changed": 0,
+   "pixels": 0,
+   "max_abs_dz": 0.0
+  },
+  "roi40": {
+   "frames_changed": 0,
+   "pixels": 0,
+   "max_abs_dz": 0.0
+  },
+  "bg10": {
+   "frames_changed": 0,
+   "pixels": 0,
+   "max_abs_dz": 0.0
+  }
+ },
+ "example": {
+  "qz": 0.45,
+  "monitor": 1761670.0,
+  "counts_clean": 5.0,
+  "err_clean": 3.08220787628129,
+  "counts_hot": 8.5,
+  "counts_roi10": 5.0,
+  "counts_roi3": 5.0,
+  "spots": [
+   [
+    101,
+    100,
+    6.0
+   ],
+   [
+    98,
+    121,
+    5.0
+   ]
+  ],
+  "peak_pixel": 1.0,
+  "neighbours": [
+   0.0,
+   0.0
+  ],
+  "floor": 4.519402413396297
+ }
+}

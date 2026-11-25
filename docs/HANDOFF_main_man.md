@@ -106,6 +106,10 @@ Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam heigh
      `sample_data/private/mca_scatter_cloud/` (git-ignored).
    - Then mca-scatter's items 1–3 and 5–9 (#55, 15:00), with derived numbers only.
    - Then tell mca-scatter to delete the branch.
+3a. **B3, the ROI bad-pixel pass (C62, `docs/studies/roi_bad_pixels/`):** factor 10 on the ROI's three boxes
+   is the candidate default. Waiting for Local yokel's count on the owner's sparse high-Qz frames (DATA_NEEDS
+   16); then the core option in `lss_core` (`Experiment.reflectivity(roi_bad_pixel_factor=)`, applied before
+   `frame_row`), tests, the GUI manager's field (off by default), and rule 12.
 3b. **F109's open ends:** the extents' choice (90 % of the dose, asked through questor); the motor names and
    shapes of real S1 slit scans (asked of Local yokel, #55); then `S1_H_MOTORS` and the guards to the real
    scans, with a test. The dialog is the GUI manager's, after B10's docks.
