@@ -348,12 +348,12 @@
   label: "Export"
   where: "Reflectivity > bottom"
   handler: saveRefData
-  does: "Writes <name>_ref.txt (normalised R) and <name>_rrf.txt (R/RF if computed); adds the lss_core line to the Script pane"
+  does: "Writes <name>_ref.txt (normalised R) and <name>_rrf.txt (R/RF if computed), the files XModFit reads; adds the lss_core line to the Script pane"
   workflows: [reflectivity]
   needs: "a curve"
   shown: always
-  tooltip: false
-  notes: "_rrf.txt is the R/RF of the last plot with R/RF ticked; if never ticked it is silently skipped (print only)."
+  tooltip: true
+  notes: "_rrf.txt is the R/RF of the last plot with R/RF ticked; if never ticked it is silently skipped (print only). Since 2026-11-25 (F105, Q-REF-6) the dialog proposes <SPEC file>_<sample>_S<scans> (the sample from #U SeriesMacro when recorded; lss_core.naming) in the folder of the last Export (preference export_folder)."
 - id: refCovarianceCheckBox
   kind: checkbox
   label: "+ covariance"
@@ -398,6 +398,28 @@
   shown: always
   tooltip: false
   notes: "Only acts with R/RF; no cue of that."
+- id: refQcSubphaseToolButton
+  kind: button
+  label: "Subphase"
+  where: "Reflectivity > bottom, right of Qc"
+  handler: setRefQc
+  does: "A menu of subphases (water, D2O, salt solutions) that sets Qc from each one's tabulated density, and 'From an electron density...' for a typed one"
+  workflows: [reflectivity]
+  needs: ""
+  shown: always
+  tooltip: true
+  notes: "Added in code (F79, 2026-11-25; core lss_core.fresnel.SUBPHASES by tools man). Each entry's tooltip gives its density, temperature, electron density and source (from memory, not opened). Sets the field only when an entry is picked; says so in Messages and redraws."
+- id: refQoffProposePushButton
+  kind: button
+  label: "Propose"
+  where: "Reflectivity > bottom, right of Qoff"
+  handler: proposeRefQoff
+  does: "Fits Qoff on the curve on show at the Qc in the field and offers the edge fit (with its error) and the roughness criterion in a menu; picking one sets Qoff and redraws"
+  workflows: [reflectivity]
+  needs: "a curve of at least 5 points"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F79, 2026-11-25; core lss_core.fresnel.propose_qoff by tools man, study docs/studies/qoff/summary.md). Never applies by itself (rule 12): the field is unchanged until a menu entry is picked. The edge fit's note goes to Messages. 50 bootstrap replicates for its error (about a second)."
 - id: refRRFCheckBox
   kind: checkbox
   label: "R/RF"

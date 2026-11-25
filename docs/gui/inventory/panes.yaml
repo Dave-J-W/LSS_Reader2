@@ -222,6 +222,17 @@
   shown: "per Preferences > State badges"
   tooltip: true
   notes: "Added 2026-11-23 (F85). Amber when the legacy fit is chosen."
+- id: readOnlyLightLabel
+  kind: badge
+  label: "read-only"
+  where: "Status bar, right of the state badges"
+  handler: updateReadOnlyLight
+  does: "A yellow light shown while another reader writes this SPEC file's workbook: this reader shows results, notes and masks but saves none of them"
+  workflows: [general]
+  needs: "another reader holding the workbook's lock"
+  shown: "only when read-only"
+  tooltip: true
+  notes: "Added in code (D1, owner; 2026-11-25; core lss_core.readerlock by main man). The lock (<workbook>.lock) is taken when the workbook is first needed, not when the SPEC file opens, refreshed every 30 s, released on close or when another SPEC file's workbook is needed. A read-only reader tries again every 30 s and says when it saves again; a reader whose lock was taken away (after a long sleep) says so and stops saving. The tooltip names who has it open and since when."
 - id: statusBar
   kind: pane
   label: ""

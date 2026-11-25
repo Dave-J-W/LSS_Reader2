@@ -112,7 +112,11 @@ estimators read the smearing as a negative Qoff:
   true angle offset when the resolution is not negligible.
 - The proposer does not model resolution. The reader's R_F does not either.
 - **For the owner** (via questor): what is the Qz resolution near the edge
-  at 15-ID-C?
+  at 15-ID-C? **Measured 2026-11-24** (non-cloud agent, DATA_NEEDS row 13,
+  `docs/studies/qz_resolution/summary.md`): ΔQ FWHM 8.9 × 10⁻⁴ Å⁻¹ at 10 keV
+  (σ_Q 3.8 × 10⁻⁴; runs 6.5–12.6 × 10⁻⁴), from the edge's width in 378 real
+  scans; no dependence on S1 between 0.04 and 0.2 mm. By the −0.15 ΔQ above,
+  it reads as a Qoff of about −1.3 × 10⁻⁴ Å⁻¹.
 
 ## 4. A wrong Qc, and Qc with Qoff
 

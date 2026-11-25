@@ -50,9 +50,10 @@ exists.
 | I37 | The residual panel shows what the fit minimised: over the fitted points Σ((y − fit)/σ)² = χ²/dof × (N − p), N − p an integer with p the fit's parameter count; for Poisson data with σ = √y and a right model the weighted residuals have mean ≈ 0 and SD ≈ 1 (F74). For burn trends Σr² is the best model's χ² itself (to 1e-9, every model on the synthetic burn) | `test_residuals.py::test_the_residuals_are_those_the_fit_minimised`, `::test_burn_trends_get_the_best_models_residuals` |
 | I38 | The ROI close-up outlines the pixels the reduction sums: summing a frame over `lss_core.display.roi_boxes(slit, cen, bg, direction)` gives `TwoDDetector.sumROI`'s signal and background values exactly, for any slit, centre, offset and direction (its slit − 2 and integer background centres included, PHYSICS_ISSUES P12) | `test_roi_boxes.py::test_summing_over_the_drawn_boxes_gives_sumROIs_values` |
 | I39 | The dose of a point is what the reduction already divides by: in monitor counts it is the point's weight in "Sum All", M/(A·g) (`cuts.frame_normaliser`); in photons, the flux route's photons/s × its seconds / A (`flux.photons_per_second`); a scan's dose is the sum of its points'; at a constant monitor rate and absorber the dose axis is the exposure axis × that rate, so a burn's dose limit is its time limit × the rate | `test_dose.py` (every test; the last on the synthetic burn, to 1e-6) | 2026-11-24 |
-| I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
-| I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own` | 2026-11-24 |
+| I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_gui_ref_mask.py::test_drops_are_kept_and_left_out_from_the_start_next_time` (the window, 2026-11-25), `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
+| I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own`; in the window `test_gui_cut_axis.py::test_diffuse_axes_change_x_only`, `::test_beta_minus_alpha_puts_the_specular_row_at_zero` (2026-11-25) | 2026-11-24 |
 | I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
+| I43 | At most one reader holds a workbook's lock at a time, even when two take over a stale lock at once (each reads the lock back after writing it); a read-only workbook never writes (`save` raises `WorkbookReadOnly`, the file and its folder untouched) | `test_readerlock.py` (every test); in the window `test_gui_reader_lock.py` (2026-11-25) | 2026-11-25 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
 ## Q&A
@@ -5935,8 +5936,8 @@ Verified by: tests (`test_beam_height.py`, I42) on synthetic knife edges; a run 
   - **The study's guards:** the first point below 25 % of the peak; at least 2 points on the edge; the
     centre inside the scan; the edges more than 3 σ apart; χ²/dof ≤ 20.
   - **The height:** 1.0645 × the median rising FWHM of the accepted scans.
-  - **With `near=n`:** only the scans with n's S1 gap count (S1T + S1B; whether these are half-openings is
-    OQ-1), and the nearest `NEAR_SCANS` = 3 of them are used. The 3 is an assumption.
+  - **With `near=n`:** only the scans with n's S1 gap count (S1T + S1B, the two half-openings: OQ-1, answered
+    2026-11-25), and the nearest `NEAR_SCANS` = 3 of them are used. The 3 is an assumption.
   - **Without an accepted scan:** the default where its conditions hold, otherwise no height, with the reason.
 - **NX school, run:**
   - Scans 5, 10 and 13 are accepted: rising FWHM 0.029–0.032 mm, height 0.0333 mm, scatter 3.8 %.
@@ -5955,6 +5956,17 @@ from them, may be published: per-scan curves, edges, widths, and the inventory b
 (#60), if the local data agent wishes. Detector images of those scans stay private, as do the other private
 data and their identifiers (names, scan numbers, dates) unless the owner says otherwise. Recorded in
 AGENTS.md's row for `sample_data/private/`.
+
+### 2026-11-24 — The owner: the MCA scatter blanks may be committed, beam energies to 0.1 keV
+
+Verified by: the owner's answers to the two questions of `docs/studies/mca_scatter/summary.md`, put to
+them by the data-analysis coordinator and relayed to the local data agent. "Yes, commit them": the 13
+scrubbed scatter-only blanks (E10-d, -f, -i, -j, -k; E9.2-a … d; E6.1-a … d) are now in
+`tests/reference/mca_scatter/`, as `energy_keV,counts` with a header of beam energy, readout, kind, gain and
+summed real and live times, and nothing tying them to a beamtime. "Keep 0.1 keV": beam energies stay
+public to 0.1 keV, so the study's tables are unchanged. `tests/test_mca_scatter.py` loads every blank,
+checks its header carries no date, time, scan or file name, and checks its elastic edge against the
+fitted width. Only these spectra are allowed; other private spectra stay private.
 
 ### 2026-11-24 — Review of the covariance export (owner: "review their subject areas")
 
@@ -5999,6 +6011,102 @@ the sketch is derived. Study: `docs/studies/sh_beam_size/height_scans.md` (figur
   lengthens (median ρ −0.20), unexplained, about 1 µm.
 - **How sure:** a run's median σ_rise ± 0.3 µm statistically; as a size, about ± 10 % (one erf for a core +
   tail profile). No number of the dose rule changes.
+
+
+### 2026-11-24 — Real reflectivity burns: trends, and the beam or the clock (DATA_NEEDS row 11, F76, F77)
+
+Verified by: a run of the reader's `Experiment.burn` (both axes, defaults) on 78 real reflectivity burns
+from the owner's private data (14 runs, 10 keV), by the non-cloud agent. Study, figures and tables:
+`docs/studies/xr_burns/summary.md` (C54).
+- **The reader's verdicts:** 28 of 78 stable (frame 1 left out). Stability falls with flux: 10 of 18 below
+  3 × 10⁹ photons/s, 5–7 of about 20 in each bin above.
+- **The old ROI-total rule dilutes the change.** The background-subtracted specular part is a median 0.37
+  of the ROI total. Over 41 burns that change by ≥ 3σ, the ROI total drifts at a median 0.61 of the
+  specular rate, and those burns' median fraction is 0.60. The old rule calls 11 changing burns stable.
+- **Dose or time (F76):** across a series at several absorbers, rate_t ∝ flux^β, β = 1 for the dose and 0
+  for the clock. Two strips at one absorber differ by 88 %/h (64–122) beyond their counting errors. With
+  counting errors alone, 8 of 19 series reject both. With the strip scatter: 4 dose, 0 time, 10
+  undecidable. Where β is determined it runs from 0.2 to more than 2 (≈ 1 in 3 series).
+- **F77:** reciprocity holds in 3 of 8 series. β > 1 makes a high-flux test overstate the damage (safe);
+  β < 1 makes it understate it (unsafe). Since β varies between samples, one short high-flux test does not
+  predict a safe absorber. Two fluxes at least ×10 apart, each on two strips, can.
+- **For the core:** any automatic dose-or-time verdict needs a between-strip term, or it will call most
+  real series "neither". One real burn makes `Experiment.burn` fail with a NaN change time (a ValueError in
+  converting it). The 30 keV burns, a Pilatus 1M run, are not read by the burn at all.
+
+### 2026-11-24 — The Qz resolution near the critical edge (DATA_NEEDS row 13, F79, C50, C55)
+
+Verified by: a fit of the edge's width in 400 real reflectivity scans (the first scan of every series
+crossing the edge; 17 runs, 10 keV, steps of 0.001 Å⁻¹) by the non-cloud agent, with a known-truth check
+on synthetic scans of the same sampling. Study: `docs/studies/qz_resolution/summary.md`.
+- **ΔQ FWHM = 8.9 × 10⁻⁴ Å⁻¹ at 10 keV** (σ_Q 3.8 × 10⁻⁴), the median of 378 scans. Run medians are
+  6.5–12.6 × 10⁻⁴, and scans within a run scatter by ±15 %. The subphase's absorption is the largest model
+  term, ±15 % for β wrong by ×2.
+- **Not the slits:** S1 at 0.04 and at 0.2 mm in one run give the same width (σ_Q 3.38 ± 0.08 and
+  3.41 ± 0.75 × 10⁻⁴). The footprint grows ×5 and the width does not change. S1 at 0.02 mm is not
+  determined.
+- **The cause:** the beam's convergence, 37 µrad rms. The specular spot is as narrow as the direct beam
+  (0.245 px, 95 % in one pixel), so the meniscus slope spread is ≲ 1.5 × 10⁻⁴ in σ_Q. Si(111) bandwidth
+  contributes 1 × 10⁻⁶.
+- **For Qoff:** C50's −0.15 ΔQ turns this into a proposed Qoff of −1.3 × 10⁻⁴ Å⁻¹ (runs −1.0 to −1.9). That
+  is about half of NX's −2.8 × 10⁻⁴ and a quarter of the owner's typical −5 × 10⁻⁴. The rest is angle (or
+  Qc).
+- The fits' own errors are 3.5× too small against the scatter within a run (per-point angle errors); quote
+  the scatter.
+
+### 2026-11-24 — Reflectivity patching on real series (DATA_NEEDS row 1, hand-off 08, C56)
+
+Verified by: a run of hand-off 08's survey (`tests/tools/ref_patch_survey.py`) on 380 private reflectivity
+series, 1832 joins (18 files, 10 keV), by the non-cloud agent. It added the guard at p 0.3 and the guard off
+beside the default (p 0.7). Study: `docs/studies/ref_patch_real/summary.md`.
+- **The joint fit is confirmed as the default on real data.** In 1091 real-curve split tests (truth
+  f = 1.25) its bias is +0.10 % [−0.10, +0.32]. The legacy factor's is −0.55 % [−1.16, −0.22], with errors
+  2.4× too small.
+- **p 0.7 or 0.3 makes no difference on real data.** The factor is identical at 67 % of joins and more than
+  1σ apart at 3.7 %. The calibration is the same (pull SD 1.24, 1.23), and so is the foil z. Study A's
+  choice stands, and the foils do not disagree with the fits at real joins.
+- **New: the guard leaves the errors too small on real joins.** The pull SD is 1.24 [1.09, 1.40] with the
+  guard and 1.00 [0.93, 1.03] without it, a difference of +0.24 [0.11, 0.38] (bootstrap over files). The
+  ladder climbs to order 5, χ²/dof about 0.8, so inflate-only never acts. Without the guard, χ²/dof is
+  about 1.5 and the errors inflate. A remedy is proposed in the study; nothing is changed (rule 12).
+- The share of joins with χ² p < 0.01 rises with Qz, 5 → 11 → 17 % (default): there is excess per-point
+  scatter at high Qz.
+
+### 2026-11-24 — Row 8: overlaps below 10 keV, and the copper foils at 30 keV (DATA_NEEDS row 8, P28, F49)
+
+Verified by: the reflectivity survey of row 1 (every readable series and its energy), the owner's analysing
+repository's beam energies per run, and its absorber-step measurement at 30 keV (read here, not rerun). By
+the non-cloud agent.
+- **No reflectivity series with overlaps at 6–7 keV exists** in the owner's private data: every readable
+  series is at 10 keV, and the only other energy is one run at 30 keV. P28 below 10 keV stays open.
+- **Cu at 30 keV (F49):** that run gives 16 same-slit overlaps between absorber settings (ROI totals, not
+  background-subtracted). The factor per unit has a median of 1.212 (interquartile 1.15–1.27, 10th–90th
+  1.08–1.33). A log-ratio fit weighted by Δabsorber gives 1.262 ± 0.035. With μ/ρ of copper at 30 keV of
+  about 10.9 cm²/g (NIST; an assumption to check against SRD 126 before it goes into `absorbers.py`) and
+  8.96 g/cm³, ln f / μ is **about 20 µm (median) to 24 ± 3 µm (fit) of Cu per unit**. Rough: one run, and
+  most overlaps share only one point.
+- **Not in the data:** foil tolerance and alloy. The reader cannot read that run's frames (Pilatus 1M,
+  F38), so the background-subtracted check is not possible yet.
+
+### 2026-11-24 — Does a reflectivity join need coincident Qz points? (owner's question, C57)
+
+The owner asked whether a join should always include at least one coincident point, and whether one is
+enough, so that each scan could use its own spacing. Verified by a synthetic known-truth run (21,600 joins:
+water, DPPC and a 100 Å film; joins at Qz 0.05, 0.15 and 0.30; 12 overlap geometries; the reader's own patch
+code) and by C56's 1832 real joins. Study: `docs/studies/coincident_points/summary.md`. By the non-cloud agent.
+- **Shared Qz are not needed; an overlap is.** With 4 or more points of each scan in the overlap, the default
+  joint fit has the same precision whether the points coincide or are staggered (4+4 staggered: 1.72 %;
+  5 coincident: 1.70 %). It is unbiased within 0.1 % and honest (pull SD 0.96–1.05). With no overlap, no
+  method answers.
+- **One shared point alone** gives an unbiased factor at about twice the error (3.3 % against 1.5–1.7 %).
+  The real joins agree: 2.1×, robust SD of the difference 0.93. The default joint fit refuses that geometry,
+  because its order-4 ladder needs more points.
+- **With 2 points per scan**, a fast fringe (film at 0.30, 6 points per fringe) biases the default by −2.0 %
+  (0.6 of its error). At 3 or more points, there is no bias.
+- **The legacy factor's error is wrong at small overlaps:** pull SD 4–106 with 2 coincident points and 11–336
+  with staggered 2+2.
+- **For planning:** different spacing per scan is fine. Overlap by at least 4 points of each scan, 6 or more
+  per fringe on a fast fringe. Keep a shared Qz only as a cross-check.
 
 ### 2026-11-25 — The owner: frame-by-frame curves of private burns are not published
 
@@ -6169,3 +6277,153 @@ Verified by: measurement on private data by the non-cloud agent, with the reader
   when reliable. Rows for OUTPUT_DECISIONS are in the study.
 - **Defect found:** a one-point Det_Th scan in a GID set makes `Experiment.frames` raise `KeyError: 'monc'`
   (4 sets).
+### 2026-11-25 — F105: Export proposes a name from the sample and the scans (Q-REF-6)
+
+The owner's Q-REF-6 (2026-11-23): "Straight into xmodfit; the reader
+proposes a file name from the sample and series". Built:
+- **`lss_core.naming`:** `export_base` builds `<SPEC file>_<sample>_S<scans>`,
+  with a run of scans written as `S6-9`.
+  - **The sample:** the SPEC files carry no sample name (none in the NX
+    file, measured by search). The nearest is the series macro's file name
+    (`#U SeriesMacro`, newer macros), less a trailing measurement word
+    (`_xr`, `_gid`, …). It is left out when not recorded.
+- **The dialog** opens in the folder of the last Export (preference
+  `export_folder`), so repeated exports land in XModFit's folder.
+- **The files** are unchanged: the golden export tests pass byte for byte,
+  and the covariance sidecar is the contract's. No output number changes.
+
+Verified by: tested (`tests/test_naming.py`, `tests/test_gui_export_name.py`).
+**Open:** whether the owner wants the series id (from `#U Series`) in the
+name as well. It is left out, so the name stays short.
+
+### 2026-11-25 — F97 and F59 in the window: the cut's x axis, Q ranges about the beam
+
+The window side of main man's diffuse axes (#59, `lss_core.cuts`; owner
+Q-IMG-12: "β, β − α (α from Qz) and Qz and Qxy"). Built:
+- **"x: …"** right of the cut direction (`cutAxisComboBox`): as the image
+  (the default, unchanged output), β, β − α, Qz for vertical cuts, Qxy for
+  horizontal ones; an axis that does not fit is greyed out. Only the x
+  column changes; the intensities and errors are the pixel cut's (I41,
+  tested in the window on the synthetic frame; the β − α peak within one
+  row of 0, the Qz peak at the frame's 0.01 within 2e-4).
+- **The x label** is the axis the cut is on (`cuts.axis_label`). Before, a
+  pixel cut was labelled "Pixels" whatever the Axes box said, and a Q H cut
+  "Qxy" although its x is the window's 4π sin θ/λ (labelled "Q" now; equal
+  to Qxy within 1e-5 relative at 0.1°, per the cuts docstring).
+- **F59, the Q cuts' ranges:** with frames shown (no GID or GISAXS map),
+  choosing a Q cut puts a band about the first selected frame's beam in
+  the box (`cuts.centred_range`), half the reflectivity ROI either side:
+  Slit H,V 21,11 gives ±5 rows (a Qz band for Q H) and ±10 columns (a Qxy
+  band for Q V). The rows were chosen so that the direct beam, 2α below
+  the reflected one, stays out of the Qz band (at Qz 0.01 it is about 7
+  rows below on the synthetic frame, computed) — an assumption, recorded
+  in OUTPUT_DECISIONS. A Q range that lies off the detector on every
+  selected frame (`cuts.covered_range`) is refused with a message, and the
+  band is put in the box; before, the cut summed zeros silently.
+- **A test changed on purpose (rule 1):**
+  `test_detector_sizes.py::test_window_cut_ranges_before_and_after_frames`
+  pinned '0:1' and '1:2' after frames were shown. On the synthetic frames
+  the Q H default is now '-0.004526:0.02453' (Qz) and the Q V default a
+  Qxy band symmetric about 0; before any frame, and for the pixel cuts,
+  the defaults are unchanged.
+
+Verified by: tested (`tests/test_gui_cut_axis.py`, 6 tests;
+`tests/test_gui_cuts.py`, `tests/test_cut_script.py` unchanged and
+passing). Not measured on real diffuse data: the public NX file has no
+off-specular frames worth the name.
+
+### 2026-11-25 — D1's core: one reader writes the workbook, a second opens it read-only
+
+Verified by: tests (`test_readerlock.py`, I43); reading only for how the window will use it (the GUI manager's yellow
+light, still to build).
+
+- **Why it was needed:** the owner's D1, "Two people can have the same SPEC file open. The second instance opens the
+  config read-only, and a small yellow indicator light in the GUI shows that state." The per-SPEC workbook is saved
+  by writing a temporary file and replacing the old one. Until now, two readers saving it would each overwrite the
+  other's results, without a word.
+- **The lock** (`lss_core.readerlock.ReaderLock`): a small JSON file beside the workbook, naming its holder (host,
+  process, user, program version, when taken and refreshed).
+  - It is taken by exclusive creation, so taking it is atomic.
+  - The holder refreshes it every 30 s.
+  - It is stale, and taken over, when its file has not been refreshed for 180 s, or when its holder is a process on
+    this host that no longer runs.
+  - A takeover writes the new lock and reads it back, so two readers taking a stale lock at once cannot both write.
+  - A refresh notices if someone took the lock meanwhile, for example after a long sleep.
+  - A lock that cannot be written (a read-only folder) means read-only, never an error (D3's spirit).
+- **The workbook:** `Workbook(path, read_only=True)` reads and changes in memory, but `save` raises `WorkbookReadOnly`
+  (a `PermissionError`) and writes nothing.
+- **Assumptions:** the hosts' clocks agree to well within 180 s, since staleness is the lock file's age on this host's
+  clock; the 30 s and 180 s are choices, not measurements. Windows has no cheap check of whether a process runs, so
+  there only the age decides.
+- **Not yet (the GUI manager):** the window takes the lock when it opens a SPEC file, refreshes it on a timer, opens
+  the workbook read-only and shows the yellow light when it doesn't have the lock (tooltip: `describe()`), tries
+  again from time to time, and releases it on close.
+
+### 2026-11-25 — OQ-1, OQ-4, Q-TL-8 (batch 20)
+
+Verified by: the owner's statements; the arithmetic below is mine. **OQ-1:** the header's slit values are half-openings, so the opening is twice the value: S1 of scan 14 reads 1.00/1.00/0.05/0.05 (L/R/T/B) and so is 2.0 × 0.1 mm. This gives the slit-defined aperture only; the footprint needs the mirror-focused vertical size (OQ-2, the local agent's work on it is in its own PR) and for a Gaussian the choice of FWHM or second moment for the dose (open). **OQ-4:** unknown to the owner; the reader cannot yet recognise fast mode, so the dose default stays "shutter closed" and a user mark is the fallback. **Q-TL-8:** units are mN/m (surface pressure), cm² (barrier area) and percent (O₂); names and whether every scan writes them are still unknown, so F75's columns stay synthetic.
+
+### 2026-11-25 — F92 in the window: drops kept as the mask, Restore all
+
+The window side of main man's mask (#54; owner, 2026-11-23: "saved as a
+mask in the config file (the per-SPEC state), and a 'Restore all' button
+is included in the patch dialog"). Built:
+- **Kept:** when a Ref Patch finishes, its drops become (scan, point)
+  pairs (`reflectivity.drop_points` on the scans as the joins started)
+  added to the workbook's mask (`masks.save`), with a message. A patch
+  cancelled, or a drop undone with Back, records nothing.
+- **Left out from the start:** the next Ref Patch of those scans removes
+  the masked points after repeats are merged and before the joins, as
+  `exp.reflectivity(mask=...)` does; the Script line says `mask=[...]`,
+  the provenance line "N masked", and a message lists them. A scan whose
+  every selected point is masked is used whole, with a message (else
+  Restore all would be out of reach).
+- **Drawn apart:** grey crosses, labelled "masked (n)", in the patch
+  window (scaled like their scan; the next scan by the factor on show)
+  and on the Reflectivity tab (scaled, normalised, offset and divided by
+  R_F as the curve is). They are not in the exported files.
+- **Restore all** (patch window): clears the mask of this patch's scans
+  (not of other scans) and this patch's drops, and starts the patch again
+  from the first join.
+- **Measured on the synthetic data set:** a drop of scan 2's first point
+  at the first join, then the next patch with the mask, give the same
+  curve to 1e-12 (I40: no earlier join's fit used that point), and the
+  window's curve equals the script's with `mask=[[2, 0]]` to 1e-10.
+- **A test changed on purpose (rule 1):**
+  `test_gui_ref_patch_steps.py::test_the_line_under_the_plot_says_how_the_result_was_made`
+  expected no "saved" part after a drop because the workbook was not open;
+  recording the drop's mask opens it, so the line now ends "not saved"
+  (true: the result is not in the workbook).
+- **Not built:** click to drop or restore a point (F94, low priority). The
+  read-only mask for a second reader came with D1's window side the same
+  day (below).
+
+Verified by: tested (`tests/test_gui_ref_mask.py`, 4 tests).
+
+### 2026-11-25 — D1 in the window: a second reader is read-only, with a yellow light
+
+The window side of main man's `lss_core.readerlock` (owner's D1: "Two
+people can have the same SPEC file open. The second instance opens the
+config read-only, and a small yellow indicator light in the GUI shows that
+state"). Built:
+- **When the lock is taken:** the first time the workbook is needed (a
+  save, a mask, the Compare tab, the timeline's notes), not when the SPEC
+  file is opened, so that nothing is written beside a SPEC file whose
+  workbook is never used (tested: no lock file after opening).
+- **Read-only:** the workbook is opened with `read_only=True`; results,
+  notes and masks are kept in memory and shown, but every save is refused
+  with a plain message (quietly in the status bar for automatic saves).
+  The yellow "read-only" light at the right of the status bar names who
+  has it open and since when (`describe()`).
+- **A timer every 30 s** (`REFRESH_S`) refreshes the lock, or tries again
+  for it. Gaining it is said ("saves to it again") and the workbook is
+  read again; losing it (another reader took a stale lock, after a long
+  sleep) is said and saving stops.
+- **Released** on close and when another SPEC file's workbook is needed.
+- **Two readers in one process** (tested with two windows): the first to
+  need the workbook writes it; the second is read-only until the first
+  closes.
+
+Verified by: tested (`tests/test_gui_reader_lock.py`, 6 tests). Not tried
+across two computers on a network share; the core's assumptions (clocks
+within 180 s) stand.

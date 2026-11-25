@@ -242,7 +242,7 @@ def test_the_line_under_the_plot_says_how_the_result_was_made(patch, qapp, recor
     for part in ('joint patch', 'legacy errors', 'scans 1, 2', '1 point dropped'):
         assert part in text, (part, text)
     assert 'join 1, scans 1 → 2' in tip and 'dropped 0' in tip and 'Errors: legacy' in tip
-    assert 'saved' not in text                             # the workbook is not open: not checked
+    assert text.endswith('not saved')                      # the drop's mask opened the workbook (F92): checked
     patch.saveButtons['ref'].click()
     qapp.processEvents()
     assert lab.text().endswith('saved v1')
