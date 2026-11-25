@@ -6924,3 +6924,7 @@ Verified by: runs (`tests/tools/xrf_lineshape.py` on the private bundle, derived
   with elements 1-4. Summing by header calibration smears the summed line to 1.37 x the resolution.
 - **Effect on the shootout (C66 rerun):** Gaussian lines change no verdict (median change 1.4 %). Real-shaped
   B lines cost P1+P2+P3 6 % (its fixed width misses the skew); P1+P3 stays within 2 % except La L.
+
+### 2026-11-25 — Masks and the workbook lock (GUI manager's Q2–Q6; batch 22)
+
+Verified by: the owner's statements; nothing run. Masks: "Restore all" is per patch on screen; an all-masked scan is used whole with a message; exports carry only the kept points. **Lock:** held only around a write and released at once, so a second reader is "read-only" only while a write is under way. **Consequence to check with the GUI manager (not asked of the owner):** with a lock held only during writes, the answer to Q6 (nothing saved after the fact) needs a rule for a write that finds the lock taken, presumably a short retry and then a message; and the yellow light of D1 can no longer mean "another reader has this workbook open" but only "a write is in progress", unless a second marker (such as a heartbeat file) is kept. If the GUI manager wants the earlier meaning, it should ask the owner.
