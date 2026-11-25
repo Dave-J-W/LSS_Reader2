@@ -129,15 +129,23 @@ class Verdict:
     note: str = ''
     grid: np.ndarray = None
     chi2: np.ndarray = None
+    strip_relative: float = 0.0
 
     def summary(self):
         return self.note
 
 
-def _profile(phi, r, s, grid):
-    """χ²(β) with k fitted at every β (closed form), and k(β)."""
+def _profile(phi, r, s, grid, rho=0.0, iterations=3):
+    """χ²(β) with k fitted at every β (closed form), and k(β). ``rho``: a
+    relative strip scatter, added to each burn's error as ρ × the model's
+    rate k(β) φ^β (iterated, since k depends on the errors)."""
     x = phi[None, :] ** grid[:, None]
-    w = 1.0 / s ** 2
+    s2 = np.broadcast_to(s ** 2, x.shape)
+    w = 1.0 / s2
+    for _ in range(iterations if rho else 1):
+        k = np.sum(w * x * r, axis=1) / np.sum(w * x * x, axis=1)
+        if rho:
+            w = 1.0 / (s2 + (rho * k[:, None] * x) ** 2)
     k = np.sum(w * x * r, axis=1) / np.sum(w * x * x, axis=1)
     chi2 = np.sum(w * (r - k[:, None] * x) ** 2, axis=1)
     return chi2, k
@@ -154,12 +162,17 @@ def _p(chi2, dof):
     return float(c2.sf(chi2, max(dof, 1)))
 
 
-def dose_or_time(burns, strip_scatter=0.0, significance=SIGNIFICANCE, alpha=ALPHA, grid=BETA_GRID):
+def dose_or_time(burns, strip_scatter=0.0, strip_relative=0.0, significance=SIGNIFICANCE, alpha=ALPHA,
+                 grid=BETA_GRID):
     """Which axis makes ``burns`` (two or more ``Burn``s, or ``BurnResult``s
     with their intensity) coincide: the dose (β = 1), time (β = 0), or the
     data cannot tell (module docstring). ``strip_scatter``: τ, the extra
     scatter of the rate between strips, in the rates' unit (per second for
-    a relative change: 88 %/h is 0.88 / 3600)."""
+    a relative change: 88 %/h is 0.88 / 3600). ``strip_relative``: ρ, the
+    same as a fraction of each burn's rate (the model's, k φ^β), for a
+    scatter that grows with the rate, as C54 suspected the real one does
+    ("far too large for the slowly changing series and maybe too small for
+    the fast ones"); the study (docs/studies/reciprocity) compares them."""
     burns = [from_result(b) if not isinstance(b, Burn) else b for b in burns]
     if len(burns) < 2:
         raise ValueError('the test compares two or more burns at different fluxes')
@@ -178,11 +191,11 @@ def dose_or_time(burns, strip_scatter=0.0, significance=SIGNIFICANCE, alpha=ALPH
     z = r / s
     gm = float(np.exp(np.mean(np.log(phi))))
     x = phi / gm                                            # fluxes about their geometric mean
-    chi2, k = _profile(x, r, s, grid)
+    chi2, k = _profile(x, r, s, grid, strip_relative)
     i = int(np.argmin(chi2))
     beta = float(grid[i])
     ci, ci95 = _interval(grid, chi2, 1.0), _interval(grid, chi2, 3.84)
-    c1, c0 = (float(_profile(x, r, s, np.array([v]))[0][0]) for v in (1.0, 0.0))
+    c1, c0 = (float(_profile(x, r, s, np.array([v]), strip_relative)[0][0]) for v in (1.0, 0.0))
     n = len(burns)
     p1, p0 = _p(c1, n - 1), _p(c0, n - 1)
     m = min(c0, c1)
@@ -211,6 +224,9 @@ def dose_or_time(burns, strip_scatter=0.0, significance=SIGNIFICANCE, alpha=ALPH
             '(p %.2g and %.2g)' % (words, n, float(phi.max() / phi.min()), beta, edge(ci[0]), edge(ci[1]), wd, p1, p0))
     if strip_scatter:
         note += '; strip scatter %.3g' % strip_scatter
-    if n > 2 and chi2[i] / (n - 2) > 2 and not strip_scatter:
+    if strip_relative:
+        note += '; strip scatter %.0f %% of the rate' % (100 * strip_relative)
+    if n > 2 and chi2[i] / (n - 2) > 2 and not (strip_scatter or strip_relative):
         note += '; the rates scatter beyond their errors (χ²/dof %.1f): pass strip_scatter' % (chi2[i] / (n - 2))
-    return Verdict(verdict, beta, ci, ci95, wd, p1, p0, float(k[i]), rates, float(strip_scatter), note, grid, chi2)
+    return Verdict(verdict, beta, ci, ci95, wd, p1, p0, float(k[i]), rates, float(strip_scatter), note, grid, chi2,
+                   float(strip_relative))

@@ -57,6 +57,9 @@ def test_strip_scatter_and_refusals():
     assert widened.p_dose > plain.p_dose                     # the strips' scatter, admitted, lets β = 1 pass
     assert widened.beta_ci[1] - widened.beta_ci[0] > plain.beta_ci[1] - plain.beta_ci[0]
     assert 'strip scatter' in widened.note
+    relative = R.dose_or_time(burns, strip_relative=0.3)     # the scatter as a share of each rate (the truth's form)
+    assert relative.p_dose > plain.p_dose and '30 % of the rate' in relative.note
+    assert relative.beta_ci95[0] <= 1.0 <= relative.beta_ci95[1]       # the 95 % interval holds the truth
     with pytest.raises(ValueError):
         R.dose_or_time(burns[:1])
     same = [R.Burn(b.t, b.y, b.sigma, 1.0) for b in burns[:2]]
