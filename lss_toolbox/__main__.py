@@ -129,6 +129,10 @@ def audit(only=None, max_seconds=None, report=None, record=False):
                                     same_file(new[n], here[n]) if n in here else False)
                 kinds[k] = kinds.get(k, 0) + 1
             why = ', '.join('%s %d' % kv for kv in sorted(kinds.items()))
+            env = (staleness.load_verified().get(t.id) or {}).get('environment')
+            if env:                                  # what changed since the products were verified
+                changed = runner.environment_diff(env)
+                notes.append('environment since the record: %s' % ('; '.join(changed) if changed else 'the same'))
         lines.append('| %s | %s | %d | %s | %s | %s | %s |' % (
             t.id, st.state, code, '%d / %d / %d' % counts['image'], '%d / %d / %d' % counts['text'], why,
             '; '.join(notes) or '—'))

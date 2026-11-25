@@ -173,3 +173,17 @@ def test_the_committed_record_names_real_items():
     for item, e in rec.items():
         assert e['verdict'] in ('same', 'environment') and e['products'] and e['modules'], item
         assert catalog.get(item).script in e['modules'], item
+
+
+def test_the_environment_a_figure_was_drawn_in():
+    """What can change a figure without its code (2026-11-25, the review:
+    two figures differed under the same pinned numpy, scipy, matplotlib and
+    pillow): the run records name the machine, numpy's SIMD level, the
+    freetype matplotlib draws text with and its helper libraries; the audit
+    lists what differs from a record's environment."""
+    from lss_toolbox import runner
+    env = runner.environment_versions()
+    assert {'python', 'machine', 'numpy', 'matplotlib', 'freetype', 'numpy_simd', 'kiwisolver'} <= set(env)
+    assert runner.environment_diff(env, env) == []
+    old = dict(env, matplotlib='3.0', gone='1')
+    assert runner.environment_diff(old, env) == ['gone: 1 → —', 'matplotlib: 3.0 → %s' % env['matplotlib']]

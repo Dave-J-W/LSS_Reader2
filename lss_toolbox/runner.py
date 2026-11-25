@@ -208,28 +208,55 @@ def write_record(run_dir, item_id, script, args, started, finished=None, code=No
     return rec
 
 
-LIBRARIES = ('numpy', 'scipy', 'matplotlib', 'PIL', 'PyQt5', 'lmfit')
+LIBRARIES = ('numpy', 'scipy', 'matplotlib', 'PIL', 'PyQt5', 'lmfit', 'contourpy', 'kiwisolver', 'fontTools')
 
 
 def environment_versions():
-    """Python, the platform and the versions of the libraries that draw and
-    compute the products: a figure can differ from a committed one because
-    of these alone (measured 2026-11-23: the stray-light and beam figures,
-    same code, other environment)."""
+    """Python, the platform and the versions of what computes and draws the
+    products: a figure can differ from a committed one because of these
+    alone (measured 2026-11-23: the stray-light and beam figures, same code,
+    other environment; 2026-11-24 the review found them differing again
+    under the same pinned numpy, scipy, matplotlib and pillow). So also the
+    machine, numpy's SIMD level (its ufuncs choose code by CPU), the
+    freetype matplotlib draws text with (text extents place the axes under
+    ``tight_layout``) and matplotlib's helper libraries, which the build
+    does not pin (2026-11-25)."""
     import importlib
     import platform
-    out = {'python': platform.python_version(), 'platform': platform.platform()}
+    out = {'python': platform.python_version(), 'platform': platform.platform(), 'machine': platform.machine()}
     for name in LIBRARIES:
         try:
             mod = importlib.import_module(name)
             if name == 'PyQt5':
                 from PyQt5.QtCore import PYQT_VERSION_STR, QT_VERSION_STR
                 out[name] = '%s (Qt %s)' % (PYQT_VERSION_STR, QT_VERSION_STR)
+            elif name == 'fontTools':
+                out[name] = getattr(mod, 'version', '?')
             else:
                 out[name] = getattr(mod, '__version__', '?')
         except Exception:                      # noqa: BLE001 (absent library: not recorded)
             continue
+    try:
+        from matplotlib import ft2font
+        out['freetype'] = '%s (%s)' % (ft2font.__freetype_version__, getattr(ft2font, '__freetype_build_type__', '?'))
+    except Exception:                          # noqa: BLE001
+        pass
+    try:
+        from numpy._core._multiarray_umath import __cpu_dispatch__, __cpu_features__
+        enabled = [k for k in __cpu_dispatch__ if __cpu_features__.get(k)]
+        out['numpy_simd'] = enabled[-1] if enabled else 'baseline'
+    except Exception:                          # noqa: BLE001 (another numpy: not recorded)
+        pass
     return out
+
+
+def environment_diff(recorded, now=None):
+    """['name: recorded → now', ...] for the entries of two
+    ``environment_versions`` that differ (a name missing on one side counts
+    as '—')."""
+    now = environment_versions() if now is None else now
+    return ['%s: %s → %s' % (k, recorded.get(k, '—'), now.get(k, '—'))
+            for k in sorted(set(recorded) | set(now)) if recorded.get(k) != now.get(k)]
 
 
 def run_item_at(item, commit, out_dir, args, timeout=3600):
