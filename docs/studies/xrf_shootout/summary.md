@@ -393,6 +393,11 @@ checks that need none. Only summary values per series are published
   5–37 % over the series; the Kα doublet adds 1–2 %), and P2 fixes the
   width at 0.93 × that resolution. A fixed width needs the measured
   width of the line, not the detector's nominal resolution.
+  **Why (models study, `docs/studies/xrf_models/README.md` §2b):** readout
+  A is three detector setups. The resolution measured on the blanks came
+  from E10-k's setup; the burn series were recorded in E10-f's, where
+  real lines are 1.19–1.24 × that resolution. In E10-k's setup real lines
+  are 1.03 × it. The width belongs to the setup, not to the line's shape.
 - **The self-consistency check the scatter study used** (singles against
   their own sum) is blind to a bias that also affects the sum. On these
   series it reads 0.0 % for P1 (median), while the twins show −7 to −25 %
@@ -451,7 +456,8 @@ its own study.
   (P1 31 conditions, P1+P3 49). It needs the detector's escape factor,
   which `docs/studies/mca_scatter` measured per readout.
 - **P2's width from the line itself**: on the real series the line is
-  21 % wider than the detector's measured resolution, so a width taken
+  21 % wider than the detector's measured resolution (that resolution is
+  another setup's: `docs/studies/xrf_models/README.md` §2b), so a width taken
   from the summed series' own fit (as `fit_series` already does for the
   centres) would keep P2's low-count benefit without its 11 % deficit.
 - **P2's width from the detector's own Fano factor and noise**,

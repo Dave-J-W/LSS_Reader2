@@ -6480,3 +6480,39 @@ Verified by: a run (`tests/tools/xrf_real_series.py`, the private MCA bundle dec
   P2 would need the line's own width.
 - **The scatter study's self-consistency check is blind** to a bias shared by the sum: P1 reads 0.0 % there,
   while the twins show -7 to -25 % at the lowest counts.
+
+### 2026-11-25 — Can a model stand in for the real scatter? (C65)
+
+Verified by: runs (`tests/tools/xrf_models.py` scatter and compare, `tests/tools/xrf_blanks.py --blank-dir` on
+scatter-only twins of the 10 clean public blanks; `docs/studies/xrf_models/README.md` part 1). No default changed.
+
+- **The owner's question:** should every test use scaled and shifted real excitation scatter, or can a model
+  describe its low-energy half well enough?
+- **Measured:** under a line, the generator's defaults miss the real scatter by 12-36 % and a Gaussian detector
+  by 11-26 % 2 keV below the beam; the full model (tails, shelf, high tail free) is within about 1 % (readout B at
+  6.1 keV: up to 11 %). In the shootout a fit's bias on the twins is a median 9-11 % from the real blank's for the
+  first two, 4.0 % for the full model, against a floor of 2.1 % (a second draw of the full twins).
+- **The full model is close for Cr, Cu, Ni and Zn** (1.3-3.7 x the floor), **not for Ti K and La L under 6.1 keV**
+  (8-9 % against 3-4 %), where its twins make P1+P2+P3 look 4-5 x better than on the real blanks.
+- **The real blanks hold a Cu-shaped feature** (1-11 % of a Cu box at 10 and 9.2 keV) that no twin has.
+- **Answer:** keep real blanks wherever one exists; use the full model with a measured parameter set elsewhere,
+  with the floor reported.
+
+### 2026-11-25 — Real line shapes on both detectors (C66)
+
+Verified by: runs (`tests/tools/xrf_lineshape.py` on the private bundle, derived numbers only;
+`tests/tools/xrf_blanks.py --line-shape`; `docs/studies/xrf_models/README.md` part 2). No default changed.
+
+- **The owner's question:** is a Gaussian enough to describe a real fluorescence line, and is that what
+  synthetic data should use? Compare the 7-element detector with the single-element one.
+- **Readout A (single element): nearly.** About 5 % of a line is outside a Gaussian (a short tail; a flat
+  part the fit calls a shelf may be background). But the width belongs to the detector setup: 1.03 x the
+  resolution measured on the scatter in E10-k's setup, 1.19-1.24 x in E10-f's. The burn series were recorded
+  in E10-f's setup and `xrf_shootout.MEASURED_DET` is E10-k's: that is C64's "line 21 % wider".
+- **Readout B (one element of the 7-element detector): no.** 23-81 % of each line (median 46 %) is in a
+  48-87 eV low-energy skew; the shape is the element's (the same in both files), elements 2 and 5 cleanest,
+  6 and 7 worst. The elastic-derived tail does not describe it.
+- **A header trap:** in one file the header gain of elements 5-7 is 8.6 % off; their raw channels line up
+  with elements 1-4. Summing by header calibration smears the summed line to 1.37 x the resolution.
+- **Effect on the shootout (C63 rerun):** Gaussian lines change no verdict (median change 1.4 %). Real-shaped
+  B lines cost P1+P2+P3 6 % (its fixed width misses the skew); P1+P3 stays within 2 % except La L.

@@ -88,6 +88,15 @@ TARGETS = {10.0: ('Zn K', 'Cu K'), 9.2: ('Cu K', 'Ni K'), 6.1: ('Cr K', 'Ti K', 
 READOUT_FANO = {'A': 0.137, 'B': 0.107}        # medians, docs/studies/mca_scatter/summary.md (two widths)
 BACKGROUND = (1000, 3000)                      # counts of the thinned blank in the line's box
 RATIOS = (0.1, 0.3, 1.0, 3.0)                  # line photons / those counts
+# The injected line's shape (``--line-shape``): 'elastic', the shape measured on each blank's elastic line
+# (as committed); 'gaussian', no tail and no shelf; 'line', the shape measured on real lines of the readout
+# (tests/tools/xrf_lineshape.py, docs/studies/xrf_models/lines/line_shapes.csv: medians of the 'tail_shelf'
+# fits of readout A's six probes, of the 'tail' fits of readout B's fourteen elements, 7 in each of 2 files).
+# The width stays the blank's.
+LINE_SHAPES = {
+    'gaussian': {'A': dict(tail=0.0, shelf=0.0), 'B': dict(tail=0.0, shelf=0.0)},
+    'line': {'A': dict(tail=0.034, tail_slope=0.056, shelf=0.126), 'B': dict(tail=0.458, tail_slope=0.058, shelf=0.0)},
+}
 # larch_each is left out by default: 1.2 s a spectrum (the shootout's X8), 60 CPU hours here
 DEFAULT_METHODS = tuple(m for m in xs.METHODS if m != 'larch_each')
 
@@ -144,8 +153,11 @@ class BlankCond:
     the methods see (the line alone on the blank's channels); ``p`` the
     thinning; ``photons`` the line's photons (0: the false-signal run)."""
 
-    def __init__(self, blank, target, background, ratio):
+    def __init__(self, blank, target, background, ratio, shape='elastic'):
         det, bm, self.notes = measured(blank['id'])
+        if shape != 'elastic':
+            det = replace(det, **LINE_SHAPES[shape][blank['readout']])
+        self.shape = shape
         self.blank = blank
         e = blank['energy']
         self.photons = ratio * background
@@ -170,15 +182,15 @@ class BlankCond:
         return thin
 
 
-def design(blanks=CLEAN):
+def design(blanks=CLEAN, folder=BLANKS, shape='elastic'):
     out = {}
     for bid in blanks:
-        b = load_blank(os.path.join(BLANKS, bid + '.csv'))
+        b = load_blank(os.path.join(folder, bid + '.csv'))
         for t in TARGETS[b['beam']]:
             for bg in BACKGROUND:
                 for r in (0.0,) + RATIOS:
                     name = '%s|%s|%d|%g' % (bid, t, bg, r)
-                    out[name] = BlankCond(b, t, bg, r)
+                    out[name] = BlankCond(b, t, bg, r, shape)
     return out
 
 
@@ -236,11 +248,16 @@ def main(argv=None):
     ap.add_argument('--methods', default='all', help="'all' (every method but larch_each) or a,b")
     ap.add_argument('--blanks', default=None, help='comma-separated blank ids (default: the ten clean ones)')
     ap.add_argument('--chunk', type=int, default=10)
+    ap.add_argument('--blank-dir', default=BLANKS,
+                    help='folder of the blank files (default: the committed blanks; tests/tools/xrf_models.py writes '
+                         'model twins of them, with the same ids, so the measured detector is the same)')
+    ap.add_argument('--line-shape', default='elastic', choices=('elastic',) + tuple(LINE_SHAPES),
+                    help="the injected line's shape: the blank's elastic (default), 'gaussian' or 'line' (LINE_SHAPES)")
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
     methods = list(DEFAULT_METHODS) if a.methods == 'all' else a.methods.split(',')
     methods, notes = xs.available(methods)
-    conds = design(tuple(a.blanks.split(',')) if a.blanks else CLEAN)
+    conds = design(tuple(a.blanks.split(',')) if a.blanks else CLEAN, a.blank_dir, a.line_shape)
     log = open(os.path.join(a.out, 'log.txt'), 'w', encoding='utf-8', newline='\n')
 
     def say(s):
@@ -250,6 +267,10 @@ def main(argv=None):
     say('xrf_blanks %s: %d conditions on %d blanks, methods %s, %d replicates of 10, %d jobs'
         % (time.strftime('%Y-%m-%d %H:%M:%S'), len(conds), len({c.blank['id'] for c in conds.values()}),
            ','.join(methods), a.replicates, a.jobs))
+    if a.blank_dir != BLANKS:
+        say('blanks from %s' % a.blank_dir.replace(os.sep, '/'))
+    if a.line_shape != 'elastic':
+        say('line shape: %s %s' % (a.line_shape, LINE_SHAPES[a.line_shape]))
     for n in notes:
         say(n)
     t0 = time.time()
@@ -278,7 +299,7 @@ def main(argv=None):
     crow = [dict(condition=n, blank=c.blank['id'], readout=c.blank['readout'], beam_kev=c.blank['beam'],
                  target=c.cond.target, line_kev=c.cond.line, fwhm_kev=c.cond.fwhm, background=c.background,
                  ratio=c.ratio, photons=c.photons, box_counts_full=c.box_counts, p=c.p,
-                 noise_kev=c.cond.detector.noise, fano=c.cond.detector.fano, fano_from=c.notes['fano_from'],
+                 line_shape=c.shape, noise_kev=c.cond.detector.noise, fano=c.cond.detector.fano, fano_from=c.notes['fano_from'],
                  tail=c.cond.detector.tail, tail_slope=c.cond.detector.tail_slope, shelf=c.cond.detector.shelf,
                  escape_x_reed=c.cond.detector.escape, angle=c.cond.beam.angle, high_tail_not_injected=c.notes['high_tail'],
                  calib_a=c.blank['calib'][0], calib_b=c.blank['calib'][1], calib_residual_kev=c.blank['calib_residual'],
