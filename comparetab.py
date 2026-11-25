@@ -102,6 +102,16 @@ class CompareTab(QWidget):
         self.relist()
         self.infoLabel.setText(message or ('%d saved curve%s' % (len(items), 's' if len(items) != 1 else '')))
 
+    def tick(self, rid):
+        """Tick saved curve ``rid`` (the timeline's reduced lane opens it here)."""
+        for i in range(self.listWidget.count()):
+            it = self.listWidget.item(i)
+            if it.data(RID_ROLE) == rid:
+                it.setCheckState(Qt.Checked)
+                self.listWidget.scrollToItem(it)
+                return True
+        return False
+
     def ticked_ids(self):
         out = set()
         for i in range(self.listWidget.count()):

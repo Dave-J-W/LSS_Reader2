@@ -5456,7 +5456,11 @@ class MainWindow (QMainWindow):
         rho.setToolTip('Strip scatter ρ: how much the rate differs between two strips of one sample at one flux, '
                        'beyond counting, as a fraction of the rate (lss_core.reciprocity, strip_relative). 0 '
                        '(default): counting errors only. The study (docs/studies/reciprocity, C58): ignoring a '
-                       'real 20 % scatter drops the dose calls to 12 %; as ρ it restores 96 %')
+                       'real 20 % scatter drops the dose calls to 12 %; as ρ it restores 96 %. On real reflectivity '
+                       'burns (19 series, six repeat groups) ρ is about 1.13 (0.88-1.50): strips differ by about '
+                       'their own rate, so with ρ 0 a verdict on real data is overconfident, and even at ρ about 1 '
+                       'single verdicts are (the 95 % interval covers about 0.87). The default stays 0 until the '
+                       'owner decides (rule 12; asked through questor)')
         q.currentIndexChanged.connect(self.burnVerdictOptionsChanged)
         rho.valueChanged.connect(self.burnVerdictOptionsChanged)
         for w in (QLabel('Compare',page),q,QLabel('Strip scatter',page),rho):
@@ -8115,8 +8119,12 @@ class MainWindow (QMainWindow):
         qoff.setToolTip('Propose Qoff from the reflectivity on show at the Qc in the field (lss_core.fresnel.'
                         'propose_qoff: a fit of the plateau and the edge, its error by bootstrap over the counting '
                         'errors; the roughness of ln R/R_F, the by-eye criterion, as a second opinion). A menu '
-                        'offers the values; the field changes only when one is picked. The Qz resolution reads as a '
-                        'slightly negative Qoff; the proposal still makes R/R_F continuous (tools session study)')
+                        'offers the values; the field changes only when one is picked. Set Qc first: Qc and Qoff '
+                        'correlate at +0.9 to +1.0, so a wrong Qc moves Qoff with it. The Qz resolution near the '
+                        'edge reads as a slightly negative Qoff (about half of the NX file\'s -0.00028; the rest is '
+                        'an angle offset or a Qc above water\'s, which these data cannot tell apart): the proposal '
+                        'makes R/R_F continuous, but it is an angle offset only once R_F is convolved with the '
+                        'resolution, which the reader does not do yet (docs/studies/qoff/summary.md)')
         qoff.clicked.connect(self.proposeRefQoff)
         if lay is not None:
             lay.insertWidget(lay.indexOf(self.ui.refQcLineEdit)+1,qc)
@@ -9019,10 +9027,12 @@ class MainWindow (QMainWindow):
             'The sample timeline (F83): scans, "set sh 0" (new sample?), re-referencing, aborts, sx moves and '
             'the sample-height scans with their width and flatness, on one time axis')
         tab.view.scanClicked.connect(self.timelineScanClicked)
+        tab.view.resultClicked.connect(self.timelineResultClicked)
         tab.view.answerGiven.connect(self.timelineAnswer)
         tab.view.noteWanted.connect(self.timelineAddNote)
         tab.doseCheckBox.setChecked(bool(self.prefs.get('timeline_dose',False)))
         tab.doseCheckBox.toggled.connect(self.timelineDoseToggled)
+        tab.envComboBox.currentIndexChanged.connect(self.timelineEnvChanged)
         self.ui.PlotWidget.currentChanged.connect(self.timelineTabShown)
         tab.show_message('Open a SPEC file: its timeline is drawn here.')
 
@@ -9047,13 +9057,16 @@ class MainWindow (QMainWindow):
         from lss_core.experiment import Experiment
         from lss_core import timeline as timelinemod
         try:
-            tl=timelinemod.build(Experiment(spec))
+            exp=Experiment(spec)
+            tl=timelinemod.build(exp)
         except Exception as e:
             self.log.info('timeline of %s not drawn: %s',spec,e,exc_info=True)
             tab.show_message('The timeline could not be read: %s (detail in the log).' % e)
             self.timelineKey=None
             return
         tab.view.dose=None
+        tab.view.reduced=self.timelineReduced(tl)
+        tab.view.env=self.timelineEnvChoices(exp)
         tab.show_timeline(tl,os.path.basename(spec),self.timelineNotes())
         self.timelineKey=key
         if tab.doseCheckBox.isChecked():
@@ -9149,6 +9162,72 @@ class MainWindow (QMainWindow):
         before=[s.scan for s in getattr(self.timelineTab.view.timeline,'spans',[]) if s.t0<=t]
         item=timelinemod.note_item(t,text.split('\n',1)[0][:60],text,scans=before[-1:])
         self.timelineSaveNote(item)
+
+    def timelineEnvChoices(self,exp):
+        """Fill the Environment choice with the file's columns (environment-like
+        names first) and return the chosen one's track: the remembered column
+        if the file has it, else the first environment-like one, else none."""
+        from lss_core import timeline as timelinemod
+        box=self.timelineTab.envComboBox
+        cols=timelinemod.environment_columns(exp)
+        want=str(self.prefs.get('timeline_env') or '')
+        names=[c for c,_k,_e in cols]
+        pick=want if want in names else next((c for c,_k,env in cols if env),'')
+        box.blockSignals(True)
+        box.clear()
+        box.addItem('Environment: none','')
+        for c,k,env in cols:
+            box.addItem('Environment: %s%s' % (c,' (environment?)' if env else ''),c)
+            box.setItemData(box.count()-1,'%s: in %d scan%s%s' % (c,k,'s' if k!=1 else '',
+                            '; its name looks like an environment reading' if env else ''),Qt.ToolTipRole)
+        box.setCurrentIndex(max(0,box.findData(pick)))
+        box.blockSignals(False)
+        self.timelineExperiment=exp
+        return timelinemod.column_track(exp,pick) if pick else None
+
+    def timelineEnvChanged(self,*args):
+        from lss_core import timeline as timelinemod
+        tab=getattr(self,'timelineTab',None)
+        exp=getattr(self,'timelineExperiment',None)
+        if tab is None or exp is None:
+            return
+        name=str(tab.envComboBox.currentData() or '')
+        self.setPreference('timeline_env',name)
+        tab.view.set_env(timelinemod.column_track(exp,name) if name else None)
+
+    def timelineReduced(self,tl):
+        """The reduced lane's items (phase 1d): the workbook's saved results at
+        their scans' times, read in one pass; placeholders only when there is
+        no workbook yet (it is not created to look)."""
+        from lss_core import timeline as timelinemod
+        rows,data=[],{}
+        if os.path.exists(self.workbookPath()):
+            try:
+                wb=self.openWorkbook()
+                rows,data=wb.results(),wb.all_data()
+            except Exception as e:
+                self.log.info('timeline: the workbook was not read: %s',e,exc_info=True)
+        return timelinemod.reduced_items(tl,rows,data)
+
+    def timelineResultClicked(self,rid):
+        """A saved result clicked on the reduced lane: a reflectivity is ticked on
+        the Compare tab; another kind's scans are selected."""
+        item=next((it for it in getattr(self.timelineTab.view,'reduced',[]) if it.rid==rid),None)
+        if item is None:
+            return
+        if item.kind=='reflectivity' and getattr(self,'compareTab',None) is not None:
+            self.ui.PlotWidget.setCurrentWidget(self.compareTab)
+            self.refreshCompare(force=True)
+            self.compareTab.tick(rid)
+            return
+        self.timelineScanClicked(item.scans[0])
+        lw=self.ui.scanListWidget
+        want={int(n) for n in item.scans}
+        lw.blockSignals(True)
+        for r in range(lw.count()):
+            lw.item(r).setSelected(itemScan(lw.item(r)) in want)
+        lw.blockSignals(False)
+        lw.itemSelectionChanged.emit()
 
     def timelineScanClicked(self,scan):
         """A scan bar or an sh scan clicked on the timeline: select that scan."""

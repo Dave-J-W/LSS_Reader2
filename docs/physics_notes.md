@@ -6614,3 +6614,46 @@ Verified by: tested (`tests/test_timeline_dose.py`, 7, with known truth;
 `tests/test_gui_timeline_dose.py`, 2 quick and 1 slow on NX); the NX numbers
 were measured by the slow test and read from its picture
 (`docs/gui/screens/14b_timeline_dose.png`).
+
+### 2026-11-25 — The timeline's Reduced lane (F83 phase 1d)
+
+Display only; no output number changes. Built:
+- **`Workbook.all_data()`** reads every result's data in one pass over the
+  Data sheet, the research's measured remedy (`data(rid)` scans the whole
+  sheet for each id: 0.48 s per result on a 300-result workbook, against
+  0.37 s for all of them). Tested equal to `data` for every result.
+- **`timeline.reduced_items`** places each saved result at its scans' times:
+  the latest version of each kind, scans and label, and a reflectivity as R
+  only. Results whose scans have no time are left out. A series (now kept on
+  the Timeline, `tl.series`) of a reducible kind with no result on any of
+  its scans gets a "not reduced" placeholder.
+- **The lane:** thumbnails of the first two columns (log R against Qz for a
+  reflectivity), amber and dashed when stale. A click opens a reflectivity
+  on the Compare tab, and another kind by selecting its scans. The workbook
+  is not created just to look.
+- **NX school (measured):** its five series (3; 6–9; GID 11–12; burns 14,
+  15) show as "not reduced" until something is saved.
+
+Verified by: tested (`tests/test_timeline_reduced.py`, 3;
+`tests/test_gui_timeline_reduced.py`, 2).
+
+### 2026-11-25 — The timeline's Environment lane (F83 phase 2)
+
+Display only; no output number changes. The macros will write the
+tensiometer, barrier and O₂ readings as columns of every point (owner,
+F75). Their names are not known yet; Q-TL-8 gave the units only (mN/m,
+cm², %). So the lane draws **any column** the user chooses:
+- `timeline.environment_columns` lists every data column, putting names
+  that look like such readings first (the timeline mock's pattern: tens,
+  barr, oxy, o2, temp, press, humid, wilh, trough, pi). The first of those
+  is chosen by itself.
+- `column_track` gives a column's values over every scan that has it, at
+  the middle of each point's count (its start plus half its Seconds), with
+  one line per scan.
+- **Measured:** a synthetic file (surface pressure rising 20 → 30.5 mN/m,
+  barrier 100 then 80 cm², O₂ 1 %) gives its values at the expected times
+  (start + 1 s, the second scan 600 s later). NX has no environment column,
+  and its Monc (276 points) stands in.
+
+Verified by: tested (`tests/test_timeline_env.py`, 3;
+`tests/test_gui_timeline_env.py`, 2).

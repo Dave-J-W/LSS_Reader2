@@ -118,7 +118,9 @@ Each line: feature — where — default — script — notes entry (date).
   against time and against the dose, with the verdict below (the rates in
   its tooltip). "Compare" chooses the quantity (the position for GID
   burns, where NX 14/15 decide), "Strip scatter" ρ the extra scatter
-  between strips (0 by default).
+  between strips (0 by default; on real reflectivity burns it is about
+  1.13, strips differing by about their own rate, so a verdict with ρ 0 is
+  overconfident: C58, tools man, 2026-11-25; the default is the owner's).
 - The dose in the burn dialog (F98, 2026-11-25): "Axis" fits the trends
   against time or the dose; "Dose in" photons (needs the Monc chamber's
   gain) or Monc counts; "Beam (mm)" width typed and height (greyed: from
@@ -136,6 +138,18 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- Timeline, Environment lane (F83 phase 2, 2026-11-25): "Environment: …" in
+  the toolbar draws any column of the SPEC file over the session, one line
+  per scan. The tensiometer, barrier and O₂ readings (once the macros write
+  them, F75) are listed first and chosen by themselves, in mN/m, cm² and %;
+  any other column works too (Monc shows the beam over the session).
+- Timeline, Reduced lane (F83 phase 1d, 2026-11-25): every result saved in
+  the workbook, as a small picture at its scans' times (a reflectivity as
+  log R against Qz); amber and dashed when its scans have grown since; a
+  dashed "not reduced" box for a series not yet reduced. Hover for the id,
+  version, time saved and note; click to open it (a reflectivity on the
+  Compare tab, other kinds by selecting their scans). It follows the
+  workbook: a new result appears when the tab is shown again.
 - Timeline, Dose (F107, 2026-11-25): ticked, the sx line is coloured by
   the dose each spot has received so far, as a fraction of the dose at
   which the burn test changed by 5 %: teal none, yellow half, red the
