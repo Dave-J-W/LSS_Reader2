@@ -94,6 +94,8 @@ class Tool:
     subcommand: str = None         # for a script with subcommands: the one this item runs
     committed_with: dict = None    # settings (over the defaults) that made the committed products, when the
     #                                defaults are a quicker look; None: the defaults made them
+    volatile: tuple = ()           # regular expressions: lines of its text products that record how it ran
+    #                                (wall times), left out when the audit compares them (2026-11-25)
 
     @property
     def runnable(self):
@@ -412,7 +414,8 @@ TOOLS = (
              V('Real data only', 'A8: the NX school joins under each choice beside the calibrated foil ratio.',
                'docs/studies/reflectivity_guard/data_summary.md### A8. NX school, scans 6–9', figures='A8'),
          ),
-         inputs=(NX,), repo_out='docs/studies/reflectivity_guard', seconds=54),
+         inputs=(NX,), repo_out='docs/studies/reflectivity_guard', seconds=54,
+         volatile=(r'Total wall time', r'^- .+: \d+(\.\d+)? s$')),     # data_summary.md's timings
     Tool('ref_patch_survey', 'Patching methods on real scans (survey)', 'refl', 'data',
          'tests/tools/ref_patch_survey.py',
          'Every patching method at every join of a SPEC file\'s reflectivity series; split scans give known '

@@ -11,7 +11,10 @@ nothing beside the SPEC files and leaves the user's preferences alone.
 
 ``run.json`` in the run folder records the command, the times, the exit
 code, the git commit and whether the working tree differed from it, so
-that a figure on disk says what code made it.
+that a figure on disk says what code made it. A run without a window (the
+audit) goes through ``lss_toolbox.trace``, whose ``trace.json`` lists the
+repository modules the script imported and the files it read: what the
+products actually depend on (``staleness.verification``).
 """
 import datetime
 import glob
@@ -24,7 +27,9 @@ from . import ROOT
 
 OUT = '{out}'
 RECORD = 'run.json'
+TRACE = 'trace.json'
 STDOUT = 'output.txt'
+ERRORS = 'errors.txt'
 IMAGES = ('.png', '.jpg', '.jpeg', '.svg', '.gif')
 TEXTS = ('.md', '.txt', '.csv', '.json', '.log')
 
@@ -204,28 +209,55 @@ def write_record(run_dir, item_id, script, args, started, finished=None, code=No
     return rec
 
 
-LIBRARIES = ('numpy', 'scipy', 'matplotlib', 'PIL', 'PyQt5', 'lmfit')
+LIBRARIES = ('numpy', 'scipy', 'matplotlib', 'PIL', 'PyQt5', 'lmfit', 'contourpy', 'kiwisolver', 'fontTools')
 
 
 def environment_versions():
-    """Python, the platform and the versions of the libraries that draw and
-    compute the products: a figure can differ from a committed one because
-    of these alone (measured 2026-11-23: the stray-light and beam figures,
-    same code, other environment)."""
+    """Python, the platform and the versions of what computes and draws the
+    products: a figure can differ from a committed one because of these
+    alone (measured 2026-11-23: the stray-light and beam figures, same code,
+    other environment; 2026-11-24 the review found them differing again
+    under the same pinned numpy, scipy, matplotlib and pillow). So also the
+    machine, numpy's SIMD level (its ufuncs choose code by CPU), the
+    freetype matplotlib draws text with (text extents place the axes under
+    ``tight_layout``) and matplotlib's helper libraries, which the build
+    does not pin (2026-11-25)."""
     import importlib
     import platform
-    out = {'python': platform.python_version(), 'platform': platform.platform()}
+    out = {'python': platform.python_version(), 'platform': platform.platform(), 'machine': platform.machine()}
     for name in LIBRARIES:
         try:
             mod = importlib.import_module(name)
             if name == 'PyQt5':
                 from PyQt5.QtCore import PYQT_VERSION_STR, QT_VERSION_STR
                 out[name] = '%s (Qt %s)' % (PYQT_VERSION_STR, QT_VERSION_STR)
+            elif name == 'fontTools':
+                out[name] = getattr(mod, 'version', '?')
             else:
                 out[name] = getattr(mod, '__version__', '?')
         except Exception:                      # noqa: BLE001 (absent library: not recorded)
             continue
+    try:
+        from matplotlib import ft2font
+        out['freetype'] = '%s (%s)' % (ft2font.__freetype_version__, getattr(ft2font, '__freetype_build_type__', '?'))
+    except Exception:                          # noqa: BLE001
+        pass
+    try:
+        from numpy._core._multiarray_umath import __cpu_dispatch__, __cpu_features__
+        enabled = [k for k in __cpu_dispatch__ if __cpu_features__.get(k)]
+        out['numpy_simd'] = enabled[-1] if enabled else 'baseline'
+    except Exception:                          # noqa: BLE001 (another numpy: not recorded)
+        pass
     return out
+
+
+def environment_diff(recorded, now=None):
+    """['name: recorded → now', ...] for the entries of two
+    ``environment_versions`` that differ (a name missing on one side counts
+    as '—')."""
+    now = environment_versions() if now is None else now
+    return ['%s: %s → %s' % (k, recorded.get(k, '—'), now.get(k, '—'))
+            for k in sorted(set(recorded) | set(now)) if recorded.get(k) != now.get(k)]
 
 
 def run_item_at(item, commit, out_dir, args, timeout=3600):
@@ -283,7 +315,7 @@ def read_record(run_dir):
         return None
 
 
-def outputs(folder, skip=(RECORD, 'preferences.json')):
+def outputs(folder, skip=(RECORD, TRACE, ERRORS, 'preferences.json')):
     """(images, texts): files under ``folder`` (recursive, relative paths,
     sorted), the run's own bookkeeping and logs left out."""
     images, texts = [], []
@@ -307,14 +339,14 @@ def repo_path(rel):
     return os.path.join(ROOT, rel)
 
 
-def product_files(item, source):
+def product_files(item, source, root=ROOT):
     """{relative name: absolute path} of a run folder or, for source
-    'committed', of the item's committed products (names relative to each
-    committed folder, so that they match a run's)."""
+    'committed', of the item's committed products under ``root`` (names
+    relative to each committed folder, so that they match a run's)."""
     out = {}
     if source == 'committed':
         for c in item.committed:
-            full = os.path.join(ROOT, c)
+            full = os.path.join(root, c)
             if os.path.isdir(full):
                 images, txts = outputs(full, skip=())
                 for rel in images + txts:
@@ -345,19 +377,51 @@ def default_args(item, spec, out_dir, committed=False):
     return build_args(spec, vals, out_dir, free=item.free)
 
 
-def run_item(item, spec, timeout=3600, committed=False):
+class _Nothing:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, *a):
+        return False
+
+
+def read_trace(run_dir):
+    """What a traced run used ({'modules': [...], 'reads': [...]}, paths
+    relative to the repository), or None when the run was not traced or
+    did not finish."""
+    try:
+        with open(os.path.join(run_dir, TRACE), encoding='utf-8') as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def run_item(item, spec, timeout=3600, committed=False, extra_env=None, run_dir=None, split_stderr=False):
     """Run ``item`` with its defaults (``committed``: with the settings of
     its committed products) into a new run folder, without a window
-    (``python -m lss_toolbox --audit``); returns (run folder, exit code)."""
+    (``python -m lss_toolbox --audit``), through ``lss_toolbox.trace``
+    (``trace.json`` in the run folder: what it imported and read); returns
+    (run folder, exit code). ``extra_env``: variables added to the run's
+    environment (the audit's stamp run sets ``compare.STAMP_ENV``);
+    ``run_dir``: this folder instead of a new one; ``split_stderr``: what
+    it prints to stderr goes to ``errors.txt``, so that ``output.txt`` is
+    its printed product alone (a text item, as ``repo_stdout``)."""
     import subprocess
-    run_dir = new_run_dir(item.id)
+    if run_dir is None:
+        run_dir = new_run_dir(item.id)
+    else:
+        os.makedirs(run_dir, exist_ok=True)
+    env = environment(run_dir)
+    env.update(extra_env or {})
     args = default_args(item, spec, run_dir, committed)
     started = datetime.datetime.now().isoformat(timespec='seconds')
     write_record(run_dir, item.id, item.script, args, started)
-    with open(os.path.join(run_dir, STDOUT), 'w', encoding='utf-8') as f:
+    with open(os.path.join(run_dir, STDOUT), 'w', encoding='utf-8') as f, \
+            open(os.path.join(run_dir, ERRORS), 'w', encoding='utf-8') if split_stderr else _Nothing() as fe:
         try:
-            r = subprocess.run([interpreter(), os.path.join(ROOT, item.script)] + args, cwd=ROOT,
-                               env=environment(run_dir), stdout=f, stderr=subprocess.STDOUT, timeout=timeout)
+            r = subprocess.run([interpreter(), '-m', 'lss_toolbox.trace', os.path.join(run_dir, TRACE), '--',
+                                os.path.join(ROOT, item.script)] + args, cwd=ROOT, env=env, stdout=f,
+                               stderr=fe if split_stderr else subprocess.STDOUT, timeout=timeout)
             code = r.returncode
         except subprocess.TimeoutExpired:
             code = -9

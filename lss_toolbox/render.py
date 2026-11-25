@@ -32,14 +32,25 @@ so don't drift"):
   usually the defaults);
 - the options a page offers are read from the script's own argparse parser
   each time (`lss_toolbox.introspect`), never copied;
-- an item's committed products are flagged **possibly stale** when the
-  script, a repository file it imports, or a named input changed in a
-  commit after the products' last commit (`lss_toolbox.staleness`;
-  `python -m lss_toolbox --stale` lists them all);
 - `python -m lss_toolbox --audit` reruns every item with the settings that
   made its committed products and compares: images pixel for pixel, tables
-  byte for byte (the measured staleness; the last audit is
-  `docs/reports/tools_audit.md`);
+  and text apart from how they were run (the command line they echo, their
+  timings, the lines an item names as `volatile`), and a figure that prints
+  its git revision apart from that stamp (found by a second run with a dummy
+  revision, `LSS_TOOLS_REVISION`); a text item's printed output against its
+  committed file, and a check item by its exit code. This is the measured
+  staleness; the last
+  audit is `docs/reports/tools_audit.md`. With `--record` it keeps, for each item
+  whose products matched, the fingerprints of the modules the run actually
+  imported, the files it read and the products it reproduced, in
+  `lss_toolbox/verified.json`;
+- an item's committed products are **current** while that record holds:
+  nothing the rerun used has changed since. A fingerprint of Python code
+  ignores docstrings and comments (`lss_toolbox.fingerprint`). Without a
+  record, or after the products changed, they are flagged **possibly
+  stale** when the script, a repository file it imports, or a named input
+  changed its code after the products' last commit (`lss_toolbox.staleness`;
+  `python -m lss_toolbox --stale` lists them all);
 - the tests check that every script in `tests/tools/` is an item (or a
   listed helper), that every option a variation sets exists in its script,
   and that every figure committed under `docs/` belongs to an item.

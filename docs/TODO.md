@@ -20,7 +20,7 @@ go-ahead on 2026-11-17 ("begin the implementation plan").
 | main man (orchestrator; "Main" until 2026-11-24) | ~~F81, F91, F87, P47, half-written SPEC lines~~ (2026-11-23); ~~the two decision studies and the ELI5 rationale~~, ~~the join guard at p 0.7~~ (#47), ~~area L, the fragile assumptions~~ (#50), ~~F98's core: the dose of each point, burns against dose~~ (#52), ~~F92's core: dropped points as a mask~~ (#54, 2026-11-24); ~~F97's diffuse cut axes, the core~~ (#59), ~~PR #60 reviewed and merged~~ (2026-11-24); ~~the dose height from the sh scans' rising edge~~ (#60's rule; 2026-11-24) | ~~D1's core: the workbook's lock, a second reader read-only~~ (2026-11-25) |
 | GUI manager | ~~F88 sticky display, F69 movie~~ (merged #34, 2026-11-24: the image display functions are free); ~~F86 Reduction options~~, ~~Q-GID-5~~, ~~Q-UI-A10~~ (#32); **F96** Ref Patch window: Back, Cancel, join table, the line under the Reflectivity plot (built 2026-11-24; the live replay of accepted joins later); **F95** B6 and the B3 list, **F74** residual panels on scan, cut and burn fits, **F97** saturation cue, **F78** super-Gaussian height-scan fit (timeline 1a) (built 2026-11-24) | (F80, F105 built: the Compare tab, Export's proposed name); timeline's reduced-data and environment lanes (the tab, sh thumbnails, notes and 'new sample?' answers are built); F95's ROI threshold, B9, B10; F97's diffuse axes (the ROI close-up built 2026-11-24); then ngui |
 | Main (orchestrator) | ~~F81, F91, F87, P47, half-written SPEC lines~~ (2026-11-23); ~~the two decision studies and the ELI5 rationale~~, ~~the join guard at p 0.7~~ (#47), ~~area L, the fragile assumptions~~ (#50), ~~F98's core: the dose of each point, burns against dose~~ (#52), ~~F92's core: dropped points as a mask~~ (2026-11-24) | F97 diffuse cut axes (the core), then what Main assigns next |
-| tools man | ~~F79: Qc from the subphase, Qoff proposed~~ (#56, 2026-11-24) | **F76: beam damage or a changing sample** (burns at several absorbers against dose and time; core, study, NX 14/15), then F77 |
+| tools man | ~~F79: Qc from the subphase, Qoff proposed~~ (#56, 2026-11-24); ~~F76: beam damage or a changing sample~~ (#72, 2026-11-25); ~~the review's Tools items: `--stale` by a verified record and code fingerprints, the two figures' environment, four small fixes~~ (2026-11-25) | **P44**: a burn estimator with the shoulder held unstretched (prototype unbiased on Gaussian shoulders, 2–4× smaller errors on others; study, NX, then rule 12); F77 when DATA_NEEDS row 14 has data |
 | questor | the owner's questions and their answers in `docs/`; the data needs (`docs/DATA_NEEDS.md`, with tools man's blank-spectrum request) | (its own order) |
 
 ## Remaining work by area (regrouped 2026-11-21, review `docs/reviews/2026-11-21-todo-review.md`)
@@ -238,6 +238,23 @@ build workflow and macOS signing (input 12); sample-data hosting.
       are started as their own process (`patch_demo.py`, which takes the space
       bar application-wide). A packaged build lists the items and the
       committed figures it holds but disables Run (no tools, no Python inside).
+- [x] **`--stale` flagged most items wrongly (the former patching
+      session's review, 2026-11-24) — fixed 2026-11-25** by tools man:
+      `python -m lss_toolbox --audit --record` keeps, for each item whose
+      products matched, the fingerprints of what the rerun imported and
+      read (`lss_toolbox/verified.json`); `--stale` calls them current
+      until one of those changes, and without a record ignores changes to
+      comments and docstrings (`docs/reports/tools_audit.md`, 2026-11-25).
+      Run records name freetype, the machine, numpy's SIMD level and
+      matplotlib's helper libraries, and the audit lists what changed since
+      a record when images differ. Measured: 28 of 30 items current (26
+      stale before), the pinhole figures, a gauntlet table and the MCA
+      study's B3 regenerated.
+- [ ] **The GUI screenshots are stale (measured 2026-11-25, tools man's
+      audit)**: `gui_screens` 52 of 75 differ (many in size since the test
+      windows went to minimum size, #67), `ngui_screens` 6 of 23 changed by
+      code. For the GUI manager: rerun them into the repository, then
+      `python -m lss_toolbox --audit --record --only gui_screens ngui_screens`.
 - [x] **Committed products the audit found stale (new 2026-11-23, F84) —
       remedied 2026-11-23** (`docs/reports/tools_audit.md`, "Remedied"):
       the two figures were an environment difference, not stale code; the

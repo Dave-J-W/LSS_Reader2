@@ -583,7 +583,7 @@ class ToolPage(QtWidgets.QWidget):
         if self.item.kind == 'external':
             self.statusLabel.setText('Made outside this repository; shown as committed, not regenerated here.')
             return
-        self.statusLabel.setText('Checking the committed products against git history…')
+        self.statusLabel.setText('Checking the committed products against the verified record and git history…')
         w = _Worker(lambda item=self.item: staleness.product_status(item))
         w.done.connect(self._status_done)
         self._workers.append(w)

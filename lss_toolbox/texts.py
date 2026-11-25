@@ -27,8 +27,11 @@ CONTROLS = (
                                                     'settings that made them (the defaults, or the variation "As '
                                                     'committed") and public data. Commit them with the change that '
                                                     'made them stale (AGENTS.md rule 11).'),
-    ('statusLabel', '', 'Whether the committed products are older than the code that makes them: the script, the '
-                        'repository files it imports and its named inputs, from git history. "May be stale" is a '
+    ('statusLabel', '', 'Whether the committed products are older than the code that makes them. First from the '
+                        'verified record (lss_toolbox/verified.json, written by python -m lss_toolbox --audit '
+                        '--record): a rerun matched the committed products, and nothing it imported or read has '
+                        'changed since. Otherwise from git history: the script, the repository files it imports and '
+                        'its named inputs. Changes to comments and docstrings do not count. "May be stale" is a '
                         'hint; Run with the defaults and compare with the committed products to know.'),
     ('docsBox', 'Docs', 'The documents that explain this item; each button opens one.'),
     ('log', 'Output', 'What the script prints, as it runs.'),

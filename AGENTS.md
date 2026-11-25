@@ -130,7 +130,7 @@ sessions do not edit the same lines.
 | `lss_core/patching.py`, `uncertainty.py` | Reflectivity patching by joint fit (the default since 2026-11-22; the legacy `stitching.py` stays a preference); covariances of chained scale factors and stitched data |
 | `lss_core/pinhole.py`, `gid.py` | Pinhole GID geometry, responses, joins, distance calibration; the GID patch |
 | `tests/` | The suite; `synth.py` (synthetic data), `sweep.py` (GUI driver) |
-| `lss_toolbox/`, `docs/TOOLS.md` | The Tools collection (F84): every demonstration and figure generator of `tests/tools/` as an item of the reader's Tools menu and of its own window (`python -m lss_toolbox`); the catalogue (`catalog.py`) with the documented variations; staleness of committed products (`--stale`, from git) and the audit (`--audit`: rerun and compare pixel for pixel, `docs/reports/tools_audit.md`). `TOOLS.md` is generated (`--render`) |
+| `lss_toolbox/`, `docs/TOOLS.md` | The Tools collection (F84): every demonstration and figure generator of `tests/tools/` as an item of the reader's Tools menu and of its own window (`python -m lss_toolbox`); the catalogue (`catalog.py`) with the documented variations; staleness of committed products (`--stale`: the verified record `verified.json`, else git with prose-only changes ignored) and the audit (`--audit`: rerun and compare pixel for pixel, `docs/reports/tools_audit.md`; `--record` keeps what matched). `TOOLS.md` is generated (`--render`) |
 | `docs/SYNTHETIC_DATA.md`, `tests/synthetic/` | Catalogue of every synthetic-data generator, how to use them (known truth for reflectivity, GID, burn, XFNTR, live files), unmet needs |
 | `sample_data/NX_school/` | Real, public data set (committed) |
 | `sample_data/bu/` | Real, private data set: git-ignored, never commit or push it |
@@ -209,9 +209,11 @@ foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by
      ones under `sample_data/private/figures/`, in the same tranche (owner,
      2026-11-20). Every figure is made by a tool in `tests/tools/`, so this
      is a rerun, not a redraw: `python -m lss_toolbox --stale` lists the
-     candidates from git history, `--audit` reruns them and compares pixel
-     for pixel, and the Tools window's "Replace the committed products"
-     reruns one into the repository.
+     candidates (from the verified record, else from git history),
+     `--audit` reruns them and compares pixel for pixel (`--record` keeps
+     the ones that matched, so that `--stale` calls them current until
+     something they used changes), and the Tools window's "Replace the
+     committed products" reruns one into the repository.
    - a new figure generator or demonstration: an item in
      `lss_toolbox/catalog.py` with the variations the documents describe
      (a "change this and regenerate to see that" sentence becomes a
