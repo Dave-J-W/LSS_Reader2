@@ -613,7 +613,11 @@ Each line: feature — where — default — script — notes entry (date).
   scans' fitted points, blue and orange as the scans. These residuals use
   the fit's own variance, so their squares add up to the χ² in the label.
   With the legacy fit nothing is drawn, as there is no curve.
-- Not yet on: MCA line fits (the tools session's), the older fit dialogs.
+- The Fit Peak dialog of the Plot and MCA tabs (2026-11-25) shows the
+  residuals its fit minimised, at the points inside the fit range; the
+  curve's legend label gains χ²/dof. Fit All, which runs through the
+  frames one by one, shows none.
+- Not yet on: MCA line fits (the tools session's).
 
 ### Ref Patch checks: a message and marks (F95, 2026-11-24, Q-UI-B6, B3)
 - Before joining, Ref Patch checks each frame: is the reflected beam more
