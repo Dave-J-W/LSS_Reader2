@@ -13,24 +13,6 @@
   "neyman_c": 19.0703878222856,
   "table": [
    {
-    "condition": "counts_30",
-    "method": "fit",
-    "ka_counts": 26.9643,
-    "rel_bias": 0.00603688,
-    "se": 0.09849825469641547,
-    "pull_mean": -0.742987,
-    "pull_sd": 1.01682
-   },
-   {
-    "condition": "counts_30",
-    "method": "p1",
-    "ka_counts": 26.9643,
-    "rel_bias": 0.56262,
-    "se": 0.14917273686518592,
-    "pull_mean": 0.0666375,
-    "pull_sd": 1.27547
-   },
-   {
     "condition": "counts_x0.03",
     "method": "fit",
     "ka_counts": 26.9643,
@@ -47,6 +29,24 @@
     "se": 0.033033644377331424,
     "pull_mean": 0.170467,
     "pull_sd": 1.20094
+   },
+   {
+    "condition": "counts_30",
+    "method": "fit",
+    "ka_counts": 26.9643,
+    "rel_bias": 0.00603688,
+    "se": 0.09849825469641547,
+    "pull_mean": -0.742987,
+    "pull_sd": 1.01682
+   },
+   {
+    "condition": "counts_30",
+    "method": "p1",
+    "ka_counts": 26.9643,
+    "rel_bias": 0.56262,
+    "se": 0.14917273686518592,
+    "pull_mean": 0.0666375,
+    "pull_sd": 1.27547
    },
    {
     "condition": "counts_60",
