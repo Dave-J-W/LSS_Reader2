@@ -203,6 +203,28 @@ TOOLS = (
          ),
          seconds=5.4),
 
+    Tool('reciprocity_study', 'Beam damage or the sample by itself? The dose-or-time test (F76)', 'burn', 'figures',
+         'tests/tools/reciprocity_study.py',
+         'Synthetic burns at several fluxes with a known law (the dose, time, a dose-rate effect, a mixture, no '
+         'change) and strip-to-strip scatter: how often lss_core.reciprocity calls each truth right, beta\'s pulls, '
+         'and NX school burns 14 and 15: figures R1-R5.',
+         committed=('docs/studies/reciprocity',),
+         docs=('docs/studies/reciprocity/summary.md', 'docs/COMPARISONS.md#| C58 |', 'docs/FEATURE_REQUESTS.md#| F76 |'),
+         data='public', defaults={'--out': OUT},
+         variations=(
+             V('The anatomy and NX only', 'R1 and R5, which need no replicates (a few seconds): two burns against time '
+               'and dose, and the NX pair.', 'docs/studies/reciprocity/summary.md## 5. NX school burns 14 and 15', only='R1,R5'),
+             V('Strip scatter', 'Four burns over x8 with 20 % and 50 % strip scatter: ignored, as one constant, as a '
+               'share of each rate.', 'docs/studies/reciprocity/summary.md## 2. Strip scatter', design='strip'),
+             V('Flux span and number of burns', 'Two burns x2 to x20 apart, and 2-4 burns over x10.',
+               'docs/studies/reciprocity/summary.md## 1. How often is each truth called right?', design='span,burns'),
+             V('Few frames, little change', '11-41 frames, 0.3-3 % noise, a 2-20 % fall: when time cannot be shown.',
+               'docs/studies/reciprocity/summary.md## 3. Few frames, little change', design='frames,noise,change'),
+             V('More replicates (1000)', 'Every design with 1000 replicates (about 2 min).',
+               'docs/studies/reciprocity/summary.md## 1. How often is each truth called right?', replicates='1000'),
+         ),
+         repo_out='docs/studies/reciprocity', repo_ok=False, seconds=35.0),
+
     Tool('burn_dose_figure', 'Burns against dose: damage or a changing sample?', 'burn', 'figures',
          'tests/tools/burn_dose_figure.py',
          'NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil '
@@ -804,7 +826,11 @@ TOOLS = (
                'docs/studies/mca_fit/summary.md'),
          data='public', defaults={'--out': OUT},
          variations=(V('Numbers against beam energy only', 'S2 from the anonymised table (a few seconds).',
-                       'docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |', only='S2'),),
+                       'docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |', only='S2'),
+                     V('Example fits on the committed blanks', 'S1: the 13 real scatter-only blanks the owner '
+                       'allowed, refitted with their parts and residuals (about a minute).',
+                       'docs/studies/mca_scatter/summary.md#Committed blanks (`tests/reference/mca_scatter/`)', only='S1',
+                       fixtures='tests/reference/mca_scatter')),
          inputs=('docs/studies/mca_scatter/scatter_fits.csv', 'docs/studies/mca_scatter/quantities.csv'),
          repo_out='docs/studies/mca_scatter', seconds=8.0),
 

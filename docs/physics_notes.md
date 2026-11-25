@@ -51,7 +51,7 @@ exists.
 | I38 | The ROI close-up outlines the pixels the reduction sums: summing a frame over `lss_core.display.roi_boxes(slit, cen, bg, direction)` gives `TwoDDetector.sumROI`'s signal and background values exactly, for any slit, centre, offset and direction (its slit − 2 and integer background centres included, PHYSICS_ISSUES P12) | `test_roi_boxes.py::test_summing_over_the_drawn_boxes_gives_sumROIs_values` |
 | I39 | The dose of a point is what the reduction already divides by: in monitor counts it is the point's weight in "Sum All", M/(A·g) (`cuts.frame_normaliser`); in photons, the flux route's photons/s × its seconds / A (`flux.photons_per_second`); a scan's dose is the sum of its points'; at a constant monitor rate and absorber the dose axis is the exposure axis × that rate, so a burn's dose limit is its time limit × the rate | `test_dose.py` (every test; the last on the synthetic burn, to 1e-6) | 2026-11-24 |
 | I40 | Every row of a patched curve sits at the Qz of one raw point, its origin (`reflectivity.drop_points`), and a drop of a point that no earlier join's fit used gives the same curve, value for value, as masking that point from the start (both methods) | `test_masks.py::test_every_patched_row_sits_at_its_origin_point`, `::test_a_drop_of_a_point_no_earlier_join_used_is_its_mask`, `::test_reflectivity_leaves_the_masked_points_out` | 2026-11-24 |
-| I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own` | 2026-11-24 |
+| I41 | On a specular frame (α_i = α) the reflected beam's row is at β − α = 0 and β = α, and its Qz is the frame's Qz; its column is at Qxy = 0. A diffuse-cut axis changes only a cut's x values, never its intensities | `test_diffuse_axes.py::test_the_specular_row_is_at_beta_minus_alpha_zero`, `::test_the_intensities_are_the_cuts_own`; in the window `test_gui_cut_axis.py::test_diffuse_axes_change_x_only`, `::test_beta_minus_alpha_puts_the_specular_row_at_zero` (2026-11-25) | 2026-11-24 |
 | I42 | For a knife edge through a Gaussian beam of σ, the beam height returned for the dose is √(2π)·σ (the inverse of the profile's peak; 1.0645 × the rising FWHM), within the fit's noise, whatever the step; a refused height scan says which guard refused it | `test_beam_height.py::test_the_height_is_root_2pi_sigma`, `::test_the_guards_refuse_what_the_study_refused` | 2026-11-24 |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
@@ -5956,6 +5956,17 @@ from them, may be published: per-scan curves, edges, widths, and the inventory b
 data and their identifiers (names, scan numbers, dates) unless the owner says otherwise. Recorded in
 AGENTS.md's row for `sample_data/private/`.
 
+### 2026-11-24 — The owner: the MCA scatter blanks may be committed, beam energies to 0.1 keV
+
+Verified by: the owner's answers to the two questions of `docs/studies/mca_scatter/summary.md`, put to
+them by the data-analysis coordinator and relayed to the local data agent. "Yes, commit them": the 13
+scrubbed scatter-only blanks (E10-d, -f, -i, -j, -k; E9.2-a … d; E6.1-a … d) are now in
+`tests/reference/mca_scatter/`, as `energy_keV,counts` with a header of beam energy, readout, kind, gain and
+summed real and live times, and nothing tying them to a beamtime. "Keep 0.1 keV": beam energies stay
+public to 0.1 keV, so the study's tables are unchanged. `tests/test_mca_scatter.py` loads every blank,
+checks its header carries no date, time, scan or file name, and checks its elastic edge against the
+fitted width. Only these spectra are allowed; other private spectra stay private.
+
 ### 2026-11-24 — Review of the covariance export (owner: "review their subject areas")
 
 Checked on origin/main 9e706a7: the export's own tests, the reflectivity
@@ -6095,3 +6106,140 @@ code) and by C56's 1832 real joins. Study: `docs/studies/coincident_points/summa
   with staggered 2+2.
 - **For planning:** different spacing per scan is fine. Overlap by at least 4 points of each scan, 6 or more
   per fringe on a fast fringe. Keep a shared Qz only as a cross-check.
+
+### 2026-11-25 — The owner: frame-by-frame curves of private burns are not published
+
+Verified by: the owner's answer in main man's session, on PR #68's figure B1 (each real reflectivity burn frame
+by frame, normalised to its first frames, against time and dose, about 19 anonymised series): "Don't publish
+B1, but don't forget how to make it!" So such curves of private data stay private, normalised and anonymised
+or not; the summary values (each burn's rate, the series' β and verdict, the CSVs of PR #68) are published.
+The figure and its generator are kept under `sample_data/private/` (git-ignored), and the public study page
+names the script and the command that regenerates it. A figure must not be removed by a later commit only:
+the commit that added it would reach main's history, so the branch is rebuilt without it. Recorded in
+AGENTS.md's row for `sample_data/private/`.
+
+### 2026-11-25 — F76: beam damage or a sample changing by itself, as a test
+
+Asked by main man for the owner's F76. Built as
+`lss_core.reciprocity.dose_or_time` (tests: `tests/test_reciprocity.py`).
+
+- **The test.** Damage by the beam follows the dose D = φ t; a sample
+  changing by itself follows t. Across burns at fluxes φ_b, the rate against
+  time goes as rate_b = k φ_b^β: β = 1 the dose, β = 0 time. It is the
+  convention of the real-burn study (C54), so the two agree. β is profiled
+  with k fitted at each β. The verdict: "dose" when β = 1 passes
+  (χ², n − 1 dof, p ≥ 0.05) and β = 0 fails, "time" the reverse, "cannot
+  tell" both, "neither" neither (β̂ shows a dose-rate effect), with "no
+  change" and "opposite signs" first. How strongly: β̂'s intervals and the
+  Akaike weight of β = 1 against β = 0.
+- **The assumption:** reciprocity (Bunsen–Roscoe): the same dose gives the
+  same change at any rate. It fails through dose-rate effects and, at a
+  liquid surface, through molecules exchanging into the footprint. β ≠ 1
+  measures the failure; it does not assume it away.
+- **The drift rate is the slope of ln y** for a relative quantity. A
+  straight line through y itself reads an exponential fall's rate low, the
+  more so the faster it falls, so a dose truth at fluxes 1, 4.7 and 10
+  (10 % fall at the lowest) came out "neither" with β < 1. Through ln y it
+  is exact for first-order kinetics. Measured (`test_reciprocity.py`).
+- **NX school burns 14 and 15** (one spot, absorbers 12 then 8; flux
+  ×4.68 by the calibrated foils): the position drifts 1.09 × 10⁻⁵ and
+  4.03 × 10⁻⁵ Å⁻¹/s, so β = 0.85 ± 0.04. That is far from time (β = 0 fails,
+  p 10⁻¹⁵⁴) and close to the dose. On counting errors alone β = 1 fails
+  narrowly (p 0.004): "neither", with the Akaike weight 1.00 on the dose.
+  With a 10 % strip scatter it reads "dose". Caveat: 15 was measured on
+  the same spot after 14, so it started with 14's dose. A sub-linear β
+  could be saturation as well as a dose-rate effect. The intensity changes
+  in neither burn ("no change"). Measured 2026-11-25.
+
+### 2026-11-25 — The owner asked: what does "ΔQ 8.9 × 10⁻⁴ Å⁻¹ at 10 keV, no S1 dependence" mean?
+
+Verified by: reading the local data agent's study (`docs/studies/qz_resolution/summary.md`, PR #68, pending the
+removal of its figure B1) and checking its arithmetic here; nothing measured by main man.
+
+- **What it is:** the blur in Qz of each reflectivity point near the critical edge, measured from how wide the
+  edge is in 378 real scans from 17 runs. Each scan is fitted with the Fresnel reflectivity convolved with a
+  Gaussian of width σ_Q. The result is FWHM 8.9 × 10⁻⁴ Å⁻¹ (σ_Q 3.8 × 10⁻⁴), run medians 6.5–12.6 × 10⁻⁴,
+  about ±15 % within a run. On synthetic scans of known width the estimator is right within 2 %.
+- **Where it comes from:** the beam's spread of incidence angles, 37 µrad rms. Qz = (4π/λ) sin α, so
+  σ_Q = (4π/λ) cos α σ_α = 10.14 Å⁻¹ × 37 µrad = 3.75 × 10⁻⁴ (computed). The monochromator's bandwidth
+  (Si(111), Δλ/λ ≈ 1.3 × 10⁻⁴) adds about Qc · Δλ/λ ≈ 3 × 10⁻⁶, negligible (computed).
+  - So ΔQ is the same at every Qz. As a fraction it is 4 % at the edge, 0.9 % at 0.1 Å⁻¹ and 0.18 % at
+    0.5 Å⁻¹ (computed).
+  - It washes out Kiessig fringes only for films thicker than about 2π/(2ΔQ) ≈ 3500 Å (computed, a rough
+    criterion).
+- **No S1 dependence (0.04–0.2 mm, one run with both: σ_Q 3.38 ± 0.08 against 3.41 ± 0.75 × 10⁻⁴):** the
+  angular spread is set by the mirror's vertical focusing, not by S1, which here sets the beam's size and
+  footprint. Opening S1 from 0.04 to 0.2 mm (footprint ×5) costs no resolution. Below 0.04 mm it is not
+  determined (0.02 mm: 11 scans, scattered fits). That is why ΔQ varies from run to run, with the focus, and
+  not with the slits.
+- **Why it matters for Qoff (F79):** a blurred edge read without a resolution model looks like an edge
+  shifted down. Tools man's study (C50) found the apparent Qoff to be about −0.15 × ΔQ, so −1.3 × 10⁻⁴ Å⁻¹:
+  about half the NX file's proposed −2.8 × 10⁻⁴, and a quarter of the owner's typical −5 × 10⁻⁴. The
+  reader's R_F has no resolution model; adding one (a Gaussian of σ_Q ≈ 3.8 × 10⁻⁴) would make R/R_F
+  continuous through the edge without a fake Qoff. A default would need rule 12.
+- **Caveats (from the study):**
+  - the subphase's absorption is the one input that matters: ±15 % for a β wrong by ×2, and a saltier
+    subphase would give a narrower ΔQ than quoted;
+  - only 10 keV was measured; a fixed angular spread scales ΔQ ∝ E;
+  - the resolution is assumed Gaussian, although the beam has a core and tails at the sample;
+  - the public NX file cannot measure it: too few points below its edge.
+- **References** (not opened in this session):
+  - J. Als-Nielsen and D. McMorrow, *Elements of Modern X-ray Physics*, 2nd ed., Wiley 2011, ch. 3, on
+    Fresnel reflectivity and the critical edge, https://doi.org/10.1002/9781119998365;
+  - the Refl1D guide to resolution in reflectometry, on the angular and wavelength terms and their
+    convolution with the model, https://refl1d.readthedocs.io/en/latest/guide/resolution.html.
+
+### 2026-11-25 — F105: Export proposes a name from the sample and the scans (Q-REF-6)
+
+The owner's Q-REF-6 (2026-11-23): "Straight into xmodfit; the reader
+proposes a file name from the sample and series". Built:
+- **`lss_core.naming`:** `export_base` builds `<SPEC file>_<sample>_S<scans>`,
+  with a run of scans written as `S6-9`.
+  - **The sample:** the SPEC files carry no sample name (none in the NX
+    file, measured by search). The nearest is the series macro's file name
+    (`#U SeriesMacro`, newer macros), less a trailing measurement word
+    (`_xr`, `_gid`, …). It is left out when not recorded.
+- **The dialog** opens in the folder of the last Export (preference
+  `export_folder`), so repeated exports land in XModFit's folder.
+- **The files** are unchanged: the golden export tests pass byte for byte,
+  and the covariance sidecar is the contract's. No output number changes.
+
+Verified by: tested (`tests/test_naming.py`, `tests/test_gui_export_name.py`).
+**Open:** whether the owner wants the series id (from `#U Series`) in the
+name as well. It is left out, so the name stays short.
+
+### 2026-11-25 — F97 and F59 in the window: the cut's x axis, Q ranges about the beam
+
+The window side of main man's diffuse axes (#59, `lss_core.cuts`; owner
+Q-IMG-12: "β, β − α (α from Qz) and Qz and Qxy"). Built:
+- **"x: …"** right of the cut direction (`cutAxisComboBox`): as the image
+  (the default, unchanged output), β, β − α, Qz for vertical cuts, Qxy for
+  horizontal ones; an axis that does not fit is greyed out. Only the x
+  column changes; the intensities and errors are the pixel cut's (I41,
+  tested in the window on the synthetic frame; the β − α peak within one
+  row of 0, the Qz peak at the frame's 0.01 within 2e-4).
+- **The x label** is the axis the cut is on (`cuts.axis_label`). Before, a
+  pixel cut was labelled "Pixels" whatever the Axes box said, and a Q H cut
+  "Qxy" although its x is the window's 4π sin θ/λ (labelled "Q" now; equal
+  to Qxy within 1e-5 relative at 0.1°, per the cuts docstring).
+- **F59, the Q cuts' ranges:** with frames shown (no GID or GISAXS map),
+  choosing a Q cut puts a band about the first selected frame's beam in
+  the box (`cuts.centred_range`), half the reflectivity ROI either side:
+  Slit H,V 21,11 gives ±5 rows (a Qz band for Q H) and ±10 columns (a Qxy
+  band for Q V). The rows were chosen so that the direct beam, 2α below
+  the reflected one, stays out of the Qz band (at Qz 0.01 it is about 7
+  rows below on the synthetic frame, computed) — an assumption, recorded
+  in OUTPUT_DECISIONS. A Q range that lies off the detector on every
+  selected frame (`cuts.covered_range`) is refused with a message, and the
+  band is put in the box; before, the cut summed zeros silently.
+- **A test changed on purpose (rule 1):**
+  `test_detector_sizes.py::test_window_cut_ranges_before_and_after_frames`
+  pinned '0:1' and '1:2' after frames were shown. On the synthetic frames
+  the Q H default is now '-0.004526:0.02453' (Qz) and the Q V default a
+  Qxy band symmetric about 0; before any frame, and for the pixel cuts,
+  the defaults are unchanged.
+
+Verified by: tested (`tests/test_gui_cut_axis.py`, 6 tests;
+`tests/test_gui_cuts.py`, `tests/test_cut_script.py` unchanged and
+passing). Not measured on real diffuse data: the public NX file has no
+off-specular frames worth the name.

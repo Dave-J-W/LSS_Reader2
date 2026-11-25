@@ -11,8 +11,9 @@ The aim is to check the synthetic generator (`tests/synthetic/mca.py`) that stud
 (`docs/studies/mca_fit/summary.md`) rests on. Its two uncertain axes are the O 1s Compton wing and
 the Si escape fraction (B7).
 
-Every number below is a derived number. No spectrum is committed: a scrubbed blank is published
-only with the owner's yes (candidates are listed at the end).
+Every number below is a derived number, except for the 13 scrubbed blanks in
+`tests/reference/mca_scatter/`, which the owner allowed on 2026-11-24 ("Yes, commit them"; see
+"Committed blanks" at the end).
 
 **Regenerate** the figures from the public tables (a few seconds):
 
@@ -311,27 +312,46 @@ These are recommendations only. Nothing was changed, because synthetic MCA work 
 ## Held back for privacy, and questions for the owner
 
 **Held back:**
-- every spectrum;
+- every spectrum but the 13 committed blanks;
 - all runs, times, Qz values and scan numbers;
 - the burn series' element, which is named only as "a line near 8 keV".
 
 The private inventory, the label-to-source key and the scripts are under
 `sample_data/private/mca_scatter/` (git-ignored).
 
-**Blank candidates for the owner.** These are scrubbed scatter-only spectra (`energy_keV,counts`
-over E0 − 2.5 … E0 + 0.7 keV, with no channel, time or Qz). They are held privately, ready to commit
-only with the owner's yes:
-- 10 keV, readout A: E10-k (clean), E10-f (clean), E10-j (trace Cu);
-- 10 keV, readout B: E10-d and E10-i (trace Cu and Zn);
-- 9.2 keV, readout B: E9.2-a … E9.2-d (clean);
-- 6.1 keV, readout B: E6.1-a … E6.1-d (clean).
+**The owner's answers (2026-11-24, asked by the coordinator):** "Yes, commit them" (the blanks
+below) and "Keep 0.1 keV" (the beam energies stay public to 0.1 keV, so the tables stay as they are).
 
-The pre-edge sums sit just below the edges the samples were studied at, so even their rounded beam
-energies hint at the elements studied.
+## Committed blanks (`tests/reference/mca_scatter/`)
 
-**Questions for the owner:**
-- May any of these be committed as test fixtures?
-- May the beam energies (to 0.1 keV) stay in the public tables?
+Thirteen scrubbed scatter-only spectra, committed with the owner's yes. Each file is `energy_keV,counts`
+over E0 − 2.5 … E0 + 0.7 keV, under a short `#` header: beam energy to 0.1 keV, readout, kind
+(one spectrum, or pre-edge points aligned on the elastic line and summed), gain in keV per channel,
+and summed real and live time to 3 significant figures (read from the files, not measured). No
+channel number, date, scan, Qz or file name. The energy axis is the one the fits used, with its
+offset fitted so the elastic line sits at the beam energy. Pre-edge sums were rebinned onto a common
+grid, so their counts are rounded and not strictly Poisson.
+
+| Beam | Readout | Examples | Kind |
+|---|---|---|---|
+| 10.0 keV | A | E10-k, E10-f (clean), E10-j (trace Cu) | one spectrum |
+| 10.0 keV | B | E10-d, E10-i (trace Cu and Zn) | one spectrum, one element |
+| 9.2 keV | B | E9.2-a … E9.2-d (clean) | pre-edge sum, one element |
+| 6.1 keV | B | E6.1-a … E6.1-d (clean) | pre-edge sum, one element |
+
+Their fitted numbers are the rows with the same ids in `scatter_fits.csv` and `quantities.csv`.
+`tests/test_mca_scatter.py` loads every file and checks the header and the elastic line's position.
+They are the real blanks DATA_NEEDS row 3 asked for, for the gauntlet and for S1:
+
+    python tests/tools/mca_scatter.py --out <folder> --only S1 --fixtures tests/reference/mca_scatter
+
+Refitted from these files alone (S1, about a minute on 8 processes, beam energy taken from the header
+to 0.1 keV), they give the study's numbers back. Measured, 2026-11-24:
+- escape: Reed × 1.07–1.15 at 6.1 keV, × 1.37–1.53 at 9.2 keV, × 0.70–1.00 at 10 keV;
+- O 1s wing scale: 0.10–0.34 at 6.1 and 9.2 keV, 0.81–0.86 on readout A at 10 keV, 0.31–0.67 on readout B.
+
+The pre-edge sums sit just below the edges the samples were studied at, so their rounded beam
+energies hint at the elements studied. The owner allowed this ("Keep 0.1 keV").
 
 ## Figures and files
 
@@ -344,4 +364,4 @@ energies hint at the elements studied.
 | `numbers.json` | medians and ranges per energy and readout |
 
 S1 (the example spectra with their fits) is drawn only from a folder of spectra given with
-`--fixtures`. It is private until the owner agrees.
+`--fixtures`, for example the committed blanks. It is not committed here.

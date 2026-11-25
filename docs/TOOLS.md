@@ -45,6 +45,7 @@ container on 2026-11-23 with the defaults shown.
 | [Burn line-cut demonstrator (window)](#patch-demo-burn) | window | GID line cuts of one spot over time: every burn estimator (template, moments, fit) against the known change; space bar for a new noise replicate. | synthetic (public) |  | — |
 | [Burn estimators: survey over replicates](#patch-demo-burn-survey) | text | Every burn estimator over many noise replicates of a synthetic burn: the change it reads against the truth (bias, scatter) and how often it calls a quantity stable. | synthetic (public) | 19 s | — |
 | [Burn trends of NX scans 14 and 15](#burn-figures) | figures | Burn tests over time as the Trends tab draws them (every model, the confident 5 % time) for the template and legacy moments estimators, and the three estimators compared. | public (NX school or committed tables) | 5 s | `docs/figures/burn_trends`<br>`docs/comparisons_data/burn_nx` |
+| [Beam damage or the sample by itself? The dose-or-time test (F76)](#reciprocity-study) | figures | Synthetic burns at several fluxes with a known law (the dose, time, a dose-rate effect, a mixture, no change) and strip-to-strip scatter: how often lss_core.reciprocity calls each truth right, beta's pulls, and NX school burns 14 and 15: figures R1-R5. | public (NX school or committed tables) | 35 s | `docs/studies/reciprocity` |
 | [Burns against dose: damage or a changing sample?](#burn-dose-figure) | figures | NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil transmission): a beam-driven change coincides against dose, a sample changing by itself against time. | NX school by default; any SPEC file | 3 s | `docs/figures/burn_dose` |
 
 ### Reflectivity patching
@@ -194,6 +195,29 @@ Variations:
 |---|---|---|---|
 | Scan 14 only | One burn scan: absorber 12, the lower dose of the pair. | `docs/physics_notes.md#Qz by (4π/λ)` | `python tests/tools/burn_figures.py --out '{out}' --scans 14` |
 | Scan 15 only | The second scan of the spot at absorber 8 (4.1x the flux of scan 14): dose against time, beam damage or a changing sample. | `docs/physics_notes.md#Qz by (4π/λ)` | `python tests/tools/burn_figures.py --out '{out}' --scans 15` |
+
+<a id="reciprocity-study"></a>
+
+### Beam damage or the sample by itself? The dose-or-time test (F76)
+
+Synthetic burns at several fluxes with a known law (the dose, time, a dose-rate effect, a mixture, no change) and strip-to-strip scatter: how often lss_core.reciprocity calls each truth right, beta's pulls, and NX school burns 14 and 15: figures R1-R5.
+
+- Menu: Tools > Burn tests; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/reciprocity_study.py`
+- Explained in: `docs/studies/reciprocity/summary.md`, `docs/COMPARISONS.md#| C58 |`, `docs/FEATURE_REQUESTS.md#| F76 |`
+- Committed products: `docs/studies/reciprocity`; not replaced from the window
+- Run:
+
+      python tests/tools/reciprocity_study.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| The anatomy and NX only | R1 and R5, which need no replicates (a few seconds): two burns against time and dose, and the NX pair. | `docs/studies/reciprocity/summary.md## 5. NX school burns 14 and 15` | `python tests/tools/reciprocity_study.py --out '{out}' --only R1,R5` |
+| Strip scatter | Four burns over x8 with 20 % and 50 % strip scatter: ignored, as one constant, as a share of each rate. | `docs/studies/reciprocity/summary.md## 2. Strip scatter` | `python tests/tools/reciprocity_study.py --out '{out}' --design strip` |
+| Flux span and number of burns | Two burns x2 to x20 apart, and 2-4 burns over x10. | `docs/studies/reciprocity/summary.md## 1. How often is each truth called right?` | `python tests/tools/reciprocity_study.py --out '{out}' --design span,burns` |
+| Few frames, little change | 11-41 frames, 0.3-3 % noise, a 2-20 % fall: when time cannot be shown. | `docs/studies/reciprocity/summary.md## 3. Few frames, little change` | `python tests/tools/reciprocity_study.py --out '{out}' --design frames,noise,change` |
+| More replicates (1000) | Every design with 1000 replicates (about 2 min). | `docs/studies/reciprocity/summary.md## 1. How often is each truth called right?` | `python tests/tools/reciprocity_study.py --out '{out}' --replicates 1000` |
 
 <a id="burn-dose-figure"></a>
 
@@ -919,6 +943,7 @@ Variations:
 | Variation | Shows | Source | Command |
 |---|---|---|---|
 | Numbers against beam energy only | S2 from the anonymised table (a few seconds). | `docs/studies/mca_scatter/summary.md#| `S2_vs_energy.png` |` | `python tests/tools/mca_scatter.py --out '{out}' --only S2` |
+| Example fits on the committed blanks | S1: the 13 real scatter-only blanks the owner allowed, refitted with their parts and residuals (about a minute). | `docs/studies/mca_scatter/summary.md#Committed blanks (`tests/reference/mca_scatter/`)` | `python tests/tools/mca_scatter.py --out '{out}' --only S1 --fixtures tests/reference/mca_scatter` |
 
 <a id="synthetic-dataset"></a>
 
