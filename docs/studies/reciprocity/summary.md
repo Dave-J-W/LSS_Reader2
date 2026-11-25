@@ -10,6 +10,7 @@ offered to scripts; the window's several-burns view is the GUI manager's
 **Regenerate:**
 
     python tests/tools/reciprocity_study.py --out docs/studies/reciprocity        # about 1.5 min
+    python tests/tools/reciprocity_real.py --out docs/studies/reciprocity/c54     # section 6, about 1.5 min
 
 The code is `lss_core/reciprocity.py` (`dose_or_time`, `from_result`,
 `drift_rate`); its tests are `tests/test_reciprocity.py`; the synthetic
@@ -132,7 +133,7 @@ Four burns over ×8, the rate of each strip off by a random 20 % or 50 %
   0.96 → 0.93, time 0.94 → 0.93, β 0.5 0.58 → 0.79. At 50 %: dose 0.55 →
   0.80, time 0.53 → 0.81. Coverage 0.66–0.73 → 0.61–0.69. The τ rows and
   every other section are unchanged (rerun, byte for byte apart from the ρ
-  rows). The reason it mattered: C54's real strips scatter by about their own rate (ρ ≈ 1.1).
+  rows). The reason it mattered: section 6's real strips, at ρ ≈ 1.1.
 
 ## 3. Few frames, little change
 
@@ -144,9 +145,17 @@ the burn at the **lower** flux must change by several of its own σ for a
 ## 4. What would settle it on real samples
 
 - **Two burns at fluxes ×5–10 apart, 21 frames or more each, on one kind of
-  sample**, if the strips agree. With strip scatter like C54's, **repeat
-  each flux on two strips** and pass the scatter as ρ. Four burns over ×8
-  then tell dose from time at 20 % strip scatter, but not at 50 %.
+  sample**, if the strips agree. With a strip scatter, **repeat each flux
+  on several strips** and pass the scatter as ρ. Four burns over ×8 tell
+  dose from time at 20 % and at 50 % strip scatter (section 2).
+- **C54's real strips scatter by about their own rate (ρ ≈ 1.1, section
+  6).** Then two fluxes ×10 apart need **12–16 strips per flux** (0.79 and
+  0.90 called right, never the other law; 8 strips 0.54, 4 strips 0.03).
+  One flux's mean rate is known only to ±ρ/√k, so it can pass the 3σ change
+  rule only when k ≳ (3ρ)². A wider span does not help (×100 the same as
+  ×10). **Better: find why strips differ** (C54 suspects the specular spot
+  moving in the ROI as burns rise as often as they fall) and shrink ρ
+  first.
 - **Alternate the order** (high, low, high, low), so that a sample ageing
   over the series is not aliased with the flux (C54's confound).
 - This is what C54 recommends from the real data too. DATA_NEEDS row 14
@@ -174,7 +183,55 @@ calibrated foils; 15 was measured after 14, on the same spot):
   excluded.
 - **The intensity** changes in neither burn (figure R5).
 
-## 6. Recommendation
+## 6. C54's 19 real series (2026-11-25)
+
+The non-cloud agent's reflectivity burns (C54, `docs/studies/xr_burns/`):
+public, anonymised rates of I/I(0) per hour, frame 1 left out, 2–9 burns per
+series, each on a fresh strip, fluxes ×2–×99 apart. Made by
+`tests/tools/reciprocity_real.py` (figure R6, `c54/comparison.csv`,
+`c54/numbers.json`, `c54/design.csv`). Everything is measured on those
+tables; nothing private is read.
+
+**The strip scatter, from C54's six groups that repeat an absorber**
+(REML, `strip_scatter_fit`):
+
+| form | estimate | −log L on the repeats |
+|---|---|---|
+| none | — | 153.6 |
+| additive τ (C54's) | 90 %/h (66–127); C54 found 88 (64–122) | 73.6 |
+| relative ρ | **1.13 (0.88–1.50)** | **54.2** |
+
+- **The strips scatter in proportion to the rate, by about the rate
+  itself.** The relative form fits the repeats far better than one τ
+  (Δ(−2 log L) = 39, one parameter each). Two of the six groups change
+  sign between strips.
+- **`dose_or_time` reproduces C54's verdicts:** 19 of 19 series with
+  counting errors, and 18 of 19 with C54's τ of 88 %/h (one series differs
+  between "cannot tell" and "no change").
+
+**Verdicts under each error model** (number of series):
+
+| | dose | time | cannot tell | neither | opposite signs | no change |
+|---|---|---|---|---|---|---|
+| counting errors (= C54) | 2 | 1 | 0 | 8 | 5 | 3 |
+| τ 88 %/h (C54: 4, 0, 2, 2, 1, 10) | 5 | 0 | 2 | 2 | 1 | 9 |
+| **ρ 1.13** | 5 | 1 | 5 | 0 | **5** | 3 |
+
+- **Five series rise and fall** even with the strip scatter admitted. One
+  τ hid them: 88 %/h is larger than their slow rates. A positive rate
+  ∝ flux^β cannot describe them.
+- **The series C54 read as "β ≈ 0.2" (R06-S3, ×21) reads "time"**,
+  β 0.23 [−0.11, 0.58].
+- **Five read "dose" under ρ**, but single calls at ρ ≈ 1 are not to be
+  trusted. With 2–9 burns the 95 % interval covers only about 0.87 of the
+  time at ρ = 1 (four burns, measured), so a pure law is rejected too often.
+  The five are not all C54's: under ρ the slow series weigh more and the
+  fast ones less.
+- **So the real data do not yet tell dose from time on any one sample.**
+  The strips differ by as much as the effect. Section 4 gives the design
+  that would, and why reducing ρ comes first.
+
+## 7. Recommendation
 
 1. **Offer `dose_or_time`** wherever several burns of one sample at
    different absorbers are at hand (the GUI manager's F98 view). Show the
@@ -198,6 +255,7 @@ calibrated foils; 15 was measured after 14, on the same spot):
 | R3 | `R3_beta_pulls.png` | β̂'s pull SD and the coverage of its interval, per condition |
 | R4 | `R4_strip.png` | the strip scatter ignored, as one τ, and as ρ |
 | R5 | `R5_nx.png` | NX school burns 14 and 15: rates against flux with the two pure laws and β̂ |
+| R6 | `c54/R6_real_beta.png` | C54's 19 real series: β with its interval under counting errors, τ and ρ, beside C54's |
 
 The numbers behind them are `results.csv` (per design, condition and
 truth: the share of each verdict, β̂'s mean and SD, the pull SD, the

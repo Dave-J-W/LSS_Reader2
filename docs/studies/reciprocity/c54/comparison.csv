@@ -1,0 +1,21 @@
+# F76 on C54's real series (tools man, 2026-11-25): reciprocity.dose_or_time_rates under counting errors, the additive strip scatter tau (fitted here; tau_c54 = C54's 88 %/h) and the relative rho, beside C54's own verdicts (drop1, drop1+strip). Rates: % of I(0) per h, frame 1 left out. beta_lo/hi: delta chi2 = 1.
+series_id,burns,flux_span,c54_drop1,c54_strip,c54_beta_strip,counting_verdict,counting_beta,counting_lo,counting_hi,counting_weight_dose,tau_verdict,tau_beta,tau_lo,tau_hi,tau_weight_dose,tau_c54_verdict,tau_c54_beta,tau_c54_lo,tau_c54_hi,tau_c54_weight_dose,rho_verdict,rho_beta,rho_lo,rho_hi,rho_weight_dose
+R01-S1,2,2.21,neither,no change,4.0,neither,4.0,2.04,4.0,0.928,no change,4.0,-1.0,4.0,0.542,no change,4.0,-1.0,4.0,0.544,cannot tell,4.0,1.35,4.0,0.65
+R01-S2,5,98.57,neither,cannot tell,2.04,neither,1.95,1.66,2.3,1.0,no change,2.04,1.0,4.0,0.947,cannot tell,2.04,1.02,4.0,0.952,dose,1.17,0.48,3.08,0.896
+R02-S1,2,2.04,neither,dose,4.0,neither,4.0,3.1,4.0,1.0,dose,4.0,2.04,4.0,0.877,dose,4.0,2.07,4.0,0.884,cannot tell,4.0,2.16,4.0,0.632
+R03-S3,5,9.02,opposite signs,opposite signs,4.0,opposite signs,4.0,3.94,4.0,0.956,opposite signs,4.0,3.81,4.0,0.994,opposite signs,4.0,3.81,4.0,0.994,opposite signs,0.64,0.18,1.15,0.667
+R03-S4,2,2.22,opposite signs,no change,4.0,opposite signs,4.0,3.73,4.0,1.0,no change,4.0,2.07,4.0,0.814,no change,4.0,2.11,4.0,0.824,opposite signs,0.32,-1.0,1.59,0.471
+R03-S5,2,2.22,opposite signs,neither,4.0,opposite signs,4.0,3.96,4.0,0.0,neither,4.0,3.78,4.0,1.0,neither,4.0,3.79,4.0,1.0,opposite signs,1.17,1.14,2.41,0.717
+R04-S1,2,9.49,neither,dose,4.0,neither,4.0,1.58,4.0,1.0,dose,4.0,0.71,4.0,0.996,dose,4.0,0.72,4.0,0.997,dose,4.0,1.36,4.0,0.896
+R05-S1,3,9.64,dose,dose,0.96,dose,0.87,0.68,1.16,1.0,dose,0.96,0.54,2.59,0.981,dose,0.96,0.55,2.45,0.984,cannot tell,0.9,0.43,1.46,0.846
+R06-S2,2,2.18,no change,no change,-2.0,no change,4.0,1.83,4.0,0.682,no change,-1.0,-1.0,4.0,0.498,no change,-1.0,-1.0,4.0,0.498,no change,4.0,-1.0,4.0,0.503
+R06-S3,3,21.08,neither,no change,0.19,neither,0.24,0.17,0.31,0.0,no change,0.18,0.0,0.4,0.121,no change,0.19,0.01,0.4,0.116,time,0.23,-0.11,0.58,0.155
+R08-S1,2,2.22,neither,no change,3.97,neither,3.97,2.95,4.0,1.0,no change,3.97,-1.0,4.0,0.537,no change,3.97,-1.0,4.0,0.539,dose,4.0,2.46,4.0,0.703
+R10-S1,2,4.69,time,no change,0.1,time,0.1,-0.09,0.32,0.026,no change,0.1,-1.0,4.0,0.496,no change,0.1,-1.0,4.0,0.496,cannot tell,0.11,-0.47,0.68,0.265
+R11-S1,7,14.56,opposite signs,neither,1.92,opposite signs,3.39,2.87,4.0,1.0,neither,1.92,1.4,2.93,1.0,neither,1.92,1.41,2.9,1.0,opposite signs,0.52,0.16,0.96,0.614
+R11-S2,3,6.62,neither,cannot tell,1.11,neither,1.17,1.1,1.25,1.0,cannot tell,1.11,0.53,2.28,0.927,cannot tell,1.11,0.54,2.23,0.935,dose,1.29,0.81,1.74,0.906
+R11-S3,4,47.05,neither,no change,4.0,neither,1.1,1.05,1.15,1.0,dose,1.03,0.64,2.41,0.998,dose,1.03,0.65,2.3,0.999,dose,0.59,0.32,1.63,0.893
+R11-S5,9,18.48,opposite signs,no change,4.0,opposite signs,0.06,-0.03,0.15,0.0,no change,4.0,1.75,4.0,0.45,no change,4.0,1.78,4.0,0.447,opposite signs,1.46,1.17,1.46,0.999
+R12-S1,2,2.02,no change,no change,4.0,no change,4.0,-0.31,4.0,0.557,no change,4.0,-0.43,4.0,0.554,no change,4.0,-0.42,4.0,0.554,no change,4.0,-1.0,4.0,0.53
+R13-S1,3,4.53,dose,dose,1.09,dose,1.08,0.83,1.38,1.0,dose,1.09,0.78,1.48,0.999,dose,1.09,0.78,1.47,0.999,cannot tell,1.21,0.54,2.04,0.82
+R14-S1,2,4.49,no change,no change,-1.42,no change,-1.0,-1.0,4.0,0.477,no change,-1.0,-1.0,4.0,0.492,no change,-1.0,-1.0,4.0,0.492,no change,-1.0,-1.0,4.0,0.489

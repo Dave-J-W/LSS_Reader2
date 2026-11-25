@@ -6365,3 +6365,47 @@ Verified by: arithmetic on measured numbers (the study's table, the
 resolution study's median and run range). Assumed, not measured: that NX's
 own resolution is the station's typical one. Its edge width was not fitted;
 the NX school scans are from the same station.
+
+### 2026-11-25 — F76 on C54's real series: the strip scatter is relative, about the rate itself
+
+main man (#55) asked tools man to compare `reciprocity.dose_or_time` with
+C54's 19 real series, giving C54 its own ρ in view of its measured strip
+scatter of 88 %/h. Answered from the public, anonymised C54 tables
+(`docs/studies/xr_burns/burns.csv`: one rate per burn) by
+`tests/tools/reciprocity_real.py` (`docs/studies/reciprocity/summary.md`,
+section 6; C58).
+
+- **The same test, the same answers.** With counting errors,
+  `dose_or_time_rates` gives C54's verdict in 19 of 19 series. With C54's
+  τ of 88 %/h it gives 18 of 19.
+- **The strip scatter grows with the rate.** C54 has six groups that repeat
+  an absorber on another strip. Fitted by REML:
+  - as one additive τ: 90 %/h (66–127), against C54's 88 (64–122);
+  - as a share of the rate: ρ 1.13 (0.88–1.50).
+  - −log L is 153.6 with no strip scatter, 73.6 with τ and 54.2 with ρ. So
+    the relative form is far better (Δ(−2 log L) = 39, one parameter each).
+    Two strips of one sample at one flux differ by about their own rate,
+    and two of the groups change sign.
+- **Under ρ:** 5 dose, 1 time, 5 cannot tell, 3 no change, 5 rise and fall.
+  - One τ had hidden the rises and falls, because it exceeds the slow
+    series' rates.
+  - R06-S3 (C54's "β ≈ 0.2") reads time: β 0.23 [−0.11, 0.58].
+  - Single calls at ρ ≈ 1 are overconfident. With few burns the 95 %
+    interval covers about 0.87 (synthetic, four burns, ρ 1).
+- **Design:** at ρ 1.13, two fluxes ×10 apart need 12–16 strips per flux
+  (0.79 and 0.90 called right, never the other law). One flux's mean rate is
+  known only to ±ρ/√k. Finding why strips differ comes first.
+- **Two corrections to `dose_or_time` found on the way,** both in
+  OUTPUT_DECISIONS with before and after:
+  - with ρ, k is fitted by maximum likelihood and the verdict uses
+    likelihood-ratio tests. Reweighted least squares on χ² could shrink χ²
+    by inflating k's own variance: C54's R11-S1 got 0.72 [0.68, 0.76] at
+    ρ 1.13, and now gets 0.52 [0.16, 0.96]. The study's "as ρ" rows were
+    rerun: at 50 %, dose 0.55 → 0.80 and time 0.53 → 0.81;
+  - repeated strips at one flux are pooled for the "no change" and
+    "opposite signs" rules.
+
+Verified by: run (the tool on the committed tables; the study rerun) and
+tested (`tests/test_reciprocity.py`, `tests/test_reciprocity_study.py`).
+The cause of the strip scatter is not known. C54 suspects the specular spot
+moving in the ROI.

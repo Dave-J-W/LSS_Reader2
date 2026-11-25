@@ -1,0 +1,7 @@
+# strips per flux needed at the measured relative strip scatter rho = 1.129 (synthetic, 200 replicates per cell; right = the truth called, wrong = the other law called)
+span,strips_per_flux,replicates,dose_right,dose_wrong,time_right,time_wrong
+10.0,2,200,0.0,0.0,0.0,0.0
+10.0,4,200,0.025,0.0,0.025,0.0
+10.0,8,200,0.535,0.0,0.525,0.0
+10.0,12,200,0.79,0.0,0.79,0.0
+10.0,16,200,0.895,0.0,0.895,0.0

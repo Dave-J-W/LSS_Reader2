@@ -227,6 +227,28 @@ TOOLS = (
          ),
          repo_out='docs/studies/reciprocity', repo_ok=False, seconds=85.0),
 
+    Tool('reciprocity_real', 'Dose or time on C54\'s 19 real burn series, and the strip scatter (F76)', 'burn',
+         'figures', 'tests/tools/reciprocity_real.py',
+         'lss_core.reciprocity on the public, anonymised rates of the real reflectivity burns (C54): the strip '
+         'scatter from the six repeated absorbers (additive and relative, REML), each series\' verdict and beta '
+         'under counting errors, tau and rho beside C54\'s, and how many strips per flux would decide at that rho: '
+         'figure R6.',
+         committed=('docs/studies/reciprocity/c54',),
+         docs=('docs/studies/reciprocity/summary.md## 6. C54\'s 19 real series (2026-11-25)',
+               'docs/studies/xr_burns/summary.md', 'docs/COMPARISONS.md#| C58 |'),
+         data='public', defaults={'--out': OUT},
+         inputs=('docs/studies/xr_burns/burns.csv', 'docs/studies/xr_burns/series_dose_or_time.csv'),
+         variations=(
+             V('Without the design (seconds)', 'Only the strip scatter, the verdicts and R6; no strips-per-flux '
+               'simulation.', 'docs/studies/reciprocity/summary.md## 6. C54\'s 19 real series (2026-11-25)',
+               design_replicates='0'),
+             V('Strips per flux, 1000 replicates', 'The design at the fitted rho with 1000 replicates per cell (about '
+               '7 min).', 'docs/studies/reciprocity/summary.md#12–16 strips per flux', design_replicates='1000'),
+             V('Another additive strip scatter', 'C54\'s tau replaced (here 150 %/h) beside the one fitted.',
+               'docs/studies/xr_burns/summary.md#88 %/h (64–122)', tau_c54='150'),
+         ),
+         repo_out='docs/studies/reciprocity/c54', repo_ok=False, seconds=90.0),
+
     Tool('burn_dose_figure', 'Burns against dose: damage or a changing sample?', 'burn', 'figures',
          'tests/tools/burn_dose_figure.py',
          'NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil '
