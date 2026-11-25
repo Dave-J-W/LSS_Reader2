@@ -6661,3 +6661,26 @@ Verified by: tested (`tests/test_timeline_env.py`, 3;
 ### 2026-11-25 — Answers to questions from GUI manager, main man and tools man, posted on issue #55 (batch 21)
 
 Verified by: the owner's statements; nothing computed here. **Q cuts:** the default band is half the ROI on either side. **Dose:** show the average and the peak dose, the peak split into the top 10 % of the area and the other 90 %, with a 1 mm default width and a Gauss fit of an S1 horizontal slit scan to model the beam if one exists (F109). For a beam of Gaussian profile in one dimension the dose is highest at the centre; the share of the area at or above a given level follows the error function, so a "top 10 % of the area" is defined from the profile once it is known. **Excess point scatter:** the owner does not know its size; measure it from data (`DATA_NEEDS.md` row 15). **Foil prior:** stays optional for now. **Local agent's report:** blank spectra are committed; 0.1 keV energies are kept; row 7 waits. Questions still open from those three posts: the GUI manager's 2 to 7 and 9 to 13, main man's MQ-1, 2, 4, 6 to 12, tools man's 3 to 6.
+
+### 2026-11-25 — How much do reflectivity points scatter beyond counting statistics? (DATA_NEEDS row 15, MQ-3, C62)
+
+Verified by: a run of `tests/tools/excess_scatter.py` (known truth) and of the non-cloud agent's private
+generators, which import its estimators, on 384 real reflectivity series (18 runs, 10 keV). Study:
+`docs/studies/excess_scatter/summary.md`; walkthrough beside it. The owner: "I don't know the size; measure
+it from data".
+- **Two estimators.** The ratio at Qz measured by two scans (model-free, between scans) and a 6-point
+  difference within a scan that cancels any curve up to Qz⁴. Each is fitted as a core plus outliers, with
+  τ ≥ 10 % of R. On known truth the shared-Qz core is within 0.09 % of R of the truth for X 0–3 %, with or
+  without 3 % outliers. One Gaussian reports 7 % whenever outliers are present.
+- **Within a scan:** the stated σ is about 12 % too small (s 1.12 [1.10, 1.12]). As a fraction of R the
+  excess falls with the counts (1.4 % below 10³ counts, 0.13 % above 10⁵), so it is a scale on σ plus a
+  floor of about 0.1 %, not a fixed percentage.
+- **Between scans:** 0.39 % of R [0.30, 0.48] overall (s 1.42), about 2.7 % at Qz ≥ 0.25. Low counts, a large
+  background share and minutes between the points go together there and are not told apart. 4–6 % of the
+  residuals are wild, typically 70–90 % off.
+- **It explains C56:** a 0.4 % core on C61's joins gives today's joint fit pull SD 1.36 on the smooth join
+  (1.24 with 3 % outliers), against the real 1.24 [1.09, 1.40].
+- **For the budget** (no number changed; rule 12): not one percentage. A scale of about 1.12 on σ, a
+  Qz-dependent between-scan term, and robust handling of the wild points.
+- **Open:** sample height (the height scans not yet paired with the points); a 20-frame repeat of one Qz
+  point; repeated high-Qz scans minutes apart.
