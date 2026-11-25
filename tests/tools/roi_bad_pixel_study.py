@@ -13,6 +13,7 @@ after one of these passes:
              the same test, applied only to the ROI's three boxes, at factor
              3, 10 (the Reflectivity tab's field) and 40
     bg10     factor 10 on the two background boxes only (no signal there)
+    sig10    factor 10 on the signal box only
 
 Hot pixels are added at random to the ROI's boxes, a Poisson number per
 frame (mean 0, 0.1 or 0.5), each a log-uniform 3-300 counts. Every reduced
@@ -53,11 +54,12 @@ from lss_core import patching, reflectivity as refl           # noqa: E402
 from lss_core.errors import as_model                          # noqa: E402
 
 OUT_DEFAULT = os.path.join('docs', 'studies', 'roi_bad_pixels')
-ARMS = ('none', 'frame4', 'roi3', 'roi10', 'roi40', 'bg10')
+ARMS = ('none', 'frame4', 'roi3', 'roi10', 'roi40', 'bg10', 'sig10')
 LABEL = {'none': 'no pass (today)', 'frame4': 'whole frame, factor 4', 'roi3': 'ROI, factor 3',
-         'roi10': 'ROI, factor 10', 'roi40': 'ROI, factor 40', 'bg10': 'background boxes, factor 10'}
+         'roi10': 'ROI, factor 10', 'roi40': 'ROI, factor 40', 'bg10': 'background boxes, factor 10',
+         'sig10': 'signal box only, factor 10'}
 COLOR = {'none': '#222222', 'frame4': '#888888', 'roi3': '#d23', 'roi10': '#2a78d6', 'roi40': '#1baf7a',
-         'bg10': '#d4a017'}
+         'bg10': '#d4a017', 'sig10': '#9b59b6'}
 HOT = (0.0, 0.1, 0.5)                 # hot pixels per frame in the ROI's boxes (Poisson mean)
 # conditions: the reflected beam's σ (rows, columns) in pixels and the flux relative to the NX-like beamline's
 BEAMS = {'synthetic': ((0.6, 1.2), 1.0), 'sharp': ((0.3, 0.5), 1.0), 'sparse': ((0.6, 1.2), 2e-6)}
@@ -127,6 +129,8 @@ def apply_arm(arm, img, masks):
         return bad_pixel_pass(img, 1, 4.0)
     if arm == 'bg10':
         return bad_pixel_pass(img, 1, 10.0, masks[1])
+    if arm == 'sig10':
+        return bad_pixel_pass(img, 1, 10.0, masks[0] & ~masks[1])
     return bad_pixel_pass(img, 1, float(arm[3:]), masks[0])
 
 
@@ -432,12 +436,12 @@ def figures(summ, jst, nx, hots, frames, out):
 
     # R4: the join factors
     fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
-    w = 0.11
+    w = 0.1
     for ax, beam in zip(axes, ('synthetic', 'sparse')):
         for i, arm in enumerate(('clean',) + ARMS):
             v = [next(r['pull_sd'] for r in jst if r['hot'] == hot and r['arm'] == arm and r['beam'] == beam)
                  for hot in HOT]
-            ax.bar(np.arange(len(HOT)) + (i - 3) * w, v, w, color=COLOR.get(arm, '#bbbbbb'),
+            ax.bar(np.arange(len(HOT)) + (i - 3.5) * w, v, w, color=COLOR.get(arm, '#bbbbbb'),
                    label=LABEL.get(arm, 'clean frames (no hot pixel)'))
         ax.axhline(1, color='k', lw=0.8)
         ax.set_xticks(range(len(HOT)))

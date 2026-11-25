@@ -17,7 +17,8 @@ NX school frames. The whole chain, step by step: `walkthrough.md` (rule 13). Too
 - **Factor 3, and the whole-frame pass at factor 4** (today's Frames > Reduce option), take half of a real
   sparse point in 0.2–0.9 % of such frames.
 - **Factor 40** leaves more behind (2.9 % bias at the end of the curve).
-- **A background-only pass is worse than none** (+107 % bias).
+- **A pass on one kind of box is worse than none:** background only +107 % bias, signal box only −87 % (each
+  leaves the hot pixels that were cancelling the ones it removes). A pass must cover all three boxes.
 - **On NX school** no pass changes anything at any factor (the frames are bright). Factor 10 as a default
   would leave every NX number, and so the legacy export fixtures, as they are.
 
