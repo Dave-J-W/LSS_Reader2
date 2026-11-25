@@ -1308,7 +1308,7 @@ flowchart TD
 | `refCenLineEdit`  |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refBGOffLineEdit` BG Offset (degree): | B |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refSeaWinLineEdit` Search Win: |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
-| `refBPCFacLineEdit` Bad Pixel Correction fac: |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
+| `refBPCFacLineEdit` Bad Pixel Correction fac: (off) |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refAnalyzePushButton` Analyze |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refAcceptPushButton` Accept |  |  |  | B |  |  |  |  |  |  |  |  |  |  |
 | `refAnalyzeAllPushButton` Analyze All |  |  |  | B |  |  |  |  |  |  |  |  |  |  |

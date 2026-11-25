@@ -632,6 +632,16 @@ class MainWindow (QMainWindow):
         self.ui.refBGOffLineEdit.setValidator(qdoublevalidator0)
         self.ui.refSeaWinLineEdit.setValidator(qdoublevalidator0)
         self.ui.refBPCFacLineEdit.setValidator(qintvaliator1)
+        self.ui.refBPCFacLineEdit.setText('')                     # F95 B3: the ROI's own pass, off by default (rule 12)
+        self.ui.refBPCFacLineEdit.setPlaceholderText('off')
+        self.ui.refBPCFacLineEdit.setToolTip(
+            'A bad-pixel pass over the signal box only (owner, Q-UI-B3: "a separate threshold for the ROI"), after '
+            'the frame\'s own correction (Pilatus tab): a pixel above 4 × this factor × the mean of its four '
+            'neighbours, and above the box\'s noise floor, takes the neighbours\' mean; the pixels corrected are '
+            'listed with the result. Empty (the default): no pass, the numbers as before. Off until a study shows '
+            'it does not bias the sparse high-Qz frames, where a lone real count beside zeros would be taken for a '
+            'hot pixel (main man\'s study, 2026-11-25; rule 12). Used by Ref Patch and Analyze; scripted as '
+            'exp.reflectivity(..., roi_bad_pixel_factor=)')
         self.ui.refNormLineEdit.setValidator(qdoublevalidator0)
         self.ui.refQcLineEdit.setValidator(qdoublevalidator0)
         self.ui.refQoffLineEdit.setValidator(QDoubleValidator())
@@ -7174,6 +7184,17 @@ class MainWindow (QMainWindow):
             self.refRoiShow(self.cen)
 
 
+    def refRoiBadPixelFactor(self):
+        """The factor of the ROI's own bad-pixel pass (F95 B3), or None: the
+        field empty (the default) leaves the ROI as the frame's correction
+        left it."""
+        t=str(self.ui.refBPCFacLineEdit.text()).strip()
+        try:
+            v=float(t) if t else None
+        except ValueError:
+            return None
+        return v if v and v>0 else None
+
     def refAnalyzeFromField(self):
         #Enter pressed in a parameter field: silent when no Qz is selected
         if len(self.ui.refQzListWidget.selectedItems())==0:
@@ -7196,7 +7217,12 @@ class MainWindow (QMainWindow):
             start=list(self.cen)
             self.par=self.pilatus.peakFind(self.selData,self.selErrorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,fac=fac,mon=self.mon,cenfit=self.cenfit,gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
             self.cen=[int(np.floor(self.par[1])), int(np.floor(self.par[3]))]
-            bfac=float(self.ui.refBPCFacLineEdit.text())
+            bfac=self.refRoiBadPixelFactor()                  # F95 B3: the ROI's own bad-pixel pass, off unless set
+            if bfac and len(self.selFrameNums)==1:            # one frame: its monitor (and absorber) scales the box back to counts
+                n=self.selFrameNums[0]
+                scale=self.pilMonc[n]/float(self.absfac)**float(self.pil_AbsNum[n] or 0)
+                for c in reflectivity.roi_bad_pixels(self.pilatus,self.cen,self.slit,scale,bfac):
+                    self.ui.refBadPixListWidget.addItem('ROI pass: x %d, y %d' % c)
             sig,sigerr,lbg,lbgerr,rbg,rbgerr=self.pilatus.sumROI(slit=self.slit,cen=self.cen,dir=self.dir,bg=self.bg)
             net,neterr=self.pilatus.netROI()
             self.pilatus.setROI(self.pilatus.imageData,self.pilatus.errorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,bg=self.bg,dir=self.dir,mon=None)
@@ -7332,6 +7358,7 @@ class MainWindow (QMainWindow):
         self.refMaskedRows={}   # scan -> its rows left out by the mask, drawn apart (F92)
         self.refFlagsPending=[]
         self.refErrorModel=self.errorModel   # recorded for the Script pane
+        self.refRoiFactorUsed=self.refRoiBadPixelFactor()   # F95 B3, for the Script pane
         for i in self.selectedPilFramesNums:
             # one point per frame: the same code a script uses (lss_core.reflectivity)
             qkey=self.pilScanNum[i]
@@ -7339,14 +7366,15 @@ class MainWindow (QMainWindow):
             row,info=reflectivity.frame_row(self.pilatus,self.pilData[i],self.pilErrorData[i],
                 self.pilMonc[i],(self.pilX[i],self.pilY[i]),self.pilFileQzs[i],[slitx,slity],bg,
                 self.dir,self.pil_Dist[i],
-                low_qz_slit=first or self.ui.pilLowQzCorCheckBox.checkState()!=0)   # as coded: always on the first frame (PHYSICS_ISSUES P18)
+                low_qz_slit=first or self.ui.pilLowQzCorCheckBox.checkState()!=0,   # as coded: always on the first frame (PHYSICS_ISSUES P18)
+                roi_bad_pixel_factor=self.refRoiBadPixelFactor())                     # F95 B3: off unless set
             (cenx,ceny),(scenx,sceny)=info['centre'],info['expected']
             self.slit,self.bg=info['slit'],info['bg']
             if np.abs(cenx-scenx)>2:
                 self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'x', np.abs(cenx-scenx)])
             if np.abs(ceny-sceny)>2:
                 self.pilRefPeakCen.append([qkey,self.pilFrameNum[i],'y', np.abs(ceny-sceny)])
-            pilbadpixloc=[]   # corrected bad pixels inside the signal box, shown to the user
+            pilbadpixloc=[list(p) for p in info.get('roi_corrected',[])]   # corrected inside the signal box, shown to the user (B3's pass first)
             badpix=self.pilbadpixLoc.get(i,[])   # not recorded when a background image is subtracted
             for j in range(len(badpix)):
                 pilbadpixX=badpix[j][1]
@@ -7522,7 +7550,8 @@ class MainWindow (QMainWindow):
     REF_RESULT_ATTRS=('refpatchindex','refDrops','refFactors','refMethodUsed','refKnownOverride','refMerged',
                       'refMaskUsed','refMaskedRows',
                       'refRepeatsUsed','refDroppedScans','refScanList','refPoints','slit','dir','command',
-                      'refErrorModel','refPatchInput','refPatchOrder','refScale','refResultJoins','refAbsorberUsed')
+                      'refErrorModel','refPatchInput','refPatchOrder','refScale','refResultJoins','refAbsorberUsed',
+                      'refRoiFactorUsed')
 
     def initRefPatchSteps(self,Dialog):
         """Back, Cancel and the join table of the patch window. Every Drop
@@ -8639,6 +8668,8 @@ class MainWindow (QMainWindow):
             kw.append('low_qz_slit=True')
         if self.refPoints:
             kw.append('points=%r' % self.refPoints)
+        if getattr(self,'refRoiFactorUsed',None):
+            kw.append('roi_bad_pixel_factor=%r' % self.refRoiFactorUsed)
         if int(self.ui.pilBPCiteSpinBox.value())!=0:
             kw.append('bad_pixel_iterations=%d, bad_pixel_factor=%d' % (int(self.ui.pilBPCiteSpinBox.value()),int(self.ui.pilBPCfacSpinBox.value())))
         if script_kw(getattr(self,'refErrorModel',self.errorModel)):

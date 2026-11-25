@@ -174,6 +174,12 @@ Each line: feature — where — default — script — notes entry (date).
   worksheet and the two fit options open on the right of the tab area,
   tabbed together. Each scrolls inside its dock. Close hides it; drag its
   title to another edge, or double-click it to float it as a window.
+- "Bad Pixel Correction fac" (Reflectivity tab; F95 B3, 2026-11-25): a
+  bad-pixel pass over the reflectivity box only, after the frame's own
+  correction. Empty (the default) means none. Set, its corrections are
+  listed with the result. It stays off until a study shows it does not
+  remove real signal on sparse high-Qz frames (a lone count beside zeros
+  looks like a hot pixel).
 - Window titles (F95, Q-UI-B10, 2026-11-25): each dialog's title says what
   it is (Ref Patch, Burn test, GIOXS, MCA merge, Plot scale, ...); they
   were "Dialog" or "Scan Details".

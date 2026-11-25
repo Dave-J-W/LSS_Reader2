@@ -6731,3 +6731,31 @@ rest; the width from an S1 horizontal slit scan when there is one, else
   rest 2.0 × 10¹².
 
 Verified by: tested (`tests/test_gui_burn_dose.py`).
+
+### 2026-11-25 — F95 B3: the ROI's own bad-pixel pass, wired and off
+
+The owner's Q-UI-B3 (2026-11-23): "a separate threshold for the ROI". The
+Reflectivity tab's "Bad Pixel Correction fac" was read but never used; it
+is now a pass over the signal box only (`reflectivity.roi_bad_pixels`, in
+`frame_row`, `exp.reflectivity(roi_bad_pixel_factor=)`, Ref Patch and
+Analyze).
+- **The criterion** is `removeBadPix`'s, applied to the box's counts with a
+  one-pixel margin: a pixel above (2 + 2/iterations) × factor × the mean of
+  its four neighbours, and above (√mean + 2)² of the box. It takes the
+  neighbours' mean, and its error is recomputed as `peakLocate` computes
+  errors.
+- **Measured** (synthetic, `tests/test_roi_bad_pixels.py`):
+  - a 4 × 10⁵-count zinger in the box of a 5000-count peak is the only
+    pixel corrected at factor 10, and the sum returns to the clean one
+    within 0.2 %;
+  - a clean peak is untouched;
+  - **but** six real counts in one pixel with zero neighbours (a sparse
+    high-Qz frame) are removed at factor 40 too: the neighbour test cannot
+    tell a lone real count from a hot pixel.
+- **So it is off by default** (the field empty; its old .ui default 10 is
+  gone), and no output number changes. Main man runs the known-truth study
+  (issue #55: the baseline without a pass, the whole-frame pass as a second
+  arm, bias, RMS and calibration across Qz classes, a guard on the counts
+  about the pixel) before any default (rule 12).
+
+Verified by: tested (4).

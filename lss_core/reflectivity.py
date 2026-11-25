@@ -30,8 +30,46 @@ from . import stitching
 from .images import PIXEL_MM                    # noqa: E402  Pilatus pixel (mm), written once there
 
 
+def roi_bad_pixels(detector, centre, slit, monitor, factor, iterations=1):
+    """A bad-pixel pass over the signal box only (F95 B3; owner, Q-UI-B3: "a
+    separate threshold for the ROI"), on ``detector``'s imageData and
+    errorData as peakLocate left them (per monitor). The criterion is
+    removeBadPix's, applied to the box's counts (imageData × monitor) with a
+    one-pixel margin for the neighbours: a pixel above (2 + 2/iterations) ×
+    ``factor`` × the mean of its four neighbours, and above (√mean + 2)² of
+    the box. A corrected pixel takes the neighbours' mean, and its error is
+    recomputed as peakLocate computes errors. Returns the corrected pixels as
+    (column, row). Off unless asked: whether it helps or biases the sparse
+    high-Qz frames is to be studied before it is a default (rule 12; main
+    man's study, issue #55, 2026-11-25)."""
+    img, err = detector.imageData, detector.errorData
+    sx, sy = int(slit[0]) - 2, int(slit[1]) - 2                     # the signal box, as sumROI draws it
+    c0, c1 = int(centre[1]), int(centre[0])
+    r0, r1 = c0 - (sy + 1) // 2, c0 + (sy + 1) // 2 + 1
+    k0, k1 = c1 - (sx + 1) // 2, c1 + (sx + 1) // 2 + 1
+    R0, R1, K0, K1 = max(r0 - 1, 0), min(r1 + 1, img.shape[0]), max(k0 - 1, 0), min(k1 + 1, img.shape[1])
+    mon = float(monitor) if monitor else 1.0
+    counts = np.array(img[R0:R1, K0:K1], float) * mon
+    if counts.size < 9:
+        return []
+    fixed, bad = detector.removeBadPix(counts.copy(), iteration=int(iterations), factor=float(factor))
+    out = []
+    for r, k in bad:
+        rr, kk = R0 + int(r), K0 + int(k)
+        if not (r0 <= rr < r1 and k0 <= kk < k1):                   # the margin only feeds the neighbours
+            continue
+        c = float(fixed[r, k])
+        img[rr, kk] = c / mon
+        if detector.errors.budget:
+            err[rr, kk] = np.sqrt(max(c, 0.0)) / mon
+        else:
+            err[rr, kk] = np.sqrt(max(c, 0.0) / mon ** 2 + c ** 2 / mon ** 3)
+        out.append((kk, rr))
+    return out
+
+
 def frame_row(detector, image, error, monitor, beam_xy, qz, slit, bg_offset_deg,
-              direction, distance, low_qz_slit):
+              direction, distance, low_qz_slit, roi_bad_pixel_factor=None):
     """One reflectivity point from one frame (see module docstring).
 
     Returns (row, info); info holds the beam centre found, the expected
@@ -51,12 +89,14 @@ def frame_row(detector, image, error, monitor, beam_xy, qz, slit, bg_offset_deg,
     else:
         bg = bg_offset_deg * distance * np.pi / 180 / PIXEL_MM / slity
     use = [slitx, 5] if (low_qz_slit and 0.02 < qz < 0.03) else [slitx, slity]
+    corrected = roi_bad_pixels(detector, (cenx, ceny), use, monitor, roi_bad_pixel_factor) \
+        if roi_bad_pixel_factor else []
     sig, sigerr, lbg, lbgerr, rbg, rbgerr = detector.sumROI(slit=use, cen=[cenx, ceny],
                                                            dir=direction, bg=bg)
     net, neterr = detector.netROI()     # legacy: sqrt(sigerr² + (lbgerr² + rbgerr²)/4)
     row = np.array([qz, net, neterr, sig, sigerr, lbg, rbg])
     info = {'centre': (cenx, ceny), 'expected': tuple(scen), 'slit': use, 'bg': bg,
-            'offset': (cenx - scen[0], ceny - scen[1])}
+            'offset': (cenx - scen[0], ceny - scen[1]), 'roi_corrected': corrected}
     return row, info
 
 
