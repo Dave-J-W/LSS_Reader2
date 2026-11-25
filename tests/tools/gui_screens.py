@@ -133,6 +133,17 @@ def grab_window(w, app):
     return qimage_to_pil(w.grab())
 
 
+def wait(app, seconds=0.3):
+    """Let pending timers fire (deferred redraws: a colour bar, a slider) before
+    a picture is taken; three processEvents alone left the GISAXS shot
+    different from run to run (the Tools audit, 2026-11-25). Not for every
+    shot: a frame movie's timer would advance its frame."""
+    end = time.time() + seconds
+    while time.time() < end:
+        app.processEvents()
+        time.sleep(0.01)
+
+
 def getw(w, name):
     """A control of the window: on the generated ``ui`` or on the window itself."""
     return getattr(w.ui, name, None) or getattr(w, name)
@@ -156,6 +167,7 @@ def union(*rects):
 
 def new_window(app, spec=None, directory=None):
     import mainwindow
+    mainwindow.MainWindow.messageStamp = lambda self: '12:00:00'     # the same pictures from run to run (audit)
     w = mainwindow.MainWindow()
     w.resize(WIN_W, WIN_H)
     w.show()
@@ -645,6 +657,7 @@ def run_nx(app, ctx, skip_slow):
             if t is not w:
                 t.close()
         combo_do(w, app, w.ui.gisaxsComboBox, 'Show GISAXS')
+        wait(app)                                # its colour bar and slider are drawn by timers
         save_png(grab_window(w, app), '91_gisaxs_show.png', 'Whole window after GISAXS drop-down > Show GISAXS',
                  'Scan 11 frame 1 with a background; tab: %s' % w.ui.PlotWidget.tabText(w.ui.PlotWidget.currentIndex()))
     gisaxs()
@@ -995,11 +1008,13 @@ def run_plot_tabs(app, ctx, plot_files):
 def write_readme(out, wall):
     path = os.path.join(out, 'README.md')
     keep = ''
-    if os.path.exists(path):
-        txt = open(path, encoding='utf-8').read()
-        m = re.search(r'^## Observations.*', txt, re.S | re.M)
-        if m:
-            keep = m.group(0)
+    committed = os.path.join(ROOT, 'docs', 'gui', 'screens', 'README.md')
+    for src in (path, committed):        # a run into a new folder (the Tools audit) keeps the committed section
+        if os.path.exists(src):
+            m = re.search(r'^## Observations.*', open(src, encoding='utf-8').read(), re.S | re.M)
+            if m:
+                keep = m.group(0)
+                break
     total = sum(os.path.getsize(f) for f in glob.glob(os.path.join(out, '*.png')))
     lines = ['# Screenshots of the reader window (GUI overhaul, phase 1a)', '',
              'Made by `python tests/tools/gui_screens.py` (offscreen Qt, scale 1; the window cannot be narrower than about',
@@ -1031,6 +1046,7 @@ def main():
         os.remove(f)
     from PyQt5 import QtWidgets
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(['lss-screens'])
+    app.setCursorFlashTime(0)                    # no blinking text cursor: the same pictures from run to run
     ctx = install_patches(app)
     ctx['plot_files'] = []
     w = run_nx(app, ctx, a.skip_slow)
