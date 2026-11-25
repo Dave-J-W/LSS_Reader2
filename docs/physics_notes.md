@@ -6072,3 +6072,25 @@ sets, 286 Qz levels, 18 beamtimes; and one beamtime's off-specular frames with t
   33–49 % at β 3–6°, flat in β.
 - **No reader number changes.** P40 stays open; subtracting P40a needs GID background frames that the data do
   not hold (same slits, sample lowered, both arm heights).
+
+### 2026-11-24 — GISAXS and GIOXS examples in the private data (DATA_NEEDS row 4, F104, P35)
+
+Verified by: reading every SPEC header of the private copy (8255 scans) by the non-cloud agent, and
+measurement on the frames of the GISAXS set (the brightest column). Study:
+`docs/studies/gisaxs_gioxs_inventory/summary.md`.
+
+- **GISAXS: one beamtime**, 67 scans of 2 frames × 10 s on the 200K: α 0.09°, Det_Th 0.45°, wide S4 (3 + 10 mm)
+  and S5 (7.4 + 14 mm), the detector moved back (header S2D 1022.5 mm, pinhole 685 mm). No background, no beam
+  stop. **Its header geometry is off:** in all 67 scans the brightest column lies 4.97 ± 0.02 columns above
+  what DBPos and Det_Th predict at the header S2D, so q needs a direct-beam calibration first, and P35 (the
+  GISAXS view one column off) cannot be settled from it.
+- **GIOXS in the sense of off-specular scattering below the critical angle (GIXOS): one beamtime, two files**:
+  36 sample scans and 7 with the sample lowered 2 mm, α 0.10°, Det_Th 0.3°, S4 and S5 0.12 mm wide (the slits
+  fix the in-plane angle; the rows give β). The lowered scans are the background (same slits): the beam path
+  is 10–14 % of the frame near the horizon, 33–49 % at β 3–6° (`docs/studies/gid_stray_light/`).
+- **The diffuse around the specular** (F104's own wording for GIOXS) is recorded by the Pilatus 1M
+  reflectivity frames of two beamtimes (1043 × 981 pixels, 30 keV and 6.2 keV); no dedicated off-specular
+  scans there.
+- What the reader would need is listed per set in the study (β profiles of a column band with background
+  subtraction for GIXOS; q mapping after a geometry calibration for GISAXS; the F38 geometry for the 1M).
+  Nothing is copied into the repository; the frames stay private.

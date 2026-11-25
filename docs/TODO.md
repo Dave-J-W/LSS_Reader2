@@ -42,7 +42,7 @@ working list, one table per area, each row with its source. Rows marked
 | ΣN/ΣW vs IDL error weights | input 18 |
 | Multiple exposures, cosmic rays | F40 |
 | GID scan designer — **new** (only in SCOPE's text) | F32 |
-| GISAXS one column off; GISAXS and background-subtracted GID scriptable | P35 |
+| GISAXS one column off; GISAXS and background-subtracted GID scriptable (private GISAXS and off-specular sets inventoried 2026-11-24, `docs/studies/gisaxs_gioxs_inventory/`; the GISAXS set's own header is 5 columns off, so it cannot settle P35) | P35 |
 | sh scans paired with GID levels (sample height drifts by µm in 30–60 min): read a nearby sh scan per level and report the height change — **new** | physics_notes 2026-11-19 |
 
 **B. Reflectivity and export (Stage 5)**
