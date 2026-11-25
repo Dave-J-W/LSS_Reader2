@@ -6031,3 +6031,23 @@ the non-cloud agent.
   most overlaps share only one point.
 - **Not in the data:** foil tolerance and alloy. The reader cannot read that run's frames (Pilatus 1M,
   F38), so the background-subtracted check is not possible yet.
+
+### 2026-11-24 — Does a reflectivity join need coincident Qz points? (owner's question, C57)
+
+The owner asked whether a join should always include at least one coincident point, and whether one is
+enough, so that each scan could use its own spacing. Verified by a synthetic known-truth run (21,600 joins:
+water, DPPC and a 100 Å film; joins at Qz 0.05, 0.15 and 0.30; 12 overlap geometries; the reader's own patch
+code) and by C56's 1832 real joins. Study: `docs/studies/coincident_points/summary.md`. By the non-cloud agent.
+- **Shared Qz are not needed; an overlap is.** With 4 or more points of each scan in the overlap, the default
+  joint fit has the same precision whether the points coincide or are staggered (4+4 staggered: 1.72 %;
+  5 coincident: 1.70 %). It is unbiased within 0.1 % and honest (pull SD 0.96–1.05). With no overlap, no
+  method answers.
+- **One shared point alone** gives an unbiased factor at about twice the error (3.3 % against 1.5–1.7 %).
+  The real joins agree: 2.1×, robust SD of the difference 0.93. The default joint fit refuses that geometry,
+  because its order-4 ladder needs more points.
+- **With 2 points per scan**, a fast fringe (film at 0.30, 6 points per fringe) biases the default by −2.0 %
+  (0.6 of its error). At 3 or more points, there is no bias.
+- **The legacy factor's error is wrong at small overlaps:** pull SD 4–106 with 2 coincident points and 11–336
+  with staggered 2+2.
+- **For planning:** different spacing per scan is fine. Overlap by at least 4 points of each scan, 6 or more
+  per fringe on a fast fringe. Keep a shared Qz only as a cross-check.

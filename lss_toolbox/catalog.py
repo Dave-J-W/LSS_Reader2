@@ -324,6 +324,21 @@ TOOLS = (
                        'study; the default\'s pulls no longer match the gauntlet\'s exactly.',
                        'tests/tools/ref_patch_biased_joins.py', replicates='100', covariance_seeds='100'),),
          repo_out='docs/comparisons_data/ref_patch_biased_joins', seconds=15),
+    Tool('coincidence_synth', 'Do joins need coincident Qz? (synthetic)', 'refl', 'figures',
+         'tests/tools/coincidence_synth.py',
+         'Two synthetic scans of known curves meeting at a join with no overlap, k coincident points, a '
+         'staggered overlap or a coarser second grid, fitted by every patching method and scored against the '
+         'truth: bias, pull SD, error size, share answered.',
+         committed=('docs/studies/coincident_points',),
+         docs=('docs/studies/coincident_points/summary.md', 'docs/COMPARISONS.md#| C57 |'),
+         defaults={'--out': OUT, '--trials': '200'},
+         variations=(
+             V('Example fits only', 'Figure C1 alone: one join per geometry, in a second or two.',
+               'docs/studies/coincident_points/summary.md### The test', examples=True),
+             V('More trials', '1000 joins per cell: the pooled biases to about ±0.02 %.',
+               'docs/studies/coincident_points/summary.md### The answer', trials='1000'),
+         ),
+         repo_out='docs/studies/coincident_points', seconds=10),
     Tool('qoff_study', 'Qoff and Qc of R/R_F: the proposer\'s study (F79)', 'refl', 'figures',
          'tests/tools/qoff_study.py',
          'Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and '
