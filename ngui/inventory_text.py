@@ -427,7 +427,7 @@ INVENTORY = {
     'refCenLineEdit': ('lineedit', '', 'Reflectivity > top', 'ROI centre in pixels (H,V); filled with the expected centre unless Cen is ticked'),
     'refBGOffLineEdit': ('lineedit', 'BG Offset (degree):', 'Reflectivity > top', 'Angular offset of the background boxes from the ROI, degrees; preset 0.5 on load'),
     'refSeaWinLineEdit': ('lineedit', 'Search Win:', 'Reflectivity > top', 'Search window, as a multiple of the slit, for the peak centre found by Analyze'),
-    'refBPCFacLineEdit': ('lineedit', 'Bad Pixel Correction fac: (off)', 'Reflectivity > top', "The ROI's own bad-pixel pass: in Ref Patch and Analyze, a pixel of the signal box above 4 x this factor x its neighbours' mean (and the box's floor) takes that mean; the pixels corrected are listed with the result. Empty (the default): no pass"),
+    'refBPCFacLineEdit': ('lineedit', 'Bad Pixel Correction fac: (off)', 'Reflectivity > top', "The ROI's own bad-pixel pass: in Ref Patch and Analyze, a pixel of the ROI's three boxes above 4 x this factor x its neighbours' mean (and the frame's floor) takes that mean, before the sums; the pixels corrected are listed with the result. Empty (the default): no pass"),
     'refAnalyzePushButton': ('button', 'Analyze', 'Reflectivity > top', "Finds the peak in the selected Qz's frames, sums ROI less background, shows the corrected ROI and Q, R, R_Err, %R_Err"),
     'refAcceptPushButton': ('button', 'Accept', 'Reflectivity > top', 'Adds the analysed point (Qz, R, error, comment) to the Ref list and replots'),
     'refAnalyzeAllPushButton': ('button', 'Analyze All', 'Reflectivity > top', 'Analyzes and accepts every Qz in the list in turn, with a modal progress dialog'),

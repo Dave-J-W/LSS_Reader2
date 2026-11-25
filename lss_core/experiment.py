@@ -297,8 +297,8 @@ class Experiment:
         a point of a repeat merged into the group's first scan masks that
         point of the merged scan (where the window's drops are made);
         ``drops`` then apply to what is left. ``roi_bad_pixel_factor``: a
-        bad-pixel pass over each frame's signal box with this factor
-        (reflectivity.roi_bad_pixels; F95 B3, off by default until studied)."""
+        bad-pixel pass over each frame's three ROI boxes with this factor
+        (reflectivity.roi_bad_pixel_pass, C62's arithmetic; F95 B3, off by default until rule 12)."""
         from TwoDDetector import TwoDDetector
         det = TwoDDetector('Pilatus')
         det.errors = as_model(errors)

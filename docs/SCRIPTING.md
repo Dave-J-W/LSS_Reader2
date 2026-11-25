@@ -35,7 +35,7 @@ Options, with the window's defaults for Pilatus data:
 | `merge=[[2, 3]]` | | groups merged in the identical-scans dialog |
 | `points={7: [0, 1, 3]}` | all points | frames selected in the image list |
 | `mask=[(7, 3), (8, 0)]` | none | dropped points kept in the workbook (F92; `lss_core.masks`) |
-| `roi_bad_pixel_factor=10` | none | the Reflectivity tab's "Bad Pixel Correction fac": a bad-pixel pass over the signal box only (F95 B3; off until studied) |
+| `roi_bad_pixel_factor=10` | none | the Reflectivity tab's "Bad Pixel Correction fac": a bad-pixel pass over the ROI's three boxes (F95 B3, C62; off by default) |
 | `bad_pixel_iterations=0`, `bad_pixel_factor=1` | | BPC iterations, factor |
 
 `result` holds the per-scan points (`per_scan`, columns Qz, net signal,

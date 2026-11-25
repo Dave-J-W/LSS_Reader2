@@ -102,12 +102,12 @@
   label: "Bad Pixel Correction fac: (off)"
   where: "Reflectivity > top"
   handler: refRoiBadPixelFactor
-  does: "The ROI's own bad-pixel pass: in Ref Patch and Analyze, a pixel of the signal box above 4 x this factor x its neighbours' mean (and the box's floor) takes that mean; the pixels corrected are listed with the result. Empty (the default): no pass"
+  does: "The ROI's own bad-pixel pass: in Ref Patch and Analyze, a pixel of the ROI's three boxes above 4 x this factor x its neighbours' mean (and the frame's floor) takes that mean, before the sums; the pixels corrected are listed with the result. Empty (the default): no pass"
   workflows: [reflectivity]
   needs: ""
   shown: always
   tooltip: true
-  notes: "Wired 2026-11-25 (F95 B3, owner Q-UI-B3; lss_core.reflectivity.roi_bad_pixels, exp.reflectivity(roi_bad_pixel_factor=)). Off by default: a lone real count beside zeros on a sparse high-Qz frame passes the test and would be removed (tested, as coded); main man studies it before any default (rule 12). Was defunct until then (read, never used); its .ui default 10 is now empty."
+  notes: "Wired 2026-11-25 (F95 B3, owner Q-UI-B3; lss_core.reflectivity.roi_bad_pixel_pass, the arithmetic main man's C62 measured; exp.reflectivity(roi_bad_pixel_factor=)). Off by default until rule 12: C62's candidate is factor 10, waiting for the owner's sparse frames (DATA_NEEDS 16). Was defunct until then (read, never used); its .ui default 10 is now empty."
 - id: refAnalyzePushButton
   kind: button
   label: "Analyze"

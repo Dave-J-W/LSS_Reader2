@@ -6768,27 +6768,33 @@ Verified by: tested (`tests/test_gui_burn_dose.py`).
 ### 2026-11-25 — F95 B3: the ROI's own bad-pixel pass, wired and off
 
 The owner's Q-UI-B3 (2026-11-23): "a separate threshold for the ROI". The
-Reflectivity tab's "Bad Pixel Correction fac" was read but never used; it
-is now a pass over the signal box only (`reflectivity.roi_bad_pixels`, in
-`frame_row`, `exp.reflectivity(roi_bad_pixel_factor=)`, Ref Patch and
-Analyze).
-- **The criterion** is `removeBadPix`'s, applied to the box's counts with a
-  one-pixel margin: a pixel above (2 + 2/iterations) × factor × the mean of
-  its four neighbours, and above (√mean + 2)² of the box. It takes the
-  neighbours' mean, and its error is recomputed as `peakLocate` computes
-  errors.
-- **Measured** (synthetic, `tests/test_roi_bad_pixels.py`):
-  - a 4 × 10⁵-count zinger in the box of a 5000-count peak is the only
-    pixel corrected at factor 10, and the sum returns to the clean one
-    within 0.2 %;
-  - a clean peak is untouched;
-  - **but** six real counts in one pixel with zero neighbours (a sparse
-    high-Qz frame) are removed at factor 40 too: the neighbour test cannot
-    tell a lone real count from a hot pixel.
-- **So it is off by default** (the field empty; its old .ui default 10 is
-  gone), and no output number changes. Main man runs the known-truth study
-  (issue #55: the baseline without a pass, the whole-frame pass as a second
-  arm, bias, RMS and calibration across Qz classes, a guard on the counts
-  about the pixel) before any default (rule 12).
+Reflectivity tab's "Bad Pixel Correction fac" was read but never used. It
+is now the core option C62 asked for: `reflectivity.roi_bad_pixel_pass`,
+with main man's study's arithmetic (C62, `docs/studies/roi_bad_pixels/`).
+- **What it does:** `removeBadPix`'s test on the frame's counts, with the
+  floor and the neighbours taken over the whole frame, applied only to the
+  ROI's three boxes (`display.roi_boxes`, sumROI's geometry), before the
+  sums.
+- **Where:** `frame_row(roi_bad_pixel_factor=)`, which locates the beam
+  again on the corrected frame; `exp.reflectivity`, Ref Patch (the pixels
+  corrected are listed with the result) and Analyze (one frame).
+- **Measured** (`tests/test_roi_bad_pixels.py`, synthetic):
+  - `bad_pixel_pass` without a region gives `removeBadPix`'s numbers and
+    pixels exactly (edges and corners included, 1 and 2 iterations);
+  - through `exp.reflectivity`, a 5000-count pixel in a background box of
+    the weakest frame takes half its excess from that point when the pass
+    is off (net = signal − (left + right)/2, C62's mechanism); at factor 10
+    the point is restored within 0.1 % and every other point is the same;
+  - a 4 × 10⁵-count zinger in the signal box, or in a background box, of a
+    5000-count peak is the only pixel corrected at factor 10, and the sum
+    returns to the clean one within 0.2 %;
+  - a clean peak is untouched, and so is a pixel outside the boxes;
+  - on a frame with no background at all, six real counts in one pixel are
+    removed even at factor 40 (as coded: the floor of an empty frame is
+    about 4). C62's realistic sparse frames (with background) never had a
+    clean frame touched at factor 10.
+- **Off by default** (the field empty; its old .ui default 10 is gone), so
+  no output number changes. C62's candidate default is factor 10 on the
+  three boxes, after the owner's sparse frames (DATA_NEEDS 16) and rule 12.
 
-Verified by: tested (4).
+Verified by: tested (7).

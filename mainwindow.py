@@ -635,13 +635,14 @@ class MainWindow (QMainWindow):
         self.ui.refBPCFacLineEdit.setText('')                     # F95 B3: the ROI's own pass, off by default (rule 12)
         self.ui.refBPCFacLineEdit.setPlaceholderText('off')
         self.ui.refBPCFacLineEdit.setToolTip(
-            'A bad-pixel pass over the signal box only (owner, Q-UI-B3: "a separate threshold for the ROI"), after '
-            'the frame\'s own correction (Pilatus tab): a pixel above 4 × this factor × the mean of its four '
-            'neighbours, and above the box\'s noise floor, takes the neighbours\' mean; the pixels corrected are '
-            'listed with the result. Empty (the default): no pass, the numbers as before. Off until a study shows '
-            'it does not bias the sparse high-Qz frames, where a lone real count beside zeros would be taken for a '
-            'hot pixel (main man\'s study, 2026-11-25; rule 12). Used by Ref Patch and Analyze; scripted as '
-            'exp.reflectivity(..., roi_bad_pixel_factor=)')
+            'A bad-pixel pass over the ROI\'s three boxes, signal and backgrounds (owner, Q-UI-B3: "a separate '
+            'threshold for the ROI"), on the frame\'s counts before the sums: a pixel above 4 × this factor × the '
+            'mean of its four neighbours, and above the frame\'s noise floor, takes the neighbours\' mean; the '
+            'pixels corrected are listed with the result. Empty (the default): no pass, the numbers as before. '
+            'Off until a study of the owner\'s sparse high-Qz frames: main man\'s study (C62, 2026-11-25) found '
+            'factor 10 removes 90 % of hot pixels on sparse synthetic frames and never touched a clean frame, '
+            'while factor 3 can take half of a real sparse point (rule 12). Used by Ref Patch and Analyze; '
+            'scripted as exp.reflectivity(..., roi_bad_pixel_factor=)')
         self.ui.refNormLineEdit.setValidator(qdoublevalidator0)
         self.ui.refQcLineEdit.setValidator(qdoublevalidator0)
         self.ui.refQoffLineEdit.setValidator(QDoubleValidator())
@@ -7218,11 +7219,20 @@ class MainWindow (QMainWindow):
             self.par=self.pilatus.peakFind(self.selData,self.selErrorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,fac=fac,mon=self.mon,cenfit=self.cenfit,gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
             self.cen=[int(np.floor(self.par[1])), int(np.floor(self.par[3]))]
             bfac=self.refRoiBadPixelFactor()                  # F95 B3: the ROI's own bad-pixel pass, off unless set
-            if bfac and len(self.selFrameNums)==1:            # one frame: its monitor (and absorber) scales the box back to counts
-                n=self.selFrameNums[0]
-                scale=self.pilMonc[n]/float(self.absfac)**float(self.pil_AbsNum[n] or 0)
-                for c in reflectivity.roi_bad_pixels(self.pilatus,self.cen,self.slit,scale,bfac):
-                    self.ui.refBadPixListWidget.addItem('ROI pass: x %d, y %d' % c)
+            if bfac and len(self.selFrameNums)==1:            # on the frame's counts at the boxes found, then the search again
+                counts,fixed=reflectivity.roi_bad_pixel_pass(self.selData[0],self.cen,self.slit,self.bg,self.dir,bfac)
+                if fixed:
+                    err=np.array(self.selErrorData[0],float,copy=True)
+                    for c,r in fixed:
+                        err[r,c]=np.sqrt(max(counts[r,c],0.0))
+                        self.ui.refBadPixListWidget.addItem('ROI pass: x %d, y %d' % (c,r))
+                    self.par=self.pilatus.peakFind([counts],[err],slit=self.slit,cen=start,absfac=self.absfac,absnum=self.absnum,
+                                                   fac=fac,mon=self.mon,cenfit=self.cenfit,
+                                                   gain=self.pilGains([self.pilScanNum[i] for i in self.selFrameNums]))
+                    self.cen=[int(np.floor(self.par[1])), int(np.floor(self.par[3]))]
+            elif bfac:
+                self.notify('The ROI bad-pixel pass works on one frame at a time; %d are selected, none corrected.'
+                            % len(self.selFrameNums),title='Reflectivity',level='info')
             sig,sigerr,lbg,lbgerr,rbg,rbgerr=self.pilatus.sumROI(slit=self.slit,cen=self.cen,dir=self.dir,bg=self.bg)
             net,neterr=self.pilatus.netROI()
             self.pilatus.setROI(self.pilatus.imageData,self.pilatus.errorData,slit=self.slit,cen=self.cen,absfac=self.absfac,absnum=self.absnum,bg=self.bg,dir=self.dir,mon=None)

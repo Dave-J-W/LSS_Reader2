@@ -1,7 +1,8 @@
 """The ROI's own bad-pixel pass (F95 B3; owner, Q-UI-B3: "a separate
-threshold for the ROI"), off by default until main man's study (rule 12;
-issue #55, 2026-11-25). lss_core.reflectivity.roi_bad_pixels, used by
-frame_row, exp.reflectivity and the window.
+threshold for the ROI"), by the arithmetic of main man's study (C62:
+removeBadPix's test over the frame, applied to the ROI's three boxes), off
+by default until rule 12. lss_core.reflectivity.roi_bad_pixel_pass, used
+by frame_row, exp.reflectivity and the window.
 
 Known truth: a smooth reflected peak on a flat background, with one hot
 pixel put inside the signal box. And the case the study must weigh: a
@@ -27,6 +28,20 @@ def _row(img, factor):
                                   False, roi_bad_pixel_factor=factor)
 
 
+def test_the_whole_frame_pass_is_removeBadPix():
+    """bad_pixel_pass without a region gives removeBadPix's numbers and pixels."""
+    rng = np.random.default_rng(3)
+    img = rng.poisson(synth.pilatus_image(peak=PEAK, amplitude=800.0)).astype(float)
+    for r, c, v in ((5, 7, 9.0e4), (0, 40, 3.0e3), (PEAK[1] + 2, PEAK[0] - 4, 2.0e4), (synth.PIL_W - 1, 3, 500.0)):
+        img[r, c] = v                                        # edges and corners too
+    for it, fac in ((1, 4.0), (1, 10.0), (2, 3.0)):
+        ref, loc = TwoDDetector('Pilatus').removeBadPix(img.copy(), iteration=it, factor=fac)
+        out, changed = reflectivity.bad_pixel_pass(img, it, fac)
+        assert np.array_equal(out, ref)
+        if it == 1:
+            assert sorted(map(tuple, np.argwhere(changed))) == sorted(map(tuple, loc))
+
+
 def test_off_by_default_and_a_hot_pixel_in_the_box_is_corrected():
     clean = synth.pilatus_image(peak=PEAK, amplitude=5000.0)
     hot = clean.copy()
@@ -42,6 +57,20 @@ def test_off_by_default_and_a_hot_pixel_in_the_box_is_corrected():
     assert info2['roi_corrected'] == [] and with_clean[1] == pytest.approx(none_clean[1], rel=1e-12)
 
 
+def test_a_hot_pixel_in_a_background_box_is_corrected_too():
+    """C62: the pass covers the three boxes (a background-only pass biased R by +107 %)."""
+    clean = synth.pilatus_image(peak=PEAK, amplitude=5000.0)
+    _, info = _row(clean, None)
+    hot = clean.copy()
+    from lss_core.display import roi_boxes
+    (_, (r0, r1, c0, c1)) = [b for b in roi_boxes(SLIT, info['centre'], bg=info['bg'], direction='H')
+                             if b[0] == 'left'][0]
+    at = ((r0 + r1) // 2, (c0 + c1) // 2)
+    hot[at] = 4.0e5
+    _, info2 = _row(hot, 10.0)
+    assert info2['roi_corrected'] == [(at[1], at[0])]
+
+
 def test_a_pixel_outside_the_box_is_left_to_the_frames_correction():
     img = synth.pilatus_image(peak=PEAK, amplitude=5000.0)
     img[PEAK[1] + 30, PEAK[0]] = 4.0e5                      # far below the box
@@ -50,17 +79,50 @@ def test_a_pixel_outside_the_box_is_left_to_the_frames_correction():
 
 
 def test_as_coded_a_lone_real_count_on_a_sparse_frame_is_removed():
-    """Why the pass is off: at high Qz the reflected beam is a few counts.
-    A lone count beside zeros passes the neighbour test whatever the factor
-    (its neighbours' mean is 0) and the floor of an almost empty box, so the
-    pass removes real signal. The study decides whether a guard (enough
-    counts about the pixel) makes the pass safe (rule 12)."""
+    """As coded, the extreme case: on a frame with no background at all, a
+    lone count beside zeros passes the neighbour test whatever the factor
+    (its neighbours' mean is 0) and the floor (about 4 on an empty frame),
+    so the pass removes it. C62's realistic sparse frames, with background,
+    never had a clean frame touched at factor 10; the owner's own sparse
+    frames are the check before a default (DATA_NEEDS 16, rule 12)."""
     img = np.zeros((synth.PIL_W, synth.PIL_H))
     img[PEAK[1], PEAK[0]] = 6.0                              # the reflected beam: six counts in one pixel
     off, _ = _row(img, None)
     on, info = _row(img, 40.0)
     assert off[3] == pytest.approx(6.0 / MON) and info['roi_corrected'] == [(PEAK[0], PEAK[1])]
     assert on[3] == 0.0                                      # the signal is gone
+
+
+def test_exp_reflectivity_restores_a_point_with_a_hot_background_pixel(tmp_path):
+    """main man's end-to-end case (issue #55): a 5000-count pixel in a
+    background box of one frame (scan 1's last, the weakest). Off (the
+    default) the point loses half the pixel's excess, as C62's mechanism
+    says (net = signal − (left + right)/2); at factor 10 the point comes
+    back and every other point is the same."""
+    from lss_core.experiment import Experiment
+    from lss_core.display import roi_boxes
+    spec = synth.make_dataset(tmp_path / 'data')
+    clean = Experiment(spec).reflectivity([1, 2])
+    exp = Experiment(spec)
+    f = [x for x in exp.frames([1]) if x.index == 8][0]
+    det = TwoDDetector('Pilatus')
+    det.openFile(f.path)
+    img = np.array(det.imageData, float)
+    _, info = reflectivity.frame_row(det, img, np.sqrt(img), f.monitor, f.beam_xy, f.qz, (21, 11), 0.5, 'H',
+                                     f.distance, False)
+    (_, (r0, r1, c0, c1)) = [b for b in roi_boxes((21, 11), info['centre'], bg=info['bg'], direction='H')
+                             if b[0] == 'right'][0]
+    img[(r0 + r1) // 2, (c0 + c1) // 2] = 5000.0
+    synth.write_pilatus_tif(f.path, img)
+    off = Experiment(spec).reflectivity([1, 2])
+    on = Experiment(spec).reflectivity([1, 2], roi_bad_pixel_factor=10.0)
+    a, b, c = clean.per_scan[1], off.per_scan[1], on.per_scan[1]
+    excess = 5000.0 - img[(r0 + r1) // 2, (c0 + c1) // 2 + 1]
+    assert (a[8, 1] - b[8, 1]) * f.monitor == pytest.approx(excess / 2, rel=0.02)   # off: half taken away
+    assert c[8, 1] == pytest.approx(a[8, 1], rel=1e-3)          # on: restored
+    others = [k for k in range(len(a)) if k != 8]
+    assert np.array_equal(c[others], a[others]) and np.array_equal(on.per_scan[2], clean.per_scan[2])
+    assert np.array_equal(off.per_scan[2], clean.per_scan[2])
 
 
 @pytest.mark.gui
