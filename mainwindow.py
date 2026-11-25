@@ -5041,8 +5041,12 @@ class MainWindow (QMainWindow):
             self.messageBox('Please select the Pilatus images of a burn test scan first!')
             return
         self.pilSelectedQxs=[self.pilFileQxs[i] for i in self.selectedPilFramesNums]
-        if  self.pilSelectedQxs.count(self.pilSelectedQxs[0])!=len(self.pilSelectedQxs) or self.pilSelectedQzs.count(self.pilSelectedQzs[0])!=len(self.pilSelectedQzs) or self.pilSelectedScanNum.count(self.pilSelectedScanNum[0])!=len(self.pilSelectedScanNum):
-            self.messageBox('Warning: It is not a burn test scan or multiple scans are selected!')
+        same={}       # F98: several burns at once, each scan's frames at one Qz and Qx
+        for i in self.selectedPilFramesNums:
+            same.setdefault(self.pilScanNum[i],set()).add((self.pilFileQzs[i],self.pilFileQxs[i]))
+        if any(len(v)!=1 for v in same.values()):
+            self.messageBox('Warning: not a burn test: the selected frames of scan%s %s move in Qz or Qx.'
+                            % ('s' if len(same)>1 else '',listText(sorted(int(k) for k,v in same.items() if len(v)!=1))))
         else:
             self.buildBurnDialog().show()
             self.burnTrends()
@@ -5064,7 +5068,8 @@ class MainWindow (QMainWindow):
 
     def burnOptions(self):
         o=dict(models=list(trendmod.MODELS),estimator='template',time='clock',threshold=5.0,auto_peak=True,position_limit=False,
-               errors='auto',rows_auto=True)
+               errors='auto',rows_auto=True,axis='time',dose_unit='photons',beam_width='',fast=False,
+               verdict_quantity='intensity',strip_relative=0.0)
         o.update({k:v for k,v in (self.prefs.get('burn') or {}).items() if k in o})
         return o
 
@@ -5191,6 +5196,7 @@ class MainWindow (QMainWindow):
         res.setObjectName('burnResultLabel')
         res.setWordWrap(True)
         lay.addWidget(res)
+        lay.insertLayout(1,self.burnDoseRow(page,o))
         tabs.addTab(page,'Trends')
         tabs.addTab(u.plotWidget,'Legacy')
         tabs.setTabToolTip(1,'The program\'s original burn plots (REF button, GID list): raw counts against count time '
@@ -5206,7 +5212,12 @@ class MainWindow (QMainWindow):
         u.burnPositionLimitCheckBox=poslim
         u.burnRowsAutoCheckBox,u.burnRowsLineEdit=rauto,rowsEdit
         u.burnSavePushButton,u.burnTrendPlotWidget,u.burnResultLabel=save,canvas,res
+        tabs.addTab(self.burnVerdictPage(),'Dose or time')
+        tabs.setTabToolTip(2,'Several burns of one kind of sample at different absorbers: does the change follow the '
+                             'dose (beam damage) or the clock (the sample changing by itself)? F76; '
+                             'lss_core.reciprocity')
         self.burnResult=None
+        self.burnResults={}
 
     def burnOptionsChanged(self,*args):
         u=self.uipdburn
@@ -5215,7 +5226,11 @@ class MainWindow (QMainWindow):
                errors=str(u.burnErrorsComboBox.currentText()),
                threshold=float(u.burnThresholdSpinBox.value()),auto_peak=bool(u.burnAutoPeakCheckBox.isChecked()),
                position_limit=bool(u.burnPositionLimitCheckBox.isChecked()),
-               rows_auto=bool(u.burnRowsAutoCheckBox.isChecked()))
+               rows_auto=bool(u.burnRowsAutoCheckBox.isChecked()),
+               axis=str(u.burnAxisComboBox.currentData()),dose_unit=str(u.burnDoseUnitComboBox.currentData()),
+               beam_width=str(u.burnBeamWidthLineEdit.text()).strip(),fast=bool(u.burnFastModeCheckBox.isChecked()),
+               verdict_quantity=str(u.burnVerdictQuantityComboBox.currentData()),
+               strip_relative=float(u.burnStripSpinBox.value()))
         u.burnRowsLineEdit.setEnabled(not o['rows_auto'])
         self.setPreference('burn',o)
         self.burnTrends()
@@ -5229,13 +5244,26 @@ class MainWindow (QMainWindow):
             self._burnExperiment=(key,Experiment(self.specFileName))
         return self._burnExperiment[1]
 
-    def burnArguments(self):
+    def burnScans(self):
+        """The burn scans of the selected frames, in order (F98: several at once)."""
+        return sorted({int(self.pilScanNum[i]) for i in self.selectedPilFramesNums})
+
+    def burnArguments(self,scan=None):
         """(scan, keywords) for Experiment.burn from the selection and the window's settings."""
         u=self.uipdburn
         o=self.burnOptions()
-        scan=int(self.pilScanNum[self.selectedPilFramesNums[0]])
-        kw=dict(points=[int(self.pilFrameNum[i]) for i in self.selectedPilFramesNums],time=o['time'],
-                models=tuple(o['models']),threshold=o['threshold']/100.0,estimator=o['estimator'])
+        scan=int(self.pilScanNum[self.selectedPilFramesNums[0]]) if scan is None else int(scan)
+        kw=dict(points=[int(self.pilFrameNum[i]) for i in self.selectedPilFramesNums if int(self.pilScanNum[i])==scan],
+                time=o['time'],models=tuple(o['models']),threshold=o['threshold']/100.0,estimator=o['estimator'])
+        if o['axis']=='dose':                      # F98: the trends against the dose
+            kw['axis']='dose'
+        if o['dose_unit']!='photons':
+            kw['dose_unit']=o['dose_unit']
+        beam=self.burnBeam(scan)
+        if beam is not None:
+            kw['beam_mm']=beam
+        if o['fast']:
+            kw['shutter']='open'
         if o['position_limit']:
             kw['limit']=('intensity','fwhm','centre')
         if o['errors']!='auto':
@@ -5270,29 +5298,61 @@ class MainWindow (QMainWindow):
         if self.det!='Pilatus' or len(self.selectedPilFramesNums)==0 or not getattr(self,'specFileName',None):
             u.burnResultLabel.setText('Select the Pilatus frames of a burn scan first.')
             return
+        scans=self.burnScans()
         try:
-            scan,kw=self.burnArguments()
+            allkw={n:self.burnArguments(n)[1] for n in scans}
         except (ValueError,IndexError) as e:
             u.burnResultLabel.setText('Not analysed: the settings could not be read (%s).' % e)
             return
-        if not kw['models']:
+        if not allkw[scans[0]]['models']:
             u.burnResultLabel.setText('Tick at least one model.')
             return
-        try:
-            res=self.burnExperiment().burn(scan,errors=self.errorModel,**kw)
-        except (ValueError,KeyError,OSError) as e:
-            self.burnResult=None
-            u.burnResultLabel.setText('Not analysed: %s' % e)
+        results,failed={},[]
+        for n in scans:
+            try:
+                results[n]=self.burnExperiment().burn(n,errors=self.errorModel,**allkw[n])
+            except (ValueError,KeyError,OSError) as e:
+                failed.append('scan %d: %s' % (n,e))
+                self.log.info('burn test of scan %d not analysed: %s',n,e)
+        if not results:
+            self.burnResult,self.burnResults=None,{}
+            u.burnResultLabel.setText('Not analysed: %s' % '; '.join(failed))
             u.burnResultLabel.setToolTip('')
-            self.log.info('burn test of scan %d not analysed: %s',scan,e)
+            self.burnVerdict()
             return
-        self.burnResult=res
+        self.burnResults,self.burnKeywords,self.burnFailed=results,allkw,failed
+        shown=getattr(self,'burnShownScan',None)
+        shown=shown if shown in results else min(results)
+        box=u.burnScanComboBox
+        box.blockSignals(True)
+        box.clear()
+        for n in results:
+            box.addItem('S# %d' % n,n)
+        box.setCurrentIndex(box.findData(shown))
+        box.blockSignals(False)
+        box.setVisible(len(results)>1)
+        self.burnShowScan(shown)
+        self.burnVerdict()
+
+    def burnShowScan(self,scan=None):
+        """Draw the trends of one of the analysed burns (the chooser's, when several)."""
+        u=self.uipdburn
+        if scan is None:
+            scan=u.burnScanComboBox.currentData()
+        res=self.burnResults.get(scan)
+        if res is None:
+            return
+        kw=self.burnKeywords[scan]
+        self.burnResult,self.burnShownScan=res,scan
         self.plotBurnTrends(res)
         if 'rows' not in kw and res.rows is not None:      # the rows found in the mean frame (Q-BURN-6)
             u.burnRowsLineEdit.setText('%d:%d' % tuple(res.rows))
-        u.Label.setText('Burn test for Scan #%d' % scan)
-        u.burnResultLabel.setText(self.burnShortText(res))
+        u.Label.setText('Burn test for Scan #%d' % scan if len(self.burnResults)==1 else
+                        'Burn tests of scans %s (trends of S# %d)' % (listText(sorted(self.burnResults)),scan))
+        failed=getattr(self,'burnFailed',[])
+        u.burnResultLabel.setText(self.burnShortText(res)+('; not analysed: %s' % '; '.join(failed) if failed else ''))
         u.burnResultLabel.setToolTip(self.burnLongText(res))
+        self.burnShowHeight(scan)
         args=dict(kw)
         args.pop('models') if tuple(args.get('models',()))==trendmod.MODELS else None
         for k,v in (('time','clock'),('threshold',0.05),('estimator','template'),('slit',(21,11)),
@@ -5306,6 +5366,233 @@ class MainWindow (QMainWindow):
         self.burnScript=head+'burn = exp.burn(%d%s%s)\nprint(burn.summary())' % (
             scan,''.join(', %s=%r' % (k,v) for k,v in args.items()),', '+extra if extra else '')
 
+    # ---- F98 (owner Q-BURN-2, Q-BURN-5; cores lss_core.dose and lss_core.reciprocity) ----
+
+    def burnDoseRow(self,page,o):
+        """The Trends tab's second row: the axis (time or dose), the dose's
+        unit, the beam's size, fast mode; the burn on show when several."""
+        from PyQt5.QtWidgets import QHBoxLayout, QComboBox, QLineEdit, QCheckBox, QLabel
+        u=self.uipdburn
+        row=QHBoxLayout()
+        scan=QComboBox(page)
+        scan.setObjectName('burnScanComboBox')
+        scan.setToolTip('Several burns are selected: whose trends are drawn here. All of them are analysed; the Dose '
+                        'or time tab compares them; Save stores the one on show')
+        scan.setVisible(False)
+        scan.currentIndexChanged.connect(lambda *_: self.burnShowScan())
+        axis=QComboBox(page)
+        axis.setObjectName('burnAxisComboBox')
+        for text,key in (('time','time'),('dose','dose')):
+            axis.addItem(text,key)
+        axis.setCurrentIndex(max(0,axis.findData(o['axis'])))
+        axis.setToolTip('What the trends are fitted against: time (default), or the dose received since the first '
+                        'frame began, at the middle of each frame (F98, lss_core.dose; the change limit is then a '
+                        'dose). The dose is worked out either way, for the Dose or time tab')
+        unit=QComboBox(page)
+        unit.setObjectName('burnDoseUnitComboBox')
+        for text,key in (('photons','photons'),('Monc counts','monitor')):
+            unit.addItem(text,key)
+        unit.setCurrentIndex(max(0,unit.findData(o['dose_unit'])))
+        unit.setToolTip('The dose in photons at the Monc chamber\'s exit (5 uA/V; the absorbers taken out), or in '
+                        'monitor counts. Photons need the chamber\'s gain: when it is not known, monitor counts are '
+                        'used and the result says so')
+        width=QLineEdit(o['beam_width'],page)
+        width.setObjectName('burnBeamWidthLineEdit')
+        width.setPlaceholderText('width')
+        width.setFixedWidth(width.fontMetrics().horizontalAdvance('0.000 mm')+16)
+        width.setToolTip('The beam\'s width at the sample (mm), typed: with it the dose is per mm² of footprint. '
+                         'Empty: the total dose (owner: most of the energy is in about 1 mm horizontally)')
+        height=QLineEdit(page)
+        height.setObjectName('burnBeamHeightLineEdit')
+        height.setFixedWidth(width.width())
+        height.setToolTip('The beam\'s height at the sample (mm). Empty: from the sample-height scans nearest the '
+                          'burn with its S1 gap (exp.beam_height), shown greyed; type to override')
+        fast=QCheckBox('Fast mode',page)
+        fast.setObjectName('burnFastModeCheckBox')
+        fast.setChecked(bool(o['fast']))
+        fast.setToolTip('The shutter stays open between frames (fast mode): the dose counts the wall time, not only '
+                        'the exposures. Off (default): the shutter closes between frames (owner, 2026-11-24). The '
+                        'file does not say which (OQ-4)')
+        axis.currentIndexChanged.connect(self.burnOptionsChanged)
+        unit.currentIndexChanged.connect(self.burnOptionsChanged)
+        width.returnPressed.connect(self.burnOptionsChanged)
+        height.returnPressed.connect(self.burnTrends)
+        fast.toggled.connect(self.burnOptionsChanged)
+        for w in (scan,QLabel('Axis',page),axis,QLabel('Dose in',page),unit,QLabel('Beam (mm)',page),width,
+                  QLabel('×',page),height,fast):
+            row.addWidget(w)
+        row.addStretch(1)
+        u.burnScanComboBox,u.burnAxisComboBox,u.burnDoseUnitComboBox=scan,axis,unit
+        u.burnBeamWidthLineEdit,u.burnBeamHeightLineEdit,u.burnFastModeCheckBox=width,height,fast
+        return row
+
+    def burnVerdictPage(self):
+        """The Dose or time tab: each burn's quantity against time and against
+        the dose, and F76's verdict (lss_core.reciprocity.dose_or_time)."""
+        from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QDoubleSpinBox, QLabel
+        u=self.uipdburn
+        o=self.burnOptions()
+        page=QWidget()
+        lay=QVBoxLayout(page)
+        row=QHBoxLayout()
+        q=QComboBox(page)
+        q.setObjectName('burnVerdictQuantityComboBox')
+        for key in ('intensity','fwhm','centre'):
+            q.addItem(burnmod.LABELS.get(key,key),key)
+        q.setCurrentIndex(max(0,q.findData(o['verdict_quantity'])))
+        q.setToolTip('The quantity whose drift rate is compared: intensity (reflectivity and GID), or the GID '
+                     'peak\'s width or position. A rate is the slope of ln y (of y for the position)')
+        rho=QDoubleSpinBox(page)
+        rho.setObjectName('burnStripSpinBox')
+        rho.setRange(0.0,100.0)
+        rho.setDecimals(0)
+        rho.setSuffix(' %')
+        rho.setValue(100*float(o['strip_relative']))
+        rho.setToolTip('Strip scatter ρ: how much the rate differs between two strips of one sample at one flux, '
+                       'beyond counting, as a fraction of the rate (lss_core.reciprocity, strip_relative). 0 '
+                       '(default): counting errors only. The study (docs/studies/reciprocity, C58): ignoring a '
+                       'real 20 % scatter drops the dose calls to 12 %; as ρ it restores 96 %')
+        q.currentIndexChanged.connect(self.burnVerdictOptionsChanged)
+        rho.valueChanged.connect(self.burnVerdictOptionsChanged)
+        for w in (QLabel('Compare',page),q,QLabel('Strip scatter',page),rho):
+            row.addWidget(w)
+        row.addStretch(1)
+        lay.addLayout(row)
+        canvas=MplWidget(page)
+        canvas.setObjectName('burnVerdictPlotWidget')
+        lay.addWidget(canvas)
+        lab=QLabel(page)
+        lab.setObjectName('burnVerdictLabel')
+        lab.setWordWrap(True)
+        lay.addWidget(lab)
+        u.burnVerdictQuantityComboBox,u.burnStripSpinBox,u.burnVerdictPlotWidget,u.burnVerdictLabel=q,rho,canvas,lab
+        return page
+
+    def burnVerdictOptionsChanged(self,*args):
+        o=self.burnOptions()
+        u=self.uipdburn
+        o.update(verdict_quantity=str(u.burnVerdictQuantityComboBox.currentData()),
+                 strip_relative=float(u.burnStripSpinBox.value())/100.0)
+        self.setPreference('burn',o)
+        self.burnVerdict()
+
+    def burnBeam(self,scan):
+        """(width, height) in mm for a dose per mm², or None without a width."""
+        u=self.uipdburn
+        w=str(u.burnBeamWidthLineEdit.text()).strip()
+        if not w:
+            return None
+        h=str(u.burnBeamHeightLineEdit.text()).strip()
+        height=float(h) if h else self.burnAutoHeight(scan).height_mm
+        if height is None or not float(w)>0 or not height>0:
+            raise ValueError('the beam size must be positive, and its height known (%s)' % self.burnAutoHeight(scan).note)
+        return (float(w),float(height))
+
+    def burnAutoHeight(self,scan):
+        """exp.beam_height(near=scan), kept while the SPEC file is unchanged."""
+        exp=self.burnExperiment()
+        cache=getattr(self,'_burnHeights',None)
+        if cache is None or cache[0] is not exp:
+            cache=self._burnHeights=(exp,{})
+        if scan not in cache[1]:
+            cache[1][scan]=exp.beam_height(near=scan)
+        return cache[1][scan]
+
+    def burnShowHeight(self,scan):
+        u=self.uipdburn
+        try:
+            bh=self.burnAutoHeight(scan)
+        except (ValueError,KeyError,OSError) as e:
+            u.burnBeamHeightLineEdit.setPlaceholderText('height')
+            self.log.info('beam height near scan %d: %s',scan,e)
+            return
+        if bh.height_mm is not None:
+            u.burnBeamHeightLineEdit.setPlaceholderText('%.3g' % bh.height_mm)
+        base=('The beam\'s height at the sample (mm). Empty: from the sample-height scans nearest the burn with its '
+              'S1 gap (exp.beam_height), shown greyed; type to override.')
+        u.burnBeamHeightLineEdit.setToolTip('%s\nNear S# %d: %s mm, %s%s. %s' % (base,scan,
+            '%.3g' % bh.height_mm if bh.height_mm is not None else 'not known',bh.source or 'no source',
+            ' (±%.0f %%)' % (100*bh.uncertainty_rel) if bh.uncertainty_rel else '',bh.note))
+
+    def burnVerdict(self):
+        """F76's question in the window: across the selected burns, does the
+        drift rate follow the flux (dose: beam damage) or not (time: the
+        sample changing by itself)? lss_core.reciprocity.dose_or_time."""
+        from lss_core import reciprocity
+        u=getattr(self,'uipdburn',None)
+        if u is None or not hasattr(u,'burnVerdictLabel'):
+            return
+        results=getattr(self,'burnResults',{}) or {}
+        o=self.burnOptions()
+        q=str(u.burnVerdictQuantityComboBox.currentData() or 'intensity')
+        fig=u.burnVerdictPlotWidget.canvas.fig
+        fig.clf()
+        self.burnVerdictResult=None
+        text,tip='',''
+        if len(results)<2:
+            text=('Select the frames of two or more burns of one kind of sample at different absorbers (fluxes) to '
+                  'tell beam damage (the change follows the dose) from a sample changing by itself (it follows the '
+                  'clock); F76.')
+        else:
+            res=list(results.values())
+            missing=[r.scan for r in res if q not in r.values]
+            units={r.dose_unit for r in res}
+            if missing:
+                text='Not compared: scan%s %s %s no %s.' % ('s' if len(missing)>1 else '',listText(missing),
+                                                            'have' if len(missing)>1 else 'has',burnmod.LABELS.get(q,q).lower())
+            elif len(units)>1:
+                text='Not compared: the burns\' doses are in different units (%s).' % ', '.join(sorted(map(str,units)))
+            else:
+                try:
+                    burns=[reciprocity.from_result(r,q) for r in res]
+                    v=reciprocity.dose_or_time(burns,strip_relative=float(u.burnStripSpinBox.value())/100.0)
+                except (ValueError,KeyError,ZeroDivisionError) as e:
+                    text='Not compared: %s.' % e
+                else:
+                    self.burnVerdictResult=v
+                    head={'dose':'Dose: the change follows the dose (beam damage)',
+                          'time':'Time: the change follows the clock (the sample changing by itself)',
+                          'cannot tell':'Cannot tell dose from time with these burns',
+                          'neither':'Neither the dose nor time alone',
+                          'no change':'No change to compare','opposite signs':'Opposite signs: no single law'}
+                    text=head.get(v.verdict,v.verdict)
+                    if v.beta==v.beta:
+                        text+='; β = %.2f [%.2f, %.2f], weight of the dose %.2f' % (v.beta,v.beta_ci[0],v.beta_ci[1],
+                                                                                v.weight_dose)
+                    tip='%s\nβ = 1 is the dose, β = 0 time (rate ∝ flux^β). Rates (per s):\n%s' % (v.summary(),
+                        '\n'.join('  %s: flux %.3g, rate %.3g ± %.2g' % r for r in v.rates))
+            self.burnVerdictPlot(fig,res,q)
+        u.burnVerdictLabel.setText(text)
+        u.burnVerdictLabel.setToolTip(tip)
+        u.burnVerdictPlotWidget.canvas.draw()
+
+    def burnVerdictPlot(self,fig,res,q):
+        """Each burn's quantity, relative to its first frame (the position: its
+        change), against time and against the dose."""
+        from lss_core import reciprocity
+        rel=reciprocity.RELATIVE.get(q,True)
+        at,ad=fig.add_subplot(121),fig.add_subplot(122)
+        for k,r in enumerate(res):
+            if q not in r.values:
+                continue
+            y=np.asarray(r.values[q][0],float)
+            y=y/y[0] if rel and y[0] else y-y[0]
+            lab='S# %d' % r.scan
+            at.plot(np.asarray(r.t,float),y,'o-',ms=3,color='C%d' % k,label=lab)
+            if r.dose is not None:
+                ad.plot(np.asarray(r.dose,float),y,'o-',ms=3,color='C%d' % k,label=lab)
+        ylab='%s / first frame' % burnmod.LABELS.get(q,q) if rel else '%s change' % burnmod.LABELS.get(q,q)
+        at.set_xlabel('time (s)')
+        at.set_ylabel(ylab)
+        ad.set_xlabel('dose (%s)' % (res[0].dose_unit or ''))
+        at.set_title('against time',fontsize='small')
+        ad.set_title('against the dose',fontsize='small')
+        at.legend(fontsize='small',frameon=False)
+        try:
+            fig.tight_layout()
+        except Exception:
+            pass
+
     def burnShortText(self,res):
         parts=[]
         for q,c in res.trends.items():
@@ -5316,8 +5603,9 @@ class MainWindow (QMainWindow):
         t,q=res.safe_time()
         if q:
             ch=res.trends[q].change
-            parts.append('%.0f %% change in ≥ %.3g s (%s, %.0f %% confidence%s)' % (
-                100*res.threshold,t,burnmod.LABELS[q].lower(),100*ch.confidence,', extrapolated' if ch.extrapolated else ''))
+            parts.append('%.0f %% change in ≥ %.3g %s (%s, %.0f %% confidence%s)' % (
+                100*res.threshold,t,res.x_unit(),burnmod.LABELS[q].lower(),100*ch.confidence,
+                ', extrapolated' if ch.extrapolated else ''))
         elif res.trends:
             parts.append('no %.0f %% change within the horizon' % (100*res.threshold))
         return '; '.join(parts)
