@@ -23,13 +23,13 @@ import time
 
 from PyQt5.QtCore import Qt, QRectF, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen, QTransform
-from PyQt5.QtWidgets import (QCheckBox, QGraphicsEllipseItem, QGraphicsItem, QGraphicsLineItem, QGraphicsPathItem, QGraphicsRectItem,
+from PyQt5.QtWidgets import (QCheckBox, QComboBox, QGraphicsEllipseItem, QGraphicsItem, QGraphicsLineItem, QGraphicsPathItem, QGraphicsRectItem,
                              QGraphicsScene, QGraphicsSimpleTextItem, QGraphicsView, QHBoxLayout, QLabel, QMenu,
                              QPushButton, QVBoxLayout, QWidget)
 
 AXIS_H = 22                                   # px at the top for the time axis
 LANES = (('events', 'Events', 46), ('sx', 'sx (mm)', 46), ('height', 'Sample height', 64), ('scans', 'Scans', 34),
-         ('reduced', 'Reduced', 48), ('notes', 'Notes', 34))
+         ('reduced', 'Reduced', 48), ('env', 'Environment', 56), ('notes', 'Notes', 34))
 THUMB_W, THUMB_H = 64, 34                     # px: a sample-height scan's thumbnail
 KIND_COLOURS = {'reflectivity': '#1f77b4', 'gid': '#2ca02c', 'height': '#9467bd', 'burn': '#d62728',
                 'xfntr': '#ff7f0e', 'gisaxs': '#17becf', 'energy': '#bcbd22', 'other': '#8c8c8c'}
@@ -175,6 +175,7 @@ class TimelineView(QGraphicsView):
         self.answer_of = lambda event: ''
         self.dose = None                 # F107: a lss_core.timeline.DoseTrack, drawn over the sx line
         self.reduced = []                # phase 1d: lss_core.timeline.Reduced items, the reduced lane
+        self.env = None                  # phase 2: a lss_core.timeline.ColumnTrack, the environment lane
         self._sx_y = None
 
     # ---- building
@@ -184,7 +185,7 @@ class TimelineView(QGraphicsView):
         sc = self.scene()
         sc.clear()
         self.items = {'scans': {}, 'heights': {}, 'events': [], 'steps': [], 'gaps': [], 'notes': [], 'set_zero': [],
-                      'dose': [], 'reduced': []}
+                      'dose': [], 'reduced': [], 'env': []}
         self.timeline = tl
         self.notes = list(notes)
         self.answer_of = timelinemod.answers(self.notes)
@@ -205,6 +206,7 @@ class TimelineView(QGraphicsView):
         self._gaps(tl)
         self._scans(tl)
         self._reduced()
+        self._env()
         self._heights(tl)
         self._steps(tl)
         if self.dose is not None:
@@ -372,6 +374,49 @@ class TimelineView(QGraphicsView):
             thumb.setCursor(Qt.PointingHandCursor)
             self.scene().addItem(thumb)
             self.items['reduced'].append(thumb)
+
+    def set_env(self, track):
+        """The environment lane's column (lss_core.timeline.column_track), or None."""
+        self.env = track
+        if self.timeline is not None:
+            keep = self.transform(), self.horizontalScrollBar().value()
+            self.set_timeline(self.timeline, self.notes)
+            self.setTransform(keep[0])
+            self.horizontalScrollBar().setValue(keep[1])
+
+    def _env(self):
+        """The chosen column as a strip chart, one line per scan (no line drawn
+        across the time between scans), scaled to the lane."""
+        import numpy as np
+        y, h = lane_top('env')
+        tr = self.env
+        if tr is None:
+            self._label('choose a column above (F75: tensiometer, barrier, O₂ when the macros write them)', 4,
+                        y + 18, colour='#8c8c8c')
+            return
+        good = np.isfinite(tr.y) & np.isfinite(tr.t)
+        if not good.any():
+            self._label('%s: no values with a time' % tr.name, 4, y + 18, colour='#8c8c8c')
+            return
+        lo, hi = float(np.min(tr.y[good])), float(np.max(tr.y[good]))
+        scale = (h - 14) / (hi - lo) if hi > lo else 0.0
+        unit = ' %s' % tr.unit if tr.unit else ''
+        tip = ('%s%s, %.4g to %.4g, at the middle of each point\'s count, from the SPEC columns (%d points); '
+               'one line per scan' % (tr.name, unit, lo, hi, int(good.sum()))) + (
+               '\n' + '; '.join(tr.notes) if tr.notes else '')
+        for n in np.unique(tr.scans[good]):
+            sel = good & (tr.scans == n)
+            ts, vs = tr.t[sel], tr.y[sel]
+            path = QPainterPath()
+            for k, (t, v) in enumerate(zip(ts, vs)):
+                py = y + h - 7 - (v - lo) * scale if scale else y + h / 2.0
+                (path.moveTo if k == 0 else path.lineTo)(self._x(float(t)), py)
+            item = QGraphicsPathItem(path)
+            item.setPen(self._pen('#00838f', 1.4))
+            item.setToolTip('S# %d · %s' % (int(n), tip))
+            self.scene().addItem(item)
+            self.items['env'].append(item)
+        self._label('%s%s  %.4g – %.4g' % (tr.name, unit, lo, hi), 4, y + 1, colour='#00838f', tip=tip, size=7)
 
     def set_dose(self, track):
         """Colour the sx line by the dose each spot has received (F107), or
@@ -584,8 +629,16 @@ class TimelineTab(QWidget):
             'burn is the sample\'s own (between the same two "new sample?" guesses) or else the nearest in time. '
             'Assumptions: one beam for the file (then its size cancels), positions within half the beam\'s width '
             'are one spot, every scan counts in full. Analysing the burns takes a few seconds')
+        self.envComboBox = QComboBox(self)
+        self.envComboBox.setObjectName('timelineEnvComboBox')
+        self.envComboBox.setToolTip(
+            'The column drawn on the Environment lane, over every scan that has it, at the middle of each point\'s '
+            'count. The tensiometer, barrier and O₂ readings will be columns once the macros write them (F75; '
+            'units: mN/m, cm², %); names that look like them are listed first. Any other column works too, e.g. '
+            'Monc to see the beam over the session')
         top.addWidget(self.fitButton)
         top.addWidget(self.doseCheckBox)
+        top.addWidget(self.envComboBox)
         top.addWidget(self.infoLabel, 1)
         v.addLayout(top)
         body = QHBoxLayout()

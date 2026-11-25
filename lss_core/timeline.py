@@ -602,3 +602,78 @@ def reduced_items(tl, rows, data=None):
             out.append(Reduced('', kind, '', 0, list(scans), min(t[0] for t in ts), max(t[1] for t in ts),
                                series=sid, placeholder='not reduced'))
     return sorted(out, key=lambda x: (x.t0, x.rid))
+
+
+# ---- phase 2 (research §1, F75): an environment lane, any column as a strip chart ----
+#
+# The macros will write the tensiometer, the barrier and the oxygen reading as
+# columns of every point (owner, F75); their names are not known yet (Q-TL-8
+# gave the units only: surface pressure mN/m, barrier area cm², oxygen %). So
+# the lane draws any column the user chooses, the names that look like such
+# readings offered first (the timeline mock's ENV_WORDS).
+
+ENV_WORDS = re.compile(r'tens|barr|oxy|(^|_)o2|temp|press|humid|wilh|trough|^pi$|surf_?press', re.I)
+ENV_UNITS = ((re.compile(r'press|tens|wilh|^pi$', re.I), 'mN/m'), (re.compile(r'barr|trough', re.I), 'cm²'),
+             (re.compile(r'oxy|(^|_)o2', re.I), '%'))      # the owner's units, Q-TL-8 (2026-11-25); others unknown
+
+
+def env_unit(name):
+    """The unit of an environment column by its name (Q-TL-8), or ''."""
+    for rx, unit in ENV_UNITS:
+        if rx.search(str(name)):
+            return unit
+    return ''
+
+
+@dataclass
+class ColumnTrack:
+    """A column over the file: its values ``y`` at the middle of each point's
+    count (``t``, Unix s), the scan of each point (``scans``)."""
+    name: str
+    unit: str = ''
+    t: np.ndarray = None
+    y: np.ndarray = None
+    scans: np.ndarray = None
+    notes: list = field(default_factory=list)
+
+
+def environment_columns(exp):
+    """[(name, number of scans with it, looks like an environment reading)]
+    of every data column of the file: the environment-like first, then by
+    how many scans have it, then by name."""
+    count = {}
+    for n in exp.scans:
+        for c in (exp.scans[n].columns or {}):
+            count[c] = count.get(c, 0) + 1
+    return sorted(((c, k, bool(ENV_WORDS.search(c))) for c, k in count.items()),
+                  key=lambda x: (not x[2], -x[1], x[0].lower()))
+
+
+def column_track(exp, name):
+    """The values of column ``name`` over every scan that has it, at the
+    middle of each point's count (its start plus half its Seconds)."""
+    ts, ys, ss, notes = [], [], [], []
+    for n in sorted(exp.scans):
+        cols = exp.scans[n].columns or {}
+        if name not in cols or cols[name] is None:
+            continue
+        try:
+            pt = exp.point_times(n)
+        except (KeyError, ValueError, TypeError) as e:
+            notes.append('S# %d: no times (%s)' % (n, e))
+            continue
+        if pt.start is None or not len(pt.start):
+            notes.append('S# %d: no times' % n)
+            continue
+        y = np.asarray(cols[name], float)
+        t = np.asarray(pt.start, float)
+        sec = cols.get('Seconds')
+        if sec is not None and len(sec) == len(t):
+            t = t + np.asarray(sec, float) / 2.0
+        m = min(len(t), len(y))
+        ts.append(t[:m])
+        ys.append(y[:m])
+        ss.append(np.full(m, n))
+    if not ts:
+        return ColumnTrack(name, env_unit(name), np.zeros(0), np.zeros(0), np.zeros(0, int), notes or ['no scan has it'])
+    return ColumnTrack(name, env_unit(name), np.concatenate(ts), np.concatenate(ys), np.concatenate(ss), notes)

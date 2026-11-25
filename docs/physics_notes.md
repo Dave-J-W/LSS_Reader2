@@ -6611,3 +6611,24 @@ Display only; no output number changes. Built:
 
 Verified by: tested (`tests/test_timeline_reduced.py`, 3;
 `tests/test_gui_timeline_reduced.py`, 2).
+
+### 2026-11-25 — The timeline's Environment lane (F83 phase 2)
+
+Display only; no output number changes. The macros will write the
+tensiometer, barrier and O₂ readings as columns of every point (owner,
+F75). Their names are not known yet; Q-TL-8 gave the units only (mN/m,
+cm², %). So the lane draws **any column** the user chooses:
+- `timeline.environment_columns` lists every data column, putting names
+  that look like such readings first (the timeline mock's pattern: tens,
+  barr, oxy, o2, temp, press, humid, wilh, trough, pi). The first of those
+  is chosen by itself.
+- `column_track` gives a column's values over every scan that has it, at
+  the middle of each point's count (its start plus half its Seconds), with
+  one line per scan.
+- **Measured:** a synthetic file (surface pressure rising 20 → 30.5 mN/m,
+  barrier 100 then 80 cm², O₂ 1 %) gives its values at the expected times
+  (start + 1 s, the second scan 600 s later). NX has no environment column,
+  and its Monc (276 points) stands in.
+
+Verified by: tested (`tests/test_timeline_env.py`, 3;
+`tests/test_gui_timeline_env.py`, 2).

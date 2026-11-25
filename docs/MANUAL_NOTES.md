@@ -138,6 +138,11 @@ Each line: feature — where — default — script — notes entry (date).
   Notes F55; export writes `<name>_<scan>_<x>_<y>[_<monitor>].txt`.
 
 ### Reflectivity (Ref Patch)
+- Timeline, Environment lane (F83 phase 2, 2026-11-25): "Environment: …" in
+  the toolbar draws any column of the SPEC file over the session, one line
+  per scan. The tensiometer, barrier and O₂ readings (once the macros write
+  them, F75) are listed first and chosen by themselves, in mN/m, cm² and %;
+  any other column works too (Monc shows the beam over the session).
 - Timeline, Reduced lane (F83 phase 1d, 2026-11-25): every result saved in
   the workbook, as a small picture at its scans' times (a reflectivity as
   log R against Qz); amber and dashed when its scans have grown since; a

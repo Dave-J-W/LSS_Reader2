@@ -1411,6 +1411,7 @@ flowchart TD
 | `timelineView`  |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `timelineFitPushButton` Fit all |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `timelineDoseCheckBox` Dose |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
+| `timelineEnvComboBox` Environment: none \| <column> |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `timelineInfoLabel` 20260923: 15 scans, 09:32 to 11:23, 1 set sh 0 (new sample?) |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 
 ### Wait

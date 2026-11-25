@@ -9032,6 +9032,7 @@ class MainWindow (QMainWindow):
         tab.view.noteWanted.connect(self.timelineAddNote)
         tab.doseCheckBox.setChecked(bool(self.prefs.get('timeline_dose',False)))
         tab.doseCheckBox.toggled.connect(self.timelineDoseToggled)
+        tab.envComboBox.currentIndexChanged.connect(self.timelineEnvChanged)
         self.ui.PlotWidget.currentChanged.connect(self.timelineTabShown)
         tab.show_message('Open a SPEC file: its timeline is drawn here.')
 
@@ -9056,7 +9057,8 @@ class MainWindow (QMainWindow):
         from lss_core.experiment import Experiment
         from lss_core import timeline as timelinemod
         try:
-            tl=timelinemod.build(Experiment(spec))
+            exp=Experiment(spec)
+            tl=timelinemod.build(exp)
         except Exception as e:
             self.log.info('timeline of %s not drawn: %s',spec,e,exc_info=True)
             tab.show_message('The timeline could not be read: %s (detail in the log).' % e)
@@ -9064,6 +9066,7 @@ class MainWindow (QMainWindow):
             return
         tab.view.dose=None
         tab.view.reduced=self.timelineReduced(tl)
+        tab.view.env=self.timelineEnvChoices(exp)
         tab.show_timeline(tl,os.path.basename(spec),self.timelineNotes())
         self.timelineKey=key
         if tab.doseCheckBox.isChecked():
@@ -9159,6 +9162,38 @@ class MainWindow (QMainWindow):
         before=[s.scan for s in getattr(self.timelineTab.view.timeline,'spans',[]) if s.t0<=t]
         item=timelinemod.note_item(t,text.split('\n',1)[0][:60],text,scans=before[-1:])
         self.timelineSaveNote(item)
+
+    def timelineEnvChoices(self,exp):
+        """Fill the Environment choice with the file's columns (environment-like
+        names first) and return the chosen one's track: the remembered column
+        if the file has it, else the first environment-like one, else none."""
+        from lss_core import timeline as timelinemod
+        box=self.timelineTab.envComboBox
+        cols=timelinemod.environment_columns(exp)
+        want=str(self.prefs.get('timeline_env') or '')
+        names=[c for c,_k,_e in cols]
+        pick=want if want in names else next((c for c,_k,env in cols if env),'')
+        box.blockSignals(True)
+        box.clear()
+        box.addItem('Environment: none','')
+        for c,k,env in cols:
+            box.addItem('Environment: %s%s' % (c,' (environment?)' if env else ''),c)
+            box.setItemData(box.count()-1,'%s: in %d scan%s%s' % (c,k,'s' if k!=1 else '',
+                            '; its name looks like an environment reading' if env else ''),Qt.ToolTipRole)
+        box.setCurrentIndex(max(0,box.findData(pick)))
+        box.blockSignals(False)
+        self.timelineExperiment=exp
+        return timelinemod.column_track(exp,pick) if pick else None
+
+    def timelineEnvChanged(self,*args):
+        from lss_core import timeline as timelinemod
+        tab=getattr(self,'timelineTab',None)
+        exp=getattr(self,'timelineExperiment',None)
+        if tab is None or exp is None:
+            return
+        name=str(tab.envComboBox.currentData() or '')
+        self.setPreference('timeline_env',name)
+        tab.view.set_env(timelinemod.column_track(exp,name) if name else None)
 
     def timelineReduced(self,tl):
         """The reduced lane's items (phase 1d): the workbook's saved results at

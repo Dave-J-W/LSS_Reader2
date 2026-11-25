@@ -22,7 +22,7 @@
   needs: "a SPEC file"
   shown: always
   tooltip: true
-  notes: "Every item has a tooltip (rule 9). The sh scans are thumbnails (points and fit, a fixed size in pixels) since 2026-11-24. Since 2026-11-24 also: a Notes lane, and a right-click menu to answer 'new sample?' or add a note (workbook Saved rows of kind 'note'). Since 2026-11-25: the Dose colouring of the sx line (F107) and the Reduced lane (phase 1d): each saved result of the workbook as a thumbnail at its scans' times (a reflectivity as log R against Qz), amber and dashed when out of date, a dashed 'not reduced' box for a series with no result; a click opens a reflectivity on the Compare tab, other kinds by selecting their scans. Not yet: the environment lanes (F75's columns do not exist yet)."
+  notes: "Every item has a tooltip (rule 9). The sh scans are thumbnails (points and fit, a fixed size in pixels) since 2026-11-24. Since 2026-11-24 also: a Notes lane, and a right-click menu to answer 'new sample?' or add a note (workbook Saved rows of kind 'note'). Since 2026-11-25: the Dose colouring of the sx line (F107) and the Reduced lane (phase 1d): each saved result of the workbook as a thumbnail at its scans' times (a reflectivity as log R against Qz), amber and dashed when out of date, a dashed 'not reduced' box for a series with no result; a click opens a reflectivity on the Compare tab, other kinds by selecting their scans. Since 2026-11-25 too: the Environment lane (phase 2), any column as a strip chart (timelineEnvComboBox)."
 - id: timelineFitPushButton
   kind: button
   label: "Fit all"
@@ -45,6 +45,17 @@
   shown: always
   tooltip: true
   notes: "Added in code (F107, owner Q-TL-7, 2026-11-25; core lss_core.timeline.dose_track). Off by default (a preference). The burns are analysed on the dose axis (a few seconds), then kept while the file is unchanged. The burn is the sample's own (between the same two 'new sample?' guesses) or else the nearest in time; each segment's tooltip says which and the fraction. Assumptions, in the tooltip and asked through questor: one beam for the file (1 mm wide unless the burn dialog's width is typed; its height from the sample-height scans), positions within half the beam's width are one spot, every scan counts in full."
+- id: timelineEnvComboBox
+  kind: combo
+  label: "Environment: none | <column>"
+  where: "Timeline > top, right of Dose"
+  handler: timelineEnvChanged
+  does: "The column drawn on the Environment lane over every scan that has it, at the middle of each point's count (one line per scan)"
+  workflows: [session]
+  needs: "a SPEC file"
+  shown: always
+  tooltip: true
+  notes: "Added in code (F83 phase 2, F75; 2026-11-25). Every data column of the file is offered; names that look like the tensiometer, barrier or oxygen readings (timeline.ENV_WORDS) come first and are chosen by themselves, with the owner's units (Q-TL-8: mN/m, cm², %). The choice is a preference, used again when the next file has the column. NX has no environment column: Monc shows the beam over the session."
 - id: timelineInfoLabel
   kind: label
   label: "20260923: 15 scans, 09:32 to 11:23, 1 set sh 0 (new sample?)"
