@@ -144,6 +144,10 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
 - The beam's height for the dose from the rising edge of the height scans
   (`exp.beam_height`, 2026-11-24; the local data agent's study of 1995
   private scans, #60): NX school 0.033 mm.
+- One reader writes a SPEC file's workbook, a second opens it read-only
+  (`lss_core.readerlock`, `Workbook(read_only=True)`, 2026-11-25, D1's core):
+  an atomic lock beside the workbook, refreshed by its holder, taken over
+  when stale.
 
 ## Reflectivity patching and uncertainty (2026-11-22)
 
