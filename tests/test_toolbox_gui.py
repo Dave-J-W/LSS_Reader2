@@ -4,6 +4,7 @@ depends on MainWindow (the reader's hook is one call, tested in
 test_toolbox_reader.py). Runs go to a temporary folder.
 """
 import os
+import shlex
 import shutil
 import time
 
@@ -215,7 +216,8 @@ def test_the_open_spec_file_fills_the_spec_option(tools, recorder):
     p = tools.show_item('monitor_ratio')
     p.freeEdit.setText('')
     p.specButton.click()
-    assert p.freeEdit.text().endswith(catalog.NX)
+    # the free field quotes a path with a space in it (shlex); compare the path, not the text
+    assert shlex.split(p.freeEdit.text())[0].endswith(catalog.NX)
     assert recorder.exceptions == []
 
 
