@@ -40,7 +40,7 @@ All of these are already built. The work is finishing, fixing and checking them.
 | 5 | Per-SPEC workbook with automatic saving, and the lock | built | — |
 | 6 | Live updates while data come in | built | — |
 | 7 | Never closes on an error (Stage 0 safety net) | built | ~~crash baseline shrinks to release level~~ **at zero** (2026-11-26): `known_crashes.json` holds no crash in its 14 states, `known_crash_sites.json` is empty; the sweep passes (194) |
-| 8 | Windows build that runs on a clean PC | **builds pass** (tools man, #118, 2026-11-26: Windows and macOS self-tests on GitHub, run 45753156275 on main at 5f00a1c; downloads kept to 2027-02-24, the sample data with them) | the clean-PC test by a person (`docs/PACKAGING.md`, "Clean-PC test", about 10 min); the tag `v2.0.0` is the owner's |
+| 8 | Windows build that runs on a clean PC | **the build to ship passes** (tools man, 2026-11-26: run [45879045324](https://github.com/Dave-J-W/LSS_Reader2/actions/runs/45879045324) on main at ce38cf4, after F110 and its revision, the open-time lock, the crash and export fixes, the export rule and F112; Windows and macOS self-tests passed; downloads kept to 2027-02-24, the sample data with them). After it: #132 (F113, the index numbers; display only, no packaging change) | the clean-PC test on this run's Windows download (`docs/PACKAGING.md`, "Clean-PC test"); XModFit reading the export; the tag `v2.0.0`, whose own build runs the same self-test on what is then main |
 | 9 | Quick-start guide (two pages: open, reduce, export) | **written** (tools man, #118: `docs/manual/quick_start.md`; Help → Documentation opens it) | — |
 
 ## Release blockers (only these block 2.0)
@@ -111,8 +111,9 @@ Everything else is **not** a blocker.
    Sandbox is not enabled. Either enable Sandbox (admin, one reboot) or use another PC, then follow
    `docs/PACKAGING.md` "Clean-PC test". The XModFit read of the export (step 5) is the owner's. Help → About shows 2.0 since 2026-11-26 (`lss_core.__version__`; it said 1.1).
 
-**Before the tag** (owner): the clean-PC test (Sandbox or another PC) and XModFit reading the export; then
-`v2.0.0`, which runs the same build workflow. The Windows test run is done (blocker 3 closed, 2026-11-26).
+**Before the tag** (owner): the clean-PC test (Sandbox or another PC) on run 45879045324's Windows download, and
+XModFit reading the export; then `v2.0.0`, which runs the same build workflow. **Proposed (main man):** no merges
+to main between the clean-PC test and the tag except blocker fixes, so that what was tested is what is tagged. The Windows test run is done (blocker 3 closed, 2026-11-26).
 
 ## After 2.0 (parked, in rough order)
 
