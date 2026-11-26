@@ -10367,7 +10367,7 @@ class MainWindow (QMainWindow):
 
     def saveMcaToWorkbook(self):
         rows=getattr(self,'mcaIntData',None)
-        if not rows:
+        if rows is None or not len(rows):     # a merge leaves an array: no truth value
             self.saveNotice('Sum or fit the fluorescence first (Sum All or Fit lines).')
             return
         scans=sorted(int(n) for n in self.selectedScanNums)
