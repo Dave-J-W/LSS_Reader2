@@ -8256,6 +8256,10 @@ class MainWindow (QMainWindow):
                 data[:,1]=data[:,1]/self.fresnel(data[:,0],self.refQc)
                 data[:,2]=data[:,2]/self.fresnel(data[:,0],self.refQc)
                 self.RrfData=data.copy()   # the Qz^2 option below must only change what is plotted
+            else:
+                # no R/R_F of this curve: an earlier one must not be exported or saved beside it (release
+                # push, 2026-11-26: after unticking R/RF and changing the curve, Export wrote the old R/R_F)
+                self.RrfData=None
             if self.ui.refQzSqrCheckBox.checkState()!=0:
                 self.ui.refRefDataPlotwidget.canvas.ax.set_xlabel('Qz^2')
                 data[:,0]=data[:,0]**2
