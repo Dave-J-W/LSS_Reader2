@@ -2893,7 +2893,12 @@ class MainWindow (QMainWindow):
         inten=self.fitpeakpara[0][1]*self.fitpeakpara[0][2]
         error=np.sqrt(self.fitpeakpara[0][1]**2*self.fiterror[2]**2+self.fitpeakpara[0][2]**2*self.fiterror[1]**2)
        # print frame, qc, energy, inten, error
-        self.mcaIntData.append([frame, qz, energy, inten, error])
+        rows=[list(r) for r in self.mcaIntData]     # a Merge leaves an array (release push, 2026-11-26)
+        row=[frame, qz, energy, inten, error]
+        if rows and len(rows[0])>=7:                # Fit lines' rows (F110): no reader's fit for this point
+            row+=[float('nan'),float('nan')]
+        rows.append(row)
+        self.mcaIntData=rows
         if self.ui.mcaXAxisComboBox.currentIndex()==0:
             string=str(int(frame))+'\t'+'%.4e'%inten+'\t'+'%.4e'%error 
         elif self.ui.mcaXAxisComboBox.currentIndex()==1:
@@ -3020,7 +3025,8 @@ class MainWindow (QMainWindow):
                 with open(self.saveFileName+'_flu_fit.txt','w') as f2:
                     f2.write('#'+str(self.command)+' -- the reader\'s fit (the _flu.txt beside it holds XeRay\'s)\n')
                     for r in self.mcaIntData:
-                        f2.write(str(r[col])+'\t'+str(r[5])+'\t'+str(r[6])+'\n')
+                        if np.isfinite(r[5]):                 # an accepted single fit has no reader's fit
+                            f2.write(str(r[col])+'\t'+str(r[5])+'\t'+str(r[6])+'\n')
             self.scriptLine(self.fluorescenceScript(self.saveFileName))
         except:
             print ('no mca integral data to save.')
