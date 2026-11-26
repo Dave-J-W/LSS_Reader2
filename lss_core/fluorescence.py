@@ -162,7 +162,7 @@ def merge_rows(rows, x='qz', window=None, jitter=QZ_JITTER):
     return out
 
 
-# ---- line fits: XeRay (the default) and the reader's Poisson fit (owner, 2026-11-26; F110) ----
+# ---- line fits: the reader's Poisson fit (the default) and XeRay beside it (owner, 2026-11-26; F110) ----
 
 @dataclass
 class XeRayFit:
@@ -203,7 +203,10 @@ def xeray_fit(energy, y, sigma=None, x_range=None, centre=None):
     ``sigma``, √(Σ y). It leaves out the background's uncertainty, so it is
     too small where the background is large: the shootout's median pull SD
     1.92, up to 11.7 (``docs/studies/xrf_shootout/summary.md`` section 3).
-    That is why the reader's Poisson fit is reported beside it (F110)."""
+    On the owner's real blanks it was accurate in 6 of 192 conditions (C66)
+    and on real line shapes in 3 of 160 (C69), so since the owner's revision
+    of F110 (2026-11-26) the reader's fit is the default and XeRay is
+    reported beside it."""
     from scipy.optimize import least_squares
     e, y = np.asarray(energy, float), np.asarray(y, float)
     lo, hi = (float(np.min(e)), float(np.max(e))) if x_range is None else (min(x_range), max(x_range))
@@ -238,23 +241,29 @@ def xeray_fit(energy, y, sigma=None, x_range=None, centre=None):
                     (lo, hi), True, '', step)
 
 
-def fit_line_series(data, options, poisson=True, detector_width=True, noise_kev=0.12, strip_escapes=True):
+def fit_line_series(data, options, poisson=True, detector_width=False, noise_kev=0.12, strip_escapes=True):
     """Both line fits of a series of normalised spectra (``data``: arrays of
-    energy, y, σ on one energy axis), F110 (owner, 2026-11-26): "xeray
-    should be default for mca fitting, but it tends to undercount error so
-    include our best method (poisson fixed width etc) as well, and report
-    both fits and errors".
+    energy, y, σ on one energy axis), F110 (owner, 2026-11-26): both fits
+    and both errors are reported. Revised the same day by the owner: the
+    reader's fit is the default (the value plotted, merged and exported),
+    with its width from the sum, and XeRay is reported beside it.
 
+    - **The reader's fit** (``peaks.fit_series``): Poisson likelihood
+      (``poisson``), the Si escape spectrum stripped first
+      (``strip_escapes``), the line's position and width fitted on the sum
+      of the series and held for every spectrum, which then gets its height
+      and background. On the owner's real data this is the most accurate:
+      49 of 192 conditions on real blanks (C66, pull SD 1.08) and 34 of 160
+      with real line shapes on the 7-element detector (C69, bias −1.3 %).
+      ``detector_width`` fixes the width at the detector model's instead
+      (Fano, ``noise_kev``), at the element's line (``options.centres[0]``)
+      or, when no energy is given, at the median centre of XeRay's fits
+      (``width_at`` says which energy was used): best on the synthetic
+      shootout (C65), but about 6 % low with real line shapes (C69) and far
+      off where the real width differs from the model's (0.68 of the area
+      on the synthetic XFNTR set, whose line is 1.65 × the model's width).
     - **XeRay** (``xeray_fit``) on each spectrum as it is, in the window
       ``options.x_range`` around the element's line ``options.centres[0]``.
-    - **The reader's fit** (``peaks.fit_series``): Poisson likelihood
-      (``poisson``), the line's width fixed at the detector's
-      (``detector_width``, Fano, ``noise_kev``) and the Si escape spectrum
-      stripped first (``strip_escapes``): the shootout's most accurate
-      method with honest errors (pull SD 1.03). The width is taken at the
-      element's line (``options.centres[0]``) or, when no energy is given,
-      at the median centre of XeRay's fits (an assumption: XeRay finds the
-      tallest line in the window; ``width_at`` says which energy was used).
 
     Returns dict(xeray=[XeRayFit], ref, each, j (the element's line in each
     reader fit), step, options (as used by the reader's fit), width_at

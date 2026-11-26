@@ -1,6 +1,6 @@
 """The older Fit Peak dialog's Accept appends one row to the MCA integral
-list. Since F110 (2026-11-26) Fit lines leaves 7-column rows (XeRay's I, dI
-and the reader's fit's) and a Merge leaves an array; an accepted row must
+list. Since F110 (2026-11-26) Fit lines leaves 7-column rows (the reader's
+fit's I, dI, then XeRay's) and a Merge leaves an array; an accepted row must
 join either without breaking the plot, the export or the workbook save
 (release push, 2026-11-26: crashes in the main workflows)."""
 import numpy as np
@@ -49,17 +49,17 @@ def test_accept_after_fit_lines(xf, qapp, recorder, tmp_path):
     _accept_one(w, qapp)
     rows = w.mcaIntData
     assert len(rows) == n + 1 and len({len(r) for r in rows}) == 1        # one width for every row
-    assert np.isnan(rows[-1][5]) and np.isnan(rows[-1][6])                # no reader's fit for that point
+    assert np.isnan(rows[-1][5]) and np.isnan(rows[-1][6])                # no XeRay fit for that point
     w.updateMcaIntPlot()
     assert not any('no mca integral data' in m for m in recorder.messages)
     w.saveButtons['mca'].click()
     qapp.processEvents()
     recorder.save_name = str(tmp_path / 'flu')
     w.mcaSaveIntData()
-    xeray = np.loadtxt(str(tmp_path / 'flu_flu.txt'))
-    fit = np.loadtxt(str(tmp_path / 'flu_flu_fit.txt'))
-    assert len(xeray) == n + 1 and len(fit) == n                          # the accepted point has no reader's fit
-    assert np.all(np.isfinite(fit))
+    flu = np.loadtxt(str(tmp_path / 'flu_flu.txt'))
+    xeray = np.loadtxt(str(tmp_path / 'flu_flu_xeray.txt'))
+    assert len(flu) == n + 1 and len(xeray) == n                          # the accepted point has no XeRay fit
+    assert np.all(np.isfinite(xeray))
     assert recorder.exceptions == []
 
 

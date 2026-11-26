@@ -15,8 +15,8 @@ pytestmark = pytest.mark.gui
 
 
 @pytest.mark.parametrize('name, endings, stem', [
-    ('/d/run_flu.txt', ('_flu_fit.txt', '_flu.txt'), '/d/run'),
-    ('/d/run_flu_fit.txt', ('_flu_fit.txt', '_flu.txt'), '/d/run'),
+    ('/d/run_flu.txt', ('_flu_xeray.txt', '_flu.txt'), '/d/run'),
+    ('/d/run_flu_xeray.txt', ('_flu_xeray.txt', '_flu.txt'), '/d/run'),
     ('/d/run.txt', ('_flu.txt',), '/d/run'),
     ('/d/run', ('_flu.txt',), '/d/run'),
     ('/d/run_ref.txt', ('_ref.txt', '_rrf.txt'), '/d/run'),
@@ -40,7 +40,7 @@ def test_fluorescence_export_with_a_typed_ending(window, qapp, recorder, tmp_pat
     recorder.save_name = str(tmp_path / 'run_flu.txt')                 # typed with the ending
     w.mcaSaveIntData()
     names = sorted(n for n in os.listdir(str(tmp_path)) if n.startswith('run'))
-    assert names == ['run_flu.txt', 'run_flu_fit.txt']
+    assert names == ['run_flu.txt', 'run_flu_xeray.txt']
     assert recorder.exceptions == []
 
 

@@ -123,7 +123,7 @@ class ResultThumb(HeightThumb):
         if d is not None and getattr(d, 'ndim', 0) == 2 and d.shape[0] > 1 and d.shape[1] > 1:
             x, y = d[:, 0], d[:, 1]
             if item.kind == 'fluorescence' and d.shape[1] >= 4:
-                x, y = d[:, 1], d[:, 3]    # Qz and I (columns frame, Qz, E, I, dI[, I_fit, dI_fit])
+                x, y = d[:, 1], d[:, 3]    # Qz and I (columns frame, Qz, E, I, dI[, I_xeray, dI_xeray])
             if item.kind == 'reflectivity':
                 with np.errstate(divide='ignore', invalid='ignore'):
                     y = np.where(y > 0, np.log10(np.where(y > 0, y, 1.0)), np.nan)

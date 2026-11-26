@@ -61,5 +61,5 @@ def test_the_fluorescence_export_says_what_it_wrote(window, qapp, recorder, tmp_
     recorder.messages.clear()
     w.mcaSaveIntData()
     said = [m for m in recorder.messages if m.startswith('Exported')]
-    assert len(said) == 1 and 'run_flu.txt, run_flu_fit.txt' in said[0]
+    assert len(said) == 1 and 'run_flu.txt, run_flu_xeray.txt' in said[0]
     assert recorder.exceptions == []
