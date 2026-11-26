@@ -1420,7 +1420,26 @@ def level_factor_ml(nc, wc, n, w, cells):
     return ratio_ml(pa[ok] * Wa[ok], Wa[ok], pb[ok] * Wb[ok], Wb[ok])
 
 
-def join_levels(levels, transverse='intersection', log=None, labels=None, apply=True, estimator='ml'):
+def _seam_edges(nc, wc, n, w, common, nbins=3):
+    """The 2θ-averaged intensity of the joined map in its highest ``nbins`` β bins with data, and of the new level
+    in its lowest ``nbins``, over the 2θ bins both have (``common``): the two sides of an unscaled seam."""
+    def side(N, W, top):
+        rows = np.where((W[common] > 0).any(axis=0))[0]
+        if not len(rows):
+            return float('nan'), float('nan'), 0
+        sel = rows[-nbins:] if top else rows[:nbins]
+        Ns, Ws = N[common][:, sel], W[common][:, sel]
+        ok = Ws > 0
+        with np.errstate(invalid='ignore', divide='ignore'):
+            v = float(np.mean((Ns[ok] / Ws[ok])))
+            e = float(np.sqrt(np.sum(Ns[ok] / Ws[ok] ** 2)) / max(ok.sum(), 1))
+        b = sel[-1] if top else sel[0]
+        return v, e, int(b)
+    return side(nc, wc, True), side(n, w, False)
+
+
+def join_levels(levels, transverse='intersection', log=None, labels=None, apply=True, estimator='ml',
+                unmatched='refuse'):
     """Join the maps of several Qz levels (``level_map`` infos on one shared
     2θ grid) into one map (F62; the review's §7.2 step 8, after IDL's
     IMG_JOIN):
@@ -1440,9 +1459,20 @@ def join_levels(levels, transverse='intersection', log=None, labels=None, apply=
       factor's relative error times its level's share of the weight;
     - ``transverse``: 'intersection' (IDL) keeps the 2θ bins every level
       has; 'union' keeps all, NaN where no level has data at that β.
+    - ``unmatched``: what to do with a level that shares 2θ bins with the
+      levels below it but no β bin (nothing to fit a factor on): 'refuse'
+      (the default) raises ValueError; 'unscaled' (a stopgap, owner,
+      2026-11-26) adds it as collected, factor 1 with no error, normalised
+      by monitor, absorber and the level's own response only. Each such
+      seam is listed in info['unscaled_seams'] (the levels, the β gap, the
+      2θ-averaged intensity on each side and their ratio, a diagnostic
+      only) and logged with kind 'vertical (beta), unscaled'. Its σ is
+      counting only: the scale across the seam carries no error.
 
     Returns (two_theta_deg, beta_deg, I (bins, β), σ, info); I is per
     monitor count × the mean monitor of all levels."""
+    if unmatched not in ('refuse', 'unscaled'):
+        raise ValueError("unmatched %r: use 'refuse' or 'unscaled'" % (unmatched,))
     if len(levels) == 1:                                 # nothing to join: the level's own rows
         lv = levels[0]
         k = lv['keep']
@@ -1481,6 +1511,8 @@ def join_levels(levels, transverse='intersection', log=None, labels=None, apply=
     every = rebinned[k0][2].copy()
     factors = {labels[k0]: (1.0, 0.0)}
     shares = [(wc.copy(), 0.0)]
+    seams = []
+    bcentres = 0.5 * (bedges[:-1] + bedges[1:])
     for k in order[1:]:
         n, w, kept = rebinned[k]
         common = have & kept
@@ -1488,6 +1520,27 @@ def join_levels(levels, transverse='intersection', log=None, labels=None, apply=
             raise ValueError('%s has no 2theta bins in common with the levels below it' % labels[k])
         cells = common[:, None] & (wc > 0) & (w > 0)
         m = cells.sum(axis=0)
+        if unmatched == 'unscaled' and not ((m > 0) & ((nc * cells).sum(axis=0) > 0) & ((n * cells).sum(axis=0) > 0)).any():
+            (lo_v, lo_e, lo_b), (hi_v, hi_e, hi_b) = _seam_edges(nc, wc, n, w, common)
+            ratio = hi_v / lo_v if lo_v > 0 else float('nan')
+            rerr = ratio * math.sqrt((lo_e / lo_v) ** 2 + (hi_e / hi_v) ** 2) if lo_v > 0 and hi_v > 0 else float('nan')
+            below = ' + '.join(labels[i] for i in order[:order.index(k)])
+            seam = dict(below=below, level=labels[k], beta_below_deg=float(bcentres[lo_b]),
+                        beta_above_deg=float(bcentres[hi_b]), gap_deg=float(bcentres[hi_b] - bcentres[lo_b]),
+                        edge_ratio=ratio, edge_ratio_error=rerr)
+            seams.append(seam)
+            factors[labels[k]] = (1.0, float('nan'))
+            if log is not None:
+                log.append(dict(label='%s + %s: UNSCALED, no overlap' % (below, labels[k]),
+                                kind='vertical (beta), unscaled', x_from=seam['beta_below_deg'],
+                                x_to=seam['beta_above_deg'], points=0, factor=1.0, error=float('nan'),
+                                chi2=float('nan'), applied=False, unscaled=True, edge_ratio=ratio))
+            shares.append((w.copy(), 0.0))
+            nc += n
+            wc += w
+            have |= kept
+            every &= kept
+            continue
         with np.errstate(invalid='ignore', divide='ignore'):
             sa = np.where(cells, wc, 1.0)
             sb = np.where(cells, w, 1.0)
@@ -1536,6 +1589,6 @@ def join_levels(levels, transverse='intersection', log=None, labels=None, apply=
     centres = 0.5 * (edges[:-1] + edges[1:])
     bcent = 0.5 * (bedges[:-1] + bedges[1:])
     info = dict(factors=factors, beta_step_deg=bstep, transverse=transverse,
-                sum_counts=nc[sel][:, rows], sum_weights=wc[sel][:, rows])
+                sum_counts=nc[sel][:, rows], sum_weights=wc[sel][:, rows], unscaled_seams=seams)
     return centres[sel], bcent[rows], i[sel][:, rows] * mean_m, s[sel][:, rows] * mean_m, info
 

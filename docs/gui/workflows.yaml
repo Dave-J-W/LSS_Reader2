@@ -781,7 +781,7 @@ workflows:
       - id: gid.settings
         do: Open the worksheet (GID menu > Worksheet) and check the settings - pinhole on, response, footprint window, S4-detector distance (Fit), rows, columns
         where: Pilatus tab > GID menu > Worksheet (separate window)
-        controls: [gidComboBox, gidPinholeCheckBox, gidPinholeDistSpinBox, gidFitDistancePushButton, gidResponseComboBox, gidFootprintComboBox, gidTransverseComboBox, gidRowMinSpinBox, gidRowMaxSpinBox, gidColumnsSpinBox, pilHSlitLineEdit, gidAreaCheckBox, gidPolCheckBox, gidApplyJoinsCheckBox, gidMinFramesSpinBox, gidArmCheckBox, gidDefaultsPushButton]
+        controls: [gidComboBox, gidPinholeCheckBox, gidPinholeDistSpinBox, gidFitDistancePushButton, gidResponseComboBox, gidFootprintComboBox, gidTransverseComboBox, gidRowMinSpinBox, gidRowMaxSpinBox, gidColumnsSpinBox, pilHSlitLineEdit, gidAreaCheckBox, gidPolCheckBox, gidApplyJoinsCheckBox, gidUnmatchedLevelsCheckBox, gidMinFramesSpinBox, gidArmCheckBox, gidDefaultsPushButton]
         user_decides: usually the defaults (pinhole, exact footprint, response fit); the distance from Fit when reliable
         automatic: partly
         could_be_automatic: calibrate the distance automatically on the first patch and say so (P43 built as a button)
