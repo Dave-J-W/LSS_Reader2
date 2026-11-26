@@ -24,7 +24,7 @@ FLUX = 4.0
 K = 1.0e-3          # per second at the first burn's flux: about 20 % in 210 s
 
 
-def _two_burns(root, beta, name='burns'):
+def _two_burns(root, beta, name='burns', motors=None):
     root = str(root)
     os.makedirs(os.path.join(root, 'pilatus'))
     n, ct = synth.BURN_FRAMES, synth.BURN_CTIME
@@ -35,7 +35,7 @@ def _two_burns(root, beta, name='burns'):
         mon = synth.MONITOR * f
         rows = np.column_stack([z, z, z, z + 0.05, z + ct, z + mon, z + 1000.0])
         scans.append(synth.spec_scan(num, name, ['In_Ht', 'H', 'K', 'L', 'Seconds', 'Monc', 'Pilatus'], rows,
-                                     command='ascan  ih 0 0  %d %g' % (n - 1, ct)))
+                                     command='ascan  ih 0 0  %d %g' % (n - 1, ct), motors=motors))
         rate = K * f ** beta
         for j in range(n):
             amp = 2.0e5 * f * np.exp(-rate * (j + 0.5) * ct)      # counts ∝ monitor × reflectivity
@@ -149,4 +149,17 @@ def test_nx_burns_14_and_15_in_the_window(window, qapp, recorder, tmp_path):
     d.burnStripSpinBox.setValue(10)
     assert d.burnVerdictLabel.text().startswith('Dose:')
     assert w.prefs['burn']['verdict_quantity'] == 'centre' and w.prefs['burn']['strip_relative'] == pytest.approx(0.1)
+    assert recorder.exceptions == []
+
+
+def test_a_burn_without_a_beam_height_is_still_analysed(window, qapp, recorder, tmp_path):
+    """No height scan with the burns' S1 gap and none typed (S1 0.1 mm, where the study's default does not
+    hold; NX 14 and 15 are such burns): the burns are analysed all the same, the dose in photons rather than
+    per mm², and the label says why (2026-11-26: the 1 mm width prefill made the dialog refuse them)."""
+    w = window
+    d = _open(w, qapp, _two_burns(tmp_path / 'b', 1.0, motors={'S1T': 0.05, 'S1B': 0.05}), tmp_path, [0, 1])
+    assert sorted(w.burnResults) == [1, 2], d.burnResultLabel.text()
+    assert 'photons, not per mm²' in d.burnResultLabel.text()
+    assert 'beam height' in d.burnResultLabel.toolTip()
+    assert d.burnVerdictLabel.text().startswith('Dose:'), d.burnVerdictLabel.text()   # the verdict needs no height
     assert recorder.exceptions == []
