@@ -82,7 +82,9 @@ After the last join, the patched curve is on the **Reflectivity** tab:
   "read-only" light at the bottom right and saves nothing until it gets write access (File → Ask for the
   workbook's write access; the holder can File → Give up the workbook's write access).
 
-**Plot options...**, at the right of the tabs, sets the font size, ticks and grid of each tab's plots.
+**Plot options...**, at the right of the tabs, sets the font size, ticks, grid and point index numbers of each
+tab's plots, kept between sessions; its **Axes and curves...** edits one plot's limits, labels and line styles
+until the plot is redrawn.
 
 ## Where next
 
