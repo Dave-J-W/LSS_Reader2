@@ -94,7 +94,7 @@ def test_parallel_unless_benchmarking_or_regenerating(monkeypatch, pytestconfig)
 
 
 def test_auto_workers_fit_the_cpus_and_the_memory(monkeypatch):
-    cpus = len(os.sched_getaffinity(0))
+    cpus = len(os.sched_getaffinity(0)) if hasattr(os, 'sched_getaffinity') else (os.cpu_count() or 1)   # Windows
     assert 1 <= conftest.pytest_xdist_auto_num_workers(None) <= cpus
     monkeypatch.setattr(conftest, '_available_memory_mb', lambda: 3 * conftest.WORKER_MEMORY_MB)
     assert conftest.pytest_xdist_auto_num_workers(None) == min(cpus, 3)
