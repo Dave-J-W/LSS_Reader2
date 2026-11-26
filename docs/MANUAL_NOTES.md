@@ -212,6 +212,11 @@ Each line: feature — where — default — script — notes entry (date).
   starts at "as drawn" (the plots as the reader draws them), and "As
   drawn" puts them all back. The Pilatus tab's ROI close-up and the
   residual strips are left as drawn. Terms to define: major, minor ticks.
+- Index numbers (F113, 2026-11-26): the points' numbers (SpecPlot's Point
+  #, the Ref Patch window) sit a few points from their markers. Where they
+  would overlap, or stick out of the plot, the later ones are hidden (a
+  number may also move to another corner of its marker to fit); zoom in
+  and they come back. Plot options' "Index numbers" hides them for a tab.
 - Export names (2026-11-26): every Export dialog says in its title what
   it adds to the name (e.g. "the name gets _flu.txt"); a name typed with
   that ending, or with .txt, is not given it twice. The Fit Peak dialog's

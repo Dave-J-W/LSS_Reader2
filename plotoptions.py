@@ -9,8 +9,8 @@ they change. Every change applies at once and is kept between sessions.
 draws them; the choice is applied by the canvases themselves at every
 draw (``mplwidget.apply_plot_options``), so a redrawn plot keeps it."""
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QPushButton, QSpinBox,
-                             QVBoxLayout)
+from PyQt5.QtWidgets import (QCheckBox, QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QPushButton,
+                             QSpinBox, QVBoxLayout)
 
 import mplwidget
 
@@ -31,6 +31,9 @@ ROWS = [   # (key, label, object name, tooltip)
     ('grid', 'Grid', 'plotOptGridComboBox',
      'Grid lines at the major ticks, or at the major and minor ticks (minor ticks are then shown). This '
      'overrides a tab\'s own Grid box while it is not "as drawn"'),
+    ('index', 'Index numbers', 'plotOptIndexCheckBox',
+     'The points\' index numbers (F113; the SpecPlot\'s Point # labels). Where they would overlap, the later ones '
+     'are hidden; zoom in and they come back once they fit. Unticked: none on this tab\'s plots'),
 ]
 
 
@@ -60,7 +63,11 @@ class PlotOptionsDialog(QDialog):
         form = QFormLayout()
         self.fields = {}
         for key, label, name, tip in ROWS:
-            if key == 'font':
+            if key == 'index':
+                w = QCheckBox(self)
+                w.setChecked(True)
+                w.stateChanged.connect(self._changed)
+            elif key == 'font':
                 w = QSpinBox(self)
                 w.setRange(0, 40)
                 w.setSuffix(' pt')
@@ -107,7 +114,9 @@ class PlotOptionsDialog(QDialog):
             font.setSpecialValueText('auto (%.3g pt)' % base_pt if base_pt else 'auto')
             font.setValue(int(opts['font'] or 0))
             for k, w in self.fields.items():
-                if k != 'font':
+                if k == 'index':
+                    w.setChecked(bool(opts[k]))
+                elif k != 'font':
                     i = w.findData(opts[k])
                     w.setCurrentIndex(i if i >= 0 else 0)
         finally:
@@ -116,7 +125,9 @@ class PlotOptionsDialog(QDialog):
     def values(self):
         out = {'font': int(self.fields['font'].value())}
         for k, w in self.fields.items():
-            if k != 'font':
+            if k == 'index':
+                out[k] = bool(w.isChecked())
+            elif k != 'font':
                 out[k] = w.currentData()
         return out
 

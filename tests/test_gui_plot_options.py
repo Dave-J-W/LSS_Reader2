@@ -37,7 +37,7 @@ def test_defaults_change_nothing_and_the_button_follows_the_tab(loaded, qapp, re
     d = w.showPlotOptions()
     assert d.isVisible() and not d.isModal() and d.key == 'specPlotTab'
     assert d.values() == {'font': 0, 'major': 'as drawn', 'minor': 'as drawn', 'direction': 'as drawn',
-                          'mirror': 'as drawn', 'grid': 'as drawn'}
+                          'mirror': 'as drawn', 'grid': 'as drawn', 'index': True}   # index: F113
     assert 'auto (' in d.fields['font'].specialValueText()
     w.ui.PlotWidget.setCurrentWidget(w.ui.refTab)            # the window follows the tab on show
     assert d.key == 'refTab' and 'Reflectivity' in d.windowTitle()

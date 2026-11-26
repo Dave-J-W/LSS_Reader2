@@ -149,12 +149,12 @@
   label: "Point #"
   where: "SpecPlot"
   handler: updateSpecPlotData
-  does: "Labels each point with its index in the scan (on by default)"
+  does: "Labels each point with its index in the scan (on by default); crowded numbers are hidden and come back on zoom (F113)"
   workflows: [alignment, general]
   needs: ""
   shown: always
   tooltip: true
-  notes: "Code-built (F55), placed between Legend and the legend-location combo, splitting the pair."
+  notes: "Code-built (F55), placed between Legend and the legend-location combo, splitting the pair. Since 2026-11-26 (F113) the numbers sit a few points from their markers (mplwidget.index_labels) and the canvas hides those that would overlap or stick out, at every draw."
 - id: spLegendLocComboBox
   kind: combo
   label: ""
