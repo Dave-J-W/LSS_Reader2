@@ -48,7 +48,8 @@ All of these are already built. The work is finishing, fixing and checking them.
 1. Crashes in the main workflows (open, reflectivity, GID, MCA, export).
 2. Wrong numbers in an export xmodfit reads. That means a real bug, not a
    better method we might choose later.
-3. The 7 known Windows test failures on `main`. Each one gets fixed or is
+3. The known Windows test failures on `main` (7 at first; 5 on 2026-11-26: `test_gui_reader_lock` ×2,
+   `test_toolbox_gui` ×2, `test_ngui` ×1). Each one gets fixed or is
    marked as not a release issue, with one line saying why.
 4. The packaged build fails to start or to load the sample data.
 
@@ -79,10 +80,14 @@ Everything else is **not** a blocker.
      - `test_gui_menus::test_documentation_opens_the_scripting_guide`: Qt's URL path uses '/'.
      - `test_test_infrastructure::test_auto_workers_fit_the_cpus_and_the_memory`: no `os.sched_getaffinity` on
        Windows.
-     - The fixes are reasoned and, for the line ends, simulated here; they wait for a rerun on the Windows PC.
+     - **Confirmed on the Windows PC** (xr-data-needs, #55, 2026-11-26: they pass on a clean checkout of main
+       860abd5).
    - **Not a release issue:** `test_ngui::test_window_builds_with_every_placed_control`. ngui is the layout
      prototype, parked after 2.0, and its exact-size assertion meets Windows display scaling.
    - **Open:** `test_toolbox_gui` ×2. Their assertion lines from the Windows PC are needed (asked on #55).
+   - **New on Windows, open:** `test_gui_reader_lock` ×2 (`test_keep_declines_the_request`,
+     `test_a_request_for_the_write_access_offers_release`), from #120, on clean main 860abd5. Their `E` lines
+     are asked for on #55, for GUI manager.
      Pixel comparisons of figures, which Windows fonts change, would not be a release issue; anything else
      would be.
 4. **The packaged build:** the builds pass (tools man, #118): Windows and macOS built and passed their
