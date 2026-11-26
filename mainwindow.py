@@ -692,7 +692,8 @@ class MainWindow (QMainWindow):
         fname=[cwd+'/'+fname for fname in files if os.path.exists(cwd+'/'+fname)]
         # a packaged build holds no .py files: date it by its .ui file and logo, or the executable
         updateTime=max([os.path.getmtime(fn) for fn in fname] or [os.path.getmtime(sys.executable)])
-        self.messageBox('LSS-Reader\n Version: 1.1\nLast Update: '+time.strftime("%m/%d/%Y %I:%M:%S %p",time.localtime(updateTime))+'\nCopyright belongs to:\n\tWei Bu <weibu1977@gmail.com>\n\tMrinal K Bera <nayanbera@gmail.com>',title='About')
+        import lss_core
+        self.messageBox('LSS-Reader\n Version: '+lss_core.__version__+'\nLast Update: '+time.strftime("%m/%d/%Y %I:%M:%S %p",time.localtime(updateTime))+'\nCopyright belongs to:\n\tWei Bu <weibu1977@gmail.com>\n\tMrinal K Bera <nayanbera@gmail.com>',title='About')
         
     def openSpecFile(self,fname=None):
         self.ui.statusBar.clearMessage()       
