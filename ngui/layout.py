@@ -630,6 +630,8 @@ MENUS = [
         C('messageDock_toggleViewAction', 'Messages'),
         C('scriptDock_toggleViewAction', 'Script'),
         C('errorDock_toggleViewAction', 'Errors'),
+        C('plotOptionsToolButton', 'Plot options…',
+          note='F112: the options of the tab on show (font, ticks, grid); in ngui per tab as in the reader'),
         C('actionFitResiduals', 'Residuals above fits',
           note='One switch for every fit plot: the panels drawn here as the Residuals toggle above each fit plot (F74)'),
     ]},
@@ -685,6 +687,17 @@ PREFERENCES = [
     G('Saving', '', [
         C('prefAutoSaveCheckBox', 'Save results automatically', note='On by default (D56); off for quick looks'),
         C('prefSaveNoteCheckBox', 'Save… asks for a note', note='Shift-click skips the question'),
+    ]),
+    G('Plot options (per tab, F112)', '', [
+        C('plotOptTabLabel', 'Plots of the … tab'),
+        C('plotOptFontSpinBox', 'Font size'),
+        C('plotOptMajorComboBox', 'Major ticks'),
+        C('plotOptMinorComboBox', 'Minor ticks'),
+        C('plotOptDirectionComboBox', 'Tick direction'),
+        C('plotOptMirrorComboBox', 'Ticks on all sides'),
+        C('plotOptGridComboBox', 'Grid'),
+        C('plotOptResetPushButton', 'As drawn'),
+        C('plotOptClosePushButton', 'Close'),
     ]),
     G('Window', '', [
         C('prefNguiCheckBox', 'ngui (new layout, prototype)', note='This window; unticking closes it'),

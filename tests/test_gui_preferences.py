@@ -60,6 +60,7 @@ def test_settings_are_saved_and_read_back(window, qapp, recorder):
                       'mca_fit_data_weights': False,                        # F90 P1 the default; data weights legacy (2026-11-24)
                       'mca_line_options': {'detector_width': False, 'noise_kev': 0.12, 'strip_escape': True},   # F90 P2, P3; F110
                       'fit_residuals': False,                               # F74 residual panels hidden (2026-11-24)
+                      'plot_options': {},                                   # F112 no tab's plot options set (2026-11-26)
                       'export_folder': ''}                                  # F105: no export folder yet (2026-11-25)
     assert preferences.load() == stored
     assert recorder.exceptions == []

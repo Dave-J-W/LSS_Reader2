@@ -69,6 +69,9 @@ DEFAULTS = {
     'pil_display': {},
     # residual panels above the plots that show a fit (F74, owner 2026-11-22: hidden by default)
     'fit_residuals': False,
+    # the plot options of each tab (F112, owner 2026-11-26): {tab: {font, major, minor, direction, mirror, grid}};
+    # a tab not here draws its plots as the reader draws them
+    'plot_options': {},
     # the folder the last reflectivity Export went to, proposed for the next one (F105, Q-REF-6: straight into
     # XModFit's working folder); '' until the first Export
     'export_folder': '',
