@@ -92,6 +92,16 @@ Everything else is **not** a blocker.
   PyXRF's model, Larch's series and each, XeRay's window and error, the
   reader's fits) before the comparison is used again; then revisit which
   MCA fit is the default and which is reported beside it (F110).
+  - **A pathology tool** (owner, 2026-11-26: "proper tool later"): figures of the bad fits, one
+    spectrum each from the run's own seeds. They cover XeRay winning with error bars 20 % too small,
+    XeRay failing at +529 % and +1032 %, and six other methods' failures. They also show whether a
+    misfit test gives XeRay away. Measured on all 39 100 spectra (Poisson deviance in the line
+    window): it catches all 23 scatter failures (misfit 4–55 per dof, every spectrum flagged at
+    p < 0.01). It misses a neighbouring line under the target (Co beside Fe +148 %, As under Pb Lα
+    +88 %, misfit 1.06–1.08) and 30 photons (+35 %). It flags 28 % of XeRay's right answers at
+    10⁴ photons. The prototype scripts are on the owner's PC (`parked/xrf_pathologies/` beside the
+    clone). To do: one script in `tests/tools/`, a catalogue item, a short page in
+    `docs/studies/xrf_shootout/`.
 - Reopening a file with its workbook's settings; recipes for cuts, MCA lines
   and SpecPlot curves.
 - F80/F105 comparison tab; Export naming handed over to xmodfit.
