@@ -2217,3 +2217,14 @@
   shown: "Plot options..."
   tooltip: true
   notes: "Added 2026-11-26 (F113, owner). Shown or not, crowded numbers are hidden at each draw and come back on zoom (mplwidget.declutter_index_labels); the Ref Patch window does the same without a switch."
+- id: plotOptAxesToolButton
+  kind: button
+  label: "Axes and curves..."
+  where: "Plot options"
+  handler: PlotOptionsDialog.edit_axes
+  does: "A menu of the tab's plots; each opens matplotlib's editor of that plot (title, axis limits, labels, scales, each curve's line, marker and colour): one-off, kept until the tab redraws the plot, not saved"
+  workflows: [session]
+  needs: "a plot drawn on the tab"
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-26 (owner's choice: one entry for plot settings, 'Keep top-right, drop icon', per tab). It was each toolbar's 'Customize' icon, which the tabs' toolbars no longer show (MainWindow.registerPlotCanvases); the Ref Patch window and the burn test keep theirs (no Plot options there)."

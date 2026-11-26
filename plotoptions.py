@@ -9,8 +9,8 @@ they change. Every change applies at once and is kept between sessions.
 draws them; the choice is applied by the canvases themselves at every
 draw (``mplwidget.apply_plot_options``), so a redrawn plot keeps it."""
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (QCheckBox, QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QPushButton,
-                             QSpinBox, QVBoxLayout)
+from PyQt5.QtWidgets import (QCheckBox, QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QMenu, QPushButton,
+                             QSpinBox, QToolButton, QVBoxLayout)
 
 import mplwidget
 
@@ -45,13 +45,16 @@ def _text(v):
 
 class PlotOptionsDialog(QDialog):
     """Non-modal; ``options_for(key)`` and ``set_options(key, opts)`` come
-    from the window; ``target(key, label, base_pt)`` shows a tab's options."""
+    from the window; ``target(key, label, base_pt)`` shows a tab's options.
+    ``plots_for(key)``: the tab's plots as (name, axes), for "Axes and
+    curves...", matplotlib's own editor of one plot (owner, 2026-11-26: its
+    toolbar icon is dropped on the tabs and reached from here instead)."""
 
-    def __init__(self, parent, options_for, set_options):
+    def __init__(self, parent, options_for, set_options, plots_for=None):
         super().__init__(parent)
         self.setObjectName('plotOptionsDialog')
         self.setWindowModality(Qt.NonModal)
-        self.options_for, self.set_options = options_for, set_options
+        self.options_for, self.set_options, self.plots_for = options_for, set_options, plots_for
         self.key = None
         self._loading = False
         v = QVBoxLayout(self)
@@ -85,6 +88,22 @@ class PlotOptionsDialog(QDialog):
             form.addRow(lab, w)
             self.fields[key] = w
         v.addLayout(form)
+        axes = QHBoxLayout()
+        self.axesButton = QToolButton(self)
+        self.axesButton.setObjectName('plotOptAxesToolButton')
+        self.axesButton.setText('Axes and curves...')
+        self.axesButton.setPopupMode(QToolButton.InstantPopup)
+        self.axesButton.setToolTip(
+            'matplotlib\'s editor of one plot of this tab: its title, axis limits, labels and scales, and each '
+            'curve\'s line, marker and colour. One-off: kept until the tab redraws that plot (a new selection, an '
+            'option above), and not saved. For settings that stay, use the options above. (It was the toolbar\'s '
+            '"Customize" icon.)')
+        self.axesMenu = QMenu(self.axesButton)
+        self.axesMenu.aboutToShow.connect(self._fill_axes_menu)
+        self.axesButton.setMenu(self.axesMenu)
+        axes.addWidget(self.axesButton)
+        axes.addStretch(1)
+        v.addLayout(axes)
         row = QHBoxLayout()
         self.resetButton = QPushButton('As drawn', self)
         self.resetButton.setObjectName('plotOptResetPushButton')
@@ -121,6 +140,25 @@ class PlotOptionsDialog(QDialog):
                     w.setCurrentIndex(i if i >= 0 else 0)
         finally:
             self._loading = False
+
+    def plots(self):
+        """The tab's plots as (name, axes) (none without a ``plots_for``)."""
+        return list(self.plots_for(self.key)) if (self.plots_for and self.key is not None) else []
+
+    def _fill_axes_menu(self):
+        self.axesMenu.clear()
+        plots = self.plots()
+        if not plots:
+            a = self.axesMenu.addAction('(no plot drawn on this tab)')
+            a.setEnabled(False)
+        for name, ax in plots:
+            self.axesMenu.addAction(name, lambda a=ax: self.edit_axes(a))
+
+    def edit_axes(self, ax):
+        """Open matplotlib's figure options for ``ax`` (non-modal)."""
+        from matplotlib.backends.qt_editor import figureoptions
+        figureoptions.figure_edit(ax, self)
+        return getattr(self, '_fedit_dialog', None)
 
     def values(self):
         out = {'font': int(self.fields['font'].value())}
