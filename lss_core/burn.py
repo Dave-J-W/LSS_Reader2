@@ -540,21 +540,34 @@ def summary_text(res):
     return '\n'.join(out)
 
 
-def _residual_panel(ax, c, col):
+def _sizes(fontsize):
+    """Text sizes (pt) of the burn plot: the compact ones it was drawn with
+    (``fontsize`` None: the committed figures), or, given a base size (the
+    window's, owner 2026-11-26: tick and axis labels at least the size of
+    the tab labels), ticks and axis labels at the base and the rest in the
+    same proportions as before."""
+    if fontsize is None:
+        return dict(axis=8, tick=7, second=7, legend=6, summary=7, title=9, resid=6)
+    b = float(fontsize)
+    return dict(axis=b, tick=b, second=b, legend=0.8 * b, summary=0.75 * b, title=1.1 * b, resid=0.8 * b)
+
+
+def _residual_panel(ax, c, col, fs=None):
     """The best model's residuals above one burn panel (F74)."""
+    fs = fs or _sizes(None)
     from lss_core import residuals as resid
     f = c.fits[c.best]
     rax = resid.panel(ax, True)
     resid.draw(rax, c.t, c.y, f(c.t), c.sigma, color=col)
     dof = max(int(f.n) - len(np.atleast_1d(f.params)), 1)
     rax.text(0.99, 0.92, resid.chi2_label('best: %s' % c.best, f.chi2 / dof), transform=rax.transAxes,
-             ha='right', va='top', fontsize=6)
-    rax.tick_params(labelsize=6)
-    rax.yaxis.label.set_fontsize(6)
+             ha='right', va='top', fontsize=fs['resid'])
+    rax.tick_params(labelsize=fs['resid'])
+    rax.yaxis.label.set_fontsize(fs['resid'])
     return rax
 
 
-def plot(res, fig, title='', residuals=False):
+def plot(res, fig, title='', residuals=False, fontsize=None):
     """Draw a burn result into a matplotlib figure: one panel per quantity
     (GID: intensity, position, FWHM; reflectivity: intensity), the values
     with their errors and every fitted model (the best thick), a dotted
@@ -563,7 +576,9 @@ def plot(res, fig, title='', residuals=False):
     threshold marked; the summary as text to the right of the panels.
     ``residuals``: above each panel, the residuals of its best model,
     (y − fit)/σ, with χ²/dof (F74, lss_core.residuals; off by default).
-    Returns the data axes."""
+    ``fontsize``: the base text size (pt; ``_sizes``); None keeps the compact
+    sizes of the committed figures. Returns the data axes."""
+    fs = _sizes(fontsize)
     fig.clf()
     qs = [q for q in ('intensity', 'centre', 'fwhm') if q in res.values]
     gs = fig.add_gridspec(len(qs), 2, width_ratios=[3.4, 1.0], wspace=0.42, hspace=0.12)
@@ -575,9 +590,9 @@ def plot(res, fig, title='', residuals=False):
         col = COLOURS[q]
         y, s = res.values[q]
         ax.errorbar(res.x, y, s, fmt='o', color=col, ms=3, lw=0.8)
-        ax.set_ylabel(UNITS[res.kind].get(q, q), color=col, fontsize=8)
-        ax.tick_params(axis='y', colors=col, labelsize=7)
-        ax.tick_params(axis='x', labelsize=7)
+        ax.set_ylabel(UNITS[res.kind].get(q, q), color=col, fontsize=fs['axis'])
+        ax.tick_params(axis='y', colors=col, labelsize=fs['tick'])
+        ax.tick_params(axis='x', labelsize=fs['tick'])
         c = res.trends.get(q)
         if c is None:
             continue
@@ -586,7 +601,7 @@ def plot(res, fig, title='', residuals=False):
                 best = m == c.best
                 ax.plot(tt, f(tt), STYLES[m], color=col, lw=2 if best else 1, alpha=1.0 if best else 0.45)
         if residuals and c.best in c.fits and c.fits[c.best].ok:
-            _residual_panel(ax, c, col)
+            _residual_panel(ax, c, col, fs)
         ch = c.change
         if ch is not None and np.isfinite(ch.confident) and ch.confident <= tt[-1]:
             ax.axvline(ch.confident, color=col, ls=(0, (1, 3)), lw=1)
@@ -599,24 +614,28 @@ def plot(res, fig, title='', residuals=False):
                 fwd, inv = (lambda v, sc=scale: 100 * v / sc), (lambda p, sc=scale: p * sc / 100)
                 marks = (100 * (1 - res.threshold), 100 * (1 + res.threshold))
             sec = ax.secondary_yaxis('right', functions=(fwd, inv))
-            sec.set_ylabel(lab, fontsize=7, color='0.35')
-            sec.tick_params(labelsize=7, colors='0.35')
+            sec.set_ylabel(lab, fontsize=fs['second'], color='0.35')
+            sec.tick_params(labelsize=fs['second'], colors='0.35')
             for mk in marks:
                 ax.axhline(inv(mk), color='0.6', lw=0.6, ls=(0, (4, 4)))
         if k < len(qs) - 1:
             ax.tick_params(axis='x', labelbottom=False)
     if res.axis == 'dose':
-        axes[-1].set_xlabel('Dose since the first frame (%s)' % res.dose_unit, fontsize=8)
+        axes[-1].set_xlabel('Dose since the first frame (%s)' % res.dose_unit, fontsize=fs['axis'])
     else:
-        axes[-1].set_xlabel('Time %s (s)' % ('under the beam' if res.time == 'exposure' else 'by the clock'), fontsize=8)
+        axes[-1].set_xlabel('Time %s (s)' % ('under the beam' if res.time == 'exposure' else 'by the clock'),
+                            fontsize=fs['axis'])
     from matplotlib.lines import Line2D
     axes[0].legend(handles=[Line2D([], [], color='k', ls=ls, lw=1, label=m) for m, ls in STYLES.items()
                             if any(m in c.fits and c.fits[m].ok for c in res.trends.values())],
-                   fontsize=6, frameon=False, ncol=4, loc='lower left', bbox_to_anchor=(0.0, 1.0))
+                   fontsize=fs['legend'], frameon=False, ncol=4, loc='lower left', bbox_to_anchor=(0.0, 1.0))
     text = fig.add_subplot(gs[:, 1])
     text.axis('off')
-    text.text(0.0, 1.0, summary_text(res), va='top', ha='left', fontsize=7, family='monospace',
+    text.text(0.0, 1.0, summary_text(res), va='top', ha='left', fontsize=fs['summary'], family='monospace',
               transform=text.transAxes)
     if title:
-        fig.suptitle(title, fontsize=9)
+        if fontsize is None:
+            fig.suptitle(title, fontsize=fs['title'])
+        else:                          # top right, above the summary, clear of the legend over the first panel
+            fig.suptitle(title, fontsize=fs['title'], x=0.99, ha='right')
     return axes

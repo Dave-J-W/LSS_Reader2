@@ -1434,7 +1434,7 @@
   "verdict": "same"
  },
  "gui_screens": {
-  "commit": "d6b55367c5",
+  "commit": "6e9f1560c5",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -1452,14 +1452,18 @@
    "python": "3.13.18",
    "scipy": "1.18.1"
   },
-  "modified": [],
+  "modified": [
+   "lss_core/burn.py",
+   "mainwindow.py",
+   "mplwidget.py"
+  ],
   "modules": {
    "TwoDDetector.py": "b7754735a902a771",
    "comparetab.py": "60bfa3ad6462b8b2",
    "interp_compat.py": "c83e6bf00f63211d",
    "lss_core/__init__.py": "9f57300cffd8feeb",
    "lss_core/absorbers.py": "67c5f42ec563b55a",
-   "lss_core/burn.py": "56c42d35dd1ce92e",
+   "lss_core/burn.py": "4e88fa51f914e636",
    "lss_core/cache.py": "e29039ce0ffa84eb",
    "lss_core/compare.py": "f59a15043b5ef7aa",
    "lss_core/cuts.py": "0e8c402351016594",
@@ -1507,10 +1511,10 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "c84a31bb672c4e50",
+   "mainwindow.py": "98b07d49d8f1fd9d",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
-   "mplwidget.py": "437655a13b3d5ac2",
+   "mplwidget.py": "4ee65aad5f5beb72",
    "reader_log.py": "86f8110defefc7a5",
    "roipanel.py": "8371fd06c11d435e",
    "spec_routines.py": "a08541869ce7c7e9",
@@ -1551,12 +1555,12 @@
    "docs/gui/screens/41_gid_patch_pinhole.png": "ccd560de1d3dc31a",
    "docs/gui/screens/42_gid_worksheet_window.png": "7641cd7176d594b2",
    "docs/gui/screens/43_gid_form_factor_dialog.png": "4481c82fe3c7fa94",
-   "docs/gui/screens/50_burn_gid_trends_view.png": "b4628447c1d41a17",
-   "docs/gui/screens/50b_burn_main_window_behind.png": "d347a99e3ddb5f41",
+   "docs/gui/screens/50_burn_gid_trends_view.png": "01ca55a562ed6951",
+   "docs/gui/screens/50b_burn_main_window_behind.png": "970f01f39e939a66",
    "docs/gui/screens/51_burn_legacy_ref_view.png": "4c92616cfcfe7e0c",
    "docs/gui/screens/52_burn_legacy_gid_view.png": "6be3cd024ecf6b80",
    "docs/gui/screens/53_burn_ref_series_selected.png": "41993b4a7bc07c20",
-   "docs/gui/screens/54_burn_ref_trends_view.png": "3ff3fab889b85e8a",
+   "docs/gui/screens/54_burn_ref_trends_view.png": "0f37f9d691c58ece",
    "docs/gui/screens/55_burn_ref_legacy_view.png": "3e5903d532148ddd",
    "docs/gui/screens/60_cuts_empty.png": "964837b35f42d589",
    "docs/gui/screens/60_cuts_gid_qz_cut.png": "0116df8ae2e50570",
@@ -1596,12 +1600,12 @@
    "docs/gui/screens/99_menu_help.png": "ec1c27e1e311d788",
    "docs/gui/screens/99_menu_tools.png": "9436ce887a45f88b",
    "docs/gui/screens/99_menu_view.png": "9ae4d8b97ae4f67a",
-   "docs/gui/screens/README.md": "ac4b607dc85f9f6c"
+   "docs/gui/screens/README.md": "f5386f4065397927"
   },
   "reads": {
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "c84a31bb672c4e50",
+   "mainwindow.py": "98b07d49d8f1fd9d",
    "mainwindow.ui": "f0b0297893c83436",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",
@@ -2070,7 +2074,7 @@
   "verdict": "same"
  },
  "ngui_screens": {
-  "commit": "9b155cf203",
+  "commit": "6e9f1560c5",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -2088,14 +2092,10 @@
    "python": "3.13.18",
    "scipy": "1.18.1"
   },
-  "modified": [
-   "ngui/inventory_text.py",
-   "ngui/layout.py",
-   "tests/tools/ngui_screens.py"
-  ],
+  "modified": [],
   "modules": {
    "ngui/__init__.py": "ad2e13b69c4fc1fd",
-   "ngui/inventory_text.py": "b9db71cd9b585fed",
+   "ngui/inventory_text.py": "8880ba2fef3c3722",
    "ngui/layout.py": "1121b7167574a68b",
    "ngui/theme.py": "44039650e1ebb95c",
    "ngui/window.py": "2e907c9fd80568b2",

@@ -187,6 +187,8 @@ class MainWindow (QMainWindow):
 
     def __init__ (self, parent = None):
         QMainWindow.__init__(self, parent)
+        import mplwidget
+        self.plotFontPt=mplwidget.match_plot_fonts()   # owner, 2026-11-26: plot text at least the tabs' size
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.pilatus=TwoDDetector('Pilatus')
@@ -5829,12 +5831,16 @@ class MainWindow (QMainWindow):
         summary to the right (owner, 2026-11-21; lss_core.burn.plot)."""
         canvas=self.uipdburn.burnTrendPlotWidget.canvas
         burnmod.plot(res,canvas.fig,'%s S# %d' % (os.path.basename(self.specFileName),res.scan),
-                     residuals=self.fitResidualsShown())     # F74
-        try:
-            canvas.fig.subplots_adjust(left=0.1,right=0.97,top=0.9,bottom=0.09)
+                     residuals=self.fitResidualsShown(),     # F74
+                     fontsize=mpl.rcParams['font.size'])     # owner, 2026-11-26: the tabs' size at least
+        try:        # F111: the margins from the text at the canvas's size, recomputed at every draw (resizing too)
+            canvas.fig.set_layout_engine('constrained')
         except Exception:
-            pass
-        canvas.draw()
+            canvas.fig.subplots_adjust(left=0.1,right=0.97,top=0.9,bottom=0.09)
+        import warnings
+        with warnings.catch_warnings():   # a canvas not laid out yet is too small for the layout: it is redone on show
+            warnings.filterwarnings('ignore',message='constrained_layout not applied')
+            canvas.draw()
 
     def exportBurn(self):
         """The burn test on show as two text files (F95 B9)."""

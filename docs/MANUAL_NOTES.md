@@ -201,6 +201,9 @@ Each line: feature — where — default — script — notes entry (date).
   fields), whether or not R/RF is ticked; R/RF only chooses what is
   plotted, and whether Save puts R/RF in the workbook. With "+ covariance"
   both sidecars are written too.
+- Plot text (F111, 2026-11-26): tick labels, axis labels and legends are
+  at least as large as the tab labels, whatever the display scaling (the
+  reader sizes matplotlib's text from the tab font when it starts).
 - Export names (2026-11-26): every Export dialog says in its title what
   it adds to the name (e.g. "the name gets _flu.txt"); a name typed with
   that ending, or with .txt, is not given it twice. The Fit Peak dialog's

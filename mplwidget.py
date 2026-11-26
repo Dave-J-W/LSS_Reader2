@@ -8,6 +8,39 @@ from matplotlib.figure import Figure
 import numpy as np
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
+MPL_DEFAULT_PT = 10.0      # matplotlib's own font.size: the plots' text is never made smaller than this
+
+
+def plot_font_points(text_px, dpi, floor=MPL_DEFAULT_PT):
+	"""The base font size (pt) at which matplotlib's 'medium' text (tick
+	labels, axis labels, legends) is ``text_px`` logical pixels high on a
+	figure of ``dpi``: pt = px x 72 / dpi, and never below ``floor``. A
+	figure of ``dpi`` shown at w logical pixels is w/dpi inches wide, so a
+	font of p pt is p/72 x dpi logical pixels."""
+	return max(float(floor), float(text_px) * 72.0 / float(dpi))
+
+
+def match_plot_fonts():
+	"""Owner, 2026-11-26: "axes scales and labeling ... at least as large as
+	the tab label font size". Sets matplotlib's base font size (rcParams
+	font.size) so that tick labels and axis labels are at least as tall as
+	the tab labels' text (QApplication.font('QTabBar') at the screen's
+	logical DPI), for the figures made afterwards (call it before they are
+	built). The tab font follows the system's display scaling and the
+	figures' DPI (rcParams figure.dpi, 100 by default) does not, so at 125 or
+	150 % scaling matplotlib's 10 pt was smaller than the tabs. Returns the
+	size set (pt)."""
+	import matplotlib
+	from PyQt5.QtGui import QFontInfo
+	app = QtWidgets.QApplication.instance()
+	if app is None:
+		return matplotlib.rcParams['font.size']
+	px = QFontInfo(QtWidgets.QApplication.font('QTabBar')).pixelSize()
+	pt = round(plot_font_points(px, matplotlib.rcParams['figure.dpi']), 1)
+	matplotlib.rcParams['font.size'] = pt
+	return pt
+
+
 class MplCanvas(FigureCanvas):
 	def __init__(self):
 		self.fig = Figure()
