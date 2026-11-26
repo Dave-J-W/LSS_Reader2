@@ -1767,9 +1767,11 @@ class MainWindow (QMainWindow):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
             self.messageBox('Please select a scan with data to save first!')
             return
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Export SPEC scans', directory=self.directory)[0]
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export SPEC scans (the name gets _<scan>_<x>_<y>.txt)',
+                                                      directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
+        self.saveFileName=self.exportStem(self.saveFileName)
         cols=[str(c.currentText()) for c in (self.ui.spXComboBox,self.ui.spYComboBox,self.ui.spNComboBox)]
         missing=[i for i in self.selectedScanNums if any(c not in self.specData[i] for c in cols)]
         if missing:   # e.g. the selection changed since the columns were listed
@@ -2807,9 +2809,11 @@ class MainWindow (QMainWindow):
         self.ui.mcaPlotMplWidget.canvas.draw()
             
     def saveMcaData(self):
-        self.saveMcaFileName=QFileDialog.getSaveFileName(caption='Export MCA spectra',directory=self.directory)[0]
+        self.saveMcaFileName=QFileDialog.getSaveFileName(caption='Export MCA spectra (the name gets <frame>_<Qz>_mca.txt)',
+                                                         directory=self.directory)[0]
         if self.saveMcaFileName=='':   # dialog cancelled: write nothing
             return
+        self.saveMcaFileName=self.exportStem(self.saveMcaFileName,('_mca.txt',))
         for i in self.selectedMcaScanNums:
             self.fmcaName=self.saveMcaFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_''%.4f'%self.mcaPar[i]['Q'][2]+'_mca.txt'
             np.savetxt(self.fmcaName,self.nomMcaData[i],fmt='%.4f\t%.4e\t%.4e')
@@ -3005,9 +3009,12 @@ class MainWindow (QMainWindow):
         
     def mcaSaveIntData(self):
         try:
-            self.saveFileName=QFileDialog.getSaveFileName(caption='Export fluorescence integrals',directory=self.directory)[0]
+            self.saveFileName=QFileDialog.getSaveFileName(
+                caption='Export fluorescence integrals (the name gets _flu.txt, and _flu_fit.txt after Fit lines)',
+                directory=self.directory)[0]
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
+            self.saveFileName=self.exportStem(self.saveFileName,('_flu_fit.txt','_flu.txt'))
             fid=open(self.saveFileName+'_flu.txt','w')
             try:
                 fid.write('#'+str(self.command)+'\n')
@@ -5045,6 +5052,7 @@ class MainWindow (QMainWindow):
         self.saveFileName=QFileDialog.getSaveFileName(caption='Export GIOXS data',directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled: write nothing
             return
+        self.saveFileName=self.exportStem(self.saveFileName,('_bg_gio.txt',))
         for i in range(len(self.gioxsdata)):
             fname=self.saveFileName+self.gioxsname[i]
             np.savetxt(fname,self.gioxsdata[i],fmt='%.4f\t%.4e\t%.4e')
@@ -5826,10 +5834,7 @@ class MainWindow (QMainWindow):
                                          directory=base)[0]
         if not name:
             return
-        for end in ('_burn.txt','_burn_trends.txt','.txt'):
-            if name.endswith(end):
-                name=name[:-len(end)]
-                break
+        name=self.exportStem(name,('_burn_trends.txt','_burn.txt'))
         cols,arr=res.data()
         head='%s S# %d, %s burn; %s\n%s' % (os.path.basename(self.specFileName),res.scan,res.kind,
                                             '; '.join(res.notes) or 'no notes','\t'.join(cols))
@@ -6096,9 +6101,11 @@ class MainWindow (QMainWindow):
 
     def savePilGISAXS(self):
         try:
-            self.saveFileName = QFileDialog.getSaveFileName(caption='Export GIOXS data', directory=self.directory)[0]
+            self.saveFileName = QFileDialog.getSaveFileName(caption='Export the GISAXS map (the name gets _gisaxs.txt)',
+                                                            directory=self.directory)[0]
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
+            self.saveFileName=self.exportStem(self.saveFileName,('_gisaxs.txt',))
             data2d = []
             fname_2d = self.saveFileName + '_gisaxs.txt'
             for i in range(len(self.pilDataBin)):
@@ -6905,9 +6912,13 @@ class MainWindow (QMainWindow):
         if axes not in ('Angles','Q') or getattr(self,'pilGIDData',None) is None:
             self.messageBox('Make a GID map first, with the axes in Angles or Q, then save it.')
             return
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export GIOXS data', directory=self.directory)[0])
+        self.saveFileName=str(QFileDialog.getSaveFileName(
+            caption='Export the GID map (the name gets _qxy_gid.txt, _qz_gid.txt, _q2d_gid.txt, or the angle files)',
+            directory=self.directory)[0])
         if self.saveFileName=='':   # dialog cancelled: write nothing
             return
+        self.saveFileName=self.exportStem(self.saveFileName,('_qxy_gid.txt','_qz_gid.txt','_q2d_gid.txt','_dth_gid.txt',
+                                                             '_beta_gid.txt','_agnle2d_gid.txt'))
         gidmod.save(self.saveFileName,self.gidProducts(axes))
         self.scriptLine(self.gidScript(self.saveFileName,axes))
 
@@ -8296,10 +8307,7 @@ class MainWindow (QMainWindow):
                                                       directory=self.exportProposal())[0]
         if not self.saveFileName:
             return   #dialog cancelled
-        for end in ('_ref.txt','_rrf.txt','.txt'):          # a proposed or typed name given with an ending
-            if self.saveFileName.endswith(end):
-                self.saveFileName=self.saveFileName[:-len(end)]
-                break
+        self.saveFileName=self.exportStem(self.saveFileName,('_ref.txt','_rrf.txt'))   # a name given with an ending
         self.setPreference('export_folder',os.path.dirname(os.path.abspath(self.saveFileName)))
         if self.det=='Pilatus':
             reffile=self.saveFileName+'_ref.txt'
@@ -8654,6 +8662,18 @@ class MainWindow (QMainWindow):
         scans=self.refResultScans()
         par=self.specPar.get(scans[0],{}) if scans else {}
         return naming.sample_from_macro(par.get('SeriesMacro','') if isinstance(par,dict) else '')
+
+    @staticmethod
+    def exportStem(name,endings=()):
+        """The name an Export adds its own endings to: a typed or proposed
+        name given with one of ``endings`` or '.txt' loses it, so that
+        'run_flu.txt' does not become 'run_flu.txt_flu.txt' (release push,
+        2026-11-26; the reflectivity and burn exports did this already)."""
+        name=str(name)
+        for end in tuple(endings)+('.txt',):
+            if end and name.endswith(end):
+                return name[:-len(end)]
+        return name
 
     def exportProposal(self):
         """Where the Export dialog opens: the folder of the last Export (else the
@@ -10798,9 +10818,11 @@ class MainWindow (QMainWindow):
             if (summed and -1 not in self.cutData) or (not summed and any(i not in self.cutData for i in frames)) or (not summed and len(frames)==0):
                 self.messageBox('The frame selection or the "Sum" option changed after the cut was made. Please make the cut again before saving.')
                 return
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Export cuts', directory=self.directory)[0]
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export cuts (the name gets <frame>_cut.txt or _sumcut.txt)',
+                                                      directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
+        self.saveFileName=self.exportStem(self.saveFileName,('_sumcut.txt','_cut.txt'))
         if self.det=='Pilatus':
             if self.pilGIDshow==0 and self.pilGISAXSshow==0:
                 if self.ui.gixSumCheckBox.checkState()!=0:
@@ -11138,10 +11160,11 @@ class MainWindow (QMainWindow):
         
     def saveGraPlotData(self): #save the derivative data
         try:
-            self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export the gradient',directory=self.directory)[0])
+            self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export the gradient (the name gets _der.txt)',
+                                                              directory=self.directory)[0])
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
-            fitfile=self.saveFileName+'_der.txt'
+            fitfile=self.exportStem(self.saveFileName,('_der.txt',))+'_der.txt'
             np.savetxt(fitfile,self.gradata,fmt='%.4e\t%.4e')
         except:
             pass
@@ -11578,9 +11601,11 @@ class MainWindow (QMainWindow):
         if not hasattr(self,'peakfitdata'):
             self.messageBox('There is no fit to save yet; press "Fit" first.')
             return
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export fit data',directory=self.directory)[0])
+        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export the fitted curve (the name gets _fit.txt)',
+                                                          directory=self.directory)[0])
         if self.saveFileName=='':
             return
+        self.saveFileName=self.exportStem(self.saveFileName,('_fit.txt',))
         fitfile=self.saveFileName+'_fit.txt'
        # print self.peakfitdata
         np.savetxt(fitfile,self.peakfitdata,fmt='%.4e\t%.4e')
@@ -11593,9 +11618,11 @@ class MainWindow (QMainWindow):
         if len(self.selectedplotfiles_rows)==0:
             self.messageBox('Please select the fitted file in the "Plot" tab first.')
             return
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Fit Paremeters',directory=self.directory)[0])
+        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export the fit parameters (the name gets _par.txt)',
+                                                          directory=self.directory)[0])
         if self.saveFileName=='':
             return
+        self.saveFileName=self.exportStem(self.saveFileName,('_par.txt',))
         params=self.peakresult.params
 
         def num(v):     # lmfit leaves stderr None for a fixed parameter, or when it cannot estimate it

@@ -192,6 +192,10 @@ Each line: feature — where — default — script — notes entry (date).
   study (C62) found factor 10 removes 90 % of hot pixels on sparse frames
   without touching clean ones; it stays off until the owner's own sparse
   frames are checked (rule 12).
+- Export names (2026-11-26): every Export dialog says in its title what
+  it adds to the name (e.g. "the name gets _flu.txt"); a name typed with
+  that ending, or with .txt, is not given it twice. The Fit Peak dialog's
+  parameter file writes nan for an error lmfit could not estimate.
 - Window titles (F95, Q-UI-B10, 2026-11-25): each dialog's title says what
   it is (Ref Patch, Burn test, GIOXS, MCA merge, Plot scale, ...); they
   were "Dialog" or "Scan Details".
