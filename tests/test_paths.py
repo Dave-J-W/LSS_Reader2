@@ -39,8 +39,8 @@ def test_a_spec_name_with_a_dot_keeps_its_images(tmp_path, name):
 
 def test_a_windows_line_end_keeps_the_images(tmp_path):
     spec = synth.make_dataset(str(tmp_path))
-    with open(spec, 'rb') as f:
-        data = f.read().replace(b'\n', b'\r\n')
+    with open(spec, 'rb') as f:                       # LF first: on Windows text mode has written CRLF already,
+        data = f.read().replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')   # and doubling it gave CR CR LF
     with open(spec, 'wb') as f:
         f.write(data)
     assert specread(spec).Par[1]['Detector'] == 'Pilatus'
@@ -55,7 +55,8 @@ def test_plot_files_are_listed_and_labelled_by_name(window, qapp, recorder, tmp_
     np.savetxt(f, np.column_stack([np.linspace(0.01, 0.1, 5), np.ones(5), 0.1 * np.ones(5)]))
     window.plotfiles = [str(f)]
     window.updatePlotFile()
-    assert window.ui.plotFileListWidget.item(0).text() == '#1' + window.halftab + 'curves/film.v2_ref.txt'
+    sep = '\\' if '\\' in str(f) else '/'                # paths.short keeps the path's own separator (Windows: '\\')
+    assert window.ui.plotFileListWidget.item(0).text() == '#1' + window.halftab + 'curves' + sep + 'film.v2_ref.txt'
     window.ui.plotFileListWidget.item(0).setSelected(True)
     qapp.processEvents()
     window.updateSelectedPlotFile()

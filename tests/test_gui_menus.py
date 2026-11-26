@@ -13,7 +13,7 @@ def test_documentation_opens_the_scripting_guide(window, recorder, monkeypatch):
     monkeypatch.setattr(QDesktopServices, 'openUrl', staticmethod(lambda url: opened.append(url) or True))
     window.ui.actionDocumentation.trigger()
     assert len(opened) == 1 and opened[0].isLocalFile()
-    assert opened[0].toLocalFile().endswith(os.path.join('docs', 'SCRIPTING.md'))
+    assert os.path.normpath(opened[0].toLocalFile()).endswith(os.path.join('docs', 'SCRIPTING.md'))   # Qt gives '/'
     assert os.path.exists(opened[0].toLocalFile())
     assert window.ui.actionDocumentation.toolTip()
     assert recorder.exceptions == [] and recorder.messages == []
