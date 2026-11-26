@@ -235,6 +235,23 @@ the default since 2026-11-24; `weights='data'` for least squares weighted
 by the σ given, as before). `peaks.find_peaks` alone gives the candidates.
 "Fit peaks" in the window writes the `cut.fit(...)` call to the Script pane.
 
+The MCA tab's "Fit lines" fits each spectrum two ways (F110, the owner's
+decision of 2026-11-26), and so can a script:
+
+    from lss_core import fluorescence as fl
+    r = fl.xeray_fit(energy, y, sigma, x_range=(8.3, 8.9), centre=8.64)   # XeRay: the default
+    r.area, r.area_err, r.centre, r.fwhm, r.ok, r.message
+    both = fl.fit_line_series(flu.spectra, peaks.FitOptions(centres=(8.64,), x_range=(8.3, 8.9)))
+    both['xeray']                         # one XeRayFit per spectrum (plotted, merged, _flu.txt)
+    both['each'][k].peaks[both['j']].area / both['step']   # the reader's fit of spectrum k (_flu_fit.txt)
+
+XeRay is one Gaussian on a straight line by unweighted least squares, with
+the error √(counts in the window): too small where the background is large
+(the XRF shootout's pull SD 1.92). The reader's fit beside it is Poisson,
+with the width fixed at the detector's (`detector_width=True`, `noise_kev`)
+and the Si escapes stripped (`strip_escapes=True`); its errors are honest
+(pull SD 1.03). `fl.merge_rows` merges every (I, σ) pair of a row.
+
 ## Burn tests (2026-11-21)
 
 ```python

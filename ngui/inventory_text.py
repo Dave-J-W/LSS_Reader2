@@ -274,7 +274,7 @@ INVENTORY = {
     'mcaSpectraSaveWorkbookPushButton': ('button', 'Save', 'MCA > right, beside Export Spectrum', "Saves each selected normalised spectrum (energy, I, dI) into the workbook, kind 'fluorescence', labelled 'spectrum <scan> <frame>'"),
     'mcaFitPushButton': ('button', 'Fit', 'MCA > right', 'Opens the legacy Peak Fit Panel (peakfit.ui) on the one selected spectrum'),
     'mcaFitAllPushButton': ('button', 'Fit All', 'MCA > right', 'Opens the legacy Peak Fit Panel; its Fit then fits every selected spectrum and accepts each into the integral list'),
-    'mcaFitLinesPushButton': ('button', 'Fit lines', 'MCA > right', "Fits the line(s) of the summed spectra, then every spectrum with positions and widths fixed; the strongest line's intensity goes to the integral list"),
+    'mcaFitLinesPushButton': ('button', 'Fit lines', 'MCA > right', "Fits every spectrum's line two ways (F110): XeRay (the default, plotted, merged, exported in _flu.txt) and beside it the reader's fit (sum for the position, then each spectrum by Poisson likelihood, the detector's width, Si escapes stripped; _flu_fit.txt); both intensities and errors go to the integral list"),
     'mcaFitOptionsPushButton': ('button', 'Fit options...', 'MCA > right', 'Opens the Fluorescence line fit options dialog'),
     'mcaSumAllPushButton': ('button', 'Sum All', 'MCA > right', 'Sums every selected spectrum over the Range window and lists the intensities with errors'),
     'mcaRanLineEdit': ('lineedit', 'Range:', 'MCA > right', 'Window min:max (in the x units of the spectrum) for Sum All, Fit lines and the markers'),
