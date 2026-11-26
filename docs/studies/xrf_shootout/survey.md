@@ -28,7 +28,7 @@ open source on GitHub.
 
 ## How they differ from the reader
 
-The reader works on one **box**, the main line ± 2 FWHM. In the box it
+The reader works on one **line window**, the main line ± 2 FWHM. In the line window it
 fits one Gaussian on a quadratic background. The centre and width come
 from the sum of the series; then each spectrum is a linear fit by Poisson
 likelihood (`peaks.fit_series`). The options are a width fixed by the
@@ -38,14 +38,14 @@ models of the scatter peaks.
 
 | | Reader (p1) | PyMca | PyXRF / scikit-beam | Larch | XeRay |
 |---|---|---|---|---|---|
-| Region | box ± 2 FWHM | whole spectrum (user range) | whole spectrum | whole spectrum | box (user range) |
+| Region | line window ± 2 FWHM | whole spectrum (user range) | whole spectrum | whole spectrum | line window (user range) |
 | Lines | one Gaussian, free centre | every line of the element, PyMca's ratios, Hypermet optional | every line, scikit-beam's ratios | every line, xraydb's ratios, Hypermet | one Gaussian (or two) |
-| Background | quadratic in the box | SNIP or strip filter, plus polynomial | SNIP | optional filter background | straight line |
+| Background | quadratic in the line window | SNIP or strip filter, plus polynomial | SNIP | optional filter background | straight line |
 | Rayleigh / Compton | none (only what the quadratic absorbs) | one peak each, Hypermet, Compton width free | elastic Gaussian; Compton Gaussian with tail, step, width factor | Hypermet each, with free width factor, tail, step | none |
 | Si escape | stripping (option) | modelled from the detector | parameter, off in the linear step | modelled (scaled) | no |
 | Weighting | Poisson likelihood | χ² with σ = √N (1 where N = 0): data weights (`ClassMcaTheory.setData`, read) | weighted NNLS, σ² = max(N, 1) | weights from smoothed (N + 1)^(2/3) | unweighted |
 | Series | sum fixes shape, each spectrum linear | each spectrum alone; fast linear mode for maps | nonlinear fit of the sum, then NNLS per pixel | nonlinear fit, then linear decomposition for maps | each spectrum alone |
-| Error bars | from the likelihood's curvature | from the fit covariance | none | lmfit standard errors (one fit) | √(counts in the box) |
+| Error bars | from the likelihood's curvature | from the fit covariance | none | lmfit standard errors (one fit) | √(counts in the line window) |
 
 What the table means for a weak line under the scatter of the beam:
 
@@ -57,12 +57,12 @@ What the table means for a weak line under the scatter of the beam:
   free, and the weak line is free.
 - **The reader spends its parameters locally.** A quadratic over ±2 FWHM
   follows the scatter only as far as it is smooth. The Si escape peak of
-  the elastic line (8.26 keV, inside the Zn box) is not smooth; that is
-  what option P3 strips.
+  the elastic line (8.26 keV, inside the Zn line window) is not smooth; that is
+  what option the escape removal subtracts.
 - **Data weights** (PyMca, PyXRF) read weak lines low by about the
   number of background counts in the fit (study B: −19/N in a 74-channel
-  box). Poisson likelihood (the reader's default since 2026-11-24) does not.
-- **Overlaps are where the full-spectrum fitters should win.** A box sees
+  line window). Poisson likelihood (the reader's default since 2026-11-24) does not.
+- **Overlaps are where the full-spectrum fitters should win.** A line window sees
   only one line. A whole-spectrum fit can split As Kα from Pb Lα using As
   Kβ and Pb Lβ, which sit elsewhere.
 

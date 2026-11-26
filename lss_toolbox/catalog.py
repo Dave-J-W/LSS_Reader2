@@ -1165,7 +1165,7 @@ TOOLS = (
                     'docs/studies/xrf_shootout/tables.md', 'docs/studies/xrf_shootout/blanks_tables.md',
                     'docs/studies/xrf_shootout/real_tables.md'),
          docs=('docs/studies/xrf_shootout/summary.md',),
-         defaults={'--run': 'docs/studies/xrf_shootout/run', '--out': OUT},
+         defaults={'--run': 'docs/studies/xrf_shootout/run,docs/studies/xrf_shootout/run_measured,docs/studies/xrf_shootout/run_pymca', '--out': OUT},
          variations=(V('Synthetic spectra only', 'X6 and X7, which need no shootout run (seconds).',
                        'docs/studies/xrf_shootout/README.md#3. figures, tables.md and wins.csv', only='6,7'),),
          inputs=('docs/studies/xrf_shootout/run', 'docs/studies/xrf_shootout/run_measured',

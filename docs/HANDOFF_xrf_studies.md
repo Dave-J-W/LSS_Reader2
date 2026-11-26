@@ -34,15 +34,15 @@ Committed together with this hand-off, after main's 13 commits of the pause were
 - `tests/tools/xrf_walkthrough.py`: figures W1–W5 and `numbers.json` for each walkthrough
   (`--part shootout,models`, about a minute). The shootout part reuses the C66 run's own seeds and asserts
   that its bias equals the committed `run_blanks/scores.csv`.
-- `docs/studies/xrf_shootout/walkthrough.md` and `walkthrough/`: blank E9.2-a → a test spectrum with a Ni K
-  line → P1, P1+P3, P1+P2+P3 fits with residuals → 500 spectra → bias, pulls, the "accurate" rule →
+- `docs/studies/xrf_shootout/walkthrough.md` and `walkthrough/`: the 9.2 keV blank a → a test spectrum with a Ni K
+  line → *Poisson fit*, *Poisson fit + escapes removed*, *Poisson fit + fixed width + escapes removed* fits with residuals → 500 spectra → bias, pulls, the "accurate" rule →
   strengths and false signal → the scoreboard and the judgment.
-- `docs/studies/xrf_models/walkthrough.md` and `walkthrough/`: three scatter models over E6.1-a with
-  residuals → the misfit at use (1 + p (D/dof − 1), checked by 40 thinnings) → a twin and a second draw →
-  the floor → a synthetic line with readout B's skew through the shape ladder → the noise-free P2 test.
-- **A correction it found** (applied): the README said P2's 6 % loss with real-shaped lines is the part of
+- `docs/studies/xrf_models/walkthrough.md` and `walkthrough/`: three scatter models over 6.1 keV blank a with
+  residuals → the misfit at use (1 + p × (misfit − 1), checked by 40 thinnings) → a twin and a second draw →
+  the floor → a synthetic line with the 7-element detector's skew through the shape ladder → the noise-free test of the fixed width.
+- **A correction it found** (applied): the README said the fixed width's 6 % loss with real-shaped lines is the part of
   the line outside a Gaussian. The calibration twin has the same shape and cancels that; on noise-free
-  spectra P1+P2+P3 still reads −4.9 to −7.2 %. README 2c, the C69 row and physics_notes now say it is a
+  spectra *Poisson fit + fixed width + escapes removed* still reads −4.9 to −7.2 %. README 2c, the C69 row and physics_notes now say it is a
   systematic of the fixed width over real scatter.
 - The models README gained a glossary and a pointer to the walkthrough; the shootout's `summary.md` and
   `README.md` link theirs; catalogue item `xrf_walkthrough` (TOOLS.md rendered);

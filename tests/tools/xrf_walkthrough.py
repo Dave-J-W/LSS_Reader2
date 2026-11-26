@@ -5,16 +5,18 @@ the verdict, on public data, with every statistic shown on one example.
 
 * ``shootout`` -> ``docs/studies/xrf_shootout/walkthrough/`` (W1-W5 and
   ``numbers.json``), for ``docs/studies/xrf_shootout/walkthrough.md``: one
-  committed blank (E9.2-a, readout B, 9.2 keV beam), a Ni K line of known
-  photons injected, the reader's fit P1 and P1+P3 drawn over one spectrum
+  committed blank (E9.2-a, the 7-element detector, 9.2 keV beam), a Ni K
+  line of known photons injected, the reader's three fits (Poisson fit; with
+  the escapes removed; with the width fixed too) drawn over one spectrum
   with its residuals, 500 spectra turned into a bias, its error, a pull and
   a verdict. The draws are the C66 run's own (same seeds), so the bias here
   must equal the committed ``run_blanks/scores.csv``; it is checked.
 * ``models`` -> ``docs/studies/xrf_models/walkthrough/`` (W1-W5 and
   ``numbers.json``), for ``docs/studies/xrf_models/walkthrough.md``: three
-  scatter models fitted to one blank (E6.1-a) with residuals, what a box
-  residual and the misfit at use mean, a real blank against its model twin
-  and a second draw, the floor, and a synthetic line with readout B's
+  scatter models fitted to one blank (E6.1-a) with residuals, what the miss
+  under a line and the misfit at use mean, a real blank against its model
+  twin and a second draw, the floor, and a synthetic line with the
+  7-element detector's
   measured skew fitted by a Gaussian and by one tail (the real lines'
   spectra are private; their numbers are in ``lines/line_shapes.csv``).
 
@@ -54,6 +56,7 @@ EX = dict(blank='E9.2-a', target='Ni K', background=1000, ratio=1.0)       # the
 MEX = dict(blank='E6.1-a', target='Ti K')                                  # the models study's example
 BLUE, ORANGE, GREEN, RED, VIOLET = '#2a78d6', '#eb6834', '#1baf7a', '#e34948', '#6250d6'
 MODEL_COLOR = {'generator': F.MUTED, 'gaussian': RED, 'full': BLUE}
+MODEL_SHORT = {'generator': 'generator defaults', 'gaussian': 'Gaussian detector', 'full': 'full model'}
 
 
 def read(path):
@@ -128,18 +131,18 @@ def shootout(out):
     ie = int(np.argmin(abs(e - esc)))
     a1.annotate('the Si escape of that peak\n(1.74 keV lower)', (e[ie], full[ie]), (e[ie] - 0.6, full[ie] * 12), fontsize=8,
                 color=F.INK2, arrowprops=dict(arrowstyle='-', color=F.INK2, lw=0.6))
-    a1.text(0.5 * (lo + hi), full[box].min() * 0.6, 'the Ni K box', ha='center', fontsize=8, color=F.INK2)
+    a1.text(0.5 * (lo + hi), full[box].min() * 0.6, 'the Ni K line window', ha='center', fontsize=8, color=F.INK2)
     a1.set_xlabel('energy (keV)')
     a1.set_ylabel('counts per channel')
-    a1.set_title('(a) Blank %s as it comes in: %.3g counts, no line in it' % (b['id'], full.sum()), loc='left', fontsize=9)
+    a1.set_title('(a) The %s as it comes in: %.3g counts, no line in it' % (F.blank_name(b['id']), full.sum()), loc='left', fontsize=9)
     z = (e > lo - 0.25) & (e < hi + 0.25)
     a2.errorbar(e[z], full[z], yerr=np.sqrt(full[z]), fmt='.', ms=2, color=F.INK, ecolor=F.MUTED, elinewidth=0.6)
     a2.axvspan(lo, hi, color=F.GRID, alpha=0.9, lw=0)
     a2.axvline(esc, color=VIOLET, lw=0.8, ls='--')
     a2.text(esc, a2.get_ylim()[1], ' escape of the beam', color=VIOLET, fontsize=7, va='top')
     a2.set_xlabel('energy (keV)')
-    a2.set_title('(b) Around the Ni K box, linear, error bars sqrt(counts)', loc='left', fontsize=9)
-    fig.suptitle('W1. The raw data: a real scatter-only spectrum (readout B, one element of the 7-element detector, '
+    a2.set_title('(b) Around the Ni K line window, linear scale, error bars √counts', loc='left', fontsize=9)
+    fig.suptitle('W1. The raw data: a real scatter-only spectrum (one element of the 7-element detector, '
                  'beam %.1f keV)' % E0, x=0.01, ha='left', fontsize=10, fontweight='bold')
     fig.tight_layout()
     fig.savefig(os.path.join(out, 'W1_raw_blank.png'), dpi=150)
@@ -150,7 +153,7 @@ def shootout(out):
     counts = [bc.draw(spec, rng) for _ in range(bc.cond.series)]
     w = (e > lo - 0.6) & (e < hi + 0.6)
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(13, 4.6), sharey=True)
-    a1.plot(e[w], bc.p * full[w], color=F.MUTED, lw=1.2, label='the blank x p = %.4f (its mean once thinned)' % bc.p)
+    a1.plot(e[w], bc.p * full[w], color=F.MUTED, lw=1.2, label='the blank × p = %.4f, the share of its counts kept (its mean once thinned)' % bc.p)
     a1.plot(e[w], spec.expected[w], color=BLUE, lw=1.2, label='the Ni K line: %d photons, the detector measured on this blank'
             % bc.photons)
     a1.plot(e[w], bc.p * full[w] + spec.expected[w], color=F.INK, lw=1.0, label='their sum: what one spectrum should hold')
@@ -158,7 +161,7 @@ def shootout(out):
     a1.legend(fontsize=7, loc='upper left')
     a1.set_xlabel('energy (keV)')
     a1.set_ylabel('counts per channel')
-    a1.set_title('(a) The recipe: thin the real blank to %d counts in the box, add a line of known photons'
+    a1.set_title('(a) The recipe: thin the real blank to %d counts in the line window, add a line of known photons'
                  % EX['background'], loc='left', fontsize=9)
     c0 = counts[0]
     a2.errorbar(e[w], c0[w], yerr=np.sqrt(np.maximum(c0[w], 1)), fmt='.', ms=3, color=F.INK, ecolor=F.MUTED, elinewidth=0.6,
@@ -190,7 +193,7 @@ def shootout(out):
         bgm = r.background_at(x) * xs.SCALE
         ax, rx = axes[0, j], axes[1, j]
         ax.errorbar(x[sel], y[sel], yerr=np.sqrt(np.maximum(mu[sel], 1)), fmt='.', ms=3, color=F.INK, ecolor=F.MUTED,
-                    elinewidth=0.6, label='data' + (' with the escape stripped' if m != 'p1' else ''))
+                    elinewidth=0.6, label='data' + (', escapes removed' if m != 'p1' else ''))
         ax.plot(x[sel], mu[sel], color=BLUE, lw=1.4, label='fit: Gaussian + quadratic' + (', width fixed' if m == 'p1p2p3' else ''))
         ax.plot(x[sel], bgm[sel], color=BLUE, lw=0.9, ls='--', label='its quadratic background')
         if m == 'p1':
@@ -199,7 +202,7 @@ def shootout(out):
         rx.axhline(0, color=F.INK2, lw=0.6)
         rx.bar(x[sel], res, width=float(np.median(np.diff(x))) * 0.8, color=BLUE, alpha=0.7)
         rx.set_ylim(-4, 4)
-        rx.set_ylabel('(data - fit) / sigma')
+        rx.set_ylabel('miss / its noise\n(data − fit) / √fit')
         rx.set_xlabel('energy (keV)')
         est = r.peaks[0].area / float(np.median(np.abs(np.diff(x)))) * xs.SCALE / ks[m][0]
         err = r.peaks[0].area_err / float(np.median(np.abs(np.diff(x)))) * xs.SCALE / ks[m][0]
@@ -208,13 +211,13 @@ def shootout(out):
         N['fit'][m] = dict(estimate=r3(est), error=r3(err), truth=r3(truth), ratio=r3(est / truth), pull=r3((est - truth) / err),
                            k_calibration=r3(ks[m][0]), points=k, chi2=r3(chi2), dof=k - 4, chi2_dof=r3(chi2 / (k - 4)),
                            centre_keV=r3(ref.peaks[0].centre), fwhm_keV=r3(ref.peaks[0].fwhm))
-        ax.set_title('%s\nestimate %.0f +- %.0f photons (truth %.0f); chi2/dof %.2f'
-                     % ({'p1': '(a) P1, the default', 'p1p3': '(b) P1+P3: the escape stripped first',
-                         'p1p2p3': '(c) P1+P2+P3: stripped, width fixed at the resolution'}[m], est, err, truth,
+        ax.set_title('%s\nestimate %.0f ± %.0f photons (truth %.0f); misfit χ²/dof %.2f'
+                     % ({'p1': '(a) Poisson fit (the default)', 'p1p3': '(b) Poisson fit + escapes removed (before the fit)',
+                         'p1p2p3': '(c) Poisson fit + fixed width + escapes removed'}[m], est, err, truth,
                         chi2 / (k - 4)), loc='left', fontsize=9)
         ax.legend(fontsize=7, loc='upper left')
         ax.set_ylabel('counts per channel')
-    fig.suptitle('W3. The fit over one spectrum, with its residuals (each miss in units of its own sqrt(expected counts))',
+    fig.suptitle('W3. The fit over one spectrum, with its residuals (each miss in units of its own noise, √(expected counts))',
                  x=0.01, ha='left', fontsize=10, fontweight='bold')
     fig.tight_layout()
     fig.savefig(os.path.join(out, 'W3_fit_and_residuals.png'), dpi=150)
@@ -268,9 +271,9 @@ def shootout(out):
     ax.set_yticks(ys)
     ax.set_yticklabels([xs_short(m) for m in allm], fontsize=8)
     ax.set_xlim(-30, 30)
-    ax.set_xlabel('bias (%), bar = 2 x its standard error (clipped at +-30)')
-    ax.set_title('(c) The verdict: accurate (blue) if |bias| <= max(2 %, 2 SE)', loc='left', fontsize=9)
-    fig.suptitle('W4. From 500 spectra to a verdict, this condition (Ni K, line = background, 1000 counts in the box)',
+    ax.set_xlabel('bias (%), bar = 2 × its standard error (clipped at ±30)')
+    ax.set_title('(c) The verdict: blue = accurate, |bias| ≤ 2 %\n(or ≤ 2 standard errors, when those are larger)', loc='left', fontsize=9)
+    fig.suptitle('W4. From 500 spectra to a verdict, this condition (Ni K, line = background, 1000 counts in the line window)',
                  x=0.01, ha='left', fontsize=10, fontweight='bold')
     fig.tight_layout()
     fig.savefig(os.path.join(out, 'W4_bias_pulls_verdict.png'), dpi=150)
@@ -301,11 +304,12 @@ def shootout(out):
     a1.set_xscale('log')
     a1.set_xticks(xb.RATIOS[1:])
     a1.set_xticklabels(['0.3', '1', '3'])
-    a1.text(0.02, 0.04, 'At 0.1 (off the scale): ' + ', '.join(weakest), transform=a1.transAxes, fontsize=7.5,
+    a1.xaxis.set_minor_formatter(plt.NullFormatter())
+    a1.text(0.98, 0.45, 'At 0.1 (off the scale):\n' + '\n'.join(weakest), transform=a1.transAxes, fontsize=7.5, ha='right',
             color=F.INK2)
-    a1.set_xlabel('line photons / background counts in the box')
-    a1.set_ylabel('bias (%), bars 2 SE')
-    a1.set_title('(a) Bias against the line\'s strength (Ni K on %s, %d background counts)' % (EX['blank'], EX['background']),
+    a1.set_xlabel('line strength: line photons / background counts in the line window')
+    a1.set_ylabel('bias (%), bars: 2 standard errors')
+    a1.set_title('(a) Bias against the line\'s strength (Ni K on %s, %d background counts)' % (F.blank_name(EX['blank']), EX['background']),
                  loc='left', fontsize=9)
     a1.legend(fontsize=7)
     fs = N.get('false_signal_per100', {})
@@ -314,7 +318,7 @@ def shootout(out):
     a2.set_yticklabels([xs_short(m) for m in fs], fontsize=8)
     a2.set_xlabel('photons reported per 100 background counts, with no line at all')
     a2.set_title('(b) The false signal: the bare thinned blank, nothing injected', loc='left', fontsize=9)
-    fig.suptitle('W5. Why the escape strip matters here: the beam\'s Si escape sits on Ni Ka', x=0.01, ha='left',
+    fig.suptitle('W5. Why removing the escapes matters here: the beam\'s Si escape sits on Ni Kα', x=0.01, ha='left',
                  fontsize=10, fontweight='bold')
     fig.tight_layout()
     fig.savefig(os.path.join(out, 'W5_strength_and_false_signal.png'), dpi=150)
@@ -366,11 +370,11 @@ def models(out):
     # W1: three models on one blank, with residuals
     fig, axes = plt.subplots(4, 1, figsize=(11, 9.2), sharex=True, gridspec_kw=dict(height_ratios=(2.4, 1, 1, 1)))
     sel = e < E0 + 0.3
-    axes[0].step(e[sel], n[sel], where='mid', color=F.INK, lw=0.7, label='blank %s (real counts)' % bid)
+    axes[0].step(e[sel], n[sel], where='mid', color=F.INK, lw=0.7, label='%s (real counts)' % F.blank_name(bid))
     N['box'] = {}
     for k, m in enumerate(('generator', 'gaussian', 'full')):
         mu = R[m]['mu']
-        axes[0].plot(e[sel], mu[sel], color=MODEL_COLOR[m], lw=1.1, label=m)
+        axes[0].plot(e[sel], mu[sel], color=MODEL_COLOR[m], lw=1.1, label=MODEL_SHORT[m])
         d = R[m]['d']
         axes[k + 1].bar(e[sel], np.clip(d[sel], -12, 12), width=float(np.median(np.diff(e))), color=MODEL_COLOR[m], lw=0)
         axes[k + 1].axhline(0, color=F.INK2, lw=0.5)
@@ -379,18 +383,18 @@ def models(out):
         dl = float(np.sum(_dev(n[low], mu[low])))
         N['box'][m] = dict(data=r3(nb), model=r3(mb), box_residual=r3(nb / mb - 1), z=r3((nb - mb) / math.sqrt(mb)),
                            dev_per_point_low=r3(dl / int(low.sum())))
-        axes[k + 1].set_ylabel('%s\nresidual (sigma)' % m, fontsize=8)
+        axes[k + 1].set_ylabel('%s\nmiss / its noise' % MODEL_SHORT[m], fontsize=8)
         axes[k + 1].set_ylim(-12, 12)
-        axes[k + 1].text(0.01, 0.85, 'in the Ti box: data / model - 1 = %+.1f %%; below the beam, deviance per point %.2f'
+        axes[k + 1].text(0.01, 0.85, 'in the Ti line window: data / model − 1 = %+.1f %%; below the beam, misfit (deviance per point) %.2f'
                          % (100 * (nb / mb - 1), dl / int(low.sum())), transform=axes[k + 1].transAxes, fontsize=7.5)
     axes[0].axvspan(line - fw, line + fw, color=F.GRID, alpha=0.9, lw=0)
     axes[0].set_yscale('log')
     axes[0].set_ylabel('counts per channel')
     axes[0].legend(fontsize=7, loc='upper left')
-    axes[0].set_title('Blank %s (readout B, beam %.1f keV) and three scatter models fitted to it; grey: the Ti K box '
-                      '(+-1 FWHM)' % (bid, E0), loc='left', fontsize=9)
+    axes[0].set_title('The %s (7-element detector, beam %.1f keV) and three scatter models fitted to it; grey: the Ti K '
+                      'line window (± 1 FWHM)' % (F.blank_name(bid), E0), loc='left', fontsize=9)
     axes[-1].set_xlabel('energy (keV)')
-    fig.suptitle('W1. A scatter model over the data, with its residuals (deviance residuals: about +-1 where the model '
+    fig.suptitle('W1. A scatter model over the data, with its residuals (each miss in noise units: about ±1 where the model '
                  'is right)', x=0.01, ha='left', fontsize=10, fontweight='bold')
     fig.tight_layout()
     fig.savefig(os.path.join(out, 'W1_scatter_models_and_residuals.png'), dpi=150)
@@ -410,7 +414,7 @@ def models(out):
         pred = 1 + bc.p * (D - 1)
         N['at_use'][m] = dict(full_counts=r3(D), thinned_measured=r3(float(np.mean(sims))),
                               thinned_sd=r3(float(np.std(sims, ddof=1))), predicted_1_plus_p=r3(pred))
-        ax.errorbar([D], [np.mean(sims)], yerr=[np.std(sims, ddof=1)], fmt='o', color=MODEL_COLOR[m], label=m, ms=6)
+        ax.errorbar([D], [np.mean(sims)], yerr=[np.std(sims, ddof=1)], fmt='o', color=MODEL_COLOR[m], label=MODEL_SHORT[m], ms=6)
     # a perfect model: draw from the full model itself
     sims = []
     for _ in range(40):
@@ -418,11 +422,11 @@ def models(out):
         sims.append(float(np.sum(_dev(t, bc.p * R['full']['mu'][low]))) / int(low.sum()))
     N['at_use']['perfect'] = dict(thinned_measured=r3(float(np.mean(sims))), thinned_sd=r3(float(np.std(sims, ddof=1))))
     g = np.logspace(np.log10(0.5), np.log10(200), 200)
-    ax.plot(g, 1 + bc.p * (g - 1), color=F.INK2, lw=0.8, label='1 + p (D/dof - 1), p = %.3f' % bc.p)
+    ax.plot(g, 1 + bc.p * (g - 1), color=F.INK2, lw=0.8, label='rule: 1 + p × (misfit − 1), p = %.3f' % bc.p)
     ax.axhline(1, color=F.GRID, lw=1)
     ax.set_xscale('log')
-    ax.set_xlabel('deviance per point at full counts (the blank as measured)')
-    ax.set_ylabel('deviance per point after thinning to\n%d counts in the Ti box (40 draws)' % 1000)
+    ax.set_xlabel('misfit (deviance per point) at full counts: the blank as measured')
+    ax.set_ylabel('misfit after thinning to %d counts\nin the Ti line window (40 draws)' % 1000)
     ax.legend(fontsize=7)
     ax.set_title('W2. A misfit shrinks when the counts do: what a method sees is the thinned blank', loc='left',
                  fontsize=9.5, fontweight='bold')
@@ -448,12 +452,12 @@ def models(out):
     for ax in axes:
         ax.axvspan(line - fw, line + fw, color=F.GRID, alpha=0.9, lw=0)
     axes[1].axhline(0, color=F.INK2, lw=0.5)
-    axes[1].set_ylabel('(counts - model) / sqrt(model)')
+    axes[1].set_ylabel('miss / its noise\n(counts − model) / √model')
     axes[1].set_xlabel('energy (keV)')
     axes[0].set_ylabel('counts per channel')
     axes[0].legend(fontsize=7, loc='upper left')
-    axes[0].set_title('Around the Ti K box of %s: the twins scatter about the model as pure noise; the real blank also '
-                      'carries what the model misses' % bid, loc='left', fontsize=9)
+    axes[0].set_title('Around the Ti K line window of the %s: the twins scatter about the model as pure noise; the real '
+                      'blank also carries what the model misses' % F.blank_name(bid), loc='left', fontsize=9)
     fig.suptitle('W3. A model twin: the model\'s scatter, drawn once (and once more, for the floor)', x=0.01, ha='left',
                  fontsize=10, fontweight='bold')
     fig.tight_layout()
@@ -484,21 +488,21 @@ def models(out):
     a1.set_yticklabels([xs_short(m) for m in meths], fontsize=8)
     a1.set_xlabel('bias (%)')
     a1.legend(fontsize=7)
-    a1.set_title('(a) One condition (%s, Ti K, line = background): each method\'s bias three ways' % bid, loc='left',
+    a1.set_title('(a) One condition (%s, Ti K, line = background): each method\'s bias three ways' % F.blank_name(bid), loc='left',
                  fontsize=9)
     N['floor_cdf'] = {}
     for m, c, lab in (('full_redraw', GREEN, 'floor: second draw against the first'), ('full', BLUE, 'full model against the real'),
-                      ('gaussian', RED, 'Gaussian detector against the real'), ('generator', F.MUTED, 'generator against the real')):
+                      ('gaussian', RED, 'Gaussian detector against the real'), ('generator', F.MUTED, 'generator defaults against the real')):
         d = np.sort([abs(num(r['diff'])) for r in C if r['model'] == m and r['method'] != 'window' and np.isfinite(num(r['diff']))])
         a2.plot(100 * d, np.arange(1, len(d) + 1) / len(d), color=c, lw=1.4, label=lab)
         N['floor_cdf'][m] = dict(median=r3(float(np.median(d))), p90=r3(float(np.percentile(d, 90))), n=int(len(d)))
     a2.set_xscale('log')
     a2.set_xlim(0.05, 300)
-    a2.set_xlabel('|bias on the twin - bias on the reference| (%)')
-    a2.set_ylabel('share of conditions x methods')
+    a2.set_xlabel('|bias on the twin − bias on the reference| (%)')
+    a2.set_ylabel('share of conditions × methods')
     a2.axhline(0.5, color=F.GRID, lw=1)
     a2.legend(fontsize=7, loc='lower right')
-    a2.set_title('(b) All 240 conditions x 7 fitting methods: where each curve crosses 0.5 is its median', loc='left',
+    a2.set_title('(b) All 240 conditions × 7 fitting methods: where each curve crosses 0.5 is its median', loc='left',
                  fontsize=9)
     fig.suptitle('W4. The floor: a model stands in for the real scatter only as far as two draws of one truth agree',
                  x=0.01, ha='left', fontsize=10, fontweight='bold')
@@ -531,11 +535,11 @@ def models(out):
         N['line_ladder'][shp] = dict(dev_per_dof=r3(dev / dof), tail=r3(P['tail']), tail_slope_keV=r3(P['tail_slope']),
                                      fwhm_over_resolution=r3(fwr))
         ax.set_title({'gauss_res': '(a) Gaussian at the resolution', 'gauss': '(b) Gaussian, width free',
-                      'tail': '(c) Gaussian + one low-energy tail'}[shp] + ': deviance/dof %.1f' % (dev / dof),
+                      'tail': '(c) Gaussian + one low-energy tail'}[shp] + ': misfit (deviance/dof) %.1f' % (dev / dof),
                      loc='left', fontsize=9)
     axes[0, 0].set_ylabel('counts per channel')
-    axes[1, 0].set_ylabel('residual (sigma)')
-    fig.suptitle('W5. A synthetic Cu K line with readout B\'s measured skew (%.0f %% in a %.0f eV tail), 3e5 photons: '
+    axes[1, 0].set_ylabel('miss / its noise')
+    fig.suptitle('W5. A synthetic Cu K line with the 7-element detector\'s measured skew (%.0f %% in a %.0f eV tail), 3e5 photons: '
                  'the shape ladder' % (100 * sh['tail'], 1000 * sh['tail_slope']), x=0.01, ha='left', fontsize=10,
                  fontweight='bold')
     fig.tight_layout()

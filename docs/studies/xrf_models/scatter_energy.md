@@ -10,8 +10,8 @@ and the high-energy tail at high rates. Only E0 − 4 … E0 matters: the backgr
 that are fitted there. "Good enough" means that a line fit on the synthetic scatter is biased as it
 is on the real one.
 
-**Evidence.** Every number below is **measured** on real spectra (leave-one-energy-out on readout B,
-and readout B's sets applied to readout A at 10 keV), unless it is marked **computed** (the model
+**Evidence.** Every number below is **measured** on real spectra (leave-one-energy-out on the 7-element detector,
+and the 7-element detector's sets applied to the single-element detector at 10 keV), unless it is marked **computed** (the model
 run where no spectrum exists to check it) or **reasoned**.
 
 **Regenerate** (private: it reads the owner's spectra bundle; about 15 minutes on 8 processes):
@@ -34,7 +34,7 @@ case by case. This memo quotes only derived numbers from them.
   - the Compton/Rayleigh ratio, scaled by water's cross-section ratio;
   - Reed's escape fraction;
   - the Fano part of the resolution.
-- **How good it is.** On readout B, with each energy held out in turn, it predicts the counts in
+- **How good it is.** On the 7-element detector, with each energy held out in turn, it predicts the counts in
   the five windows to **10 % (median; rms 16 %, worst 41 %)**. Another real spectrum *at the same
   energy*, from another detector element or file, differs from the held-out one by **14 % (rms 17 %,
   worst 42 %)**. So the prediction is as good as real spectra are alike. The generator's defaults
@@ -47,13 +47,13 @@ case by case. This memo quotes only derived numbers from them.
 - **Option c (an empirical residual template) adds nothing here.** The free fits of the pre-edge
   sums are close to the Poisson floor (deviance/dof 0.6–2.6; up to 5.5 at 7.4 keV), so their residuals are noise.
   Adding them made every method slightly worse.
-- **Readout A** can only be carried from its own three 10 keV sets. Readout B's sets put
-  +70 … +230 % too much under its lines at 10 keV (measured). Away from 10 keV, readout A rests on
-  assumptions worth about ±30–40 % at E0 − 1 … 2 keV (computed; see "Readout A").
+- **The single-element detector** can only be carried from its own three 10 keV sets. The 7-element detector's sets put
+  +70 … +230 % too much under its lines at 10 keV (measured). Away from 10 keV, the single-element detector rests on
+  assumptions worth about ±30–40 % at E0 − 1 … 2 keV (computed; see "The single-element detector").
 
 ## Data
 
-**Readout B pre-edge sums: 24 cases at six beam energies.** Each case is one detector element of
+**The 7-element detector pre-edge sums: 24 cases at six beam energies.** Each case is one detector element of
 one energy-scan file. Its points 30–160 eV below an edge were aligned on their mean beam energy
 (`rebin_shift`) and summed. There are 20 points per case, 40–44 s in all.
 
@@ -77,14 +77,14 @@ A second setup at 7.4 keV was tried and dropped: a sample line near 6.4 keV hold
 peak's height there, so those sums are not scatter-only.
 
 **Targets that are only predicted:**
-- readout B at 10 keV: three single-scan sums from two of the setups, at 118–145 kcps;
-- readout A at 10 keV: E10-f, E10-j and E10-k, three setups.
+- the 7-element detector at 10 keV: three single-scan sums from two of the setups, at 118–145 kcps;
+- the single-element detector at 10 keV: blanks f, j and k, one from each of its three setups.
 
 **Free fits.** Every case was fitted with `mca_scatter.ScatterModel` over E0 − 2.6 … E0 + 0.6 keV
 (`fits.csv`, private).
 - Deviance/dof: 0.6–0.8 at 8.3–9.2 keV; 1.3–2.6 at 6.1–7.2 keV; 2–5.5 at 7.4 keV (up to 14 × 10⁶
   counts); 0.7–1.6 at 6.9 keV.
-- 10 keV: 2–5 on B and 4–10 on A.
+- 10 keV: 2–5 on the 7-element detector and 4–10 on the single-element one.
 
 ## Methods compared
 
@@ -134,18 +134,18 @@ free fit:
   1.74 and 2.0 keV (the study's `window_counts_per_keV_*`). The windows' own statistical errors
   are 0.3–0.9 %.
 - **false line**: the line that a fixed-centre, fixed-width Gaussian on a quadratic, fitted by
-  Poisson likelihood in each window (the reader's P1 with P2), finds on scatter alone. It is given
-  in photons per 100 counts in the box, on the real and on the predicted scatter. This is the
+  Poisson likelihood in each window (the reader's *Poisson fit* with the fixed width), finds on scatter alone. It is given
+  in photons per 100 counts in the line window, on the real and on the predicted scatter. This is the
   "biased the same way" test.
 
-## Results: readout B, every energy held out in turn (measured)
+## Results: the 7-element detector, every energy held out in turn (measured)
 
 ### All 24 pre-edge cases
 
 - **Window error, per energy:** the median |window error| over the cases and windows of that
   energy.
 - **Over all cases:** taken over all 24 cases × 5 windows.
-- **|ΔFL|:** the median |predicted − real| false line, in photons per 100 box counts, in the
+- **|ΔFL|:** the median |predicted − real| false line, in photons per 100 counts in the line window, in the
   E0 − 0.6 / 1.0 / 1.37 / 1.74 / 2.0 keV windows.
 
 | Method | 6.1 | 6.9 | 7.2 | 7.4 | 8.3 | 9.2 | Median | Rms | Worst | Deviance/dof (median) | \|ΔFL\| |
@@ -172,7 +172,7 @@ free fit:
 
 | Window | E0 − 0.6 | E0 − 1.0 | E0 − 1.37 | E0 − 1.74 | E0 − 2.0 |
 |---|---|---|---|---|---|
-| Photons per 100 box counts | −2.5 | −0.7 | +1.9 | **+14.6** | −3.8 |
+| Photons per 100 counts in the line window | −2.5 | −0.7 | +1.9 | **+14.6** | −3.8 |
 | Statistical error | 0.3 | 0.7 | 0.9 | 1.0 | 1.0 |
 
 The E0 − 1.74 keV window is the scatter's own escape peak.
@@ -233,14 +233,14 @@ The free fit extrapolated gives 0.86–1.28.
     Compton/Rayleigh ratio, the Doppler width, the O 1s wing and the tail trade against each
     other at these resolutions.
   - A whole set keeps them consistent.
-- **The ensemble spread is a fair uncertainty on readout B.** Carry every training set to the
+- **The ensemble spread is a fair uncertainty on the 7-element detector.** Carry every training set to the
   held-out energy and take the spread of their window counts: 15–25 % (median).
   - The real counts fall within it: z rms 0.8–1.4 per energy (1.5 at 10 keV).
-  - On readout A at 10 keV, readout B's ensemble is far off: z rms 2.2.
+  - On the single-element detector at 10 keV, the 7-element detector's ensemble is far off: z rms 2.2.
 
-### Readout B at 10 keV, extrapolated from 6.1–9.2 keV
+### The 7-element detector at 10 keV, extrapolated from 6.1–9.2 keV
 
-The 10 keV readout B spectra have more tail than any pre-edge set. They are at 120–145 kcps, with
+The 7-element detector's 10 keV spectra have more tail than any pre-edge set. They are at 120–145 kcps, with
 tails of 6–13 %. So every prediction from 9.2 keV and below is low:
 
 | Method | Window error, E0 − 0.6 / 1.0 / 1.37 / 1.74 / 2.0 keV |
@@ -251,7 +251,7 @@ tails of 6–13 %. So every prediction from 9.2 keV and below is low:
 | Generator defaults | −25 / −59 / −77 / −81 / −83 % |
 
 **Extrapolating 0.8 keV beyond the bank and into another setup costs about 25–35 %.** The bank
-of a real generator would include the three 10 keV readout B sets, so 9.2–10 keV is interpolation
+of a real generator would include the 7-element detector's three 10 keV sets, so 9.2–10 keV is interpolation
 there.
 
 ## Why carrying a measured set
@@ -279,32 +279,32 @@ What it does not do well:
   per-setup line in E0. The smooth form's |ΔFL| at E0 − 1.74 keV is 4.3, against 3.2 for the
   carried set and 2.6 for the shifted spectrum. So the escape is not yet the weak point.
 
-## Readout A
+## The single-element detector
 
-### What carries over from readout B
+### What carries over from the 7-element detector
 
 | | Measured or computed |
 |---|---|
 | **The physics of the energy dependence** (Compton kinematics, water's profiles in p_z, Reed, Fano, water's Compton/Rayleigh cross-section ratio) carries over: it is the model's, not the detector's. | Checks below |
 | **The form of the bank and of `set_distance`** carries over. | — |
-| **The sizes of the errors** (about 15 % per carried set within one setup, independent of ΔE0 up to 1.5 keV) are the best guide, but they are readout B's. | Measured on B |
+| **The sizes of the errors** (about 15 % per carried set within one setup, independent of ΔE0 up to 1.5 keV) are the best guide, but they are the 7-element detector's. | Measured on the 7-element detector |
 
 **Checks of the physics:**
-- On readout A at 10 keV and 90°, water's independent-atom Compton/Rayleigh ratio is 1.87. The
+- On the single-element detector at 10 keV and 90°, water's independent-atom Compton/Rayleigh ratio is 1.87. The
   measured ratio is 1.9–2.3.
-- On readout B (one setup), the measured ratio between 8.3 and 9.2 keV is 0.84. Water's
+- On the 7-element detector (one setup), the measured ratio between 8.3 and 9.2 keV is 0.84. Water's
   cross-sections give 0.76 at the fitted angle: 10 % off.
 
 ### What does not carry over (measured)
 
-Readout B's sets put on readout A at 10 keV miss by:
+The 7-element detector's sets put on the single-element detector at 10 keV miss by:
 
 | Window | E0 − 0.6 | E0 − 1.0 | E0 − 1.37 | E0 − 1.74 | E0 − 2.0 |
 |---|---|---|---|---|---|
 | Chosen set | −21 % | +8 % | +69 % | +162 % | +233 % |
 | Smooth form | −1 % | +11 % | +28 % | +101 % | +164 % |
 
-Readout A's tail is 2 % (B: 3–13 %) and its shelf is 0 (B: up to 4 %). Readout A must be built from
+The single-element detector's tail is 2 % (7-element: 3–13 %) and its shelf is 0 (7-element: up to 4 %). The single-element detector must be built from
 its own three 10 keV sets. Those three, from three setups, differ from each other by 0–19 % in the
 windows (measured).
 
@@ -317,8 +317,8 @@ All of these are assumed constant in E0:
 - the Doppler scale and the O 1s wing (0.8);
 - the angle (91°).
 
-**How wrong that could be (computed).** These are the readout A sets carried to 8.3 keV, and how
-much the window counts move when each assumption moves by about readout B's range of variation:
+**How wrong that could be (computed).** These are the single-element detector's sets carried to 8.3 keV, and how
+much the window counts move when each assumption moves by about the 7-element detector's range of variation:
 
 | Assumption moved | E0 − 0.6 | E0 − 1.0 | E0 − 1.37 | E0 − 1.74 | E0 − 2.0 |
 |---|---|---|---|---|---|
@@ -332,33 +332,33 @@ much the window counts move when each assumption moves by about readout B's rang
 - At 6.1–7.2 keV the tail terms are larger (up to +39 % at E0 − 1 … 1.37 keV, and +16 % at
   E0 − 0.6 keV), and the Doppler and wing terms are smaller at E0 − 1.37 … 2 keV
   (`readout_a_summary.txt`).
-- So readout A away from 10 keV is uncertain by about **±10–20 % at E0 − 0.6 keV (the larger at
+- So the single-element detector away from 10 keV is uncertain by about **±10–20 % at E0 − 0.6 keV (the larger at
   6–7 keV) and ±30–40 % at E0 − 1 … 2 keV**.
-- This is reasoned from those sensitivities and from readout B's measured 15 % per carried set.
-  Nothing on readout A can check it.
-- Readout B's tail did not fall towards low energy: 0.04 at 6.1 keV, 0.06–0.08 at 9.2 keV (measured).
-  There is therefore no measured reason to expect readout A's 2 % to grow below 10 keV. A
+- This is reasoned from those sensitivities and from the 7-element detector's measured 15 % per carried set.
+  Nothing on the single-element detector can check it.
+- The 7-element detector's tail did not fall towards low energy: 0.04 at 6.1 keV, 0.06–0.08 at 9.2 keV (measured).
+  There is therefore no measured reason to expect the single-element detector's 2 % to grow below 10 keV. A
   silicon drift detector's incomplete-charge tail is often larger at low energies (reasoned, from
   general knowledge, not measured here).
 
 ## What the method cannot do
 
-- **Readout A at any energy but 10 keV**, beyond the assumption band above. One measured readout A
-  spectrum at another energy would turn it into a measurement.
+- **The single-element detector at any energy but 10 keV**, beyond the assumption band above. One spectrum measured on the
+  single-element detector at another energy would turn it into a measurement.
 - **Other angles.** All measured sets have fitted 2θ of 66–113°.
   - The kinematics and water's Compton/Rayleigh ratio are computed for any angle.
-  - The Doppler scale is not. It is 1.0 on readout A and 1.1–1.9 on readout B, and it includes
+  - The Doppler scale is not. It is 1.0 on the single-element detector and 1.1–1.9 on the 7-element detector, and it includes
     the spread of angles over the footprint and the detector, which changes with the geometry.
   - Polarisation is taken as the same factor for both processes.
 - **Other samples.** The Compton profile, the O 1s wing and the Compton/Rayleigh ratio are
   water's. Another matrix, or a cell window in the beam, changes all three and adds its own lines.
   The sets also hold this geometry's absorption of the scatter on its way out.
-- **Count rates outside 3–350 kcps** (readout B pre-edge), and readout B above 9.2 keV except
+- **Count rates outside 3–350 kcps** (the 7-element detector's pre-edge sums), and the 7-element detector above 9.2 keV except
   through its three 10 keV sets.
 - **Below E0 − 2.6 keV**, the model is extrapolated. It reads the deep band within 0.6–1.6 × the
   real one.
 - **Above E0** (the high-energy tail, pile-up), it is roughly right only.
-- **Readout B without naming the element.** The 15–20 % between elements is real. A generator can
+- **The 7-element detector without naming the element.** The 15–20 % between elements is real. A generator can
   only offer the bank and its spread.
 - **The truth of the windows.** It is the held-out spectrum minus its own fitted nuisance lines,
   which hold up to 43 % of a window's counts in a few trace-line cases (E0 − 1.37 keV at 7.2 and
@@ -387,11 +387,11 @@ ens = sb.scatter_ensemble(readout, e0, **kw)   # [(set id, Spectrum)]: every set
   - `'random'`: drawn with `rng`, weighted by distance.
 - **`angle`:** replaces the set's angle, with the Compton/Rayleigh ratio scaled by water's
   cross-sections between the two angles. The Doppler scale is kept, which is the uncertain part.
-- **Warnings** outside 6.1–10 keV on readout B, and away from 10 keV on readout A.
+- **Warnings** outside 6.1–10 keV on the 7-element detector, and away from 10 keV on the single-element detector.
 - **Shootout tests** run over `scatter_ensemble` and report the spread of the bias as a systematic.
 
-**The bank** is the fitted parameter sets (derived numbers, like `scatter_fits.csv`): 24 readout B
-pre-edge sets, 3 readout B and 3 readout A sets at 10 keV. Ids are anonymous; setups and elements
+**The bank** is the fitted parameter sets (derived numbers, like `scatter_fits.csv`): 24 pre-edge sets
+from the 7-element detector, and 3 sets at 10 keV from each detector. Ids are anonymous; setups and elements
 are only labels.
 
 **Effort: about 1½ days.**

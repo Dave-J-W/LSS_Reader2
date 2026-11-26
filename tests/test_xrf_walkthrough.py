@@ -57,7 +57,8 @@ def _rows(text, width):
 def test_the_shootout_walkthrough_quotes_its_numbers():
     N, t = _json(SHOOT), _text(SHOOT)
     rows = _rows(t, 6)                                   # step 4's table: bias, SE, SD, pull mean, pull SD
-    for m, name in (('p1', 'P1'), ('p1p3', 'P1+P3'), ('p1p2p3', 'P1+P2+P3')):
+    for m, name in (('p1', 'Poisson fit'), ('p1p3', 'Poisson fit + escapes removed'),
+                    ('p1p2p3', 'Poisson fit + fixed width + escapes removed')):
         v = N['replicates'][m]
         assert rows[name][1:] == [_pc(v['bias']), '%.2f %%' % (100 * v['bias_se']), '%.1f %%' % (100 * v['sd']),
                                   '%+.2f' % v['pull_mean'], '%.2f' % v['pull_sd']], (name, rows[name])
@@ -80,6 +81,35 @@ def test_the_models_walkthrough_quotes_its_numbers():
         assert '%.1f' % N['line_ladder'][s]['dev_per_dof'] in t or '%.2f' % N['line_ladder'][s]['dev_per_dof'] in t, s
     for case, v in N['p2_noise_free'].items():
         assert _pc(v['p1p2p3']['line']) in t, case
+
+
+XRF_DOCS = [os.path.join(SHOOT, f) for f in ('walkthrough.md', 'summary.md', 'README.md', 'QUESTIONS.md',
+                                              'tables.md', 'blanks_tables.md', 'real_tables.md')] + \
+           [os.path.join(MODELS, f) for f in ('walkthrough.md', 'README.md', 'scatter_energy.md')]
+
+
+@pytest.mark.parametrize('path', XRF_DOCS)
+def test_the_xrf_docs_use_plain_names_not_codes(path):
+    """Owner, 2026-11-25: "rename things with names like 'P1' and 'p1 + p2' and
+    anything else written in cryptic fashion". The reader's options are named
+    (Poisson fit, + fixed width, + escapes removed), the detectors are named
+    (not readout A/B) and the blanks are '9.2 keV blank a' (not E9.2-a); a line
+    that maps an old code to its name says F90 (the feature that numbered them)."""
+    import re
+    with open(path, encoding='utf-8') as f:
+        bad = [line for line in f
+               if re.search(r'\bP[123]\b|\b[Rr]eadout [AB]\b|(?<![/\w])E(6\.1|9\.2|10)-[a-k]\b(?!\.csv)', line)
+               and 'F90' not in line]
+    assert bad == [], bad[:3]
+
+
+def test_the_figure_labels_use_plain_names():
+    import xrf_shootout_figures as F
+    for table in (F.SHORT, F.LABEL):
+        for m, name in table.items():
+            assert not any(c in name for c in ('P1', 'P2', 'P3')), (m, name)
+    assert F.blank_name('E9.2-a') == '9.2 keV blank a'
+    assert F.cond_name('hard_11keV') == 'hard case, 11 keV beam'
 
 
 def test_a_perfect_model_has_unit_deviance_per_point_after_thinning():

@@ -50,16 +50,80 @@ sys.path.insert(0, os.path.join(os.getcwd(), 'tests', 'tools'))
 SURFACE, INK, INK2, MUTED, GRID, AXIS = '#fcfcfb', '#0b0b0b', '#52514e', '#898781', '#e1e0d9', '#c3c2b7'
 COLOR = {'p1': '#2a78d6', 'pymca': '#eb6834', 'pymca_best': '#eb6834', 'larch': '#1baf7a', 'pyxrf': '#eda100', 'xeray': '#e87ba4',
          'p1p2p3': '#008300', 'window': '#6250d6', 'fit_data': '#e34948', 'p1p2': '#86b6ef', 'p1p3': '#7cc47c'}
-LABEL = {'window': 'reader: window sum', 'fit_data': 'reader: fit, data weights (old)', 'p1': 'reader: fit, Poisson (default)',
-         'p1p2p3': 'reader: Poisson + width + escape strip', 'p1p2': 'reader: Poisson + width',
-         'p1p3': 'reader: Poisson + escape strip', 'xeray': 'XeRay (port)', 'pymca': 'PyMca',
-         'pymca_tails': 'PyMca, Hypermet tails', 'pyxrf': 'PyXRF (scikit-beam)', 'larch': 'Larch (series)',
-         'larch_each': 'Larch (each spectrum)', 'pymca_snip60': 'PyMca, SNIP 60', 'pymca_snip100': 'PyMca, SNIP 100',
-         'pymca_poly': 'PyMca, polynomial continuum', 'pymca_best': 'PyMca, best of 5 settings (picked with the truth)'}
-SHORT = {'window': 'window', 'fit_data': 'fit (data)', 'p1': 'P1 (default)', 'p1p2p3': 'P1+P2+P3', 'p1p2': 'P1+P2', 'p1p3': 'P1+P3', 'xeray': 'XeRay',
-         'pymca': 'PyMca', 'pymca_tails': 'PyMca tails', 'pyxrf': 'PyXRF', 'larch': 'Larch', 'larch_each': 'Larch each',
-         'pymca_snip60': 'PyMca SNIP60', 'pymca_snip100': 'PyMca SNIP100', 'pymca_poly': 'PyMca poly',
-         'pymca_best': 'PyMca best'}
+# Names a reader can follow without a key (owner, 2026-11-25: "rename things with names like 'P1' and
+# 'p1 + p2' and anything else written in cryptic fashion"). The ids on the left stay what the run files
+# use; F90's option numbers were P1 (Poisson likelihood), P2 (width fixed at the detector's resolution)
+# and P3 (Si escape peaks removed before the fit).
+LABEL = {'window': 'reader: window sum', 'fit_data': 'reader: fit with the old data weights',
+         'p1': 'reader: Poisson fit (the default)',
+         'p1p2p3': 'reader: Poisson fit + fixed width + escapes removed', 'p1p2': 'reader: Poisson fit + fixed width',
+         'p1p3': 'reader: Poisson fit + escapes removed', 'xeray': 'XeRay (port)', 'pymca': 'PyMca',
+         'pymca_tails': 'PyMca with detector tails', 'pyxrf': 'PyXRF (scikit-beam)', 'larch': 'Larch (whole series)',
+         'larch_each': 'Larch (each spectrum alone)', 'pymca_snip60': 'PyMca, SNIP background 60',
+         'pymca_snip100': 'PyMca, SNIP background 100', 'pymca_poly': 'PyMca, polynomial background',
+         'pymca_best': 'PyMca, best of 5 settings (picked with the truth)'}
+SHORT = {'window': 'window sum', 'fit_data': 'fit, old weights', 'p1': 'Poisson fit (default)',
+         'p1p2p3': 'Poisson fit + fixed width + escapes removed', 'p1p2': 'Poisson fit + fixed width',
+         'p1p3': 'Poisson fit + escapes removed', 'xeray': 'XeRay',
+         'pymca': 'PyMca', 'pymca_tails': 'PyMca with tails', 'pyxrf': 'PyXRF', 'larch': 'Larch',
+         'larch_each': 'Larch, each alone', 'pymca_snip60': 'PyMca, SNIP 60', 'pymca_snip100': 'PyMca, SNIP 100',
+         'pymca_poly': 'PyMca, polynomial', 'pymca_best': 'PyMca, best setting'}
+READOUT = {'A': 'single-element detector', 'B': '7-element detector'}
+
+
+def blank_name(bid):
+    """'E9.2-a' (the file in tests/reference/mca_scatter) -> '9.2 keV blank a'."""
+    if bid.startswith('E') and '-' in bid:
+        e, k = bid[1:].split('-', 1)
+        return '%s keV blank %s' % (e, k)
+    return bid
+
+
+_COND = {
+    'clean': 'Zn alone, no scatter (sanity check)', 'smooth': 'Zn on smooth scatter',
+    'hard': 'the hard case (Zn on water scatter)', 'hard_strong': 'hard case, Zn 10 x stronger',
+    'hard_low': 'hard case, 3 x fewer counts', 'fe_easy': 'Fe, far from the scatter',
+    'ga_by_zn': 'weak Ga beside strong Zn', 'co_by_fe': 'weak Co beside strong Fe',
+    'fe_by_mn': "Fe with Mn's K-beta under it", 'as_by_pb': "As with Pb's L-alpha on it",
+    'br_13.6keV': 'Br, beam just above its edge', 'br_14keV': 'Br, 14 keV beam',
+    'sr_16.2keV': 'Sr, beam just above its edge', 'er_L_10keV': 'Er L lines, 10 keV beam',
+    'lu_L_10keV': 'Lu L lines, 10 keV beam', 'tail_3pc': 'hard case, 3 % detector tail',
+    'shelf_0.5pc': 'hard case, 0.5 % detector shelf', 'escape_x3': 'hard case, 3 x the Si escape',
+    'fwhm_250': 'hard case, coarser detector (250 eV)', 'hard_shells': 'hard case, shell-model Compton',
+    'hard_wing0.5': 'hard case, half the O 1s wing', 'single': 'hard case, one spectrum alone',
+    'measured': 'measured detector and scatter', 'measured_strong': 'measured, Zn 10 x stronger',
+    'measured_12keV': 'measured, 12 keV beam'}
+
+
+SERIES = {'xfntr_smooth': 'Zn at the surface, smooth scatter', 'xfntr_smooth_weak': 'the same, 10 x fewer counts',
+          'xfntr_hard': 'Zn at the surface, the hard scatter', 'xfntr_hard_12keV': 'the hard scatter, 12 keV beam',
+          'xfntr_hard_cu': 'the hard scatter, Cu at 30 % of Zn', 'xfntr_br_14keV': 'Br at the surface, 14 keV beam',
+          'xfntr_er_L': 'Er L lines at the surface, 10 keV', 'xfntr_measured': 'Zn, measured detector and scatter'}
+
+
+def plain(text):
+    """A run's own description, with the detectors named (the run files say 'readout A/B')."""
+    for k, v in READOUT.items():
+        text = text.replace("readout %s's" % k, "the %s's" % v).replace('readout %s' % k, 'the %s' % v)
+    return text
+
+
+def cond_name(c):
+    """A shootout condition id -> a few plain words (the run's own description is longer)."""
+    if c in _COND:
+        return _COND[c]
+    kind, _, v = c.rpartition('_')
+    if kind == 'counts':
+        return 'Zn alone, %s line photons' % v
+    if kind == 'hard' and v.endswith('keV'):
+        return 'hard case, %s keV beam' % v[:-3]
+    if kind == 'zn_cu':
+        return 'Zn with Cu at %s x Zn' % v
+    if kind == 'gain':
+        return 'hard case, gain off by %+.1f %%' % (100 * float(v))
+    if kind == 'offset':
+        return 'hard case, offset off by %+.0f eV' % (1000 * float(v))
+    return c
 ORDER = ['window', 'fit_data', 'p1', 'p1p2p3', 'xeray', 'pymca', 'pymca_best', 'pyxrf', 'larch', 'larch_each']
 TABLE_ORDER = ORDER[:4] + ['p1p2', 'p1p3'] + ORDER[4:6] + ['pymca_tails', 'pymca_snip60', 'pymca_snip100', 'pymca_poly'] + ORDER[6:]
 READER = ('window', 'fit_data', 'p1', 'p1p2p3')
@@ -180,7 +244,7 @@ def fig_scoreboard(run, out):
     ax.set_xticks(range(len(meths)))
     ax.set_xticklabels([SHORT[m] for m in meths], rotation=35, ha='right')
     ax.set_yticks(range(len(names)))
-    ax.set_yticklabels(names, fontsize=7)
+    ax.set_yticklabels([cond_name(n) for n in names], fontsize=7)
     ax.grid(False)
     for i in range(1, len(names)):
         if fac[i] != fac[i - 1]:
@@ -257,9 +321,9 @@ def fig_xfntr(run, out):
             t = np.array([num(r['truth']) for r in rr])
             ok = t >= 100
             ax.plot(q[ok], y[ok], color=COLOR[m0], linewidth=1.6, marker='o', markersize=3.5,
-                    label='%s (worst %.1f %%)' % (SHORT[m] if m0 != 'pymca_best' else 'best PyMca: ' + SHORT[m],
+                    label='%s (worst %.1f %%)' % (SHORT[m] if m0 != 'pymca_best' else _short('pymca_best:' + m),
                                                  100 * num(sv[(s, m)]['worst'])))
-        ax.set_title(s.replace('xfntr_', ''), loc='left', fontsize=9)
+        ax.set_title(SERIES.get(s, s), loc='left', fontsize=9)
         ax.set_ylim(0.8, 1.25)
         ax.legend(fontsize=5.8, ncol=2, loc='upper right')
     for ax in axes[len(series):]:
@@ -378,7 +442,9 @@ def _short(m):
     if not m:
         return 'all fail'
     if m.startswith('pymca_best:'):
-        return 'best PyMca (%s)' % SHORT.get(m.split(':', 1)[1], m)
+        cfg = SHORT.get(m.split(':', 1)[1], m)
+        cfg = cfg.replace('PyMca, ', '').replace('PyMca ', '')
+        return 'PyMca, best setting (%s)' % ('default' if cfg == 'PyMca' else cfg)
     return SHORT.get(m, m)
 
 
@@ -389,18 +455,18 @@ def fig_wins(run, out):
         w.writeheader()
         for r in rows:
             w.writerow({k: ('%.4g' % v if isinstance(v, float) else v) for k, v in r.items()})
-    fig, ax = plt.subplots(figsize=(9.5, 0.27 * len(rows) + 1.8))
+    fig, ax = plt.subplots(figsize=(15.5, 0.36 * len(rows) + 1.8))
     y = np.arange(len(rows))[::-1]
     lo, top = 0.001, 3.0
     ax.axvspan(lo, ACCURATE, color=GRID, alpha=0.7, linewidth=0)
+    side = matplotlib.transforms.blended_transform_factory(ax.transAxes, ax.transData)   # x: axes, y: rows
     for yi, r in zip(y, rows):
-        pts = []
-        for key, col, mk, dy in (('reader', COLOR['p1'], 'o', 0.33), ('other', COLOR['pymca'], 's', -0.62)):
+        pts, names = [], {}
+        for key, col, mk in (('reader', COLOR['p1'], 'o'), ('other', COLOR['pymca'], 's')):
             b = abs(r[key + '_bias'])
             m = r[key + '_best']
             if not np.isfinite(b):
-                ax.text(top * 0.9, yi + (0.12 if key == 'reader' else -0.3), '%s: every fit fails' %
-                        ('reader' if key == 'reader' else 'others'), fontsize=5, color=col, ha='right')
+                names[key] = 'every fit fails'
                 continue
             bc = min(max(b, lo * 1.2), top)
             pts.append(bc)
@@ -408,26 +474,31 @@ def fig_wins(run, out):
             ax.scatter(bc, yi, s=36, marker='>' if b > top else mk, zorder=3, linewidth=1.3,
                        facecolor=col if filled else SURFACE, edgecolor=col)
             fl = r[key + '_failed']
-            ax.text(bc, yi + dy, _short(m) + (' %.0f%%' % (100 * b) if b > top else '')
-                    + (', fails %.0f%%' % (100 * fl) if np.isfinite(fl) and fl > FAIL_OK else ''), fontsize=5,
-                    color=INK2, ha='center')
+            names[key] = (_short(m) + (' (|bias| %.0f %%)' % (100 * b) if b > top else '')
+                          + (', fails %.0f %%' % (100 * fl) if np.isfinite(fl) and fl > FAIL_OK else ''))
         if len(pts) == 2:
             ax.plot(pts, [yi, yi], color=AXIS, linewidth=1.2, zorder=1)
-        ax.text(top * 1.25, yi, r['verdict'], fontsize=6.5, va='center', color=INK, clip_on=False)
+        # the names in a column of their own, beside the verdict, so that they cannot overlap the points
+        ax.text(1.02, yi, r['verdict'], fontsize=6.5, va='center', color=INK, clip_on=False, transform=side)
+        ax.text(1.36, yi + 0.17, 'reader: ' + names.get('reader', ''), fontsize=6, va='center',
+                color=COLOR['p1'], clip_on=False, transform=side)
+        ax.text(1.36, yi - 0.2, 'others: ' + names.get('other', ''), fontsize=6, va='center',
+                color=COLOR['pymca'], clip_on=False, transform=side)
     ax.set_xscale('log')
     ax.set_xlim(lo, top)
     ax.set_ylim(-1, len(rows))
     ax.set_yticks(y)
-    ax.set_yticklabels([r['condition'] for r in rows], fontsize=7)
+    ax.set_yticklabels([cond_name(r['condition']) for r in rows], fontsize=7)
     ax.set_xlabel("|bias| of the side's best method, fraction of the truth (log); grey: within 2 %")
     ax.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0, decimals=1))
-    ax.scatter([], [], s=36, color=COLOR['p1'], label="best of the reader's four")
+    ax.scatter([], [], s=36, color=COLOR['p1'], label="best of the reader's four methods")
     ax.scatter([], [], s=36, color=COLOR['pymca'], marker='s', label='best of XeRay, PyMca (best of 5 settings), PyXRF, Larch')
     ax.scatter([], [], s=36, facecolor=SURFACE, edgecolor=INK2, label='hollow: not accurate (|bias| > 2 %, or > 5 % of fits fail: bias of those that did not)')
     ax.legend(fontsize=6.5, loc='lower left', bbox_to_anchor=(0, 1.0), ncol=2)
     ax.set_title('Better, the same or worse?  Accuracy first (within 2 %, at most 5 % of fits failing), then precision '
                  '(RMS errors within 10 %: "same")', loc='left', pad=34, fontsize=9)
-    fig.tight_layout(rect=(0, 0, 0.82, 1))
+    h = fig.get_size_inches()[1]
+    fig.subplots_adjust(left=0.15, right=0.50, bottom=0.55 / h, top=1 - 1.05 / h)   # the columns sit right of the axes
     fig.savefig(os.path.join(out, 'X5_wins.png'), dpi=150)
     plt.close(fig)
 
@@ -459,9 +530,9 @@ def fig_anatomy(out):
             ax.semilogy(e[sel], np.maximum(v, 1e-3)[sel], color=palette[k % 3], linewidth=1.4, label='%s lines' % key)
         blo, bhi = c.box_range()
         ax.axvspan(blo, bhi, color=COLOR['p1'], alpha=0.08, linewidth=0)
-        ax.text(0.5 * (blo + bhi), 1.5e5, 'box', ha='center', fontsize=6.5, color=COLOR['p1'])
+        ax.text(0.5 * (blo + bhi), 1.5e5, 'line window', ha='center', fontsize=6.5, color=COLOR['p1'])
         ax.set_ylim(0.1, 1e6)
-        ax.set_title('%s: %s' % (n, c.describe[:70] + ('…' if len(c.describe) > 70 else '')), loc='left', fontsize=7.5)
+        ax.set_title(plain(c.describe)[:90] + ('…' if len(plain(c.describe)) > 90 else ''), loc='left', fontsize=7.5)
         ax.set_xlabel('energy (keV)')
         ax.set_ylabel('counts per 10 eV channel')
         ax.legend(fontsize=5.8, loc='best')
@@ -490,7 +561,7 @@ def fig_compton(out, check):
         a.semilogy(e[sel], np.maximum(s.part(sources=['Compton']), 1e-2)[sel], color=col, linewidth=1.8, label=label)
     fw = mca.Detector().fwhm(zn)
     a.axvspan(zn - 2 * fw, zn + 2 * fw, color=GRID, alpha=0.9, linewidth=0)
-    a.text(zn, 3e4, 'Zn Kα box', ha='center', fontsize=7, color=INK2)
+    a.text(zn, 3e4, 'Zn Kα line window', ha='center', fontsize=7, color=INK2)
     a.set_ylim(1, 1e5)
     a.set_xlabel('energy (keV)')
     a.set_ylabel('Compton counts per channel (1e6 Rayleigh photons)')
@@ -563,7 +634,7 @@ def write_tables(run, out):
             if f > 0:
                 txt += ' (%.0f %% fail)' % (100 * f)
             cells.append(txt)
-        lines.append('| %s | %s | %s |' % (c['condition'], c['factor'], ' | '.join(cells)))
+        lines.append('| %s | %s | %s |' % (cond_name(c['condition']), c['factor'], ' | '.join(cells)))
     lines += ['', '## RMS error of one spectrum, %', '',
               '| Condition | ' + ' | '.join(SHORT[m] for m in meths) + ' |', '|---|' + '---|' * len(meths)]
     for c in conds:
@@ -572,7 +643,7 @@ def write_tables(run, out):
             r = sc.get((c['condition'], m), {})
             v = r.get('rmse', math.nan)
             cells.append('%.1f' % (100 * v) if np.isfinite(v) else '')
-        lines.append('| %s | %s |' % (c['condition'], ' | '.join(cells)))
+        lines.append('| %s | %s |' % (cond_name(c['condition']), ' | '.join(cells)))
     lines += ['', '## Pull SD (1 is honest; blank: no error bars or too many failures)', '',
               '| Condition | ' + ' | '.join(SHORT[m] for m in meths) + ' |', '|---|' + '---|' * len(meths)]
     for c in conds:
@@ -581,7 +652,7 @@ def write_tables(run, out):
             r = sc.get((c['condition'], m), {})
             v = r.get('pull_sd', math.nan)
             cells.append('%.2f' % v if np.isfinite(v) and failed_share(r) <= FAIL_SHARE else '')
-        lines.append('| %s | %s |' % (c['condition'], ' | '.join(cells)))
+        lines.append('| %s | %s |' % (cond_name(c['condition']), ' | '.join(cells)))
     p = os.path.join(run, 'series_scores.csv')
     if any(os.path.exists(os.path.join(f, 'series_scores.csv')) for f in run.split(',')):
         sv = read(p)
@@ -594,7 +665,7 @@ def write_tables(run, out):
             for m in meths:
                 r = d.get((n, m))
                 cells.append('%.1f (%.3g)' % (100 * num(r['worst']), num(r['chi2_dof'])) if r else '')
-            lines.append('| %s | %s |' % (n, ' | '.join(cells)))
+            lines.append('| %s | %s |' % (SERIES.get(n, n), ' | '.join(cells)))
     def f(v, fmt):
         return fmt % (100 * v) if np.isfinite(v) else '—'
     lines += ['', '## Better, the same or worse (X5; wins.csv)', '',
@@ -605,10 +676,14 @@ def write_tables(run, out):
               'verdict |', '|---|---|---|---|---|---|---|---|---|---|---|']
     for r in wins_table(run):
         lines.append('| %s | %s | %s%s | %s | %s | %s | %s%s | %s | %s | %s | %s |' % (
-            r['condition'], r['factor'], _short(r['reader_best']), '' if r['reader_accurate'] else ' (not accurate)',
+            cond_name(r['condition']), r['factor'], _short(r['reader_best']), '' if r['reader_accurate'] else ' (not accurate)',
             f(r['reader_bias'], '%+.1f'), f(r['reader_rmse'], '%.1f'), f(r['reader_failed'], '%.0f'),
             _short(r['other_best']), '' if r['other_accurate'] else ' (not accurate)', f(r['other_bias'], '%+.1f'),
             f(r['other_rmse'], '%.1f'), f(r['other_failed'], '%.0f'), r['verdict']))
+    lines += ['', '## The conditions: names here and ids in run*/scores.csv', '',
+              '| Name here | id | What it is (the run\'s own description) |', '|---|---|---|']
+    for c in conds:
+        lines.append('| %s | `%s` | %s |' % (cond_name(c['condition']), c['condition'], plain(c.get('describe', ''))))
     with open(os.path.join(out, 'tables.md'), 'w', encoding='utf-8', newline='\n') as f:
         f.write('\n'.join(lines) + '\n')
 
@@ -669,7 +744,7 @@ def fig_blank_example(out):
                     label='%s injected: %d photons, the measured detector' % (t, bc.photons))
         thin = b['counts'] * first.p
         ax.step(e, thin, where='mid', color=INK, linewidth=0.9,
-                label='real blank %s, scaled to 1000 counts in the %s box' % (bid, targets[0]))
+                label='real %s, scaled to 1000 counts in the %s line window' % (blank_name(bid), targets[0]))
         ax.set_yscale('log')
         ax.set_ylim(0.3, max(thin.max(), 1) * 4)
         esc = b['beam'] - 1.74
@@ -678,10 +753,10 @@ def fig_blank_example(out):
                     color=INK2, ha='right', arrowprops=dict(arrowstyle='-', color=MUTED, linewidth=0.8))
         ax.set_xlabel('energy, keV')
         ax.set_ylabel('counts per channel (expected)')
-        ax.set_title('%g keV beam, readout %s' % (b['beam'], b['readout']), loc='left', pad=30)
+        ax.set_title('%g keV beam, %s' % (b['beam'], READOUT[b['readout']]), loc='left', pad=30)
         ax.legend(fontsize=6.5, loc='upper left')
     fig.suptitle('X9. What the methods face: real scatter (a measured blank) plus a synthetic line of known photons '
-                 '(grey: each line\'s box, ±2 FWHM)', x=0.01, ha='left', fontsize=10, fontweight='bold')
+                 '(grey: each line\'s window, the line ± 2 FWHM)', x=0.01, ha='left', fontsize=10, fontweight='bold')
     fig.tight_layout()
     fig.savefig(os.path.join(out, 'X9_blank_example.png'), dpi=150)
     plt.close(fig)
@@ -727,7 +802,7 @@ def fig_blank_bias(blanks, out, bg=1000.0):
         ax.set_yticks([-0.5, -0.2, -0.1, 0, 0.1, 0.2, 0.5])
         ax.set_yticklabels(['≤−50', '−20', '−10', '0', '+10', '+20', '≥+50'])
         ax.set_title('%s at %g keV (%d blanks)' % (t, beam, nb), loc='left', fontsize=9)
-        ax.set_xlabel('line photons / background counts in the box')
+        ax.set_xlabel('line photons / background counts')
     for ax in axes[:, 0]:
         ax.set_ylabel('calibrated bias, %')
     leg = axes.flat[-1]
@@ -735,7 +810,7 @@ def fig_blank_bias(blanks, out, bg=1000.0):
     h, l = axes.flat[0].get_legend_handles_labels()
     leg.legend(h, l, loc='center left', fontsize=7.5, title='line: mean over the blanks; bar: their range\n'
                'hollow: over 20 % of fits failed\ngrey band: ±2 %', title_fontsize=7.5)
-    fig.suptitle('X10. Real scatter, synthetic line: bias against line strength, %d background counts in the box '
+    fig.suptitle('X10. Real scatter, synthetic line: bias against line strength, %d background counts in the line window '
                  '(500 spectra per point and blank; the window sum is off scale)' % bg,
                  x=0.01, ha='left', fontsize=10, fontweight='bold')
     fig.tight_layout()
@@ -794,8 +869,8 @@ def fig_blank_scoreboard(blanks, out):
     a2.axvline(0, color=INK2, linewidth=0.8)
     a2.set_xlim(-32, 44)
     a2.set_yticks(y)
-    a2.set_yticklabels([SHORT[m] if m != 'pymca_best' else '' for m in meths])
-    a2.set_xlabel('photons reported per 100 background counts in the box (clipped at ±30)')
+    a2.set_yticklabels(['' for m in meths])                     # the same rows as the left panel's names
+    a2.set_xlabel('photons reported per 100 background counts in the line window (clipped at ±30)')
     a2.set_title('Nothing injected: the line each method reports on pure real scatter\n'
                  'one dot per blank × line (3000 counts); "fails": fits that refused',
                  loc='left', fontsize=9)
@@ -820,7 +895,7 @@ def write_blank_tables(blanks, out):
          'Each cell: the mean calibrated bias over the blanks of that beam energy, %, with [the range over the '
          'blanks] and the failed share when any.', '']
     for bg in bgs:
-        L += ['## %d background counts in the box' % bg, '',
+        L += ['## %d background counts in the line window (the line ± 2 FWHM)' % bg, '',
               '| Line | beam keV | line/background | ' + ' | '.join(SHORT[m] for m in meths) + ' |',
               '|---|---|---|' + '---|' * len(meths)]
         for beam, t in BLANK_TARGETS:
@@ -837,13 +912,13 @@ def write_blank_tables(blanks, out):
                     cells.append(txt)
                 L.append('| %s | %g | %g | %s |' % (t, beam, q, ' | '.join(cells)))
         L.append('')
-    L += ['## Accurate conditions (|bias| ≤ 2 %% or 2 SE, ≤ 5 %% failed, SE ≤ 1 %%), of %d' % len({k[:4] for k in bs}),
+    L += ['## Accurate conditions (|bias| ≤ 2 %% or 2 standard errors, ≤ 5 %% failed, standard error ≤ 1 %%), of %d' % len({k[:4] for k in bs}),
           '', '| Method | 10 keV | 9.2 keV | 6.1 keV | all |', '|---|---|---|---|---|']
     for m in meths:
         n = blank_accurate_counts(bs, m)
         L.append('| %s | %d | %d | %d | %d |' % (SHORT[m], n[0], n[1], n[2], sum(n)))
     zm = [m for m in meths if m != 'pymca_best']
-    L += ['', '## False line on the bare blank: photons per 100 background counts in the box '
+    L += ['', '## False line on the bare blank: photons per 100 background counts in the line window '
           '(mean over the spectra; failed share when any)', '',
           '| Blank | line | background | ' + ' | '.join(SHORT[m] for m in zm) + ' |', '|---|---|---|' + '---|' * len(zm)]
     for key in sorted({k[:3] for k in zf}, key=lambda k: (-blank_beam(k[0]), k[0], k[1], k[2])):
@@ -858,7 +933,7 @@ def write_blank_tables(blanks, out):
             if f > 0.005:
                 txt += ' (%.0f %% fail)' % (100 * f)
             cells.append(txt)
-        L.append('| %s | %s | %d | %s |' % (key[0], key[1], key[2], ' | '.join(cells)))
+        L.append('| %s | %s | %d | %s |' % (blank_name(key[0]), key[1], key[2], ' | '.join(cells)))
     with open(os.path.join(out, 'blanks_tables.md'), 'w', encoding='utf-8', newline='\n') as f:
         f.write('\n'.join(L) + '\n')
 
@@ -911,7 +986,7 @@ def fig_real(real, out):
         ax.set_title(title, loc='left', fontsize=9)
     axes[0].set_yticks(y)
     axes[0].set_yticklabels([SHORT.get(m, m) for m in meths])
-    fig.suptitle('X12. Real lines in real scatter: 19 private burn series (readout A, 10 keV, a line near 8 keV, '
+    fig.suptitle('X12. Real lines in real scatter: 19 private burn series (single-element detector, 10 keV, a line near 8 keV, '
                  '21 spectra each; one dot per series, bar: median). Twins: 20 Poisson resamplings of each series',
                  x=0.01, ha='left', fontsize=9.5, fontweight='bold')
     fig.tight_layout()
@@ -931,7 +1006,7 @@ def write_real_tables(real, out):
             ('sum_vs_median', 'sum against the median, %', 100.0, '%+.1f'))
     L = ['# XRF shootout on real lines in real scatter: tables (generated by tests/tools/xrf_shootout_figures.py; '
          'do not edit)', '',
-         'The 19 private burn series (readout A, 10 keV, a line near 8 keV; `tests/tools/xrf_real_series.py`). '
+         'The 19 private burn series (single-element detector, 10 keV, a line near 8 keV; `tests/tools/xrf_real_series.py`). '
          'Summary values only: medians over the series [and their range]. Twins: 20 Poisson resamplings of each '
          'series\' own sum / 21, whose answer is the method\'s on the sum / 21.', '',
          '| Method | ' + ' | '.join(k[1] for k in keys) + ' | failed, % |', '|---|' + '---|' * (len(keys) + 1)]
@@ -947,7 +1022,7 @@ def write_real_tables(real, out):
     lc = [r.get('line_counts_per_spectrum', math.nan) for r in rows if r['method'] == 'p1p3']
     lc = [v for v in lc if np.isfinite(v)]
     if lc:
-        L += ['', 'Line counts per spectrum (P1+P3 on the sum / 21): median %.0f, range %.0f to %.0f.'
+        L += ['', 'Line counts per spectrum (Poisson fit + escapes removed on the sum / 21): median %.0f, range %.0f to %.0f.'
               % (np.median(lc), min(lc), max(lc))]
     with open(os.path.join(out, 'real_tables.md'), 'w', encoding='utf-8', newline='\n') as f:
         f.write('\n'.join(L) + '\n')

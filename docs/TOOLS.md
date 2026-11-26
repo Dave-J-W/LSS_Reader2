@@ -1359,13 +1359,13 @@ The scoreboard of bias by condition and method, bias against counts, XFNTR curve
 - Committed products: `docs/studies/xrf_shootout/X*.png`, `docs/studies/xrf_shootout/wins.csv`, `docs/studies/xrf_shootout/tables.md`, `docs/studies/xrf_shootout/blanks_tables.md`, `docs/studies/xrf_shootout/real_tables.md`; not replaced from the window
 - Run:
 
-      python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run --out '{out}'
+      python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run,docs/studies/xrf_shootout/run_measured,docs/studies/xrf_shootout/run_pymca --out '{out}'
 
 Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| Synthetic spectra only | X6 and X7, which need no shootout run (seconds). | `docs/studies/xrf_shootout/README.md#3. figures, tables.md and wins.csv` | `python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run --out '{out}' --only 6,7` |
+| Synthetic spectra only | X6 and X7, which need no shootout run (seconds). | `docs/studies/xrf_shootout/README.md#3. figures, tables.md and wins.csv` | `python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run,docs/studies/xrf_shootout/run_measured,docs/studies/xrf_shootout/run_pymca --out '{out}' --only 6,7` |
 
 <a id="synthetic-dataset"></a>
 
