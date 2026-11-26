@@ -45,7 +45,8 @@ def match_plot_fonts():
 # useful options, like font size, minor/major ticks, grid on/off". Every option's default is 'as drawn':
 # the plot as the reader draws it; a choice is applied to every axes of the tab's figures at each draw.
 AS_DRAWN = 'as drawn'
-PLOT_OPTION_DEFAULTS = dict(font=0, major=AS_DRAWN, minor=AS_DRAWN, direction=AS_DRAWN, mirror=AS_DRAWN, grid=AS_DRAWN)
+PLOT_OPTION_DEFAULTS = dict(font=0, major=AS_DRAWN, minor=AS_DRAWN, direction=AS_DRAWN, mirror=AS_DRAWN, grid=AS_DRAWN,
+                            index=True)        # F113: the point index numbers shown (crowded ones hidden)
 PLOT_OPTION_CHOICES = dict(
 	major=[AS_DRAWN, 3, 5, 8, 12],                  # about this many labelled ticks (linear axes)
 	minor=[AS_DRAWN, 'on', 'off'],
@@ -108,6 +109,142 @@ def apply_plot_options(fig, opts):
 			ax.grid(True, which='minor', alpha=0.35, lw=0.5)
 
 
+# ---- F113 (owner, 2026-11-26): the point index numbers on the plots ----
+# "spacing better, a checkbox to disable in plot prefs, autohide them when they overlap, autounhide on
+# zoom to non-overlap condition"
+
+INDEX_SCALE = 0.85          # the numbers' size, a fraction of the plots' base font (F111)
+INDEX_OFFSET_PT = 4.0       # their distance from the marker, in points: the same at any zoom and on log axes
+
+
+def index_labels(ax, x, y, labels, color='r', where='upper right'):
+	"""Label the points (x, y) of ``ax`` with ``labels`` (their index
+	numbers): each a few points from its marker (``where``: 'upper right'
+	or 'lower left' of it), at INDEX_SCALE of the base font, with a thin
+	white halo, and tagged for ``declutter_index_labels``, which hides
+	those that would overlap at each draw. Points that are not finite get
+	no label. Returns the labels."""
+	import matplotlib
+	from matplotlib import patheffects
+	right = where == 'upper right'
+	off = (INDEX_OFFSET_PT, INDEX_OFFSET_PT) if right else (-INDEX_OFFSET_PT, -INDEX_OFFSET_PT)
+	size = INDEX_SCALE * float(matplotlib.rcParams['font.size'])
+	halo = [patheffects.withStroke(linewidth=2.2, foreground='white')]
+	out = []
+	for xi, yi, s in zip(np.asarray(x, dtype=float), np.asarray(y, dtype=float), labels):
+		if not (np.isfinite(xi) and np.isfinite(yi)):
+			continue
+		t = ax.annotate(str(s), (xi, yi), xytext=off, textcoords='offset points', color=color, fontsize=size,
+		                ha='left' if right else 'right', va='bottom' if right else 'top', annotation_clip=True,
+		                path_effects=halo)
+		t._lss_index = True
+		out.append(t)
+	return out
+
+
+def _corners(t):
+	"""The placements tried for label ``t``, its own first: (offset x, offset
+	y in points, ha, va) at its marker's four diagonal corners."""
+	pref = getattr(t, '_lss_pref', None)
+	if pref is None:
+		ox, oy = (float(v) for v in t.xyann)
+		pref = t._lss_pref = (ox, oy, t.get_horizontalalignment(), t.get_verticalalignment())
+	ox, oy = abs(pref[0]), abs(pref[1])
+	right, up = pref[0] >= 0, pref[1] >= 0
+	out = []
+	for r, u in ((right, up), (not right, up), (right, not up), (not right, not up)):
+		out.append((ox if r else -ox, oy if u else -oy, 'left' if r else 'right', 'bottom' if u else 'top'))
+	return out
+
+
+def _box(px, py, place, size_px, n, k):
+	"""Display-space box (x0, y0, x1, y1) of a label of ``n`` characters at
+	pixel (px, py) placed by ``place`` (``_corners``): from an estimate of
+	its size (digits are about 0.6 em wide), so thousands cost little."""
+	ox, oy, ha, va = place
+	w, h = 0.62 * size_px * max(n, 1) + 0.25 * size_px, 1.05 * size_px
+	x0 = px + ox * k - (w if ha == 'right' else 0.0)
+	y0 = py + oy * k - (h if va == 'top' else 0.0)
+	return x0, y0, x0 + w, y0 + h
+
+
+def _index_boxes(ax, texts, dpi):
+	"""The boxes of ``texts`` as placed now (rows NaN for a point that
+	cannot be drawn): for tests and checks."""
+	ax.get_xlim(), ax.get_ylim()
+	k = dpi / 72.0
+	with np.errstate(all='ignore'):
+		pts = ax.transData.transform(np.array([t.xy for t in texts], dtype=float)) if texts else np.zeros((0, 2))
+	out = np.full((len(texts), 4), np.nan)
+	for i, t in enumerate(texts):
+		if np.all(np.isfinite(pts[i])):
+			place = (float(t.xyann[0]), float(t.xyann[1]), t.get_horizontalalignment(), t.get_verticalalignment())
+			out[i] = _box(pts[i, 0], pts[i, 1], place, float(t.get_fontsize()) * k, len(t.get_text()), k)
+	return out
+
+
+def declutter_index_labels(fig, show=True):
+	"""F113: in every axes of ``fig``, the index labels (``index_labels``)
+	that fit are shown and the others hidden. Each label goes at the first
+	of its marker's four corners (its own first, ``_corners``) where it is
+	inside the axes (not over the frame or the tick labels) and overlaps
+	no label already placed, the labels taken in the order they were drawn
+	(a crowded series shows an even subset: 0, 3, 6, ...); it is hidden
+	when no corner fits or its point is out of view. Run at every draw, so
+	zooming in to where they no longer overlap shows them again. ``show``
+	False hides them all (the Plot options' "Index numbers" unticked)."""
+	k = fig.dpi / 72.0
+	for ax in fig.axes:
+		texts = [t for t in ax.texts if getattr(t, '_lss_index', False)]
+		if not texts:
+			continue
+		if not show:
+			for t in texts:
+				t.set_visible(False)
+			continue
+		ax.get_xlim(), ax.get_ylim()         # autoscaled limits are applied lazily: bring them up to date first
+		bb = ax.bbox
+		with np.errstate(all='ignore'):
+			pts = ax.transData.transform(np.array([t.xy for t in texts], dtype=float))
+		sizes = [float(t.get_fontsize()) * k for t in texts]
+		cell = max(max(sizes) * 2.0, 1.0)
+		placed, grid = [], {}
+
+		def free(b):
+			cx0, cx1, cy0, cy1 = int(b[0] // cell), int(b[2] // cell), int(b[1] // cell), int(b[3] // cell)
+			for gx in range(cx0 - 1, cx1 + 2):
+				for gy in range(cy0 - 1, cy1 + 2):
+					for j in grid.get((gx, gy), ()):
+						a = placed[j]
+						if b[0] < a[2] and a[0] < b[2] and b[1] < a[3] and a[1] < b[3]:
+							return False
+			return True
+		for i, t in enumerate(texts):
+			px, py = pts[i]
+			chosen = None
+			if (np.isfinite(px) and np.isfinite(py) and bb.x0 - 0.5 <= px <= bb.x1 + 0.5
+			        and bb.y0 - 0.5 <= py <= bb.y1 + 0.5):
+				for place in _corners(t):
+					b = _box(px, py, place, sizes[i], len(t.get_text()), k)
+					if (b[0] >= bb.x0 - 1 and b[2] <= bb.x1 + 1 and b[1] >= bb.y0 - 1 and b[3] <= bb.y1 + 1
+					        and free(b)):
+						chosen = (place, b)
+						break
+			if chosen is None:
+				t.set_visible(False)
+				continue
+			(ox, oy, ha, va), b = chosen
+			t.xyann = (ox, oy)
+			t.set_horizontalalignment(ha)
+			t.set_verticalalignment(va)
+			t.set_visible(True)
+			placed.append(b)
+			n = len(placed) - 1
+			for gx in range(int(b[0] // cell), int(b[2] // cell) + 1):
+				for gy in range(int(b[1] // cell), int(b[3] // cell) + 1):
+					grid.setdefault((gx, gy), []).append(n)
+
+
 def reset_plot_options(fig):
 	"""Undo what ``apply_plot_options`` set that ``Axes.clear()`` keeps (tick
 	label size, direction, top and right ticks; matplotlib keeps them in the
@@ -140,14 +277,17 @@ class MplCanvas(FigureCanvas):
 
 	def draw(self):
 		get = getattr(self, 'plot_options', None)
-		if callable(get):
-			try:
+		opts = None
+		try:
+			if callable(get):
 				opts = get()
 				if plot_options_set(opts):
 					apply_plot_options(self.figure, opts)
-			except Exception:                    # a style must never stop a plot: logged, drawn as it is
-				import logging
-				logging.getLogger('lss_reader').exception('plot options not applied')
+			# F113: the index numbers that fit at this zoom, every draw (any canvas, the Ref Patch window's too)
+			declutter_index_labels(self.figure, show=(opts or {}).get('index', True))
+		except Exception:                        # a style must never stop a plot: logged, drawn as it is
+			import logging
+			logging.getLogger('lss_reader').exception('plot options not applied')
 		FigureCanvas.draw(self)
 
 class MplWidget(QtWidgets.QWidget):
