@@ -9653,10 +9653,34 @@ class MainWindow (QMainWindow):
         return [c for c in page.findChildren(MplCanvas) if c.objectName()!='pilRoiCanvas']
 
     def registerPlotCanvases(self):
+        """The tabs' canvases take their tab's options; matplotlib's own
+        "Customize" icon leaves their toolbars (owner, 2026-11-26: one entry,
+        Plot options; its editor is "Axes and curves..." inside it). Other
+        windows' toolbars (Ref Patch, the burn test) keep it."""
         for i in range(self.ui.PlotWidget.count()):
             key=self.plotTabKey(i)
             for c in self.plotTabCanvases(i):
                 c.plot_options=(lambda k=key: self.plotOptions(k))
+                tb=getattr(c,'toolbar',None)
+                act=getattr(tb,'_actions',{}).get('edit_parameters') if tb is not None else None
+                if act is not None:
+                    act.setVisible(False)
+
+    def plotTabAxes(self,key):
+        """The plots of tab ``key`` as (name, axes): every drawn axes of its
+        canvases but colour bars and the residual strips."""
+        out=[]
+        for i in range(self.ui.PlotWidget.count()):
+            if self.plotTabKey(i)!=key:
+                continue
+            for c in self.plotTabCanvases(i):
+                for ax in c.figure.axes:
+                    if not ax.axison or getattr(ax,'_lss_inset',False) or getattr(ax,'_colorbar',None) is not None:
+                        continue
+                    what=ax.get_title() or ax.get_ylabel() or 'untitled'
+                    what=' '.join(str(what).split())[:50]
+                    out.append(('Plot %d: %s' % (len(out)+1,what),ax))
+        return out
 
     def plotOptions(self,key):
         return (self.prefs.get('plot_options') or {}).get(key)
@@ -9731,7 +9755,7 @@ class MainWindow (QMainWindow):
         from plotoptions import PlotOptionsDialog
         self.registerPlotCanvases()             # canvases made since
         if self.plotOptionsDialog is None:
-            self.plotOptionsDialog=PlotOptionsDialog(self,self.plotOptions,self.setPlotOptions)
+            self.plotOptionsDialog=PlotOptionsDialog(self,self.plotOptions,self.setPlotOptions,self.plotTabAxes)
         i=self.ui.PlotWidget.currentIndex()
         self.plotOptionsDialog.target(self.plotTabKey(i),self.ui.PlotWidget.tabText(i),mpl.rcParams['font.size'])
         self.plotOptionsDialog.show()

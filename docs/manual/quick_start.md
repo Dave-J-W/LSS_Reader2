@@ -67,8 +67,10 @@ After the last join, the patched curve is on the **Reflectivity** tab:
 
 ## 4. Export and save
 
-- **Export** (Reflectivity tab) writes `<name>_ref.txt` (Qz, R, dR) and `<name>_rrf.txt` (R/R_F): the files
-  XModFit reads. The name is proposed from the SPEC file, the sample and the scans.
+- **Export** (Reflectivity tab) writes `<name>_ref.txt` (Qz, R, dR) and `<name>_rrf.txt` (R/R_F, at the Qc
+  and Qoff in the fields, whether or not R/RF is ticked): the files XModFit reads. The name is proposed
+  from the SPEC file, the sample and the scans. Messages then says which files were written and which
+  existing ones they replaced.
   **+ covariance** also writes the error correlations of the patch, for a fitter that can use them
   (off by default).
 - **Save** stores the result, with the settings that made it, in the SPEC file's **workbook**
@@ -76,6 +78,13 @@ After the last join, the patched curve is on the **Reflectivity** tab:
   **Compare** tab lists every saved reflectivity of the file, to overlay them.
 - **The Script pane** (View menu) shows each action as a line of Python (`lss_core`), to repeat it in a
   script. See `docs/SCRIPTING.md`.
+- **Two readers on one file:** the first to open it writes the workbook. A second shows a yellow
+  "read-only" light at the bottom right and saves nothing until it gets write access (File → Ask for the
+  workbook's write access; the holder can File → Give up the workbook's write access).
+
+**Plot options...**, at the right of the tabs, sets the font size, ticks, grid and point index numbers of each
+tab's plots, kept between sessions; its **Axes and curves...** edits one plot's limits, labels and line styles
+until the plot is redrawn.
 
 ## Where next
 

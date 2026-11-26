@@ -247,6 +247,7 @@ INVENTORY = {
     'plotOptClosePushButton': ('button', 'Close', 'Plot options', 'Closes the window; the options stay as set'),
     'plotOptTabLabel': ('label', 'Plots of the <tab> tab', 'Plot options, top', 'Says which tab the options apply to; the window follows the tab on show'),
     'plotOptIndexCheckBox': ('checkbox', 'Index numbers', 'Plot options', "Shows the points' index numbers on the tab's plots (on by default); unticked, none"),
+    'plotOptAxesToolButton': ('button', 'Axes and curves...', 'Plot options', "A menu of the tab's plots; each opens matplotlib's editor of that plot (title, axis limits, labels, scales, each curve's line, marker and colour): one-off, kept until the tab redraws the plot, not saved"),
     'specFileLabel': ('label', 'SpecFile: <name>', 'Left panel', "Shows the name of the open SPEC file ('No Opened File' before)"),
     'speUpSpeFilePushButton': ('button', 'Update Specfile', 'Left panel', 'Reads the scans the SPEC file gained since it was opened, without resetting the window, and marks saved results stale'),
     'liveCheckBox': ('checkbox', 'Live', 'Left panel', 'Watches the SPEC file, Pilatus folder and latest MCA file every few seconds and reads what is new; remakes saved results of a growing series'),

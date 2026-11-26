@@ -212,6 +212,12 @@ Each line: feature — where — default — script — notes entry (date).
   starts at "as drawn" (the plots as the reader draws them), and "As
   drawn" puts them all back. The Pilatus tab's ROI close-up and the
   residual strips are left as drawn. Terms to define: major, minor ticks.
+- One place for plot settings (owner, 2026-11-26): the tabs' plot toolbars
+  no longer show matplotlib's "Customize" icon; its editor (one plot's
+  title, axis limits, labels, scales, line styles) is "Axes and curves..."
+  in Plot options. Those edits are one-off: they last until the tab
+  redraws the plot, and are not saved; the options above it stay. The Ref
+  Patch window and the burn test keep the icon.
 - Index numbers (F113, 2026-11-26): the points' numbers (SpecPlot's Point
   #, the Ref Patch window) sit a few points from their markers. Where they
   would overlap, or stick out of the plot, the later ones are hidden (a
