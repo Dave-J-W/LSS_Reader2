@@ -251,7 +251,7 @@ class TwoDDetector:
         net=sig-(lbg+rbg)/2.0
         if not p['budget']:
             return net, np.sqrt(sigerr**2+(lbgerr**2+rbgerr**2)/4)
-        cS,cL,cR=p['counting']
+        cS,cL,cR=(c*self.errors.counting_scale for c in p['counting'])   # C63/C64: s, 1 by default
         amps=dict(p['monitor'][0])
         for key,a in p['monitor'][1].items():
             amps[key]=amps.get(key,0.0)-a/2.0

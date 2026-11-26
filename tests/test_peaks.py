@@ -292,3 +292,20 @@ def test_series_fits_each_spectrum_by_poisson_likelihood():
     assert peaks.fit_series(e, [y], [np.sqrt(y)], peaks.FitOptions(centres=(6.40,)))[1][0].peaks[0].height == a   # the default
     with pytest.raises(ValueError):
         peaks.fit_series(e, [y], [np.sqrt(y)], weights='neyman')
+
+
+def test_a_scan_at_one_position_is_not_fitted():
+    """A burn recorded as a zero-range ascan (NX school scans 14 and 15: 'ascan ih -0.994512 -0.994512'): every
+    point at one x. fit_scan says so ('no range') instead of attempting fits whose first background guess, a
+    polyfit on an all-zero centred x, handed NaN to LAPACK (the DLASCL warnings on selecting those scans)."""
+    import numpy as np
+    from lss_core import peaks
+    x = np.full(21, -0.9945116)
+    y = np.random.default_rng(0).poisson(1000, 21).astype(float)
+    r = peaks.fit_scan(x, y, np.sqrt(y))
+    assert r.kind == 'no range' and not r.ok and not r.peaks and 'no range' in r.message
+    g = peaks.fit(x, y, np.sqrt(y))
+    assert not g.ok and not g.peaks
+    x2 = x.copy()
+    x2[5] += 1e-3                                     # any range at all: fitted as before
+    assert peaks.fit_scan(x2, y, np.sqrt(y)).kind != 'no range'
