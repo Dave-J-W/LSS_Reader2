@@ -76,11 +76,20 @@ whether neighbouring points scatter about a smooth curve by more than these erro
 
 ![W4](walkthrough/W4_real_by.png)
 
-The real within-scan results, from the committed `real_by.csv`. Top row: the core excess X. Bottom row: the
-share of outlier windows. The bars are bootstrap intervals over runs (below). The clearest pattern is in
-the counts: X falls from about 1.4 % of R below 10³ counts to 0.13 % above 10⁵. That is what an error bar
-that is too small by a fixed factor does. The same data fitted as a scale on σ give s ≈ 1.12 in every counts
-bin (`real_scale.csv`).
+The real within-scan results, from the committed `real_by.csv` and `real_scale.csv`. Each column splits the
+26,182 windows by one property: where on the curve (Qz), how many photons per point, how large the background
+is, and how steady the beam was. Under each bin: how many windows and runs it holds. Each row is one number
+fitted to the windows of that bin:
+- **top, the core excess X:** the typical extra scatter of a point, as a share of R;
+- **middle, the outlier windows:** the share of windows that are wild;
+- **bottom, the error scale s:** how much bigger the real error is than the stated one (1 = honest). It was
+  computed for the Qz and counts splits only.
+
+The dashed line in every panel is the value over all windows. The bars are bootstrap intervals over runs
+(below). The clearest pattern is in the counts column: X falls from about 1.4 % of R below 10³ counts to
+0.13 % above 10⁵, while s stays at 1.05–1.14. That is what an error bar that is too small by a fixed factor
+does: as a share of R it shrinks as the error bar does. The background column's high bin (10–30 %) also has
+fewer counts, so it is not a separate effect. The beam's steadiness shows no trend.
 
 ## 5. Every statistic used, in words
 

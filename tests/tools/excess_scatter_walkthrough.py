@@ -218,50 +218,146 @@ def _read(path):
         return list(csv.DictReader(f))
 
 
+def _edges(b):
+    lo, hi = b.split('-', 1)
+    return float(lo), float(hi)
+
+
+def _pow10(v):
+    e = int(round(math.log10(v)))
+    return '10' + str(e).translate(str.maketrans('0123456789-', '⁰¹²³⁴⁵⁶⁷⁸⁹⁻')) if abs(v - 10 ** e) < 1e-9 * v else '%g' % v
+
+
+W4_GROUPS = {
+    # by: (panel title, x-axis label, how to print one edge, the unit after a bin)
+    'Qz (1/A)': ('Where on the curve?', 'Qz (Å⁻¹)', lambda v: '%g' % v, ''),
+    'counts per point': ('How many photons per point?', 'counts in the signal box', _pow10, ''),
+    'background share of the box': ('How large is the background?', 'background / total counts in the box',
+                                    lambda v: '%g' % (v * 100), ' %'),
+    '|monitor rate - scan median|': ('How steady is the beam?', 'monitor rate, off its scan\'s median by',
+                                     lambda v: '%g' % (v * 100), ' %'),
+}
+
+
+def _bin_label(b, first, last, fmt, unit):
+    lo, hi = _edges(b)
+    if first:
+        return '< %s%s' % (fmt(hi), unit)
+    if last:
+        return '≥ %s%s' % (fmt(lo), unit)
+    return '%s–%s%s' % (fmt(lo), fmt(hi), unit)
+
+
+def _note(ax, text, loc='upper right'):
+    x, ha = (0.97, 'right') if 'right' in loc else (0.03, 'left')
+    y, va = (0.96, 'top') if 'upper' in loc else (0.05, 'bottom')
+    ax.text(x, y, text, transform=ax.transAxes, ha=ha, va=va, fontsize=7.5, color=INK,
+            bbox=dict(boxstyle='round,pad=0.35', fc='#fff8e1', ec='#d9b54a', lw=0.8))
+
+
 def w4(out, plt, study=STUDY):
     by = [r for r in _read(os.path.join(study, 'real_by.csv')) if r['estimator'] == 'within']
     ov = {r['bin']: r for r in _read(os.path.join(study, 'real_overall.csv')) if r['estimator'] == 'within'}
+    sc = [r for r in _read(os.path.join(study, 'real_scale.csv')) if r['estimator'] == 'within']
+    s_all = [r for r in sc if r['by'] == 'all'][0]
+    wi = ov['all']
     groups = []
     for r in by:
         if r['by'] not in groups:
             groups.append(r['by'])
-    fig, axs = plt.subplots(2, len(groups), figsize=(2.9 * len(groups) + 1, 6.6), squeeze=False)
+    rows = (('core_x', 'core excess X (% of R)\nthe typical extra scatter of a point', 100, '%.2f %%'),
+            ('outlier_share', 'outlier windows (%)\nshare of 6-point windows that are wild', 100, '%.1f %%'),
+            ('s', 'error scale s\nreal error = s × stated σ', 1, '%.2f'))
+    overall = {'core_x': (float(wi['core_x']) * 100, 'all windows: %.2f %%'),
+               'outlier_share': (float(wi['outlier_share']) * 100, 'all windows: %.1f %%'),
+               's': (float(s_all['s']), 'all windows: s = %.2f')}
+    fig, axs = plt.subplots(3, len(groups), figsize=(4.2 * len(groups) + 0.6, 11.2), squeeze=False, sharex='col')
     for col, g in enumerate(groups):
+        title, xlabel, fmt, unit = W4_GROUPS.get(g, (g, g, lambda v: '%g' % v, ''))
         bins = []
         for r in by:
             if r['by'] == g and r['bin'] not in bins:
                 bins.append(r['bin'])
-        for row, (key, lo, hi, lab, scale) in enumerate((
-                ('core_x', 'core_x_lo', 'core_x_hi', 'core excess X (% of R)', 100),
-                ('outlier_share', 'outlier_share_lo', 'outlier_share_hi', 'outlier windows (%)', 100))):
+        rb = {r['bin']: r for r in by if r['by'] == g}
+        labels = ['%s\n%s windows\n%s runs' % (_bin_label(b, i == 0, i == len(bins) - 1, fmt, unit),
+                                              format(int(rb[b]['n_terms']), ','), rb[b]['n_runs'])
+                  for i, b in enumerate(bins)]
+        for row, (key, ylabel, scale, vfmt) in enumerate(rows):
             ax = axs[row, col]
-            rs = [r for r in by if r['by'] == g and r[key] not in ('', 'nan') and int(r['n_runs']) >= MIN_RUNS]
-            if rs:
-                xs = np.array([bins.index(r['bin']) for r in rs])
-                v = np.array([float(r[key]) for r in rs]) * scale
-                l = np.array([float(r[lo]) if r[lo] not in ('', 'nan') else np.nan for r in rs]) * scale
-                h = np.array([float(r[hi]) if r[hi] not in ('', 'nan') else np.nan for r in rs]) * scale
-                ax.errorbar(xs, v, yerr=[np.nan_to_num(v - l), np.nan_to_num(h - v)], fmt='o', color=C_A, capsize=2)
-            ax.set_xticks(np.arange(len(bins)))
-            ax.set_xticklabels(bins, rotation=35, fontsize=7)
-            if row == 0:
-                ax.set_title(g, fontsize=8.5)
+            ref, reflab = overall[key]
+            ax.axhline(ref, color=INK, ls='--', lw=0.9)
+            if key == 's':
+                ax.axhline(1.0, color='0.55', ls=':', lw=1)
+                srows = {_edges(r['bin'])[0]: r for r in sc if r['by'] == g}
+                pts = [(i, float(srows[_edges(b)[0]]['s']), math.nan, math.nan)
+                       for i, b in enumerate(bins) if _edges(b)[0] in srows]
+            else:
+                pts = [(i, float(rb[b][key]) * scale, float(rb[b][key + '_lo']) * scale,
+                        float(rb[b][key + '_hi']) * scale)
+                       for i, b in enumerate(bins) if rb[b][key] not in ('', 'nan') and int(rb[b]['n_runs']) >= MIN_RUNS]
+            if pts:
+                xs = np.array([p[0] for p in pts], float)
+                v = np.array([p[1] for p in pts])
+                lo = np.array([p[2] for p in pts]); hi = np.array([p[3] for p in pts])
+                ax.errorbar(xs, v, yerr=[np.nan_to_num(v - lo), np.nan_to_num(hi - v)], fmt='o', ms=6, color=C_A,
+                            capsize=3, zorder=3)
+                for x, y, h in zip(xs, v, hi):
+                    top = h if np.isfinite(h) else y
+                    ax.annotate(vfmt % y, (x, top), xytext=(0, 4), textcoords='offset points', ha='center',
+                                va='bottom', fontsize=8, color=INK)
+                ymax = np.nanmax(np.where(np.isfinite(hi), hi, v))
+            else:
+                ymax = ref
+                _note(ax, 'not computed for this split\n(real_scale.csv has Qz and counts only)', 'upper left')
+            if key == 's':
+                ax.set_ylim(0.95, max(ymax, ref) * 1.0 + 0.12)
+            else:
+                ax.set_ylim(0, max(ymax, ref) * 1.45)
+            ax.set_xlim(-0.5, len(bins) - 0.5)
             if col == 0:
-                ax.set_ylabel(lab)
-            ax.set_ylim(bottom=0)
-    wi = ov['all']
+                ax.set_ylabel(ylabel + chr(10) + '(dashed line: ' + reflab % ref + ')', fontsize=8.5)
+            if row == 0:
+                ax.set_title(title, fontsize=10, fontweight='bold')
+            if row == len(rows) - 1:
+                ax.set_xticks(np.arange(len(bins)))
+                ax.set_xticklabels(labels, fontsize=7.5)
+                ax.set_xlabel(xlabel, fontsize=8.5)
+        # what each column shows, from the numbers
+        xv = [float(rb[b]['core_x']) * 100 for b in bins]
+        nt = [int(rb[b]['n_terms']) for b in bins]
+        if g == 'counts per point':
+            _note(axs[0, col], 'X falls %.0f× from the fewest\ncounts to the most' % (xv[0] / xv[-1]))
+            srows = [float(r['s']) for r in sc if r['by'] == g]
+            if srows:
+                _note(axs[2, col], 's stays %.2f–%.2f: the error bar is\ntoo small by about the same factor\n'
+                      'at every count, so X (a %% of R)\nshrinks as the error bar does' % (min(srows), max(srows)),
+                      'upper left')
+        elif g == 'Qz (1/A)':
+            _note(axs[0, col], 'X %.2f–%.2f %%: no strong\ntrend along the curve' % (min(xv), max(xv)))
+        elif g == 'background share of the box':
+            _note(axs[0, col], 'highest at 10–30 %, but those points\nalso have fewer counts (column 2)',
+                  'upper left')
+        elif g.startswith('|monitor'):
+            _note(axs[0, col], '%.0f %% of the windows are in the\nlast bin; X %.2f–%.2f %% in all four'
+                  % (100 * nt[-1] / sum(nt), min(xv), max(xv)), 'upper left')
     cb = [float(r['core_x']) for r in by if r['by'] == 'counts per point']
     trend = ('ten times larger at the fewest counts than at the most' if cb[0] > 5 * cb[-1]
              else 'larger at the fewest counts' if cb[0] > cb[-1] else 'not larger at the fewest counts')
     fig.suptitle('W4. Real data, within a scan: a core excess of %.2f %% of R, %s; %.1f %% of windows are outliers'
                  % (float(wi['core_x']) * 100, trend, float(wi['outlier_share']) * 100),
-                 x=0.01, ha='left', fontweight='bold', fontsize=11)
-    foot(fig, 'From the committed real_by.csv (derived numbers; the non-cloud agent\'s private run of '
-         'scatter_analyse.py over %s runs). Bars: 16th–84th percentiles of a bootstrap over runs (files). '
-         'Outlier share: of 6-point windows (one bad point touches six windows). Bins with terms from fewer than %d '
-         'runs are left out (they are in real_by.csv). High Qz goes with low counts and a large background share. '
-         'Between-scan numbers are not shown: set aside (owner, 2026-11-25).' % (wi['n_runs'], MIN_RUNS))
-    fig.tight_layout(rect=(0, 0.06, 1, 0.93))
+                 x=0.01, ha='left', fontweight='bold', fontsize=12)
+    fig.text(0.01, 0.955, 'Each column splits the %s real 6-point windows (%s runs) by one property; each row is '
+             'one number fitted to the windows in that bin. Dashed line: the value over all windows. Dotted '
+             'line (bottom row): s = 1, honest error bars.' % (format(int(wi['n_terms']), ','), wi['n_runs']),
+             fontsize=9, color='0.25')
+    foot(fig, 'From the committed real_by.csv and real_scale.csv (derived numbers; the non-cloud agent\'s private '
+         'run of scatter_analyse.py and scatter_scale.py). Bars: 16th–84th percentiles of a bootstrap over runs '
+         '(files); the scale per bin has no bootstrap. Bins with terms from fewer than %d runs are left out (they '
+         'are in real_by.csv). One bad point touches six windows, so the share of wild points is about a sixth of '
+         'the share of outlier windows. High Qz goes with low counts and a large background share, so the '
+         'columns are not independent. Between-scan numbers are not shown: set aside (owner, 2026-11-25).'
+         % MIN_RUNS, width=230)
+    fig.tight_layout(rect=(0, 0.045, 1, 0.945))
     fig.savefig(os.path.join(out, 'W4_real_by.png'), dpi=200)
     plt.close(fig)
 
