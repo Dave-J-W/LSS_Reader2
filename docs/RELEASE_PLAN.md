@@ -40,8 +40,8 @@ All of these are already built. The work is finishing, fixing and checking them.
 | 5 | Per-SPEC workbook with automatic saving, and the lock | built | — |
 | 6 | Live updates while data come in | built | — |
 | 7 | Never closes on an error (Stage 0 safety net) | built | ~~crash baseline shrinks to release level~~ **at zero** (2026-11-26): `known_crashes.json` holds no crash in its 14 states, `known_crash_sites.json` is empty; the sweep passes (194) |
-| 8 | Windows build that runs on a clean PC | recipe exists | make one tagged build and try it on a clean machine |
-| 9 | Quick-start guide (two pages: open, reduce, export) | not written | write it from `MANUAL_NOTES.md` |
+| 8 | Windows build that runs on a clean PC | **builds pass** (tools man, #118, 2026-11-26: Windows and macOS self-tests on GitHub, run 45753156275 on main at 5f00a1c; downloads kept to 2027-02-24, the sample data with them) | the clean-PC test by a person (`docs/PACKAGING.md`, "Clean-PC test", about 10 min); the tag `v2.0.0` is the owner's |
+| 9 | Quick-start guide (two pages: open, reduce, export) | **written** (tools man, #118: `docs/manual/quick_start.md`; Help → Documentation opens it) | — |
 
 ## Release blockers (only these block 2.0)
 
@@ -60,7 +60,8 @@ Everything else is **not** a blocker.
    - The sweep's baselines are at zero.
    - `KeyError: 'monc'` is fixed (#116).
    - The burn dialog no longer refuses a burn without a beam height (#115), which had kept the slow suite red.
-   - On `main`: the quick suite passes (1375), the slow suite passes (427), the sweep passes (194).
+   - On `main` with #118, #119 and the About fix: the quick suite passes (1396), the slow suite passes (427),
+     the sweep passes (194, on #119).
 2. **Export numbers:** none known.
    - The legacy export fixtures stay byte-identical, and the golden `_ref.txt` files and the xmodfit
      covariance contract pass: `test_api`, `test_ref_export_golden`, `test_covariance_export`,
@@ -77,7 +78,13 @@ Everything else is **not** a blocker.
    - **Open:** `test_toolbox_gui` ×2. Their assertion lines from the Windows PC are needed (asked on #55).
      Pixel comparisons of figures, which Windows fonts change, would not be a release issue; anything else
      would be.
-4. **The packaged build:** tools man's.
+4. **The packaged build:** the builds pass (tools man, #118): Windows and macOS built and passed their
+   self-test on GitHub, Windows with `_ref.txt` and `_rrf.txt` identical to the reference. **Open:** the
+   clean-PC test, by the owner or Local yokel on a Windows PC that has never had Python (a Windows Sandbox
+   will do). Help → About shows 2.0 since 2026-11-26 (`lss_core.__version__`; it said 1.1).
+
+**Before the tag** (owner): the clean-PC test passed; the Windows rerun of the 4 fixed tests and the 2
+`test_toolbox_gui` lines; then `v2.0.0`, which runs the same build workflow.
 
 ## After 2.0 (parked, in rough order)
 
