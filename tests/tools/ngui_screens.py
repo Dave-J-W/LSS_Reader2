@@ -21,6 +21,7 @@ sys.path.insert(0, ROOT)
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 os.environ.setdefault('MPLBACKEND', 'Agg')
 os.environ['LSS_READER_LOG_DIR'] = tempfile.mkdtemp(prefix='ngui_screens_logs_')
+os.environ['LSS_READER_LOCK_AT_OPEN'] = '0'      # D1: no workbook lock beside the sample data (rule 7)
 os.environ['LSS_READER_PREFS'] = os.path.join(tempfile.mkdtemp(prefix='ngui_screens_prefs_'), 'p.json')
 
 ENTRIES = []

@@ -48,9 +48,8 @@ def _save_ref(w, qapp):
 
 
 def test_opening_a_spec_file_writes_no_lock(loaded, recorder):
-    """The lock is taken when the workbook is first needed, not when the SPEC
-    file is opened, so a SPEC file whose workbook is never used gets nothing
-    beside it."""
+    """With the opening lock off (LSS_READER_LOCK_AT_OPEN=0, the tests'
+    setting) the lock is taken when the workbook is first needed."""
     assert glob.glob(os.path.join(os.path.dirname(loaded.workbookPath()), '*' + readerlock.LOCK_SUFFIX)) == []
     assert not loaded.readOnlyLight.isVisible()
     loaded.openWorkbook()
@@ -143,4 +142,105 @@ def test_two_windows_on_one_spec_file(loaded, qapp, recorder, dataset):
     second.readerLockTick()
     assert second.readerLock.writable
     sweep.dispose(second, qapp, recorder)
+    assert recorder.exceptions == []
+
+
+# ---- the owner's revised Q5 (2026-11-25): the lock on opening, given up in one click, asked for ----
+
+def test_the_lock_is_taken_when_the_spec_file_is_opened(window, qapp, recorder, dataset, monkeypatch):
+    monkeypatch.setenv('LSS_READER_LOCK_AT_OPEN', '1')
+    w = window
+    w.openSpecFile(fname=dataset)
+    qapp.processEvents()
+    assert os.path.exists(w.workbookPath() + readerlock.LOCK_SUFFIX) and w.readerLock.writable
+    assert not os.path.exists(w.workbookPath())                       # the lock only, no workbook yet
+    assert not w.readOnlyLight.isVisibleTo(w)
+    assert w.ui.actionGiveUpWriteAccess.isEnabled() and not w.ui.actionAskWriteAccess.isEnabled()
+    w.openSpecFile(fname=dataset)                                      # the same file again: still this reader's
+    assert w.readerLock.writable
+    assert recorder.exceptions == []
+
+
+def test_a_second_reader_opening_the_file_is_read_only_at_once(loaded, qapp, recorder, dataset, monkeypatch):
+    monkeypatch.setenv('LSS_READER_LOCK_AT_OPEN', '1')
+    _held_elsewhere(loaded)
+    loaded.openSpecFile(fname=dataset)
+    qapp.processEvents()
+    assert not loaded.readerLock.writable and loaded.readOnlyLight.isVisibleTo(loaded)
+    assert any('open in another reader' in m and 'gives up its write access' in m for m in recorder.messages)
+    assert loaded.ui.actionAskWriteAccess.isEnabled() and not loaded.ui.actionGiveUpWriteAccess.isEnabled()
+    assert recorder.exceptions == []
+
+
+def test_giving_up_the_write_access_is_one_click_and_is_not_undone_by_itself(loaded, qapp, recorder):
+    w = loaded
+    _quiet(w)
+    w.openWorkbook()
+    assert w.readerLock.writable
+    w.ui.actionGiveUpWriteAccess.trigger()
+    lock = w.workbookPath() + readerlock.LOCK_SUFFIX
+    assert not os.path.exists(lock) and not w.readerLock.writable
+    assert w.readOnlyLight.isVisibleTo(w) and 'You gave up' in w.readOnlyLight.toolTip()
+    assert any(m.startswith('You gave up the write access') for m in recorder.messages)
+    w.readerLockTick()                                                 # the lock is free, but not taken back
+    assert not w.readerLock.writable and not os.path.exists(lock)
+    _save_ref(w, qapp)
+    assert not os.path.exists(w.workbookPath())                        # nothing saved (Q6)
+    assert any('you gave up the write access' in m and 'takes it back' in m for m in recorder.messages)
+    w.ui.actionAskWriteAccess.trigger()                                # free: taken back at once
+    assert w.readerLock.writable and os.path.exists(lock) and not w.readOnlyLight.isVisibleTo(w)
+    assert recorder.exceptions == []
+
+
+def test_a_request_for_the_write_access_offers_release(loaded, qapp, recorder):
+    from PyQt5.QtWidgets import QMessageBox
+    w = loaded
+    _quiet(w)
+    w.openWorkbook()
+    other = readerlock.ReaderLock(w.workbookPath())                   # a second reader, read-only
+    assert not other.acquire()
+    assert other.request_release(note='second shift')
+    w.readerLockTick()
+    box = w.releaseRequestBox
+    assert box is not None and box.isVisible() and not box.isModal()  # the work goes on
+    assert any('asks for the write access' in m and 'second shift' in m for m in recorder.messages)
+    n = len(recorder.messages)
+    w.readerLockTick()                                                 # said once per request
+    assert len(recorder.messages) == n and w.releaseRequestBox is box
+    [b for b in box.buttons() if box.buttonRole(b) == QMessageBox.AcceptRole][0].click()   # Release
+    qapp.processEvents()
+    assert not w.readerLock.writable and w.releaseRequestBox is None
+    assert other.try_again() and other.writable                        # the asker takes it
+    assert recorder.exceptions == []
+
+
+def test_keep_declines_the_request(loaded, qapp, recorder):
+    from PyQt5.QtWidgets import QMessageBox
+    w = loaded
+    _quiet(w)
+    w.openWorkbook()
+    other = readerlock.ReaderLock(w.workbookPath())
+    other.acquire()
+    other.request_release()
+    w.readerLockTick()
+    box = w.releaseRequestBox
+    [b for b in box.buttons() if box.buttonRole(b) == QMessageBox.RejectRole][0].click()   # Keep
+    qapp.processEvents()
+    assert w.readerLock.writable and not os.path.exists(other.request_path)
+    assert w.readerLock.release_requested() is None
+    assert recorder.exceptions == []
+
+
+def test_a_read_only_reader_asks_the_holder(loaded, qapp, recorder):
+    w = loaded
+    _quiet(w)
+    _held_elsewhere(w)
+    w.openWorkbook()
+    assert not w.readerLock.writable
+    w.ui.actionAskWriteAccess.trigger()
+    with open(w.readerLock.request_path) as f:
+        req = json.load(f)
+    assert req['token'] == w.readerLock.me['token']
+    assert any(m.startswith('Asked colleague on beamline-pc-2') for m in recorder.messages)
+    assert w.readOnlyLight.actions() == [w.ui.actionAskWriteAccess]    # also on the light's right-click menu
     assert recorder.exceptions == []
