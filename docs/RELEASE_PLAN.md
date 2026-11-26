@@ -86,19 +86,33 @@ Everything else is **not** a blocker.
        860abd5).
    - **Not a release issue:** `test_ngui::test_window_builds_with_every_placed_control`. ngui is the layout
      prototype, parked after 2.0, and its exact-size assertion meets Windows display scaling.
-   - **Open:** `test_toolbox_gui` ×2. Their assertion lines from the Windows PC are needed (asked on #55).
-   - **New on Windows, open:** `test_gui_reader_lock` ×2 (`test_keep_declines_the_request`,
-     `test_a_request_for_the_write_access_offers_release`), from #120, on clean main 860abd5. Their `E` lines
-     are asked for on #55, for GUI manager.
-     Pixel comparisons of figures, which Windows fonts change, would not be a release issue; anything else
-     would be.
+   - **Windows quick suite on main f91029a** (project manager, the owner's PC, 2026-11-26, `-n 4`): 1419
+     passed, 3 failed, 13 skipped, 2 xfailed (6.5 min). The 4 fixes above pass. `test_gui_reader_lock` ×2
+     **pass** now.
+   - **Fixed:** `test_toolbox_gui::test_the_open_spec_file_fills_the_spec_option`. This was a test bug: the
+     free field quotes a path with a space (shlex), and the test compared the raw text. It failed on any
+     checkout whose path has a space, not only on Windows.
+   - **Not a release issue:** `test_toolbox_gui::test_a_figure_tool_reproduces_its_committed_figures
+     [burn_figures]`. The pixel comparison fails (5–6 % of pixels), but it is platform rounding, not a bug.
+     Measured: the per-frame values agree with the committed CSVs to 3 × 10⁻¹⁰. Every burn verdict and
+     chosen model is the same. Only the last digits of the fitted times move (68.78 s vs 68.83 s), plus one
+     AICc gap (206.7 vs 209.8), which is far above any threshold. After 2.0: compare the CSVs with a
+     tolerance on Windows instead of pixels.
+   - **Blocker 3 is closed:** of the 7, 5 are fixed and 2 (ngui, burn pixels) are explained.
 4. **The packaged build:** the builds pass (tools man, #118): Windows and macOS built and passed their
-   self-test on GitHub, Windows with `_ref.txt` and `_rrf.txt` identical to the reference. **Open:** the
-   clean-PC test, by the owner or Local yokel on a Windows PC that has never had Python (a Windows Sandbox
-   will do). Help → About shows 2.0 since 2026-11-26 (`lss_core.__version__`; it said 1.1).
+   self-test on GitHub, Windows with `_ref.txt` and `_rrf.txt` identical to the reference. **Near-clean test passed**
+   (project manager, the owner's PC, 2026-11-26). It ran run 45753156275's `LSS_Reader-Windows` with Python
+   removed from PATH and every `PYTHON*`, `CONDA*` and `QT_*` variable unset:
+   - The self-test passed in 9 s: window with 9 tabs, `_ref.txt` and `_rrf.txt` identical.
+   - A plain start (as a double-click) showed the window in 4 s, closed cleanly with exit 0, and left empty
+     fault logs.
 
-**Before the tag** (owner): the clean-PC test passed; the Windows rerun of the 4 fixed tests and the 2
-`test_toolbox_gui` lines; then `v2.0.0`, which runs the same build workflow.
+   **Still open:** a truly clean PC. This PC has Python and the Visual C++ runtimes installed, and Windows
+   Sandbox is not enabled. Either enable Sandbox (admin, one reboot) or use another PC, then follow
+   `docs/PACKAGING.md` "Clean-PC test". The XModFit read of the export (step 5) is the owner's. Help → About shows 2.0 since 2026-11-26 (`lss_core.__version__`; it said 1.1).
+
+**Before the tag** (owner): the clean-PC test (Sandbox or another PC) and XModFit reading the export; then
+`v2.0.0`, which runs the same build workflow. The Windows test run is done (blocker 3 closed, 2026-11-26).
 
 ## After 2.0 (parked, in rough order)
 
