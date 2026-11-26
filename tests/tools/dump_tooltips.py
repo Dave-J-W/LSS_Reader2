@@ -69,7 +69,7 @@ def main():
     w = MainWindow()
     found = rows(w, 'Main window')
     for build, title in ((w.buildPreferences, 'Preferences'), (w.buildGIDWorksheet, 'GID worksheet'),
-                         (w.buildBurnDialog, 'Burn test')):
+                         (w.buildBurnDialog, 'Burn test'), (w.showPlotOptions, 'Plot options')):
         try:
             d = build()
         except Exception as e:                       # report, do not stop

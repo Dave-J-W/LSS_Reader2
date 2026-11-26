@@ -58,6 +58,7 @@ def panel(ax, show):
     if rax is None:
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         rax = make_axes_locatable(ax).append_axes('top', size=SIZE, pad=PAD, sharex=ax)
+        rax._lss_inset = True              # the window's plot options leave the strip as drawn (F112)
         ax._lss_residuals = rax
     else:
         rax.clear()

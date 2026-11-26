@@ -82,7 +82,7 @@ shared_steps:
   - id: shared.workbook
     do: The finished reduction is saved into <SPEC file>_reader.xlsx automatically; Save stores a version with a note
     where: Save button beside each Export; GID menu 'Save to workbook'
-    controls: [prefAutoSaveCheckBox, prefSaveNoteCheckBox, readOnlyLightLabel]
+    controls: [prefAutoSaveCheckBox, prefSaveNoteCheckBox, readOnlyLightLabel, actionGiveUpWriteAccess, actionAskWriteAccess]
     user_decides: whether to add a 'user' version with a note
     automatic: yes
     could_be_automatic: ""
@@ -1297,6 +1297,15 @@ workflows:
         known_from: code
         issues:
           - "Settings that belong to one workflow (Ref Patch method, MCA elements) sit in a global dialog"
+      - id: session.plotoptions
+        do: Plot options of the tab on show - font size, major and minor ticks, tick direction, ticks on all sides, grid (F112)
+        where: "Plot options... at the right of the tab bar"
+        controls: [plotOptionsToolButton, plotOptTabLabel, plotOptFontSpinBox, plotOptMajorComboBox, plotOptMinorComboBox, plotOptDirectionComboBox, plotOptMirrorComboBox, plotOptGridComboBox, plotOptResetPushButton, plotOptClosePushButton]
+        user_decides: "the look of a tab's plots; kept per tab between sessions"
+        automatic: no
+        could_be_automatic: ""
+        known_from: "owner 2026-11-26 (F112)"
+        issues: []
       - id: session.absorber
         uses: shared.absorber
       - id: session.errors

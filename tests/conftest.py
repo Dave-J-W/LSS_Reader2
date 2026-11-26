@@ -28,6 +28,10 @@ os.environ['LSS_READER_LOG_DIR'] = _temp_folder('lss_reader_test_logs_')
 # draw image-list selections at once (the 150 ms merge of rapid clicks is
 # tested on its own in test_lss_core.py)
 os.environ['LSS_READER_SELECTION_DELAY_MS'] = '0'
+# D1 (owner's revised Q5): the program takes the workbook's lock when a SPEC file is opened, which would
+# write a .lock file into sample_data/ before a test moves window.directory; the tests take it when the
+# workbook is first needed (test_gui_reader_lock.py turns the opening lock on, in tmp_path)
+os.environ['LSS_READER_LOCK_AT_OPEN'] = '0'
 # preferences go to a temporary file, never to ~/.lss_reader
 os.environ['LSS_READER_PREFS'] = os.path.join(_temp_folder('lss_reader_test_prefs_'), 'preferences.json')
 # never write to the user's disk cache from the tests

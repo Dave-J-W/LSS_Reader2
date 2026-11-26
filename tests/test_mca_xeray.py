@@ -1,14 +1,17 @@
 """MCA "Fit lines" two ways (F110; owner, 2026-11-26): "xeray should be
 default for mca fitting, but it tends to undercount error so include our
 best method (poisson fixed width etc) as well, and report both fits and
-errors".
+errors". Revised by the owner the same day, after the real-data results
+(C66, C69) and a known-truth case where the fixed width reads 0.68: the
+reader's fit is the default, its width from the sum of the series.
 
-XeRay (lss_core.fluorescence.xeray_fit, ported from the Lee group's MATLAB
-tool in the XRF shootout) is the value plotted, merged and exported in
-_flu.txt; the reader's Poisson fit with the detector's width and the Si
-escapes stripped (the shootout's honest method) sits beside it in every row,
-the list, the plot and _flu_fit.txt."""
+The reader's Poisson fit (Si escapes stripped, the width from the sum) is
+the value plotted, merged and exported in _flu.txt; XeRay
+(lss_core.fluorescence.xeray_fit, ported from the Lee group's MATLAB tool in
+the XRF shootout) sits beside it in every row, the list, the plot and
+_flu_xeray.txt."""
 import math
+import os
 
 import numpy as np
 import pytest
@@ -51,16 +54,40 @@ def test_fit_line_series_gives_both_fits():
     o = peaks.FitOptions(centres=(6.40,), n_peaks=1, x_range=(6.0, 6.8))
     both = fl.fit_line_series(data, o)
     assert len(both['xeray']) == 3 and all(f.ok for f in both['xeray'])
-    assert both['options'].fwhm == pytest.approx(fl.detector_fwhm(6.40, 0.12))     # the detector's width
+    assert both['options'].fwhm == o.fwhm == 0 and both['width_at'] is None          # the width from the sum
     assert len(both['each']) == 3 and both['j'] is not None
     for f, r in zip(both['xeray'], both['each']):
         assert abs(f.area / (r.peaks[both['j']].area / both['step']) - 1) < 0.1          # the two agree on a clean line
-    assert both['width_at'] == 6.40
-    plain = fl.fit_line_series(data, o, detector_width=False, strip_escapes=False)
+    fixed = fl.fit_line_series(data, o, detector_width=True)                          # the option
+    assert fixed['options'].fwhm == pytest.approx(fl.detector_fwhm(6.40, 0.12)) and fixed['width_at'] == 6.40
+    plain = fl.fit_line_series(data, o, strip_escapes=False)
     assert plain['options'].fwhm == o.fwhm and plain['width_at'] is None
-    free = fl.fit_line_series(data, peaks.FitOptions(n_peaks=1, x_range=(6.0, 6.8)))   # no energy given
-    assert free['width_at'] == pytest.approx(6.40, abs=0.01)                          # the line XeRay found
+    free = fl.fit_line_series(data, peaks.FitOptions(n_peaks=1, x_range=(6.0, 6.8)), detector_width=True)
+    assert free['width_at'] == pytest.approx(6.40, abs=0.01)                          # no energy: the line XeRay found
     assert free['options'].fwhm == pytest.approx(fl.detector_fwhm(free['width_at'], 0.12))
+
+
+def test_the_default_reads_a_line_wider_than_the_detector_model():
+    """Known truth (GUI manager, #123; reproduced by main man, 2026-11-26):
+    the synthetic XFNTR line is σ = 6 channels = 0.12 keV, 1.65 × the width
+    the detector model gives at 6.4 keV with 0.12 keV noise. The default
+    (width from the sum) reads every frame's true area; the fixed width reads
+    0.68 of it, the reason the owner turned the fixed width off."""
+    import synth
+    step = 0.02
+    e = np.arange(1, synth.XF_CHANNELS + 1) * step
+    data, truth = [], []
+    for q in synth.XF_QZ:
+        n, line = synth.xfntr_spectrum(q)
+        data.append(np.column_stack([e, n, np.sqrt(np.maximum(n, 1))]))
+        truth.append(line.sum())
+    pk = synth.XF_PEAK_CHANNEL * step
+    o = peaks.FitOptions(background='quadratic', n_peaks=1, x_range=(pk - 0.6, pk + 0.6))
+    for kw, want, tol in (({}, 1.0, 0.005), (dict(detector_width=True), 0.68, 0.01)):
+        b = fl.fit_line_series(data, o, **kw)
+        ours = np.array([r.peaks[b['j']].area / b['step'] for r in b['each']]) / truth
+        assert np.allclose(ours, want, atol=tol), (kw, ours)
+        assert np.allclose([f.area for f in b['xeray']], truth, rtol=0.005)     # XeRay reads it too
 
 
 def test_merge_keeps_the_pairs_together():
@@ -81,19 +108,25 @@ def test_window_fit_lines_reports_both_and_exports_both(loaded, qapp, dataset, r
     assert len(rows) == 2 and all(len(r) == 7 for r in rows)
     xr, nums = loaded.mcaXeRayFits
     for r, f in zip(rows, xr):
-        assert f.ok and r[3] == pytest.approx(f.area) and r[4] == pytest.approx(f.area_err)
+        assert f.ok and r[5] == pytest.approx(f.area) and r[6] == pytest.approx(f.area_err)   # XeRay beside
     ref, each, _ = loaded.mcaLineFits
-    assert rows[1][5] == pytest.approx(2 * rows[0][5], rel=0.02)                    # the second spectrum is × 2
-    assert rows[1][3] == pytest.approx(2 * rows[0][3], rel=0.05)
-    assert 'fit ' in loaded.ui.mcaDataListWidget.item(0).text()
+    j = 0
+    for r, fit in zip(rows, each):
+        assert r[3] == pytest.approx(fit.peaks[j].area / float(np.median(np.diff(
+            loaded.nomMcaData[loaded.selectedMcaScanNums[0]][:, 0]))))                  # the reader's fit first
+    assert rows[1][3] == pytest.approx(2 * rows[0][3], rel=0.02)                    # the second spectrum is × 2
+    assert rows[1][5] == pytest.approx(2 * rows[0][5], rel=0.05)
+    assert 'XeRay ' in loaded.ui.mcaDataListWidget.item(0).text()
+    assert "the reader's fit (default)" in loaded.command and 'width from the sum' in loaded.command
     assert 'XeRay' in loaded.command and 'XeRay' in recorder.messages[-1]
     name = str(tmp_path / 'out')
     recorder.save_name = name
     loaded.ui.mcaExportIntPushButton.click()
     qapp.processEvents()
     a = np.loadtxt(name + '_flu.txt', comments='#')
-    b = np.loadtxt(name + '_flu_fit.txt', comments='#')
+    b = np.loadtxt(name + '_flu_xeray.txt', comments='#')
     assert a.shape == b.shape == (2, 3)                                              # the same three columns
     assert np.allclose(a[:, 1], [r[3] for r in rows]) and np.allclose(b[:, 1], [r[5] for r in rows])
-    assert 'XeRay' in open(name + '_flu_fit.txt').readline()
+    assert "XeRay's fit" in open(name + '_flu_xeray.txt').readline()
+    assert not os.path.exists(name + '_flu_fit.txt')
     assert recorder.exceptions == []
