@@ -288,6 +288,7 @@ class MainWindow (QMainWindow):
         self.initCutAxis()
         self.initTimelineTab()
         self.initCompareTab()
+        self.initPlotOptions()          # F112: after the last tab is added
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
@@ -9598,6 +9599,126 @@ class MainWindow (QMainWindow):
         lw.blockSignals(False)
         lw.scrollToItem(lw.item(rows[0]))
         lw.itemSelectionChanged.emit()
+
+    # ---- F112 (owner, 2026-11-26): the plot options of each tab ----
+
+    def initPlotOptions(self):
+        """'Plot options...' at the right of the tab bar: the options of the
+        plots of the tab on show (plotoptions.PlotOptionsDialog), kept per tab
+        between sessions (preference plot_options) and applied by the
+        canvases at every draw (mplwidget.apply_plot_options)."""
+        from PyQt5.QtWidgets import QToolButton
+        b=QToolButton(self)
+        b.setObjectName('plotOptionsToolButton')
+        b.setText('Plot options...')
+        b.clicked.connect(self.showPlotOptions)
+        self.ui.PlotWidget.setCornerWidget(b,Qt.TopRightCorner)
+        b.show()
+        self.plotOptionsButton=b
+        self.plotOptionsDialog=None
+        self.registerPlotCanvases()
+        self.ui.PlotWidget.currentChanged.connect(self.plotOptionsTabChanged)
+        self.plotOptionsTabChanged()
+
+    def plotTabKey(self,i=None):
+        pw=self.ui.PlotWidget
+        i=pw.currentIndex() if i is None else i
+        page=pw.widget(i)
+        return page.objectName() if page is not None and page.objectName() else pw.tabText(i)
+
+    def plotTabCanvases(self,i):
+        """The canvases the options of tab ``i`` apply to (not the ROI close-up, a compact panel)."""
+        from mplwidget import MplCanvas
+        page=self.ui.PlotWidget.widget(i)
+        if page is None:
+            return []
+        return [c for c in page.findChildren(MplCanvas) if c.objectName()!='pilRoiCanvas']
+
+    def registerPlotCanvases(self):
+        for i in range(self.ui.PlotWidget.count()):
+            key=self.plotTabKey(i)
+            for c in self.plotTabCanvases(i):
+                c.plot_options=(lambda k=key: self.plotOptions(k))
+
+    def plotOptions(self,key):
+        return (self.prefs.get('plot_options') or {}).get(key)
+
+    def setPlotOptions(self,key,opts):
+        """Keep tab ``key``'s options (all 'as drawn': none kept) and redraw its plots."""
+        import mplwidget
+        allopts=dict(self.prefs.get('plot_options') or {})
+        if mplwidget.plot_options_set(opts):
+            allopts[key]=dict(opts)
+        else:
+            allopts.pop(key,None)
+        self.setPreference('plot_options',allopts)
+        self.plotOptionsTabChanged()
+        for i in range(self.ui.PlotWidget.count()):
+            if self.plotTabKey(i)==key:
+                for c in self.plotTabCanvases(i):        # what ax.clear() would keep of the earlier choice
+                    mplwidget.reset_plot_options(c.figure)
+                self.redrawPlotTab(i)
+
+    def redrawPlotTab(self,i):
+        """Redraw tab ``i``'s plots by the tab's own drawing, when it shows
+        something (so that 'as drawn' undoes a choice), else the canvases as
+        they are."""
+        key=self.plotTabKey(i)
+        redraws={
+            'specPlotTab':(lambda: bool(getattr(self,'selectedScanNums',None)),self.updateSpecPlotData),
+            'pilatusTab':(lambda: bool(getattr(self,'selectedPilFramesNums',None)),self.updatePilPlotData),
+            'refTab':(lambda: len(getattr(self,'refData',[]) or [])>0,self.updateRefPlotData),
+            'cutAreaTab':(lambda: len(getattr(self,'cutData',[]) or [])>0,self.updateCutPlotData),
+            'mcaTab':(lambda: bool(getattr(self,'selectedMcaScanNums',None)),self.updateMcaPlotData),
+            'tab_3':(lambda: bool(getattr(self,'selectedplotfiles_rows',None)),self.updatePlotPlot),
+            'compareTab':(lambda: True,lambda: self.refreshCompare(force=True)),
+        }
+        done=False
+        if key in redraws:
+            when,how=redraws[key]
+            try:
+                if when():
+                    how()
+                    done=True
+            except Exception:
+                self.log.exception('plot options: the %s tab was not redrawn',key)
+        if key=='mcaTab' and len(getattr(self,'mcaIntData',[]) or [])>0:
+            try:
+                self.updateMcaIntPlot()
+            except Exception:
+                self.log.exception('plot options: the MCA integrals were not redrawn')
+        for c in self.plotTabCanvases(i):
+            c.draw_idle()
+        return done
+
+    def plotOptionsTabChanged(self,*_a):
+        b=getattr(self,'plotOptionsButton',None)
+        if b is None:
+            return
+        i=self.ui.PlotWidget.currentIndex()
+        has=bool(self.plotTabCanvases(i))
+        b.setEnabled(has)
+        name=self.ui.PlotWidget.tabText(i)
+        set_=self.plotOptions(self.plotTabKey(i))
+        b.setText('Plot options...' + (' *' if set_ else ''))
+        b.setToolTip(('The plots of the %s tab: font size, major and minor ticks, tick direction, ticks on all '
+                      'sides, grid (F112). Each tab keeps its own, between sessions; "as drawn" leaves a plot as '
+                      'the reader draws it. %s' % (name,'* : some are set for this tab.' if set_ else ''))
+                     if has else 'The %s tab has no plots to set.' % name)
+        d=getattr(self,'plotOptionsDialog',None)
+        if d is not None and d.isVisible() and has:
+            d.target(self.plotTabKey(i),name,mpl.rcParams['font.size'])
+
+    def showPlotOptions(self):
+        from plotoptions import PlotOptionsDialog
+        self.registerPlotCanvases()             # canvases made since
+        if self.plotOptionsDialog is None:
+            self.plotOptionsDialog=PlotOptionsDialog(self,self.plotOptions,self.setPlotOptions)
+        i=self.ui.PlotWidget.currentIndex()
+        self.plotOptionsDialog.target(self.plotTabKey(i),self.ui.PlotWidget.tabText(i),mpl.rcParams['font.size'])
+        self.plotOptionsDialog.show()
+        self.plotOptionsDialog.raise_()
+        return self.plotOptionsDialog
 
     # ---- F74 (owner, 2026-11-22): residuals above the plots that show a fit ----
 

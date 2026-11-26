@@ -259,7 +259,7 @@ def check_window(entries, report):
     import mainwindow
     w = mainwindow.MainWindow()
     w.messageBox = lambda *a, **k: None
-    for build in ('buildPreferences', 'buildGIDWorksheet', 'buildBurnDialog'):
+    for build in ('buildPreferences', 'buildGIDWorksheet', 'buildBurnDialog', 'showPlotOptions'):
         try:                                 # code-built dialogs: their widgets exist once built
             getattr(w, build)()
         except Exception as e:               # noqa: BLE001 (a dialog that needs data is skipped)

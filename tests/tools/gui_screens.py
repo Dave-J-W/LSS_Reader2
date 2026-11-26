@@ -481,6 +481,22 @@ def run_nx(app, ctx, skip_slow):
         select_scans(w, app, [0])
         save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '13b_specplot_beam_off_scan.png',
                  'SpecPlot of scan 1 (a motor scan with the beam off)', 'Scan 1 selected')
+        # F112: the plot options of the tab (font size, ticks, grid), then back to 'as drawn'
+        select_scans(w, app, [3])
+        d = w.showPlotOptions()
+        d.fields['font'].setValue(14)
+        for k, v in (('major', 5), ('minor', 'on'), ('direction', 'in'), ('mirror', 'on'), ('grid', 'major')):
+            d.fields[k].setCurrentIndex(d.fields[k].findData(v))
+        settle(app)
+        unfocus(d, app)
+        save_png(d.grab(), '13c_plot_options_dialog.png', 'Plot options of the SpecPlot tab (F112)',
+                 'Font 14 pt, about 5 major ticks, minor ticks on, ticks in and on all sides, grid at the major ticks')
+        save_png(crop(grab_window(w, app), rect_in(w, w.ui.PlotWidget)), '13d_specplot_with_plot_options.png',
+                 'SpecPlot with those plot options (F112); the button at the right of the tab bar shows a *',
+                 'Scan 4 selected; the options of 13c')
+        d.resetButton.click()
+        d.close()
+        settle(app)
     specplot()
 
     @step('timeline')

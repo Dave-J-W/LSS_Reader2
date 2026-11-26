@@ -204,6 +204,14 @@ Each line: feature — where — default — script — notes entry (date).
 - Plot text (F111, 2026-11-26): tick labels, axis labels and legends are
   at least as large as the tab labels, whatever the display scaling (the
   reader sizes matplotlib's text from the tab font when it starts).
+- Plot options (F112, 2026-11-26): "Plot options..." at the right of the
+  tab bar sets, for the plots of the tab on show: font size, about how
+  many major ticks, minor ticks, tick direction, ticks on all four sides,
+  and the grid (off, major, major and minor). Each tab keeps its own,
+  between sessions; the button shows * when some are set. Every option
+  starts at "as drawn" (the plots as the reader draws them), and "As
+  drawn" puts them all back. The Pilatus tab's ROI close-up and the
+  residual strips are left as drawn. Terms to define: major, minor ticks.
 - Export names (2026-11-26): every Export dialog says in its title what
   it adds to the name (e.g. "the name gets _flu.txt"); a name typed with
   that ending, or with .txt, is not given it twice. The Fit Peak dialog's
