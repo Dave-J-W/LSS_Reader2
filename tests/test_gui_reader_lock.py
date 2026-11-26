@@ -168,6 +168,7 @@ def test_a_second_reader_opening_the_file_is_read_only_at_once(loaded, qapp, rec
     qapp.processEvents()
     assert not loaded.readerLock.writable and loaded.readOnlyLight.isVisibleTo(loaded)
     assert any('open in another reader' in m and 'gives up its write access' in m for m in recorder.messages)
+    assert not any('reader: read-only:' in m for m in recorder.messages)     # said once, not twice
     assert loaded.ui.actionAskWriteAccess.isEnabled() and not loaded.ui.actionGiveUpWriteAccess.isEnabled()
     assert recorder.exceptions == []
 

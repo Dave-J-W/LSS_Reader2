@@ -10038,7 +10038,7 @@ class MainWindow (QMainWindow):
             else:
                 self.notify('This workbook is open in another reader: %s. Results, notes and masks are shown but not '
                             'saved here until it closes or gives up its write access (tried again every %d s; File > '
-                            'Ask for the workbook\'s write access asks it to).' % (lk.describe(),int(readerlock.REFRESH_S)),
+                            'Ask for the workbook\'s write access asks it to).' % (self._lockWho(lk),int(readerlock.REFRESH_S)),
                             title='Workbook')
         return lk
 
@@ -10074,10 +10074,17 @@ class MainWindow (QMainWindow):
                 self.notify('The other reader closed this workbook or gave up its write access: this reader saves to '
                             'it again.',title='Workbook',level='info')
             else:
-                self.notify('Another reader took this workbook: %s. Nothing more is saved here.' % lk.describe(),
+                self.notify('Another reader took this workbook: %s. Nothing more is saved here.' % self._lockWho(lk),
                             title='Workbook')
         if now:
             self.checkReleaseRequest()
+
+    @staticmethod
+    def _lockWho(lk):
+        """The lock's description without its 'read-only: ' prefix, for a
+        sentence that says so already."""
+        text=lk.describe()
+        return text[len('read-only: '):] if text.startswith('read-only: ') else text
 
     @staticmethod
     def _readerName(d):
