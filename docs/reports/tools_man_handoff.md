@@ -16,6 +16,10 @@ chain:
 The model is `docs/studies/reciprocity/walkthrough.md`; the method is `.claude/skills/known-truth-study`.
 Also read `.claude/skills/fit-statistics-pitfalls` and `.claude/skills/tools-freshness`.
 
+**Standing by (owner, 2026-11-26): "Stand by for p44 once tag complete".** Start P44 when `v2.0.0` is
+tagged: `gh api repos/Dave-J-W/LSS_Reader2/tags --jq '.[].name'`. The release jobs are done: run 45879045324
+is the build to ship, and the guide is current.
+
 ## Release push (2026-11-26): my jobs, owner's choice "release jobs first"
 
 - **P44 is parked until 2.0 is tagged** (`docs/RELEASE_PLAN.md`; the owner chose this over starting it now).
