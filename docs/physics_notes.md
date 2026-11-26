@@ -7008,3 +7008,24 @@ budget, not only in the joint fit: the curve's error column, the joins and the c
 ### 2026-11-25 — GID shoulder, strip drift, NX subphase (batch 26; tools man's 3 to 5)
 
 Verified by: the owner's statements; nothing computed here. **GID shoulder:** not known to be steady; keep it free per frame and compare against fixing it (P44). **Strip drift:** the height is often not re-aligned between strips (the sh scan, when made, is in the SPEC file) and films change in time: so two strips can differ in drift rate through height change or the film itself, not only the beam's dose. This weakens the assumption behind the dose-or-time test that two strips of one sample at one flux are replicates (the strip scatter ρ of the burn dialog starts at 0, but the owner's statement suggests ρ can be large); tools man's design of alternating high and low flux (DATA_NEEDS row 14) was made for this. If a sh scan sits between strips, its fitted height and width could enter the analysis as a covariate (a suggestion, not asked of the owner). **NX subphase:** pure water, so for NX scans 6 to 9 the unexplained Qoff of about −1.5e-4 Å⁻¹ (angle offset about −0.0009°) is an offset and not a Qc shift; the tools session's number comes from its own calculation (C50), not rechecked.
+
+### 2026-11-25 — The owner's batch 26 and C64's reading of the between-scan excess
+
+Reading only. The owner (questor, batch 26, tools man's question 4): the sample height is often **not**
+re-aligned between strips, a sample-height scan, when taken, is in the SPEC file, and "films are often
+changing in time".
+- **It fits the corrected C64 reading.** C63's between-scan excess grows with the minutes between the two
+  measurements, so it is a change of the sample or its height between scans, not per-point noise.
+- **DATA_NEEDS 17c now asks** whether a sample-height scan lies between the two scans of a pair, with its
+  fitted height and width as a covariate.
+
+### 2026-11-26 — Reflection guy's rulings on public data are the owner's
+
+Owner, to main man: "Whatever I tell reflection guy is law in regards to public data."
+- **Who:** Reflection guy is a session on the owner's computer, running since 2026-11-24. It has not posted
+  on #55, and the cloud sessions cannot read its session (it accepts only the owner's trusted devices).
+- **What it means:** its rulings on public data, what may be published and how, are the owner's word. They
+  need no confirmation through questor and override the publishing rules in AGENTS.md and the
+  `review-local-data-pr` skill where they differ.
+- **Where they must be:** they reach the cloud sessions only when posted on #55 or written in `docs/`.
+- Recorded in AGENTS.md (Sessions), the review skill and main man's hand-off.
