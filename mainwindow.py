@@ -10822,6 +10822,7 @@ class MainWindow (QMainWindow):
                                                       directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
+        typed=self.saveFileName              # a cut on a GID or GISAXS map is written to this name as it is
         self.saveFileName=self.exportStem(self.saveFileName,('_sumcut.txt','_cut.txt'))
         if self.det=='Pilatus':
             if self.pilGIDshow==0 and self.pilGISAXSshow==0:
@@ -10834,7 +10835,7 @@ class MainWindow (QMainWindow):
                         np.savetxt(self.fname,self.cutData[i],fmt='%.4f\t%.4e\t%.4e')
                 self.scriptLine(self.cutScript(self.saveFileName))
             else:
-                self.fname=self.saveFileName
+                self.fname=typed
                 np.savetxt(self.fname,self.cutData,fmt='%.4f\t%.4e\t%.4e')
         
             

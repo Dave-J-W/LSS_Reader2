@@ -80,3 +80,20 @@ def test_no_export_caption_says_gioxs_except_gioxs():
                encoding='utf-8').read()
     assert src.count("caption='Export GIOXS data'") == 1                    # pilGioxsSave, the GIOXS export itself
     assert 'Export the GID map (the name gets' in src and 'Export the GISAXS map (the name gets' in src
+
+
+def test_a_map_cut_is_written_to_the_name_as_typed(loaded, qapp, recorder, tmp_path):
+    """A cut on a GID or GISAXS map is written to exactly the typed name (it
+    adds no ending), so the typed '.txt' must stay."""
+    import numpy as np
+    w = loaded
+    w.directory = str(tmp_path)
+    sweep._select_scans(w, qapp, [0])
+    sweep._select_images(w, qapp)
+    assert w.det == 'Pilatus'
+    w.pilGIDshow, w.pilGISAXSshow = 1, 0
+    w.cutData = np.array([[0.1, 1.0, 0.1], [0.2, 2.0, 0.2]])
+    recorder.save_name = str(tmp_path / 'gidcut.txt')
+    w.saveCutData()
+    assert os.path.exists(str(tmp_path / 'gidcut.txt')) and not os.path.exists(str(tmp_path / 'gidcut'))
+    assert recorder.exceptions == []
