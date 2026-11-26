@@ -5385,6 +5385,7 @@ class MainWindow (QMainWindow):
             u.burnResultLabel.setText('Select the Pilatus frames of a burn scan first.')
             return
         scans=self.burnScans()
+        self.burnBeamNotes={}
         try:
             allkw={n:self.burnArguments(n)[1] for n in scans}
         except (ValueError,IndexError) as e:
@@ -5436,8 +5437,11 @@ class MainWindow (QMainWindow):
         u.Label.setText('Burn test for Scan #%d' % scan if len(self.burnResults)==1 else
                         'Burn tests of scans %s (trends of S# %d)' % (listText(sorted(self.burnResults)),scan))
         failed=getattr(self,'burnFailed',[])
-        u.burnResultLabel.setText(self.burnShortText(res)+('; not analysed: %s' % '; '.join(failed) if failed else ''))
-        u.burnResultLabel.setToolTip(self.burnLongText(res))
+        note=getattr(self,'burnBeamNotes',{}).get(scan)
+        u.burnResultLabel.setText(self.burnShortText(res)+('; not analysed: %s' % '; '.join(failed) if failed else '')
+                                  +('; dose in photons, not per mm² (no beam height)' if note else ''))
+        u.burnResultLabel.setToolTip(self.burnLongText(res)+('\nThe dose is in photons, not per mm²: %s. Type the '
+                                     'beam height to get it per mm².' % note if note else ''))
         self.burnShowHeight(scan)
         self.burnShowDose(scan,kw)
         args=dict(kw)
@@ -5575,14 +5579,26 @@ class MainWindow (QMainWindow):
         self.burnVerdict()
 
     def burnBeam(self,scan):
-        """(width, height) in mm for a dose per mm², or None without a width."""
+        """(width, height) in mm for a dose per mm²; None when the height is not known (no height scan with the
+        burn's S1 gap and none typed): the burn is then analysed all the same, with the dose in photons rather than
+        per mm² and the reason in burnBeamNotes (2026-11-26: a missing height refused every burn without such a
+        scan, NX 14 and 15 among them). A typed size that is not positive raises."""
         u=self.uipdburn
         w=str(u.burnBeamWidthLineEdit.text()).strip()
         width=float(w) if w else self.burnAutoWidth().width_mm
         h=str(u.burnBeamHeightLineEdit.text()).strip()
-        height=float(h) if h else self.burnAutoHeight(scan).height_mm
-        if height is None or width is None or not width>0 or not height>0:
-            raise ValueError('the beam size must be positive, and its height known (%s)' % self.burnAutoHeight(scan).note)
+        if h:
+            height=float(h)
+        else:
+            bh=self.burnAutoHeight(scan)
+            if bh.height_mm is None:
+                if not hasattr(self,'burnBeamNotes'):
+                    self.burnBeamNotes={}
+                self.burnBeamNotes[scan]=bh.note
+                return None
+            height=bh.height_mm
+        if width is None or not width>0 or not height>0:
+            raise ValueError('the beam size must be positive')
         return (float(width),float(height))
 
     def burnAutoWidth(self):
