@@ -1428,7 +1428,7 @@
   "verdict": "same"
  },
  "gui_screens": {
-  "commit": "586b5c9cfb",
+  "commit": "ec2fb4a238",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -1451,7 +1451,7 @@
    "TwoDDetector.py": "b7754735a902a771",
    "comparetab.py": "60bfa3ad6462b8b2",
    "interp_compat.py": "c83e6bf00f63211d",
-   "lss_core/__init__.py": "ad2e13b69c4fc1fd",
+   "lss_core/__init__.py": "9f57300cffd8feeb",
    "lss_core/absorbers.py": "67c5f42ec563b55a",
    "lss_core/burn.py": "56c42d35dd1ce92e",
    "lss_core/cache.py": "e29039ce0ffa84eb",
@@ -1462,7 +1462,7 @@
    "lss_core/dose.py": "df29ce57e3fc7d55",
    "lss_core/errors.py": "2dec081767a7d1cb",
    "lss_core/experiment.py": "769de3e677e246d7",
-   "lss_core/fluorescence.py": "401d3a54d0b52375",
+   "lss_core/fluorescence.py": "99998e1aa06d6e2b",
    "lss_core/flux.py": "b30a6b04512a3f05",
    "lss_core/fresnel.py": "c6da859c135ad380",
    "lss_core/gid.py": "09be73548e114761",
@@ -1478,7 +1478,7 @@
    "lss_core/paths.py": "87a80cf735a80c9f",
    "lss_core/peaks.py": "9ddf11c2659ad23e",
    "lss_core/pinhole.py": "4947ac70640d7924",
-   "lss_core/preferences.py": "cde2cdd47924ec27",
+   "lss_core/preferences.py": "65ec97f387b75bc4",
    "lss_core/readerlock.py": "e154fd65b1d346ac",
    "lss_core/reciprocity.py": "617ab5d4e0cfc06f",
    "lss_core/reflectivity.py": "04253e4e329a02e9",
@@ -1501,7 +1501,7 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "a7433878e90b14b5",
+   "mainwindow.py": "0cb766c29565a464",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
    "mplwidget.py": "437655a13b3d5ac2",
@@ -1511,7 +1511,7 @@
    "tests/sweep.py": "62c1fdbc266d9900",
    "tests/synth.py": "250df39115a651b9",
    "tests/tools/gui_screens.py": "6cb689a1c8ed1d50",
-   "timelineview.py": "62c792d5abbf0f98"
+   "timelineview.py": "11d86a4c3022fe11"
   },
   "products": {
    "docs/gui/screens/00_overview_annotated.png": "18ddccf9cfa035cb",
@@ -1564,8 +1564,8 @@
    "docs/gui/screens/72b_mca_integral_vs_qz.png": "75ebfc3d6f92b74b",
    "docs/gui/screens/73_mca_peak_fit_dialog.png": "e3fd04b74e640c75",
    "docs/gui/screens/74_mca_peak_fit_dialog_fitted.png": "e96e9fdfabfde49b",
-   "docs/gui/screens/75_mca_fit_lines_result.png": "b678e9588fe39a46",
-   "docs/gui/screens/76_mca_fit_options_dialog.png": "d71d3678c017027a",
+   "docs/gui/screens/75_mca_fit_lines_result.png": "cd3981a996b38851",
+   "docs/gui/screens/76_mca_fit_options_dialog.png": "c976a229f0b809c0",
    "docs/gui/screens/77_mca_merge_dialog.png": "333f1092ee51fd79",
    "docs/gui/screens/80_plot_empty.png": "8967ccabd42de766",
    "docs/gui/screens/80b_plot_two_files.png": "6e854e1a786bcd9b",
@@ -1595,7 +1595,7 @@
   "reads": {
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "a7433878e90b14b5",
+   "mainwindow.py": "0cb766c29565a464",
    "mainwindow.ui": "f0b0297893c83436",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",
