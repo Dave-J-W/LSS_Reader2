@@ -60,6 +60,8 @@ Everything else is **not** a blocker.
    - The sweep's baselines are at zero.
    - `KeyError: 'monc'` is fixed (#116).
    - The burn dialog no longer refuses a burn without a beam height (#115), which had kept the slow suite red.
+   - MCA: the Fit Peak dialog's Accept after Fit lines (7-column rows, F110) or after a Merge crashed or left
+     ragged rows; fixed by GUI manager (#122, 2026-11-26).
    - On `main` with #118, #119 and the About fix: the quick suite passes (1396), the slow suite passes (427),
      the sweep passes (194, on #119).
 2. **Export numbers:** none known.
@@ -109,6 +111,9 @@ Everything else is **not** a blocker.
 - `ngui/` layout prototype, F60 contextual reduction, timeline phases after 1c.
 - EXAFS output, edge estimator, line markers and escape peaks, GID scan
   designer, multiple exposures.
+- MCA Merge: a missing fit (NaN, e.g. an accepted single fit beside Fit lines'
+  rows) makes its whole group NaN for that fit; skip it instead and merge the
+  fits that exist (`fluorescence.merge_rows`; found reviewing #122).
 
 ## Who does what until release
 
