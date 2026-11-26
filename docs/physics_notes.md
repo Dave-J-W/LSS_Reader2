@@ -7031,3 +7031,46 @@ Owner, to main man: "Whatever I tell reflection guy is law in regards to public 
   `review-local-data-pr` skill where they differ.
 - **Where they must be:** they reach the cloud sessions only when posted on #55 or written in `docs/`.
 - Recorded in AGENTS.md (Sessions), the review skill and main man's hand-off.
+
+### 2026-11-26 — XeRay the default of "Fit lines", the reader's best fit beside it (F110; main man)
+
+Verified by: test (`tests/test_mca_xeray.py`, 4 tests) for what the code does; the shootout's numbers are the XRF
+session's (C65, `docs/studies/xrf_shootout/summary.md`), read, not rerun here.
+
+**The owner's decision** (2026-11-26, to main man): "xeray should be default for mca fitting, but it tends to
+undercount error so include our best method (poisson fixed width etc) as well, and report both fits and errors.
+Put a to-do to continue refining that shootout of methods for a later time, since I don't believe each
+library/method was optimized enough."
+
+**What "Fit lines" now does**, on every selected spectrum, in the Sum All window:
+- **XeRay** (the value plotted, merged and exported in `_flu.txt`): one Gaussian on a straight line, fitted by
+  unweighted least squares, the centre within ±0.2 keV of the element's line (or the window's highest channel).
+  The area is A·σ·√(2π)/Δ (Δ the channel width, the reader's units). The error is √(counts in the window); for the
+  reader's monitor-normalised spectra (σ_c = √N_c / k per channel) that is √(Σ σ_c²). This is XeRay's own error
+  ([XeRay](https://github.com/ZhiliangGong/xeray), `functions/fluoCurveFit.m`).
+- **The reader's fit** (beside it: squares, 'fit' in the list, `_flu_fit.txt`): Poisson maximum likelihood
+  (F90 P1), the width fixed at the detector's resolution, FWHM² = noise² + 8 ln 2 · w · F · E with w = 3.65 eV per
+  electron–hole pair in Si and Fano factor F ≈ 0.115 (constants as in `fluorescence.detector_fwhm`; see
+  [Fano factor](https://en.wikipedia.org/wiki/Fano_factor) and Knoll, *Radiation Detection and Measurement*, ch. 13),
+  and the Si K escape spectrum stripped first. The width is taken at the element's line or, when no energy is
+  given, at the median centre of XeRay's fits (an assumption).
+
+**Why both.** In the synthetic shootout XeRay is accurate (within 2 %) in 11 of 43 conditions, the reader's fixed-width
+Poisson fit in 13. XeRay never refuses a spectrum, but where the line sits on the scatter it is off by +76 to
++1475 % (Zn Kα under a 10 keV beam). Its error bars are too small: the pull, (estimate − truth)/error, should have a
+standard deviation of 1, and XeRay's median is 1.92 (range 1.0–11.7), because √(counts in the window) counts the
+background as if it were known exactly. The fixed-width Poisson fit's median is 1.03. So XeRay gives the number the
+owner wants by default, and the reader's fit gives an error that can be trusted, beside it.
+
+**Caveat carried over (C69):** with real-shaped lines over real scatter the fixed width reads −4.9 to −7.2 % on
+noise-free spectra; a systematic of fixing the width, not of the noise.
+
+**Merging.** `merge_rows` merges each (I, σ) pair alone over the same groups, by the window's rule (weights I/σ²,
+pooled counts over pooled monitor for counting errors) plus the Qz jitter. The first pair is merged exactly as
+before (test: a 7-column merge's first five columns equal the 5-column merge's).
+
+**Numbers that changed.** `_flu.txt` from "Fit lines" now holds XeRay's area; the reader's own fit changed too
+(free width → detector width, escapes stripped). Two tests re-pinned on purpose: the preference defaults
+(`test_gui_preferences.py`) and the ×2-spectrum check of the workbook now reads the reader's fit column
+(`test_gui_workbook.py`). OUTPUT_DECISIONS has the row; the shootout refinement is on RELEASE_PLAN's "After 2.0"
+list and in TODO (C).

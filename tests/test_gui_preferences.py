@@ -58,7 +58,7 @@ def test_settings_are_saved_and_read_back(window, qapp, recorder):
                       'mca_fit_legacy': False, 'burn_legacy_tab': False,    # F86 Reduction options (2026-11-23)
                       'pil_display': {},                                    # F88 sticky frames display (2026-11-24)
                       'mca_fit_data_weights': False,                        # F90 P1 the default; data weights legacy (2026-11-24)
-                      'mca_line_options': {'detector_width': False, 'noise_kev': 0.12, 'strip_escape': False},   # F90 P2, P3
+                      'mca_line_options': {'detector_width': True, 'noise_kev': 0.12, 'strip_escape': True},   # F90 P2, P3
                       'fit_residuals': False,                               # F74 residual panels hidden (2026-11-24)
                       'export_folder': ''}                                  # F105: no export folder yet (2026-11-25)
     assert preferences.load() == stored

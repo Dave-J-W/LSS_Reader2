@@ -229,7 +229,7 @@
   label: "Fit lines"
   where: "MCA > right"
   handler: mcaFitLines
-  does: "Fits the line(s) of the summed spectra, then every spectrum with positions and widths fixed; the strongest line's intensity goes to the integral list"
+  does: "Fits every spectrum's line two ways (F110): XeRay (the default, plotted, merged, exported in _flu.txt) and beside it the reader's fit (sum for the position, then each spectrum by Poisson likelihood, the detector's width, Si escapes stripped; _flu_fit.txt); both intensities and errors go to the integral list"
   workflows: [xfntr, exafs]
   needs: "spectra selected with one energy axis"
   shown: always
