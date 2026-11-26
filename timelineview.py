@@ -109,16 +109,21 @@ class HeightThumb(QGraphicsItem):
 
 class ResultThumb(HeightThumb):
     """A saved result's thumbnail on the reduced lane (phase 1d): its first
-    two columns (log R against Qz for a reflectivity), framed in its kind's
-    colour; amber and dashed when out of date; a dashed grey box saying why
-    for a placeholder."""
+    two columns (log R against Qz for a reflectivity; I against Qz for
+    fluorescence, whose first columns are frame and Qz; none for a GID map,
+    a 2D map), framed in its kind's colour; amber and dashed when out of
+    date; a dashed grey box saying why for a placeholder."""
 
     def __init__(self, item):
         import numpy as np
         d = item.data
         x = y = None
+        if item.kind == 'gid map':
+            d = None                       # a map, not a curve: the framed box only (2026-11-26)
         if d is not None and getattr(d, 'ndim', 0) == 2 and d.shape[0] > 1 and d.shape[1] > 1:
             x, y = d[:, 0], d[:, 1]
+            if item.kind == 'fluorescence' and d.shape[1] >= 4:
+                x, y = d[:, 1], d[:, 3]    # Qz and I (columns frame, Qz, E, I, dI[, I_fit, dI_fit])
             if item.kind == 'reflectivity':
                 with np.errstate(divide='ignore', invalid='ignore'):
                     y = np.where(y > 0, np.log10(np.where(y > 0, y, 1.0)), np.nan)

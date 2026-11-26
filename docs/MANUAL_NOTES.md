@@ -192,6 +192,17 @@ Each line: feature — where — default — script — notes entry (date).
   study (C62) found factor 10 removes 90 % of hot pixels on sparse frames
   without touching clean ones; it stays off until the owner's own sparse
   frames are checked (rule 12).
+- After an Export (2026-11-26), a line in Messages and the status bar
+  says which files were written and to which folder, and which replaced
+  files of the same name: the save dialog asks only about the name typed,
+  not the endings an export adds. The reflectivity's `_rrf.txt` is written
+  only while R/RF is ticked (it is the R/R_F of the curve on show); the
+  line says so when it is not written, and when an older `_rrf.txt` lies
+  beside the new `_ref.txt`.
+- Export names (2026-11-26): every Export dialog says in its title what
+  it adds to the name (e.g. "the name gets _flu.txt"); a name typed with
+  that ending, or with .txt, is not given it twice. The Fit Peak dialog's
+  parameter file writes nan for an error lmfit could not estimate.
 - Window titles (F95, Q-UI-B10, 2026-11-25): each dialog's title says what
   it is (Ref Patch, Burn test, GIOXS, MCA merge, Plot scale, ...); they
   were "Dialog" or "Scan Details".
