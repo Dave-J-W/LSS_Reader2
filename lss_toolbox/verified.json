@@ -608,7 +608,7 @@
   "verdict": "same"
  },
  "dump_tooltips": {
-  "commit": "ce38cf429a",
+  "commit": "61508772d2",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -628,7 +628,6 @@
   },
   "modified": [
    "mainwindow.py",
-   "mplwidget.py",
    "plotoptions.py"
   ],
   "modules": {
@@ -678,11 +677,11 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "8c0dc6cecccddd5f",
+   "mainwindow.py": "7b7cd857a158ad43",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "6346a5c2ddd3412b",
    "mplwidget.py": "b5b80a402c80ca65",
-   "plotoptions.py": "114f7fa4cc2c856b",
+   "plotoptions.py": "98beafc06cc6628c",
    "reader_log.py": "86f8110defefc7a5",
    "roipanel.py": "8371fd06c11d435e",
    "spec_routines.py": "a08541869ce7c7e9",
@@ -690,10 +689,10 @@
    "timelineview.py": "11d86a4c3022fe11"
   },
   "products": {
-   "docs/manual/controls.md": "6ae0ff87208ed1ec"
+   "docs/manual/controls.md": "1db48852f18d68be"
   },
   "reads": {
-   "mainwindow.py": "8c0dc6cecccddd5f",
+   "mainwindow.py": "7b7cd857a158ad43",
    "mainwindow.ui": "f0b0297893c83436",
    "pdburn.ui": "ce2716bc0b3a483d"
   },
@@ -1379,7 +1378,7 @@
   "verdict": "same"
  },
  "gui_map": {
-  "commit": "ce38cf429a",
+  "commit": "61508772d2",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -1399,7 +1398,7 @@
   },
   "modified": [
    "docs/gui/inventory/dialogs.yaml",
-   "docs/gui/inventory/specplot.yaml",
+   "docs/gui/questions.md",
    "docs/gui/workflows.yaml",
    "mainwindow.py"
   ],
@@ -1407,14 +1406,14 @@
    "tests/tools/gui_map.py": "364331cff609fde4"
   },
   "products": {
-   "docs/gui/inventory.md": "a69bac2fba52e395",
-   "docs/gui/workflows.md": "f3c2f34f1cbd3ab9"
+   "docs/gui/inventory.md": "1c90970ead876d81",
+   "docs/gui/workflows.md": "f65f89f431e452c4"
   },
   "reads": {
    "docs/gui/inventory/apex.yaml": "3269af5254e2004e",
    "docs/gui/inventory/compare.yaml": "355f02f1001d8fdf",
    "docs/gui/inventory/cuts.yaml": "d2149d5b72adb19c",
-   "docs/gui/inventory/dialogs.yaml": "b6053b10116c5424",
+   "docs/gui/inventory/dialogs.yaml": "8fb5f212d94a6c22",
    "docs/gui/inventory/left_panel.yaml": "96c47ae7790dfae2",
    "docs/gui/inventory/mca.yaml": "4346d8018fc2f2f5",
    "docs/gui/inventory/menus.yaml": "d1f7c5b645312b14",
@@ -1425,20 +1424,20 @@
    "docs/gui/inventory/reflectivity.yaml": "6d2348e031a01cea",
    "docs/gui/inventory/specplot.yaml": "6baf6f4475352e0a",
    "docs/gui/inventory/timeline.yaml": "487789e7b099e606",
-   "docs/gui/questions.md": "f54e8965820a6593",
+   "docs/gui/questions.md": "b7c829e93927bb7e",
    "docs/gui/questions/image_display.md": "f44307e6910cf716",
    "docs/gui/questions/inventory_a.md": "7fde6e8e5e63e8cb",
    "docs/gui/questions/inventory_b.md": "138139f0b2af228d",
    "docs/gui/questions/workflows.md": "5f20c85b2e0c727b",
-   "docs/gui/workflows.yaml": "d0b102ba8ef755a7",
-   "mainwindow.py": "8c0dc6cecccddd5f",
+   "docs/gui/workflows.yaml": "668fe82d69e0aabd",
+   "mainwindow.py": "7b7cd857a158ad43",
    "mainwindow.ui": "f0b0297893c83436"
   },
   "unverified": [],
   "verdict": "same"
  },
  "gui_screens": {
-  "commit": "ce38cf429a",
+  "commit": "61508772d2",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -1458,7 +1457,6 @@
   },
   "modified": [
    "mainwindow.py",
-   "mplwidget.py",
    "plotoptions.py"
   ],
   "modules": {
@@ -1515,11 +1513,11 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "8c0dc6cecccddd5f",
+   "mainwindow.py": "7b7cd857a158ad43",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "6346a5c2ddd3412b",
    "mplwidget.py": "b5b80a402c80ca65",
-   "plotoptions.py": "114f7fa4cc2c856b",
+   "plotoptions.py": "98beafc06cc6628c",
    "reader_log.py": "86f8110defefc7a5",
    "roipanel.py": "8371fd06c11d435e",
    "spec_routines.py": "a08541869ce7c7e9",
@@ -1529,71 +1527,71 @@
    "timelineview.py": "11d86a4c3022fe11"
   },
   "products": {
-   "docs/gui/screens/00_overview_annotated.png": "eae0ba9fc6038f36",
-   "docs/gui/screens/00b_overview_plain.png": "e69bb2c9017a6bcc",
-   "docs/gui/screens/01_window_empty.png": "245dd4f34d6fc164",
+   "docs/gui/screens/00_overview_annotated.png": "a4dc57310cb68c9c",
+   "docs/gui/screens/00b_overview_plain.png": "8b786a4422d24ac4",
+   "docs/gui/screens/01_window_empty.png": "5a48807b14d96f86",
    "docs/gui/screens/10_leftpanel_series_chosen.png": "9d81dc31df98a913",
    "docs/gui/screens/10b_leftpanel_series_dropdown.png": "abe11a65af946a82",
-   "docs/gui/screens/11_specplot_motor_scan.png": "798d4f4db7f3f94c",
-   "docs/gui/screens/12_specplot_tab_crop.png": "35f7810c5a560ccb",
-   "docs/gui/screens/13_specplot_two_scans.png": "bfc2d26d80a24d2f",
-   "docs/gui/screens/13b_specplot_beam_off_scan.png": "58b87ef5af9eae84",
-   "docs/gui/screens/13c_plot_options_dialog.png": "ccf5b382b551c77e",
-   "docs/gui/screens/13d_specplot_with_plot_options.png": "a05e4dde6cd22f03",
+   "docs/gui/screens/11_specplot_motor_scan.png": "379144177cfe40ef",
+   "docs/gui/screens/12_specplot_tab_crop.png": "dad2b74428b009d5",
+   "docs/gui/screens/13_specplot_two_scans.png": "f37c7e626de89b69",
+   "docs/gui/screens/13b_specplot_beam_off_scan.png": "8631dd10bfc479dc",
+   "docs/gui/screens/13c_plot_options_dialog.png": "3a1d87d075f6b01a",
+   "docs/gui/screens/13d_specplot_with_plot_options.png": "728ba67fd4892ddf",
    "docs/gui/screens/14_timeline_tab.png": "f5b23671fb2fb9d1",
    "docs/gui/screens/14b_timeline_dose.png": "fa283cba2efda03c",
-   "docs/gui/screens/20_pilatus_empty.png": "53819b26a0abaf2e",
-   "docs/gui/screens/20_pilatus_scan_selected_no_frames.png": "eb1904348b64877e",
-   "docs/gui/screens/21_pilatus_one_frame.png": "e76a0aee86e86a85",
-   "docs/gui/screens/21b_pilatus_tab_controls.png": "d2c1b7e4adbc8fef",
-   "docs/gui/screens/22_pilatus_three_frames.png": "12c07bdb2c90a108",
-   "docs/gui/screens/23_pilatus_all_frames_of_a_scan.png": "96dcc39c9aa8cba9",
-   "docs/gui/screens/23b_pilatus_all_frames_reflectivity_series.png": "d64a0ff82d6ce10e",
-   "docs/gui/screens/30_reflectivity_empty.png": "d20fc417b816679b",
+   "docs/gui/screens/20_pilatus_empty.png": "34edc0a0ae5bf664",
+   "docs/gui/screens/20_pilatus_scan_selected_no_frames.png": "e00c90c524ff1f40",
+   "docs/gui/screens/21_pilatus_one_frame.png": "223eda336fd68e80",
+   "docs/gui/screens/21b_pilatus_tab_controls.png": "541a6c542a4e9696",
+   "docs/gui/screens/22_pilatus_three_frames.png": "b6cab68a02672cf3",
+   "docs/gui/screens/23_pilatus_all_frames_of_a_scan.png": "425c8061949080f9",
+   "docs/gui/screens/23b_pilatus_all_frames_reflectivity_series.png": "065869b39f47ef55",
+   "docs/gui/screens/30_reflectivity_empty.png": "d1930f6727f4c76f",
    "docs/gui/screens/31_refpatch_dialog_first_join.png": "b1c959550fa4a8b3",
-   "docs/gui/screens/31b_refpatch_main_window_behind.png": "d64a0ff82d6ce10e",
+   "docs/gui/screens/31b_refpatch_main_window_behind.png": "065869b39f47ef55",
    "docs/gui/screens/31c_refpatch_dialog_second_join.png": "4688f3f45df23150",
-   "docs/gui/screens/32_reflectivity_after_patch.png": "0d001a01a344051a",
-   "docs/gui/screens/33_reflectivity_norm_ref_subtab.png": "34d633aa986b8421",
-   "docs/gui/screens/33_reflectivity_ref_subtab.png": "20e15ccff3521220",
-   "docs/gui/screens/34_compare_tab.png": "24043ea547e98cd1",
-   "docs/gui/screens/40_gid_controls_before_patch.png": "301d6c6f520a8df0",
+   "docs/gui/screens/32_reflectivity_after_patch.png": "250b7d9b6c4aea19",
+   "docs/gui/screens/33_reflectivity_norm_ref_subtab.png": "6a6569dae89de601",
+   "docs/gui/screens/33_reflectivity_ref_subtab.png": "80baefdae0064654",
+   "docs/gui/screens/34_compare_tab.png": "802baa29608dbb7a",
+   "docs/gui/screens/40_gid_controls_before_patch.png": "397ffba077146af8",
    "docs/gui/screens/40b_gid_dropdown.png": "b1e2321e31563c61",
-   "docs/gui/screens/41_gid_patch_pinhole.png": "bc00dbd442fe1a04",
+   "docs/gui/screens/41_gid_patch_pinhole.png": "6f2312c57b9ee4df",
    "docs/gui/screens/42_gid_worksheet_window.png": "7641cd7176d594b2",
    "docs/gui/screens/43_gid_form_factor_dialog.png": "4481c82fe3c7fa94",
    "docs/gui/screens/50_burn_gid_trends_view.png": "01ca55a562ed6951",
-   "docs/gui/screens/50b_burn_main_window_behind.png": "a27b10ae7d51278f",
+   "docs/gui/screens/50b_burn_main_window_behind.png": "7c6401ddce05e833",
    "docs/gui/screens/51_burn_legacy_ref_view.png": "4c92616cfcfe7e0c",
    "docs/gui/screens/52_burn_legacy_gid_view.png": "6be3cd024ecf6b80",
-   "docs/gui/screens/53_burn_ref_series_selected.png": "2d4a147842910f4e",
+   "docs/gui/screens/53_burn_ref_series_selected.png": "1f6abf7777440e4e",
    "docs/gui/screens/54_burn_ref_trends_view.png": "0f37f9d691c58ece",
    "docs/gui/screens/55_burn_ref_legacy_view.png": "3e5903d532148ddd",
-   "docs/gui/screens/60_cuts_empty.png": "62a6b1daf290c940",
-   "docs/gui/screens/60_cuts_gid_qz_cut.png": "558956914366baa6",
-   "docs/gui/screens/61_cuts_after_peak_fit.png": "ae368f44a099c84e",
+   "docs/gui/screens/60_cuts_empty.png": "af70ad99a60a86ad",
+   "docs/gui/screens/60_cuts_gid_qz_cut.png": "bf00f7f63a8490ee",
+   "docs/gui/screens/61_cuts_after_peak_fit.png": "fc4aef16edef88b1",
    "docs/gui/screens/62_cuts_fit_options_dialog.png": "8ef6caf916c028ec",
-   "docs/gui/screens/63_cuts_gid_qxy_rod.png": "840a83155d2409f3",
-   "docs/gui/screens/70_mca_empty.png": "b2801ac91eeaf784",
-   "docs/gui/screens/70_mca_one_spectrum.png": "01e37fb26cc39ea2",
-   "docs/gui/screens/71_mca_all_spectra.png": "97ceccdbd7d01bc7",
-   "docs/gui/screens/72_mca_sum_all_integral.png": "20038aeb7b346312",
-   "docs/gui/screens/72b_mca_integral_vs_qz.png": "37db2639cbb4226f",
+   "docs/gui/screens/63_cuts_gid_qxy_rod.png": "8a0a2ef069776069",
+   "docs/gui/screens/70_mca_empty.png": "2a68a4552e23289f",
+   "docs/gui/screens/70_mca_one_spectrum.png": "62e0513cc1209a2a",
+   "docs/gui/screens/71_mca_all_spectra.png": "25d46fb926f9a4bf",
+   "docs/gui/screens/72_mca_sum_all_integral.png": "9104d9dd2faf44b5",
+   "docs/gui/screens/72b_mca_integral_vs_qz.png": "5a92aaccddd9c868",
    "docs/gui/screens/73_mca_peak_fit_dialog.png": "e3fd04b74e640c75",
    "docs/gui/screens/74_mca_peak_fit_dialog_fitted.png": "e96e9fdfabfde49b",
-   "docs/gui/screens/75_mca_fit_lines_result.png": "c8df305860605737",
+   "docs/gui/screens/75_mca_fit_lines_result.png": "fe60c31a765c9ea5",
    "docs/gui/screens/76_mca_fit_options_dialog.png": "778ba5aedf6eeb56",
    "docs/gui/screens/77_mca_merge_dialog.png": "333f1092ee51fd79",
-   "docs/gui/screens/80_plot_empty.png": "f583f50ecdaf4dc5",
-   "docs/gui/screens/80b_plot_two_files.png": "02140dcc96f50082",
+   "docs/gui/screens/80_plot_empty.png": "356f8cba539e9556",
+   "docs/gui/screens/80b_plot_two_files.png": "c702eda9bd174136",
    "docs/gui/screens/81_plot_peak_fit_window.png": "e3fd04b74e640c75",
    "docs/gui/screens/81b_plot_peak_fit_window_fitted.png": "ed7c3bca95fd7895",
-   "docs/gui/screens/81c_plot_gradient.png": "21eb8ccde3b2a1de",
+   "docs/gui/screens/81c_plot_gradient.png": "f58661b79210b3cf",
    "docs/gui/screens/81d_plot_scale_window.png": "9978d186dfc938cd",
-   "docs/gui/screens/82_2dplot_empty.png": "7a3032a904a1cfbf",
-   "docs/gui/screens/83_2dplot_map_file.png": "0c2f40f4b9ff66cf",
+   "docs/gui/screens/82_2dplot_empty.png": "0ddac160072d530b",
+   "docs/gui/screens/83_2dplot_map_file.png": "4db19e17958706fd",
    "docs/gui/screens/90_dialog_gioxs.png": "9b663179f2a6f940",
-   "docs/gui/screens/91_gisaxs_show.png": "14771d6e1ec6fb35",
+   "docs/gui/screens/91_gisaxs_show.png": "302597c4f8809ecf",
    "docs/gui/screens/92_dialog_scan_info.png": "b2738213dfd51884",
    "docs/gui/screens/93_dialog_g_l2.png": "61f64eb2e52d3f85",
    "docs/gui/screens/94_dialog_g_l3.png": "b280591bbfdb19de",
@@ -1607,12 +1605,12 @@
    "docs/gui/screens/99_menu_help.png": "ec1c27e1e311d788",
    "docs/gui/screens/99_menu_tools.png": "9436ce887a45f88b",
    "docs/gui/screens/99_menu_view.png": "9ae4d8b97ae4f67a",
-   "docs/gui/screens/README.md": "7e3983d6e070f733"
+   "docs/gui/screens/README.md": "399ffa0dfb5272a9"
   },
   "reads": {
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "8c0dc6cecccddd5f",
+   "mainwindow.py": "7b7cd857a158ad43",
    "mainwindow.ui": "f0b0297893c83436",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",
@@ -2016,7 +2014,7 @@
   "verdict": "same"
  },
  "ngui_inventory": {
-  "commit": "ce38cf429a",
+  "commit": "61508772d2",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -2036,21 +2034,20 @@
   },
   "modified": [
    "docs/gui/inventory/dialogs.yaml",
-   "docs/gui/inventory/specplot.yaml",
    "mainwindow.py"
   ],
   "modules": {
    "tests/tools/ngui_inventory.py": "97075f0ca6146b03"
   },
   "products": {
-   "ngui/inventory_text.py": "fadfeb4bec45786c"
+   "ngui/inventory_text.py": "553108b0d1250be7"
   },
   "reads": {
    "absratioDialog.ui": "2fc9fe17b6b54b15",
    "docs/gui/inventory/apex.yaml": "3269af5254e2004e",
    "docs/gui/inventory/compare.yaml": "355f02f1001d8fdf",
    "docs/gui/inventory/cuts.yaml": "d2149d5b72adb19c",
-   "docs/gui/inventory/dialogs.yaml": "b6053b10116c5424",
+   "docs/gui/inventory/dialogs.yaml": "8fb5f212d94a6c22",
    "docs/gui/inventory/left_panel.yaml": "96c47ae7790dfae2",
    "docs/gui/inventory/mca.yaml": "4346d8018fc2f2f5",
    "docs/gui/inventory/menus.yaml": "d1f7c5b645312b14",
@@ -2063,7 +2060,7 @@
    "docs/gui/inventory/timeline.yaml": "487789e7b099e606",
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "8c0dc6cecccddd5f",
+   "mainwindow.py": "7b7cd857a158ad43",
    "mainwindow.ui": "f0b0297893c83436",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",
@@ -2082,7 +2079,7 @@
   "verdict": "same"
  },
  "ngui_screens": {
-  "commit": "ce38cf429a",
+  "commit": "61508772d2",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -2106,8 +2103,8 @@
   ],
   "modules": {
    "ngui/__init__.py": "ad2e13b69c4fc1fd",
-   "ngui/inventory_text.py": "fadfeb4bec45786c",
-   "ngui/layout.py": "14998c0ed35ff312",
+   "ngui/inventory_text.py": "553108b0d1250be7",
+   "ngui/layout.py": "78a304109257e665",
    "ngui/theme.py": "44039650e1ebb95c",
    "ngui/window.py": "2e907c9fd80568b2",
    "tests/tools/ngui_screens.py": "7d7f498e9b3cd6ad"
@@ -2127,7 +2124,7 @@
    "docs/gui/prototype/screens/08_retired_controls.png": "a92e0754485848f1",
    "docs/gui/prototype/screens/09_file_export.png": "6b3552e5fb8ce7d7",
    "docs/gui/prototype/screens/10_legacy_reflectivity.png": "05ce0d23f0e2c5ed",
-   "docs/gui/prototype/screens/11_preferences.png": "217cce3e27d24c7f",
+   "docs/gui/prototype/screens/11_preferences.png": "dba154785f06251e",
    "docs/gui/prototype/screens/20_left_selection_panel.png": "afc570a03940c695",
    "docs/gui/prototype/screens/21_left_scans.png": "8aa4a03391f0d7ed",
    "docs/gui/prototype/screens/22_left_frames.png": "ddfe7e1bd097f552",
@@ -2136,7 +2133,7 @@
    "docs/gui/prototype/screens/25_left_gid.png": "20da53aaf31ca202",
    "docs/gui/prototype/screens/26_left_fluorescence.png": "129c266f5ce666a9",
    "docs/gui/prototype/screens/27_left_files.png": "113ff04dbe4cc3d6",
-   "docs/gui/prototype/screens/README.md": "c06182ee49a587a8"
+   "docs/gui/prototype/screens/README.md": "a607402602c4d1f8"
   },
   "reads": {},
   "unverified": [],
