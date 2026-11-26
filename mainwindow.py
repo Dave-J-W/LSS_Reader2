@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QFileDialog, QProgressDialog, QMessageBox
 from PyQt5.Qt import *
 from spec_routines import specread, is_spec_file
 from mca_routines import mcaread
-from mplwidget import MplWidget, errorbars, mesh
+from mplwidget import MplWidget, errorbars, mesh, index_labels
 import roipanel
 from roipanel import RoiPanel
 from matplotlib.widgets import MultiCursor
@@ -1867,8 +1867,7 @@ class MainWindow (QMainWindow):
         self.ui.specPlotMplWidget.canvas.ax.errorbar(x,y,yerr,label=self.label,fmt='o-')
         if not self.spPointLabelsCheckBox.isChecked():
             return
-        for i in range(len(x)):
-            self.ui.specPlotMplWidget.canvas.ax.text(x[i],y[i],str(i),color='r',fontsize=16)
+        index_labels(self.ui.specPlotMplWidget.canvas.ax,x,y,range(len(x)),color='r')   # F113
         
     def specPeakFit(self,x,y,yerr):
         par=[x[np.argmax(y)],np.abs(x[-1]-x[0])/2.0,np.max(y),0.0,0.0,np.abs(x[0]-x[1]),0.0,1]
@@ -1999,7 +1998,9 @@ class MainWindow (QMainWindow):
         from PyQt5.QtWidgets import QCheckBox
         box=QCheckBox('Point #')
         box.setObjectName('spPointLabelsCheckBox')
-        box.setToolTip('Label each point of the SPEC plot with its index in the scan (0, 1, 2, ...)')
+        box.setToolTip('Label each point of the SPEC plot with its index in the scan (0, 1, 2, ...). Where the numbers '
+                       'would overlap, the later ones are hidden; zoom in and they come back once they fit (F113). '
+                       'Plot options can also hide them')
         box.setChecked(True)
         layout=self.ui.horizontalLayout_8
         layout.insertWidget(layout.indexOf(self.ui.spLegendCheckBox)+1,box)
@@ -8065,12 +8066,10 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.ax.set_ylabel('Reflectivity')
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.scanqzframe[self.pilrefsort[self.pilreforder]][:,0],self.scanqzframe[self.pilrefsort[self.pilreforder]][:,1],self.scanqzframe[self.pilrefsort[self.pilreforder]][:,2],fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder]))
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,1]*fac,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,2]*fac,fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder+1]))
-                for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder]])):
-                    if self.scanqzframe[self.pilrefsort[self.pilreforder]][i,0]>=xmin:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder]][i,0]+0.02*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder]][i,1]+0.02*(ymax-ymin),str(i-len(self.scanqzframe[self.pilrefsort[self.pilreforder]])),color='b',fontsize=16) 
-                for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder+1]])): 
-                    if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
+                k=np.flatnonzero(self.scanqzframe[self.pilrefsort[self.pilreforder]][:,0]>=xmin)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.scanqzframe[self.pilrefsort[self.pilreforder]][k,0],self.scanqzframe[self.pilrefsort[self.pilreforder]][k,1],[int(j)-len(self.scanqzframe[self.pilrefsort[self.pilreforder]]) for j in k],color='b',where='upper right')
+                k=np.flatnonzero(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0]<=xmax)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,1]*fac,[int(j) for j in k],color='r',where='lower left')
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
                 self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
@@ -8103,12 +8102,10 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.ax.set_ylabel('Reflectivity')
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.pilrefdata[:,0],self.pilrefdata[:,1],self.pilrefdata[:,2],fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder]))
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,1]*fac,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,2]*fac,fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder+1]))
-                for i in range(len(self.pilrefdata)):
-                    if self.pilrefdata[i,0]>=xmin:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.pilrefdata[i,0]+0.02*(xmax-xmin),self.pilrefdata[i,1]+0.02*(ymax-ymin),str(i-len(self.pilrefdata)),color='b',fontsize=16) 
-                for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder+1]])): 
-                    if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
+                k=np.flatnonzero(self.pilrefdata[:,0]>=xmin)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.pilrefdata[k,0],self.pilrefdata[k,1],[int(j)-len(self.pilrefdata) for j in k],color='b',where='upper right')
+                k=np.flatnonzero(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0]<=xmax)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,1]*fac,[int(j) for j in k],color='r',where='lower left')
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
                 self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)

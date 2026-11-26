@@ -480,9 +480,10 @@ def test_spec_plot_log_axis_with_zero_or_negative_points(window, qapp, recorder,
         assert recorder.exceptions == []
         texts = w.ui.specPlotMplWidget.canvas.ax.texts
         assert len(texts) == 10
-        shown = sorted(float(t.get_position()[1]) for t in texts if t.get_visible())
-        xs = np.array([t.get_position()[0] for t in texts])
-        ys = np.array([t.get_position()[1] for t in texts])
+        at = [getattr(t, 'xy', None) or t.get_position() for t in texts]   # an index label's point (F113: annotations)
+        shown = sorted(float(p[1]) for p, t in zip(at, texts) if t.get_visible())
+        xs = np.array([p[0] for p in at])
+        ys = np.array([p[1] for p in at])
         ok = (ys > 0) & ((xs > 0) if logx else True)
         assert shown == sorted(ys[ok].tolist())
 

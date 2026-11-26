@@ -696,6 +696,7 @@ PREFERENCES = [
         C('plotOptDirectionComboBox', 'Tick direction'),
         C('plotOptMirrorComboBox', 'Ticks on all sides'),
         C('plotOptGridComboBox', 'Grid'),
+        C('plotOptIndexCheckBox', 'Index numbers', note='F113: crowded ones hidden, back on zoom'),
         C('plotOptResetPushButton', 'As drawn'),
         C('plotOptClosePushButton', 'Close'),
     ]),

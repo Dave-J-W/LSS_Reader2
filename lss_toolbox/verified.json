@@ -608,7 +608,7 @@
   "verdict": "same"
  },
  "dump_tooltips": {
-  "commit": "355bb62380",
+  "commit": "ce38cf429a",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -627,12 +627,9 @@
    "scipy": "1.18.1"
   },
   "modified": [
-   "lss_core/preferences.py",
-   "lss_core/residuals.py",
    "mainwindow.py",
-   "mpl2dwidget.py",
    "mplwidget.py",
-   "tests/tools/dump_tooltips.py"
+   "plotoptions.py"
   ],
   "modules": {
    "TwoDDetector.py": "b7754735a902a771",
@@ -681,11 +678,11 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "1ea07a6ab402346f",
+   "mainwindow.py": "8c0dc6cecccddd5f",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "6346a5c2ddd3412b",
-   "mplwidget.py": "ac21f1d82e122480",
-   "plotoptions.py": "f3520e1f7259f70d",
+   "mplwidget.py": "b5b80a402c80ca65",
+   "plotoptions.py": "114f7fa4cc2c856b",
    "reader_log.py": "86f8110defefc7a5",
    "roipanel.py": "8371fd06c11d435e",
    "spec_routines.py": "a08541869ce7c7e9",
@@ -693,10 +690,10 @@
    "timelineview.py": "11d86a4c3022fe11"
   },
   "products": {
-   "docs/manual/controls.md": "6789e926a958f77c"
+   "docs/manual/controls.md": "6ae0ff87208ed1ec"
   },
   "reads": {
-   "mainwindow.py": "1ea07a6ab402346f",
+   "mainwindow.py": "8c0dc6cecccddd5f",
    "mainwindow.ui": "f0b0297893c83436",
    "pdburn.ui": "ce2716bc0b3a483d"
   },
@@ -1382,7 +1379,7 @@
   "verdict": "same"
  },
  "gui_map": {
-  "commit": "355bb62380",
+  "commit": "ce38cf429a",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -1402,22 +1399,22 @@
   },
   "modified": [
    "docs/gui/inventory/dialogs.yaml",
+   "docs/gui/inventory/specplot.yaml",
    "docs/gui/workflows.yaml",
-   "mainwindow.py",
-   "tests/tools/gui_map.py"
+   "mainwindow.py"
   ],
   "modules": {
    "tests/tools/gui_map.py": "364331cff609fde4"
   },
   "products": {
-   "docs/gui/inventory.md": "073f419536d5622b",
-   "docs/gui/workflows.md": "55db5ca2a5bc23ab"
+   "docs/gui/inventory.md": "a69bac2fba52e395",
+   "docs/gui/workflows.md": "f3c2f34f1cbd3ab9"
   },
   "reads": {
    "docs/gui/inventory/apex.yaml": "3269af5254e2004e",
    "docs/gui/inventory/compare.yaml": "355f02f1001d8fdf",
    "docs/gui/inventory/cuts.yaml": "d2149d5b72adb19c",
-   "docs/gui/inventory/dialogs.yaml": "6318203b94f01c6b",
+   "docs/gui/inventory/dialogs.yaml": "b6053b10116c5424",
    "docs/gui/inventory/left_panel.yaml": "96c47ae7790dfae2",
    "docs/gui/inventory/mca.yaml": "4346d8018fc2f2f5",
    "docs/gui/inventory/menus.yaml": "d1f7c5b645312b14",
@@ -1426,22 +1423,22 @@
    "docs/gui/inventory/plot.yaml": "38b670896f601353",
    "docs/gui/inventory/plot2d.yaml": "2c524aa12a516de9",
    "docs/gui/inventory/reflectivity.yaml": "6d2348e031a01cea",
-   "docs/gui/inventory/specplot.yaml": "1fae4ed6100c51d9",
+   "docs/gui/inventory/specplot.yaml": "6baf6f4475352e0a",
    "docs/gui/inventory/timeline.yaml": "487789e7b099e606",
    "docs/gui/questions.md": "f54e8965820a6593",
    "docs/gui/questions/image_display.md": "f44307e6910cf716",
    "docs/gui/questions/inventory_a.md": "7fde6e8e5e63e8cb",
    "docs/gui/questions/inventory_b.md": "138139f0b2af228d",
    "docs/gui/questions/workflows.md": "5f20c85b2e0c727b",
-   "docs/gui/workflows.yaml": "82bd7a736036091b",
-   "mainwindow.py": "1ea07a6ab402346f",
+   "docs/gui/workflows.yaml": "d0b102ba8ef755a7",
+   "mainwindow.py": "8c0dc6cecccddd5f",
    "mainwindow.ui": "f0b0297893c83436"
   },
   "unverified": [],
   "verdict": "same"
  },
  "gui_screens": {
-  "commit": "355bb62380",
+  "commit": "ce38cf429a",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -1460,12 +1457,9 @@
    "scipy": "1.18.1"
   },
   "modified": [
-   "lss_core/preferences.py",
-   "lss_core/residuals.py",
    "mainwindow.py",
-   "mpl2dwidget.py",
    "mplwidget.py",
-   "tests/tools/gui_screens.py"
+   "plotoptions.py"
   ],
   "modules": {
    "TwoDDetector.py": "b7754735a902a771",
@@ -1521,11 +1515,11 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "1ea07a6ab402346f",
+   "mainwindow.py": "8c0dc6cecccddd5f",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "6346a5c2ddd3412b",
-   "mplwidget.py": "ac21f1d82e122480",
-   "plotoptions.py": "f3520e1f7259f70d",
+   "mplwidget.py": "b5b80a402c80ca65",
+   "plotoptions.py": "114f7fa4cc2c856b",
    "reader_log.py": "86f8110defefc7a5",
    "roipanel.py": "8371fd06c11d435e",
    "spec_routines.py": "a08541869ce7c7e9",
@@ -1535,17 +1529,17 @@
    "timelineview.py": "11d86a4c3022fe11"
   },
   "products": {
-   "docs/gui/screens/00_overview_annotated.png": "2e0c263258a4d9f2",
-   "docs/gui/screens/00b_overview_plain.png": "ba90e451bc7389e7",
+   "docs/gui/screens/00_overview_annotated.png": "eae0ba9fc6038f36",
+   "docs/gui/screens/00b_overview_plain.png": "e69bb2c9017a6bcc",
    "docs/gui/screens/01_window_empty.png": "245dd4f34d6fc164",
    "docs/gui/screens/10_leftpanel_series_chosen.png": "9d81dc31df98a913",
    "docs/gui/screens/10b_leftpanel_series_dropdown.png": "abe11a65af946a82",
-   "docs/gui/screens/11_specplot_motor_scan.png": "c5ad758b30aeaced",
-   "docs/gui/screens/12_specplot_tab_crop.png": "600910313823607b",
-   "docs/gui/screens/13_specplot_two_scans.png": "52901ef3021d94d8",
-   "docs/gui/screens/13b_specplot_beam_off_scan.png": "f18e2d74c5cfe01c",
-   "docs/gui/screens/13c_plot_options_dialog.png": "e2544db9987b4ffc",
-   "docs/gui/screens/13d_specplot_with_plot_options.png": "07697285440050b9",
+   "docs/gui/screens/11_specplot_motor_scan.png": "798d4f4db7f3f94c",
+   "docs/gui/screens/12_specplot_tab_crop.png": "35f7810c5a560ccb",
+   "docs/gui/screens/13_specplot_two_scans.png": "bfc2d26d80a24d2f",
+   "docs/gui/screens/13b_specplot_beam_off_scan.png": "58b87ef5af9eae84",
+   "docs/gui/screens/13c_plot_options_dialog.png": "ccf5b382b551c77e",
+   "docs/gui/screens/13d_specplot_with_plot_options.png": "a05e4dde6cd22f03",
    "docs/gui/screens/14_timeline_tab.png": "f5b23671fb2fb9d1",
    "docs/gui/screens/14b_timeline_dose.png": "fa283cba2efda03c",
    "docs/gui/screens/20_pilatus_empty.png": "53819b26a0abaf2e",
@@ -1556,9 +1550,9 @@
    "docs/gui/screens/23_pilatus_all_frames_of_a_scan.png": "96dcc39c9aa8cba9",
    "docs/gui/screens/23b_pilatus_all_frames_reflectivity_series.png": "d64a0ff82d6ce10e",
    "docs/gui/screens/30_reflectivity_empty.png": "d20fc417b816679b",
-   "docs/gui/screens/31_refpatch_dialog_first_join.png": "a9fbace1f9046076",
+   "docs/gui/screens/31_refpatch_dialog_first_join.png": "b1c959550fa4a8b3",
    "docs/gui/screens/31b_refpatch_main_window_behind.png": "d64a0ff82d6ce10e",
-   "docs/gui/screens/31c_refpatch_dialog_second_join.png": "a9af2dd823f75dbb",
+   "docs/gui/screens/31c_refpatch_dialog_second_join.png": "4688f3f45df23150",
    "docs/gui/screens/32_reflectivity_after_patch.png": "0d001a01a344051a",
    "docs/gui/screens/33_reflectivity_norm_ref_subtab.png": "34d633aa986b8421",
    "docs/gui/screens/33_reflectivity_ref_subtab.png": "20e15ccff3521220",
@@ -1613,12 +1607,12 @@
    "docs/gui/screens/99_menu_help.png": "ec1c27e1e311d788",
    "docs/gui/screens/99_menu_tools.png": "9436ce887a45f88b",
    "docs/gui/screens/99_menu_view.png": "9ae4d8b97ae4f67a",
-   "docs/gui/screens/README.md": "399ffa0dfb5272a9"
+   "docs/gui/screens/README.md": "7e3983d6e070f733"
   },
   "reads": {
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "1ea07a6ab402346f",
+   "mainwindow.py": "8c0dc6cecccddd5f",
    "mainwindow.ui": "f0b0297893c83436",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",
@@ -2022,7 +2016,7 @@
   "verdict": "same"
  },
  "ngui_inventory": {
-  "commit": "355bb62380",
+  "commit": "ce38cf429a",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -2042,20 +2036,21 @@
   },
   "modified": [
    "docs/gui/inventory/dialogs.yaml",
+   "docs/gui/inventory/specplot.yaml",
    "mainwindow.py"
   ],
   "modules": {
    "tests/tools/ngui_inventory.py": "97075f0ca6146b03"
   },
   "products": {
-   "ngui/inventory_text.py": "a3e042e6233689f7"
+   "ngui/inventory_text.py": "fadfeb4bec45786c"
   },
   "reads": {
    "absratioDialog.ui": "2fc9fe17b6b54b15",
    "docs/gui/inventory/apex.yaml": "3269af5254e2004e",
    "docs/gui/inventory/compare.yaml": "355f02f1001d8fdf",
    "docs/gui/inventory/cuts.yaml": "d2149d5b72adb19c",
-   "docs/gui/inventory/dialogs.yaml": "6318203b94f01c6b",
+   "docs/gui/inventory/dialogs.yaml": "b6053b10116c5424",
    "docs/gui/inventory/left_panel.yaml": "96c47ae7790dfae2",
    "docs/gui/inventory/mca.yaml": "4346d8018fc2f2f5",
    "docs/gui/inventory/menus.yaml": "d1f7c5b645312b14",
@@ -2064,11 +2059,11 @@
    "docs/gui/inventory/plot.yaml": "38b670896f601353",
    "docs/gui/inventory/plot2d.yaml": "2c524aa12a516de9",
    "docs/gui/inventory/reflectivity.yaml": "6d2348e031a01cea",
-   "docs/gui/inventory/specplot.yaml": "1fae4ed6100c51d9",
+   "docs/gui/inventory/specplot.yaml": "6baf6f4475352e0a",
    "docs/gui/inventory/timeline.yaml": "487789e7b099e606",
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "1ea07a6ab402346f",
+   "mainwindow.py": "8c0dc6cecccddd5f",
    "mainwindow.ui": "f0b0297893c83436",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",
@@ -2087,7 +2082,7 @@
   "verdict": "same"
  },
  "ngui_screens": {
-  "commit": "355bb62380",
+  "commit": "ce38cf429a",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -2111,8 +2106,8 @@
   ],
   "modules": {
    "ngui/__init__.py": "ad2e13b69c4fc1fd",
-   "ngui/inventory_text.py": "a3e042e6233689f7",
-   "ngui/layout.py": "7961a9081946360d",
+   "ngui/inventory_text.py": "fadfeb4bec45786c",
+   "ngui/layout.py": "14998c0ed35ff312",
    "ngui/theme.py": "44039650e1ebb95c",
    "ngui/window.py": "2e907c9fd80568b2",
    "tests/tools/ngui_screens.py": "7d7f498e9b3cd6ad"
@@ -2132,7 +2127,7 @@
    "docs/gui/prototype/screens/08_retired_controls.png": "a92e0754485848f1",
    "docs/gui/prototype/screens/09_file_export.png": "6b3552e5fb8ce7d7",
    "docs/gui/prototype/screens/10_legacy_reflectivity.png": "05ce0d23f0e2c5ed",
-   "docs/gui/prototype/screens/11_preferences.png": "6585189b02f8c3ef",
+   "docs/gui/prototype/screens/11_preferences.png": "217cce3e27d24c7f",
    "docs/gui/prototype/screens/20_left_selection_panel.png": "afc570a03940c695",
    "docs/gui/prototype/screens/21_left_scans.png": "8aa4a03391f0d7ed",
    "docs/gui/prototype/screens/22_left_frames.png": "ddfe7e1bd097f552",
@@ -2141,7 +2136,7 @@
    "docs/gui/prototype/screens/25_left_gid.png": "20da53aaf31ca202",
    "docs/gui/prototype/screens/26_left_fluorescence.png": "129c266f5ce666a9",
    "docs/gui/prototype/screens/27_left_files.png": "113ff04dbe4cc3d6",
-   "docs/gui/prototype/screens/README.md": "2bcd89bf0f48b054"
+   "docs/gui/prototype/screens/README.md": "c06182ee49a587a8"
   },
   "reads": {},
   "unverified": [],
