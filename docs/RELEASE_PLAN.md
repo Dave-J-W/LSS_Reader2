@@ -71,6 +71,8 @@ Everything else is **not** a blocker.
    - **Found and fixed (GUI manager, #125):** a stale `_rrf.txt`. R/R_F was kept after R/RF was unticked,
      so Export could write the old curve's R/R_F beside a new `_ref.txt` (and Save stored it). Every main
      export now says what it wrote and what it replaced.
+   - **The owner's rule (2026-11-26), GUI manager #128:** Export always writes both `_ref.txt` and `_rrf.txt`
+     (R/R_F at the fields' Qc and Qoff, ticked or not); no legacy fixture changed.
    - The legacy export fixtures stay byte-identical, and the golden `_ref.txt` files and the xmodfit
      covariance contract pass: `test_api`, `test_ref_export_golden`, `test_covariance_export`,
      `test_gui_export_name` (104 passed, 2026-11-26).
