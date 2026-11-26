@@ -99,6 +99,10 @@ Each line: feature — where — default — script — notes entry (date).
 ### Burn tests
 - A burn test is analysed as a GID burn when Det_Th > 2°, otherwise as a
   reflectivity burn (owner, 2026-11-23; F87).
+- Without a beam height (no sample-height scan with the burn's S1 gap and
+  none typed), a burn is still analysed. The dose is then in photons, not per
+  mm², and the result line says so; type the height to get it per mm²
+  (2026-11-26).
 - GID burns sum the detector rows where the mean frame's signal is ("Rows
   from frame", on by default; owner, 2026-11-23, Q-BURN-6): the strongest
   peak's columns, the rows where their profile stays above 10 % of its
