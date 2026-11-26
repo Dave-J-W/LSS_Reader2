@@ -102,8 +102,8 @@ def test_fit_lines_reports_the_elements_line_not_the_tallest(loaded, qapp, datas
     qapp.processEvents()
     assert recorder.exceptions == []
     step = float(np.median(np.diff(loaded.nomMcaData[loaded.selectedMcaScanNums[0]][:, 0])))
-    assert [r[3] for r in loaded.mcaIntData] == pytest.approx([line.area / step] * n)
-    assert 'line at 6.4' in loaded.command
+    assert [r[5] for r in loaded.mcaIntData] == pytest.approx([line.area / step] * n)   # the reader's fit (F110:
+    assert 'line at 6.4' in loaded.command                                               # XeRay is column 3)
 
 
 def test_fit_lines_poisson_switch(loaded, qapp, dataset, recorder):
@@ -317,3 +317,22 @@ def test_a_reflectivity_is_saved_tied_to_the_scans_it_was_made_from(loaded, qapp
     assert res[0]['scans'] == '1,2'
     loaded.updateRefPlotData()                            # a redraw (Log R, Qc ...) after the selection changed
     assert loaded.ui.refRefDataPlotwidget.canvas.ax.get_title().endswith('S# 1, 2')
+
+
+def test_mca_save_after_a_merge(loaded, qapp, dataset, recorder):
+    """A merge leaves the integral rows as an array; saving them to the
+    workbook (button or automatic save) asked ``if not rows``, which an
+    array of more than one row refuses ("truth value of an array is
+    ambiguous"), so nothing was saved (found 2026-11-26 while building F110;
+    the automatic save logged "automatic save (mca) failed")."""
+    from lss_core import fluorescence
+    sweep.state_mca_frames(loaded, qapp, dataset)
+    loaded.mcaFitLinesPushButton.click()
+    qapp.processEvents()
+    loaded.mcaIntData = fluorescence.merge_rows(loaded.mcaIntData, 'frame', 0.0)   # as "Merge" leaves them
+    assert isinstance(loaded.mcaIntData, np.ndarray) and len(loaded.mcaIntData) == 2
+    before = len(_book(loaded).results(kind='fluorescence'))     # the automatic save after Fit lines
+    loaded.saveButtons['mca'].click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    assert len(_book(loaded).results(kind='fluorescence')) == before + 1
