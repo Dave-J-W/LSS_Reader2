@@ -73,7 +73,7 @@ def test_a_click_opens_the_result(nx, qapp, recorder):
 
 
 def test_thumbnails_draw_the_right_columns(qapp):
-    """Fluorescence rows are (frame, Qz, E, I, dI[, I_fit, dI_fit]): the
+    """Fluorescence rows are (frame, Qz, E, I, dI[, I_xeray, dI_xeray]): the
     thumbnail draws I against Qz, not Qz against frame; a GID map (2D) draws
     no curve (2026-11-26)."""
     from lss_core.timeline import Reduced

@@ -36,7 +36,7 @@ All of these are already built. The work is finishing, fixing and checking them.
 | 1 | Open a SPEC file and load Pilatus and MCA data beside it | built | — |
 | 2 | Reflectivity: reduce, patch (joint fit), export `_ref.txt` / `_rrf.txt` for xmodfit (legacy format, byte-stable) | built | — |
 | 3 | GID: pinhole patch, maps, cuts, export | built | ~~fix `KeyError: 'monc'` on a one-point scan (crash)~~ **fixed 2026-11-26 (#116):** `Experiment.frames` names the missing column and why; the window only warns (probed) |
-| 4 | Fluorescence/MCA: sums, Fit lines, XFNTR merge | built | **the owner's decision (2026-11-26), overriding rule 1 for this default:** Fit lines reports XeRay (the value plotted, merged, exported) and the reader's Poisson fit with fixed width and escapes stripped beside it, both with errors (F110, built 2026-11-26) |
+| 4 | Fluorescence/MCA: sums, Fit lines, XFNTR merge | built | **the owner's decision (2026-11-26), overriding rule 1 for this default, revised the same day:** Fit lines reports the reader's Poisson fit (escapes stripped, the width from the sum) as the value plotted, merged and exported, and XeRay beside it, both with errors (F110, built 2026-11-26) |
 | 5 | Per-SPEC workbook with automatic saving, and the lock | built | — |
 | 6 | Live updates while data come in | built | — |
 | 7 | Never closes on an error (Stage 0 safety net) | built | ~~crash baseline shrinks to release level~~ **at zero** (2026-11-26): `known_crashes.json` holds no crash in its 14 states, `known_crash_sites.json` is empty; the sweep passes (194) |
@@ -62,9 +62,14 @@ Everything else is **not** a blocker.
    - The burn dialog no longer refuses a burn without a beam height (#115), which had kept the slow suite red.
    - MCA: the Fit Peak dialog's Accept after Fit lines (7-column rows, F110) or after a Merge crashed or left
      ragged rows; fixed by GUI manager (#122, 2026-11-26).
+   - The Plot tab's Fit Peak parameter export raised a TypeError half-way through `_par.txt` when lmfit had
+     no error estimate; fixed by GUI manager (#124).
    - On `main` with #118, #119 and the About fix: the quick suite passes (1396), the slow suite passes (427),
      the sweep passes (194, on #119).
-2. **Export numbers:** none known.
+2. **Export numbers:** none known now.
+   - **Found and fixed (GUI manager, #125):** a stale `_rrf.txt`. R/R_F was kept after R/RF was unticked,
+     so Export could write the old curve's R/R_F beside a new `_ref.txt` (and Save stored it). Every main
+     export now says what it wrote and what it replaced.
    - The legacy export fixtures stay byte-identical, and the golden `_ref.txt` files and the xmodfit
      covariance contract pass: `test_api`, `test_ref_export_golden`, `test_covariance_export`,
      `test_gui_export_name` (104 passed, 2026-11-26).

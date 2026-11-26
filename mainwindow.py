@@ -2932,11 +2932,11 @@ class MainWindow (QMainWindow):
             else:
                 x=data[:,2]
                 self.ui.mcaIntPlotMplWidget.canvas.ax.set_xlabel('Energy (keV)')
-            two=data.shape[1]>=7                    # F110: XeRay (default) and the reader's fit
-            self.ui.mcaIntPlotMplWidget.canvas.ax.errorbar(x,y,yerr,fmt='o',label='#0 XeRay' if two else '#0')
+            two=data.shape[1]>=7                    # F110: the reader's fit (default) and XeRay beside it
+            self.ui.mcaIntPlotMplWidget.canvas.ax.errorbar(x,y,yerr,fmt='o',label='#0 reader\'s fit' if two else '#0')
             if two:
                 self.ui.mcaIntPlotMplWidget.canvas.ax.errorbar(x,data[:,5],data[:,6],fmt='s',mfc='none',
-                                                               label='#0 reader\'s fit')
+                                                               label='#0 XeRay')
         except:
             self.messageBox('no mca integral data to process.')
         if len(self.selectedmcafiles_rows)!=0: #plot the loaded mca int data
@@ -2956,8 +2956,8 @@ class MainWindow (QMainWindow):
                     string='%.4f'%self.mcaIntData[i][1]+'\t'+'%.4e'%self.mcaIntData[i][3]+'\t'+'%.4e'%self.mcaIntData[i][4]
                 else:
                     string='%.4f'%self.mcaIntData[i][2]+'\t'+'%.4e'%self.mcaIntData[i][3]+'\t'+'%.4e'%self.mcaIntData[i][4]
-                if len(self.mcaIntData[i])>=7:     # F110: the reader's fit beside XeRay's
-                    string+='\tfit %.4e\t%.4e' % (self.mcaIntData[i][5],self.mcaIntData[i][6])
+                if len(self.mcaIntData[i])>=7:     # F110: XeRay beside the reader's fit
+                    string+='\tXeRay %.4e\t%.4e' % (self.mcaIntData[i][5],self.mcaIntData[i][6])
                 self.ui.mcaDataListWidget.addItem(string)
             self.updateMcaIntPlot()
         except:
@@ -3013,12 +3013,12 @@ class MainWindow (QMainWindow):
     def mcaSaveIntData(self):
         try:
             self.saveFileName=QFileDialog.getSaveFileName(
-                caption='Export fluorescence integrals (the name gets _flu.txt, and _flu_fit.txt after Fit lines)',
+                caption='Export fluorescence integrals (the name gets _flu.txt, and _flu_xeray.txt after Fit lines)',
                 directory=self.directory)[0]
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
-            self.saveFileName=self.exportStem(self.saveFileName,('_flu_fit.txt','_flu.txt'))
-            files=[self.saveFileName+'_flu.txt',self.saveFileName+'_flu_fit.txt']
+            self.saveFileName=self.exportStem(self.saveFileName,('_flu_xeray.txt','_flu.txt'))
+            files=[self.saveFileName+'_flu.txt',self.saveFileName+'_flu_xeray.txt']
             existed=self.existingFiles(files)
             fid=open(self.saveFileName+'_flu.txt','w')
             try:
@@ -3033,12 +3033,12 @@ class MainWindow (QMainWindow):
                 else:
                     fid.write(str(self.mcaIntData[i][2])+'\t'+str(self.mcaIntData[i][3])+'\t'+str(self.mcaIntData[i][4])+'\n')
             fid.close()
-            if len(self.mcaIntData) and len(self.mcaIntData[0])>=7:   # F110: the reader's fit (rows may be an array)
+            if len(self.mcaIntData) and len(self.mcaIntData[0])>=7:   # F110: XeRay beside (rows may be an array)
                 col=min(self.ui.mcaXAxisComboBox.currentIndex(),2)
-                with open(self.saveFileName+'_flu_fit.txt','w') as f2:
-                    f2.write('#'+str(self.command)+' -- the reader\'s fit (the _flu.txt beside it holds XeRay\'s)\n')
+                with open(self.saveFileName+'_flu_xeray.txt','w') as f2:
+                    f2.write('#'+str(self.command)+' -- XeRay\'s fit (the _flu.txt beside it holds the reader\'s)\n')
                     for r in self.mcaIntData:
-                        if np.isfinite(r[5]):                 # an accepted single fit has no reader's fit
+                        if np.isfinite(r[5]):                 # an accepted single fit has no XeRay fit
                             f2.write(str(r[col])+'\t'+str(r[5])+'\t'+str(r[6])+'\n')
                 self.exportNotice(files,existed)
             else:
@@ -9233,18 +9233,18 @@ class MainWindow (QMainWindow):
         fl=QPushButton('Fit lines',self)
         fl.setObjectName('mcaFitLinesPushButton')
         fl.setToolTip('Fit the fluorescence line of all selected spectra two ways, within the range in the Sum All field '
-                      '(owner, 2026-11-26, F110). XeRay (the default: the value plotted as circles, merged and exported '
-                      'in _flu.txt): one Gaussian on a straight line, unweighted least squares, as the Lee group\'s XeRay; '
+                      '(owner, 2026-11-26, F110). The reader\'s fit (the default: the value plotted as circles, merged and '
+                      'exported in _flu.txt; F22a): the Si escape peaks are stripped, the sum of the spectra is fitted for '
+                      'the line\'s position and width, then every spectrum for its height and background by Poisson maximum '
+                      'likelihood (F90 P1), a Gaussian on a quadratic background by default, for the Rayleigh spill-over. '
+                      'On the owner\'s real data the most accurate, with honest errors (C66: 49 of 192 conditions, pull SD '
+                      '1.08; C69, real line shapes: 34 of 160). Beside it, XeRay (squares, "XeRay" in the list, '
+                      '_flu_xeray.txt): one Gaussian on a straight line, unweighted least squares, as the Lee group\'s XeRay; '
                       'its error is sqrt(counts in the window), which leaves out the background and is too small where the '
-                      'background is large (XRF shootout: pull SD 1.92, up to 11.7). Beside it, the reader\'s fit '
-                      '(squares, "fit" in the list, _flu_fit.txt; F22a): the sum of the spectra is fitted for the line\'s '
-                      'position, then every spectrum for its height and background by Poisson maximum likelihood (F90 P1), '
-                      'with the width fixed at the detector\'s and the Si escape peaks stripped (Fit options; the '
-                      'shootout\'s most accurate method, with honest errors: pull SD 1.03), a Gaussian on a quadratic '
-                      'background by default, for the Rayleigh spill-over. Both report the line asked for (the first energy '
-                      'given in Fit options, the element\'s; the strongest when none is given) as its area over the channel '
-                      'width (the same units as Sum All, background removed). "Fit options..." beside it sets the shape, '
-                      'background, lines.')
+                      'background is large (pull SD 1.92, up to 11.7; accurate in 6 of 192 on real blanks). Both report the '
+                      'line asked for (the first energy given in Fit options, the element\'s; the strongest when none is '
+                      'given) as its area over the channel width (the same units as Sum All, background removed). "Fit '
+                      'options..." beside it sets the shape, background, lines.')
         fo=QPushButton('Fit options...',self)
         fo.setObjectName('mcaFitOptionsPushButton')
         fo.setToolTip('Shape, background, number of lines or their energies, sensitivity, for "Fit lines".')
@@ -9783,16 +9783,17 @@ class MainWindow (QMainWindow):
                       ('x range (min:max)',rng),('Centres',cen)):
             form.addRow(lab,w)
         form.addRow(fix)
-        if which=='mca':        # F90 P2, P3: on by default since F110 (the owner, 2026-11-26), for the reader's fit
+        if which=='mca':        # F90 P2, P3: escapes on, detector width off (F110 as revised by the owner, 2026-11-26)
             lo=self.mcaLineOptions()
             dw=QCheckBox('width from the detector',d); dw.setObjectName('mcaFitDetectorWidthCheckBox')
             dw.setChecked(lo['detector_width'])
             dw.setToolTip('The reader\'s fit (not XeRay\'s): fix the line width at the detector\'s resolution at the '
                           'first centre (the element\'s line), or at the line XeRay found when no centre is given: '
-                          'FWHM = sqrt(noise^2 + 8 ln2 x 3.65 eV x 0.115 x E). A free width trades off against a '
-                          'curved background (synthetic: +45 % with the elastic\'s escape peak under Zn Ka, C42). '
-                          'On by default (F110); the Fixed FWHM above is then ignored. With real-shaped lines over '
-                          'real scatter it reads about 5 to 7 % low (C69).')
+                          'FWHM = sqrt(noise^2 + 8 ln2 x 3.65 eV x 0.115 x E). Off by default (the owner, 2026-11-26): '
+                          'the width then comes from the sum of the series. Fixed, it needs the detector\'s own noise '
+                          '(measured 0.065 and 0.105 keV on the owner\'s two readouts) and reads about 6 % low with '
+                          'real line shapes (C69), 32 % low where the line is 1.65 x the model\'s width. The Fixed '
+                          'FWHM above is then ignored.')
             noise=QDoubleSpinBox(d); noise.setObjectName('mcaFitNoiseSpinBox'); noise.setRange(0.0,1.0)
             noise.setDecimals(3); noise.setSingleStep(0.005); noise.setSuffix(' keV'); noise.setValue(lo['noise_kev'])
             noise.setToolTip('The detector\'s electronic noise as a FWHM (keV): calibrate it on a strong peak, '
@@ -9802,7 +9803,7 @@ class MainWindow (QMainWindow):
             esc.setToolTip('The reader\'s fit (not XeRay\'s): before fitting, subtract each spectrum\'s Si K escape '
                            'spectrum: what was measured 1.740 keV higher, times Reed\'s escape fraction (about 0.1 % at '
                            '10 keV; constants from memory). Under 10 keV the elastic\'s escape peak at 8.26 keV sits under '
-                           'Zn Ka (C42). On by default (F110).')
+                           'Zn Ka (C42). On by default.')
             form.addRow(dw)
             form.addRow('Detector noise (FWHM)',noise)
             form.addRow(esc)
@@ -10655,7 +10656,7 @@ class MainWindow (QMainWindow):
         if self.mcaLineFits is not None:
             ref,each,nums=self.mcaLineFits
             fits=[('sum of %d spectra' % len(each),ref)]+[('frame %d' % (n+1),r) for n,r in zip(nums,each)]
-        cols=['frame','Qz','energy','I','dI']+(['I_fit','dI_fit'] if len(rows[0])>=7 else [])   # F110
+        cols=['frame','Qz','energy','I','dI']+(['I_xeray','dI_xeray'] if len(rows[0])>=7 else [])   # F110
         items=[dict(scans=scans,data=np.asarray(rows,float),columns=cols,
                     label=str(getattr(self,'command','')),fits=fits,settings=dict(command=str(getattr(self,'command',''))),
                     recipe='' if fits else self.recipe(self.fluorescenceScript))]
@@ -10731,10 +10732,10 @@ class MainWindow (QMainWindow):
         return self.mcaPeakFit() if legacy else self.mcaFitLines()
 
     def mcaFitLines(self):
-        """Fit the selected spectra's line two ways (F110, owner 2026-11-26): XeRay, the default and the value
-        plotted, merged and exported, and the reader's Poisson fit (lss_core.peaks.fit_series, with the options'
-        detector width and escape stripping), reported beside it with its error, since XeRay's error leaves out
-        the background (lss_core.fluorescence.fit_line_series)."""
+        """Fit the selected spectra's line two ways (F110, owner 2026-11-26, revised the same day): the
+        reader's Poisson fit (lss_core.peaks.fit_series: the width from the sum, Si escapes stripped), the
+        default and the value plotted, merged and exported, and XeRay beside it with its error
+        (lss_core.fluorescence.fit_line_series)."""
         nums=list(getattr(self,'selectedMcaScanNums',[]) or [])
         if not nums or not all(n in self.nomMcaData for n in nums):
             self.messageBox('Select and plot MCA spectra first.')
@@ -10769,7 +10770,7 @@ class MainWindow (QMainWindow):
             frame=n+1
             qz=self.mcaPar[n]['Q'][2]
             energy=self.mcaPar[n].get('Energy',10.0) if isinstance(self.mcaPar[n],dict) else 10.0
-            self.mcaIntData.append([frame,qz,energy,xi,xe,fi,fe])
+            self.mcaIntData.append([frame,qz,energy,fi,fe,xi,xe])     # the reader's fit first (F110 revised)
         self.mcaSumScript=None
         self.mcaMerges=[]
         self.mcaLineFits=(ref,each,nums) if each else None
@@ -10789,19 +10790,19 @@ class MainWindow (QMainWindow):
         o_used=both['options']
         bad=sum(not f.ok for f in xr)
         line='line at %.4g' % ref.peaks[j].centre if each and j is not None else 'line'
-        self.command='Flu Fit lines, scans=[%s], XeRay (default) and the reader\'s fit of the %s%s, %s on %s background%s' % (
+        self.command='Flu Fit lines, scans=[%s], the reader\'s fit (default) of the %s%s, %s on %s background%s, and XeRay beside it' % (
             listText(np.sort(self.selectedScanNums)),line,
             ' (FWHM %.3g)' % ref.peaks[j].fwhm if each and j is not None else '',o_used.shape,o_used.background,
             ''.join(t for t,on in ((', Poisson weights',self.mcaFitPoisson()),
                                    (', data weights (legacy)',not self.mcaFitPoisson()),
                                    (', width from the detector at %.4g keV' % (both['width_at'] or 0),
                                     both['width_at'] is not None),
+                                   (', width from the sum',both['width_at'] is None and not o_used.fwhm),
                                    (', Si escapes stripped',lopt['strip_escape'])) if on))
-        self.notify('Fit lines, %d spectra: XeRay (the default; plotted, merged and exported)%s; the reader\'s fit beside '
-                    'it%s. XeRay\'s error is sqrt(counts in the window), too small where the background is large; the '
-                    'reader\'s fit error is honest (shootout: pull SD 1.03).'
-                    % (len(nums),', %d failed' % bad if bad else '',
-                       ' (sum: %s)' % ref.summary() if each else ': it failed (%s)' % (ref.message or 'no line')),
+        self.notify('Fit lines, %d spectra: the reader\'s fit (the default; plotted, merged and exported)%s; XeRay beside '
+                    'it%s. XeRay\'s error is sqrt(counts in the window), too small where the background is large.'
+                    % (len(nums),' (sum: %s)' % ref.summary() if each else ' failed (%s)' % (ref.message or 'no line'),
+                       ', %d of its fits failed' % bad if bad else ''),
                     title='Fit lines',level='info')
         if self.mcaFitDialog is not None:
             self.mcaFitDialog.findChild(QLabel,'mcaFitResultLabel').setText(self.mcaFitSummary())
