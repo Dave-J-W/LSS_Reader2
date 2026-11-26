@@ -102,6 +102,23 @@ Everything else is **not** a blocker.
     10⁴ photons. The prototype scripts are on the owner's PC (`parked/xrf_pathologies/` beside the
     clone). To do: one script in `tests/tools/`, a catalogue item, a short page in
     `docs/studies/xrf_shootout/`.
+  - **Larch: a bug in our setup, and what tuning does** (owner, 2026-11-26: "making larch work
+    better, it seems promising"; measured on 15 synthetic conditions, 200 spectra each).
+    - The bug: `xrf_shootout._larch_model` gives Larch the beam in eV (`1000 × energy`), but
+      Larch's model takes keV, so it sees a 10 MeV beam. Every edge then counts as excited, and
+      lines the beam cannot excite are modelled. This explains most of Lu L's +7900 % (Lu's L1/L2
+      lines under a 10 keV beam) and As beside Pb's −680 %. The committed Larch scores of C65–C69
+      are wrong wherever an edge sits above the beam.
+    - The fix needs a second one: in keV, Larch's default starting amplitude (1e6) is ~10⁵ × too
+      large, and the fits stop in bad minima. Starting from the counts under the line works.
+    - With both fixes, Larch still cannot describe water's Compton scatter (misfit 30–50 per point).
+      Its line amplitude trades against the Compton peak's tail, so scattered conditions read
+      −10 to −75 %. None of these rescues it: the GUI's second Compton peak, Larch's background,
+      Poisson weights, a pinned Compton centre.
+    - A narrow fit (the line ± 1 keV, Larch's background, no scatter peaks) helps under mild
+      scatter: the hard case at 14 keV goes from −42 % to −2 %, Fe far from the scatter from −13 %
+      to −3 %. It fails under hard scatter, where the background takes the line (−100 %).
+    - Script: `parked/xrf_pathologies/larch_tune.py` on the owner's PC.
 - Reopening a file with its workbook's settings; recipes for cuts, MCA lines
   and SpecPlot curves.
 - F80/F105 comparison tab; Export naming handed over to xmodfit.
