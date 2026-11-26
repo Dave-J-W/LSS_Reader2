@@ -51,6 +51,16 @@ def test_about_box_without_source_files(window, qapp, recorder, tmp_path, monkey
     assert any('Last Update' in m for m in recorder.messages)
 
 
+def test_about_box_shows_the_release(window, recorder):
+    """Help > About said "Version: 1.1", the original's number, until
+    2026-11-26; it shows ``lss_core.__version__`` (2.0, the release plan's)."""
+    import lss_core
+    window.showAbout()
+    assert lss_core.__version__ == '2.0'
+    assert any('Version: 2.0\n' in m for m in recorder.messages) and not any('1.1' in m for m in recorder.messages)
+    assert recorder.exceptions == []
+
+
 @pytest.mark.slow
 def test_self_test_passes_from_source(tmp_path):
     env = dict(os.environ, QT_QPA_PLATFORM='offscreen', LSS_SELFTEST_REPORT=str(tmp_path / 'r.txt'))
