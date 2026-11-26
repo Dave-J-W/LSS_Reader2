@@ -348,12 +348,12 @@
   label: "Export"
   where: "Reflectivity > bottom"
   handler: saveRefData
-  does: "Writes <name>_ref.txt (normalised R) and <name>_rrf.txt (R/RF if computed), the files XModFit reads; adds the lss_core line to the Script pane"
+  does: "Writes <name>_ref.txt (normalised R) and <name>_rrf.txt (R/R_F with the Qc and Qoff in the fields, always), the files XModFit reads; says what it wrote; adds the lss_core line to the Script pane"
   workflows: [reflectivity]
   needs: "a curve"
   shown: always
   tooltip: true
-  notes: "_rrf.txt is the R/RF of the last plot with R/RF ticked; if never ticked it is silently skipped (print only). Since 2026-11-25 (F105, Q-REF-6) the dialog proposes <SPEC file>_<sample>_S<scans> (the sample from #U SeriesMacro when recorded; lss_core.naming) in the folder of the last Export (preference export_folder)."
+  notes: "Owner, 2026-11-26: both files always, whether or not R/RF is ticked (before: _rrf.txt only when R/RF had been ticked, and then possibly an earlier curve's). A line in Messages says which files were written and which replaced files of that name. Since 2026-11-25 (F105, Q-REF-6) the dialog proposes <SPEC file>_<sample>_S<scans> (the sample from #U SeriesMacro when recorded; lss_core.naming) in the folder of the last Export (preference export_folder)."
 - id: refCovarianceCheckBox
   kind: checkbox
   label: "+ covariance"
@@ -425,12 +425,12 @@
   label: "R/RF"
   where: "Reflectivity > bottom"
   handler: updateRefPlotData
-  does: "Plots R divided by the Fresnel reflectivity (and makes the data that _rrf.txt exports)"
+  does: "Plots R divided by the Fresnel reflectivity R_F(Qz + Qoff); Save puts R/RF in the workbook while it is ticked. Export writes _rrf.txt either way"
   workflows: [reflectivity]
   needs: ""
   shown: always
-  tooltip: false
-  notes: "A display toggle that also decides what is exported."
+  tooltip: true
+  notes: "Was a display toggle that also decided what was exported (an earlier curve's R/R_F could be exported after unticking it). Owner, 2026-11-26: Export always writes both _ref.txt and _rrf.txt; this box is now a display choice (and the workbook's R/RF). Tooltip added 2026-11-26."
 - id: refLogYCheckBox
   kind: checkbox
   label: "LogY"

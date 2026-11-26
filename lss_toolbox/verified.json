@@ -608,7 +608,7 @@
   "verdict": "same"
  },
  "dump_tooltips": {
-  "commit": "586b5c9cfb",
+  "commit": "860abd5f42",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -626,12 +626,14 @@
    "python": "3.13.18",
    "scipy": "1.18.1"
   },
-  "modified": [],
+  "modified": [
+   "mainwindow.py"
+  ],
   "modules": {
    "TwoDDetector.py": "b7754735a902a771",
    "comparetab.py": "60bfa3ad6462b8b2",
    "interp_compat.py": "c83e6bf00f63211d",
-   "lss_core/__init__.py": "ad2e13b69c4fc1fd",
+   "lss_core/__init__.py": "9f57300cffd8feeb",
    "lss_core/absorbers.py": "67c5f42ec563b55a",
    "lss_core/burn.py": "56c42d35dd1ce92e",
    "lss_core/cache.py": "e29039ce0ffa84eb",
@@ -641,7 +643,7 @@
    "lss_core/display.py": "051ee7c835152ba6",
    "lss_core/errors.py": "2dec081767a7d1cb",
    "lss_core/experiment.py": "769de3e677e246d7",
-   "lss_core/fluorescence.py": "401d3a54d0b52375",
+   "lss_core/fluorescence.py": "641e2dea12a66705",
    "lss_core/flux.py": "b30a6b04512a3f05",
    "lss_core/fresnel.py": "c6da859c135ad380",
    "lss_core/gid.py": "09be73548e114761",
@@ -655,7 +657,7 @@
    "lss_core/paths.py": "87a80cf735a80c9f",
    "lss_core/peaks.py": "9ddf11c2659ad23e",
    "lss_core/pinhole.py": "4947ac70640d7924",
-   "lss_core/preferences.py": "cde2cdd47924ec27",
+   "lss_core/preferences.py": "0b715b519e18d814",
    "lss_core/readerlock.py": "e154fd65b1d346ac",
    "lss_core/reflectivity.py": "04253e4e329a02e9",
    "lss_core/residuals.py": "0292e57020900835",
@@ -674,7 +676,7 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "a7433878e90b14b5",
+   "mainwindow.py": "c84a31bb672c4e50",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
    "mplwidget.py": "437655a13b3d5ac2",
@@ -682,13 +684,13 @@
    "roipanel.py": "8371fd06c11d435e",
    "spec_routines.py": "a08541869ce7c7e9",
    "tests/tools/dump_tooltips.py": "f12f12762cc3cf0e",
-   "timelineview.py": "62c792d5abbf0f98"
+   "timelineview.py": "11d86a4c3022fe11"
   },
   "products": {
-   "docs/manual/controls.md": "7b19e46623c175e8"
+   "docs/manual/controls.md": "6033324455851f3c"
   },
   "reads": {
-   "mainwindow.py": "a7433878e90b14b5",
+   "mainwindow.py": "c84a31bb672c4e50",
    "mainwindow.ui": "f0b0297893c83436",
    "pdburn.ui": "ce2716bc0b3a483d"
   },
@@ -1374,7 +1376,7 @@
   "verdict": "same"
  },
  "gui_map": {
-  "commit": "586b5c9cfb",
+  "commit": "860abd5f42",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -1392,12 +1394,16 @@
    "python": "3.13.18",
    "scipy": "1.18.1"
   },
-  "modified": [],
+  "modified": [
+   "docs/gui/inventory/reflectivity.yaml",
+   "docs/gui/questions.md",
+   "mainwindow.py"
+  ],
   "modules": {
    "tests/tools/gui_map.py": "a38d471fc76f2631"
   },
   "products": {
-   "docs/gui/inventory.md": "3eca5790a594f557",
+   "docs/gui/inventory.md": "25349c5abff4bc23",
    "docs/gui/workflows.md": "42840689b400b040"
   },
   "reads": {
@@ -1406,29 +1412,29 @@
    "docs/gui/inventory/cuts.yaml": "d2149d5b72adb19c",
    "docs/gui/inventory/dialogs.yaml": "54ea7717811d4615",
    "docs/gui/inventory/left_panel.yaml": "96c47ae7790dfae2",
-   "docs/gui/inventory/mca.yaml": "b3b8779a77a539d4",
+   "docs/gui/inventory/mca.yaml": "4346d8018fc2f2f5",
    "docs/gui/inventory/menus.yaml": "d1f7c5b645312b14",
    "docs/gui/inventory/panes.yaml": "cc1f2d47693641d5",
    "docs/gui/inventory/pilatus.yaml": "b6e14a54da375976",
    "docs/gui/inventory/plot.yaml": "38b670896f601353",
    "docs/gui/inventory/plot2d.yaml": "2c524aa12a516de9",
-   "docs/gui/inventory/reflectivity.yaml": "333f08ad29df64bb",
+   "docs/gui/inventory/reflectivity.yaml": "6d2348e031a01cea",
    "docs/gui/inventory/specplot.yaml": "1fae4ed6100c51d9",
    "docs/gui/inventory/timeline.yaml": "487789e7b099e606",
-   "docs/gui/questions.md": "7661e498a2450219",
+   "docs/gui/questions.md": "f54e8965820a6593",
    "docs/gui/questions/image_display.md": "f44307e6910cf716",
    "docs/gui/questions/inventory_a.md": "7fde6e8e5e63e8cb",
    "docs/gui/questions/inventory_b.md": "138139f0b2af228d",
    "docs/gui/questions/workflows.md": "5f20c85b2e0c727b",
    "docs/gui/workflows.yaml": "efe7b71f0ac32862",
-   "mainwindow.py": "a7433878e90b14b5",
+   "mainwindow.py": "c84a31bb672c4e50",
    "mainwindow.ui": "f0b0297893c83436"
   },
   "unverified": [],
   "verdict": "same"
  },
  "gui_screens": {
-  "commit": "ec2fb4a238",
+  "commit": "d6b55367c5",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -1462,7 +1468,7 @@
    "lss_core/dose.py": "df29ce57e3fc7d55",
    "lss_core/errors.py": "2dec081767a7d1cb",
    "lss_core/experiment.py": "769de3e677e246d7",
-   "lss_core/fluorescence.py": "99998e1aa06d6e2b",
+   "lss_core/fluorescence.py": "641e2dea12a66705",
    "lss_core/flux.py": "b30a6b04512a3f05",
    "lss_core/fresnel.py": "c6da859c135ad380",
    "lss_core/gid.py": "09be73548e114761",
@@ -1478,7 +1484,7 @@
    "lss_core/paths.py": "87a80cf735a80c9f",
    "lss_core/peaks.py": "9ddf11c2659ad23e",
    "lss_core/pinhole.py": "4947ac70640d7924",
-   "lss_core/preferences.py": "65ec97f387b75bc4",
+   "lss_core/preferences.py": "0b715b519e18d814",
    "lss_core/readerlock.py": "e154fd65b1d346ac",
    "lss_core/reciprocity.py": "617ab5d4e0cfc06f",
    "lss_core/reflectivity.py": "04253e4e329a02e9",
@@ -1501,7 +1507,7 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "0cb766c29565a464",
+   "mainwindow.py": "c84a31bb672c4e50",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
    "mplwidget.py": "437655a13b3d5ac2",
@@ -1564,8 +1570,8 @@
    "docs/gui/screens/72b_mca_integral_vs_qz.png": "75ebfc3d6f92b74b",
    "docs/gui/screens/73_mca_peak_fit_dialog.png": "e3fd04b74e640c75",
    "docs/gui/screens/74_mca_peak_fit_dialog_fitted.png": "e96e9fdfabfde49b",
-   "docs/gui/screens/75_mca_fit_lines_result.png": "cd3981a996b38851",
-   "docs/gui/screens/76_mca_fit_options_dialog.png": "c976a229f0b809c0",
+   "docs/gui/screens/75_mca_fit_lines_result.png": "a45069f37f1f3ee9",
+   "docs/gui/screens/76_mca_fit_options_dialog.png": "778ba5aedf6eeb56",
    "docs/gui/screens/77_mca_merge_dialog.png": "333f1092ee51fd79",
    "docs/gui/screens/80_plot_empty.png": "8967ccabd42de766",
    "docs/gui/screens/80b_plot_two_files.png": "6e854e1a786bcd9b",
@@ -1590,12 +1596,12 @@
    "docs/gui/screens/99_menu_help.png": "ec1c27e1e311d788",
    "docs/gui/screens/99_menu_tools.png": "9436ce887a45f88b",
    "docs/gui/screens/99_menu_view.png": "9ae4d8b97ae4f67a",
-   "docs/gui/screens/README.md": "6c03dcc8f9789f5c"
+   "docs/gui/screens/README.md": "ac4b607dc85f9f6c"
   },
   "reads": {
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "0cb766c29565a464",
+   "mainwindow.py": "c84a31bb672c4e50",
    "mainwindow.ui": "f0b0297893c83436",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",
@@ -1999,7 +2005,7 @@
   "verdict": "same"
  },
  "ngui_inventory": {
-  "commit": "586b5c9cfb",
+  "commit": "860abd5f42",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -2017,12 +2023,15 @@
    "python": "3.13.18",
    "scipy": "1.18.1"
   },
-  "modified": [],
+  "modified": [
+   "docs/gui/inventory/reflectivity.yaml",
+   "mainwindow.py"
+  ],
   "modules": {
    "tests/tools/ngui_inventory.py": "97075f0ca6146b03"
   },
   "products": {
-   "ngui/inventory_text.py": "b9db71cd9b585fed"
+   "ngui/inventory_text.py": "8880ba2fef3c3722"
   },
   "reads": {
    "absratioDialog.ui": "2fc9fe17b6b54b15",
@@ -2031,18 +2040,18 @@
    "docs/gui/inventory/cuts.yaml": "d2149d5b72adb19c",
    "docs/gui/inventory/dialogs.yaml": "54ea7717811d4615",
    "docs/gui/inventory/left_panel.yaml": "96c47ae7790dfae2",
-   "docs/gui/inventory/mca.yaml": "b3b8779a77a539d4",
+   "docs/gui/inventory/mca.yaml": "4346d8018fc2f2f5",
    "docs/gui/inventory/menus.yaml": "d1f7c5b645312b14",
    "docs/gui/inventory/panes.yaml": "cc1f2d47693641d5",
    "docs/gui/inventory/pilatus.yaml": "b6e14a54da375976",
    "docs/gui/inventory/plot.yaml": "38b670896f601353",
    "docs/gui/inventory/plot2d.yaml": "2c524aa12a516de9",
-   "docs/gui/inventory/reflectivity.yaml": "333f08ad29df64bb",
+   "docs/gui/inventory/reflectivity.yaml": "6d2348e031a01cea",
    "docs/gui/inventory/specplot.yaml": "1fae4ed6100c51d9",
    "docs/gui/inventory/timeline.yaml": "487789e7b099e606",
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "a7433878e90b14b5",
+   "mainwindow.py": "c84a31bb672c4e50",
    "mainwindow.ui": "f0b0297893c83436",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",
