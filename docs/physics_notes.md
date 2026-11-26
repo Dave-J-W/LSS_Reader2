@@ -6841,8 +6841,13 @@ it from data".
   outliers are present; a 100 Å film's fringes add 1.3 %; a slow drift is not seen at all.
 - **Real:** the stated σ is about 10 % too small (s 1.12 [1.10, 1.12]; DPPC on known truth reads up to 0.04
   high, so 1.08–1.12). As a fraction of R the excess falls with the counts (1.4 % below 10³ counts, 0.13 %
-  above 10⁵), so it is a scale on σ plus a floor of about 0.1 %, not a fixed percentage. About 0.3 % of points
-  are wild (1.8 % of windows, ~46 % off).
+  above 10⁵), so it is a scale on σ plus a floor of about 0.1 %, not a fixed percentage. At most about 0.3 % of
+  points are wild (1.8 % of windows, ~46 % off); part of that is the curve's own shape (a minimum sampled by
+  one point looks like a wild point inside a window; such windows recur at the same Qz in other series of a
+  run: 64 % against 55 % ± 2 shuffled). Left out, the outlier windows fall to 0.8 %; core X and s do not move.
+- **Released runs before 2019** (owner, 2026-11-25; 96 series, a public extract, figures R1–R4 from
+  `tests/tools/excess_scatter_released.py`): s 1.07, core 0.21 % of R, 3.2 % outlier windows, 85 % of those
+  beyond 10σ at one deep minimum. Verified by: a run of the private export and of the public tool.
 - **The joins:** the within-scan findings on C61's joins give today's joint fit pull SD 1.19 ± 0.05 on the
   smooth join (1.12 with honest errors), against the real 1.24 [1.09, 1.40]. Consistent, but C56's interval
   is too wide to rule out a between-scan part.

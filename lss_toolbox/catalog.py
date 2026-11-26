@@ -514,6 +514,20 @@ TOOLS = (
          docs=('docs/studies/excess_scatter/walkthrough.md', 'docs/studies/excess_scatter/summary.md'),
          data='public', defaults={'--out': OUT},
          repo_out='docs/studies/excess_scatter/walkthrough', repo_ok=False, seconds=40.0),
+    Tool('excess_scatter_released', 'Real examples: frames, series and windows from released runs (C63, before 2019)',
+         'refl', 'figures', 'tests/tools/excess_scatter_released.py',
+         'The excess-scatter study on real data anyone can rerun: two reflectivity frames with the reader\'s boxes '
+         '(R1), four cherry-picked series and their window pulls (R2), single windows with their fits (R3), and every '
+         'window of 96 released series pooled against the 18 private runs (R4). From the committed extract in '
+         'docs/studies/excess_scatter/released/ (runs before 2019, released by the owner for figures, anonymous).',
+         committed=('docs/studies/excess_scatter/released/R1_frames.png',
+                    'docs/studies/excess_scatter/released/R2_series.png',
+                    'docs/studies/excess_scatter/released/R3_windows.png',
+                    'docs/studies/excess_scatter/released/R4_pool.png',
+                    'docs/studies/excess_scatter/released/numbers.json'),
+         docs=('docs/studies/excess_scatter/walkthrough.md', 'docs/studies/excess_scatter/summary.md'),
+         data='public', defaults={'--out': OUT, '--boot': '40'},
+         repo_out='docs/studies/excess_scatter/released', seconds=10.0),
 
     Tool('guard_error_study', 'The guard\'s error: why join error bars are too small on real data', 'refl', 'figures',
          'tests/tools/guard_error_study.py',

@@ -91,6 +91,50 @@ The dashed line in every panel is the value over all windows. The bars are boots
 does: as a share of R it shrinks as the error bar does. The background column's high bin (10–30 %) also has
 fewer counts, so it is not a separate effect. The beam's steadiness shows no trend.
 
+## 4b. The same chain on real released data (R1–R4)
+
+The figures above use the public NX school file, one scan, and then the private runs' derived numbers. The
+owner released reflectivity runs from before 2019 for figures, so the whole chain can also be shown on
+real frames and real series that anyone can redraw (`python tests/tools/excess_scatter_released.py`).
+
+![R1](released/R1_frames.png)
+
+**R1, the raw data.** Two frames of one series, as the detector recorded them, with the boxes the reader
+sums. Top: a bright point near the critical edge. The signal box holds about 81,000 counts and each
+background box 4–5, so the background does not matter. Bottom: a faint point at Qz 0.61. The signal box
+holds 128,000 counts, but each background box holds 118,000. The reflected beam is only the bump on the
+right-hand profile. The net, 10,000 counts, is a small difference of two large numbers, which is why its
+error is 4 % although the box holds over 100,000 counts. The figure recomputes the box sums from the pixels
+and checks them against the reader's.
+
+![R2](released/R2_series.png)
+
+**R2, four real series and their windows.** Top: each scan as reduced, divided by the Fresnel curve.
+Bottom: every window's d / σ_d. Series B is what honest error bars look like (χ²/n 0.90). Series C has a
+real excess: its window differences spread a little wider than ±1, with nothing wild. Series D has a
+deep minimum near 0.055 Å⁻¹, sampled by one or two points, and its few huge values sit exactly there.
+
+![R3](released/R3_windows.png)
+
+**R3, single windows with their fits.** Six real windows, each with the quartic through its six points
+and the residuals below:
+- a typical window: residuals within ±1;
+- the most and the fewest photons: the error bars shrink and grow, and the residuals stay within them;
+- a real excess: residuals of about ±2 where the error bars say ±1;
+- the deep minimum: one residual of −30σ. Inside one window this looks exactly like a wild point;
+- one window further on, the same minimum point sits at the window's edge, and the quartic follows it.
+
+That is the warning: the outlier share counts curve shape as well as bad points.
+
+![R4](released/R4_pool.png)
+
+**R4, every released window pooled.** Left: the 4,561 window differences against the bell curve of honest
+error bars (blue), one a little wider (s = 1.07, orange) and the core + outlier fit (green). The core is a
+little wider than 1, and the tails are long. Middle and right: the core excess and the scale by counts, for
+the released runs and the 18 private runs side by side. Both fall steeply with the counts as a share of R
+(8× and 11×), while s stays a little above 1. The released runs are older and from other samples, so their
+agreement with the private runs is a check, not a requirement.
+
 ## 5. Every statistic used, in words
 
 | statistic | what it is, here |
@@ -143,7 +187,9 @@ something between scans adds more.
   - within a scan, real points scatter more than their counting errors, by a scale of about 1.1 on σ;
   - as a share of R that is small for well-counted points (0.14 % overall, 0.13 % above 10⁵ counts) and large
     for poorly counted ones (about 1.4 % below 10³);
-  - about 0.3 % of points are wild (tens of % off);
+  - at most about 0.3 % of points are wild (tens of % off). Part of that is the curve's own shape: a minimum
+    too sharp for six points looks like a wild point (R3), and such windows come back at the same Qz in
+    other series more often than chance (summary.md, "Wild points or the curve's shape?");
   - a single bell curve fitted to everything would say 6 %, and would be wrong.
 - **Medium confidence:** the exact scale. The fit says 1.12 [1.10, 1.12]. The curve-shape leak seen on DPPC
   could account for up to 0.04 of that.

@@ -1,0 +1,53 @@
+{
+ "frames": [
+  {
+   "frame": 1,
+   "label": "bright (low Qz)",
+   "qz": 0.025,
+   "centre": [
+    38.0,
+    14.0
+   ],
+   "slit": [
+    21,
+    5
+   ],
+   "bg_offset_px": 26.027729833520088,
+   "signal": 80802.0,
+   "left_bg": 5.0,
+   "right_bg": 4.0,
+   "net": 0.798583656203052,
+   "sigma": 0.002827668977396378,
+   "monitor": 101176.0,
+   "shape": [
+    29,
+    77
+   ]
+  },
+  {
+   "frame": 2,
+   "label": "faint (high Qz)",
+   "qz": 0.6075,
+   "centre": [
+    38.0,
+    14.0
+   ],
+   "slit": [
+    21,
+    11
+   ],
+   "bg_offset_px": 26.027729833520088,
+   "signal": 127612.00000000001,
+   "left_bg": 117669.0,
+   "right_bg": 117515.99999999999,
+   "net": 0.0017194688944224337,
+   "sigma": 7.409681647364263e-05,
+   "monitor": 5827090.0,
+   "shape": [
+    29,
+    77
+   ]
+  }
+ ],
+ "note": "two frames of series A, cropped around the reflected beam; boxes as the reader draws them (lss_core.reflectivity.frame_row, TwoDDetector.sumROI)"
+}

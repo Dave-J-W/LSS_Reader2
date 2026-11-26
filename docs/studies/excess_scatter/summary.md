@@ -45,7 +45,10 @@ lot more.**
 - **As a share of R:** the core excess is 0.14 % of R [0.13, 0.18]. It falls tenfold as the counts rise, so it
   behaves like an understated counting error, not like a fixed percentage.
 - **Outliers:** 1.8 % [1.3, 2.5] of the 6-point windows are wild, typically 46 % off. One bad point spoils up
-  to six windows, so about 0.3 % of points are wild.
+  to six windows, so at most about 0.3 % of points are wild. **Part of this is the curve's own shape, not wild
+  points:** a deep minimum sampled by one point looks exactly like a wild point inside a window (R3), and such
+  windows come back at the same Qz in other series of the same run more often than chance (below, "Wild
+  points or the curve's shape?"). The core excess and the scale on σ do not depend on this.
 - **One Gaussian misleads:** fitted to all windows as one Gaussian, the same data say 6 %. A model with a core
   and an outlier part is needed.
 
@@ -103,6 +106,57 @@ shares, `real_scale.csv` the scale model by bin.
 - **The monitor** shows no clear trend: the core is 0.14–0.20 % in every monitor bin. 87 % of the windows'
   middle points have a monitor rate (Monc per second) more than 1 % from its scan's median, so most of the
   data sit in one bin.
+
+## Real examples anyone can rerun (released runs, before 2019)
+
+The owner released reflectivity data from before 2019 for figures (2026-11-25, AGENTS.md; reflectivity only,
+the minimum a figure needs, anonymous). From an archive of older beamtimes, 98 reflectivity series at 10 keV
+were found and 96 reduced (two failed in the reduction). `released/` beside this file holds the extract:
+- `series.csv`: the points of four series A–D, cherry-picked for what they show;
+- `windows.csv`: every 6-point window of the 96 series (derived numbers);
+- `frames.csv`, `frames.json`: two cropped frames of series A with the reader's boxes.
+
+Figures R1–R4 come from `python tests/tools/excess_scatter_released.py`, on public data only; the extract
+comes from the private `sample_data/private/old/scripts/released_export.py`.
+
+| | released runs (96 series) | the 18 private runs |
+|---|---|---|
+| windows | 4,561 | 26,182 |
+| error scale s | 1.07 | 1.12 |
+| core excess X | 0.21 % of R | 0.14 % of R |
+| outlier windows | 3.2 % | 1.8 % |
+| median \|d / σ_d\| (honest: 0.674) | 0.73 | 0.76 |
+| X by counts | falls 8× from < 10³ to ≥ 10⁵ | falls 11× |
+
+The released runs are older and from other samples, so agreement is a check, not a requirement. They agree
+on the shape of the answer: a scale on σ a little above 1, a core of a few tenths of a percent of R that
+falls with the counts, and a few percent of outlier windows.
+
+### Wild points or the curve's shape?
+
+The released series show what the outlier windows are made of. Most released series are of one kind of
+sample with a deep minimum near 0.055 Å⁻¹, sampled by one or two points. Inside a window, that minimum leaves
+one huge residual, exactly as a wild point would (R3). 52 of the 61 released windows beyond 10σ (85 %) sit
+there, against 23 % of all windows. Left out, the outlier share falls from 3.2 % to 1.0 %; s goes from 1.07
+to 1.04.
+
+The private runs have no common minimum, so a test that does not need to know where minima are was used: a
+wild point lands at a random Qz, the curve's shape comes back at the same Qz in other series of the same run.
+Of the 371 private windows beyond 5σ, 64 % have such a partner within ±0.003 Å⁻¹, against 55 % ± 2 with the
+big windows' positions shuffled (the released: 99 % against 94 % ± 1). The test is weak, because series of a
+run share one Qz grid, but the excess is clear. Leaving out the windows with a partner:
+
+| | outlier windows | core X | s |
+|---|---|---|---|
+| private, all | 1.78 % | 0.144 % | 1.116 |
+| private, reproducible big windows left out | 0.76 % | 0.141 % | 1.128 |
+| released, all | 3.18 % | 0.210 % | 1.065 |
+| released, reproducible big windows left out | 0.43 % | 0.212 % | 1.094 |
+
+**So:** the core excess and the scale on σ stand. The outlier share is an upper bound for wild points: part
+of it is a curve sharper than six points can follow. Private check: `sample_data/private/xr/scripts/scatter_shape.py`
+(numbers above; nothing written). A first version of this check, which measured sharpness from the window's
+own points, was circular (a wild point is "sharp" too) and is not used.
 
 ## What this does not measure
 
@@ -166,7 +220,8 @@ Results:
 - **A scale on the counting σ of about 1.1** is what the within-scan data support. It is the solid part.
 - **A fixed 1 % for every point** (C61's working value) is ten times the within-scan core for well-counted
   points, and gives the joint fit a pull SD of 1.67, well above the real 1.24.
-- **Outliers need handling of their own.** About 0.3 % of points are tens of % off. A Student-t or
+- **Outliers need handling of their own.** Up to about 0.3 % of points are tens of % off, part of them a
+  curve sharper than six points can follow rather than a bad measurement. A Student-t or
   core-plus-outlier likelihood in the joint fit, or flagging such points, would serve better than widening
   every point's error.
 - **What changes between scans is not covered.** A study that records the sample height, the footprint and
