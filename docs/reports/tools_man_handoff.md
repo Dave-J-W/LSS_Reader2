@@ -16,6 +16,21 @@ chain:
 The model is `docs/studies/reciprocity/walkthrough.md`; the method is `.claude/skills/known-truth-study`.
 Also read `.claude/skills/fit-statistics-pitfalls` and `.claude/skills/tools-freshness`.
 
+## Release push (2026-11-26): my jobs, owner's choice "release jobs first"
+
+- **P44 is parked until 2.0 is tagged** (`docs/RELEASE_PLAN.md`; the owner chose this over starting it now).
+  Its answers are recorded: the shoulder is free per frame, with both fits reported; strips are often not
+  re-aligned in height; NX is pure water. `xraylib` was installed in the 2026-11-26 session only.
+- **Blocker 4: the builds pass** (#118). The workflow ran on main twice (latest run 45753156275).
+  - Windows and macOS self-tests passed.
+  - The run's page has the Windows and macOS zips and `LSS_Reader-sample-data`.
+  - **Waiting:** a person runs the clean-PC test (`docs/PACKAGING.md`), and reports on #55.
+- **Item 9: the quick-start guide** is done (`docs/manual/quick_start.md`), and Help → Documentation opens
+  it.
+- **Waiting on main man:**
+  - the two Windows `test_toolbox_gui` failures' `E` lines. I guess the pixel test: fonts;
+  - About still says "Version: 1.1".
+
 ## State
 
 Merged in main:
