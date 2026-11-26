@@ -2814,9 +2814,12 @@ class MainWindow (QMainWindow):
         if self.saveMcaFileName=='':   # dialog cancelled: write nothing
             return
         self.saveMcaFileName=self.exportStem(self.saveMcaFileName,('_mca.txt',))
-        for i in self.selectedMcaScanNums:
-            self.fmcaName=self.saveMcaFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_''%.4f'%self.mcaPar[i]['Q'][2]+'_mca.txt'
+        names=[(self.saveMcaFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_''%.4f'%self.mcaPar[i]['Q'][2]
+                +'_mca.txt',i) for i in self.selectedMcaScanNums]
+        existed=self.existingFiles([n for n,_ in names])
+        for self.fmcaName,i in names:
             np.savetxt(self.fmcaName,self.nomMcaData[i],fmt='%.4f\t%.4e\t%.4e')
+        self.exportNotice([n for n,_ in names],existed)
             
     def mcaPeakFit(self):  #fit the mca spectrum
         self.mcafitstatus=1 #let self.peakfit know it's mca fit
@@ -3015,6 +3018,8 @@ class MainWindow (QMainWindow):
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
             self.saveFileName=self.exportStem(self.saveFileName,('_flu_fit.txt','_flu.txt'))
+            files=[self.saveFileName+'_flu.txt',self.saveFileName+'_flu_fit.txt']
+            existed=self.existingFiles(files)
             fid=open(self.saveFileName+'_flu.txt','w')
             try:
                 fid.write('#'+str(self.command)+'\n')
@@ -3035,9 +3040,12 @@ class MainWindow (QMainWindow):
                     for r in self.mcaIntData:
                         if np.isfinite(r[5]):                 # an accepted single fit has no reader's fit
                             f2.write(str(r[col])+'\t'+str(r[5])+'\t'+str(r[6])+'\n')
+                self.exportNotice(files,existed)
+            else:
+                self.exportNotice(files[:1],existed)
             self.scriptLine(self.fluorescenceScript(self.saveFileName))
-        except:
-            print ('no mca integral data to save.')
+        except Exception as e:      # said, not printed to a console nobody sees (release push, 2026-11-26)
+            self.notify('The fluorescence integrals were not exported: %s' % e,title='Export')
                 
     def fluorescenceScript(self,name):
         """The lss_core call for the last fluorescence export, when there is one."""
@@ -6919,7 +6927,10 @@ class MainWindow (QMainWindow):
             return
         self.saveFileName=self.exportStem(self.saveFileName,('_qxy_gid.txt','_qz_gid.txt','_q2d_gid.txt','_dth_gid.txt',
                                                              '_beta_gid.txt','_agnle2d_gid.txt'))
-        gidmod.save(self.saveFileName,self.gidProducts(axes))
+        prod=self.gidProducts(axes)
+        tags=('_qxy_gid.txt','_qz_gid.txt','_q2d_gid.txt','_dth_gid.txt','_beta_gid.txt','_agnle2d_gid.txt')
+        existed=self.existingFiles([self.saveFileName+t for t in tags])
+        self.exportNotice(gidmod.save(self.saveFileName,prod),existed)
         self.scriptLine(self.gidScript(self.saveFileName,axes))
 
     def gidScriptSettings(self):
@@ -8316,13 +8327,18 @@ class MainWindow (QMainWindow):
         if self.det=='Pilatus':
             reffile=self.saveFileName+'_ref.txt'
             rrffile=self.saveFileName+'_rrf.txt'
+            existed=self.existingFiles([reffile,rrffile])
             # Qz, R, dR: a one-scan patch keeps more columns (signal and background apart), which the
             # three-column format could not write (found by the crash sweep's random walk, 2026-11-23)
             np.savetxt(reffile,np.asarray(self.normRefData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
+            written,missing=[reffile],''
             try:
                 np.savetxt(rrffile,np.asarray(self.RrfData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
-            except:
-                print ('No rrf data available!')
+                written.append(rrffile)
+            except Exception:
+                missing=('No _rrf.txt: tick R/RF (with Qc and Qoff set) to write it'
+                         +(' (the %s beside it is an earlier one)' % os.path.basename(rrffile) if rrffile in existed else ''))
+            self.exportNotice(written,existed,missing)
             if self.refCovarianceCheckBox.isChecked():
                 self.saveRefCovariance(self.saveFileName)
             self.scriptLine(self.reflectivityScript(self.saveFileName))
@@ -8678,6 +8694,33 @@ class MainWindow (QMainWindow):
             if end and name.endswith(end):
                 return name[:-len(end)]
         return name
+
+    def exportNotice(self,paths,existed=(),missing=''):
+        """Say what an Export wrote (release push, 2026-11-26): the files and
+        their folder, those that replaced a file of the same name (the save
+        dialog checks only the name typed, not the endings an export adds),
+        and ``missing``, a file it could not write. Info level: the status bar
+        and the Messages pane."""
+        paths=[str(p) for p in paths if p and os.path.exists(str(p))]
+        if not paths and not missing:
+            return
+        text='Exported '
+        if paths:
+            shown=[os.path.basename(p) for p in paths]
+            text+=(', '.join(shown) if len(shown)<=4 else '%s, ... (%d files)' % (', '.join(shown[:3]),len(shown)))
+            text+=' to %s' % os.path.dirname(os.path.abspath(paths[0]))
+            rep=[os.path.basename(p) for p in paths if p in set(map(str,existed))]
+            if rep:
+                text+='; replaced the earlier %s' % (', '.join(rep) if len(rep)<=4 else '%d files of those names' % len(rep))
+        else:
+            text+='nothing'
+        if missing:
+            text+='. %s' % missing
+        self.notify(text+'.',title='Export',level='info')
+
+    @staticmethod
+    def existingFiles(paths):
+        return {str(p) for p in paths if os.path.exists(str(p))}
 
     def exportProposal(self):
         """Where the Export dialog opens: the folder of the last Export (else the
@@ -10831,16 +10874,20 @@ class MainWindow (QMainWindow):
         if self.det=='Pilatus':
             if self.pilGIDshow==0 and self.pilGISAXSshow==0:
                 if self.ui.gixSumCheckBox.checkState()!=0:
-                    self.fname=self.saveFileName+itemLabels(self.ui.imageListWidget.item(0))[0]+'_sumcut.txt'
-                    np.savetxt(self.fname,self.cutData[-1],fmt='%.4f\t%.4e\t%.4e')
+                    names=[(self.saveFileName+itemLabels(self.ui.imageListWidget.item(0))[0]+'_sumcut.txt',-1)]
                 else:
-                    for i in self.selectedPilFramesNums:
-                        self.fname=self.saveFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_cut.txt'
-                        np.savetxt(self.fname,self.cutData[i],fmt='%.4f\t%.4e\t%.4e')
+                    names=[(self.saveFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_cut.txt',i)
+                           for i in self.selectedPilFramesNums]
+                existed=self.existingFiles([n for n,_ in names])
+                for self.fname,i in names:
+                    np.savetxt(self.fname,self.cutData[i],fmt='%.4f\t%.4e\t%.4e')
+                self.exportNotice([n for n,_ in names],existed)
                 self.scriptLine(self.cutScript(self.saveFileName))
             else:
                 self.fname=typed
+                existed=self.existingFiles([typed])
                 np.savetxt(self.fname,self.cutData,fmt='%.4f\t%.4e\t%.4e')
+                self.exportNotice([typed],existed)
         
             
             
