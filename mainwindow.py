@@ -11596,21 +11596,27 @@ class MainWindow (QMainWindow):
         self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Fit Paremeters',directory=self.directory)[0])
         if self.saveFileName=='':
             return
-        fid=open(self.saveFileName+'_par.txt','w')
-        fid.write('Data File:\t'+os.path.basename(str(self.plotfiles[self.selectedplotfiles_rows[0]]))+'\n')
-        fid.write('Peak Type:\t'+str(self.uipeakfit.peakTypeComboBox.currentText())+'\n')
-        fid.write('# of Peaks:\t'+str(int(len(self.peakparaname)/3))+'\n')
-        fid.write('BG Order:\t'+str(len(self.peakbgparaname)-1)+'\n')       
-        fid.write('Chi_Square:\t'+str(float('%.4f' % self.peakresult.redchi))+'\n')
-        fid.write('*********************\n')
-        fid.write('\t\tValue\t\tVary\tStderr\t\tMin\tMax\n')
-        for i in range(int(len(self.peakparaname)/3)):
-            fid.write('Peak #'+str(i+1)+' pos:\t'+format(self.peakresult.params[self.peakparaname[i*3]].value, '.3e')+'\t'+str(self.peakparadic[i*3][1])+'\t'+format(self.peakresult.params[self.peakparaname[i*3]].stderr, '.3e')+'\t'+str(self.peakparadic[i*3][2])+'\t'+str(self.peakparadic[i*3][3])+'\n')
-            fid.write('Peak #'+str(i+1)+' int:\t'+format(self.peakresult.params[self.peakparaname[i*3+1]].value, '.3e')+'\t'+str(self.peakparadic[i*3+1][1])+'\t'+format(self.peakresult.params[self.peakparaname[i*3+1]].stderr, '.3e')+'\t'+str(self.peakparadic[i*3+1][2])+'\t'+str(self.peakparadic[i*3+1][3])+'\n')
-            fid.write('Peak #'+str(i+1)+' wid:\t'+format(self.peakresult.params[self.peakparaname[i*3+2]].value, '.3e')+'\t'+str(self.peakparadic[i*3+2][1])+'\t'+format(self.peakresult.params[self.peakparaname[i*3+2]].stderr, '.3e')+'\t'+str(self.peakparadic[i*3+2][2])+'\t'+str(self.peakparadic[i*3+2][3])+'\n')
-        for i in range(len(self.fitbgpara)):
-            fid.write('Background C'+str(i)+':\t'+format(self.peakresult.params[self.peakbgparaname[i]].value, '.3e')+'\t'+str(self.peakbgparadic[i][1])+'\t'+format(self.peakresult.params[self.peakbgparaname[i]].stderr, '.3e')+'\t'+str(self.peakbgparadic[i][2])+'\t'+str(self.peakbgparadic[i][3])+'\n')
-        fid.close()
+        params=self.peakresult.params
+
+        def num(v):     # lmfit leaves stderr None for a fixed parameter, or when it cannot estimate it
+            return format(v,'.3e') if v is not None else 'nan'
+
+        def line(label,name,dic):
+            p=params[name]
+            return '%s:\t%s\t%s\t%s\t%s\t%s\n' % (label,num(p.value),dic[1],num(p.stderr),dic[2],dic[3])
+        with open(self.saveFileName+'_par.txt','w') as fid:
+            fid.write('Data File:\t'+os.path.basename(str(self.plotfiles[self.selectedplotfiles_rows[0]]))+'\n')
+            fid.write('Peak Type:\t'+str(self.uipeakfit.peakTypeComboBox.currentText())+'\n')
+            fid.write('# of Peaks:\t'+str(int(len(self.peakparaname)/3))+'\n')
+            fid.write('BG Order:\t'+str(len(self.peakbgparaname)-1)+'\n')
+            fid.write('Chi_Square:\t'+str(float('%.4f' % self.peakresult.redchi))+'\n')
+            fid.write('*********************\n')
+            fid.write('\t\tValue\t\tVary\tStderr\t\tMin\tMax\n')
+            for i in range(int(len(self.peakparaname)/3)):
+                for k,what in enumerate(('pos','int','wid')):
+                    fid.write(line('Peak #%d %s' % (i+1,what),self.peakparaname[i*3+k],self.peakparadic[i*3+k]))
+            for i in range(len(self.fitbgpara)):
+                fid.write(line('Background C%d' % i,self.peakbgparaname[i],self.peakbgparadic[i]))
         
 ########################  for 2d plot######################
 
