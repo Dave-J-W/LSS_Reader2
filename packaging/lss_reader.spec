@@ -18,6 +18,8 @@ datas += [(os.path.join(ROOT, name), '.') for name in ('logo.png', 'stop.png', '
 hidden = ['mplwidget', 'mpl2dwidget', 'matplotlib.backends.backend_qt5agg']
 # the ngui prototype window (F82), imported inside MainWindow.setNgui only
 hidden += ['ngui', 'ngui.window', 'ngui.layout', 'ngui.theme', 'ngui.inventory_text']
+# the Plot options window (F112), imported inside MainWindow.showPlotOptions only
+hidden += ['plotoptions']
 
 a = Analysis([os.path.join(ROOT, 'LSS_Reader.py')],
              pathex=[ROOT],

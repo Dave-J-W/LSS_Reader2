@@ -2096,3 +2096,113 @@
   shown: "long reads; Analyze All; > 10 spectra"
   tooltip: false
   notes: ""
+- id: plotOptionsToolButton
+  kind: button
+  label: "Plot options..."
+  where: "Tab bar, right corner"
+  handler: showPlotOptions
+  does: "Opens the plot options of the tab on show (F112): font size, major and minor ticks, tick direction, ticks on all sides, grid. Shows * when some are set for the tab"
+  workflows: [session]
+  needs: "a tab with plots (greyed on Timeline)"
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-26 (F112, owner). Applies to every plot of the tab but the Pilatus tab's ROI close-up; each tab keeps its own options between sessions (preference plot_options)."
+- id: plotOptFontSpinBox
+  kind: spin
+  label: "Font size"
+  where: "Plot options"
+  handler: PlotOptionsDialog._changed
+  does: "Size (pt) of the tick labels, axis labels and legends of the tab's plots; titles 1.2 x; auto: the reader's size (F111: at least the tab labels')"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-26 (F112). 0 shows 'auto (N pt)'."
+- id: plotOptMajorComboBox
+  kind: combo
+  label: "Major ticks"
+  where: "Plot options"
+  handler: PlotOptionsDialog._changed
+  does: "About how many labelled ticks on each linear axis (as drawn, about 3, 5, 8, 12); log axes keep theirs"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-26 (F112). matplotlib's MaxNLocator."
+- id: plotOptMinorComboBox
+  kind: combo
+  label: "Minor ticks"
+  where: "Plot options"
+  handler: PlotOptionsDialog._changed
+  does: "Minor ticks on or off (as drawn: log axes have them, linear axes not)"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-26 (F112)."
+- id: plotOptDirectionComboBox
+  kind: combo
+  label: "Tick direction"
+  where: "Plot options"
+  handler: PlotOptionsDialog._changed
+  does: "Ticks out of the plot, into it, or across the axis line"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-26 (F112)."
+- id: plotOptMirrorComboBox
+  kind: combo
+  label: "Ticks on all sides"
+  where: "Plot options"
+  handler: PlotOptionsDialog._changed
+  does: "Ticks on the top and right edges too"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-26 (F112)."
+- id: plotOptGridComboBox
+  kind: combo
+  label: "Grid"
+  where: "Plot options"
+  handler: PlotOptionsDialog._changed
+  does: "Grid off, at the major ticks, or at the major and minor ticks; overrides a tab's own Grid box while not 'as drawn'"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-26 (F112)."
+- id: plotOptResetPushButton
+  kind: button
+  label: "As drawn"
+  where: "Plot options"
+  handler: PlotOptionsDialog.reset
+  does: "Every option of the tab back to 'as drawn': the plots redrawn as the reader draws them"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-26 (F112)."
+- id: plotOptClosePushButton
+  kind: button
+  label: "Close"
+  where: "Plot options"
+  handler: PlotOptionsDialog.close
+  does: "Closes the window; the options stay as set"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-26 (F112)."
+- id: plotOptTabLabel
+  kind: label
+  label: "Plots of the <tab> tab"
+  where: "Plot options, top"
+  handler: PlotOptionsDialog.target
+  does: "Says which tab the options apply to; the window follows the tab on show"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-26 (F112)."

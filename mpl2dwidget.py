@@ -7,13 +7,7 @@ from matplotlib.backends.backend_qt5agg \
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
-class MplCanvas(FigureCanvas):
-	def __init__(self):
-		self.fig = Figure()
-		self.ax = self.fig.add_subplot(111)
-		FigureCanvas.__init__(self, self.fig)
-		FigureCanvas.setSizePolicy(self, Qt.QSizePolicy.Expanding, Qt.QSizePolicy.Expanding)
-		FigureCanvas.updateGeometry(self)
+from mplwidget import MplCanvas     # the same canvas (F112: the plot options apply at its draw)
 
 class Mpl2DWidget(QtWidgets.QWidget):
 	def __init__(self, parent = None):

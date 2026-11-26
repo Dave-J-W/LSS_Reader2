@@ -19,7 +19,7 @@ In the flowcharts, rounded green boxes are steps that are automatic today; diamo
 | [alignment](#alignment) | 6 | 5 | 0 / 2 / 3 | 4 |
 | [mca-look](#mca-look) | 6 | 3 | 0 / 0 / 3 | 2 |
 | [flex-plot](#flex-plot) | 6 | 2 | 0 / 0 / 2 | 0 |
-| [session](#session) | 6 | 9 | 4 / 3 / 2 | 11 |
+| [session](#session) | 6 | 10 | 4 / 3 / 3 | 11 |
 
 <a id="day-ref"></a>
 ## day-ref — A day of reflectivity at the beamline (the order of the workflows)
@@ -649,6 +649,7 @@ flowchart TD
     session_series["series: Choose the series (Series list above the scan list) or clic…"]
     session_live["live: Tick Live while the macro runs (or press Update Specfile);…"]
     session_prefs["prefs: Preferences - foils, Ref Patch method and known ratio, fluo…"]
+    session_plotoptions["plotoptions: Plot options of the tab on show - font size, major and mino…"]
     session_absorber(["absorber: Check the absorber factor per unit (from the energy by defa…"])
     session_errors(["errors: Choose the error model (Legacy default, or Budget with a mo…"])
     session_panes(["panes: Read or copy the equivalent lss_core call from the Script p…"])
@@ -657,7 +658,8 @@ flowchart TD
     session_info --> session_series
     session_series --> session_live
     session_live --> session_prefs
-    session_prefs --> session_absorber
+    session_prefs --> session_plotoptions
+    session_plotoptions --> session_absorber
     session_absorber --> session_errors
     session_errors --> session_panes
     session_panes --> session_workbook
@@ -672,6 +674,7 @@ flowchart TD
 | session.series (shared.series) | Choose the series (Series list above the scan list) or click one of its scans; the whole series is selected by default | left panel | `seriesComboBox`, `seriesWholeCheckBox`, `scanListWidget`, `scansLineEdit` | which series (or scans by number); Whole series on (default) or off | partly | select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3) | owner 2026-11-21 (D55); test tests/test_gui_series.py; run 2026-11-22 | The Series list is a combo box with a placeholder first item ('Series: choose to select its scans'); the list of series is not visible at a glance (run 2026-11-22)<br>Guessed series have n unknown ('4/?'); the kind is only a guess until the macros write #U Series (handoff_out/05)<br>Selecting a scan always switches to the SpecPlot tab (code, scanListChanged), whatever the workflow |
 | session.live (shared.live) | Tick Live while the macro runs (or press Update Specfile); new scans, frames and spectra are read, saved results remade | left panel, beside Update Specfile | `liveCheckBox`, `speUpSpeFilePushButton` | live on or off | partly | turn Live on when the file is still growing (a series 'in progress') | owner 2026-11-22 (D57); test tests/test_gui_live.py | Live stops by itself only for series with #U Series lines (L4); guessed series need a manual untick |
 | session.prefs | Preferences - foils, Ref Patch method and known ratio, fluorescence elements, saving | File > Preferences | `actionPreferences`, `prefCalibratedCheckBox`, `prefPatchMethodComboBox`, `prefPatchAutoCheckBox`, `prefMcaCentrePushButton`, `prefSaveNoteCheckBox`, `prefAutoSaveCheckBox`, `prefNguiCheckBox`, `prefClosePushButton` |  | no |  | code | Settings that belong to one workflow (Ref Patch method, MCA elements) sit in a global dialog |
+| session.plotoptions | Plot options of the tab on show - font size, major and minor ticks, tick direction, ticks on all sides, grid (F112) | Plot options... at the right of the tab bar | `plotOptionsToolButton`, `plotOptTabLabel`, `plotOptFontSpinBox`, `plotOptMajorComboBox`, `plotOptMinorComboBox`, `plotOptDirectionComboBox`, `plotOptMirrorComboBox`, `plotOptGridComboBox`, `plotOptResetPushButton`, `plotOptClosePushButton` | the look of a tab's plots; kept per tab between sessions | no |  | owner 2026-11-26 (F112) |  |
 | session.absorber (shared.absorber) | Check the absorber factor per unit (from the energy by default, calibrated foils at 9.70-10.30 keV) | left panel; File > Preferences > Absorber foils | `AbsFacLineEdit`, `absFacEnergyCheckBox`, `actionPreferences`, `prefCalibratedCheckBox` | keep 'from E' (default on, D34) or type a factor | yes |  | owner 2026-11-17/18 (D23, D25, D34, F56); code | The field shows 'cal' when calibrated foils are used; what is used where (Ref Patch measures the scale, D21) is only in tooltips |
 | session.errors (shared.errors) | Choose the error model (Legacy default, or Budget with a monitor model) | Errors pane (dock) | `errorModeComboBox`, `monitorKindComboBox`, `errorModel_sigma` | Legacy (default, byte-identical files) or Budget | yes |  | owner 2026-11-17 (D20, D22, D26); code | A global setting in a dock, far from the reductions it changes; which default the export should use is open (TODO B) |
 | session.panes (shared.script) | Read or copy the equivalent lss_core call from the Script pane; messages in the Messages pane | Script and Messages panes (docks), View menu | `scriptView`, `messageView`, `menuView` |  | yes |  | code; docs docs/SCRIPTING.md |  |
@@ -1260,6 +1263,25 @@ flowchart TD
 | `onedLabelSizeSpinBox` Label Size |  |  |  |  |  |  |  |  |  |  |  | i |  |  |
 | `onedTickSizeSpinBox` Tick Size |  |  |  |  |  |  |  |  |  |  |  | i |  |  |
 
+### Plot options
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `plotOptFontSpinBox` Font size |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptMajorComboBox` Major ticks |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptMinorComboBox` Minor ticks |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptDirectionComboBox` Tick direction |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptMirrorComboBox` Ticks on all sides |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptGridComboBox` Grid |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptResetPushButton` As drawn |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptClosePushButton` Close |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+
+### Plot options, top
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `plotOptTabLabel` Plots of the <tab> tab |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+
 ### Plot, right of Export Gradient
 
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
@@ -1433,6 +1455,12 @@ flowchart TD
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `readOnlyLightLabel` read-only |  |  |  |  |  |  |  |  |  |  |  |  | S | i |
+
+### Tab bar, right corner
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `plotOptionsToolButton` Plot options... |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 
 ### Timeline
 
