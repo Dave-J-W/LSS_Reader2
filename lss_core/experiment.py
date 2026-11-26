@@ -263,14 +263,33 @@ class Experiment:
                     files[int(path.split('_')[-1].split('.')[0])] = path
                 except ValueError:
                     pass
-            monc = scan.columns['Monc'] if 'Monc' in scan.columns else scan.columns['monc']
+            monc = scan.columns.get('Monc', scan.columns.get('monc'))
             p = scan.parameters
+            if monc is None or 'L' not in scan.columns:
+                raise ValueError(self._missing_columns(n, [c for c, v in (('Monc', monc), ('L', scan.columns.get('L')))
+                                                           if v is None]))
             for j, qz in enumerate(scan.columns['L']):
                 if j in files:
                     out.append(Frame(n, j, files[j], float(qz), float(monc[j]),
                                      absorber_setting(p), (p['DBPos'][1], p['DBPos'][0]),
                                      float(p['S2D_Dist'])))
         return out
+
+    def _missing_columns(self, n, missing):
+        """Why scan ``n`` lacks the columns ``missing``: the reader keeps a column only when every row has a value
+        for it, so a row shorter than #L (a half-written one-point scan, or a label with a space) loses the later
+        columns (Local yokel's survey: KeyError 'monc' on one-point Det_Th scans)."""
+        p = self.scans[n].parameters
+        why = []
+        if p.get('LabelMismatch'):
+            why.append('#L names %d columns but its rows hold %d values (a half-written row, or a label with a space '
+                       'in it)' % tuple(p['LabelMismatch']))
+        if p.get('DroppedRows'):
+            why.append('incomplete rows were dropped (%s)' % (p['DroppedRows'],))
+        if not self.scans[n].columns:
+            why.append('it holds no data row')
+        return 'scan %d has no %s column%s%s' % (n, ' or '.join(missing), 's' if len(missing) > 1 else '',
+                                                 (': ' + '; '.join(why)) if why else '')
 
     def reflectivity(self, scans, slit=(21, 11), bg_offset=0.5, direction='H',
                      qc=0.0217, qoff=0.0, norm_factor=None, rrf=True,
