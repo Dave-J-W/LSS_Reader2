@@ -6931,7 +6931,9 @@ Verified by: runs (`tests/tools/xrf_lineshape.py` on the private bundle, derived
 - **A header trap:** in one file the header gain of elements 5-7 is 8.6 % off; their raw channels line up
   with elements 1-4. Summing by header calibration smears the summed line to 1.37 x the resolution.
 - **Effect on the shootout (C66 rerun):** Gaussian lines change no verdict (median change 1.4 %). Real-shaped
-  B lines cost P1+P2+P3 6 % (its fixed width misses the skew); P1+P3 stays within 2 % except La L.
+  B lines cost P1+P2+P3 6 %, also on noise-free spectra (a fixed-width Gaussian cannot follow the skew, and
+  the quadratic under it takes up the rest; the calibration twin does not cancel it: `docs/studies/xrf_models/walkthrough.md`
+  step 5); P1+P3 stays within 2 % except La L.
 
 ### 2026-11-25 — Masks and the workbook lock (GUI manager's Q2–Q6; batch 22)
 
@@ -7016,3 +7018,114 @@ budget, not only in the joint fit: the curve's error column, the joins and the c
 ### 2026-11-25 — GID shoulder, strip drift, NX subphase (batch 26; tools man's 3 to 5)
 
 Verified by: the owner's statements; nothing computed here. **GID shoulder:** not known to be steady; keep it free per frame and compare against fixing it (P44). **Strip drift:** the height is often not re-aligned between strips (the sh scan, when made, is in the SPEC file) and films change in time: so two strips can differ in drift rate through height change or the film itself, not only the beam's dose. This weakens the assumption behind the dose-or-time test that two strips of one sample at one flux are replicates (the strip scatter ρ of the burn dialog starts at 0, but the owner's statement suggests ρ can be large); tools man's design of alternating high and low flux (DATA_NEEDS row 14) was made for this. If a sh scan sits between strips, its fitted height and width could enter the analysis as a covariate (a suggestion, not asked of the owner). **NX subphase:** pure water, so for NX scans 6 to 9 the unexplained Qoff of about −1.5e-4 Å⁻¹ (angle offset about −0.0009°) is an offset and not a Qc shift; the tools session's number comes from its own calculation (C50), not rechecked.
+
+### 2026-11-25 — The owner's batch 26 and C64's reading of the between-scan excess
+
+Reading only. The owner (questor, batch 26, tools man's question 4): the sample height is often **not**
+re-aligned between strips, a sample-height scan, when taken, is in the SPEC file, and "films are often
+changing in time".
+- **It fits the corrected C64 reading.** C63's between-scan excess grows with the minutes between the two
+  measurements, so it is a change of the sample or its height between scans, not per-point noise.
+- **DATA_NEEDS 17c now asks** whether a sample-height scan lies between the two scans of a pair, with its
+  fitted height and width as a covariate.
+
+### 2026-11-26 — Reflection guy's rulings on public data are the owner's
+
+Owner, to main man: "Whatever I tell reflection guy is law in regards to public data."
+- **Who:** Reflection guy is a session on the owner's computer, running since 2026-11-24. It has not posted
+  on #55, and the cloud sessions cannot read its session (it accepts only the owner's trusted devices).
+- **What it means:** its rulings on public data, what may be published and how, are the owner's word. They
+  need no confirmation through questor and override the publishing rules in AGENTS.md and the
+  `review-local-data-pr` skill where they differ.
+- **Where they must be:** they reach the cloud sessions only when posted on #55 or written in `docs/`.
+- Recorded in AGENTS.md (Sessions), the review skill and main man's hand-off.
+
+### 2026-11-26 — XeRay the default of "Fit lines", the reader's best fit beside it (F110; main man)
+
+*Superseded the same day by the owner's revision (the next entry): the reader's fit is the default, with the
+width from the sum; XeRay beside it.*
+
+Verified by: test (`tests/test_mca_xeray.py`, 4 tests) for what the code does; the shootout's numbers are the XRF
+session's (C65, `docs/studies/xrf_shootout/summary.md`), read, not rerun here.
+
+**The owner's decision** (2026-11-26, to main man): "xeray should be default for mca fitting, but it tends to
+undercount error so include our best method (poisson fixed width etc) as well, and report both fits and errors.
+Put a to-do to continue refining that shootout of methods for a later time, since I don't believe each
+library/method was optimized enough."
+
+**What "Fit lines" now does**, on every selected spectrum, in the Sum All window:
+- **XeRay** (the value plotted, merged and exported in `_flu.txt`): one Gaussian on a straight line, fitted by
+  unweighted least squares, the centre within ±0.2 keV of the element's line (or the window's highest channel).
+  The area is A·σ·√(2π)/Δ (Δ the channel width, the reader's units). The error is √(counts in the window); for the
+  reader's monitor-normalised spectra (σ_c = √N_c / k per channel) that is √(Σ σ_c²). This is XeRay's own error
+  ([XeRay](https://github.com/ZhiliangGong/xeray), `functions/fluoCurveFit.m`).
+- **The reader's fit** (beside it: squares, 'fit' in the list, `_flu_fit.txt`): Poisson maximum likelihood
+  (F90 P1), the width fixed at the detector's resolution, FWHM² = noise² + 8 ln 2 · w · F · E with w = 3.65 eV per
+  electron–hole pair in Si and Fano factor F ≈ 0.115 (constants as in `fluorescence.detector_fwhm`; see
+  [Fano factor](https://en.wikipedia.org/wiki/Fano_factor) and Knoll, *Radiation Detection and Measurement*, ch. 13),
+  and the Si K escape spectrum stripped first. The width is taken at the element's line or, when no energy is
+  given, at the median centre of XeRay's fits (an assumption).
+
+**Why both.** In the synthetic shootout XeRay is accurate (within 2 %) in 11 of 43 conditions, the reader's fixed-width
+Poisson fit in 13. XeRay never refuses a spectrum, but where the line sits on the scatter it is off by +76 to
++1475 % (Zn Kα under a 10 keV beam). Its error bars are too small: the pull, (estimate − truth)/error, should have a
+standard deviation of 1, and XeRay's median is 1.92 (range 1.0–11.7), because √(counts in the window) counts the
+background as if it were known exactly. The fixed-width Poisson fit's median is 1.03. So XeRay gives the number the
+owner wants by default, and the reader's fit gives an error that can be trusted, beside it.
+
+**Caveat carried over (C69):** with real-shaped lines over real scatter the fixed width reads −4.9 to −7.2 % on
+noise-free spectra; a systematic of fixing the width, not of the noise.
+
+**Merging.** `merge_rows` merges each (I, σ) pair alone over the same groups, by the window's rule (weights I/σ²,
+pooled counts over pooled monitor for counting errors) plus the Qz jitter. The first pair is merged exactly as
+before (test: a 7-column merge's first five columns equal the 5-column merge's).
+
+**Numbers that changed.** `_flu.txt` from "Fit lines" now holds XeRay's area; the reader's own fit changed too
+(free width → detector width, escapes stripped). Two tests re-pinned on purpose: the preference defaults
+(`test_gui_preferences.py`) and the ×2-spectrum check of the workbook now reads the reader's fit column
+(`test_gui_workbook.py`). OUTPUT_DECISIONS has the row; the shootout refinement is on RELEASE_PLAN's "After 2.0"
+list and in TODO (C).
+
+### 2026-11-26 — F110 revised: the reader's fit the default, its width from the sum; XeRay beside it (main man)
+
+Verified by: run (the known-truth case below, reproduced here and pinned by
+`test_mca_xeray.py::test_the_default_reads_a_line_wider_than_the_detector_model`); the real-data numbers are the
+XRF session's (C66 in `docs/studies/xrf_shootout/summary.md`, "Accurate conditions of 192"; C69 in
+`docs/studies/xrf_models/README.md` 2c), read, not rerun here.
+
+**Why the question came back.** Hours after the first F110 build, GUI manager (#123) found that on the synthetic
+XFNTR set the reader's fit with the detector-model width read 0.68 of the true line area. Its line has σ = 6
+channels = 0.12 keV (FWHM 0.28 keV), 1.65 × the width the detector model gives at 6.4 keV with the assumed noise of
+0.12 keV (FWHM 0.171 keV). A Gaussian held too narrow cannot hold the line's photons, so the area comes out low; the
+fit says so itself (χ²/dof 611, "the model does not describe the data"). Reproduced here on all 9 frames: fixed width
+0.680, width from the sum 0.999–1.000, XeRay 1.000.
+
+Reading the real-data studies again showed the same thing on the owner's detectors, which I had not put to the owner
+before the first decision:
+- the readouts' measured noise is 0.065 and 0.105 keV (`docs/studies/mca_scatter`), not the 0.12 keV assumed;
+- on real blanks with synthetic lines (C66), accurate in 192 conditions: Poisson fit + escapes removed with the width
+  free (from the sum) 49, pull SD 1.08; with the fixed width 47, pull SD 1.01; XeRay 6, median |bias| 9.9 %;
+- with real line shapes on the 7-element detector (C69): 34 of 160 for the width from the sum (median bias of
+  strong lines −1.3 %) against 19 for the fixed width (−6.0 %); XeRay 3 (−5.5 %). C69's own conclusion: "the fixed
+  width needs the line's own width and shape, not the detector's resolution".
+
+The fixed width won only on the synthetic shootout (C65), whose spectra were made with the same detector model the
+fit assumes.
+
+**The owner's answers** (2026-11-26, to main man, two questions with these numbers):
+- Q: Which width should our fit use? A: **"Width from the sum (Recommended)"**: the Poisson fit with the Si escapes
+  removed, the line's position and width fitted on the summed spectra and held for every spectrum.
+- Q: Should XeRay stay the value plotted, merged and exported in `_flu.txt`? A: **"Our fit the default"**: our fit
+  in `_flu.txt` and on the plot as circles, merged and exported; XeRay beside it (squares, `_flu_xeray.txt`), both
+  still reported with their errors.
+
+**What the width from the sum means.** `peaks.fit_series` fits the sum of the selected spectra first. The sum has
+the most counts, so the line's centre and width are best known there. Each spectrum is then fitted with that centre
+and width held, for its own height (the line's area) and background, by Poisson maximum likelihood. The width is
+"fixed" across the series, as the owner asked, but measured on the data rather than assumed from a detector model.
+The known risk of a free width on the sum, trading off against a curved background under an escape peak (C42: +45 %
+with the elastic's escape under Zn Kα at 10 keV), is what the escape stripping removes.
+
+**Numbers that changed.** `_flu.txt` from "Fit lines" holds the reader's fit with the width from the sum (it held
+XeRay's area for a few hours, and before F110 the reader's fit with a free width and no escape stripping). XeRay's
+numbers are in `_flu_xeray.txt`; `_flu_fit.txt` is no longer written.

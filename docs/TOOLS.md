@@ -131,6 +131,7 @@ container on 2026-11-23 with the defaults shown.
 | [Scatter models: the twins' shootout against the real blanks'](#xrf-models-compare) | data | Every method's bias on the model twins of the blanks against its bias on the real blanks (C66), per condition, and the verdicts: whether a scatter model can stand in for the real scatter in tests of line fits. Reads the runs of xrf_blanks.py on the twins (seconds). | public (NX school or committed tables) |  | `docs/studies/xrf_models/scatter/compare.csv`<br>`docs/studies/xrf_models/scatter/compare_zero.csv`<br>`docs/studies/xrf_models/scatter/compare_summary.csv` |
 | [Real line shapes on both detectors](#xrf-lineshape) | data | Real fluorescence lines of the single-element readout (an L family at 10^6 counts, the burn series' K line) and of every element of the seven-element readout, fitted with a ladder of shapes from a Gaussian at the resolution to two tails and a shelf: is a Gaussian enough? Needs the decrypted private bundle; the public table holds derived numbers only (about a minute). | private (not in the repository) |  | `docs/studies/xrf_models/lines` |
 | [Scatter at beam energies with no data: leave one energy out](#xrf-scatter-energy) | data | How to synthesise the excitation scatter at a beam energy with no measured spectrum: every readout B pre-edge sum fitted with the scatter model, each energy held out in turn and predicted from the others by the generator's defaults, the nearest spectrum shifted, smooth parameters, and a whole measured parameter set carried by the physics (the recommended one); and readout B's sets tried on readout A. Needs the decrypted private bundle; its tables and figures stay private (about 15 minutes on 8 CPUs). | private (not in the repository) |  | — |
+| [Walkthroughs: an XRF test from the raw spectrum to the verdict (ELI5)](#xrf-walkthrough) | figures | The whole chain on public data, for the owner's standing order (2026-11-25). The shootout: a real blank as it comes in, one test spectrum made from it with a Ni K line of known photons, the reader's three fits over it with residuals, 500 spectra turned into a bias, pulls and the 'accurate' verdict (the committed run's own draws), and the false signal. The models study: three scatter models over one blank with residuals, the misfit at the shootout's counts, a twin and a second draw, the floor, and a line with readout B's measured skew fitted by a Gaussian and by one tail: figures W1-W5 of each. | public (NX school or committed tables) | 90 s | `docs/studies/xrf_shootout/walkthrough`<br>`docs/studies/xrf_models/walkthrough` |
 | [Models study figures (M1-M5)](#xrf-models-figures) | figures | The scatter models on four public blanks with residuals, their misfit in the line boxes, every method's bias on the model twins against the real blanks, the shape ladder on real lines (numbers only), and the verdicts with Gaussian and real-shaped lines. | public (NX school or committed tables) |  | `docs/studies/xrf_models/M*.png` |
 | [XRF shootout figures (X1-X12)](#xrf-shootout-figures) | figures | The scoreboard of bias by condition and method, bias against counts, XFNTR curves divided by the truth, the honesty of the error bars, better-same-worse per condition, the new synthetic spectra part by part, the three Compton models with the remembered constants checked, speed, and the lines injected into the real blanks (X9-X11, blanks_tables.md) and the real burn series (X12, real_tables.md). | synthetic (public) |  | `docs/studies/xrf_shootout/X*.png`<br>`docs/studies/xrf_shootout/wins.csv`<br>`docs/studies/xrf_shootout/tables.md`<br>`docs/studies/xrf_shootout/blanks_tables.md`<br>`docs/studies/xrf_shootout/real_tables.md` |
 
@@ -1315,6 +1316,30 @@ Variations:
 |---|---|---|---|
 | Leave one energy out only | The validation table from fits already made. | `docs/studies/xrf_models/scatter_energy.md` | `python tests/tools/xrf_scatter_energy.py --out '{out}' --stage loo` |
 
+<a id="xrf-walkthrough"></a>
+
+### Walkthroughs: an XRF test from the raw spectrum to the verdict (ELI5)
+
+The whole chain on public data, for the owner's standing order (2026-11-25). The shootout: a real blank as it comes in, one test spectrum made from it with a Ni K line of known photons, the reader's three fits over it with residuals, 500 spectra turned into a bias, pulls and the 'accurate' verdict (the committed run's own draws), and the false signal. The models study: three scatter models over one blank with residuals, the misfit at the shootout's counts, a twin and a second draw, the floor, and a line with readout B's measured skew fitted by a Gaussian and by one tail: figures W1-W5 of each.
+
+- Menu: Tools > Fluorescence (MCA); kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/xrf_walkthrough.py`
+- Explained in: `docs/studies/xrf_shootout/walkthrough.md`, `docs/studies/xrf_models/walkthrough.md`
+- Committed products: `docs/studies/xrf_shootout/walkthrough`, `docs/studies/xrf_models/walkthrough`; not replaced from the window
+- Run:
+
+      python tests/tools/xrf_walkthrough.py --shootout-out '{out}/shootout' --models-out '{out}/models'
+
+- The committed products were made with:
+
+      python tests/tools/xrf_walkthrough.py --shootout-out docs/studies/xrf_shootout/walkthrough --models-out docs/studies/xrf_models/walkthrough
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| The shootout only | W1-W5 of the shootout walkthrough. | `docs/studies/xrf_shootout/walkthrough.md#Every figure and number comes from` | `python tests/tools/xrf_walkthrough.py --shootout-out '{out}/shootout' --models-out '{out}/models' --part shootout` |
+| The models study only | W1-W5 of the models walkthrough. | `docs/studies/xrf_models/walkthrough.md#Every figure and number comes from` | `python tests/tools/xrf_walkthrough.py --shootout-out '{out}/shootout' --models-out '{out}/models' --part models` |
+
 <a id="xrf-models-figures"></a>
 
 ### Models study figures (M1-M5)
@@ -1349,13 +1374,13 @@ The scoreboard of bias by condition and method, bias against counts, XFNTR curve
 - Committed products: `docs/studies/xrf_shootout/X*.png`, `docs/studies/xrf_shootout/wins.csv`, `docs/studies/xrf_shootout/tables.md`, `docs/studies/xrf_shootout/blanks_tables.md`, `docs/studies/xrf_shootout/real_tables.md`; not replaced from the window
 - Run:
 
-      python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run --out '{out}'
+      python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run,docs/studies/xrf_shootout/run_measured,docs/studies/xrf_shootout/run_pymca --out '{out}'
 
 Variations:
 
 | Variation | Shows | Source | Command |
 |---|---|---|---|
-| Synthetic spectra only | X6 and X7, which need no shootout run (seconds). | `docs/studies/xrf_shootout/README.md#3. figures, tables.md and wins.csv` | `python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run --out '{out}' --only 6,7` |
+| Synthetic spectra only | X6 and X7, which need no shootout run (seconds). | `docs/studies/xrf_shootout/README.md#3. figures, tables.md and wins.csv` | `python tests/tools/xrf_shootout_figures.py --run docs/studies/xrf_shootout/run,docs/studies/xrf_shootout/run_measured,docs/studies/xrf_shootout/run_pymca --out '{out}' --only 6,7` |
 
 <a id="synthetic-dataset"></a>
 

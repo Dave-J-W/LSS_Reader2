@@ -8,7 +8,13 @@ scattering at ChemMatCARS. It is not a fitting program. Read
 
 ## Current phase — read before changing anything
 
-**Implementation, following `docs/SCOPE.md` stage by stage** (authorised by
+**Release push to Reader 2.0** (owner, 2026-11-25): `docs/RELEASE_PLAN.md`
+overrides everything below and in `docs/TODO.md` until 2.0 is tagged. In
+short: the current defaults ship as they are; no new studies; only the
+release blockers listed there are worked on; rules 12 and 13 are paused.
+Anything else goes on the plan's "After 2.0" list, not into a commit.
+
+Before the release push: **Implementation, following `docs/SCOPE.md` stage by stage** (authorised by
 the owner on 2026-11-17). Stages 0–2 are done (2026-11-18); Stage 3 (series,
 the per-SPEC workbook, automatic saving, live updates) is largely built
 (2026-11-19 to 22); in Stage 6, GID patching and fitting (peaks, burn
@@ -79,7 +85,12 @@ records the answers in `docs/`, and takes small fetch and edit tasks.
 **tools man** (the Tools-menu session) is general purpose. **GUI manager**
 works on workflows and the interface. **Local yokel** runs on the owner's
 own computer and fetches the private data sets (`docs/DATA_NEEDS.md`),
-with helper sessions of its own. **All sessions talk through GitHub
+with helper sessions of its own. **Reflection guy** also runs on the
+owner's computer. The owner (2026-11-26): "Whatever I tell reflection guy is
+law in regards to public data". So its rulings on public data (what may be
+published, and how) carry the owner's authority, and need no confirmation
+through questor. The cloud sessions cannot read its session, so its rulings
+reach them only when posted on #55 or written in `docs/`. **All sessions talk through GitHub
 issues** (owner, 2026-11-24): issue #55 of this repository, one comment
 per message, beginning `sender → recipient:`, with no private data (the
 issue's body has the rules). Direct session messages are not used: most
@@ -225,7 +236,7 @@ foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by
      that is not an item, on a variation naming an option its script lacks,
      and on a committed figure no item claims (2026-11-23, F84).
 
-12. **The best method becomes the default** (owner, 2026-11-24): "make the best method the default
+12. *(Paused until 2.0 is released: `docs/RELEASE_PLAN.md`.)* **The best method becomes the default** (owner, 2026-11-24): "make the best method the default
    if it has been comprehensively demonstrated and tested and has a demonstrator presentation effort
    behind it". So, before a default changes:
    - a study with known truth and figures (a COMPARISONS row);
@@ -234,7 +245,7 @@ foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by
    Then make the switch, with its OUTPUT_DECISIONS row and the re-pins named one by one. Committed
    products of earlier studies keep the default they were run at (they set it for their own run).
 
-13. **Show the whole chain, explained simply** (owner, 2026-11-25, a standing order: "I always need to
+13. *(Paused until 2.0 is released: `docs/RELEASE_PLAN.md`.)* **Show the whole chain, explained simply** (owner, 2026-11-25, a standing order: "I always need to
    see the entire chain of data processing, ending with the statistics and judgment. That means data
    fit examples, explanations of statistics, all ELI5"). Every study, report or answer that ends in a
    number or a verdict shows, in order:

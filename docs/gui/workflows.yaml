@@ -82,7 +82,7 @@ shared_steps:
   - id: shared.workbook
     do: The finished reduction is saved into <SPEC file>_reader.xlsx automatically; Save stores a version with a note
     where: Save button beside each Export; GID menu 'Save to workbook'
-    controls: [prefAutoSaveCheckBox, prefSaveNoteCheckBox, readOnlyLightLabel]
+    controls: [prefAutoSaveCheckBox, prefSaveNoteCheckBox, readOnlyLightLabel, actionGiveUpWriteAccess, actionAskWriteAccess]
     user_decides: whether to add a 'user' version with a note
     automatic: yes
     could_be_automatic: ""

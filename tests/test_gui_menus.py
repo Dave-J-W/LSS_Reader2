@@ -7,13 +7,15 @@ import pytest
 pytestmark = pytest.mark.gui
 
 
-def test_documentation_opens_the_scripting_guide(window, recorder, monkeypatch):
+def test_documentation_opens_the_quick_start_guide(window, recorder, monkeypatch):
+    """Since 2026-11-26 the quick-start guide, the manual's first part (Q-UI-A12:
+    the scripting guide until the manual exists); before, docs/SCRIPTING.md."""
     from PyQt5.QtGui import QDesktopServices
     opened = []
     monkeypatch.setattr(QDesktopServices, 'openUrl', staticmethod(lambda url: opened.append(url) or True))
     window.ui.actionDocumentation.trigger()
     assert len(opened) == 1 and opened[0].isLocalFile()
-    assert opened[0].toLocalFile().endswith(os.path.join('docs', 'SCRIPTING.md'))
+    assert os.path.normpath(opened[0].toLocalFile()).endswith(os.path.join('docs', 'manual', 'quick_start.md'))
     assert os.path.exists(opened[0].toLocalFile())
     assert window.ui.actionDocumentation.toolTip()
     assert recorder.exceptions == [] and recorder.messages == []

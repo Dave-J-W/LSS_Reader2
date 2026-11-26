@@ -168,7 +168,7 @@
   needs: ""
   shown: always
   tooltip: true
-  notes: "Connected 2026-11-23 (owner, Q-UI-A12): opens docs/SCRIPTING.md, or its GitHub page when the docs folder is absent (packaged build); the manual when it exists. Before: opened nothing (no .connect)."
+  notes: "Connected 2026-11-23 (owner, Q-UI-A12): opened docs/SCRIPTING.md, or its GitHub page when the docs folder is absent (packaged build). Since 2026-11-26 the quick-start guide (docs/manual/quick_start.md), the manual's first part, which links the scripting guide. Before 2026-11-23: opened nothing (no .connect)."
 - id: actionAbout
   kind: action
   label: "About"
@@ -224,6 +224,30 @@
   shown: always
   tooltip: false
   notes: "The error model changes every error bar; hiding its only control in View leaves no cue of which model is in use."
+
+- id: actionGiveUpWriteAccess
+  kind: action
+  label: "Give up the workbook's write access"
+  where: "Menu bar > File"
+  handler: giveUpWriteAccess
+  does: "Stops this reader saving to the SPEC file's workbook (pending saves written first), so that another reader of the same file takes it; the yellow light shows, and the access is not taken back by itself"
+  workflows: [session]
+  needs: "this reader holding the workbook's lock"
+  shown: always
+  tooltip: true
+  notes: "D1, the owner's revised Q5 (2026-11-25): one click to give up the write access. Added 2026-11-26 (GUI manager; core lss_core.readerlock.release by main man). Also the Release button of the box a request for the write access opens."
+
+- id: actionAskWriteAccess
+  kind: action
+  label: "Ask for the workbook's write access"
+  where: "Menu bar > File; the yellow light's right-click menu"
+  handler: askWriteAccess
+  does: "Takes the workbook's write access when it is free, else asks the reader holding it (it is shown the request with Release and Keep); taken once given up, tried every 30 s"
+  workflows: [session]
+  needs: "this reader read-only"
+  shown: always
+  tooltip: true
+  notes: "D1, revised Q5. Added 2026-11-26 (GUI manager; core request_release, release_requested, decline_request by main man). The holder sees each request once, in Messages and in a non-modal box with Release and Keep."
 
 - id: actionFitResiduals
   kind: action

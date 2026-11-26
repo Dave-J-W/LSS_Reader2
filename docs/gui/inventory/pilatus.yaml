@@ -52,23 +52,23 @@
   label: "Bad Pix Corr. Iter."
   where: "Pilatus"
   handler: imageSelectedScanChanged
-  does: "Iterations of bad-pixel correction applied when frames are read (0: off)"
+  does: "Iterations of the whole-frame bad-pixel pass applied when frames are read (0, the default: off)"
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: ""
   shown: always
-  tooltip: false
-  notes: "Changing it re-reads all frames. The Reflectivity tab has its own 'Bad Pixel Correction fac' field (inventory B); the Apex tab another. Three spellings."
+  tooltip: true
+  notes: "Changing it re-reads all frames. The Reflectivity tab has its own ROI pass ('Bad Pixel Correction fac', F95 B3). Tooltip 2026-11-26 (main man's request): the arithmetic, and C62's warning that factors below 10 take real signal on sparse frames."
 - id: pilBPCfacSpinBox
   kind: spin
-  label: "Fact."
+  label: "factor"
   where: "Pilatus"
   handler: imageSelectedScanChanged
-  does: "Threshold factor of the bad-pixel correction"
+  does: "Threshold factor of the whole-frame bad-pixel pass (1 to 40; larger is gentler)"
   workflows: [reflectivity, gid, gisaxs, cuts, burn-ref, burn-gid]
   needs: "iterations > 0"
   shown: always
-  tooltip: false
-  notes: "'Fact.' meaning not explained; no tooltip."
+  tooltip: true
+  notes: "Was 'Fact.' with a maximum of 4, so every reachable value was below the factor 10 that C62 found safe on sparse frames; 2026-11-26: labelled 'factor', maximum 40, tooltip with C62's warning. Off by default (iterations 0), so no number changes."
 - id: pilAxesComboBox
   kind: combo
   label: "Axes:"

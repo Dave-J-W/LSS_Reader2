@@ -120,6 +120,10 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   what the stress test taught, with the beam-energy figure (`tests/tools/mca_fit_demo.py`: P1 within
   0.3 % at 12 keV where it fails at 10 keV) and the Tools menu's MCA items and variations; the hard case
   as MCA files for the reader (`synthetic_dataset.py --kind mca`).
+- "Fit lines" two ways (2026-11-26, F110, the owner's decision, revised the same day): the reader's Poisson fit
+  (Si escapes stripped, the width from the sum of the series) is the number plotted, merged and exported in
+  `_flu.txt`; XeRay (`fluorescence.xeray_fit`, ported from the Lee group's tool in the XRF shootout) is reported
+  beside it with its error (list, plot, workbook, `_flu_xeray.txt`). Refining the shootout is on the after-2.0 list.
 - Burn tests as trends over time (`lss_core.trends`, `lss_core.burn`):
   constant, linear, exponential and double exponential compared by AICc;
   "stable" when a flat line fits as well as a line; the 95 % confident time

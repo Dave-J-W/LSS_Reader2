@@ -36,6 +36,19 @@ import matplotlib.pyplot as plt                                # noqa: E402
 MODEL_COLOR = {'generator': F.MUTED, 'gaussian': '#e34948', 'full': '#2a78d6'}
 MODEL_LABEL = {'generator': 'generator defaults (the synthetic shootout)', 'gaussian': 'Gaussian detector, rest free',
                'full': 'full model (tails, shelf, high tail free)'}
+MODEL_SHORT = {'generator': 'generator defaults', 'gaussian': 'Gaussian detector', 'full': 'full model'}
+
+
+def probe_name(p):
+    """A line probe of xrf_lineshape.py ('A-L1', 'B-K2-e3', 'B-K1-sum7raw') -> plain words."""
+    parts = p.split('-')
+    if parts[0] == 'A':
+        return 'single-element, burn K line' if parts[1] == 'K' else 'single-element, L file %s' % parts[1][1:]
+    det, f = '7-element', 'K file %s' % parts[1][1:]
+    rest = parts[2]
+    if rest.startswith('e'):
+        return '%s, %s, element %s' % (det, f, rest[1:])
+    return '%s, %s, all 7 summed%s' % (det, f, ' (header gains)' if rest.endswith('hdr') else '')
 SHOW = ('E10-k', 'E10-d', 'E9.2-a', 'E6.1-a')
 METHODS = ('window', 'fit_data', 'p1', 'p1p3', 'p1p2p3', 'xeray', 'pymca', 'pyxrf')
 
@@ -69,14 +82,15 @@ def fig_fits(scatter, out):
             ax.semilogy(e, mu, color=MODEL_COLOR[m], lw=1.2, label=MODEL_LABEL[m])
             rx.plot(e, np.clip(res, -14, 14), color=MODEL_COLOR[m], lw=0.8)
         lr = L[(bid, 'full')]
-        ax.set_title('%s: readout %s, %s keV beam' % (bid, lr['readout'], lr['beam_kev']), loc='left', fontsize=9)
-        txt = '\n'.join('%s: D/dof %.1f' % (m, num(L[(bid, m)]['dev_per_dof'])) for m in ('generator', 'gaussian', 'full'))
+        ax.set_title('%s (%s)' % (F.blank_name(bid), F.READOUT[lr['readout']]), loc='left', fontsize=9)
+        txt = 'misfit (deviance per degree of freedom;\n1 = as good as the counting noise allows):\n' + '\n'.join(
+            '%s: %.1f' % (MODEL_SHORT[m], num(L[(bid, m)]['dev_per_dof'])) for m in ('generator', 'gaussian', 'full'))
         ax.text(0.02, 0.97, txt, transform=ax.transAxes, va='top', fontsize=7, color=F.INK2)
         rx.axhline(0, color=F.INK2, lw=0.6)
         rx.set_ylim(-14, 14)
         rx.set_xlabel('energy (keV)')
     axes[0, 0].set_ylabel('counts per channel')
-    axes[1, 0].set_ylabel('deviance residual\n(clipped at ±14)')
+    axes[1, 0].set_ylabel('miss, in noise units\n(deviance residual,\nclipped at ±14)')
     h, lab = axes[0, 0].get_legend_handles_labels()
     fig.legend(h, lab, loc='lower center', ncol=4, fontsize=8, frameon=False)
     fig.suptitle('M1. Real scatter (public blanks) against three scatter models, each fitted by Poisson likelihood '
@@ -104,9 +118,9 @@ def fig_boxes(scatter, out, blanks_run):
         ax.axhspan(-2, 2, color=F.GRID, alpha=0.8, lw=0)
         ax.axhline(0, color=F.INK2, lw=0.7)
         ax.set_ylim(-70, 40)
-        ax.set_xlabel('box centre below the beam, E0 − E (keV); box ±1 FWHM')
+        ax.set_xlabel('how far below the beam a line would sit (keV); window: that energy ± 1 FWHM')
         ax.set_ylabel('real counts / model counts − 1 (%)')
-        ax.set_title('Readout %s (%d blanks): line, median; band, range' % (ro, len({r['blank'] for r in L if r['readout'] == ro})),
+        ax.set_title('%s (%d blanks): line, median; band, range' % (F.READOUT[ro].capitalize(), len({r['blank'] for r in L if r['readout'] == ro})),
                      loc='left', fontsize=9)
     axes[0].legend(fontsize=7, loc='lower left')
     ax = axes[2]
@@ -120,16 +134,17 @@ def fig_boxes(scatter, out, blanks_run):
             p = np.median(pmed[b]) if b in pmed else math.nan
             full.append(d)
             use.append(1 + p * (d - 1) if np.isfinite(p) else math.nan)
-        ax.bar(x + (k - 1) * 0.27, use, 0.25, color=MODEL_COLOR[m], label=m)
+        ax.bar(x + (k - 1) * 0.27, use, 0.25, color=MODEL_COLOR[m], label=MODEL_SHORT[m])
     ax.axhline(1, color=F.INK2, lw=0.7)
     ax.set_yscale('log')
     ax.set_xticks(x)
-    ax.set_xticklabels(ids, rotation=60, fontsize=7)
-    ax.set_ylabel('deviance / dof below the beam, at the shootout\'s counts')
-    ax.set_title('Misfit at the counts the shootout uses: 1 + p (D/dof − 1),\np the median thinning (no bar: blank not used)',
+    ax.set_xticklabels([F.blank_name(b) for b in ids], rotation=60, ha='right', fontsize=7)
+    ax.set_ylabel('misfit below the beam, at the shootout\'s counts\n(deviance per degree of freedom)')
+    ax.set_title('Misfit at the counts the shootout uses: 1 + p × (misfit − 1),\n'
+                 'p the share of counts kept (median; no bar: blank not used)',
                  loc='left', fontsize=9)
     ax.legend(fontsize=7)
-    fig.suptitle('M2. Where each scatter model misses the real scatter, in the boxes a line would be fitted in',
+    fig.suptitle('M2. Where each scatter model misses the real scatter, in the windows a line would be fitted in',
                  x=0.01, ha='left', fontsize=10, fontweight='bold')
     fig.tight_layout()
     fig.savefig(os.path.join(out, 'M2_scatter_boxes.png'), dpi=150)
@@ -163,9 +178,10 @@ def fig_twins(scatter, out):
             continue
         agree = np.mean([r['accurate_real'] == r['accurate_twin'] for r in rows])
         d = np.array([num(r['diff']) for r in rows]) * 100
-        name = 'The floor: two draws of the full model' if m == 'full_redraw' else '%s twins against the real' % m
+        name = ('The floor: two draws of the full model' if m == 'full_redraw'
+                else 'Twins from the %s, against the real' % MODEL_SHORT[m])
         _scatter_panel(ax, rows, 'bias_real', 'bias_twin',
-                       '%s\nmedian |difference| %.1f %%, 90th pct %.1f %%; "accurate" the same in %.0f %%'
+                       '%s\nmedian |difference| %.1f %%, 90th percentile %.1f %%; "accurate" the same in %.0f %%'
                        % (name, np.nanmedian(np.abs(d)), np.nanpercentile(np.abs(d), 90), 100 * agree))
         ax.set_xlabel('bias on the first draw (%)' if m == 'full_redraw' else 'bias on the real blank (%)')
     axes[0].set_ylabel('bias on the model twin of the blank (%)')
@@ -197,9 +213,9 @@ def fig_lines(lines, out):
     ax.set_xticks(range(len(shapes)))
     ax.set_xticklabels(['Gaussian\nat resolution', 'Gaussian', 'elastic\'s\nshape', 'one tail', 'tail +\nshelf',
                         'two tails\n+ shelf'], fontsize=8)
-    ax.set_ylabel('deviance / dof of the line fit')
-    ax.set_title('The shape ladder on real lines\nblue: readout A (single element); orange: one element of B;\n'
-                 'violet: B\'s seven summed', loc='left', fontsize=9)
+    ax.set_ylabel('misfit of the line fit (deviance per degree of freedom)')
+    ax.set_title('The shape ladder on real lines\nblue: the single-element detector; orange: one element of the\n'
+                 '7-element detector; violet: its seven summed', loc='left', fontsize=9)
     ax = axes[1]
     sel = [p for p in probes if not p.endswith('sum7hdr')]
     y = np.arange(len(sel))[::-1]
@@ -211,9 +227,9 @@ def fig_lines(lines, out):
         ax.plot([num(t['fwhm_over_resolution'])], [y[i]], 'o', mfc='none', mec=c, ms=6)
     ax.axvline(1, color=F.INK2, lw=0.7)
     ax.set_yticks(y)
-    ax.set_yticklabels(sel, fontsize=7)
+    ax.set_yticklabels([probe_name(q) for q in sel], fontsize=7)
     ax.set_xlabel('line FWHM / resolution measured on the scatter')
-    ax.set_title('Width: dot, Gaussian fit; ring, the core of the one-tail fit\n(B-K2-sum7hdr, the header-calibrated sum, is left out)', loc='left', fontsize=9)
+    ax.set_title('Width: dot, Gaussian fit; ring, the core of the one-tail fit\n(the sums with the header\'s gains are left out)', loc='left', fontsize=9)
     ax = axes[2]
     for i, p in enumerate(sel):
         t = [r for r in R if r['probe'] == p and r['shape'] == ('tail_shelf' if p.startswith('A') else 'tail')][0]
@@ -223,11 +239,12 @@ def fig_lines(lines, out):
         ax.text(100 * (num(t['tail']) + num(t['shelf'])) + 1, y[i], '%.0f eV' % (1000 * num(t['tail_slope_keV'])),
                 va='center', fontsize=6, color=F.INK2)
     ax.set_yticks(y)
-    ax.set_yticklabels(sel, fontsize=7)
+    ax.set_yticklabels([probe_name(q) for q in sel], fontsize=7)
     ax.set_xlabel('% of the line\'s photons: tail (dark; decay length beside) and shelf (light)')
-    ax.set_title('Not in the Gaussian (A: tail + shelf fit; B: one-tail fit)', loc='left', fontsize=9)
-    fig.suptitle('M4. Is a Gaussian enough? Real lines: readout A, an L family (A-L1…5, 1.5·10⁶ counts each) and the '
-                 'burn series\' K line (A-K); readout B, a K family on every element of two files',
+    ax.set_title('Not in the Gaussian (single-element: tail + shelf fit;\n7-element: one-tail fit)', loc='left', fontsize=9)
+    fig.suptitle('M4. Is a Gaussian enough? Real lines: on the single-element detector, an L family (5 files, '
+                 '1.5·10⁶ counts each) and the burn series\' K line; on the 7-element detector, a K family on every '
+                 'element of two files', 
                  x=0.01, ha='left', fontsize=10, fontweight='bold')
     fig.tight_layout()
     fig.savefig(os.path.join(out, 'M4_line_shapes.png'), dpi=150)
@@ -245,7 +262,7 @@ def fig_shape_effect(out, base, runs):
             if q is not None:
                 rows.append(dict(method=r['method'], x=q['bias'], y=r['bias'], diff=num(r['bias']) - num(q['bias'])))
         dd = np.array([r['diff'] for r in rows]) * 100
-        _scatter_panel(ax, rows, 'x', 'y', '%s lines: median |difference| %.1f %%, 90th pct %.1f %%'
+        _scatter_panel(ax, rows, 'x', 'y', '%s lines: median |difference| %.1f %%, 90th percentile %.1f %%'
                        % (lab, np.nanmedian(np.abs(dd)), np.nanpercentile(np.abs(dd), 90)))
         ax.set_xlabel('bias with the elastic-shaped line (the committed run, %)')
     axes[0, 0].set_ylabel('bias with this line shape (%)')

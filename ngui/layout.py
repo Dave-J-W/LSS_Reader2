@@ -620,6 +620,10 @@ MENUS = [
         NEW('file_export', 'Export…', 'action', 'Writes text or HDF5 files from a saved result (D61): the only '
             'route to exporting in ngui; no Export buttons in the tabs'),
         C('actionPreferences', 'Preferences…', note='In the prototype: the settings that stay in the dialog'),
+        C('actionGiveUpWriteAccess', "Give up the workbook's write access",
+          note="D1, the owner's revised Q5: one click, and the next reader of the SPEC file takes the workbook"),
+        C('actionAskWriteAccess', "Ask for the workbook's write access",
+          note='Also on the yellow read-only light: takes it when free, else asks the holder (Release / Keep)'),
         C('actionQuit', 'Quit'),
     ]},
     {'title': 'View', 'replaces': ['menuView'], 'items': [

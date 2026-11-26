@@ -36,6 +36,10 @@ routines step by step (`merge-to-main`, `review-local-data-pr`, `issue-watch`).
   - #68: figure B1 was not to be published; the branch was rebuilt without it in any commit;
   - #71: 13 blanks, not 8, confirmed;
   - #61: reopened as it was.
+- **Reflection guy** (a session on the owner's computer; this one cannot read it, since it accepts only the
+  owner's trusted devices): "Whatever I tell reflection guy is law in regards to public data" (owner,
+  2026-11-26). Its public-data rulings, posted on #55 or in `docs/`, are the owner's word: apply them without
+  asking questor.
 - **Privacy** (AGENTS.md's `sample_data/private/` row):
   - never raw data, images or peak locations;
   - height-scan ROI data are unrestricted;
@@ -115,7 +119,12 @@ Invariants I added: I39 (dose), I40 (masks), I41 (diffuse axes), I42 (beam heigh
      Size it with Local yokel's real X by Qz class (DATA_NEEDS row 15; measured on unsplit scans, since a
      split's factor absorbs point-to-point structure, #89's W6). Then rule 12. **The owner (MQ-3, 2026-11-25):
      "I don't know the size; measure it from data"; no excess term before a measurement and the owner's word.**
-2. **`KeyError: 'monc'` on one-point Det_Th scans** (#79's survey, 4 sets). A synthetic one-point scan reads
+2. **Done 2026-11-26 (reproduced on a synthetic file): `KeyError: 'monc'`** is a one-point scan whose single
+   row is shorter than #L. The reader keeps a column only when every row has it, so Monc goes. `frames` now
+   raises a ValueError naming the missing column and the LabelMismatch (`tests/test_one_point_scan.py`).
+   Whether the real rows are half-written or carry a label with a space is still for Local yokel's metadata.
+   The earlier note follows.
+2b. **`KeyError: 'monc'` on one-point Det_Th scans** (#79's survey, 4 sets). A synthetic one-point scan reads
    fine. Waiting for Local yokel's metadata: the `#L` labels against the row width, the columns, and
    `LabelMismatch`. Then fix `Experiment.frames` (line ~266: `scan.columns['Monc'] if 'Monc' in … else
    scan.columns['monc']`) with a test.

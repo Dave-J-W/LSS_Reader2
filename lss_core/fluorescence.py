@@ -14,6 +14,8 @@ absfac**n of their scan (n from SPEC ``#A``, or from the last ``#A`` above
 a scan that records none; owner, 2026-11-17, F50).
 ``save_flu`` writes the window's ``_flu.txt`` byte for byte.
 """
+from dataclasses import dataclass
+
 import numpy as np
 
 from .absorbers import Foils, attenuation
@@ -113,44 +115,176 @@ def default_merge_window(rows, x='qz'):
 
 
 def merge_rows(rows, x='qz', window=None, jitter=QZ_JITTER):
-    """The MCA Merge: rows ([frame, qz, energy, I, σ]) sorted on ``x`` and
-    every row within ``window`` of the first row of a group merged into it
-    with weights y/σ² (for counting errors ΣN/ΣM, pooled counts over pooled
-    monitor; P7, kept by the owner). Values and the counting part of σ are
-    the window's arithmetic exactly. On the Qz axis the Qz jitter is added
-    to σ (owner's XFNTR rule, step 5): σ_j = I·|d ln I/dQz|·``jitter``,
-    propagated through the same weights (√Σw²/Σw), d ln I/dQz from the
-    merged curve by central differences. ``window`` None: the default
-    (``default_merge_window``). Which scans to merge is the user's choice
-    (one run, wavelength, sample and signal shape)."""
+    """The MCA Merge: rows ([frame, qz, energy, I, σ], or with more (I, σ)
+    pairs after them, such as the reader's fit beside XeRay's, F110) sorted
+    on ``x`` and every row within ``window`` of the first row of a group
+    merged into it with weights y/σ², each pair alone over the same groups
+    (for counting errors ΣN/ΣM, pooled counts over pooled monitor; P7, kept
+    by the owner). Values and the counting part of σ are the window's
+    arithmetic exactly. On the Qz axis the Qz jitter is added to σ (owner's
+    XFNTR rule, step 5): σ_j = I·|d ln I/dQz|·``jitter``, propagated through
+    the same weights (√Σw²/Σw), d ln I/dQz from the merged curve by central
+    differences. ``window`` None: the default (``default_merge_window``).
+    Which scans to merge is the user's choice (one run, wavelength, sample
+    and signal shape)."""
     index = {'frame': 0, 'qz': 1, 'energy': 2}[x]
     if window is None:
         window = default_merge_window(rows, x)
     data = np.array(rows, dtype=float)
     data = data[np.argsort(data[:, index])]
-    out = [data[0]]
-    wsum = [[data[0][3] / data[0][4] ** 2]]
+    pairs = [(k, k + 1) for k in range(3, data.shape[1] - 1, 2)]
+    out = [data[0].copy()]
+    wsum = [{p: [data[0][p[0]] / data[0][p[1]] ** 2] for p in pairs}]
     for i in range(1, len(data)):
         if np.abs(data[i][index] - out[-1][index]) <= window:
-            a = out[-1][3] ** 2 / out[-1][4] ** 2
-            b = data[i][3] ** 2 / data[i][4] ** 2
-            c = out[-1][3] / out[-1][4] ** 2
-            d = data[i][3] / data[i][4] ** 2
-            out[-1][3] = (a + b) / (c + d)
-            out[-1][4] = np.sqrt((a + b) / (c + d) ** 2)
-            wsum[-1].append(d)
+            for vi, si in pairs:
+                a = out[-1][vi] ** 2 / out[-1][si] ** 2
+                b = data[i][vi] ** 2 / data[i][si] ** 2
+                c = out[-1][vi] / out[-1][si] ** 2
+                d = data[i][vi] / data[i][si] ** 2
+                out[-1][vi] = (a + b) / (c + d)
+                out[-1][si] = np.sqrt((a + b) / (c + d) ** 2)
+                wsum[-1][(vi, si)].append(d)
         else:
-            out = np.vstack((out, data[i]))
-            wsum.append([data[i][3] / data[i][4] ** 2])
+            out.append(data[i].copy())
+            wsum.append({p: [data[i][p[0]] / data[i][p[1]] ** 2] for p in pairs})
     out = np.array(out, dtype=float)
     if index == 1 and jitter and len(out) > 1:
-        v, q = out[:, 3], out[:, 1]
-        with np.errstate(divide='ignore', invalid='ignore'):
-            slope = np.gradient(np.log(np.where(v > 0, v, np.nan)), q)
-        frac = np.array([np.sqrt(np.sum(np.square(w))) / np.sum(w) if np.sum(w) != 0 else 1.0 for w in wsum])
-        sj = np.abs(v * np.nan_to_num(slope)) * jitter * frac
-        out[:, 4] = np.sqrt(out[:, 4] ** 2 + sj ** 2)
+        q = out[:, 1]
+        for vi, si in pairs:
+            v = out[:, vi]
+            with np.errstate(divide='ignore', invalid='ignore'):
+                slope = np.gradient(np.log(np.where(v > 0, v, np.nan)), q)
+            frac = np.array([np.sqrt(np.sum(np.square(w[(vi, si)]))) / np.sum(w[(vi, si)])
+                             if np.sum(w[(vi, si)]) != 0 else 1.0 for w in wsum])
+            sj = np.abs(v * np.nan_to_num(slope)) * jitter * frac
+            out[:, si] = np.sqrt(out[:, si] ** 2 + sj ** 2)
     return out
+
+
+# ---- line fits: the reader's Poisson fit (the default) and XeRay beside it (owner, 2026-11-26; F110) ----
+
+@dataclass
+class XeRayFit:
+    """XeRay's fit of one spectrum: the line's ``area`` in counts (area /
+    channel width, the reader's convention) and XeRay's error ``area_err``,
+    the line's ``centre`` and ``fwhm`` (keV), the straight background
+    (``slope``, ``const``) over the ``window``; ``ok`` False with ``message``
+    when the fit failed; ``step`` the channel width (keV)."""
+    area: float
+    area_err: float
+    centre: float
+    fwhm: float
+    slope: float
+    const: float
+    window: tuple
+    ok: bool = True
+    message: str = ''
+    step: float = 1.0
+
+    def model(self, x):
+        x = np.asarray(x, float)
+        s = self.fwhm / (2 * np.sqrt(2 * np.log(2)))
+        amp = self.area * self.step / (s * np.sqrt(2 * np.pi)) if s > 0 else 0.0
+        return amp * np.exp(-((x - self.centre) / s) ** 2 / 2) + self.slope * x + self.const
+
+
+def xeray_fit(energy, y, sigma=None, x_range=None, centre=None):
+    """XeRay's line fit (the Lee group's MATLAB tool for XFNTR,
+    ``functions/fluoCurveFit.m`` and ``XeLineshape.m`` of
+    github.com/ZhiliangGong/xeray, ported line for line in
+    ``tests/tools/xrf_shootout.py``): a Gaussian on a straight line, fitted by
+    unweighted least squares (scipy's 'trf', as MATLAB's lsqnonlin) inside
+    ``x_range``, the centre within ±0.2 keV of ``centre`` (default: the
+    highest channel). The area is in counts (area / channel width).
+
+    XeRay's error is √(the counts in the window). For the reader's
+    normalised spectra (σ_c = √N_c/k per channel) that is √(Σ σ_c²); without
+    ``sigma``, √(Σ y). It leaves out the background's uncertainty, so it is
+    too small where the background is large: the shootout's median pull SD
+    1.92, up to 11.7 (``docs/studies/xrf_shootout/summary.md`` section 3).
+    On the owner's real blanks it was accurate in 6 of 192 conditions (C66)
+    and on real line shapes in 3 of 160 (C69), so since the owner's revision
+    of F110 (2026-11-26) the reader's fit is the default and XeRay is
+    reported beside it."""
+    from scipy.optimize import least_squares
+    e, y = np.asarray(energy, float), np.asarray(y, float)
+    lo, hi = (float(np.min(e)), float(np.max(e))) if x_range is None else (min(x_range), max(x_range))
+    box = (e >= lo) & (e <= hi)
+    step = float(np.median(np.abs(np.diff(e)))) if len(e) > 1 else 1.0
+    nan = float('nan')
+    if box.sum() < 6:
+        return XeRayFit(nan, nan, nan, nan, nan, nan, (lo, hi), False, 'too few channels in the window', step)
+    x, yb = e[box], y[box]
+    peak = float(x[int(np.argmax(yb))]) if centre is None else float(centre)
+    base = float(np.mean([np.mean(yb[:5]), np.mean(yb[-5:])]))
+    rng = float(np.ptp(yb))
+    lb = np.array([0.0, peak - 0.2, 0.0, -np.inf, float(np.min(yb))])
+    ub = np.array([max(rng * 3, 1e-9), peak + 0.2, float(np.ptp(x)) / 2, np.inf,
+                   max(float(np.mean(yb)), float(np.min(yb)) + 1e-9)])
+    a0 = np.array([rng, peak, float(np.ptp(x)) / 6, 0.0, base])
+    span = np.where(np.isfinite(ub - lb), ub - lb, 1.0)
+    a0 = np.clip(a0, lb + 1e-9 * span, ub - 1e-9 * span)       # lsqnonlin projects a start onto the bounds
+
+    def f(a):
+        return a[0] * np.exp(-((x - a[1]) / a[2]) ** 2 / 2) + a[3] * x + a[4] - yb
+    try:
+        a = least_squares(f, a0, bounds=(lb, ub), method='trf').x
+    except (ValueError, np.linalg.LinAlgError) as err:
+        return XeRayFit(nan, nan, nan, nan, nan, nan, (lo, hi), False, 'the fit failed (%s)' % err, step)
+    area = float(a[0] * a[2] * np.sqrt(2 * np.pi) / step)
+    if sigma is not None:
+        err = float(np.sqrt(np.sum(np.square(np.asarray(sigma, float)[box]))))
+    else:
+        err = float(np.sqrt(max(float(np.sum(yb)), 1.0)))
+    return XeRayFit(area, err, float(a[1]), float(2 * np.sqrt(2 * np.log(2)) * a[2]), float(a[3]), float(a[4]),
+                    (lo, hi), True, '', step)
+
+
+def fit_line_series(data, options, poisson=True, detector_width=False, noise_kev=0.12, strip_escapes=True):
+    """Both line fits of a series of normalised spectra (``data``: arrays of
+    energy, y, σ on one energy axis), F110 (owner, 2026-11-26): both fits
+    and both errors are reported. Revised the same day by the owner: the
+    reader's fit is the default (the value plotted, merged and exported),
+    with its width from the sum, and XeRay is reported beside it.
+
+    - **The reader's fit** (``peaks.fit_series``): Poisson likelihood
+      (``poisson``), the Si escape spectrum stripped first
+      (``strip_escapes``), the line's position and width fitted on the sum
+      of the series and held for every spectrum, which then gets its height
+      and background. On the owner's real data this is the most accurate:
+      49 of 192 conditions on real blanks (C66, pull SD 1.08) and 34 of 160
+      with real line shapes on the 7-element detector (C69, bias −1.3 %).
+      ``detector_width`` fixes the width at the detector model's instead
+      (Fano, ``noise_kev``), at the element's line (``options.centres[0]``)
+      or, when no energy is given, at the median centre of XeRay's fits
+      (``width_at`` says which energy was used): best on the synthetic
+      shootout (C65), but about 6 % low with real line shapes (C69) and far
+      off where the real width differs from the model's (0.68 of the area
+      on the synthetic XFNTR set, whose line is 1.65 × the model's width).
+    - **XeRay** (``xeray_fit``) on each spectrum as it is, in the window
+      ``options.x_range`` around the element's line ``options.centres[0]``.
+
+    Returns dict(xeray=[XeRayFit], ref, each, j (the element's line in each
+    reader fit), step, options (as used by the reader's fit), width_at
+    (keV; None when the width was left free))."""
+    import dataclasses
+    from . import peaks
+    x = np.asarray(data[0], float)[:, 0]
+    step = float(np.median(np.abs(np.diff(x))))
+    centre = options.centres[0] if options.centres else None
+    xr = [xeray_fit(x, d[:, 1], d[:, 2], options.x_range, centre) for d in data]
+    fdata = [strip_escape(d) for d in data] if strip_escapes else list(data)
+    o, width_at = options, None
+    if detector_width:
+        found = [f.centre for f in xr if f.ok]
+        width_at = centre if centre is not None else (float(np.median(found)) if found else None)
+        if width_at is not None:
+            o = dataclasses.replace(o, fwhm=detector_fwhm(width_at, noise_kev))
+    ref, each = peaks.fit_series(x, [d[:, 1] for d in fdata], [d[:, 2] for d in fdata], o,
+                                 weights='poisson' if poisson else 'data')
+    j = peaks.line_index(ref, o.centres) if each else None
+    return dict(xeray=xr, ref=ref, each=each, j=j, step=step, options=o, width_at=width_at)
 
 
 # ---- multi-element detectors (owner, 2026-11-19) ------------------------------------

@@ -232,7 +232,7 @@
   needs: "another reader holding the workbook's lock"
   shown: "only when read-only"
   tooltip: true
-  notes: "Added in code (D1, owner; 2026-11-25; core lss_core.readerlock by main man). The lock (<workbook>.lock) is taken when the workbook is first needed, not when the SPEC file opens, refreshed every 30 s, released on close or when another SPEC file's workbook is needed. A read-only reader tries again every 30 s and says when it saves again; a reader whose lock was taken away (after a long sleep) says so and stops saving. The tooltip names who has it open and since when."
+  notes: "Added in code (D1, owner; 2026-11-25; core lss_core.readerlock by main man). The lock (<workbook>.lock) is taken when the SPEC file opens (the owner's revised Q5, window side 2026-11-26; the tests set LSS_READER_LOCK_AT_OPEN=0 and take it when the workbook is first needed), refreshed every 30 s, released on close or when another SPEC file's workbook is needed. A read-only reader tries again every 30 s and says when it saves again; a reader whose lock was taken away (after a long sleep) says so and stops saving. The tooltip names who has it open and since when. Right-click: Ask for the workbook's write access. After Give up the write access, the light shows and the tooltip says so."
 - id: burnDock
   kind: pane
   label: "Burn test"
