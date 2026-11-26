@@ -168,7 +168,7 @@
   needs: ""
   shown: always
   tooltip: true
-  notes: "Connected 2026-11-23 (owner, Q-UI-A12): opens docs/SCRIPTING.md, or its GitHub page when the docs folder is absent (packaged build); the manual when it exists. Before: opened nothing (no .connect)."
+  notes: "Connected 2026-11-23 (owner, Q-UI-A12): opened docs/SCRIPTING.md, or its GitHub page when the docs folder is absent (packaged build). Since 2026-11-26 the quick-start guide (docs/manual/quick_start.md), the manual's first part, which links the scripting guide. Before 2026-11-23: opened nothing (no .connect)."
 - id: actionAbout
   kind: action
   label: "About"

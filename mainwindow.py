@@ -304,7 +304,8 @@ class MainWindow (QMainWindow):
         self.ui.actionQuit.setShortcut(QKeySequence('Ctrl+Q'))   # explicit: Windows has no standard Quit key
         self.ui.actionQuit.setToolTip('Close the reader (Ctrl+Q). Results are already saved in the workbook.')
         self.ui.actionQuit.triggered.connect(self.close)
-        self.ui.actionDocumentation.setToolTip('Open the scripting guide (docs/SCRIPTING.md) until the manual exists; '
+        self.ui.actionDocumentation.setToolTip('Open the quick-start guide (docs/manual/quick_start.md: open, reduce, '
+                                               'export; it links the scripting guide and the list of every control); '
                                                'from a packaged build without the docs folder, its page on GitHub.')
         self.ui.actionDocumentation.triggered.connect(self.showDocumentation)
         # self.connect(self.ui.actionOpen_Spec_File, SIGNAL('triggered()'),self.openSpecFile)
@@ -670,15 +671,17 @@ class MainWindow (QMainWindow):
 
 
 
-    DOCS_URL='https://github.com/Dave-J-W/LSS_Reader2/blob/main/docs/SCRIPTING.md'
+    DOCS_URL='https://github.com/Dave-J-W/LSS_Reader2/blob/main/docs/manual/quick_start.md'
 
     def showDocumentation(self):
-        """Help > Documentation: the scripting guide for now, the manual when it
-        exists (owner, 2026-11-23, Q-UI-A12). The local file when present, else
-        its page on GitHub (a packaged build carries no docs folder)."""
+        """Help > Documentation: the quick-start guide, the first part of the
+        manual (owner, 2026-11-23, Q-UI-A12: "the scripting guide for now, the
+        manual when it exists"; 2.0's guide, 2026-11-26). The local file when
+        present, else its page on GitHub (a packaged build carries no docs
+        folder)."""
         from PyQt5.QtGui import QDesktopServices
         from PyQt5.QtCore import QUrl
-        path=resource(os.path.join('docs','SCRIPTING.md'))
+        path=resource(os.path.join('docs','manual','quick_start.md'))
         url=QUrl.fromLocalFile(path) if os.path.exists(path) else QUrl(self.DOCS_URL)
         if not QDesktopServices.openUrl(url):
             self.notify('Could not open the documentation; it is at %s' % url.toString(),title='Documentation')

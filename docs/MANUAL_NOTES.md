@@ -707,6 +707,8 @@ Each line: feature — where — default — script — notes entry (date).
   few seconds in the status bar.
 
 ### Menus (2026-11-23)
+- Help > Documentation opens the quick-start guide (`docs/manual/quick_start.md`; 2026-11-26), the
+  manual's first part; before, the scripting guide. Offline in a packaged build: its page on GitHub.
 - **File > Quit** (Ctrl+Q) closes the reader; results are already in the
   workbook. **Help > Documentation** opens the scripting guide
   (`docs/SCRIPTING.md`) until the manual exists, or its GitHub page from a
