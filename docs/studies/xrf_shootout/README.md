@@ -1,7 +1,8 @@
 # XRF shootout: how it was run
 
 The study is in `summary.md`, the questions and their answers in
-`QUESTIONS.md`, and the survey of other packages in `survey.md`. This page
+`QUESTIONS.md`, a step-by-step walkthrough of one test in `walkthrough.md`
+(`tests/tools/xrf_walkthrough.py`), and the survey of other packages in `survey.md`. This page
 says how to reproduce it.
 
 ## Environment
@@ -48,7 +49,7 @@ and `XeLineshape.m` of github.com/ZhiliangGong/xeray as of 2026-11-25.
     # 2d. lines injected into the real blanks (tests/reference/mca_scatter): 240 conditions x 50 series of 10
     #     (about 50 minutes, 22 workers)
     python tests/tools/xrf_blanks.py --out docs/studies/xrf_shootout/run_blanks --replicates 50 --chunk 5 --jobs 22
-    # 2e. the reader's single options (P1+P2, P1+P3) on the same spectra (a minute)
+    # 2e. the reader's single options (*Poisson fit + fixed width*, *Poisson fit + escapes removed*) on the same spectra (a minute)
     python tests/tools/xrf_blanks.py --out docs/studies/xrf_shootout/run_blanks_options --replicates 50 --chunk 5 \
         --jobs 24 --methods p1p2,p1p3
     # 2f. real lines in real scatter: the 19 private burn series (needs the decrypted bundle; a few minutes)

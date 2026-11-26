@@ -9,6 +9,9 @@ blanks themselves**, with synthetic lines of known photons added.
 **Section 11 uses real lines in real scatter** (the private burn series;
 summary values only). No default of the reader was changed.
 
+- **New to this study? `walkthrough.md`** follows one test from the raw spectrum to the verdict:
+  the fit over its data with residuals, 500 spectra turned into a bias, pulls and the "accurate"
+  rule, each statistic in plain words
 - Questions and short answers: `QUESTIONS.md`
 - Survey of other packages: `survey.md`
 - How to reproduce: `README.md`
@@ -28,10 +31,10 @@ right shape, and honest error bars.
 
 | Side | Method | What it is |
 |---|---|---|
-| reader | window | Sum All over the box (line ± 2 FWHM) |
-| reader | fit (data) | "Fit lines", Gaussian on a quadratic in the box, data weights (the default before 2026-11-24) |
-| reader | **P1 (default)** | the same fit by Poisson likelihood (the default since 2026-11-24) |
-| reader | P1+P2+P3 | P1, width fixed at the detector's (Fano 0.115), Si escapes stripped (the reader's options) |
+| reader | window | Sum All over the line window (line ± 2 FWHM) |
+| reader | fit, old weights | "Fit lines", Gaussian on a quadratic in the line window, data weights (the default before 2026-11-24) |
+| reader | **Poisson fit (default)** | the same fit by Poisson likelihood (the default since 2026-11-24) |
+| reader | Poisson fit + fixed width + escapes removed | Poisson fit, width fixed at the detector's (Fano 0.115), Si escapes stripped (the reader's options) |
 | others | XeRay | MATLAB tool of the Lee group (U. Chicago) for XFNTR; ported line for line: Gaussian on a line, unweighted |
 | others | PyMca 5.9.7 | whole-spectrum fit: all lines, Rayleigh and Compton peaks, escapes, SNIP background; five settings |
 | others | PyXRF (scikit-beam 0.0.27) | PyXRF's engine: nonlinear fit of the summed series, then NNLS per spectrum |
@@ -70,9 +73,9 @@ right shape, and honest error bars.
 | Method | Accurate in (of 43 conditions) | Never fails in |
 |---|---|---|
 | reader: window | 2 | 43 |
-| reader: fit (data) | 9 | 23 |
-| **reader: P1 (default)** | **11** | 23 |
-| **reader: P1+P2+P3** | **13** | 24 |
+| reader: fit, old weights | 9 | 23 |
+| **reader: Poisson fit (default)** | **11** | 23 |
+| **reader: Poisson fit + fixed width + escapes removed** | **13** | 24 |
 | XeRay | 11 | 43 |
 | PyMca, default (SNIP 30) | 7 | 43 |
 | PyMca, best single setting | 7 | 43 |
@@ -84,9 +87,9 @@ right shape, and honest error bars.
 **What separates them is what each does when the line sits on the scatter.**
 
 - **The reader's fits refuse rather than guess.** In 19 of the 43
-  conditions, P1's own checks reject most spectra (54–100 %). These are
+  conditions, *Poisson fit*'s own checks reject most spectra (54–100 %). These are
   the hard Zn case at 10 keV and its variants, Br at 13.6 keV, and Sr at
-  16.2 keV. Where P1+P2+P3 does answer in those conditions, it is off by
+  16.2 keV. Where *Poisson fit + fixed width + escapes removed* does answer in those conditions, it is off by
   −22 to +5 % (mostly −5 to −14 %).
 - **The whole-spectrum packages always answer, and are mostly wrong
   there.** In the same 19 conditions:
@@ -106,7 +109,7 @@ cancels; an error that changes along the curve does not. Each cell is
 the worst point's deviation from the true shape after one free scale,
 over points with at least 100 true counts.
 
-| Curve | P1 | P1+P2+P3 | best PyMca (oracle) | Larch | XeRay | PyXRF |
+| Curve | Poisson fit | Poisson fit + fixed width + escapes removed | best PyMca (oracle) | Larch | XeRay | PyXRF |
 |---|---|---|---|---|---|---|
 | smooth, Zn 2e4 at Qc | **0.5** | 0.6 | 2.2 | 1.2 | 2.4 | 6.1 |
 | smooth, weak (2e3 at Qc) | **4.9** | **4.9** | 9.1 | 5.9 | 21.1 | 79.6 |
@@ -123,7 +126,7 @@ over points with at least 100 true counts.
   Qc the bulk scatter grows, and PyMca's bias follows the
   scatter-to-line ratio. That gives a 6–12 % step in the curve (X3,
   orange) even where its single-spectrum bias looked small. The
-  reader's box fit has no such step, because its background is local.
+  reader's fit in the line window has no such step, because its background is local.
 
 ### 3. Are the error bars honest? (X4)
 
@@ -132,11 +135,11 @@ should be 1. Medians over the conditions where fits do not fail:
 
 | Method | Median pull SD | Range | Reads as |
 |---|---|---|---|
-| P1+P2+P3 | 1.03 | 0.98–1.22 | honest |
-| P1 (default) | 1.07 | 0.99–1.33 (4.8 for Ga beside Zn, where the fit takes the wrong line) | honest |
-| fit (data) | 1.13 | 1.01–1.3 (4.9 for Ga beside Zn) | slightly small |
+| Poisson fit + fixed width + escapes removed | 1.03 | 0.98–1.22 | honest |
+| Poisson fit (default) | 1.07 | 0.99–1.33 (4.8 for Ga beside Zn, where the fit takes the wrong line) | honest |
+| fit, old weights | 1.13 | 1.01–1.3 (4.9 for Ga beside Zn) | slightly small |
 | PyMca | 1.58 | 1.0–2.05 | 1.3–2× too small under scatter |
-| XeRay | 1.92 | 1.0–11.7 | √(counts in the box) leaves out the background's uncertainty |
+| XeRay | 1.92 | 1.0–11.7 | √(counts in the line window) leaves out the background's uncertainty |
 | Larch (each) | 0.60 | 0.2–1.0 | too large |
 | window | 0.59 | | too large, and the value is wrong anyway |
 | PyXRF, Larch (series) | — | | no error bars |
@@ -147,7 +150,7 @@ should be 1. Medians over the conditions where fits do not fail:
 
 This is a clean line with no scatter, so only the weighting matters.
 
-| Line photons | fit (data) | P1 | P1+P2+P3 | XeRay | best PyMca | PyXRF | Larch |
+| Line photons | fit, old weights | Poisson fit | Poisson fit + fixed width + escapes removed | XeRay | best PyMca | PyXRF | Larch |
 |---|---|---|---|---|---|---|---|
 | 30 | −22 % | +23 % | **+2.1 %** | +35 % | +7.0 % | +29 % | +48 % |
 | 60 | −31 % | +2.7 % | **−0.6 %** | +2.3 % | −3.1 % | +1.0 % | +12 % |
@@ -159,7 +162,7 @@ This is a clean line with no scatter, so only the weighting matters.
   data weights) reads +16 % at 60 photons.
 - **The others are 10–25 % more precise on an isolated line** (12
   conditions, "others better (precision)" in X5). For example, the RMS
-  error at 100 photons is 15.8 % for Larch against 19.4 % for P1+P2+P3,
+  error at 100 photons is 15.8 % for Larch against 19.4 % for *Poisson fit + fixed width + escapes removed*,
   and 3.6 % for PyMca SNIP 60 against 4.2 % at 1000 photons. There are
   two reasons:
   - they also use the Kβ photons (+12 %);
@@ -173,15 +176,15 @@ This is a clean line with no scatter, so only the weighting matters.
 
 | Case | Reader's best | Others' best | Verdict |
 |---|---|---|---|
-| Ga 1e2 beside Zn 1e3 at 12 keV (Zn Kβ 9.57, Ga Kα 9.25 keV) | P1+P2+P3 +2.5 %, 45 % fail; P1 +203 % | **PyMca −1.1 %** | others better |
-| Co 1e2 beside Fe 1e3 (Fe Kβ 7.06, Co Kα 6.93 keV) | P1+P2+P3 +53 % | **PyMca +2.8 %** | others nearly; the box fit fails |
-| Fe with Mn (Mn Kβ under Fe Kα) | P1+P2+P3 +6.9 % | Larch −4.1 % | neither |
+| Ga 1e2 beside Zn 1e3 at 12 keV (Zn Kβ 9.57, Ga Kα 9.25 keV) | Poisson fit + fixed width + escapes removed +2.5 %, 45 % fail; Poisson fit +203 % | **PyMca −1.1 %** | others better |
+| Co 1e2 beside Fe 1e3 (Fe Kβ 7.06, Co Kα 6.93 keV) | Poisson fit + fixed width + escapes removed +53 % | **PyMca +2.8 %** | others nearly; the fit in the line window fails |
+| Fe with Mn (Mn Kβ under Fe Kα) | Poisson fit + fixed width + escapes removed +6.9 % | Larch −4.1 % | neither |
 | As Kα under Pb Lα at 14 keV (0.01 keV apart) | +83 % | PyMca SNIP60 −11 % (RMS 111 %) | neither |
 | Zn with Cu, under the 10 keV scatter | fails (78–100 %) | PyMca −22 to −27 % | neither |
 
-**Where a neighbouring line sits in or beside the box, a whole-spectrum
-fit is right and the reader's box fit is wrong.** The reader has no
-way to place a known neighbour in the box. Study B's gauntlet had one
+**Where a neighbouring line sits in or beside the line window, a whole-spectrum
+fit is right and the reader's fit in the line window is wrong.** The reader has no
+way to place a known neighbour in the line window. Study B's gauntlet had one
 (`fit_known`, a comparator), but it is not a reader option.
 
 ### 6. Calibration and detector errors
@@ -190,10 +193,10 @@ All of these were run on the 10 keV hard case, where everyone fails, so
 they do not separate the methods; that is a limit of the design. One
 detector result does stand:
 
-- **P2's width is only as good as its Fano factor.** On the measured
-  detector (Fano 0.137, not the 0.115 P2 assumes) at 12 keV:
-  - P1+P2+P3: −5.5 %;
-  - P1 alone: −0.2 %.
+- **The fixed width is only as good as its Fano factor.** On the measured
+  detector (Fano 0.137, not the 0.115 the fixed width assumes) at 12 keV:
+  - *Poisson fit + fixed width + escapes removed*: −5.5 %;
+  - *Poisson fit* alone: −0.2 %.
 
   The fixed width is about 6 % too narrow.
 
@@ -203,19 +206,19 @@ No. The hard case was run with water's Compton from tabulated
 Hartree–Fock profiles (Biggs, via xraylib; the default here) and with
 study B's shell model:
 
-| Compton model | P1+P2+P3 | best PyMca |
+| Compton model | Poisson fit + fixed width + escapes removed | best PyMca |
 |---|---|---|
 | tabulated Hartree–Fock | −7.6 %, 70 % fail | −20.6 % |
 | study B's shell model | −7.9 %, 65 % fail | −19.8 % |
 
-The two profiles agree within 1 % in the Zn box. The total Compton
+The two profiles agree within 1 % in the Zn line window. The total Compton
 scatter matches xraylib's incoherent scattering function within 1.2 %
 (`tests/test_mca_more.py`). Halving the O 1s wing still leaves the
 reader failing 66 % of fits.
 
 ### 8. The beam-energy route, confirmed on the measured detector
 
-| Beam | P1 | P1+P2+P3 | best PyMca | Larch | XeRay |
+| Beam | Poisson fit | Poisson fit + fixed width + escapes removed | best PyMca | Larch | XeRay |
 |---|---|---|---|---|---|
 | hard, 10 keV | fails 80 % | −7.6 %, fails 70 % | −20.6 % | +34 % | +529 % |
 | hard, 11 keV | −4.2 % | **−0.6 %** | +1.3 % (SNIP 60 only; default −17 %) | −33 % | −28 % |
@@ -231,9 +234,9 @@ can choose without the truth.**
 | Method | Seconds per spectrum |
 |---|---|
 | window | 0.0001 |
-| fit (data) | 0.002 |
-| P1 | 0.004 |
-| P1+P2+P3 | 0.008 |
+| fit, old weights | 0.002 |
+| Poisson fit | 0.004 |
+| Poisson fit + fixed width + escapes removed | 0.008 |
 | XeRay port | 0.013 |
 | PyMca | 0.025 |
 | PyMca tails | 0.05 |
@@ -251,13 +254,13 @@ test (`tests/tools/xrf_blanks.py`; tables in `blanks_tables.md`).
 
 **How.** These are the 10 committed real blanks with no line in their
 region (`tests/reference/mca_scatter/`):
-- E10-k and E10-f: 10 keV, readout A;
-- E9.2-a…d and E6.1-a…d: 9.2 and 6.1 keV, readout B, pre-edge sums.
+- 10 keV blanks k and f: 10 keV, the single-element detector;
+- 9.2 keV blanks a…d and 6.1 keV blanks a…d: 9.2 and 6.1 keV, the 7-element detector, pre-edge sums.
 
-E10-d, E10-i and E10-j hold traces of Cu and Zn, so they were not used.
+10 keV blanks d, i and j hold traces of Cu and Zn, so they were not used.
 Each spectrum is built in three steps:
 - **Thin the blank.** Each count is kept with probability p (p ≤ 0.23),
-  so that 1000 or 3000 counts remain in the line's box. That is a fresh
+  so that 1000 or 3000 counts remain in the line window. That is a fresh
   Poisson spectrum with the real shape.
 - **Add a synthetic line family** (xraylib's lines and ratios) with
   0.1, 0.3, 1 or 3 times those counts in photons.
@@ -274,7 +277,7 @@ blanks:
 - 9.2 keV: Cu K and Ni K;
 - 6.1 keV: Cr K, Ti K and La L.
 
-The single-option variants P1+P2 and P1+P3 ran on the same spectra (the
+The single-option variants *Poisson fit + fixed width* and *Poisson fit + escapes removed* ran on the same spectra (the
 same seeds).
 
 **Accurate conditions of 192** (|bias| ≤ 2 %, ≤ 5 % failed, known to 1 %;
@@ -282,11 +285,11 @@ X11):
 
 | Method | Accurate | Median \|bias\|, line ≥ background | Pull SD |
 |---|---|---|---|
-| P1+P3 (escape strip, free width) | **49** | 2.2 % | 1.08 |
-| P1+P2+P3 | 47 | 2.3 % | 1.01 |
-| fit (data) | 33 | 5.0 % | 1.11 |
-| P1 (default) | 31 | 4.9 % | 1.06 |
-| P1+P2 | 25 | 4.0 % | 0.98 |
+| Poisson fit + escapes removed (free width) | **49** | 2.2 % | 1.08 |
+| Poisson fit + fixed width + escapes removed | 47 | 2.3 % | 1.01 |
+| fit, old weights | 33 | 5.0 % | 1.11 |
+| Poisson fit (default) | 31 | 4.9 % | 1.06 |
+| Poisson fit + fixed width | 25 | 4.0 % | 0.98 |
 | PyMca, best single setting (tails) | 20 | 6.4 % | 1.79 |
 | PyMca (default) | 17 | 7.0 % | 1.56 |
 | PyXRF | 15 | 10.9 % | none |
@@ -300,37 +303,37 @@ X11):
 - **The escape peak of the scatter fools a fit that ignores it.** It sits
   at 7.46 keV under a 9.2 keV beam, on Ni Kα (7.47), and at 4.36 keV
   under 6.1 keV, beside Ti Kα (4.51) and La Lα (4.65).
-  - P1 alone reads Ni at +22 % when line = background, and +6 % at
+  - *Poisson fit* alone reads Ni at +22 % when line = background, and +6 % at
     three times.
   - On the bare blank it reports a Ni line of 26–35 photons per 100
     background counts, and its fit does not fail.
-  - With the strip and the fixed width (P1+P2+P3), Ni is within 0.6 % at
+  - With the strip and the fixed width (*Poisson fit + fixed width + escapes removed*), Ni is within 0.6 % at
     every strength from 0.3 up, and the false line falls to 3–4 per 100.
-    With the strip alone (P1+P3), Ni reads +2.5 % at line = background
+    With the strip alone (*Poisson fit + escapes removed*), Ni reads +2.5 % at line = background
     and +16 % at 0.3.
-- **Zn under a 10 keV beam is measurable on the real readout A once the
-  line is as strong as the background under it.** P1+P3 reads +0.2 %
-  (line = background) and −0.2 % (three times). P1+P2+P3 reads −4.4 %
-  and −3.7 %, because P2 fixes the width at Fano 0.115 and this
+- **Zn under a 10 keV beam is measurable on the single-element detector's real blanks once the
+  line is as strong as the background under it.** *Poisson fit + escapes removed* reads +0.2 %
+  (line = background) and −0.2 % (three times). *Poisson fit + fixed width + escapes removed* reads −4.4 %
+  and −3.7 %, because the fixed width is held at Fano 0.115 and this
   detector's is 0.137; that is the same −4 to −5 % seen on the
   synthetic measured detector (§8). PyMca's default reads −29 % and
-  −5 %. §1's "nobody" holds for weaker lines (0.05 of the box's
+  −5 %. §1's "nobody" holds for weaker lines (0.05 of the line window's
   background there): at 0.1 every method is off by more than 2 %.
 - **PyMca's error bars are again too small** (pull SD 1.56–1.87). The
   reader's are again honest (0.98–1.08).
-- **No method is accurate at line = 0.1 × background.** At 0.3, P1+P2+P3
+- **No method is accurate at line = 0.1 × background.** At 0.3, *Poisson fit + fixed width + escapes removed*
   is the most accurate (7 conditions), and the fixed width is what helps
   there.
 
 **Where the reader still loses on real scatter:**
-- **Ti K at 6.1 keV, line = background:** P1+P3 −12 %, P1+P2+P3 −7 %;
-  PyMca's best setting is +2.6 %. P1 alone reads +16 % there, so the
+- **Ti K at 6.1 keV, line = background:** *Poisson fit + escapes removed* −12 %, *Poisson fit + fixed width + escapes removed* −7 %;
+  PyMca's best setting is +2.6 %. *Poisson fit* alone reads +16 % there, so the
   strip over-corrects next to Ti.
-- **La L at 6.1 keV:** P1+P2+P3 +10 % at line = background; PyMca's best
-  setting is +3 %. The box holds Lα only; the Lβ lines at 5.0–5.4 keV
+- **La L at 6.1 keV:** *Poisson fit + fixed width + escapes removed* +10 % at line = background; PyMca's best
+  setting is +3 %. The line window holds Lα only; the Lβ lines at 5.0–5.4 keV
   sit outside it and in the scatter.
 
-**The verdict on real scatter.** The reader with the escape strip is the
+**The verdict on real scatter.** The reader with the escape removal is the
 most accurate method that a user can run without knowing the answer:
 49 conditions against 20 for the best fixed PyMca setting. Its error
 bars are the only honest ones. PyMca beats it only when its background
@@ -341,7 +344,7 @@ setting is chosen per condition with the truth (56).
 With the owner's key (2026-11-25), the private MCA bundle was decrypted
 into the git-ignored `sample_data/private/`. Its 19 burn series are real
 lines on real scatter:
-- readout A, a 10 keV beam;
+- the single-element detector, a 10 keV beam;
 - a line near 8 keV;
 - 21 spectra of 15 s each at one spot;
 - 27 to 4500 line counts per spectrum (median 220).
@@ -367,40 +370,40 @@ checks that need none. Only summary values per series are published
 
 | Method | 27–58 counts (9 series) | 220–250 (2) | 1700–4500 (8) | Pull SD (twins) |
 |---|---|---|---|---|
-| P1 (default) | −7 to −25 % | −0.2 to −0.7 % | −0.1 to +0.4 % | 0.99 (4.8 on one) |
-| P1+P3 | −6 to −25 % | −0.2 to −0.8 % | 0.0 to +0.4 % | 0.99 |
-| **P1+P2+P3** | **−2 to −7.5 %** | −2.0 to −3.7 % | −2.1 to +0.4 % | **1.02** (0.95–1.11) |
+| Poisson fit (default) | −7 to −25 % | −0.2 to −0.7 % | −0.1 to +0.4 % | 0.99 (4.8 on one) |
+| Poisson fit + escapes removed | −6 to −25 % | −0.2 to −0.8 % | 0.0 to +0.4 % | 0.99 |
+| **Poisson fit + fixed width + escapes removed** | **−2 to −7.5 %** | −2.0 to −3.7 % | −2.1 to +0.4 % | **1.02** (0.95–1.11) |
 | PyMca | −12.5 to +13 % | −22 to −23 % | −2.4 to −6.3 % | 1.03 (0.53–1.63) |
 | PyXRF | median −9.6 % over all | | | none |
 | Larch | median −28 % over all | | | none |
-| fit (data) | median −37 % over all | | | 0.89 |
+| fit, old weights | median −37 % over all | | | 0.89 |
 
 (`real_tables.md` holds every method and the ranges.)
 
 **What this adds:**
-- **At low counts the fixed width (P2) is what keeps the reader
+- **At low counts the fixed width is what keeps the reader
   honest.** It holds the bias to −2 to −7.5 %, where a free width gives
   −6 to −25 %. Its error bars stay honest in every series (0.95–1.11). This
   confirms the synthetic counts result (§4) on real spectra.
 - **At high counts every reader fit is within 0.4 % of its own answer,
-  except P2-based ones within 2 %.** PyMca reads 2.4–6 % low there and
+  except those with the fixed width within 2 %.** PyMca reads 2.4–6 % low there and
   22 % low at about 230 counts. Its error bars are 1.5–2 × too large at
   low counts (pull SD 0.53–0.69) and 1.5–1.6 × too small at about 230.
 - **The methods disagree by ±11 % on the high-count sums.** The two
-  P2-based reader methods read 11 % below the median. This is the one
-  real-data warning against P2 as built: **the line near 8 keV is 21 %
-  wider than readout A's resolution measured on the blanks** (range
-  5–37 % over the series; the Kα doublet adds 1–2 %), and P2 fixes the
+  the reader's methods with the fixed width read 11 % below the median. This is the one
+  real-data warning against the fixed width as built: **the line near 8 keV is 21 %
+  wider than the single-element detector's resolution measured on the blanks** (range
+  5–37 % over the series; the Kα doublet adds 1–2 %), and the fixed width holds the
   width at 0.93 × that resolution. A fixed width needs the measured
   width of the line, not the detector's nominal resolution.
   **Why (models study, `docs/studies/xrf_models/README.md` §2b):** readout
   A is three detector setups. The resolution measured on the blanks came
-  from E10-k's setup; the burn series were recorded in E10-f's, where
-  real lines are 1.19–1.24 × that resolution. In E10-k's setup real lines
+  from 10 keV blank k's setup; the burn series were recorded in 10 keV blank f's, where
+  real lines are 1.19–1.24 × that resolution. In 10 keV blank k's setup real lines
   are 1.03 × it. The width belongs to the setup, not to the line's shape.
 - **The self-consistency check the scatter study used** (singles against
   their own sum) is blind to a bias that also affects the sum. On these
-  series it reads 0.0 % for P1 (median), while the twins show −7 to −25 %
+  series it reads 0.0 % for *Poisson fit* (median), while the twins show −7 to −25 %
   at the lowest counts. The twins are the better test.
 - PyMca's polynomial continuum fails on these spectra, as it did on the
   synthetic ones.
@@ -415,7 +418,7 @@ on the beamline is what would settle which absolute number is right.
 1. **Better: the shape of XFNTR curves and the error bars.**
    - Curve shape: best in 6 of 8 curves, tied in one, behind XeRay on Er L.
    - Error bars: honest within 3–7 %, the only ones that are.
-   - Low counts: unbiased with P1+P2+P3 down to 30 photons.
+   - Low counts: unbiased with *Poisson fit + fixed width + escapes removed* down to 30 photons.
 2. **The same: an isolated line clear of the scatter.** Everyone who
    gets it right agrees within 1 %.
 3. **Worse in two places:**
@@ -426,17 +429,17 @@ on the beamline is what would settle which absolute number is right.
 4. **Nobody can measure a weak Zn Kα under a 10 keV beam within 2 %**
    (line 0.05 of the scatter under it). The reader refuses. The others
    answer −20 % (PyMca), −100 % (PyXRF) or worse. Once the line is as
-   strong as the background under it, P1+P3 is within 0.2 % on the real
-   readout A blanks (§10).
+   strong as the background under it, *Poisson fit + escapes removed* is within 0.2 % on the real
+   the single-element detector blanks (§10).
 5. **On the real blanks (§10) the reader with its escape strip is the
    most accurate method run blind**: 49 of 192 conditions, against 20
    for the best fixed PyMca setting. Without the strip, the escape peak
    of the scatter is read as a line (Ni +22 % under 9.2 keV).
-6. **On real lines (§11)** the reader's P1+P2+P3 has the smallest
+6. **On real lines (§11)** the reader's *Poisson fit + fixed width + escapes removed* has the smallest
    low-count bias (−2 to −7.5 % at 27–58 counts per spectrum) and honest
    error bars in every series. At high counts the reader is within
-   0.4 %, and PyMca reads 2.4–6 % low. P2's fixed width, though, is
-   narrower than the real line (by 21 %), so P2-based answers on the sums
+   0.4 %, and PyMca reads 2.4–6 % low. The fixed width, though, is
+   narrower than the real line (by 21 %), so the answers with the fixed width on the sums
    sit 11 % below the other methods'.
 
 ## What would close the gaps
@@ -444,23 +447,23 @@ on the beamline is what would settle which absolute number is right.
 These are suggestions, not done. By rule 12 a default changes only with
 its own study.
 
-- **Known neighbours in the box**: place the tabulated lines of the
+- **Known neighbours in the line window**: place the tabulated lines of the
   other elements present at fixed energies, with the same width. Study
   B's `fit_known` comparator is half of this. That would cover Ga/Zn and
   Co/Fe.
-- **Use Kβ and a lighter background when the box is clean**: a linear
+- **Use Kβ and a lighter background when the line window is clean**: a linear
   background option, or a joint Kα+Kβ fit at the tabulated ratio. That
   would win back the precision.
-- **The escape strip (P3) on by default**, once rule 12's steps are
+- **Escape removal on by default**, once rule 12's steps are
   done: on the real blanks it is what separates the reader's methods
-  (P1 31 conditions, P1+P3 49). It needs the detector's escape factor,
+  (*Poisson fit* 31 conditions, *Poisson fit + escapes removed* 49). It needs the detector's escape factor,
   which `docs/studies/mca_scatter` measured per readout.
-- **P2's width from the line itself**: on the real series the line is
+- **The fixed width taken from the line itself**: on the real series the line is
   21 % wider than the detector's measured resolution (that resolution is
   another setup's: `docs/studies/xrf_models/README.md` §2b), so a width taken
   from the summed series' own fit (as `fit_series` already does for the
-  centres) would keep P2's low-count benefit without its 11 % deficit.
-- **P2's width from the detector's own Fano factor and noise**,
+  centres) would keep the fixed width's low-count benefit without its 11 % deficit.
+- **The fixed width taken from the detector's own Fano factor and noise**,
   calibrated on the elastic peak, instead of the textbook Fano 0.115.
 - **Kβ/Kα in `mca.ELEMENTS` is 16–28 % low** against xraylib. Only the
   synthetic data is affected: the reader fits Kα only.
@@ -478,8 +481,8 @@ its own study.
   series the bundle's hand-off selects). The other private
   spectra (energy scans above the edges, the excluded 10 keV sums) are
   not yet used.
-- **Ten blanks, two readouts, three beam energies.** Readout A at 10 keV
-  has two blanks; 9.2 and 6.1 keV are pre-edge sums on readout B
+- **Ten blanks, two detectors, three beam energies.** The single-element detector at 10 keV
+  has two blanks; 9.2 and 6.1 keV are pre-edge sums on the 7-element detector
   (rebinned, counts rounded). Thinning one blank many times gives
   replicates that share at most 23 % of their counts, so the between-blank
   range in `blanks_tables.md` is the better measure of spread.

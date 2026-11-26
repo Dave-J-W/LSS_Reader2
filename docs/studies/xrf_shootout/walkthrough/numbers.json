@@ -1,0 +1,180 @@
+{
+ "example": {
+  "condition": "E9.2-a|Ni K|1000|1",
+  "blank": "E9.2-a",
+  "readout": "B",
+  "beam_keV": 9.2,
+  "target": "Ni K",
+  "line_keV": 7.472,
+  "fwhm_keV": 0.1666,
+  "box_keV": [
+   7.139,
+   7.805
+  ],
+  "blank_counts_total": 2319201,
+  "blank_counts_in_box": 16059,
+  "thinning_p": 0.06227,
+  "background_in_box": 1000,
+  "photons_injected": 1000.0,
+  "truth_family_photons": 1000.0,
+  "escape_of_beam_keV": 7.46
+ },
+ "one_spectrum": {
+  "counts_in_box": 1810,
+  "expected_in_box": 1847.0,
+  "line_expected_in_box": 846.5
+ },
+ "fit": {
+  "p1": {
+   "estimate": 1077.0,
+   "error": 71.98,
+   "truth": 1000.0,
+   "ratio": 1.077,
+   "pull": 1.076,
+   "k_calibration": 0.8178,
+   "points": 66,
+   "chi2": 65.79,
+   "dof": 62,
+   "chi2_dof": 1.061,
+   "centre_keV": 7.461,
+   "fwhm_keV": 0.1763
+  },
+  "p1p3": {
+   "estimate": 925.3,
+   "error": 68.24,
+   "truth": 1000.0,
+   "ratio": 0.9253,
+   "pull": -1.094,
+   "k_calibration": 0.8178,
+   "points": 66,
+   "chi2": 76.16,
+   "dof": 62,
+   "chi2_dof": 1.228,
+   "centre_keV": 7.47,
+   "fwhm_keV": 0.169
+  },
+  "p1p2p3": {
+   "estimate": 945.4,
+   "error": 69.5,
+   "truth": 1000.0,
+   "ratio": 0.9454,
+   "pull": -0.7859,
+   "k_calibration": 0.8256,
+   "points": 66,
+   "chi2": 75.45,
+   "dof": 62,
+   "chi2_dof": 1.217,
+   "centre_keV": 7.47,
+   "fwhm_keV": 0.1732
+  }
+ },
+ "replicates": {
+  "p1": {
+   "spectra": 500,
+   "bias": 0.2043,
+   "bias_se": 0.003816,
+   "sd": 0.08532,
+   "pull_mean": 2.72,
+   "pull_sd": 1.083,
+   "committed_bias": 0.2043,
+   "committed_bias_se": 0.003816,
+   "accurate": false
+  },
+  "p1p3": {
+   "spectra": 500,
+   "bias": 0.03334,
+   "bias_se": 0.003546,
+   "sd": 0.07929,
+   "pull_mean": 0.4515,
+   "pull_sd": 1.11,
+   "committed_bias": 0.03334,
+   "committed_bias_se": 0.003546,
+   "accurate": false
+  },
+  "p1p2p3": {
+   "spectra": 500,
+   "bias": 0.02353,
+   "bias_se": 0.003216,
+   "sd": 0.07192,
+   "pull_mean": 0.3322,
+   "pull_sd": 1.027,
+   "committed_bias": 0.02353,
+   "committed_bias_se": 0.003216,
+   "accurate": false
+  }
+ },
+ "verdicts": {
+  "window": {
+   "bias": 1.18,
+   "bias_se": 0.002171,
+   "accurate": false
+  },
+  "fit_data": {
+   "bias": 0.2074,
+   "bias_se": 0.003864,
+   "accurate": false
+  },
+  "p1": {
+   "bias": 0.2043,
+   "bias_se": 0.003816,
+   "accurate": false
+  },
+  "p1p3": {
+   "bias": 0.03334,
+   "bias_se": 0.003546,
+   "accurate": false
+  },
+  "p1p2p3": {
+   "bias": 0.02353,
+   "bias_se": 0.003216,
+   "accurate": false
+  },
+  "xeray": {
+   "bias": 0.1441,
+   "bias_se": 0.002795,
+   "accurate": false
+  },
+  "pymca": {
+   "bias": -0.3176,
+   "bias_se": 0.002512,
+   "accurate": false
+  },
+  "pyxrf": {
+   "bias": 0.2194,
+   "bias_se": 0.002457,
+   "accurate": false
+  }
+ },
+ "ratios": {
+  "p1": {
+   "0.1": 3.348,
+   "0.3": 0.9821,
+   "1.0": 0.2043,
+   "3.0": 0.05308
+  },
+  "p1p3": {
+   "0.1": 5.739,
+   "0.3": 0.198,
+   "1.0": 0.03334,
+   "3.0": 0.002066
+  },
+  "p1p2p3": {
+   "0.1": 0.05931,
+   "0.3": 0.03998,
+   "1.0": 0.02353,
+   "3.0": 0.01058
+  },
+  "pymca": {
+   "0.1": 0.8683,
+   "0.3": 0.01297,
+   "1.0": -0.3176,
+   "3.0": -0.05797
+  }
+ },
+ "false_signal_per100": {
+  "p1": 32.31,
+  "p1p3": 37.92,
+  "p1p2p3": 3.378,
+  "pymca": 12.32
+ }
+}
