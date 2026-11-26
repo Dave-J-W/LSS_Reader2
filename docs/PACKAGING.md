@@ -31,12 +31,42 @@ On your own machine (same platform as the build you want):
   byte. Exit code 0 when both match. `$LSS_SELFTEST_REPORT` also writes
   the report to a file (a Windows build has no console).
 
-## Measured (2026-11-18, Linux, this container)
+## Measured
 
-A Linux build from this recipe (PyInstaller 6.22.3, Python 3.13): 464 MB
-unpacked; its self-test passed from the repository and from another
-folder. The Windows and macOS builds have not been run yet: they need the
-workflow to be started once on GitHub.
+- **2026-11-18, Linux, this container:** a build from this recipe (PyInstaller 6.22.3, Python 3.13), 464 MB
+  unpacked; its self-test passed from the repository and from another folder.
+- **2026-11-26, Linux, again** (the code of `main` at d69f054, for the release): 466 MB; the self-test passed
+  from another folder (window with 9 tabs; `_ref.txt` and `_rrf.txt` identical).
+- **2026-11-26, GitHub, the workflow started by hand on `main` at d69f054** (run 45751301360, 4 min): **both
+  built and passed their self-test.** On Windows: the window opened with 9 tabs, and `_ref.txt` and `_rrf.txt`
+  were identical to the reference. Downloads: `LSS_Reader-Windows` 129 MB and `LSS_Reader-macOS` 292 MB
+  (zipped), kept until 2027-02-24. The sample-data download is added from the next run on. Not yet done:
+  the clean-PC test below (a person on a Windows PC without Python).
+
+## Clean-PC test (release blocker 4, `docs/RELEASE_PLAN.md`)
+
+Done by a person on a Windows PC that has never had Python or the reader on it. A Windows Sandbox (a
+throwaway clean Windows: Settings → Optional features → Windows Sandbox) is as good.
+
+1. **Download** both zip files from the build run's page (Actions → build → the run → Artifacts):
+   `LSS_Reader-Windows` (the program) and `LSS_Reader-sample-data` (the NX school data and the reference
+   files). Unzip both into one folder, say `C:\LSS`.
+2. **Start it:** double-click `C:\LSS\LSS_Reader\LSS_Reader.exe`. The window should open within about
+   30 s, with no console and no error. Help → About shows the version.
+3. **The self-test,** in a Command Prompt:
+
+       set LSS_SELFTEST_REPORT=C:\LSS\selftest.txt
+       C:\LSS\LSS_Reader\LSS_Reader.exe --self-test C:\LSS\sample_data\NX_school\2026sep\20260923 C:\LSS\tests\reference\legacy_export\nx_scans_6-9
+       type C:\LSS\selftest.txt
+
+   The last lines should read `_ref.txt: identical`, `_rrf.txt: identical`, `self-test passed`.
+4. **By hand,** following `docs/manual/quick_start.md`:
+   - File → Open Spec File: `C:\LSS\sample_data\NX_school\2026sep\20260923`;
+   - choose the series of scans 6–9, tick Select All, then Pilatus → Ref Patch, and Next>> three times;
+   - Reflectivity → Export, to the Desktop. Two files appear: `<name>_ref.txt` and `<name>_rrf.txt`.
+5. **XModFit** (on the owner's machine) reads the `_ref.txt`.
+6. **Report on #55:** pass or fail for each step, the Windows version, and anything in the Messages pane
+   (View → Messages).
 
 ## Open (owner's decisions)
 

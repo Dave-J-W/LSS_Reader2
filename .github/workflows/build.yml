@@ -41,6 +41,14 @@ jobs:
         env:
           LSS_SELFTEST_REPORT: selftest.txt
         run: dist/LSS_Reader.app/Contents/MacOS/LSS_Reader --self-test sample_data/NX_school/2026sep/20260923 tests/reference/legacy_export/nx_scans_6-9
+      - name: Keep the sample data beside the build (for the clean-PC test, docs/PACKAGING.md)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: LSS_Reader-sample-data
+          path: |
+            sample_data/NX_school
+            tests/reference/legacy_export
       - uses: actions/upload-artifact@v4
         with:
           name: LSS_Reader-${{ runner.os }}
