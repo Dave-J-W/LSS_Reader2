@@ -675,7 +675,7 @@ flowchart TD
 | session.absorber (shared.absorber) | Check the absorber factor per unit (from the energy by default, calibrated foils at 9.70-10.30 keV) | left panel; File > Preferences > Absorber foils | `AbsFacLineEdit`, `absFacEnergyCheckBox`, `actionPreferences`, `prefCalibratedCheckBox` | keep 'from E' (default on, D34) or type a factor | yes |  | owner 2026-11-17/18 (D23, D25, D34, F56); code | The field shows 'cal' when calibrated foils are used; what is used where (Ref Patch measures the scale, D21) is only in tooltips |
 | session.errors (shared.errors) | Choose the error model (Legacy default, or Budget with a monitor model) | Errors pane (dock) | `errorModeComboBox`, `monitorKindComboBox`, `errorModel_sigma` | Legacy (default, byte-identical files) or Budget | yes |  | owner 2026-11-17 (D20, D22, D26); code | A global setting in a dock, far from the reductions it changes; which default the export should use is open (TODO B) |
 | session.panes (shared.script) | Read or copy the equivalent lss_core call from the Script pane; messages in the Messages pane | Script and Messages panes (docks), View menu | `scriptView`, `messageView`, `menuView` |  | yes |  | code; docs docs/SCRIPTING.md |  |
-| session.workbook (shared.workbook) | The finished reduction is saved into <SPEC file>_reader.xlsx automatically; Save stores a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `prefAutoSaveCheckBox`, `prefSaveNoteCheckBox`, `readOnlyLightLabel` | whether to add a 'user' version with a note | yes |  | owner 2026-11-21/22 (D53, D56), D1; tests tests/test_gui_workbook.py, tests/test_gui_reader_lock.py | Automatic saves report in the status bar only; there is no view of the workbook inside the reader<br>A second reader of the same SPEC file saves nothing (D1, 2026-11-25): the yellow light says so, and it saves again once the first closes |
+| session.workbook (shared.workbook) | The finished reduction is saved into <SPEC file>_reader.xlsx automatically; Save stores a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `prefAutoSaveCheckBox`, `prefSaveNoteCheckBox`, `readOnlyLightLabel`, `actionGiveUpWriteAccess`, `actionAskWriteAccess` | whether to add a 'user' version with a note | yes |  | owner 2026-11-21/22 (D53, D56), D1; tests tests/test_gui_workbook.py, tests/test_gui_reader_lock.py | Automatic saves report in the status bar only; there is no view of the workbook inside the reader<br>A second reader of the same SPEC file saves nothing (D1, 2026-11-25): the yellow light says so, and it saves again once the first closes |
 
 ## Controls by workflow
 
@@ -1130,6 +1130,8 @@ flowchart TD
 | `messageDock_toggleViewAction` Messages |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `scriptDock_toggleViewAction` Script |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `errorDock_toggleViewAction` Errors |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
+| `actionGiveUpWriteAccess` Give up the workbook's write access |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `actionAskWriteAccess` Ask for the workbook's write access |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `actionFitResiduals` Residuals above fits |  |  |  |  |  |  |  |  | S |  |  |  | i |  |
 
 ### Messages pane

@@ -178,6 +178,7 @@ def environment(run_dir, base=None, gui=False):
         env['QT_QPA_PLATFORM'] = env.get('LSS_TOOLBOX_QPA', 'offscreen')
     if run_dir:
         env['LSS_READER_LOG_DIR'] = os.path.join(run_dir, 'logs')
+        env['LSS_READER_LOCK_AT_OPEN'] = '0'    # D1: a tool's windows write no workbook lock beside the data (rule 7)
         env['LSS_READER_PREFS'] = os.path.join(run_dir, 'preferences.json')
     env['PYTHONUNBUFFERED'] = '1'
     return env

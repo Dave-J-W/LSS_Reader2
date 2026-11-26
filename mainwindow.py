@@ -714,6 +714,7 @@ class MainWindow (QMainWindow):
                 self.notify('The folder of the SPEC file cannot be written to. The log for this file is kept at '+logpath,title='Log')
             elif logpath is None:
                 self.notify('No log file could be opened for this SPEC file.',title='Log')
+            self.takeReaderLockAtOpen()        # D1, the owner's revised Q5 (2026-11-25): the lock on opening
         else:
             try:
                 self.directory=self.directory_old
@@ -8500,7 +8501,7 @@ class MainWindow (QMainWindow):
         except workbookmod.WorkbookReadOnly:
             self.workbookCache=None
             self.notify('The drops are not kept as the mask: %s (the yellow light). The curve is as shown.'
-                        % self.readerLock.describe(),title='Ref Patch')
+                        % self.readerLockText(),title='Ref Patch')
             return
         except Exception as e:
             self.workbookCache=None
@@ -8534,7 +8535,7 @@ class MainWindow (QMainWindow):
                 self.saveWorkbook(wb)
             except workbookmod.WorkbookReadOnly:
                 self.workbookCache=None
-                self.notify('The mask is not cleared: %s (the yellow light).' % self.readerLock.describe(),
+                self.notify('The mask is not cleared: %s (the yellow light).' % self.readerLockText(),
                             title='Ref Patch')
                 return
             except Exception as e:
@@ -9848,10 +9849,13 @@ class MainWindow (QMainWindow):
         except workbookmod.WorkbookReadOnly:
             self.workbookCache=None
             if auto:                            # quiet, as automatic saves are
-                self.ui.statusBar.showMessage('Not saved: this reader is read-only (%s)' % self.readerLock.describe(),8000)
+                self.ui.statusBar.showMessage('Not saved: this reader is read-only (%s)' % self.readerLockText(),8000)
+            elif getattr(self,'readerLockGivenUp',False):
+                self.notify('Not saved: %s. File > Ask for the workbook\'s write access takes it back.'
+                            % self.readerLockText(),title='Save')
             else:
                 self.notify('Not saved: %s. This reader opened the workbook read-only (the yellow light); it tries '
-                            'again every %d s.' % (self.readerLock.describe(),int(readerlock.REFRESH_S)),title='Save')
+                            'again every %d s.' % (self.readerLockText(),int(readerlock.REFRESH_S)),title='Save')
             return []
         except Exception as e:
             self.workbookCache=None             # what was added in memory but not written is dropped
@@ -9928,8 +9932,11 @@ class MainWindow (QMainWindow):
     def initReadOnlyLight(self):
         """The yellow light at the right of the status bar (D1: "a small
         yellow indicator light in the GUI shows that state"), hidden while
-        this reader writes the workbook; and the timer that keeps the lock
-        alive, or tries again for it (lss_core.readerlock)."""
+        this reader writes the workbook; the File menu's two actions on the
+        write access (the owner's revised Q5: giving it up is one click);
+        and the timer that keeps the lock alive, or tries again for it
+        (lss_core.readerlock)."""
+        from PyQt5.QtWidgets import QAction
         lab=QLabel(' read-only ',self.ui.statusBar)
         lab.setObjectName('readOnlyLightLabel')
         lab.setStyleSheet('QLabel{background:#f5c400;color:black;border-radius:3px;padding:0 4px;}')
@@ -9937,15 +9944,53 @@ class MainWindow (QMainWindow):
         self.ui.statusBar.addPermanentWidget(lab)
         self.readOnlyLight=lab
         self.readerLock=None
+        self.readerLockGivenUp=False      # this reader gave up the write access: not taken back by itself
+        self.releaseRequestShown=None
+        self.releaseRequestBox=None
+        give=QAction("Give up the workbook's write access",self)
+        give.setObjectName('actionGiveUpWriteAccess')
+        give.setToolTip('Stop saving to this SPEC file\'s workbook, so that another reader of the same file can take '
+                        'it over (D1; the owner: one click). This reader then shows the yellow light and saves '
+                        'nothing until File > Ask for the workbook\'s write access.')
+        give.triggered.connect(self.giveUpWriteAccess)
+        ask=QAction("Ask for the workbook's write access",self)
+        ask.setObjectName('actionAskWriteAccess')
+        ask.setToolTip('Take the workbook\'s write access when it is free, else ask the reader that holds it to give '
+                       'it up: that reader is shown your request with Release and Keep. This reader takes the '
+                       'access once it is given up (tried every %d s).' % int(readerlock.REFRESH_S))
+        ask.triggered.connect(self.askWriteAccess)
+        self.ui.menuFile.insertAction(self.ui.actionQuit,give)
+        self.ui.menuFile.insertAction(self.ui.actionQuit,ask)
+        self.ui.menuFile.insertSeparator(self.ui.actionQuit)
+        self.ui.actionGiveUpWriteAccess,self.ui.actionAskWriteAccess=give,ask
+        lab.addAction(ask)                # right-click on the yellow light
+        lab.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.readerLockTimer=QTimer(self)
         self.readerLockTimer.setInterval(int(readerlock.REFRESH_S*1000))
         self.readerLockTimer.timeout.connect(self.readerLockTick)
+        self.updateReadOnlyLight()
+
+    def takeReaderLockAtOpen(self):
+        """D1, the owner's revised Q5 (2026-11-25): the workbook's lock is
+        taken when the SPEC file is opened (a .lock file beside it, a cost the
+        owner accepts), so the yellow light means "another reader has this
+        workbook" from the start. LSS_READER_LOCK_AT_OPEN=0 (the tests'
+        setting, which open sample_data/ before moving the output folder)
+        leaves it to the first time the workbook is needed."""
+        if os.environ.get('LSS_READER_LOCK_AT_OPEN','1')=='0' or not getattr(self,'specFileName',None):
+            return None
+        self.readerLockGivenUp=False
+        lk=self.workbookLock()
+        if not lk.writable and lk.try_again():          # the same file opened again, after giving it up
+            self.workbookCache=None
+            self.updateReadOnlyLight()
+        return lk
 
     def workbookLock(self,path=None):
         """The lock of the workbook at ``path`` (the open SPEC file's): taken
-        the first time the workbook is needed (not when the SPEC file is
-        opened, so that nothing is written beside a SPEC file whose workbook is
-        never used), released when another workbook is needed."""
+        when the SPEC file is opened (takeReaderLockAtOpen), or else the first
+        time the workbook is needed; released when another workbook is
+        needed."""
         path=path or self.workbookPath()
         lk=getattr(self,'readerLock',None)
         if lk is not None and lk.path==path+readerlock.LOCK_SUFFIX:
@@ -9957,28 +10002,150 @@ class MainWindow (QMainWindow):
         self.readerLockTimer.start()
         self.updateReadOnlyLight()
         if not lk.writable:
-            self.notify('This workbook is open in another reader: %s. Results, notes and masks are shown but not '
-                        'saved here until it closes (tried again every %d s).' % (lk.describe(),int(readerlock.REFRESH_S)),
-                        title='Workbook')
+            if 'reason' in (lk.holder or {}):
+                self.notify('The workbook cannot be saved here: %s. Results, notes and masks are shown but not saved '
+                            '(tried again every %d s).' % (lk.holder['reason'],int(readerlock.REFRESH_S)),title='Workbook')
+            else:
+                self.notify('This workbook is open in another reader: %s. Results, notes and masks are shown but not '
+                            'saved here until it closes or gives up its write access (tried again every %d s; File > '
+                            'Ask for the workbook\'s write access asks it to).' % (lk.describe(),int(readerlock.REFRESH_S)),
+                            title='Workbook')
         return lk
 
+    def readerLockText(self):
+        """Why this reader does not save, for messages: the lock's own
+        description, or that the user gave the write access up."""
+        lk=getattr(self,'readerLock',None)
+        if lk is None:
+            return 'no workbook lock'
+        if not lk.writable and getattr(self,'readerLockGivenUp',False):
+            return 'read-only: you gave up the write access'
+        return lk.describe()
+
     def readerLockTick(self):
-        """Every REFRESH_S: keep the lock alive, or try again for it. A change
-        either way is said, and the workbook is opened again as it now is."""
+        """Every REFRESH_S: keep the lock alive and look for a request to
+        release it, or try again for it (not after the user gave it up). A
+        change either way is said, and the workbook is opened again as it
+        now is."""
         lk=getattr(self,'readerLock',None)
         if lk is None:
             return
         was=lk.writable
-        now=lk.refresh() if was else lk.try_again()
+        if was:
+            now=lk.refresh()
+        elif getattr(self,'readerLockGivenUp',False):
+            now=False
+        else:
+            now=lk.try_again()
         if bool(now)!=bool(was):
             self.workbookCache=None
             self.updateReadOnlyLight()
             if now:
-                self.notify('The other reader closed this workbook: this reader saves to it again.',title='Workbook',
-                            level='info')
+                self.notify('The other reader closed this workbook or gave up its write access: this reader saves to '
+                            'it again.',title='Workbook',level='info')
             else:
                 self.notify('Another reader took this workbook: %s. Nothing more is saved here.' % lk.describe(),
                             title='Workbook')
+        if now:
+            self.checkReleaseRequest()
+
+    @staticmethod
+    def _readerName(d):
+        d=d or {}
+        return '%s on %s' % (d.get('user') or 'another reader',d.get('host') or 'another computer')
+
+    def checkReleaseRequest(self):
+        """The holder: another reader asked for the write access
+        (readerlock.request_release). Said once per request, in the Messages
+        pane and in a box that does not stop the work, with Release (give it
+        up) and Keep (the request is removed)."""
+        lk=getattr(self,'readerLock',None)
+        req=lk.release_requested() if lk is not None else None
+        if not req:
+            return None
+        key=(req.get('token'),req.get('asked'))
+        if key==self.releaseRequestShown:
+            return req
+        self.releaseRequestShown=key
+        who=self._readerName(req)
+        note=(': "%s"' % req['note']) if req.get('note') else ''
+        self.notify('%s asks for the write access to this workbook%s. Release gives it to them (this reader then saves '
+                    'nothing); Keep says no. File > Give up the workbook\'s write access does the same as Release.'
+                    % (who,note),title='Workbook')
+        box=QMessageBox(QMessageBox.Question,'Workbook','%s asks for the write access to this workbook%s.' % (who,note),
+                        parent=self)
+        box.setObjectName('releaseRequestBox')
+        rel=box.addButton('Release',QMessageBox.AcceptRole)
+        keep=box.addButton('Keep',QMessageBox.RejectRole)
+        rel.setToolTip('Give up the write access: the other reader takes it within %d s, and this reader saves nothing.'
+                       % int(readerlock.REFRESH_S))
+        keep.setToolTip('Keep saving here; the request is removed.')
+        box.setWindowModality(Qt.NonModal)
+        box.buttonClicked.connect(lambda b,r=rel: self.giveUpWriteAccess() if b is r else self.keepWriteAccess())
+        self.releaseRequestBox=box
+        box.show()
+        return req
+
+    def closeReleaseRequestBox(self):
+        box,self.releaseRequestBox=getattr(self,'releaseRequestBox',None),None
+        if box is not None:
+            try:
+                box.close()
+            except RuntimeError:
+                pass
+
+    def giveUpWriteAccess(self):
+        """File > Give up the workbook's write access (the owner's one click):
+        pending automatic saves are written first, then the lock is removed;
+        this reader shows the yellow light and does not take the lock back by
+        itself."""
+        lk=getattr(self,'readerLock',None)
+        self.closeReleaseRequestBox()
+        if lk is None or not lk.writable:
+            return False
+        if getattr(self,'autoSavePending',None):
+            self.flushAutoSave()
+        lk.release()
+        self.readerLockGivenUp=True
+        self.workbookCache=None
+        self.updateReadOnlyLight()
+        self.notify('You gave up the write access to this workbook: results, notes and masks are no longer saved here. '
+                    'File > Ask for the workbook\'s write access takes it back.',title='Workbook',level='info')
+        return True
+
+    def keepWriteAccess(self):
+        lk=getattr(self,'readerLock',None)
+        self.closeReleaseRequestBox()
+        if lk is not None:
+            lk.decline_request()
+        self.notify('Kept the write access to this workbook; the request was removed.',title='Workbook',level='info')
+
+    def askWriteAccess(self):
+        """File > Ask for the workbook's write access: take it when free, else
+        ask its holder (readerlock.request_release) and take it once given up
+        (the timer)."""
+        if not getattr(self,'specFileName',None):
+            self.notify('Open a SPEC file first.',title='Workbook')
+            return False
+        lk=getattr(self,'readerLock',None) or self.workbookLock()
+        self.readerLockGivenUp=False
+        if lk.writable or lk.try_again():
+            self.workbookCache=None
+            self.updateReadOnlyLight()
+            self.notify('This reader writes the workbook.',title='Workbook',level='info')
+            return True
+        self.updateReadOnlyLight()
+        h=lk.holder or {}
+        if 'reason' in h:
+            self.notify('The workbook cannot be saved here: %s.' % h['reason'],title='Workbook')
+            return False
+        if lk.request_release():
+            self.notify('Asked %s for the write access to this workbook. This reader takes it once they give it up '
+                        '(tried every %d s).' % (self._readerName(h),int(readerlock.REFRESH_S)),title='Workbook',
+                        level='info')
+        else:
+            self.notify('The request could not be written beside the workbook (%s).' % lk.request_path,title='Workbook')
+        return False
 
     def updateReadOnlyLight(self):
         lab=getattr(self,'readOnlyLight',None)
@@ -9987,10 +10154,23 @@ class MainWindow (QMainWindow):
         lk=getattr(self,'readerLock',None)
         ro=lk is not None and not lk.writable
         lab.setVisible(ro)
-        lab.setToolTip(('%s. Results, notes and masks are shown but not saved to %s; the reader tries again every '
-                        '%d s and says when it saves again (D1).' % (lk.describe()[:1].upper()+lk.describe()[1:],
-                        os.path.basename(lk.path[:-len(readerlock.LOCK_SUFFIX)]),int(readerlock.REFRESH_S)))
-                       if ro else '')
+        if ro and getattr(self,'readerLockGivenUp',False):
+            tip=('You gave up the write access to %s: results, notes and masks are shown but not saved. Right-click, '
+                 'or File > Ask for the workbook\'s write access, to take it back (D1).'
+                 % os.path.basename(lk.path[:-len(readerlock.LOCK_SUFFIX)]))
+        elif ro:
+            text=lk.describe()
+            tip=('%s. Results, notes and masks are shown but not saved to %s; the reader tries again every %d s and says '
+                 'when it saves again. Right-click to ask for the write access (D1).'
+                 % (text[:1].upper()+text[1:],os.path.basename(lk.path[:-len(readerlock.LOCK_SUFFIX)]),
+                    int(readerlock.REFRESH_S)))
+        else:
+            tip=''
+        lab.setToolTip(tip)
+        for name,on in (('actionGiveUpWriteAccess',lk is not None and lk.writable),('actionAskWriteAccess',ro)):
+            act=getattr(self.ui,name,None)
+            if act is not None:
+                act.setEnabled(bool(on))
 
     def releaseReaderLock(self):
         lk=getattr(self,'readerLock',None)
@@ -10000,6 +10180,9 @@ class MainWindow (QMainWindow):
             except OSError as e:
                 self.log.info('lock not released: %s',e)
         self.readerLock=None
+        self.readerLockGivenUp=False
+        self.releaseRequestShown=None
+        self.closeReleaseRequestBox()
         timer=getattr(self,'readerLockTimer',None)
         if timer is not None:
             timer.stop()

@@ -195,11 +195,21 @@ Each line: feature — where — default — script — notes entry (date).
 - Window titles (F95, Q-UI-B10, 2026-11-25): each dialog's title says what
   it is (Ref Patch, Burn test, GIOXS, MCA merge, Plot scale, ...); they
   were "Dialog" or "Scan Details".
-- Two readers on one SPEC file (D1, 2026-11-25): the first to need the
-  workbook writes it; a second shows a yellow "read-only" light at the
-  right of the status bar (its tooltip names who has it open) and saves
-  nothing (results, notes, masks), saying so; it saves again once the first
-  closes (tried every 30 s). Terms to define: workbook lock.
+- Two readers on one SPEC file (D1, 2026-11-25; revised 2026-11-26): the
+  first to open the SPEC file writes its workbook (a small `.lock` file
+  sits beside the workbook while it is open); a second shows a yellow
+  "read-only" light at the right of the status bar (its tooltip names who
+  has it open) and saves nothing (results, notes, masks), saying so; it
+  saves again once the first closes or gives up (tried every 30 s).
+  - File > Give up the workbook's write access: one click, and the next
+    reader takes it; this reader then shows the light and does not take
+    the access back by itself.
+  - File > Ask for the workbook's write access (also a right-click on the
+    light): takes it when free, else asks the reader holding it, which is
+    shown the request with Release and Keep.
+  - Results made while read-only are not saved afterwards.
+  - A reader that crashed or slept loses the lock after 3 minutes.
+  Terms to define: workbook lock, write access.
 - Dropped points are kept (F92, 2026-11-25): when a Ref Patch finishes,
   its drops are kept as the mask in the SPEC file's workbook, and the next
   Ref Patch of those scans leaves them out from the start (a message says

@@ -6,7 +6,7 @@ and synthetic data from `tests/synth.py` for MCA / fluorescence, the reflectivit
 (NX has no MCA data). Regenerate the whole folder with the command above; the table is rewritten, the
 Observations section is by hand and is kept.
 
-76 images, 4.9 MB, last run took 57 s.
+76 images, 4.9 MB, last run took 52 s.
 
 | File | What it shows | Data and state |
 |---|---|---|
@@ -89,7 +89,7 @@ Observations section is by hand and is kept.
 
 ### Menus (item lists, from the actions of each menu)
 
-- **File**: Open Spec File, Preferences..., Quit
+- **File**: Open Spec File, Preferences..., Give up the workbook's write access, Ask for the workbook's write access, -, Quit
 - **Calculations**: g_l2, g_l3, abs ratio
 - **Tools**: All tools…, -, Burn tests, Reflectivity patching, GID and pinhole geometry, Monitor, scans, SPEC files, Fluorescence (MCA), Synthetic data sets, The reader's window and manual, Made elsewhere
 - **Help**: Documentation, About
