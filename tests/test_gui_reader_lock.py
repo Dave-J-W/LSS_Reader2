@@ -245,3 +245,36 @@ def test_a_read_only_reader_asks_the_holder(loaded, qapp, recorder):
     assert any(m.startswith('Asked colleague on beamline-pc-2') for m in recorder.messages)
     assert w.readOnlyLight.actions() == [w.ui.actionAskWriteAccess]    # also on the light's right-click menu
     assert recorder.exceptions == []
+
+
+def test_a_share_the_user_cannot_write_to(window, qapp, recorder, dataset, monkeypatch):
+    """The common beamline case (main man, issue #55, 2026-11-26): the SPEC
+    file is on a share this user cannot write to. With the opening lock on,
+    the file opens, the reader is read-only with one message, and nothing is
+    raised; the timer's retries add no more messages. (chmod does nothing for
+    root in the cloud, so the lock's exclusive create is refused here.)"""
+    import errno
+    real_open = os.open
+
+    def refuse(path, flags, *a, **k):
+        if str(path).endswith(readerlock.LOCK_SUFFIX):
+            raise PermissionError(errno.EACCES, 'Permission denied', str(path))
+        return real_open(path, flags, *a, **k)
+    monkeypatch.setattr(os, 'open', refuse)
+    monkeypatch.setenv('LSS_READER_LOCK_AT_OPEN', '1')
+    w = window
+    _quiet(w)
+    w.openSpecFile(fname=dataset)
+    qapp.processEvents()
+    assert not w.readerLock.writable and w.readOnlyLight.isVisibleTo(w)
+    said = [m for m in recorder.messages if 'cannot be saved here' in m]
+    assert len(said) == 1 and 'Permission denied' in said[0]
+    assert not any('open in another reader' in m for m in recorder.messages)
+    assert not os.path.exists(w.workbookPath() + readerlock.LOCK_SUFFIX)
+    n = len(recorder.messages)
+    w.readerLockTick()                                                 # tried again: still refused, quietly
+    assert not w.readerLock.writable and len(recorder.messages) == n
+    _save_ref(w, qapp)
+    assert not os.path.exists(w.workbookPath())                        # nothing written
+    assert any(m.startswith('Not saved: read-only: the lock cannot be written') for m in recorder.messages)
+    assert recorder.exceptions == []
