@@ -447,8 +447,13 @@ class MainWindow (QMainWindow):
         self.ui.refSeaWinLineEdit.returnPressed.connect(self.refAnalyzeFromField)
      #    self.connect(self.ui.refExportPushButton,SIGNAL('clicked()'), self.saveRefData)
         self.ui.refExportPushButton.clicked.connect(self.saveRefData)
+        self.ui.refRRFCheckBox.setToolTip(
+            'Plot R divided by the Fresnel reflectivity R_F(Qz + Qoff) of the Qc in the field. A display choice: '
+            'Export always writes both _ref.txt and _rrf.txt (owner, 2026-11-26); Save stores R/RF in the workbook '
+            'while this is ticked')
         self.ui.refExportPushButton.setToolTip(
-            'Write the reflectivity as <name>_ref.txt (Qz, R, dR) and <name>_rrf.txt (R/R_F), the files XModFit '
+            'Write the reflectivity as <name>_ref.txt (Qz, R, dR) and <name>_rrf.txt (R/R_F with the Qc and Qoff in '
+            'the fields, whether or not R/RF is ticked), the files XModFit '
             'reads; with "+ covariance", the sidecar XModFit fits with. The name is proposed from the SPEC file, the '
             'sample (the macro that ran the series, when the file records it) and the scans; the folder is the one '
             'of the last Export (F105)')
@@ -8261,6 +8266,8 @@ class MainWindow (QMainWindow):
                     for i in range(len(data[:,0])):
                         self.ui.refNormRefListWidget.addItem('%.4f'%data[i,0]+'\t'+'%.4e'%data[i,1]+'\t'+'%.4e'%data[i,2]+'\t'+'%.4f'%perErr[i])        
             self.normRefData=data[np.argsort(data[:,0])]
+            # R/R_F of this curve, made whether or not R/RF is ticked: Export always writes both _ref.txt and
+            # _rrf.txt (owner, 2026-11-26). The arithmetic of the ticked case, unchanged: Qz + Qoff, then / R_F
             if self.ui.refRRFCheckBox.checkState()!=0:
                 self.ui.refRefDataPlotwidget.canvas.ax.set_ylabel('R/RF')
                 data[:,0]=data[:,0]+self.refQoff
@@ -8268,9 +8275,15 @@ class MainWindow (QMainWindow):
                 data[:,2]=data[:,2]/self.fresnel(data[:,0],self.refQc)
                 self.RrfData=data.copy()   # the Qz^2 option below must only change what is plotted
             else:
-                # no R/R_F of this curve: an earlier one must not be exported or saved beside it (release
-                # push, 2026-11-26: after unticking R/RF and changing the curve, Export wrote the old R/R_F)
-                self.RrfData=None
+                rrf=data.copy()            # the curve on show stays R; its R/R_F is kept for Export
+                try:
+                    with np.errstate(divide='ignore',invalid='ignore'):
+                        rrf[:,0]=rrf[:,0]+self.refQoff
+                        rrf[:,1]=rrf[:,1]/self.fresnel(rrf[:,0],self.refQc)
+                        rrf[:,2]=rrf[:,2]/self.fresnel(rrf[:,0],self.refQc)
+                    self.RrfData=rrf
+                except Exception:          # never an earlier curve's R/R_F (release push, 2026-11-26)
+                    self.RrfData=None
             if self.ui.refQzSqrCheckBox.checkState()!=0:
                 self.ui.refRefDataPlotwidget.canvas.ax.set_xlabel('Qz^2')
                 data[:,0]=data[:,0]**2
@@ -8336,7 +8349,7 @@ class MainWindow (QMainWindow):
                 np.savetxt(rrffile,np.asarray(self.RrfData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
                 written.append(rrffile)
             except Exception:
-                missing=('No _rrf.txt: tick R/RF (with Qc and Qoff set) to write it'
+                missing=('No _rrf.txt: R/R_F could not be made with this Qc and Qoff'
                          +(' (the %s beside it is an earlier one)' % os.path.basename(rrffile) if rrffile in existed else ''))
             self.exportNotice(written,existed,missing)
             if self.refCovarianceCheckBox.isChecked():
@@ -8788,7 +8801,7 @@ class MainWindow (QMainWindow):
                 self.notify('No covariance written: the patch on show is not the one the last Ref Patch made.',title=title)
                 return
             nf=float(self.ui.refNormLineEdit.text()) if self.ui.refNormFacCheckBox.checkState()>0 else None
-            rrf=self.ui.refRRFCheckBox.checkState()!=0
+            rrf=True      # _rrf.txt is always written (owner, 2026-11-26), so is its sidecar
             ref,rrfcd=ce.finish(chain.covdata('legacy'),self.refQc,self.refQoff,nf,rrf)
             written=[]
             if np.array_equal(ref.array(),np.asarray(self.normRefData,dtype=float)[:,:3]):
@@ -8819,8 +8832,6 @@ class MainWindow (QMainWindow):
             kw.append('qoff=%r' % float(self.ui.refQoffLineEdit.text()))
         if self.ui.refNormFacCheckBox.checkState()!=0:
             kw.append('norm_factor=%r' % float(self.ui.refNormLineEdit.text()))
-        if self.ui.refRRFCheckBox.checkState()==0:
-            kw.append('rrf=False')
         if getattr(self,'refMaskUsed',None):
             kw.append('mask=%r' % [list(sp) for sp in self.refMaskUsed])
         if self.refDrops:
@@ -10458,7 +10469,7 @@ class MainWindow (QMainWindow):
         items=[dict(scans=scans,data=d,columns=cols,label='R',settings=settings,
                     recipe=self.recipe(self.reflectivityScript))]
         rrf=getattr(self,'RrfData',None)
-        if rrf is not None and len(rrf):
+        if rrf is not None and len(rrf) and self.ui.refRRFCheckBox.checkState()!=0:   # saved while R/RF is ticked
             r=np.asarray(rrf,float)
             items.append(dict(scans=scans,data=r,columns=['Qz','R/RF','d(R/RF)','dQz'][:r.shape[1]],label='R/RF'))
         return items

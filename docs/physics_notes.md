@@ -6803,6 +6803,32 @@ with main man's study's arithmetic (C62, `docs/studies/roi_bad_pixels/`).
 
 Verified by: tested (7).
 
+### 2026-11-26 — Should Export always write R/R_F? (the owner's answer)
+
+The question (GUI manager): Export wrote `_rrf.txt` only when R/RF had
+been ticked, and then the R/R_F of the last curve plotted with it ticked;
+after unticking it and changing the curve, an earlier curve's R/R_F was
+written beside the new `_ref.txt` (fixed the same day by clearing it).
+The tooltip and the quick-start guide say Export writes both files.
+
+The owner: "Always export both raw and normalized reflectivity"; asked
+which (the plateau-normalised R, or R and R/R_F), the owner chose **R and
+R/R_F**. So Export writes `_ref.txt` (R) and `_rrf.txt` (R/R_F with the Qc
+and Qoff in the fields) every time; R/RF only chooses what is plotted, and
+whether Save stores R/RF in the workbook (unchanged).
+- **Measured** (tests): the unticked export is byte-identical to the
+  ticked one for both files (`test_gui_export_both.py`, with Qoff 0.0003:
+  the `_rrf.txt` Qz column is Qz + Qoff, as before); the Script line no
+  longer says `rrf=False`, and running it writes the same `_rrf.txt`.
+- **Deliberate test changes** (rule 1): the golden `no_rrf` case expected
+  no `_rrf.txt`; it now expects `plain_rrf.txt`'s bytes (the same settings
+  otherwise), so no fixture file changed (rule 3).
+  `test_gui_covariance_export.py::test_no_rrf_sidecar_without_rrf` became
+  `test_rrf_sidecar_also_with_rrf_unticked` (the hand-off: "Next to every
+  `<name>_rrf.txt`, write `<name>_rrf.cov.json`").
+
+Verified by: tested (owner's decision, 2026-11-26).
+
 ### 2026-11-25 — F74 at the Ref Patch join: which residuals, against which σ?
 
 The joint fit (`lss_core.patching`, the default since 2026-11-22) fits
