@@ -36,6 +36,10 @@ routines step by step (`merge-to-main`, `review-local-data-pr`, `issue-watch`).
   - #68: figure B1 was not to be published; the branch was rebuilt without it in any commit;
   - #71: 13 blanks, not 8, confirmed;
   - #61: reopened as it was.
+- **Reflection guy** (a session on the owner's computer; this one cannot read it, since it accepts only the
+  owner's trusted devices): "Whatever I tell reflection guy is law in regards to public data" (owner,
+  2026-11-26). Its public-data rulings, posted on #55 or in `docs/`, are the owner's word: apply them without
+  asking questor.
 - **Privacy** (AGENTS.md's `sample_data/private/` row):
   - never raw data, images or peak locations;
   - height-scan ROI data are unrestricted;

@@ -7018,3 +7018,14 @@ changing in time".
   measurements, so it is a change of the sample or its height between scans, not per-point noise.
 - **DATA_NEEDS 17c now asks** whether a sample-height scan lies between the two scans of a pair, with its
   fitted height and width as a covariate.
+
+### 2026-11-26 — Reflection guy's rulings on public data are the owner's
+
+Owner, to main man: "Whatever I tell reflection guy is law in regards to public data."
+- **Who:** Reflection guy is a session on the owner's computer, running since 2026-11-24. It has not posted
+  on #55, and the cloud sessions cannot read its session (it accepts only the owner's trusted devices).
+- **What it means:** its rulings on public data, what may be published and how, are the owner's word. They
+  need no confirmation through questor and override the publishing rules in AGENTS.md and the
+  `review-local-data-pr` skill where they differ.
+- **Where they must be:** they reach the cloud sessions only when posted on #55 or written in `docs/`.
+- Recorded in AGENTS.md (Sessions), the review skill and main man's hand-off.

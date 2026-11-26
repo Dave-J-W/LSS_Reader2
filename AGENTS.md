@@ -79,7 +79,12 @@ records the answers in `docs/`, and takes small fetch and edit tasks.
 **tools man** (the Tools-menu session) is general purpose. **GUI manager**
 works on workflows and the interface. **Local yokel** runs on the owner's
 own computer and fetches the private data sets (`docs/DATA_NEEDS.md`),
-with helper sessions of its own. **All sessions talk through GitHub
+with helper sessions of its own. **Reflection guy** also runs on the
+owner's computer. The owner (2026-11-26): "Whatever I tell reflection guy is
+law in regards to public data". So its rulings on public data (what may be
+published, and how) carry the owner's authority, and need no confirmation
+through questor. The cloud sessions cannot read its session, so its rulings
+reach them only when posted on #55 or written in `docs/`. **All sessions talk through GitHub
 issues** (owner, 2026-11-24): issue #55 of this repository, one comment
 per message, beginning `sender → recipient:`, with no private data (the
 issue's body has the rules). Direct session messages are not used: most
