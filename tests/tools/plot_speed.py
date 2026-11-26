@@ -38,6 +38,7 @@ def _setup():
     os.environ.setdefault('LSS_READER_LOG_DIR', os.path.join(_TMP, 'logs'))
     os.environ.setdefault('LSS_READER_PREFS', os.path.join(_TMP, 'prefs.json'))
     os.environ.setdefault('LSS_READER_SELECTION_DELAY_MS', '0')
+    os.environ.setdefault('LSS_READER_LOCK_AT_OPEN', '0')   # D1: no workbook lock beside the sample data (rule 7)
     os.chdir(ROOT)
 
 

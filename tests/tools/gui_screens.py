@@ -60,6 +60,7 @@ os.environ.setdefault('MPLBACKEND', 'Agg')
 os.environ['LSS_READER_LOG_DIR'] = fixed_tmp('lss_screens_logs_')
 os.environ['LSS_READER_PREFS'] = os.path.join(fixed_tmp('lss_screens_prefs_'), 'p.json')
 os.environ['LSS_READER_SELECTION_DELAY_MS'] = '0'
+os.environ['LSS_READER_LOCK_AT_OPEN'] = '0'      # D1: no workbook lock written beside the sample data (rule 7)
 os.environ['LSS_READER_DISK_CACHE'] = fixed_tmp('lss_screens_cache_')
 
 NX = os.path.join(ROOT, 'sample_data', 'NX_school', '2026sep', '20260923')
