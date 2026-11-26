@@ -36,7 +36,7 @@ All of these are already built. The work is finishing, fixing and checking them.
 | 1 | Open a SPEC file and load Pilatus and MCA data beside it | built | — |
 | 2 | Reflectivity: reduce, patch (joint fit), export `_ref.txt` / `_rrf.txt` for xmodfit (legacy format, byte-stable) | built | — |
 | 3 | GID: pinhole patch, maps, cuts, export | built | ~~fix `KeyError: 'monc'` on a one-point scan (crash)~~ **fixed 2026-11-26 (#116):** `Experiment.frames` names the missing column and why; the window only warns (probed) |
-| 4 | Fluorescence/MCA: sums, Fit lines, XFNTR merge | built | — |
+| 4 | Fluorescence/MCA: sums, Fit lines, XFNTR merge | built | **the owner's decision (2026-11-26), overriding rule 1 for this default:** Fit lines reports XeRay (the value plotted, merged, exported) and the reader's Poisson fit with fixed width and escapes stripped beside it, both with errors (F110, built 2026-11-26) |
 | 5 | Per-SPEC workbook with automatic saving, and the lock | built | — |
 | 6 | Live updates while data come in | built | — |
 | 7 | Never closes on an error (Stage 0 safety net) | built | ~~crash baseline shrinks to release level~~ **at zero** (2026-11-26): `known_crashes.json` holds no crash in its 14 states, `known_crash_sites.json` is empty; the sweep passes (194) |
@@ -87,6 +87,11 @@ Everything else is **not** a blocker.
   factor 10.
 - Rule-12 studies: P44 burn estimator, σ × 1.12 joint fit, robust likelihood,
   GID defaults switch (`beam` response).
+- **Refine the XRF shootout (C65–C69)** (owner, 2026-11-26: "Put a to-do to continue refining that shootout of methods for a later time, since I don't believe each library/method was optimized enough."):
+  tune each library and method (PyMca's configuration and background,
+  PyXRF's model, Larch's series and each, XeRay's window and error, the
+  reader's fits) before the comparison is used again; then revisit which
+  MCA fit is the default and which is reported beside it (F110).
 - Reopening a file with its workbook's settings; recipes for cuts, MCA lines
   and SpecPlot curves.
 - F80/F105 comparison tab; Export naming handed over to xmodfit.

@@ -102,8 +102,8 @@ def test_fit_lines_reports_the_elements_line_not_the_tallest(loaded, qapp, datas
     qapp.processEvents()
     assert recorder.exceptions == []
     step = float(np.median(np.diff(loaded.nomMcaData[loaded.selectedMcaScanNums[0]][:, 0])))
-    assert [r[3] for r in loaded.mcaIntData] == pytest.approx([line.area / step] * n)
-    assert 'line at 6.4' in loaded.command
+    assert [r[5] for r in loaded.mcaIntData] == pytest.approx([line.area / step] * n)   # the reader's fit (F110:
+    assert 'line at 6.4' in loaded.command                                               # XeRay is column 3)
 
 
 def test_fit_lines_poisson_switch(loaded, qapp, dataset, recorder):

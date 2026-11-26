@@ -49,9 +49,10 @@ DEFAULTS = {
     # MCA "Fit lines": True fits each spectrum's heights by Poisson maximum likelihood (F90 P1);
     # off by default until the owner's study (2026-11-24): least squares weighted by the data's σ
     'mca_fit_data_weights': False,      # Fit lines: least squares weighted by the data (legacy); off: Poisson (F90 P1, 2026-11-24)
-    # MCA "Fit lines" options (F90 P2, P3; options, not defaults, 2026-11-24): the line width from
-    # the detector's resolution (its electronic noise FWHM, keV) and Si escape stripping
-    'mca_line_options': {'detector_width': False, 'noise_kev': 0.12, 'strip_escape': False},
+    # MCA "Fit lines" options for the reader's fit beside XeRay's (F90 P2, P3; on since F110, the
+    # owner, 2026-11-26): the line width from the detector's resolution (its electronic noise FWHM,
+    # keV) and Si escape stripping, the XRF shootout's most accurate method with honest errors
+    'mca_line_options': {'detector_width': True, 'noise_kev': 0.12, 'strip_escape': True},
     # ngui: a second window sketching the proposed layout (non-functional prototype, F82;
     # docs/gui/prototype.md); off by default (owner, 2026-11-23)
     'ngui': False,
