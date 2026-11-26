@@ -1434,7 +1434,7 @@
   "verdict": "same"
  },
  "gui_screens": {
-  "commit": "ec2fb4a238",
+  "commit": "d6b55367c5",
   "date": "2026-11-26",
   "environment": {
    "PIL": "12.3.0",
@@ -1468,7 +1468,7 @@
    "lss_core/dose.py": "df29ce57e3fc7d55",
    "lss_core/errors.py": "2dec081767a7d1cb",
    "lss_core/experiment.py": "769de3e677e246d7",
-   "lss_core/fluorescence.py": "99998e1aa06d6e2b",
+   "lss_core/fluorescence.py": "641e2dea12a66705",
    "lss_core/flux.py": "b30a6b04512a3f05",
    "lss_core/fresnel.py": "c6da859c135ad380",
    "lss_core/gid.py": "09be73548e114761",
@@ -1484,7 +1484,7 @@
    "lss_core/paths.py": "87a80cf735a80c9f",
    "lss_core/peaks.py": "9ddf11c2659ad23e",
    "lss_core/pinhole.py": "4947ac70640d7924",
-   "lss_core/preferences.py": "65ec97f387b75bc4",
+   "lss_core/preferences.py": "0b715b519e18d814",
    "lss_core/readerlock.py": "e154fd65b1d346ac",
    "lss_core/reciprocity.py": "617ab5d4e0cfc06f",
    "lss_core/reflectivity.py": "04253e4e329a02e9",
@@ -1507,7 +1507,7 @@
    "lss_toolbox/staleness.py": "dab6e1ed2249b94e",
    "lss_toolbox/texts.py": "b8f91e130371a46e",
    "lss_toolbox/window.py": "b05bef0ae6bc7ba8",
-   "mainwindow.py": "0cb766c29565a464",
+   "mainwindow.py": "c84a31bb672c4e50",
    "mca_routines.py": "bf098d48b1d2381b",
    "mpl2dwidget.py": "0e7d0d1359d60abf",
    "mplwidget.py": "437655a13b3d5ac2",
@@ -1570,8 +1570,8 @@
    "docs/gui/screens/72b_mca_integral_vs_qz.png": "75ebfc3d6f92b74b",
    "docs/gui/screens/73_mca_peak_fit_dialog.png": "e3fd04b74e640c75",
    "docs/gui/screens/74_mca_peak_fit_dialog_fitted.png": "e96e9fdfabfde49b",
-   "docs/gui/screens/75_mca_fit_lines_result.png": "cd3981a996b38851",
-   "docs/gui/screens/76_mca_fit_options_dialog.png": "c976a229f0b809c0",
+   "docs/gui/screens/75_mca_fit_lines_result.png": "a45069f37f1f3ee9",
+   "docs/gui/screens/76_mca_fit_options_dialog.png": "778ba5aedf6eeb56",
    "docs/gui/screens/77_mca_merge_dialog.png": "333f1092ee51fd79",
    "docs/gui/screens/80_plot_empty.png": "8967ccabd42de766",
    "docs/gui/screens/80b_plot_two_files.png": "6e854e1a786bcd9b",
@@ -1596,12 +1596,12 @@
    "docs/gui/screens/99_menu_help.png": "ec1c27e1e311d788",
    "docs/gui/screens/99_menu_tools.png": "9436ce887a45f88b",
    "docs/gui/screens/99_menu_view.png": "9ae4d8b97ae4f67a",
-   "docs/gui/screens/README.md": "6c03dcc8f9789f5c"
+   "docs/gui/screens/README.md": "ac4b607dc85f9f6c"
   },
   "reads": {
    "g_l2Dialog.ui": "1f2a112d2d3435bb",
    "g_l3Dialog.ui": "64d207548d1a54cd",
-   "mainwindow.py": "0cb766c29565a464",
+   "mainwindow.py": "c84a31bb672c4e50",
    "mainwindow.ui": "f0b0297893c83436",
    "mcamerge.ui": "5681168b51fdb306",
    "pdburn.ui": "ce2716bc0b3a483d",
