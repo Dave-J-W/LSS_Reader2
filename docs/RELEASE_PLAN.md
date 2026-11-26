@@ -35,11 +35,11 @@ All of these are already built. The work is finishing, fixing and checking them.
 |---|---|---|---|
 | 1 | Open a SPEC file and load Pilatus and MCA data beside it | built | — |
 | 2 | Reflectivity: reduce, patch (joint fit), export `_ref.txt` / `_rrf.txt` for xmodfit (legacy format, byte-stable) | built | — |
-| 3 | GID: pinhole patch, maps, cuts, export | built | fix `KeyError: 'monc'` on a one-point scan (crash) |
+| 3 | GID: pinhole patch, maps, cuts, export | built | ~~fix `KeyError: 'monc'` on a one-point scan (crash)~~ **fixed 2026-11-26 (#116):** `Experiment.frames` names the missing column and why; the window only warns (probed) |
 | 4 | Fluorescence/MCA: sums, Fit lines, XFNTR merge | built | — |
 | 5 | Per-SPEC workbook with automatic saving, and the lock | built | — |
 | 6 | Live updates while data come in | built | — |
-| 7 | Never closes on an error (Stage 0 safety net) | built | crash baseline shrinks to release level |
+| 7 | Never closes on an error (Stage 0 safety net) | built | ~~crash baseline shrinks to release level~~ **at zero** (2026-11-26): `known_crashes.json` holds no crash in its 14 states, `known_crash_sites.json` is empty; the sweep passes (194) |
 | 8 | Windows build that runs on a clean PC | recipe exists | make one tagged build and try it on a clean machine |
 | 9 | Quick-start guide (two pages: open, reduce, export) | not written | write it from `MANUAL_NOTES.md` |
 
@@ -53,6 +53,31 @@ All of these are already built. The work is finishing, fixing and checking them.
 4. The packaged build fails to start or to load the sample data.
 
 Everything else is **not** a blocker.
+
+### Blocker status (main man; updated 2026-11-26)
+
+1. **Crashes:** none known.
+   - The sweep's baselines are at zero.
+   - `KeyError: 'monc'` is fixed (#116).
+   - The burn dialog no longer refuses a burn without a beam height (#115), which had kept the slow suite red.
+   - On `main`: the quick suite passes (1375), the slow suite passes (427), the sweep passes (194).
+2. **Export numbers:** none known.
+   - The legacy export fixtures stay byte-identical, and the golden `_ref.txt` files and the xmodfit
+     covariance contract pass: `test_api`, `test_ref_export_golden`, `test_covariance_export`,
+     `test_gui_export_name` (104 passed, 2026-11-26).
+3. **The 7 Windows failures:**
+   - **Fixed, 4 test bugs** (none was a program bug):
+     - `test_paths` ×2: CRLF doubled to CR CR LF; the plot list keeps the path's own separator.
+     - `test_gui_menus::test_documentation_opens_the_scripting_guide`: Qt's URL path uses '/'.
+     - `test_test_infrastructure::test_auto_workers_fit_the_cpus_and_the_memory`: no `os.sched_getaffinity` on
+       Windows.
+     - The fixes are reasoned and, for the line ends, simulated here; they wait for a rerun on the Windows PC.
+   - **Not a release issue:** `test_ngui::test_window_builds_with_every_placed_control`. ngui is the layout
+     prototype, parked after 2.0, and its exact-size assertion meets Windows display scaling.
+   - **Open:** `test_toolbox_gui` ×2. Their assertion lines from the Windows PC are needed (asked on #55).
+     Pixel comparisons of figures, which Windows fonts change, would not be a release issue; anything else
+     would be.
+4. **The packaged build:** tools man's.
 
 ## After 2.0 (parked, in rough order)
 
