@@ -1171,7 +1171,7 @@ flowchart TD
 | `pilDBPosLineEdit`  | S |  |  | B | i |  |  | i | i |  |  |  |  |  |
 | `pilSDDistLineEdit` SD Dist(mm): |  |  |  | i | i |  |  | i | i |  |  |  |  |  |
 | `pilBPCiteSpinBox` Bad Pix Corr. Iter. | B | i |  | B | i |  |  | i | i |  |  |  |  |  |
-| `pilBPCfacSpinBox` Fact. | B | i |  | B | i |  |  | i | i |  |  |  |  |  |
+| `pilBPCfacSpinBox` factor | B | i |  | B | i |  |  | i | i |  |  |  |  |  |
 | `pilAxesComboBox` Axes: |  | S |  | i | B |  |  | B | B |  |  |  |  |  |
 | `pilCMapComboBox` CMap: | i | B |  | i | B |  |  | i | i |  |  |  |  |  |
 | `pilAspectComboBox` Aspect: |  | S |  |  | i |  |  | i | i |  |  |  |  |  |

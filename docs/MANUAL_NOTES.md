@@ -178,6 +178,13 @@ Each line: feature — where — default — script — notes entry (date).
   worksheet and the two fit options open on the right of the tab area,
   tabbed together. Each scrolls inside its dock. Close hides it; drag its
   title to another edge, or double-click it to float it as a window.
+- "Bad Pix Corr. Iter." and "factor" (Pilatus tab; tooltips 2026-11-26):
+  the whole-frame bad-pixel pass, on every frame as it is read, in every
+  workflow. Off at 0 iterations (the default). A pixel takes its four
+  neighbours' mean when it is above (2 + 2/iterations) × factor × that
+  mean and the frame's floor. Factors below 10 take real signal on sparse
+  frames (main man's study C62); the factor now goes to 40 (it stopped at
+  4). For reflectivity, the ROI pass below is the better choice.
 - "Bad Pixel Correction fac" (Reflectivity tab; F95 B3, 2026-11-25): a
   bad-pixel pass over the reflectivity ROI's three boxes (signal and
   backgrounds), on the frame's counts before the sums. Empty (the default)

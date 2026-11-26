@@ -632,6 +632,19 @@ class MainWindow (QMainWindow):
         self.ui.refBGOffLineEdit.setValidator(qdoublevalidator0)
         self.ui.refSeaWinLineEdit.setValidator(qdoublevalidator0)
         self.ui.refBPCFacLineEdit.setValidator(qintvaliator1)
+        bpc=('The whole-frame bad-pixel pass, run on every frame as it is read, in every workflow (reflectivity, GID, '
+             'GISAXS, cuts, burns); changing it reads the frames again. A pixel takes the mean of its 4 neighbours '
+             'when it exceeds both (2 + 2/iterations) × factor × that mean and the frame\'s floor, '
+             '(√(the frame\'s mean) + 2)². ')
+        warn=('Below factor 10 it takes real signal on sparse frames: on sparse high-Qz reflectivity frames, factor 4 '
+              'removed about half of a real point in 0.2–0.9 % of clean frames (main man\'s study C62, '
+              'docs/studies/roi_bad_pixels). For reflectivity the Reflectivity tab\'s own ROI pass, on the three '
+              'boxes at factor 10, is the better choice.')
+        tip_it=bpc+'Iterations: 0 (the default) is off; 1 or 2 passes. '+warn
+        tip_fac=bpc+'Factor: the threshold\'s multiplier, used when iterations > 0; larger is gentler (1 to 40). '+warn
+        for w,tip in ((self.ui.pilBPCiteSpinBox,tip_it),(self.ui.label_20,tip_it),
+                      (self.ui.pilBPCfacSpinBox,tip_fac),(self.ui.label_35,tip_fac)):
+            w.setToolTip(tip)
         self.ui.refBPCFacLineEdit.setText('')                     # F95 B3: the ROI's own pass, off by default (rule 12)
         self.ui.refBPCFacLineEdit.setPlaceholderText('off')
         self.ui.refBPCFacLineEdit.setToolTip(
