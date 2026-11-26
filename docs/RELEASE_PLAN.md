@@ -62,8 +62,9 @@ Everything else is **not** a blocker.
    - The burn dialog no longer refuses a burn without a beam height (#115), which had kept the slow suite red.
    - On `main`: the quick suite passes (1375), the slow suite passes (427), the sweep passes (194).
 2. **Export numbers:** none known.
-   - The legacy export fixtures stay byte-identical (`test_api`).
-   - The xmodfit contract tests pass.
+   - The legacy export fixtures stay byte-identical, and the golden `_ref.txt` files and the xmodfit
+     covariance contract pass: `test_api`, `test_ref_export_golden`, `test_covariance_export`,
+     `test_gui_export_name` (104 passed, 2026-11-26).
 3. **The 7 Windows failures:**
    - **Fixed, 4 test bugs** (none was a program bug):
      - `test_paths` ×2: CRLF doubled to CR CR LF; the plot list keeps the path's own separator.
