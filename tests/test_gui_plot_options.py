@@ -93,3 +93,31 @@ def test_grid_major_and_minor_and_the_residual_strip_is_left_alone(loaded, qapp,
     assert rax.xaxis.get_major_ticks()[0].label1.get_size() != 16           # the inset as drawn
     residuals.panel(canvas.ax, False)
     assert recorder.exceptions == []
+
+
+def test_one_entry_matplotlibs_editor_from_inside(loaded, qapp, recorder):
+    """The owner (2026-11-26) chose one entry for the tabs' plots: matplotlib's
+    "Customize" icon leaves the tabs' toolbars, and its editor (one plot's
+    title, limits, labels, scales, line styles; one-off) is "Axes and
+    curves..." inside Plot options. Other windows keep the icon."""
+    w = loaded
+    for name in ('specPlotMplWidget', 'mcaPlotMplWidget', 'refRefDataPlotwidget', 'pilMplWidget'):
+        tb = getattr(w.ui, name).canvas.toolbar
+        assert not tb._actions['edit_parameters'].isVisible()
+    canvas = _spec(w, qapp)
+    d = w.showPlotOptions()
+    plots = d.plots()
+    assert [n for n, _ in plots] and plots[0][1] is canvas.ax and plots[0][0].startswith('Plot 1: ')
+    d._fill_axes_menu()
+    assert [a.text() for a in d.axesMenu.actions()] == [n for n, _ in plots]
+    fe = d.edit_axes(canvas.ax)
+    assert fe is not None and fe.isVisible() and not fe.isModal()
+    fe.close()
+    w.ui.PlotWidget.setCurrentWidget(w.ui.mcaTab)                 # two plots there, each listed once drawn
+    assert d.key == 'mcaTab'
+    sweep._select_scans(w, qapp, [0, 1])
+    sweep._select_images(w, qapp)
+    w.ui.pilRefPatchPushButton.click()
+    qapp.processEvents()
+    assert w.uirefpatch.plotWidget.canvas.toolbar._actions['edit_parameters'].isVisible()   # not a tab: kept
+    assert recorder.exceptions == []

@@ -1300,7 +1300,7 @@ workflows:
       - id: session.plotoptions
         do: Plot options of the tab on show - font size, major and minor ticks, tick direction, ticks on all sides, grid (F112)
         where: "Plot options... at the right of the tab bar"
-        controls: [plotOptionsToolButton, plotOptTabLabel, plotOptFontSpinBox, plotOptMajorComboBox, plotOptMinorComboBox, plotOptDirectionComboBox, plotOptMirrorComboBox, plotOptGridComboBox, plotOptIndexCheckBox, plotOptResetPushButton, plotOptClosePushButton]
+        controls: [plotOptionsToolButton, plotOptTabLabel, plotOptFontSpinBox, plotOptMajorComboBox, plotOptMinorComboBox, plotOptDirectionComboBox, plotOptMirrorComboBox, plotOptGridComboBox, plotOptIndexCheckBox, plotOptAxesToolButton, plotOptResetPushButton, plotOptClosePushButton]
         user_decides: "the look of a tab's plots; kept per tab between sessions"
         automatic: no
         could_be_automatic: ""
