@@ -1386,7 +1386,17 @@ TOOLS = (
                       "(sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them.",
          committed=('docs/studies/qz_resolution',), docs=('docs/studies/qz_resolution/summary.md',),
          data='private', repo_ok=False),
-    Tool('qoff_resolution_real', 'Angle offset and Qz resolution on real edges (private data)', 'external', 'external',
+    Tool('qoff_edge_explainer', 'The pieces of the puzzle: the edge, Qoff, the resolution, absorption', 'refl',
+         'figures', 'tests/tools/qoff_edge_explainer.py',
+         'One calculated figure (bare water, 10 keV, no data) that shows what the Qoff and resolution studies mean: '
+         'a whole reflectivity curve, a close-up of the critical edge shifted by the angle offset and blurred by the '
+         'resolution, what absorption does to the edge, how a wrong offset tilts R/R_F, and a glossary.',
+         committed=('docs/studies/qoff_resolution_real/Q0_the_pieces.png',),
+         docs=('docs/studies/qoff_resolution_real/summary.md',),
+         data='public', defaults={'--out': OUT},
+         repo_out='docs/studies/qoff_resolution_real', repo_ok=False, seconds=10.0),
+
+    Tool('qoff_resolution_real','Angle offset and Qz resolution on real edges (private data)', 'external', 'external',
          demonstrates="Tools man's new edge fit (fresnel.fit_edge_resolution: angle offset and resolution width together) on 400 real edge scans "
                       "and 96 released ones: simulated edges sampled like the real ones, the fit "
                       "against the earlier Qz-resolution study, the residual pattern, the offset from series to series and what moves it. Made by "

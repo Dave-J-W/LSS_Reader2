@@ -11,6 +11,10 @@ to have in reader".
 **Measured** throughout. Every number comes from one run of the private scripts
 (`sample_data/private/xr/scripts/qres_*.py`); `numbers.json` and the CSVs beside this file hold them.
 
+**The pieces of the puzzle** (calculated, no data; `python tests/tools/qoff_edge_explainer.py`):
+
+![The pieces of the puzzle](Q0_the_pieces.png)
+
 **Terms used here:**
 - **The edge** is the critical angle: below it the subphase reflects almost everything (the plateau), above
   it the reflectivity falls steeply. Qc is where it lies (water: 0.021728 Å⁻¹).
