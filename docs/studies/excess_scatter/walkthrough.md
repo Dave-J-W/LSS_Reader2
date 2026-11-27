@@ -116,13 +116,19 @@ deep minimum near 0.055 Å⁻¹, sampled by one or two points, and its few huge 
 
 ![R3](released/R3_windows.png)
 
-**R3, single windows with their fits.** Six real windows, each with the quartic through its six points
-and the residuals below:
-- a typical window: residuals within ±1;
-- the most and the fewest photons: the error bars shrink and grow, and the residuals stay within them;
-- a real excess: residuals of about ±2 where the error bars say ±1;
-- the deep minimum: one residual of −30σ. Inside one window this looks exactly like a wild point;
-- one window further on, the same minimum point sits at the window's edge, and the quartic follows it.
+**R3, single windows, and the one number each gives.** No curve is drawn through a window. A quartic has
+five parameters, so through six points it bends to pass near all of them whatever they do; its six residuals
+are just the one number d spread over the points in a fixed pattern, and drawing them would show nothing more.
+- First panel, what a window does: six weights (−1, +5, −10, +10, −5, +1 on an even grid) that give d = 0
+  for any straight line, parabola, cubic or quartic. The curve's own shape drops out; what is left is noise.
+  σ_d is the same sum over the error bars, so d / σ_d is about ±1 when the error bars are honest.
+- Five real windows (blue), with the scan's neighbouring points in grey for the eye: a typical one
+  (−0.7), the most photons (+0.6), the fewest (−0.8), a real excess (+2.9), and the deep minimum (+32).
+  Inside one window the minimum looks exactly like a wild point.
+- What says it is the curve: the windows beyond 10σ of all 96 released series pile up at that one Qz
+  (52 of 61 within ±0.010 Å⁻¹ of 0.055, a band with 17 % of the windows).
+- Why six points: on known truth with no excess, three points read a monolayer's curve as scatter three
+  times the error bars, and six do not; a film's fringes still leak in a little (1.3).
 
 That is the warning: the outlier share counts curve shape as well as bad points.
 

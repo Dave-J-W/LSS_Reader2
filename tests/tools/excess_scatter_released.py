@@ -8,8 +8,8 @@ This tool draws from those files only, so it runs anywhere:
 
     python tests/tools/excess_scatter_released.py [--out docs/studies/excess_scatter/released]
 
-R1 two frames with the reader's boxes; R2 the four series and their window pulls; R3 single windows with
-their fits; R4 every released window pooled, against the 18 private runs.
+R1 two frames with the reader's boxes; R2 the four series and their window pulls; R3 single windows, their
+weights, where the big ones sit and why six points; R4 every released window pooled, against the 18 private runs.
 """
 import argparse
 import csv
@@ -244,49 +244,152 @@ def r3(out, plt, data=DATA):
     pick.append(('a sharp minimum (series D)', worst))
     same = sorted([w for w in dd if w['scan'] == worst['scan'] and w['qm'] > worst['qm']], key=lambda w: w['qm'])
     pick.append(('one window further on (series D)', same[2] if len(same) > 2 else same[-1]))
-    fig, axs = plt.subplots(2, len(pick), figsize=(3.1 * len(pick), 6.2), gridspec_kw=dict(height_ratios=(2, 1)))
-    for col, (title, w) in enumerate(pick):
-        n = E.DIFF_ORDER + 1
-        i0 = max(0, min(len(w['q']) - n, int(np.argmin(np.abs(w['q'] - w['qm']))) - n // 2))
-        qq, yy, ss, cc = (v[i0:i0 + n] for v in (w['q'], w['y'], w['s'], w['c']))
-        ly = np.log(yy / E._fresnel(qq))
-        sl = ss / yy
-        x = (qq - qq.mean()) / np.ptp(qq)
-        coef = np.polyfit(x, ly, E.DIFF_ORDER - 1, w=1 / sl)
-        xf = np.linspace(x.min(), x.max(), 100)
-        ax = axs[0, col]
-        ax.errorbar(qq, ly, yerr=sl, fmt='o', color=C_A, capsize=3, ms=4, label='the 6 points, ±1σ')
-        ax.plot(qq.mean() + xf * np.ptp(qq), np.polyval(coef, xf), color=C_X, label='best quartic')
-        ax.set_title('%s\nQz %.3f Å⁻¹, ~%s counts per point\nd / σ_d = %+.1f'
-                     % (title, w['qm'], format(int(np.median(cc)), ','), z(w)), fontsize=8.5)
+    pick = pick[:5]                     # the sixth ("one window further on") argued from a quartic bending
+                                        # through an edge point, which any quartic can do: dropped (owner, 2026-11-26)
+    n = E.DIFF_ORDER + 1
+    fig, axs = plt.subplots(2, 4, figsize=(14.5, 8.0))
+    _r3_weights(axs[0, 0], n)
+    slots = [axs[0, 1], axs[0, 2], axs[0, 3], axs[1, 0], axs[1, 1]]
+    for ax, (title, w) in zip(slots, pick):
+        j = int(np.argmin(np.abs(w['q'] - w['qm'])))
+        i0 = max(0, min(len(w['q']) - n, j - n // 2))
+        ctx = slice(max(0, i0 - 4), min(len(w['q']), i0 + n + 4))
+        win = slice(i0, i0 + n)
+        lr = lambda sl_: (np.log(w['y'][sl_] / E._fresnel(w['q'][sl_])), w['s'][sl_] / w['y'][sl_])
+        ly, sl = lr(ctx)
+        ax.errorbar(w['q'][ctx], ly, yerr=sl, fmt='o', color='0.7', capsize=2, ms=3.5,
+                    label='neighbours in the same scan')
+        ly, sl = lr(win)
+        ax.errorbar(w['q'][win], ly, yerr=sl, fmt='o', color=C_A, capsize=3, ms=5, label='the six points, ±1σ')
+        ax.set_title('%s\nQz %.3f Å⁻¹, ~%s counts per point\nd / σ_d = %+.1f: %s'
+                     % (title, w['qm'], format(int(np.median(w['c'][win])), ','), z(w), _r3_verdict(z(w))),
+                     fontsize=9)
         ax.set_xlabel('Qz (Å⁻¹)', fontsize=8)
+        ax.set_ylabel('ln(R / R_F)', fontsize=8)
         ax.tick_params(labelsize=7)
-        if col == 0:
-            ax.set_ylabel('ln(R / R_F)')
-            ax.legend(frameon=False, fontsize=7)
-        ax = axs[1, col]
-        res = (ly - np.polyval(coef, x)) / sl
-        ax.bar(qq, res, width=np.ptp(qq) / 9, color=C_R if abs(z(w)) > 4 else C_X)
-        ax.axhline(0, color=INK, lw=0.8)
-        lim = max(3, float(np.max(np.abs(res))) * 1.2)
-        ax.set_ylim(-lim, lim)
-        ax.tick_params(labelsize=7)
-        ax.set_xlabel('Qz (Å⁻¹)', fontsize=8)
-        if col == 0:
-            ax.set_ylabel('residual / σ')
-    fig.suptitle('R3. Single real windows: six neighbouring points, the smooth curve through them, and what is '
-                 'left', x=0.01, ha='left', fontweight='bold', fontsize=11)
-    foot(fig, 'Released data (before 2019, 10 keV; series A–D of R2). Each window: six neighbouring points of one '
-         'scan, divided by the Fresnel curve; the best quartic through them (green); the residuals in units of each '
-         'point\'s own error. One number per window, d / σ_d, says how far the six points are from any smooth '
-         'curve: about ±1 for honest error bars. A deep minimum sampled by one point (fifth panel) leaves one large '
-         'residual, exactly as a wild point would; it shows itself as the curve\'s shape only because a window that '
-         'holds that point at its edge fits it smoothly (last panel), and because it comes back at the same Qz in '
-         'every series of the sample (R2). Windows recomputed here from series.csv with tests/tools/excess_scatter.py.',
-         200)
-    fig.tight_layout(rect=(0, 0.08, 1, 0.92))
+        ax.margins(y=0.25)
+    slots[0].legend(frameon=False, fontsize=7, loc='upper right')
+    nums = _r3_same_qz(axs[1, 2], load_windows(data), pick[4][1]['qm'])
+    _r3_window_size(axs[1, 3])
+    fig.suptitle('R3. Single real windows: the six points, the one number they give, and why six', x=0.01,
+                 ha='left', fontweight='bold', fontsize=11)
+    foot(fig, 'Released data (before 2019, 10 keV; series A–D of R2), divided by the Fresnel curve. No curve is drawn '
+         'through a window: one with five parameters (a quartic) passes near six points whatever they do, and its six '
+         'residuals are the one number d in a fixed pattern, so drawing them would show nothing more. The weights '
+         '(first panel) cancel any curve up to a quartic and keep what is left over: d / σ_d is about ±1 when the error '
+         'bars are honest. Grey: the scan\'s neighbouring points, for the eye. A deep minimum sampled by one point '
+         'gives a huge d, exactly as a wild point would; what says it is the curve is that such windows pile up at the '
+         'same Qz across the released series (seventh panel). Last panel: known truth with no excess at all (synthetic, '
+         'tests/tools/excess_scatter.py): shorter windows read the curve\'s own shape as scatter; six is the shortest '
+         'that does not on a monolayer; a film\'s fringes still leak in a little.', 215)
+    fig.tight_layout(rect=(0, 0.075, 1, 0.95))
     fig.savefig(os.path.join(out, 'R3_windows.png'), dpi=200)
     plt.close(fig)
+    return nums
+
+
+R3_BAND = 0.010     # a window's middle this close to the minimum: its six points (about ±0.006 Å⁻¹) reach it
+
+
+def _r3_verdict(zv):
+    a = abs(zv)
+    if a < 2:
+        return 'within the error bars'
+    if a < 5:
+        return 'more scatter than the error bars say'
+    return 'far off (a wild point, or a sharp curve)'
+
+
+def _r3_weights(ax, n):
+    """The window's weights on an even grid, as tests/tools/excess_scatter.curvature_terms builds them."""
+    x = np.linspace(-0.5, 0.5, n)
+    w = np.linalg.svd(np.vstack([x ** m for m in range(n - 1)]))[2][-1]
+    w = w / np.abs(w).max() * 10
+    w = w if w[0] < 0 else -w
+    ax.bar(np.arange(1, n + 1), w, color=C_A, width=0.6)
+    for k, v in enumerate(w):
+        ax.text(k + 1, v + (1 if v > 0 else -1), '%+.0f' % v, ha='center', va='bottom' if v > 0 else 'top',
+                fontsize=8.5)
+    ax.axhline(0, color=INK, lw=0.8)
+    ax.set_ylim(-14, 27)
+    ax.set_xticks(range(1, n + 1))
+    ax.set_xlabel('point in the window', fontsize=8)
+    ax.set_ylabel('weight w (scaled)', fontsize=8)
+    ax.tick_params(labelsize=7)
+    ax.set_title('What one window gives: d = Σ w · ln(R/R_F)\n(even grid; the code finds them for any grid)',
+                 fontsize=9)
+    ax.text(0.5, 0.97, 'Any straight line, parabola, cubic or quartic\nthrough the six points gives d = 0.\n'
+            'What is left is noise: σ_d is the same sum\nover the error bars, so d / σ_d ≈ ±1.',
+            transform=ax.transAxes, ha='center', va='top', fontsize=7.5, bbox=NOTE_BOX)
+
+
+def _r3_same_qz(ax, win, qmin_):
+    zz = np.abs(win['d'] / win['sd'])
+    m = (win['q'] > 0.04) & (win['q'] < 0.10)
+    big = zz > 10
+    ax.scatter(win['q'][m & ~big], zz[m & ~big], s=5, color='0.6', label='a window')
+    ax.scatter(win['q'][m & big], zz[m & big], s=9, color=C_R, label='a window beyond 10σ')
+    near = np.abs(win['q'] - qmin_) <= R3_BAND + 1e-9
+    nb, nn = int(np.sum(big & near)), int(np.sum(big))
+    nser = len(np.unique(win['series'][big & near]))
+    share = float(np.mean(near))
+    ax.axvspan(qmin_ - R3_BAND, qmin_ + R3_BAND, color=C_B, alpha=0.15, lw=0)
+    ax.axhline(10, color=INK, lw=0.8, ls='--')
+    ax.set_yscale('log')
+    ax.set_xlabel('Qz of the window (Å⁻¹)', fontsize=8)
+    ax.set_ylabel('|d / σ_d|', fontsize=8)
+    ax.tick_params(labelsize=7)
+    ax.set_title('Is it the curve? The big windows of all\n%d released series pile up at one Qz'
+                 % len(np.unique(win['series'])), fontsize=9)
+    ax.set_ylim(top=zz[m].max() * 40)
+    ax.text(0.97, 0.97, '%d of the %d windows beyond 10σ (%.0f %%) have their\nmiddle within ±%.3f Å⁻¹ of %.3f '
+            '(shaded),\nin %d series; the band holds %.0f %% of all windows'
+            % (nb, nn, 100 * nb / nn, R3_BAND, qmin_, nser, 100 * share), transform=ax.transAxes, ha='right',
+            va='top', fontsize=7.5, bbox=NOTE_BOX)
+    ax.legend(frameon=False, fontsize=7, loc='lower right')
+    allt, rest = terms_of(win), terms_of(win, ~near)
+    mx_all, mx_rest = (E.estimate_mixture('curvature', t, profile=False) for t in (allt, rest))
+    s_all, s_rest = (E.estimate_scale('curvature', t)['s'] for t in (allt, rest))
+    return dict(minimum_qz=float(qmin_), band=R3_BAND, beyond10_near=nb, beyond10_all=nn, series_near=nser,
+                share_of_windows_in_band=share,
+                outliers_all=mx_all['pi'], outliers_without_band=mx_rest['pi'],
+                core_x_all=mx_all['x'], core_x_without_band=mx_rest['x'], s_all=s_all, s_without_band=s_rest)
+
+
+def _r3_window_size(ax, n_series=24, seed=11):
+    """Known truth, no excess: the spread of d / σ_d for windows of 3-7 points on three synthetic curves."""
+    rng = np.random.default_rng(seed)
+    pts = [3, 4, 5, 6, 7]
+    cols = {'water': C_A, 'DPPC': C_B, 'film 100 Å': C_X}
+    for name, prof in E._curves().items():
+        sers = [E.synth_series(prof, 0.0, 0.0, rng) for _ in range(n_series)]
+        sd = []
+        for p in pts:
+            zs = []
+            for scans in sers:
+                for q, y, s in scans:
+                    t = E.curvature_terms(q, y, s, order=p - 1)
+                    if t is not None:
+                        zs += list(t['d'] / np.sqrt(t['a']))
+            sd.append(float(np.std(zs)))
+        ax.plot(pts, sd, 'o-', color=cols[name], label=name)
+        ax.annotate('%.2f' % sd[pts.index(E.DIFF_ORDER + 1)], (E.DIFF_ORDER + 1, sd[pts.index(E.DIFF_ORDER + 1)]),
+                    textcoords='offset points', xytext={'water': (-26, 5), 'DPPC': (5, -11)}.get(name, (6, 4)),
+                    fontsize=7.5, color=cols[name])
+    ax.axhline(1, color=INK, lw=0.8, ls='--')
+    ax.axvline(E.DIFF_ORDER + 1, color='0.6', lw=0.8, ls=':')
+    ax.text(E.DIFF_ORDER + 1, 0.98, ' used', transform=ax.get_xaxis_transform(), fontsize=7.5, va='top')
+    ax.set_yscale('log')
+    ax.set_yticks([0.9, 1, 1.5, 2, 3, 4])
+    ax.set_yticklabels(['0.9', '1', '1.5', '2', '3', '4'])
+    ax.minorticks_off()
+    ax.set_xticks(pts)
+    ax.set_xlabel('points in a window', fontsize=8)
+    ax.set_ylabel('spread of d / σ_d (1 = honest)', fontsize=8)
+    ax.tick_params(labelsize=7)
+    ax.set_title('Why six points: with no excess at all (known\ntruth), shorter windows see the curve as scatter',
+                 fontsize=9)
+    ax.legend(frameon=False, fontsize=7, loc='center right')
 
 
 # ------------------------------------------------------------------------------------------ R4 the pool
@@ -423,8 +526,10 @@ def main(argv=None):
     plt = _style()
     r1(a.out, plt)
     r2(a.out, plt)
-    r3(a.out, plt)
+    m3 = r3(a.out, plt)
     n = r4(a.out, plt, nboot=a.boot)
+    n['minimum'] = m3
+    json.dump(n, open(os.path.join(a.out, 'numbers.json'), 'w'), indent=1, default=float)
     print('released pool: %d windows, s %.3f, core X %.4f, outliers %.3f' % (n['windows'], n['s'], n['core_x'], n['pi']))
     return 0
 

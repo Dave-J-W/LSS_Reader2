@@ -517,7 +517,7 @@ TOOLS = (
     Tool('excess_scatter_released', 'Real examples: frames, series and windows from released runs (C63, before 2019)',
          'refl', 'figures', 'tests/tools/excess_scatter_released.py',
          'The excess-scatter study on real data anyone can rerun: two reflectivity frames with the reader\'s boxes '
-         '(R1), four cherry-picked series and their window pulls (R2), single windows with their fits (R3), and every '
+         '(R1), four cherry-picked series and their window pulls (R2), single windows, their weights, where the big ones sit and why six points (R3), and every '
          'window of 96 released series pooled against the 18 private runs (R4). From the committed extract in '
          'docs/studies/excess_scatter/released/ (runs before 2019, released by the owner for figures, anonymous).',
          committed=('docs/studies/excess_scatter/released/R1_frames.png',

@@ -41,6 +41,15 @@ def test_the_windows_of_the_shown_series_are_those_of_windows_csv():
         assert np.allclose(np.sort(np.abs(mine)), np.sort(np.abs(theirs)), rtol=1e-4, atol=2e-6), lab   # y and σ carry 7 significant figures
 
 
+def test_the_big_windows_at_the_minimum_are_counted_as_numbers_json_says():
+    m = json.load(open(os.path.join(R.DATA, 'numbers.json'), encoding='utf-8'))['minimum']
+    win = R.load_windows()
+    big = np.abs(win['d'] / win['sd']) > 10
+    near = np.abs(win['q'] - m['minimum_qz']) <= m['band'] + 1e-9
+    assert (int(np.sum(big & near)), int(np.sum(big))) == (m['beyond10_near'], m['beyond10_all'])
+    assert abs(np.mean(near) - m['share_of_windows_in_band']) < 1e-12
+
+
 def test_the_extract_is_anonymous_and_small():
     head = open(os.path.join(R.DATA, 'series.csv'), encoding='utf-8').readline().strip().split(',')
     assert head == ['series', 'scan', 'qz', 'y', 'sigma', 'counts']

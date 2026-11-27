@@ -136,9 +136,17 @@ falls with the counts, and a few percent of outlier windows.
 
 The released series show what the outlier windows are made of. Most released series are of one kind of
 sample with a deep minimum near 0.055 Å⁻¹, sampled by one or two points. Inside a window, that minimum leaves
-one huge residual, exactly as a wild point would (R3). 52 of the 61 released windows beyond 10σ (85 %) sit
-there, against 23 % of all windows. Left out, the outlier share falls from 3.2 % to 1.0 %; s goes from 1.07
-to 1.04.
+one huge difference, exactly as a wild point would (R3). 52 of the 61 released windows beyond 10σ (85 %) have
+their middle within ±0.010 Å⁻¹ of it, a band that holds 17 % of all windows. Left out, the outlier share falls
+from 3.2 % to 0.9 %, s goes from 1.07 to 1.04, and the core excess from 0.21 % to 0.25 % of R (R3's numbers,
+`released/numbers.json`, key `minimum`).
+
+Why six points (R3, last panel, known truth with no excess): a window of three points reads a monolayer's own
+curve as scatter three times the error bars (spread of d / σ_d 2.9 on DPPC, where honest is 1); five points
+still 1.1; six 1.0. A 100 Å film's fringes still leak into six points (1.3). The longer windows cost almost
+nothing: with a 1 % excess on water, three to seven points all read 1.18–1.22. No curve is drawn through a
+window in R3: a quartic through six points passes near all of them whatever they do, and its six residuals
+are the one number d in a fixed pattern.
 
 The private runs have no common minimum, so a test that does not need to know where minima are was used: a
 wild point lands at a random Qz, the curve's shape comes back at the same Qz in other series of the same run.

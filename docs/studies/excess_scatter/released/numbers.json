@@ -46,5 +46,19 @@
    "xhi": 0.0021161344285409197,
    "s": 1.338483555367758
   }
- ]
+ ],
+ "minimum": {
+  "minimum_qz": 0.055,
+  "band": 0.01,
+  "beyond10_near": 52,
+  "beyond10_all": 61,
+  "series_near": 19,
+  "share_of_windows_in_band": 0.16860337645253234,
+  "outliers_all": 0.031761513223630224,
+  "outliers_without_band": 0.009033635618768328,
+  "core_x_all": 0.002102465720264797,
+  "core_x_without_band": 0.0024713235323576676,
+  "s_all": 1.0652411307208134,
+  "s_without_band": 1.0423723563813976
+ }
 }
