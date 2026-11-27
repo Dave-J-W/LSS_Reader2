@@ -54,8 +54,11 @@ On your own machine (same platform as the build you want):
   identical. Downloads kept to 2027-02-25.
 - **2026-11-27, released:** the owner tagged `v2.0.0` (on 01ae585, which has the same code as cc599e4; only
   two docs differ) and published the GitHub release "Reader 2". The tag's build, run 45919642733, passed.
-  The release page has no files attached: the downloads are that run's artifacts, which expire on 2027-02-25.
-  Attaching them to the release is the owner's call ("Distribution" below).
+  **The builds are attached to the release** (project manager, at the owner's request, 2026-11-27). These
+  are `LSS_Reader-2.0.0-Windows.zip`, `-macOS.zip`, `-sample-data.zip` and `SHA256SUMS.txt`. They don't
+  expire. They are that run's artifacts, with every file byte-identical and the Unix permissions kept
+  (the macOS binary is 755). Each is wrapped in a named top folder, so it unpacks as `LSS_Reader\`
+  (Windows) or `LSS_Reader.app` (macOS) instead of loose `_internal\` or `Contents/` folders.
 - **Near-clean test, the owner's PC** (project manager, 2026-11-26, run 45751301360's Windows build): Python
   off PATH, every `PYTHON*`, `CONDA*` and `QT_*` variable unset. The self-test passed in 9 s, and a plain
   start showed the window in 4 s and closed cleanly. Not a truly clean PC: Python and the Visual C++
@@ -99,5 +102,6 @@ zeros and a startup disk the PC could not find until the owner repaired it; no t
   notarised with an Apple Developer ID (paid account, secrets in GitHub).
 - **Size.** Most of the 464 MB is SciPy, SymPy and Qt; SymPy is used only
   in one calculation (`solve`) and could be dropped later.
-- **Distribution.** Artifacts expire after 90 days; a GitHub Release per
-  version tag would keep them.
+- **Distribution.** Artifacts expire after 90 days, so each version's builds go on its GitHub Release (done
+  for 2.0.0). The artifact zips have no top folder: wrap them as above before attaching, keeping each
+  entry's mode bits. Automating this in the workflow is open.
