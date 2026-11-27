@@ -6,7 +6,7 @@ can follow along. Every control explains itself in its **tooltip**: hover over i
 
 ## 1. Start the reader
 
-- **Windows (packaged build):** unzip `LSS_Reader-Windows.zip` anywhere and run `LSS_Reader.exe` in the
+- **Windows (packaged build):** unzip the release's `LSS_Reader-2.0.0-Windows.zip` anywhere and run `LSS_Reader.exe` in the
   folder. Nothing else needs installing.
 - **macOS (packaged build):** unzip and open `LSS_Reader.app`. The app is not signed yet, so the first time
   you must right-click it and choose Open.
@@ -82,16 +82,20 @@ After the last join, the patched curve is on the **Reflectivity** tab:
   "read-only" light at the bottom right and saves nothing until it gets write access (File → Ask for the
   workbook's write access; the holder can File → Give up the workbook's write access).
 
-**Plot options...**, at the right of the tabs, sets the font size, ticks, grid and point index numbers of each
-tab's plots, kept between sessions; its **Axes and curves...** edits one plot's limits, labels and line styles
-until the plot is redrawn.
+**Plot options...**, at the right of the tabs, sets the fonts, ticks, grid, legends, labels, ranges and curve
+styles of each tab's plots, kept between sessions; its **One-off editor...** edits one plot as drawn now, until
+the plot is redrawn.
 
 ## Where next
 
-- **GID:** the Pilatus tab's GID patch, the worksheet, maps and Line/Area Cuts.
-  `docs/manual/gid_patching.md` explains the geometry.
-- **Fluorescence:** the MCA tab, sums and **Fit lines**.
-- **Burn tests:** whether the beam changes the sample. Pilatus tab, Burn test.
-- **Tools menu:** demonstrations and figures of how each method works. `docs/TOOLS.md` lists them.
-- **Every control and its tooltip:** `docs/manual/controls.md`.
+The [user manual](README.md) covers everything else, a chapter per kind of work:
+
+- **GID:** [chapter 6](06_gid.md), the GID patch, the worksheet and maps; [the addendum](gid_patching.md)
+  explains the geometry.
+- **Cuts and diffuse scattering:** [chapter 7](07_cuts.md).
+- **Fluorescence:** [chapter 8](08_fluorescence.md), the MCA tab, sums and **Fit lines**.
+- **Burn tests:** [chapter 9](09_burn_tests.md), whether the beam changes the sample.
+- **Every output file:** [chapter 11](11_saving.md#every-file-the-reader-writes).
+- **Tools menu:** [chapter 13](13_scripts_tools.md#the-tools-menu); `docs/TOOLS.md` lists every item.
+- **Every control and its tooltip:** [controls.md](controls.md).
 - **Help → Documentation** opens this guide.

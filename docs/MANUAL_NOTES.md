@@ -1,7 +1,9 @@
 # Breadcrumbs for the manual writer
 
-The user manual is not in scope yet (owner, 2026-11-19), but whoever writes
-it later needs to find, for every user-visible feature, what it does, where
+The user manual is written (`docs/manual/README.md`, 2026-11-26: chapters
+01–14 and a glossary beside the quick start and the GID addendum). Keep it
+current: a change to a user-visible feature updates its chapter in the same
+commit. Whoever edits it needs to find, for every user-visible feature, what it does, where
 it is, what its default is, why, and how a script does the same. This file
 is the index; it points at the places that hold the details, and it grows
 with each feature commit (AGENTS.md rule 11).
