@@ -5,9 +5,14 @@ description: Watch the coordination issue #55 and the pull requests of Dave-J-W/
 
 # Watch issue #55 and the pull requests
 
-**The owner's ruling (2026-11-24):** all sessions talk through issue #55 of `Dave-J-W/LSS_Reader2`, one
-comment per message, beginning `sender → recipient:`, with no private data. Direct session messages are not
-used: they are refused in most directions. The orchestrator (main man) watches every minute.
+**How sessions talk (owner, 2026-11-24 and 2026-11-27):**
+- **Tasks are issues labelled `task`** (AGENTS.md rule 15). Progress and questions about a task go on that
+  task's own issue. A task is claimed with the `claimed` label plus a lane label and a "claimed by" comment.
+- **Issue #55 is for short notices:** one comment per message, beginning `sender → recipient:`, a few lines,
+  linking the issue, commit or file rather than retelling it. No private data anywhere.
+
+Direct session messages are refused in most directions. The orchestrator (main man) watches every minute.
+The watch below reports new issues and comments on every issue, so task issues are covered.
 
 ## Arm the watch
 

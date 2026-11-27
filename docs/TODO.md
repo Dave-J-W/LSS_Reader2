@@ -1,3 +1,8 @@
+> **Frozen 2026-11-27** (owner; AGENTS.md rule 15). The work list is now the GitHub issues labelled
+> `task`: https://github.com/Dave-J-W/LSS_Reader2/issues?q=is%3Aopen+label%3Atask . The after-2.0
+> backlog is there with the label `parked` (#142-#150). This file stays as the record of the areas
+> and their history; don't add to it.
+
 # To do
 
 **Reader 2.0 is released** (tag `v2.0.0`, 2026-11-27). The release push is over: `RELEASE_PLAN.md`'s

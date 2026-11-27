@@ -175,9 +175,9 @@ decided to tag (2026-11-26, "I think we can tag 2"). The tag's build passed (run
 - `ngui/` layout prototype, F60 contextual reduction, timeline phases after 1c.
 - EXAFS output, edge estimator, line markers and escape peaks, GID scan
   designer, multiple exposures.
-- MCA Merge: a missing fit (NaN, e.g. an accepted single fit beside Fit lines'
-  rows) makes its whole group NaN for that fit; skip it instead and merge the
-  fits that exist (`fluorescence.merge_rows`; found reviewing #122).
+- ~~MCA Merge: a missing fit (NaN, e.g. an accepted single fit beside Fit lines'
+  rows) makes its whole group NaN for that fit~~ **fixed 2026-11-27** (main man, issue #151):
+  a missing value adds nothing to its group.
 
 ## Who does what until release
 

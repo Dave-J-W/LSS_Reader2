@@ -1,5 +1,11 @@
 # Hand-off: main man (the orchestrator), 2026-11-25
 
+> **Update (project manager, 2026-11-27):** Local yokel was archived by the owner (it relayed for the data
+> sessions). Everything below that waits on Local yokel (its metadata, counts and slit-scan shapes) needs a
+> new route: open one `task` issue per item with `lane:local-data` and `waiting-on-owner` (AGENTS.md rule 15),
+> so that the owner or a data session on the owner's PC picks it up. Slow and sweep now run nightly on
+> GitHub (`nightly.yml`), and CI runs the quick suite on every pull request (rule 14).
+
 For main man after a context compaction, or for whoever takes over the orchestrator's role. Read
 `AGENTS.md` first (the rules, the sessions, "Where to commit"). This page holds what AGENTS.md doesn't: how
 the work is run day to day, what is open, and who is on what. Skills in `.claude/skills/` hold three of the

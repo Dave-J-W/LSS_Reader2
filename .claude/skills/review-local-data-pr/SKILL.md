@@ -72,25 +72,21 @@ and merged history is permanent.
    - **Lesson (2026-11-25):** #96 (C63) was merged after a privacy review alone. Its between-scan excess was
      then read as per-point noise, by C63 and by main man's C64, until a review of its tables showed that it
      grows with the minutes between scans (C64 corrected, #107).
-7. **Run the quick suite once on the PR merged with today's main** (AGENTS.md rule 14: for local data pull
-   requests this cloud run is the check, and the local agent does not run one). Skip it when the PR head
-   is a commit you already ran it on, and main has brought nothing touching the same files since. Do it in a
-   worktree, so your branch is untouched:
+7. **Read CI's result on the pull request** (AGENTS.md rule 14): CI runs the quick suite on the PR merged
+   with main (GitHub tests the merge), and that run is the check. Don't run it yourself, and the local agent
+   doesn't either:
 
-       git worktree add -q --detach <scratch>/wtN origin/<branch>
-       cd <scratch>/wtN && git merge -q --no-edit origin/main && timeout 1200 python -m pytest -q -p no:cacheprovider
-       cd - && git worktree remove --force <scratch>/wtN && git worktree prune
+       gh pr checks N --repo Dave-J-W/LSS_Reader2 --watch --fail-fast
 
-   The owner's PC fails 7–8 tests on clean main (environment), so its counts are not the check; this run is.
-   If main moved during the run and touched the same areas (the catalogue, `docs/TOOLS.md`), rerun
-   `tests/test_toolbox.py` on the new merge.
+   The owner's PC fails several tests on clean main (environment), so its counts are never the check. If CI
+   fails, say which test on #55 or the PR, and wait for a fix.
 8. **Merge, pinned to the head you reviewed,** so that a push made meanwhile is not merged unreviewed:
 
        gh api -X PUT repos/Dave-J-W/LSS_Reader2/pulls/N/merge -f merge_method=merge -f sha=$(gh api repos/Dave-J-W/LSS_Reader2/pulls/N --jq .head.sha)
 
 9. **Post on issue #55:**
    - what was checked;
-   - the suite's result, as `quick: N passed, M failed on <merged sha>`;
+   - CI's result (link the run);
    - "please delete `<branch>`": cloud sessions cannot delete other branches (proxy 403);
    - anything left for the owner, which goes to questor.
 
