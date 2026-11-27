@@ -310,7 +310,7 @@ TOOLS = (
          variations=(
              V('More calibration burns (300)', 'BW6 with 300 synthetic burns: the coverage to about ±1 %.',
                'docs/studies/burn_shoulder/walkthrough.md## Step 6. Calibration: do the intervals hold the truth? '
-               '(BW6)', replicates='300'),
+               '(figure BW6)', replicates='300'),
          ),
          repo_out='docs/studies/burn_shoulder/walkthrough', repo_ok=False, seconds=60.0),
 

@@ -5,8 +5,9 @@
 > - **Rules 12 and 13 are paused** (owner, 2026-11-27, "Let's pause those rules again"), and that
 >   includes the standing order just below. Do not start a known-truth study or a walkthrough unless the
 >   owner asks.
-> - P44 is no longer waiting for the tag. It is on the "After 2.0" backlog (`docs/RELEASE_PLAN.md`).
->   It is a rule-12 study, so it waits for the owner to resume rule 12 or ask for it.
+> - P44 is no longer waiting for the tag. It is on the "After 2.0" backlog (`docs/RELEASE_PLAN.md`, now
+>   issue #143). It is a rule-12 study, so it waits for the owner to resume rule 12 or ask for it.
+>   (tools man: the owner did ask, "go ahead with P44"; it is done, see below.)
 > - The clean-PC test is still not done and no longer blocks anything. Never run it in Windows Sandbox
 >   on the owner's PC.
 
@@ -18,8 +19,10 @@ at the start of every turn.
 **Rules 12 and 13 are paused** (owner, 2026-11-27, after the release: "Let's pause those rules again"). The
 walkthrough habit stays useful (`.claude/skills/known-truth-study`), but it is no longer required.
 
-**Reader 2.0 is released** (tag `v2.0.0` on main 01ae585, 2026-11-27). The backlog is `docs/RELEASE_PLAN.md`'s
-"After 2.0" list, beside `docs/TODO.md`.
+**Reader 2.0 is released** (tag `v2.0.0` on main 01ae585, 2026-11-27). **The work list is the GitHub issues
+labelled `task`** (rule 15, 2026-11-27): claim one with `claimed` and `lane:tools`, report on its own issue,
+and close it with the commit that finishes it. `parked` is the backlog. `docs/TODO.md` is frozen, and new
+notes go one per file in `docs/notes/` (rule 5); the log in `docs/physics_notes.md` is frozen too.
 
 ## P44 (2026-11-27): built, studied, handed off for real data
 

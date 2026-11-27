@@ -173,5 +173,5 @@ A burn whose FWHM does not change should show no shift at any noise (the `fade` 
 ## What is not asked
 
 - No change to the reader's default (the template), or to the burn dialog. Both wait for the owner
-  (rule 12, paused until after 2.0; `docs/RELEASE_PLAN.md`).
+  (rule 12, paused: `docs/rules_paused.md`; the rule-12 studies are issue #143).
 - No new estimator in `lss_core` before questions 1 to 4 are answered.
