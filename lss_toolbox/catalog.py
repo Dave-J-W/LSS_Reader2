@@ -1432,6 +1432,30 @@ TOOLS = (
          data='public', defaults={'--out': OUT},
          repo_out='docs/studies/beam_size_vs_resolution', repo_ok=False, seconds=40.0),
 
+    Tool('focus_cases_resolution', 'Focus at S1 or at the sample, and how much of σ_Q the beam explains',
+         'refl', 'figures', 'tests/tools/focus_cases_resolution.py',
+         'Calculated from the pooled beam widths at S1 and at the sample: what S1 cuts in each focus case, the '
+         'beam\'s core + tail spread of angles with the focus at S1, and the edge width σ_Q a one-Gaussian fit '
+         'reads from edges blurred by the beam alone, sampled and weighted like the real ones.',
+         committed=('docs/studies/focus_and_resolution/F0_two_focus_cases.png',
+                    'docs/studies/focus_and_resolution/F1_how_much_the_beam_explains.png',
+                    'docs/studies/focus_and_resolution/calculated.json'),
+         docs=('docs/studies/focus_and_resolution/summary.md',),
+         data='public', defaults={'--out': OUT},
+         repo_out='docs/studies/focus_and_resolution', repo_ok=False, seconds=240.0),
+
+    Tool('focus_and_resolution', 'Real edges refitted with the beam\'s own resolution (private data)', 'external',
+         'external',
+         demonstrates='378 real edges refitted with the beam\'s core + tail resolution (focus at S1) against one '
+                      'Gaussian: χ² per model, the tail fraction and width the edges choose, the residual pattern '
+                      'under every model, and a known-truth check of both fits. Made by the owner\'s PC\'s private '
+                      'generator (sample_data/private/xr/); not regenerable here; the numbers are the CSV and JSON '
+                      'beside the figure.',
+         committed=('docs/studies/focus_and_resolution/F2_real_edges_refit.png',
+                    'docs/studies/focus_and_resolution/refit_by_run.csv',
+                    'docs/studies/focus_and_resolution/numbers.json'),
+         docs=('docs/studies/focus_and_resolution/summary.md',), data='private', repo_ok=False),
+
     Tool('beam_size_vs_resolution', 'Beam size against Qz resolution on real runs (private data)', 'external',
          'external',
          demonstrates='The owner\'s question: is the beam\'s height at the sample (sample-height scans) tied to the '
