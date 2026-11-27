@@ -1187,6 +1187,36 @@ def frame_consistency(theta, n, w, edges):
     return float(np.sum((nn[ok] - mu) ** 2 / np.maximum(mu, 1.0)) / max(int(ok.sum()) - used, 1))
 
 
+def _widest_common_window(seen):
+    """The β window [a, b] (bin indices) that maximises (number of rows of ``seen`` that are True
+    over all of it) × (b − a + 1). ``seen``: bool (2θ bins, β bins). Each row's run is taken from
+    its longest stretch of True; returns (0, -1) when nothing is seen."""
+    lo, hi = [], []
+    for row in seen:
+        idx = np.flatnonzero(row)
+        if not len(idx):
+            continue
+        breaks = np.flatnonzero(np.diff(idx) > 1)
+        starts = np.r_[0, breaks + 1]
+        ends = np.r_[breaks, len(idx) - 1]
+        r = int(np.argmax(ends - starts))
+        lo.append(int(idx[starts[r]]))
+        hi.append(int(idx[ends[r]]))
+    if not lo:
+        return 0, -1
+    lo, hi = np.array(lo), np.array(hi)
+    best, win = 0, (0, -1)
+    for a in np.unique(lo):
+        h = np.sort(hi[lo <= a])[::-1]                   # the k-th widest reaches b = h[k-1]
+        k = np.arange(1, len(h) + 1)
+        area = k * (h - a + 1)
+        area[h < a] = 0
+        j = int(np.argmax(area))
+        if area[j] > best:
+            best, win = int(area[j]), (int(a), int(h[j]))
+    return win
+
+
 def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_step_deg=0.0, log=None,
               min_frames=2, edges=None, beam_centre_mm=None, beam_fwhm_um=None, beam_h_fwhm_mm=BEAM_H_FWHM_MM,
               apply_joins=True, angles='exact', join_estimator='ml'):
@@ -1349,6 +1379,23 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
     keep = (sw.sum(axis=1) > 0) & (nframes >= min_frames)
     # β: the range every kept 2θ bin covers (each column sees its own β range)
     bkeep = np.all(sw[keep] > 0, axis=0) if keep.any() else np.zeros(sw.shape[1], bool)
+    narrow_dropped = 0
+    if keep.any() and not bkeep.any():
+        # No β bin is seen by every kept 2θ bin: a few bins (a column lit over only part of its
+        # rows) cover too little β. Without this the level had no β rows and the join failed on an
+        # empty array (survey set, 2026-11-27). Only here, so levels that had a window keep it.
+        # The window [a, b] is the one that keeps the most map cells, (2θ bins that see all of it)
+        # × (its β bins); the bins that do not see all of it are dropped (counted in
+        # info['narrow_bins_dropped']).
+        k0, k1 = _widest_common_window(sw[keep] > 0)
+        if k1 >= k0:
+            bkeep = np.zeros(sw.shape[1], bool)
+            bkeep[k0:k1 + 1] = True
+            covers = np.all(sw[:, bkeep] > 0, axis=1)
+            narrow_dropped = int((keep & ~covers).sum())
+            if not (keep & covers).any():
+                bkeep[:] = False
+                narrow_dropped = 0
     if bkeep.any():
         k0, k1 = np.flatnonzero(bkeep)[[0, -1]]
         bkeep[:] = False
@@ -1364,7 +1411,7 @@ def level_map(frames, row_lo, row_hi, response='fit', area=True, pol=True, bin_s
         beam = dict(x_mm=beam[0], response=beam[1], centre_mm=bc, fwhm_mm=bw)
     info = dict(response=r, factors=factors, step_deg=step, counts_used=float(n.sum()),
                 two_theta_resolution_deg=res_deg, two_theta_resolution_columns=res_deg / step, s4_mm=s4,
-                beam=beam, physical=phys, joins_applied=bool(apply_joins), consistency_chi2=consistency,
+                beam=beam, physical=phys, joins_applied=bool(apply_joins), consistency_chi2=consistency, narrow_bins_dropped=narrow_dropped,
                 sum_counts=sn_k[keep], sum_weights=sw_k[keep], frames_per_bin=nframes[keep],
                 edges=edges, keep=keep, all_counts=sn_k, all_weights=sw_k, beta=bcentres[bkeep],
                 beta_edges=bedges, beta_step_deg=bstep, mean_monitor=mean_m, geometry='exact (IMG_COO_CONV)',
@@ -1488,6 +1535,11 @@ def join_levels(levels, transverse='intersection', log=None, labels=None, apply=
         if len(lv['edges']) != len(edges) or not np.allclose(lv['edges'], edges):
             raise ValueError('the levels are not on one 2theta grid (use shared_edges)')
     nb = len(edges) - 1
+    for k, lv in enumerate(levels):
+        if len(lv['beta']) < 2:
+            raise ValueError('%s has %s beta row%s left after trimming to the range its 2theta bins all see'
+                             % ((labels or ['level %d' % (i + 1) for i in range(len(levels))])[k],
+                                'no' if len(lv['beta']) == 0 else 'only one', '' if len(lv['beta']) == 1 else 's'))
     bstep = max(float(np.max(np.abs(np.diff(lv['beta'])))) for lv in levels)
     blo = min(float(lv['beta'].min()) for lv in levels)
     bhi = max(float(lv['beta'].max()) for lv in levels)
