@@ -148,3 +148,48 @@ def test_the_old_estimator_names_still_work():
         assert a[1]['estimator'] == new
     assert burn.canonical('moments') == 'moments'
     assert set(burn.ESTIMATOR_NAMES) >= set(burn.ESTIMATORS + burn.SEPARATED_ESTIMATORS)
+
+
+
+def _peak_on(x, extra, noise=0.002, seed=0):
+    """A narrow peak (FWHM 0.016) at 1.466 on ``extra`` less its chord, as a mean shape is, with noise."""
+    extra = extra - np.linspace(extra[0], extra[-1], len(x))
+    return (np.exp(-0.5 * ((x - 1.466) / (0.016 / 2.3548)) ** 2) + extra
+            + np.random.default_rng(seed).normal(0, noise, len(x)))
+
+
+X = np.linspace(1.418, 1.514, 49)          # the window: 3 FWHM either side, half-width 0.048
+
+
+def test_a_curvature_far_broader_than_the_window_is_not_a_shoulder():
+    """#187: a hump of σ 0.3 against a window half-width of 0.048 is only a curvature there. Its fitted
+    height trades off against the line (± 67 % here), so S, its area and B would mean nothing: refused,
+    with the reason, and separated is then stretched."""
+    shape = _peak_on(X, 80 * np.exp(-0.5 * ((X - 1.47) / 0.3) ** 2))
+    why = []
+    S, P, sp = burn.separate_shoulder(X, shape, 1.466, 0.016, why=why)
+    assert sp is None and why and 'not determined' in why[0]
+    assert np.array_equal(P, shape) and not S.any()
+
+
+def test_a_broad_shoulder_the_points_pin_down_is_kept():
+    """The guard is not a width or height cut: a true shoulder of σ 0.06 (wider than the window's
+    half-width, and after the chord taller than the shape) is determined to ± 3 % and kept, with its σ."""
+    shape = _peak_on(X, 5 * np.exp(-0.5 * ((X - 1.47) / 0.06) ** 2))
+    why = []
+    S, P, sp = burn.separate_shoulder(X, shape, 1.466, 0.016, why=why)
+    assert sp is not None and not why
+    assert sp[2] == pytest.approx(0.06, rel=0.05)
+    assert S.max() > shape.max()
+
+
+def test_the_guard_keeps_every_synthetic_shoulder():
+    """The study's known-truth shoulders (every case and shoulder shape of the burn-shoulder study) are
+    real shoulders and still found, so the guard does not touch sections 1-6."""
+    for shape in ('gaussian', 'lorentzian', 'asymmetric', 'two'):
+        for case in (dict(change='none', amount=0.0), dict(change='broaden', amount=0.3),
+                     dict(change='none', amount=0.0, shoulder_change=0.5)):
+            prof, _ = bp.profiles(seed=2, shoulder_shape=shape, **case)
+            ref = burn.measure_gid(prof, estimator='separated')[1]
+            assert ref['shoulder'] is not None, (shape, case, ref.get('shoulder_refused'))
+            assert ref['shoulder_refused'] is None

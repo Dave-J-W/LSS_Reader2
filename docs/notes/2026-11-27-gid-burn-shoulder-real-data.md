@@ -1,5 +1,7 @@
 # On private GID burns, separated and stretched disagree on 1 burn in 3, and the shoulder drives it
 
+*(Counts revised by #187's shoulder guard, the same day: `2026-11-27-shoulder-guard.md`. The judgment stands.)*
+
 - **Date, who:** 2026-11-27, GID guy (local data agent), issue #155, hand-off 10.
 - **Answer:**
   - Of the 155 private GID burns read (118 well measured), stretched and separated give different

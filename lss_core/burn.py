@@ -206,6 +206,7 @@ ESTIMATORS = ('stretched', 'moments', 'fit')
 # unstretched; accepted by measure_gid, not yet offered by the burn dialog
 # (rule 12: a default or a dialog choice changes after its study).
 SEPARATED_ESTIMATORS = ('separated', 'separated_held')
+SHOULDER_MAX_HEIGHT_ERROR = 0.5   # separate_shoulder: a shoulder whose height is known to worse than ±50 % is refused (#187)
 SEPARATE_CORE = 1.5           # separate_shoulder: the shoulder is fitted outside ±1.5 FWHM of the peak
 # The names until 2026-11-27 (owner: "too opaque"), still accepted everywhere a name is read, so saved
 # workbooks, preferences and scripts keep working: 'template', 'split', 'split_fixed'.
@@ -350,7 +351,7 @@ def choose_window(x, mean, err, qxy_range=None, options=None):
     return (float(lo), float(hi)), pk
 
 
-def separate_shoulder(x, shape, centre, fwhm, core=SEPARATE_CORE):
+def separate_shoulder(x, shape, centre, fwhm, core=SEPARATE_CORE, why=None):
     """Separate the mean shape (what stretched fits) into a broad shoulder and the peak (P44,
     2026-11-27). A Gaussian plus a line is fitted to ``shape`` (the mean
     profile less its chord) outside |x − centre| < core·fwhm, where the peak
@@ -360,7 +361,18 @@ def separate_shoulder(x, shape, centre, fwhm, core=SEPARATE_CORE):
 
     Returns (S, P, params), params (height, centre, σ) of the shoulder; or
     (zeros, shape, None) when fewer than 8 points lie outside the core, the
-    fit fails or finds no shoulder: separated is then stretched."""
+    fit fails or finds no shoulder: separated is then stretched.
+
+    Not a shoulder (#187, 2026-11-27), also (zeros, shape, None): a Gaussian
+    whose height is not determined by the points beside the peak (its
+    relative error from the fit's covariance above SHOULDER_MAX_HEIGHT_ERROR).
+    That happens when the Gaussian is much broader than the window, where it
+    is only a curvature and its height trades off against the line: S, its
+    area and B then mean nothing. A broad shoulder that the points do pin
+    down is kept, however tall or wide (synthetic: σ up to 0.10 against a
+    window half-width of 0.048, heights to ±25 %). The fit itself is
+    unchanged, so every kept shoulder gives the same numbers as before.
+    ``why``: a list; the reason a fit was refused is appended to it."""
     from scipy.optimize import curve_fit
     x = np.asarray(x, float)
     shape = np.asarray(shape, float)
@@ -374,13 +386,19 @@ def separate_shoulder(x, shape, centre, fwhm, core=SEPARATE_CORE):
     h0 = max(float(np.max(shape[out])), 1e-12)
     span = float(x[-1] - x[0])
     try:
-        p, _ = curve_fit(g, x[out], shape[out], p0=[h0, centre, 3 * fwhm, 0.0, 0.0],
+        p, cov = curve_fit(g, x[out], shape[out], p0=[h0, centre, 3 * fwhm, 0.0, 0.0],
                          bounds=([0, x[0], 1.5 * fwhm, -np.inf, -np.inf], [np.inf, x[-1], 10 * span, np.inf, np.inf]),
                          maxfev=20000)
     except (RuntimeError, ValueError):
         return none
     S = p[0] * np.exp(-0.5 * ((x - p[1]) / p[2]) ** 2)
     if not np.all(np.isfinite(p)) or not np.any(S > 1e-3 * np.max(np.abs(shape))):
+        return none
+    rel = math.sqrt(cov[0, 0]) / p[0] if cov is not None and np.isfinite(cov[0, 0]) and p[0] > 0 else math.inf
+    if not rel <= SHOULDER_MAX_HEIGHT_ERROR:
+        if why is not None:
+            why.append('its height is not determined (± %.0f %% of it; σ %.3g against a window half-width of %.3g): '
+                       'it trades off against the line' % (100 * rel if np.isfinite(rel) else math.inf, p[2], 0.5 * span))
         return none
     return S, shape - g(x, *p), (float(p[0]), float(p[1]), float(p[2]))
 
@@ -528,9 +546,11 @@ def measure_gid(profiles, qxy_range=None, options=None, estimator='stretched'):
     S = None
     if estimator in SEPARATED_ESTIMATORS:
         c0, w0 = (found['centre'], found['fwhm']) if found else (float(xw[np.argmax(shape)]), reference['fwhm'])
-        S, P, sp = separate_shoulder(xw, shape, c0, w0, SEPARATE_CORE)       # read at call time: a study may vary it
+        why = []
+        S, P, sp = separate_shoulder(xw, shape, c0, w0, SEPARATE_CORE, why)  # read at call time: a study may vary it
         cP = float(np.sum(P * xw) / np.sum(P)) if np.sum(P) > 0 else c_ref
-        reference.update(shoulder=sp, peak=P, peak_centre=cP, peak_area=float(np.sum(P) * step),
+        reference.update(shoulder=sp, shoulder_refused=why[0] if why else None, peak=P, peak_centre=cP,
+                         peak_area=float(np.sum(P) * step),
                          peak_fwhm=_half_width(xw, P), shoulder_area=float(np.sum(S) * step))
         if sp is None:
             S = None
