@@ -407,7 +407,12 @@ def read_with_reference(profiles, ref_mean, window, estimator, found=None):
         y, e = prof[sel, 1], prof[sel, 2]
         e = np.where(e > 0, e, np.nan)
         e = np.where(np.isfinite(e), e, np.nanmax(e) if np.any(np.isfinite(e)) else 1.0)
-        p, pe, _, cov = burn._template(xw, y, e, xw, mt, c, S, extra_free=True)
+        try:
+            p, pe, _, cov = burn._template(xw, y, e, xw, mt, c, S, extra_free=True)
+        except (RuntimeError, ValueError):        # as measure_gid: a frame that will not fit is NaN, not the end
+            out.append(math.nan)
+            err.append(math.nan)
+            continue
         out.append(p[0] * p[2] * area)
         err.append(math.sqrt(max((p[2] * pe[0]) ** 2 + (p[0] * pe[2]) ** 2 + 2 * p[0] * p[2] * cov[0, 2], 0.0))
                    * area)
