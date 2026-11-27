@@ -74,6 +74,15 @@ def test_one_gaussian_is_fooled_by_outliers():
     assert E.estimate('pairs', pairs)['x_ml'] > 0.03
 
 
+@pytest.mark.parametrize('x', [0.0, 0.01])
+def test_the_within_scan_core_survives_the_real_share_of_outliers(x):
+    # C63's real numbers come from this estimator; ~0.3 % of points are wild in the real data
+    _, within = _outlier_terms(x, E.REAL_OUTLIER_SHARE)
+    m = E.estimate_mixture('curvature', within, profile=False)
+    assert abs(m['x'] - x) < 0.003, (x, m)
+    assert E.estimate('curvature', within)['x_ml'] > x + 0.005     # one Gaussian is fooled
+
+
 def test_an_understated_counting_error_is_found_as_a_scale():
     _, within = _outlier_terms(0.0, 0.0, sigma_scale=1.15)
     e = E.estimate_scale('curvature', within)

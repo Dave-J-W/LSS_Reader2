@@ -1,6 +1,6 @@
-case,core_x,outlier_share,outlier_scale,smooth_pull_sd,biased_mean_pull_sd,reps
-no excess,0.0,0.0,0.0,1.1418,0.9825,200
-core 0.4 %,0.004,0.0,0.0,1.3587,1.0532,200
-core 1 %,0.01,0.0,0.0,1.5572,1.2571,200
-core 0.4 % + 3 % outliers,0.004,0.03,0.7,1.2433,1.1202,200
-3 % outliers only,0.0,0.03,0.7,1.1588,1.0278,200
+case,core_x,outlier_share,outlier_scale,sigma_scale,smooth_pull_sd,smooth_pull_sd_se,biased_mean_pull_sd,biased_mean_pull_sd_se,reps
+no excess,0.0,0.0,0.0,1.0,1.1175,0.0392,1.0117,0.0163,400
+σ × 1.12,0.0,0.0,0.0,1.12,1.1872,0.0444,1.0898,0.0182,400
+σ × 1.12 + core 0.14 %,0.0014,0.0,0.0,1.12,1.1917,0.0466,1.0961,0.0186,400
+σ × 1.12 + core 0.14 % + 0.3 % outliers,0.0014,0.003,0.46,1.12,1.1945,0.0462,1.0961,0.0184,400
+core 1 % (C61),0.01,0.0,0.0,1.0,1.6714,0.0603,1.2171,0.0218,400
