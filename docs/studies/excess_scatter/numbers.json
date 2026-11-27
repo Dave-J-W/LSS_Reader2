@@ -40,5 +40,13 @@
  ],
  "outlier_share": 0.03,
  "outlier_scale": 0.4,
- "headline": "Shared Qz with an outlier term recovers the excess within 0.09 % of R on every curve, with or without outliers; a slow drift adds to it"
+ "s_true": [
+  1.0,
+  1.05,
+  1.1,
+  1.15,
+  1.25
+ ],
+ "scale_trials": 20,
+ "headline": "Within a scan, core + outliers finds X within 0.14 % of R (water, DPPC); 10\u00d7 the real outliers add 0.34 %, a film's fringes 1.3 %"
 }

@@ -6862,22 +6862,30 @@ Verified by: a run of `tests/tools/excess_scatter.py` (known truth) and of the n
 generators, which import its estimators, on 384 real reflectivity series (18 runs, 10 keV). Study:
 `docs/studies/excess_scatter/summary.md`; walkthrough beside it. The owner: "I don't know the size; measure
 it from data".
-- **Two estimators.** The ratio at Qz measured by two scans (model-free, between scans) and a 6-point
-  difference within a scan that cancels any curve up to Qz⁴. Each is fitted as a core plus outliers, with
-  τ ≥ 10 % of R. On known truth the shared-Qz core is within 0.09 % of R of the truth for X 0–3 %, with or
-  without 3 % outliers. One Gaussian reports 7 % whenever outliers are present.
-- **Within a scan:** the stated σ is about 12 % too small (s 1.12 [1.10, 1.12]). As a fraction of R the
-  excess falls with the counts (1.4 % below 10³ counts, 0.13 % above 10⁵), so it is a scale on σ plus a
-  floor of about 0.1 %, not a fixed percentage.
-- **Between scans:** 0.39 % of R [0.30, 0.48] overall (s 1.42), about 2.7 % at Qz ≥ 0.25. Low counts, a large
-  background share and minutes between the points go together there and are not told apart. 4–6 % of the
-  residuals are wild, typically 70–90 % off.
-- **It explains C56:** a 0.4 % core on C61's joins gives today's joint fit pull SD 1.36 on the smooth join
-  (1.24 with 3 % outliers), against the real 1.24 [1.09, 1.40].
-- **For the budget** (no number changed; rule 12): not one percentage. A scale of about 1.12 on σ, a
-  Qz-dependent between-scan term, and robust handling of the wild points.
+- **Within a scan only.** The owner, reviewing a first version that also compared two scans at shared Qz:
+  "Best to disregard between scan uncertainty for now. I do understand this decision could underestimate
+  our uncertainty but at least we will be on solid ground." The data do not record what changes between two
+  scans (sample height, footprint, background at another absorber), so those numbers were withdrawn (PR #96 had them).
+- **The estimator.** A 6-point difference within a scan that cancels any curve up to Qz⁴, fitted as a core
+  plus outliers (τ ≥ 10 % of R), and as a scale on σ. On known truth the core is within 0.14 % of R of the
+  truth for X 0–3 % on water and DPPC, with no outliers or the real share; one Gaussian reports 2–7 % whenever
+  outliers are present; a 100 Å film's fringes add 1.3 %; a slow drift is not seen at all.
+- **Real:** the stated σ is about 10 % too small (s 1.12 [1.10, 1.12]; DPPC on known truth reads up to 0.04
+  high, so 1.08–1.12). As a fraction of R the excess falls with the counts (1.4 % below 10³ counts, 0.13 %
+  above 10⁵), so it is a scale on σ plus a floor of about 0.1 %, not a fixed percentage. At most about 0.3 % of
+  points are wild (1.8 % of windows, ~46 % off); part of that is the curve's own shape (a minimum sampled by
+  one point looks like a wild point inside a window; such windows recur at the same Qz in other series of a
+  run: 64 % against 55 % ± 2 shuffled). Left out, the outlier windows fall to 0.8 %; core X and s do not move.
+- **Released runs before 2019** (owner, 2026-11-25; 96 series, a public extract, figures R1–R4 from
+  `tests/tools/excess_scatter_released.py`): s 1.07, core 0.21 % of R, 3.2 % outlier windows, 85 % of those
+  beyond 10σ at one deep minimum. Verified by: a run of the private export and of the public tool.
+- **The joins:** the within-scan findings on C61's joins give today's joint fit pull SD 1.19 ± 0.05 on the
+  smooth join (1.12 with honest errors), against the real 1.24 [1.09, 1.40]. Consistent, but C56's interval
+  is too wide to rule out a between-scan part.
+- **For the budget** (no number changed; rule 12): a scale of about 1.1 on σ and robust handling of the wild
+  points. C61's 1 % on every point gives pull SD 1.67, too much.
 - **Open:** sample height (the height scans not yet paired with the points); a 20-frame repeat of one Qz
-  point; repeated high-Qz scans minutes apart.
+  point; repeated scans with sample height, footprint and absorber recorded.
 
 ### 2026-11-25 — The join's error budget with the measured excess (C64)
 

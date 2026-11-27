@@ -15,13 +15,21 @@ per point:
   points) leave 0.3–1.9 % on DPPC, and a 100 Å film's fringes leave about 1.2 % even at 6 (known truth).
 
 Each estimator gives X by Gaussian maximum likelihood over all its terms and a robust value (the median
-of the terms' χ²₁ set to 0.455), so that a few glitches or fringes cannot make it.
+of the terms' χ²₁ set to 0.455), so that a few glitches or fringes cannot make it; ``estimate_mixture``
+fits a core X with an outlier share, and ``estimate_scale`` the stated σ as too small by a factor s.
 
-    python tests/tools/excess_scatter.py --out <dir> [--trials 40] [--workers 6]
+**Only the within-scan estimator is used for C63's numbers** (owner, 2026-11-25). Two scans at the same Qz
+differ also by whatever changed between them (sample height, footprint, background boxes at another
+absorber, time), and the real data do not record those, so the between-scan numbers were set aside. The
+shared-Qz functions stay here, tested, for a later study that records them; the known truth below checks
+the within-scan estimators only.
 
-Writes ``known_truth.csv``, ``numbers.json`` and figure X1 (recovered against true X, per estimator and
-curve) to ``--out``. The real-data run (private) imports ``pair_terms``, ``curvature_terms`` and
-``estimate`` from here, so the real numbers come from the code checked here.
+    python tests/tools/excess_scatter.py --out <dir> [--trials 40] [--scale-trials 20] [--workers 6] [--pulls 400] [--pulls-only]
+
+Writes ``known_truth.csv``, ``known_truth_scale.csv``, ``numbers.json``, ``pulls.csv`` and figures X1
+(recovered X against true X) and X2 (recovered s against true s) to ``--out``. The real-data run (private)
+imports ``curvature_terms``, ``estimate``, ``estimate_mixture`` and ``estimate_scale`` from here, so the
+real numbers come from the code checked here.
 """
 import argparse
 import csv
@@ -310,8 +318,13 @@ SCANS = [(0.030, 0.062, 0.002), (0.056, 0.124, 0.004), (0.112, 0.250, 0.006), (0
          (0.422, 0.650, 0.012)]       # (first Qz, last Qz, step); each starts on the previous scan's grid
 TOP_COUNTS = 2e4                       # counts at each scan's first point
 X_TRUE = [0.0, 0.005, 0.01, 0.02, 0.03]
-CASES = ['per-point X', 'per-point X + slow drift 2 %', 'per-point X + 3 % outliers']
+CASES = ['per-point X', 'per-point X + slow drift 2 %', 'per-point X + 0.3 % outliers', 'per-point X + 3 % outliers']
 OUTLIER_SHARE, OUTLIER_SCALE = 0.03, 0.4    # a share of points off by exp(0.4·z): beam misses, glitches
+REAL_OUTLIER_SHARE = 0.003                  # about the real data's: 1.8 % of 6-point windows, so ~0.3 % of points
+
+
+def _case_outliers(case):
+    return REAL_OUTLIER_SHARE if '0.3 % outliers' in case else OUTLIER_SHARE if 'outliers' in case else 0.0
 SERIES_PER_ESTIMATE = 50               # about as many shared-point joins as a few real files
 
 
@@ -369,19 +382,48 @@ def one(args):
     cname, x, case, rep = args
     rng = np.random.default_rng(zlib.crc32(('%s|%s|%s|%d' % (cname, x, case, rep)).encode()))
     prof = _curves()[cname]
-    pairs, curv = [], []
+    curv = []
     for _ in range(SERIES_PER_ESTIMATE):
-        p, c = series_terms(synth_series(prof, x, 0.02 if 'drift' in case else 0.0, rng,
-                                         OUTLIER_SHARE if 'outliers' in case else 0.0))
-        pairs += p; curv += c
-    ep, ec = estimate('pairs', pairs), estimate('curvature', curv)
-    mp = estimate_mixture('pairs', pairs, profile=False)
+        _p, c = series_terms(synth_series(prof, x, 0.02 if 'drift' in case else 0.0, rng, _case_outliers(case)))
+        curv += c
+    ec = estimate('curvature', curv)
+    mc = estimate_mixture('curvature', curv, profile=False)
     return dict(curve=cname, x_true=x, case=case, rep=rep,
-                pairs_ml=ep['x_ml'], pairs_robust=ep['x_robust'], pairs_n=ep['n_terms'],
-                pairs_cover=float(ep['x_lo'] <= x <= ep['x_hi']),
                 curv_ml=ec['x_ml'], curv_robust=ec['x_robust'], curv_n=ec['n_terms'],
                 curv_cover=float(ec['x_lo'] <= x <= ec['x_hi']),
-                pairs_mix=mp['x'], pairs_mix_pi=mp['pi'], pairs_mix_tau=mp['tau'])
+                curv_mix=mc['x'], curv_mix_pi=mc['pi'], curv_mix_tau=mc['tau'])
+
+
+S_TRUE = [1.0, 1.05, 1.1, 1.15, 1.25]
+SCALE_CASES = ['stated σ too small by s', 'σ too small by s + 0.3 % outliers', 'σ too small by s + 3 % outliers']
+
+
+def one_scale(args):
+    """The stated σ too small by s (and no X): does estimate_scale find s?"""
+    cname, sc, case, rep = args
+    rng = np.random.default_rng(zlib.crc32(('scale|%s|%s|%s|%d' % (cname, sc, case, rep)).encode()))
+    prof = _curves()[cname]
+    curv = []
+    for _ in range(SERIES_PER_ESTIMATE):
+        _p, c = series_terms(synth_series(prof, 0.0, 0.0, rng, _case_outliers(case),
+                                          sigma_scale=sc))
+        curv += c
+    e = estimate_scale('curvature', curv)
+    return dict(curve=cname, s_true=sc, case=case, rep=rep, s=e['s'], x=e['x'], pi=e['pi'])
+
+
+def summarise_scale(rows):
+    out = []
+    for case, cname, sc in sorted({(r['case'], r['curve'], r['s_true']) for r in rows}):
+        rs = [r for r in rows if (r['case'], r['curve'], r['s_true']) == (case, cname, sc)]
+        d = dict(case=case, curve=cname, s_true=sc, reps=len(rs))
+        for k in ('s', 'x', 'pi'):
+            v = np.array([r[k] for r in rs], float)
+            d[k + '_median'] = float(np.median(v))
+            d[k + '_p16'] = float(np.percentile(v, 16))
+            d[k + '_p84'] = float(np.percentile(v, 84))
+        out.append(d)
+    return out
 
 
 def summarise(rows):
@@ -390,25 +432,35 @@ def summarise(rows):
     for case, cname, x in keys:
         rs = [r for r in rows if (r['case'], r['curve'], r['x_true']) == (case, cname, x)]
         d = dict(case=case, curve=cname, x_true=x, reps=len(rs))
-        for est in ('pairs_mix', 'pairs_mix_pi', 'pairs_ml', 'pairs_robust', 'curv_ml', 'curv_robust'):
+        for est in ('curv_mix', 'curv_mix_pi', 'curv_ml', 'curv_robust'):
             v = np.array([r[est] for r in rs], float)
             v = v[np.isfinite(v)]
             d[est + '_median'] = float(np.median(v)) if len(v) else math.nan
             d[est + '_p16'] = float(np.percentile(v, 16)) if len(v) else math.nan
             d[est + '_p84'] = float(np.percentile(v, 84)) if len(v) else math.nan
-        for est in ('pairs', 'curv'):
-            d[est + '_coverage68'] = float(np.mean([r[est + '_cover'] for r in rs]))
-        d['pairs_n'] = int(np.median([r['pairs_n'] for r in rs]))
+        d['curv_coverage68'] = float(np.mean([r['curv_cover'] for r in rs]))
         d['curv_n'] = int(np.median([r['curv_n'] for r in rs]))
         out.append(d)
     return out
 
 
 def headline(summ):
-    """The figure's headline, from the numbers: the worst miss of the recommended estimator."""
-    worst = max(abs(d['pairs_mix_median'] - d['x_true']) for d in summ if 'drift' not in d['case'])
-    return ('Shared Qz with an outlier term recovers the excess within %.2f %% of R on every curve, with or '
-            'without outliers; a slow drift adds to it' % (worst * 100))
+    """The figure's headline, from the numbers: the worst miss of the estimator used, on the smooth curves
+    and on the film, and what a slow drift does."""
+    ok = [d for d in summ if d['case'] in ('per-point X', 'per-point X + 0.3 % outliers')]
+    smooth = max(abs(d['curv_mix_median'] - d['x_true']) for d in ok if d['curve'] != 'film 100 Å')
+    film = max(d['curv_mix_median'] - d['x_true'] for d in ok if d['curve'] == 'film 100 Å')
+    stress = max(d['curv_mix_median'] - d['x_true'] for d in summ
+                 if d['case'] == 'per-point X + 3 % outliers' and d['curve'] != 'film 100 Å')
+    return ('Within a scan, core + outliers finds X within %.2f %% of R (water, DPPC); 10× the real outliers add '
+            '%.2f %%, a film\'s fringes %.1f %%' % (smooth * 100, stress * 100, film * 100))
+
+
+def headline_scale(summ):
+    worst = max(abs(d['s_median'] - d['s_true']) for d in summ
+                if d['curve'] != 'film 100 Å' and '3 % outliers' not in d['case'])
+    return ('Within a scan, a stated σ too small by s is found within %.3f on water and DPPC, with no or the '
+            'real share of outliers' % worst)
 
 
 def figure(summ, path):
@@ -419,9 +471,9 @@ def figure(summ, path):
                          'axes.spines.right': False, 'axes.grid': True, 'grid.alpha': 0.3})
     curves = ['water', 'DPPC', 'film 100 Å']
     colours = {'water': '#1f77b4', 'DPPC': '#ff7f0e', 'film 100 Å': '#2ca02c'}
-    est = [('pairs_mix', 'shared Qz, core + outliers (recommended)'), ('pairs_ml', 'shared Qz, one Gaussian'),
-           ('curv_robust', 'within a scan (6-point difference), median'), ('curv_ml', 'within a scan, one Gaussian')]
-    fig, axs = plt.subplots(3, 4, figsize=(15, 10.2), sharex=True)
+    est = [('curv_mix', 'core + outliers (used for the real numbers)'), ('curv_ml', 'one Gaussian'),
+           ('curv_robust', 'median of the terms')]
+    fig, axs = plt.subplots(4, 3, figsize=(12.5, 13.0), sharex=True)
     for row, case in enumerate(CASES):
         for col, (e, title) in enumerate(est):
             ax = axs[row, col]
@@ -444,25 +496,66 @@ def figure(summ, path):
             ax.set_title(title if row == 0 else '', fontsize=9)
             if col == 0:
                 ax.set_ylabel('%s\nrecovered X (%% of R)' %['per-point X only', 'X + a slow 2 % drift per scan',
-                                                            'X + 3 % of points off by ~40 %'][row])
+                                                            'X + 0.3 % of points off by ~40 %\n(about the real share)',
+                                                            'X + 3 % of points off by ~40 %\n(10× the real share)'][row])
             if row == len(CASES) - 1:
                 ax.set_xlabel('true X (% of R)')
     h, l = axs[0, 0].get_legend_handles_labels()
-    fig.legend(h, l, loc='upper right', ncol=4, frameon=False, bbox_to_anchor=(0.99, 0.995))
+    fig.legend(h, l, loc='upper right', ncol=4, frameon=False, bbox_to_anchor=(0.99, 0.958))
     fig.suptitle(headline(summ), x=0.01, ha='left', y=0.995, fontsize=11, fontweight='bold')
+    fig.text(0.01, 0.962, 'Within-scan estimator (6-point difference): recovered excess X against the true X, '
+             'three ways of fitting (columns), four kinds of data (rows)', fontsize=9, color='0.25')
     import textwrap
-    fig.text(0.01, 0.005, textwrap.fill('Each point: the median and 16th–84th percentiles of %s estimates, each from %d '
-             'synthetic series (5 scans, 3 shared Qz per join, one repeated scan; Poisson counts, %d at each '
-             'scan\'s top; resolution FWHM 8.9e-4 Å⁻¹). Points: y_true × (1 + X·z), stated errors counting '
-             'only; outliers (bottom row): 3 %% of points × exp(0.4·z). Qz ≥ %.2f, y/σ ≥ %d. tests/tools/excess_scatter.py.' %
-             ('the', SERIES_PER_ESTIMATE, TOP_COUNTS, Q_MIN, SNR_MIN), 230), fontsize=7.5, color='0.35')
-    fig.tight_layout(rect=(0, 0.025, 1, 0.96))
+    fig.text(0.01, 0.005, textwrap.fill('Each point: the median and 16th–84th percentiles of the estimates (%d per '
+             'point), each from %d synthetic series of 5 scans (Poisson counts, %d at each scan\'s top; resolution '
+             'FWHM 8.9e-4 Å⁻¹). Points: y_true × (1 + X·z), stated errors counting only; drift (middle row): '
+             '2 %% × sin over each scan, random phase; outliers (bottom rows): 0.3 or 3 %% of points × exp(0.4·z). '
+             'Qz ≥ %.2f, y/σ ≥ %d. The between-scan (shared-Qz) estimator is not used in C63 (owner, 2026-11-25). '
+             'tests/tools/excess_scatter.py.' % (summ[0]['reps'], SERIES_PER_ESTIMATE, TOP_COUNTS, Q_MIN, SNR_MIN),
+             190), fontsize=7.5, color='0.35')
+    fig.tight_layout(rect=(0, 0.03, 1, 0.94))
     fig.savefig(path, dpi=200)
     plt.close(fig)
 
 
-PULL_CASES = {'no excess': (0.0, 0.0, 0.0), 'core 0.4 %': (0.004, 0.0, 0.0), 'core 1 %': (0.01, 0.0, 0.0),
-              'core 0.4 % + 3 % outliers': (0.004, 0.03, 0.7), '3 % outliers only': (0.0, 0.03, 0.7)}
+def figure_scale(summ, path):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import textwrap
+    plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 9, 'axes.spines.top': False,
+                         'axes.spines.right': False, 'axes.grid': True, 'grid.alpha': 0.3})
+    curves = ['water', 'DPPC', 'film 100 Å']
+    colours = {'water': '#1f77b4', 'DPPC': '#ff7f0e', 'film 100 Å': '#2ca02c'}
+    fig, axs = plt.subplots(1, 3, figsize=(15, 5.0), sharey=True)
+    for ax, case in zip(axs, SCALE_CASES):
+        ax.plot([0.97, 1.3], [0.97, 1.3], color='0.2', lw=1, ls='--', label='truth')
+        for k, cname in enumerate(curves):
+            s = [d for d in summ if d['case'] == case and d['curve'] == cname]
+            xt = np.array([d['s_true'] for d in s]) + (k - 1) * 0.006
+            m = np.array([d['s_median'] for d in s])
+            ax.errorbar(xt, m, yerr=[m - np.array([d['s_p16'] for d in s]), np.array([d['s_p84'] for d in s]) - m],
+                        fmt='o', ms=4, color=colours[cname], capsize=2, label=cname)
+        ax.set_title(case, fontsize=9)
+        ax.set_xlabel('true s (the real error is s × the stated σ)')
+    axs[0].set_ylabel('recovered s')
+    axs[0].legend(frameon=False, loc='upper left')
+    fig.suptitle(headline_scale(summ), x=0.01, ha='left', y=0.985, fontsize=11, fontweight='bold')
+    fig.text(0.01, 0.01, textwrap.fill('Each point: median and 16th–84th percentiles of the estimates (%d per point), each '
+             'from %d synthetic series with no excess X; the stated σ is √counts ÷ s. estimate_scale fits s, a '
+             'proportional X and outliers together on the 6-point within-scan differences. '
+             'tests/tools/excess_scatter.py.' % (summ[0]['reps'], SERIES_PER_ESTIMATE), 170), fontsize=7.5, color='0.35')
+    fig.tight_layout(rect=(0, 0.06, 1, 0.94))
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+
+
+# (core X, outlier share of points, outlier scale, σ scale s): the within-scan findings, and C61's 1 % for comparison.
+# 1.8 % of windows are outliers and one bad point touches six windows, so about 0.3 % of points.
+PULL_CASES = {'no excess': (0.0, 0.0, 0.0, 1.0), 'σ × 1.12': (0.0, 0.0, 0.0, 1.12),
+              'σ × 1.12 + core 0.14 %': (0.0014, 0.0, 0.0, 1.12),
+              'σ × 1.12 + core 0.14 % + 0.3 % outliers': (0.0014, 0.003, 0.46, 1.12),
+              'core 1 % (C61)': (0.01, 0.0, 0.0, 1.0)}
 
 
 def _pull_task(args):
@@ -472,14 +565,16 @@ def _pull_task(args):
     from lss_core import patching
     key, rep, cname = args
     warnings.simplefilter('ignore')
-    x, pi, tau = PULL_CASES[cname]
+    x, pi, tau, scale = PULL_CASES[cname]
     a, b, t, _r, _m = A.draw_join(key, rep)
     out = []
     for k, sc in enumerate((a, b)):
-        rng = np.random.default_rng(zlib.crc32(('%s|%d|%s|%d' % (key, rep, cname, k)).encode()))
+        # the same draws in every case (common random numbers), so the cases differ only by what is injected
+        rng = np.random.default_rng(zlib.crc32(('%s|%d|%d' % (key, rep, k)).encode()))
         m = 1 + x * rng.standard_normal(len(sc.y))
         m = m * np.where(rng.random(len(sc.y)) < pi, np.exp(tau * rng.standard_normal(len(sc.y))), 1.0)
-        out.append(patching.Scan(sc.q, sc.y * m, sc.sigma))
+        extra = math.sqrt(max(scale * scale - 1, 0)) * sc.sigma * rng.standard_normal(len(sc.y))
+        out.append(patching.Scan(sc.q, sc.y * m + extra, sc.sigma))   # real error s × σ, stated σ
     tab = A.join_table(*out)
     tab['truth'] = t
     return key, cname, tab
@@ -487,7 +582,7 @@ def _pull_task(args):
 
 def pull_check(reps, workers):
     """Pull SD of today's joint fit (guard p 0.7, its own χ² inflation) on C61's six synthetic joins, with
-    the excess found on real data: does it reproduce C56's real pull SD of 1.24?"""
+    the within-scan excess found on real data: does it reproduce C56's real pull SD of 1.24?"""
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import ref_guard_study as A
     import guard_error_study as G
@@ -495,17 +590,35 @@ def pull_check(reps, workers):
     with Pool(workers) as p:
         res = p.map(_pull_task, jobs)
     rows = []
+    sd = lambda p: float(np.std(p, ddof=1))
     for c in PULL_CASES:
-        per = {}
+        per, se = {}, {}
         for k in A.JOINS:
             tabs = [t for kk, cc, t in res if kk == k and cc == c]
-            st = A.stats([G.rule_estimate(t, 'own') for t in tabs], [t['truth'] for t in tabs])[0]
+            st, pulls = A.stats([G.rule_estimate(t, 'own') for t in tabs], [t['truth'] for t in tabs])
             per[k] = st['pull_sd']
-        biased = [v for k, v in per.items() if k != G.SMOOTH]
+            se[k] = A._boot(pulls, sd)          # bootstrap over replicates
+        biased = [k for k in per if k != G.SMOOTH]
         rows.append(dict(case=c, core_x=PULL_CASES[c][0], outlier_share=PULL_CASES[c][1],
-                         outlier_scale=PULL_CASES[c][2], smooth_pull_sd=per[G.SMOOTH],
-                         biased_mean_pull_sd=float(np.mean(biased)), reps=reps))
+                         outlier_scale=PULL_CASES[c][2], sigma_scale=PULL_CASES[c][3], smooth_pull_sd=per[G.SMOOTH],
+                         smooth_pull_sd_se=se[G.SMOOTH], biased_mean_pull_sd=float(np.mean([per[k] for k in biased])),
+                         biased_mean_pull_sd_se=float(math.sqrt(sum(se[k] ** 2 for k in biased)) / len(biased)),
+                         reps=reps))
     return rows
+
+
+def _write_pulls(a):
+    if not a.pulls:
+        return
+    pr = pull_check(a.pulls, a.workers)
+    with open(os.path.join(a.out, 'pulls.csv'), 'w', newline='', encoding='utf-8') as f:
+        w = csv.DictWriter(f, fieldnames=list(pr[0].keys()))
+        w.writeheader()
+        for d in pr:
+            w.writerow({k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})
+    for d in pr:
+        print('pulls: %-42s smooth %.2f ± %.2f  fringed %.2f ± %.2f' % (d['case'], d['smooth_pull_sd'],
+              d['smooth_pull_sd_se'], d['biased_mean_pull_sd'], d['biased_mean_pull_sd_se']))
 
 
 def main(argv=None):
@@ -513,9 +626,14 @@ def main(argv=None):
     ap.add_argument('--out', required=True)
     ap.add_argument('--trials', type=int, default=40, help='estimates per curve, X and case')
     ap.add_argument('--workers', type=int, default=6)
-    ap.add_argument('--pulls', type=int, default=200, help='replicates per join for the pull check (0: skip)')
+    ap.add_argument('--scale-trials', type=int, default=20, help='estimates per curve, s and case for X2')
+    ap.add_argument('--pulls', type=int, default=400, help='replicates per join for the pull check (0: skip)')
+    ap.add_argument('--pulls-only', action='store_true', help='rerun only the pull check (pulls.csv)')
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
+    if a.pulls_only:
+        _write_pulls(a)
+        return 0
     jobs = [(c, x, case, r) for case in CASES for c in _curves() for x in X_TRUE for r in range(a.trials)]
     with Pool(a.workers) as p:
         rows = p.map(one, jobs)
@@ -527,22 +645,27 @@ def main(argv=None):
             w.writerow({k: (round(v, 5) if isinstance(v, float) else v) for k, v in d.items()})
     json.dump(dict(trials=a.trials, series_per_estimate=SERIES_PER_ESTIMATE, x_true=X_TRUE, q_min=Q_MIN,
                    snr_min=SNR_MIN, top_counts=TOP_COUNTS, scans=SCANS, outlier_share=OUTLIER_SHARE,
-                   outlier_scale=OUTLIER_SCALE, headline=headline(summ)), open(os.path.join(a.out, 'numbers.json'), 'w'),
+                   outlier_scale=OUTLIER_SCALE, s_true=S_TRUE, scale_trials=a.scale_trials,
+                   headline=headline(summ)), open(os.path.join(a.out, 'numbers.json'), 'w'),
               indent=1)
     figure(summ, os.path.join(a.out, 'X1_known_truth.png'))
-    if a.pulls:
-        pr = pull_check(a.pulls, a.workers)
-        with open(os.path.join(a.out, 'pulls.csv'), 'w', newline='', encoding='utf-8') as f:
-            w = csv.DictWriter(f, fieldnames=list(pr[0].keys()))
-            w.writeheader()
-            for d in pr:
-                w.writerow({k: (round(v, 4) if isinstance(v, float) else v) for k, v in d.items()})
-        for d in pr:
-            print('pulls: %-28s smooth %.2f  biased %.2f' % (d['case'], d['smooth_pull_sd'], d['biased_mean_pull_sd']))
+    jobs = [(c, sc, case, r) for case in SCALE_CASES for c in _curves() for sc in S_TRUE for r in range(a.scale_trials)]
+    with Pool(a.workers) as p:
+        srows = p.map(one_scale, jobs)
+    ssum = summarise_scale(srows)
+    with open(os.path.join(a.out, 'known_truth_scale.csv'), 'w', newline='', encoding='utf-8') as f:
+        w = csv.DictWriter(f, fieldnames=list(ssum[0].keys()))
+        w.writeheader()
+        for d in ssum:
+            w.writerow({k: (round(v, 5) if isinstance(v, float) else v) for k, v in d.items()})
+    figure_scale(ssum, os.path.join(a.out, 'X2_scale_known_truth.png'))
+    for d in ssum:
+        print('scale %-34s %-10s s %.2f -> %.3f [%.3f, %.3f]  x %.4f' % (d['case'], d['curve'], d['s_true'],
+              d['s_median'], d['s_p16'], d['s_p84'], d['x_median']))
+    _write_pulls(a)
     for d in summ:
-        print('%-28s %-10s X %.3f  mix %.4f pi %.3f  pairs %.4f/%.4f  within %.4f/%.4f' % (d['case'], d['curve'],
-              d['x_true'], d['pairs_mix_median'], d['pairs_mix_pi_median'], d['pairs_ml_median'],
-              d['pairs_robust_median'], d['curv_ml_median'], d['curv_robust_median']))
+        print('%-28s %-10s X %.3f  mix %.4f pi %.3f  ml %.4f  median %.4f' % (d['case'], d['curve'],
+              d['x_true'], d['curv_mix_median'], d['curv_mix_pi_median'], d['curv_ml_median'], d['curv_robust_median']))
     return 0
 
 
