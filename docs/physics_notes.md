@@ -7174,27 +7174,6 @@ by the local data agent. Study: `docs/studies/gid_unscaled_seams/summary.md`.
 - **Real sets:** of the survey's 18, 16 have a real β gap; 15 of them now patch. 1 fails on a separate error
   (a zero-size array in the join). 2 had failed only with the `physical` responses and join normally.
 
-### 2026-11-27 — A GID level whose 2θ bins share no β range (local data agent)
-
-- **Question:** why did one private survey set still fail with "zero-size array to reduction operation
-  maximum" after the stopgap (2026-11-26)?
-- **Answer (run, private set; then synthetic test):** `level_map` keeps the β range every kept 2θ bin sees.
-  In the set's upper level a few 2θ bins saw only the top of the β range, so no β bin was common: the level
-  kept no β rows, and `join_levels` took the maximum of an empty array. It was not a β gap.
-- **Fix:** only when that rule leaves no β row, the level keeps the β window that keeps the most map cells
-  (2θ bins that see all of it × its β bins, `pinhole._widest_common_window`); the 2θ bins that do not see all
-  of it are dropped and counted (`info['narrow_bins_dropped']`). A level with fewer than 2 β rows is now
-  refused by name. Every level that had a common range is unchanged (the code path is the old one).
-- **Measured:** on the set, 10 of the level's 270 bins are dropped; the levels then overlap and join with a
-  fitted factor by default. On the other 17 of the survey's 18 unjoinable sets the fallback never runs. So
-  of the 18: 15 have a real β gap (all patch with the opt-in stopgap), 3 patch by default (2 failed only
-  with the `physical` responses, and this one). The 2026-11-26 entry's "16 … 15 of them" is corrected here.
-- **Synthetic known truth** (`tests/test_gid_narrow_beta_bins.py`): a level whose last frames have the arm
-  8° higher has no common β range; with the fix its map ÷ truth is 1.000 and it joins the level below with
-  factor 1.00. A 5° shift still has a common range and nothing is dropped.
-- **Assumption:** "most cells" is a neutral rule between a wide 2θ range and a tall β range; not chosen by
-  the owner.
-
 ### 2026-11-26 — Does χ² give XeRay's bad fits away? (owner; XRF session)
 
 Verified by: a run on the shootout's own spectra (all 40 synthetic conditions, 39 100 spectra, the run's
