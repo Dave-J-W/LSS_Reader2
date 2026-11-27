@@ -1,23 +1,23 @@
 data,variant,label,edges,chi2_median,sigma_ratio_median,sigma_ratio_p25,sigma_ratio_p75,dqoff_median,at_bound
-private,base,"as fitted (water β, Qz ≤ 0.030)",350,40.32,1,1,1,0,0
-private,qmax0.028,Qz ≤ 0.028,350,33.11,0.9874,0.983,0.9917,2.208e-06,2
-private,qmax0.026,Qz ≤ 0.026,350,31.79,0.9703,0.9611,0.9809,5.121e-06,1
-private,beta1.5,β × 1.5,350,29.78,0.934,0.9191,0.9516,-5.832e-06,10
-private,beta3.0,β × 3,350,10.69,0.6681,0.5657,0.7854,-2.091e-05,31
-private,beta4.0,β × 4,350,13.89,0.398,0.2177,0.64,-3.194e-05,45
+private,base,"standard fit (water, to Qz 0.030)",350,40.32,1,1,1,0,0
+private,qmax0.028,fit to Qz 0.028,350,33.11,0.9874,0.983,0.9917,2.208e-06,2
+private,qmax0.026,fit to Qz 0.026,350,31.79,0.9703,0.9611,0.9809,5.121e-06,1
+private,beta1.5,absorption β × 1.5,350,29.78,0.934,0.9191,0.9516,-5.832e-06,10
+private,beta3.0,absorption β × 3,350,10.69,0.6681,0.5657,0.7854,-2.091e-05,31
+private,beta4.0,absorption β × 4,350,13.89,0.398,0.2177,0.64,-3.194e-05,45
 private,drop_below,without the point below the edge,350,32.52,0.9768,0.0003039,0.9889,2.17e-06,100
 private,drop_both,without the points either side,350,14.17,0.0001319,7.662e-05,0.0002237,-0.0001016,306
-released,base,"as fitted (water β, Qz ≤ 0.030)",76,133,1,1,1,0,0
-released,qmax0.028,Qz ≤ 0.028,76,119.8,0.9826,0.962,0.9939,7.473e-06,0
-released,qmax0.026,Qz ≤ 0.026,76,124.7,0.9643,0.8743,0.9899,2.358e-05,0
-released,beta1.5,β × 1.5,76,126.2,0.9788,0.9611,0.9909,-6.847e-06,3
-released,beta3.0,β × 3,76,109,0.9128,0.84,0.9677,-2.637e-05,6
-released,beta4.0,β × 4,76,106.4,0.8697,0.7553,0.9514,-4.027e-05,10
+released,base,"standard fit (water, to Qz 0.030)",76,133,1,1,1,0,0
+released,qmax0.028,fit to Qz 0.028,76,119.8,0.9826,0.962,0.9939,7.473e-06,0
+released,qmax0.026,fit to Qz 0.026,76,124.7,0.9643,0.8743,0.9899,2.358e-05,0
+released,beta1.5,absorption β × 1.5,76,126.2,0.9788,0.9611,0.9909,-6.847e-06,3
+released,beta3.0,absorption β × 3,76,109,0.9128,0.84,0.9677,-2.637e-05,6
+released,beta4.0,absorption β × 4,76,106.4,0.8697,0.7553,0.9514,-4.027e-05,10
 released,drop_below,without the point below the edge,76,88.68,1.015,0.1966,1.187,1.612e-05,31
 released,drop_both,without the points either side,76,32.64,0.8826,0.000128,1.11,-7.323e-05,45
-private,b05,β × 0.5,350,53.41,1.061,1.047,1.073,6.371e-06,nan
-private,b2,β × 2,350,21.12,0.8604,0.8238,0.9006,-1.113e-05,nan
+private,b05,absorption β × 0.5,350,53.41,1.061,1.047,1.073,6.371e-06,nan
+private,b2,absorption β × 2,350,21.12,0.8604,0.8238,0.9006,-1.113e-05,nan
 private,r3,3 Å roughness in R_F,350,42.33,1.004,1.003,1.004,3.818e-07,nan
-released,b05,β × 0.5,76,138.6,1.023,1.01,1.04,6.687e-06,nan
-released,b2,β × 2,76,120,0.9612,0.9211,0.9828,-1.336e-05,nan
+released,b05,absorption β × 0.5,76,138.6,1.023,1.01,1.04,6.687e-06,nan
+released,b2,absorption β × 2,76,120,0.9612,0.9211,0.9828,-1.336e-05,nan
 released,r3,3 Å roughness in R_F,76,133.7,1.002,1.001,1.003,7.057e-07,nan

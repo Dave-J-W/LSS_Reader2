@@ -1386,11 +1386,11 @@ TOOLS = (
                       "(sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them.",
          committed=('docs/studies/qz_resolution',), docs=('docs/studies/qz_resolution/summary.md',),
          data='private', repo_ok=False),
-    Tool('qoff_resolution_real', 'Qoff and the Qz resolution on real edges (private data)', 'external', 'external',
-         demonstrates="Tools man's joint edge fit (fresnel.fit_edge_resolution, hand-off 09) on 400 real edge scans "
-                      "and 96 released ones (DATA_NEEDS row 18): the known truth at the real sampling, the fit "
-                      "against row 13's, the residual pattern, Qoff from series to series and what moves it. Made by "
-                      "the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the "
+    Tool('qoff_resolution_real', 'Angle offset and Qz resolution on real edges (private data)', 'external', 'external',
+         demonstrates="Tools man's new edge fit (fresnel.fit_edge_resolution: angle offset and resolution width together) on 400 real edge scans "
+                      "and 96 released ones: simulated edges sampled like the real ones, the fit "
+                      "against the earlier Qz-resolution study, the residual pattern, the offset from series to series and what moves it. Made by "
+                      "the owner's PC's private generator (sample_data/private/xr/); not regenerable here; the "
                       'numbers are the CSVs beside the figures.',
          committed=('docs/studies/qoff_resolution_real',), docs=('docs/studies/qoff_resolution_real/summary.md',),
          data='private', repo_ok=False),

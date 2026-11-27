@@ -7,10 +7,10 @@
   "qoff_median": -0.0001643365276966971,
   "qoff_p25": -0.00026559810649577333,
   "qoff_p75": -9.088083813161073e-05,
-  "sharp_median": -0.00021982725828436516,
-  "joint_minus_sharp_median": 9.391113291674578e-05,
-  "joint_minus_sharp_p25": 3.266170598355582e-05,
-  "joint_minus_sharp_p75": 0.00016576397492714645,
+  "propose_today_median": -0.00021982725828436516,
+  "joint_minus_propose_today_median": 9.391113291674578e-05,
+  "new_minus_propose_today_p25": 3.266170598355582e-05,
+  "new_minus_propose_today_p75": 0.00016576397492714645,
   "sigma_q_median": 0.00037921965951644555,
   "sigma_q_p25": 0.00033098577987812367,
   "sigma_q_p75": 0.0004470973823864924,
@@ -20,10 +20,10 @@
   "chi2_p75": 119.39335766539625,
   "chi2_p95": 861.705163948665,
   "share_chi2_below_3": 0.011428571428571429,
-  "sigma_over_row13_median": 1.0044987708073692,
-  "sigma_over_row13_p5": 0.9815245368498259,
-  "sigma_over_row13_p95": 1.0753645177247093,
-  "qoff_minus_row13_p95abs": 1.0179282693291993e-05,
+  "sigma_over_earlier_study_median": 1.0044987708073692,
+  "sigma_over_earlier_study_p5": 0.9815245368498259,
+  "sigma_over_earlier_study_p95": 1.0753645177247093,
+  "qoff_minus_earlier_study_p95abs": 1.0179282693291993e-05,
   "qoff_err_median": 1.3273132409993799e-05,
   "qoff_err_counting_median": 2.0592124814893034e-06,
   "between_series_robust_sd_median": 7.795397273716018e-05,
@@ -57,12 +57,12 @@
   "runs": 2,
   "at_bound": 20,
   "qoff_median": 0.0006842499102000708,
-  "sharp_median": 0.00022853843021214642,
+  "propose_today_median": 0.00022853843021214642,
   "sigma_q_median": 0.0007618449273928913,
   "sigma_q_p25": 0.0004588084398999868,
   "sigma_q_p75": 0.0015302578706609135,
   "chi2_median": 132.97166818810175,
-  "joint_minus_sharp_median": 0.0002676830541537409
+  "joint_minus_propose_today_median": 0.0002676830541537409
  },
  "truth": {
   "conditions": 18,
@@ -76,7 +76,7 @@
    0.91,
    0.98
   ],
-  "sharp_bias_range": [
+  "propose_today_bias_range": [
    -0.0002534366450866416,
    0.00014048719596522014
   ]
