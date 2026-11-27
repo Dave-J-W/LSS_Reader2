@@ -507,7 +507,7 @@ def measure_gid(profiles, qxy_range=None, options=None, estimator='template'):
     S = None
     if estimator in SPLIT_ESTIMATORS:
         c0, w0 = (found['centre'], found['fwhm']) if found else (float(xw[np.argmax(shape)]), reference['fwhm'])
-        S, P, sp = split_shoulder(xw, shape, c0, w0)
+        S, P, sp = split_shoulder(xw, shape, c0, w0, SPLIT_CORE)       # read at call time: a study may vary it
         cP = float(np.sum(P * xw) / np.sum(P)) if np.sum(P) > 0 else c_ref
         reference.update(shoulder=sp, peak=P, peak_centre=cP, peak_area=float(np.sum(P) * step),
                          peak_fwhm=_half_width(xw, P), shoulder_area=float(np.sum(S) * step))

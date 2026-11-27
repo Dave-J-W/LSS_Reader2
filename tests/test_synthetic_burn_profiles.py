@@ -75,3 +75,12 @@ def test_shoulder_shapes_and_a_changing_shoulder(shape):
     assert all(np.array_equal(u, v) for u, v in zip(plain, gauss))
     with pytest.raises(ValueError):
         bp.profiles(shoulder_shape='square')
+
+
+def test_a_peak_can_broaden_and_fade_together():
+    """``area_change`` on top of ``change`` (an NX 15-like burn, P44)."""
+    t = bp.profiles(change='broaden', amount=0.2, area_change=-0.13, seed=None)[1]
+    f = t.t / (21 * 10.0)
+    assert np.allclose(t.area, bp.AREA * (1 - 0.13 * f)) and np.allclose(t.fwhm, bp.FWHM * (1 + 0.2 * f))
+    assert np.all(bp.profiles(change='fade', seed=None)[1].area == bp.profiles(change='fade', area_change=0.0,
+                                                                                    seed=None)[1].area)

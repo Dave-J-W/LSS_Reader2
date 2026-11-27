@@ -28,6 +28,9 @@ whether a real shoulder changes under the beam is not known);
 'asymmetric' (σ 0.025 below its centre, 0.055 above), 'two' (the Gaussian
 and a narrower one, 0.6 of its height, σ 0.012, at 1.455: close beside the
 peak), 'none'. ``BurnTruth.shoulder_profile(k)`` is frame k's.
+``area_change``: the peak's area × (1 + area_change·f) on top of
+``change`` (NX scan 15 broadens by about 20 % and, read by the split
+estimator, fades by 13 %: ``change='broaden', area_change=-0.13``).
 
 Noise: Poisson on counts = value × ``monitor`` (``counts`` sets the noise
 floor: lower ``monitor``, fewer counts), σ = √counts / monitor; or no noise
@@ -89,7 +92,7 @@ class BurnTruth:
 
 
 def profiles(n=21, change='fade', amount=0.2, tau=None, ctime=10.0, monitor=1e7, seed=0,
-             shoulder_scale=3.0, shoulder_shape='gaussian', shoulder_change=0.0):
+             shoulder_scale=3.0, shoulder_shape='gaussian', shoulder_change=0.0, area_change=0.0):
     """(list of n profiles, BurnTruth). See the module docstring."""
     if change not in CHANGES:
         raise ValueError('change %r: one of %s' % (change, ', '.join(CHANGES)))
@@ -112,6 +115,8 @@ def profiles(n=21, change='fade', amount=0.2, tau=None, ctime=10.0, monitor=1e7,
         centre = CENTRE + amount * f
     elif change == 'background':
         floor = FLOOR * (1 + amount * f)
+    if area_change:
+        area = area * (1 + area_change * f)
     lit = ((X > LIT[0]) & (X < LIT[1])).astype(float)
     height = sh * (1 + shoulder_change * f)
     rng = np.random.default_rng(seed) if seed is not None else None
