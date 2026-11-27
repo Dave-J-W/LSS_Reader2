@@ -121,10 +121,9 @@ Everything else is **not** a blocker.
    without Python), following `docs/PACKAGING.md` "Clean-PC test", with the `v2.0.0` build. The XModFit
    read of the export (step 5) is the owner's. Help → About shows 2.0 since 2026-11-26 (`lss_core.__version__`; it said 1.1).
 
-**Before the tag** (owner): `v2.0.0` on cc599e4 (all three suites passed on it: quick 1441, slow 427, sweep 194;
+**The tag (done, 2026-11-27):** `v2.0.0` on 01ae585, which has the same code as cc599e4 (all three suites passed on it: quick 1441, slow 427, sweep 194;
 build run 45918527279 passed). The clean-PC test and XModFit reading the export were not reported; the owner
-decided to tag (2026-11-26, "I think we can tag 2"). The tag runs the same build workflow. **Proposed (main man):** no merges
-to main between the clean-PC test and the tag except blocker fixes, so that what was tested is what is tagged. The Windows test run is done (blocker 3 closed, 2026-11-26).
+decided to tag (2026-11-26, "I think we can tag 2"). The tag's build passed (run 45919642733). The clean-PC test is now a check on the release, not a blocker. The Windows test run is done (blocker 3 closed, 2026-11-26).
 
 ## After 2.0 (parked, in rough order)
 

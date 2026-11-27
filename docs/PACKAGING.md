@@ -51,13 +51,20 @@ On your own machine (same platform as the build you want):
 - **2026-11-27, the build for the tag** (main at cc599e4, run 45918527279, started by main man at the owner's
   request while tools man was busy): after #132 (index numbers) and #135 (Plot options takes the Customize
   editor). Windows and macOS built and passed the self-test: window with 9 tabs, `_ref.txt` and `_rrf.txt`
-  identical. Downloads kept to 2027-02-25. The owner tags `v2.0.0` on cc599e4.
+  identical. Downloads kept to 2027-02-25.
+- **2026-11-27, released:** the owner tagged `v2.0.0` (on 01ae585, which has the same code as cc599e4; only
+  two docs differ) and published the GitHub release "Reader 2". The tag's build, run 45919642733, passed.
+  The release page has no files attached: the downloads are that run's artifacts, which expire on 2027-02-25.
+  Attaching them to the release is the owner's call ("Distribution" below).
 - **Near-clean test, the owner's PC** (project manager, 2026-11-26, run 45751301360's Windows build): Python
   off PATH, every `PYTHON*`, `CONDA*` and `QT_*` variable unset. The self-test passed in 9 s, and a plain
   start showed the window in 4 s and closed cleanly. Not a truly clean PC: Python and the Visual C++
   runtimes are installed there.
 
-## Clean-PC test (release blocker 4, `docs/RELEASE_PLAN.md`)
+## Clean-PC test (a check on the released 2.0; it no longer blocks anything)
+
+Not yet done by anyone. **Not in Windows Sandbox on the owner's PC** (it froze that PC, 2026-11-26).
+Use the `v2.0.0` build (run 45919642733).
 
 Done by a person on a Windows PC that has never had Python or the reader on it: a beamline PC or a
 spare laptop. **Do not use Windows Sandbox on the owner's PC** (project manager, 2026-11-26/27: enabling and
