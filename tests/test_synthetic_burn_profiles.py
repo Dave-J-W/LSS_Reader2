@@ -49,3 +49,38 @@ def test_the_default_estimator_reads_a_shift():
     values = burn.measure_gid(prof)[0]
     c = values['centre'][0]
     assert c[-1] - c[0] == pytest.approx(truth.centre[-1] - truth.centre[0], abs=4e-4)
+
+
+@pytest.mark.parametrize('shape', bp.SHOULDER_SHAPES)
+def test_shoulder_shapes_and_a_changing_shoulder(shape):
+    """P44 (2026-11-27): the profile is the floor, the shoulder of the
+    stated shape and height and the stated peak; the shoulder's height
+    follows ``shoulder_change``; the default shape is the old shoulder."""
+    prof, truth = bp.profiles(change='fade', shoulder_shape=shape, shoulder_change=0.4, seed=None)
+    x = bp.X
+    dx = x[1] - x[0]
+    lit = (x > bp.LIT[0]) & (x < bp.LIT[1])
+    for k, (p, a, f) in enumerate(zip(prof, truth.area, truth.floor)):
+        peak = p[:, 1] - lit * (f + truth.shoulder_profile(k))
+        assert np.sum(peak) * dx == pytest.approx(a, rel=1e-4)
+    assert truth.shoulder_height[-1] / truth.shoulder_height[0] == pytest.approx(
+        (1 + 0.4 * 20.5 / 21) / (1 + 0.4 * 0.5 / 21))
+    if shape != 'none':
+        s = truth.shoulder_profile(0)
+        assert np.max(s) == pytest.approx(truth.shoulder_height[0], rel=0.02 if shape != 'two' else 0.7)
+    else:
+        assert not np.any(truth.shoulder_profile(0))
+    plain, _ = bp.profiles(change='fade', seed=None)
+    gauss, _ = bp.profiles(change='fade', shoulder_shape='gaussian', shoulder_change=0.0, seed=None)
+    assert all(np.array_equal(u, v) for u, v in zip(plain, gauss))
+    with pytest.raises(ValueError):
+        bp.profiles(shoulder_shape='square')
+
+
+def test_a_peak_can_broaden_and_fade_together():
+    """``area_change`` on top of ``change`` (an NX 15-like burn, P44)."""
+    t = bp.profiles(change='broaden', amount=0.2, area_change=-0.13, seed=None)[1]
+    f = t.t / (21 * 10.0)
+    assert np.allclose(t.area, bp.AREA * (1 - 0.13 * f)) and np.allclose(t.fwhm, bp.FWHM * (1 + 0.2 * f))
+    assert np.all(bp.profiles(change='fade', seed=None)[1].area == bp.profiles(change='fade', area_change=0.0,
+                                                                                    seed=None)[1].area)

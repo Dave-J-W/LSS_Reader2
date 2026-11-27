@@ -272,6 +272,48 @@ TOOLS = (
          ),
          repo_out='docs/studies/reciprocity/c54', repo_ok=False, seconds=90.0),
 
+    Tool('burn_shoulder_study', 'A peak on a shoulder: which burn estimator reads the truth? (P44)', 'burn',
+         'figures', 'tests/tools/burn_shoulder_study.py',
+         'Synthetic GID burns with a known truth (fade, broadening, shift, a growing or fading shoulder, an NX '
+         '15-like broadening fade) on four shoulder shapes and at fewer counts: the bias, pulls, coverage and '
+         'verdicts of the template, the legacy moments and the two split estimators (the shoulder held '
+         'unstretched), and NX school burns 14 and 15 under every estimator: figures S1-S5.',
+         committed=('docs/studies/burn_shoulder',),
+         docs=('docs/studies/burn_shoulder/summary.md', 'docs/PHYSICS_ISSUES.md#| P44 |'),
+         data='public', defaults={'--out': OUT},
+         variations=(
+             V('NX only', 'S5 alone, no replicates (about a minute): burns 14 and 15 under every estimator.',
+               'docs/studies/burn_shoulder/summary.md## 5. NX school burns 14 and 15 (S5)', only='S5'),
+             V('A quick look (30 replicates)', 'Every case and shape with 30 replicates (about 8 min): the biases '
+               'hold, the coverages are rough.', 'docs/studies/burn_shoulder/summary.md## How to regenerate',
+               replicates='30'),
+             V('Fewer counts only', 'Part B: the Gaussian shoulder at 10 and 100 times fewer counts.',
+               'docs/studies/burn_shoulder/summary.md## 4. Fewer counts (S4)', parts='B'),
+             V('Shoulders that are not Gaussian', 'Part A on the Lorentzian, lopsided and two-component shoulders.',
+               'docs/studies/burn_shoulder/summary.md## 2. Other shoulder shapes (S2)', parts='A',
+               shapes='lorentzian,asymmetric,two'),
+             V('The reference\'s noise (part R)', 'Each frame measured against the frames\' mean (the reader), '
+               'the mean smoothed and the noiseless mean, at high counts and at NX 14\'s and 15\'s counts: S6, '
+               'about 10 min.', 'docs/studies/burn_shoulder/summary.md## 6. The reference\'s noise (S6)', only='R'),
+         ),
+         repo_out='docs/studies/burn_shoulder', repo_ok=False, seconds=5400.0),
+
+    Tool('burn_shoulder_walkthrough', 'Walkthrough: a GID burn from the frames to the verdict, split or not (P44, '
+         'ELI5)', 'burn', 'figures', 'tests/tools/burn_shoulder_walkthrough.py',
+         'The whole chain on NX school burn 15, for the owner\'s standing order (2026-11-25): a raw frame and its '
+         'line cut, the mean frame split into a shoulder and a peak, one frame fitted by the template and by the '
+         'split with residuals, the per-frame intensity and width with their lines, the verdicts by AICc, and the '
+         'calibration of the intervals on 60 synthetic burns: figures BW1-BW6.',
+         committed=('docs/studies/burn_shoulder/walkthrough',),
+         docs=('docs/studies/burn_shoulder/walkthrough.md', 'docs/studies/burn_shoulder/summary.md'),
+         data='public', defaults={'--out': OUT},
+         variations=(
+             V('More calibration burns (300)', 'BW6 with 300 synthetic burns: the coverage to about ±1 %.',
+               'docs/studies/burn_shoulder/walkthrough.md## Step 6. Calibration: do the intervals hold the truth? '
+               '(figure BW6)', replicates='300'),
+         ),
+         repo_out='docs/studies/burn_shoulder/walkthrough', repo_ok=False, seconds=60.0),
+
     Tool('burn_dose_figure', 'Burns against dose: damage or a changing sample?', 'burn', 'figures',
          'tests/tools/burn_dose_figure.py',
          'NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil '

@@ -174,10 +174,12 @@ NX school scans 6–9 (DPPC on water, 10 keV), at Qc 0.0217 (figure Q5):
   runs' range: the reading rises faster than linearly (`walkthrough.md`,
   step 5; corrected 2026-11-25 from a linear −1.0 to −1.9). So of NX's
   −2.8 × 10⁻⁴, about −1.5 × 10⁻⁴ is left at the median, and between −0.3
-  and −2.2 over the range. That remainder is a true angle offset (about
-  −0.0009° at the median), or a Qc about 1.5 × 10⁻⁴ above
-  water's 0.0217 (section 4: a wrong Qc moves Qoff one for one); the data
-  cannot tell which. Assumption: NX's ΔQ is the station's typical one (the
+  and −2.2 over the range. That remainder is a true angle (or height)
+  offset, about −0.0009° at the median. It is not a Qc above water's 0.0217
+  (which section 4 shows would move Qoff one for one, and which the data
+  alone could not tell from an angle offset): the owner (2026-11-25,
+  `docs/physics_notes.md`) says NX's subphase is pure water.
+  Assumption: NX's ΔQ is the station's typical one (the
   NX scans are from the same station; their own edge width was not fitted).
   The proposal makes R/R_F continuous either way, which is the owner's aim.
 

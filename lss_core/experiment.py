@@ -550,7 +550,8 @@ class Experiment:
         lss_core.burn.signal_rows, all rows when no peak stands out; None
         all rows (before); ``fit``: a
         peaks.FitOptions, for ``estimator`` 'fit'; ``estimator``: 'template'
-        (default), 'moments' (the legacy arithmetic) or 'fit', lss_core.burn.measure_gid),
+        (default), 'moments' (the legacy arithmetic), 'fit', or 'split' and 'split_fixed' (P44: the
+        shoulder held unstretched; not yet in the dialog), lss_core.burn.measure_gid),
         all per monitor count; then each quantity over
         ``time`` ('clock', default, the wall time; or 'exposure') compared by AICc over ``models``
         (lss_core.trends.MODELS), with the time until a ``threshold``
