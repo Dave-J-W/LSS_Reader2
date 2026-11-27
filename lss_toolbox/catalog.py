@@ -1400,6 +1400,33 @@ TOOLS = (
          data='public', defaults={'--out': OUT},
          repo_out='docs/studies/qoff_resolution_real', repo_ok=False, seconds=10.0),
 
+    Tool('beam_size_vs_resolution_synthetic', 'Beam size and Qz resolution: one beam, two views (synthetic)', 'refl',
+         'figures', 'tests/tools/beam_size_vs_resolution_synthetic.py',
+         'Calculated, no data: a focused beam in phase space (height, angle), what a sample-height scan and the '
+         'critical edge each measure of it, five ways the beam could change between runs with the correlation '
+         'each would give in 16 runs measured like the owner\'s, and a known-truth check of the fitted distance '
+         'between the sample and the focus.',
+         committed=('docs/studies/beam_size_vs_resolution/B0_one_beam_two_views.png',
+                    'docs/studies/beam_size_vs_resolution/B1_synthetic_cases.png',
+                    'docs/studies/beam_size_vs_resolution/synthetic_cases.csv',
+                    'docs/studies/beam_size_vs_resolution/synthetic_distance_recovery.json'),
+         docs=('docs/studies/beam_size_vs_resolution/summary.md',),
+         data='public', defaults={'--out': OUT},
+         repo_out='docs/studies/beam_size_vs_resolution', repo_ok=False, seconds=40.0),
+
+    Tool('beam_size_vs_resolution', 'Beam size against Qz resolution on real runs (private data)', 'external',
+         'external',
+         demonstrates='The owner\'s question: is the beam\'s height at the sample (sample-height scans) tied to the '
+                      'critical edge\'s resolution width? 349 real edges paired with the height scans nearest in '
+                      'time, run medians and within-run deviations, the correlation against five synthetic '
+                      'cases, and a bound on the distance between the sample and the focus. Made by the owner\'s '
+                      'PC\'s private generator (sample_data/private/xr/); not regenerable here; the numbers are '
+                      'the CSV and JSON beside the figures.',
+         committed=('docs/studies/beam_size_vs_resolution/B2_history.png',
+                    'docs/studies/beam_size_vs_resolution/runs.csv',
+                    'docs/studies/beam_size_vs_resolution/numbers.json'),
+         docs=('docs/studies/beam_size_vs_resolution/summary.md',), data='private', repo_ok=False),
+
     Tool('qoff_resolution_real','Angle offset and Qz resolution on real edges (private data)', 'external', 'external',
          demonstrates="Tools man's new edge fit (fresnel.fit_edge_resolution: angle offset and resolution width together) on 400 real edge scans "
                       "and 96 released ones: simulated edges sampled like the real ones, the fit "

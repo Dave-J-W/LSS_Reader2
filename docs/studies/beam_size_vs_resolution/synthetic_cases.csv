@@ -1,0 +1,6 @@
+case,what changes between runs,r_median,r_p5,r_p95,share_r_beyond_critical
+A,The angles change; the sample sits at the focus,0.027,-0.398,0.459,0.053
+B,The angles change; the sample sits 0.2 m from the focus,0.594,0.195,0.817,0.692
+C,The angles change; the sample sits 0.4 m from the focus,0.953,0.880,0.982,1.000
+D,The focus moves along the beam; the angles stay,0.009,-0.423,0.441,0.058
+E,The surface adds angles; the beam stays,-0.004,-0.443,0.429,0.051
