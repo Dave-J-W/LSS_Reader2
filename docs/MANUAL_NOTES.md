@@ -218,6 +218,14 @@ Each line: feature — where — default — script — notes entry (date).
   in Plot options. Those edits are one-off: they last until the tab
   redraws the plot, and are not saved; the options above it stay. The Ref
   Patch window and the burn test keep the icon.
+  - What redraws a plot (and so drops an Axes-and-curves edit): another
+    scan or frame selected, a display box on the tab toggled (Log Y, Monc,
+    Grid, Point #), new data in Live mode, and any change in Plot options
+    itself. So set the kept options first, then the one-off edits.
+  - Example: on the SpecPlot, Axes and curves renames the y axis
+    "Counts" and colours the line red; selecting scan 5 brings back
+    "Pilatus" and blue. A grid set above stays for scan 5, and after a
+    restart. (The owner's question, 2026-11-27; docs/gui/questions.md.)
 - Index numbers (F113, 2026-11-26): the points' numbers (SpecPlot's Point
   #, the Ref Patch window) sit a few points from their markers. Where they
   would overlap, or stick out of the plot, the later ones are hidden (a
