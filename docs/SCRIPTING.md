@@ -120,6 +120,26 @@ that is above 1. `roughness=3.0` puts a fixed Névot–Croce roughness in R_F (d
 'bootstrap failures'. Nothing applies the value. The study is `docs/studies/qoff_resolution/summary.md`.
 `fresnel_absorbing` and `fresnel_smeared` are its R_F, sharp and smeared.
 
+## Qz shifts from where the reflection lands (2026-11-27, F42)
+
+```python
+from lss_core import detector_qoff as dq
+ref = dq.sh_reference(exp, 5)                     # the reflection's row on sh scan 5's plateau: 53.010 ± 0.024 on NX
+s = dq.relative_shifts(exp, [6, 7, 8, 9], 5)      # per frame: scan, point, qz, row, row_error, dbeta_rad, dqz, dqz_error
+s.summary()                                       # NX: median −4e-05, range −2.3e-04 to +1.4e-04 Å⁻¹ over 96 frames
+dq.relative_shifts(exp, [6], 5, reading='incident')   # δα = Δβ instead of Δβ/2
+```
+
+The detector arm follows the reflection, so at the set angle the reflection lands on one row. Each frame's row
+(a Gaussian plus a constant fitted to the row profile, to about 0.02 px) is compared with the plateau row of a
+sample-height scan. Δβ = Δrow × 0.172 mm / S2D_Dist, and δQz = (4π/λ) cos α · δα, with δα = Δβ/2 for a surface
+tilt (the default; the owner: "usually surface tilt or curvature") or Δβ for an error in the incident angle.
+Qz + δQz is where the point was measured.
+
+The reference is taken at the alignment angle, so an offset already there is invisible to this route (the
+absolute route, the direct beam against the reflection, waits on what forms the spot: issue #174). The direction
+(a larger row is a larger exit angle) comes from the sh scan's direct beam when it shows. Nothing is applied.
+
 ## Fluorescence (XFNTR)
 
 ```python
