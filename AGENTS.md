@@ -41,9 +41,12 @@ commit with its test, CI green, the legacy export fixtures byte-identical.
 - **Tasks are GitHub issues** (rule 15). **Issue #55 is for short notices** between sessions: one comment per
   message, beginning `sender → recipient:`, no private data (its body has the rules). Keep a notice to a few
   lines and link the issue, commit or file instead of retelling it.
-- main man watches #55 and new `claude/local-data-*` pull requests, privacy-reviews the local data agent's
-  pull requests, and merges them once CI is green. It asks the owner only when something private or doubtful
-  shows up (owner, 2026-11-24).
+- **Two watchers, one per side** (owner, 2026-11-27; the `issue-watch` skill). **main man** watches all issues
+  and pull requests, privacy-reviews the data sessions' pull requests, and merges them once CI is green. It
+  asks the owner only when something private or doubtful shows up (owner, 2026-11-24). **One data session on
+  the owner's PC** runs the lane watch (`--label lane:local-data --branch-prefix claude/local-data-`), so a
+  task for the PC wakes it without anyone opening a session. No other session keeps a watch: they read their
+  lane's issues when a turn starts.
 - GUI priorities: the main window first, then the timeline tab (F83), then the `ngui/` prototype. Ideas proven
   in ngui are carried into the main window, not built twice.
 - Before changing a large part of `mainwindow.py`, `tests/conftest.py` or `tests/sweep.py`, say so on the

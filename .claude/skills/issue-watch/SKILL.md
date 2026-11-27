@@ -22,11 +22,26 @@ and a state folder in the session's scratchpad:
     Monitor(description="GitHub issues and new PRs of Dave-J-W/LSS_Reader2", timeout_ms=1800000,
             command="bash .claude/skills/issue-watch/watch.sh <scratchpad>/issue_watch")
 
+**Two watchers, one on each side** (owner, 2026-11-27). Cloud sessions can't start a session on the owner's
+PC, so a task for that PC would wait until someone opened a session there. So:
+- **main man** runs the full watch above (cloud side);
+- **one data session on the owner's PC** (GID guy or Reflection guy, whichever is open) runs the **lane
+  watch**. It wakes only for `lane:local-data` issues and for its own pull requests, including a reviewer's
+  new comments on them, and stays silent on #55 and everything else:
+
+      Monitor(description="lane:local-data tasks and local-data PRs", timeout_ms=1800000,
+              command="bash .claude/skills/issue-watch/watch.sh <scratchpad>/lane_watch --label lane:local-data --branch-prefix claude/local-data-")
+
+No other session watches: they read their lane's issues when a turn starts. The script needs only `gh`
+(its built-in `--jq`), so it runs in Git Bash on the owner's Windows PC, which has no `jq`. For a one-poll
+test, set `WATCH_ONCE=1`.
+
 It prints one line per event:
 - `NEW ISSUE #n`;
 - `ISSUE #n comments a -> b | latest: …`: own comments count too, so check who wrote it;
 - `NEW PR #n (branch)`;
-- `PR #n head moved a -> b`: for a PR waiting on a rebuild.
+- `PR #n head moved a -> b`: for a PR waiting on a rebuild;
+- `PR #n comments a -> b | latest: …` (lane watch only): a comment on one of the lane's pull requests.
 
 ## Keep it alive
 
