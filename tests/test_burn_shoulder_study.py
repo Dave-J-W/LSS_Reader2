@@ -83,6 +83,39 @@ def test_read_with_reference_is_measure_gid_with_the_frames_mean():
         assert np.allclose(got[1], v['intensity'][1], rtol=1e-12, atol=0)
 
 
+def test_a_frame_that_will_not_fit_is_nan_not_the_end(monkeypatch):
+    """A real GID burn (private survey, 2026-11-27) stopped the runner: one
+    frame's fit against the smoothed mean ran out of evaluations. As
+    measure_gid does, that frame is NaN and the others are read."""
+    from lss_core import burn
+    from synthetic import burn_profiles as bp
+    prof, _ = bp.profiles(change='broaden', seed=4, monitor=S.NX_MONITORS[15])
+    window = burn.measure_gid(prof, estimator='template')[2]
+    mean = np.mean([p[:, 1] for p in prof], axis=0)
+    want = S.read_with_reference(prof, mean, window, 'template')[0]
+    real, calls = burn._template, []
+
+    def flaky(*a, **k):
+        calls.append(1)
+        if len(calls) == 3:
+            raise RuntimeError('Optimal parameters not found: The maximum number of function evaluations is exceeded.')
+        return real(*a, **k)
+    monkeypatch.setattr(burn, '_template', flaky)
+    got, err = S.read_with_reference(prof, mean, window, 'template')
+    assert np.isnan(got[2]) and np.isnan(err[2])
+    keep = np.arange(len(got)) != 2
+    assert np.allclose(got[keep], want[keep], rtol=1e-12, atol=0)
+
+
+def test_the_published_real_burns_give_section_8s_counts(tmp_path):
+    """Section 8's figures come from the published per-burn summary alone
+    (no private data): its counts are the section's."""
+    got = S.real_figures(str(tmp_path), os.path.join(ROOT, S.REAL_CSV),
+                         os.path.join(ROOT, 'docs', 'studies', 'burn_shoulder', 'reference_noise.csv'))
+    assert got == dict(well_measured=118, read=155, failed=79, wide=5, differ=15)
+    assert (tmp_path / 'R1_template_vs_split.png').exists() and (tmp_path / 'R2_reference_shift.png').exists()
+
+
 def test_part_r_runs(tmp_path):
     rows, nx = S.reference_check(str(tmp_path), replicates=2, workers=1, monitors=(1e7,), cases=('fade',))
     assert nx == []

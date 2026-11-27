@@ -295,6 +295,10 @@ TOOLS = (
              V('The reference\'s noise (part R)', 'Each frame measured against the frames\' mean (the reader), '
                'the mean smoothed and the noiseless mean, at high counts and at NX 14\'s and 15\'s counts: S6, '
                'about 10 min.', 'docs/studies/burn_shoulder/summary.md## 6. The reference\'s noise (S6)', only='R'),
+             V('Real GID burns (R1, R2)', 'The private GID burns\' published summary (docs/studies/xr_burns/'
+               'gid_split.csv): the split against the template, and the shift a smoothed mean frame gives against '
+               'the mean frame\'s noise. Seconds; no private data needed.',
+               'docs/studies/burn_shoulder/summary.md## 8. Real GID burns (non-cloud agent)', only='G'),
          ),
          repo_out='docs/studies/burn_shoulder', repo_ok=False, seconds=5400.0),
 
