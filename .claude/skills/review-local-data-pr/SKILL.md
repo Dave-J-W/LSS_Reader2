@@ -72,7 +72,10 @@ and merged history is permanent.
    - **Lesson (2026-11-25):** #96 (C63) was merged after a privacy review alone. Its between-scan excess was
      then read as per-point noise, by C63 and by main man's C64, until a review of its tables showed that it
      grows with the minutes between scans (C64 corrected, #107).
-7. **Run the quick suite on the PR merged with today's main,** in a worktree, so your branch is untouched:
+7. **Run the quick suite once on the PR merged with today's main** (AGENTS.md rule 14: for local data pull
+   requests this cloud run is the check, and the local agent does not run one). Skip it when the PR head
+   is a commit you already ran it on, and main has brought nothing touching the same files since. Do it in a
+   worktree, so your branch is untouched:
 
        git worktree add -q --detach <scratch>/wtN origin/<branch>
        cd <scratch>/wtN && git merge -q --no-edit origin/main && timeout 1200 python -m pytest -q -p no:cacheprovider
@@ -87,7 +90,7 @@ and merged history is permanent.
 
 9. **Post on issue #55:**
    - what was checked;
-   - the suite's result;
+   - the suite's result, as `quick: N passed, M failed on <merged sha>`;
    - "please delete `<branch>`": cloud sessions cannot delete other branches (proxy 403);
    - anything left for the owner, which goes to questor.
 

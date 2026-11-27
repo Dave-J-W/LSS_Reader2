@@ -26,7 +26,8 @@ by area; if it disagrees with this paragraph, that file wins.
 
 Application code may now be changed, under these conditions:
 - one defect or one feature per commit, with its test in the same commit;
-- the quick checks pass before every commit; the real-data checks and the
+- the quick checks pass before every push (rule 14: once per pushed commit, not
+  per commit, and not again by the reviewer); the real-data checks and the
   crash sweep pass before a stage is called done;
 - the legacy export fixtures stay byte-identical (rule 3 below).
 
@@ -154,7 +155,7 @@ sessions do not edit the same lines.
 ## Commands
 
     pip install -r requirements-dev.txt   # a fresh cloud session lacks PyQt5 etc.: ~10 s
-    pytest                 # fast suite, ~5 min (1176 tests, 2026-11-24); run before every commit
+    pytest                 # quick suite, ~5 min (1450 tests, 2026-11-27); once per push (rule 14)
     pytest -m slow         # real-data regressions, ~4 min
     pytest -m bench -s     # rewrites docs/timings.md
     pytest -m release      # generated docs, inventories and committed figures are current (rule 11): before a release
@@ -250,6 +251,25 @@ foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by
    Each figure comes from a tool in `tests/tools/` (rule 11). A walkthrough document beside the study
    (`docs/studies/<topic>/walkthrough.md`) is the usual form; `.claude/skills/known-truth-study`
    says how.
+
+14. **Run the suites once** (owner, 2026-11-27). A run proves something about one commit, so run it
+   once per commit and let everyone else rely on it:
+   - **Per push, not per commit.** Run the quick suite on the commit you are about to push. It covers
+     every commit in that push.
+   - **Say what was tested.** Report it as `quick: <passed> passed, <failed> failed on <sha>`, in the pull
+     request body or the #55 post, with any failure named. A reviewer **does not rerun** when the head is
+     still that `<sha>`. It reruns only if the head moved, or if a merge of `main` brought in commits that
+     touch the same files as the change. Main's own commits were tested by their authors.
+   - **Prose-only pushes** (only `*.md` files changed): run `pytest tests/test_toolbox.py
+     tests/test_gui_menus.py` (seconds; they check the catalogue's quotations and the guide's path). A
+     change to any CSV, YAML, JSON or `.py` file, even under `docs/`, gets the quick suite: tests read
+     those.
+   - **Local data pull requests** (`claude/local-data-*`): the reviewer's cloud run is the check (the
+     owner's PC fails several tests for environment reasons), so the local data agent does not run the
+     quick suite for them.
+   - **Slow and sweep suites:** the slow suite when real-data reduction or a dialog's accepted input
+     changed (for that area, `-m slow -k <area>`), the sweep when the window changed, and both before a
+     release. Not otherwise.
 
 ## Things that will bite you
 

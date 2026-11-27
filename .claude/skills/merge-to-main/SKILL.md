@@ -24,8 +24,9 @@ with the owner's standing permission (main man, tools man, the GUI manager) do t
    - On a clash of COMPARISONS numbers (`| C61 |` taken on main meanwhile), take the next free number
      (`grep -o "^| C[0-9]*" docs/COMPARISONS.md | sort -t C -k2 -n | tail -1`) and re-point every reference.
      Say so in the merge commit.
-3. **Run the suites** on the merged tree:
-   - **always** the quick suite: `timeout 1200 python -m pytest -q -p no:cacheprovider` (about 4 min);
+3. **Run the suites once** on the merged tree (AGENTS.md rule 14): this run is the one everyone relies on.
+   Only `*.md` changed: `python -m pytest -q tests/test_toolbox.py tests/test_gui_menus.py` instead.
+   - the quick suite: `timeout 1200 python -m pytest -q -p no:cacheprovider` (about 4 min);
    - **real-data tests** for the area when numbers can move, **or when a dialog or workflow changes what it
      accepts**: `python -m pytest -q -m slow -k "<area>"` (`burn`, `ref`, `gid`, `timeline`, ...). For
      example, the burn dialog's 1 mm width prefill made it refuse every burn without a height scan at its S1
@@ -39,8 +40,9 @@ with the owner's standing permission (main man, tools man, the GUI manager) do t
    - **after catalogue changes:** `tests/test_toolbox.py` (the item must exist). `docs/TOOLS.md` and the other
      generated files are not re-rendered per commit (rule 11, owner 2026-11-27): before a release, or when asked,
      then `pytest -m release`.
-4. **Push and open the pull request.** Its body says what changed and **which suites ran with their
-   results**: no workflow tests pull requests. End the body with the attribution the system reminder gives.
+4. **Push and open the pull request.** Its body says what changed and **which suites ran, with their
+   results and the commit they ran on**, as `quick: N passed, M failed on <sha>` (rule 14): no workflow tests
+   pull requests, and a reviewer relies on this line instead of rerunning. End the body with the attribution the system reminder gives.
 
        git push -q origin claude/<name>
        n=$(gh api repos/Dave-J-W/LSS_Reader2/pulls -X POST -f title="…" -f head=claude/<name> -f base=main -F body=@<scratch>/pr.md --jq .number)
@@ -52,6 +54,8 @@ with the owner's standing permission (main man, tools man, the GUI manager) do t
        git fetch -q origin main && git merge --ff-only origin/main && git push -q origin claude/<name>
 
    - **HTTP 405 "merge conflicts"** means main moved after step 2. Do step 2 again, push, and merge again.
+     Rerun the quick suite only if main's new commits touch the same files as the branch (rule 14);
+     otherwise say "tested on <sha>; main merged in, no overlap" in the pull request.
 6. **Tell the others on issue #55** when the change matters to them: an API, a changed default, a new time
    for a suite.
 
