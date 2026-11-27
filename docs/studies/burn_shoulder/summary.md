@@ -361,12 +361,162 @@ offer.** The NX numbers of section 5 stand as read.
 - **Moderate** on the size of the split's read on real burns. It depends on the shoulder's shape (section 2)
   and on the reference's noise (sections 4 and 6), and two public burns cannot pin either down.
 
+## 8. Real GID burns (non-cloud agent)
+
+Hand-off 10's six questions (`docs/handoff_out/10-gid-burn-shoulder.md`, issue #155), answered on the
+private GID burns of the owner's PC, 2026-11-27.
+
+**The data.**
+- The tool's finder (`find_gid_burns`: an `ascan ih` that does not move, Det_Th above 2°) found 236 GID
+  burns in 12 SPEC files.
+- Two are the public NX burns 14 and 15. The runner reproduces section 5's numbers for them exactly
+  (template −1.5 % ± 1.5 % stable, split −13.3 % ± 2.4 % changing, split_fixed −15.2 % ± 1.3 % changing).
+- Of the 234 private burns, 79 were not read: 73 have no Pilatus frames, 4 have too few frames with
+  images, and 2 have no peak 5σ above the background. Each is in the private key with its error.
+- 155 private burns in 11 files were read under all three estimators. Their per-burn summary is
+  `docs/studies/xr_burns/gid_split.csv` (labels G01…; no file, scan, Qxy, frame or image).
+- **Well measured: 118 of the 155.** These have:
+  - a finite intensity change under all three estimators;
+  - an error on one frame's intensity of at most 10 %;
+  - a template intensity change within ±50 % over the burn. A larger one means the peak comes or goes:
+    these runs hold a few burns of +200 % to −800 %;
+  - template frames fitted to χ²/dof ≤ 5.
+
+  The cut is `well_measured` in the tool. The numbers below are for these 118 unless marked.
+- **One file holds 76 of the 118.** Each question was also run without it (42 burns in 10 files). Where its
+  answer differs, it is given.
+- The well-measured burns have a median of 21 frames over 321 s.
+  - One frame's intensity error has a median of 1.6 % (interquartile range 0.6–3.8 %).
+  - The mean frame's noise has a median of 0.46 % of its peak (0.27–0.86 %). That lies between the synthetic
+    monitors 6e4 and 1e4 (section 4) and near NX 14 (0.51 %).
+
+![R1](R1_template_vs_split.png)
+
+**1. How often does P44 change a real verdict?** Figure R1 shows the split's intensity change against the
+template's, one point per burn.
+- **The intensity verdicts differ on 15 of the 118 burns (13 %).** On 5, the template says stable and the
+  split changing; on 10, the other way round.
+- **The changes differ by more than 2 × the larger σ on 32 burns,** with the split's σ widened by 25 % as the
+  hand-off suggests. Counting either kind of disagreement, **39 of 118 (33 %)** disagree. Without the large
+  file the share is the same: 14 of 42.
+- The FWHM verdicts differ on 12, and the FWHM changes beyond 2σ on 15.
+- **On real burns the disagreement doesn't come from P44's own mechanism.** P44's mechanism is a change of
+  width that the template carries into the intensity. But real widths are steady:
+  - the median FWHM change over a burn is 1.4 %;
+  - only 5 of the 118 burns broaden or narrow by 10 % or more;
+  - on none of those 5 do the verdicts differ.
+
+  The disagreements come from the shoulder instead. Among the 39 burns where the estimators disagree, the
+  split reads the shoulder as changing on 26 (67 %). Among the 79 where they agree, it does on 21 (27 %).
+- Across burns, split − template has a median of −0.01 pp, with a scatter (MAD) of 1.5 pp. The split
+  shows no overall bias: it differs burn by burn.
+- NX 15 (a fade read as stable while the peak broadens by 18 %) is the clearest case of P44 among these
+  burns. No private burn shows it as strongly.
+
+**2. Do real shoulders change under the beam?** Yes, in a sizeable minority of burns.
+- The split found a shoulder on 94 of the 118 burns (30 of the 155 had none, and the split is then the
+  template).
+- On 47 of those 94, the split calls the shoulder's own change "changing". The median change is +2.7 %, and
+  the median size of the change, sign ignored, is 5.1 %.
+- B per frame has a median mean of 0.99 and a median range (max − min) of 0.18 over a burn.
+- Split and split_fixed disagree on the intensity by more than their combined σ on 34 burns.
+- **All three signs together, the hand-off's test of a believable shoulder change, hold on 22 of 94 burns
+  (23 %):** the shoulder called changing, B moving the same way, and the two splits disagreeing. Without
+  the large file it is 13 of 39.
+- The synthetic study warns that a broadening peak leaks into B when the shoulder is not a Gaussian
+  (section 2). That cannot explain these: their widths are steady.
+- **So `split_fixed` (B = 1) is not safe on real burns:** about one shoulder in four changes.
+
+**3. Is a Gaussian a good enough shoulder?** At these counts the frames can't tell.
+- On the 94 burns with a shoulder, the frames' χ²/dof has a median of 1.11 under the template and 1.12
+  under the split. Both describe the frames to counting noise.
+- The split's χ²/dof is the lower one on 63 burns, but the median ratio is 0.99. It is more than 10 %
+  lower on 4 burns and more than 10 % higher on 10.
+- Only 7 burns have a template χ²/dof above 2, and on 2 of them the split is lower. NX 15, at higher
+  counts, shows the split's gain: 2.17 against 4.24.
+- **The split is never much worse, so a Gaussian shoulder is not the weak point at real counts. It is not
+  shown to be right either:** a shoulder of another shape would fit these frames as well.
+- Shape against the synthetic shoulders:
+  - shoulder ÷ peak area: median 2.6 (interquartile range 1.3–8.2);
+  - shoulder ÷ peak FWHM: median 5.3 (4.0–8.7); NX 14 and 15 have 8.5 and 6.9.
+
+![R2](R2_reference_shift.png)
+
+**4. Does the reference's noise matter at real counts?** For burns whose width is steady, no.
+- Figure R2 shows the intensity change re-read against the smoothed mean frame, minus the reader's, against
+  the mean frame's noise. The synthetic expectation is drawn over it.
+- **Burns with a steady FWHM** (a change below 5 %):
+  - below 1 % noise, the shift has a median within ±0.06 pp under both estimators, with a scatter (MAD) of
+    at most 0.6 pp;
+  - above 1 % noise (13 burns under the template, 12 under the split), the median is +0.8 to +0.9 pp, with a
+    scatter of about 5 pp;
+  - the synthetic steady fade expects 0 ± 0.5 at 0.35 % noise and 0 ± 1.9 at 0.85 %.
+- **The shift doesn't grow with the noise:** the rank correlation is 0.12 (template) and 0.14 (split).
+- **Burns that broaden by 5 % or more, the case the synthetic study flags,** are only 12 of the 118, 3 to 5
+  per noise bin. Their medians under the split are +0.2 pp at 0.2–0.5 % noise and +0.7 pp at 0.5–1 %. The
+  synthetic NX 15-like burns predict +1.5 ± 1.0 and +5.0 ± 2.7 pp, but they broaden by 20 %, and these
+  burns mostly broaden by 5–10 %.
+- NX 14 and 15 remain the two burns well below the synthetic rows.
+- **Of the hand-off's three readings, the first fits the steady burns:** the shifts scatter around zero
+  whatever the noise. Too few real burns broaden to decide between the other two. So the smoothed reference
+  doesn't become a candidate option from these data.
+
+**5. Does the split change F76's dose-or-time answer?**
+- Series here means burns of one file at one Det_Th, each less than 3 h after the previous one, with a flux
+  span of ×1.5 or more. There are **14 such series** of 2–6 burns, spanning ×2.0–×96 in flux
+  (`docs/studies/xr_burns/gid_split_series.csv`).
+- They were read with `lss_core.reciprocity.dose_or_time` on the intensity, as the reader does.
+- **With strip scatter ρ = 0 (the reader's default), the split changes the verdict of 5 of the 14 series;
+  with ρ = 0.5, of 3.**
+  - Template at ρ = 0: no change 4, opposite signs 3, neither 3, dose 2, time 1, cannot tell 1.
+  - Split at ρ = 0: no change 6, opposite signs 4, dose 2, cannot tell 2.
+- The changes are mostly between undecided classes ("neither", "no change", "cannot tell").
+  - One series moves from "neither" to "dose": β 0.45 → 0.69.
+  - One moves from "dose" to "cannot tell".
+  - The one "time" series becomes "no change".
+- Where both call it "dose", β moves from 1.18 to 1.04.
+- On NX, the drift-per-dose ratio moves from 0.79 to 0.82 (section 5).
+- **So the split changes F76's answer in a minority of series.** Few series are decided either way, and these
+  are 2–6 burns each.
+
+**6. Is there a burn with an independent before-and-after measurement?**
+- **47 burns (28 of them well measured) have a GID series of the same Det_Th in the same file that ended
+  within 2 h before the burn, and another that started within 2 h after it.** These are the candidates
+  (generator `sample_data/private/burn_shoulder/q5_q6.py`).
+- Not yet done: comparing that peak's area change across the burn with each estimator's change. It needs
+  each GID series patched, and the same peak's area measured in both. It is follow-up issue #173.
+
+**The judgment on real data.**
+- **P44's verdict change is real but less common on private burns than on NX 15.** The intensity verdicts
+  differ on 1 burn in 8, and the two estimators disagree in some way on 1 in 3.
+- **The driver on these burns is the shoulder, not the width.** Real widths are steady, and real shoulders
+  change in about a quarter of the burns. So the split with B free is the estimator to report beside the
+  template, and `split_fixed` is only a check.
+- **At real counts the frames can't choose a shoulder shape,** and **the reference's noise doesn't bias
+  steady burns.** Neither is a reason to hold the split back.
+- **The split changes F76's verdict in 3–5 of 14 series,** mostly among undecided ones.
+- **How sure:**
+  - **moderate** on the counts. 118 burns, but 76 from one file; the share of disagreements is the same
+    without it.
+  - **low** on question 4 for broadening burns: there are only 12.
+  - **open** on question 6: the measurement is the follow-up.
+- **Recommendation unchanged** (section 7): report the split beside the template, and leave the default
+  to the owner (rule 12 paused; issue #143).
+
+The private figures and generators are under `sample_data/private/burn_shoulder/`:
+- `run_real.py` (the runner over every file);
+- `analyse_final.py` (questions 1–4, the private `numbers.json`);
+- `q5_q6.py`;
+- frame-by-frame curves of single private burns, if wanted, are made there and never published (owner,
+  2026-11-25).
+
 ## How to regenerate
 
     python tests/tools/burn_shoulder_study.py --out docs/studies/burn_shoulder               # S1-S5, about 90 min (4 CPUs)
     python tests/tools/burn_shoulder_study.py --out docs/studies/burn_shoulder --only R      # S6, about 10 min
     python tests/tools/burn_shoulder_study.py --out DIR --replicates 30                      # a quick look, about 9 min
     python tests/tools/burn_shoulder_study.py --out DIR --only S5                            # NX only, a minute
+    python tests/tools/burn_shoulder_study.py --out docs/studies/burn_shoulder --only G      # R1, R2 from xr_burns/gid_split.csv, seconds
 
 Options: `--parts A` or `B`, `--cases`, `--shapes`, `--core` (the split's core half-width in FWHM, 1.5:
 the shoulder is fitted beyond it), `--workers`. The Tools menu has the variations (`docs/TOOLS.md`).

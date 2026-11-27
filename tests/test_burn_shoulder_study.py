@@ -107,6 +107,15 @@ def test_a_frame_that_will_not_fit_is_nan_not_the_end(monkeypatch):
     assert np.allclose(got[keep], want[keep], rtol=1e-12, atol=0)
 
 
+def test_the_published_real_burns_give_section_8s_counts(tmp_path):
+    """Section 8's figures come from the published per-burn summary alone
+    (no private data): its counts are the section's."""
+    got = S.real_figures(str(tmp_path), os.path.join(ROOT, S.REAL_CSV),
+                         os.path.join(ROOT, 'docs', 'studies', 'burn_shoulder', 'reference_noise.csv'))
+    assert got == dict(well_measured=118, read=155, failed=79, wide=5, differ=15)
+    assert (tmp_path / 'R1_template_vs_split.png').exists() and (tmp_path / 'R2_reference_shift.png').exists()
+
+
 def test_part_r_runs(tmp_path):
     rows, nx = S.reference_check(str(tmp_path), replicates=2, workers=1, monitors=(1e7,), cases=('fade',))
     assert nx == []

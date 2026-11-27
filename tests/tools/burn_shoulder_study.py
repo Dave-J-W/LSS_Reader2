@@ -559,6 +559,126 @@ def real_check(out, specs, scans=None, prefix='G'):
     return rows, key
 
 
+REAL_CSV = 'docs/studies/xr_burns/gid_split.csv'
+# the synthetic NX 15-like burns' mean-frame noise per monitor (mean_frame_noise's docstring, measured)
+REF_NOISE = {1e7: 0.0003, 6e4: 0.0035, 1e4: 0.0085}
+
+
+def well_measured(by):
+    """The real burns of ``by`` ({burn: {estimator: {quantity: row}}}, from
+    real.csv) that are well measured (hand-off 10, summary section 8): the
+    intensity change finite under all three estimators, one frame's
+    intensity error at most 10 %, the template's intensity change within
+    ±50 % over the burn (a larger one: the peak comes or goes), and the
+    template's frames' χ²/dof at most 5."""
+    def f(v):
+        return float(v) if v not in (None, '') else math.nan
+    out = []
+    for b, d in sorted(by.items()):
+        if not all(e in d and 'intensity' in d[e] for e in REAL_ESTIMATORS):
+            continue
+        t = d['template']['intensity']
+        if (all(np.isfinite(f(d[e]['intensity']['change'])) for e in REAL_ESTIMATORS)
+                and f(t['frame_rel_error']) <= 0.10 and abs(f(t['change'])) <= 0.5 and f(t['frame_chi2_dof']) <= 5):
+            out.append(b)
+    return out
+
+
+def real_figures(out, csv_path=REAL_CSV, ref_csv=None, public=('G01', 'G02')):
+    """Figures R1 and R2 of section 8 from the published per-burn summary
+    (``csv_path``: real.csv as published, no frame of a private burn):
+    R1 the intensity change under the split against the template's, one
+    point per well-measured burn; R2 the shift when the mean frame is
+    smoothed against the mean frame's noise, with the synthetic NX 15-like
+    expectation (``ref_csv``: reference_noise.csv). ``public``: the NX school
+    burns 14 and 15 (G01, G02), drawn apart. Returns the counts drawn."""
+    import csv as csvmod
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    rows = list(csvmod.DictReader(open(csv_path, encoding='utf-8')))
+    by, failed = {}, set()
+    for r in rows:
+        if r.get('failed'):
+            failed.add(r['burn'])
+            continue
+        by.setdefault(r['burn'], {}).setdefault(r['estimator'], {})[r['quantity']] = r
+    f = lambda v: float(v) if v not in (None, '') else math.nan          # noqa: E731
+    good = [b for b in well_measured(by) if b not in public]
+    nx = [b for b in public if b in by]
+    private_read = [b for b in by if b not in public]
+    fig, ax = plt.subplots(figsize=(7.2, 6.4))
+    lim = 0.0
+    counts = dict(well_measured=len(good), read=len(private_read), failed=len(failed), wide=0, differ=0)
+    for b in good + nx:
+        t, s = by[b]['template'], by[b]['split']
+        x, y = 100 * f(t['intensity']['change']), 100 * f(s['intensity']['change'])
+        ex, ey = 100 * f(t['intensity']['sigma']), 100 * f(s['intensity']['sigma'])
+        wide = abs(f(t['fwhm']['change'])) >= 0.10
+        differ = t['intensity']['verdict'] != s['intensity']['verdict']
+        if b in nx:
+            ax.errorbar(x, y, ey, ex, fmt='s', color='k', ms=7, capsize=2, zorder=5)
+            ax.annotate('NX %s' % ('14' if b == public[0] else '15'), (x, y), xytext=(6, -12), textcoords='offset points')
+        else:
+            counts['wide'] += wide
+            counts['differ'] += differ
+            ax.errorbar(x, y, ey, ex, fmt='o', ms=5, capsize=0, lw=0.6,
+                        color='tab:red' if wide else 'tab:blue', mfc='none' if differ else None, alpha=0.8)
+        lim = max(lim, abs(x) + ex, abs(y) + ey)
+    lim = min(1.05 * lim, 60)
+    ax.plot([-lim, lim], [-lim, lim], color='0.5', lw=0.8)
+    ax.set_xlim(-lim, lim)
+    ax.set_ylim(-lim, lim)
+    ax.set_xlabel('template: intensity change over the burn (%)')
+    ax.set_ylabel('split: intensity change over the burn (%)')
+    ax.set_title('R1. Private GID burns: split against template (one point per burn, ±1σ)', fontsize=10)
+    ax.text(0.02, 0.98, 'blue: FWHM change < 10 %% (template)   red: FWHM change ≥ 10 %%\n'
+            'open: the two verdicts differ (stable / changing)   grey line: equal\n'
+            'shown: %d well-measured private burns (%d red, %d open), NX 14 and 15 (black)\n'
+            'NOT SHOWN: %d private burns read but not well measured (section 8), %d not read'
+            % (counts['well_measured'], counts['wide'], counts['differ'],
+               len(private_read) - len(good), len(failed)),
+            transform=ax.transAxes, va='top', fontsize=7.5)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out, 'R1_template_vs_split.png'), dpi=120)
+    plt.close(fig)
+
+    ref = []
+    if ref_csv and os.path.exists(ref_csv):
+        ref = [r for r in csvmod.DictReader(open(ref_csv, encoding='utf-8')) if r['reference'] == 'spline']
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.6), sharey=True)
+    for ax, e in zip(axes, ('template', 'split')):
+        for b in good:
+            r = by[b][e]['intensity']
+            sh = 100 * (f(r['smoothed_change']) - f(r['change']))
+            nz = 100 * f(r['mean_frame_noise'])
+            broad = f(by[b][e]['fwhm']['change']) >= 0.05
+            ax.plot(nz, sh, 'o', ms=4, color='tab:red' if broad else 'tab:blue', alpha=0.7)
+        for b in nx:
+            r = by[b][e]['intensity']
+            ax.plot(100 * f(r['mean_frame_noise']), 100 * (f(r['smoothed_change']) - f(r['change'])), 's', color='k', ms=7)
+        for case, col in (('nx15_like', 'tab:orange'), ('fade', 'tab:green')):
+            pts = sorted((REF_NOISE[float(r['monitor'])] * 100, 100 * float(r['shift']), 100 * float(r['shift_sd']))
+                         for r in ref if r['case'] == case and r['estimator'] == e and float(r['monitor']) in REF_NOISE)
+            if pts:
+                ax.errorbar([p[0] for p in pts], [p[1] for p in pts], [p[2] for p in pts], fmt='D-', color=col, ms=6,
+                            capsize=3, label='synthetic %s (±SD of the shift)' % ('NX 15-like, FWHM +20 %' if case == 'nx15_like'
+                                                                                 else 'fade, FWHM steady'))
+        ax.axhline(0, color='0.5', lw=0.8)
+        ax.set_xscale('log')
+        ax.set_xlabel('mean frame\'s noise, share of its peak (%)')
+        ax.set_title('%s' % e, fontsize=10)
+        ax.set_ylim(-12, 12)
+        ax.legend(fontsize=7, loc='lower left')
+    axes[0].set_ylabel('smoothed − mean: intensity change (pp)')
+    fig.suptitle('R2. Does the reference\'s noise matter? Real burns (blue: FWHM steady, red: broadening ≥ 5 %%; '
+                 'black: NX 14, 15), %d well-measured private burns; y clipped at ±12 pp' % len(good), fontsize=9)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out, 'R2_reference_shift.png'), dpi=120)
+    plt.close(fig)
+    return counts
+
+
 def _reference_replicates(job):
     case, monitor, seeds = job
     T = FRAMES * CTIME
@@ -748,7 +868,8 @@ def main(argv=None):
                     help='the split: the shoulder fitted beyond this many FWHM from the peak (default %g)'
                     % burn.SPLIT_CORE)
     ap.add_argument('--only', default=None, help='S5: the NX check only (no replicates); R: the reference\'s '
-                    'noise (S6, about 6 min)')
+                    'noise (S6, about 6 min); G: figures R1, R2 of the real GID burns from --real-csv (seconds)')
+    ap.add_argument('--real-csv', default=REAL_CSV, help='with --only G: the published per-burn summary')
     ap.add_argument('--spec', default=NX, help='the SPEC file of the real check (burns 14 and 15)')
     ap.add_argument('--real', nargs='+', default=None, help='SPEC files: the P44 questions on their GID burns '
                     '(real.csv, real_key.csv: the key is private; hand-off 10)')
@@ -761,6 +882,9 @@ def main(argv=None):
         return 0
     if a.only:
         only = a.only.split(',')
+        if 'G' in only:
+            print(real_figures(a.out, a.real_csv, os.path.join(os.path.dirname(REAL_CSV), '..', 'burn_shoulder',
+                                                                'reference_noise.csv')))
         if 'R' in only:
             rows, nx = reference_check(a.out, a.replicates or 100, a.workers, spec=a.spec)
             with open(os.path.join(a.out, 'numbers_reference.json'), 'w', encoding='utf-8') as f:

@@ -1,0 +1,15 @@
+series,burns,n_burns,well_measured,flux_span,template_rho0_verdict,template_rho0_beta,template_rho0_beta_lo,template_rho0_beta_hi,template_rho0.5_verdict,template_rho0.5_beta,template_rho0.5_beta_lo,template_rho0.5_beta_hi,split_rho0_verdict,split_rho0_beta,split_rho0_beta_lo,split_rho0_beta_hi,split_rho0.5_verdict,split_rho0.5_beta,split_rho0.5_beta_lo,split_rho0.5_beta_hi
+GS01,G06 G07,2,0,4.82,no change,nan,nan,nan,no change,nan,nan,nan,no change,nan,nan,nan,no change,nan,nan,nan
+GS02,G10 G11,2,0,4.71,time,-0.08,-0.47,0.24,time,-0.08,-0.62,0.41,no change,-0.41,-1.0,4.0,no change,-0.41,-1.0,4.0
+GS03,G12 G13 G14 G16,4,3,4.67,opposite signs,4.0,2.85,4.0,opposite signs,-0.5,-0.51,-0.02,opposite signs,-1.0,-1.0,-0.94,opposite signs,0.52,0.3,0.54
+GS04,G20 G21 G23 G24 G25 G26,6,2,9.55,opposite signs,1.48,1.06,1.82,opposite signs,1.48,0.66,2.45,opposite signs,1.84,1.17,2.38,opposite signs,0.91,-0.96,1.95
+GS05,G205 G206 G208,3,2,47.16,neither,4.0,2.07,4.0,neither,4.0,1.98,4.0,opposite signs,4.0,2.23,4.0,opposite signs,0.81,0.6,1.04
+GS06,G210 G212,2,0,2.23,cannot tell,1.98,-1.0,2.92,cannot tell,1.95,-1.0,3.23,cannot tell,1.65,-1.0,2.73,cannot tell,1.61,-1.0,3.03
+GS07,G229 G230,2,2,4.5,no change,-1.0,-1.0,4.0,no change,-1.0,-1.0,4.0,no change,4.0,-0.77,4.0,no change,4.0,-0.96,4.0
+GS08,G231 G232 G233,3,3,4.49,dose,1.18,0.99,1.41,dose,1.29,0.79,1.89,dose,1.04,0.86,1.27,dose,0.99,0.55,1.5
+GS09,G28 G29 G30,3,1,2.39,neither,4.0,2.62,4.0,dose,4.0,2.3,4.0,no change,nan,nan,nan,no change,nan,nan,nan
+GS10,G31 G32,2,2,2.05,no change,4.0,1.29,4.0,no change,4.0,0.95,4.0,no change,4.0,1.84,4.0,no change,4.0,1.49,4.0
+GS11,G35 G36 G37,3,3,4.51,neither,0.45,0.32,0.6,cannot tell,0.42,0.03,0.82,dose,0.69,0.52,0.89,cannot tell,0.58,0.18,1.0
+GS12,G39 G40 G41,3,3,10.3,no change,-0.43,-0.91,0.16,no change,-0.43,-1.0,0.32,no change,0.77,-1.0,4.0,no change,0.76,-1.0,4.0
+GS13,G44 G45,2,2,2.1,dose,0.78,0.52,1.07,cannot tell,0.78,-0.03,1.59,cannot tell,0.55,0.16,1.0,cannot tell,0.56,-0.31,1.43
+GS14,G46 G47 G48 G49 G50,5,4,96.17,opposite signs,1.02,0.98,1.07,opposite signs,0.74,0.61,0.9,opposite signs,1.3,1.19,1.46,opposite signs,0.65,0.53,0.81
