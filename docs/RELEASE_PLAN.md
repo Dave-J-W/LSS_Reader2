@@ -112,9 +112,14 @@ Everything else is **not** a blocker.
    - A plain start (as a double-click) showed the window in 4 s, closed cleanly with exit 0, and left empty
      fault logs.
 
-   **Still open:** a truly clean PC. This PC has Python and the Visual C++ runtimes installed, and Windows
-   Sandbox is not enabled. Either enable Sandbox (admin, one reboot) or use another PC, then follow
-   `docs/PACKAGING.md` "Clean-PC test". The XModFit read of the export (step 5) is the owner's. Help → About shows 2.0 since 2026-11-26 (`lss_core.__version__`; it said 1.1).
+   **Still open: a truly clean PC. Do not use Windows Sandbox on the owner's PC.** Sandbox was enabled
+   there on 2026-11-26. It is an empty Windows with no Python and no Visual C++ runtime, which is what a
+   clean test needs. But the PC shut down unexpectedly while the feature was installing (12:18). Then it
+   froze hard during the third Sandbox run (after 12:33): no bugcheck, and the files being written were
+   left as zeros. Afterwards it could not find its startup disk until the owner repaired it (19:17). No
+   result came out of the Sandbox. Do the clean test on another Windows PC (a beamline PC or a laptop
+   without Python), following `docs/PACKAGING.md` "Clean-PC test", with the `v2.0.0` build. The XModFit
+   read of the export (step 5) is the owner's. Help → About shows 2.0 since 2026-11-26 (`lss_core.__version__`; it said 1.1).
 
 **Before the tag** (owner): `v2.0.0` on cc599e4 (all three suites passed on it: quick 1441, slow 427, sweep 194;
 build run 45918527279 passed). The clean-PC test and XModFit reading the export were not reported; the owner
