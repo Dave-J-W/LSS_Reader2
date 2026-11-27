@@ -126,18 +126,36 @@ def merge_rows(rows, x='qz', window=None, jitter=QZ_JITTER):
     the same weights (√Σw²/Σw), d ln I/dQz from the merged curve by central
     differences. ``window`` None: the default (``default_merge_window``).
     Which scans to merge is the user's choice (one run, wavelength, sample
-    and signal shape)."""
+    and signal shape).
+
+    A missing value (I or σ not finite, or σ ≤ 0: an accepted single fit
+    has no XeRay value, a fit that failed) adds nothing to its group, and
+    the group's other values of that pair merge as if it were not there;
+    a group with no usable value keeps NaN (issue #151; before, one missing
+    value made the whole group NaN for that pair)."""
     index = {'frame': 0, 'qz': 1, 'energy': 2}[x]
     if window is None:
         window = default_merge_window(rows, x)
     data = np.array(rows, dtype=float)
     data = data[np.argsort(data[:, index])]
     pairs = [(k, k + 1) for k in range(3, data.shape[1] - 1, 2)]
+
+    def usable(v, s):
+        return bool(np.isfinite(v) and np.isfinite(s) and s > 0)
+
+    def weights(row):
+        return {p: ([row[p[0]] / row[p[1]] ** 2] if usable(row[p[0]], row[p[1]]) else []) for p in pairs}
     out = [data[0].copy()]
-    wsum = [{p: [data[0][p[0]] / data[0][p[1]] ** 2] for p in pairs}]
+    wsum = [weights(data[0])]
     for i in range(1, len(data)):
         if np.abs(data[i][index] - out[-1][index]) <= window:
             for vi, si in pairs:
+                if not usable(data[i][vi], data[i][si]):
+                    continue                                   # a missing value adds nothing (#151)
+                if not usable(out[-1][vi], out[-1][si]):       # the group had no usable value yet: this one starts it
+                    out[-1][vi], out[-1][si] = data[i][vi], data[i][si]
+                    wsum[-1][(vi, si)] = [data[i][vi] / data[i][si] ** 2]
+                    continue
                 a = out[-1][vi] ** 2 / out[-1][si] ** 2
                 b = data[i][vi] ** 2 / data[i][si] ** 2
                 c = out[-1][vi] / out[-1][si] ** 2
@@ -147,7 +165,7 @@ def merge_rows(rows, x='qz', window=None, jitter=QZ_JITTER):
                 wsum[-1][(vi, si)].append(d)
         else:
             out.append(data[i].copy())
-            wsum.append({p: [data[i][p[0]] / data[i][p[1]] ** 2] for p in pairs})
+            wsum.append(weights(data[i]))
     out = np.array(out, dtype=float)
     if index == 1 and jitter and len(out) > 1:
         q = out[:, 1]
