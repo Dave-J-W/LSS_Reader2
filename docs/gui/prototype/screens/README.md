@@ -24,6 +24,6 @@ Made by `python tests/tools/ngui_screens.py` (do not edit by hand). The window i
 | [`22_left_frames.png`](22_left_frames.png) | Close-up: the Frames tab's left column, every group open | 322 × 988 |
 | [`23_left_burn.png`](23_left_burn.png) | Close-up: the Burn tab's left column, every group open | 336 × 803 |
 | [`24_left_reflectivity.png`](24_left_reflectivity.png) | Close-up: the Reflectivity tab's left column, every group open | 322 × 966 |
-| [`25_left_gid.png`](25_left_gid.png) | Close-up: the GID tab's left column, every group open | 430 × 1077 |
+| [`25_left_gid.png`](25_left_gid.png) | Close-up: the GID tab's left column, every group open | 430 × 1105 |
 | [`26_left_fluorescence.png`](26_left_fluorescence.png) | Close-up: the Fluorescence tab's left column, every group open | 322 × 810 |
 | [`27_left_files.png`](27_left_files.png) | Close-up: the Files tab's left column, every group open | 336 × 803 |
