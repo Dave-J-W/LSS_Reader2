@@ -103,6 +103,23 @@ the edge together, so Qc is better taken from the subphase
 biases the study found (`docs/studies/qoff/summary.md`): the Qz resolution
 reads as a negative Qoff, and a wrong Qc moves Qoff one for one.
 
+**Qoff and the Qz resolution together** (2026-11-27, hand-off 09, issue #154):
+
+```python
+d = exp.reflectivity([6], errors='budget').per_scan[6]          # one scan through the edge: Qz, R, σ
+beta = fresnel.subphase_beta(fresnel.subphase('water'), 10.0)   # 5.24e-9: β = μλ/4π (xraylib's μ/ρ table)
+f = fresnel.fit_edge_resolution(d[:, 0], d[:, 1], d[:, 2], qc=0.0217, beta=beta, energy_kev=10.0)
+f.qoff, f.qoff_err, f.sigma_q, f.sigma_q_err, f.corr, f.chi2_dof, f.flags
+f.fwhm, f.sigma_alpha_urad, f.qoff_deg, f.note                   # the resolution as FWHM and as an angle
+```
+
+It fits R = N · [R_F(Qz + Qoff; Qc, β) ⊗ Gauss(σ_Q)] · (1 + a u + b u²) over 0.6 Qc to 0.030 Å⁻¹ by a
+soft-L1 loss. Qc and β stay fixed at the subphase's. The errors are a bootstrap scaled by √(χ²/dof) when
+that is above 1. `roughness=3.0` puts a fixed Névot–Croce roughness in R_F (default 0). The flags are
+'sigma_q at its bound', 'few points below the edge', 'few points above the edge', 'ill-conditioned' and
+'bootstrap failures'. Nothing applies the value. The study is `docs/studies/qoff_resolution/summary.md`.
+`fresnel_absorbing` and `fresnel_smeared` are its R_F, sharp and smeared.
+
 ## Fluorescence (XFNTR)
 
 ```python
