@@ -36,7 +36,9 @@ with the owner's standing permission (main man, tools man, the GUI manager) do t
 
      It takes about 9 min alone. Its limit must exceed its run time, and the exit code must be recorded: a
      trailing `tail` hides it.
-   - **after catalogue changes:** `python -m lss_toolbox --render`, then `tests/test_toolbox.py`.
+   - **after catalogue changes:** `tests/test_toolbox.py` (the item must exist). `docs/TOOLS.md` and the other
+     generated files are not re-rendered per commit (rule 11, owner 2026-11-27): before a release, or when asked,
+     then `pytest -m release`.
 4. **Push and open the pull request.** Its body says what changed and **which suites ran with their
    results**: no workflow tests pull requests. End the body with the attribution the system reminder gives.
 
