@@ -759,6 +759,7 @@ EXPORT = [
         NEW('export_format', 'Format', 'combo', 'Text files as today (xmodfit contract) or HDF5',
             items=['Text (as today)', 'HDF5', 'CSV']),
         C('refCovarianceCheckBox', '+ covariance', note='Reflectivity: the covariance matrix of the points too'),
+        C('refOrsoCheckBox', '+ ORSO', note='Reflectivity: the ORSO file (<name>.ort) too, on by default'),
     ]),
     G('Contents', '', [
         C('refExportPushButton', 'Reflectivity (_ref.txt, _rrf.txt)', kind='radio'),
