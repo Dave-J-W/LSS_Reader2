@@ -65,7 +65,7 @@ commit with its test, CI green, the legacy export fixtures byte-identical.
 | GitHub issues labelled `task` | **The work list** (rule 15): one issue per task, claimed by label |
 | `docs/TODO.md` | The older working list by area (frozen 2026-11-27; reference only, new work goes in issues) |
 | `docs/HANDOFF_main_man.md`, `docs/gui/HANDOFF_gui_manager.md` | Hand-offs: how the orchestrator and the GUI manager work, what is open, who is on what |
-| `.claude/skills/` | Project skills: `merge-to-main`, `review-local-data-pr` (privacy review), `issue-watch` (#55), `tools-freshness` (generated files, at release), `fit-statistics-pitfalls`; `known-truth-study` is paused with rule 12 |
+| `.claude/skills/` | Project skills: `merge-to-main`, `cloud-task-flow` (a task from claim to close, CI by REST), `review-local-data-pr` (privacy review), `private-data-handoff` (a hand-off and runner for the data sessions), `issue-watch` (#55), `tools-freshness` (generated files, at release), `fit-statistics-pitfalls`, `synthetic-truth-calibration` (check the known truth before trusting it); `known-truth-study` is paused with rule 12 |
 | `docs/DATA_NEEDS.md` | Every dataset a work item waits for, what it must answer, where it goes, who supplies it (the owner's non-cloud agent for large private sets) |
 | `docs/TESTING.md` | How the test suite works and how to extend it |
 | `docs/physics_notes.md` | The invariants table (live) and the Q&A log up to 2026-11-27 (frozen) |

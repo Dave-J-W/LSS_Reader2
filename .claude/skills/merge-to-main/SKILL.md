@@ -50,8 +50,20 @@ with the owner's standing permission (main man, tools man, the GUI manager) do t
    pinned to the head CI passed, then bring the branch level with main:
 
        gh pr checks $n --repo Dave-J-W/LSS_Reader2 --watch --fail-fast   # exits non-zero if CI fails: fix, push, repeat
-       gh api -X PUT repos/Dave-J-W/LSS_Reader2/pulls/$n/merge -f merge_method=merge --jq .merged
+       gh api -X PUT repos/Dave-J-W/LSS_Reader2/pulls/$n/merge -f merge_method=merge -f sha=$(git rev-parse HEAD) --jq .merged
        git fetch -q origin main && git merge --ff-only origin/main && git push -q origin claude/<name>
+
+   **In a cloud session `gh pr checks` is refused** (only `gh api`, REST, works there). Read the head's
+   check run instead, in the background, until it completes:
+
+       sha=$(git rev-parse HEAD)
+       until s=$(gh api repos/Dave-J-W/LSS_Reader2/commits/$sha/check-runs \
+                   --jq '[.check_runs[] | select(.name=="quick")][0] | "\(.status) \(.conclusion)"') \
+             && [[ "$s" == completed* ]]; do sleep 30; done; echo "$s"     # merge only on "completed success"
+
+   `-f sha=` pins the merge to the head CI tested: a push after it makes the merge fail instead of merging
+   untested commits. `Closes #N` in the body closes the task's issue (rule 15). The `cloud-task-flow` skill
+   has the whole loop around this step.
 
    - **HTTP 405 "merge conflicts"** means main moved after step 2. Do step 2 again, push, and merge again.
      The new push gets its own CI run: wait for it as above.
