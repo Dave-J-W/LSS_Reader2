@@ -1196,6 +1196,17 @@
   shown: always
   tooltip: true
   notes: "Cue: '(not applied)' in the table."
+- id: gidUnmatchedLevelsCheckBox
+  kind: checkbox
+  label: "Join levels without overlap (unscaled)"
+  where: "GID patching worksheet > Settings"
+  handler: apply
+  does: "Stopgap: adds a Qz level with no beta overlap as collected (no join factor), its seam marked"
+  workflows: [gid]
+  needs: "pinhole"
+  shown: always
+  tooltip: true
+  notes: "Off by default. Cue: 'UNSCALED' in the joins table, a message, and a '#' line in saved files."
 - id: gidFootprintComboBox
   kind: combo
   label: "footprint"

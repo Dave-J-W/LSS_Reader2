@@ -155,6 +155,7 @@ INVENTORY = {
     'gidBeamCentreFitCheckBox': ('checkbox', 'fit', 'GID patching worksheet > Settings', 'Fits the beam centre per Qz level'),
     'gidBeamHFwhmSpinBox': ('spin', 'horizontal mm', 'GID patching worksheet > Settings', 'Beam horizontal FWHM for the physical response'),
     'gidApplyJoinsCheckBox': ('checkbox', 'Apply join factors', 'GID patching worksheet > Settings', 'Scales scans and levels by the fitted join factors (off: fitted and shown only)'),
+    'gidUnmatchedLevelsCheckBox': ('checkbox', 'Join levels without overlap (unscaled)', 'GID patching worksheet > Settings', 'Stopgap: adds a Qz level with no beta overlap as collected (no join factor), its seam marked'),
     'gidFootprintComboBox': ('combo', 'footprint', 'GID patching worksheet > Settings', 'Which columns see the lit strip through S4 (exact, ...)'),
     'gidTransverseComboBox': ('combo', '2theta range', 'GID patching worksheet > Settings', '2theta range of a multi-level map: common or all'),
     'gidMinFramesSpinBox': ('spin', 'min frames', 'GID patching worksheet > Settings', 'Drops 2theta bins seen by fewer frames'),

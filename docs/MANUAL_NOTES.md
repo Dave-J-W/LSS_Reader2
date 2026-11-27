@@ -430,6 +430,13 @@ Each line: feature — where — default — script — notes entry (date).
   as collected, factors only reported) — `GIDParams(response='physical',
   beam_fwhm_um=…, beam_centre_mm=…, beam_h_fwhm_mm=…, apply_joins=False)` —
   addendum `docs/manual/gid_patching.md` 3b; Notes 2026-11-20.
+- Worksheet: "Join levels without overlap (unscaled)" (off; a stopgap, owner,
+  2026-11-26): a Qz level whose rows share no β with the level below is added
+  as collected (monitor and absorbers only, no join factor) instead of the
+  patch stopping. The seam shows "UNSCALED" in the joins table with the
+  intensity ratio across it, a message says so, and Save GID writes a '#'
+  line at the top of each file — `GIDParams(unmatched_levels='unscaled')`,
+  `GIDResult.unscaled_seams` — tradeoffs in `docs/studies/gid_unscaled_seams/`.
 - Worksheet "Fit" (S4-detector): calibrates the distance from single frames
   (the strongest peak fitted in every frame, the distance where they agree) and
   fills it in when reliable; the label's tooltip gives the frames, χ²/dof and
