@@ -1,24 +1,51 @@
-# tools man: handoff to my future self (2026-11-25, late UTC)
+# tools man: handoff to my future self (2026-11-27)
 
 **Communication (owner, 2026-11-24): GitHub issue #55 only.** Do not message other sessions directly. Post
 one comment per message, starting `tools man → <recipient>:`. Follow the issue's rules (public repo: no
 names, file names, scan numbers, dates or raw data). Issue comments do not wake this session, so read #55
 at the start of every turn.
 
-**Standing order (owner, 2026-11-25; AGENTS.md rule 13):** every study, report or answer shows the whole
-chain:
-- the raw data;
-- each processing step on an example;
-- at least one fit with its residuals;
-- every statistic explained ELI5;
-- the judgment, with its confidence.
+**Rules 12 and 13 are paused** (owner, 2026-11-27, after the release: "Let's pause those rules again"). The
+walkthrough habit stays useful (`.claude/skills/known-truth-study`), but it is no longer required.
 
-The model is `docs/studies/reciprocity/walkthrough.md`; the method is `.claude/skills/known-truth-study`.
-Also read `.claude/skills/fit-statistics-pitfalls` and `.claude/skills/tools-freshness`.
+**Reader 2.0 is released** (tag `v2.0.0` on main 01ae585, 2026-11-27). The backlog is `docs/RELEASE_PLAN.md`'s
+"After 2.0" list, beside `docs/TODO.md`.
 
-**Standing by (owner, 2026-11-26): "Stand by for p44 once tag complete".** Start P44 when `v2.0.0` is
-tagged: `gh api repos/Dave-J-W/LSS_Reader2/tags --jq '.[].name'`. The release jobs are done: run 45879045324
-is the build to ship, and the guide is current.
+## P44 (2026-11-27): built, studied, handed off for real data
+
+The user: "Get started without the tag, just don't push yet", then "Push when done, with a handoff for the
+next agent to use more real data to answer these questions". So: pushed and merged through a PR (D60).
+- **P44a:**
+  - `burn.split_shoulder`, the estimators `split` and `split_fixed` (`burn.SPLIT_ESTIMATORS`, not in the
+    dialog's `ESTIMATORS`), and `burn.frame_model`.
+  - `burn_profiles` gains `shoulder_shape`, `shoulder_change` and `area_change`; the defaults stay
+    bit-identical.
+  - Tests: `tests/test_burn_split.py`.
+- **P44b:** `tests/tools/burn_shoulder_study.py`.
+  - S1–S5: 300 replicates, about 90 min on 4 CPUs.
+  - Part R (`--only R`): the reference's noise, S6.
+  - `--real FILE...`: the hand-off's runner.
+  - Tests: `tests/test_burn_shoulder_study.py`, with slow NX pins.
+- **P44c:** `tests/tools/burn_shoulder_walkthrough.py` (BW1–BW6), `docs/studies/burn_shoulder/` (summary,
+  walkthrough), the records, and hand-off `docs/handoff_out/10-gid-burn-shoulder.md` (DATA_NEEDS row 19).
+- **The findings:**
+  - On NX burn 15 the template reads the intensity −1.5 % "stable". The split reads −13.3 % and split_fixed
+    −15.2 %, both "changing", while the peak broadens by about 20 %.
+  - The split fits the frames twice as well (χ²/dof 2.2 against 4.2).
+  - On synthetic burns the template is biased in every case where the width or the shoulder changes, and
+    even in a plain fade (−20 % reads −13.6 %).
+  - The split is unbiased on Gaussian shoulders, with its σ up to 25 % small, and less biased than the
+    template on other shoulders.
+  - The shoulder is steady on NX.
+- **A mistake of mine, corrected:** the study first called monitor 1e7 "as NX 14". One NX frame's intensity
+  error is 20 × the synthetic default's. `NX_MONITORS` (1e4 and 6e4) now match it, tested.
+- **The reference's noise** (summary, section 6):
+  - On synthetic burns at NX counts, the noise of the mean frame biases both estimators when the width
+    changes. A smoothed mean removes it.
+  - On NX the smoothing moves the reads the other way. So it is not an option yet; hand-off 10 asks for
+    real burns to tell why.
+- **Not done:** the dialog offering the split, and any default change. Both wait for the owner (rule 12,
+  paused). Tell main man before touching the burn dialog (`mainwindow.py`).
 
 ## Release push (2026-11-26): my jobs, owner's choice "release jobs first"
 

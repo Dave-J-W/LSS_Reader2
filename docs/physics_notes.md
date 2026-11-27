@@ -7147,3 +7147,47 @@ with the elastic's escape under Zn Kα at 10 keV), is what the escape stripping 
 **Numbers that changed.** `_flu.txt` from "Fit lines" holds the reader's fit with the width from the sum (it held
 XeRay's area for a few hours, and before F110 the reader's fit with a free width and no escape stripping). XeRay's
 numbers are in `_flu_xeray.txt`; `_flu_fit.txt` is no longer written.
+
+### 2026-11-27 — P44: a GID burn peak on a shoulder, read with the shoulder split off (tools man)
+
+Verified by: run (`tests/tools/burn_shoulder_study.py`: synthetic burns with known truth, 300 replicates per cell;
+part R, 100 replicates; the public NX school burns 14 and 15), and tests (`tests/test_burn_split.py`,
+`tests/test_burn_shoulder_study.py`, the NX numbers pinned in the slow ones). Study:
+`docs/studies/burn_shoulder/summary.md`, C70; walkthrough on NX 15: `docs/studies/burn_shoulder/walkthrough.md`.
+
+**The question** (P44, 2026-11-22). The template estimator stretches the mean frame to follow a broadening peak, so
+the broad shoulder under the peak is stretched too, and the intensity A·w·area counts the shoulder's stretch.
+The owner (batch 26, 2026-11-25): the shoulder is not known to be steady, so keep it free per frame and compare
+with fixing it. Both are built: `burn.measure_gid(..., estimator='split')` fits a Gaussian to the shoulder beyond
+1.5 FWHM of the peak and keeps it unstretched with its amplitude B free per frame; `'split_fixed'` holds B = 1.
+
+**Answers, measured.**
+- **P44 is real and large.** On a Gaussian shoulder at high counts the template reads a −20 % fade as −13.6 %, a
+  +30 % broadening at constant area as +14.4 % ("changing" every time), and an NX 15-like burn (FWHM +20 %,
+  intensity −13 %) as −0.2 % ("stable" every time).
+- **The split reads every case to 0.13 pp** on a Gaussian shoulder, the shoulder's own change included; its σ is
+  up to 25 % short (pull SD 1.00–1.25). On a Lorentzian, lopsided or two-hump shoulder it is 1.4–6.2 × less
+  biased than the template (worst +5.7 and +11.7 pp), and a broadening there leaks into its shoulder (a false
+  shoulder fade of 4.6–6.3 pp).
+- **`split_fixed`** is as good while the shoulder is steady and wrong when it changes: a shoulder growing by 50 %
+  under a steady peak reads as a peak gaining 24 %. The two splits disagreeing is the sign of a changing shoulder.
+- **On NX the shoulder is steady.** Burn 15: template −1.5 % ± 1.5 % "stable", split −13.3 % ± 2.4 % "changing",
+  split_fixed −15.2 % ± 1.3 % "changing"; the shoulder −2.8 % ± 2.8 % "stable", B 0.96–1.15 per frame. Burn 14:
+  steady under all three. So for these two burns the owner's "keep it free and compare" gives the same answer
+  either way; whether real shoulders change in general is hand-off 10's question 2.
+- **At real counts the reference's noise matters** when the width changes. Every frame is fitted against the mean
+  frame, which is noisy at NX counts. On the NX 15-like burn the split's fade is 2.0 pp too deep at NX 15's
+  counts and 6.1 pp at NX 14's, and only 75 % and 56 % of its intervals hold the truth. A noiseless reference
+  removes this; a smoothed mean frame removes most of it on synthetic burns, but on NX it moves the reads the
+  other way (burn 15's split −13.3 → −13.6 %, burn 14's −0.0 → −5.5 %). That is open, so nothing smoothed is
+  offered.
+
+**A correction to my own earlier claim.** I first called monitor 1e7 "NX-like". It is not: at 1e7 one synthetic
+frame's intensity is known to 0.19 %, while NX burn 14's frames carry 3.8 % and burn 15's 2.0 % (`frame_rel_error`,
+measured). The monitors that match are 1e4 and 6e4 (`NX_MONITORS`, tested). Part B was rerun at those counts, and
+the walkthrough's step 6 now uses NX 15's counts.
+
+**What did not change.** The template stays the default and the burn dialog is unchanged (the owner's choice; rule
+12 paused). No output number of the reader changed: the split estimators exist for scripts
+(`docs/OUTPUT_DECISIONS.md`, the GID estimator row). Real burns: `docs/handoff_out/10-gid-burn-shoulder.md`
+(DATA_NEEDS row 19).

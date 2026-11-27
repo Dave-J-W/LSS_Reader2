@@ -121,7 +121,9 @@ to main between the clean-PC test and the tag except blocker fixes, so that what
   legacy patch's Σ, stitched points, the joint sidecar's 10 %, the foil
   prior, the error model), the C45 rung-choice error, C64 clipping, and B3's
   factor 10.
-- Rule-12 studies: P44 burn estimator, σ × 1.12 joint fit, robust likelihood,
+- Rule-12 studies: P44 burn estimator (study done 2026-11-27, `docs/studies/burn_shoulder/`: the split
+  estimators exist for scripts; the dialog and the default wait for the owner and for hand-off 10's real
+  burns), σ × 1.12 joint fit, robust likelihood,
   GID defaults switch (`beam` response).
 - **Refine the XRF shootout (C65–C69)** (owner, 2026-11-26: "Put a to-do to continue refining that shootout of methods for a later time, since I don't believe each library/method was optimized enough."):
   tune each library and method (PyMca's configuration and background,
