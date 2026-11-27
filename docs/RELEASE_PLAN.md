@@ -1,6 +1,11 @@
 # Release plan: Reader 2.0 (first release of this fork)
 
-Draft by the project manager, 2026-11-25. **Status: approved by the owner, 2026-11-25.**
+Draft by the project manager, 2026-11-25. **Status: approved by the owner, 2026-11-25. Released 2026-11-27:**
+the owner published release "Reader 2" with the tag `v2.0.0` on main 01ae585 (the code of cc599e4, on which
+the quick, slow and sweep suites passed: 1441, 427, 194). The tag's build, run 45919642733, passed: Windows and
+macOS self-tests, 9 tabs, `_ref.txt` and `_rrf.txt` identical; downloads kept to 2027-02-25. This plan no longer
+overrides `docs/TODO.md`; its "After 2.0" list is the backlog. Rules 12 and 13 stay paused after the release
+(owner, 2026-11-27: "Let's pause those rules again").
 
 ## The goal
 
