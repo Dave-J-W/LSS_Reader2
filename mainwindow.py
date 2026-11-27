@@ -1423,7 +1423,12 @@ class MainWindow (QMainWindow):
                     left+=[(rid,str(e)) for rid,_,_ in job['members']]
                     continue
                 for rid,label,why in job['members']:
-                    it=next((i for i in items if i.get('label')==label),items[0] if len(items)==1 else None)
+                    it=next((i for i in items if i.get('label')==label),None)
+                    if it is None:       # a cut is saved as '<curve>, <direction> <range>' (#145)
+                        it=next((i for i in items if label and i.get('label')
+                                 and str(label).startswith(str(i['label'])+',')),None)
+                    if it is None and len(items)==1:
+                        it=items[0]
                     if it is None:
                         left.append((rid,'no matching part in the remade result'))
                         continue
@@ -9888,6 +9893,7 @@ class MainWindow (QMainWindow):
         self.cutFitArtists=[]
         self.cutFitResults=[]
         opts=self.peakFitOptions
+        self.cutFitOptionsUsed=opts            # the recipe of a saved fitted cut repeats this fit (#145)
         for k,(label,x,y,s,scale) in enumerate(curves):
             groups=peaks.fit_all(x,y,s,opts)
             self.cutFitResults.append((label,groups))
@@ -10916,6 +10922,9 @@ class MainWindow (QMainWindow):
         direction=str(self.ui.pilCutDirComboBox.currentText())
         settings=dict(direction=direction,range=str(self.ui.pilIntRangeLineEdit.text()),axes=str(self.ui.pilAxesComboBox.currentText()))
         items=[]
+        recipe='' if curves[0][0]=='GID cut' else self.recipe(self.cutScript)
+        if recipe and fits and getattr(self,'cutFitOptionsUsed',None) is not None:   # remade live with its fit (#145)
+            recipe='from lss_core import peaks\n'+recipe+'\nfits = cut.fit(peaks.%r)' % (self.cutFitOptionsUsed,)
         for k,(label,x,y,sg,scale) in enumerate(curves):
             if label=='GID cut':
                 scans=sorted({int(n) for lv in getattr(self,'gidLevels',[]) for n in lv[1]})
@@ -10928,7 +10937,7 @@ class MainWindow (QMainWindow):
             items.append(dict(scans=scans,data=np.column_stack([x,y,sg]),columns=[direction.split()[0]+' x','I','dI'],
                               label='%s, %s %s' % (label,direction,settings['range']),settings=settings,
                               fits=[(label,fits[label])] if label in fits else [],
-                              recipe='' if label=='GID cut' else self.recipe(self.cutScript)))
+                              recipe='' if label=='GID cut' else recipe))
         self.saveToWorkbook('gid cut' if curves[0][0]=='GID cut' else 'line cut',items,auto=getattr(self,'autoSaving',False))
 
     def saveMcaSpectraToWorkbook(self):

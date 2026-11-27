@@ -16,6 +16,8 @@ arguments:
 - ``from lss_core... import ...`` (ignored; the names are known here);
 - ``<name> = exp.<method>(...)`` with ``method`` in ``METHODS``;
 - ``<name>.merge(...)`` on a fluorescence result;
+- on a cut (#145): ``<name>.summed_label = '...'`` and ``fits = <name>.fit(FitOptions(...))``, so a
+  line cut is remade with its peak fits;
 - ``<name>.save(...)`` and ``print(...)`` (skipped: remaking writes no files).
 
 Anything else makes ``remake`` raise ``RecipeError`` with the reason; the
@@ -26,8 +28,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-METHODS = ('reflectivity', 'fluorescence', 'gid', 'burn')
-KINDS = {'reflectivity': 'reflectivity', 'fluorescence': 'fluorescence', 'gid': 'gid map', 'burn': 'burn test'}
+METHODS = ('reflectivity', 'fluorescence', 'gid', 'burn', 'cut')
+KINDS = {'reflectivity': 'reflectivity', 'fluorescence': 'fluorescence', 'gid': 'gid map', 'burn': 'burn test',
+         'cut': 'line cut'}
 
 
 class RecipeError(ValueError):
@@ -37,7 +40,8 @@ class RecipeError(ValueError):
 def _constructors():
     from .gid import GIDParams
     from .peaks import FitOptions
-    return {'GIDParams': GIDParams, 'FitOptions': FitOptions}
+    from .absorbers import Foils, calibrated      # absfac=absorbers.calibrated(10.0), as recipes write it (#145)
+    return {'GIDParams': GIDParams, 'FitOptions': FitOptions, 'Foils': Foils, 'calibrated': calibrated}
 
 
 def _value(node):
@@ -62,6 +66,9 @@ class Call:
     args: list
     kwargs: dict
     merges: list          # keyword dicts of .merge calls (fluorescence)
+    fitted: bool = False  # a cut's ``fits = cut.fit(...)`` (#145)
+    fit: object = None    # its FitOptions (None: the defaults)
+    summed_label: str = None   # a cut's ``cut.summed_label = ...``
 
 
 def parse(recipe):
@@ -86,6 +93,17 @@ def parse(recipe):
                 call = Call(f.attr, [_value(a) for a in st.value.args],
                             {k.arg: _value(k.value) for k in st.value.keywords}, merges)
                 var = st.targets[0].id
+                continue
+        if call is not None and call.method == 'cut' and isinstance(st, ast.Assign) and len(st.targets) == 1:
+            t, v = st.targets[0], st.value
+            if (isinstance(t, ast.Attribute) and isinstance(t.value, ast.Name) and t.value.id == var
+                    and t.attr == 'summed_label'):
+                call.summed_label = _value(v)
+                continue
+            if (isinstance(t, ast.Name) and isinstance(v, ast.Call) and isinstance(v.func, ast.Attribute)
+                    and isinstance(v.func.value, ast.Name) and v.func.value.id == var and v.func.attr == 'fit'):
+                call.fitted = True
+                call.fit = _value(v.args[0]) if v.args else (_value(v.keywords[0].value) if v.keywords else None)
                 continue
         if isinstance(st, ast.Expr) and isinstance(st.value, ast.Call):
             f = st.value.func
@@ -145,6 +163,10 @@ def remake(recipe, scans, exp, then=None, now=None):
         if pts is not None:
             kw['points'] = pts
         res = getattr(exp, call.method)(used, *call.args[1:], **kw)
+    if call.method == 'cut':
+        if call.summed_label is not None and getattr(res, 'summed_label', None) is not None:
+            res.summed_label = call.summed_label
+        res.fits = res.fit(call.fit) if call.fitted else None
     for m in call.merges:
         res.merge(**m)
     return call, res, used, pts
@@ -168,6 +190,18 @@ def item_for(call, res, scans, label=''):
     if call.method == 'gid':
         return kind, [dict(scans=list(scans), map_xyz=(res.x, res.y, res.data, res.err),
                            label=label or '2theta, beta (deg)')]
+    if call.method == 'cut':
+        # one item per cut, labelled as the window labels its curves ('S# 1 F# 0', 'summed cuts'); the window
+        # saves them as '<curve>, <direction> <range>' and matches a remade item by that prefix (#145)
+        direction = call.args[1] if len(call.args) > 1 else call.kwargs.get('direction', '')
+        cols = [str(direction).split()[0] + ' x', 'I', 'dI'] if direction else ['x', 'I', 'dI']
+        fits = getattr(res, 'fits', None)
+        items = []
+        for k, c in enumerate(res.cuts):
+            lab = 'summed cuts' if res.summed_label is not None else str(res.labels[k]).replace('_', ' ')
+            items.append(dict(scans=list(scans), data=np.asarray(c, float)[:, :3], columns=cols, label=lab,
+                              fits=[(lab, fits[k])] if fits else []))
+        return kind, items
     cols, arr = res.data()
     return kind, [dict(scans=[res.scan], data=arr, columns=cols, label=label or res.kind,
                        trends=list(res.trends.items()), time_axis=res.time)]
