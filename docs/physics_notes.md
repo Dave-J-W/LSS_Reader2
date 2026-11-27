@@ -7147,3 +7147,24 @@ with the elastic's escape under Zn Kα at 10 keV), is what the escape stripping 
 **Numbers that changed.** `_flu.txt` from "Fit lines" holds the reader's fit with the width from the sum (it held
 XeRay's area for a few hours, and before F110 the reader's fit with a free width and no escape stripping). XeRay's
 numbers are in `_flu_xeray.txt`; `_flu_fit.txt` is no longer written.
+
+### 2026-11-26 — Stopgap: GID levels with no β overlap joined unscaled (owner's request)
+
+Verified by: tests on synthetic known truth (`tests/test_gid_unscaled_seams.py`) and a run on the private sets
+by the local data agent. Study: `docs/studies/gid_unscaled_seams/summary.md`.
+
+- **The owner asked** for a stopgap for GID image sets whose levels share no overlap, "even if there are
+  tradeoffs. Just spell out the tradeoffs and build it."
+- **Built, opt-in:** `GIDParams(unmatched_levels='unscaled')`, the worksheet's "Join levels without overlap
+  (unscaled)". A level with no β overlap is added as collected (monitor, absorber, its own response), with
+  factor 1 and no error. The seam is marked in the join table, in a message and as a `#` line in saved files.
+  The default still refuses; overlapping levels are joined bit for bit as before.
+- **Tradeoffs, measured:**
+  - a 25 % monitor error passes 1 : 1 into the step (synthetic);
+  - the response's per-level normalisation moves the ratio across the seam by 7 % median, up to 28 % ('fit'
+    against 'none', 15 real seams);
+  - the ratio across the seam (0.69–1.10 under 'fit') cannot separate a scale error from the real change
+    across gaps of 0.5–6.1°;
+  - σ is counting only.
+- **Real sets:** of the survey's 18, 16 have a real β gap; 15 of them now patch. 1 fails on a separate error
+  (a zero-size array in the join). 2 had failed only with the `physical` responses and join normally.

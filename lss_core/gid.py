@@ -42,7 +42,12 @@ the GID worksheet (F61). Where each one acts:
   the row's β ('per_axis', as before 2026-11-19; comparison C21);
   ``join_estimator``: the scans' and levels' factors by likelihood ('ml',
   the default since 2026-11-23, P46) or as the inverse-variance mean of the
-  bins' ratios ('ivw', before; biased low when bins hold few counts).
+  bins' ratios ('ivw', before; biased low when bins hold few counts);
+  ``unmatched_levels``: a Qz level whose rows share no β with the levels
+  below it cannot be joined (nothing to fit its factor on); 'refuse' (the
+  default) stops the patch, 'unscaled' (a stopgap, owner, 2026-11-26) adds
+  it as collected, normalised by monitor and absorber only, and marks the
+  seam (``seam_note``; the joins table; a comment line in saved files).
 """
 from dataclasses import dataclass, fields
 
@@ -75,6 +80,7 @@ class GIDParams:
     apply_joins: bool = True          # False: scan and level factors fitted and reported, not applied (as collected)
     angles: str = 'exact'             # pinhole map binning: 'exact' per pixel, or 'per_axis' (before 2026-11-19; C21)
     join_estimator: str = 'ml'        # scan and level factors: 'ml' (likelihood, P46, 2026-11-23) or 'ivw' (before)
+    unmatched_levels: str = 'refuse'  # a level with no β overlap: 'refuse', or 'unscaled' (stopgap, seam marked)
 
     @classmethod
     def for_detector(cls, shape, **settings):
@@ -513,9 +519,14 @@ def pinhole_patch(frames, params, log=None):
     try:
         tt, beta, I, S, jinfo = pinhole.join_levels(infos, transverse=gp.transverse, log=log,
                                                     labels=[LEVEL_NAMES[k] for k in range(len(byqz))],
-                                                    apply=gp.apply_joins, estimator=gp.join_estimator)
+                                                    apply=gp.apply_joins, estimator=gp.join_estimator,
+                                                    unmatched=gp.unmatched_levels)
     except ValueError as e:
-        raise GIDError('The Qz levels could not be joined: %s.' % e)
+        hint = ''
+        if 'does not overlap in beta' in str(e) and gp.unmatched_levels == 'refuse':
+            hint = (' The setting "Join levels without overlap (unscaled)" adds such a level as collected, with '
+                    'its seam marked; its scale is then not checked against the level below.')
+        raise GIDError('The Qz levels could not be joined: %s.%s' % (e, hint))
     patch = [np.vstack((np.full(len(beta), t), beta, I[b], S[b])).T for b, t in enumerate(tt)]
     return patch, levels, level_info, jinfo
 
@@ -583,10 +594,27 @@ def products(X, Y, D, E, axes, alpha, wavelength, relax=False):
     return dict(axes=axes, x=x, y=y, data=d, err=e, h=h, v=v, vc=vc)
 
 
-def save(name, prod):
+def seam_note(join_info):
+    """One line saying which Qz levels were joined unscaled (``join_levels``
+    with unmatched='unscaled'), or '' when none was: the label a map carries
+    when its scale across a seam was not checked."""
+    seams = (join_info or {}).get('unscaled_seams') or []
+    if not seams:
+        return ''
+    parts = ['%s on %s at beta %.2f-%.2f deg (edge ratio %.3g)' % (s['level'], s['below'], s['beta_below_deg'],
+                                                                  s['beta_above_deg'], s['edge_ratio'])
+             for s in seams]
+    return ('UNSCALED ACROSS %d SEAM%s: no beta overlap, levels added as collected (monitor and absorber only, '
+            'no join factor, sigma counting only): %s' % (len(seams), '' if len(seams) == 1 else 'S', '; '.join(parts)))
+
+
+def save(name, prod, note=''):
     """The three files of the window's "Save GID": horizontal and vertical
     integrals and the 2D map as rows (x, y, I, σ). File names as the window
-    (including its '_agnle2d' spelling, which users' scripts may expect)."""
+    (including its '_agnle2d' spelling, which users' scripts may expect).
+    ``note`` (``seam_note``): a '#' comment line at the top of each file;
+    without one the files are as before, byte for byte."""
+    kw = dict(header=note) if note else {}
     if prod['axes'] == 'Q':
         tags = ('_qxy_gid.txt', '_qz_gid.txt', '_q2d_gid.txt')
     else:
@@ -596,7 +624,7 @@ def save(name, prod):
     for i in range(len(d)):
         for j in range(len(d[0])):
             data2d.append([x[i][j], y[i][j], d[i][j], e[i][j]])
-    np.savetxt(name + tags[0], prod['h'], fmt='%.4e\t%.4e\t%.4e')
-    np.savetxt(name + tags[1], prod['v'], fmt='%.4e\t%.4e\t%.4e')
-    np.savetxt(name + tags[2], np.array(data2d), fmt='%.4e\t%.4e\t%.4e\t%.4e')
+    np.savetxt(name + tags[0], prod['h'], fmt='%.4e\t%.4e\t%.4e', **kw)
+    np.savetxt(name + tags[1], prod['v'], fmt='%.4e\t%.4e\t%.4e', **kw)
+    np.savetxt(name + tags[2], np.array(data2d), fmt='%.4e\t%.4e\t%.4e\t%.4e', **kw)
     return [name + t for t in tags]
