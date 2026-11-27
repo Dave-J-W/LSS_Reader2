@@ -142,7 +142,8 @@ to main between the clean-PC test and the tag except blocker fixes, so that what
   Qoff becomes the angle offset and each scan reports its resolution. The estimator is the one row 13 used
   (`docs/studies/qz_resolution/`: 2 % on known truth; β the largest model term, ±15 % for ×2); then
   rule 12 (study, tests, demonstrator) before the Propose button offers it. tools man (TODO, "The Qoff
-  proposal's ±").
+  proposal's ±"). **Hand-off:** `docs/handoff_out/09-qoff-resolution-fit.md` says what to build so the local
+  data agent can extend it on the real edges it has (DATA_NEEDS row 18).
 - **Refine the XRF shootout (C65–C69)** (owner, 2026-11-26: "Put a to-do to continue refining that shootout of methods for a later time, since I don't believe each library/method was optimized enough."):
   tune each library and method (PyMca's configuration and background,
   PyXRF's model, Larch's series and each, XeRay's window and error, the
