@@ -28,11 +28,12 @@ with the owner's standing permission (main man, tools man, the GUI manager) do t
    - the tests for the area you changed: `python -m pytest -q tests/test_<area>.py`;
    - after catalogue changes: `tests/test_toolbox.py` (the item must exist). Generated files are not
      re-rendered per commit (rule 11): before a release, or when asked, then `pytest -m release`;
-   - **real-data tests** for the area when numbers can move, **or when a dialog or workflow changes what it
-     accepts**: `python -m pytest -q -m slow -k "<area>"` (`burn`, `ref`, `gid`, `timeline`, ...). They are
-     not in CI. For example, the burn dialog's 1 mm width prefill made it refuse every burn without a height
+   - **real-data tests** for the area, only when you need the answer before merging, that is when numbers
+     can move **or a dialog or workflow changes what it accepts**: `python -m pytest -q -m slow -k "<area>"`
+     (`burn`, `ref`, `gid`, `timeline`, ...). Otherwise the nightly run on `main` covers them. For example, the burn dialog's 1 mm width prefill made it refuse every burn without a height
      scan at its S1 gap, and only the slow NX tests showed it (2026-11-25);
-   - **the crash sweep, in the background,** when the window is touched (not in CI either):
+   - **the crash sweep** runs nightly on `main` (`nightly.yml`). Run it yourself, in the background, only for
+     a large change to the window that you want checked before merging:
 
          timeout 3000 python -m pytest -q -m sweep -p no:cacheprovider > <scratch>/sweep.txt 2>&1; echo "PYTEST_EXIT=$?" >> <scratch>/sweep.txt
 
