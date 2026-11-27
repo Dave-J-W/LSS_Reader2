@@ -1423,7 +1423,12 @@ class MainWindow (QMainWindow):
                     left+=[(rid,str(e)) for rid,_,_ in job['members']]
                     continue
                 for rid,label,why in job['members']:
-                    it=next((i for i in items if i.get('label')==label),items[0] if len(items)==1 else None)
+                    it=next((i for i in items if i.get('label')==label),None)
+                    if it is None:       # a cut is saved as '<curve>, <direction> <range>' (#145)
+                        it=next((i for i in items if label and i.get('label')
+                                 and str(label).startswith(str(i['label'])+',')),None)
+                    if it is None and len(items)==1:
+                        it=items[0]
                     if it is None:
                         left.append((rid,'no matching part in the remade result'))
                         continue
@@ -2902,6 +2907,7 @@ class MainWindow (QMainWindow):
             rng=str(self.ui.mcaRanLineEdit.text()).split(':')
             self.mcaSumScript=(sorted(int(n) for n in self.selectedScanNums),float(rng[0]),float(rng[1]),
                                len(self.selectedMcaScanNums)==self.ui.imageListWidget.count())
+            self.mcaLinesFit=None   # window sums, not Fit lines (#145)
             self.mcaMerges=[]       # Merge actions since this Sum All, for the Script pane
             self.command='Flu Sum, scans=['+listText(np.sort(self.selectedScanNums))+'], energy range=['+str(ini)+':'+str(fin)+']'
         except:
@@ -3094,8 +3100,14 @@ class MainWindow (QMainWindow):
             kw.append('channels=%r' % self.mcaChannels())
         x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
         head='from lss_core import absorbers\n' if isinstance(getattr(self,'mcaAbsfacUsed',None),absorbers.Foils) else ''
+        lf=getattr(self,'mcaLinesFit',None)
+        lines=''
+        if lf:                  # after Fit lines (#145): the same fit, the reader's first and XeRay's beside
+            head+='from lss_core import peaks\n'
+            lines='flu.fit_lines(peaks.%r, poisson=%r, detector_width=%r, noise_kev=%r, strip_escapes=%r)\n' % (
+                lf['options'],lf['poisson'],lf['detector_width'],lf['noise_kev'],lf['strip_escapes'])
         merges=''.join('flu.merge(%r, x=%r)\n' % m for m in getattr(self,'mcaMerges',[]))
-        return head+'flu = exp.fluorescence(%r, %s)\n%sflu.save(%r, x=%r)' % (scans,', '.join(kw),merges,name,x)
+        return head+'flu = exp.fluorescence(%r, %s)\n%s%sflu.save(%r, x=%r)' % (scans,', '.join(kw),lines,merges,name,x)
 
     def addMcaFiles(self): #add mca files with integral intensity in the list
         f=QFileDialog.getOpenFileNames(caption='Select Multiple Files to import', directory=self.directory)[0]
@@ -9888,6 +9900,7 @@ class MainWindow (QMainWindow):
         self.cutFitArtists=[]
         self.cutFitResults=[]
         opts=self.peakFitOptions
+        self.cutFitOptionsUsed=opts            # the recipe of a saved fitted cut repeats this fit (#145)
         for k,(label,x,y,s,scale) in enumerate(curves):
             groups=peaks.fit_all(x,y,s,opts)
             self.cutFitResults.append((label,groups))
@@ -10738,6 +10751,17 @@ class MainWindow (QMainWindow):
             return ''
         return text if text and not text.lstrip().startswith('#') else ''
 
+    def curveScript(self,scan,xc,yc,nc,fit):
+        """The lss_core call for one saved SpecPlot curve (#145): exp.curve, with the window's monitor options."""
+        kw=[]
+        if nc:
+            kw.append('monitor=%r' % nc)
+            if self.monitorGain and str(nc).lower()=='monc':
+                kw.append('per_photon=True' if self.monitorPhotons else 'monitor_gain=True')
+        if fit:
+            kw.append('fit=True')
+        return 'curve = exp.curve(%d, %r, %r%s)' % (int(scan),xc,yc,''.join(', '+k for k in kw))
+
     def saveSpecToWorkbook(self):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
             self.saveNotice('Please select a scan with data to save first!')
@@ -10760,7 +10784,8 @@ class MainWindow (QMainWindow):
                 cols=[xc,'%s/%s' % (yc,nc),'d(%s/%s)' % (yc,nc)]
             fits=[('%s vs %s' % (yc,xc),self.specFit)] if i==self.selectedScanNums[-1] and getattr(self,'specFit',None) is not None else []
             items.append(dict(scans=[i],data=np.column_stack([x,y,yerr]),columns=cols,label='%s vs %s%s' % (yc,xc,' / '+nc if norm else ''),
-                              fits=fits,settings=dict(x=xc,y=yc,monitor=nc if norm else None)))
+                              fits=fits,settings=dict(x=xc,y=yc,monitor=nc if norm else None),
+                              recipe=self.recipe(lambda name,i=i,f=bool(fits):self.curveScript(i,xc,yc,nc if norm else None,f))))
         self.saveToWorkbook('scan',items,auto=getattr(self,'autoSaving',False))
 
     def saveRefToWorkbook(self):
@@ -10916,6 +10941,9 @@ class MainWindow (QMainWindow):
         direction=str(self.ui.pilCutDirComboBox.currentText())
         settings=dict(direction=direction,range=str(self.ui.pilIntRangeLineEdit.text()),axes=str(self.ui.pilAxesComboBox.currentText()))
         items=[]
+        recipe='' if curves[0][0]=='GID cut' else self.recipe(self.cutScript)
+        if recipe and fits and getattr(self,'cutFitOptionsUsed',None) is not None:   # remade live with its fit (#145)
+            recipe='from lss_core import peaks\n'+recipe+'\nfits = cut.fit(peaks.%r)' % (self.cutFitOptionsUsed,)
         for k,(label,x,y,sg,scale) in enumerate(curves):
             if label=='GID cut':
                 scans=sorted({int(n) for lv in getattr(self,'gidLevels',[]) for n in lv[1]})
@@ -10928,7 +10956,7 @@ class MainWindow (QMainWindow):
             items.append(dict(scans=scans,data=np.column_stack([x,y,sg]),columns=[direction.split()[0]+' x','I','dI'],
                               label='%s, %s %s' % (label,direction,settings['range']),settings=settings,
                               fits=[(label,fits[label])] if label in fits else [],
-                              recipe='' if label=='GID cut' else self.recipe(self.cutScript)))
+                              recipe='' if label=='GID cut' else recipe))
         self.saveToWorkbook('gid cut' if curves[0][0]=='GID cut' else 'line cut',items,auto=getattr(self,'autoSaving',False))
 
     def saveMcaSpectraToWorkbook(self):
@@ -10983,7 +11011,7 @@ class MainWindow (QMainWindow):
         cols=['frame','Qz','energy','I','dI']+(['I_xeray','dI_xeray'] if len(rows[0])>=7 else [])   # F110
         items=[dict(scans=scans,data=np.asarray(rows,float),columns=cols,
                     label=str(getattr(self,'command','')),fits=fits,settings=dict(command=str(getattr(self,'command',''))),
-                    recipe='' if fits else self.recipe(self.fluorescenceScript))]
+                    recipe=self.recipe(self.fluorescenceScript))]       # Fit lines too (#145)
         self.saveToWorkbook('fluorescence',items,auto=getattr(self,'autoSaving',False))
 
     def saveGIDToWorkbook(self):
@@ -11095,7 +11123,11 @@ class MainWindow (QMainWindow):
             qz=self.mcaPar[n]['Q'][2]
             energy=self.mcaPar[n].get('Energy',10.0) if isinstance(self.mcaPar[n],dict) else 10.0
             self.mcaIntData.append([frame,qz,energy,fi,fe,xi,xe])     # the reader's fit first (F110 revised)
-        self.mcaSumScript=None
+        lo,hi=o.x_range if o.x_range is not None else (float(x.min()),float(x.max()))
+        self.mcaSumScript=(sorted(int(n) for n in self.selectedScanNums),float(lo),float(hi),
+                           len(nums)==self.ui.imageListWidget.count())      # a recipe: remade live (#145)
+        self.mcaLinesFit=dict(options=o,poisson=self.mcaFitPoisson(),detector_width=bool(lopt['detector_width']),
+                              noise_kev=float(lopt['noise_kev']),strip_escapes=bool(lopt['strip_escape']))
         self.mcaMerges=[]
         self.mcaLineFits=(ref,each,nums) if each else None
         self.mcaXeRayFits=(xr,nums)

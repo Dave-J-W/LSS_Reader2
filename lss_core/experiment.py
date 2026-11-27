@@ -162,6 +162,21 @@ class CutResult:
 
 
 @dataclass
+class CurveResult:
+    """One scan's column against another, as the window's SpecPlot saves it (#145): ``x``, ``y`` and its
+    error (sqrt(N), or over a monitor sqrt(y/m^2 + y^2/m^3) times the gain factor), the workbook's
+    ``columns`` and ``label``, and the scan-shape ``fit`` (lss_core.peaks.fit_scan) when asked for."""
+    scan: int
+    x: np.ndarray
+    y: np.ndarray
+    err: np.ndarray
+    columns: list
+    label: str
+    fit: object = None
+    fit_label: str = ''
+
+
+@dataclass
 class FluorescenceResult:
     spectra: list         # (N, 3) energy, normalised counts, error, per spectrum
     rows: list            # [frame, qz, energy, intensity, error] per spectrum
@@ -170,6 +185,31 @@ class FluorescenceResult:
 
     def save(self, name, x='qz'):
         fluo.save_flu(name, self.rows, self.command, x=x)
+        if self.rows and len(self.rows[0]) >= 7:          # after fit_lines: XeRay's beside (F110), as the window
+            fluo.save_flu_xeray(name, self.rows, self.command, x=x)
+
+    def fit_lines(self, options=None, poisson=True, detector_width=False, noise_kev=0.12, strip_escapes=True):
+        """The window's MCA "Fit lines" (F110; scriptable and remade live since #145): each spectrum's line
+        two ways (lss_core.fluorescence.fit_line_series), the rows becoming [frame, qz, energy, I, dI,
+        I_xeray, dI_xeray], the reader's fit first (the default), NaN where a fit failed. ``options``:
+        lss_core.peaks.FitOptions, its ``x_range`` the line's window. Changes ``rows`` and returns the fits
+        (``fit_line_series``' dict, also kept as ``lines``)."""
+        from . import peaks
+        o = options if options is not None else peaks.FitOptions(background='quadratic', n_peaks=1)
+        both = fluo.fit_line_series([np.asarray(s, float) for s in self.spectra], o, poisson=poisson,
+                                    detector_width=detector_width, noise_kev=noise_kev, strip_escapes=strip_escapes)
+        each, j, step, xr = both['each'], both['j'], both['step'], both['xeray']
+        nan = float('nan')
+        rows = []
+        for k, (r0, f) in enumerate(zip(self.rows, xr)):
+            r = each[k] if each else None
+            fi, fe = (r.peaks[j].area / step, r.peaks[j].area_err / step) if r is not None and j is not None \
+                else (nan, nan)
+            xi, xe = (f.area, f.area_err) if f.ok else (nan, nan)
+            rows.append([r0[0], r0[1], r0[2], fi, fe, xi, xe])
+        self.rows = rows
+        self.lines = both
+        return both
 
     def merge(self, window=None, x='qz', jitter=fluo.QZ_JITTER):
         """The window's "Merge" (lss_core.fluorescence.merge_rows): rows
@@ -534,6 +574,37 @@ class Experiment:
         res = GIDResult(X, Y, D, E, log, levels, gp, frames[0].true_alpha, frames[0].wavelength, bool(relax), info)
         res.axes = axes
         res.warnings = warnings
+        return res
+
+    def curve(self, scan, x, y, monitor=None, monitor_gain=False, per_photon=False, fit=False):
+        """Column ``y`` of ``scan`` against column ``x``, as the window's SpecPlot plots and saves it (#145):
+        divided by column ``monitor`` (times the Monc gain factor or per incident photon, as the window's
+        options) when one is given; ``fit``: the scan-shape fit of the SpecPlot (a peak, an edge or a box;
+        a sample-height scan against its own motor with the height-scan options). Remade live when the scan
+        gains points."""
+        from . import peaks
+        s = self.scans[int(scan)]
+        if x not in s.columns or y not in s.columns or (monitor and monitor not in s.columns):
+            missing = [c for c in (x, y, monitor) if c and c not in s.columns]
+            raise ValueError('scan %d has no column %s' % (int(scan), ', '.join(missing)))
+        xv, yv = np.asarray(s.columns[x], float), np.asarray(s.columns[y], float)
+        err = np.sqrt(np.abs(yv))
+        cols = [x, y, 'd' + y]
+        if monitor:
+            m = np.asarray(s.columns[monitor], float)
+            g = 1.0
+            if (monitor_gain or per_photon) and str(monitor).lower() == 'monc':
+                g, _ = monitor_factor(s.parameters, monitor_gain=monitor_gain or per_photon, per_photon=per_photon,
+                                      rate_hz=scan_rate(s.columns) if per_photon else None)
+            err = np.sqrt(yv / m ** 2 + yv ** 2 / m ** 3) * g
+            yv = yv / m * g
+            cols = [x, '%s/%s' % (y, monitor), 'd(%s/%s)' % (y, monitor)]
+        res = CurveResult(int(scan), xv, yv, err, cols, '%s vs %s%s' % (y, x, ' / ' + monitor if monitor else ''))
+        if fit:
+            first = next(iter(s.columns), None)
+            kw = peaks.height_scan_options() if peaks.is_height_scan(s.command) and x == first else {}
+            res.fit = peaks.fit_scan(xv, yv, err if np.all(err > 0) else None, **kw)
+            res.fit_label = '%s vs %s' % (y, x)
         return res
 
     def burn(self, scan, points=None, time='clock', qxy_range=None, rows='mean', fit=None,

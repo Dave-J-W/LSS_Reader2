@@ -84,6 +84,17 @@ def save_flu(name, rows, command, x='qz'):
             fid.write(str(r[col]) + '\t' + str(r[3]) + '\t' + str(r[4]) + '\n')
 
 
+def save_flu_xeray(name, rows, command, x='qz'):
+    """Write <name>_flu_xeray.txt as the window does after "Fit lines" (F110): XeRay's I and dI (columns
+    5 and 6 of the rows), the rows where XeRay has no value left out."""
+    col = {'frame': 0, 'qz': 1, 'energy': 2}[x]
+    with open(name + '_flu_xeray.txt', 'w') as f:
+        f.write('#' + str(command) + ' -- XeRay\'s fit (the _flu.txt beside it holds the reader\'s)\n')
+        for r in rows:
+            if np.isfinite(r[5]):
+                f.write(str(r[col]) + '\t' + str(r[5]) + '\t' + str(r[6]) + '\n')
+
+
 # ---- Merge (the window's MCA "Merge"; owner's XFNTR rule, 2026-11-19) ------------
 
 QZ_JITTER = 3e-5        # 1/Å: Qz jitter, added to merged errors on the Qz axis (owner, F65 step 5)
