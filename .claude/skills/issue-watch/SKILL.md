@@ -47,6 +47,8 @@ It prints one line per event:
 
 - **Expiry:** a Monitor ends after 30 minutes with a notice. Re-arm it with the same command. The state
   folder keeps the counts, so only new events are reported.
+  On Windows the expired loop can live on; `watch.sh` keeps one loop per state folder (`watch.pid`): the newest
+  wins, and an older one stops at its next round (GID guy, 2026-11-27).
 - **A container or worker restart** stops it silently. Re-arm it, and **read what was missed** first:
 
       gh api "repos/Dave-J-W/LSS_Reader2/issues/55/comments?per_page=100&since=<last seen>" --jq '.[] | "\(.created_at) \(.body | split("\n")[0])"'

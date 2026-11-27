@@ -673,7 +673,7 @@ workflows:
         could_be_automatic: "tick every curve of the selected series at once"
         known_from: owner 2026-11-23 (F80, Q-REF-5); test tests/test_gui_compare.py
         issues:
-          - "Export with a proposed name and the hand-over to xmodfit (Q-REF-6) not yet built"
+          - "Export proposes <SPEC file>_<sample>_S<scans> in the last Export's folder (XModFit's), with both text files and, with + covariance, the sidecar (F105, Q-REF-6, built 2026-11-25; #146). Open for the owner: the series id in the name too (#167)"
       - id: ref.view
         do: The patched curve on the Reflectivity tab - R or R/R_F, Qc, Qoff, log, Qz^2, normalisation factor; compare with reference files
         where: Reflectivity tab (Ref / Norm Ref lists, plot)
@@ -690,7 +690,7 @@ workflows:
       - id: ref.export
         do: Export - <name>_ref.txt and <name>_rrf.txt (Q, R, sigma); the Script pane records exp.reflectivity(...)
         where: Reflectivity tab > Export
-        controls: [refExportPushButton, refCovarianceCheckBox]
+        controls: [refExportPushButton, refCovarianceCheckBox, refOrsoCheckBox]
         user_decides: file name; whether to write the covariance sidecars (+ covariance, off by default)
         automatic: no
         could_be_automatic: name from the sample and series (guess)

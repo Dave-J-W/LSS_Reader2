@@ -522,6 +522,7 @@ Each line: feature — where — default — script — notes entry (date).
   The status bar says what was saved; the Messages pane stays quiet.
 - The Save buttons still save a version with a note ('user').
 - Preferences > Saving > "Save every reduction automatically" turns it off.
+- **ORSO export** (2026-11-27, F25, #148): "+ ORSO" beside "+ covariance" on the Reflectivity tab, on by default. Export then also writes `<name>.ort`, the ORSO reflectivity format readable by any ORSO-aware fitter. Its header records the data source and every reduction step. The owner's name and affiliation are typed once in Preferences > ORSO header. The manual should say: the columns are Qz, R, sR as in `_ref.txt`; there is no sQz column until the reader records a Qz resolution; untick the box to write only the text files.
 - **Reopening a file restores its settings** (2026-11-27, #145). Opening a SPEC file applies what its workbook recorded at the last save, and one message lists what changed, old -> new. That covers:
   - the Reflectivity fields: background offset, ROI size, Qc, Qoff, norm factor;
   - the typed absorber factor;

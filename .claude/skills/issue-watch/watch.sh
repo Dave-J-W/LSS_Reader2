@@ -25,6 +25,13 @@ while [ $# -gt 0 ]; do
   esac
 done
 mkdir -p "$S"
+# One loop per state folder (GID guy, #55, 2026-11-27): on Windows an expired Monitor leaves its loop running, and
+# that orphan records each new event in the state files before the re-armed watch can print it. The newest watch
+# writes its PID here; an older loop that finds another PID stops at its next round, whether or not it was killed.
+PIDFILE="$S/watch.pid"
+old=$(cat "$PIDFILE" 2>/dev/null)
+[ -n "$old" ] && [ "$old" != "$$" ] && kill "$old" 2>/dev/null
+echo $$ > "$PIDFILE"
 ISSUES="repos/$REPO/issues?state=all&per_page=100&sort=updated&direction=desc"
 [ -n "$LABEL" ] && ISSUES="$ISSUES&labels=$LABEL"
 
@@ -55,6 +62,7 @@ latest() {   # the newest comment of issue or PR $1 with $2 comments: the last p
 touch "$S/counts" "$S/prs"
 
 while true; do
+  [ "$(cat "$PIDFILE" 2>/dev/null)" = "$$" ] || exit 0     # a newer watch took over this state folder
   if issues > "$S/now.tsv" && [ -s "$S/now.tsv" ]; then
     while IFS=$'\t' read -r n c st kind t; do
       old=$(awk -F'\t' -v n="$n" '$1==n{print $2}' "$S/counts")

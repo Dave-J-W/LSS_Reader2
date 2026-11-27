@@ -50,6 +50,7 @@ def test_settings_are_saved_and_read_back(window, qapp, recorder):
                       # fitting options and saving (owner, 2026-11-21)
                       'peak_fit': {}, 'mca_fit': {'background': 'quadratic', 'n_peaks': 1}, 'save_asks_note': True, 'auto_save': True, 'live_interval_s': 5.0, 'burn': {},
                       'restore_workbook_settings': True,                   # #145: reopening restores a file's settings (2026-11-27)
+                      'export_orso': True, 'orso_owner_name': '', 'orso_owner_affiliation': '',   # F25, #148 (2026-11-27)
                       'select_whole_series': True,
                       'sum_all_legacy_average': False, 'gisaxs_raw_counts': False,   # per Monc, ΣN/ΣM (F91, 2026-11-23)
                       'repeats_legacy_average': False,                                # repeats as ΣN/ΣM (F81, 2026-11-23)

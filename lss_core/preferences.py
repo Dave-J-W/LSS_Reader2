@@ -32,6 +32,8 @@ DEFAULTS = {
     # save every finished reduction into the workbook (owner, 2026-11-22)
     'auto_save': True,
     'restore_workbook_settings': True,  # #145 (owner, 2026-11-27): reopening a file applies its workbook's settings
+    'export_orso': True,                # F25, #148 (owner, 2026-11-27): Export writes <name>.ort too
+    'orso_owner_name': '', 'orso_owner_affiliation': '',   # the ORSO header's owner, typed in Preferences
     # live updates: seconds between looks at the SPEC file (owner, 2026-11-22)
     'live_interval_s': 5.0,
     # burn tests (lss_core.burn, lss_core.trends): models compared, estimator, time axis,

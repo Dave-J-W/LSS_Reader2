@@ -20,6 +20,8 @@ hidden = ['mplwidget', 'mpl2dwidget', 'matplotlib.backends.backend_qt5agg']
 hidden += ['ngui', 'ngui.window', 'ngui.layout', 'ngui.theme', 'ngui.inventory_text']
 # the Plot options window (F112), imported inside MainWindow.showPlotOptions only
 hidden += ['plotoptions']
+# the ORSO export (F25, #148), imported inside lss_core.orso's functions only
+hidden += ['orsopy', 'orsopy.fileio', 'yaml']
 
 a = Analysis([os.path.join(ROOT, 'LSS_Reader.py')],
              pathex=[ROOT],
