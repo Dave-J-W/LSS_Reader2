@@ -28,7 +28,8 @@ On your own machine (same platform as the build you want):
   files and icons are found inside the build), reduces scans 6–9 with
   the legacy patch (the reference files are the legacy reduction, rule 3) and
   compares `_ref.txt`/`_rrf.txt` with `PREFIX_ref.txt`/`_rrf.txt` byte for
-  byte. Exit code 0 when both match. `$LSS_SELFTEST_REPORT` also writes
+  byte; since 2026-11-27 (#148) it also writes the same curve as `.ort` and reads it back with orsopy
+  ("ORSO: written and read back"), so a build without orsopy fails. Exit code 0 when all hold. `$LSS_SELFTEST_REPORT` also writes
   the report to a file (a Windows build has no console).
 
 ## Measured

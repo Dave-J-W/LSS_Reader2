@@ -49,13 +49,26 @@ def self_test(specfile, reference_prefix):
     say('window: %s, %d tabs' % (w.windowTitle(), w.ui.PlotWidget.count()))
     from lss_core.experiment import Experiment
     out = os.path.join(tempfile.mkdtemp(prefix='lss_selftest_'), 'nx')
-    Experiment(specfile).reflectivity([6, 7, 8, 9], method='legacy').save(out)
+    exp = Experiment(specfile)
+    res = exp.reflectivity([6, 7, 8, 9], method='legacy')
+    res.save(out)
     ok = True
     for kind in ('_ref.txt', '_rrf.txt'):
         with open(out + kind, 'rb') as f1, open(reference_prefix + kind, 'rb') as f2:
             same = f1.read() == f2.read()
         say('%s: %s' % (kind, 'identical' if same else 'DIFFERENT'))
         ok = ok and same
+    try:        # the ORSO export (F25, #148): orsopy must be bundled, and its file must read back
+        from lss_core import orso
+        from orsopy import fileio
+        orso.write_ort(out + '.ort', res.ref, specfile, [6, 7, 8, 9], exp.scans[6].parameters['Wavelength'])
+        n = len(fileio.load_orso(out + '.ort')[0].data)
+        same = n == len(res.ref)
+        say('ORSO: %s (%d points)' % ('written and read back' if same else 'DIFFERENT', n))
+        ok = ok and same
+    except Exception as e:
+        say('ORSO: FAILED (%s)' % e)
+        ok = False
     w.close()
     say('self-test %s' % ('passed' if ok else 'FAILED'))
     if os.environ.get('LSS_SELFTEST_REPORT'):
