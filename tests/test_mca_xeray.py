@@ -99,6 +99,26 @@ def test_merge_keeps_the_pairs_together():
     assert np.allclose(m7[:, 5:], m_alone[:, 3:])                                     # the second by the same rule
 
 
+def test_merge_skips_a_missing_value():
+    """Issue #151: one missing value (an accepted single fit has no XeRay
+    value; NaN) made its whole group NaN for that pair. It now adds nothing,
+    and the group merges the values it has; the other pair is untouched."""
+    nan = float('nan')
+    full = [[1, 0.010, 10, 100.0, 10.0, 90.0, 9.0], [2, 0.0101, 10, 110.0, 10.5, 99.0, 9.5],
+            [3, 0.020, 10, 50.0, 7.0, 45.0, 6.5]]
+    holed = [r[:] for r in full] + [[4, 0.0102, 10, 105.0, 10.2, nan, nan]]
+    m = fl.merge_rows(holed, 'qz', 0.001)
+    ref = fl.merge_rows(full, 'qz', 0.001)
+    four = fl.merge_rows([r[:5] for r in holed], 'qz', 0.001)
+    assert len(m) == 2 and np.all(np.isfinite(m))
+    assert np.allclose(m[:, 5:], ref[:, 5:])                      # the second pair as if the row were not there
+    assert np.array_equal(m[:, :5], four)                         # the first pair merges all four rows, as before
+    first = [[0, 0.0099, 10, 104.0, 10.1, nan, nan]] + [r[:] for r in full]
+    assert np.allclose(fl.merge_rows(first, 'qz', 0.001)[:, 5:], ref[:, 5:])   # missing in the group's first row
+    alone = fl.merge_rows([[1, 0.01, 10, 100.0, 10.0, nan, nan], [2, 0.0101, 10, 110.0, 10.5, nan, 0.0]], 'qz', 0.001)
+    assert np.isnan(alone[0, 5]) and np.isfinite(alone[0, 3])     # nothing usable: NaN stays
+
+
 def test_window_fit_lines_reports_both_and_exports_both(loaded, qapp, dataset, recorder, tmp_path):
     sweep.state_mca_frames(loaded, qapp, dataset)
     loaded.mcaFitLinesPushButton.click()
