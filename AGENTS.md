@@ -43,8 +43,8 @@ commit with its test, CI green, the legacy export fixtures byte-identical.
   lines and link the issue, commit or file instead of retelling it.
 - **Two watchers, one per side** (owner, 2026-11-27; the `issue-watch` skill). **main man** watches all issues
   and pull requests, privacy-reviews the data sessions' pull requests, and merges them once CI is green. It
-  asks the owner only when something private or doubtful shows up (owner, 2026-11-24). **One data session on
-  the owner's PC** runs the lane watch (`--label lane:local-data --branch-prefix claude/local-data-`), so a
+  asks the owner only when something private or doubtful shows up (owner, 2026-11-24). **GID guy** (or Reflection guy
+  if GID guy is archived) runs the lane watch on the owner's PC (`--label lane:local-data --branch-prefix claude/local-data-`), so a
   task for the PC wakes it without anyone opening a session. No other session keeps a watch: they read their
   lane's issues when a turn starts.
 - GUI priorities: the main window first, then the timeline tab (F83), then the `ngui/` prototype. Ideas proven
