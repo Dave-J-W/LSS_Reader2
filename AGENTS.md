@@ -27,6 +27,16 @@ commit with its test, CI green, the legacy export fixtures byte-identical.
   CI is green on the head it merges**. Sessions with standing permission (GUI manager, main man, tools man)
   merge their own. The pull requests are records, never left open. Afterwards the branch is brought level
   with `main`.
+- **A data session on the owner's PC** (GID guy, Reflection guy) **has the owner's standing permission to
+  commit and push without asking** (owner, 2026-11-27: "always keep the repo up to date, so that local work
+  doesn't get stuck"). Pushing is not the owner's decision, so don't ask for it. Push to its own
+  `claude/local-data-<topic>` branch whenever a piece of work is done, and at the latest at the end of
+  every turn that changed files: work in progress too, with "WIP" in the commit message. Open the pull request
+  into `main` with the first push and keep it open; main man privacy-reviews it and merges it. Merge
+  `origin/main` into the branch before each push. Three limits: never push to `main` (this PC's credentials
+  could), never merge your own pull request, and run `git status` before each commit so that nothing from
+  `sample_data/bu/` or `sample_data/private/`, and no private peaks, curves or images, is ever staged. Ask the
+  owner only when you can't tell whether something is private.
 - **No other branches** (no `wip/`, no personal ones).
 
 ## Sessions and coordination
