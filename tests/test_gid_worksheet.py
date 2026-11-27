@@ -348,6 +348,36 @@ def test_physical_response_and_joins_as_collected_in_the_worksheet(nx, qapp, rec
 
 
 @pytest.mark.gui
+@pytest.mark.skipif(not os.path.exists(SPEC), reason='NX_school sample data not present')
+def test_unscaled_seams_are_opt_in_and_change_nothing_where_levels_overlap(nx, qapp, recorder):
+    """The stopgap (owner, 2026-11-26) is off by default; ticked, the NX levels
+    (which overlap in β) are joined as before: a fitted factor, no seam, no
+    message about one. Defaults turn it off again."""
+    sweep._select_scans(nx, qapp, [10, 11])
+    sweep._select_images(nx, qapp)
+    _menu(nx, qapp, 'Worksheet')
+    d = nx.gidWorksheet
+    from PyQt5.QtWidgets import QPushButton
+    assert not d.gidUnmatchedLevelsCheckBox.isChecked() and nx.gidParams.unmatched_levels == 'refuse'
+    d.gidPinholeCheckBox.setChecked(True)
+    d.findChild(QPushButton, 'gidPatchPushButton').click()
+    qapp.processEvents()
+    before = [d.gidJoinTable.item(r, 5).text() for r in range(d.gidJoinTable.rowCount())]
+    d.gidUnmatchedLevelsCheckBox.setChecked(True)
+    assert nx.gidParams.unmatched_levels == 'unscaled'
+    d.findChild(QPushButton, 'gidPatchPushButton').click()
+    qapp.processEvents()
+    assert recorder.exceptions == []
+    t = d.gidJoinTable
+    after = [t.item(r, 5).text() for r in range(t.rowCount())]
+    assert after == before and not any('UNSCALED' in a for a in after)
+    assert nx.gidJoinInfo.get('unscaled_seams') == []
+    assert not any('UNSCALED' in str(m) for m in recorder.messages)
+    d.findChild(QPushButton, 'gidDefaultsPushButton').click()
+    assert nx.gidParams.unmatched_levels == 'refuse' and not d.gidUnmatchedLevelsCheckBox.isChecked()
+
+
+@pytest.mark.gui
 @pytest.mark.slow
 @pytest.mark.skipif(not os.path.exists(SPEC), reason='NX_school sample data not present')
 def test_worksheet_updates_the_map_on_every_change(nx, qapp, recorder):

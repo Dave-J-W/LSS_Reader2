@@ -468,6 +468,7 @@ GID = {
         G('Joins', 'Reduce', [
             C('gidVJoinKindComboBox', 'Vertical join', items=['cubic', 'linear']),
             C('gidApplyJoinsCheckBox', 'Apply join factors'),
+            C('gidUnmatchedLevelsCheckBox', 'Join levels without overlap (unscaled)'),
             C('gidLiveCheckBox', 'Re-patch on every change', note='Was "Update the map on every change"; not '
                                                                    'the same thing as the panel\'s Live'),
             ROW(C('gidDefaultsPushButton', 'Defaults'), C('gidPatchPushButton', 'Patch')),
