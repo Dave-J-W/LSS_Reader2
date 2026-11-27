@@ -1418,6 +1418,57 @@ TOOLS = (
          data='public', defaults={'--out': OUT},
          repo_out='docs/studies/qoff_resolution_real', repo_ok=False, seconds=10.0),
 
+    Tool('beam_size_vs_resolution_synthetic', 'Beam size and Qz resolution: one beam, two views (synthetic)', 'refl',
+         'figures', 'tests/tools/beam_size_vs_resolution_synthetic.py',
+         'Calculated, no data: a focused beam in phase space (height, angle), what a sample-height scan and the '
+         'critical edge each measure of it, five ways the beam could change between runs with the correlation '
+         'each would give in 16 runs measured like the owner\'s, and a known-truth check of the fitted distance '
+         'between the sample and the focus.',
+         committed=('docs/studies/beam_size_vs_resolution/B0_one_beam_two_views.png',
+                    'docs/studies/beam_size_vs_resolution/B1_synthetic_cases.png',
+                    'docs/studies/beam_size_vs_resolution/synthetic_cases.csv',
+                    'docs/studies/beam_size_vs_resolution/synthetic_distance_recovery.json'),
+         docs=('docs/studies/beam_size_vs_resolution/summary.md',),
+         data='public', defaults={'--out': OUT},
+         repo_out='docs/studies/beam_size_vs_resolution', repo_ok=False, seconds=40.0),
+
+    Tool('focus_cases_resolution', 'Focus at S1 or at the sample, and how much of σ_Q the beam explains',
+         'refl', 'figures', 'tests/tools/focus_cases_resolution.py',
+         'Calculated from the pooled beam widths at S1 and at the sample: what S1 cuts in each focus case, the '
+         'beam\'s core + tail spread of angles with the focus at S1, and the edge width σ_Q a one-Gaussian fit '
+         'reads from edges blurred by the beam alone, sampled and weighted like the real ones.',
+         committed=('docs/studies/focus_and_resolution/F0_two_focus_cases.png',
+                    'docs/studies/focus_and_resolution/F1_how_much_the_beam_explains.png',
+                    'docs/studies/focus_and_resolution/calculated.json'),
+         docs=('docs/studies/focus_and_resolution/summary.md',),
+         data='public', defaults={'--out': OUT},
+         repo_out='docs/studies/focus_and_resolution', repo_ok=False, seconds=240.0),
+
+    Tool('focus_and_resolution', 'Real edges refitted with the beam\'s own resolution (private data)', 'external',
+         'external',
+         demonstrates='378 real edges refitted with the beam\'s core + tail resolution (focus at S1) against one '
+                      'Gaussian: χ² per model, the tail fraction and width the edges choose, the residual pattern '
+                      'under every model, and a known-truth check of both fits. Made by the owner\'s PC\'s private '
+                      'generator (sample_data/private/xr/); not regenerable here; the numbers are the CSV and JSON '
+                      'beside the figure.',
+         committed=('docs/studies/focus_and_resolution/F2_real_edges_refit.png',
+                    'docs/studies/focus_and_resolution/refit_by_run.csv',
+                    'docs/studies/focus_and_resolution/numbers.json'),
+         docs=('docs/studies/focus_and_resolution/summary.md',), data='private', repo_ok=False),
+
+    Tool('beam_size_vs_resolution', 'Beam size against Qz resolution on real runs (private data)', 'external',
+         'external',
+         demonstrates='The owner\'s question: is the beam\'s height at the sample (sample-height scans) tied to the '
+                      'critical edge\'s resolution width? 349 real edges paired with the height scans nearest in '
+                      'time, run medians and within-run deviations, the correlation against five synthetic '
+                      'cases, and a bound on the distance between the sample and the focus. Made by the owner\'s '
+                      'PC\'s private generator (sample_data/private/xr/); not regenerable here; the numbers are '
+                      'the CSV and JSON beside the figures.',
+         committed=('docs/studies/beam_size_vs_resolution/B2_history.png',
+                    'docs/studies/beam_size_vs_resolution/runs.csv',
+                    'docs/studies/beam_size_vs_resolution/numbers.json'),
+         docs=('docs/studies/beam_size_vs_resolution/summary.md',), data='private', repo_ok=False),
+
     Tool('qoff_resolution_real','Angle offset and Qz resolution on real edges (private data)', 'external', 'external',
          demonstrates="Tools man's new edge fit (fresnel.fit_edge_resolution: angle offset and resolution width together) on 400 real edge scans "
                       "and 96 released ones: simulated edges sampled like the real ones, the fit "
