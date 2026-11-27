@@ -1,6 +1,6 @@
-"""The split estimators of the GID burn test (P44, 2026-11-27;
+"""The separated estimators of the GID burn test (P44, 2026-11-27;
 lss_core.burn.separate_shoulder, measure_gid estimator 'separated' and
-'separated_held'): the template with the broad shoulder split off and held
+'separated_held'): stretched with the broad shoulder separated off and held
 unstretched, so that a broadening peak or a fading one is not read through
 the shoulder. Known truth from tests/synthetic/burn_profiles.py; each
 change over the test read from a straight line through the frames, as the
@@ -43,8 +43,8 @@ def test_split_finds_the_shoulder_it_was_given():
 
 @pytest.mark.parametrize('case, amount', [('broaden', 0.3), ('fade', 0.2), ('shoulder', 0.2)])
 def test_split_reads_the_peak_where_the_template_reads_the_shoulder(case, amount):
-    """Gaussian shoulder, 3 seeds: the split is within 1 % of the truth on
-    the intensity (the template: +15 %, +6 % and +11 %, as coded; the reason
+    """Gaussian shoulder, 3 seeds: separated is within 1 % of the truth on
+    the intensity (stretched: +15 %, +6 % and +11 %, as coded; the reason
     for P44) and within 2 % on the FWHM."""
     for seed in range(3):
         prof, truth = bp.profiles(change=case, amount=amount, seed=seed)
@@ -75,7 +75,7 @@ def test_a_changing_shoulder_is_read_by_split_and_misleads_split_fixed():
 
 def test_a_steady_shoulder_amplitude_is_one_within_its_errors():
     """B per frame on a steady shoulder: mean 1, pulls (B − 1)/σ_B of SD
-    about 1 (1.08 over 6 seeds: the template, the mean of the same frames,
+    about 1 (1.08 over 6 seeds: stretched, the mean of the same frames,
     shares their noise)."""
     pulls = []
     for seed in range(4):
@@ -98,11 +98,11 @@ def test_without_a_shoulder_the_split_is_the_template():
 
 @pytest.mark.parametrize('shape', ['lorentzian', 'asymmetric', 'two'])
 def test_other_shoulder_shapes_are_read_better_than_by_the_template(shape):
-    """A shoulder that is not a Gaussian (the split fits a Gaussian to it):
-    the split's bias is smaller than the template's in every case (as
+    """A shoulder that is not a Gaussian (separated fits a Gaussian to it):
+    separated's bias is smaller than stretched's in every case (as
     measured, 2 seeds: by 2.0–7.9 × for a Lorentzian or a lopsided
     shoulder, 1.4–4.2 × for a narrow second component beside the peak,
-    where no estimator copes: the split reads a 20 % fade as 15 %, and as
+    where no estimator copes: separated reads a 20 % fade as 15 %, and as
     8 % under a shoulder three times stronger)."""
     for case, amount in (('broaden', 0.3), ('fade', 0.2), ('shoulder', 0.2)):
         prof, truth = bp.profiles(change=case, amount=amount, seed=0, shoulder_shape=shape)

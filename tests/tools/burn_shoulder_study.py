@@ -10,11 +10,11 @@ public real check.
     python tests/tools/burn_shoulder_study.py --out sample_data/private/burn_shoulder --real FILE...   # real burns
 
 The question: a pinhole GID frame's peak is sharp and sits on a broad
-shoulder. The template estimator (the default) fits each frame as the mean
+shoulder. Stretched estimator (the default) fits each frame as the mean
 frame's whole shape, shifted and stretched; the shoulder is stretched with
 the peak, so a broadening peak reads as a gain in intensity (P44). The
-split estimators (``split``: the shoulder's amplitude free per frame;
-``split_fixed``: held at 1) take the shoulder out of the stretch. Which
+separated estimators (``separated``: the shoulder's amplitude free per frame;
+``separated & held``: held at 1) take the shoulder out of the stretch. Which
 reads the truth, on which shoulder, and what does each say about NX?
 
 The truth (``tests/synthetic/burn_profiles.py``, 21 frames of 10 s; each
@@ -28,7 +28,7 @@ change over the test, f = t / t_end):
 - ``background``: the flat floor × (1 + 0.5 f);
 - ``shoulder_grows``: the shoulder's height × (1 + 0.5 f), the peak steady;
 - ``both_fade``: the peak fades 0.2 and the shoulder 0.3;
-- ``nx15_like``: FWHM × (1 + 0.2 f) and area × (1 − 0.13 f), as the split
+- ``nx15_like``: FWHM × (1 + 0.2 f) and area × (1 − 0.13 f), as separated
   reads NX burn 15.
 
 Part A: every case on every shoulder shape ('gaussian', 'lorentzian',
@@ -36,19 +36,19 @@ Part A: every case on every shoulder shape ('gaussian', 'lorentzian',
 known to 0.19 %, so that what remains is bias, not noise). Part B: the
 Gaussian shoulder at fewer counts, cases none, fade, broaden and
 nx15_like: monitor 1e6 (0.6 % per frame), 6e4 (2.1 %, as NX 15: 2.0 %)
-and 1e4 (3.9 %, as NX 14: 3.8 %; ``NX_MONITORS``, each frame's template
+and 1e4 (3.9 %, as NX 14: 3.8 %; ``NX_MONITORS``, each frame's stretched
 intensity error matched, measured 2026-11-27).
 
 Each replicate: every estimator, then the reader's own trend analysis
 (``burn.analyse``, errors from the scatter, the GID default). Per
 quantity: the change over the test read from its linear model (relative
-for intensity, FWHM and the split's shoulder; Å⁻¹ for the position), its
+for intensity, FWHM and separated's shoulder; Å⁻¹ for the position), its
 σ, and the verdict (stable or changing: a line beats a constant by AICc).
 Per cell: the bias and SD of the change, the pull SD ((read − truth)/σ:
 1 means honest errors), the coverage of ±1σ and ±1.96σ, the share
 called changing and the share called right.
 
-The template estimator's 'fit' sibling (one Gaussian per frame) is left
+Stretched estimator's 'fit' sibling (one Gaussian per frame) is left
 out of the synthetic part (a single Gaussian does not describe the frame:
 χ²/dof 10–40 on NX; ``docs/reports/patch_demo.md`` figure 6 has it) and
 kept in the NX check.
@@ -97,11 +97,14 @@ CASES = {
 }
 SHAPES = ('gaussian', 'lorentzian', 'asymmetric', 'two')
 PART_B = dict(cases=('none', 'fade', 'broaden', 'nx15_like'), monitors=(1e6, 6e4, 1e4))
-# the monitor at which a synthetic frame's template intensity has the error of an NX school frame
+# the monitor at which a synthetic frame's stretched intensity has the error of an NX school frame
 # (3.8 % on burn 14, 2.0 % on 15; synthetic 3.9 % and 2.1 %): tests/test_burn_shoulder_study.py
 NX_MONITORS = {14: 1e4, 15: 6e4}
 MONITOR = 1e7
 FRAMES, CTIME = 21, 10.0
+EN = burn.ESTIMATOR_NAMES
+KEY = ('stretched = shoulder stretched with the peak (the reader\'s default); separated = shoulder '
+       'separated; separated & held = shoulder separated, its amplitude held')
 COLOURS = {'stretched': 'C0', 'moments': 'C7', 'fit': 'C5', 'separated': 'C3', 'separated_held': 'C1'}
 LABEL = {'intensity': 'intensity', 'fwhm': 'FWHM', 'centre': 'position', 'shoulder': 'shoulder'}
 
@@ -131,7 +134,7 @@ def truths(tr, T):
 
 
 def read_all(profiles, t, T, estimators=ESTIMATORS):
-    """{estimator: {quantity: (change, σ, stable)}} and the split's shoulder (or None)."""
+    """{estimator: {quantity: (change, σ, stable)}} and separated's shoulder (or None)."""
     out, extra = {}, {}
     for e in estimators:
         try:
@@ -204,7 +207,7 @@ def summarise(key, reps):
 
 
 def run(parts=('A', 'B'), replicates=300, workers=None, cases=None, shapes=None, core=burn.SEPARATE_CORE):
-    """``core``: the split's core half-width in FWHM (burn.SEPARATE_CORE, 1.5)."""
+    """``core``: separated's core half-width in FWHM (burn.SEPARATE_CORE, 1.5)."""
     jobs = []
     chunk = 25
     for key in cells(parts, cases, shapes):
@@ -250,11 +253,16 @@ def _bars(ax, cases, rows, quantity, shape='gaussian', monitor=MONITOR, scale=1.
                 xs.append(i + (j - (n - 1) / 2) * 0.8 / n)
                 ys.append(scale * r[0]['bias'])
                 es.append(scale * r[0]['sd'])
-        ax.bar(xs, ys, 0.8 / n, yerr=es, color=COLOURS[e], label=e, error_kw=dict(lw=0.7, capsize=1.5))
+        ax.bar(xs, ys, 0.8 / n, yerr=es, color=COLOURS[e], label=EN.get(e, e), error_kw=dict(lw=0.7, capsize=1.5))
     ax.axhline(0, color='k', lw=0.6)
     ax.set_xticks(range(len(cases)))
     ax.set_xticklabels(cases, fontsize=7, rotation=25, ha='right')
     ax.tick_params(axis='y', labelsize=7)
+
+
+def _key(fig):
+    """The estimators' names, spelled out under a figure (owner, 2026-11-27: the names must be clear)."""
+    fig.text(0.01, -0.005, KEY, fontsize=7, va='top', color='0.25')
 
 
 def s1(rows, out):
@@ -270,7 +278,8 @@ def s1(rows, out):
     axes[0].set_title('S1. Each estimator\'s error on the change over the test (Gaussian shoulder; bars: bias, '
                       'whiskers: SD)', fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'S1_bias_by_case.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'S1_bias_by_case.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
 
 
@@ -278,15 +287,20 @@ def s2(rows, out):
     """The intensity change's bias on each shoulder shape."""
     import matplotlib.pyplot as plt
     cases = ['fade', 'broaden', 'shoulder', 'shoulder_grows', 'both_fade', 'nx15_like']
-    fig, axes = plt.subplots(1, len(SHAPES), figsize=(13, 3.8), sharey=True)
+    ncol = 2
+    fig, axes = plt.subplots((len(SHAPES) + 1) // ncol, ncol, figsize=(10, 6.2 * ((len(SHAPES) + 1) // ncol)),
+                             sharey=True, squeeze=False)
+    axes = axes.ravel()
     for ax, sh in zip(axes, SHAPES):
         _bars(ax, cases, rows, 'intensity', shape=sh, scale=100)
         ax.set_title(sh, fontsize=9)
-    axes[0].set_ylabel('intensity change:\nread − true (% points)', fontsize=8)
+    for ax in axes[::ncol]:
+        ax.set_ylabel('intensity change:\nread − true (% points)', fontsize=8)
     axes[0].legend(fontsize=7, frameon=False, loc='upper left')
     fig.suptitle('S2. The intensity\'s error on each shoulder shape (bars: bias, whiskers: SD)', fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'S2_bias_by_shape.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'S2_bias_by_shape.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
 
 
@@ -294,7 +308,7 @@ def s3(rows, out):
     """Share called 'changing' and the 95 % coverage, on the intensity (Gaussian shoulder)."""
     import matplotlib.pyplot as plt
     cases = list(CASES)
-    fig, axes = plt.subplots(1, 2, figsize=(12, 3.8))
+    fig, axes = plt.subplots(2, 1, figsize=(9, 8))
     n = len(ESTIMATORS)
     for j, e in enumerate(ESTIMATORS):
         for ax, key in zip(axes, ('changing', 'cover95')):
@@ -304,7 +318,7 @@ def s3(rows, out):
                 if r:
                     xs.append(i + (j - (n - 1) / 2) * 0.8 / n)
                     ys.append(r[0][key])
-            ax.bar(xs, ys, 0.8 / n, color=COLOURS[e], label=e)
+            ax.bar(xs, ys, 0.8 / n, color=COLOURS[e], label=EN.get(e, e))
     for i, c in enumerate(cases):
         r = _pick(rows, case=c, shape='gaussian', monitor=MONITOR, estimator='stretched', quantity='intensity')
         if r and abs(r[0]['truth']) > 1e-9:
@@ -319,17 +333,18 @@ def s3(rows, out):
         ax.set_xticklabels(cases, fontsize=7, rotation=25, ha='right')
         ax.tick_params(axis='y', labelsize=7)
     axes[1].legend(fontsize=7, frameon=False, loc='lower left')
-    fig.suptitle('S3. The intensity: verdicts (left) and whether the 95 % interval holds the truth (right), '
+    fig.suptitle('S3. The intensity: verdicts (top) and whether the 95 % interval holds the truth (bottom), '
                  'Gaussian shoulder', fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'S3_verdicts_coverage.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'S3_verdicts_coverage.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
 
 
 def s4(rows, out):
     """Fewer counts: SD and pull SD of the intensity change against the monitor (Gaussian)."""
     import matplotlib.pyplot as plt
-    fig, axes = plt.subplots(1, 3, figsize=(12, 3.6))
+    fig, axes = plt.subplots(3, 1, figsize=(8, 10.5), sharex=True)
     mons = (MONITOR,) + PART_B['monitors']
     for e in ESTIMATORS:
         for c, ls in (('fade', '-'), ('nx15_like', '--')):
@@ -340,7 +355,7 @@ def s4(rows, out):
                 continue
             m = [g[0] for g in got]
             axes[0].plot(m, [100 * g[1]['sd'] for g in got], ls, marker='o', ms=3, color=COLOURS[e],
-                         label='%s, %s' % (e, c))
+                         label='%s, %s' % (EN.get(e, e), c))
             axes[1].plot(m, [100 * abs(g[1]['bias']) for g in got], ls, marker='o', ms=3, color=COLOURS[e])
             axes[2].plot(m, [g[1]['pull_sd'] for g in got], ls, marker='o', ms=3, color=COLOURS[e])
     for ax, lab in zip(axes, ('SD of the intensity change (% points)', '|bias| (% points)', 'pull SD (1: honest)')):
@@ -357,7 +372,8 @@ def s4(rows, out):
     fig.suptitle('S4. Fewer counts (Gaussian shoulder): fade (solid) and an NX 15-like broadening fade (dashed)',
                  fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'S4_counts.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'S4_counts.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
 
 
@@ -386,7 +402,7 @@ def read_with_reference(profiles, ref_mean, window, estimator, found=None):
     ('stretched' or 'separated'), but measured against ``ref_mean`` instead of
     the frames' own mean. With the frames' mean it gives measure_gid's
     numbers exactly (tested): with ``qxy_range=window``, or with the window
-    and ``found`` (the peak ``choose_window`` found: the split's starting
+    and ``found`` (the peak ``choose_window`` found: separated's starting
     centre and FWHM) that measure_gid chose itself."""
     x = profiles[0][:, 0]
     sel = (x >= window[0]) & (x <= window[1])
@@ -436,7 +452,7 @@ def _smoothed_change(r, estimator):
 
 
 def reference_nx(spec):
-    """NX school burns 14 and 15, template and split, each frame measured
+    """NX school burns 14 and 15, stretched and separated, each frame measured
     against the frames' mean (the reader's numbers) and against the mean
     smoothed; the intensity change through the reader's trend analysis
     (errors from the scatter), as section 5."""
@@ -499,8 +515,8 @@ def find_gid_burns(exp):
 def real_check(out, specs, scans=None, prefix='G'):
     """The P44 questions on real GID burns (the hand-off
     docs/handoff_out/10-gid-burn-shoulder.md): every GID burn of ``specs``
-    (or ``scans`` of a single file) under the template, the split and the
-    split with the shoulder fixed, and the template and split re-read
+    (or ``scans`` of a single file) under stretched, separated and the
+    separated with the shoulder fixed, and stretched and separated re-read
     against the smoothed mean frame. Writes ``real.csv`` (summary values
     only, burns labelled G01…: no file, scan number, Qxy or frame) and
     ``real_key.csv`` (label → file and scan, and any error: PRIVATE, it
@@ -568,9 +584,9 @@ def well_measured(by):
     """The real burns of ``by`` ({burn: {estimator: {quantity: row}}}, from
     real.csv) that are well measured (hand-off 10, summary section 8): the
     intensity change finite under all three estimators, one frame's
-    intensity error at most 10 %, the template's intensity change within
+    intensity error at most 10 %, stretched's intensity change within
     ±50 % over the burn (a larger one: the peak comes or goes), and the
-    template's frames' χ²/dof at most 5."""
+    stretched's frames' χ²/dof at most 5."""
     def f(v):
         return float(v) if v not in (None, '') else math.nan
     out = []
@@ -587,7 +603,7 @@ def well_measured(by):
 def real_figures(out, csv_path=REAL_CSV, ref_csv=None, public=('G01', 'G02')):
     """Figures R1 and R2 of section 8 from the published per-burn summary
     (``csv_path``: real.csv as published, no frame of a private burn):
-    R1 the intensity change under the split against the template's, one
+    R1 the intensity change under separated against stretched's, one
     point per well-measured burn; R2 the shift when the mean frame is
     smoothed against the mean frame's noise, with the synthetic NX 15-like
     expectation (``ref_csv``: reference_noise.csv). ``public``: the NX school
@@ -607,7 +623,7 @@ def real_figures(out, csv_path=REAL_CSV, ref_csv=None, public=('G01', 'G02')):
     good = [b for b in well_measured(by) if b not in public]
     nx = [b for b in public if b in by]
     private_read = [b for b in by if b not in public]
-    fig, ax = plt.subplots(figsize=(7.2, 6.4))
+    fig, ax = plt.subplots(figsize=(7.4, 8.6))
     lim = 0.0
     counts = dict(well_measured=len(good), read=len(private_read), failed=len(failed), wide=0, differ=0)
     for b in good + nx:
@@ -629,10 +645,10 @@ def real_figures(out, csv_path=REAL_CSV, ref_csv=None, public=('G01', 'G02')):
     ax.plot([-lim, lim], [-lim, lim], color='0.5', lw=0.8)
     ax.set_xlim(-lim, lim)
     ax.set_ylim(-lim, lim)
-    ax.set_xlabel('template: intensity change over the burn (%)')
-    ax.set_ylabel('split: intensity change over the burn (%)')
-    ax.set_title('R1. Private GID burns: split against template (one point per burn, ±1σ)', fontsize=10)
-    ax.text(0.02, 0.98, 'blue: FWHM change < 10 %% (template)   red: FWHM change ≥ 10 %%\n'
+    ax.set_xlabel('shoulder stretched with the peak: intensity change over the burn (%)')
+    ax.set_ylabel('shoulder separated: intensity change over the burn (%)')
+    ax.set_title('R1. Private GID burns: separated against stretched (one point per burn, ±1σ)', fontsize=10)
+    ax.text(0.02, 0.98, 'blue: FWHM change < 10 %% (stretched)   red: FWHM change ≥ 10 %%\n'
             'open: the two verdicts differ (stable / changing)   grey line: equal\n'
             'shown: %d well-measured private burns (%d red, %d open), NX 14 and 15 (black)\n'
             'NOT SHOWN: %d private burns read but not well measured (section 8), %d not read'
@@ -640,13 +656,14 @@ def real_figures(out, csv_path=REAL_CSV, ref_csv=None, public=('G01', 'G02')):
                len(private_read) - len(good), len(failed)),
             transform=ax.transAxes, va='top', fontsize=7.5)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'R1_template_vs_split.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'R1_template_vs_split.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
 
     ref = []
     if ref_csv and os.path.exists(ref_csv):
         ref = [r for r in csvmod.DictReader(open(ref_csv, encoding='utf-8')) if r['reference'] == 'spline']
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.6), sharey=True)
+    fig, axes = plt.subplots(2, 1, figsize=(8, 10), sharex=True)
     for ax, e in zip(axes, ('stretched', 'separated')):
         for b in good:
             r = by[b][e]['intensity']
@@ -667,14 +684,16 @@ def real_figures(out, csv_path=REAL_CSV, ref_csv=None, public=('G01', 'G02')):
         ax.axhline(0, color='0.5', lw=0.8)
         ax.set_xscale('log')
         ax.set_xlabel('mean frame\'s noise, share of its peak (%)')
-        ax.set_title('%s' % e, fontsize=10)
+        ax.set_title(EN[e], fontsize=10)
         ax.set_ylim(-12, 12)
         ax.legend(fontsize=7, loc='lower left')
-    axes[0].set_ylabel('smoothed − mean: intensity change (pp)')
+    for ax in axes:
+        ax.set_ylabel('smoothed − mean: intensity change (pp)')
     fig.suptitle('R2. Does the reference\'s noise matter? Real burns (blue: FWHM steady, red: broadening ≥ 5 %%; '
                  'black: NX 14, 15), %d well-measured private burns; y clipped at ±12 pp' % len(good), fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'R2_reference_shift.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'R2_reference_shift.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
     return counts
 
@@ -722,7 +741,8 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     counts = {}
 
     # R3: the selection
-    fig, ax = plt.subplots(1, 4, figsize=(15, 3.9))
+    fig, ax = plt.subplots(2, 2, figsize=(10, 12))
+    ax = ax.ravel()
     stages = [('GID burns found', len(by) + len(failed)), ('public NX 14, 15 (a check)', len(nx)),
               ('not read (no frames, too few, no peak)', len(failed)), ('private, read', len(priv)),
               ('well measured', len(good))]
@@ -734,8 +754,8 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     ax[0].set_xlabel('burns')
     ax[0].set_title('a. what was read', fontsize=9)
     cuts = [('frame_rel_error', 'one frame\'s intensity error', 0.10, True, lambda b: I(b, 'stretched', 'frame_rel_error')),
-            ('change', '|template intensity change| over the burn', 0.5, True, lambda b: abs(I(b, 'stretched'))),
-            ('chi2', 'template frames\' χ²/dof', 5.0, True, lambda b: I(b, 'stretched', 'frame_chi2_dof'))]
+            ('change', '|stretched intensity change| over the burn', 0.5, True, lambda b: abs(I(b, 'stretched'))),
+            ('chi2', 'stretched: the frames\' χ²/dof', 5.0, True, lambda b: I(b, 'stretched', 'frame_chi2_dof'))]
     for k, (name, lab, thr, log, val) in enumerate(cuts):
         a = ax[k + 1]
         v = np.array([val(b) for b in priv])
@@ -758,7 +778,8 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     fig.suptitle('R3. From the burns found to the well-measured ones (%d private burns read; a burn can fail several '
                  'cuts; %d more have no finite change under some estimator)' % (len(priv), nan_out), fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'R3_selection.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'R3_selection.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
 
     # R4: question 1
@@ -773,29 +794,29 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
         diff.append(100 * (f(s['change']) - f(t['change'])))
         shc.append('shoulder' in by[b]['separated'] and by[b]['separated']['shoulder']['verdict'] == 'changing')
     z = np.array(z)
-    fig, ax = plt.subplots(1, 3, figsize=(15, 4.2))
+    fig, ax = plt.subplots(3, 1, figsize=(8.5, 14))
     zero = z < 1e-9
     bins = np.logspace(-3, np.log10(max(z.max(), 10)), 30)
     ax[0].hist(z[~zero], bins, color='tab:blue')
     ax[0].axvline(2, color='tab:red')
     ax[0].set_xscale('log')
-    ax[0].set_xlabel('z = |split change − template change| / max(σ_template, 1.25 σ_split)')
+    ax[0].set_xlabel('z = |separated change − stretched change| / max(σ_stretched, 1.25 σ_separated)')
     ax[0].set_ylabel('burns')
     ax[0].set_title('a. how far apart the two reads are, in σ', fontsize=9)
     ax[0].text(0.02, 0.95, 'z > 2 (red line): %d of %d burns\nmedian z %.2f\nnot drawn: %d with z = 0 (no shoulder found:\n'
-               'the split is then the template)' % (int(np.sum(z > 2)), len(z), np.median(z), int(zero.sum())),
+               'separated then equals stretched)' % (int(np.sum(z > 2)), len(z), np.median(z), int(zero.sum())),
                transform=ax[0].transAxes, va='top', fontsize=8)
     ax[1].imshow(tab, cmap='Blues')
     for i in range(2):
         for j in range(2):
             ax[1].text(j, i, str(tab[i, j]), ha='center', va='center', fontsize=14,
                        color='w' if tab[i, j] > tab.max() / 2 else 'k')
-    ax[1].set_xticks([0, 1], ['split: stable', 'split: changing'])
-    ax[1].set_yticks([0, 1], ['template:\nstable', 'template:\nchanging'])
+    ax[1].set_xticks([0, 1], ['separated:\nstable', 'separated:\nchanging'])
+    ax[1].set_yticks([0, 1], ['stretched:\nstable', 'stretched:\nchanging'])
     ax[1].set_title('b. the intensity verdicts (off-diagonal: they differ, %d)' % (tab[0, 1] + tab[1, 0]), fontsize=9)
     wch, diff, shc = np.array(wch), np.array(diff), np.array(shc)
-    ax[2].plot(wch[~shc], diff[~shc], 'o', ms=4, color='tab:blue', label='shoulder steady (split)')
-    ax[2].plot(wch[shc], diff[shc], 'o', ms=4, color='tab:orange', label='shoulder changing (split)')
+    ax[2].plot(wch[~shc], diff[~shc], 'o', ms=4, color='tab:blue', label='shoulder steady (separated)')
+    ax[2].plot(wch[shc], diff[shc], 'o', ms=4, color='tab:orange', label='shoulder changing (separated)')
     for b in nx:
         ax[2].plot(100 * f(by[b]['stretched']['fwhm']['change']), 100 * (I(b, 'separated') - I(b, 'stretched')), 's', color='k', ms=7)
         ax[2].annotate('NX %s' % ('14' if b == public[0] else '15'), (100 * f(by[b]['stretched']['fwhm']['change']),
@@ -804,23 +825,24 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     ax[2].axvline(0, color='0.5', lw=0.8)
     ax[2].set_xlim(-30, 30)
     ax[2].set_ylim(-30, 30)
-    ax[2].set_xlabel('template: FWHM change over the burn (%)')
-    ax[2].set_ylabel('split − template: intensity change (pp)')
+    ax[2].set_xlabel('stretched: FWHM change over the burn (%)')
+    ax[2].set_ylabel('separated − stretched:\nintensity change (pp)')
     ax[2].set_title('c. P44\'s mechanism needs a width change; real widths barely move', fontsize=9)
     ax[2].legend(fontsize=7, loc='lower left')
     out_of = int(np.sum((np.abs(wch) > 30) | (np.abs(diff) > 30)))
     ax[2].text(0.98, 0.02, '%d burns beyond ±30 not drawn' % out_of, transform=ax[2].transAxes, ha='right', fontsize=7)
-    ax[2].text(0.98, 0.98, 'P44 predicts: a broadening peak (right)\nputs the split below the template (lower right)',
+    ax[2].text(0.98, 0.98, 'P44 predicts: a broadening peak (right)\nputs separated below stretched (lower right)',
                transform=ax[2].transAxes, ha='right', va='top', fontsize=7)
-    fig.suptitle('R4. Question 1: when do the template and the split disagree? (%d well-measured private burns)' % len(good),
+    fig.suptitle('R4. Question 1: when do stretched and separated disagree? (%d well-measured private burns)' % len(good),
                  fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'R4_q1_disagreement.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'R4_q1_disagreement.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
     counts.update(q1_z_over_2=int(np.sum(z > 2)), q1_verdicts_differ=int(tab[0, 1] + tab[1, 0]))
 
     # R5: question 2
-    fig, ax = plt.subplots(figsize=(7.6, 5.6))
+    fig, ax = plt.subplots(figsize=(7.6, 8.4))
     n3 = 0
     nsh = 0
     for b in good + nx:
@@ -844,21 +866,22 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     ax.axhline(5, color='tab:red', lw=0.8, ls='--')
     ax.set_xlim(-60, 60)
     ax.set_ylim(-5, 120)
-    ax.set_xlabel('split: the shoulder\'s own change over the burn (%)')
+    ax.set_xlabel('separated: the shoulder\'s own change over the burn (%)')
     ax.set_ylabel('B (shoulder amplitude per frame): how far it moves\nfrom 1 in the shoulder\'s direction (%)')
     ax.set_title('R5. Question 2: is a real shoulder changing? three signs', fontsize=10)
-    ax.text(0.02, 0.98, 'sign 1, filled: the split calls the shoulder "changing" (open: stable)\n'
+    ax.text(0.02, 0.98, 'sign 1, filled: separated calls the shoulder "changing" (open: stable)\n'
             'sign 2, above the red line: B moves the same way by more than 5 %%\n'
-            'sign 3, orange: split and split_fixed disagree on the intensity by more than their σ\n'
+            'sign 3, orange: separated and separated & held disagree on the intensity by more than their σ\n'
             'all three: %d of %d well-measured burns with a shoulder; NX 14, 15 black' % (n3, nsh),
             transform=ax.transAxes, va='top', fontsize=7.5)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'R5_q2_shoulder.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'R5_q2_shoulder.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
     counts.update(q2_three=n3, q2_with_shoulder=nsh)
 
     # R6: question 3
-    fig, ax = plt.subplots(1, 2, figsize=(12, 4.6))
+    fig, ax = plt.subplots(2, 1, figsize=(7.6, 12))
     ct, cs, ar, fr = [], [], [], []
     for b in good:
         i = by[b]['separated']['intensity']
@@ -881,8 +904,8 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     ax[0].plot(xx, 1.1 * xx, color='0.4', lw=0.6, ls=':')
     ax[0].set_xlim(lo, hi)
     ax[0].set_ylim(lo, hi)
-    ax[0].set_xlabel('template: frames\' mean χ²/dof')
-    ax[0].set_ylabel('split: frames\' mean χ²/dof')
+    ax[0].set_xlabel('stretched: the frames\' mean χ²/dof')
+    ax[0].set_ylabel('separated: the frames\' mean χ²/dof')
     ax[0].set_title('a. χ²/dof ≈ 1: the model describes the frames to counting noise', fontsize=9)
     ax[0].text(0.02, 0.98, 'solid: equal; dotted: ±10 %%\nsplit lower: %d of %d; >10 %% lower: %d, >10 %% higher: %d'
                % (int(np.sum(cs < ct)), len(ct), int(np.sum(cs < 0.9 * ct)), int(np.sum(cs > 1.1 * ct))),
@@ -900,11 +923,12 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
             axis.set_minor_formatter(NullFormatter())
     ax[1].set_xlabel('shoulder FWHM ÷ peak FWHM')
     ax[1].set_ylabel('shoulder area ÷ peak area')
-    ax[1].set_title('b. what the shoulders look like (split\'s Gaussian)', fontsize=9)
+    ax[1].set_title('b. what the shoulders look like (separated\'s Gaussian)', fontsize=9)
     fig.suptitle('R6. Question 3: is a Gaussian shoulder good enough? (%d well-measured burns with a shoulder)' % len(ct),
                  fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'R6_q3_fit_quality.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'R6_q3_fit_quality.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
     counts.update(q3_split_lower=int(np.sum(cs < ct)), q3_with_shoulder=len(ct))
 
@@ -912,7 +936,7 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     from lss_core import reciprocity
     series = list(csvmod.DictReader(open(series_csv, encoding='utf-8')))
     rates = list(csvmod.DictReader(open(rates_csv, encoding='utf-8')))
-    fig, ax = plt.subplots(1, 2, figsize=(13, 4.8))
+    fig, ax = plt.subplots(2, 1, figsize=(9.5, 12))
     ex = next((s for s in series if s['stretched_rho0_verdict'] == 'dose' and s['separated_rho0_verdict'] == 'dose'), series[0])
     rr = [r for r in rates if r['series'] == ex['series']]
     for est, col, off in (('stretched', 'tab:blue', 0.97), ('separated', 'tab:orange', 1.03)):
@@ -958,13 +982,14 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     ax[1].set_xlim(-1.6, len(series) - 0.4)
     ax[1].set_ylim(-2.5, 4.3)
     ax[1].set_ylabel('β with its 68 % interval (ρ = 0)')
-    ax[1].set_title('b. every series: β under the template and the split, and the verdicts', fontsize=9)
+    ax[1].set_title('b. every series: β under stretched and separated, and the verdicts', fontsize=9)
     ax[1].legend(fontsize=7, loc='upper right')
     nchg = sum(s['stretched_rho0_verdict'] != s['separated_rho0_verdict'] for s in series)
-    fig.suptitle('R7. Question 5: dose or time? %d series; the split changes the verdict of %d (strip scatter ρ = 0). '
+    fig.suptitle('R7. Question 5: dose or time? %d series; separated changes the verdict of %d (strip scatter ρ = 0). '
                  'β is fitted on a grid from −1 to 4: an interval at the edge is open' % (len(series), nchg), fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'R7_q5_dose_or_time.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'R7_q5_dose_or_time.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
     counts.update(q5_series=len(series), q5_changed=nchg)
     return counts
@@ -1033,7 +1058,8 @@ def s6(rows, out, nx=()):
     import matplotlib.pyplot as plt
     cases = sorted({r['case'] for r in rows}, key=list(REF_CASES).index)
     n = len(cases) + (1 if nx else 0)
-    fig, axes = plt.subplots(1, n, figsize=(5.0 * n, 3.8), squeeze=False)
+    fig, axes = plt.subplots(n, 1, figsize=(8, 4.2 * n), squeeze=False)
+    axes = axes.T
     styles = {'mean': ('-', 'o', 'the frames\' mean (the reader)'), 'spline': ('--', 's', 'the mean, smoothed'),
               'truth': (':', '^', 'the noiseless mean')}
     for ax, case in zip(axes[0], cases):
@@ -1046,7 +1072,7 @@ def s6(rows, out, nx=()):
                 m, b, se = (np.array(v) for v in zip(*got))
                 ls, mk, lab = styles[k]
                 ax.errorbar(m, 100 * b, 100 * se, ls=ls, marker=mk, ms=4, color=COLOURS[e], capsize=2,
-                            label='%s, %s' % (e, lab))
+                            label='%s, %s' % (EN.get(e, e), lab))
         for scan, m in NX_MONITORS.items():
             ax.axvline(m, color='0.6', lw=0.7, ls=':')
             ax.text(m, 0.98, ' NX %d' % scan, transform=ax.get_xaxis_transform(), fontsize=6, va='top', color='0.4')
@@ -1074,14 +1100,15 @@ def s6(rows, out, nx=()):
     fig.suptitle('S6. The reference\'s noise: each frame measured against the mean, the smoothed mean, the '
                  'noiseless mean', fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'S6_reference.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'S6_reference.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
 
 
 def nx_check(out, spec):
     """NX school burns 14 and 15 under every estimator: the change of each
     quantity over the burn, its σ and the verdict; the frames' mean χ²/dof;
-    the split's shoulder. Writes nx.csv and S5; returns the rows."""
+    separated's shoulder. Writes nx.csv and S5; returns the rows."""
     import tempfile
     os.environ.setdefault('LSS_READER_LOG_DIR', tempfile.mkdtemp())
     from lss_core.experiment import Experiment
@@ -1119,7 +1146,7 @@ def nx_check(out, spec):
 
 def s5(rows, out):
     import matplotlib.pyplot as plt
-    fig, axes = plt.subplots(1, 3, figsize=(12, 3.8))
+    fig, axes = plt.subplots(3, 1, figsize=(8, 10.5))
     for ax, q, sc, unit in zip(axes, ('intensity', 'fwhm', 'centre'), (100, 100, 1e4),
                                ('%', '%', '10⁻⁴ Å⁻¹')):
         for i, scan in enumerate((14, 15)):
@@ -1138,13 +1165,40 @@ def s5(rows, out):
         ax.set_ylabel('%s change over the burn (%s)' % (LABEL[q], unit), fontsize=8)
         ax.tick_params(labelsize=7)
     from matplotlib.lines import Line2D
-    axes[0].legend(handles=[Line2D([], [], color=COLOURS[e], marker='o', ls='', label=e) for e in NX_ESTIMATORS],
+    axes[0].legend(handles=[Line2D([], [], color=COLOURS[e], marker='o', ls='', label=EN.get(e, e)) for e in NX_ESTIMATORS],
                    fontsize=7, frameon=False)
     fig.suptitle('S5. NX school burns 14 and 15 under every estimator (±1σ; filled: "changing", open: "stable")',
                  fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'S5_nx.png'), dpi=120)
+    _key(fig)
+    fig.savefig(os.path.join(out, 'S5_nx.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
+
+
+def _load_csv(path):
+    """A committed product back as rows: numbers as numbers (integers as int), the rest as text."""
+    import csv as csvmod
+    out = []
+    for r in csvmod.DictReader(open(path, encoding='utf-8')):
+        row = {}
+        for k, v in r.items():
+            try:
+                row[k] = int(v) if v.lstrip('-').isdigit() else float(v)
+            except (TypeError, ValueError):
+                row[k] = {'True': True, 'False': False}.get(v, v)
+        out.append(row)
+    return out
+
+
+def redraw(out):
+    """S1-S6 redrawn from the committed products in ``out`` (results.csv, nx.csv, reference_noise.csv,
+    reference_nx.csv): new labels or layout without the 90-minute rerun."""
+    rows = _load_csv(os.path.join(out, 'results.csv'))
+    for f in (s1, s2, s3, s4):
+        f(rows, out)
+    s5(_load_csv(os.path.join(out, 'nx.csv')), out)
+    nxp = os.path.join(out, 'reference_nx.csv')
+    s6(_load_csv(os.path.join(out, 'reference_noise.csv')), out, _load_csv(nxp) if os.path.exists(nxp) else ())
 
 
 def main(argv=None):
@@ -1156,7 +1210,7 @@ def main(argv=None):
     ap.add_argument('--shapes', default=None, help='comma-separated: %s' % ', '.join(SHAPES))
     ap.add_argument('--workers', type=int, default=None, help='processes (default: up to 4)')
     ap.add_argument('--core', type=float, default=burn.SEPARATE_CORE,
-                    help='the split: the shoulder fitted beyond this many FWHM from the peak (default %g)'
+                    help='the separated: the shoulder fitted beyond this many FWHM from the peak (default %g)'
                     % burn.SEPARATE_CORE)
     ap.add_argument('--only', default=None, help='S5: the NX check only (no replicates); R: the reference\'s '
                     'noise (S6, about 6 min); G: figures R1, R2 of the real GID burns from --real-csv (seconds)')
@@ -1173,6 +1227,8 @@ def main(argv=None):
         return 0
     if a.only:
         only = a.only.split(',')
+        if 'redraw' in only:
+            redraw(a.out)
         if 'G' in only:
             print(real_figures(a.out, a.real_csv, os.path.join(os.path.dirname(REAL_CSV), '..', 'burn_shoulder',
                                                                 'reference_noise.csv')))

@@ -209,7 +209,7 @@ SEPARATED_ESTIMATORS = ('separated', 'separated_held')
 SEPARATE_CORE = 1.5           # separate_shoulder: the shoulder is fitted outside ±1.5 FWHM of the peak
 # The names until 2026-11-27 (owner: "too opaque"), still accepted everywhere a name is read, so saved
 # workbooks, preferences and scripts keep working: 'template', 'split', 'split_fixed'.
-ALIASES = {'template': 'stretched', 'split': 'separated', 'split_fixed': 'separated_held'}
+ALIASES = {'template': 'stretched', 'split': 'separated', 'separated & held': 'separated_held'}
 # What the reader and the studies call each estimator.
 ESTIMATOR_NAMES = {'stretched': 'shoulder stretched with the peak', 'separated': 'shoulder separated',
                    'separated_held': 'shoulder separated and held', 'moments': 'moments (legacy)',
@@ -351,7 +351,7 @@ def choose_window(x, mean, err, qxy_range=None, options=None):
 
 
 def separate_shoulder(x, shape, centre, fwhm, core=SEPARATE_CORE):
-    """Split the template's shape into a broad shoulder and the peak (P44,
+    """Separate the mean shape (what stretched fits) into a broad shoulder and the peak (P44,
     2026-11-27). A Gaussian plus a line is fitted to ``shape`` (the mean
     profile less its chord) outside |x − centre| < core·fwhm, where the peak
     has fallen to nothing; the shoulder S is that Gaussian, the peak
@@ -360,7 +360,7 @@ def separate_shoulder(x, shape, centre, fwhm, core=SEPARATE_CORE):
 
     Returns (S, P, params), params (height, centre, σ) of the shoulder; or
     (zeros, shape, None) when fewer than 8 points lie outside the core, the
-    fit fails or finds no shoulder: the split is then the template."""
+    fit fails or finds no shoulder: separated is then stretched."""
     from scipy.optimize import curve_fit
     x = np.asarray(x, float)
     shape = np.asarray(shape, float)
@@ -427,7 +427,7 @@ def _stretch_fit(x, y, s, xt, mt, c, extra=None, extra_free=True):
 def frame_model(reference, detail, xx):
     """The curve the 'stretched' or a separated estimator fitted to one frame,
     on ``xx`` inside the window: ``reference`` and one entry of the details
-    measure_gid returned. Split: (peak, shoulder, background) as well, the
+    measure_gid returned. Separated: (peak, shoulder, background) as well, the
     three parts of the curve. None for other estimators or a failed frame."""
     from scipy.interpolate import CubicSpline
     est = canonical(reference.get('estimator'))
@@ -486,7 +486,7 @@ def measure_gid(profiles, qxy_range=None, options=None, estimator='stretched'):
       P44, not yet in the burn dialog): the broad shoulder separated from the
       peak (``separate_shoulder``). Each frame is A × the peak's shape, shifted by
       δ and stretched by w, plus B × the shoulder, unstretched, on its own
-      straight background; B free per frame (``split``, its intensity
+      straight background; B free per frame (``separated``, its intensity
       B × the shoulder's area as the quantity ``shoulder``) or 1
       (``separated_held``: a steady shoulder). Intensity, position and FWHM
       are the peak's alone: A·w × its area, its centroid + δ, w × its FWHM.

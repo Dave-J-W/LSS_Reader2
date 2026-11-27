@@ -21,14 +21,14 @@ def test_a_tiny_run_reads_the_truth():
     assert ('stretched', 'shoulder') not in a and ('separated_held', 'shoulder') not in a
     assert a['separated', 'intensity']['truth'] == pytest.approx(-0.13, abs=1e-9)
     assert a['separated', 'fwhm']['truth'] == pytest.approx(0.2, abs=1e-9)
-    # an NX 15-like burn (broadens 20 %, fades 13 %): the split reads the fade, the template nearly none
+    # an NX 15-like burn (broadens 20 %, fades 13 %): separated reads the fade, stretched nearly none
     assert abs(a['separated', 'intensity']['bias']) < 0.01 and abs(a['separated_held', 'intensity']['bias']) < 0.01
     assert a['stretched', 'intensity']['bias'] > 0.1
     assert a['separated', 'intensity']['right'] == 1.0 and a['separated', 'intensity']['n'] == 2
 
 
 def test_the_nx_monitors_give_an_nx_frames_error():
-    """NX_MONITORS: at these monitors a synthetic frame's template
+    """NX_MONITORS: at these monitors a synthetic frame's stretched
     intensity has the error of an NX school frame (3.8 % on burn 14, 2.0 %
     on 15: the slow test below measures them); as measured, 3.9 % and 2.1 %."""
     from lss_core import burn
@@ -133,8 +133,8 @@ def test_part_r_runs(tmp_path):
     assert {(r['estimator'], r['reference']) for r in rows} == {(e, k) for e in ('stretched', 'separated')
                                                                 for k in S.REFERENCES}
     assert all(r['n'] == 2 for r in rows)
-    split = {r['reference']: r for r in rows if r['estimator'] == 'separated'}
-    assert all(abs(r['bias']) < 0.01 for r in split.values())       # at high counts no reference matters
+    separated = {r['reference']: r for r in rows if r['estimator'] == 'separated'}
+    assert all(abs(r['bias']) < 0.01 for r in separated.values())       # at high counts no reference matters
     assert (tmp_path / 'S6_reference.png').exists() and (tmp_path / 'reference_noise.csv').exists()
 
 
@@ -154,9 +154,9 @@ def test_change_of_a_linear_fit():
 def test_nx_school_burns_under_every_estimator(tmp_path):
     """As measured 2026-11-27 (the summary's section 5). Burn 14: every
     estimator but the one-Gaussian fit reads the intensity and width
-    stable; the split's shoulder is steady (−6 % ± 3 %). Burn 15 (×4.7 the
-    flux): the template reads the intensity stable (−1.5 % ± 1.5 %) while
-    the width grows 18 %; the split reads a fade of 13 % (split_fixed 15 %)
+    stable; separated's shoulder is steady (−6 % ± 3 %). Burn 15 (×4.7 the
+    flux): stretched reads the intensity stable (−1.5 % ± 1.5 %) while
+    the width grows 18 %; separated reads a fade of 13 % (separated & held 15 %)
     with the width +21 %, and fits the frames better (χ²/dof 2.2 against
     4.2); the shoulder is steady (−3 % ± 3 %)."""
     rows = S.nx_check(str(tmp_path), NX)
@@ -184,7 +184,7 @@ def test_nx_school_burns_under_every_estimator(tmp_path):
 def test_nx_school_burns_against_a_smoothed_reference():
     """Part R on NX (the summary's section 6, as measured 2026-11-27): read
     against the frames' mean, each burn gives the reader's own number. Read
-    against the mean smoothed, burn 15's split fade moves by −0.3 pp only
+    against the mean smoothed, burn 15's separated fade moves by −0.3 pp only
     (−13.3 % to −13.6 %, still "changing"), not by the +1 to +2 pp the
     synthetic burns predict at its counts; burn 14 moves by −5.5 pp and
     stays "stable" (as coded: a pin of what was measured, not a truth)."""
@@ -221,3 +221,16 @@ def test_the_real_data_runner_on_nx(tmp_path):
     assert 'NX_school' not in text and '20260923' not in text and 'spec' not in text.split('\n')[0]
     assert 'scan' not in text.split('\n')[0].split(',')
     assert 'NX_school' in (tmp_path / 'real_key.csv').read_text()
+
+
+def test_one_burns_whole_chain_on_nx_15(tmp_path):
+    """The chain figure (walkthrough tool, --chain) reads NX burn 15 as section 5 does, and its numbers
+    carry no peak position (the same function draws the private burns P1-P4)."""
+    import burn_shoulder_walkthrough as W
+    got = W.chain_from_file(str(tmp_path), NX, 15, 'NX15')
+    assert round(100 * got['stretched_intensity']['change'], 1) == -1.5
+    assert round(100 * got['separated_intensity']['change'], 1) == -13.3
+    assert round(100 * got['separated_held_intensity']['change'], 1) == -15.2
+    assert got['stretched_intensity']['verdict'] == 'stable' and got['separated_intensity']['verdict'] == 'changing'
+    assert not any('centre' in k or 'position' in k for k in got)
+    assert (tmp_path / 'BC_NX15.png').exists()
