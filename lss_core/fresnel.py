@@ -391,3 +391,279 @@ def propose_qoff(qz, r, sigma=None, qc=QC_WATER, method='edge', q_max=None, q_mi
     if outl:
         note += '; %d point(s) down-weighted (Qz %s)' % (len(outl), ', '.join('%.4f' % v for v in outl[:4]))
     return Proposal(float(best), sig, qc_out, method, qc_sig, corr, q, outl, note, grid, vals)
+
+
+# ---- Qoff and the Qz resolution fitted together (hand-off 09, owner 2026-11-26) ----------
+#
+# The owner (2026-11-26): "Qoffset also has to be fit, and this could be a useful ability to have
+# in reader". ``propose_qoff`` fits a sharp R_F, so it reads the beam's resolution as a negative
+# Qoff (about −0.15 ΔQ FWHM, C50 §3), and its ± holds only the counting noise (×9 too small on NX,
+# where its χ²/dof is 75). ``fit_edge_resolution`` fits R_F with the subphase's absorption,
+# smeared by a Gaussian of σ_Q, with Qoff and σ_Q free and Qc and β held at the subphase's
+# (C50 §4: Qc and Qoff lie on one line). Its model is the one DATA_NEEDS row 13 fitted to 378 real
+# edges (docs/studies/qz_resolution/summary.md):
+#
+#     R(q) = N · [R_F(q + Qoff; Qc, β) ⊗ Gauss(σ_Q)](q) · (1 + a u + b u²),   u = (q − Qc)/Qc,
+#
+# over 0.6 Qc ≤ q ≤ 0.030 Å⁻¹ by a soft-L1 loss. Row 13 fitted the measured edge q_e = Qc − Qoff
+# with u about q_e; with Qc fixed that is the same model (u about Qc is a linear change of a, b).
+# Nothing applies the result: no default changes (rule 12, paused; docs/RELEASE_PLAN.md).
+
+HC_KEV_ANGSTROM = 12.39842     # keV·Å, as lss_core.absorbers
+EDGE_Q_MAX = 0.030             # Å⁻¹: row 13's upper limit (1.38 Qc of water)
+EDGE_Q_MIN = 0.6               # × Qc: row 13's lower limit
+SIGMA_Q_BOUNDS = (0.0, 2.0e-3)  # Å⁻¹; the beamline's run medians are 2.8–5.4 × 10⁻⁴ (row 13)
+SIGMA_Q_STARTS = (1.5e-4, 3.8e-4, 8e-4)   # the fit starts from each; 3.8e-4 is row 13's median
+
+# Mass attenuation coefficients μ/ρ (cm²/g, total with coherent scattering, as the NIST tables
+# and row 13's β), from xraylib 4.3.0 ``CS_Total_CP`` (computed 2026-11-27; D2O from the atoms'
+# cross sections, with D's taken as H's). Between the energies: log-log interpolation. No
+# absorption edge of these elements lies between 8 and 30 keV.
+MU_RHO_KEV = (8.0, 9.0, 10.0, 11.0, 12.0, 13.5, 15.0, 17.5, 20.0, 25.0, 30.0)
+MU_RHO = {
+    'H2O': (10.37, 7.289, 5.329, 4.025, 3.126, 2.236, 1.672, 1.117, 0.8097, 0.5082, 0.3756),
+    'D2O': (9.331, 6.559, 4.795, 3.622, 2.813, 2.012, 1.505, 1.005, 0.7286, 0.4573, 0.338),
+    'NaCl': (77.08, 55.2, 40.85, 31.07, 24.18, 17.2, 12.67, 8.1, 5.505, 2.91, 1.755),
+    'KCl': (128.2, 92.34, 68.7, 52.47, 40.97, 29.25, 21.61, 13.85, 9.414, 4.946, 2.943),
+    'CaCl2': (131.0, 94.47, 70.31, 53.72, 41.96, 29.98, 22.16, 14.21, 9.661, 5.079, 3.023),
+}
+
+
+def wavelength(energy_kev):
+    return HC_KEV_ANGSTROM / float(energy_kev)
+
+
+def mu_rho(substance, energy_kev):
+    """μ/ρ (cm²/g) of ``substance`` (a key of ``MU_RHO``) at ``energy_kev``
+    (8–30 keV; log-log interpolation in the xraylib table)."""
+    e = float(energy_kev)
+    if not MU_RHO_KEV[0] <= e <= MU_RHO_KEV[-1]:
+        raise ValueError('μ/ρ is tabulated from %g to %g keV, not %g' % (MU_RHO_KEV[0], MU_RHO_KEV[-1], e))
+    return float(np.exp(np.interp(math.log(e), np.log(MU_RHO_KEV), np.log(MU_RHO[substance]))))
+
+
+def beta_of(mass_density, energy_kev, mass_fraction=0.0, solute=None, solvent='H2O'):
+    """The absorption index β = μ λ / 4π of a solution (``electron_density``'s
+    arguments) at ``energy_kev``: μ/ρ by mass fraction, μ = (μ/ρ) ρ_m."""
+    m = (1.0 - mass_fraction) * mu_rho(solvent, energy_kev)
+    if solute is not None and mass_fraction:
+        m += mass_fraction * mu_rho(solute, energy_kev)
+    mu = m * float(mass_density)                                 # 1/cm
+    return mu * wavelength(energy_kev) * 1e-8 / (4.0 * math.pi)   # λ in cm
+
+
+def subphase_beta(sub, energy_kev):
+    """β of a ``Subphase`` at ``energy_kev`` (water at 10 keV: 5.24e-9)."""
+    return beta_of(sub.mass_density, energy_kev, sub.mass_fraction, sub.solute, sub.solvent)
+
+
+def fresnel_absorbing(qz, qc, beta=0.0, energy_kev=10.0, roughness=0.0):
+    """|r|² of a bare interface with absorption: r = (Q − Q′)/(Q + Q′),
+    Q′² = Q² − Qc² + i 32π²β/λ² (Als-Nielsen and McMorrow, ch. 3). With
+    β = 0 it is ``fresnel``. ``roughness`` (Å): r × exp(−Q Q′ σ²/2), the
+    Névot–Croce factor (L. Névot and P. Croce, Rev. Phys. Appl. 15, 761
+    (1980)); 0 by default, as the hand-off's model."""
+    q = np.asarray(qz, dtype=float)
+    lam = wavelength(energy_kev)
+    qp = np.sqrt(q * q - qc * qc + 1j * (32.0 * math.pi ** 2 * float(beta) / lam ** 2))
+    with np.errstate(invalid='ignore', divide='ignore'):
+        amp = (q - qp) / (q + qp)
+        if roughness:
+            amp = amp * np.exp(-0.5 * q * qp * float(roughness) ** 2)
+        r = np.abs(amp) ** 2
+    return np.where(q > 0, r, 1.0)
+
+
+_SMEAR_X = np.linspace(-6.0, 6.0, 241)                  # ε / σ_Q: trapezoid over ±6σ, 0.05σ apart
+_SMEAR_W = np.exp(-0.5 * _SMEAR_X ** 2)
+_SMEAR_W = _SMEAR_W / _SMEAR_W.sum()
+
+
+def fresnel_smeared(qz, qc, sigma_q, beta=0.0, energy_kev=10.0, roughness=0.0):
+    """⟨R_F(Qz + ε)⟩ over a Gaussian ε of standard deviation ``sigma_q``
+    (Å⁻¹): the trapezoid rule on 241 points over ±6σ (a different rule
+    from the synthetic generator's Gauss–Hermite, so that known truth is
+    not the model checking itself). σ ≤ 1e-7: the sharp curve."""
+    q = np.asarray(qz, dtype=float)
+    if sigma_q <= 1e-7:
+        return fresnel_absorbing(q, qc, beta, energy_kev, roughness)
+    e = np.abs(q[..., None] + float(sigma_q) * _SMEAR_X)
+    return np.sum(fresnel_absorbing(e, qc, beta, energy_kev, roughness) * _SMEAR_W, axis=-1)
+
+
+def fwhm_of(sigma):
+    return 2.0 * math.sqrt(2.0 * math.log(2.0)) * sigma
+
+
+@dataclass
+class EdgeFit:
+    """Qoff and σ_Q fitted together at the edge (``fit_edge_resolution``).
+
+    ``qoff``, ``sigma_q`` (Å⁻¹) with ``qoff_err``, ``sigma_q_err``: the
+    bootstrap's standard deviation times √(χ²/dof) when that is above 1
+    (``*_err_counting``: before the scaling); ``corr``: their correlation
+    over the bootstrap; ``chi2_dof`` at the fit (plain squares of the
+    normalised residuals, dof = points − 5); ``flags``: 'sigma_q at its
+    bound', 'few points below the edge', 'few points above the edge',
+    'ill-conditioned', 'bootstrap failures'. ``params``: N, Qoff, σ_Q, a,
+    b; ``residuals``: (ln R − model)/σ(ln R) at ``points``."""
+    qoff: float
+    qoff_err: float
+    sigma_q: float
+    sigma_q_err: float
+    corr: float
+    chi2_dof: float
+    qc: float
+    beta: float
+    energy_kev: float
+    n_points: int
+    n_below: int
+    n_above: int
+    qoff_err_counting: float = math.nan
+    sigma_q_err_counting: float = math.nan
+    params: tuple = ()
+    points: np.ndarray = None
+    residuals: np.ndarray = None
+    flags: list = field(default_factory=list)
+    note: str = ''
+    ok: bool = True
+    q_range: tuple = ()
+    roughness: float = 0.0
+
+    @property
+    def fwhm(self):
+        return fwhm_of(self.sigma_q)
+
+    @property
+    def fwhm_err(self):
+        return fwhm_of(self.sigma_q_err)
+
+    @property
+    def k(self):
+        return 4.0 * math.pi / wavelength(self.energy_kev)
+
+    @property
+    def sigma_alpha_urad(self):
+        """σ_Q as an incidence-angle spread (µrad): σ_Q / (4π/λ)."""
+        return self.sigma_q / self.k * 1e6
+
+    @property
+    def qoff_deg(self):
+        """Qoff as an incidence-angle offset (degrees; cos α = 1)."""
+        return math.degrees(self.qoff / self.k)
+
+    def model(self, qz):
+        """R of the fit at ``qz``."""
+        return _edge_res_model(self.params, np.asarray(qz, float), self.qc, self.beta, self.energy_kev, log=False,
+                               roughness=self.roughness)
+
+
+def _edge_res_model(p, q, qc, beta, energy_kev, log=True, roughness=0.0):
+    lnn, qoff, sig, a, b = p
+    u = (q - qc) / qc
+    smooth = np.clip(1.0 + a * u + b * u * u, 1e-12, None)
+    rf = np.clip(fresnel_smeared(q + qoff, qc, sig, beta, energy_kev, roughness), 1e-300, None)
+    m = lnn + np.log(rf) + np.log(smooth)
+    return m if log else np.exp(m)
+
+
+def _edge_res_fit(q, ly, s, qc, beta, energy_kev, starts, f_scale, roughness=0.0):
+    from scipy.optimize import least_squares
+    lo = [-np.inf, QOFF_BOUNDS[0], SIGMA_Q_BOUNDS[0], -np.inf, -np.inf]
+    hi = [np.inf, QOFF_BOUNDS[1], SIGMA_Q_BOUNDS[1], np.inf, np.inf]
+    best = None
+    for p0 in starts:
+        p0 = list(p0)
+        p0[1] = min(max(p0[1], lo[1] + 1e-7), hi[1] - 1e-7)
+        p0[2] = min(max(p0[2], 0.0), hi[2] - 1e-7)
+        res = least_squares(lambda p: (ly - _edge_res_model(p, q, qc, beta, energy_kev, True, roughness)) / s, p0,
+                            bounds=(lo, hi), loss='soft_l1', f_scale=f_scale, diff_step=1e-6,
+                            x_scale=[1.0, 1e-4, 1e-4, 1.0, 1.0])
+        if best is None or res.cost < best.cost:
+            best = res
+    return best
+
+
+def fit_edge_resolution(qz, r, sigma=None, qc=QC_WATER, beta=None, energy_kev=10.0, q_min=None, q_max=EDGE_Q_MAX,
+                        bootstrap=200, seed=0, f_scale=2.0, roughness=0.0):
+    """Qoff and the Qz resolution σ_Q fitted together at the critical edge.
+
+    ``qz``, ``r`` (any scale), ``sigma``: one scan, or more, through the
+    edge; ``qc``: the subphase's critical Qz and ``beta`` its absorption
+    at ``energy_kev`` (None: water's, ``subphase_beta``), both held fixed.
+    Fitted over ``q_min`` (default 0.6 Qc) to ``q_max`` (0.030 Å⁻¹), the
+    range of DATA_NEEDS row 13. ``bootstrap``: parametric replicates for
+    the errors (every point redrawn with its error; 0: none, the errors are
+    then NaN); the errors are scaled by √(χ²/dof) when that is above 1.
+    ``f_scale``: the soft-L1 loss's scale, in units of a point's error.
+    ``roughness`` (Å): a fixed Névot–Croce roughness of the interface in R_F
+    (0, the hand-off's model: then the smooth factor takes it up, except a
+    small kink at Qc, which biases σ_Q by −8 to +18 % at σ_Q 1e-4 and less
+    than 0.5 % at 3.8e-4 for water's 3 Å, measured on noiseless synthetic
+    edges; tests/test_qoff_resolution.py). Returns an ``EdgeFit`` (``ok`` False with a note when the edge is not
+    measured). Nothing here applies the value."""
+    if beta is None:
+        beta = subphase_beta(subphase('water'), energy_kev)
+    q_min = EDGE_Q_MIN * qc if q_min is None else q_min
+    q, ly, s = _prepare(qz, r, sigma, q_max, q_min)
+    rng_txt = (float(q[0]), float(q[-1])) if len(q) else ()
+    n_above_qc = int(np.sum(q > qc))
+    if len(q) < 8 or n_above_qc < 3 or not np.any(q < qc):
+        return EdgeFit(0.0, math.nan, math.nan, math.nan, math.nan, math.nan, qc, beta, energy_kev, len(q),
+                       int(np.sum(q < qc)), n_above_qc, ok=False, points=q, q_range=rng_txt,
+                       note='Qoff and resolution not fitted: %d points from %.3g to %.3g Å⁻¹, %d above Qc %.4g; '
+                            'the edge must be measured on both sides' % (len(q), q_min, q_max, n_above_qc, qc))
+    sharp = propose_qoff(q, np.exp(ly), np.exp(ly) * s, qc=qc, method='edge', q_max=q_max, q_min=q_min,
+                         bootstrap=0)
+    q0 = sharp.qoff if sharp.ok and np.isfinite(sharp.qoff) else 0.0
+    lnn0 = float(np.median(ly[q < qc - abs(q0) - 1e-4])) if np.any(q < qc - abs(q0) - 1e-4) else float(np.max(ly))
+    # the sharp fit reads the smearing as about −0.15 FWHM of Qoff (C50 §3): start each σ from that
+    starts = [(lnn0, q0 + 0.15 * fwhm_of(sg), sg, 0.0, 0.0) for sg in SIGMA_Q_STARTS]
+    res = _edge_res_fit(q, ly, s, qc, beta, energy_kev, starts, f_scale, roughness)
+    p = res.x
+    resid = res.fun
+    dof = len(q) - len(p)
+    chi2 = float(np.sum(resid ** 2) / dof) if dof > 0 else math.nan
+    edge = qc - p[1]                                   # the edge as measured
+    n_below = int(np.sum(q < edge))
+    n_above = int(np.sum(q > edge))
+    flags = []
+    if p[2] <= SIGMA_Q_BOUNDS[0] + 1e-6 or p[2] >= SIGMA_Q_BOUNDS[1] * 0.999:
+        flags.append('sigma_q at its bound')
+    if n_below < 3:
+        flags.append('few points below the edge')
+    if n_above < 4:
+        flags.append('few points above the edge')
+    try:
+        jtj = res.jac.T @ res.jac
+        if not np.all(np.isfinite(jtj)) or np.linalg.cond(jtj) > 1e14:
+            flags.append('ill-conditioned')
+    except np.linalg.LinAlgError:
+        flags.append('ill-conditioned')
+    qoff_e = sig_e = corr = math.nan
+    failed = 0
+    if bootstrap:
+        rng = np.random.default_rng(seed)
+        bq, bs = [], []
+        for _ in range(int(bootstrap)):
+            yb = ly + s * rng.standard_normal(len(ly))
+            try:
+                rb = _edge_res_fit(q, yb, s, qc, beta, energy_kev, [tuple(p)], f_scale, roughness)
+                bq.append(rb.x[1])
+                bs.append(rb.x[2])
+            except (ValueError, np.linalg.LinAlgError):
+                failed += 1
+        if len(bq) > 2:
+            qoff_e, sig_e = float(np.std(bq, ddof=1)), float(np.std(bs, ddof=1))
+            corr = float(np.corrcoef(bq, bs)[0, 1]) if sig_e > 0 and qoff_e > 0 else math.nan
+        if failed:
+            flags.append('bootstrap failures')
+    k = max(1.0, math.sqrt(chi2)) if np.isfinite(chi2) else math.nan
+    fit = EdgeFit(float(p[1]), qoff_e * k, float(p[2]), sig_e * k, corr, chi2, qc, beta, energy_kev, len(q),
+                  n_below, n_above, qoff_e, sig_e, tuple(float(x) for x in p), q, resid, flags, ok=True,
+                  q_range=rng_txt, roughness=float(roughness))
+    fit.note = ('Qoff %+.5f ± %.5f Å⁻¹ with the resolution σ_Q %.2e ± %.1e (FWHM %.2e, %.0f µrad), '
+                'χ²/dof %.2f, %d points %.4g–%.4g at Qc %.5f, β %.2e%s' % (
+                    fit.qoff, fit.qoff_err, fit.sigma_q, fit.sigma_q_err, fit.fwhm, fit.sigma_alpha_urad, chi2,
+                    len(q), q[0], q[-1], qc, beta, ('; ' + ', '.join(flags)) if flags else ''))
+    return fit

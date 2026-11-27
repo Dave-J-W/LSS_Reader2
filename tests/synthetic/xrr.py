@@ -182,8 +182,9 @@ class Profile:
 
     # ---- reflectivities ---------------------------------------------------
     def reflectivity(self, qz, wavelength=WAVELENGTH, resolution=None):
-        """R(Qz) by the Parratt recursion; ``resolution`` = (dq, dq_rel):
-        Gaussian of FWHM dq + dq_rel·Qz (None: no smearing)."""
+        """R(Qz) by the Parratt recursion; ``resolution`` = (dq, dq_rel) or
+        (dq, dq_rel, rule): Gaussian of FWHM dq + dq_rel·Qz (None: no
+        smearing; ``smear``)."""
         f = lambda q: parratt(q, self, wavelength)
         return smear(qz, f, resolution) if resolution else f(qz)
 
@@ -261,17 +262,30 @@ def kinematic(qz, profile, wavelength=WAVELENGTH):
 
 _GH_X, _GH_W = np.polynomial.hermite_e.hermegauss(31)     # weight exp(-x²/2)
 _GH_W = _GH_W / _GH_W.sum()
+# 'fine' (2026-11-27): Simpson's rule on 1601 points over ±8σ. The 31-node Gauss–Hermite rule is
+# off by up to 0.9 % at the critical edge at σ_Q 3.8e-4 Å⁻¹ and 2 % at 8e-4 (water, 10 keV;
+# against a 40001-point integral; R_F has a square-root kink there), which matters for known
+# truth at the edge (tests/tools/qoff_resolution_study.py). The default stays Gauss–Hermite so
+# that no earlier study's synthetic data change.
+_FINE_X = np.linspace(-8.0, 8.0, 1601)
+_FINE_W = np.exp(-0.5 * _FINE_X ** 2) * np.r_[1, np.tile([4, 2], 799), 4, 1]
+_FINE_W = _FINE_W / _FINE_W.sum()
+SMEAR_RULES = {'gauss-hermite': (_GH_X, _GH_W), 'fine': (_FINE_X, _FINE_W)}
 
 
 def smear(qz, func, resolution):
     """⟨func(Qz + ε)⟩ over a Gaussian ε of FWHM dq + dq_rel·Qz;
-    ``resolution`` = (dq, dq_rel) in Å⁻¹ and relative. |Qz + ε| is used
-    where the Gaussian reaches below zero."""
-    dq, rel = resolution
+    ``resolution`` = (dq, dq_rel) in Å⁻¹ and relative, or (dq, dq_rel,
+    rule) with rule 'gauss-hermite' (the default, 31 nodes) or 'fine'
+    (Simpson on 1601 points over ±8σ: use it at the critical edge, where
+    Gauss–Hermite is off by about 1 % at the beamline's resolution).
+    |Qz + ε| is used where the Gaussian reaches below zero."""
+    dq, rel = resolution[:2]
+    x, w = SMEAR_RULES[resolution[2] if len(resolution) > 2 else 'gauss-hermite']
     qz = np.asarray(qz, dtype=float)
     s = (dq + rel * qz) / (2 * math.sqrt(2 * math.log(2)))
-    q = np.abs(qz[..., None] + s[..., None] * _GH_X)
-    return np.sum(func(q) * _GH_W, axis=-1)
+    q = np.abs(qz[..., None] + s[..., None] * x)
+    return np.sum(func(q) * w, axis=-1)
 
 
 def kiessig_period(d):

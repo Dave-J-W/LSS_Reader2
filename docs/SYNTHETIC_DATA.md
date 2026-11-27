@@ -126,12 +126,19 @@ almost no damping below it.
 w = xrr.bare_water()                        # Profile
 w.reflectivity(q)                           # Parratt, with roughness
 w.reflectivity(q, resolution=(0.001, 0.0))  # Gaussian FWHM dq + dq_rel·Qz
+w.reflectivity(q, resolution=(0.001, 0.0, 'fine'))   # the same, Simpson on ±8σ (2026-11-27)
 w.fresnel(q)                                # sharp, with β; absorption=False for the reader's form
 w.rrf(q)                                    # R / R_F(sharp, with β)
 w.kinematic(q)                              # master formula
 xrr.Profile([xrr.Layer(30, 0.36, 3.0), xrr.Layer(12, 0.31, 3.0)])   # any slab stack on water
 xrr.film(150.0).density(z)                  # ρ(z), error-function interfaces
 ```
+
+**Smearing at the critical edge** (measured 2026-11-27, `tests/test_qoff_resolution.py`). The default rule
+is Gauss–Hermite with 31 nodes. Near Qc, where R_F has a square-root kink, it is off by 0.9 % at σ_Q
+3.8 × 10⁻⁴ Å⁻¹ and by 2 % at 8 × 10⁻⁴ (water, 10 keV, against a 40001-point integral). The `'fine'` rule
+(Simpson's rule on 1601 points over ±8σ) is good to 10⁻⁸ there. Use it for known truth at the edge
+(`tests/tools/qoff_resolution_study.py`). The default is unchanged, so no earlier study's data move.
 
 Measured (tests): R_F = 1 below Qc without β and 0.95–1 with it; R_F →
 (Qc/2Qz)⁴ with a correction ≲ 1.5 (Qc/Qz)²; Kiessig period 2π/d within

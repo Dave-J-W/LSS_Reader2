@@ -475,6 +475,44 @@ TOOLS = (
                replicates='200'),
          ),
          repo_out='docs/studies/qoff', repo_ok=False),
+    Tool('qoff_resolution_study', 'Qoff and the Qz resolution fitted together at the edge (hand-off 09)', 'refl',
+         'figures', 'tests/tools/qoff_resolution_study.py',
+         'Synthetic edges with a known angle offset and resolution, read by the joint fit (R_F with absorption '
+         'smeared by a Gaussian, Qoff and σ_Q free), the same with water\'s roughness, and today\'s sharp proposer: '
+         'the offset, the resolution, the sampling, a wrong β, counts, an outlier, fringes, DPPC; the NX school '
+         'edge and its χ² at a fixed σ_Q: figures K1-K4.',
+         committed=('docs/studies/qoff_resolution',),
+         docs=('docs/studies/qoff_resolution/summary.md', 'docs/COMPARISONS.md#| C71 |', 'docs/studies/qz_resolution/summary.md'),
+         data='public', defaults={'--out': OUT},
+         variations=(
+             V('NX only', 'K4: NX school scan 6 under both fits, and the fit at a fixed σ_Q (about a minute).',
+               'docs/studies/qoff_resolution/summary.md## 4. NX school scan 6 (K4)', only='nx'),
+             V('A quick look (20 replicates)', 'Every condition with 20 replicates (about 3 min): the biases hold, the '
+               'coverages are rough.', 'docs/studies/qoff_resolution/summary.md## How to regenerate', replicates='20'),
+             V('Known truth at the owner\'s sampling', 'One point of the known truth (hand-off 09, item 4): steps of '
+               '0.001 from 0.015, the beamline\'s σ_Q, 50 replicates; truth.csv and a printed summary.',
+               'docs/studies/qoff_resolution/summary.md## For the local data agent', truth=True, qoff='-2e-4', sigma_q='3.8e-4', counts='1',
+               step='0.001', start='0.015'),
+             V('Known truth at NX\'s sampling', 'The same at NX school scan 6\'s sampling (0.00125 from 0.0175).',
+               'docs/studies/qoff_resolution/summary.md## For the local data agent', truth=True, step='0.00125', start='0.0175'),
+             V('A wrong β', 'The fit given twice and half the subphase\'s absorption: σ_Q moves, Qoff barely.',
+               'docs/studies/qoff_resolution/summary.md## 3. What moves it', designs='beta'),
+         ),
+         repo_out='docs/studies/qoff_resolution', repo_ok=False, seconds=1800.0),
+    Tool('qoff_resolution_survey', 'Qoff and the Qz resolution on real edge scans (survey)', 'refl', 'data',
+         'tests/tools/qoff_resolution_survey.py',
+         'Every reflectivity scan of a SPEC file that crosses the edge, reduced alone and fitted for Qoff and σ_Q '
+         'together (with today\'s sharp proposal beside it): one CSV row per scan, for the local data agent\'s '
+         'private edges (hand-off 09).',
+         docs=('docs/studies/qoff_resolution/summary.md', 'docs/studies/qz_resolution/summary.md'),
+         data='any', defaults={'--spec': NX, '--out': OUT}, spec_option='--spec',
+         variations=(
+             V('Water\'s roughness in R_F', 'A fixed 3 Å Névot–Croce roughness in the model: what it changes on real '
+               'edges.', 'docs/studies/qoff_resolution/summary.md## For the local data agent', roughness='3'),
+             V('β × 2', 'Twice the subphase\'s absorption, DATA_NEEDS row 13\'s check (σ_Q −15 % there).',
+               'docs/studies/qoff_resolution/summary.md## For the local data agent', beta_scale='2'),
+         ),
+         seconds=1.0),
 
     Tool('excess_remedy_study', 'The join\'s error budget with the measured excess: scale, X, robust weights, '
          'clipping (C64)', 'refl', 'figures', 'tests/tools/excess_remedy_study.py',

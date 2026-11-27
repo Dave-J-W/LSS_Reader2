@@ -158,6 +158,13 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   (`lss_core.readerlock`, `Workbook(read_only=True)`, 2026-11-25, D1's core):
   an atomic lock beside the workbook, refreshed by its holder, taken over
   when stale.
+- GID burn estimators with the shoulder split off (P44, 2026-11-27):
+  `burn.measure_gid(..., estimator='split')` and `'split_fixed'`, for scripts.
+  On synthetic burns they read every case to 0.13 pp on a Gaussian shoulder,
+  where the template is off by up to 14 pp. On NX burn 15 the template reads
+  −1.5 % "stable" and the split −13.3 % "changing" (measured, known truth and
+  public NX; `docs/studies/burn_shoulder/`, C70). The default is unchanged.
+  Real burns: issue #155.
 
 ## Reflectivity patching and uncertainty (2026-11-22)
 
@@ -204,6 +211,14 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   there); 4σ clipping as built removes good points in rare cases and reports
   a confidently wrong factor, so it needs a guard (measured, synthetic with
   known truth; `docs/studies/excess_remedy/`). Waits for DATA_NEEDS 17.
+- Qoff and the Qz resolution fitted together at the edge
+  (`fresnel.fit_edge_resolution`, 2026-11-27, hand-off 09, issue #154): R_F
+  with the subphase's absorption, smeared by σ_Q. On synthetic edges it reads
+  Qoff to 1e-6 Å⁻¹ and σ_Q to 0.5 % with honest errors, where today's sharp
+  proposal is off by up to 3.5e-4. NX scan 6 does not follow the model (σ_Q
+  goes to 0, χ²/dof 102). A survey tool for real edges comes with it
+  (measured, known truth and public NX; `docs/studies/qoff_resolution/`,
+  C71). Propose is unchanged.
 
 ## Series, saving and live updates (2026-11-19 to 22)
 
