@@ -347,6 +347,11 @@ choose the peak; `rows` the pixel rows summed: 'mean', the default since
 or 'given'. `lss_core.trends.compare(t, y, sigma)` does the comparison for
 any series.
 
+A first frame more than 5 σ and 20 % from the median of the next three (intensity, FWHM) is
+flagged, not left out (#188): `burn.first_frame` holds `{quantity: {'ratio', 'z', 'with', 'without'}}`,
+the last two the linear change over the burn (change, σ) with every frame and without the first, and
+`burn.notes` says it. `lss_core.burn.first_frame_check(x, y, sigma, span)` checks any series.
+
 ## Reflectivity patching and uncertainty (2026-11-22)
 
 ```python

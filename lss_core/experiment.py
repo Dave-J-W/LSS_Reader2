@@ -727,6 +727,8 @@ class Experiment:
         res.trend_errors = te
         res.trends = burnmod.analyse(res.x, res.values, models or trends.MODELS, threshold, confidence, overdispersion,
                                      errors=te)
+        res.notes += burnmod.first_frame_notes(res, models=models or trends.MODELS, overdispersion=overdispersion,
+                                               errors=te)      # #188: flagged, not left out
         return res
 
     def beam_height(self, scans=None, near=None, counter='Pilatus', monitor='Monc'):
