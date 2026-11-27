@@ -2230,7 +2230,7 @@
   notes: "Added 2026-11-26 (F113, owner). Shown or not, crowded numbers are hidden at each draw and come back on zoom (mplwidget.declutter_index_labels); the Ref Patch window does the same without a switch."
 - id: plotOptAxesToolButton
   kind: button
-  label: "Axes and curves..."
+  label: "One-off editor..."
   where: "Plot options"
   handler: PlotOptionsDialog.edit_axes
   does: "A menu of the tab's plots; each opens matplotlib's editor of that plot (title, axis limits, labels, scales, each curve's line, marker and colour): one-off, kept until the tab redraws the plot, not saved"
@@ -2239,3 +2239,322 @@
   shown: "Plot options..."
   tooltip: true
   notes: "Added 2026-11-26 (owner's choice: one entry for plot settings, 'Keep top-right, drop icon', per tab). It was each toolbar's 'Customize' icon, which the tabs' toolbars no longer show (MainWindow.registerPlotCanvases); the Ref Patch window and the burn test keep theirs (no Plot options there)."
+- id: plotOptPagesTabWidget
+  kind: tabs
+  label: "Text and ticks | Legend and lines | This plot"
+  where: "Plot options"
+  handler: QTabWidget
+  does: "The window's three pages: the tab's text and ticks, its legend and lines, and one plot's labels, ranges and curves (F114)"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: false
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptTickNumComboBox
+  kind: combo
+  label: "Tick numbers"
+  where: "Plot options > Text and ticks"
+  handler: PlotOptionsDialog._changed
+  does: "Linear axes' numbers plain, or scientific with one power of ten per axis"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptLegendComboBox
+  kind: combo
+  label: "Legend"
+  where: "Plot options > Legend and lines"
+  handler: PlotOptionsDialog._changed
+  does: "Each plot's legend shown (made where the reader draws none) or hidden; overrides a tab's Legend box while not 'as drawn'"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptLegendLocComboBox
+  kind: combo
+  label: "Legend place"
+  where: "Plot options > Legend and lines"
+  handler: PlotOptionsDialog._changed
+  does: "Where a shown legend goes (best, upper right, ...)"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptLegendFrameComboBox
+  kind: combo
+  label: "Legend frame"
+  where: "Plot options > Legend and lines"
+  handler: PlotOptionsDialog._changed
+  does: "A box around the legend, or none"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptLineWidthSpinBox
+  kind: spin
+  label: "Line width"
+  where: "Plot options > Legend and lines"
+  handler: PlotOptionsDialog._changed
+  does: "Every curve's line and error-bar width on the tab (a curve's own width wins)"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptMarkerSizeSpinBox
+  kind: spin
+  label: "Marker size"
+  where: "Plot options > Legend and lines"
+  handler: PlotOptionsDialog._changed
+  does: "Every curve's marker size on the tab (a curve's own size wins)"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptTitlesComboBox
+  kind: combo
+  label: "Titles"
+  where: "Plot options > Legend and lines"
+  handler: PlotOptionsDialog._changed
+  does: "Hides the plots' titles"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptPlotComboBox
+  kind: combo
+  label: "Plot"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog._load_plot
+  does: "The plot of the tab the page is for (a tab can hold two)"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptTitleLineEdit
+  kind: lineedit
+  label: "Title"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog._plot_changed
+  does: "A new text for the plot's title, used whenever the reader draws the same title; empty: the reader's (greyed)"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptXLabelLineEdit
+  kind: lineedit
+  label: "X label"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog._plot_changed
+  does: "A new text for the x label, used whenever the reader draws the same label"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptYLabelLineEdit
+  kind: lineedit
+  label: "Y label"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog._plot_changed
+  does: "A new text for the y label, used whenever the reader draws the same label (another column keeps its own)"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptXFixedCheckBox
+  kind: checkbox
+  label: "fixed (X range)"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog._plot_changed
+  does: "Keeps the x axis between the two values whenever the reader redraws the plot; zoom and pan still work in between"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptXMinLineEdit
+  kind: lineedit
+  label: "X range from"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog._plot_changed
+  does: "The lower end of the fixed x range"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptXMaxLineEdit
+  kind: lineedit
+  label: "X range to"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog._plot_changed
+  does: "The upper end of the fixed x range"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptYFixedCheckBox
+  kind: checkbox
+  label: "fixed (Y range)"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog._plot_changed
+  does: "Keeps the y axis between the two values whenever the reader redraws the plot"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptYMinLineEdit
+  kind: lineedit
+  label: "Y range from"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog._plot_changed
+  does: "The lower end of the fixed y range"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptYMaxLineEdit
+  kind: lineedit
+  label: "Y range to"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog._plot_changed
+  does: "The upper end of the fixed y range"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptViewPushButton
+  kind: button
+  label: "Use the current view"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog.use_view
+  does: "Fixes both ranges to what the plot shows now (after a zoom)"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptCurveListWidget
+  kind: list
+  label: "Curves"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog._load_curve
+  does: "The plot's curves as drawn now, in drawing order; choose one to style it"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptCurveMatchComboBox
+  kind: combo
+  label: "Keep"
+  where: "Plot options > This plot > Curves"
+  handler: PlotOptionsDialog._curve_changed
+  does: "Keeps a curve's style by its name (a fit, a scan) or by its place in the drawing order"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptCurveColorComboBox
+  kind: combo
+  label: "Colour"
+  where: "Plot options > This plot > Curves"
+  handler: PlotOptionsDialog._curve_changed
+  does: "The curve's colour, its markers' and error bars'"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptCurveStyleComboBox
+  kind: combo
+  label: "Line"
+  where: "Plot options > This plot > Curves"
+  handler: PlotOptionsDialog._curve_changed
+  does: "Solid, dashed, dotted, dash-dot, or no line"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptCurveWidthSpinBox
+  kind: spin
+  label: "Width"
+  where: "Plot options > This plot > Curves"
+  handler: PlotOptionsDialog._curve_changed
+  does: "The curve's line width"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptCurveMarkerComboBox
+  kind: combo
+  label: "Marker"
+  where: "Plot options > This plot > Curves"
+  handler: PlotOptionsDialog._curve_changed
+  does: "The curve's markers, or none"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptCurveSizeSpinBox
+  kind: spin
+  label: "Size"
+  where: "Plot options > This plot > Curves"
+  handler: PlotOptionsDialog._curve_changed
+  does: "The curve's marker size"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptCurveResetPushButton
+  kind: button
+  label: "Curve as drawn"
+  where: "Plot options > This plot > Curves"
+  handler: PlotOptionsDialog.reset_curve
+  does: "The curve's style back to the reader's"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptPlotResetPushButton
+  kind: button
+  label: "Plot as drawn"
+  where: "Plot options > This plot"
+  handler: PlotOptionsDialog.reset_plot
+  does: "The plot's labels, ranges and curve styles back to the reader's"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."
+- id: plotOptAllTabsPushButton
+  kind: button
+  label: "Copy to all tabs"
+  where: "Plot options"
+  handler: PlotOptionsDialog.copy_all
+  does: "Gives every tab with plots this tab's Text and ticks and Legend and lines options; each keeps its own plots' entries"
+  workflows: [session]
+  needs: ""
+  shown: "Plot options..."
+  tooltip: true
+  notes: "Added 2026-11-27 (F114, owner: the comprehensive plot customization). Kept per tab between sessions (preference plot_options; a plot's entry under plots, keyed <canvas>:<n>)."

@@ -9667,19 +9667,19 @@ class MainWindow (QMainWindow):
                     act.setVisible(False)
 
     def plotTabAxes(self,key):
-        """The plots of tab ``key`` as (name, axes): every drawn axes of its
-        canvases but colour bars and the residual strips."""
+        """The plots of tab ``key`` as (plot id, name, axes): every drawn axes
+        of its canvases but colour bars and the residual strips (the plot id
+        keys a plot's entry in the options, F114)."""
+        import mplwidget
         out=[]
         for i in range(self.ui.PlotWidget.count()):
             if self.plotTabKey(i)!=key:
                 continue
             for c in self.plotTabCanvases(i):
-                for ax in c.figure.axes:
-                    if not ax.axison or getattr(ax,'_lss_inset',False) or getattr(ax,'_colorbar',None) is not None:
-                        continue
-                    what=ax.get_title() or ax.get_ylabel() or 'untitled'
+                for k,ax in enumerate(mplwidget.main_axes(c.figure)):
+                    what=mplwidget.drawn_text(ax.yaxis.label) or mplwidget.drawn_text(ax.title) or 'untitled'
                     what=' '.join(str(what).split())[:50]
-                    out.append(('Plot %d: %s' % (len(out)+1,what),ax))
+                    out.append((mplwidget.plot_id(c.plot_name(),k),'Plot %d: %s' % (len(out)+1,what),ax))
         return out
 
     def plotOptions(self,key):
@@ -9687,10 +9687,11 @@ class MainWindow (QMainWindow):
 
     def setPlotOptions(self,key,opts):
         """Keep tab ``key``'s options (all 'as drawn': none kept) and redraw its plots."""
+        import copy
         import mplwidget
-        allopts=dict(self.prefs.get('plot_options') or {})
+        allopts=copy.deepcopy(self.prefs.get('plot_options') or {})
         if mplwidget.plot_options_set(opts):
-            allopts[key]=dict(opts)
+            allopts[key]=copy.deepcopy(dict(opts))   # never the window's own objects: an edit in place would not be saved
         else:
             allopts.pop(key,None)
         self.setPreference('plot_options',allopts)
@@ -9700,6 +9701,18 @@ class MainWindow (QMainWindow):
                 for c in self.plotTabCanvases(i):        # what ax.clear() would keep of the earlier choice
                     mplwidget.reset_plot_options(c.figure)
                 self.redrawPlotTab(i)
+
+    def copyPlotOptionsToAllTabs(self,opts):
+        """F114: the tab-wide options of ``opts`` to every tab with plots;
+        each keeps its own plots' entries (labels, ranges, curves)."""
+        for i in range(self.ui.PlotWidget.count()):
+            if not self.plotTabCanvases(i):
+                continue
+            key=self.plotTabKey(i)
+            mine=dict(self.plotOptions(key) or {})
+            new=dict(opts)
+            new['plots']=mine.get('plots') or {}
+            self.setPlotOptions(key,new)
 
     def redrawPlotTab(self,i):
         """Redraw tab ``i``'s plots by the tab's own drawing, when it shows
@@ -9748,14 +9761,15 @@ class MainWindow (QMainWindow):
                       'the reader draws it. %s' % (name,'* : some are set for this tab.' if set_ else ''))
                      if has else 'The %s tab has no plots to set.' % name)
         d=getattr(self,'plotOptionsDialog',None)
-        if d is not None and d.isVisible() and has:
+        if d is not None and d.isVisible() and has and d.key!=self.plotTabKey(i):   # another tab: its options
             d.target(self.plotTabKey(i),name,mpl.rcParams['font.size'])
 
     def showPlotOptions(self):
         from plotoptions import PlotOptionsDialog
         self.registerPlotCanvases()             # canvases made since
         if self.plotOptionsDialog is None:
-            self.plotOptionsDialog=PlotOptionsDialog(self,self.plotOptions,self.setPlotOptions,self.plotTabAxes)
+            self.plotOptionsDialog=PlotOptionsDialog(self,self.plotOptions,self.setPlotOptions,self.plotTabAxes,
+                                                     self.copyPlotOptionsToAllTabs)
         i=self.ui.PlotWidget.currentIndex()
         self.plotOptionsDialog.target(self.plotTabKey(i),self.ui.PlotWidget.tabText(i),mpl.rcParams['font.size'])
         self.plotOptionsDialog.show()
