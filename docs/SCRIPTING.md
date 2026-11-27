@@ -236,21 +236,22 @@ by the σ given, as before). `peaks.find_peaks` alone gives the candidates.
 "Fit peaks" in the window writes the `cut.fit(...)` call to the Script pane.
 
 The MCA tab's "Fit lines" fits each spectrum two ways (F110, the owner's
-decision of 2026-11-26), and so can a script:
+decision of 2026-11-26, revised the same day), and so can a script:
 
     from lss_core import fluorescence as fl
-    r = fl.xeray_fit(energy, y, sigma, x_range=(8.3, 8.9), centre=8.64)   # XeRay: the default
-    r.area, r.area_err, r.centre, r.fwhm, r.ok, r.message
     both = fl.fit_line_series(flu.spectra, peaks.FitOptions(centres=(8.64,), x_range=(8.3, 8.9)))
-    both['xeray']                         # one XeRayFit per spectrum (plotted, merged, _flu.txt)
-    both['each'][k].peaks[both['j']].area / both['step']   # the reader's fit of spectrum k (_flu_fit.txt)
+    both['each'][k].peaks[both['j']].area / both['step']   # the reader's fit of spectrum k: the default (_flu.txt)
+    both['xeray']                         # one XeRayFit per spectrum, beside it (_flu_xeray.txt)
+    r = fl.xeray_fit(energy, y, sigma, x_range=(8.3, 8.9), centre=8.64)   # XeRay on one spectrum
+    r.area, r.area_err, r.centre, r.fwhm, r.ok, r.message
 
-XeRay is one Gaussian on a straight line by unweighted least squares, with
-the error √(counts in the window): too small where the background is large
-(the XRF shootout's pull SD 1.92). The reader's fit beside it is Poisson,
-with the width fixed at the detector's (`detector_width=True`, `noise_kev`)
-and the Si escapes stripped (`strip_escapes=True`); its errors are honest
-(pull SD 1.03). `fl.merge_rows` merges every (I, σ) pair of a row.
+The reader's fit is Poisson, with the Si escapes stripped
+(`strip_escapes=True`) and the line's position and width from the sum of
+the series; `detector_width=True` (with `noise_kev`) fixes the width at the
+detector model's instead, which needs the detector's own noise. XeRay is one
+Gaussian on a straight line by unweighted least squares, with the error
+√(counts in the window): too small where the background is large (the XRF
+shootout's pull SD 1.92). `fl.merge_rows` merges every (I, σ) pair of a row.
 
 ## Burn tests (2026-11-21)
 
@@ -410,7 +411,11 @@ a Gaussian beam (`beam_fwhm_um`, `beam_centre_mm` fitted unless given;
 `gid.joins`, each with `applied`). `GIDParams(response='beam')` fits the pinhole response along the beam axis
 instead of per column (for a narrow beam); `gid.info['levels'][k]` then has
 `beam` (profile, centre and FWHM on the sample, mm) and, always,
-`two_theta_resolution_deg`. `gid.joins` is the worksheet's join table, `gid.levels` its level list,
+`two_theta_resolution_deg`. `GIDParams(unmatched_levels='unscaled')` (a
+stopgap, 2026-11-26) joins a level that shares no β with the levels below as
+collected instead of refusing; `gid.unscaled_seams` lists each such seam (β gap,
+the intensity ratio across it) and `gid.save` then writes a `#` line saying so
+(tradeoffs: `docs/studies/gid_unscaled_seams/summary.md`). `gid.joins` is the worksheet's join table, `gid.levels` its level list,
 `gid.info` the pinhole details. "Save GID" writes the equivalent call to
 the Script pane; running it writes the same files byte for byte (both
 geometries, both axes, relaxed grid, typed columns, some frames:

@@ -70,3 +70,19 @@ def test_a_click_opens_the_result(nx, qapp, recorder):
     qapp.processEvents()
     assert sorted(nx.selectedScanNums) == [11, 12]
     assert recorder.exceptions == []
+
+
+def test_thumbnails_draw_the_right_columns(qapp):
+    """Fluorescence rows are (frame, Qz, E, I, dI[, I_xeray, dI_xeray]): the
+    thumbnail draws I against Qz, not Qz against frame; a GID map (2D) draws
+    no curve (2026-11-26)."""
+    from lss_core.timeline import Reduced
+    from timelineview import ResultThumb
+    qz = np.linspace(0.01, 0.04, 9)
+    inten = np.exp(-((qz - 0.02) / 0.005) ** 2)                 # one peak, nearest the fourth point
+    rows = np.column_stack([np.arange(1, 10), qz, np.full(9, 10.0), inten, 0.01 * inten, inten, 0.01 * inten])
+    flu = ResultThumb(Reduced('F0001', 'fluorescence', '', 1, [3], 0.0, 1.0, data=rows))
+    ys = [p[1] for p in flu.points]
+    assert len(flu.points) == 9 and int(np.argmin(ys)) == 3                     # the peak is drawn highest
+    gmap = ResultThumb(Reduced('G0001', 'gid map', '', 1, [11], 0.0, 1.0, data=np.random.default_rng(1).random((5, 6))))
+    assert gmap.points == []

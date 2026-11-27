@@ -6803,6 +6803,32 @@ with main man's study's arithmetic (C62, `docs/studies/roi_bad_pixels/`).
 
 Verified by: tested (7).
 
+### 2026-11-26 — Should Export always write R/R_F? (the owner's answer)
+
+The question (GUI manager): Export wrote `_rrf.txt` only when R/RF had
+been ticked, and then the R/R_F of the last curve plotted with it ticked;
+after unticking it and changing the curve, an earlier curve's R/R_F was
+written beside the new `_ref.txt` (fixed the same day by clearing it).
+The tooltip and the quick-start guide say Export writes both files.
+
+The owner: "Always export both raw and normalized reflectivity"; asked
+which (the plateau-normalised R, or R and R/R_F), the owner chose **R and
+R/R_F**. So Export writes `_ref.txt` (R) and `_rrf.txt` (R/R_F with the Qc
+and Qoff in the fields) every time; R/RF only chooses what is plotted, and
+whether Save stores R/RF in the workbook (unchanged).
+- **Measured** (tests): the unticked export is byte-identical to the
+  ticked one for both files (`test_gui_export_both.py`, with Qoff 0.0003:
+  the `_rrf.txt` Qz column is Qz + Qoff, as before); the Script line no
+  longer says `rrf=False`, and running it writes the same `_rrf.txt`.
+- **Deliberate test changes** (rule 1): the golden `no_rrf` case expected
+  no `_rrf.txt`; it now expects `plain_rrf.txt`'s bytes (the same settings
+  otherwise), so no fixture file changed (rule 3).
+  `test_gui_covariance_export.py::test_no_rrf_sidecar_without_rrf` became
+  `test_rrf_sidecar_also_with_rrf_unticked` (the hand-off: "Next to every
+  `<name>_rrf.txt`, write `<name>_rrf.cov.json`").
+
+Verified by: tested (owner's decision, 2026-11-26).
+
 ### 2026-11-25 — F74 at the Ref Patch join: which residuals, against which σ?
 
 The joint fit (`lss_core.patching`, the default since 2026-11-22) fits
@@ -7034,6 +7060,9 @@ Owner, to main man: "Whatever I tell reflection guy is law in regards to public 
 
 ### 2026-11-26 — XeRay the default of "Fit lines", the reader's best fit beside it (F110; main man)
 
+*Superseded the same day by the owner's revision (the next entry): the reader's fit is the default, with the
+width from the sum; XeRay beside it.*
+
 Verified by: test (`tests/test_mca_xeray.py`, 4 tests) for what the code does; the shootout's numbers are the XRF
 session's (C65, `docs/studies/xrf_shootout/summary.md`), read, not rerun here.
 
@@ -7074,3 +7103,68 @@ before (test: a 7-column merge's first five columns equal the 5-column merge's).
 (`test_gui_preferences.py`) and the ×2-spectrum check of the workbook now reads the reader's fit column
 (`test_gui_workbook.py`). OUTPUT_DECISIONS has the row; the shootout refinement is on RELEASE_PLAN's "After 2.0"
 list and in TODO (C).
+
+### 2026-11-26 — F110 revised: the reader's fit the default, its width from the sum; XeRay beside it (main man)
+
+Verified by: run (the known-truth case below, reproduced here and pinned by
+`test_mca_xeray.py::test_the_default_reads_a_line_wider_than_the_detector_model`); the real-data numbers are the
+XRF session's (C66 in `docs/studies/xrf_shootout/summary.md`, "Accurate conditions of 192"; C69 in
+`docs/studies/xrf_models/README.md` 2c), read, not rerun here.
+
+**Why the question came back.** Hours after the first F110 build, GUI manager (#123) found that on the synthetic
+XFNTR set the reader's fit with the detector-model width read 0.68 of the true line area. Its line has σ = 6
+channels = 0.12 keV (FWHM 0.28 keV), 1.65 × the width the detector model gives at 6.4 keV with the assumed noise of
+0.12 keV (FWHM 0.171 keV). A Gaussian held too narrow cannot hold the line's photons, so the area comes out low; the
+fit says so itself (χ²/dof 611, "the model does not describe the data"). Reproduced here on all 9 frames: fixed width
+0.680, width from the sum 0.999–1.000, XeRay 1.000.
+
+Reading the real-data studies again showed the same thing on the owner's detectors, which I had not put to the owner
+before the first decision:
+- the readouts' measured noise is 0.065 and 0.105 keV (`docs/studies/mca_scatter`), not the 0.12 keV assumed;
+- on real blanks with synthetic lines (C66), accurate in 192 conditions: Poisson fit + escapes removed with the width
+  free (from the sum) 49, pull SD 1.08; with the fixed width 47, pull SD 1.01; XeRay 6, median |bias| 9.9 %;
+- with real line shapes on the 7-element detector (C69): 34 of 160 for the width from the sum (median bias of
+  strong lines −1.3 %) against 19 for the fixed width (−6.0 %); XeRay 3 (−5.5 %). C69's own conclusion: "the fixed
+  width needs the line's own width and shape, not the detector's resolution".
+
+The fixed width won only on the synthetic shootout (C65), whose spectra were made with the same detector model the
+fit assumes.
+
+**The owner's answers** (2026-11-26, to main man, two questions with these numbers):
+- Q: Which width should our fit use? A: **"Width from the sum (Recommended)"**: the Poisson fit with the Si escapes
+  removed, the line's position and width fitted on the summed spectra and held for every spectrum.
+- Q: Should XeRay stay the value plotted, merged and exported in `_flu.txt`? A: **"Our fit the default"**: our fit
+  in `_flu.txt` and on the plot as circles, merged and exported; XeRay beside it (squares, `_flu_xeray.txt`), both
+  still reported with their errors.
+
+**What the width from the sum means.** `peaks.fit_series` fits the sum of the selected spectra first. The sum has
+the most counts, so the line's centre and width are best known there. Each spectrum is then fitted with that centre
+and width held, for its own height (the line's area) and background, by Poisson maximum likelihood. The width is
+"fixed" across the series, as the owner asked, but measured on the data rather than assumed from a detector model.
+The known risk of a free width on the sum, trading off against a curved background under an escape peak (C42: +45 %
+with the elastic's escape under Zn Kα at 10 keV), is what the escape stripping removes.
+
+**Numbers that changed.** `_flu.txt` from "Fit lines" holds the reader's fit with the width from the sum (it held
+XeRay's area for a few hours, and before F110 the reader's fit with a free width and no escape stripping). XeRay's
+numbers are in `_flu_xeray.txt`; `_flu_fit.txt` is no longer written.
+
+### 2026-11-26 — Stopgap: GID levels with no β overlap joined unscaled (owner's request)
+
+Verified by: tests on synthetic known truth (`tests/test_gid_unscaled_seams.py`) and a run on the private sets
+by the local data agent. Study: `docs/studies/gid_unscaled_seams/summary.md`.
+
+- **The owner asked** for a stopgap for GID image sets whose levels share no overlap, "even if there are
+  tradeoffs. Just spell out the tradeoffs and build it."
+- **Built, opt-in:** `GIDParams(unmatched_levels='unscaled')`, the worksheet's "Join levels without overlap
+  (unscaled)". A level with no β overlap is added as collected (monitor, absorber, its own response), with
+  factor 1 and no error. The seam is marked in the join table, in a message and as a `#` line in saved files.
+  The default still refuses; overlapping levels are joined bit for bit as before.
+- **Tradeoffs, measured:**
+  - a 25 % monitor error passes 1 : 1 into the step (synthetic);
+  - the response's per-level normalisation moves the ratio across the seam by 7 % median, up to 28 % ('fit'
+    against 'none', 15 real seams);
+  - the ratio across the seam (0.69–1.10 under 'fit') cannot separate a scale error from the real change
+    across gaps of 0.5–6.1°;
+  - σ is counting only.
+- **Real sets:** of the survey's 18, 16 have a real β gap; 15 of them now patch. 1 fails on a separate error
+  (a zero-size array in the join). 2 had failed only with the `physical` responses and join normally.

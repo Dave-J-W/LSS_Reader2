@@ -605,7 +605,7 @@
            <item>
             <widget class="QLabel" name="label_35">
              <property name="text">
-              <string>Fact.</string>
+              <string>factor</string>
              </property>
             </widget>
            </item>
@@ -615,7 +615,7 @@
               <number>1</number>
              </property>
              <property name="maximum">
-              <number>4</number>
+              <number>40</number>
              </property>
             </widget>
            </item>

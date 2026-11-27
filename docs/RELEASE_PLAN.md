@@ -1,6 +1,11 @@
 # Release plan: Reader 2.0 (first release of this fork)
 
-Draft by the project manager, 2026-11-25. **Status: approved by the owner, 2026-11-25.**
+Draft by the project manager, 2026-11-25. **Status: approved by the owner, 2026-11-25. Released 2026-11-27:**
+the owner published release "Reader 2" with the tag `v2.0.0` on main 01ae585 (the code of cc599e4, on which
+the quick, slow and sweep suites passed: 1441, 427, 194). The tag's build, run 45919642733, passed: Windows and
+macOS self-tests, 9 tabs, `_ref.txt` and `_rrf.txt` identical; downloads kept to 2027-02-25. This plan no longer
+overrides `docs/TODO.md`; its "After 2.0" list is the backlog. Rules 12 and 13 stay paused after the release
+(owner, 2026-11-27: "Let's pause those rules again").
 
 ## The goal
 
@@ -36,19 +41,20 @@ All of these are already built. The work is finishing, fixing and checking them.
 | 1 | Open a SPEC file and load Pilatus and MCA data beside it | built | — |
 | 2 | Reflectivity: reduce, patch (joint fit), export `_ref.txt` / `_rrf.txt` for xmodfit (legacy format, byte-stable) | built | — |
 | 3 | GID: pinhole patch, maps, cuts, export | built | ~~fix `KeyError: 'monc'` on a one-point scan (crash)~~ **fixed 2026-11-26 (#116):** `Experiment.frames` names the missing column and why; the window only warns (probed) |
-| 4 | Fluorescence/MCA: sums, Fit lines, XFNTR merge | built | **the owner's decision (2026-11-26), overriding rule 1 for this default:** Fit lines reports XeRay (the value plotted, merged, exported) and the reader's Poisson fit with fixed width and escapes stripped beside it, both with errors (F110, built 2026-11-26) |
+| 4 | Fluorescence/MCA: sums, Fit lines, XFNTR merge | built | **the owner's decision (2026-11-26), overriding rule 1 for this default, revised the same day:** Fit lines reports the reader's Poisson fit (escapes stripped, the width from the sum) as the value plotted, merged and exported, and XeRay beside it, both with errors (F110, built 2026-11-26) |
 | 5 | Per-SPEC workbook with automatic saving, and the lock | built | — |
 | 6 | Live updates while data come in | built | — |
 | 7 | Never closes on an error (Stage 0 safety net) | built | ~~crash baseline shrinks to release level~~ **at zero** (2026-11-26): `known_crashes.json` holds no crash in its 14 states, `known_crash_sites.json` is empty; the sweep passes (194) |
-| 8 | Windows build that runs on a clean PC | recipe exists | make one tagged build and try it on a clean machine |
-| 9 | Quick-start guide (two pages: open, reduce, export) | not written | write it from `MANUAL_NOTES.md` |
+| 8 | Windows build that runs on a clean PC | **the build for the tag passes** (main man, 2026-11-27, at the owner's request: run [45918527279](https://github.com/Dave-J-W/LSS_Reader2/actions/runs/45918527279) on main at cc599e4, with #132 and #135; Windows and macOS self-tests passed, 9 tabs, `_ref.txt` and `_rrf.txt` identical; downloads kept to 2027-02-25). The earlier run 45879045324 (ce38cf4) passed too | the owner tags `v2.0.0` on cc599e4 (owner, 2026-11-27: "When I get home I'll tag 2.0"); the clean-PC test and XModFit reading the export are the owner's |
+| 9 | Quick-start guide (two pages: open, reduce, export) | **written** (tools man, #118: `docs/manual/quick_start.md`; Help → Documentation opens it) | — |
 
 ## Release blockers (only these block 2.0)
 
 1. Crashes in the main workflows (open, reflectivity, GID, MCA, export).
 2. Wrong numbers in an export xmodfit reads. That means a real bug, not a
    better method we might choose later.
-3. The 7 known Windows test failures on `main`. Each one gets fixed or is
+3. The known Windows test failures on `main` (7 at first; 5 on 2026-11-26: `test_gui_reader_lock` ×2,
+   `test_toolbox_gui` ×2, `test_ngui` ×1). Each one gets fixed or is
    marked as not a release issue, with one line saying why.
 4. The packaged build fails to start or to load the sample data.
 
@@ -60,8 +66,18 @@ Everything else is **not** a blocker.
    - The sweep's baselines are at zero.
    - `KeyError: 'monc'` is fixed (#116).
    - The burn dialog no longer refuses a burn without a beam height (#115), which had kept the slow suite red.
-   - On `main`: the quick suite passes (1375), the slow suite passes (427), the sweep passes (194).
-2. **Export numbers:** none known.
+   - MCA: the Fit Peak dialog's Accept after Fit lines (7-column rows, F110) or after a Merge crashed or left
+     ragged rows; fixed by GUI manager (#122, 2026-11-26).
+   - The Plot tab's Fit Peak parameter export raised a TypeError half-way through `_par.txt` when lmfit had
+     no error estimate; fixed by GUI manager (#124).
+   - On `main` with #118, #119 and the About fix: the quick suite passes (1396), the slow suite passes (427),
+     the sweep passes (194, on #119).
+2. **Export numbers:** none known now.
+   - **Found and fixed (GUI manager, #125):** a stale `_rrf.txt`. R/R_F was kept after R/RF was unticked,
+     so Export could write the old curve's R/R_F beside a new `_ref.txt` (and Save stored it). Every main
+     export now says what it wrote and what it replaced.
+   - **The owner's rule (2026-11-26), GUI manager #128:** Export always writes both `_ref.txt` and `_rrf.txt`
+     (R/R_F at the fields' Qc and Qoff, ticked or not); no legacy fixture changed.
    - The legacy export fixtures stay byte-identical, and the golden `_ref.txt` files and the xmodfit
      covariance contract pass: `test_api`, `test_ref_export_golden`, `test_covariance_export`,
      `test_gui_export_name` (104 passed, 2026-11-26).
@@ -71,13 +87,44 @@ Everything else is **not** a blocker.
      - `test_gui_menus::test_documentation_opens_the_scripting_guide`: Qt's URL path uses '/'.
      - `test_test_infrastructure::test_auto_workers_fit_the_cpus_and_the_memory`: no `os.sched_getaffinity` on
        Windows.
-     - The fixes are reasoned and, for the line ends, simulated here; they wait for a rerun on the Windows PC.
+     - **Confirmed on the Windows PC** (xr-data-needs, #55, 2026-11-26: they pass on a clean checkout of main
+       860abd5).
    - **Not a release issue:** `test_ngui::test_window_builds_with_every_placed_control`. ngui is the layout
      prototype, parked after 2.0, and its exact-size assertion meets Windows display scaling.
-   - **Open:** `test_toolbox_gui` ×2. Their assertion lines from the Windows PC are needed (asked on #55).
-     Pixel comparisons of figures, which Windows fonts change, would not be a release issue; anything else
-     would be.
-4. **The packaged build:** tools man's.
+   - **Windows quick suite on main f91029a** (project manager, the owner's PC, 2026-11-26, `-n 4`): 1419
+     passed, 3 failed, 13 skipped, 2 xfailed (6.5 min). The 4 fixes above pass. `test_gui_reader_lock` ×2
+     **pass** now.
+   - **Fixed:** `test_toolbox_gui::test_the_open_spec_file_fills_the_spec_option`. This was a test bug: the
+     free field quotes a path with a space (shlex), and the test compared the raw text. It failed on any
+     checkout whose path has a space, not only on Windows.
+   - **Not a release issue:** `test_toolbox_gui::test_a_figure_tool_reproduces_its_committed_figures
+     [burn_figures]`. The pixel comparison fails (5–6 % of pixels), but it is platform rounding, not a bug.
+     Measured: the per-frame values agree with the committed CSVs to 3 × 10⁻¹⁰. Every burn verdict and
+     chosen model is the same. Only the last digits of the fitted times move (68.78 s vs 68.83 s), plus one
+     AICc gap (206.7 vs 209.8), which is far above any threshold. After 2.0: compare the CSVs with a
+     tolerance on Windows instead of pixels.
+   - **Blocker 3 is closed:** of the 7, 5 are fixed and 2 (ngui, burn pixels) are explained.
+4. **The packaged build:** the builds pass (tools man, #118): Windows and macOS built and passed their
+   self-test on GitHub, Windows with `_ref.txt` and `_rrf.txt` identical to the reference. **Near-clean test passed**
+   (project manager, the owner's PC, 2026-11-26). It ran run 45753156275's `LSS_Reader-Windows` with Python
+   removed from PATH and every `PYTHON*`, `CONDA*` and `QT_*` variable unset:
+   - The self-test passed in 9 s: window with 9 tabs, `_ref.txt` and `_rrf.txt` identical.
+   - A plain start (as a double-click) showed the window in 4 s, closed cleanly with exit 0, and left empty
+     fault logs.
+
+   **Still open: a truly clean PC. Do not use Windows Sandbox on the owner's PC.** Sandbox was enabled
+   there on 2026-11-26. It is an empty Windows with no Python and no Visual C++ runtime, which is what a
+   clean test needs. But the PC shut down unexpectedly while the feature was installing (12:18). Then it
+   froze hard during the third Sandbox run (after 12:33): no bugcheck, and the files being written were
+   left as zeros. Afterwards it could not find its startup disk until the owner repaired it (19:17). No
+   result came out of the Sandbox. Do the clean test on another Windows PC (a beamline PC or a laptop
+   without Python), following `docs/PACKAGING.md` "Clean-PC test", with the `v2.0.0` build. The XModFit
+   read of the export (step 5) is the owner's. Help → About shows 2.0 since 2026-11-26 (`lss_core.__version__`; it said 1.1).
+
+**Before the tag** (owner): `v2.0.0` on cc599e4 (all three suites passed on it: quick 1441, slow 427, sweep 194;
+build run 45918527279 passed). The clean-PC test and XModFit reading the export were not reported; the owner
+decided to tag (2026-11-26, "I think we can tag 2"). The tag runs the same build workflow. **Proposed (main man):** no merges
+to main between the clean-PC test and the tag except blocker fixes, so that what was tested is what is tagged. The Windows test run is done (blocker 3 closed, 2026-11-26).
 
 ## After 2.0 (parked, in rough order)
 
@@ -129,6 +176,9 @@ Everything else is **not** a blocker.
 - `ngui/` layout prototype, F60 contextual reduction, timeline phases after 1c.
 - EXAFS output, edge estimator, line markers and escape peaks, GID scan
   designer, multiple exposures.
+- MCA Merge: a missing fit (NaN, e.g. an accepted single fit beside Fit lines'
+  rows) makes its whole group NaN for that fit; skip it instead and merge the
+  fits that exist (`fluorescence.merge_rows`; found reviewing #122).
 
 ## Who does what until release
 

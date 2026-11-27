@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QFileDialog, QProgressDialog, QMessageBox
 from PyQt5.Qt import *
 from spec_routines import specread, is_spec_file
 from mca_routines import mcaread
-from mplwidget import MplWidget, errorbars, mesh
+from mplwidget import MplWidget, errorbars, mesh, index_labels
 import roipanel
 from roipanel import RoiPanel
 from matplotlib.widgets import MultiCursor
@@ -187,6 +187,8 @@ class MainWindow (QMainWindow):
 
     def __init__ (self, parent = None):
         QMainWindow.__init__(self, parent)
+        import mplwidget
+        self.plotFontPt=mplwidget.match_plot_fonts()   # owner, 2026-11-26: plot text at least the tabs' size
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.pilatus=TwoDDetector('Pilatus')
@@ -286,6 +288,7 @@ class MainWindow (QMainWindow):
         self.initCutAxis()
         self.initTimelineTab()
         self.initCompareTab()
+        self.initPlotOptions()          # F112: after the last tab is added
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
@@ -447,8 +450,13 @@ class MainWindow (QMainWindow):
         self.ui.refSeaWinLineEdit.returnPressed.connect(self.refAnalyzeFromField)
      #    self.connect(self.ui.refExportPushButton,SIGNAL('clicked()'), self.saveRefData)
         self.ui.refExportPushButton.clicked.connect(self.saveRefData)
+        self.ui.refRRFCheckBox.setToolTip(
+            'Plot R divided by the Fresnel reflectivity R_F(Qz + Qoff) of the Qc in the field. A display choice: '
+            'Export always writes both _ref.txt and _rrf.txt (owner, 2026-11-26); Save stores R/RF in the workbook '
+            'while this is ticked')
         self.ui.refExportPushButton.setToolTip(
-            'Write the reflectivity as <name>_ref.txt (Qz, R, dR) and <name>_rrf.txt (R/R_F), the files XModFit '
+            'Write the reflectivity as <name>_ref.txt (Qz, R, dR) and <name>_rrf.txt (R/R_F with the Qc and Qoff in '
+            'the fields, whether or not R/RF is ticked), the files XModFit '
             'reads; with "+ covariance", the sidecar XModFit fits with. The name is proposed from the SPEC file, the '
             'sample (the macro that ran the series, when the file records it) and the scans; the folder is the one '
             'of the last Export (F105)')
@@ -633,6 +641,19 @@ class MainWindow (QMainWindow):
         self.ui.refBGOffLineEdit.setValidator(qdoublevalidator0)
         self.ui.refSeaWinLineEdit.setValidator(qdoublevalidator0)
         self.ui.refBPCFacLineEdit.setValidator(qintvaliator1)
+        bpc=('The whole-frame bad-pixel pass, run on every frame as it is read, in every workflow (reflectivity, GID, '
+             'GISAXS, cuts, burns); changing it reads the frames again. A pixel takes the mean of its 4 neighbours '
+             'when it exceeds both (2 + 2/iterations) × factor × that mean and the frame\'s floor, '
+             '(√(the frame\'s mean) + 2)². ')
+        warn=('Below factor 10 it takes real signal on sparse frames: on sparse high-Qz reflectivity frames, factor 4 '
+              'removed about half of a real point in 0.2–0.9 % of clean frames (main man\'s study C62, '
+              'docs/studies/roi_bad_pixels). For reflectivity the Reflectivity tab\'s own ROI pass, on the three '
+              'boxes at factor 10, is the better choice.')
+        tip_it=bpc+'Iterations: 0 (the default) is off; 1 or 2 passes. '+warn
+        tip_fac=bpc+'Factor: the threshold\'s multiplier, used when iterations > 0; larger is gentler (1 to 40). '+warn
+        for w,tip in ((self.ui.pilBPCiteSpinBox,tip_it),(self.ui.label_20,tip_it),
+                      (self.ui.pilBPCfacSpinBox,tip_fac),(self.ui.label_35,tip_fac)):
+            w.setToolTip(tip)
         self.ui.refBPCFacLineEdit.setText('')                     # F95 B3: the ROI's own pass, off by default (rule 12)
         self.ui.refBPCFacLineEdit.setPlaceholderText('off')
         self.ui.refBPCFacLineEdit.setToolTip(
@@ -679,7 +700,8 @@ class MainWindow (QMainWindow):
         fname=[cwd+'/'+fname for fname in files if os.path.exists(cwd+'/'+fname)]
         # a packaged build holds no .py files: date it by its .ui file and logo, or the executable
         updateTime=max([os.path.getmtime(fn) for fn in fname] or [os.path.getmtime(sys.executable)])
-        self.messageBox('LSS-Reader\n Version: 1.1\nLast Update: '+time.strftime("%m/%d/%Y %I:%M:%S %p",time.localtime(updateTime))+'\nCopyright belongs to:\n\tWei Bu <weibu1977@gmail.com>\n\tMrinal K Bera <nayanbera@gmail.com>',title='About')
+        import lss_core
+        self.messageBox('LSS-Reader\n Version: '+lss_core.__version__+'\nLast Update: '+time.strftime("%m/%d/%Y %I:%M:%S %p",time.localtime(updateTime))+'\nCopyright belongs to:\n\tWei Bu <weibu1977@gmail.com>\n\tMrinal K Bera <nayanbera@gmail.com>',title='About')
         
     def openSpecFile(self,fname=None):
         self.ui.statusBar.clearMessage()       
@@ -704,6 +726,7 @@ class MainWindow (QMainWindow):
                 self.notify('The folder of the SPEC file cannot be written to. The log for this file is kept at '+logpath,title='Log')
             elif logpath is None:
                 self.notify('No log file could be opened for this SPEC file.',title='Log')
+            self.takeReaderLockAtOpen()        # D1, the owner's revised Q5 (2026-11-25): the lock on opening
         else:
             try:
                 self.directory=self.directory_old
@@ -1752,9 +1775,11 @@ class MainWindow (QMainWindow):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
             self.messageBox('Please select a scan with data to save first!')
             return
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Export SPEC scans', directory=self.directory)[0]
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export SPEC scans (the name gets _<scan>_<x>_<y>.txt)',
+                                                      directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
+        self.saveFileName=self.exportStem(self.saveFileName)
         cols=[str(c.currentText()) for c in (self.ui.spXComboBox,self.ui.spYComboBox,self.ui.spNComboBox)]
         missing=[i for i in self.selectedScanNums if any(c not in self.specData[i] for c in cols)]
         if missing:   # e.g. the selection changed since the columns were listed
@@ -1842,8 +1867,7 @@ class MainWindow (QMainWindow):
         self.ui.specPlotMplWidget.canvas.ax.errorbar(x,y,yerr,label=self.label,fmt='o-')
         if not self.spPointLabelsCheckBox.isChecked():
             return
-        for i in range(len(x)):
-            self.ui.specPlotMplWidget.canvas.ax.text(x[i],y[i],str(i),color='r',fontsize=16)
+        index_labels(self.ui.specPlotMplWidget.canvas.ax,x,y,range(len(x)),color='r')   # F113
         
     def specPeakFit(self,x,y,yerr):
         par=[x[np.argmax(y)],np.abs(x[-1]-x[0])/2.0,np.max(y),0.0,0.0,np.abs(x[0]-x[1]),0.0,1]
@@ -1974,7 +1998,9 @@ class MainWindow (QMainWindow):
         from PyQt5.QtWidgets import QCheckBox
         box=QCheckBox('Point #')
         box.setObjectName('spPointLabelsCheckBox')
-        box.setToolTip('Label each point of the SPEC plot with its index in the scan (0, 1, 2, ...)')
+        box.setToolTip('Label each point of the SPEC plot with its index in the scan (0, 1, 2, ...). Where the numbers '
+                       'would overlap, the later ones are hidden; zoom in and they come back once they fit (F113). '
+                       'Plot options can also hide them')
         box.setChecked(True)
         layout=self.ui.horizontalLayout_8
         layout.insertWidget(layout.indexOf(self.ui.spLegendCheckBox)+1,box)
@@ -2792,12 +2818,17 @@ class MainWindow (QMainWindow):
         self.ui.mcaPlotMplWidget.canvas.draw()
             
     def saveMcaData(self):
-        self.saveMcaFileName=QFileDialog.getSaveFileName(caption='Export MCA spectra',directory=self.directory)[0]
+        self.saveMcaFileName=QFileDialog.getSaveFileName(caption='Export MCA spectra (the name gets <frame>_<Qz>_mca.txt)',
+                                                         directory=self.directory)[0]
         if self.saveMcaFileName=='':   # dialog cancelled: write nothing
             return
-        for i in self.selectedMcaScanNums:
-            self.fmcaName=self.saveMcaFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_''%.4f'%self.mcaPar[i]['Q'][2]+'_mca.txt'
+        self.saveMcaFileName=self.exportStem(self.saveMcaFileName,('_mca.txt',))
+        names=[(self.saveMcaFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_''%.4f'%self.mcaPar[i]['Q'][2]
+                +'_mca.txt',i) for i in self.selectedMcaScanNums]
+        existed=self.existingFiles([n for n,_ in names])
+        for self.fmcaName,i in names:
             np.savetxt(self.fmcaName,self.nomMcaData[i],fmt='%.4f\t%.4e\t%.4e')
+        self.exportNotice([n for n,_ in names],existed)
             
     def mcaPeakFit(self):  #fit the mca spectrum
         self.mcafitstatus=1 #let self.peakfit know it's mca fit
@@ -2879,7 +2910,12 @@ class MainWindow (QMainWindow):
         inten=self.fitpeakpara[0][1]*self.fitpeakpara[0][2]
         error=np.sqrt(self.fitpeakpara[0][1]**2*self.fiterror[2]**2+self.fitpeakpara[0][2]**2*self.fiterror[1]**2)
        # print frame, qc, energy, inten, error
-        self.mcaIntData.append([frame, qz, energy, inten, error])
+        rows=[list(r) for r in self.mcaIntData]     # a Merge leaves an array (release push, 2026-11-26)
+        row=[frame, qz, energy, inten, error]
+        if rows and len(rows[0])>=7:                # Fit lines' rows (F110): no reader's fit for this point
+            row+=[float('nan'),float('nan')]
+        rows.append(row)
+        self.mcaIntData=rows
         if self.ui.mcaXAxisComboBox.currentIndex()==0:
             string=str(int(frame))+'\t'+'%.4e'%inten+'\t'+'%.4e'%error 
         elif self.ui.mcaXAxisComboBox.currentIndex()==1:
@@ -2905,11 +2941,11 @@ class MainWindow (QMainWindow):
             else:
                 x=data[:,2]
                 self.ui.mcaIntPlotMplWidget.canvas.ax.set_xlabel('Energy (keV)')
-            two=data.shape[1]>=7                    # F110: XeRay (default) and the reader's fit
-            self.ui.mcaIntPlotMplWidget.canvas.ax.errorbar(x,y,yerr,fmt='o',label='#0 XeRay' if two else '#0')
+            two=data.shape[1]>=7                    # F110: the reader's fit (default) and XeRay beside it
+            self.ui.mcaIntPlotMplWidget.canvas.ax.errorbar(x,y,yerr,fmt='o',label='#0 reader\'s fit' if two else '#0')
             if two:
                 self.ui.mcaIntPlotMplWidget.canvas.ax.errorbar(x,data[:,5],data[:,6],fmt='s',mfc='none',
-                                                               label='#0 reader\'s fit')
+                                                               label='#0 XeRay')
         except:
             self.messageBox('no mca integral data to process.')
         if len(self.selectedmcafiles_rows)!=0: #plot the loaded mca int data
@@ -2929,8 +2965,8 @@ class MainWindow (QMainWindow):
                     string='%.4f'%self.mcaIntData[i][1]+'\t'+'%.4e'%self.mcaIntData[i][3]+'\t'+'%.4e'%self.mcaIntData[i][4]
                 else:
                     string='%.4f'%self.mcaIntData[i][2]+'\t'+'%.4e'%self.mcaIntData[i][3]+'\t'+'%.4e'%self.mcaIntData[i][4]
-                if len(self.mcaIntData[i])>=7:     # F110: the reader's fit beside XeRay's
-                    string+='\tfit %.4e\t%.4e' % (self.mcaIntData[i][5],self.mcaIntData[i][6])
+                if len(self.mcaIntData[i])>=7:     # F110: XeRay beside the reader's fit
+                    string+='\tXeRay %.4e\t%.4e' % (self.mcaIntData[i][5],self.mcaIntData[i][6])
                 self.ui.mcaDataListWidget.addItem(string)
             self.updateMcaIntPlot()
         except:
@@ -2985,9 +3021,14 @@ class MainWindow (QMainWindow):
         
     def mcaSaveIntData(self):
         try:
-            self.saveFileName=QFileDialog.getSaveFileName(caption='Export fluorescence integrals',directory=self.directory)[0]
+            self.saveFileName=QFileDialog.getSaveFileName(
+                caption='Export fluorescence integrals (the name gets _flu.txt, and _flu_xeray.txt after Fit lines)',
+                directory=self.directory)[0]
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
+            self.saveFileName=self.exportStem(self.saveFileName,('_flu_xeray.txt','_flu.txt'))
+            files=[self.saveFileName+'_flu.txt',self.saveFileName+'_flu_xeray.txt']
+            existed=self.existingFiles(files)
             fid=open(self.saveFileName+'_flu.txt','w')
             try:
                 fid.write('#'+str(self.command)+'\n')
@@ -3001,15 +3042,19 @@ class MainWindow (QMainWindow):
                 else:
                     fid.write(str(self.mcaIntData[i][2])+'\t'+str(self.mcaIntData[i][3])+'\t'+str(self.mcaIntData[i][4])+'\n')
             fid.close()
-            if len(self.mcaIntData) and len(self.mcaIntData[0])>=7:   # F110: the reader's fit (rows may be an array)
+            if len(self.mcaIntData) and len(self.mcaIntData[0])>=7:   # F110: XeRay beside (rows may be an array)
                 col=min(self.ui.mcaXAxisComboBox.currentIndex(),2)
-                with open(self.saveFileName+'_flu_fit.txt','w') as f2:
-                    f2.write('#'+str(self.command)+' -- the reader\'s fit (the _flu.txt beside it holds XeRay\'s)\n')
+                with open(self.saveFileName+'_flu_xeray.txt','w') as f2:
+                    f2.write('#'+str(self.command)+' -- XeRay\'s fit (the _flu.txt beside it holds the reader\'s)\n')
                     for r in self.mcaIntData:
-                        f2.write(str(r[col])+'\t'+str(r[5])+'\t'+str(r[6])+'\n')
+                        if np.isfinite(r[5]):                 # an accepted single fit has no XeRay fit
+                            f2.write(str(r[col])+'\t'+str(r[5])+'\t'+str(r[6])+'\n')
+                self.exportNotice(files,existed)
+            else:
+                self.exportNotice(files[:1],existed)
             self.scriptLine(self.fluorescenceScript(self.saveFileName))
-        except:
-            print ('no mca integral data to save.')
+        except Exception as e:      # said, not printed to a console nobody sees (release push, 2026-11-26)
+            self.notify('The fluorescence integrals were not exported: %s' % e,title='Export')
                 
     def fluorescenceScript(self,name):
         """The lss_core call for the last fluorescence export, when there is one."""
@@ -5024,6 +5069,7 @@ class MainWindow (QMainWindow):
         self.saveFileName=QFileDialog.getSaveFileName(caption='Export GIOXS data',directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled: write nothing
             return
+        self.saveFileName=self.exportStem(self.saveFileName,('_bg_gio.txt',))
         for i in range(len(self.gioxsdata)):
             fname=self.saveFileName+self.gioxsname[i]
             np.savetxt(fname,self.gioxsdata[i],fmt='%.4f\t%.4e\t%.4e')
@@ -5787,12 +5833,16 @@ class MainWindow (QMainWindow):
         summary to the right (owner, 2026-11-21; lss_core.burn.plot)."""
         canvas=self.uipdburn.burnTrendPlotWidget.canvas
         burnmod.plot(res,canvas.fig,'%s S# %d' % (os.path.basename(self.specFileName),res.scan),
-                     residuals=self.fitResidualsShown())     # F74
-        try:
-            canvas.fig.subplots_adjust(left=0.1,right=0.97,top=0.9,bottom=0.09)
+                     residuals=self.fitResidualsShown(),     # F74
+                     fontsize=mpl.rcParams['font.size'])     # owner, 2026-11-26: the tabs' size at least
+        try:        # F111: the margins from the text at the canvas's size, recomputed at every draw (resizing too)
+            canvas.fig.set_layout_engine('constrained')
         except Exception:
-            pass
-        canvas.draw()
+            canvas.fig.subplots_adjust(left=0.1,right=0.97,top=0.9,bottom=0.09)
+        import warnings
+        with warnings.catch_warnings():   # a canvas not laid out yet is too small for the layout: it is redone on show
+            warnings.filterwarnings('ignore',message='constrained_layout not applied')
+            canvas.draw()
 
     def exportBurn(self):
         """The burn test on show as two text files (F95 B9)."""
@@ -5805,10 +5855,7 @@ class MainWindow (QMainWindow):
                                          directory=base)[0]
         if not name:
             return
-        for end in ('_burn.txt','_burn_trends.txt','.txt'):
-            if name.endswith(end):
-                name=name[:-len(end)]
-                break
+        name=self.exportStem(name,('_burn_trends.txt','_burn.txt'))
         cols,arr=res.data()
         head='%s S# %d, %s burn; %s\n%s' % (os.path.basename(self.specFileName),res.scan,res.kind,
                                             '; '.join(res.notes) or 'no notes','\t'.join(cols))
@@ -6075,9 +6122,11 @@ class MainWindow (QMainWindow):
 
     def savePilGISAXS(self):
         try:
-            self.saveFileName = QFileDialog.getSaveFileName(caption='Export GIOXS data', directory=self.directory)[0]
+            self.saveFileName = QFileDialog.getSaveFileName(caption='Export the GISAXS map (the name gets _gisaxs.txt)',
+                                                            directory=self.directory)[0]
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
+            self.saveFileName=self.exportStem(self.saveFileName,('_gisaxs.txt',))
             data2d = []
             fname_2d = self.saveFileName + '_gisaxs.txt'
             for i in range(len(self.pilDataBin)):
@@ -6263,6 +6312,15 @@ class MainWindow (QMainWindow):
                          'overlaps. Off: the factors are fitted and shown in the table (marked "not applied") but the '
                          'data stay as collected, normalised by the monitor and absorbers only, so any disagreement '
                          'stays visible. Pinhole geometry only.')
+        unm=QCheckBox('Join levels without overlap (unscaled)',g)
+        unm.setObjectName('gidUnmatchedLevelsCheckBox')
+        unm.setChecked(gp.unmatched_levels=='unscaled')
+        unm.setToolTip('Stopgap (off by default). A Qz level whose rows share no beta with the level below has no '
+                       'overlap to fit its join factor on, so the patch stops. On: such a level is added as '
+                       'collected, normalised by the monitor and absorbers only, with no factor and no check of its '
+                       'scale. Any offset between the levels (monitor, absorber, sample height, response) shows as '
+                       'a step at the seam, and the errors are counting only. The seam is marked in the table '
+                       '("UNSCALED") and in the saved files. Pinhole geometry only.')
         foot=QComboBox(g)
         foot.setObjectName('gidFootprintComboBox')
         foot.addItems(['exact','IDL'])
@@ -6309,6 +6367,7 @@ class MainWindow (QMainWindow):
             brow.addWidget(w_)
         form.addRow('Beam (physical)',brow)
         form.addRow(joins)
+        form.addRow(unm)
         form.addRow('Frames per bin, at least',minf)
         form.addRow('2theta range across levels',trans)
         form.addRow(arm)
@@ -6367,10 +6426,11 @@ class MainWindow (QMainWindow):
                                             response=resp.currentText(),arm_correction=arm.isChecked(),
                                             min_frames=minf.value(),footprint='exact' if foot.currentIndex()==0 else 'idl',
                                             beam_fwhm_um=bfw.value(),beam_h_fwhm_mm=bhw.value(),apply_joins=joins.isChecked(),
+                                            unmatched_levels='unscaled' if unm.isChecked() else 'refuse',
                                             beam_centre_mm=None if bcf.isChecked() else bce.value(),
                                             transverse='intersection' if trans.currentIndex()==0 else 'union')
             hard.setEnabled(area.isChecked())
-            for w in (pdist,resp,arm,fit,minf,trans,foot,joins):
+            for w in (pdist,resp,arm,fit,minf,trans,foot,joins,unm):
                 w.setEnabled(pin.isChecked())
             physical=pin.isChecked() and resp.currentText().startswith('physical')
             for w in (bfw,bcf,bhw):
@@ -6401,6 +6461,7 @@ class MainWindow (QMainWindow):
             bcf.setChecked(dflt.beam_centre_mm is None)
             bce.setValue(0.0)
             joins.setChecked(dflt.apply_joins)
+            unm.setChecked(dflt.unmatched_levels=='unscaled')
             apply()
 
         def fitdist():
@@ -6430,6 +6491,7 @@ class MainWindow (QMainWindow):
             w_.valueChanged.connect(apply)
         bcf.toggled.connect(apply)
         joins.toggled.connect(apply)
+        unm.toggled.connect(apply)
         fit.clicked.connect(fitdist)
         apply()
         ready[0]=True
@@ -6446,6 +6508,7 @@ class MainWindow (QMainWindow):
         d.gidFootprintComboBox=foot
         d.gidBeamFwhmSpinBox,d.gidBeamCentreSpinBox,d.gidBeamCentreFitCheckBox=bfw,bce,bcf
         d.gidBeamHFwhmSpinBox,d.gidApplyJoinsCheckBox=bhw,joins
+        d.gidUnmatchedLevelsCheckBox=unm
         d.gidLiveCheckBox,d.gidLiveTimer=live,timer
         return d
 
@@ -6505,8 +6568,11 @@ class MainWindow (QMainWindow):
         t=d.gidJoinTable
         t.setRowCount(len(self.gidJoinLog))
         for r,j in enumerate(self.gidJoinLog):
-            vals=[j['label'],j['kind'],'%.3f' % j['x_from'],'%.3f' % j['x_to'],'%d' % j['points'],
-                  '%.4g +/- %.2g%s' % (j['factor'],j['error'],'' if j.get('applied',True) else ' (not applied)'),
+            if j.get('unscaled'):
+                fac='1 (UNSCALED: no overlap; edge ratio %.3g)' % j.get('edge_ratio',float('nan'))
+            else:
+                fac='%.4g +/- %.2g%s' % (j['factor'],j['error'],'' if j.get('applied',True) else ' (not applied)')
+            vals=[j['label'],j['kind'],'%.3f' % j['x_from'],'%.3f' % j['x_to'],'%d' % j['points'],fac,
                   '%.2f' % j['chi2']]
             for c,v in enumerate(vals):
                 t.setItem(r,c,QTableWidgetItem(v))
@@ -6596,6 +6662,9 @@ class MainWindow (QMainWindow):
             self.gidPatchRefused(before)      # the callers say why (gidPatch, gidWorksheetPatch)
             raise
         self.pilPatchData=patch
+        note=gidmod.seam_note(self.gidJoinInfo) if gp.pinhole else ''
+        if note:
+            self.notify('GID Patch: '+note+'. The scale across these seams is not checked.',title='GID Patch')
         try:
             self.gidFinishMap()
         except (IndexError,gidmod.GIDError) as e:   # gid.products refuses an empty Q grid with a GIDError (2026-11-24)
@@ -6884,10 +6953,18 @@ class MainWindow (QMainWindow):
         if axes not in ('Angles','Q') or getattr(self,'pilGIDData',None) is None:
             self.messageBox('Make a GID map first, with the axes in Angles or Q, then save it.')
             return
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export GIOXS data', directory=self.directory)[0])
+        self.saveFileName=str(QFileDialog.getSaveFileName(
+            caption='Export the GID map (the name gets _qxy_gid.txt, _qz_gid.txt, _q2d_gid.txt, or the angle files)',
+            directory=self.directory)[0])
         if self.saveFileName=='':   # dialog cancelled: write nothing
             return
-        gidmod.save(self.saveFileName,self.gidProducts(axes))
+        self.saveFileName=self.exportStem(self.saveFileName,('_qxy_gid.txt','_qz_gid.txt','_q2d_gid.txt','_dth_gid.txt',
+                                                             '_beta_gid.txt','_agnle2d_gid.txt'))
+        prod=self.gidProducts(axes)
+        tags=('_qxy_gid.txt','_qz_gid.txt','_q2d_gid.txt','_dth_gid.txt','_beta_gid.txt','_agnle2d_gid.txt')
+        existed=self.existingFiles([self.saveFileName+t for t in tags])
+        note=gidmod.seam_note(getattr(self,'gidJoinInfo',None)) if self.gidEffectiveParams().pinhole else ''
+        self.exportNotice(gidmod.save(self.saveFileName,prod,note=note),existed)
         self.scriptLine(self.gidScript(self.saveFileName,axes))
 
     def gidScriptSettings(self):
@@ -8010,12 +8087,10 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.ax.set_ylabel('Reflectivity')
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.scanqzframe[self.pilrefsort[self.pilreforder]][:,0],self.scanqzframe[self.pilrefsort[self.pilreforder]][:,1],self.scanqzframe[self.pilrefsort[self.pilreforder]][:,2],fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder]))
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,1]*fac,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,2]*fac,fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder+1]))
-                for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder]])):
-                    if self.scanqzframe[self.pilrefsort[self.pilreforder]][i,0]>=xmin:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder]][i,0]+0.02*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder]][i,1]+0.02*(ymax-ymin),str(i-len(self.scanqzframe[self.pilrefsort[self.pilreforder]])),color='b',fontsize=16) 
-                for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder+1]])): 
-                    if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
+                k=np.flatnonzero(self.scanqzframe[self.pilrefsort[self.pilreforder]][:,0]>=xmin)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.scanqzframe[self.pilrefsort[self.pilreforder]][k,0],self.scanqzframe[self.pilrefsort[self.pilreforder]][k,1],[int(j)-len(self.scanqzframe[self.pilrefsort[self.pilreforder]]) for j in k],color='b',where='upper right')
+                k=np.flatnonzero(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0]<=xmax)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,1]*fac,[int(j) for j in k],color='r',where='lower left')
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
                 self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
@@ -8048,12 +8123,10 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.ax.set_ylabel('Reflectivity')
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.pilrefdata[:,0],self.pilrefdata[:,1],self.pilrefdata[:,2],fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder]))
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,1]*fac,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,2]*fac,fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder+1]))
-                for i in range(len(self.pilrefdata)):
-                    if self.pilrefdata[i,0]>=xmin:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.pilrefdata[i,0]+0.02*(xmax-xmin),self.pilrefdata[i,1]+0.02*(ymax-ymin),str(i-len(self.pilrefdata)),color='b',fontsize=16) 
-                for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder+1]])): 
-                    if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
+                k=np.flatnonzero(self.pilrefdata[:,0]>=xmin)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.pilrefdata[k,0],self.pilrefdata[k,1],[int(j)-len(self.pilrefdata) for j in k],color='b',where='upper right')
+                k=np.flatnonzero(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0]<=xmax)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,1]*fac,[int(j) for j in k],color='r',where='lower left')
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
                 self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
@@ -8218,12 +8291,24 @@ class MainWindow (QMainWindow):
                     for i in range(len(data[:,0])):
                         self.ui.refNormRefListWidget.addItem('%.4f'%data[i,0]+'\t'+'%.4e'%data[i,1]+'\t'+'%.4e'%data[i,2]+'\t'+'%.4f'%perErr[i])        
             self.normRefData=data[np.argsort(data[:,0])]
+            # R/R_F of this curve, made whether or not R/RF is ticked: Export always writes both _ref.txt and
+            # _rrf.txt (owner, 2026-11-26). The arithmetic of the ticked case, unchanged: Qz + Qoff, then / R_F
             if self.ui.refRRFCheckBox.checkState()!=0:
                 self.ui.refRefDataPlotwidget.canvas.ax.set_ylabel('R/RF')
                 data[:,0]=data[:,0]+self.refQoff
                 data[:,1]=data[:,1]/self.fresnel(data[:,0],self.refQc)
                 data[:,2]=data[:,2]/self.fresnel(data[:,0],self.refQc)
                 self.RrfData=data.copy()   # the Qz^2 option below must only change what is plotted
+            else:
+                rrf=data.copy()            # the curve on show stays R; its R/R_F is kept for Export
+                try:
+                    with np.errstate(divide='ignore',invalid='ignore'):
+                        rrf[:,0]=rrf[:,0]+self.refQoff
+                        rrf[:,1]=rrf[:,1]/self.fresnel(rrf[:,0],self.refQc)
+                        rrf[:,2]=rrf[:,2]/self.fresnel(rrf[:,0],self.refQc)
+                    self.RrfData=rrf
+                except Exception:          # never an earlier curve's R/R_F (release push, 2026-11-26)
+                    self.RrfData=None
             if self.ui.refQzSqrCheckBox.checkState()!=0:
                 self.ui.refRefDataPlotwidget.canvas.ax.set_xlabel('Qz^2')
                 data[:,0]=data[:,0]**2
@@ -8275,21 +8360,23 @@ class MainWindow (QMainWindow):
                                                       directory=self.exportProposal())[0]
         if not self.saveFileName:
             return   #dialog cancelled
-        for end in ('_ref.txt','_rrf.txt','.txt'):          # a proposed or typed name given with an ending
-            if self.saveFileName.endswith(end):
-                self.saveFileName=self.saveFileName[:-len(end)]
-                break
+        self.saveFileName=self.exportStem(self.saveFileName,('_ref.txt','_rrf.txt'))   # a name given with an ending
         self.setPreference('export_folder',os.path.dirname(os.path.abspath(self.saveFileName)))
         if self.det=='Pilatus':
             reffile=self.saveFileName+'_ref.txt'
             rrffile=self.saveFileName+'_rrf.txt'
+            existed=self.existingFiles([reffile,rrffile])
             # Qz, R, dR: a one-scan patch keeps more columns (signal and background apart), which the
             # three-column format could not write (found by the crash sweep's random walk, 2026-11-23)
             np.savetxt(reffile,np.asarray(self.normRefData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
+            written,missing=[reffile],''
             try:
                 np.savetxt(rrffile,np.asarray(self.RrfData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
-            except:
-                print ('No rrf data available!')
+                written.append(rrffile)
+            except Exception:
+                missing=('No _rrf.txt: R/R_F could not be made with this Qc and Qoff'
+                         +(' (the %s beside it is an earlier one)' % os.path.basename(rrffile) if rrffile in existed else ''))
+            self.exportNotice(written,existed,missing)
             if self.refCovarianceCheckBox.isChecked():
                 self.saveRefCovariance(self.saveFileName)
             self.scriptLine(self.reflectivityScript(self.saveFileName))
@@ -8502,7 +8589,7 @@ class MainWindow (QMainWindow):
         except workbookmod.WorkbookReadOnly:
             self.workbookCache=None
             self.notify('The drops are not kept as the mask: %s (the yellow light). The curve is as shown.'
-                        % self.readerLock.describe(),title='Ref Patch')
+                        % self.readerLockText(),title='Ref Patch')
             return
         except Exception as e:
             self.workbookCache=None
@@ -8536,7 +8623,7 @@ class MainWindow (QMainWindow):
                 self.saveWorkbook(wb)
             except workbookmod.WorkbookReadOnly:
                 self.workbookCache=None
-                self.notify('The mask is not cleared: %s (the yellow light).' % self.readerLock.describe(),
+                self.notify('The mask is not cleared: %s (the yellow light).' % self.readerLockText(),
                             title='Ref Patch')
                 return
             except Exception as e:
@@ -8634,6 +8721,45 @@ class MainWindow (QMainWindow):
         par=self.specPar.get(scans[0],{}) if scans else {}
         return naming.sample_from_macro(par.get('SeriesMacro','') if isinstance(par,dict) else '')
 
+    @staticmethod
+    def exportStem(name,endings=()):
+        """The name an Export adds its own endings to: a typed or proposed
+        name given with one of ``endings`` or '.txt' loses it, so that
+        'run_flu.txt' does not become 'run_flu.txt_flu.txt' (release push,
+        2026-11-26; the reflectivity and burn exports did this already)."""
+        name=str(name)
+        for end in tuple(endings)+('.txt',):
+            if end and name.endswith(end):
+                return name[:-len(end)]
+        return name
+
+    def exportNotice(self,paths,existed=(),missing=''):
+        """Say what an Export wrote (release push, 2026-11-26): the files and
+        their folder, those that replaced a file of the same name (the save
+        dialog checks only the name typed, not the endings an export adds),
+        and ``missing``, a file it could not write. Info level: the status bar
+        and the Messages pane."""
+        paths=[str(p) for p in paths if p and os.path.exists(str(p))]
+        if not paths and not missing:
+            return
+        text='Exported '
+        if paths:
+            shown=[os.path.basename(p) for p in paths]
+            text+=(', '.join(shown) if len(shown)<=4 else '%s, ... (%d files)' % (', '.join(shown[:3]),len(shown)))
+            text+=' to %s' % os.path.dirname(os.path.abspath(paths[0]))
+            rep=[os.path.basename(p) for p in paths if p in set(map(str,existed))]
+            if rep:
+                text+='; replaced the earlier %s' % (', '.join(rep) if len(rep)<=4 else '%d files of those names' % len(rep))
+        else:
+            text+='nothing'
+        if missing:
+            text+='. %s' % missing
+        self.notify(text+'.',title='Export',level='info')
+
+    @staticmethod
+    def existingFiles(paths):
+        return {str(p) for p in paths if os.path.exists(str(p))}
+
     def exportProposal(self):
         """Where the Export dialog opens: the folder of the last Export (else the
         output folder) and the name <SPEC file>_<sample>_S<scans> (F105)."""
@@ -8700,7 +8826,7 @@ class MainWindow (QMainWindow):
                 self.notify('No covariance written: the patch on show is not the one the last Ref Patch made.',title=title)
                 return
             nf=float(self.ui.refNormLineEdit.text()) if self.ui.refNormFacCheckBox.checkState()>0 else None
-            rrf=self.ui.refRRFCheckBox.checkState()!=0
+            rrf=True      # _rrf.txt is always written (owner, 2026-11-26), so is its sidecar
             ref,rrfcd=ce.finish(chain.covdata('legacy'),self.refQc,self.refQoff,nf,rrf)
             written=[]
             if np.array_equal(ref.array(),np.asarray(self.normRefData,dtype=float)[:,:3]):
@@ -8731,8 +8857,6 @@ class MainWindow (QMainWindow):
             kw.append('qoff=%r' % float(self.ui.refQoffLineEdit.text()))
         if self.ui.refNormFacCheckBox.checkState()!=0:
             kw.append('norm_factor=%r' % float(self.ui.refNormLineEdit.text()))
-        if self.ui.refRRFCheckBox.checkState()==0:
-            kw.append('rrf=False')
         if getattr(self,'refMaskUsed',None):
             kw.append('mask=%r' % [list(sp) for sp in self.refMaskUsed])
         if self.refDrops:
@@ -9145,18 +9269,18 @@ class MainWindow (QMainWindow):
         fl=QPushButton('Fit lines',self)
         fl.setObjectName('mcaFitLinesPushButton')
         fl.setToolTip('Fit the fluorescence line of all selected spectra two ways, within the range in the Sum All field '
-                      '(owner, 2026-11-26, F110). XeRay (the default: the value plotted as circles, merged and exported '
-                      'in _flu.txt): one Gaussian on a straight line, unweighted least squares, as the Lee group\'s XeRay; '
+                      '(owner, 2026-11-26, F110). The reader\'s fit (the default: the value plotted as circles, merged and '
+                      'exported in _flu.txt; F22a): the Si escape peaks are stripped, the sum of the spectra is fitted for '
+                      'the line\'s position and width, then every spectrum for its height and background by Poisson maximum '
+                      'likelihood (F90 P1), a Gaussian on a quadratic background by default, for the Rayleigh spill-over. '
+                      'On the owner\'s real data the most accurate, with honest errors (C66: 49 of 192 conditions, pull SD '
+                      '1.08; C69, real line shapes: 34 of 160). Beside it, XeRay (squares, "XeRay" in the list, '
+                      '_flu_xeray.txt): one Gaussian on a straight line, unweighted least squares, as the Lee group\'s XeRay; '
                       'its error is sqrt(counts in the window), which leaves out the background and is too small where the '
-                      'background is large (XRF shootout: pull SD 1.92, up to 11.7). Beside it, the reader\'s fit '
-                      '(squares, "fit" in the list, _flu_fit.txt; F22a): the sum of the spectra is fitted for the line\'s '
-                      'position, then every spectrum for its height and background by Poisson maximum likelihood (F90 P1), '
-                      'with the width fixed at the detector\'s and the Si escape peaks stripped (Fit options; the '
-                      'shootout\'s most accurate method, with honest errors: pull SD 1.03), a Gaussian on a quadratic '
-                      'background by default, for the Rayleigh spill-over. Both report the line asked for (the first energy '
-                      'given in Fit options, the element\'s; the strongest when none is given) as its area over the channel '
-                      'width (the same units as Sum All, background removed). "Fit options..." beside it sets the shape, '
-                      'background, lines.')
+                      'background is large (pull SD 1.92, up to 11.7; accurate in 6 of 192 on real blanks). Both report the '
+                      'line asked for (the first energy given in Fit options, the element\'s; the strongest when none is '
+                      'given) as its area over the channel width (the same units as Sum All, background removed). "Fit '
+                      'options..." beside it sets the shape, background, lines.')
         fo=QPushButton('Fit options...',self)
         fo.setObjectName('mcaFitOptionsPushButton')
         fo.setToolTip('Shape, background, number of lines or their energies, sensitivity, for "Fit lines".')
@@ -9494,6 +9618,164 @@ class MainWindow (QMainWindow):
         lw.scrollToItem(lw.item(rows[0]))
         lw.itemSelectionChanged.emit()
 
+    # ---- F112 (owner, 2026-11-26): the plot options of each tab ----
+
+    def initPlotOptions(self):
+        """'Plot options...' at the right of the tab bar: the options of the
+        plots of the tab on show (plotoptions.PlotOptionsDialog), kept per tab
+        between sessions (preference plot_options) and applied by the
+        canvases at every draw (mplwidget.apply_plot_options)."""
+        from PyQt5.QtWidgets import QToolButton
+        b=QToolButton(self)
+        b.setObjectName('plotOptionsToolButton')
+        b.setText('Plot options...')
+        b.clicked.connect(self.showPlotOptions)
+        self.ui.PlotWidget.setCornerWidget(b,Qt.TopRightCorner)
+        b.show()
+        self.plotOptionsButton=b
+        self.plotOptionsDialog=None
+        self.registerPlotCanvases()
+        self.ui.PlotWidget.currentChanged.connect(self.plotOptionsTabChanged)
+        self.plotOptionsTabChanged()
+
+    def plotTabKey(self,i=None):
+        pw=self.ui.PlotWidget
+        i=pw.currentIndex() if i is None else i
+        page=pw.widget(i)
+        return page.objectName() if page is not None and page.objectName() else pw.tabText(i)
+
+    def plotTabCanvases(self,i):
+        """The canvases the options of tab ``i`` apply to (not the ROI close-up, a compact panel)."""
+        from mplwidget import MplCanvas
+        page=self.ui.PlotWidget.widget(i)
+        if page is None:
+            return []
+        return [c for c in page.findChildren(MplCanvas) if c.objectName()!='pilRoiCanvas']
+
+    def registerPlotCanvases(self):
+        """The tabs' canvases take their tab's options; matplotlib's own
+        "Customize" icon leaves their toolbars (owner, 2026-11-26: one entry,
+        Plot options; its editor is "Axes and curves..." inside it). Other
+        windows' toolbars (Ref Patch, the burn test) keep it."""
+        for i in range(self.ui.PlotWidget.count()):
+            key=self.plotTabKey(i)
+            for c in self.plotTabCanvases(i):
+                c.plot_options=(lambda k=key: self.plotOptions(k))
+                tb=getattr(c,'toolbar',None)
+                act=getattr(tb,'_actions',{}).get('edit_parameters') if tb is not None else None
+                if act is not None:
+                    act.setVisible(False)
+
+    def plotTabAxes(self,key):
+        """The plots of tab ``key`` as (plot id, name, axes): every drawn axes
+        of its canvases but colour bars and the residual strips (the plot id
+        keys a plot's entry in the options, F114)."""
+        import mplwidget
+        out=[]
+        for i in range(self.ui.PlotWidget.count()):
+            if self.plotTabKey(i)!=key:
+                continue
+            for c in self.plotTabCanvases(i):
+                for k,ax in enumerate(mplwidget.main_axes(c.figure)):
+                    what=mplwidget.drawn_text(ax.yaxis.label) or mplwidget.drawn_text(ax.title) or 'untitled'
+                    what=' '.join(str(what).split())[:50]
+                    out.append((mplwidget.plot_id(c.plot_name(),k),'Plot %d: %s' % (len(out)+1,what),ax))
+        return out
+
+    def plotOptions(self,key):
+        return (self.prefs.get('plot_options') or {}).get(key)
+
+    def setPlotOptions(self,key,opts):
+        """Keep tab ``key``'s options (all 'as drawn': none kept) and redraw its plots."""
+        import copy
+        import mplwidget
+        allopts=copy.deepcopy(self.prefs.get('plot_options') or {})
+        if mplwidget.plot_options_set(opts):
+            allopts[key]=copy.deepcopy(dict(opts))   # never the window's own objects: an edit in place would not be saved
+        else:
+            allopts.pop(key,None)
+        self.setPreference('plot_options',allopts)
+        self.plotOptionsTabChanged()
+        for i in range(self.ui.PlotWidget.count()):
+            if self.plotTabKey(i)==key:
+                for c in self.plotTabCanvases(i):        # what ax.clear() would keep of the earlier choice
+                    mplwidget.reset_plot_options(c.figure)
+                self.redrawPlotTab(i)
+
+    def copyPlotOptionsToAllTabs(self,opts):
+        """F114: the tab-wide options of ``opts`` to every tab with plots;
+        each keeps its own plots' entries (labels, ranges, curves)."""
+        for i in range(self.ui.PlotWidget.count()):
+            if not self.plotTabCanvases(i):
+                continue
+            key=self.plotTabKey(i)
+            mine=dict(self.plotOptions(key) or {})
+            new=dict(opts)
+            new['plots']=mine.get('plots') or {}
+            self.setPlotOptions(key,new)
+
+    def redrawPlotTab(self,i):
+        """Redraw tab ``i``'s plots by the tab's own drawing, when it shows
+        something (so that 'as drawn' undoes a choice), else the canvases as
+        they are."""
+        key=self.plotTabKey(i)
+        redraws={
+            'specPlotTab':(lambda: bool(getattr(self,'selectedScanNums',None)),self.updateSpecPlotData),
+            'pilatusTab':(lambda: bool(getattr(self,'selectedPilFramesNums',None)),self.updatePilPlotData),
+            'refTab':(lambda: len(getattr(self,'refData',[]) or [])>0,self.updateRefPlotData),
+            'cutAreaTab':(lambda: len(getattr(self,'cutData',[]) or [])>0,self.updateCutPlotData),
+            'mcaTab':(lambda: bool(getattr(self,'selectedMcaScanNums',None)),self.updateMcaPlotData),
+            'tab_3':(lambda: bool(getattr(self,'selectedplotfiles_rows',None)),self.updatePlotPlot),
+            'compareTab':(lambda: True,lambda: self.refreshCompare(force=True)),
+        }
+        done=False
+        if key in redraws:
+            when,how=redraws[key]
+            try:
+                if when():
+                    how()
+                    done=True
+            except Exception:
+                self.log.exception('plot options: the %s tab was not redrawn',key)
+        if key=='mcaTab' and len(getattr(self,'mcaIntData',[]) or [])>0:
+            try:
+                self.updateMcaIntPlot()
+            except Exception:
+                self.log.exception('plot options: the MCA integrals were not redrawn')
+        for c in self.plotTabCanvases(i):
+            c.draw_idle()
+        return done
+
+    def plotOptionsTabChanged(self,*_a):
+        b=getattr(self,'plotOptionsButton',None)
+        if b is None:
+            return
+        i=self.ui.PlotWidget.currentIndex()
+        has=bool(self.plotTabCanvases(i))
+        b.setEnabled(has)
+        name=self.ui.PlotWidget.tabText(i)
+        set_=self.plotOptions(self.plotTabKey(i))
+        b.setText('Plot options...' + (' *' if set_ else ''))
+        b.setToolTip(('The plots of the %s tab: font size, major and minor ticks, tick direction, ticks on all '
+                      'sides, grid (F112). Each tab keeps its own, between sessions; "as drawn" leaves a plot as '
+                      'the reader draws it. %s' % (name,'* : some are set for this tab.' if set_ else ''))
+                     if has else 'The %s tab has no plots to set.' % name)
+        d=getattr(self,'plotOptionsDialog',None)
+        if d is not None and d.isVisible() and has and d.key!=self.plotTabKey(i):   # another tab: its options
+            d.target(self.plotTabKey(i),name,mpl.rcParams['font.size'])
+
+    def showPlotOptions(self):
+        from plotoptions import PlotOptionsDialog
+        self.registerPlotCanvases()             # canvases made since
+        if self.plotOptionsDialog is None:
+            self.plotOptionsDialog=PlotOptionsDialog(self,self.plotOptions,self.setPlotOptions,self.plotTabAxes,
+                                                     self.copyPlotOptionsToAllTabs)
+        i=self.ui.PlotWidget.currentIndex()
+        self.plotOptionsDialog.target(self.plotTabKey(i),self.ui.PlotWidget.tabText(i),mpl.rcParams['font.size'])
+        self.plotOptionsDialog.show()
+        self.plotOptionsDialog.raise_()
+        return self.plotOptionsDialog
+
     # ---- F74 (owner, 2026-11-22): residuals above the plots that show a fit ----
 
     def fitResidualsShown(self):
@@ -9695,16 +9977,17 @@ class MainWindow (QMainWindow):
                       ('x range (min:max)',rng),('Centres',cen)):
             form.addRow(lab,w)
         form.addRow(fix)
-        if which=='mca':        # F90 P2, P3: on by default since F110 (the owner, 2026-11-26), for the reader's fit
+        if which=='mca':        # F90 P2, P3: escapes on, detector width off (F110 as revised by the owner, 2026-11-26)
             lo=self.mcaLineOptions()
             dw=QCheckBox('width from the detector',d); dw.setObjectName('mcaFitDetectorWidthCheckBox')
             dw.setChecked(lo['detector_width'])
             dw.setToolTip('The reader\'s fit (not XeRay\'s): fix the line width at the detector\'s resolution at the '
                           'first centre (the element\'s line), or at the line XeRay found when no centre is given: '
-                          'FWHM = sqrt(noise^2 + 8 ln2 x 3.65 eV x 0.115 x E). A free width trades off against a '
-                          'curved background (synthetic: +45 % with the elastic\'s escape peak under Zn Ka, C42). '
-                          'On by default (F110); the Fixed FWHM above is then ignored. With real-shaped lines over '
-                          'real scatter it reads about 5 to 7 % low (C69).')
+                          'FWHM = sqrt(noise^2 + 8 ln2 x 3.65 eV x 0.115 x E). Off by default (the owner, 2026-11-26): '
+                          'the width then comes from the sum of the series. Fixed, it needs the detector\'s own noise '
+                          '(measured 0.065 and 0.105 keV on the owner\'s two readouts) and reads about 6 % low with '
+                          'real line shapes (C69), 32 % low where the line is 1.65 x the model\'s width. The Fixed '
+                          'FWHM above is then ignored.')
             noise=QDoubleSpinBox(d); noise.setObjectName('mcaFitNoiseSpinBox'); noise.setRange(0.0,1.0)
             noise.setDecimals(3); noise.setSingleStep(0.005); noise.setSuffix(' keV'); noise.setValue(lo['noise_kev'])
             noise.setToolTip('The detector\'s electronic noise as a FWHM (keV): calibrate it on a strong peak, '
@@ -9714,7 +9997,7 @@ class MainWindow (QMainWindow):
             esc.setToolTip('The reader\'s fit (not XeRay\'s): before fitting, subtract each spectrum\'s Si K escape '
                            'spectrum: what was measured 1.740 keV higher, times Reed\'s escape fraction (about 0.1 % at '
                            '10 keV; constants from memory). Under 10 keV the elastic\'s escape peak at 8.26 keV sits under '
-                           'Zn Ka (C42). On by default (F110).')
+                           'Zn Ka (C42). On by default.')
             form.addRow(dw)
             form.addRow('Detector noise (FWHM)',noise)
             form.addRow(esc)
@@ -9858,10 +10141,13 @@ class MainWindow (QMainWindow):
         except workbookmod.WorkbookReadOnly:
             self.workbookCache=None
             if auto:                            # quiet, as automatic saves are
-                self.ui.statusBar.showMessage('Not saved: this reader is read-only (%s)' % self.readerLock.describe(),8000)
+                self.ui.statusBar.showMessage('Not saved: this reader is read-only (%s)' % self.readerLockText(),8000)
+            elif getattr(self,'readerLockGivenUp',False):
+                self.notify('Not saved: %s. File > Ask for the workbook\'s write access takes it back.'
+                            % self.readerLockText(),title='Save')
             else:
                 self.notify('Not saved: %s. This reader opened the workbook read-only (the yellow light); it tries '
-                            'again every %d s.' % (self.readerLock.describe(),int(readerlock.REFRESH_S)),title='Save')
+                            'again every %d s.' % (self.readerLockText(),int(readerlock.REFRESH_S)),title='Save')
             return []
         except Exception as e:
             self.workbookCache=None             # what was added in memory but not written is dropped
@@ -9938,8 +10224,11 @@ class MainWindow (QMainWindow):
     def initReadOnlyLight(self):
         """The yellow light at the right of the status bar (D1: "a small
         yellow indicator light in the GUI shows that state"), hidden while
-        this reader writes the workbook; and the timer that keeps the lock
-        alive, or tries again for it (lss_core.readerlock)."""
+        this reader writes the workbook; the File menu's two actions on the
+        write access (the owner's revised Q5: giving it up is one click);
+        and the timer that keeps the lock alive, or tries again for it
+        (lss_core.readerlock)."""
+        from PyQt5.QtWidgets import QAction
         lab=QLabel(' read-only ',self.ui.statusBar)
         lab.setObjectName('readOnlyLightLabel')
         lab.setStyleSheet('QLabel{background:#f5c400;color:black;border-radius:3px;padding:0 4px;}')
@@ -9947,15 +10236,53 @@ class MainWindow (QMainWindow):
         self.ui.statusBar.addPermanentWidget(lab)
         self.readOnlyLight=lab
         self.readerLock=None
+        self.readerLockGivenUp=False      # this reader gave up the write access: not taken back by itself
+        self.releaseRequestShown=None
+        self.releaseRequestBox=None
+        give=QAction("Give up the workbook's write access",self)
+        give.setObjectName('actionGiveUpWriteAccess')
+        give.setToolTip('Stop saving to this SPEC file\'s workbook, so that another reader of the same file can take '
+                        'it over (D1; the owner: one click). This reader then shows the yellow light and saves '
+                        'nothing until File > Ask for the workbook\'s write access.')
+        give.triggered.connect(self.giveUpWriteAccess)
+        ask=QAction("Ask for the workbook's write access",self)
+        ask.setObjectName('actionAskWriteAccess')
+        ask.setToolTip('Take the workbook\'s write access when it is free, else ask the reader that holds it to give '
+                       'it up: that reader is shown your request with Release and Keep. This reader takes the '
+                       'access once it is given up (tried every %d s).' % int(readerlock.REFRESH_S))
+        ask.triggered.connect(self.askWriteAccess)
+        self.ui.menuFile.insertAction(self.ui.actionQuit,give)
+        self.ui.menuFile.insertAction(self.ui.actionQuit,ask)
+        self.ui.menuFile.insertSeparator(self.ui.actionQuit)
+        self.ui.actionGiveUpWriteAccess,self.ui.actionAskWriteAccess=give,ask
+        lab.addAction(ask)                # right-click on the yellow light
+        lab.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.readerLockTimer=QTimer(self)
         self.readerLockTimer.setInterval(int(readerlock.REFRESH_S*1000))
         self.readerLockTimer.timeout.connect(self.readerLockTick)
+        self.updateReadOnlyLight()
+
+    def takeReaderLockAtOpen(self):
+        """D1, the owner's revised Q5 (2026-11-25): the workbook's lock is
+        taken when the SPEC file is opened (a .lock file beside it, a cost the
+        owner accepts), so the yellow light means "another reader has this
+        workbook" from the start. LSS_READER_LOCK_AT_OPEN=0 (the tests'
+        setting, which open sample_data/ before moving the output folder)
+        leaves it to the first time the workbook is needed."""
+        if os.environ.get('LSS_READER_LOCK_AT_OPEN','1')=='0' or not getattr(self,'specFileName',None):
+            return None
+        self.readerLockGivenUp=False
+        lk=self.workbookLock()
+        if not lk.writable and lk.try_again():          # the same file opened again, after giving it up
+            self.workbookCache=None
+            self.updateReadOnlyLight()
+        return lk
 
     def workbookLock(self,path=None):
         """The lock of the workbook at ``path`` (the open SPEC file's): taken
-        the first time the workbook is needed (not when the SPEC file is
-        opened, so that nothing is written beside a SPEC file whose workbook is
-        never used), released when another workbook is needed."""
+        when the SPEC file is opened (takeReaderLockAtOpen), or else the first
+        time the workbook is needed; released when another workbook is
+        needed."""
         path=path or self.workbookPath()
         lk=getattr(self,'readerLock',None)
         if lk is not None and lk.path==path+readerlock.LOCK_SUFFIX:
@@ -9967,28 +10294,157 @@ class MainWindow (QMainWindow):
         self.readerLockTimer.start()
         self.updateReadOnlyLight()
         if not lk.writable:
-            self.notify('This workbook is open in another reader: %s. Results, notes and masks are shown but not '
-                        'saved here until it closes (tried again every %d s).' % (lk.describe(),int(readerlock.REFRESH_S)),
-                        title='Workbook')
+            if 'reason' in (lk.holder or {}):
+                self.notify('The workbook cannot be saved here: %s. Results, notes and masks are shown but not saved '
+                            '(tried again every %d s).' % (lk.holder['reason'],int(readerlock.REFRESH_S)),title='Workbook')
+            else:
+                self.notify('This workbook is open in another reader: %s. Results, notes and masks are shown but not '
+                            'saved here until it closes or gives up its write access (tried again every %d s; File > '
+                            'Ask for the workbook\'s write access asks it to).' % (self._lockWho(lk),int(readerlock.REFRESH_S)),
+                            title='Workbook')
         return lk
 
+    def readerLockText(self):
+        """Why this reader does not save, for messages: the lock's own
+        description, or that the user gave the write access up."""
+        lk=getattr(self,'readerLock',None)
+        if lk is None:
+            return 'no workbook lock'
+        if not lk.writable and getattr(self,'readerLockGivenUp',False):
+            return 'read-only: you gave up the write access'
+        return lk.describe()
+
     def readerLockTick(self):
-        """Every REFRESH_S: keep the lock alive, or try again for it. A change
-        either way is said, and the workbook is opened again as it now is."""
+        """Every REFRESH_S: keep the lock alive and look for a request to
+        release it, or try again for it (not after the user gave it up). A
+        change either way is said, and the workbook is opened again as it
+        now is."""
         lk=getattr(self,'readerLock',None)
         if lk is None:
             return
         was=lk.writable
-        now=lk.refresh() if was else lk.try_again()
+        if was:
+            now=lk.refresh()
+        elif getattr(self,'readerLockGivenUp',False):
+            now=False
+        else:
+            now=lk.try_again()
         if bool(now)!=bool(was):
             self.workbookCache=None
             self.updateReadOnlyLight()
             if now:
-                self.notify('The other reader closed this workbook: this reader saves to it again.',title='Workbook',
-                            level='info')
+                self.notify('The other reader closed this workbook or gave up its write access: this reader saves to '
+                            'it again.',title='Workbook',level='info')
             else:
-                self.notify('Another reader took this workbook: %s. Nothing more is saved here.' % lk.describe(),
+                self.notify('Another reader took this workbook: %s. Nothing more is saved here.' % self._lockWho(lk),
                             title='Workbook')
+        if now:
+            self.checkReleaseRequest()
+
+    @staticmethod
+    def _lockWho(lk):
+        """The lock's description without its 'read-only: ' prefix, for a
+        sentence that says so already."""
+        text=lk.describe()
+        return text[len('read-only: '):] if text.startswith('read-only: ') else text
+
+    @staticmethod
+    def _readerName(d):
+        d=d or {}
+        return '%s on %s' % (d.get('user') or 'another reader',d.get('host') or 'another computer')
+
+    def checkReleaseRequest(self):
+        """The holder: another reader asked for the write access
+        (readerlock.request_release). Said once per request, in the Messages
+        pane and in a box that does not stop the work, with Release (give it
+        up) and Keep (the request is removed)."""
+        lk=getattr(self,'readerLock',None)
+        req=lk.release_requested() if lk is not None else None
+        if not req:
+            return None
+        key=(req.get('token'),req.get('asked'))
+        if key==self.releaseRequestShown:
+            return req
+        self.releaseRequestShown=key
+        who=self._readerName(req)
+        note=(': "%s"' % req['note']) if req.get('note') else ''
+        self.notify('%s asks for the write access to this workbook%s. Release gives it to them (this reader then saves '
+                    'nothing); Keep says no. File > Give up the workbook\'s write access does the same as Release.'
+                    % (who,note),title='Workbook')
+        box=QMessageBox(QMessageBox.Question,'Workbook','%s asks for the write access to this workbook%s.' % (who,note),
+                        parent=self)
+        box.setObjectName('releaseRequestBox')
+        rel=box.addButton('Release',QMessageBox.AcceptRole)
+        keep=box.addButton('Keep',QMessageBox.RejectRole)
+        rel.setToolTip('Give up the write access: the other reader takes it within %d s, and this reader saves nothing.'
+                       % int(readerlock.REFRESH_S))
+        keep.setToolTip('Keep saving here; the request is removed.')
+        box.setWindowModality(Qt.NonModal)
+        box.buttonClicked.connect(lambda b,r=rel: self.giveUpWriteAccess() if b is r else self.keepWriteAccess())
+        self.releaseRequestBox=box
+        box.show()
+        return req
+
+    def closeReleaseRequestBox(self):
+        box,self.releaseRequestBox=getattr(self,'releaseRequestBox',None),None
+        if box is not None:
+            try:
+                box.close()
+            except RuntimeError:
+                pass
+
+    def giveUpWriteAccess(self):
+        """File > Give up the workbook's write access (the owner's one click):
+        pending automatic saves are written first, then the lock is removed;
+        this reader shows the yellow light and does not take the lock back by
+        itself."""
+        lk=getattr(self,'readerLock',None)
+        self.closeReleaseRequestBox()
+        if lk is None or not lk.writable:
+            return False
+        if getattr(self,'autoSavePending',None):
+            self.flushAutoSave()
+        lk.release()
+        self.readerLockGivenUp=True
+        self.workbookCache=None
+        self.updateReadOnlyLight()
+        self.notify('You gave up the write access to this workbook: results, notes and masks are no longer saved here. '
+                    'File > Ask for the workbook\'s write access takes it back.',title='Workbook',level='info')
+        return True
+
+    def keepWriteAccess(self):
+        lk=getattr(self,'readerLock',None)
+        self.closeReleaseRequestBox()
+        if lk is not None:
+            lk.decline_request()
+        self.notify('Kept the write access to this workbook; the request was removed.',title='Workbook',level='info')
+
+    def askWriteAccess(self):
+        """File > Ask for the workbook's write access: take it when free, else
+        ask its holder (readerlock.request_release) and take it once given up
+        (the timer)."""
+        if not getattr(self,'specFileName',None):
+            self.notify('Open a SPEC file first.',title='Workbook')
+            return False
+        lk=getattr(self,'readerLock',None) or self.workbookLock()
+        self.readerLockGivenUp=False
+        if lk.writable or lk.try_again():
+            self.workbookCache=None
+            self.updateReadOnlyLight()
+            self.notify('This reader writes the workbook.',title='Workbook',level='info')
+            return True
+        self.updateReadOnlyLight()
+        h=lk.holder or {}
+        if 'reason' in h:
+            self.notify('The workbook cannot be saved here: %s.' % h['reason'],title='Workbook')
+            return False
+        if lk.request_release():
+            self.notify('Asked %s for the write access to this workbook. This reader takes it once they give it up '
+                        '(tried every %d s).' % (self._readerName(h),int(readerlock.REFRESH_S)),title='Workbook',
+                        level='info')
+        else:
+            self.notify('The request could not be written beside the workbook (%s).' % lk.request_path,title='Workbook')
+        return False
 
     def updateReadOnlyLight(self):
         lab=getattr(self,'readOnlyLight',None)
@@ -9997,10 +10453,23 @@ class MainWindow (QMainWindow):
         lk=getattr(self,'readerLock',None)
         ro=lk is not None and not lk.writable
         lab.setVisible(ro)
-        lab.setToolTip(('%s. Results, notes and masks are shown but not saved to %s; the reader tries again every '
-                        '%d s and says when it saves again (D1).' % (lk.describe()[:1].upper()+lk.describe()[1:],
-                        os.path.basename(lk.path[:-len(readerlock.LOCK_SUFFIX)]),int(readerlock.REFRESH_S)))
-                       if ro else '')
+        if ro and getattr(self,'readerLockGivenUp',False):
+            tip=('You gave up the write access to %s: results, notes and masks are shown but not saved. Right-click, '
+                 'or File > Ask for the workbook\'s write access, to take it back (D1).'
+                 % os.path.basename(lk.path[:-len(readerlock.LOCK_SUFFIX)]))
+        elif ro:
+            text=lk.describe()
+            tip=('%s. Results, notes and masks are shown but not saved to %s; the reader tries again every %d s and says '
+                 'when it saves again. Right-click to ask for the write access (D1).'
+                 % (text[:1].upper()+text[1:],os.path.basename(lk.path[:-len(readerlock.LOCK_SUFFIX)]),
+                    int(readerlock.REFRESH_S)))
+        else:
+            tip=''
+        lab.setToolTip(tip)
+        for name,on in (('actionGiveUpWriteAccess',lk is not None and lk.writable),('actionAskWriteAccess',ro)):
+            act=getattr(self.ui,name,None)
+            if act is not None:
+                act.setEnabled(bool(on))
 
     def releaseReaderLock(self):
         lk=getattr(self,'readerLock',None)
@@ -10010,6 +10479,9 @@ class MainWindow (QMainWindow):
             except OSError as e:
                 self.log.info('lock not released: %s',e)
         self.readerLock=None
+        self.readerLockGivenUp=False
+        self.releaseRequestShown=None
+        self.closeReleaseRequestBox()
         timer=getattr(self,'readerLockTimer',None)
         if timer is not None:
             timer.stop()
@@ -10180,7 +10652,7 @@ class MainWindow (QMainWindow):
         items=[dict(scans=scans,data=d,columns=cols,label='R',settings=settings,
                     recipe=self.recipe(self.reflectivityScript))]
         rrf=getattr(self,'RrfData',None)
-        if rrf is not None and len(rrf):
+        if rrf is not None and len(rrf) and self.ui.refRRFCheckBox.checkState()!=0:   # saved while R/RF is ticked
             r=np.asarray(rrf,float)
             items.append(dict(scans=scans,data=r,columns=['Qz','R/RF','d(R/RF)','dQz'][:r.shape[1]],label='R/RF'))
         return items
@@ -10378,7 +10850,7 @@ class MainWindow (QMainWindow):
         if self.mcaLineFits is not None:
             ref,each,nums=self.mcaLineFits
             fits=[('sum of %d spectra' % len(each),ref)]+[('frame %d' % (n+1),r) for n,r in zip(nums,each)]
-        cols=['frame','Qz','energy','I','dI']+(['I_fit','dI_fit'] if len(rows[0])>=7 else [])   # F110
+        cols=['frame','Qz','energy','I','dI']+(['I_xeray','dI_xeray'] if len(rows[0])>=7 else [])   # F110
         items=[dict(scans=scans,data=np.asarray(rows,float),columns=cols,
                     label=str(getattr(self,'command','')),fits=fits,settings=dict(command=str(getattr(self,'command',''))),
                     recipe='' if fits else self.recipe(self.fluorescenceScript))]
@@ -10454,10 +10926,10 @@ class MainWindow (QMainWindow):
         return self.mcaPeakFit() if legacy else self.mcaFitLines()
 
     def mcaFitLines(self):
-        """Fit the selected spectra's line two ways (F110, owner 2026-11-26): XeRay, the default and the value
-        plotted, merged and exported, and the reader's Poisson fit (lss_core.peaks.fit_series, with the options'
-        detector width and escape stripping), reported beside it with its error, since XeRay's error leaves out
-        the background (lss_core.fluorescence.fit_line_series)."""
+        """Fit the selected spectra's line two ways (F110, owner 2026-11-26, revised the same day): the
+        reader's Poisson fit (lss_core.peaks.fit_series: the width from the sum, Si escapes stripped), the
+        default and the value plotted, merged and exported, and XeRay beside it with its error
+        (lss_core.fluorescence.fit_line_series)."""
         nums=list(getattr(self,'selectedMcaScanNums',[]) or [])
         if not nums or not all(n in self.nomMcaData for n in nums):
             self.messageBox('Select and plot MCA spectra first.')
@@ -10492,7 +10964,7 @@ class MainWindow (QMainWindow):
             frame=n+1
             qz=self.mcaPar[n]['Q'][2]
             energy=self.mcaPar[n].get('Energy',10.0) if isinstance(self.mcaPar[n],dict) else 10.0
-            self.mcaIntData.append([frame,qz,energy,xi,xe,fi,fe])
+            self.mcaIntData.append([frame,qz,energy,fi,fe,xi,xe])     # the reader's fit first (F110 revised)
         self.mcaSumScript=None
         self.mcaMerges=[]
         self.mcaLineFits=(ref,each,nums) if each else None
@@ -10512,19 +10984,19 @@ class MainWindow (QMainWindow):
         o_used=both['options']
         bad=sum(not f.ok for f in xr)
         line='line at %.4g' % ref.peaks[j].centre if each and j is not None else 'line'
-        self.command='Flu Fit lines, scans=[%s], XeRay (default) and the reader\'s fit of the %s%s, %s on %s background%s' % (
+        self.command='Flu Fit lines, scans=[%s], the reader\'s fit (default) of the %s%s, %s on %s background%s, and XeRay beside it' % (
             listText(np.sort(self.selectedScanNums)),line,
             ' (FWHM %.3g)' % ref.peaks[j].fwhm if each and j is not None else '',o_used.shape,o_used.background,
             ''.join(t for t,on in ((', Poisson weights',self.mcaFitPoisson()),
                                    (', data weights (legacy)',not self.mcaFitPoisson()),
                                    (', width from the detector at %.4g keV' % (both['width_at'] or 0),
                                     both['width_at'] is not None),
+                                   (', width from the sum',both['width_at'] is None and not o_used.fwhm),
                                    (', Si escapes stripped',lopt['strip_escape'])) if on))
-        self.notify('Fit lines, %d spectra: XeRay (the default; plotted, merged and exported)%s; the reader\'s fit beside '
-                    'it%s. XeRay\'s error is sqrt(counts in the window), too small where the background is large; the '
-                    'reader\'s fit error is honest (shootout: pull SD 1.03).'
-                    % (len(nums),', %d failed' % bad if bad else '',
-                       ' (sum: %s)' % ref.summary() if each else ': it failed (%s)' % (ref.message or 'no line')),
+        self.notify('Fit lines, %d spectra: the reader\'s fit (the default; plotted, merged and exported)%s; XeRay beside '
+                    'it%s. XeRay\'s error is sqrt(counts in the window), too small where the background is large.'
+                    % (len(nums),' (sum: %s)' % ref.summary() if each else ' failed (%s)' % (ref.message or 'no line'),
+                       ', %d of its fits failed' % bad if bad else ''),
                     title='Fit lines',level='info')
         if self.mcaFitDialog is not None:
             self.mcaFitDialog.findChild(QLabel,'mcaFitResultLabel').setText(self.mcaFitSummary())
@@ -10588,22 +11060,29 @@ class MainWindow (QMainWindow):
             if (summed and -1 not in self.cutData) or (not summed and any(i not in self.cutData for i in frames)) or (not summed and len(frames)==0):
                 self.messageBox('The frame selection or the "Sum" option changed after the cut was made. Please make the cut again before saving.')
                 return
-        self.saveFileName=QFileDialog.getSaveFileName(caption='Export cuts', directory=self.directory)[0]
+        self.saveFileName=QFileDialog.getSaveFileName(caption='Export cuts (the name gets <frame>_cut.txt or _sumcut.txt)',
+                                                      directory=self.directory)[0]
         if self.saveFileName=='':   # dialog cancelled
             return
+        typed=self.saveFileName              # a cut on a GID or GISAXS map is written to this name as it is
+        self.saveFileName=self.exportStem(self.saveFileName,('_sumcut.txt','_cut.txt'))
         if self.det=='Pilatus':
             if self.pilGIDshow==0 and self.pilGISAXSshow==0:
                 if self.ui.gixSumCheckBox.checkState()!=0:
-                    self.fname=self.saveFileName+itemLabels(self.ui.imageListWidget.item(0))[0]+'_sumcut.txt'
-                    np.savetxt(self.fname,self.cutData[-1],fmt='%.4f\t%.4e\t%.4e')
+                    names=[(self.saveFileName+itemLabels(self.ui.imageListWidget.item(0))[0]+'_sumcut.txt',-1)]
                 else:
-                    for i in self.selectedPilFramesNums:
-                        self.fname=self.saveFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_cut.txt'
-                        np.savetxt(self.fname,self.cutData[i],fmt='%.4f\t%.4e\t%.4e')
+                    names=[(self.saveFileName+'_'.join(itemLabels(self.ui.imageListWidget.item(i)))+'_cut.txt',i)
+                           for i in self.selectedPilFramesNums]
+                existed=self.existingFiles([n for n,_ in names])
+                for self.fname,i in names:
+                    np.savetxt(self.fname,self.cutData[i],fmt='%.4f\t%.4e\t%.4e')
+                self.exportNotice([n for n,_ in names],existed)
                 self.scriptLine(self.cutScript(self.saveFileName))
             else:
-                self.fname=self.saveFileName
+                self.fname=typed
+                existed=self.existingFiles([typed])
                 np.savetxt(self.fname,self.cutData,fmt='%.4f\t%.4e\t%.4e')
+                self.exportNotice([typed],existed)
         
             
             
@@ -10928,10 +11407,11 @@ class MainWindow (QMainWindow):
         
     def saveGraPlotData(self): #save the derivative data
         try:
-            self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export the gradient',directory=self.directory)[0])
+            self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export the gradient (the name gets _der.txt)',
+                                                              directory=self.directory)[0])
             if self.saveFileName=='':   # dialog cancelled: write nothing
                 return
-            fitfile=self.saveFileName+'_der.txt'
+            fitfile=self.exportStem(self.saveFileName,('_der.txt',))+'_der.txt'
             np.savetxt(fitfile,self.gradata,fmt='%.4e\t%.4e')
         except:
             pass
@@ -11368,9 +11848,11 @@ class MainWindow (QMainWindow):
         if not hasattr(self,'peakfitdata'):
             self.messageBox('There is no fit to save yet; press "Fit" first.')
             return
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export fit data',directory=self.directory)[0])
+        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export the fitted curve (the name gets _fit.txt)',
+                                                          directory=self.directory)[0])
         if self.saveFileName=='':
             return
+        self.saveFileName=self.exportStem(self.saveFileName,('_fit.txt',))
         fitfile=self.saveFileName+'_fit.txt'
        # print self.peakfitdata
         np.savetxt(fitfile,self.peakfitdata,fmt='%.4e\t%.4e')
@@ -11383,24 +11865,32 @@ class MainWindow (QMainWindow):
         if len(self.selectedplotfiles_rows)==0:
             self.messageBox('Please select the fitted file in the "Plot" tab first.')
             return
-        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Save Fit Paremeters',directory=self.directory)[0])
+        self.saveFileName=str(QFileDialog.getSaveFileName(caption='Export the fit parameters (the name gets _par.txt)',
+                                                          directory=self.directory)[0])
         if self.saveFileName=='':
             return
-        fid=open(self.saveFileName+'_par.txt','w')
-        fid.write('Data File:\t'+os.path.basename(str(self.plotfiles[self.selectedplotfiles_rows[0]]))+'\n')
-        fid.write('Peak Type:\t'+str(self.uipeakfit.peakTypeComboBox.currentText())+'\n')
-        fid.write('# of Peaks:\t'+str(int(len(self.peakparaname)/3))+'\n')
-        fid.write('BG Order:\t'+str(len(self.peakbgparaname)-1)+'\n')       
-        fid.write('Chi_Square:\t'+str(float('%.4f' % self.peakresult.redchi))+'\n')
-        fid.write('*********************\n')
-        fid.write('\t\tValue\t\tVary\tStderr\t\tMin\tMax\n')
-        for i in range(int(len(self.peakparaname)/3)):
-            fid.write('Peak #'+str(i+1)+' pos:\t'+format(self.peakresult.params[self.peakparaname[i*3]].value, '.3e')+'\t'+str(self.peakparadic[i*3][1])+'\t'+format(self.peakresult.params[self.peakparaname[i*3]].stderr, '.3e')+'\t'+str(self.peakparadic[i*3][2])+'\t'+str(self.peakparadic[i*3][3])+'\n')
-            fid.write('Peak #'+str(i+1)+' int:\t'+format(self.peakresult.params[self.peakparaname[i*3+1]].value, '.3e')+'\t'+str(self.peakparadic[i*3+1][1])+'\t'+format(self.peakresult.params[self.peakparaname[i*3+1]].stderr, '.3e')+'\t'+str(self.peakparadic[i*3+1][2])+'\t'+str(self.peakparadic[i*3+1][3])+'\n')
-            fid.write('Peak #'+str(i+1)+' wid:\t'+format(self.peakresult.params[self.peakparaname[i*3+2]].value, '.3e')+'\t'+str(self.peakparadic[i*3+2][1])+'\t'+format(self.peakresult.params[self.peakparaname[i*3+2]].stderr, '.3e')+'\t'+str(self.peakparadic[i*3+2][2])+'\t'+str(self.peakparadic[i*3+2][3])+'\n')
-        for i in range(len(self.fitbgpara)):
-            fid.write('Background C'+str(i)+':\t'+format(self.peakresult.params[self.peakbgparaname[i]].value, '.3e')+'\t'+str(self.peakbgparadic[i][1])+'\t'+format(self.peakresult.params[self.peakbgparaname[i]].stderr, '.3e')+'\t'+str(self.peakbgparadic[i][2])+'\t'+str(self.peakbgparadic[i][3])+'\n')
-        fid.close()
+        self.saveFileName=self.exportStem(self.saveFileName,('_par.txt',))
+        params=self.peakresult.params
+
+        def num(v):     # lmfit leaves stderr None for a fixed parameter, or when it cannot estimate it
+            return format(v,'.3e') if v is not None else 'nan'
+
+        def line(label,name,dic):
+            p=params[name]
+            return '%s:\t%s\t%s\t%s\t%s\t%s\n' % (label,num(p.value),dic[1],num(p.stderr),dic[2],dic[3])
+        with open(self.saveFileName+'_par.txt','w') as fid:
+            fid.write('Data File:\t'+os.path.basename(str(self.plotfiles[self.selectedplotfiles_rows[0]]))+'\n')
+            fid.write('Peak Type:\t'+str(self.uipeakfit.peakTypeComboBox.currentText())+'\n')
+            fid.write('# of Peaks:\t'+str(int(len(self.peakparaname)/3))+'\n')
+            fid.write('BG Order:\t'+str(len(self.peakbgparaname)-1)+'\n')
+            fid.write('Chi_Square:\t'+str(float('%.4f' % self.peakresult.redchi))+'\n')
+            fid.write('*********************\n')
+            fid.write('\t\tValue\t\tVary\tStderr\t\tMin\tMax\n')
+            for i in range(int(len(self.peakparaname)/3)):
+                for k,what in enumerate(('pos','int','wid')):
+                    fid.write(line('Peak #%d %s' % (i+1,what),self.peakparaname[i*3+k],self.peakparadic[i*3+k]))
+            for i in range(len(self.fitbgpara)):
+                fid.write(line('Background C%d' % i,self.peakbgparaname[i],self.peakbgparadic[i]))
         
 ########################  for 2d plot######################
 

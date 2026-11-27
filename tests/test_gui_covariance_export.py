@@ -62,12 +62,16 @@ def test_default_joint_patch_gets_its_own_sidecar(kw, loaded, qapp, recorder, tm
     assert any('Covariance written' in m for _, _, m in loaded.messages)
 
 
-def test_no_rrf_sidecar_without_rrf(loaded, qapp, recorder, tmp_path):
+def test_rrf_sidecar_also_with_rrf_unticked(loaded, qapp, recorder, tmp_path):
+    """Before 2026-11-26: no _rrf.cov.json with R/RF unticked, as no _rrf.txt
+    was written then. The owner (2026-11-26): Export always writes both
+    _ref.txt and _rrf.txt; the hand-off: "Next to every <name>_rrf.txt, write
+    <name>_rrf.cov.json". So both sidecars, ticked or not (deliberate change)."""
     loaded.refCovarianceCheckBox.setChecked(True)
     ref, rrf = reduce_and_save(loaded, qapp, recorder, str(tmp_path / 'out'), [0, 1], rrf=False)
     assert recorder.exceptions == []
     assert os.path.exists(ref[:-4] + '.cov.json')
-    assert not os.path.exists(rrf[:-4] + '.cov.json')
+    assert os.path.exists(rrf) and os.path.exists(rrf[:-4] + '.cov.json')
 
 
 def test_stale_patch_is_refused(loaded, qapp, recorder, tmp_path):

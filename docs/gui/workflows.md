@@ -19,7 +19,7 @@ In the flowcharts, rounded green boxes are steps that are automatic today; diamo
 | [alignment](#alignment) | 6 | 5 | 0 / 2 / 3 | 4 |
 | [mca-look](#mca-look) | 6 | 3 | 0 / 0 / 3 | 2 |
 | [flex-plot](#flex-plot) | 6 | 2 | 0 / 0 / 2 | 0 |
-| [session](#session) | 6 | 9 | 4 / 3 / 2 | 11 |
+| [session](#session) | 6 | 10 | 4 / 3 / 3 | 11 |
 
 <a id="day-ref"></a>
 ## day-ref — A day of reflectivity at the beamline (the order of the workflows)
@@ -376,7 +376,7 @@ flowchart TD
 | gid.frames (shared.frames) | Select all frames of the levels | left panel (image list, labelled 'Pilatus:' or 'Vortex:') | `imageListWidget`, `imageSelectAllCheckBox` | all frames (usual) or a subset (left out of the reduction, kept in remakes) | no | select all frames of a whole-series selection by default; show a movie instead of tiles (F69) | code; test tests/test_gui_workflows.py | Selecting all frames draws every frame as a tile on the Pilatus tab (owner 2026-11-22: more than 6 tiles is too many, F69)<br>Selecting frames switches to the Pilatus tab (2) or the MCA tab (5) (code) |
 | gid.look (shared.frames-look) | Watch the raw frames as a movie (often, owner 2026-11-23): real GID peaks stay at the same 2θ as the detector angle changes, other junk does not; zoomed, with zoom and colour mode kept while the frames play. The Pinhole box gives display and cuts the pinhole geometry | Pilatus tab | `pilAxesComboBox`, `pilLogIntCheckBox`, `pilMinLineEdit`, `pilMaxLineEdit`, `pilCMapComboBox`, `pilPinholeCheckBox`, `pilMoviePushButton` | which features are real peaks (fixed in 2θ) and which are junk | partly | a movie drawn on a common 2θ axis with the zoom fixed in angle, so real peaks stand still and detector-fixed junk moves (image_display M7); sticky zoom and scale (M2, F69, F70) | code; owner 2026-11-18 (D40); owner 2026-11-23 (the movie and why) | Movie today blocks the window (0.5 s per frame), cannot be paused, resets the zoom and leaves the Axes box at Q (image_display.md)<br>Two pinhole switches: the Pilatus tab's 'Pinhole' (display and cuts) and the worksheet's 'Pinhole: angle per column' (the patch) |
 | gid.background | Optionally subtract background frames (add selected frames to the background list, factor, ignore negatives) | left panel (background list) | `backgroundPushButton`, `backgroundListWidget`, `bgFacLineEdit`, `bgIgnoreNegCheckBox`, `bgSelectAllCheckBox`, `removePushButton` | which frames are background, the factor | no |  | code; guess (whether it is used for GID) | Background-subtracted maps are not scriptable (gidScript says so) |
-| gid.settings | Open the worksheet (GID menu > Worksheet) and check the settings - pinhole on, response, footprint window, S4-detector distance (Fit), rows, columns | Pilatus tab > GID menu > Worksheet (separate window) | `gidComboBox`, `gidPinholeCheckBox`, `gidPinholeDistSpinBox`, `gidFitDistancePushButton`, `gidResponseComboBox`, `gidFootprintComboBox`, `gidTransverseComboBox`, `gidRowMinSpinBox`, `gidRowMaxSpinBox`, `gidColumnsSpinBox`, `pilHSlitLineEdit`, `gidAreaCheckBox`, `gidPolCheckBox`, `gidApplyJoinsCheckBox`, `gidMinFramesSpinBox`, `gidArmCheckBox`, `gidDefaultsPushButton` | usually the defaults (pinhole, exact footprint, response fit); the distance from Fit when reliable | partly | calibrate the distance automatically on the first patch and say so (P43 built as a button) | owner 2026-11-18/19 (D40, D51); test tests/test_gid_worksheet.py; docs docs/manual/gid_patching.md | Actions are items of a combo box whose first item 'GID' is a title; choosing the same item again needs a re-selection (code, activated)<br>'Columns per frame' (worksheet) and the H slit field on the Pilatus tab are one setting in two places |
+| gid.settings | Open the worksheet (GID menu > Worksheet) and check the settings - pinhole on, response, footprint window, S4-detector distance (Fit), rows, columns | Pilatus tab > GID menu > Worksheet (separate window) | `gidComboBox`, `gidPinholeCheckBox`, `gidPinholeDistSpinBox`, `gidFitDistancePushButton`, `gidResponseComboBox`, `gidFootprintComboBox`, `gidTransverseComboBox`, `gidRowMinSpinBox`, `gidRowMaxSpinBox`, `gidColumnsSpinBox`, `pilHSlitLineEdit`, `gidAreaCheckBox`, `gidPolCheckBox`, `gidApplyJoinsCheckBox`, `gidUnmatchedLevelsCheckBox`, `gidMinFramesSpinBox`, `gidArmCheckBox`, `gidDefaultsPushButton` | usually the defaults (pinhole, exact footprint, response fit); the distance from Fit when reliable | partly | calibrate the distance automatically on the first patch and say so (P43 built as a button) | owner 2026-11-18/19 (D40, D51); test tests/test_gid_worksheet.py; docs docs/manual/gid_patching.md | Actions are items of a combo box whose first item 'GID' is a title; choosing the same item again needs a re-selection (code, activated)<br>'Columns per frame' (worksheet) and the H slit field on the Pilatus tab are one setting in two places |
 | gid.patch | GID Patch (or GID Patch Relax for the larger Q grid) - the map is drawn on the Pilatus tab in Q | Pilatus tab > GID menu | `gidComboBox`, `gidPatchPushButton` | Patch or Patch Relax | partly | patch when a complete GID series is selected (F60) | code (pilGID, pilGIDpatchData); test tests/test_gid_worksheet.py, tests/test_real_nx_school.py | Axes switch from Pixels to Q by themselves on the first patch (code) |
 | gid.inspect | Inspect the joins and levels - join table (overlap, points, factor +- error, chi2/dof), levels line with 'frames agree' chi2/dof; change a setting and the map updates | GID worksheet | `gidJoinTable`, `gidLevelsLabel`, `gidLiveCheckBox`, `gidFitLabel` | whether the patch is honest; which method to keep | partly | flag joins whose chi2 or factor is out of line | owner 2026-11-18 (F61); owner 2026-11-20 (honest presentation); test tests/test_gid_worksheet.py |  |
 | gid.colour | Adjust the colour scale and log of the map; optionally overlay form-factor minima (Form Factor) | Pilatus tab; GID menu > Form Factor | `pilMinLineEdit`, `pilMaxLineEdit`, `pilLogIntCheckBox`, `pilCMapComboBox`, `pdformfac.sphCheckBox`, `pdformfac.updatePushButton` | colour limits | partly | intelligent colour scale for maps (F70) | code |  |
@@ -649,6 +649,7 @@ flowchart TD
     session_series["series: Choose the series (Series list above the scan list) or clic…"]
     session_live["live: Tick Live while the macro runs (or press Update Specfile);…"]
     session_prefs["prefs: Preferences - foils, Ref Patch method and known ratio, fluo…"]
+    session_plotoptions["plotoptions: Plot options of the tab on show - font size, major and mino…"]
     session_absorber(["absorber: Check the absorber factor per unit (from the energy by defa…"])
     session_errors(["errors: Choose the error model (Legacy default, or Budget with a mo…"])
     session_panes(["panes: Read or copy the equivalent lss_core call from the Script p…"])
@@ -657,7 +658,8 @@ flowchart TD
     session_info --> session_series
     session_series --> session_live
     session_live --> session_prefs
-    session_prefs --> session_absorber
+    session_prefs --> session_plotoptions
+    session_plotoptions --> session_absorber
     session_absorber --> session_errors
     session_errors --> session_panes
     session_panes --> session_workbook
@@ -672,10 +674,11 @@ flowchart TD
 | session.series (shared.series) | Choose the series (Series list above the scan list) or click one of its scans; the whole series is selected by default | left panel | `seriesComboBox`, `seriesWholeCheckBox`, `scanListWidget`, `scansLineEdit` | which series (or scans by number); Whole series on (default) or off | partly | select the newest series of the kind the user works on; in live mode follow it (built for whole-series selections, L3) | owner 2026-11-21 (D55); test tests/test_gui_series.py; run 2026-11-22 | The Series list is a combo box with a placeholder first item ('Series: choose to select its scans'); the list of series is not visible at a glance (run 2026-11-22)<br>Guessed series have n unknown ('4/?'); the kind is only a guess until the macros write #U Series (handoff_out/05)<br>Selecting a scan always switches to the SpecPlot tab (code, scanListChanged), whatever the workflow |
 | session.live (shared.live) | Tick Live while the macro runs (or press Update Specfile); new scans, frames and spectra are read, saved results remade | left panel, beside Update Specfile | `liveCheckBox`, `speUpSpeFilePushButton` | live on or off | partly | turn Live on when the file is still growing (a series 'in progress') | owner 2026-11-22 (D57); test tests/test_gui_live.py | Live stops by itself only for series with #U Series lines (L4); guessed series need a manual untick |
 | session.prefs | Preferences - foils, Ref Patch method and known ratio, fluorescence elements, saving | File > Preferences | `actionPreferences`, `prefCalibratedCheckBox`, `prefPatchMethodComboBox`, `prefPatchAutoCheckBox`, `prefMcaCentrePushButton`, `prefSaveNoteCheckBox`, `prefAutoSaveCheckBox`, `prefNguiCheckBox`, `prefClosePushButton` |  | no |  | code | Settings that belong to one workflow (Ref Patch method, MCA elements) sit in a global dialog |
+| session.plotoptions | Plot options of the tab on show - font size, major and minor ticks, tick direction, ticks on all sides, grid (F112) | Plot options... at the right of the tab bar | `plotOptionsToolButton`, `plotOptTabLabel`, `plotOptFontSpinBox`, `plotOptMajorComboBox`, `plotOptMinorComboBox`, `plotOptDirectionComboBox`, `plotOptMirrorComboBox`, `plotOptGridComboBox`, `plotOptIndexCheckBox`, `plotOptAxesToolButton`, `plotOptResetPushButton`, `plotOptPagesTabWidget`, `plotOptTickNumComboBox`, `plotOptLegendComboBox`, `plotOptLegendLocComboBox`, `plotOptLegendFrameComboBox`, `plotOptLineWidthSpinBox`, `plotOptMarkerSizeSpinBox`, `plotOptTitlesComboBox`, `plotOptPlotComboBox`, `plotOptTitleLineEdit`, `plotOptXLabelLineEdit`, `plotOptYLabelLineEdit`, `plotOptXFixedCheckBox`, `plotOptXMinLineEdit`, `plotOptXMaxLineEdit`, `plotOptYFixedCheckBox`, `plotOptYMinLineEdit`, `plotOptYMaxLineEdit`, `plotOptViewPushButton`, `plotOptCurveListWidget`, `plotOptCurveMatchComboBox`, `plotOptCurveColorComboBox`, `plotOptCurveStyleComboBox`, `plotOptCurveWidthSpinBox`, `plotOptCurveMarkerComboBox`, `plotOptCurveSizeSpinBox`, `plotOptCurveResetPushButton`, `plotOptPlotResetPushButton`, `plotOptAllTabsPushButton`, `plotOptClosePushButton` | the look of a tab's plots; kept per tab between sessions | no |  | owner 2026-11-26 (F112) |  |
 | session.absorber (shared.absorber) | Check the absorber factor per unit (from the energy by default, calibrated foils at 9.70-10.30 keV) | left panel; File > Preferences > Absorber foils | `AbsFacLineEdit`, `absFacEnergyCheckBox`, `actionPreferences`, `prefCalibratedCheckBox` | keep 'from E' (default on, D34) or type a factor | yes |  | owner 2026-11-17/18 (D23, D25, D34, F56); code | The field shows 'cal' when calibrated foils are used; what is used where (Ref Patch measures the scale, D21) is only in tooltips |
 | session.errors (shared.errors) | Choose the error model (Legacy default, or Budget with a monitor model) | Errors pane (dock) | `errorModeComboBox`, `monitorKindComboBox`, `errorModel_sigma` | Legacy (default, byte-identical files) or Budget | yes |  | owner 2026-11-17 (D20, D22, D26); code | A global setting in a dock, far from the reductions it changes; which default the export should use is open (TODO B) |
 | session.panes (shared.script) | Read or copy the equivalent lss_core call from the Script pane; messages in the Messages pane | Script and Messages panes (docks), View menu | `scriptView`, `messageView`, `menuView` |  | yes |  | code; docs docs/SCRIPTING.md |  |
-| session.workbook (shared.workbook) | The finished reduction is saved into <SPEC file>_reader.xlsx automatically; Save stores a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `prefAutoSaveCheckBox`, `prefSaveNoteCheckBox`, `readOnlyLightLabel` | whether to add a 'user' version with a note | yes |  | owner 2026-11-21/22 (D53, D56), D1; tests tests/test_gui_workbook.py, tests/test_gui_reader_lock.py | Automatic saves report in the status bar only; there is no view of the workbook inside the reader<br>A second reader of the same SPEC file saves nothing (D1, 2026-11-25): the yellow light says so, and it saves again once the first closes |
+| session.workbook (shared.workbook) | The finished reduction is saved into <SPEC file>_reader.xlsx automatically; Save stores a version with a note | Save button beside each Export; GID menu 'Save to workbook' | `prefAutoSaveCheckBox`, `prefSaveNoteCheckBox`, `readOnlyLightLabel`, `actionGiveUpWriteAccess`, `actionAskWriteAccess` | whether to add a 'user' version with a note | yes |  | owner 2026-11-21/22 (D53, D56), D1; tests tests/test_gui_workbook.py, tests/test_gui_reader_lock.py | Automatic saves report in the status bar only; there is no view of the workbook inside the reader<br>A second reader of the same SPEC file saves nothing (D1, 2026-11-25): the yellow light says so, and it saves again once the first closes |
 
 ## Controls by workflow
 
@@ -969,6 +972,7 @@ flowchart TD
 | `gidBeamCentreFitCheckBox` fit |  |  |  |  | i |  |  |  |  |  |  |  |  |  |
 | `gidBeamHFwhmSpinBox` horizontal mm |  |  |  |  | i |  |  |  |  |  |  |  |  |  |
 | `gidApplyJoinsCheckBox` Apply join factors |  |  |  |  | B |  |  |  |  |  |  |  |  |  |
+| `gidUnmatchedLevelsCheckBox` Join levels without overlap (unscaled) |  |  |  |  | B |  |  |  |  |  |  |  |  |  |
 | `gidFootprintComboBox` footprint |  |  |  |  | B |  |  |  |  |  |  |  |  |  |
 | `gidTransverseComboBox` 2theta range |  |  |  |  | B |  |  |  |  |  |  |  |  |  |
 | `gidMinFramesSpinBox` min frames |  |  |  |  | B |  |  |  |  |  |  |  |  |  |
@@ -1130,6 +1134,8 @@ flowchart TD
 | `messageDock_toggleViewAction` Messages |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `scriptDock_toggleViewAction` Script |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
 | `errorDock_toggleViewAction` Errors |  |  |  |  |  |  |  |  |  |  |  |  | i |  |
+| `actionGiveUpWriteAccess` Give up the workbook's write access |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `actionAskWriteAccess` Ask for the workbook's write access |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 | `actionFitResiduals` Residuals above fits |  |  |  |  |  |  |  |  | S |  |  |  | i |  |
 
 ### Messages pane
@@ -1171,7 +1177,7 @@ flowchart TD
 | `pilDBPosLineEdit`  | S |  |  | B | i |  |  | i | i |  |  |  |  |  |
 | `pilSDDistLineEdit` SD Dist(mm): |  |  |  | i | i |  |  | i | i |  |  |  |  |  |
 | `pilBPCiteSpinBox` Bad Pix Corr. Iter. | B | i |  | B | i |  |  | i | i |  |  |  |  |  |
-| `pilBPCfacSpinBox` Fact. | B | i |  | B | i |  |  | i | i |  |  |  |  |  |
+| `pilBPCfacSpinBox` factor | B | i |  | B | i |  |  | i | i |  |  |  |  |  |
 | `pilAxesComboBox` Axes: |  | S |  | i | B |  |  | B | B |  |  |  |  |  |
 | `pilCMapComboBox` CMap: | i | B |  | i | B |  |  | i | i |  |  |  |  |  |
 | `pilAspectComboBox` Aspect: |  | S |  |  | i |  |  | i | i |  |  |  |  |  |
@@ -1257,6 +1263,56 @@ flowchart TD
 | `onedStyComboBox` Style: |  |  |  |  |  |  |  |  |  |  |  | i |  |  |
 | `onedLabelSizeSpinBox` Label Size |  |  |  |  |  |  |  |  |  |  |  | i |  |  |
 | `onedTickSizeSpinBox` Tick Size |  |  |  |  |  |  |  |  |  |  |  | i |  |  |
+
+### Plot options
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `plotOptFontSpinBox` Font size |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptMajorComboBox` Major ticks |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptMinorComboBox` Minor ticks |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptDirectionComboBox` Tick direction |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptMirrorComboBox` Ticks on all sides |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptGridComboBox` Grid |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptResetPushButton` As drawn |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptClosePushButton` Close |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptIndexCheckBox` Index numbers |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptAxesToolButton` One-off editor... |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptPagesTabWidget` Text and ticks \| Legend and lines \| This plot |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptTickNumComboBox` Tick numbers |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptLegendComboBox` Legend |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptLegendLocComboBox` Legend place |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptLegendFrameComboBox` Legend frame |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptLineWidthSpinBox` Line width |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptMarkerSizeSpinBox` Marker size |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptTitlesComboBox` Titles |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptPlotComboBox` Plot |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptTitleLineEdit` Title |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptXLabelLineEdit` X label |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptYLabelLineEdit` Y label |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptXFixedCheckBox` fixed (X range) |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptXMinLineEdit` X range from |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptXMaxLineEdit` X range to |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptYFixedCheckBox` fixed (Y range) |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptYMinLineEdit` Y range from |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptYMaxLineEdit` Y range to |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptViewPushButton` Use the current view |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptCurveListWidget` Curves |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptCurveMatchComboBox` Keep |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptCurveColorComboBox` Colour |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptCurveStyleComboBox` Line |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptCurveWidthSpinBox` Width |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptCurveMarkerComboBox` Marker |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptCurveSizeSpinBox` Size |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptCurveResetPushButton` Curve as drawn |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptPlotResetPushButton` Plot as drawn |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+| `plotOptAllTabsPushButton` Copy to all tabs |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
+
+### Plot options, top
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `plotOptTabLabel` Plots of the <tab> tab |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 
 ### Plot, right of Export Gradient
 
@@ -1431,6 +1487,12 @@ flowchart TD
 | Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `readOnlyLightLabel` read-only |  |  |  |  |  |  |  |  |  |  |  |  | S | i |
+
+### Tab bar, right corner
+
+| Control | burn-ref | burn-gid | burn-fluo | reflectivity | gid | xfntr | exafs | gisaxs | cuts | alignment | mca-look | flex-plot | session | general |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `plotOptionsToolButton` Plot options... |  |  |  |  |  |  |  |  |  |  |  |  | B |  |
 
 ### Timeline
 

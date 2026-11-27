@@ -178,6 +178,13 @@ Each line: feature — where — default — script — notes entry (date).
   worksheet and the two fit options open on the right of the tab area,
   tabbed together. Each scrolls inside its dock. Close hides it; drag its
   title to another edge, or double-click it to float it as a window.
+- "Bad Pix Corr. Iter." and "factor" (Pilatus tab; tooltips 2026-11-26):
+  the whole-frame bad-pixel pass, on every frame as it is read, in every
+  workflow. Off at 0 iterations (the default). A pixel takes its four
+  neighbours' mean when it is above (2 + 2/iterations) × factor × that
+  mean and the frame's floor. Factors below 10 take real signal on sparse
+  frames (main man's study C62); the factor now goes to 40 (it stopped at
+  4). For reflectivity, the ROI pass below is the better choice.
 - "Bad Pixel Correction fac" (Reflectivity tab; F95 B3, 2026-11-25): a
   bad-pixel pass over the reflectivity ROI's three boxes (signal and
   backgrounds), on the frame's counts before the sums. Empty (the default)
@@ -185,14 +192,85 @@ Each line: feature — where — default — script — notes entry (date).
   study (C62) found factor 10 removes 90 % of hot pixels on sparse frames
   without touching clean ones; it stays off until the owner's own sparse
   frames are checked (rule 12).
+- After an Export (2026-11-26), a line in Messages and the status bar
+  says which files were written and to which folder, and which replaced
+  files of the same name: the save dialog asks only about the name typed,
+  not the endings an export adds.
+- Reflectivity Export always writes both files (owner, 2026-11-26):
+  `_ref.txt` (R) and `_rrf.txt` (R/R_F with the Qc and Qoff in the
+  fields), whether or not R/RF is ticked; R/RF only chooses what is
+  plotted, and whether Save puts R/RF in the workbook. With "+ covariance"
+  both sidecars are written too.
+- Plot text (F111, 2026-11-26): tick labels, axis labels and legends are
+  at least as large as the tab labels, whatever the display scaling (the
+  reader sizes matplotlib's text from the tab font when it starts).
+- Plot options (F112, 2026-11-26): "Plot options..." at the right of the
+  tab bar sets, for the plots of the tab on show: font size, about how
+  many major ticks, minor ticks, tick direction, ticks on all four sides,
+  and the grid (off, major, major and minor). Each tab keeps its own,
+  between sessions; the button shows * when some are set. Every option
+  starts at "as drawn" (the plots as the reader draws them), and "As
+  drawn" puts them all back. The Pilatus tab's ROI close-up and the
+  residual strips are left as drawn. Terms to define: major, minor ticks.
+- Plot options, three pages (F114, 2026-11-27): everything set there is
+  kept per tab, between sessions and when the tab redraws.
+  - Text and ticks: font size, tick numbers (plain or scientific), major
+    and minor ticks, tick direction, ticks on all sides, grid, index
+    numbers.
+  - Legend and lines: legend shown or hidden, its place and frame; every
+    curve's line width and marker size; titles hidden.
+  - This plot: pick a plot of the tab; rename its title or axis labels
+    (the new text is used whenever the reader draws the same text: plot
+    another column and it keeps its own name); fix the x or y range
+    ("Use the current view" takes the zoom you are looking at; zoom and
+    pan still work, and the fixed range returns when the plot is redrawn);
+    style each curve (colour, line, width, marker, size), kept for the
+    curve's name (a fit, a scan) or for its place (the first curve...).
+  - "Copy to all tabs" gives the first two pages to every tab; "As drawn"
+    and "Plot as drawn", "Curve as drawn" put things back.
+  - "One-off editor..." is matplotlib's own: anything it offers, for the
+    plot as drawn now, gone at the next redraw.
+- One place for plot settings (owner, 2026-11-26): the tabs' plot toolbars
+  no longer show matplotlib's "Customize" icon; its editor (one plot's
+  title, axis limits, labels, scales, line styles) is "Axes and curves..."
+  in Plot options. Those edits are one-off: they last until the tab
+  redraws the plot, and are not saved; the options above it stay. The Ref
+  Patch window and the burn test keep the icon.
+  - What redraws a plot (and so drops an Axes-and-curves edit): another
+    scan or frame selected, a display box on the tab toggled (Log Y, Monc,
+    Grid, Point #), new data in Live mode, and any change in Plot options
+    itself. So set the kept options first, then the one-off edits.
+  - Example: on the SpecPlot, Axes and curves renames the y axis
+    "Counts" and colours the line red; selecting scan 5 brings back
+    "Pilatus" and blue. A grid set above stays for scan 5, and after a
+    restart. (The owner's question, 2026-11-27; docs/gui/questions.md.)
+- Index numbers (F113, 2026-11-26): the points' numbers (SpecPlot's Point
+  #, the Ref Patch window) sit a few points from their markers. Where they
+  would overlap, or stick out of the plot, the later ones are hidden (a
+  number may also move to another corner of its marker to fit); zoom in
+  and they come back. Plot options' "Index numbers" hides them for a tab.
+- Export names (2026-11-26): every Export dialog says in its title what
+  it adds to the name (e.g. "the name gets _flu.txt"); a name typed with
+  that ending, or with .txt, is not given it twice. The Fit Peak dialog's
+  parameter file writes nan for an error lmfit could not estimate.
 - Window titles (F95, Q-UI-B10, 2026-11-25): each dialog's title says what
   it is (Ref Patch, Burn test, GIOXS, MCA merge, Plot scale, ...); they
   were "Dialog" or "Scan Details".
-- Two readers on one SPEC file (D1, 2026-11-25): the first to need the
-  workbook writes it; a second shows a yellow "read-only" light at the
-  right of the status bar (its tooltip names who has it open) and saves
-  nothing (results, notes, masks), saying so; it saves again once the first
-  closes (tried every 30 s). Terms to define: workbook lock.
+- Two readers on one SPEC file (D1, 2026-11-25; revised 2026-11-26): the
+  first to open the SPEC file writes its workbook (a small `.lock` file
+  sits beside the workbook while it is open); a second shows a yellow
+  "read-only" light at the right of the status bar (its tooltip names who
+  has it open) and saves nothing (results, notes, masks), saying so; it
+  saves again once the first closes or gives up (tried every 30 s).
+  - File > Give up the workbook's write access: one click, and the next
+    reader takes it; this reader then shows the light and does not take
+    the access back by itself.
+  - File > Ask for the workbook's write access (also a right-click on the
+    light): takes it when free, else asks the reader holding it, which is
+    shown the request with Release and Keep.
+  - Results made while read-only are not saved afterwards.
+  - A reader that crashed or slept loses the lock after 3 minutes.
+  Terms to define: workbook lock, write access.
 - Dropped points are kept (F92, 2026-11-25): when a Ref Patch finishes,
   its drops are kept as the mask in the SPEC file's workbook, and the next
   Ref Patch of those scans leaves them out from the start (a message says
@@ -352,6 +430,13 @@ Each line: feature — where — default — script — notes entry (date).
   as collected, factors only reported) — `GIDParams(response='physical',
   beam_fwhm_um=…, beam_centre_mm=…, beam_h_fwhm_mm=…, apply_joins=False)` —
   addendum `docs/manual/gid_patching.md` 3b; Notes 2026-11-20.
+- Worksheet: "Join levels without overlap (unscaled)" (off; a stopgap, owner,
+  2026-11-26): a Qz level whose rows share no β with the level below is added
+  as collected (monitor and absorbers only, no join factor) instead of the
+  patch stopping. The seam shows "UNSCALED" in the joins table with the
+  intensity ratio across it, a message says so, and Save GID writes a '#'
+  line at the top of each file — `GIDParams(unmatched_levels='unscaled')`,
+  `GIDResult.unscaled_seams` — tradeoffs in `docs/studies/gid_unscaled_seams/`.
 - Worksheet "Fit" (S4-detector): calibrates the distance from single frames
   (the strongest peak fitted in every frame, the distance where they agree) and
   fills it in when reliable; the label's tooltip gives the frames, χ²/dof and
@@ -766,5 +851,5 @@ stable (burn tests), the confident 5 % time.
 - SpecPlot (2026-11-24): an hklscan is plotted against the index it moves (from the `#S` command, else the column that varies; L when nothing moves); other scans against their first column; y the last column, as before.
 - SPEC files (2026-11-24): L is Qz; a scan at fixed L whose L disagrees with its In_Rot and Out_Rot by more than 1 % is reported once on opening (a changed SPEC lattice would scale every Qz).
 - MCA "Fit lines" weights (2026-11-24, F90 P1): the preference `mca_fit_poisson` fits each spectrum's heights by Poisson maximum likelihood instead of least squares weighted by its error bars (which reads weak lines low); off by default until the owner's study.
-- MCA "Fit lines" two ways (2026-11-26, F110, the owner's decision): XeRay is the number plotted (circles, '#0 XeRay'), merged and exported in `_flu.txt`; the reader's fit (Poisson, width fixed at the detector's, Si escapes stripped) is beside it: squares ('#0 reader's fit'), 'fit I σ' at the end of each list line, columns I_fit and dI_fit in the workbook, and `_flu_fit.txt` beside `_flu.txt` (same three columns, its header says which fit). The manual should say why both: XeRay's error √(counts in the window) is too small where the background is large; the reader's fit error is honest. The red dotted curves over the spectra are XeRay's, the black dashed ones the reader's.
-- MCA Fit options (2026-11-24, F90 P2, P3; on by default since 2026-11-26, F110, for the reader's fit): "width from the detector" fixes the line width at the detector's resolution at the first centre (with "Detector noise (FWHM)", keV); "strip Si escape peaks" subtracts each spectrum's escape spectrum before the fit. Kept in the preference `mca_line_options`; the command recorded with the fit says when they were on.
+- MCA "Fit lines" two ways (2026-11-26, F110, the owner's decision, revised the same day): the reader's fit (Poisson, Si escapes stripped, the width from the sum of the series) is the number plotted (circles, '#0 reader's fit'), merged and exported in `_flu.txt`; XeRay is beside it: squares ('#0 XeRay'), 'XeRay I σ' at the end of each list line, columns I_xeray and dI_xeray in the workbook, and `_flu_xeray.txt` beside `_flu.txt` (same three columns, its header says which fit). The manual should say why both: XeRay is the Lee group's familiar method, but its error √(counts in the window) is too small where the background is large, and on the owner's real data it was rarely within 2 %; the reader's fit error is honest. The black dashed curves over the spectra are the reader's, the red dotted ones XeRay's.
+- MCA Fit options (2026-11-24, F90 P2, P3; for the reader's fit; since 2026-11-26 the escape stripping is on and the detector width off): "width from the detector" fixes the line width at the detector's resolution at the first centre (with "Detector noise (FWHM)", keV; measure it on the detector in use, the 0.12 keV default is an assumption); off, the width comes from the sum of the series; "strip Si escape peaks" subtracts each spectrum's escape spectrum before the fit. Kept in the preference `mca_line_options`; the command recorded with the fit says which was used.
