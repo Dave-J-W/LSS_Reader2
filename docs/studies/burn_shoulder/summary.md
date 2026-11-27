@@ -490,13 +490,12 @@ called "stable". The two models fit equally well (χ²/dof 1.13 and 1.18).
 
 ![BC_P4](chain/BC_P4.png)
 
-**P4** (0.8 years later), a case where the verdicts differ. It is the best-measured of the four: one frame's intensity error is 1.5 %.
-- The stretched reading calls the intensity "changing" (−2.9 % ± 0.9). The separated readings call it
-  "stable" (−1.9 % ± 1.0 and −1.0 % ± 1.0).
-- The FWHM narrows by 6.5 %. Stretching the shoulder with a narrowing peak counts the shoulder's lost
-  width as lost intensity: P44's mechanism, in the narrowing direction.
-- The shoulder itself is steady (+0.3 % ± 6.1). This one burn therefore shows the mechanism of question 1
-  working on a real burn, on a small scale; question 1's counts (below) show it is rare.
+**P4** (0.8 years later): the verdicts differ, but because of one low first frame, not because of the shoulder (corrected 2026-11-27, after main man's review of #184).
+- It is the best-measured of the four: one frame's intensity error is 1.5 %.
+- Its **first frame is half as bright** as the next three (0.50), peak and shoulder alike. B in that frame is 0.45, so the whole frame is low; it is not a change of the sample. Panels (b), (f) and (h) show it, marked "first frame".
+- That one point pulls each weighted line's start down, so the lines run nearly flat while the other 50 frames fall about 12 %. With it, stretched reads −2.9 % ± 0.9 "changing" and separated −1.9 % ± 1.0 "stable". **Without it** (frames 1–50), stretched reads −12.9 % ± 0.8 and separated −11.9 % ± 0.9, **both "changing"**: they agree.
+- So P4 is not an instance of P44. Its FWHM narrows 6.5 %, but the two readings differ by only 1 pp once the first frame is left out.
+- **How common is it?** Of the 118 well-measured burns, 2 have a first frame below 0.8 of the next three, and only P4 below 0.6. Leaving frame 0 out of every burn changes the stretched/separated verdict disagreements from 15 to 14, so question 1's counts stand. The reader keeps frame 0 in every burn (C54 drops it for reflectivity rates). Whether to flag or drop an anomalous first frame is a question for the reader (`sample_data/private/burn_shoulder/first_frame.py` measured this).
 
 
 ### 8b. Which burns were used

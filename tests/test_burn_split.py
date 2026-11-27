@@ -139,6 +139,7 @@ def test_the_old_estimator_names_still_work():
     """Renamed 2026-11-27 (owner: "too opaque"): template -> stretched, split -> separated,
     split_fixed -> separated_held. Saved workbooks, preferences and scripts use the old names,
     so they give the same numbers, and the reference records the new name."""
+    assert set(burn.ALIASES) == {'template', 'split', 'split_fixed'}      # the names until 2026-11-27, exactly
     prof, _ = bp.profiles(change='broaden', seed=4)
     for old, new in burn.ALIASES.items():
         a = burn.measure_gid(prof, estimator=old)

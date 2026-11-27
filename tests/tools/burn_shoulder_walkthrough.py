@@ -327,8 +327,8 @@ def chain(out, label, rt, rs, rh, note=''):
     sel = (rs.profiles[0][:, 0] >= rs.window[0]) & (rs.profiles[0][:, 0] <= rs.window[1])
     top = float(np.max(ref['shape']))
     nums = dict(frames=len(rs.profiles), duration_s=float(rs.duration()))
-    fig = p.figure(figsize=(10, 15.5))
-    gs = fig.add_gridspec(6, 2, height_ratios=[1.15, 1.15, 0.5, 1, 1, 0.9], hspace=0.55, wspace=0.25)
+    fig = p.figure(figsize=(10, 17))
+    gs = fig.add_gridspec(6, 2, height_ratios=[1.15, 1.15, 0.5, 1, 1, 0.9], hspace=0.75, wspace=0.25)
     # (a) the mean frame and its parts
     a = fig.add_subplot(gs[0, 0])
     a.plot(dx, ref['shape'] / top, '.', color='0.5', ms=4, label='mean frame less its chord')
@@ -389,8 +389,12 @@ def chain(out, label, rt, rs, rh, note=''):
                                            delta_aicc=float(c.delta_constant_linear))
         ax.set_title('(%s) %s per frame, ÷ its line at t = 0' % ('fg'[col], 'Intensity' if q == 'intensity' else 'FWHM'),
                      fontsize=9)
+        c = rt.trends[q]
+        r0 = float(c.fits['linear'](np.array([0.0]))[0])
+        ax.annotate('first frame', (c.t[0], c.y[0] / r0), xytext=(12, -14), textcoords='offset points', fontsize=7,
+                    arrowprops=dict(arrowstyle='->', lw=0.6))
         ax.set_xlabel('time from the burn\'s start (s)')
-        ax.legend(fontsize=6.5, loc='lower left')
+        ax.legend(fontsize=6.5, loc='upper left', bbox_to_anchor=(0, -0.28), frameon=False)
     # (h) B per frame, (i) the verdicts
     ax = fig.add_subplot(gs[4, 0])
     if ref.get('shoulder') is not None:

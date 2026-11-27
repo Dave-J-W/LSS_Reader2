@@ -209,7 +209,7 @@ SEPARATED_ESTIMATORS = ('separated', 'separated_held')
 SEPARATE_CORE = 1.5           # separate_shoulder: the shoulder is fitted outside ±1.5 FWHM of the peak
 # The names until 2026-11-27 (owner: "too opaque"), still accepted everywhere a name is read, so saved
 # workbooks, preferences and scripts keep working: 'template', 'split', 'split_fixed'.
-ALIASES = {'template': 'stretched', 'split': 'separated', 'separated & held': 'separated_held'}
+ALIASES = {'template': 'stretched', 'split': 'separated', 'split_fixed': 'separated_held'}
 # What the reader and the studies call each estimator.
 ESTIMATOR_NAMES = {'stretched': 'shoulder stretched with the peak', 'separated': 'shoulder separated',
                    'separated_held': 'shoulder separated and held', 'moments': 'moments (legacy)',

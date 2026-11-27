@@ -14,7 +14,7 @@ shoulder. Stretched estimator (the default) fits each frame as the mean
 frame's whole shape, shifted and stretched; the shoulder is stretched with
 the peak, so a broadening peak reads as a gain in intensity (P44). The
 separated estimators (``separated``: the shoulder's amplitude free per frame;
-``separated & held``: held at 1) take the shoulder out of the stretch. Which
+``separated_held``: held at 1) take the shoulder out of the stretch. Which
 reads the truth, on which shoulder, and what does each say about NX?
 
 The truth (``tests/synthetic/burn_profiles.py``, 21 frames of 10 s; each
