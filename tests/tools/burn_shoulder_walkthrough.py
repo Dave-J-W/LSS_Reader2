@@ -133,7 +133,7 @@ def bw2(out, r):
         ax.tick_params(labelsize=8)
     a.set_ylabel('counts per monitor')
     fig.tight_layout()
-    fig.savefig(os.path.join(out, 'BW2_the_split.png'), dpi=130)
+    fig.savefig(os.path.join(out, 'BW2_shoulder_and_peak.png'), dpi=130)
     p.close(fig)
     return dict(shoulder_height=h, shoulder_centre=m, shoulder_sigma=sg,
                 shoulder_fwhm=sg * 2 * math.sqrt(2 * math.log(2)),

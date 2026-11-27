@@ -332,9 +332,10 @@ burn.dose, burn.dose_unit, burn.dose_scale     # the axis: NX 14 in '1e+12 photo
 
 Reflectivity geometry (Det_Th 0): the Ref Patch ROI per Monc (`slit`,
 `bg_offset`, `direction`); GID: the strongest peak's integrated intensity,
-position and FWHM per Monc (`estimator` 'template' (default), 'moments'
+position and FWHM per Monc (`estimator` 'stretched' (default; the names 'template', 'split' and
+'split_fixed' of before 2026-11-27 still work), 'moments'
 (legacy arithmetic) or 'fit' with `fit=FitOptions(...)`; or, P44, not yet in
-the burn dialog, 'split' and 'split_fixed': the template with the broad
+the burn dialog, 'separated' and 'separated_held': the stretched reading with the broad
 shoulder split off and held unstretched, its amplitude free per frame
 (then the quantity 'shoulder' as well) or held at 1, and
 `lss_core.burn.frame_model(burn.reference, burn.frame_fits[k], x)` the

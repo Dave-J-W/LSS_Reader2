@@ -657,7 +657,7 @@ def real_figures(out, csv_path=REAL_CSV, ref_csv=None, public=('G01', 'G02')):
             transform=ax.transAxes, va='top', fontsize=7.5)
     fig.tight_layout()
     _key(fig)
-    fig.savefig(os.path.join(out, 'R1_template_vs_split.png'), dpi=120, bbox_inches='tight')
+    fig.savefig(os.path.join(out, 'R1_stretched_vs_separated.png'), dpi=120, bbox_inches='tight')
     plt.close(fig)
 
     ref = []

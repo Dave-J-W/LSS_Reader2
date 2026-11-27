@@ -576,7 +576,9 @@ Each line: feature — where — default — script — notes entry (date).
   of the FWHM; grey dashed lines at ± the threshold. The summary (verdict,
   const − lin, best model, each model's Δ, the 5 % time, the limit, the
   settings) is beside the panels, not in the title. "Auto peak": the strongest peak of the mean frame; off: the
-  typed Qxy range. Estimator: template (default), moments (legacy), fit.
+  typed Qxy range. Estimator: "shoulder stretched with the peak" (default; script name 'stretched', called
+  'template' until 2026-11-27, renamed by the owner as too opaque), "moments (legacy)", "one-Gaussian fit". The box shows
+  the readable names; a preference or workbook saved with an old name still loads.
   Errors: auto (scatter for GID, counting for reflectivity). Time: clock
   (default, wall time; the owner: the shutter closes between exposures) or
   exposure. Change: the threshold (5 %). "Position in limit": off by default

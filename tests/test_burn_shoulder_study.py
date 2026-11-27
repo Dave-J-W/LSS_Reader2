@@ -113,7 +113,7 @@ def test_the_published_real_burns_give_section_8s_counts(tmp_path):
     got = S.real_figures(str(tmp_path), os.path.join(ROOT, S.REAL_CSV),
                          os.path.join(ROOT, 'docs', 'studies', 'burn_shoulder', 'reference_noise.csv'))
     assert got == dict(well_measured=118, read=155, failed=79, wide=5, differ=15)
-    assert (tmp_path / 'R1_template_vs_split.png').exists() and (tmp_path / 'R2_reference_shift.png').exists()
+    assert (tmp_path / 'R1_stretched_vs_separated.png').exists() and (tmp_path / 'R2_reference_shift.png').exists()
 
 
 def test_the_explaining_figures_give_section_8s_counts(tmp_path):

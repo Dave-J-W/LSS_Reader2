@@ -159,10 +159,10 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   an atomic lock beside the workbook, refreshed by its holder, taken over
   when stale.
 - GID burn estimators with the shoulder split off (P44, 2026-11-27):
-  `burn.measure_gid(..., estimator='split')` and `'split_fixed'`, for scripts.
+  `burn.measure_gid(..., estimator='separated')` and `'separated_held'`, for scripts.
   On synthetic burns they read every case to 0.13 pp on a Gaussian shoulder,
-  where the template is off by up to 14 pp. On NX burn 15 the template reads
-  −1.5 % "stable" and the split −13.3 % "changing" (measured, known truth and
+  where the stretched reading is off by up to 14 pp. On NX burn 15 the stretched reading reads
+  −1.5 % "stable" and the separated reading −13.3 % "changing" (measured, known truth and
   public NX; `docs/studies/burn_shoulder/`, C70). The default is unchanged.
   Real burns: issue #155.
 

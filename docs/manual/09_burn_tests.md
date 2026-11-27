@@ -41,7 +41,7 @@ A reflectivity burn uses the Reflectivity tab's box settings (Slit, BG Dir, BG O
 
 | Setting | Default | What it does |
 |---|---|---|
-| Estimator (GID) | template | How each frame's peak is measured. **template**: the mean frame is the peak's shape, and each frame is fitted as that shape scaled, shifted and stretched. **moments**: the old sum, centroid and r.m.s. width; a steady shoulder under the peak dilutes its shift. **fit**: one peak of the cut fit options' shape |
+| Estimator (GID) | shoulder stretched with the peak | How each frame's peak is measured. **shoulder stretched with the peak** (`stretched`): the mean frame is the peak's shape, and each frame is fitted as that shape scaled, shifted and stretched. **moments**: the old sum, centroid and r.m.s. width; a steady shoulder under the peak dilutes its shift. **fit**: one peak of the cut fit options' shape |
 | Errors | auto | **scatter**: the errors scaled to the frames' own scatter (for GID); **counting**: the errors as computed (for reflectivity); auto picks by kind |
 | Time | clock | Wall time from the first exposure (the shutter closes between exposures), or **exposure**, the counting time accumulated |
 | Change | 5.0 % | The change that matters |

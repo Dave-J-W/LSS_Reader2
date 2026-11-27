@@ -3,7 +3,7 @@
 `dose_14_15.png` (with `dose_14_15.csv`, `summary_14_15.json`), made by
 `python tests/tools/burn_dose_figure.py` from the public NX school burn
 scans 14 (absorber 12) and 15 (absorber 8): 21 frames of 10 s each of one
-GID peak, the reader's burn estimator (template). Asked for in
+GID peak, the reader's burn estimator (stretched). Asked for in
 `docs/handoff_out/07-burn-trends.md` ("Dose instead of time") and
 `docs/physics_notes.md` (2026-11-23, "Damage or a changing sample").
 

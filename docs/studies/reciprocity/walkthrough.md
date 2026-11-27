@@ -46,7 +46,7 @@ with the flux, it is the beam. If it is the same at every flux, it is the clock.
 ![W2](walkthrough/W2_per_frame_positions.png)
 
 Each frame's line cut becomes one number with one error bar: here the **peak position**. The reader's
-default estimator is the "template". The mean of all 21 frames (less a straight background) is the peak's
+default estimator is the "shoulder stretched with the peak" (`stretched`). The mean of all 21 frames (less a straight background) is the peak's
 shape. Each frame is then fitted as that shape, shifted by δ and stretched by w, on its own straight
 background:
 - the position is the template's centre + δ;
@@ -223,7 +223,7 @@ with a standard deviation of 1. Above 1 means the errors are too small, below 1 
 | step | code |
 |---|---|
 | 1 rows, line cut, window | `lss_core.burn.signal_rows`, `Experiment.burn` (profiles), `burn.choose_window` |
-| 2 one number per frame | `lss_core.burn.measure_gid` (estimator 'template') |
+| 2 one number per frame | `lss_core.burn.measure_gid` (estimator 'stretched') |
 | 3 drift rate | `lss_core.reciprocity.drift_rate` (ln y for intensity and width, y for a position; σ × √(χ²/dof) when > 1) |
 | 4 β, intervals, p, weight | `reciprocity.dose_or_time` / `dose_or_time_rates`, `_profile` |
 | 5 verdict rules, strip scatter | `dose_or_time(strip_scatter=τ, strip_relative=ρ)`; repeated strips pooled (`_pooled_z`) |
