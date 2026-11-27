@@ -6,3 +6,4 @@ lmfit
 sympy
 pillow
 openpyxl
+orsopy

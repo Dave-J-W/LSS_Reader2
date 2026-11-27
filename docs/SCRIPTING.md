@@ -270,6 +270,12 @@ Gaussian on a straight line by unweighted least squares, with the error
 √(counts in the window): too small where the background is large (the XRF
 shootout's pull SD 1.92). `fl.merge_rows` merges every (I, σ) pair of a row.
 
+An ORSO file (the format v1.2, via orsopy; 2026-11-27, F25), as Export writes it with "+ ORSO":
+
+    from lss_core import orso
+    orso.write_ort('run.ort', ref.ref, spec_path, [6, 7, 8, 9], 1.23984, owner_name='...', owner_affiliation='...',
+                   sample_name='dppc', corrections=['...'], call='ref = exp.reflectivity([6, 7, 8, 9], ...)')
+
 A cut of a GID map in Q, as the window's GID cut (2026-11-27, #145):
 
     gid = exp.gid([11], axes='Q')
