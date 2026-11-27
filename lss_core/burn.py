@@ -86,6 +86,7 @@ class BurnResult:
     dose_total: float = None      # to the end of the last frame
     dose_scale: float = 1.0       # dose and dose_total are in units of this many (dose.engineering_scale)
     dose_notes: list = field(default_factory=list)
+    first_frame: dict = field(default_factory=dict)   # #188: {quantity: first_frame_check's dict} when flagged
 
     @property
     def x(self):
@@ -642,6 +643,76 @@ def analyse(t, values, models=trends.MODELS, threshold=0.05, confidence=0.95, ov
     return out
 
 
+# #188 (2026-11-27): a first frame far from the next ones flattens the weighted line (a private GID burn: its
+# first frame 0.50 of the next three, about 30 sigma low; the intensity's linear change -2.9 % with it, -12.9 %
+# without). It is flagged, not left out: leaving it out changes verdicts, which is the owner's decision.
+FIRST_FRAME_NEXT = 3          # the first frame is compared with the median of the next this many
+FIRST_FRAME_SIGMA = 5.0       # flagged when more than this many of its sigma away ...
+FIRST_FRAME_FRACTION = 0.2    # ... and more than this fraction of that median
+FIRST_FRAME_QUANTITIES = ('intensity', 'fwhm')
+
+
+def linear_change(fit, span):
+    """(change, sigma) over ``span`` of the linear model c + s t, relative
+    to its value at 0: s span / c (nan when the model is not fitted)."""
+    if fit is None or not fit.ok or fit.params is None or fit.cov is None:
+        return math.nan, math.nan
+    c, sl = float(fit.params[0]), float(fit.params[1])
+    if c == 0 or not np.isfinite(c):
+        return math.nan, math.nan
+    jac = np.array([-sl * span / c ** 2, span / c])
+    return sl * span / c, float(math.sqrt(max(float(jac @ np.asarray(fit.cov)[:2, :2] @ jac), 0.0)))
+
+
+def first_frame_check(x, y, s, span, comparison=None, next_frames=FIRST_FRAME_NEXT, k=FIRST_FRAME_SIGMA,
+                      fraction=FIRST_FRAME_FRACTION, **compare_kw):
+    """Is the first frame far from the next ones (#188)? Its value against
+    the median of the next ``next_frames`` usable frames: flagged when it is
+    more than ``k`` of its sigma and more than ``fraction`` of that median
+    away. None when it is not (or too few frames). Otherwise a dict:
+    ``ratio`` (first / median), ``z`` (in its sigma), ``with`` and
+    ``without``, the linear model's change over ``span`` with every frame
+    (``comparison``, the burn's own trends.compare, else refitted) and
+    without the first; ``compare_kw`` go to trends.compare (models,
+    overdispersion, errors, as the burn used)."""
+    x, y, s = (np.asarray(a, float) for a in (x, y, s))
+    ok = np.isfinite(x) & np.isfinite(y) & np.isfinite(s) & (s > 0)
+    if not ok.size or not ok[0] or ok.sum() < next_frames + 3:
+        return None
+    m = float(np.median(y[1:][ok[1:]][:next_frames]))
+    if m == 0 or not np.isfinite(m):
+        return None
+    ratio, z = float(y[0] / m), float((y[0] - m) / s[0])
+    if abs(ratio - 1) <= fraction or abs(z) <= k:
+        return None
+    kw = dict(compare_kw, t0=0.0)
+    if comparison is None:
+        comparison = trends.compare(x[ok], y[ok], s[ok], **kw)
+    without = trends.compare(x[ok][1:], y[ok][1:], s[ok][1:], **kw)
+    return {'ratio': ratio, 'z': z, 'next_frames': int(next_frames),
+            'with': linear_change(comparison.fits.get('linear'), span),
+            'without': linear_change(without.fits.get('linear'), span)}
+
+
+def first_frame_notes(res, **compare_kw):
+    """Check ``res``'s first frame for each of FIRST_FRAME_QUANTITIES
+    (``first_frame_check``), record what is flagged in ``res.first_frame``
+    and return one note per flagged quantity (the frame is kept)."""
+    out = []
+    for q in FIRST_FRAME_QUANTITIES:
+        if q not in res.values:
+            continue
+        y, s = res.values[q]
+        f = first_frame_check(res.x, y, s, res.span(), res.trends.get(q), **compare_kw)
+        if f is None:
+            continue
+        res.first_frame[q] = f
+        (w, we), (wo, woe) = f['with'], f['without']
+        out.append('first frame: %s %.2f × the next %d frames\' (%+.0f σ); linear change over the burn '
+                   '%+.1f %% ± %.1f with it, %+.1f %% ± %.1f without (kept; #188)'
+                   % (LABELS.get(q, q), f['ratio'], f['next_frames'], f['z'], 100 * w, 100 * we, 100 * wo, 100 * woe))
+    return out
+
 STYLES = {'constant': ':', 'linear': '--', 'exponential': '-.', 'double exponential': '-'}
 COLOURS = {'intensity': 'C0', 'centre': 'C2', 'fwhm': 'C3'}
 UNITS = {'reflectivity': {'intensity': 'Reflected intensity / Monc'},
@@ -758,6 +829,8 @@ def plot(res, fig, title='', residuals=False, fontsize=None):
         col = COLOURS[q]
         y, s = res.values[q]
         ax.errorbar(res.x, y, s, fmt='o', color=col, ms=3, lw=0.8)
+        if q in (res.first_frame or {}):          # #188: a first frame far from the next ones, kept
+            ax.plot(res.x[:1], y[:1], 'o', mfc='none', mec='k', ms=9, mew=1.2)
         ax.set_ylabel(UNITS[res.kind].get(q, q), color=col, fontsize=fs['axis'])
         ax.tick_params(axis='y', colors=col, labelsize=fs['tick'])
         ax.tick_params(axis='x', labelsize=fs['tick'])

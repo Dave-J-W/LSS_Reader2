@@ -240,6 +240,9 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
   new versions and shown in the open plot; live mode stops at the end of a
   series written with series lines.
 - **ORSO export** (2026-11-27, F25, #148): Reflectivity Export writes `<name>.ort` (ORSO v1.2 via orsopy) beside the text files, on by default, with the data source and the reduction steps in its header.
+- **A burn's anomalous first frame is flagged** (2026-11-27, #188): more than 5 σ and 20 % from the next three
+  frames, it is noted with the linear change with and without it and ringed on the plot, and kept
+  (`lss_core.burn.first_frame_check`; `tests/test_burn_first_frame.py`).
 - **Reopening a file restores its settings, and line cuts are remade live** (2026-11-27, #145):
   - opening a SPEC file applies the settings its workbook recorded at the last save, and one message lists
     what changed (the owner's choice);
