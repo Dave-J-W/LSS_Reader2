@@ -2,7 +2,8 @@
 
 For: the owner's non-cloud agent (Local yokel and its gid-data-needs session, which hold the private GID
 data), or any agent with real GID burn frames. From: tools man, 2026-11-27. The owner (2026-11-27): "a handoff for the next agent to use more
-real data to answer these questions". DATA_NEEDS row 19 is this request.
+real data to answer these questions". DATA_NEEDS row 19 is this request; the task is issue #155 (claim it
+there, rule 15).
 
 **Read first:**
 - `AGENTS.md`: the private-data rules. Never commit raw data, frames, images or peak locations. Frame-by-frame
