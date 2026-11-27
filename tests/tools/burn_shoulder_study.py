@@ -556,6 +556,7 @@ def real_check(out, specs, scans=None, prefix='G'):
                 if e != 'stretched':
                     found = ref.get('shoulder') is not None
                     extra['shoulder_found'] = found
+                    extra['shoulder_refused'] = ref.get('shoulder_refused') or ''     # #187: why a fit is no shoulder
                     if found:
                         b = np.array([d['shoulder'][0] for d in fits])
                         extra.update(shoulder_to_peak_area=ref['shoulder_area'] / ref['peak_area'],
