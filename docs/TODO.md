@@ -1,8 +1,8 @@
 # To do
 
-**Release push (owner, 2026-11-25):** until Reader 2.0 is tagged, the work
-list is `RELEASE_PLAN.md` (release blockers only). The lists below are the
-backlog for after 2.0; the B2 decisions are parked there too.
+**Reader 2.0 is released** (tag `v2.0.0`, 2026-11-27). The release push is over: `RELEASE_PLAN.md`'s
+"After 2.0" list and the lists below are the backlog; the B2 decisions are parked there. Rules 12 and 13
+stay paused (owner, 2026-11-27).
 
 Current phase before the push: **implementation**, following `SCOPE.md`. The owner gave the
 go-ahead on 2026-11-17 ("begin the implementation plan").
