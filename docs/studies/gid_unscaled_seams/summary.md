@@ -74,10 +74,10 @@ Run again with the stopgap (all three responses; the private generator is
 | Outcome | Sets |
 |---|---|
 | A real β gap, now joined with one unscaled seam | 15 (5 beamtimes); gaps 0.47–6.10°, median 3.8° |
-| A real β gap, still refused: a different error inside the join (a zero-size array; follow-up) | 1 |
+| No β gap after all: its upper level's 2θ bins shared no β range, so it kept no β rows and the join stopped on a zero-size array. Fixed 2026-11-27 (the level keeps the window with the most cells; 10 of its 270 bins dropped): it now overlaps and joins with a fitted factor, by default | 1 |
 | No β gap: they had failed only with the `physical` responses at one distance, and join with fitted factors under `fit`, `beam` and `none` | 2 |
 
-So 16 of the 18 have a real gap, not 18 as the survey summary said, and 15 of those 16 now patch.
+So 15 of the 18 have a real gap, not 18 as the survey summary said, and all 15 patch with the stopgap; the other 3 patch by default (corrected 2026-11-27: this said 16 and 15 of 16; `sample_data/private/gid/scripts/join_recheck.py`).
 
 ## Files
 
