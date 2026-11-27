@@ -365,6 +365,17 @@
   shown: always
   tooltip: true
   notes: "Added 2026-11-22 by the covariance work (merged after the assessment; built in code by setupRefCovarianceBox, not in the .ui). Off by default; the default is the owner's (TODO B2). A modifier of Export placed after Save: one more 'Export or Save?' ambiguity for phase 1b to resolve. Refuses with a message when the shown patch cannot be replayed exactly."
+- id: refOrsoCheckBox
+  kind: checkbox
+  label: "+ ORSO"
+  where: "Reflectivity > bottom, after + covariance"
+  handler: writeRefOrso
+  does: "When ticked (the default), Export also writes <name>.ort, the ORSO reflectivity format v1.2 (orsopy): a header with the data source and the reduction, then Qz, R, sR (and sQz when recorded)"
+  workflows: [reflectivity]
+  needs: "a reflectivity on show; the scans' wavelength (#W)"
+  shown: always
+  tooltip: true
+  notes: "Added 2026-11-27 (F25, #148; owner: a checkbox, on by default). Built in code by setupRefCovarianceBox. The owner's name and affiliation come from Preferences > ORSO header."
 - id: refSaveWorkbookPushButton
   kind: button
   label: "Save"

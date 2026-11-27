@@ -2295,6 +2295,20 @@ class MainWindow (QMainWindow):
         l4.addWidget(restore)
         d.prefRestoreSettingsCheckBox=restore
         lay.addWidget(g4)
+        g6=QGroupBox('ORSO header',d)       # F25, #148: the owner the .ort files name (owner, 2026-11-27)
+        g6.setToolTip('The owner the ORSO files (<name>.ort, Reflectivity Export with "+ ORSO") name in their '
+                      'header: typed once, kept between sessions; blank until then. The sample\'s name comes from '
+                      'the series macro.')
+        l6=QFormLayout(g6)
+        for key,label,objname in (('orso_owner_name','Name','prefOrsoNameLineEdit'),
+                                  ('orso_owner_affiliation','Affiliation','prefOrsoAffiliationLineEdit')):
+            e=QLineEdit(str(self.prefs.get(key,'') or ''),g6)
+            e.setObjectName(objname)
+            e.setToolTip('Written as the owner\'s %s in the ORSO header of every .ort file.' % label.lower())
+            e.editingFinished.connect(lambda key=key,e=e:self.setPreference(key,str(e.text()).strip()))
+            l6.addRow(label,e)
+            setattr(d,objname,e)
+        lay.addWidget(g6)
         d.prefSaveNoteCheckBox=asknote
         d.prefAutoSaveCheckBox=autos
         g5=QGroupBox('Layout',d)
@@ -8403,6 +8417,14 @@ class MainWindow (QMainWindow):
             except Exception:
                 missing=('No _rrf.txt: R/R_F could not be made with this Qc and Qoff'
                          +(' (the %s beside it is an earlier one)' % os.path.basename(rrffile) if rrffile in existed else ''))
+            if self.refOrsoCheckBox.isChecked():       # F25, #148
+                ortfile=self.saveFileName+'.ort'
+                existed=set(existed)|set(self.existingFiles([ortfile]))
+                try:
+                    self.writeRefOrso(ortfile)
+                    written.append(ortfile)
+                except Exception as e:
+                    missing=(missing+'. ' if missing else '')+'No .ort: %s' % e
             self.exportNotice(written,existed,missing)
             if self.refCovarianceCheckBox.isChecked():
                 self.saveRefCovariance(self.saveFileName)
@@ -8832,6 +8854,69 @@ class MainWindow (QMainWindow):
         if found:
             found[0].insertWidget(found[1]+1,box)
         self.refCovarianceCheckBox=box
+        orso=QCheckBox('+ ORSO',self)       # F25, #148 (owner, 2026-11-27: a checkbox, on by default)
+        orso.setObjectName('refOrsoCheckBox')
+        orso.setChecked(bool(self.prefs.get('export_orso',True)))
+        orso.setToolTip('On by default (owner, 2026-11-27). Export also writes <name>.ort, the ORSO reflectivity '
+                        'format (version 1.2, written by orsopy; reflectometry.org). Its header records the owner '
+                        '(Preferences > ORSO header), the sample (from the series macro), the beamline, the date of '
+                        'the first scan, the incident-angle range, the wavelength, the SPEC file and scans, and the '
+                        'reduction: the corrections in words and the lss_core script that reproduces the curve. '
+                        'Its columns are Qz, R, sR as in _ref.txt, and sQz when the reduction records a Qz '
+                        'resolution (none does yet). The text files do not change.')
+        orso.toggled.connect(lambda on:self.setPreference('export_orso',bool(on)))
+        if found:
+            found[0].insertWidget(found[1]+2,orso)
+        self.refOrsoCheckBox=orso
+
+    def refCorrections(self):
+        """The reduction of the reflectivity on show, in words, for the ORSO header (F25, #148)."""
+        out=[]
+        u=self.ui
+        mode=self.monitorMode()
+        out.append('frames normalised by the monitor (%s)' % {'photons':'per incident photon','gain':'Monc current, '
+                   'with its gain'}.get(mode,'Monc counts'))
+        out.append('absorbers: %s' % self.absorberText())
+        out.append('ROI %s pixels, background from the side boxes at offset %s' % (u.refSlitLineEdit.text().strip(),
+                                                                                  u.refBGOffLineEdit.text().strip()))
+        try:
+            out.append('error model: %s' % self.errorModel.describe())
+        except Exception:
+            pass
+        if getattr(self,'refpatchindex',0)==1:
+            out.append('scans joined by Ref Patch (%s)' % (getattr(self,'refMethodUsed','') or 'joint fit'))
+        if u.refNormFacCheckBox.checkState()!=0:
+            out.append('divided by the normalisation factor %s' % u.refNormLineEdit.text().strip())
+        else:
+            out.append('normalised to the plateau below Qc %s' % u.refQcLineEdit.text().strip())
+        if getattr(self,'refMaskUsed',None):
+            out.append('points dropped (the workbook mask): %s' % self.refMaskUsed)
+        return out
+
+    def writeRefOrso(self,path):
+        """Write <name>.ort for the reflectivity on show (lss_core.orso; F25, #148)."""
+        import datetime
+        import lss_core
+        from lss_core import orso, timing
+        if not orso.available():
+            raise RuntimeError('orsopy is not installed')
+        scans=self.refResultScans()
+        par=self.specPar.get(min(scans),{}) if scans else {}
+        wl=par.get('Wavelength') if isinstance(par,dict) else None
+        if not isinstance(wl,(int,float)) or wl<=0:
+            raise RuntimeError('the wavelength of scan %s is not known (no #W line)' % (min(scans) if scans else '?'))
+        start=None
+        try:
+            start=datetime.datetime(1970,1,1)+datetime.timedelta(seconds=timing.parse_date(par['Date']))
+        except Exception:
+            pass
+        call=self.reflectivityScript(os.path.basename(path)[:-4])
+        orso.write_ort(path,np.asarray(self.normRefData,float),self.specFileName,scans,float(wl),start_date=start,
+                       owner_name=self.prefs.get('orso_owner_name',''),
+                       owner_affiliation=self.prefs.get('orso_owner_affiliation',''),
+                       sample_name=self.exportSample(),corrections=self.refCorrections(),
+                       call='' if call.lstrip().startswith('#') else call,version=lss_core.__version__)
+        return path
 
     def saveRefCovariance(self,name):
         """Write <name>_ref.cov.json (and _rrf.cov.json) for the files just
