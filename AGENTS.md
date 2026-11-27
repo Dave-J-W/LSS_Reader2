@@ -11,9 +11,10 @@ scattering at ChemMatCARS. It is not a fitting program. Read
 **Reader 2.0 is released** (the owner published release "Reader 2" with the
 tag `v2.0.0` on main 01ae585, 2026-11-27). The release push
 (`docs/RELEASE_PLAN.md`, owner 2026-11-25) is over: its "After 2.0" list is
-the backlog, beside `docs/TODO.md`, and rules 12 and 13 apply again. A fix
-for 2.0 users goes on `main` like any other change; a 2.0.x tag is the
-owner's to set.
+the backlog, beside `docs/TODO.md`. **Rules 12 and 13 stay paused** (owner,
+2026-11-27, after the release: "Let's pause those rules again") until the
+owner resumes them. A fix for 2.0 users goes on `main` like any other
+change; a 2.0.x tag is the owner's to set.
 
 Before the release push: **Implementation, following `docs/SCOPE.md` stage by stage** (authorised by
 the owner on 2026-11-17). Stages 0–2 are done (2026-11-18); Stage 3 (series,
@@ -237,7 +238,7 @@ foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by
      that is not an item, on a variation naming an option its script lacks,
      and on a committed figure no item claims (2026-11-23, F84).
 
-12. **The best method becomes the default** (owner, 2026-11-24): "make the best method the default
+12. *(Paused: owner, 2026-11-27, "Let's pause those rules again".)* **The best method becomes the default** (owner, 2026-11-24): "make the best method the default
    if it has been comprehensively demonstrated and tested and has a demonstrator presentation effort
    behind it". So, before a default changes:
    - a study with known truth and figures (a COMPARISONS row);
@@ -246,7 +247,7 @@ foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by
    Then make the switch, with its OUTPUT_DECISIONS row and the re-pins named one by one. Committed
    products of earlier studies keep the default they were run at (they set it for their own run).
 
-13. **Show the whole chain, explained simply** (owner, 2026-11-25, a standing order: "I always need to
+13. *(Paused: owner, 2026-11-27, "Let's pause those rules again".)* **Show the whole chain, explained simply** (owner, 2026-11-25, a standing order: "I always need to
    see the entire chain of data processing, ending with the statistics and judgment. That means data
    fit examples, explanations of statistics, all ELI5"). Every study, report or answer that ends in a
    number or a verdict shows, in order:
