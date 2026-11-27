@@ -33,8 +33,9 @@ commit with its test, CI green, the legacy export fixtures byte-identical.
 
 - **main man** orchestrates, reviews and merges. **GUI manager** works on the window and workflows.
   **tools man** is general purpose (Tools menu, packaging). **questor** asks the owner questions and records
-  the answers. **Manual writing** writes the user manual (`docs/manual/`). **Local yokel** and its helpers run
-  on the owner's PC and fetch the private data (`docs/DATA_NEEDS.md`). **Reflection guy** also runs on the
+  the answers. **Manual writing** writes the user manual (`docs/manual/`). The **data sessions on the owner's PC** fetch
+  the private data (`docs/DATA_NEEDS.md`) and open `claude/local-data-*` pull requests. Local yokel, which
+  relayed for them, was archived on 2026-11-27, so their tasks carry `lane:local-data`. **Reflection guy** also runs on the
   owner's PC, and its rulings on public data carry the owner's authority ("Whatever I tell reflection guy is
   law in regards to public data", owner 2026-11-26). They reach the cloud sessions only through #55 or `docs/`.
 - **Tasks are GitHub issues** (rule 15). **Issue #55 is for short notices** between sessions: one comment per
@@ -79,6 +80,7 @@ commit with its test, CI green, the legacy export fixtures byte-identical.
 | `reader_log.py` | Durable log, per-SPEC log, process-wide exception handler (no Qt needed) |
 | `packaging/`, `docs/PACKAGING.md` | PyInstaller recipe, pinned build libraries, the build workflow (`.github/workflows/build.yml`, on version tags) |
 | `.github/workflows/tests.yml` | CI: the quick suite on every pull request into `main` and every push to `main` (rule 14) |
+| `.github/workflows/nightly.yml` | The slow suite and the crash sweep on `main` every night; a failure opens a `nightly` issue (rule 14) |
 | `lss_core/preferences.py` | Preferences kept between sessions (`$LSS_READER_PREFS`; the tests use a temporary file) |
 | `lss_core/series.py`, `timing.py` | Scan series (lines and guesses) and per-point times |
 | `lss_core/workbook.py`, `live.py` | The per-SPEC Excel workbook (saved results, series ties, stale flags); remaking results from their recipes (live updates) |
@@ -162,10 +164,11 @@ clean up after themselves; `-n0` runs in one process, for a debugger. On the own
       If CI fails, fix it and push; the new push gets its own run.
     - **On the owner's Windows PC,** the quick suite has environment failures (display scaling, fonts), so a
       local run there is never the check.
-    - **Slow and sweep suites** aren't in CI. Run the slow suite for the area when real-data reduction or a
-      dialog's accepted input changed (`-m slow -k <area>`), and the sweep when the window changed, both in
-      the session that made the change, once. Both run before a release. Report them as
-      `slow: N passed on <sha>` in the pull request or the task's issue.
+    - **Slow and sweep suites run nightly on GitHub** (`.github/workflows/nightly.yml`, on `main`). A failure
+      opens or updates one issue labelled `nightly`. Don't run them yourself as a routine. Run
+      `-m slow -k <area>` only when you need the answer before merging (a change to real-data reduction or to
+      what a dialog accepts), and say `slow: N passed on <sha>` in the pull request. Before a release, start
+      the nightly workflow by hand with "release" ticked, which adds `pytest -m release`.
 15. **Tasks are GitHub issues** (owner, 2026-11-27). One issue per task, labelled `task`.
     - **Claim:** add `claimed` and your lane label (`lane:main-man`, `lane:gui`, `lane:tools`,
       `lane:questor`, `lane:local-data`, `lane:manual`), and comment "claimed by <session>". All sessions
