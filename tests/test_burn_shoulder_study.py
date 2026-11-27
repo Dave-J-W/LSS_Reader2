@@ -116,6 +116,17 @@ def test_the_published_real_burns_give_section_8s_counts(tmp_path):
     assert (tmp_path / 'R1_template_vs_split.png').exists() and (tmp_path / 'R2_reference_shift.png').exists()
 
 
+def test_the_explaining_figures_give_section_8s_counts(tmp_path):
+    """R3-R7 (how section 8's numbers are made) from the published
+    summaries alone: each states the counts the section quotes."""
+    got = S.explain_figures(str(tmp_path))
+    assert got == dict(cut_frame_rel_error=10, cut_change=7, cut_chi2=20, cut_nan=10, q1_z_over_2=32,
+                       q1_verdicts_differ=15, q2_three=22, q2_with_shoulder=94, q3_split_lower=63, q3_with_shoulder=94,
+                       q5_series=14, q5_changed=5)
+    for name in ('R3_selection', 'R4_q1_disagreement', 'R5_q2_shoulder', 'R6_q3_fit_quality', 'R7_q5_dose_or_time'):
+        assert (tmp_path / (name + '.png')).exists()
+
+
 def test_part_r_runs(tmp_path):
     rows, nx = S.reference_check(str(tmp_path), replicates=2, workers=1, monitors=(1e7,), cases=('fade',))
     assert nx == []
