@@ -59,8 +59,11 @@ On your own machine (same platform as the build you want):
 
 ## Clean-PC test (release blocker 4, `docs/RELEASE_PLAN.md`)
 
-Done by a person on a Windows PC that has never had Python or the reader on it. A Windows Sandbox (a
-throwaway clean Windows: Settings → Optional features → Windows Sandbox) is as good.
+Done by a person on a Windows PC that has never had Python or the reader on it: a beamline PC or a
+spare laptop. **Do not use Windows Sandbox on the owner's PC** (project manager, 2026-11-26/27: enabling and
+running it there was followed by an unexpected shutdown, then a hard freeze that left half-written files as
+zeros and a startup disk the PC could not find until the owner repaired it; no test result came out;
+`docs/RELEASE_PLAN.md`, blocker 4).
 
 1. **Download** both zip files from the build run's page (Actions → build → the run → Artifacts):
    `LSS_Reader-Windows` (the program) and `LSS_Reader-sample-data` (the NX school data and the reference
