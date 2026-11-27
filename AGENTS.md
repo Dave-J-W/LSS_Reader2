@@ -157,6 +157,7 @@ sessions do not edit the same lines.
     pytest                 # fast suite, ~5 min (1176 tests, 2026-11-24); run before every commit
     pytest -m slow         # real-data regressions, ~4 min
     pytest -m bench -s     # rewrites docs/timings.md
+    pytest -m release      # generated docs, inventories and committed figures are current (rule 11): before a release
     pytest -m sweep        # crash inventory, ~9 min (forked copies, 2026-11-24): start it in the background; run after GUI-facing changes
     python -m lss_toolbox  # the Tools window on its own; --render rewrites docs/TOOLS.md, --stale, --audit
 
@@ -203,40 +204,28 @@ foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by
 10. **Work in larger tranches, then test** (owner, 2026-11-18): write a
    whole feature (code, tests, docs) before running the suite, rather than
    running tests after each small edit.
-11. **Leave a trail for the figure agent and the manual writer** (owner,
-   2026-11-19), in the same commit as the change. The main session builds
-   knowledge into the reader and records its provenance; polished figures
-   are for the figure agent or a subagent (owner, 2026-11-18):
-   - a new or changed method: a row in `docs/COMPARISONS.md` (old vs new,
-     data, result, evidence kind, how to regenerate; save old/new arrays as
-     CSV for public data when you measure them);
-   - any choice that changes an output number, however small: a row in
-     `docs/OUTPUT_DECISIONS.md` with its rationale and evidence (owner,
-     test, measurement, literature, or marked as an assumption);
-   - a user-visible control: a tooltip (rule 9), a line in
-     `docs/MANUAL_NOTES.md`, `python tests/tools/dump_tooltips.py >
-     docs/manual/controls.md`, and an entry in the GUI inventory
-     (`docs/gui/inventory/<area>.yaml`; its id in the workflow step that
-     uses it, `docs/gui/workflows.yaml`). `tests/test_gui_map.py` fails
-     on a named control the inventory lacks (2026-11-23).
-   - figures that a change makes stale (they show the old method or old
-     numbers): regenerate them, public ones in the repository and private
-     ones under `sample_data/private/figures/`, in the same tranche (owner,
-     2026-11-20). Every figure is made by a tool in `tests/tools/`, so this
-     is a rerun, not a redraw: `python -m lss_toolbox --stale` lists the
-     candidates (from the verified record, else from git history),
-     `--audit` reruns them and compares pixel for pixel (`--record` keeps
-     the ones that matched, so that `--stale` calls them current until
-     something they used changes), and the Tools window's "Replace the
-     committed products" reruns one into the repository.
-   - a new figure generator or demonstration: an item in
-     `lss_toolbox/catalog.py` with the variations the documents describe
-     (a "change this and regenerate to see that" sentence becomes a
-     variation citing its passage as `path#text`, a heading or a short
-     quote, never a line number), then `python -m lss_toolbox
-     --render`. `tests/test_toolbox.py` fails on a script in `tests/tools/`
-     that is not an item, on a variation naming an option its script lacks,
-     and on a committed figure no item claims (2026-11-23, F84).
+11. **Leave a short trail, not bookkeeping** (owner, 2026-11-27, replacing the longer rule of
+   2026-11-19). In the same commit as the change, write down what only its author knows:
+   - a choice that changes an output number, however small: a row in `docs/OUTPUT_DECISIONS.md`
+     with its rationale and evidence (owner, test, measurement, literature, or marked as an
+     assumption);
+   - a user-visible control: a tooltip (rule 9) and a line in `docs/MANUAL_NOTES.md` (what it does,
+     when to use it, the caveat). The **Manual writing** session builds the manual from these;
+   - a new or changed method: a row in `docs/COMPARISONS.md` (old vs new, data, result, evidence,
+     how to regenerate);
+   - a new script in `tests/tools/`: its item in `lss_toolbox/catalog.py` (the quick suite checks
+     this).
+
+   **Do not regenerate derived files on every commit, and make no bookkeeping-only commits.** That
+   covers `docs/manual/controls.md`, `docs/TOOLS.md`, `docs/gui/inventory*` and
+   `docs/gui/workflows.md`, the screenshots, committed figures and data products, and
+   `lss_toolbox/verified.json`. A tool remakes each of them in minutes. They are brought up to date
+   **before a release, or when someone asks** (the Manual writing session, the owner): run
+   `python tests/tools/dump_tooltips.py > docs/manual/controls.md`, `python tests/tools/gui_map.py`,
+   `python -m lss_toolbox --render`, and `python -m lss_toolbox --stale` / `--audit`. Then
+   `pytest -m release` checks that they are current. A new control may go without its inventory
+   entry until then. After merging `main`, do not regenerate a generated file only because the
+   merge touched it.
 
 12. *(Paused: owner, 2026-11-27, "Let's pause those rules again".)* **The best method becomes the default** (owner, 2026-11-24): "make the best method the default
    if it has been comprehensively demonstrated and tested and has a demonstrator presentation effort

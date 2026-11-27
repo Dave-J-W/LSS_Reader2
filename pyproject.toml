@@ -1,6 +1,6 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra -m 'not sweep and not slow and not bench'"
+addopts = "-ra -m 'not sweep and not slow and not bench and not release'"
 # a passing test's tmp_path is removed as soon as it ends; only failing tests'
 # folders are kept, and only from the latest run (2026-11-23: a quick run left
 # 1.2 GB, and pytest kept the last three runs)
@@ -11,4 +11,5 @@ markers = [
     "bench: writes timing tables, not pass/fail",
     "slow: real-data regressions that take minutes",
     "sweep: clicks every button in several application states",
+    "release: generated docs and committed products are current (AGENTS rule 11: run before a release, or when asked)",
 ]

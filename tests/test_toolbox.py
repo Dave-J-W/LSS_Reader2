@@ -138,6 +138,7 @@ def test_every_committed_data_file_belongs_to_an_item():
     assert [p for p in files if not claimed(p)] == []
 
 
+@pytest.mark.release      # rule 11 (2026-11-27): TOOLS.md is re-rendered before a release, not per commit
 def test_tools_page_is_the_rendering_of_the_catalogue():
     with open(render.PAGE, encoding='utf-8') as f:
         assert f.read() == render.page(), 'run: python -m lss_toolbox --render'

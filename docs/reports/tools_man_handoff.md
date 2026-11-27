@@ -102,7 +102,8 @@ Done for the standing order, on the branch (2026-11-25):
   - A proposal is an angle offset only with R_F convolved with the resolution.
   - Set Qc before Qoff.
 - **`--stale` reads `verified.json`.** After regenerating products, run `--audit --record --only …`.
-  New Tools items need `controls.md` regenerated.
+  New Tools items need `controls.md` regenerated. **Since 2026-11-27 (slim rule 11) that is done before a release
+  or when asked, not per commit.**
 - **Ties ordered by set iteration** make a tool's output change from run to run.
 - **The GID template reads a 30 % broadening as +14 % area and a +0.00066 Å⁻¹ shift** (P44). Verdicts on
   broadening peaks are suspect until P44 is done.

@@ -164,6 +164,7 @@ def test_compare_with_the_committed_figures(tools, qapp, recorder):
     assert recorder.exceptions == []
 
 
+@pytest.mark.release      # rule 11 (2026-11-27): committed figures are regenerated before a release, not per commit
 @pytest.mark.parametrize('item_id', ['burn_figures'])
 def test_a_figure_tool_reproduces_its_committed_figures(tools, qapp, recorder, item_id):
     """Run with the defaults, compare: the burn-trend figures come out the
