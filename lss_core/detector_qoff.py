@@ -16,7 +16,7 @@ summed over the columns about the expected beam). The reference is the row
 on the plateau of a sample-height scan (``sh_reference``), taken at the
 alignment angle. A row Δ pixels from it means the reflection left at
 Δβ = Δ · pixel / D from where the arm expected it (D the sample-detector
-distance, S2D_Dist; pixel 0.172 mm).
+distance, S2D_Dist; the pixel images.PIXEL_MM).
 
 **What it means.** The owner: a change of row is "usually surface tilt or
 curvature". A surface tilted by τ changes the incidence by τ and moves the
