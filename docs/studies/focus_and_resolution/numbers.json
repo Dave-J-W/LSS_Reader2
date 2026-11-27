@@ -1,0 +1,109 @@
+{
+ "edges": 378,
+ "beam_resolution_urad": {
+  "frac": 0.21,
+  "core": 11.286800277114448,
+  "tail": 72.10609597561147
+ },
+ "gauss": {
+  "label": "one Gaussian (the new fit)",
+  "chi2_median": 41.813623066907624,
+  "x_median": 0.00037288942930401915,
+  "x_p25": 0.00031680732029398123,
+  "x_p75": 0.00044220776922417754,
+  "better_than_gauss": 0,
+  "qoff_minus_gauss_median": 0.0,
+  "qoff_minus_gauss_p90_abs": 0.0,
+  "at_zero": 26
+ },
+ "beam_core_only": {
+  "label": "core + free Gaussian",
+  "chi2_median": 41.81361160757537,
+  "x_median": 0.0003588163784948844,
+  "x_p25": 0.00030262986309752277,
+  "x_p75": 0.0004321996440131776,
+  "better_than_gauss": 189,
+  "qoff_minus_gauss_median": 9.4111025396304e-14,
+  "qoff_minus_gauss_p90_abs": 2.5466928852056234e-09
+ },
+ "beam": {
+  "label": "core + tail + free Gaussian",
+  "chi2_median": 35.47199085429143,
+  "x_median": 4.2343627330485476e-05,
+  "x_p25": 6.112565119805984e-11,
+  "x_p75": 0.0002410397800630911,
+  "better_than_gauss": 276,
+  "qoff_minus_gauss_median": 2.011821385929953e-06,
+  "qoff_minus_gauss_p90_abs": 5.049731187667132e-05,
+  "extra_at_zero": 181
+ },
+ "free_frac": {
+  "label": "core + tail, fraction free",
+  "chi2_median": 30.470796413622733,
+  "x_median": 0.21044186186212493,
+  "x_p25": 0.1684796225011767,
+  "x_p75": 0.3126542617977236,
+  "better_than_gauss": 321,
+  "qoff_minus_gauss_median": -1.1576489610695098e-06,
+  "qoff_minus_gauss_p90_abs": 6.409383857184457e-05
+ },
+ "free_tailwidth": {
+  "label": "core + tail, width free",
+  "chi2_median": 30.068626716020184,
+  "x_median": 82.8355498350615,
+  "x_p25": 66.79566622635976,
+  "x_p75": 104.12010702657582,
+  "better_than_gauss": 294,
+  "qoff_minus_gauss_median": -5.0196284979522096e-06,
+  "qoff_minus_gauss_p90_abs": 7.506458163723005e-05
+ },
+ "beam_tail37": {
+  "label": "core + tail 0.37 + free Gaussian",
+  "chi2_median": 126.6185317741039,
+  "x_median": 6.606674877327742e-10,
+  "x_p25": 3.565447039538607e-11,
+  "x_p75": 9.250571393924692e-05,
+  "better_than_gauss": 109,
+  "qoff_minus_gauss_median": -3.4266857405696975e-06,
+  "qoff_minus_gauss_p90_abs": 5.6000871808169505e-05
+ },
+ "gauss_sigma_vs_edge_tail_fraction": {
+  "spearman": 0.5071392673145095,
+  "p": 4.272303097062618e-26
+ },
+ "known_truth": {
+  "0e+00": {
+   "n": 40,
+   "gauss_median": 0.0002513352591506261,
+   "beam_extra_median": 2.6799957786940054e-10,
+   "free_frac_median": 0.20846557368238766,
+   "gauss_chi2": 5.821616579929415,
+   "beam_chi2": 1.0477517427248335
+  },
+  "1e-04": {
+   "n": 40,
+   "gauss_median": 0.0002801252799960759,
+   "beam_extra_median": 9.841575693254691e-05,
+   "free_frac_median": 0.23131777180528523,
+   "gauss_chi2": 5.5870052541944695,
+   "beam_chi2": 0.9241146480754753
+  },
+  "2e-04": {
+   "n": 40,
+   "gauss_median": 0.00034108337176077364,
+   "beam_extra_median": 0.0001989219497388981,
+   "free_frac_median": 0.3184274167259126,
+   "gauss_chi2": 6.166712277639984,
+   "beam_chi2": 0.926916342945409
+  },
+  "3e-04": {
+   "n": 40,
+   "gauss_median": 0.0004134532294556919,
+   "beam_extra_median": 0.000299446206499207,
+   "free_frac_median": 0.4511855085633314,
+   "gauss_chi2": 8.598388777891017,
+   "beam_chi2": 0.9377934558574015
+  }
+ },
+ "runs_with_4_edges": 16
+}
