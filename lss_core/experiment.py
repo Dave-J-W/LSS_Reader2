@@ -244,6 +244,20 @@ class GIDResult:
         from . import gid as gidmod
         return gidmod.products(self.x, self.y, self.data, self.err, axes, self.alpha, self.wavelength, self.relax)
 
+    def cut(self, direction, range):
+        """A cut of the map in Q, as the window's GID cut (#145): ``direction`` 'Q H' (or 'H') sums the Qz
+        rows within ``range`` (1/Å) along Qxy, 'Q V' (or 'V') sums the Qxy columns within it along Qz. The
+        window's arithmetic exactly: from the first row (column) at or above range[0] up to, but not
+        including, the last one at or below range[1]. Returns (N, 3): x, the sum, its error √Σσ²."""
+        p = self.products('Q')
+        x, y, d, e = (np.asarray(p[k], float) for k in ('x', 'y', 'data', 'err'))
+        lo, hi = float(range[0]), float(range[1])
+        if str(direction).split()[-1].upper().startswith('H'):
+            ini, fin = np.where(y[:, 0] >= lo)[0][0], np.where(y[:, 0] <= hi)[0][-1]
+            return np.vstack((x[0, :], np.sum(d[ini:fin, :], axis=0), np.sqrt(np.sum(e[ini:fin, :] ** 2, axis=0)))).T
+        ini, fin = np.where(x[0, :] >= lo)[0][0], np.where(x[0, :] <= hi)[0][-1]
+        return np.vstack((y[:, 0], np.sum(d[:, ini:fin], axis=1), np.sqrt(np.sum(e[:, ini:fin] ** 2, axis=1)))).T
+
     def save(self, name, axes=None):
         """The window's "Save GID" files; ``axes`` defaults to the one given
         to Experiment.gid."""

@@ -10942,6 +10942,15 @@ class MainWindow (QMainWindow):
         settings=dict(direction=direction,range=str(self.ui.pilIntRangeLineEdit.text()),axes=str(self.ui.pilAxesComboBox.currentText()))
         items=[]
         recipe='' if curves[0][0]=='GID cut' else self.recipe(self.cutScript)
+        if curves[0][0]=='GID cut' and self.pilGISAXSshow==0 and self.ui.pilCutDirComboBox.currentIndex() in (0,1):
+            try:                    # the GID map's recipe and the cut of it (#145)
+                lo,hi=(float(t) for t in str(self.ui.pilIntRangeLineEdit.text()).split(':'))
+                base=self.recipe(lambda name:self.gidScript(name,'Q'))
+                if base:
+                    recipe=base+'\ncut = gid.cut(%r, (%r, %r))' % (
+                        cuts.DIRECTIONS[self.ui.pilCutDirComboBox.currentIndex()],lo,hi)
+            except ValueError:
+                recipe=''
         if recipe and fits and getattr(self,'cutFitOptionsUsed',None) is not None:   # remade live with its fit (#145)
             recipe='from lss_core import peaks\n'+recipe+'\nfits = cut.fit(peaks.%r)' % (self.cutFitOptionsUsed,)
         for k,(label,x,y,sg,scale) in enumerate(curves):
@@ -10956,7 +10965,7 @@ class MainWindow (QMainWindow):
             items.append(dict(scans=scans,data=np.column_stack([x,y,sg]),columns=[direction.split()[0]+' x','I','dI'],
                               label='%s, %s %s' % (label,direction,settings['range']),settings=settings,
                               fits=[(label,fits[label])] if label in fits else [],
-                              recipe='' if label=='GID cut' else recipe))
+                              recipe=recipe))
         self.saveToWorkbook('gid cut' if curves[0][0]=='GID cut' else 'line cut',items,auto=getattr(self,'autoSaving',False))
 
     def saveMcaSpectraToWorkbook(self):

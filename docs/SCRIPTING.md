@@ -270,6 +270,11 @@ Gaussian on a straight line by unweighted least squares, with the error
 √(counts in the window): too small where the background is large (the XRF
 shootout's pull SD 1.92). `fl.merge_rows` merges every (I, σ) pair of a row.
 
+A cut of a GID map in Q, as the window's GID cut (2026-11-27, #145):
+
+    gid = exp.gid([11], axes='Q')
+    cut = gid.cut('Q H', (0.05, 0.10))     # (N, 3): Qxy, the sum over the Qz rows in the range, its error; 'Q V' along Qz
+
 One scan's column against another, as the SpecPlot saves it (2026-11-27, #145; the recipe of a saved
 SpecPlot curve, remade live when the scan gains points):
 
