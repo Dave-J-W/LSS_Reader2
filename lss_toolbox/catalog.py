@@ -1386,6 +1386,14 @@ TOOLS = (
                       "(sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them.",
          committed=('docs/studies/qz_resolution',), docs=('docs/studies/qz_resolution/summary.md',),
          data='private', repo_ok=False),
+    Tool('qoff_resolution_real', 'Qoff and the Qz resolution on real edges (private data)', 'external', 'external',
+         demonstrates="Tools man's joint edge fit (fresnel.fit_edge_resolution, hand-off 09) on 400 real edge scans "
+                      "and 96 released ones (DATA_NEEDS row 18): the known truth at the real sampling, the fit "
+                      "against row 13's, the residual pattern, Qoff from series to series and what moves it. Made by "
+                      "the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the "
+                      'numbers are the CSVs beside the figures.',
+         committed=('docs/studies/qoff_resolution_real',), docs=('docs/studies/qoff_resolution_real/summary.md',),
+         data='private', repo_ok=False),
     Tool('ref_patch_real', 'Reflectivity patching on real series (private data)', 'external', 'external',
          demonstrates="Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per "
                       "method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the "
