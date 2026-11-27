@@ -162,7 +162,7 @@ def main(argv=None):
     ap.add_argument('--spec', default=NX)
     ap.add_argument('--scans', type=int, nargs='+', default=[14, 15])
     ap.add_argument('--out', default=OUT)
-    ap.add_argument('--estimator', default='template', help="the burn estimator: template (default), moments or fit")
+    ap.add_argument('--estimator', default='stretched', help="the burn estimator: template (default), moments or fit")
     ap.add_argument('--absorbers', choices=('calibrated', 'nominal'), default='calibrated',
                     help='foil transmission: the calibrated foils at the energy (default) or 1.4247 per unit')
     ap.add_argument('--join', action='store_true',

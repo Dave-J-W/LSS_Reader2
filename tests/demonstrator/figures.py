@@ -346,7 +346,7 @@ def figure6(out, numbers, replicates, rows_out=None):
         summary[ch] = summ
         rows_all += [dict(r, change=ch) for r in rows]
         for ax, q in zip(axes, bm.QUANTITIES):
-            tv = summ['template'][q]['true']
+            tv = summ['stretched'][q]['true']
             scale = 1.0 if q == 'centre' else 100.0
             ax.plot([ci - 0.35, ci + 0.35], [scale * tv] * 2, 'k-', lw=1.6, label='truth' if ci == 0 else None)
             for k, e in enumerate(bm.ESTIMATORS):

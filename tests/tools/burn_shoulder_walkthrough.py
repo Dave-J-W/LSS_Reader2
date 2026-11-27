@@ -60,7 +60,7 @@ def nx_burns():
     os.environ.setdefault('LSS_READER_LOG_DIR', tempfile.mkdtemp())
     from lss_core.experiment import Experiment
     e = Experiment(NX)
-    return e, {(s, est): e.burn(s, estimator=est) for s in (14, 15) for est in ('template', 'split')}
+    return e, {(s, est): e.burn(s, estimator=est) for s in (14, 15) for est in ('stretched', 'separated')}
 
 
 def bw1(out, e, r):
@@ -109,7 +109,7 @@ def bw2(out, r):
     chord = mw - ref['shape']
     h, m, sg = ref['shoulder']
     c0, w0 = (ref['found']['centre'], ref['found']['fwhm']) if ref['found'] else (ref['centre'], ref['fwhm'])
-    beside = np.abs(x - c0) > burn.SPLIT_CORE * w0
+    beside = np.abs(x - c0) > burn.SEPARATE_CORE * w0
     S = h * np.exp(-0.5 * ((x - m) / sg) ** 2)
     line = ref['shape'] - S - ref['peak']
     fig, (a, b, c) = p.subplots(1, 3, figsize=(14, 4.2))
@@ -118,7 +118,7 @@ def bw2(out, r):
     a.set_title('(a) The mean frame in the window, and its chord', fontsize=9)
     b.plot(x[~beside], ref['shape'][~beside], '.', color='0.7', ms=4, label='shape = mean − chord (the core)')
     b.plot(x[beside], ref['shape'][beside], 'o', color='C2', ms=3.5,
-           label='beside the peak (> %.1f FWHM away):\nfitted by a Gaussian + a line' % burn.SPLIT_CORE)
+           label='beside the peak (> %.1f FWHM away):\nfitted by a Gaussian + a line' % burn.SEPARATE_CORE)
     b.plot(x, S + line, '-', color='C2', lw=1.2, label='the fitted Gaussian + line')
     b.set_title('(b) The shoulder is fitted where the peak is not', fontsize=9)
     c.plot(x, ref['shape'], '.', color='0.6', ms=4, label='shape')
@@ -148,17 +148,17 @@ def bw3(out, rt, rs, k=-1):
     prof = rt.profiles[k]
     fig, axes = p.subplots(2, 2, figsize=(12, 6.2), sharex=True, gridspec_kw=dict(height_ratios=[2.2, 1]))
     nums = {}
-    for col, (r, name, colour) in enumerate(((rt, 'template', CT), (rs, 'split', CS))):
+    for col, (r, name, colour) in enumerate(((rt, 'stretched', CT), (rs, 'separated', CS))):
         ref, d = r.reference, r.frame_fits[k]
         x = ref['x']
         sel = (prof[:, 0] >= r.window[0]) & (prof[:, 0] <= r.window[1])
         y, s = prof[sel, 1], prof[sel, 2]
         drawn = burn.frame_model(ref, d, x)
-        total = drawn[0] if name == 'split' else drawn
+        total = drawn[0] if name == 'separated' else drawn
         a, b = axes[0, col], axes[1, col]
         a.errorbar(x, y, s, fmt='.', color='k', ms=3, lw=0.6, label='frame %d, ± √counts' % k)
         a.plot(x, total, '-', color=colour, lw=1.6, label='%s fit' % name)
-        if name == 'split':
+        if name == 'separated':
             pk, sh, bg = drawn[1]
             a.plot(x, pk + bg, ':', color=CS, lw=1, label='peak (stretched) + background')
             a.plot(x, sh + bg, '--', color='C2', lw=1, label='shoulder (not stretched) + background')
@@ -174,7 +174,7 @@ def bw3(out, rt, rs, k=-1):
         b.set_xlabel('Qxy (Å⁻¹)')
         b.set_ylabel('(data − fit) / σ', fontsize=8)
         nums[name] = dict(chi2_dof=d['chi2_dof'], dof=dof, A=float(P[0]), delta=float(P[1]), w=float(P[2]),
-                          B=float(P[3]) if name == 'split' else None,
+                          B=float(P[3]) if name == 'separated' else None,
                           worst=float(np.max(np.abs(res))), beyond_2sigma=int(np.sum(np.abs(res) > 2)))
     axes[0, 0].set_ylabel('counts per monitor')
     fig.suptitle('BW3. The last frame of burn %d, fitted two ways (residuals: each point\'s miss in its own error bars)'
@@ -184,7 +184,7 @@ def bw3(out, rt, rs, k=-1):
     p.close(fig)
     nums['frame'] = k
     nums['mean_chi2_dof'] = {n: float(np.mean([d['chi2_dof'] for d in r.frame_fits if d.get('ok')]))
-                             for n, r in (('template', rt), ('split', rs))}
+                             for n, r in (('stretched', rt), ('separated', rs))}
     return nums
 
 
@@ -200,7 +200,7 @@ def bw4(out, rt, rs):
     tt = np.linspace(0, rt.duration(), 100)
     nums = {}
     for ax, q in zip(axes[:2], ('intensity', 'fwhm')):
-        for r, name, colour in ((rt, 'template', CT), (rs, 'split', CS)):
+        for r, name, colour in ((rt, 'stretched', CT), (rs, 'separated', CS)):
             c = r.trends[q]
             lin, con = c.fits['linear'], c.fits['constant']
             ref = float(lin(np.array([0.0]))[0])
@@ -226,7 +226,7 @@ def bw4(out, rt, rs):
     ax.set_title('(c) The split\'s shoulder per frame (± counting σ)', fontsize=9)
     c = rs.trends['shoulder']
     v, e = _change(c, rs.duration())
-    nums['split_shoulder'] = dict(change=v, sigma=e, stable=bool(c.stable), b_min=float(b[:, 0].min()),
+    nums['separate_shoulder'] = dict(change=v, sigma=e, stable=bool(c.stable), b_min=float(b[:, 0].min()),
                                   b_max=float(b[:, 0].max()))
     fig.tight_layout()
     fig.savefig(os.path.join(out, 'BW4_per_frame.png'), dpi=130)
@@ -240,7 +240,7 @@ def bw5(out, runs):
     fig, ax = p.subplots(figsize=(7.5, 3.8))
     nums = {}
     for i, s in enumerate((14, 15)):
-        for j, (name, colour) in enumerate((('template', CT), ('split', CS))):
+        for j, (name, colour) in enumerate((('stretched', CT), ('separated', CS))):
             c = runs[s, name].trends['intensity']
             d = float(c.delta_constant_linear)
             ax.bar(i * 3 + j, d, color=colour, label=name if i == 0 else None)
@@ -270,7 +270,7 @@ def bw6(out, n=60):
     from synthetic import burn_profiles as bp
     p = plt()
     T = 21 * 10.0
-    got = {'template': [], 'split': []}
+    got = {'stretched': [], 'separated': []}
     for seed in range(n):
         prof, tr = bp.profiles(seed=1000 + seed, monitor=NX_MONITORS[15], **CASES['nx15_like'])
         for name in got:
@@ -280,7 +280,7 @@ def bw6(out, n=60):
     truth = -0.13
     fig, axes = p.subplots(1, 2, figsize=(12, 4.4), sharey=True)
     nums = {'truth': truth, 'replicates': n, 'monitor': NX_MONITORS[15]}
-    for ax, (name, colour) in zip(axes, (('template', CT), ('split', CS))):
+    for ax, (name, colour) in zip(axes, (('stretched', CT), ('separated', CS))):
         v = np.array([g[0] for g in got[name]])
         s = np.array([g[1] for g in got[name]])
         hit = np.abs(v - truth) < 1.96 * s
@@ -312,7 +312,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
     e, runs = nx_burns()
-    rt, rs = runs[SCAN, 'template'], runs[SCAN, 'split']
+    rt, rs = runs[SCAN, 'stretched'], runs[SCAN, 'separated']
     n = OrderedDict()
     n['BW1'] = bw1(a.out, e, rt)
     n['BW2'] = bw2(a.out, rs)

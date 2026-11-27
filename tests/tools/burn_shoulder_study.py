@@ -81,8 +81,8 @@ from lss_core import burn                              # noqa: E402
 from synthetic import burn_profiles as bp              # noqa: E402
 
 NX = 'sample_data/NX_school/2026sep/20260923'
-ESTIMATORS = ('template', 'moments', 'split', 'split_fixed')
-NX_ESTIMATORS = ('template', 'moments', 'fit', 'split', 'split_fixed')
+ESTIMATORS = ('stretched', 'moments', 'separated', 'separated_held')
+NX_ESTIMATORS = ('stretched', 'moments', 'fit', 'separated', 'separated_held')
 QUANTITIES = ('intensity', 'fwhm', 'centre', 'shoulder')
 CASES = {
     'none': dict(change='none', amount=0.0),
@@ -102,7 +102,7 @@ PART_B = dict(cases=('none', 'fade', 'broaden', 'nx15_like'), monitors=(1e6, 6e4
 NX_MONITORS = {14: 1e4, 15: 6e4}
 MONITOR = 1e7
 FRAMES, CTIME = 21, 10.0
-COLOURS = {'template': 'C0', 'moments': 'C7', 'fit': 'C5', 'split': 'C3', 'split_fixed': 'C1'}
+COLOURS = {'stretched': 'C0', 'moments': 'C7', 'fit': 'C5', 'separated': 'C3', 'separated_held': 'C1'}
 LABEL = {'intensity': 'intensity', 'fwhm': 'FWHM', 'centre': 'position', 'shoulder': 'shoulder'}
 
 
@@ -144,7 +144,7 @@ def read_all(profiles, t, T, estimators=ESTIMATORS):
         for q, c in res.items():
             v, s = change_of(c.fits.get('linear'), T, relative=q != 'centre')
             out[e][q] = (v, s, c.stable)
-        if e in burn.SPLIT_ESTIMATORS:
+        if e in burn.SEPARATED_ESTIMATORS:
             extra[e] = ref.get('shoulder')
     return out, extra
 
@@ -154,7 +154,7 @@ def _replicates(job):
     case, shape, monitor, seeds, core = job
     T = FRAMES * CTIME
     rows = []
-    before, burn.SPLIT_CORE = burn.SPLIT_CORE, core          # ``--core``; set back after
+    before, burn.SEPARATE_CORE = burn.SEPARATE_CORE, core          # ``--core``; set back after
     try:
         for seed in seeds:
             prof, tr = bp.profiles(n=FRAMES, ctime=CTIME, monitor=monitor, seed=seed, shoulder_shape=shape,
@@ -162,7 +162,7 @@ def _replicates(job):
             reads, extra = read_all(prof, tr.t, T)
             rows.append((seed, truths(tr, T), reads, {k: v is not None for k, v in extra.items()}))
     finally:
-        burn.SPLIT_CORE = before
+        burn.SEPARATE_CORE = before
     return (case, shape, monitor), rows
 
 
@@ -181,7 +181,7 @@ def summarise(key, reps):
     for e in ESTIMATORS:
         for q in QUANTITIES:
             got = [(r[1][q], *r[2].get(e, {}).get(q, (math.nan, math.nan, None))) for r in reps]
-            got = [g for g in got if not (q == 'shoulder' and e != 'split')]
+            got = [g for g in got if not (q == 'shoulder' and e != 'separated')]
             if not got or all(math.isnan(g[1]) for g in got):
                 continue
             truth = got[0][0]
@@ -191,7 +191,7 @@ def summarise(key, reps):
             pull = (v[ok] - truth) / s[ok]
             changing = np.array([g[3] is False for g in got])[ok]
             moves = abs(truth) > 1e-9
-            found = [r[3].get(e, True) for r in reps] if e in burn.SPLIT_ESTIMATORS else [True]
+            found = [r[3].get(e, True) for r in reps] if e in burn.SEPARATED_ESTIMATORS else [True]
             rows.append(dict(part='A' if monitor == MONITOR else 'B', case=case, shape=shape, monitor=monitor,
                              estimator=e, quantity=q, truth=truth, n=int(np.sum(ok)), failed=int(np.sum(~ok)),
                              mean=float(np.mean(v[ok])), bias=float(np.mean(v[ok]) - truth), sd=float(np.std(v[ok])),
@@ -203,8 +203,8 @@ def summarise(key, reps):
     return rows
 
 
-def run(parts=('A', 'B'), replicates=300, workers=None, cases=None, shapes=None, core=burn.SPLIT_CORE):
-    """``core``: the split's core half-width in FWHM (burn.SPLIT_CORE, 1.5)."""
+def run(parts=('A', 'B'), replicates=300, workers=None, cases=None, shapes=None, core=burn.SEPARATE_CORE):
+    """``core``: the split's core half-width in FWHM (burn.SEPARATE_CORE, 1.5)."""
     jobs = []
     chunk = 25
     for key in cells(parts, cases, shapes):
@@ -306,7 +306,7 @@ def s3(rows, out):
                     ys.append(r[0][key])
             ax.bar(xs, ys, 0.8 / n, color=COLOURS[e], label=e)
     for i, c in enumerate(cases):
-        r = _pick(rows, case=c, shape='gaussian', monitor=MONITOR, estimator='template', quantity='intensity')
+        r = _pick(rows, case=c, shape='gaussian', monitor=MONITOR, estimator='stretched', quantity='intensity')
         if r and abs(r[0]['truth']) > 1e-9:
             axes[0].text(i, 1.02, 'truly\nchanges', ha='center', va='bottom', fontsize=6)
     axes[0].set_ylabel('share called "changing"', fontsize=8)
@@ -383,7 +383,7 @@ def smooth_reference(x, mean, err, window):
 
 def read_with_reference(profiles, ref_mean, window, estimator, found=None):
     """Each frame's intensity and its σ as ``burn.measure_gid`` reads them
-    ('template' or 'split'), but measured against ``ref_mean`` instead of
+    ('stretched' or 'separated'), but measured against ``ref_mean`` instead of
     the frames' own mean. With the frames' mean it gives measure_gid's
     numbers exactly (tested): with ``qxy_range=window``, or with the window
     and ``found`` (the peak ``choose_window`` found: the split's starting
@@ -394,10 +394,10 @@ def read_with_reference(profiles, ref_mean, window, estimator, found=None):
     step = float(np.median(np.abs(np.diff(xw))))
     shape = ref_mean[sel] - burn._baseline(xw, ref_mean[sel])
     c_ref = float(np.sum(shape * xw) / np.sum(shape))
-    if estimator == 'split':
+    if estimator == 'separated':
         c0, w0 = (found['centre'], found['fwhm']) if found else (float(xw[np.argmax(shape)]),
                                                                  burn._half_width(xw, shape))
-        S, P, sp = burn.split_shoulder(xw, shape, c0, w0, burn.SPLIT_CORE)
+        S, P, sp = burn.separate_shoulder(xw, shape, c0, w0, burn.SEPARATE_CORE)
         S = None if sp is None else S
         mt, c, area = P, float(np.sum(P * xw) / np.sum(P)), float(np.sum(P) * step)
     else:
@@ -408,7 +408,7 @@ def read_with_reference(profiles, ref_mean, window, estimator, found=None):
         e = np.where(e > 0, e, np.nan)
         e = np.where(np.isfinite(e), e, np.nanmax(e) if np.any(np.isfinite(e)) else 1.0)
         try:
-            p, pe, _, cov = burn._template(xw, y, e, xw, mt, c, S, extra_free=True)
+            p, pe, _, cov = burn._stretch_fit(xw, y, e, xw, mt, c, S, extra_free=True)
         except (RuntimeError, ValueError):        # as measure_gid: a frame that will not fit is NaN, not the end
             out.append(math.nan)
             err.append(math.nan)
@@ -446,7 +446,7 @@ def reference_nx(spec):
     exp = Experiment(spec)
     rows = []
     for scan in (14, 15):
-        for e in ('template', 'split'):
+        for e in ('stretched', 'separated'):
             r = exp.burn(scan, estimator=e)
             T = r.duration()
             for k, (v, sv, stable) in _smoothed_change(r, e).items():
@@ -470,7 +470,7 @@ def mean_frame_noise(prof, window):
     return float(np.median(err[sel]) / np.max(shape))
 
 
-REAL_ESTIMATORS = ('template', 'split', 'split_fixed')
+REAL_ESTIMATORS = ('stretched', 'separated', 'separated_held')
 
 
 def find_gid_burns(exp):
@@ -520,15 +520,15 @@ def real_check(out, specs, scans=None, prefix='G'):
                 got = {}
                 for e in REAL_ESTIMATORS:
                     got[e] = exp.burn(scan, estimator=e)
-                if got['template'].kind != 'gid':
+                if got['stretched'].kind != 'gid':
                     entry['error'] = 'not a GID burn'
                     continue
-                smooth = {e: _smoothed_change(got[e], e) for e in ('template', 'split')}
+                smooth = {e: _smoothed_change(got[e], e) for e in ('stretched', 'separated')}
             except Exception as err:          # one bad burn must not stop the survey: recorded in the key
                 entry['error'] = '%s: %s' % (type(err).__name__, err)
                 rows.append(dict(burn=label, estimator='', quantity='', failed=type(err).__name__))
                 continue
-            t0 = got['template']
+            t0 = got['stretched']
             base = dict(burn=label, frames=len(t0.x), duration_s=round(t0.duration()),
                         frame_rel_error=float(np.nanmean(t0.values['intensity'][1] / t0.values['intensity'][0])),
                         mean_frame_noise=mean_frame_noise(t0.profiles, t0.window), failed='')
@@ -537,7 +537,7 @@ def real_check(out, specs, scans=None, prefix='G'):
                 extra = dict(frame_chi2_dof=float(np.mean([d['chi2_dof'] for d in fits])) if fits else math.nan,
                              frames_failed=len(r.frame_fits) - len(fits))
                 ref = r.reference
-                if e != 'template':
+                if e != 'stretched':
                     found = ref.get('shoulder') is not None
                     extra['shoulder_found'] = found
                     if found:
@@ -577,7 +577,7 @@ def well_measured(by):
     for b, d in sorted(by.items()):
         if not all(e in d and 'intensity' in d[e] for e in REAL_ESTIMATORS):
             continue
-        t = d['template']['intensity']
+        t = d['stretched']['intensity']
         if (all(np.isfinite(f(d[e]['intensity']['change'])) for e in REAL_ESTIMATORS)
                 and f(t['frame_rel_error']) <= 0.10 and abs(f(t['change'])) <= 0.5 and f(t['frame_chi2_dof']) <= 5):
             out.append(b)
@@ -611,7 +611,7 @@ def real_figures(out, csv_path=REAL_CSV, ref_csv=None, public=('G01', 'G02')):
     lim = 0.0
     counts = dict(well_measured=len(good), read=len(private_read), failed=len(failed), wide=0, differ=0)
     for b in good + nx:
-        t, s = by[b]['template'], by[b]['split']
+        t, s = by[b]['stretched'], by[b]['separated']
         x, y = 100 * f(t['intensity']['change']), 100 * f(s['intensity']['change'])
         ex, ey = 100 * f(t['intensity']['sigma']), 100 * f(s['intensity']['sigma'])
         wide = abs(f(t['fwhm']['change'])) >= 0.10
@@ -647,7 +647,7 @@ def real_figures(out, csv_path=REAL_CSV, ref_csv=None, public=('G01', 'G02')):
     if ref_csv and os.path.exists(ref_csv):
         ref = [r for r in csvmod.DictReader(open(ref_csv, encoding='utf-8')) if r['reference'] == 'spline']
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.6), sharey=True)
-    for ax, e in zip(axes, ('template', 'split')):
+    for ax, e in zip(axes, ('stretched', 'separated')):
         for b in good:
             r = by[b][e]['intensity']
             sh = 100 * (f(r['smoothed_change']) - f(r['change']))
@@ -733,9 +733,9 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     ax[0].set_yticks([])
     ax[0].set_xlabel('burns')
     ax[0].set_title('a. what was read', fontsize=9)
-    cuts = [('frame_rel_error', 'one frame\'s intensity error', 0.10, True, lambda b: I(b, 'template', 'frame_rel_error')),
-            ('change', '|template intensity change| over the burn', 0.5, True, lambda b: abs(I(b, 'template'))),
-            ('chi2', 'template frames\' χ²/dof', 5.0, True, lambda b: I(b, 'template', 'frame_chi2_dof'))]
+    cuts = [('frame_rel_error', 'one frame\'s intensity error', 0.10, True, lambda b: I(b, 'stretched', 'frame_rel_error')),
+            ('change', '|template intensity change| over the burn', 0.5, True, lambda b: abs(I(b, 'stretched'))),
+            ('chi2', 'template frames\' χ²/dof', 5.0, True, lambda b: I(b, 'stretched', 'frame_chi2_dof'))]
     for k, (name, lab, thr, log, val) in enumerate(cuts):
         a = ax[k + 1]
         v = np.array([val(b) for b in priv])
@@ -765,13 +765,13 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     z, dv, wch, diff, shc = [], [], [], [], []
     tab = np.zeros((2, 2), int)
     for b in good:
-        t, s = by[b]['template']['intensity'], by[b]['split']['intensity']
+        t, s = by[b]['stretched']['intensity'], by[b]['separated']['intensity']
         zz = abs(f(t['change']) - f(s['change'])) / max(f(t['sigma']), 1.25 * f(s['sigma']))
         z.append(zz)
         tab[int(t['verdict'] == 'changing'), int(s['verdict'] == 'changing')] += 1
-        wch.append(100 * f(by[b]['template']['fwhm']['change']))
+        wch.append(100 * f(by[b]['stretched']['fwhm']['change']))
         diff.append(100 * (f(s['change']) - f(t['change'])))
-        shc.append('shoulder' in by[b]['split'] and by[b]['split']['shoulder']['verdict'] == 'changing')
+        shc.append('shoulder' in by[b]['separated'] and by[b]['separated']['shoulder']['verdict'] == 'changing')
     z = np.array(z)
     fig, ax = plt.subplots(1, 3, figsize=(15, 4.2))
     zero = z < 1e-9
@@ -797,9 +797,9 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     ax[2].plot(wch[~shc], diff[~shc], 'o', ms=4, color='tab:blue', label='shoulder steady (split)')
     ax[2].plot(wch[shc], diff[shc], 'o', ms=4, color='tab:orange', label='shoulder changing (split)')
     for b in nx:
-        ax[2].plot(100 * f(by[b]['template']['fwhm']['change']), 100 * (I(b, 'split') - I(b, 'template')), 's', color='k', ms=7)
-        ax[2].annotate('NX %s' % ('14' if b == public[0] else '15'), (100 * f(by[b]['template']['fwhm']['change']),
-                       100 * (I(b, 'split') - I(b, 'template'))), xytext=(5, 4), textcoords='offset points', fontsize=8)
+        ax[2].plot(100 * f(by[b]['stretched']['fwhm']['change']), 100 * (I(b, 'separated') - I(b, 'stretched')), 's', color='k', ms=7)
+        ax[2].annotate('NX %s' % ('14' if b == public[0] else '15'), (100 * f(by[b]['stretched']['fwhm']['change']),
+                       100 * (I(b, 'separated') - I(b, 'stretched'))), xytext=(5, 4), textcoords='offset points', fontsize=8)
     ax[2].axhline(0, color='0.5', lw=0.8)
     ax[2].axvline(0, color='0.5', lw=0.8)
     ax[2].set_xlim(-30, 30)
@@ -824,10 +824,10 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     n3 = 0
     nsh = 0
     for b in good + nx:
-        d = by[b]['split']
+        d = by[b]['separated']
         if 'shoulder' not in d or d['intensity'].get('shoulder_found') != 'True':
             continue
-        r, i, x = d['shoulder'], d['intensity'], by[b]['split_fixed']['intensity']
+        r, i, x = d['shoulder'], d['intensity'], by[b]['separated_held']['intensity']
         sc = 100 * f(r['change'])
         bdir = 100 * ((f(i['b_max']) - 1) if f(r['change']) > 0 else (1 - f(i['b_min'])))
         dis = abs(f(i['change']) - f(x['change'])) > math.hypot(f(i['sigma']), f(x['sigma']))
@@ -861,19 +861,19 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     fig, ax = plt.subplots(1, 2, figsize=(12, 4.6))
     ct, cs, ar, fr = [], [], [], []
     for b in good:
-        i = by[b]['split']['intensity']
+        i = by[b]['separated']['intensity']
         if i.get('shoulder_found') != 'True':
             continue
-        ct.append(I(b, 'template', 'frame_chi2_dof'))
-        cs.append(I(b, 'split', 'frame_chi2_dof'))
+        ct.append(I(b, 'stretched', 'frame_chi2_dof'))
+        cs.append(I(b, 'separated', 'frame_chi2_dof'))
         ar.append(f(i['shoulder_to_peak_area']))
         fr.append(f(i['shoulder_to_peak_fwhm']))
     ct, cs = np.array(ct), np.array(cs)
     ax[0].loglog(ct, cs, 'o', ms=4, color='tab:blue')
     for b in nx:
-        ax[0].loglog(I(b, 'template', 'frame_chi2_dof'), I(b, 'split', 'frame_chi2_dof'), 's', color='k', ms=7)
-        ax[0].annotate('NX %s' % ('14' if b == public[0] else '15'), (I(b, 'template', 'frame_chi2_dof'),
-                       I(b, 'split', 'frame_chi2_dof')), xytext=(5, -10), textcoords='offset points', fontsize=8)
+        ax[0].loglog(I(b, 'stretched', 'frame_chi2_dof'), I(b, 'separated', 'frame_chi2_dof'), 's', color='k', ms=7)
+        ax[0].annotate('NX %s' % ('14' if b == public[0] else '15'), (I(b, 'stretched', 'frame_chi2_dof'),
+                       I(b, 'separated', 'frame_chi2_dof')), xytext=(5, -10), textcoords='offset points', fontsize=8)
     lo, hi = 0.5, 6
     xx = np.array([lo, hi])
     ax[0].plot(xx, xx, color='0.4', lw=0.8)
@@ -889,7 +889,7 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
                transform=ax[0].transAxes, va='top', fontsize=8)
     ax[1].loglog(fr, ar, 'o', ms=4, color='tab:blue', label='private burns')
     for b in nx:
-        i = by[b]['split']['intensity']
+        i = by[b]['separated']['intensity']
         ax[1].loglog(f(i['shoulder_to_peak_fwhm']), f(i['shoulder_to_peak_area']), 's', color='k', ms=7)
         ax[1].annotate('NX %s' % ('14' if b == public[0] else '15'), (f(i['shoulder_to_peak_fwhm']),
                        f(i['shoulder_to_peak_area'])), xytext=(5, 3), textcoords='offset points', fontsize=8)
@@ -913,9 +913,9 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     series = list(csvmod.DictReader(open(series_csv, encoding='utf-8')))
     rates = list(csvmod.DictReader(open(rates_csv, encoding='utf-8')))
     fig, ax = plt.subplots(1, 2, figsize=(13, 4.8))
-    ex = next((s for s in series if s['template_rho0_verdict'] == 'dose' and s['split_rho0_verdict'] == 'dose'), series[0])
+    ex = next((s for s in series if s['stretched_rho0_verdict'] == 'dose' and s['separated_rho0_verdict'] == 'dose'), series[0])
     rr = [r for r in rates if r['series'] == ex['series']]
-    for est, col, off in (('template', 'tab:blue', 0.97), ('split', 'tab:orange', 1.03)):
+    for est, col, off in (('stretched', 'tab:blue', 0.97), ('separated', 'tab:orange', 1.03)):
         x = np.array([f(r['flux_rel']) for r in rr])
         y = np.array([f(r[est + '_rate_per_h']) for r in rr])
         s = np.array([f(r[est + '_sigma_per_h']) for r in rr])
@@ -938,7 +938,7 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     ax[0].set_ylabel('intensity drift rate (% per hour)')
     ax[0].set_title('a. one series (%s, %s burns): rate = k · flux^β' % (ex['series'], ex['n_burns']), fontsize=9)
     ax[0].legend(fontsize=7)
-    for j, (est, col, off) in enumerate((('template', 'tab:blue', -0.15), ('split', 'tab:orange', 0.15))):
+    for j, (est, col, off) in enumerate((('stretched', 'tab:blue', -0.15), ('separated', 'tab:orange', 0.15))):
         labelled = False
         for i, s in enumerate(series):
             b, lo_, hi_ = f(s[est + '_rho0_beta']), f(s[est + '_rho0_beta_lo']), f(s[est + '_rho0_beta_hi'])
@@ -948,8 +948,8 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
                 labelled = True
             ax[1].text(i, -1.5 - 0.45 * j, CODES.get(s[est + '_rho0_verdict'], '?'), ha='center', va='center',
                        fontsize=8, color=col, fontweight='bold')
-    ax[1].text(-0.6, -1.5, 'template', ha='right', va='center', fontsize=7, color='tab:blue')
-    ax[1].text(-0.6, -1.95, 'split', ha='right', va='center', fontsize=7, color='tab:orange')
+    ax[1].text(-0.6, -1.5, 'stretched', ha='right', va='center', fontsize=7, color='tab:blue')
+    ax[1].text(-0.6, -1.95, 'separated', ha='right', va='center', fontsize=7, color='tab:orange')
     ax[1].text(0.01, 0.02, 'verdict: D dose, T time, N neither, 0 no change, ± opposite signs, ? cannot tell',
                transform=ax[1].transAxes, fontsize=7)
     ax[1].axhline(1, color='k', ls='--', lw=0.8)
@@ -960,7 +960,7 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     ax[1].set_ylabel('β with its 68 % interval (ρ = 0)')
     ax[1].set_title('b. every series: β under the template and the split, and the verdicts', fontsize=9)
     ax[1].legend(fontsize=7, loc='upper right')
-    nchg = sum(s['template_rho0_verdict'] != s['split_rho0_verdict'] for s in series)
+    nchg = sum(s['stretched_rho0_verdict'] != s['separated_rho0_verdict'] for s in series)
     fig.suptitle('R7. Question 5: dose or time? %d series; the split changes the verdict of %d (strip scatter ρ = 0). '
                  'β is fitted on a grid from −1 to 4: an interval at the edge is open' % (len(series), nchg), fontsize=9)
     fig.tight_layout()
@@ -977,14 +977,14 @@ def _reference_replicates(job):
     for seed in seeds:
         prof, tr = bp.profiles(n=FRAMES, ctime=CTIME, monitor=monitor, seed=3000 + seed, **CASES[case])
         clean, _ = bp.profiles(n=FRAMES, ctime=CTIME, monitor=monitor, seed=None, **CASES[case])
-        window = burn.measure_gid(clean, estimator='template')[2]       # one window for all: not the question
+        window = burn.measure_gid(clean, estimator='stretched')[2]       # one window for all: not the question
         x = prof[0][:, 0]
         mean = np.mean([q[:, 1] for q in prof], axis=0)
         err = np.sqrt(np.sum([q[:, 2] ** 2 for q in prof], axis=0)) / len(prof)
         refs = dict(mean=mean, spline=smooth_reference(x, mean, err, window),
                     truth=np.mean([q[:, 1] for q in clean], axis=0))
         truth = true_change(tr.t, tr.area, T)
-        for e in ('template', 'split'):
+        for e in ('stretched', 'separated'):
             for k in REFERENCES:
                 a, b = np.polyfit(tr.t, read_with_reference(prof, refs[k], window, e)[0], 1)
                 got.append((e, k, a * T / b - truth))
@@ -1013,7 +1013,7 @@ def reference_check(out, replicates=100, workers=None, monitors=REF_MONITORS, ca
         ex.shutdown()
     rows = []
     for (case, monitor), got in pooled.items():
-        for e in ('template', 'split'):
+        for e in ('stretched', 'separated'):
             base = np.array([g[2] for g in got if g[0] == e and g[1] == 'mean'])
             for k in REFERENCES:
                 b = np.array([g[2] for g in got if g[0] == e and g[1] == k])
@@ -1037,7 +1037,7 @@ def s6(rows, out, nx=()):
     styles = {'mean': ('-', 'o', 'the frames\' mean (the reader)'), 'spline': ('--', 's', 'the mean, smoothed'),
               'truth': (':', '^', 'the noiseless mean')}
     for ax, case in zip(axes[0], cases):
-        for e in ('template', 'split'):
+        for e in ('stretched', 'separated'):
             for k in REFERENCES:
                 got = sorted((r['monitor'], r['bias'], r['se']) for r in rows
                              if r['case'] == case and r['estimator'] == e and r['reference'] == k)
@@ -1059,7 +1059,7 @@ def s6(rows, out, nx=()):
     axes[0][len(cases) - 1].legend(fontsize=6, frameon=False)
     if nx:
         ax = axes[0][-1]
-        for j, (scan, e, k) in enumerate((sc, e, k) for sc in (14, 15) for e in ('template', 'split')
+        for j, (scan, e, k) in enumerate((sc, e, k) for sc in (14, 15) for e in ('stretched', 'separated')
                                          for k in ('mean', 'spline')):
             r = [x for x in nx if x['scan'] == scan and x['estimator'] == e and x['reference'] == k][0]
             ls, mk, _ = styles[k]
@@ -1101,7 +1101,7 @@ def nx_check(out, spec):
                 row = dict(scan=scan, estimator=e, quantity=q, change=v, sigma=s,
                            verdict='stable' if c.stable else 'changing', best=c.best, frame_chi2_dof=chi,
                            duration_s=T, window_lo=r.window[0], window_hi=r.window[1], frame_rel_error=rel)
-                if e in burn.SPLIT_ESTIMATORS and ref.get('shoulder') is not None:
+                if e in burn.SEPARATED_ESTIMATORS and ref.get('shoulder') is not None:
                     h, m, sg = ref['shoulder']
                     b = [d['shoulder'][0] for d in fits]
                     row.update(shoulder_height=h, shoulder_centre=m, shoulder_sigma=sg, peak_fwhm=ref['peak_fwhm'],
@@ -1155,9 +1155,9 @@ def main(argv=None):
     ap.add_argument('--cases', default=None, help='comma-separated: %s' % ', '.join(CASES))
     ap.add_argument('--shapes', default=None, help='comma-separated: %s' % ', '.join(SHAPES))
     ap.add_argument('--workers', type=int, default=None, help='processes (default: up to 4)')
-    ap.add_argument('--core', type=float, default=burn.SPLIT_CORE,
+    ap.add_argument('--core', type=float, default=burn.SEPARATE_CORE,
                     help='the split: the shoulder fitted beyond this many FWHM from the peak (default %g)'
-                    % burn.SPLIT_CORE)
+                    % burn.SEPARATE_CORE)
     ap.add_argument('--only', default=None, help='S5: the NX check only (no replicates); R: the reference\'s '
                     'noise (S6, about 6 min); G: figures R1, R2 of the real GID burns from --real-csv (seconds)')
     ap.add_argument('--real-csv', default=REAL_CSV, help='with --only G: the published per-burn summary')

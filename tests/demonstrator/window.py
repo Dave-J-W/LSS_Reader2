@@ -344,7 +344,7 @@ _METHOD_TIPS = {
               'no guard, one χ² inflation for all).',
 }
 _ESTIMATOR_TIPS = {
-    'template': 'burn.measure_gid default: each frame fitted as A × the mean frame\'s shape, shifted and stretched, '
+    'stretched': 'burn.measure_gid default: each frame fitted as A × the mean frame\'s shape, shifted and stretched, '
                 'on a straight background.',
     'moments': 'The legacy burn test\'s arithmetic: straight baseline through 3 points at each end of the window, '
                'then sum, centroid and 2.355 × r.m.s. width. Its curve here is only the Gaussian of those numbers.',

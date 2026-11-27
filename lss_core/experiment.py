@@ -624,7 +624,7 @@ class Experiment:
     def burn(self, scan, points=None, time='clock', qxy_range=None, rows='mean', fit=None,
              models=None, threshold=0.05, confidence=0.95, slit=(21, 11), bg_offset=0.5, direction='H',
              errors=None, db_pos=None, bad_pixel_iterations=0, bad_pixel_factor=1, overdispersion=True,
-             estimator='template', trend_errors=None, limit=('intensity', 'fwhm'), axis='time',
+             estimator='stretched', trend_errors=None, limit=('intensity', 'fwhm'), axis='time',
              dose_unit='photons', beam_mm=None, shutter='closed'):
         """Burn test of one Pilatus scan (lss_core.burn): per frame the
         reflected intensity (Det_Th 0; ``slit``, ``bg_offset``,
@@ -634,8 +634,9 @@ class Experiment:
         2026-11-24, Q-BURN-6) the rows where the mean frame's signal is,
         lss_core.burn.signal_rows, all rows when no peak stands out; None
         all rows (before); ``fit``: a
-        peaks.FitOptions, for ``estimator`` 'fit'; ``estimator``: 'template'
-        (default), 'moments' (the legacy arithmetic), 'fit', or 'split' and 'split_fixed' (P44: the
+        peaks.FitOptions, for ``estimator`` 'fit'; ``estimator``: 'stretched'
+        (default; 'template' until 2026-11-27, still accepted), 'moments' (the legacy arithmetic), 'fit', or
+        'separated' and 'separated_held' ('split', 'split_fixed' until 2026-11-27; P44: the
         shoulder held unstretched; not yet in the dialog), lss_core.burn.measure_gid),
         all per monitor count; then each quantity over
         ``time`` ('clock', default, the wall time; or 'exposure') compared by AICc over ``models``
