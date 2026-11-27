@@ -19,6 +19,7 @@ arguments:
   window's "Fit lines", #145) before its merges;
 - on a cut (#145): ``<name>.summed_label = '...'`` and ``fits = <name>.fit(FitOptions(...))``, so a
   line cut is remade with its peak fits;
+- on a GID map (#145): ``cut = <name>.cut('Q H', (lo, hi))``, a GID cut of the map, remade with it;
 - ``<name>.save(...)`` and ``print(...)`` (skipped: remaking writes no files).
 
 Anything else makes ``remake`` raise ``RecipeError`` with the reason; the
@@ -72,6 +73,7 @@ class Call:
     fit: object = None    # its FitOptions (None: the defaults)
     summed_label: str = None   # a cut's ``cut.summed_label = ...``
     lines: dict = None    # a fluorescence result's ``.fit_lines(...)`` keywords (#145)
+    gid_cut: tuple = None  # a GID map's ``cut = gid.cut(direction, range)`` arguments (#145)
 
 
 def parse(recipe):
@@ -96,6 +98,12 @@ def parse(recipe):
                 call = Call(f.attr, [_value(a) for a in st.value.args],
                             {k.arg: _value(k.value) for k in st.value.keywords}, merges)
                 var = st.targets[0].id
+                continue
+        if call is not None and call.method == 'gid' and isinstance(st, ast.Assign) and len(st.targets) == 1:
+            v = st.value
+            if (isinstance(st.targets[0], ast.Name) and isinstance(v, ast.Call) and isinstance(v.func, ast.Attribute)
+                    and isinstance(v.func.value, ast.Name) and v.func.value.id == var and v.func.attr == 'cut'):
+                call.gid_cut = ([_value(a) for a in v.args], {k.arg: _value(k.value) for k in v.keywords})
                 continue
         if call is not None and call.method == 'cut' and isinstance(st, ast.Assign) and len(st.targets) == 1:
             t, v = st.targets[0], st.value
@@ -180,6 +188,10 @@ def remake(recipe, scans, exp, then=None, now=None):
         res.fits = res.fit(call.fit) if call.fitted else None
     if call.lines is not None:
         res.fit_lines(**call.lines)
+    if call.gid_cut is not None:
+        args, kws = call.gid_cut
+        res.cut_data = res.cut(*args, **kws)
+        res.cut_direction = str(args[0] if args else kws.get('direction', 'Q H'))
     for m in call.merges:
         res.merge(**m)
     return call, res, used, pts
@@ -207,6 +219,9 @@ def item_for(call, res, scans, label=''):
                 [('frame %d' % int(r[0]), f) for r, f in zip(res.rows, lines['each'])]
         return kind, [dict(scans=list(scans), data=d, columns=cols, label=label or res.command, fits=fits)]
     if call.method == 'gid':
+        if getattr(res, 'cut_data', None) is not None:      # a GID cut, saved as 'GID cut, <direction> <range>'
+            return 'gid cut', [dict(scans=list(scans), data=np.asarray(res.cut_data, float),
+                                    columns=[res.cut_direction.split()[0] + ' x', 'I', 'dI'], label='GID cut')]
         return kind, [dict(scans=list(scans), map_xyz=(res.x, res.y, res.data, res.err),
                            label=label or '2theta, beta (deg)')]
     if call.method == 'curve':
@@ -236,7 +251,8 @@ def with_scans(recipe, scans, points=None):
     tree = ast.parse(recipe)
     for st in tree.body:
         if (isinstance(st, ast.Assign) and isinstance(st.value, ast.Call)
-                and isinstance(st.value.func, ast.Attribute) and st.value.func.attr in METHODS):
+                and isinstance(st.value.func, ast.Attribute) and st.value.func.attr in METHODS
+                and isinstance(st.value.func.value, ast.Name) and st.value.func.value.id == 'exp'):
             if st.value.func.attr not in ONE_SCAN and st.value.args:
                 st.value.args[0] = ast.parse(repr(sorted(int(s) for s in scans)), mode='eval').body
             st.value.keywords = [k for k in st.value.keywords if k.arg != 'points']
