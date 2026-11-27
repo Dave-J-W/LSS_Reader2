@@ -278,19 +278,21 @@ def fig_shape_effect(out, base, runs):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--out', default=os.path.join('docs', 'studies', 'xrf_models'))
+    ap.add_argument('--study', default=os.path.join('docs', 'studies', 'xrf_models'),
+                    help='the study folder whose scatter/, lines/ and shape/ the figures read (inputs)')
     ap.add_argument('--only', default=None, help='comma-separated figure numbers')
     a = ap.parse_args(argv)
     F.style()
-    sc = os.path.join(a.out, 'scatter')
+    sc = os.path.join(a.study, 'scatter')
     base = os.path.join('docs', 'studies', 'xrf_shootout', 'run_blanks')
     want = set(a.only.split(',')) if a.only else None
     jobs = {'1': (lambda: fig_fits(sc, a.out), os.path.join(sc, 'residuals.csv')),
             '2': (lambda: fig_boxes(sc, a.out, base), os.path.join(sc, 'ladder.csv')),
             '3': (lambda: fig_twins(sc, a.out), os.path.join(sc, 'compare.csv')),
-            '4': (lambda: fig_lines(os.path.join(a.out, 'lines'), a.out), os.path.join(a.out, 'lines', 'line_shapes.csv')),
-            '5': (lambda: fig_shape_effect(a.out, (base, base + '_options'), [('Gaussian', os.path.join(a.out, 'shape', 'run_gaussian')),
-                                                         ('Real-shaped', os.path.join(a.out, 'shape', 'run_line'))]),
-                  os.path.join(a.out, 'shape', 'run_gaussian', 'scores.csv'))}
+            '4': (lambda: fig_lines(os.path.join(a.study, 'lines'), a.out), os.path.join(a.study, 'lines', 'line_shapes.csv')),
+            '5': (lambda: fig_shape_effect(a.out, (base, base + '_options'), [('Gaussian', os.path.join(a.study, 'shape', 'run_gaussian')),
+                                                         ('Real-shaped', os.path.join(a.study, 'shape', 'run_line'))]),
+                  os.path.join(a.study, 'shape', 'run_gaussian', 'scores.csv'))}
     for k, (f, need) in jobs.items():
         if want and k not in want:
             continue

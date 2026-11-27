@@ -2,7 +2,7 @@
 
 ## Calibrated bias, % (failed fits, % of spectra, when any)
 
-| Condition | factor | window sum | fit, old weights | Poisson fit (default) | Poisson fit + fixed width + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch | Larch, each alone |
+| Condition | factor | window sum | fit, old weights | Poisson fit | Poisson fit + fixed width + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch | Larch, each alone |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Zn alone, no scatter (sanity check) | core | +0.8 | +0.2 | +0.0 | -0.2 | -0.0 | -0.2 | +2.6 | -0.0 | +0.0 | -9.2 | +0.0 | -0.5 | -1.1 | +0.5 |
 | Zn on smooth scatter | core | +67.9 | -4.2 | -4.8 | -3.2 | -19.9 | -12.0 | +26.6 | +9.7 | +14.2 | +4842.0 | +9.7 | -67.3 | -14.2 | -26.8 |
@@ -50,7 +50,7 @@
 
 ## RMS error of one spectrum, %
 
-| Condition | window sum | fit, old weights | Poisson fit (default) | Poisson fit + fixed width + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch | Larch, each alone |
+| Condition | window sum | fit, old weights | Poisson fit | Poisson fit + fixed width + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch | Larch, each alone |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Zn alone, no scatter (sanity check) | 1.3 | 1.2 | 1.2 | 1.2 | 1.2 | 1.0 | 2.9 | 1.0 | 1.0 | 28.2 | 1.0 | 1.2 | 2.5 | 2.2 |
 | Zn on smooth scatter | 68.1 | 6.7 | 7.1 | 5.9 | 20.4 | 13.2 | 39.8 | 11.1 | 15.2 | 10584.9 | 11.1 | 67.5 | 33.3 | 49.6 |
@@ -98,7 +98,7 @@
 
 ## Pull SD (1 is honest; blank: no error bars or too many failures)
 
-| Condition | window sum | fit, old weights | Poisson fit (default) | Poisson fit + fixed width + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch | Larch, each alone |
+| Condition | window sum | fit, old weights | Poisson fit | Poisson fit + fixed width + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch | Larch, each alone |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Zn alone, no scatter (sanity check) | 0.99 | 1.01 | 1.02 | 1.01 | 1.12 | 1.02 | 1.46 | 1.01 | 1.01 | 97.00 | 1.01 |  |  |  |
 | Zn on smooth scatter | 0.82 | 1.08 | 1.06 | 1.00 | 1.08 | 1.66 | 6.87 | 1.49 | 1.45 | 128.75 | 1.49 |  |  |  |
@@ -146,7 +146,7 @@
 
 ## XFNTR curves: worst point off the true shape, % (χ²/dof of the mean curve)
 
-| Curve | window sum | fit, old weights | Poisson fit (default) | Poisson fit + fixed width + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch | Larch, each alone |
+| Curve | window sum | fit, old weights | Poisson fit | Poisson fit + fixed width + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch | Larch, each alone |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Zn at the surface, smooth scatter | 6.6 (357) | 0.9 (1.83) | 0.5 (1.62) | 0.6 (2.58) | 2.4 (39.3) | 6.5 (167) | 15.4 (39) | 2.7 (38.1) | 2.2 (35.3) | 2962.7 (14.2) |  | 6.1 (285) | 1.2 (0.238) | 11.5 (3.21) |
 | the same, 10 x fewer counts | 50.4 (2.4e+03) | 12.8 (5.29) | 4.9 (4.28) | 4.9 (4.49) | 21.1 (198) | 10.3 (71) | 52.6 (26.8) | 9.1 (27.2) | 12.4 (56.1) | 64508.9 (9.54) |  | 79.6 (1.58e+03) | 5.9 (0.825) | 31.5 (11.9) |
@@ -167,7 +167,7 @@ Accurate: |bias| within 2 % (or 2 standard errors, when larger), at most 5 % of 
 | Zn on smooth scatter | core | Poisson fit + fixed width + escapes removed (not accurate) | -3.2 | 5.9 | 0 | PyMca, best setting (SNIP 60) (not accurate) | +9.7 | 11.1 | 0 | neither within 2 % |
 | the hard case (Zn on water scatter) | core | Poisson fit + fixed width + escapes removed (not accurate) | -7.6 | 13.3 | 70 | PyMca, best setting (default) (not accurate) | -20.6 | 22.5 | 0 | neither within 2 % |
 | hard case, Zn 10 x stronger | core | Poisson fit + fixed width + escapes removed (not accurate) | -2.1 | 2.8 | 0 | Larch (not accurate) | +3.2 | 10.1 | 0 | neither within 2 % |
-| hard case, 3 x fewer counts | core | Poisson fit (default) (not accurate) | -5.2 | 53.1 | 72 | PyMca, best setting (default) (not accurate) | -8.3 | 17.7 | 0 | neither within 2 % |
+| hard case, 3 x fewer counts | core | Poisson fit (not accurate) | -5.2 | 53.1 | 72 | PyMca, best setting (default) (not accurate) | -8.3 | 17.7 | 0 | neither within 2 % |
 | hard case, 11 keV beam | beam energy | Poisson fit + fixed width + escapes removed | -0.6 | 6.3 | 0 | PyMca, best setting (SNIP 60) | +1.3 | 5.5 | 0 | others better (precision) |
 | hard case, 12 keV beam | beam energy | Poisson fit + fixed width + escapes removed | -0.8 | 5.2 | 0 | XeRay | -0.7 | 4.8 | 0 | same |
 | hard case, 14 keV beam | beam energy | Poisson fit + fixed width + escapes removed | -0.7 | 5.0 | 0 | XeRay | -0.1 | 4.6 | 0 | same |
@@ -178,19 +178,19 @@ Accurate: |bias| within 2 % (or 2 standard errors, when larger), at most 5 % of 
 | Zn alone, 200 line photons | counts | Poisson fit + fixed width + escapes removed | -1.1 | 11.2 | 0 | PyMca, best setting (default) | +1.9 | 9.9 | 0 | others better (precision) |
 | Zn alone, 400 line photons | counts | Poisson fit + fixed width + escapes removed | -0.7 | 7.5 | 0 | PyMca, best setting (default) | -0.2 | 6.1 | 0 | others better (precision) |
 | Zn alone, 1000 line photons | counts | Poisson fit + fixed width + escapes removed | -0.3 | 4.2 | 0 | PyMca, best setting (SNIP 60) | +0.2 | 3.6 | 0 | others better (precision) |
-| Zn alone, 3000 line photons | counts | Poisson fit (default) | -0.1 | 2.3 | 0 | PyMca, best setting (SNIP 100) | -0.2 | 2.0 | 0 | others better (precision) |
+| Zn alone, 3000 line photons | counts | Poisson fit | -0.1 | 2.3 | 0 | PyMca, best setting (SNIP 100) | -0.2 | 2.0 | 0 | others better (precision) |
 | Zn alone, 10000 line photons | counts | Poisson fit + fixed width + escapes removed | -0.1 | 1.2 | 0 | PyMca, best setting (SNIP 60) | +0.0 | 1.1 | 0 | others better (precision) |
 | Zn with Cu at 0.3 x Zn | overlap | Poisson fit + fixed width + escapes removed (not accurate) | -8.2 | 14.9 | 78 | PyMca, best setting (default) (not accurate) | -21.6 | 23.5 | 0 | neither within 2 % |
-| Zn with Cu at 1 x Zn | overlap | Poisson fit (default) (not accurate) | -8.9 | 57.8 | 90 | PyMca, best setting (default) (not accurate) | -24.2 | 25.8 | 0 | neither within 2 % |
-| Zn with Cu at 3 x Zn | overlap | Poisson fit (default) (not accurate) | -25.1 | 62.9 | 87 | PyMca, best setting (default) (not accurate) | -27.2 | 28.7 | 0 | neither within 2 % |
+| Zn with Cu at 1 x Zn | overlap | Poisson fit (not accurate) | -8.9 | 57.8 | 90 | PyMca, best setting (default) (not accurate) | -24.2 | 25.8 | 0 | neither within 2 % |
+| Zn with Cu at 3 x Zn | overlap | Poisson fit (not accurate) | -25.1 | 62.9 | 87 | PyMca, best setting (default) (not accurate) | -27.2 | 28.7 | 0 | neither within 2 % |
 | weak Ga beside strong Zn | overlap | Poisson fit + fixed width + escapes removed (not accurate) | +2.5 | 38.2 | 45 | PyMca, best setting (default) | -1.1 | 28.1 | 0 | others better (accuracy) |
 | weak Co beside strong Fe | overlap | Poisson fit + fixed width + escapes removed (not accurate) | +53.2 | 62.5 | 0 | PyMca, best setting (default) (not accurate) | +2.8 | 25.2 | 0 | neither within 2 % |
 | Fe with Mn's K-beta under it | overlap | Poisson fit + fixed width + escapes removed (not accurate) | +6.9 | 8.7 | 0 | Larch (not accurate) | -4.1 | 6.2 | 0 | neither within 2 % |
 | As with Pb's L-alpha on it | overlap | Poisson fit + fixed width + escapes removed (not accurate) | +82.8 | 83.1 | 0 | PyMca, best setting (SNIP 60) (not accurate) | -10.7 | 111.1 | 0 | neither within 2 % |
 | Br, beam just above its edge | element | Poisson fit + fixed width + escapes removed (not accurate) | -19.3 | 42.6 | 81 | PyMca, best setting (with tails) (not accurate) | -16.1 | 43.6 | 0 | neither within 2 % |
-| Br, 14 keV beam | element | Poisson fit (default) (not accurate) | +4.5 | 12.6 | 0 | Larch (not accurate) | -9.6 | 11.2 | 0 | neither within 2 % |
+| Br, 14 keV beam | element | Poisson fit (not accurate) | +4.5 | 12.6 | 0 | Larch (not accurate) | -9.6 | 11.2 | 0 | neither within 2 % |
 | Sr, beam just above its edge | element | Poisson fit + fixed width + escapes removed (not accurate) | -13.1 | 19.3 | 85 | PyMca, best setting (default) (not accurate) | -31.5 | 33.5 | 0 | neither within 2 % |
-| Er L lines, 10 keV beam | element | Poisson fit (default) | +0.2 | 9.3 | 0 | XeRay | -1.0 | 7.4 | 0 | others better (precision) |
+| Er L lines, 10 keV beam | element | Poisson fit | +0.2 | 9.3 | 0 | XeRay | -1.0 | 7.4 | 0 | others better (precision) |
 | Lu L lines, 10 keV beam | element | Poisson fit + fixed width + escapes removed | -0.5 | 6.7 | 0 | PyMca, best setting (polynomial) (not accurate) | -4.9 | 41.6 | 0 | reader better (accuracy) |
 | hard case, offset off by -20 eV | calibration | Poisson fit + fixed width + escapes removed (not accurate) | -13.9 | 17.9 | 15 | Larch, each alone (not accurate) | +2.1 | 80.2 | 0 | neither within 2 % |
 | hard case, offset off by +20 eV | calibration | Poisson fit + fixed width + escapes removed (not accurate) | +2.4 | 13.6 | 88 | Larch, each alone (not accurate) | +4.8 | 89.0 | 0 | neither within 2 % |
@@ -204,8 +204,8 @@ Accurate: |bias| within 2 % (or 2 standard errors, when larger), at most 5 % of 
 | hard case, half the O 1s wing | Compton model | Poisson fit + fixed width + escapes removed (not accurate) | -2.2 | 10.3 | 66 | Larch, each alone (not accurate) | -7.6 | 74.3 | 0 | neither within 2 % |
 | hard case, one spectrum alone | series length | Poisson fit + fixed width + escapes removed (not accurate) | -12.3 | 17.5 | 78 | PyMca, best setting (default) (not accurate) | -22.2 | 24.1 | 0 | neither within 2 % |
 | measured detector and scatter | measured | Poisson fit + fixed width + escapes removed (not accurate) | -13.3 | 29.6 | 67 | Larch, each alone (not accurate) | +11.2 | 98.9 | 0 | neither within 2 % |
-| measured, Zn 10 x stronger | measured | Poisson fit (default) (not accurate) | +6.8 | 7.3 | 0 | Larch (not accurate) | +6.7 | 6.9 | 0 | neither within 2 % |
-| measured, 12 keV beam | measured | Poisson fit (default) | -0.2 | 6.2 | 0 | Larch | -1.2 | 4.7 | 0 | others better (precision) |
+| measured, Zn 10 x stronger | measured | Poisson fit (not accurate) | +6.8 | 7.3 | 0 | Larch (not accurate) | +6.7 | 6.9 | 0 | neither within 2 % |
+| measured, 12 keV beam | measured | Poisson fit | -0.2 | 6.2 | 0 | Larch | -1.2 | 4.7 | 0 | others better (precision) |
 
 ## The conditions: names here and ids in run*/scores.csv
 

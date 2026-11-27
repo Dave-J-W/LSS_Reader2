@@ -22,6 +22,7 @@ TOOL = os.path.join(HERE, 'tools', 'gui_map.py')
 yaml = pytest.importorskip('yaml')
 
 
+@pytest.mark.release      # rule 11 (2026-11-27): the inventory is brought up to date before a release, not per commit
 def test_map_and_inventory_check_against_the_window(tmp_path):
     env = dict(os.environ, QT_QPA_PLATFORM='offscreen', MPLBACKEND='Agg',
                LSS_READER_LOG_DIR=str(tmp_path / 'logs'), LSS_READER_PREFS=str(tmp_path / 'prefs.json'))

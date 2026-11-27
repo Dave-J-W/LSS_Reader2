@@ -1165,26 +1165,29 @@ TOOLS = (
          variations=(V('Leave one energy out only', 'The validation table from fits already made.',
                        'docs/studies/xrf_models/scatter_energy.md', stage='loo'),),
          repo_ok=False, seconds=None),
-    Tool('xrf_walkthrough', 'Walkthroughs: an XRF test from the raw spectrum to the verdict (ELI5)', 'fluo', 'figures',
+    Tool('xrf_walkthrough', 'Walkthrough: an XRF test from the raw spectrum to the verdict (ELI5)', 'fluo', 'figures',
          'tests/tools/xrf_walkthrough.py',
-         "The whole chain on public data, for the owner's standing order (2026-11-25). The shootout: a real blank as "
-         "it comes in, one test spectrum made from it with a Ni K line of known photons, the reader's three fits over "
-         "it with residuals, 500 spectra turned into a bias, pulls and the 'accurate' verdict (the committed run's own "
-         "draws), and the false signal. The models study: three scatter models over one blank with residuals, the "
-         "misfit at the shootout's counts, a twin and a second draw, the floor, and a line with readout B's measured "
-         "skew fitted by a Gaussian and by one tail: figures W1-W5 of each.",
-         committed=('docs/studies/xrf_shootout/walkthrough', 'docs/studies/xrf_models/walkthrough'),
-         docs=('docs/studies/xrf_shootout/walkthrough.md', 'docs/studies/xrf_models/walkthrough.md'),
-         data='public', defaults={'--shootout-out': OUT + '/shootout', '--models-out': OUT + '/models'},
-         variations=(V('The shootout only', 'W1-W5 of the shootout walkthrough.',
-                       'docs/studies/xrf_shootout/walkthrough.md#Every figure and number comes from', part='shootout'),
-                     V('The models study only', 'W1-W5 of the models walkthrough.',
-                       'docs/studies/xrf_models/walkthrough.md#Every figure and number comes from', part='models')),
-         committed_with={'--shootout-out': 'docs/studies/xrf_shootout/walkthrough',
-                         '--models-out': 'docs/studies/xrf_models/walkthrough'},
+         "The whole chain on public data, for the owner's standing order (2026-11-25): a real blank as it comes in, "
+         "one test spectrum made from it with a Ni K line of known photons, the reader's three fits over it with "
+         "residuals, 500 spectra turned into a bias, pulls and the 'accurate' verdict (the committed run's own "
+         "draws), and the false signal: figures W1-W5.",
+         committed=('docs/studies/xrf_shootout/walkthrough',),
+         docs=('docs/studies/xrf_shootout/walkthrough.md',),
+         data='public', defaults={'--part': 'shootout', '--shootout-out': OUT},
          inputs=('tests/reference/mca_scatter', 'docs/studies/xrf_shootout/run_blanks',
-                 'docs/studies/xrf_shootout/run_blanks_options', 'docs/studies/xrf_models/scatter'),
-         repo_ok=False, seconds=90.0),
+                 'docs/studies/xrf_shootout/run_blanks_options'),
+         repo_out='docs/studies/xrf_shootout/walkthrough', repo_ok=False, seconds=40.0),
+    Tool('xrf_walkthrough_models', 'Walkthrough: can a model replace the real scatter? (ELI5)', 'fluo', 'figures',
+         'tests/tools/xrf_walkthrough.py',
+         "The models study on one public blank: three scatter models over it with residuals, the misfit at the "
+         "shootout's counts, a twin and a second draw, the floor, and a line with the 7-element detector's "
+         "measured skew fitted by a Gaussian and by one tail: figures W1-W5.",
+         committed=('docs/studies/xrf_models/walkthrough',),
+         docs=('docs/studies/xrf_models/walkthrough.md',),
+         data='public', defaults={'--part': 'models', '--models-out': OUT},
+         inputs=('tests/reference/mca_scatter', 'docs/studies/xrf_shootout/run_blanks',
+                 'docs/studies/xrf_models/scatter'),
+         repo_out='docs/studies/xrf_models/walkthrough', repo_ok=False, seconds=60.0),
     Tool('xrf_models_figures', 'Models study figures (M1-M5)', 'fluo', 'figures',
          'tests/tools/xrf_models_figures.py',
          "The scatter models on four public blanks with residuals, their misfit in the line boxes, every method's "
@@ -1197,7 +1200,6 @@ TOOLS = (
                        'docs/studies/xrf_models/README.md#1a. The ladder', only='1,2'),),
          inputs=('docs/studies/xrf_models/scatter', 'docs/studies/xrf_models/lines', 'docs/studies/xrf_models/shape',
                  'docs/studies/xrf_shootout/run_blanks'),
-         committed_with={'--out': 'docs/studies/xrf_models'},
          repo_out='docs/studies/xrf_models', repo_ok=False),
     Tool('xrf_shootout_figures', 'XRF shootout figures (X1-X12)', 'fluo', 'figures',
          'tests/tools/xrf_shootout_figures.py',

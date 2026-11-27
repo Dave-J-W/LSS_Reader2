@@ -46,28 +46,230 @@ def match_plot_fonts():
 # the plot as the reader draws it; a choice is applied to every axes of the tab's figures at each draw.
 AS_DRAWN = 'as drawn'
 PLOT_OPTION_DEFAULTS = dict(font=0, major=AS_DRAWN, minor=AS_DRAWN, direction=AS_DRAWN, mirror=AS_DRAWN, grid=AS_DRAWN,
-                            index=True)        # F113: the point index numbers shown (crowded ones hidden)
+                            index=True,        # F113: the point index numbers shown (crowded ones hidden)
+                            # F114 (owner, 2026-11-27: "the comprehensive solution for plot customization"):
+                            ticknum=AS_DRAWN, legend=AS_DRAWN, legend_loc='best', legend_frame=AS_DRAWN,
+                            linewidth=0.0, markersize=0.0, titles=AS_DRAWN,
+                            plots={})          # per plot (plot_id): labels renamed, fixed ranges, curve styles
 PLOT_OPTION_CHOICES = dict(
 	major=[AS_DRAWN, 3, 5, 8, 12],                  # about this many labelled ticks (linear axes)
 	minor=[AS_DRAWN, 'on', 'off'],
 	direction=[AS_DRAWN, 'out', 'in', 'in and out'],
 	mirror=[AS_DRAWN, 'on', 'off'],                 # ticks on all four sides
-	grid=[AS_DRAWN, 'off', 'major', 'major and minor'])
+	grid=[AS_DRAWN, 'off', 'major', 'major and minor'],
+	ticknum=[AS_DRAWN, 'plain', 'scientific'],       # the tick numbers of linear axes
+	legend=[AS_DRAWN, 'shown', 'hidden'],
+	legend_loc=['best', 'upper right', 'upper left', 'lower left', 'lower right', 'right', 'center left',
+	            'center right', 'lower center', 'upper center', 'center'],
+	legend_frame=[AS_DRAWN, 'on', 'off'],
+	titles=[AS_DRAWN, 'hidden'])
+# a curve's style (F114): (shown, matplotlib's value)
+CURVE_COLOURS = [(AS_DRAWN, AS_DRAWN), ('black', 'black'), ('blue', 'tab:blue'), ('orange', 'tab:orange'),
+                 ('green', 'tab:green'), ('red', 'tab:red'), ('purple', 'tab:purple'), ('brown', 'tab:brown'),
+                 ('pink', 'tab:pink'), ('grey', 'tab:gray'), ('olive', 'tab:olive'), ('cyan', 'tab:cyan')]
+CURVE_LINES = [(AS_DRAWN, AS_DRAWN), ('solid', '-'), ('dashed', '--'), ('dotted', ':'), ('dash-dot', '-.'),
+               ('none', 'None')]
+CURVE_MARKERS = [(AS_DRAWN, AS_DRAWN), ('none', 'None'), ('circle', 'o'), ('square', 's'), ('triangle', '^'),
+                 ('diamond', 'D'), ('plus', '+'), ('cross', 'x'), ('point', '.')]
+CURVE_FIELDS = ('color', 'linestyle', 'linewidth', 'marker', 'markersize')
+
+
+def curve_rule_set(rule):
+	"""Whether a curve rule changes anything."""
+	return any(rule.get(k, AS_DRAWN) not in (AS_DRAWN, 0, 0.0, None, '') for k in CURVE_FIELDS)
+
+
+def plot_entry_set(p):
+	"""Whether a plot's entry changes anything."""
+	return bool(p) and bool({k: v for k, v in (p.get('labels') or {}).items() if v} or p.get('xlim') or p.get('ylim')
+	                        or any(curve_rule_set(r) for r in p.get('curves') or []))
 
 
 def plot_options_set(opts):
-	"""Whether ``opts`` asks for anything (all 'as drawn' and font 0: nothing)."""
-	return bool(opts) and any(opts.get(k, v) != v for k, v in PLOT_OPTION_DEFAULTS.items())
+	"""Whether ``opts`` asks for anything (all 'as drawn', font 0, no plot entries: nothing)."""
+	if not opts:
+		return False
+	if any(plot_entry_set(p) for p in (opts.get('plots') or {}).values()):
+		return True
+	return any(opts.get(k, v) != v for k, v in PLOT_OPTION_DEFAULTS.items() if k != 'plots')
 
 
-def apply_plot_options(fig, opts):
-	"""Apply a tab's plot options (F112) to every visible axes of ``fig``:
-	font size (tick labels, axis labels, legend; titles 1.2 x), about how
-	many major ticks (linear axes), minor ticks, tick direction, ticks on
-	all four sides, grid. Colour bars take the font size only; insets
-	(``ax._lss_inset``: the residual strips) are left as drawn."""
+def main_axes(fig):
+	"""The plots of a figure: its drawn axes but colour bars and insets (the residual strips)."""
+	return [ax for ax in fig.axes if ax.axison and not getattr(ax, '_lss_inset', False)
+	        and getattr(ax, '_colorbar', None) is None]
+
+
+def plot_id(name, k):
+	"""A plot's key in the options: its canvas's name and its place among the figure's plots."""
+	return '%s:%d' % (name or 'plot', int(k))
+
+
+def data_curves(ax):
+	"""The curves of a plot that a style can apply to, in drawing order: its
+	lines in data coordinates, but error-bar caps and companion bar lines,
+	reference lines (axhline, axvline: not in data coordinates) and zero
+	lines. Returns (curve, its name: the legend label, or '' for none)."""
+	caps, named = set(), {}
+	for c in ax.containers:
+		parts = getattr(c, 'lines', None) or ()
+		for part in parts[1:2]:
+			caps.update(id(x) for x in (part or ()))
+		if parts and parts[0] is not None:          # errorbar: the name is the container's, not the line's
+			named[id(parts[0])] = str(c.get_label() or '')
+	out = []
+	for l in ax.lines:
+		if (id(l) in caps or getattr(l, '_lss_bar_of', None) is not None or getattr(l, '_lss_zero', False)
+		        or l.get_transform() != ax.transData):
+			continue
+		lab = named.get(id(l)) or str(l.get_label() or '')
+		out.append((l, '' if lab.startswith('_') else lab))
+	return out
+
+
+def _companions(ax):
+	"""id(data line) -> the artists drawn in its colour: its error bars and caps."""
+	out = {}
+	for c in ax.containers:
+		parts = getattr(c, 'lines', None)
+		if parts and len(parts) == 3 and parts[0] is not None:
+			out.setdefault(id(parts[0]), []).extend(list(parts[1] or ()) + list(parts[2] or ()))
+	for l in ax.lines:
+		of = getattr(l, '_lss_bar_of', None)
+		if of is not None:
+			out.setdefault(id(of), []).append(l)
+	return out
+
+
+def drawn_text(t):
+	"""The text the reader drew in ``t`` (a title or axis label), before a rename."""
+	cur = t.get_text()
+	if getattr(t, '_lss_orig', None) is not None and cur == getattr(t, '_lss_set', None):
+		return t._lss_orig
+	return cur
+
+
+def _fresh(ax):
+	"""Whether ``ax`` was cleared (or made) since the last draw: fixed ranges
+	are applied then only, so that zooming and panning still work."""
+	if not getattr(ax, '_lss_clear_wrapped', False):
+		for name in ('clear', 'cla'):
+			orig = getattr(ax, name)
+
+			def wrapped(*a, _orig=orig, **k):
+				r = _orig(*a, **k)
+				ax._lss_fresh = True
+				return r
+			setattr(ax, name, wrapped)
+		ax._lss_clear_wrapped = True
+		ax._lss_fresh = True
+	fresh = getattr(ax, '_lss_fresh', True)
+	ax._lss_fresh = False
+	return fresh
+
+
+def _style_curve(line, rule, companions, tabwide):
+	"""Apply a tab's line width and marker size, then a curve rule, to one curve."""
+	lw = float(tabwide.get('linewidth') or 0)
+	ms = float(tabwide.get('markersize') or 0)
+	rule = rule or {}
+	if rule.get('linewidth') not in (None, 0, 0.0, AS_DRAWN):
+		lw = float(rule['linewidth'])
+	if rule.get('markersize') not in (None, 0, 0.0, AS_DRAWN):
+		ms = float(rule['markersize'])
+	if lw:
+		line.set_linewidth(lw)
+		for a in companions:
+			a.set_linewidth(lw)
+	if ms:
+		line.set_markersize(ms)
+	col = rule.get('color', AS_DRAWN)
+	if col not in (None, '', AS_DRAWN):
+		line.set_color(col)
+		line.set_markeredgecolor(col)
+		mfc = line.get_markerfacecolor()
+		if not (isinstance(mfc, str) and mfc.lower() == 'none'):
+			line.set_markerfacecolor(col)
+		for a in companions:
+			a.set_color(col)
+	ls = rule.get('linestyle', AS_DRAWN)
+	if ls not in (None, '', AS_DRAWN):
+		line.set_linestyle(ls)
+	mk = rule.get('marker', AS_DRAWN)
+	if mk not in (None, '', AS_DRAWN):
+		line.set_marker(mk)
+
+
+def _rule_for(rules, pos, name):
+	"""The rule of the curve at ``pos`` (from 1) named ``name``: by name first, else by position."""
+	if name:
+		for r in rules:
+			if r.get('match') == 'name' and r.get('key') == name:
+				return r
+	for r in rules:
+		if r.get('match') == 'position' and int(r.get('key', 0) or 0) == pos:
+			return r
+	return None
+
+
+def _apply_plot(ax, p, tabwide):
+	"""One plot's entry (F114): renamed titles and axis labels, fixed ranges
+	(when the plot was redrawn), the curves' styles."""
+	p = p or {}
+	names = {k: v for k, v in (p.get('labels') or {}).items() if v}
+	for t in (ax.title, ax.xaxis.label, ax.yaxis.label):
+		base = drawn_text(t)
+		if base in names:
+			t._lss_orig, t._lss_set = base, names[base]
+			t.set_text(names[base])
+		elif getattr(t, '_lss_orig', None) is not None and t.get_text() == getattr(t, '_lss_set', None):
+			t.set_text(t._lss_orig)                     # a rename taken back
+			t._lss_orig = t._lss_set = None
+	if _fresh(ax):
+		for key, setter in (('xlim', ax.set_xlim), ('ylim', ax.set_ylim)):
+			lim = p.get(key)
+			if lim and len(lim) == 2 and lim[0] != lim[1]:
+				setter(float(lim[0]), float(lim[1]))
+	rules = [r for r in (p.get('curves') or []) if curve_rule_set(r)]
+	lw, ms = float(tabwide.get('linewidth') or 0), float(tabwide.get('markersize') or 0)
+	if not (rules or lw or ms):
+		return False
+	comp = _companions(ax)
+	for pos, (line, name) in enumerate(data_curves(ax), 1):
+		_style_curve(line, _rule_for(rules, pos, name), comp.get(id(line), []), tabwide)
+	return True
+
+
+def apply_plot_options(fig, opts, name=None):
+	"""Apply a tab's plot options (F112, F114) to the axes of ``fig`` (the
+	canvas ``name``, for its plots' entries): font size (tick labels, axis
+	labels, legend; titles 1.2 x), tick numbers, about how many major ticks
+	(linear axes), minor ticks, tick direction, ticks on all four sides,
+	grid; titles; then each plot's entry (renamed labels, fixed ranges,
+	curve styles with the tab's line width and marker size); then the
+	legend. Colour bars take the font size only; insets (``ax._lss_inset``:
+	the residual strips) are left as drawn."""
 	from matplotlib.ticker import MaxNLocator
 	opts = dict(PLOT_OPTION_DEFAULTS, **(opts or {}))
+	plots = opts.get('plots') or {}
+	for k, ax in enumerate(main_axes(fig)):
+		styled = _apply_plot(ax, plots.get(plot_id(name, k)), opts)
+		if opts['titles'] == 'hidden':
+			ax.title.set_visible(False)
+		if opts['ticknum'] != AS_DRAWN:
+			for which in ('x', 'y'):
+				if getattr(ax, which + 'axis').get_scale() != 'linear':
+					continue
+				try:
+					if opts['ticknum'] == 'scientific':
+						ax.ticklabel_format(axis=which, style='sci', scilimits=(0, 0), useMathText=True)
+					else:
+						ax.ticklabel_format(axis=which, style='plain', useOffset=False)
+				except (AttributeError, ValueError):
+					pass                    # not a ScalarFormatter (a date or custom axis)
+		_apply_legend(ax, opts, styled)
+	if opts['titles'] == 'hidden' and getattr(fig, '_suptitle', None) is not None:
+		fig._suptitle.set_visible(False)
 	fs = float(opts.get('font') or 0)
 	if fs and getattr(fig, '_suptitle', None) is not None:
 		fig._suptitle.set_fontsize(1.25 * fs)
@@ -107,6 +309,41 @@ def apply_plot_options(fig, opts):
 		elif opts['grid'] == 'major and minor':
 			ax.grid(True, which='major')
 			ax.grid(True, which='minor', alpha=0.35, lw=0.5)
+
+
+def _apply_legend(ax, opts, styled):
+	"""The legend option (F114), and the legend's swatches brought in line
+	with the curves' styles (``styled``)."""
+	leg = ax.get_legend()
+	want = opts.get('legend', AS_DRAWN)
+	if want == 'hidden':
+		if leg is not None:
+			leg.set_visible(False)
+		return
+	if want == 'shown':
+		if leg is None:
+			if not any(n for _l, n in data_curves(ax)):
+				return
+			leg = ax.legend(loc=opts.get('legend_loc') or 'best')
+		else:
+			leg.set_visible(True)
+			try:
+				leg.set_loc(opts.get('legend_loc') or 'best')
+			except (AttributeError, ValueError):
+				pass
+	if leg is None:
+		return
+	if opts.get('legend_frame', AS_DRAWN) != AS_DRAWN:
+		leg.set_frame_on(opts['legend_frame'] == 'on')
+	if styled:
+		curves = {n: l for l, n in data_curves(ax) if n}
+		for h, t in zip(getattr(leg, 'legend_handles', getattr(leg, 'legendHandles', [])), leg.get_texts()):
+			src = curves.get(t.get_text())
+			if src is not None and hasattr(h, 'update_from'):
+				try:
+					h.update_from(src)
+				except (AttributeError, TypeError, ValueError):
+					pass
 
 
 # ---- F113 (owner, 2026-11-26): the point index numbers on the plots ----
@@ -261,6 +498,16 @@ def reset_plot_options(fig):
 		               right=rc['ytick.right'])
 		ax.xaxis.label.set_fontsize(rc['axes.labelsize'])
 		ax.yaxis.label.set_fontsize(rc['axes.labelsize'])
+		ax.title.set_visible(True)                    # F114: titles hidden, renamed labels, the legend
+		for t in (ax.title, ax.xaxis.label, ax.yaxis.label):
+			if getattr(t, '_lss_orig', None) is not None and t.get_text() == getattr(t, '_lss_set', None):
+				t.set_text(t._lss_orig)
+			t._lss_orig = t._lss_set = None
+		if ax.get_legend() is not None:
+			ax.get_legend().set_visible(True)
+		ax._lss_fresh = True                          # fixed ranges: applied at the next draw
+	if getattr(fig, '_suptitle', None) is not None:
+		fig._suptitle.set_visible(True)
 
 
 class MplCanvas(FigureCanvas):
@@ -275,14 +522,21 @@ class MplCanvas(FigureCanvas):
 		FigureCanvas.setSizePolicy(self, Qt.QSizePolicy.Expanding, Qt.QSizePolicy.Expanding)
 		FigureCanvas.updateGeometry(self)
 
+	def plot_name(self):
+		"""This canvas's name in the plots' keys (its widget's object name)."""
+		p = self.parent()
+		return (p.objectName() if p is not None else '') or self.objectName() or 'plot'
+
 	def draw(self):
 		get = getattr(self, 'plot_options', None)
 		opts = None
 		try:
 			if callable(get):
 				opts = get()
-				if plot_options_set(opts):
-					apply_plot_options(self.figure, opts)
+				if opts is not None or any(getattr(t, '_lss_orig', None) is not None for ax in self.figure.axes
+				                           for t in (ax.title, ax.xaxis.label, ax.yaxis.label)):
+					# every step is a no-op when unset; run so that a rename taken back is restored too
+					apply_plot_options(self.figure, opts or {}, self.plot_name())
 			# F113: the index numbers that fit at this zoom, every draw (any canvas, the Ref Patch window's too)
 			declutter_index_labels(self.figure, show=(opts or {}).get('index', True))
 		except Exception:                        # a style must never stop a plot: logged, drawn as it is
@@ -322,6 +576,7 @@ def errorbars(ax, x, y, yerr, fmt='o-', label=None):
 	by[0::3], by[1::3], by[2::3] = y - e, y + e, np.nan
 	bars, = ax.plot(bx, by, '-', color=line.get_color(), linewidth=line.get_linewidth(),
 	                zorder=line.get_zorder() - 0.1, label='_nolegend_')
+	bars._lss_bar_of = line          # F114: a curve's style recolours its bars too
 	return line, bars
 
 

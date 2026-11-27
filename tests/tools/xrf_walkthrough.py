@@ -212,7 +212,7 @@ def shootout(out):
                            k_calibration=r3(ks[m][0]), points=k, chi2=r3(chi2), dof=k - 4, chi2_dof=r3(chi2 / (k - 4)),
                            centre_keV=r3(ref.peaks[0].centre), fwhm_keV=r3(ref.peaks[0].fwhm))
         ax.set_title('%s\nestimate %.0f ± %.0f photons (truth %.0f); misfit χ²/dof %.2f'
-                     % ({'p1': '(a) Poisson fit (the default)', 'p1p3': '(b) Poisson fit + escapes removed (before the fit)',
+                     % ({'p1': '(a) Poisson fit', 'p1p3': '(b) Poisson fit + escapes removed (before the fit)',
                          'p1p2p3': '(c) Poisson fit + fixed width + escapes removed'}[m], est, err, truth,
                         chi2 / (k - 4)), loc='left', fontsize=9)
         ax.legend(fontsize=7, loc='upper left')

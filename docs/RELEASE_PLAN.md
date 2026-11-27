@@ -1,6 +1,11 @@
 # Release plan: Reader 2.0 (first release of this fork)
 
-Draft by the project manager, 2026-11-25. **Status: approved by the owner, 2026-11-25.**
+Draft by the project manager, 2026-11-25. **Status: approved by the owner, 2026-11-25. Released 2026-11-27:**
+the owner published release "Reader 2" with the tag `v2.0.0` on main 01ae585 (the code of cc599e4, on which
+the quick, slow and sweep suites passed: 1441, 427, 194). The tag's build, run 45919642733, passed: Windows and
+macOS self-tests, 9 tabs, `_ref.txt` and `_rrf.txt` identical; downloads kept to 2027-02-25. This plan no longer
+overrides `docs/TODO.md`; its "After 2.0" list is the backlog. Rules 12 and 13 stay paused after the release
+(owner, 2026-11-27: "Let's pause those rules again").
 
 ## The goal
 
@@ -40,7 +45,7 @@ All of these are already built. The work is finishing, fixing and checking them.
 | 5 | Per-SPEC workbook with automatic saving, and the lock | built | — |
 | 6 | Live updates while data come in | built | — |
 | 7 | Never closes on an error (Stage 0 safety net) | built | ~~crash baseline shrinks to release level~~ **at zero** (2026-11-26): `known_crashes.json` holds no crash in its 14 states, `known_crash_sites.json` is empty; the sweep passes (194) |
-| 8 | Windows build that runs on a clean PC | **the build to ship passes** (tools man, 2026-11-26: run [45879045324](https://github.com/Dave-J-W/LSS_Reader2/actions/runs/45879045324) on main at ce38cf4, after F110 and its revision, the open-time lock, the crash and export fixes, the export rule and F112; Windows and macOS self-tests passed; downloads kept to 2027-02-24, the sample data with them). After it: #132 (F113, the index numbers; display only, no packaging change) | the clean-PC test on this run's Windows download (`docs/PACKAGING.md`, "Clean-PC test"); XModFit reading the export; the tag `v2.0.0`, whose own build runs the same self-test on what is then main |
+| 8 | Windows build that runs on a clean PC | **the build for the tag passes** (main man, 2026-11-27, at the owner's request: run [45918527279](https://github.com/Dave-J-W/LSS_Reader2/actions/runs/45918527279) on main at cc599e4, with #132 and #135; Windows and macOS self-tests passed, 9 tabs, `_ref.txt` and `_rrf.txt` identical; downloads kept to 2027-02-25). The earlier run 45879045324 (ce38cf4) passed too | the owner tags `v2.0.0` on cc599e4 (owner, 2026-11-27: "When I get home I'll tag 2.0"); the clean-PC test and XModFit reading the export are the owner's |
 | 9 | Quick-start guide (two pages: open, reduce, export) | **written** (tools man, #118: `docs/manual/quick_start.md`; Help → Documentation opens it) | — |
 
 ## Release blockers (only these block 2.0)
@@ -107,13 +112,18 @@ Everything else is **not** a blocker.
    - A plain start (as a double-click) showed the window in 4 s, closed cleanly with exit 0, and left empty
      fault logs.
 
-   **Still open:** a truly clean PC. This PC has Python and the Visual C++ runtimes installed, and Windows
-   Sandbox is not enabled. Either enable Sandbox (admin, one reboot) or use another PC, then follow
-   `docs/PACKAGING.md` "Clean-PC test". The XModFit read of the export (step 5) is the owner's. Help → About shows 2.0 since 2026-11-26 (`lss_core.__version__`; it said 1.1).
+   **Still open: a truly clean PC. Do not use Windows Sandbox on the owner's PC.** Sandbox was enabled
+   there on 2026-11-26. It is an empty Windows with no Python and no Visual C++ runtime, which is what a
+   clean test needs. But the PC shut down unexpectedly while the feature was installing (12:18). Then it
+   froze hard during the third Sandbox run (after 12:33): no bugcheck, and the files being written were
+   left as zeros. Afterwards it could not find its startup disk until the owner repaired it (19:17). No
+   result came out of the Sandbox. Do the clean test on another Windows PC (a beamline PC or a laptop
+   without Python), following `docs/PACKAGING.md` "Clean-PC test", with the `v2.0.0` build. The XModFit
+   read of the export (step 5) is the owner's. Help → About shows 2.0 since 2026-11-26 (`lss_core.__version__`; it said 1.1).
 
-**Before the tag** (owner): the clean-PC test (Sandbox or another PC) on run 45879045324's Windows download, and
-XModFit reading the export; then `v2.0.0`, which runs the same build workflow. **Proposed (main man):** no merges
-to main between the clean-PC test and the tag except blocker fixes, so that what was tested is what is tagged. The Windows test run is done (blocker 3 closed, 2026-11-26).
+**The tag (done, 2026-11-27):** `v2.0.0` on 01ae585, which has the same code as cc599e4 (all three suites passed on it: quick 1441, slow 427, sweep 194;
+build run 45918527279 passed). The clean-PC test and XModFit reading the export were not reported; the owner
+decided to tag (2026-11-26, "I think we can tag 2"). The tag's build passed (run 45919642733). The clean-PC test is now a check on the release, not a blocker. The Windows test run is done (blocker 3 closed, 2026-11-26).
 
 ## After 2.0 (parked, in rough order)
 
@@ -130,6 +140,33 @@ to main between the clean-PC test and the tag except blocker fixes, so that what
   PyXRF's model, Larch's series and each, XeRay's window and error, the
   reader's fits) before the comparison is used again; then revisit which
   MCA fit is the default and which is reported beside it (F110).
+  - **A pathology tool** (owner, 2026-11-26: "proper tool later"): figures of the bad fits, one
+    spectrum each from the run's own seeds. They cover XeRay winning with error bars 20 % too small,
+    XeRay failing at +529 % and +1032 %, and six other methods' failures. They also show whether a
+    misfit test gives XeRay away. Measured on all 39 100 spectra (Poisson deviance in the line
+    window): it catches all 23 scatter failures (misfit 4–55 per dof, every spectrum flagged at
+    p < 0.01). It misses a neighbouring line under the target (Co beside Fe +148 %, As under Pb Lα
+    +88 %, misfit 1.06–1.08) and 30 photons (+35 %). It flags 28 % of XeRay's right answers at
+    10⁴ photons. The prototype scripts are on the owner's PC (`parked/xrf_pathologies/` beside the
+    clone). To do: one script in `tests/tools/`, a catalogue item, a short page in
+    `docs/studies/xrf_shootout/`.
+  - **Larch: a bug in our setup, and what tuning does** (owner, 2026-11-26: "making larch work
+    better, it seems promising"; measured on 15 synthetic conditions, 200 spectra each).
+    - The bug: `xrf_shootout._larch_model` gives Larch the beam in eV (`1000 × energy`), but
+      Larch's model takes keV, so it sees a 10 MeV beam. Every edge then counts as excited, and
+      lines the beam cannot excite are modelled. This explains most of Lu L's +7900 % (Lu's L1/L2
+      lines under a 10 keV beam) and As beside Pb's −680 %. The committed Larch scores of C65–C69
+      are wrong wherever an edge sits above the beam.
+    - The fix needs a second one: in keV, Larch's default starting amplitude (1e6) is ~10⁵ × too
+      large, and the fits stop in bad minima. Starting from the counts under the line works.
+    - With both fixes, Larch still cannot describe water's Compton scatter (misfit 30–50 per point).
+      Its line amplitude trades against the Compton peak's tail, so scattered conditions read
+      −10 to −75 %. None of these rescues it: the GUI's second Compton peak, Larch's background,
+      Poisson weights, a pinned Compton centre.
+    - A narrow fit (the line ± 1 keV, Larch's background, no scatter peaks) helps under mild
+      scatter: the hard case at 14 keV goes from −42 % to −2 %, Fe far from the scatter from −13 %
+      to −3 %. It fails under hard scatter, where the background takes the line (−100 %).
+    - Script: `parked/xrf_pathologies/larch_tune.py` on the owner's PC.
 - Reopening a file with its workbook's settings; recipes for cuts, MCA lines
   and SpecPlot curves.
 - F80/F105 comparison tab; Export naming handed over to xmodfit.

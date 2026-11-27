@@ -1,7 +1,9 @@
 # Breadcrumbs for the manual writer
 
-The user manual is not in scope yet (owner, 2026-11-19), but whoever writes
-it later needs to find, for every user-visible feature, what it does, where
+The user manual is written (`docs/manual/README.md`, 2026-11-26: chapters
+01–14 and a glossary beside the quick start and the GID addendum). Keep it
+current: a change to a user-visible feature updates its chapter in the same
+commit. Whoever edits it needs to find, for every user-visible feature, what it does, where
 it is, what its default is, why, and how a script does the same. This file
 is the index; it points at the places that hold the details, and it grows
 with each feature commit (AGENTS.md rule 11).
@@ -212,12 +214,38 @@ Each line: feature — where — default — script — notes entry (date).
   starts at "as drawn" (the plots as the reader draws them), and "As
   drawn" puts them all back. The Pilatus tab's ROI close-up and the
   residual strips are left as drawn. Terms to define: major, minor ticks.
+- Plot options, three pages (F114, 2026-11-27): everything set there is
+  kept per tab, between sessions and when the tab redraws.
+  - Text and ticks: font size, tick numbers (plain or scientific), major
+    and minor ticks, tick direction, ticks on all sides, grid, index
+    numbers.
+  - Legend and lines: legend shown or hidden, its place and frame; every
+    curve's line width and marker size; titles hidden.
+  - This plot: pick a plot of the tab; rename its title or axis labels
+    (the new text is used whenever the reader draws the same text: plot
+    another column and it keeps its own name); fix the x or y range
+    ("Use the current view" takes the zoom you are looking at; zoom and
+    pan still work, and the fixed range returns when the plot is redrawn);
+    style each curve (colour, line, width, marker, size), kept for the
+    curve's name (a fit, a scan) or for its place (the first curve...).
+  - "Copy to all tabs" gives the first two pages to every tab; "As drawn"
+    and "Plot as drawn", "Curve as drawn" put things back.
+  - "One-off editor..." is matplotlib's own: anything it offers, for the
+    plot as drawn now, gone at the next redraw.
 - One place for plot settings (owner, 2026-11-26): the tabs' plot toolbars
   no longer show matplotlib's "Customize" icon; its editor (one plot's
   title, axis limits, labels, scales, line styles) is "Axes and curves..."
   in Plot options. Those edits are one-off: they last until the tab
   redraws the plot, and are not saved; the options above it stay. The Ref
   Patch window and the burn test keep the icon.
+  - What redraws a plot (and so drops an Axes-and-curves edit): another
+    scan or frame selected, a display box on the tab toggled (Log Y, Monc,
+    Grid, Point #), new data in Live mode, and any change in Plot options
+    itself. So set the kept options first, then the one-off edits.
+  - Example: on the SpecPlot, Axes and curves renames the y axis
+    "Counts" and colours the line red; selecting scan 5 brings back
+    "Pilatus" and blue. A grid set above stays for scan 5, and after a
+    restart. (The owner's question, 2026-11-27; docs/gui/questions.md.)
 - Index numbers (F113, 2026-11-26): the points' numbers (SpecPlot's Point
   #, the Ref Patch window) sit a few points from their markers. Where they
   would overlap, or stick out of the plot, the later ones are hidden (a
@@ -404,6 +432,13 @@ Each line: feature — where — default — script — notes entry (date).
   as collected, factors only reported) — `GIDParams(response='physical',
   beam_fwhm_um=…, beam_centre_mm=…, beam_h_fwhm_mm=…, apply_joins=False)` —
   addendum `docs/manual/gid_patching.md` 3b; Notes 2026-11-20.
+- Worksheet: "Join levels without overlap (unscaled)" (off; a stopgap, owner,
+  2026-11-26): a Qz level whose rows share no β with the level below is added
+  as collected (monitor and absorbers only, no join factor) instead of the
+  patch stopping. The seam shows "UNSCALED" in the joins table with the
+  intensity ratio across it, a message says so, and Save GID writes a '#'
+  line at the top of each file — `GIDParams(unmatched_levels='unscaled')`,
+  `GIDResult.unscaled_seams` — tradeoffs in `docs/studies/gid_unscaled_seams/`.
 - Worksheet "Fit" (S4-detector): calibrates the distance from single frames
   (the strongest peak fitted in every frame, the distance where they agree) and
   fills it in when reliable; the label's tooltip gives the frames, χ²/dof and

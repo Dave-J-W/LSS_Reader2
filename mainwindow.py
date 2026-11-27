@@ -6312,6 +6312,15 @@ class MainWindow (QMainWindow):
                          'overlaps. Off: the factors are fitted and shown in the table (marked "not applied") but the '
                          'data stay as collected, normalised by the monitor and absorbers only, so any disagreement '
                          'stays visible. Pinhole geometry only.')
+        unm=QCheckBox('Join levels without overlap (unscaled)',g)
+        unm.setObjectName('gidUnmatchedLevelsCheckBox')
+        unm.setChecked(gp.unmatched_levels=='unscaled')
+        unm.setToolTip('Stopgap (off by default). A Qz level whose rows share no beta with the level below has no '
+                       'overlap to fit its join factor on, so the patch stops. On: such a level is added as '
+                       'collected, normalised by the monitor and absorbers only, with no factor and no check of its '
+                       'scale. Any offset between the levels (monitor, absorber, sample height, response) shows as '
+                       'a step at the seam, and the errors are counting only. The seam is marked in the table '
+                       '("UNSCALED") and in the saved files. Pinhole geometry only.')
         foot=QComboBox(g)
         foot.setObjectName('gidFootprintComboBox')
         foot.addItems(['exact','IDL'])
@@ -6358,6 +6367,7 @@ class MainWindow (QMainWindow):
             brow.addWidget(w_)
         form.addRow('Beam (physical)',brow)
         form.addRow(joins)
+        form.addRow(unm)
         form.addRow('Frames per bin, at least',minf)
         form.addRow('2theta range across levels',trans)
         form.addRow(arm)
@@ -6416,10 +6426,11 @@ class MainWindow (QMainWindow):
                                             response=resp.currentText(),arm_correction=arm.isChecked(),
                                             min_frames=minf.value(),footprint='exact' if foot.currentIndex()==0 else 'idl',
                                             beam_fwhm_um=bfw.value(),beam_h_fwhm_mm=bhw.value(),apply_joins=joins.isChecked(),
+                                            unmatched_levels='unscaled' if unm.isChecked() else 'refuse',
                                             beam_centre_mm=None if bcf.isChecked() else bce.value(),
                                             transverse='intersection' if trans.currentIndex()==0 else 'union')
             hard.setEnabled(area.isChecked())
-            for w in (pdist,resp,arm,fit,minf,trans,foot,joins):
+            for w in (pdist,resp,arm,fit,minf,trans,foot,joins,unm):
                 w.setEnabled(pin.isChecked())
             physical=pin.isChecked() and resp.currentText().startswith('physical')
             for w in (bfw,bcf,bhw):
@@ -6450,6 +6461,7 @@ class MainWindow (QMainWindow):
             bcf.setChecked(dflt.beam_centre_mm is None)
             bce.setValue(0.0)
             joins.setChecked(dflt.apply_joins)
+            unm.setChecked(dflt.unmatched_levels=='unscaled')
             apply()
 
         def fitdist():
@@ -6479,6 +6491,7 @@ class MainWindow (QMainWindow):
             w_.valueChanged.connect(apply)
         bcf.toggled.connect(apply)
         joins.toggled.connect(apply)
+        unm.toggled.connect(apply)
         fit.clicked.connect(fitdist)
         apply()
         ready[0]=True
@@ -6495,6 +6508,7 @@ class MainWindow (QMainWindow):
         d.gidFootprintComboBox=foot
         d.gidBeamFwhmSpinBox,d.gidBeamCentreSpinBox,d.gidBeamCentreFitCheckBox=bfw,bce,bcf
         d.gidBeamHFwhmSpinBox,d.gidApplyJoinsCheckBox=bhw,joins
+        d.gidUnmatchedLevelsCheckBox=unm
         d.gidLiveCheckBox,d.gidLiveTimer=live,timer
         return d
 
@@ -6554,8 +6568,11 @@ class MainWindow (QMainWindow):
         t=d.gidJoinTable
         t.setRowCount(len(self.gidJoinLog))
         for r,j in enumerate(self.gidJoinLog):
-            vals=[j['label'],j['kind'],'%.3f' % j['x_from'],'%.3f' % j['x_to'],'%d' % j['points'],
-                  '%.4g +/- %.2g%s' % (j['factor'],j['error'],'' if j.get('applied',True) else ' (not applied)'),
+            if j.get('unscaled'):
+                fac='1 (UNSCALED: no overlap; edge ratio %.3g)' % j.get('edge_ratio',float('nan'))
+            else:
+                fac='%.4g +/- %.2g%s' % (j['factor'],j['error'],'' if j.get('applied',True) else ' (not applied)')
+            vals=[j['label'],j['kind'],'%.3f' % j['x_from'],'%.3f' % j['x_to'],'%d' % j['points'],fac,
                   '%.2f' % j['chi2']]
             for c,v in enumerate(vals):
                 t.setItem(r,c,QTableWidgetItem(v))
@@ -6645,6 +6662,9 @@ class MainWindow (QMainWindow):
             self.gidPatchRefused(before)      # the callers say why (gidPatch, gidWorksheetPatch)
             raise
         self.pilPatchData=patch
+        note=gidmod.seam_note(self.gidJoinInfo) if gp.pinhole else ''
+        if note:
+            self.notify('GID Patch: '+note+'. The scale across these seams is not checked.',title='GID Patch')
         try:
             self.gidFinishMap()
         except (IndexError,gidmod.GIDError) as e:   # gid.products refuses an empty Q grid with a GIDError (2026-11-24)
@@ -6943,7 +6963,8 @@ class MainWindow (QMainWindow):
         prod=self.gidProducts(axes)
         tags=('_qxy_gid.txt','_qz_gid.txt','_q2d_gid.txt','_dth_gid.txt','_beta_gid.txt','_agnle2d_gid.txt')
         existed=self.existingFiles([self.saveFileName+t for t in tags])
-        self.exportNotice(gidmod.save(self.saveFileName,prod),existed)
+        note=gidmod.seam_note(getattr(self,'gidJoinInfo',None)) if self.gidEffectiveParams().pinhole else ''
+        self.exportNotice(gidmod.save(self.saveFileName,prod,note=note),existed)
         self.scriptLine(self.gidScript(self.saveFileName,axes))
 
     def gidScriptSettings(self):
@@ -9646,19 +9667,19 @@ class MainWindow (QMainWindow):
                     act.setVisible(False)
 
     def plotTabAxes(self,key):
-        """The plots of tab ``key`` as (name, axes): every drawn axes of its
-        canvases but colour bars and the residual strips."""
+        """The plots of tab ``key`` as (plot id, name, axes): every drawn axes
+        of its canvases but colour bars and the residual strips (the plot id
+        keys a plot's entry in the options, F114)."""
+        import mplwidget
         out=[]
         for i in range(self.ui.PlotWidget.count()):
             if self.plotTabKey(i)!=key:
                 continue
             for c in self.plotTabCanvases(i):
-                for ax in c.figure.axes:
-                    if not ax.axison or getattr(ax,'_lss_inset',False) or getattr(ax,'_colorbar',None) is not None:
-                        continue
-                    what=ax.get_title() or ax.get_ylabel() or 'untitled'
+                for k,ax in enumerate(mplwidget.main_axes(c.figure)):
+                    what=mplwidget.drawn_text(ax.yaxis.label) or mplwidget.drawn_text(ax.title) or 'untitled'
                     what=' '.join(str(what).split())[:50]
-                    out.append(('Plot %d: %s' % (len(out)+1,what),ax))
+                    out.append((mplwidget.plot_id(c.plot_name(),k),'Plot %d: %s' % (len(out)+1,what),ax))
         return out
 
     def plotOptions(self,key):
@@ -9666,10 +9687,11 @@ class MainWindow (QMainWindow):
 
     def setPlotOptions(self,key,opts):
         """Keep tab ``key``'s options (all 'as drawn': none kept) and redraw its plots."""
+        import copy
         import mplwidget
-        allopts=dict(self.prefs.get('plot_options') or {})
+        allopts=copy.deepcopy(self.prefs.get('plot_options') or {})
         if mplwidget.plot_options_set(opts):
-            allopts[key]=dict(opts)
+            allopts[key]=copy.deepcopy(dict(opts))   # never the window's own objects: an edit in place would not be saved
         else:
             allopts.pop(key,None)
         self.setPreference('plot_options',allopts)
@@ -9679,6 +9701,18 @@ class MainWindow (QMainWindow):
                 for c in self.plotTabCanvases(i):        # what ax.clear() would keep of the earlier choice
                     mplwidget.reset_plot_options(c.figure)
                 self.redrawPlotTab(i)
+
+    def copyPlotOptionsToAllTabs(self,opts):
+        """F114: the tab-wide options of ``opts`` to every tab with plots;
+        each keeps its own plots' entries (labels, ranges, curves)."""
+        for i in range(self.ui.PlotWidget.count()):
+            if not self.plotTabCanvases(i):
+                continue
+            key=self.plotTabKey(i)
+            mine=dict(self.plotOptions(key) or {})
+            new=dict(opts)
+            new['plots']=mine.get('plots') or {}
+            self.setPlotOptions(key,new)
 
     def redrawPlotTab(self,i):
         """Redraw tab ``i``'s plots by the tab's own drawing, when it shows
@@ -9727,14 +9761,15 @@ class MainWindow (QMainWindow):
                       'the reader draws it. %s' % (name,'* : some are set for this tab.' if set_ else ''))
                      if has else 'The %s tab has no plots to set.' % name)
         d=getattr(self,'plotOptionsDialog',None)
-        if d is not None and d.isVisible() and has:
+        if d is not None and d.isVisible() and has and d.key!=self.plotTabKey(i):   # another tab: its options
             d.target(self.plotTabKey(i),name,mpl.rcParams['font.size'])
 
     def showPlotOptions(self):
         from plotoptions import PlotOptionsDialog
         self.registerPlotCanvases()             # canvases made since
         if self.plotOptionsDialog is None:
-            self.plotOptionsDialog=PlotOptionsDialog(self,self.plotOptions,self.setPlotOptions,self.plotTabAxes)
+            self.plotOptionsDialog=PlotOptionsDialog(self,self.plotOptions,self.setPlotOptions,self.plotTabAxes,
+                                                     self.copyPlotOptionsToAllTabs)
         i=self.ui.PlotWidget.currentIndex()
         self.plotOptionsDialog.target(self.plotTabKey(i),self.ui.PlotWidget.tabText(i),mpl.rcParams['font.size'])
         self.plotOptionsDialog.show()

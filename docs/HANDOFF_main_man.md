@@ -188,7 +188,8 @@ OQ-3 and OQ-4, and the GUI manager's 13 questions (#55, 2026-11-25 14:45).
 - **Branches of other sessions can't be deleted from here** (proxy 403), and neither by git push. Ask their
   owner on #55.
 - **`test_toolbox`** fails on a new script in `tests/tools/` without a catalogue item, and on a variation
-  naming an option the script lacks. Run `python -m lss_toolbox --render` after catalogue changes.
+  naming an option the script lacks. `docs/TOOLS.md` is re-rendered before a release or when asked, not per
+  commit (rule 11, owner 2026-11-27; `pytest -m release` checks it).
 - **`'%d' % nan` and `int(nan)`** both raise "cannot convert float NaN to integer": a message alone doesn't
   locate a crash.
 - **Run the whole slow suite on main** (`pytest -m slow`, about 4 min) after a batch of merges by others, at

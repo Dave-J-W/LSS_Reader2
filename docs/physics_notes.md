@@ -1,5 +1,10 @@
 # Physics notes and Q&A log
 
+> **Since 2026-11-27 the Q&A log below is frozen** (owner; AGENTS.md rule 5). New entries go **one per file**
+> in `docs/notes/` (`YYYY-MM-DD-<topic>.md`; `docs/notes/README.md` has the template), so two sessions
+> recording at once can't clash on merge. The **Invariants** table below stays live: add a row when a
+> conserved quantity gets a test. Existing references into this file still work.
+
 Running record of questions asked during the work on this fork and the answers
 given, with emphasis on invariant quantities. Newest entries at the bottom.
 Each entry says whether the answer was verified (by test, by running, or by
@@ -58,7 +63,7 @@ exists.
 | I45 | The residuals drawn under a fit add up to the χ² it reports: Σ r² = χ², r = (y − μ)/√var with the fit's own variance (the Ref Patch joint fit: Poisson var = σ²μ/max(\|y\|, σ)); the older Fit Peak dialog: r = (y − fit)/σ, Σ r²/(n − parameters) = its χ²/dof | tested: `test_ref_join_residuals.py` (to 1e-9), `test_gui_peakfit_residuals.py` (Plot and MCA tabs) |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
-## Q&A
+## Q&A (frozen 2026-11-27; new entries in `docs/notes/`)
 
 ### 2026-11-14 — What is in LSS_Reader and what state is it in?
 
@@ -7147,6 +7152,66 @@ with the elastic's escape under Zn Kα at 10 keV), is what the escape stripping 
 **Numbers that changed.** `_flu.txt` from "Fit lines" holds the reader's fit with the width from the sum (it held
 XeRay's area for a few hours, and before F110 the reader's fit with a free width and no escape stripping). XeRay's
 numbers are in `_flu_xeray.txt`; `_flu_fit.txt` is no longer written.
+
+### 2026-11-26 — Stopgap: GID levels with no β overlap joined unscaled (owner's request)
+
+Verified by: tests on synthetic known truth (`tests/test_gid_unscaled_seams.py`) and a run on the private sets
+by the local data agent. Study: `docs/studies/gid_unscaled_seams/summary.md`.
+
+- **The owner asked** for a stopgap for GID image sets whose levels share no overlap, "even if there are
+  tradeoffs. Just spell out the tradeoffs and build it."
+- **Built, opt-in:** `GIDParams(unmatched_levels='unscaled')`, the worksheet's "Join levels without overlap
+  (unscaled)". A level with no β overlap is added as collected (monitor, absorber, its own response), with
+  factor 1 and no error. The seam is marked in the join table, in a message and as a `#` line in saved files.
+  The default still refuses; overlapping levels are joined bit for bit as before.
+- **Tradeoffs, measured:**
+  - a 25 % monitor error passes 1 : 1 into the step (synthetic);
+  - the response's per-level normalisation moves the ratio across the seam by 7 % median, up to 28 % ('fit'
+    against 'none', 15 real seams);
+  - the ratio across the seam (0.69–1.10 under 'fit') cannot separate a scale error from the real change
+    across gaps of 0.5–6.1°;
+  - σ is counting only.
+- **Real sets:** of the survey's 18, 16 have a real β gap; 15 of them now patch. 1 fails on a separate error
+  (a zero-size array in the join). 2 had failed only with the `physical` responses and join normally.
+
+### 2026-11-26 — Does χ² give XeRay's bad fits away? (owner; XRF session)
+
+Verified by: a run on the shootout's own spectra (all 40 synthetic conditions, 39 100 spectra, the run's
+seeds), parked on the owner's PC (`parked/xrf_pathologies/chi2_all.py`; not in the repository).
+
+- **The owner:** "When xeray gives a horrible fit it is quite apparent by eye, so the chisquared probably also
+  makes it obvious, at least when compared with some other method."
+- **Mostly yes.** Misfit = Poisson deviance per degree of freedom in the line window. In all 23 conditions
+  where the scatter fools XeRay (bias −28 % to +1475 %) it is 4–55, every spectrum is flagged at p < 0.01,
+  and XeRay's misfit is above 1.5 × the reader's on the same spectrum every time.
+- **Not when a neighbouring line sits under the target:** weak Co beside strong Fe reads +148 % with misfit
+  1.06 (3 % flagged); As under Pb Lα +88 %, Fe with Mn Kβ +11 %. A single Gaussian takes in a line it cannot
+  separate, and the reader's window fit is fooled there too. Nor at 30 photons (+35 %, misfit 1.15).
+- **False alarms at high counts:** at 10⁴ photons it flags 28 % of XeRay's right answers (likely the Kα1/Kα2
+  doublet, which one Gaussian does not follow; reasoned, not checked).
+- Pearson's Σ(y − μ)²/μ is the wrong measure here: where XeRay's straight line drops near 0 and a channel
+  holds a count it explodes (χ²/dof 89 on a fit that looks perfect). The deviance does not.
+
+### 2026-11-26 — Making Larch work better (owner; XRF session)
+
+Verified by: runs of six Larch setups on 15 synthetic conditions (200 spectra each, 50 for each-spectrum
+fits; the run's seeds), parked on the owner's PC (`parked/xrf_pathologies/larch_tune.py`); reading
+`larch/xrf/xrf_model.py` and Larch's GUI script.
+
+- **The owner:** "also take a look at making larch work better, it seems promising."
+- **A bug in our shootout, not in Larch:** `xrf_shootout._larch_model` gives the beam in eV (`1000 × energy`);
+  Larch's model takes keV (its GUI passes keV). It then counts every edge as excited and models lines the beam
+  cannot excite: Lu's L1/L2 lines under 10 keV (+7900 %), Pb's under 14 keV (As beside Pb −680 %). The
+  committed C65–C69 Larch scores are wrong wherever an edge sits above the beam.
+- **The fix needs a second one:** in keV, Larch's default starting amplitude (1e6) is ~10⁵ × too large and the
+  fits stop in bad minima (misfit per point 242 against 32 for Fe far from the scatter); starting each element
+  from the counts under its line restores them.
+- **Larch's scatter model is the real limit:** with both fixes, misfit 30–50 per point, and the line amplitude
+  trades against the Compton tail, so scattered conditions read −10 to −75 %. No help from the GUI's second
+  Compton peak, Larch's background, Poisson weights or a pinned Compton centre. A narrow fit (line ± 1 keV,
+  Larch's background, no scatter peaks) helps under mild scatter (hard case at 14 keV −42 % → −2 %, Fe far
+  from the scatter −13 % → −3 %) and fails under hard scatter (the background takes the line, −100 %).
+- Parked: `docs/RELEASE_PLAN.md`, After 2.0, "Refine the XRF shootout".
 
 ### 2026-11-27 — P44: a GID burn peak on a shoulder, read with the shoulder split off (tools man)
 

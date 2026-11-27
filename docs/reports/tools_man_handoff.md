@@ -1,5 +1,15 @@
 # tools man: handoff to my future self (2026-11-27)
 
+> **Update (project manager, 2026-11-27): Reader 2.0 is tagged and released.** The tag is `v2.0.0`, and the
+> GitHub release is "Reader 2". The release push below is over; read it as history.
+> - **Rules 12 and 13 are paused** (owner, 2026-11-27, "Let's pause those rules again"), and that
+>   includes the standing order just below. Do not start a known-truth study or a walkthrough unless the
+>   owner asks.
+> - P44 is no longer waiting for the tag. It is on the "After 2.0" backlog (`docs/RELEASE_PLAN.md`).
+>   It is a rule-12 study, so it waits for the owner to resume rule 12 or ask for it.
+> - The clean-PC test is still not done and no longer blocks anything. Never run it in Windows Sandbox
+>   on the owner's PC.
+
 **Communication (owner, 2026-11-24): GitHub issue #55 only.** Do not message other sessions directly. Post
 one comment per message, starting `tools man → <recipient>:`. Follow the issue's rules (public repo: no
 names, file names, scan numbers, dates or raw data). Issue comments do not wake this session, so read #55
@@ -49,7 +59,7 @@ next agent to use more real data to answer these questions". So: pushed and merg
 
 ## Release push (2026-11-26): my jobs, owner's choice "release jobs first"
 
-- **P44 is parked until 2.0 is tagged** (`docs/RELEASE_PLAN.md`; the owner chose this over starting it now).
+- ~~**P44 is parked until 2.0 is tagged**~~ (2.0 is tagged; see the update at the top) (`docs/RELEASE_PLAN.md`; the owner chose this over starting it now).
   Its answers are recorded: the shoulder is free per frame, with both fits reported; strips are often not
   re-aligned in height; NX is pure water. `xraylib` was installed in the 2026-11-26 session only.
 - **Blocker 4: the builds pass** (#118). The workflow ran on main twice (latest run 45753156275).
@@ -123,7 +133,8 @@ Done for the standing order, on the branch (2026-11-25):
   - A proposal is an angle offset only with R_F convolved with the resolution.
   - Set Qc before Qoff.
 - **`--stale` reads `verified.json`.** After regenerating products, run `--audit --record --only …`.
-  New Tools items need `controls.md` regenerated.
+  New Tools items need `controls.md` regenerated. **Since 2026-11-27 (slim rule 11) that is done before a release
+  or when asked, not per commit.**
 - **Ties ordered by set iteration** make a tool's output change from run to run.
 - **The GID template reads a 30 % broadening as +14 % area and a +0.00066 Å⁻¹ shift** (P44). Verdicts on
   broadening peaks are suspect until P44 is done.

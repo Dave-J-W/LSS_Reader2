@@ -208,7 +208,12 @@ class GIDResult:
         """The window's "Save GID" files; ``axes`` defaults to the one given
         to Experiment.gid."""
         from . import gid as gidmod
-        return gidmod.save(name, self.products(axes or self.axes))
+        return gidmod.save(name, self.products(axes or self.axes), note=gidmod.seam_note((self.info or {}).get('join')))
+
+    @property
+    def unscaled_seams(self):
+        """Seams joined without a factor (GIDParams.unmatched_levels 'unscaled'); [] otherwise."""
+        return list(((self.info or {}).get('join') or {}).get('unscaled_seams') or [])
 
 
 class Experiment:

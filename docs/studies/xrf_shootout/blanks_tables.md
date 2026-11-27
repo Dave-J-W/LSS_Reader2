@@ -4,7 +4,7 @@ Synthetic lines of known photons injected into the 10 clean committed blanks (`t
 
 ## 1000 background counts in the line window (the line ± 2 FWHM)
 
-| Line | beam keV | line/background | window sum | fit, old weights | Poisson fit (default) | Poisson fit + fixed width + escapes removed | Poisson fit + fixed width | Poisson fit + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch |
+| Line | beam keV | line/background | window sum | fit, old weights | Poisson fit | Poisson fit + fixed width + escapes removed | Poisson fit + fixed width | Poisson fit + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Zn K | 10 | 0.1 | +1146.3 [+1145, +1148] | -119.7 [-212, -27] (64 % fail) | -116.0 [-209, -23] (64 % fail) | -1.0 [-9, +7] (70 % fail) | +15.5 [+7, +23] (69 % fail) | -20.1 [-33, -7] (58 % fail) | +962.4 [+954, +971] | +19.8 [+19, +20] | -35.8 [-44, -28] | +51.7 [+49, +54] | +214.6 [+202, +227] | +101.2 [+89, +113] | +19.8 [+19, +20] | -96.7 [-100, -93] | -0.4 [-18, +17] |
 | Zn K | 10 | 0.3 | +381.9 [+381, +383] | +9.9 [+10, +10] | +12.5 [+10, +15] | -3.9 [-8, -0] | +1.6 [-2, +5] (1 % fail) | +2.0 [-4, +8] | +664.1 [+573, +756] | -26.5 [-28, -25] | -37.8 [-40, -35] | -10.1 [-10, -10] | +53.9 [+50, +57] | +21.7 [+21, +22] | -10.1 [-10, -10] | -61.6 [-84, -39] | -48.1 [-53, -43] |
@@ -37,7 +37,7 @@ Synthetic lines of known photons injected into the 10 clean committed blanks (`t
 
 ## 3000 background counts in the line window (the line ± 2 FWHM)
 
-| Line | beam keV | line/background | window sum | fit, old weights | Poisson fit (default) | Poisson fit + fixed width + escapes removed | Poisson fit + fixed width | Poisson fit + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch |
+| Line | beam keV | line/background | window sum | fit, old weights | Poisson fit | Poisson fit + fixed width + escapes removed | Poisson fit + fixed width | Poisson fit + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyMca, best setting | PyXRF | Larch |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Zn K | 10 | 0.1 | +1147.7 [+1148, +1148] | -37.7 [-63, -12] (70 % fail) | -37.1 [-63, -11] (70 % fail) | +4.5 [-8, +17] (82 % fail) | +11.5 [+7, +16] (87 % fail) | -22.1 [-39, -5] (75 % fail) | +962.1 [+949, +975] | +5.5 [+4, +7] | -23.8 [-26, -21] | +46.2 [+44, +48] | +262.7 [+253, +273] | +27.4 [+9, +45] | +5.5 [+4, +7] | -84.0 [-100, -68] | +100.5 [+89, +112] |
 | Zn K | 10 | 0.3 | +382.5 [+382, +383] | +12.7 [+10, +16] | +12.1 [+9, +15] | -4.0 [-8, +0] | +1.3 [-2, +5] (5 % fail) | +2.0 [-5, +9] | +725.3 [+625, +826] | -28.3 [-31, -26] | -31.5 [-32, -31] | -8.5 [-9, -8] | +72.3 [+70, +74] | +1.0 [-5, +7] | +1.0 [-5, +7] | -48.4 [-72, -24] | +32.6 [+26, +39] |
@@ -74,7 +74,7 @@ Synthetic lines of known photons injected into the 10 clean committed blanks (`t
 |---|---|---|---|---|
 | window sum | 0 | 0 | 0 | 0 |
 | fit, old weights | 5 | 18 | 10 | 33 |
-| Poisson fit (default) | 6 | 18 | 7 | 31 |
+| Poisson fit | 6 | 18 | 7 | 31 |
 | Poisson fit + fixed width + escapes removed | 6 | 32 | 9 | 47 |
 | Poisson fit + fixed width | 5 | 14 | 6 | 25 |
 | Poisson fit + escapes removed | 13 | 29 | 7 | 49 |
@@ -90,7 +90,7 @@ Synthetic lines of known photons injected into the 10 clean committed blanks (`t
 
 ## False line on the bare blank: photons per 100 background counts in the line window (mean over the spectra; failed share when any)
 
-| Blank | line | background | window sum | fit, old weights | Poisson fit (default) | Poisson fit + fixed width + escapes removed | Poisson fit + fixed width | Poisson fit + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyXRF | Larch |
+| Blank | line | background | window sum | fit, old weights | Poisson fit | Poisson fit + fixed width + escapes removed | Poisson fit + fixed width | Poisson fit + escapes removed | XeRay | PyMca | PyMca with tails | PyMca, SNIP 60 | PyMca, SNIP 100 | PyMca, polynomial | PyXRF | Larch |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 10 keV blank f | Cu K | 1000 | +114.5 | +95.8 (12 % fail) | +93.6 (12 % fail) | +3.2 (20 % fail) | +10.3 | +4.1 (36 % fail) | +125.3 | +1.9 | +2.3 | +1.9 | +9.5 | +25.1 | +8.9 | +0.8 |
 | 10 keV blank f | Cu K | 3000 | +114.4 | +82.5 | +81.0 | +2.5 (26 % fail) | +10.2 | +5.8 (48 % fail) | +121.9 | +1.5 | +2.0 | +1.8 | +12.0 | +19.5 | +15.8 | +2.1 |

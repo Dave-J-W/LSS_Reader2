@@ -1,9 +1,13 @@
 ---
 name: tools-freshness
-description: Keep LSS_Reader2's committed figures and tables in step with the code that makes them - regenerate products after a change (rule 11), verify them with the Tools audit, keep lss_toolbox/verified.json current, handle revision stamps, run-dependent lines and environment differences, and regenerate docs/manual/controls.md when Tools items are added. Use after changing code a tool uses, after merging main, when `python -m lss_toolbox --stale` flags items, or when adding a figure generator.
+description: Keep LSS_Reader2's committed figures and tables in step with the code that makes them - since 2026-11-27 (slim rule 11) only before a release or when someone asks, never per commit; verify them with the Tools audit, keep lss_toolbox/verified.json current, handle revision stamps, run-dependent lines and environment differences, and regenerate docs/manual/controls.md when Tools items are added. Use after changing code a tool uses, after merging main, when `python -m lss_toolbox --stale` flags items, or when adding a figure generator.
 ---
 
 # Committed products: fresh, verified, recorded
+
+> **When to use this (owner, 2026-11-27, slim rule 11):** only before a release, or when someone asks (the
+> Manual writing session, the owner). **Not** after every code change and **not** after merging `main`. Make
+> no bookkeeping-only commits in between. `pytest -m release` checks that everything is current.
 
 `lss_toolbox` (F84) catalogues every generator in `tests/tools/`. The design, from 2026-11-25:
 - `fingerprint.py` fingerprints code without its docstrings and comments;

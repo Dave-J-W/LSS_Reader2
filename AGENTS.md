@@ -1,113 +1,52 @@
 # Working on LSS_Reader2 (for coding agents and new contributors)
 
-LSS_Reader ("reader") is a PyQt5 desktop program that parses a SPEC file,
-loads the raw detector data beside it, and reduces it (monitor
-normalisation with Poisson error propagation) for liquid-surface X-ray
-scattering at ChemMatCARS. It is not a fitting program. Read
-`docs/PROJECT_CONTEXT.md` first.
+LSS_Reader ("reader") is a PyQt5 desktop program that parses a SPEC file, loads the raw detector data beside
+it, and reduces it (monitor normalisation with Poisson error propagation) for liquid-surface X-ray scattering
+at ChemMatCARS. It is not a fitting program. Read `docs/PROJECT_CONTEXT.md` first.
 
-## Current phase — read before changing anything
+This file holds the rules in force. Their history is in git (`git log -p AGENTS.md`).
 
-**Release push to Reader 2.0** (owner, 2026-11-25): `docs/RELEASE_PLAN.md`
-overrides everything below and in `docs/TODO.md` until 2.0 is tagged. In
-short: the current defaults ship as they are; no new studies; only the
-release blockers listed there are worked on; rules 12 and 13 are paused.
-Anything else goes on the plan's "After 2.0" list, not into a commit.
+## Current phase
 
-Before the release push: **Implementation, following `docs/SCOPE.md` stage by stage** (authorised by
-the owner on 2026-11-17). Stages 0–2 are done (2026-11-18); Stage 3 (series,
-the per-SPEC workbook, automatic saving, live updates) is largely built
-(2026-11-19 to 22); in Stage 6, GID patching and fitting (peaks, burn
-trends) are built. `docs/ACCOMPLISHMENTS.md` summarises what exists; the
-top of `docs/TODO.md` says what is in progress and holds the working list
-by area; if it disagrees with this paragraph, that file wins.
+**Reader 2.0 is released** (tag `v2.0.0`, release "Reader 2", 2026-11-27; builds attached). The work list is
+the **GitHub issues labelled `task`** (rule 15). Those labelled `parked` are the after-2.0 backlog and are not
+worked on until unparked. **Rules 12 and 13 are paused** (owner, 2026-11-27): their full text is in
+`docs/rules_paused.md`. A fix for 2.0 users goes on `main` like any other change; a 2.0.x tag is the
+owner's to set. Application code may be changed under the rules below. In short: one defect or feature per
+commit with its test, CI green, the legacy export fixtures byte-identical.
 
-Application code may now be changed, under these conditions:
-- one defect or one feature per commit, with its test in the same commit;
-- the quick checks pass before every commit; the real-data checks and the
-  crash sweep pass before a stage is called done;
-- the legacy export fixtures stay byte-identical (rule 3 below).
+## Where to commit
 
-## Where to commit (D60, 2026-11-23) — read before your first commit
+- **`main` of `github.com/Dave-J-W/LSS_Reader2` is the master.** Every finished piece of work ends up there.
+  Never push to `chemmatcars/LSS_Reader` (the original this fork came from). Start from
+  `git fetch origin && git log -1 --oneline origin/main`.
+- **A session that can push to `main`** commits there, small and often (rule 8).
+- **A cloud session** (it may push only to its own `claude/<name>` branch) merges `origin/main` into its
+  branch before every push. It brings the branch into `main` by a pull request merged with **"Create a merge
+  commit"**, never squash or rebase (the `merge-to-main` skill gives the steps). It merges at once, **once
+  CI is green on the head it merges**. Sessions with standing permission (GUI manager, main man, tools man)
+  merge their own. The pull requests are records, never left open. Afterwards the branch is brought level
+  with `main`.
+- **No other branches** (no `wip/`, no personal ones).
 
-- **`main` of `github.com/Dave-J-W/LSS_Reader2` is the master**: the one
-  place the project lives. Every finished piece of work ends up there. Its
-  history restarts on 2026-11-20; a clone older than that shares no history
-  with it and must be made again. `chemmatcars/LSS_Reader` is the original
-  this fork came from: never push there.
-- **Start from it**: `git fetch origin && git log -1 --oneline origin/main`,
-  and work on top of that commit.
-- **A session that can push to `main`** commits there, small and often
-  (rule 8).
-- **A session that may push only to its own branch** (cloud sessions get a
-  `claude/<name>` branch, and GitHub refuses their pushes elsewhere): before
-  every push, `git fetch origin main && git merge origin/main`, so that the
-  branch always contains `main` and `main` can be fast-forwarded to it; its
-  report to the owner ends with the commands below. Once `main` contains
-  the branch, the branch is deleted.
+## Sessions and coordination
 
-      git fetch origin
-      git checkout main
-      git pull --ff-only
-      git merge --ff-only origin/claude/<name>
-      git push origin main
-      git push origin --delete claude/<name>
-
-  `--ff-only` refuses instead of making a merge when `main` has moved on;
-  the session then merges `main` in again and the owner repeats the merge.
-  A session the owner has given standing permission (so far the GUI-planning
-  session, the test-speed session and the Tools-menu session, 2026-11-23) brings its own branch into `main` itself once the
-  quick suite passes: a cloud session cannot move `main` directly (HTTP
-  403), so it opens a pull request from its branch and merges it at once
-  with "Create a merge commit" (owner's choice, 2026-11-23), then merges
-  `main` back into its branch. Those pull requests are records, never left
-  open.
-  **Or, by button**: if the branch has a pull request into `main` (it
-  shows the branch's latest state and updates with every push), merging it
-  with **"Create a merge commit"** does the same. Never "Squash and merge"
-  or "Rebase and merge": both give `main` different commits from the
-  branch, and squashing also loses the one-change-per-commit history
-  (rule: one defect or feature per commit). A session keeps its pull
-  request's title and description up to date when it pushes something the
-  description does not cover. No GitHub workflow tests pull requests (the
-  build runs on version tags only), so the description says which suites
-  the session ran and their results.
-- **No other branches** (no `wip/`, no personal ones): work that is not
-  ready stays uncommitted or in the session's own branch.
-
-## Sessions (D62, owner, 2026-11-23)
-
-Several Claude sessions work on this repository at once. **main man**
-(called Main until 2026-11-24, when the owner renamed it to tell it
-apart; the session that was "test speed") orchestrates: it hands out work
-and the others report to it. **questor** asks the owner questions and
-records the answers in `docs/`, and takes small fetch and edit tasks.
-**tools man** (the Tools-menu session) is general purpose. **GUI manager**
-works on workflows and the interface. **Local yokel** runs on the owner's
-own computer and fetches the private data sets (`docs/DATA_NEEDS.md`),
-with helper sessions of its own. **Reflection guy** also runs on the
-owner's computer. The owner (2026-11-26): "Whatever I tell reflection guy is
-law in regards to public data". So its rulings on public data (what may be
-published, and how) carry the owner's authority, and need no confirmation
-through questor. The cloud sessions cannot read its session, so its rulings
-reach them only when posted on #55 or written in `docs/`. **All sessions talk through GitHub
-issues** (owner, 2026-11-24): issue #55 of this repository, one comment
-per message, beginning `sender → recipient:`, with no private data (the
-issue's body has the rules). Direct session messages are not used: most
-directions are refused, between cloud sessions and the owner's computer
-and into a session the owner has approved for their trusted devices
-(main man's is). main man watches the issues and new `claude/local-data-*`
-pull requests every minute, and reviews and merges the local data agent's
-pull requests (it does not merge them itself). Standing rule (owner,
-2026-11-24): main man merges such a pull request once it passes main man's
-privacy review and the quick suite in the cloud, and asks the owner only
-when something private or doubtful shows up; questor reads the issue
-when the owner starts a turn with it. GUI priorities: the main window first, then
-the sample timeline tab (F83), then the new layout prototype (`ngui/`);
-ideas proven in ngui are carried into the main window, not built twice.
-A session that wants to change a large part of `mainwindow.py`,
-`tests/conftest.py` or `tests/sweep.py` tells main man first, so that two
-sessions do not edit the same lines.
+- **main man** orchestrates, reviews and merges. **GUI manager** works on the window and workflows.
+  **tools man** is general purpose (Tools menu, packaging). **questor** asks the owner questions and records
+  the answers. **Manual writing** writes the user manual (`docs/manual/`). **Local yokel** and its helpers run
+  on the owner's PC and fetch the private data (`docs/DATA_NEEDS.md`). **Reflection guy** also runs on the
+  owner's PC, and its rulings on public data carry the owner's authority ("Whatever I tell reflection guy is
+  law in regards to public data", owner 2026-11-26). They reach the cloud sessions only through #55 or `docs/`.
+- **Tasks are GitHub issues** (rule 15). **Issue #55 is for short notices** between sessions: one comment per
+  message, beginning `sender → recipient:`, no private data (its body has the rules). Keep a notice to a few
+  lines and link the issue, commit or file instead of retelling it.
+- main man watches #55 and new `claude/local-data-*` pull requests, privacy-reviews the local data agent's
+  pull requests, and merges them once CI is green. It asks the owner only when something private or doubtful
+  shows up (owner, 2026-11-24).
+- GUI priorities: the main window first, then the timeline tab (F83), then the `ngui/` prototype. Ideas proven
+  in ngui are carried into the main window, not built twice.
+- Before changing a large part of `mainwindow.py`, `tests/conftest.py` or `tests/sweep.py`, say so on the
+  task's issue or on #55, so that two sessions don't edit the same lines.
 
 ## Where things are
 
@@ -119,23 +58,27 @@ sessions do not edit the same lines.
 | `docs/FEATURE_REQUESTS.md` | Requirements R1–R4 and requests F1…; add new ones here with the date |
 | `docs/SCOPE.md` | The plan: target structure and stages, with every request placed |
 | `docs/PHYSICS_ISSUES.md` | Numbered list of physics and mathematics issues, with sizes and how each is known |
-| `docs/TODO.md` | What to do next, what is waiting on the owner, what is done |
+| GitHub issues labelled `task` | **The work list** (rule 15): one issue per task, claimed by label |
+| `docs/TODO.md` | The older working list by area (frozen 2026-11-27; reference only, new work goes in issues) |
 | `docs/HANDOFF_main_man.md`, `docs/gui/HANDOFF_gui_manager.md` | Hand-offs: how the orchestrator and the GUI manager work, what is open, who is on what |
-| `.claude/skills/` | Project skills: `merge-to-main` (D60, step by step), `review-local-data-pr` (privacy review and merge of the local data agent's pull requests), `issue-watch` (the #55 watch and how to post) |
+| `.claude/skills/` | Project skills: `merge-to-main`, `review-local-data-pr` (privacy review), `issue-watch` (#55), `tools-freshness` (generated files, at release), `fit-statistics-pitfalls`; `known-truth-study` is paused with rule 12 |
 | `docs/DATA_NEEDS.md` | Every dataset a work item waits for, what it must answer, where it goes, who supplies it (the owner's non-cloud agent for large private sets) |
 | `docs/TESTING.md` | How the test suite works and how to extend it |
-| `docs/physics_notes.md` | Invariants table and a dated question-and-answer log |
+| `docs/physics_notes.md` | The invariants table (live) and the Q&A log up to 2026-11-27 (frozen) |
+| `docs/notes/` | New notes, one file per entry (rule 5); template in its `README.md` |
+| `docs/rules_paused.md` | The full text of paused rules 12 and 13 |
 | `docs/timings.md` | Timing baseline written by `pytest -m bench` |
-| `docs/COMPARISONS.md` | Ledger of old-vs-new method comparisons: data, result, evidence, how to regenerate (for the figure agent) |
+| `docs/COMPARISONS.md` | Ledger of old-vs-new method comparisons: data, result, evidence, how to regenerate |
 | `docs/comparisons_data/` | Old/new outputs as CSV for figures, from `tests/tools/compare_methods.py` (public data only; maps git-ignored) |
 | `docs/OUTPUT_DECISIONS.md` | Every default and decision that changes output numbers, with rationale and evidence |
 | `docs/gui/` | GUI overhaul (R4, D58): plan and schema (`README.md`), control inventory, **workflow map** (`workflows.yaml`, checked and rendered by `tests/tools/gui_map.py`), assessment, image-display requirements, questions for the owner, screenshots (`tests/tools/gui_screens.py`) |
-| `docs/MANUAL_NOTES.md`, `docs/manual/` | Breadcrumbs for the future manual; `controls.md` is generated by `tests/tools/dump_tooltips.py` |
+| `docs/MANUAL_NOTES.md`, `docs/manual/` | Breadcrumbs for the manual, and the manual itself (the Manual writing session); `controls.md` is generated by `tests/tools/dump_tooltips.py` |
 | `docs/handoff/` | Specifications handed over by the owner (xmodfit export contract). They are requirements; do not edit them |
 | `docs/handoff_out/` | Requests written by this project for analyses done elsewhere (e.g. monitor noise from the owner's larger data) |
 | `lss_core/` | GUI-free core: readers, cache, reduction, scripting API (`docs/SCRIPTING.md`) |
 | `reader_log.py` | Durable log, per-SPEC log, process-wide exception handler (no Qt needed) |
-| `packaging/`, `docs/PACKAGING.md` | PyInstaller recipe, pinned build libraries, the GitHub build workflow (`.github/workflows/build.yml`) |
+| `packaging/`, `docs/PACKAGING.md` | PyInstaller recipe, pinned build libraries, the build workflow (`.github/workflows/build.yml`, on version tags) |
+| `.github/workflows/tests.yml` | CI: the quick suite on every pull request into `main` and every push to `main` (rule 14) |
 | `lss_core/preferences.py` | Preferences kept between sessions (`$LSS_READER_PREFS`; the tests use a temporary file) |
 | `lss_core/series.py`, `timing.py` | Scan series (lines and guesses) and per-point times |
 | `lss_core/workbook.py`, `live.py` | The per-SPEC Excel workbook (saved results, series ties, stale flags); remaking results from their recipes (live updates) |
@@ -152,113 +95,88 @@ sessions do not edit the same lines.
 ## Commands
 
     pip install -r requirements-dev.txt   # a fresh cloud session lacks PyQt5 etc.: ~10 s
-    pytest                 # fast suite, ~5 min (1176 tests, 2026-11-24); run before every commit
-    pytest -m slow         # real-data regressions, ~4 min
+    pytest tests/test_<area>.py   # what you changed: run this locally (rule 14)
+    pytest                 # quick suite, ~5 min; CI runs it on every pull request and push to main
+    pytest -m slow         # real-data regressions, ~4 min: when real-data reduction or a dialog's input changed
+    pytest -m sweep        # crash inventory, ~9 min, in the background: when the window changed
+    pytest -m release      # generated docs, inventories and committed figures are current (rule 11): before a release
     pytest -m bench -s     # rewrites docs/timings.md
-    pytest -m sweep        # crash inventory, ~9 min (forked copies, 2026-11-24): start it in the background; run after GUI-facing changes
     python -m lss_toolbox  # the Tools window on its own; --render rewrites docs/TOOLS.md, --stale, --audit
 
-No display is needed. Run from the repository root. Every suite runs in
-parallel by itself (pytest-xdist: one worker per CPU, as memory allows)
-and cleans up after itself: run the quick and real-data suites in the
-foreground, and do not shard or tidy up by hand (`docs/TESTING.md`, "Parallel by default").
-`-n0` runs in one process, for a debugger.
+No display is needed. Run from the repository root. Suites run in parallel by themselves (pytest-xdist) and
+clean up after themselves; `-n0` runs in one process, for a debugger. On the owner's Windows PC use `-n 4`.
 
 ## Rules of the house
 
-1. **Never weaken a test to make it pass.** A changed number is either a bug
-   you introduced or a deliberate change; if deliberate, say so in the commit
-   and in `docs/physics_notes.md` with before and after values.
-2. **Three kinds of assertion** (details in `docs/TESTING.md`): invariants
-   (never change), "as coded" characterisations (change only deliberately),
-   and `xfail(strict=True)` for behaviour we want but do not have. When you
-   fix a defect, remove its `xfail` marker in the same commit.
-3. **The legacy export fixtures never change** (`tests/reference/legacy_export/`),
-   except for the one fix the hand-off permits (Qz², trap T8). They are the
-   proof that a refactor did not change the reduction.
-4. **The crash baselines only shrink.** `tests/known_crashes.json` and
-   `tests/known_crash_sites.json` are regenerated with
-   `LSS_UPDATE_CRASHES=1 pytest -m sweep`, never edited by hand, and a
-   regenerated file must not contain entries that were not there before
-   unless the commit explains why.
-5. **Record what you learn.** A question from the owner and its answer go in
-   `docs/physics_notes.md` (dated, with how the answer was verified: test,
-   run, or reading only). Quantities that must be conserved go in the
-   invariants table there, with the test that checks them.
-6. **Say what was measured and what was only read.** The docs keep these
-   apart; keep doing so.
-7. **The reader never writes to the SPEC file**, and tests must not write
-   into `sample_data/`. Set `window.directory = str(tmp_path)` after opening
-   a SPEC file (the `window`/`loaded` fixtures and `tests/test_real_*.py`
-   show how).
-8. Commit small and push often to `main` of this fork; the owner asked for
-   that. A session that may push only to its own branch follows "Where to
-   commit" above. Do not open pull requests unless asked.
-9. **Explain in tooltips, not on screen** (owner, 2026-11-18). Labels,
-   group titles and messages in the window stay short; the why, the
-   provenance of numbers and the caveats go in tooltips. Prefer this to
-   wordy displays.
-10. **Work in larger tranches, then test** (owner, 2026-11-18): write a
-   whole feature (code, tests, docs) before running the suite, rather than
-   running tests after each small edit.
-11. **Leave a trail for the figure agent and the manual writer** (owner,
-   2026-11-19), in the same commit as the change. The main session builds
-   knowledge into the reader and records its provenance; polished figures
-   are for the figure agent or a subagent (owner, 2026-11-18):
-   - a new or changed method: a row in `docs/COMPARISONS.md` (old vs new,
-     data, result, evidence kind, how to regenerate; save old/new arrays as
-     CSV for public data when you measure them);
-   - any choice that changes an output number, however small: a row in
-     `docs/OUTPUT_DECISIONS.md` with its rationale and evidence (owner,
-     test, measurement, literature, or marked as an assumption);
-   - a user-visible control: a tooltip (rule 9), a line in
-     `docs/MANUAL_NOTES.md`, `python tests/tools/dump_tooltips.py >
-     docs/manual/controls.md`, and an entry in the GUI inventory
-     (`docs/gui/inventory/<area>.yaml`; its id in the workflow step that
-     uses it, `docs/gui/workflows.yaml`). `tests/test_gui_map.py` fails
-     on a named control the inventory lacks (2026-11-23).
-   - figures that a change makes stale (they show the old method or old
-     numbers): regenerate them, public ones in the repository and private
-     ones under `sample_data/private/figures/`, in the same tranche (owner,
-     2026-11-20). Every figure is made by a tool in `tests/tools/`, so this
-     is a rerun, not a redraw: `python -m lss_toolbox --stale` lists the
-     candidates (from the verified record, else from git history),
-     `--audit` reruns them and compares pixel for pixel (`--record` keeps
-     the ones that matched, so that `--stale` calls them current until
-     something they used changes), and the Tools window's "Replace the
-     committed products" reruns one into the repository.
-   - a new figure generator or demonstration: an item in
-     `lss_toolbox/catalog.py` with the variations the documents describe
-     (a "change this and regenerate to see that" sentence becomes a
-     variation citing its passage as `path#text`, a heading or a short
-     quote, never a line number), then `python -m lss_toolbox
-     --render`. `tests/test_toolbox.py` fails on a script in `tests/tools/`
-     that is not an item, on a variation naming an option its script lacks,
-     and on a committed figure no item claims (2026-11-23, F84).
+1. **Never weaken a test to make it pass.** A changed number is either a bug you introduced or a deliberate
+   change; if deliberate, say so in the commit and give before and after values in its `OUTPUT_DECISIONS` row.
+2. **Three kinds of assertion** (`docs/TESTING.md`): invariants (never change), "as coded" characterisations
+   (change only deliberately), and `xfail(strict=True)` for behaviour we want but do not have. When you fix a
+   defect, remove its `xfail` marker in the same commit.
+3. **The legacy export fixtures never change** (`tests/reference/legacy_export/`), except for the one fix the
+   hand-off permits (Qz², trap T8). They prove that a refactor did not change the reduction.
+4. **The crash baselines only shrink.** `tests/known_crashes.json` and `tests/known_crash_sites.json` are
+   regenerated with `LSS_UPDATE_CRASHES=1 pytest -m sweep`, never edited by hand. A regenerated file may not
+   gain entries unless the commit explains why.
+5. **Record what you learn, one note per file.** A question from the owner and its answer, or a finding, go
+   in a new file in `docs/notes/` (`YYYY-MM-DD-<topic>.md`, the template is in its README). Say how it is
+   known: test, run, or reading only. Never append to another note, nor to the frozen log in
+   `docs/physics_notes.md`. A conserved quantity goes in the invariants table at the top of
+   `docs/physics_notes.md`, with the test that checks it.
+6. **Say what was measured and what was only read.**
+7. **The reader never writes to the SPEC file**, and tests never write into `sample_data/`. Set
+   `window.directory = str(tmp_path)` after opening a SPEC file (the `window`/`loaded` fixtures show how).
+8. **Commit small and push often** to `main` (or your branch, "Where to commit"). Open a pull request only to
+   merge a branch, or when asked.
+9. **Explain in tooltips, not on screen** (owner, 2026-11-18). Labels, group titles and messages stay short;
+   the why, the provenance of numbers and the caveats go in tooltips.
+10. **Work in larger tranches, then test** (owner, 2026-11-18): write a whole feature (code, tests, docs)
+    before running tests, rather than after each small edit.
+11. **Leave a short trail, not bookkeeping** (owner, 2026-11-27). In the same commit as the change, write
+    down what only its author knows:
+    - a choice that changes an output number, however small: a row in `docs/OUTPUT_DECISIONS.md` with its
+      rationale and evidence (owner, test, measurement, literature, or marked as an assumption);
+    - a user-visible control: a tooltip (rule 9) and a line in `docs/MANUAL_NOTES.md` (what it does, when
+      to use it, the caveat), for the Manual writing session;
+    - a new or changed method: a row in `docs/COMPARISONS.md` (old vs new, data, result, evidence, how to
+      regenerate);
+    - a new script in `tests/tools/`: its item in `lss_toolbox/catalog.py` (the quick suite checks this).
 
-12. *(Paused until 2.0 is released: `docs/RELEASE_PLAN.md`.)* **The best method becomes the default** (owner, 2026-11-24): "make the best method the default
-   if it has been comprehensively demonstrated and tested and has a demonstrator presentation effort
-   behind it". So, before a default changes:
-   - a study with known truth and figures (a COMPARISONS row);
-   - tests that pin the new numbers;
-   - a demonstrator: a document and a Tools menu item, `docs/studies/` or `docs/reports/`.
-   Then make the switch, with its OUTPUT_DECISIONS row and the re-pins named one by one. Committed
-   products of earlier studies keep the default they were run at (they set it for their own run).
-
-13. *(Paused until 2.0 is released: `docs/RELEASE_PLAN.md`.)* **Show the whole chain, explained simply** (owner, 2026-11-25, a standing order: "I always need to
-   see the entire chain of data processing, ending with the statistics and judgment. That means data
-   fit examples, explanations of statistics, all ELI5"). Every study, report or answer that ends in a
-   number or a verdict shows, in order:
-   - the raw data, as it comes in (a frame, a scan, the counts, with their errors);
-   - each processing step, on one real example where the data are public (synthetic otherwise),
-     with what it does to the numbers;
-   - at least one fit drawn over its data, with its residuals and what the fitted numbers mean;
-   - every statistic used, explained as for a newcomer: what it measures, how it is computed here,
-     what a good and a bad value look like (χ², p-values, intervals, likelihood, pulls, coverage);
-   - the judgment, and how sure it is, in plain words.
-   Each figure comes from a tool in `tests/tools/` (rule 11). A walkthrough document beside the study
-   (`docs/studies/<topic>/walkthrough.md`) is the usual form; `.claude/skills/known-truth-study`
-   says how.
+    **Don't regenerate derived files per commit, and make no bookkeeping-only commits.** That covers
+    `docs/manual/controls.md`, `docs/TOOLS.md`, `docs/gui/inventory*` and `workflows.md`, screenshots,
+    committed figures and data products, and `lss_toolbox/verified.json`. They are brought up to date **before
+    a release, or when someone asks** (the Manual writing session, the owner), with
+    `python tests/tools/dump_tooltips.py > docs/manual/controls.md`, `python tests/tools/gui_map.py`,
+    `python -m lss_toolbox --render` and `--stale` / `--audit`. Then `pytest -m release` checks them. A new
+    control may go without its inventory entry until then. Don't regenerate a file just because a merge of
+    `main` touched it.
+12. *(Paused, `docs/rules_paused.md`.)* The best method becomes the default, after a study, tests and a
+    demonstrator.
+13. *(Paused, `docs/rules_paused.md`.)* Show the whole chain of data processing, explained simply.
+14. **Run the suites once** (owner, 2026-11-27). **CI's run is the check of record**
+    (`.github/workflows/tests.yml`: the quick suite on every pull request into `main` and every push to
+    `main`, with newer pushes cancelling older runs).
+    - **Locally, run only the tests for what you changed** (`pytest tests/test_<area>.py`). Don't run the
+      whole quick suite yourself before a push; CI does.
+    - **Merge only when CI is green on the head you merge.** A reviewer reads CI's result and doesn't rerun.
+      If CI fails, fix it and push; the new push gets its own run.
+    - **On the owner's Windows PC,** the quick suite has environment failures (display scaling, fonts), so a
+      local run there is never the check.
+    - **Slow and sweep suites** aren't in CI. Run the slow suite for the area when real-data reduction or a
+      dialog's accepted input changed (`-m slow -k <area>`), and the sweep when the window changed, both in
+      the session that made the change, once. Both run before a release. Report them as
+      `slow: N passed on <sha>` in the pull request or the task's issue.
+15. **Tasks are GitHub issues** (owner, 2026-11-27). One issue per task, labelled `task`.
+    - **Claim:** add `claimed` and your lane label (`lane:main-man`, `lane:gui`, `lane:tools`,
+      `lane:questor`, `lane:local-data`, `lane:manual`), and comment "claimed by <session>". All sessions
+      share one GitHub account, so assignees can't tell them apart. Don't take an issue that is already
+      `claimed`.
+    - **Report on the task's own issue**, briefly, not on #55. **Close** it with the commit or pull request
+      that finished it.
+    - `parked` = backlog, not worked on until unparked. `waiting-on-owner` = blocked on the owner (questor
+      asks).
+    - New work you find: open an issue for it rather than adding to `docs/TODO.md` (frozen) or a hand-off.
+      Hand-off files hold only how a session works, not its task list.
 
 ## Things that will bite you
 

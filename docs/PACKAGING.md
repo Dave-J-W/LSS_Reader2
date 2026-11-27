@@ -47,16 +47,33 @@ On your own machine (same platform as the build you want):
   self-test** (window with 9 tabs, `_ref.txt` and `_rrf.txt` identical); downloads `LSS_Reader-Windows`
   129 MB and `LSS_Reader-sample-data` (304 files). macOS: GitHub had no macOS runner free for 15 min
   ("not acquired by Runner"); re-run, it **built and passed its self-test too** (`LSS_Reader-macOS`
-  292 MB). **The clean-PC test should use this run's Windows download.**
+  292 MB). The clean-PC test should use the next run's download (it adds #132 and #135).
+- **2026-11-27, the build for the tag** (main at cc599e4, run 45918527279, started by main man at the owner's
+  request while tools man was busy): after #132 (index numbers) and #135 (Plot options takes the Customize
+  editor). Windows and macOS built and passed the self-test: window with 9 tabs, `_ref.txt` and `_rrf.txt`
+  identical. Downloads kept to 2027-02-25.
+- **2026-11-27, released:** the owner tagged `v2.0.0` (on 01ae585, which has the same code as cc599e4; only
+  two docs differ) and published the GitHub release "Reader 2". The tag's build, run 45919642733, passed.
+  **The builds are attached to the release** (project manager, at the owner's request, 2026-11-27). These
+  are `LSS_Reader-2.0.0-Windows.zip`, `-macOS.zip`, `-sample-data.zip` and `SHA256SUMS.txt`. They don't
+  expire. They are that run's artifacts, with every file byte-identical and the Unix permissions kept
+  (the macOS binary is 755). Each is wrapped in a named top folder, so it unpacks as `LSS_Reader\`
+  (Windows) or `LSS_Reader.app` (macOS) instead of loose `_internal\` or `Contents/` folders.
 - **Near-clean test, the owner's PC** (project manager, 2026-11-26, run 45751301360's Windows build): Python
   off PATH, every `PYTHON*`, `CONDA*` and `QT_*` variable unset. The self-test passed in 9 s, and a plain
   start showed the window in 4 s and closed cleanly. Not a truly clean PC: Python and the Visual C++
   runtimes are installed there.
 
-## Clean-PC test (release blocker 4, `docs/RELEASE_PLAN.md`)
+## Clean-PC test (a check on the released 2.0; it no longer blocks anything)
 
-Done by a person on a Windows PC that has never had Python or the reader on it. A Windows Sandbox (a
-throwaway clean Windows: Settings → Optional features → Windows Sandbox) is as good.
+Not yet done by anyone. **Not in Windows Sandbox on the owner's PC** (it froze that PC, 2026-11-26).
+Use the `v2.0.0` build (run 45919642733).
+
+Done by a person on a Windows PC that has never had Python or the reader on it: a beamline PC or a
+spare laptop. **Do not use Windows Sandbox on the owner's PC** (project manager, 2026-11-26/27: enabling and
+running it there was followed by an unexpected shutdown, then a hard freeze that left half-written files as
+zeros and a startup disk the PC could not find until the owner repaired it; no test result came out;
+`docs/RELEASE_PLAN.md`, blocker 4).
 
 1. **Download** both zip files from the build run's page (Actions → build → the run → Artifacts):
    `LSS_Reader-Windows` (the program) and `LSS_Reader-sample-data` (the NX school data and the reference
@@ -85,5 +102,6 @@ throwaway clean Windows: Settings → Optional features → Windows Sandbox) is 
   notarised with an Apple Developer ID (paid account, secrets in GitHub).
 - **Size.** Most of the 464 MB is SciPy, SymPy and Qt; SymPy is used only
   in one calculation (`solve`) and could be dropped later.
-- **Distribution.** Artifacts expire after 90 days; a GitHub Release per
-  version tag would keep them.
+- **Distribution.** Artifacts expire after 90 days, so each version's builds go on its GitHub Release (done
+  for 2.0.0). The artifact zips have no top folder: wrap them as above before attaching, keeping each
+  entry's mode bits. Automating this in the workflow is open.

@@ -77,7 +77,8 @@ once the quick suite (and, for GUI changes, the sweep) pass; then merge
 - New preference keys go into `tests/test_gui_preferences.py`'s expected dict.
 - Run the sweep in a separate worktree so that editing doesn't change files under it.
 - ngui: every inventory id must be placed or retired, removed: entries included; a placed id needs a widget named ngui_<id> whose tooltip has "Was:"/"Does:", and an enabled widget must be a plot, label or tab widget. Keep the default window at 1440 × 900 (test_ngui).
-- Regenerate screenshots into a scratch folder, then copy only the ones the change makes stale.
+- Regenerate screenshots into a scratch folder, then copy only the ones the change makes stale. **Since
+  2026-11-27 (slim rule 11) do this only before a release or when asked**, not per change.
 - New controls change the sweep's random walks, which then reach old defects: fix them in their own commit with a test (e.g. fitCuts after ax.clear, 2026-11-24).
 - matplotlib 3.11: removing an artist after ax.clear() raises NotImplementedError; check artist.axes first.
 - Timer-driven GUI tests race on a loaded machine; disconnect the timer's slot and step by hand.
