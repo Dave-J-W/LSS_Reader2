@@ -270,6 +270,13 @@ Gaussian on a straight line by unweighted least squares, with the error
 √(counts in the window): too small where the background is large (the XRF
 shootout's pull SD 1.92). `fl.merge_rows` merges every (I, σ) pair of a row.
 
+From a fluorescence result, as the window's "Fit lines" (2026-11-27, #145; Export after Fit lines writes
+this line to the Script pane):
+
+    flu = exp.fluorescence([3], window=(5.6, 7.2))
+    flu.fit_lines(peaks.FitOptions(background='quadratic', n_peaks=1, x_range=(5.6, 7.2)))   # rows: the reader's fit, then XeRay's
+    flu.save('zinc', x='qz')            # zinc_flu.txt (the reader's fit) and zinc_flu_xeray.txt
+
 ## Burn tests (2026-11-21)
 
 ```python

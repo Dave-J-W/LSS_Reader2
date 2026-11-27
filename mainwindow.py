@@ -2907,6 +2907,7 @@ class MainWindow (QMainWindow):
             rng=str(self.ui.mcaRanLineEdit.text()).split(':')
             self.mcaSumScript=(sorted(int(n) for n in self.selectedScanNums),float(rng[0]),float(rng[1]),
                                len(self.selectedMcaScanNums)==self.ui.imageListWidget.count())
+            self.mcaLinesFit=None   # window sums, not Fit lines (#145)
             self.mcaMerges=[]       # Merge actions since this Sum All, for the Script pane
             self.command='Flu Sum, scans=['+listText(np.sort(self.selectedScanNums))+'], energy range=['+str(ini)+':'+str(fin)+']'
         except:
@@ -3099,8 +3100,14 @@ class MainWindow (QMainWindow):
             kw.append('channels=%r' % self.mcaChannels())
         x=['frame','qz','energy'][self.ui.mcaXAxisComboBox.currentIndex()]
         head='from lss_core import absorbers\n' if isinstance(getattr(self,'mcaAbsfacUsed',None),absorbers.Foils) else ''
+        lf=getattr(self,'mcaLinesFit',None)
+        lines=''
+        if lf:                  # after Fit lines (#145): the same fit, the reader's first and XeRay's beside
+            head+='from lss_core import peaks\n'
+            lines='flu.fit_lines(peaks.%r, poisson=%r, detector_width=%r, noise_kev=%r, strip_escapes=%r)\n' % (
+                lf['options'],lf['poisson'],lf['detector_width'],lf['noise_kev'],lf['strip_escapes'])
         merges=''.join('flu.merge(%r, x=%r)\n' % m for m in getattr(self,'mcaMerges',[]))
-        return head+'flu = exp.fluorescence(%r, %s)\n%sflu.save(%r, x=%r)' % (scans,', '.join(kw),merges,name,x)
+        return head+'flu = exp.fluorescence(%r, %s)\n%s%sflu.save(%r, x=%r)' % (scans,', '.join(kw),lines,merges,name,x)
 
     def addMcaFiles(self): #add mca files with integral intensity in the list
         f=QFileDialog.getOpenFileNames(caption='Select Multiple Files to import', directory=self.directory)[0]
@@ -10992,7 +10999,7 @@ class MainWindow (QMainWindow):
         cols=['frame','Qz','energy','I','dI']+(['I_xeray','dI_xeray'] if len(rows[0])>=7 else [])   # F110
         items=[dict(scans=scans,data=np.asarray(rows,float),columns=cols,
                     label=str(getattr(self,'command','')),fits=fits,settings=dict(command=str(getattr(self,'command',''))),
-                    recipe='' if fits else self.recipe(self.fluorescenceScript))]
+                    recipe=self.recipe(self.fluorescenceScript))]       # Fit lines too (#145)
         self.saveToWorkbook('fluorescence',items,auto=getattr(self,'autoSaving',False))
 
     def saveGIDToWorkbook(self):
@@ -11104,7 +11111,11 @@ class MainWindow (QMainWindow):
             qz=self.mcaPar[n]['Q'][2]
             energy=self.mcaPar[n].get('Energy',10.0) if isinstance(self.mcaPar[n],dict) else 10.0
             self.mcaIntData.append([frame,qz,energy,fi,fe,xi,xe])     # the reader's fit first (F110 revised)
-        self.mcaSumScript=None
+        lo,hi=o.x_range if o.x_range is not None else (float(x.min()),float(x.max()))
+        self.mcaSumScript=(sorted(int(n) for n in self.selectedScanNums),float(lo),float(hi),
+                           len(nums)==self.ui.imageListWidget.count())      # a recipe: remade live (#145)
+        self.mcaLinesFit=dict(options=o,poisson=self.mcaFitPoisson(),detector_width=bool(lopt['detector_width']),
+                              noise_kev=float(lopt['noise_kev']),strip_escapes=bool(lopt['strip_escape']))
         self.mcaMerges=[]
         self.mcaLineFits=(ref,each,nums) if each else None
         self.mcaXeRayFits=(xr,nums)

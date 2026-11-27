@@ -15,7 +15,8 @@ arguments:
 
 - ``from lss_core... import ...`` (ignored; the names are known here);
 - ``<name> = exp.<method>(...)`` with ``method`` in ``METHODS``;
-- ``<name>.merge(...)`` on a fluorescence result;
+- ``<name>.merge(...)`` on a fluorescence result, and ``<name>.fit_lines(FitOptions(...), ...)`` (the
+  window's "Fit lines", #145) before its merges;
 - on a cut (#145): ``<name>.summed_label = '...'`` and ``fits = <name>.fit(FitOptions(...))``, so a
   line cut is remade with its peak fits;
 - ``<name>.save(...)`` and ``print(...)`` (skipped: remaking writes no files).
@@ -69,6 +70,7 @@ class Call:
     fitted: bool = False  # a cut's ``fits = cut.fit(...)`` (#145)
     fit: object = None    # its FitOptions (None: the defaults)
     summed_label: str = None   # a cut's ``cut.summed_label = ...``
+    lines: dict = None    # a fluorescence result's ``.fit_lines(...)`` keywords (#145)
 
 
 def parse(recipe):
@@ -111,6 +113,11 @@ def parse(recipe):
                 continue
             if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and f.value.id == var:
                 if f.attr == 'save':
+                    continue
+                if f.attr == 'fit_lines' and call is not None and call.method == 'fluorescence':
+                    args = [_value(a) for a in st.value.args]
+                    call.lines = dict(zip(('options', 'poisson', 'detector_width', 'noise_kev', 'strip_escapes'),
+                                          args), **{k.arg: _value(k.value) for k in st.value.keywords})
                     continue
                 if f.attr == 'merge' and call is not None and call.method == 'fluorescence':
                     merges.append(dict(zip(('window', 'x', 'jitter'), [_value(a) for a in st.value.args]),
@@ -167,6 +174,8 @@ def remake(recipe, scans, exp, then=None, now=None):
         if call.summed_label is not None and getattr(res, 'summed_label', None) is not None:
             res.summed_label = call.summed_label
         res.fits = res.fit(call.fit) if call.fitted else None
+    if call.lines is not None:
+        res.fit_lines(**call.lines)
     for m in call.merges:
         res.merge(**m)
     return call, res, used, pts
@@ -185,8 +194,14 @@ def item_for(call, res, scans, label=''):
                               label='R/RF'))
         return kind, items
     if call.method == 'fluorescence':
-        return kind, [dict(scans=list(scans), data=np.asarray(res.rows, float),
-                           columns=['frame', 'Qz', 'energy', 'I', 'dI'], label=label or res.command)]
+        d = np.asarray(res.rows, float)
+        cols = ['frame', 'Qz', 'energy', 'I', 'dI'] + (['I_xeray', 'dI_xeray'] if d.ndim == 2 and d.shape[1] >= 7 else [])
+        fits = []
+        lines = getattr(res, 'lines', None)
+        if lines and lines.get('each'):                   # as the window saves Fit lines' fits
+            fits = [('sum of %d spectra' % len(lines['each']), lines['ref'])] + \
+                [('frame %d' % int(r[0]), f) for r, f in zip(res.rows, lines['each'])]
+        return kind, [dict(scans=list(scans), data=d, columns=cols, label=label or res.command, fits=fits)]
     if call.method == 'gid':
         return kind, [dict(scans=list(scans), map_xyz=(res.x, res.y, res.data, res.err),
                            label=label or '2theta, beta (deg)')]

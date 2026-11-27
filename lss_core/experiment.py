@@ -170,6 +170,31 @@ class FluorescenceResult:
 
     def save(self, name, x='qz'):
         fluo.save_flu(name, self.rows, self.command, x=x)
+        if self.rows and len(self.rows[0]) >= 7:          # after fit_lines: XeRay's beside (F110), as the window
+            fluo.save_flu_xeray(name, self.rows, self.command, x=x)
+
+    def fit_lines(self, options=None, poisson=True, detector_width=False, noise_kev=0.12, strip_escapes=True):
+        """The window's MCA "Fit lines" (F110; scriptable and remade live since #145): each spectrum's line
+        two ways (lss_core.fluorescence.fit_line_series), the rows becoming [frame, qz, energy, I, dI,
+        I_xeray, dI_xeray], the reader's fit first (the default), NaN where a fit failed. ``options``:
+        lss_core.peaks.FitOptions, its ``x_range`` the line's window. Changes ``rows`` and returns the fits
+        (``fit_line_series``' dict, also kept as ``lines``)."""
+        from . import peaks
+        o = options if options is not None else peaks.FitOptions(background='quadratic', n_peaks=1)
+        both = fluo.fit_line_series([np.asarray(s, float) for s in self.spectra], o, poisson=poisson,
+                                    detector_width=detector_width, noise_kev=noise_kev, strip_escapes=strip_escapes)
+        each, j, step, xr = both['each'], both['j'], both['step'], both['xeray']
+        nan = float('nan')
+        rows = []
+        for k, (r0, f) in enumerate(zip(self.rows, xr)):
+            r = each[k] if each else None
+            fi, fe = (r.peaks[j].area / step, r.peaks[j].area_err / step) if r is not None and j is not None \
+                else (nan, nan)
+            xi, xe = (f.area, f.area_err) if f.ok else (nan, nan)
+            rows.append([r0[0], r0[1], r0[2], fi, fe, xi, xe])
+        self.rows = rows
+        self.lines = both
+        return both
 
     def merge(self, window=None, x='qz', jitter=fluo.QZ_JITTER):
         """The window's "Merge" (lss_core.fluorescence.merge_rows): rows
