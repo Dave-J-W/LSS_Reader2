@@ -1,0 +1,9 @@
+scan,estimator,reference,change,sigma,verdict,reader
+14,template,mean,-0.02504,0.0226614,stable,-0.02504
+14,template,spline,-0.061265,0.0297633,stable,-0.02504
+14,split,mean,-0.000363791,0.0335494,stable,-0.000363791
+14,split,spline,-0.0549954,0.037577,stable,-0.000363791
+15,template,mean,-0.0147362,0.0146733,stable,-0.0147362
+15,template,spline,-0.022962,0.013072,stable,-0.0147362
+15,split,mean,-0.133282,0.0242539,changing,-0.133282
+15,split,spline,-0.135967,0.0245492,changing,-0.133282

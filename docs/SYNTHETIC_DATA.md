@@ -54,7 +54,7 @@ checks; `seed` may be a `numpy.random.Generator` for Monte Carlo loops
 | `xrr_images` | SPEC file + Pilatus TIFFs from those scans | box sums reproduce the reduced rows exactly | `test_synthetic_xrr_images.py` |
 | `gid_levels` | Legacy GID frames (in memory) with 1–3+ Qz levels and known map T(2θ, β) | the legacy patch's geometry, area and polarisation corrections put in so the patch can divide them out | `test_synthetic_gid_levels.py` (P36, P37 strict xfails) |
 | `burn_pairs` (2026-11-25, F76) | Burns of one sample at several fluxes with rate ∝ flux^β (β = 1 dose, 0 time; a mixture; none; rises), strip-to-strip scatter of the rate, Gaussian noise; as `reciprocity.Burn`s | y = exp(−λ₁ φ^β t), λ₁ from the fall at the lowest flux; the law of change is an assumption (first-order kinetics) | `test_reciprocity.py` |
-| `burn_profiles` | GID burn profiles over time with a stated change | fade, broaden at constant area, shift, fade under a shoulder, rising floor, none; Poisson on counts | `test_synthetic_burn_profiles.py` |
+| `burn_profiles` | GID burn profiles over time with a stated change | fade, broaden at constant area, shift, fade under a shoulder, rising floor, none; the shoulder's shape (Gaussian, Lorentzian, lopsided, two-component, none) and its own change, and a fade on top of any change (P44, 2026-11-27); Poisson on counts | `test_synthetic_burn_profiles.py` |
 | `xfntr` | XFNTR yield curves, MCA spectra and files | \|T\|², penetration depth 1/Im Q_s, surface + bulk ions, escape absorption, footprint seen; Si-detector resolution FWHM(E); Kα/Kβ, elastic, background | `test_synthetic_xfntr.py` |
 | `mca` (2026-11-23, F90; **paused 2026-11-24, awaiting real data**) | MCA spectra of fluorescence lines with the beam's scatter under them, every part kept apart per channel, with known truth; MCA files for the reader (`write_dataset`) | Kα1/Kα2/Kβ1 at X-ray Data Booklet energies (Fe, Ni, Cu, Zn, Ga, Br), excited above their K edges; Rayleigh; Compton at E0/(1+(E0/mc²)(1−cos 2θ)) with a hydrogenic Doppler profile (valence) and an O 1s core wing cut off at E0 − 0.532 keV (impulse approximation); Si-detector photopeak (Fano), exponential tail and shelf (Hypermet), Si K escape peaks at E − 1.740 keV (Reed's fraction, 0.10 % at 10 keV); background; calibration offset and gain error; Poisson | `test_synthetic_mca.py` |
 | `mca_more` (2026-11-25, XRF shootout) | `mca`'s spectra for any element and line family in `data/xrf_tables.json` (K lines Ca to Y; L lines of La, Gd, Er, Lu, Pb) and water's Compton scatter from tabulated Hartree–Fock profiles | line energies and intensities at the beam energy from xraylib (`CS_FluorLine_Kissel_Cascade`); Biggs, Mendelsohn and Mann (1975) profiles of O 1s, 2s, 2p and H 1s in the impulse approximation (`compton='biggs'`); `mca`'s detector response unchanged; tables made by `tests/tools/xrf_tables.py` | `test_mca_more.py` |
@@ -247,7 +247,14 @@ In memory only (no SPEC file); geometry is the legacy one, not pinhole
 **GID burn profiles** (`synthetic.burn_profiles.profiles`): `change` one of
 none, fade, broaden, shift, shoulder, background; `amount`, `tau`,
 `monitor` (sets the counts), `seed`. Returns profiles for
-`lss_core.burn.measure_gid` and the truth per frame. First look (one seed,
+`lss_core.burn.measure_gid` and the truth per frame. P44 (2026-11-27):
+`shoulder_shape` ('gaussian', the default; 'lorentzian', 'asymmetric',
+'two', 'none'), `shoulder_change` (the shoulder's height × (1 + x·f)) and
+`area_change` (a fade on top of `change`: an NX 15-like burn is
+`change='broaden', amount=0.2, area_change=-0.13`); the truth gains the
+shoulder's height per frame and `shoulder_profile(k)`. The defaults give
+bit-identical profiles. The estimators against all of these:
+`tests/tools/burn_shoulder_study.py` (`docs/studies/burn_shoulder/`). First look (one seed,
 `amount` 0.2 / 0.3 / 0.004 Å⁻¹, last over first frame; measured, not a
 study — that is hand-off 07 item 3):
 
@@ -262,6 +269,13 @@ study — that is hand-off 07 item 3):
 Every estimator under-reads a fading peak on a shoulder (the window holds
 part of it); the template reads a broadening at constant area as a 15 %
 gain; the moments barely see a broadening or half a shift.
+
+**Counts against NX** (measured 2026-11-27, `tests/test_burn_shoulder_study.py`): the default monitor
+1e7 gives one frame's template intensity to 0.19 %, about 20 × better than NX school frames (burn 14:
+3.8 %, burn 15: 2.0 %). The NX equivalents are monitor **1e4** (3.9 %) and **6e4** (2.1 %)
+(`burn_shoulder_study.NX_MONITORS`). Use them when a number is to stand for NX; at 1e7 a bias shows
+clean of noise, but an effect that grows as the counts fall (the reference's noise, P44 study section 6)
+does not show.
 
 **XFNTR** (`synthetic.xfntr`): `yield_curve(qz, Sample(surface, bulk,
 escape))`, `transmission`, `penetration_depth`, `fwhm_kev(E)`,
