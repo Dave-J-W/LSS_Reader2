@@ -78,8 +78,8 @@ follows the light a column sees when the column-to-footprint mapping moves with 
 - **Repeated level** (the lower level measured again after the upper, 21 scan joins in 26 pairs of the
   stray-light study): the repeat differs by a median 4.7 % (`beam`), against 3.7 % for all scan joins: a
   measurable change in time, which joins should take up and not hide.
-- **18 sets** (in 7 beamtimes) cannot be patched by any pinhole method (corrected 2026-11-26: 16 have a real β gap, 2 failed only
-  with the `physical` responses; an opt-in stopgap now patches 15 of the 16, `docs/studies/gid_unscaled_seams/`): "the middle Qz does not
+- **18 sets** (in 7 beamtimes) cannot be patched by any pinhole method (corrected 2026-11-27: 15 have a real β gap and the opt-in stopgap patches all 15,
+  `docs/studies/gid_unscaled_seams/`; 2 failed only with the `physical` responses; 1 failed on a level with no common β range, fixed): "the middle Qz does not
   overlap in β with the levels below it". The legacy patch handles them (it joins by Qz). That is a gap in
   the pinhole patch worth a look (follow-up).
 

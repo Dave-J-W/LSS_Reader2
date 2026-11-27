@@ -472,6 +472,7 @@ the label in GID > Worksheet; `name` is the `GIDParams` field.
 |---|---|---|---|
 | 2θ bin width | one column, p/D_p (0.036° on NX) | Keeps all the information; levels share one 2θ grid (`shared_edges`), so their bins coincide and need no interpolation. | Finer than the true resolution (2.2 columns): neighbouring bins are correlated. Coarser bins (per-column resolution, ~2 columns) are a pending decision. |
 | β bin width | one row at the direct beam; the joined map uses the largest row step of any level | No level skips a β bin. | An assumption (OUTPUT_DECISIONS, open). |
+| β range of a level | the range every kept 2θ bin sees; if there is none, the window that keeps the most cells (2026-11-27) | Every cell of the level's map has data; a level whose bins see different β ranges still gets a map instead of stopping the join. | The fallback drops the 2θ bins that do not see all of its window (`narrow_bins_dropped` in the level's info): on the one real set that needed it, 10 of 270. The "most cells" rule is an assumption. |
 | Frames per bin, at least (`min_frames`) | integer (2) | Drops map edges seen only by one frame's weakest columns. | Higher values shrink the 2θ range; an assumption (open). |
 | Overlapping pixels in a cell | ΣN/ΣW (counts over weights) | Unbiased at low counts (0.4 counts/pixel: 1.00 ± 0.01; invariant I21, tested). | Departs from IDL, which weights each pixel by its own error (biased at low counts: 0.31× the true mean at 0.4 counts/pixel, IDL review); **to confirm with the owner**. |
 
