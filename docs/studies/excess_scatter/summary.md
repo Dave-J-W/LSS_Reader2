@@ -43,7 +43,10 @@ lot more.**
 - **As a scale on the error:** the stated σ is about 12 % too small (s = 1.12 [1.10, 1.12]). Known truth shows
   that a curve's own shape can add 0.01–0.04 to s (below), so the true scale is about 1.08–1.12.
 - **As a share of R:** the core excess is 0.14 % of R [0.13, 0.18]. It falls tenfold as the counts rise, so it
-  behaves like an understated counting error, not like a fixed percentage.
+  behaves like an understated counting error, not like a fixed percentage. **Caveat (2026-11-26):** on known
+  truth with no excess at all, a DPPC monolayer reads 0.12 % [0.08, 0.16] (`known_truth.csv`): the curve's
+  own shape leaking into the windows, as large as this result. The firm finding is the scale on σ; any excess
+  on top of it is at most a few tenths of a percent of R.
 - **Outliers:** 1.8 % [1.3, 2.5] of the 6-point windows are wild, typically 46 % off. One bad point spoils up
   to six windows, so at most about 0.3 % of points are wild. **Part of this is the curve's own shape, not wild
   points:** a deep minimum sampled by one point looks exactly like a wild point inside a window (R3), and such
@@ -165,6 +168,38 @@ run share one Qz grid, but the excess is clear. Leaving out the windows with a p
 of it is a curve sharper than six points can follow. Private check: `sample_data/private/xr/scripts/scatter_shape.py`
 (numbers above; nothing written). A first version of this check, which measured sharpness from the window's
 own points, was circular (a wild point is "sharp" too) and is not used.
+
+## Fresnel division, the beam's convergence and angle jitter (owner's questions, 2026-11-26)
+
+Private check: `sample_data/private/xr/scripts/scatter_fresnel_angle.py` (derived numbers only, in
+`xr/out/fresnel_angle.json`; not regenerable here).
+
+**With or without dividing by R_F: the same.** The same windows on ln y and on ln(y/R_F) give, to three
+decimals, the same core excess, outlier share and s, in every Qz range: private 0.14 %, 1.8 %, 1.116 both
+ways; released 0.21 %, 3.2 %, 1.065. Above Qz 0.04 ln R_F is smooth enough that the window's weights cancel
+it (it moves d by a median 0.000–0.002 σ_d, at most 0.02 σ_d in 95 % of windows), and the error bars do not
+change. The same holds for Qoff, which only shifts where R_F is evaluated: any Qoff is a smaller change than
+leaving R_F out. Normalisation matters only at the critical edge, which the study leaves out (Qz < 0.04).
+
+**The beam's convergence as resolution** (37 µrad rms, σ_Q 3.8 × 10⁻⁴ Å⁻¹ at 10 keV;
+`docs/studies/qz_resolution/`): a fixed spread of angles smooths the curve and adds no scatter. Its one way
+in would be the depth of minima, so how much shape leaks into a window. Known truth with no excess at the
+runs' range of resolution, FWHM 6.5, 8.9 and 12.6 × 10⁻⁴: spread of d / σ_d 1.04 on DPPC at all three, and
+1.25–1.29 on a 100 Å film. No change.
+
+**Angle jitter from point to point** would be real scatter, δ ln R = (d ln R / dQz) δQz (about 4 δQz / Qz on
+a falling curve). A joint fit of jitter, core excess and outliers **failed its known-truth check**: on DPPC
+it read 0.8–1.2 × 10⁻⁴ Å⁻¹ of jitter with none put in (jitter and curve shape both live near minima), and on
+water it missed 2 × 10⁻⁵ put in and traded jitter against X. So the real fits (2 × 10⁻⁵ Å⁻¹, about 2 µrad,
+private; 1.5 × 10⁻⁵ released; 0 released without the minimum) are **not measurements**. A weaker check
+without that fit: jitter makes the excess largest at low Qz, falling as 1/Qz; the private core excess is 0.19,
+0.20, 0.10 and 0.18 % from Qz 0.04 to above 0.2, and the released one rises. So jitter is not the main
+source; at about 2 µrad per point it would add up to about 0.16 % at Qz 0.05 and less above, which cannot
+be ruled out.
+
+**Qoff and the resolution at the edge** are where the angle matters: the reader's Qoff proposal reads the
+resolution as Qoff (C50: about −0.15 ΔQ). A fit of Qoff and σ_Q together, with R_F smeared and Qc from the
+subphase, is requested for after 2.0 (owner, 2026-11-26; `docs/RELEASE_PLAN.md`).
 
 ## What this does not measure
 

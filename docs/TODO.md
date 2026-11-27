@@ -249,6 +249,8 @@ build workflow and macOS signing (input 12); sample-data hosting.
       scaled by √(χ²/dof). Either scale σ when χ²/dof > 1 (as the drift fits do) or fit R_F convolved with the
       measured resolution (then χ² should approach 1 and Qoff becomes the angle offset). Until then, the GUI
       manager's Propose tooltip should say so. tools man, with a study (rule 12) before any default.
+      **Owner, 2026-11-26: fit Qoff and σ_Q together** (R_F smeared, Qc and β from the subphase), after 2.0
+      (`docs/RELEASE_PLAN.md`, "After 2.0").
 - [x] **`--stale` flagged most items wrongly (the former patching
       session's review, 2026-11-24) — fixed 2026-11-25** by tools man:
       `python -m lss_toolbox --audit --record` keeps, for each item whose

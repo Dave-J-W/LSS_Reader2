@@ -101,6 +101,15 @@ Everything else is **not** a blocker.
   factor 10.
 - Rule-12 studies: P44 burn estimator, σ × 1.12 joint fit, robust likelihood,
   GID defaults switch (`beam` response).
+- **Qoff and the Qz resolution fitted together at the edge** (owner, 2026-11-26: "Qoffset also has to be
+  fit, and this could be a useful ability to have in reader"; chosen over a fixed resolution or only a
+  scaled ±). `propose_qoff`'s edge fit uses a sharp R_F, so it reads the resolution as Qoff (C50: −0.15 ΔQ,
+  −1.3 × 10⁻⁴ at the beamline's median) and its ± is about ×9 too small on NX (χ²/dof 75). The model:
+  R_F(Qz + Qoff; Qc, β) ⊗ Gauss(σ_Q) with Qc and β from the subphase (never fitted with Qoff, C50 §4), so
+  Qoff becomes the angle offset and each scan reports its resolution. The estimator is the one row 13 used
+  (`docs/studies/qz_resolution/`: 2 % on known truth; β the largest model term, ±15 % for ×2); then
+  rule 12 (study, tests, demonstrator) before the Propose button offers it. tools man (TODO, "The Qoff
+  proposal's ±").
 - **Refine the XRF shootout (C65–C69)** (owner, 2026-11-26: "Put a to-do to continue refining that shootout of methods for a later time, since I don't believe each library/method was optimized enough."):
   tune each library and method (PyMca's configuration and background,
   PyXRF's model, Larch's series and each, XeRay's window and error, the
