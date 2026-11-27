@@ -1,6 +1,6 @@
 ---
 name: issue-watch
-description: Watch the coordination issue #55 and the pull requests of Dave-J-W/LSS_Reader2 with a background Monitor, re-arm it when it expires or after a restart, catch up on what was missed, and post on #55 in the agreed format. Use at the start of an orchestrator session, after any container or worker restart, whenever a Monitor expiry notice arrives, and before posting to another session (all sessions talk only through issue #55).
+description: "Watch the coordination issue #55 and the pull requests of Dave-J-W/LSS_Reader2 with a background Monitor, re-arm it when it expires or after a restart, catch up on what was missed, and post on #55 in the agreed format. Use at the start of an orchestrator session, after any container or worker restart, whenever a Monitor expiry notice arrives, and before posting to another session (all sessions talk only through issue #55)."
 ---
 
 # Watch issue #55 and the pull requests

@@ -1,6 +1,6 @@
 ---
 name: review-local-data-pr
-description: Review and merge a pull request from the owner's local data agent (branches claude/local-data-*) in Dave-J-W/LSS_Reader2 - a privacy review of every added file, figure and commit, the quick suite on the PR merged with main in a separate worktree, then a merge pinned to the reviewed head. Use when a claude/local-data-* PR appears or the local data agent posts on issue #55 that one is ready; also for any PR that publishes results derived from the owner's private data.
+description: "Review and merge a pull request from the owner's local data agent (branches claude/local-data-*) in Dave-J-W/LSS_Reader2 - a privacy review of every added file, figure and commit, the quick suite on the PR merged with main in a separate worktree, then a merge pinned to the reviewed head. Use when a claude/local-data-* PR appears or the local data agent posts on issue #55 that one is ready; also for any PR that publishes results derived from the owner's private data."
 ---
 
 # Review and merge a local data agent's pull request
