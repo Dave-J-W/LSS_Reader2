@@ -20,6 +20,15 @@ def plot_font_points(text_px, dpi, floor=MPL_DEFAULT_PT):
 	return max(float(floor), float(text_px) * 72.0 / float(dpi))
 
 
+def tab_text_px():
+	"""The tab labels' text height in logical pixels: QApplication.font('QTabBar')
+	at the screen's logical DPI. A function of its own so that a test can give
+	the window any tab size on any platform (#152: faking Qt's static font()
+	did not reach the window on Windows)."""
+	from PyQt5.QtGui import QFontInfo
+	return QFontInfo(QtWidgets.QApplication.font('QTabBar')).pixelSize()
+
+
 def match_plot_fonts():
 	"""Owner, 2026-11-26: "axes scales and labeling ... at least as large as
 	the tab label font size". Sets matplotlib's base font size (rcParams
@@ -31,12 +40,10 @@ def match_plot_fonts():
 	150 % scaling matplotlib's 10 pt was smaller than the tabs. Returns the
 	size set (pt)."""
 	import matplotlib
-	from PyQt5.QtGui import QFontInfo
 	app = QtWidgets.QApplication.instance()
 	if app is None:
 		return matplotlib.rcParams['font.size']
-	px = QFontInfo(QtWidgets.QApplication.font('QTabBar')).pixelSize()
-	pt = round(plot_font_points(px, matplotlib.rcParams['figure.dpi']), 1)
+	pt = round(plot_font_points(tab_text_px(), matplotlib.rcParams['figure.dpi']), 1)
 	matplotlib.rcParams['font.size'] = pt
 	return pt
 

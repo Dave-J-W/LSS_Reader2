@@ -23,29 +23,57 @@ def test_plot_font_points(px, dpi, pt):
     assert mplwidget.plot_font_points(px, dpi) == pytest.approx(pt)
 
 
+def _logical_dpi(canvas):
+    """The figure's dpi in logical pixels: matplotlib's Qt canvas multiplies it by
+    the screen's device pixel ratio (Qt's own high-DPI scaling), the tabs' text
+    height is in logical pixels."""
+    return canvas.figure.dpi / (getattr(canvas, 'device_pixel_ratio', 1) or 1)
+
+
 @pytest.mark.gui
 def test_the_window_sizes_plot_text_from_the_tabs(qapp, recorder, monkeypatch):
-    from PyQt5.QtGui import QFont, QFontInfo
-    from PyQt5.QtWidgets import QApplication
+    """18 px tabs (Segoe UI 9 pt at 150 % scaling) at matplotlib's 100 dpi.
+    The tab size is given through mplwidget.tab_text_px, our own function:
+    monkeypatching Qt's static QApplication.font did not reach the window on
+    Windows (#152; plotFontPt came out 10.0), so the test depended on the
+    platform rather than on the reader."""
     from mainwindow import MainWindow
     import sweep
     monkeypatch.setitem(matplotlib.rcParams, 'figure.dpi', 100.0)     # matplotlib's own default
     monkeypatch.setitem(matplotlib.rcParams, 'font.size', 10.0)       # restored after the test
-    big = QFont(QApplication.font())
-    big.setPixelSize(18)                                               # the tabs at 150 % scaling
-    real = QApplication.font
-    monkeypatch.setattr(QApplication, 'font', staticmethod(lambda *a: big if a == ('QTabBar',) else real(*a)))
+    monkeypatch.setattr(mplwidget, 'tab_text_px', lambda: 18)         # the tabs at 150 % scaling
     w = MainWindow()
     try:
         assert w.plotFontPt == pytest.approx(12.96, abs=0.05)
-        ax = w.ui.specPlotMplWidget.canvas.ax
+        canvas = w.ui.specPlotMplWidget.canvas
+        ax = canvas.ax
         ax.plot([0, 1], [0, 1])
         ax.set_xlabel('sh')
-        w.ui.specPlotMplWidget.canvas.draw()
-        dpi = w.ui.specPlotMplWidget.canvas.figure.dpi
+        canvas.draw()
+        dpi = _logical_dpi(canvas)
         tick = ax.xaxis.get_major_ticks()[0].label1.get_size()
         assert tick * dpi / 72 >= 18 - 0.1 and ax.xaxis.label.get_size() * dpi / 72 >= 18 - 0.1
-        assert QFontInfo(big).pixelSize() == 18
+    finally:
+        sweep.dispose(w, qapp, recorder)
+    assert recorder.exceptions == []
+
+
+@pytest.mark.gui
+def test_the_tab_size_is_read_from_the_tab_font_on_this_platform(qapp, recorder, monkeypatch):
+    """Whatever this platform's tab font and scaling: tab_text_px reads the tab
+    font, and the window's plot text is at least that tall (#152)."""
+    from PyQt5.QtGui import QFontInfo
+    from PyQt5.QtWidgets import QApplication
+    from mainwindow import MainWindow
+    import sweep
+    monkeypatch.setitem(matplotlib.rcParams, 'font.size', 10.0)
+    px = mplwidget.tab_text_px()
+    assert px == QFontInfo(QApplication.font('QTabBar')).pixelSize() and px > 0
+    w = MainWindow()
+    try:
+        dpi = matplotlib.rcParams['figure.dpi']
+        assert w.plotFontPt == pytest.approx(round(mplwidget.plot_font_points(px, dpi), 1))
+        assert w.plotFontPt * dpi / 72 >= px - 0.5
     finally:
         sweep.dispose(w, qapp, recorder)
     assert recorder.exceptions == []
