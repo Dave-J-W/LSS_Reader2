@@ -679,6 +679,297 @@ def real_figures(out, csv_path=REAL_CSV, ref_csv=None, public=('G01', 'G02')):
     return counts
 
 
+CODES = {'dose': 'D', 'time': 'T', 'neither': 'N', 'no change': '0', 'opposite signs': '±', 'cannot tell': '?'}
+SERIES_CSV = 'docs/studies/xr_burns/gid_split_series.csv'
+RATES_CSV = 'docs/studies/xr_burns/gid_split_series_rates.csv'
+
+
+def _real_by(csv_path):
+    import csv as csvmod
+    by, failed = {}, set()
+    for r in csvmod.DictReader(open(csv_path, encoding='utf-8')):
+        if r.get('failed'):
+            failed.add(r['burn'])
+            continue
+        by.setdefault(r['burn'], {}).setdefault(r['estimator'], {})[r['quantity']] = r
+    return by, failed
+
+
+def _fl(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return math.nan
+
+
+def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RATES_CSV, public=('G01', 'G02')):
+    """The figures that explain section 8's numbers (R3-R7), from the
+    published summaries alone: R3 which burns were read and what the
+    well-measured cut removes; R4 how question 1's disagreement is measured;
+    R5 question 2's three signs of a changing shoulder; R6 question 3's
+    χ²/dof and shoulder shapes; R7 question 5's dose-or-time fit, one series
+    and all of them. Returns the counts each figure states."""
+    import csv as csvmod
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    f = _fl
+    by, failed = _real_by(csv_path)
+    priv = sorted(b for b in by if b not in public)
+    good = [b for b in well_measured(by) if b not in public]
+    nx = [b for b in public if b in by]
+    I = lambda b, e, c='change': f(by[b][e]['intensity'][c])          # noqa: E731
+    counts = {}
+
+    # R3: the selection
+    fig, ax = plt.subplots(1, 4, figsize=(15, 3.9))
+    stages = [('GID burns found', len(by) + len(failed)), ('public NX 14, 15 (a check)', len(nx)),
+              ('not read (no frames, too few, no peak)', len(failed)), ('private, read', len(priv)),
+              ('well measured', len(good))]
+    ax[0].barh(range(len(stages))[::-1], [s[1] for s in stages], color=['0.6', 'k', 'tab:grey', 'tab:blue', 'tab:green'])
+    for i, (lab, n) in enumerate(stages):
+        ax[0].text(n + 3, len(stages) - 1 - i, '%d  %s' % (n, lab), va='center', fontsize=8)
+    ax[0].set_xlim(0, 1.9 * stages[0][1])
+    ax[0].set_yticks([])
+    ax[0].set_xlabel('burns')
+    ax[0].set_title('a. what was read', fontsize=9)
+    cuts = [('frame_rel_error', 'one frame\'s intensity error', 0.10, True, lambda b: I(b, 'template', 'frame_rel_error')),
+            ('change', '|template intensity change| over the burn', 0.5, True, lambda b: abs(I(b, 'template'))),
+            ('chi2', 'template frames\' χ²/dof', 5.0, True, lambda b: I(b, 'template', 'frame_chi2_dof'))]
+    for k, (name, lab, thr, log, val) in enumerate(cuts):
+        a = ax[k + 1]
+        v = np.array([val(b) for b in priv])
+        g = np.isfinite(v) & (v > 0)
+        top = 100 * thr
+        bins = np.logspace(np.log10(max(v[g].min(), 1e-4)), np.log10(top), 30)
+        a.hist(np.clip(v[g], None, top * 0.999), bins, color='tab:blue', alpha=0.8)
+        a.axvline(thr, color='tab:red', lw=1.5)
+        a.set_xscale('log')
+        n_out = int(np.sum(g & (v > thr)))
+        counts['cut_' + name] = n_out
+        a.set_title('%s. %s' % ('bcd'[k], lab), fontsize=9)
+        a.text(0.98, 0.95, 'kept ≤ %g\nremoved: %d\noff scale: %d (last bin)'
+               % (thr, n_out, int(np.sum(g & (v >= top)))), transform=a.transAxes, ha='right', va='top', fontsize=7.5,
+               color='tab:red', bbox=dict(fc='w', ec='none', alpha=0.8))
+        a.set_ylabel('private burns read')
+        a.set_xlabel(lab)
+    nan_out = sum(1 for b in priv if not all(np.isfinite(I(b, e)) for e in REAL_ESTIMATORS))
+    counts['cut_nan'] = nan_out
+    fig.suptitle('R3. From the burns found to the well-measured ones (%d private burns read; a burn can fail several '
+                 'cuts; %d more have no finite change under some estimator)' % (len(priv), nan_out), fontsize=9)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out, 'R3_selection.png'), dpi=120)
+    plt.close(fig)
+
+    # R4: question 1
+    z, dv, wch, diff, shc = [], [], [], [], []
+    tab = np.zeros((2, 2), int)
+    for b in good:
+        t, s = by[b]['template']['intensity'], by[b]['split']['intensity']
+        zz = abs(f(t['change']) - f(s['change'])) / max(f(t['sigma']), 1.25 * f(s['sigma']))
+        z.append(zz)
+        tab[int(t['verdict'] == 'changing'), int(s['verdict'] == 'changing')] += 1
+        wch.append(100 * f(by[b]['template']['fwhm']['change']))
+        diff.append(100 * (f(s['change']) - f(t['change'])))
+        shc.append('shoulder' in by[b]['split'] and by[b]['split']['shoulder']['verdict'] == 'changing')
+    z = np.array(z)
+    fig, ax = plt.subplots(1, 3, figsize=(15, 4.2))
+    zero = z < 1e-9
+    bins = np.logspace(-3, np.log10(max(z.max(), 10)), 30)
+    ax[0].hist(z[~zero], bins, color='tab:blue')
+    ax[0].axvline(2, color='tab:red')
+    ax[0].set_xscale('log')
+    ax[0].set_xlabel('z = |split change − template change| / max(σ_template, 1.25 σ_split)')
+    ax[0].set_ylabel('burns')
+    ax[0].set_title('a. how far apart the two reads are, in σ', fontsize=9)
+    ax[0].text(0.02, 0.95, 'z > 2 (red line): %d of %d burns\nmedian z %.2f\nnot drawn: %d with z = 0 (no shoulder found:\n'
+               'the split is then the template)' % (int(np.sum(z > 2)), len(z), np.median(z), int(zero.sum())),
+               transform=ax[0].transAxes, va='top', fontsize=8)
+    ax[1].imshow(tab, cmap='Blues')
+    for i in range(2):
+        for j in range(2):
+            ax[1].text(j, i, str(tab[i, j]), ha='center', va='center', fontsize=14,
+                       color='w' if tab[i, j] > tab.max() / 2 else 'k')
+    ax[1].set_xticks([0, 1], ['split: stable', 'split: changing'])
+    ax[1].set_yticks([0, 1], ['template:\nstable', 'template:\nchanging'])
+    ax[1].set_title('b. the intensity verdicts (off-diagonal: they differ, %d)' % (tab[0, 1] + tab[1, 0]), fontsize=9)
+    wch, diff, shc = np.array(wch), np.array(diff), np.array(shc)
+    ax[2].plot(wch[~shc], diff[~shc], 'o', ms=4, color='tab:blue', label='shoulder steady (split)')
+    ax[2].plot(wch[shc], diff[shc], 'o', ms=4, color='tab:orange', label='shoulder changing (split)')
+    for b in nx:
+        ax[2].plot(100 * f(by[b]['template']['fwhm']['change']), 100 * (I(b, 'split') - I(b, 'template')), 's', color='k', ms=7)
+        ax[2].annotate('NX %s' % ('14' if b == public[0] else '15'), (100 * f(by[b]['template']['fwhm']['change']),
+                       100 * (I(b, 'split') - I(b, 'template'))), xytext=(5, 4), textcoords='offset points', fontsize=8)
+    ax[2].axhline(0, color='0.5', lw=0.8)
+    ax[2].axvline(0, color='0.5', lw=0.8)
+    ax[2].set_xlim(-30, 30)
+    ax[2].set_ylim(-30, 30)
+    ax[2].set_xlabel('template: FWHM change over the burn (%)')
+    ax[2].set_ylabel('split − template: intensity change (pp)')
+    ax[2].set_title('c. P44\'s mechanism needs a width change; real widths barely move', fontsize=9)
+    ax[2].legend(fontsize=7, loc='lower left')
+    out_of = int(np.sum((np.abs(wch) > 30) | (np.abs(diff) > 30)))
+    ax[2].text(0.98, 0.02, '%d burns beyond ±30 not drawn' % out_of, transform=ax[2].transAxes, ha='right', fontsize=7)
+    ax[2].text(0.98, 0.98, 'P44 predicts: a broadening peak (right)\nputs the split below the template (lower right)',
+               transform=ax[2].transAxes, ha='right', va='top', fontsize=7)
+    fig.suptitle('R4. Question 1: when do the template and the split disagree? (%d well-measured private burns)' % len(good),
+                 fontsize=9)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out, 'R4_q1_disagreement.png'), dpi=120)
+    plt.close(fig)
+    counts.update(q1_z_over_2=int(np.sum(z > 2)), q1_verdicts_differ=int(tab[0, 1] + tab[1, 0]))
+
+    # R5: question 2
+    fig, ax = plt.subplots(figsize=(7.6, 5.6))
+    n3 = 0
+    nsh = 0
+    for b in good + nx:
+        d = by[b]['split']
+        if 'shoulder' not in d or d['intensity'].get('shoulder_found') != 'True':
+            continue
+        r, i, x = d['shoulder'], d['intensity'], by[b]['split_fixed']['intensity']
+        sc = 100 * f(r['change'])
+        bdir = 100 * ((f(i['b_max']) - 1) if f(r['change']) > 0 else (1 - f(i['b_min'])))
+        dis = abs(f(i['change']) - f(x['change'])) > math.hypot(f(i['sigma']), f(x['sigma']))
+        ch = r['verdict'] == 'changing'
+        if b in nx:
+            ax.plot(sc, bdir, 's', color='k', ms=8)
+            ax.annotate('NX %s' % ('14' if b == public[0] else '15'), (sc, bdir), xytext=(5, 3), textcoords='offset points',
+                        fontsize=8)
+            continue
+        nsh += 1
+        three = ch and dis and bdir > 5
+        n3 += three
+        ax.plot(sc, bdir, 'o', ms=5, color='tab:orange' if dis else 'tab:blue', mfc=None if ch else 'none')
+    ax.axhline(5, color='tab:red', lw=0.8, ls='--')
+    ax.set_xlim(-60, 60)
+    ax.set_ylim(-5, 120)
+    ax.set_xlabel('split: the shoulder\'s own change over the burn (%)')
+    ax.set_ylabel('B (shoulder amplitude per frame): how far it moves\nfrom 1 in the shoulder\'s direction (%)')
+    ax.set_title('R5. Question 2: is a real shoulder changing? three signs', fontsize=10)
+    ax.text(0.02, 0.98, 'sign 1, filled: the split calls the shoulder "changing" (open: stable)\n'
+            'sign 2, above the red line: B moves the same way by more than 5 %%\n'
+            'sign 3, orange: split and split_fixed disagree on the intensity by more than their σ\n'
+            'all three: %d of %d well-measured burns with a shoulder; NX 14, 15 black' % (n3, nsh),
+            transform=ax.transAxes, va='top', fontsize=7.5)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out, 'R5_q2_shoulder.png'), dpi=120)
+    plt.close(fig)
+    counts.update(q2_three=n3, q2_with_shoulder=nsh)
+
+    # R6: question 3
+    fig, ax = plt.subplots(1, 2, figsize=(12, 4.6))
+    ct, cs, ar, fr = [], [], [], []
+    for b in good:
+        i = by[b]['split']['intensity']
+        if i.get('shoulder_found') != 'True':
+            continue
+        ct.append(I(b, 'template', 'frame_chi2_dof'))
+        cs.append(I(b, 'split', 'frame_chi2_dof'))
+        ar.append(f(i['shoulder_to_peak_area']))
+        fr.append(f(i['shoulder_to_peak_fwhm']))
+    ct, cs = np.array(ct), np.array(cs)
+    ax[0].loglog(ct, cs, 'o', ms=4, color='tab:blue')
+    for b in nx:
+        ax[0].loglog(I(b, 'template', 'frame_chi2_dof'), I(b, 'split', 'frame_chi2_dof'), 's', color='k', ms=7)
+        ax[0].annotate('NX %s' % ('14' if b == public[0] else '15'), (I(b, 'template', 'frame_chi2_dof'),
+                       I(b, 'split', 'frame_chi2_dof')), xytext=(5, -10), textcoords='offset points', fontsize=8)
+    lo, hi = 0.5, 6
+    xx = np.array([lo, hi])
+    ax[0].plot(xx, xx, color='0.4', lw=0.8)
+    ax[0].plot(xx, 0.9 * xx, color='0.4', lw=0.6, ls=':')
+    ax[0].plot(xx, 1.1 * xx, color='0.4', lw=0.6, ls=':')
+    ax[0].set_xlim(lo, hi)
+    ax[0].set_ylim(lo, hi)
+    ax[0].set_xlabel('template: frames\' mean χ²/dof')
+    ax[0].set_ylabel('split: frames\' mean χ²/dof')
+    ax[0].set_title('a. χ²/dof ≈ 1: the model describes the frames to counting noise', fontsize=9)
+    ax[0].text(0.02, 0.98, 'solid: equal; dotted: ±10 %%\nsplit lower: %d of %d; >10 %% lower: %d, >10 %% higher: %d'
+               % (int(np.sum(cs < ct)), len(ct), int(np.sum(cs < 0.9 * ct)), int(np.sum(cs > 1.1 * ct))),
+               transform=ax[0].transAxes, va='top', fontsize=8)
+    ax[1].loglog(fr, ar, 'o', ms=4, color='tab:blue', label='private burns')
+    for b in nx:
+        i = by[b]['split']['intensity']
+        ax[1].loglog(f(i['shoulder_to_peak_fwhm']), f(i['shoulder_to_peak_area']), 's', color='k', ms=7)
+        ax[1].annotate('NX %s' % ('14' if b == public[0] else '15'), (f(i['shoulder_to_peak_fwhm']),
+                       f(i['shoulder_to_peak_area'])), xytext=(5, 3), textcoords='offset points', fontsize=8)
+    from matplotlib.ticker import FormatStrFormatter, NullFormatter
+    for a in ax:
+        for axis in (a.xaxis, a.yaxis):
+            axis.set_major_formatter(FormatStrFormatter('%g'))
+            axis.set_minor_formatter(NullFormatter())
+    ax[1].set_xlabel('shoulder FWHM ÷ peak FWHM')
+    ax[1].set_ylabel('shoulder area ÷ peak area')
+    ax[1].set_title('b. what the shoulders look like (split\'s Gaussian)', fontsize=9)
+    fig.suptitle('R6. Question 3: is a Gaussian shoulder good enough? (%d well-measured burns with a shoulder)' % len(ct),
+                 fontsize=9)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out, 'R6_q3_fit_quality.png'), dpi=120)
+    plt.close(fig)
+    counts.update(q3_split_lower=int(np.sum(cs < ct)), q3_with_shoulder=len(ct))
+
+    # R7: question 5
+    from lss_core import reciprocity
+    series = list(csvmod.DictReader(open(series_csv, encoding='utf-8')))
+    rates = list(csvmod.DictReader(open(rates_csv, encoding='utf-8')))
+    fig, ax = plt.subplots(1, 2, figsize=(13, 4.8))
+    ex = next((s for s in series if s['template_rho0_verdict'] == 'dose' and s['split_rho0_verdict'] == 'dose'), series[0])
+    rr = [r for r in rates if r['series'] == ex['series']]
+    for est, col, off in (('template', 'tab:blue', 0.97), ('split', 'tab:orange', 1.03)):
+        x = np.array([f(r['flux_rel']) for r in rr])
+        y = np.array([f(r[est + '_rate_per_h']) for r in rr])
+        s = np.array([f(r[est + '_sigma_per_h']) for r in rr])
+        ax[0].errorbar(x * off, 100 * y, 100 * s, fmt='o', color=col, capsize=3, label='%s: one burn each' % est)
+        v = reciprocity.dose_or_time_rates(list(x), list(y), list(s))
+        gm = float(np.exp(np.mean(np.log(x))))
+        xx = np.logspace(np.log10(x.min() / 1.3), np.log10(x.max() * 1.3), 50)
+        for beta, ls in ((v.beta, '-'), (1.0, '--'), (0.0, ':')):
+            k = v.k if beta == v.beta else float(np.sum(y * (x / gm) ** beta / s ** 2) / np.sum((x / gm) ** (2 * beta) / s ** 2))
+            ax[0].plot(xx, 100 * k * (xx / gm) ** beta, ls, color=col, lw=1,
+                       label='%s: β = %.2f (fitted)' % (est, beta) if ls == '-' else None)
+    ax[0].plot([], [], 'k--', lw=1, label='β = 1: follows the dose')
+    ax[0].plot([], [], 'k:', lw=1, label='β = 0: follows the clock')
+    ax[0].set_xscale('log')
+    from matplotlib.ticker import FormatStrFormatter, NullFormatter
+    ax[0].xaxis.set_major_formatter(FormatStrFormatter('%g'))
+    ax[0].xaxis.set_minor_formatter(FormatStrFormatter('%g'))
+    ax[0].axhline(0, color='0.5', lw=0.8)
+    ax[0].set_xlabel('flux, relative to the series\' lowest')
+    ax[0].set_ylabel('intensity drift rate (% per hour)')
+    ax[0].set_title('a. one series (%s, %s burns): rate = k · flux^β' % (ex['series'], ex['n_burns']), fontsize=9)
+    ax[0].legend(fontsize=7)
+    for j, (est, col, off) in enumerate((('template', 'tab:blue', -0.15), ('split', 'tab:orange', 0.15))):
+        labelled = False
+        for i, s in enumerate(series):
+            b, lo_, hi_ = f(s[est + '_rho0_beta']), f(s[est + '_rho0_beta_lo']), f(s[est + '_rho0_beta_hi'])
+            if np.isfinite(b):
+                ax[1].errorbar(i + off, b, [[b - lo_], [hi_ - b]], fmt='o', color=col, capsize=2,
+                               label=None if labelled else est)
+                labelled = True
+            ax[1].text(i, -1.5 - 0.45 * j, CODES.get(s[est + '_rho0_verdict'], '?'), ha='center', va='center',
+                       fontsize=8, color=col, fontweight='bold')
+    ax[1].text(-0.6, -1.5, 'template', ha='right', va='center', fontsize=7, color='tab:blue')
+    ax[1].text(-0.6, -1.95, 'split', ha='right', va='center', fontsize=7, color='tab:orange')
+    ax[1].text(0.01, 0.02, 'verdict: D dose, T time, N neither, 0 no change, ± opposite signs, ? cannot tell',
+               transform=ax[1].transAxes, fontsize=7)
+    ax[1].axhline(1, color='k', ls='--', lw=0.8)
+    ax[1].axhline(0, color='k', ls=':', lw=0.8)
+    ax[1].set_xticks(range(len(series)), [s['series'] for s in series], rotation=90, fontsize=7)
+    ax[1].set_xlim(-1.6, len(series) - 0.4)
+    ax[1].set_ylim(-2.5, 4.3)
+    ax[1].set_ylabel('β with its 68 % interval (ρ = 0)')
+    ax[1].set_title('b. every series: β under the template and the split, and the verdicts', fontsize=9)
+    ax[1].legend(fontsize=7, loc='upper right')
+    nchg = sum(s['template_rho0_verdict'] != s['split_rho0_verdict'] for s in series)
+    fig.suptitle('R7. Question 5: dose or time? %d series; the split changes the verdict of %d (strip scatter ρ = 0). '
+                 'β is fitted on a grid from −1 to 4: an interval at the edge is open' % (len(series), nchg), fontsize=9)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out, 'R7_q5_dose_or_time.png'), dpi=120)
+    plt.close(fig)
+    counts.update(q5_series=len(series), q5_changed=nchg)
+    return counts
+
+
 def _reference_replicates(job):
     case, monitor, seeds = job
     T = FRAMES * CTIME
@@ -885,6 +1176,7 @@ def main(argv=None):
         if 'G' in only:
             print(real_figures(a.out, a.real_csv, os.path.join(os.path.dirname(REAL_CSV), '..', 'burn_shoulder',
                                                                 'reference_noise.csv')))
+            print(explain_figures(a.out, a.real_csv))
         if 'R' in only:
             rows, nx = reference_check(a.out, a.replicates or 100, a.workers, spec=a.spec)
             with open(os.path.join(a.out, 'numbers_reference.json'), 'w', encoding='utf-8') as f:

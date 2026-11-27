@@ -366,6 +366,73 @@ offer.** The NX numbers of section 5 stand as read.
 Hand-off 10's six questions (`docs/handoff_out/10-gid-burn-shoulder.md`, issue #155), answered on the
 private GID burns of the owner's PC, 2026-11-27.
 
+### 8a. How one burn becomes a row of numbers
+
+Private burns can't be shown frame by frame (owner, 2026-11-25), so the chain is shown on the public NX
+burn 15. Every private burn went through exactly these steps, by the same code (`exp.burn(scan,
+estimator=…)`). The walkthrough (`walkthrough.md`) explains each step in full.
+
+![BW2](walkthrough/BW2_the_split.png)
+
+**Step 1, the mean frame and its split (BW2).**
+- The burn's frames are averaged into one mean line cut.
+- The split fits a broad Gaussian (the **shoulder**) to the parts of it more than 1.5 FWHM from the peak.
+  What is left near the centre is the **peak**.
+- For each burn the CSV keeps:
+  - `shoulder_found`: whether such a Gaussian was found;
+  - its size against the peak's (`shoulder_to_peak_area`, `shoulder_to_peak_fwhm`).
+
+![BW3](walkthrough/BW3_one_frame_fitted.png)
+
+**Step 2, each frame fitted (BW3).**
+- **The template** stretches the whole mean frame, shoulder and all, to fit each frame.
+- **The split** stretches only the peak and adds the shoulder unstretched, with its own amplitude B
+  (`split_fixed` keeps B = 1).
+- Each fit gives the frame's intensity, position and FWHM with their errors.
+- How well the model describes the frame is its **χ²/dof**: the squared misfit in units of the counting
+  error, per degree of freedom. About 1 means the model is as good as the counts allow; much above 1, it
+  misses something real.
+- The CSV keeps the mean over the frames (`frame_chi2_dof`), and B's mean, minimum and maximum.
+
+![BW4](walkthrough/BW4_per_frame.png)
+
+**Step 3, one number per frame, and a line through them (BW4).**
+- A straight line is fitted through each quantity against time.
+- The **change over the burn** (`change`) is the line's slope × the burn's duration, divided by the line's
+  value at the start. So −0.13 means the peak lost 13 % over the burn.
+- Its σ comes from the line's parameter errors, scaled by the frames' own scatter.
+
+![BW5](walkthrough/BW5_verdict.png)
+
+**Step 4, the verdict (BW5).**
+- A constant and a line are compared by AICc: a fit's χ² plus a penalty for each parameter, corrected for
+  few points.
+- If the line beats the constant by more than 2, the verdict is **"changing"**; otherwise **"stable"**.
+  That is the reader's rule, unchanged here.
+- NX 15 shows the point of the whole study. The template's intensity is "stable" (−1.5 % ± 1.5 %), while
+  the split's is "changing" (−13.3 % ± 2.4 %). The width grows 18 % and the template's stretched shoulder
+  absorbs the fade.
+
+So each burn gives, per estimator and quantity, one change ± σ, one verdict, and its fit quality. That is
+one row of `gid_split.csv`. Everything below is counted from that file.
+
+### 8b. Which burns were used
+
+![R3](R3_selection.png)
+
+**R3, how to read it.**
+- Panel a is the funnel.
+- Panels b–d are the three cut quantities for the 155 private burns read, on log axes. Each has its
+  threshold in red and the number it removes.
+- Most burns sit far inside each threshold. The removed ones are a separate tail, not the edge of the
+  bulk:
+  - (b) one frame's error above 10 %: weak peaks;
+  - (c) intensity changes beyond ±50 %: the peak appears or vanishes during the "burn", so a relative change
+    means nothing;
+  - (d) template χ²/dof above 5: the frames aren't described by a stretched mean frame at all.
+- 10 more burns have no finite change under some estimator.
+- A burn can fail several cuts. 37 fail at least one.
+
 **The data.**
 - The tool's finder (`find_gid_burns`: an `ascan ih` that does not move, Det_Th above 2°) found 236 GID
   burns in 12 SPEC files.
@@ -413,6 +480,31 @@ template's, one point per burn.
 - NX 15 (a fade read as stable while the peak broadens by 18 %) is the clearest case of P44 among these
   burns. No private burn shows it as strongly.
 
+![R4](R4_q1_disagreement.png)
+
+**R4, how the disagreement is measured.**
+- **Panel a: the statistic.** For each burn, z is the gap between the two changes in units of the larger
+  error:
+
+      z = |change_split − change_template| / max(σ_template, 1.25 × σ_split)
+
+  - The split's σ is widened by 25 %, because the synthetic study found its intervals that much too short
+    (section 3).
+  - z ≈ 1 is what two reads of the same truth give by chance; z > 2 happens by chance in only a few % of
+    burns.
+  - Here 32 of 118 burns pass 2, far more than chance. So a third of the time the two estimators disagree
+    for a reason.
+  - The 24 burns at z = 0 have no shoulder, so the split is the template.
+- **Panel b: the verdicts, cross-tabulated.** The diagonal (37 + 66) is where the verdicts agree; the 15
+  off it are where they differ.
+- **Panel c: the test of P44's mechanism.**
+  - If the disagreement came from width changes, the points would fall along a line from upper left to lower
+    right, and NX 15 lies on it.
+  - They don't. The private burns cluster at a width change of 0 ± 5 %, and the spread in y is there anyway.
+  - Orange marks a burn whose shoulder the split reads as changing. Orange points make up 26 of the 39
+    burns that disagree, but only 21 of the 79 that agree (the counts in question 1). That difference, not
+    any one point, is the evidence that the shoulder drives the disagreement.
+
 **2. Do real shoulders change under the beam?** Yes, in a sizeable minority of burns.
 - The split found a shoulder on 94 of the 118 burns (30 of the 155 had none, and the split is then the
   template).
@@ -427,6 +519,20 @@ template's, one point per burn.
   (section 2). That cannot explain these: their widths are steady.
 - **So `split_fixed` (B = 1) is not safe on real burns:** about one shoulder in four changes.
 
+![R5](R5_q2_shoulder.png)
+
+**R5, the three signs.** Each point is a burn with a shoulder.
+- **Across:** the shoulder's own change over the burn, as the split reads it. It is the same kind of
+  change as the intensity's: slope × duration over the start.
+- **Up:** how far B moves from 1 in that direction over the burn. If the shoulder fades, how far B drops
+  below 1; if it grows, how far B rises above 1.
+- **Filled:** the split's own verdict on the shoulder is "changing".
+- **Orange:** split and split_fixed read the intensity differently by more than their combined σ. That is
+  what a changing shoulder does: forcing B = 1 puts its change into the peak.
+- A real shoulder change shows all three: filled, orange, and above the red line. Any one alone can be an
+  accident. 22 of the 94 burns show all three.
+- NX 14 and 15 sit near the bottom, as section 5 found: steady shoulders.
+
 **3. Is a Gaussian a good enough shoulder?** At these counts the frames can't tell.
 - On the 94 burns with a shoulder, the frames' χ²/dof has a median of 1.11 under the template and 1.12
   under the split. Both describe the frames to counting noise.
@@ -440,11 +546,33 @@ template's, one point per burn.
   - shoulder ÷ peak area: median 2.6 (interquartile range 1.3–8.2);
   - shoulder ÷ peak FWHM: median 5.3 (4.0–8.7); NX 14 and 15 have 8.5 and 6.9.
 
+![R6](R6_q3_fit_quality.png)
+
+**R6, how to read it.**
+- **Panel a:** each burn's mean frame χ²/dof, split against template.
+  - On the solid line the two describe the frames equally well; the dotted lines are ±10 %.
+  - The private burns lie on the line and near 1: both models are as good as the counts allow. So the
+    counts can't say whether the extra shoulder is a Gaussian, a Lorentzian, or something else.
+  - NX 15, at higher counts, is far below the line. There the template misses something and the split
+    finds it.
+- **Panel b:** what the fitted shoulders look like, as size against the peak.
+  - They are 2–40 times wider than the peak (median 5). Their area ranges from a tenth of the peak's to
+    more than a hundred times it.
+  - At the top right, the "peak" is a small bump on a big broad hump. NX 14 and 15 are typical.
+
 ![R2](R2_reference_shift.png)
 
 **4. Does the reference's noise matter at real counts?** For burns whose width is steady, no.
 - Figure R2 shows the intensity change re-read against the smoothed mean frame, minus the reader's, against
   the mean frame's noise. The synthetic expectation is drawn over it.
+- **How to read R2.**
+  - Every frame is fitted against the mean frame, so the mean frame's own noise is in every fit (section 6).
+  - Smoothing the mean frame removes that noise. If the noise biased the reader's numbers, the shift
+    (smoothed − reader) would grow with the noise, along the orange synthetic line.
+  - If it doesn't matter, the points scatter around 0 at every noise level, like the green line (a burn
+    whose width doesn't change).
+  - The x axis is the mean frame's noise as a share of its peak: the median σ of the mean frame in the
+    fitted window, divided by the peak's height.
 - **Burns with a steady FWHM** (a change below 5 %):
   - below 1 % noise, the shift has a median within ±0.06 pp under both estimators, with a scatter (MAD) of
     at most 0.6 pp;
@@ -478,6 +606,37 @@ template's, one point per burn.
 - On NX, the drift-per-dose ratio moves from 0.79 to 0.82 (section 5).
 - **So the split changes F76's answer in a minority of series.** Few series are decided either way, and these
   are 2–6 burns each.
+
+![R7](R7_q5_dose_or_time.png)
+
+**R7, how the dose-or-time test works.**
+- **Panel a: one series (GS08), three burns of one peak at fluxes ×1, ×2 and ×4.5.**
+  - Each point is one burn's drift rate: the slope of ln(intensity) against time, in % per hour, with its σ
+    (`gid_split_series_rates.csv`).
+  - The test fits rate = k · flux^β:
+    - β = 1 (dashed) means the damage follows the dose, flux × time: twice the flux, twice the rate;
+    - β = 0 (dotted, flat) means the rate is the same at every flux: the sample changes by itself, on the
+      clock.
+  - Here both estimators give β near 1: 1.18 under the template and 1.04 under the split. The dashed line
+    runs through the points and the flat line misses them, so the verdict is **dose** under both.
+  - The split's rates are lower (a faster loss) on all three burns. The cause isn't shown here.
+- **Panel b: β for every series with its 68 % interval, and the verdict letters under each.**
+  - An interval reaching the grid's edge (−1 or 4) is open: the burns can't bound β there.
+  - The verdict comes from comparing the fit at β = 1 and at β = 0 with the best β (`lss_core.reciprocity`):
+    - **D** (dose): β = 1 fits and β = 0 doesn't;
+    - **T** (time): the reverse;
+    - **N** (neither): both fail;
+    - **?** (cannot tell): both fit;
+    - **0** (no change): no rate differs from zero;
+    - **±** (opposite signs): the rates change sign between burns, which neither model allows.
+  - The split changes the letter on 5 series:
+    - GS02: T → 0;
+    - GS05: N → ±;
+    - GS09: N → 0;
+    - GS11: N → D;
+    - GS13: D → ?.
+
+    None of them turns a decided dose into a decided time or back.
 
 **6. Is there a burn with an independent before-and-after measurement?**
 - **47 burns (28 of them well measured) have a GID series of the same Det_Th in the same file that ended
@@ -516,7 +675,7 @@ The private figures and generators are under `sample_data/private/burn_shoulder/
     python tests/tools/burn_shoulder_study.py --out docs/studies/burn_shoulder --only R      # S6, about 10 min
     python tests/tools/burn_shoulder_study.py --out DIR --replicates 30                      # a quick look, about 9 min
     python tests/tools/burn_shoulder_study.py --out DIR --only S5                            # NX only, a minute
-    python tests/tools/burn_shoulder_study.py --out docs/studies/burn_shoulder --only G      # R1, R2 from xr_burns/gid_split.csv, seconds
+    python tests/tools/burn_shoulder_study.py --out docs/studies/burn_shoulder --only G      # R1-R7 from the xr_burns gid_split CSVs, seconds
 
 Options: `--parts A` or `B`, `--cases`, `--shapes`, `--core` (the split's core half-width in FWHM, 1.5:
 the shoulder is fitted beyond it), `--workers`. The Tools menu has the variations (`docs/TOOLS.md`).
