@@ -1,0 +1,52 @@
+{
+ "NX15": {
+  "frames": 21,
+  "duration_s": 215.0,
+  "shoulder_fwhm_over_peak": 6.900532198457323,
+  "chi2_dof_last_frame_stretched": 4.849873668351232,
+  "chi2_dof_last_frame_separated": 2.1300277131224536,
+  "stretched_intensity": {
+   "change": -0.014736247193772362,
+   "sigma": 0.01467329878712153,
+   "verdict": "stable",
+   "delta_aicc": -1.4599781532032559
+  },
+  "separated_intensity": {
+   "change": -0.1332820377245112,
+   "sigma": 0.024253927733060544,
+   "verdict": "changing",
+   "delta_aicc": 24.066202263396303
+  },
+  "separated_held_intensity": {
+   "change": -0.15227810176705187,
+   "sigma": 0.01343322906678379,
+   "verdict": "changing",
+   "delta_aicc": 107.88569430953913
+  },
+  "stretched_fwhm": {
+   "change": 0.17805577749015822,
+   "sigma": 0.01518279021862174,
+   "verdict": "changing",
+   "delta_aicc": 155.75491414436573
+  },
+  "separated_fwhm": {
+   "change": 0.21365019450228265,
+   "sigma": 0.03968379171386131,
+   "verdict": "changing",
+   "delta_aicc": 32.065147847449005
+  },
+  "separated_held_fwhm": {
+   "change": 0.16923689690606303,
+   "sigma": 0.026073867948887178,
+   "verdict": "changing",
+   "delta_aicc": 46.26694637392225
+  },
+  "b_min": 0.9606203321359224,
+  "b_max": 1.154259766918402,
+  "shoulder": {
+   "change": -0.028487706267819286,
+   "sigma": 0.027878684529025352,
+   "verdict": "stable"
+  }
+ }
+}

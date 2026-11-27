@@ -90,7 +90,7 @@ def test_gid_peak_is_found_and_followed(estimator):
         assert res['centre'].stable
     # 'fit': one Gaussian across the sharp peak and the shoulder moves as the peak fades
     # (a misfit artefact, as on the real frames: chi2/dof 10-40)
-    if estimator == 'template':
+    if estimator == 'stretched':
         assert i[-1] / i[0] == pytest.approx(0.8, abs=0.08)
         assert res['fwhm'].stable                          # the shape's width is unchanged
         assert all(d['chi2_dof'] < 2 for d in details)

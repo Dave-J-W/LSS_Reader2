@@ -1,4 +1,4 @@
-series,burns,n_burns,well_measured,flux_span,template_rho0_verdict,template_rho0_beta,template_rho0_beta_lo,template_rho0_beta_hi,template_rho0.5_verdict,template_rho0.5_beta,template_rho0.5_beta_lo,template_rho0.5_beta_hi,split_rho0_verdict,split_rho0_beta,split_rho0_beta_lo,split_rho0_beta_hi,split_rho0.5_verdict,split_rho0.5_beta,split_rho0.5_beta_lo,split_rho0.5_beta_hi
+series,burns,n_burns,well_measured,flux_span,stretched_rho0_verdict,stretched_rho0_beta,stretched_rho0_beta_lo,stretched_rho0_beta_hi,stretched_rho0.5_verdict,stretched_rho0.5_beta,stretched_rho0.5_beta_lo,stretched_rho0.5_beta_hi,separated_rho0_verdict,separated_rho0_beta,separated_rho0_beta_lo,separated_rho0_beta_hi,separated_rho0.5_verdict,separated_rho0.5_beta,separated_rho0.5_beta_lo,separated_rho0.5_beta_hi
 GS01,G06 G07,2,0,4.82,no change,nan,nan,nan,no change,nan,nan,nan,no change,nan,nan,nan,no change,nan,nan,nan
 GS02,G10 G11,2,0,4.71,time,-0.08,-0.47,0.24,time,-0.08,-0.62,0.41,no change,-0.41,-1.0,4.0,no change,-0.41,-1.0,4.0
 GS03,G12 G13 G14 G16,4,3,4.67,opposite signs,4.0,2.85,4.0,opposite signs,-0.5,-0.51,-0.02,opposite signs,-1.0,-1.0,-0.94,opposite signs,0.52,0.3,0.54

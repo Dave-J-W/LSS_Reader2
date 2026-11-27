@@ -180,7 +180,7 @@ def test_the_burn_mode_recovers_a_shift():
     res = bm.run_all(rep, models=('constant', 'linear'))
     true = bm.true_change(rep, 'centre')
     assert true == pytest.approx(0.004, rel=1e-9)
-    for n in ('template', 'fit'):
+    for n in ('stretched', 'fit'):
         assert bm.measured_change(res[n], 'centre', rep.duration()) == pytest.approx(true, rel=0.10)
         assert not res[n].trends['centre'].stable
     assert 0.3 < bm.measured_change(res['moments'], 'centre', rep.duration()) / true < 0.6
@@ -194,9 +194,9 @@ def test_the_burn_mode_reads_a_broadening():
     res = bm.run_all(rep, models=('constant', 'linear'))
     T = rep.duration()
     assert bm.true_change(rep, 'fwhm') == pytest.approx(0.3, rel=1e-9)
-    for n in ('template', 'fit'):
+    for n in ('stretched', 'fit'):
         assert 0.2 < bm.measured_change(res[n], 'fwhm', T) < 0.42
-    assert bm.measured_change(res['template'], 'intensity', T) > 0.08
+    assert bm.measured_change(res['stretched'], 'intensity', T) > 0.08
     assert bm.measured_change(res['moments'], 'fwhm', T) < 0.05
 
 
@@ -204,13 +204,13 @@ def test_the_rebuilt_frame_curves_are_the_fitted_ones():
     """The template and Gaussian curves drawn for a frame give back the χ²
     that measure_gid reported for that frame."""
     rep = bm.replicate(bm.Config(change='broaden'), 2)
-    for n in ('template', 'fit'):
+    for n in ('stretched', 'fit'):
         r = bm.run_estimator(rep, n, models=('constant',))
         for k in (0, 10, 20):
             x, y = bm.frame_curve(rep, r, k, n=4000)
             p = rep.profiles[k]
             sel = (p[:, 0] >= r.window[0]) & (p[:, 0] <= r.window[1])
-            if n == 'template':
+            if n == 'stretched':
                 xx = p[sel, 0]
                 A, d, w, b0, b1 = r.details[k]['params']
                 from scipy.interpolate import CubicSpline
@@ -285,7 +285,7 @@ def test_the_window_space_bar_checkboxes_and_modes(qapp, recorder):
         w.burn_items['all_models'].click()
         w.change.setCurrentIndex(w.change.findData('shift'))
         assert w.rep.config.change == 'shift' and w.amount.value() == pytest.approx(0.004)
-        assert 'template' in w.notes.toPlainText()
+        assert 'stretched' in w.notes.toPlainText()
     finally:
         w.close()
     assert recorder.exceptions == []

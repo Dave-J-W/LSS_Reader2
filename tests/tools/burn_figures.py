@@ -78,7 +78,7 @@ def main():
                                  change_model=c.change.model if c.change else '',
                                  change_best_s=round(c.change.best, 2) if c.change else '',
                                  change_confident_s=round(c.change.confident, 2) if c.change else ''))
-        for est, suffix in (('template', ''), ('moments', '_moments')):
+        for est, suffix in (('stretched', ''), ('moments', '_moments')):
             draw(per[est], os.path.join(out, 'burn_scan_%d%s.png' % (scan, suffix)),
                  '%s scan %d (%s estimator, errors from the scatter, exposure time)'
                  % (os.path.basename(a.spec), scan, est))

@@ -1,4 +1,4 @@
-series,burn,flux_rel,template_rate_per_h,template_sigma_per_h,split_rate_per_h,split_sigma_per_h
+series,burn,flux_rel,stretched_rate_per_h,stretched_sigma_per_h,separated_rate_per_h,separated_sigma_per_h
 GS01,G06,4.8179,nan,nan,nan,nan
 GS01,G07,1.0,13.111515990419619,2.029292414239336,nan,nan
 GS02,G10,4.7099,-1.3333541402567175,0.5768438338864804,0.2911736718694202,0.6409171588456721

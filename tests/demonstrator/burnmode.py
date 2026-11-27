@@ -41,7 +41,7 @@ ESTIMATORS = burn.ESTIMATORS
 DEFAULT_AMOUNTS = {'none': 0.0, 'fade': 0.2, 'broaden': 0.3, 'shift': 0.004, 'shoulder': 0.2, 'background': 0.5}
 CHANGE_LABELS = {'none': 'nothing changes', 'fade': 'peak fades', 'broaden': 'broadens at constant area (P44)',
                  'shift': 'peak shifts', 'shoulder': 'fades under a 3× shoulder', 'background': 'floor rises'}
-COLOURS = {'template': '#1f77b4', 'moments': '#d62728', 'fit': '#2ca02c'}
+COLOURS = {'stretched': '#1f77b4', 'moments': '#d62728', 'fit': '#2ca02c'}
 QUANTITIES = ('intensity', 'centre', 'fwhm')
 
 
@@ -190,7 +190,7 @@ def frame_curve(rep, res, k, n=300):
         return None
     lo, hi = res.window
     xx = np.linspace(lo, hi, n)
-    if res.name == 'template':
+    if res.name == 'stretched':
         from scipy.interpolate import CubicSpline
         xw, shape = res.shape
         spline = CubicSpline(xw, shape, bc_type='natural', extrapolate=False)

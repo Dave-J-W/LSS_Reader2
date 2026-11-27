@@ -1295,7 +1295,7 @@
    "fwhm": 0.3
   },
   "estimators": {
-   "template": {
+   "stretched": {
     "change": {
      "intensity": 0.14646,
      "centre": 0.00065,
@@ -1355,7 +1355,7 @@
   "replicates": 30,
   "changes": {
    "none": {
-    "template": {
+    "stretched": {
      "intensity": {
       "true": 0.0,
       "mean": 0.00015,
@@ -1417,7 +1417,7 @@
     }
    },
    "fade": {
-    "template": {
+    "stretched": {
      "intensity": {
       "true": -0.2,
       "mean": -0.13581,
@@ -1479,7 +1479,7 @@
     }
    },
    "broaden": {
-    "template": {
+    "stretched": {
      "intensity": {
       "true": 0.0,
       "mean": 0.14449,
@@ -1541,7 +1541,7 @@
     }
    },
    "shift": {
-    "template": {
+    "stretched": {
      "intensity": {
       "true": 0.0,
       "mean": 0.00232,
@@ -1603,7 +1603,7 @@
     }
    },
    "shoulder": {
-    "template": {
+    "stretched": {
      "intensity": {
       "true": -0.2,
       "mean": -0.09282,
@@ -1665,7 +1665,7 @@
     }
    },
    "background": {
-    "template": {
+    "stretched": {
      "intensity": {
       "true": 0.0,
       "mean": 0.00012,

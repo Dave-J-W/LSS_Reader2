@@ -64,7 +64,7 @@ The window (PyQt5 with an embedded matplotlib canvas and its toolbar):
   prior, join close-up).
 - **Burn controls**: change (none, fade, broaden at constant area, shift,
   fade under a 3× shoulder, rising floor), amount, monitor (sets the
-  counts), frame shown; a checkbox per estimator (template, moments, fit)
+  counts), frame shown; a checkbox per estimator (stretched, moments, fit)
   and per item (noisy line cut, denoised line cut, its true parts, frame 0,
   estimator curves, fit window, residuals, trends, all trend models, true
   trend).
@@ -102,7 +102,7 @@ joint fit, so `refl.join_curve` fits the coefficients alone at δ̂ (same
 window, order, baseline and likelihood). Tested: with δ free the same code
 gives `joint_factor`'s δ to 1e-10, and the curve at the window's points
 gives back the fit's χ² to 1e-6 (both likelihoods, R/R_F and raw). The
-burn template curve is rebuilt from the per-frame parameters
+burn stretched curve is rebuilt from the per-frame parameters
 `measure_gid` returns and gives back its χ²/dof to 1e-9 (tested).
 
 ## 2. The synthetic truth
@@ -144,7 +144,7 @@ window without the guard (`fixed_o2_e0`, `fixed_o2_e4`, `fixed_o4_e2`,
 `fixed_o4_e4`, the last being the old default window without its guard);
 the global fit. The burn profiles are normalised by a fixed monitor (no
 monitor noise), so the monitor model does not enter the burn mode. Design and earlier measurements: `docs/reports/ref_patch_joint_fit.md`.
-Burn estimators: `lss_core.burn` (`template`, `moments`, `fit`), trends by
+Burn estimators: `lss_core.burn` (`stretched`, `moments`, `fit`), trends by
 `lss_core.trends.compare` (AICc, Hurvich & Tsai, Biometrika 76, 297 (1989),
 https://doi.org/10.1093/biomet/76.2.297; Burnham & Anderson 2002,
 https://doi.org/10.1007/b97636), errors from the scatter as the reader does
@@ -310,9 +310,9 @@ Measured (this replicate; change over the 210 s test from the linear
 model): FWHM template +24.0 %, fit +38.8 %, moments +1.4 % (true +30 %);
 intensity template +14.6 %, fit +14.0 %, moments −0.01 % (true 0); position
 template **+0.00065 Å⁻¹**, fit +0.00024, moments 0.0000 (true 0). The
-template reads the broadening as a gain (P44) and also as a shift of 4 % of
+stretched reads the broadening as a gain (P44) and also as a shift of 4 % of
 the FWHM, close to the 5 %-of-FWHM position criterion of the burn test:
-stretching a template that holds part of the shoulder (centred 0.004 Å⁻¹
+stretching a stretched that holds part of the shoulder (centred 0.004 Å⁻¹
 above the peak) moves its centroid. Per-frame χ²/dof (median): template
 28, Gaussian fit 2229 (one Gaussian does not describe peak + shoulder at
 these counts). The template and the fit call all three quantities
@@ -337,7 +337,7 @@ each kind of change, against the truth. Measured (mean; SD ≤ 0.3 % or 3e-5
 | none: called stable (intensity / position / FWHM) | 97 / 90 / 97 % | 97 / 87 / 93 % | 93 / 90 / 93 % |
 
 Every estimator under-reads a fading peak because the window holds part of
-the shoulder (the template comes closest, with 68 % of the true change); the Gaussian
+the shoulder (the stretched reading comes closest, with 68 % of the true change); the Gaussian
 fit turns a fade under a strong shoulder into a gain and a fade into a
 broadening; the moments miss a broadening and half a shift (this extends
 the one-seed first look in `docs/SYNTHETIC_DATA.md` §4 and P44 to 30
@@ -374,7 +374,7 @@ measured on synthetic truth. The core modules were not changed.
 4. **The legacy error** understates the scatter by 1.4–1.5 on NX grids and
    2.1–3.9 on staggered grids with the owner's monitor model (pull SD,
    figure 2; 4.9 at the staggered film's join 3, figure 3).
-5. **Burn template reads a broadening as a shift** (+0.00066 Å⁻¹ = 4 % of
+5. **Burn stretched reads a broadening as a shift** (+0.00066 Å⁻¹ = 4 % of
    the FWHM, 30 replicates), besides the known area gain (P44). The
    Gaussian fit reads a fade as +13 % FWHM and a fade under a shoulder as a
    gain. `bm.run_all(bm.replicate(bm.Config(change='broaden'), 1))`.
@@ -391,7 +391,7 @@ legacy chain (its error is too small); the rebuilt join curve is the joint
 fit (δ to 1e-10, χ² to 1e-6); legacy and spline ratio agree on the first
 join; realistic joins, the P1 aside and the global fit as coded; the
 coinciding method fails on staggered grids with a message; χ²/N with the
-full covariance near 1; the burn mode recovers a 0.004 Å⁻¹ shift (template
+full covariance near 1; the burn mode recovers a 0.004 Å⁻¹ shift (stretched
 and fit within 10 %) and reads a broadening; the rebuilt frame curves give
 back the reported χ²; the views are written headless; every plotted item
 can be drawn; the window (offscreen): space bar, space on a focused

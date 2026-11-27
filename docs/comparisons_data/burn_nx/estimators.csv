@@ -1,16 +1,16 @@
 scan,kind,estimator,quantity,best,stable,delta_constant_linear,c_hat,criterion,median_frame_chi2,residual_relative,scatter_factor,change_model,change_best_s,change_confident_s
-14,gid,template,intensity,constant,True,-1.27,1.0,AICc,1.018,0.031924,0.863,linear,431.31,178.39
-14,gid,template,centre,exponential,False,209.82,1.0,AICc,1.018,0.000141,0.947,exponential,76.45,68.83
-14,gid,template,fwhm,constant,True,-2.45,1.0,AICc,1.018,0.02156,0.688,linear,11167.43,358.0
+14,gid,stretched,intensity,constant,True,-1.27,1.0,AICc,1.018,0.031924,0.863,linear,431.31,178.39
+14,gid,stretched,centre,exponential,False,209.82,1.0,AICc,1.018,0.000141,0.947,exponential,76.45,68.83
+14,gid,stretched,fwhm,constant,True,-2.45,1.0,AICc,1.018,0.02156,0.688,linear,11167.43,358.0
 14,gid,moments,intensity,constant,True,-2.44,1.0,AICc,,0.028994,1.798,linear,3814.19,233.6
 14,gid,moments,centre,exponential,False,8.89,1.0,AICc,,0.000383,1.094,exponential,338.05,228.8
 14,gid,moments,fwhm,linear,True,0.12,1.0,AICc,,0.026746,0.979,linear,316.71,155.21
 14,gid,fit,intensity,exponential,False,4.06,1.0,AICc,9.643,0.046213,1.419,exponential,116.32,71.39
 14,gid,fit,centre,exponential,False,74.5,1.0,AICc,9.643,0.000286,1.332,exponential,126.42,106.85
 14,gid,fit,fwhm,linear,True,1.42,1.0,AICc,9.643,0.072438,2.769,linear,110.52,63.56
-15,gid,template,intensity,constant,True,-1.46,1.0,AICc,4.38,0.017568,0.934,linear,729.49,283.98
-15,gid,template,centre,double exponential,False,20800.55,1.0,AICc,4.38,5e-05,0.593,double exponential,20.92,9.97
-15,gid,template,fwhm,exponential,False,155.75,1.0,AICc,4.38,0.016381,0.987,exponential,63.14,56.02
+15,gid,stretched,intensity,constant,True,-1.46,1.0,AICc,4.38,0.017568,0.934,linear,729.49,283.98
+15,gid,stretched,centre,double exponential,False,20800.55,1.0,AICc,4.38,5e-05,0.593,double exponential,20.92,9.97
+15,gid,stretched,fwhm,exponential,False,155.75,1.0,AICc,4.38,0.016381,0.987,exponential,63.14,56.02
 15,gid,moments,intensity,exponential,True,1.39,1.0,AICc,,0.016157,1.932,exponential,452.92,249.2
 15,gid,moments,centre,double exponential,False,92.63,1.0,AICc,,0.000212,1.248,double exponential,114.35,51.88
 15,gid,moments,fwhm,double exponential,False,80.81,1.0,AICc,,0.012855,1.042,double exponential,170.63,13.85
