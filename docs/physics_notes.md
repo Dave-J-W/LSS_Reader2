@@ -1,5 +1,10 @@
 # Physics notes and Q&A log
 
+> **Since 2026-11-27 the Q&A log below is frozen** (owner; AGENTS.md rule 5). New entries go **one per file**
+> in `docs/notes/` (`YYYY-MM-DD-<topic>.md`; `docs/notes/README.md` has the template), so two sessions
+> recording at once can't clash on merge. The **Invariants** table below stays live: add a row when a
+> conserved quantity gets a test. Existing references into this file still work.
+
 Running record of questions asked during the work on this fork and the answers
 given, with emphasis on invariant quantities. Newest entries at the bottom.
 Each entry says whether the answer was verified (by test, by running, or by
@@ -58,7 +63,7 @@ exists.
 | I45 | The residuals drawn under a fit add up to the χ² it reports: Σ r² = χ², r = (y − μ)/√var with the fit's own variance (the Ref Patch joint fit: Poisson var = σ²μ/max(\|y\|, σ)); the older Fit Peak dialog: r = (y − fit)/σ, Σ r²/(n − parameters) = its χ²/dof | tested: `test_ref_join_residuals.py` (to 1e-9), `test_gui_peakfit_residuals.py` (Plot and MCA tabs) |
 | I9 | Footprint fraction is the same at +2θ and −2θ for symmetric slits | **violated** by 2 % at 20°; pinned as expected failure in `test_gid_area.py` |
 
-## Q&A
+## Q&A (frozen 2026-11-27; new entries in `docs/notes/`)
 
 ### 2026-11-14 — What is in LSS_Reader and what state is it in?
 
