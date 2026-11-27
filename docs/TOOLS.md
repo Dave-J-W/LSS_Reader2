@@ -59,6 +59,8 @@ container on 2026-11-23 with the defaults shown.
 | [Beam damage or the sample by itself? The dose-or-time test (F76)](#reciprocity-study) | figures | Synthetic burns at several fluxes with a known law (the dose, time, a dose-rate effect, a mixture, no change) and strip-to-strip scatter: how often lss_core.reciprocity calls each truth right, beta's pulls, and NX school burns 14 and 15: figures R1-R5. | public (NX school or committed tables) | 85 s | `docs/studies/reciprocity` |
 | [Walkthrough: from the frames to the dose-or-time verdict (F76, ELI5)](#reciprocity-walkthrough) | figures | The whole chain on public data, for the owner's standing order (2026-11-25): an NX school frame and its line cut, one position per frame, the straight-line drift with its residuals, the rates against flux with chi2(beta), C54's strip scatter by REML, one real series under three error models, and the calibration of the intervals: figures W1-W6. | public (NX school or committed tables) | 60 s | `docs/studies/reciprocity/walkthrough` |
 | [Dose or time on C54's 19 real burn series, and the strip scatter (F76)](#reciprocity-real) | figures | lss_core.reciprocity on the public, anonymised rates of the real reflectivity burns (C54): the strip scatter from the six repeated absorbers (additive and relative, REML), each series' verdict and beta under counting errors, tau and rho beside C54's, and how many strips per flux would decide at that rho: figure R6. | public (NX school or committed tables) | 90 s | `docs/studies/reciprocity/c54` |
+| [A peak on a shoulder: which burn estimator reads the truth? (P44)](#burn-shoulder-study) | figures | Synthetic GID burns with a known truth (fade, broadening, shift, a growing or fading shoulder, an NX 15-like broadening fade) on four shoulder shapes and at fewer counts: the bias, pulls, coverage and verdicts of the template, the legacy moments and the two split estimators (the shoulder held unstretched), and NX school burns 14 and 15 under every estimator: figures S1-S5. | public (NX school or committed tables) | 5400 s | `docs/studies/burn_shoulder` |
+| [Walkthrough: a GID burn from the frames to the verdict, split or not (P44, ELI5)](#burn-shoulder-walkthrough) | figures | The whole chain on NX school burn 15, for the owner's standing order (2026-11-25): a raw frame and its line cut, the mean frame split into a shoulder and a peak, one frame fitted by the template and by the split with residuals, the per-frame intensity and width with their lines, the verdicts by AICc, and the calibration of the intervals on 60 synthetic burns: figures BW1-BW6. | public (NX school or committed tables) | 60 s | `docs/studies/burn_shoulder/walkthrough` |
 | [Burns against dose: damage or a changing sample?](#burn-dose-figure) | figures | NX burn scans 14 and 15 (absorbers 12 and 8) against clock time and against dose (Σ Monc × foil transmission): a beam-driven change coincides against dose, a sample changing by itself against time. | NX school by default; any SPEC file | 3 s | `docs/figures/burn_dose` |
 
 ### Reflectivity patching
@@ -73,6 +75,8 @@ container on 2026-11-23 with the defaults shown.
 | [Why five gauntlet joins are biased (extension 4)](#ref-patch-biased-joins) | data | The default joint fit's five biased designed joins and the covariance study's first join, redrawn with the gauntlet's seeds and fitted with the guard off, other orders and windows, noise-free. | synthetic (public) | 15 s | `docs/comparisons_data/ref_patch_biased_joins` |
 | [Do joins need coincident Qz? (synthetic)](#coincidence-synth) | figures | Two synthetic scans of known curves meeting at a join with no overlap, k coincident points, a staggered overlap or a coarser second grid, fitted by every patching method and scored against the truth: bias, pull SD, error size, share answered. | synthetic (public) | 10 s | `docs/studies/coincident_points` |
 | [Qoff and Qc of R/R_F: the proposer's study (F79)](#qoff-study) | figures | Synthetic reflectivity with a known angle offset: the edge fit and the roughness of ln R/R_F (robust and least squares) and the joint Qc + Qoff fit against the truth over offsets, samples, counts, outliers, resolution, a wrong Qc and the reader's patch; the NX school scans at the GUI's preset and at the proposals: figures Q1-Q5. | public (NX school or committed tables) |  | `docs/studies/qoff` |
+| [Qoff and the Qz resolution fitted together at the edge (hand-off 09)](#qoff-resolution-study) | figures | Synthetic edges with a known angle offset and resolution, read by the joint fit (R_F with absorption smeared by a Gaussian, Qoff and σ_Q free), the same with water's roughness, and today's sharp proposer: the offset, the resolution, the sampling, a wrong β, counts, an outlier, fringes, DPPC; the NX school edge and its χ² at a fixed σ_Q: figures K1-K4. | public (NX school or committed tables) | 1800 s | `docs/studies/qoff_resolution` |
+| [Qoff and the Qz resolution on real edge scans (survey)](#qoff-resolution-survey) | data | Every reflectivity scan of a SPEC file that crosses the edge, reduced alone and fitted for Qoff and σ_Q together (with today's sharp proposal beside it): one CSV row per scan, for the local data agent's private edges (hand-off 09). | NX school by default; any SPEC file | 1 s | — |
 | [The join's error budget with the measured excess: scale, X, robust weights, clipping (C64)](#excess-remedy-study) | figures | C61's six synthetic joins under truths built from C63 (its between-scan numbers on every point, the first and mistaken reading; the within-scan excess; the within-scan excess plus the between-scan part on the later scan's overlap points; none), fitted by today's joint fit with the stated sigma, sigma x 1.12, with or without 4-sigma clipping, the budget with X by Qz or by counts, Student-t or Cauchy re-weighting, or an oracle; the NX school split. Figures E1-E4: the pulls, the catastrophic misses, one join rescued and one ruined by clipping. | public (NX school or committed tables) | 95 s | `docs/studies/excess_remedy` |
 | [A bad-pixel pass on the reflectivity ROI: hot pixels, sparse frames, the factor (F95 B3, C62)](#roi-bad-pixel-study) | figures | Synthetic frames with known truth (bright, sharp and sparse beams; 0-0.5 hot pixels per frame) reduced by the reader's frame_row after no pass, the whole-frame pass at factor 4, the ROI pass at factors 3, 10 and 40, or the background boxes only; the NX school frames. Figures R1-R5: one sparse frame, the extra scatter per point, the threshold, the join pulls, and how close clean frames come to a correction. | public (NX school or committed tables) | 110 s | `docs/studies/roi_bad_pixels` |
 | [Walkthrough: why join error bars are too small, from two scans to the verdict (C61, ELI5)](#guard-error-walkthrough) | figures | The whole chain of the guard's-error study, for the owner's standing order (2026-11-25): two scans and the factor read off their shared points, with and without 2 % hidden scatter; the joint fit drawn over its data with its residuals; the guard's ladder of p-values; the pulls and coverage over 400 replicates, today's rule against honest per-point errors; a fringed join, where inflating by the order-4 chi2 fails; and a real NX school scan split with a known factor: figures W1-W6. | public (NX school or committed tables) | 6 s | `docs/studies/guard_error/walkthrough` |
@@ -85,6 +89,8 @@ container on 2026-11-23 with the defaults shown.
 | [Old and new methods as CSV (C2, C10, C11, ...)](#compare-methods) | data | Old and new methods side by side on the same data, as CSV files with a manifest: error models, legacy vs pinhole GID, pinhole distance, exact vs per-axis pinhole angles, the footprint window, absorber factors, "Sum All" as the counts over the monitors vs the mean of the normalised frames, each frame's true incidence (header In_Rot vs α from L). | NX school by default; any SPEC file | 39 s | `docs/comparisons_data/manifest.json`<br>`docs/comparisons_data/C2_*`<br>`docs/comparisons_data/C6_*`<br>`docs/comparisons_data/C10_*`<br>`docs/comparisons_data/C11_*`<br>`docs/comparisons_data/C21_*`<br>`docs/comparisons_data/C24_*`<br>`docs/comparisons_data/C41_*`<br>`docs/comparisons_data/C43_*` |
 | [Absorber steps measured between scans](#absorber-steps) | text | Measured absorber steps between overlapping reflectivity scans against the nominal absfac^-Δn, and the extra Al thickness each implies (P28). | NX school by default; any SPEC file | 1 s | — |
 | [Foil thicknesses from the joins table](#foil-fit-from-joins) | text | Six binary foil thicknesses fitted to the owner's 963 measured joins (hand-off 03), and every join's residual: a foil effect separated from a monitor that missed a slit change. | public (NX school or committed tables) | < 1 s | — |
+| [The pieces of the puzzle: the edge, Qoff, the resolution, absorption](#qoff-edge-explainer) | figures | One calculated figure (bare water, 10 keV, no data) that shows what the Qoff and resolution studies mean: a whole reflectivity curve, a close-up of the critical edge shifted by the angle offset and blurred by the resolution, what absorption does to the edge, how a wrong offset tilts R/R_F, and a glossary. | public (NX school or committed tables) | 10 s | `docs/studies/qoff_resolution_real/Q0_the_pieces.png` |
+| [Beam size and Qz resolution: one beam, two views (synthetic)](#beam-size-vs-resolution-synthetic) | figures | Calculated, no data: a focused beam in phase space (height, angle), what a sample-height scan and the critical edge each measure of it, five ways the beam could change between runs with the correlation each would give in 16 runs measured like the owner's, and a known-truth check of the fitted distance between the sample and the focus. | public (NX school or committed tables) | 40 s | `docs/studies/beam_size_vs_resolution/B0_one_beam_two_views.png`<br>`docs/studies/beam_size_vs_resolution/B1_synthetic_cases.png`<br>`docs/studies/beam_size_vs_resolution/synthetic_cases.csv`<br>`docs/studies/beam_size_vs_resolution/synthetic_distance_recovery.json` |
 
 ### GID and pinhole geometry
 
@@ -165,6 +171,8 @@ container on 2026-11-23 with the defaults shown.
 | [Real reflectivity: scatter beyond counting statistics (private data)](#xr-excess-scatter) | external | The excess per-point scatter of 384 real reflectivity series (DATA_NEEDS row 15): the core excess and the outlier share, between scans (shared Qz) and within a scan, overall and by Qz, counts, time, background, monitor and absorber. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the real_*.csv beside the study, and the walkthrough draws them (W5). | private (not in the repository) |  | `docs/studies/excess_scatter/real_overall.csv`<br>`docs/studies/excess_scatter/real_by.csv`<br>`docs/studies/excess_scatter/real_runs.csv`<br>`docs/studies/excess_scatter/real_tails.csv`<br>`docs/studies/excess_scatter/real_scale.csv`<br>`docs/studies/excess_scatter/real_time_by_qz.csv`<br>`docs/studies/excess_scatter/real_numbers.json` |
 | [Real reflectivity burns: trends, dose or time (private data)](#xr-burns) | external | The reader's burn test on 78 real reflectivity burns (DATA_NEEDS row 11, F76, F77): the drift rate against flux and the dose-or-time verdicts per series. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. The frame-by-frame curves (B1) are private (owner, 2026-11-25). | private (not in the repository) |  | `docs/studies/xr_burns` |
 | [Qz resolution near the critical edge (private data)](#qz-resolution) | external | The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NEEDS row 13, F79): the resolution per run and S1 gap, the fit's sensitivity, a known-truth check and the coverage of the fits' errors. Made by the non-cloud agent's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside them. | private (not in the repository) |  | `docs/studies/qz_resolution` |
+| [Beam size against Qz resolution on real runs (private data)](#beam-size-vs-resolution) | external | The owner's question: is the beam's height at the sample (sample-height scans) tied to the critical edge's resolution width? 349 real edges paired with the height scans nearest in time, run medians and within-run deviations, the correlation against five synthetic cases, and a bound on the distance between the sample and the focus. Made by the owner's PC's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSV and JSON beside the figures. | private (not in the repository) |  | `docs/studies/beam_size_vs_resolution/B2_history.png`<br>`docs/studies/beam_size_vs_resolution/runs.csv`<br>`docs/studies/beam_size_vs_resolution/numbers.json` |
+| [Angle offset and Qz resolution on real edges (private data)](#qoff-resolution-real) | external | Tools man's new edge fit (fresnel.fit_edge_resolution: angle offset and resolution width together) on 400 real edge scans and 96 released ones: simulated edges sampled like the real ones, the fit against the earlier Qz-resolution study, the residual pattern, the offset from series to series and what moves it. Made by the owner's PC's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside the figures. | private (not in the repository) |  | `docs/studies/qoff_resolution_real` |
 | [Reflectivity patching on real series (private data)](#ref-patch-real) | external | Hand-off 08's survey on 1832 real joins (DATA_NEEDS row 1): split-truth bias and pull SD per method and Qz class with bootstrap intervals, the guard at p 0.7, 0.3 and off. Made by the non-cloud agent from tests/tools/ref_patch_survey.py on private files; not regenerable here; the numbers are the CSVs beside the figure. | private (not in the repository) |  | `docs/studies/ref_patch_real` |
 
 ## Items
@@ -288,6 +296,49 @@ Variations:
 | Without the design (seconds) | Only the strip scatter, the verdicts and R6; no strips-per-flux simulation. | `docs/studies/reciprocity/summary.md## 6. C54's 19 real series (2026-11-25)` | `python tests/tools/reciprocity_real.py --out '{out}' --design-replicates 0` |
 | Strips per flux, 1000 replicates | The design at the fitted rho with 1000 replicates per cell (about 7 min). | `docs/studies/reciprocity/summary.md#12–16 strips per flux` | `python tests/tools/reciprocity_real.py --out '{out}' --design-replicates 1000` |
 | Another additive strip scatter | C54's tau replaced (here 150 %/h) beside the one fitted. | `docs/studies/xr_burns/summary.md#88 %/h (64–122)` | `python tests/tools/reciprocity_real.py --out '{out}' --tau-c54 150` |
+
+<a id="burn-shoulder-study"></a>
+
+### A peak on a shoulder: which burn estimator reads the truth? (P44)
+
+Synthetic GID burns with a known truth (fade, broadening, shift, a growing or fading shoulder, an NX 15-like broadening fade) on four shoulder shapes and at fewer counts: the bias, pulls, coverage and verdicts of the template, the legacy moments and the two split estimators (the shoulder held unstretched), and NX school burns 14 and 15 under every estimator: figures S1-S5.
+
+- Menu: Tools > Burn tests; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/burn_shoulder_study.py`
+- Explained in: `docs/studies/burn_shoulder/summary.md`, `docs/PHYSICS_ISSUES.md#| P44 |`
+- Committed products: `docs/studies/burn_shoulder`; not replaced from the window
+- Run:
+
+      python tests/tools/burn_shoulder_study.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| NX only | S5 alone, no replicates (about a minute): burns 14 and 15 under every estimator. | `docs/studies/burn_shoulder/summary.md## 5. NX school burns 14 and 15 (S5)` | `python tests/tools/burn_shoulder_study.py --out '{out}' --only S5` |
+| A quick look (30 replicates) | Every case and shape with 30 replicates (about 8 min): the biases hold, the coverages are rough. | `docs/studies/burn_shoulder/summary.md## How to regenerate` | `python tests/tools/burn_shoulder_study.py --out '{out}' --replicates 30` |
+| Fewer counts only | Part B: the Gaussian shoulder at 10 and 100 times fewer counts. | `docs/studies/burn_shoulder/summary.md## 4. Fewer counts (S4)` | `python tests/tools/burn_shoulder_study.py --out '{out}' --parts B` |
+| Shoulders that are not Gaussian | Part A on the Lorentzian, lopsided and two-component shoulders. | `docs/studies/burn_shoulder/summary.md## 2. Other shoulder shapes (S2)` | `python tests/tools/burn_shoulder_study.py --out '{out}' --parts A --shapes lorentzian,asymmetric,two` |
+| The reference's noise (part R) | Each frame measured against the frames' mean (the reader), the mean smoothed and the noiseless mean, at high counts and at NX 14's and 15's counts: S6, about 10 min. | `docs/studies/burn_shoulder/summary.md## 6. The reference's noise (S6)` | `python tests/tools/burn_shoulder_study.py --out '{out}' --only R` |
+| Real GID burns (R1, R2) | The private GID burns' published summary (docs/studies/xr_burns/gid_split.csv): the split against the template, and the shift a smoothed mean frame gives against the mean frame's noise. Seconds; no private data needed. | `docs/studies/burn_shoulder/summary.md## 8. Real GID burns (non-cloud agent)` | `python tests/tools/burn_shoulder_study.py --out '{out}' --only G` |
+
+<a id="burn-shoulder-walkthrough"></a>
+
+### Walkthrough: a GID burn from the frames to the verdict, split or not (P44, ELI5)
+
+The whole chain on NX school burn 15, for the owner's standing order (2026-11-25): a raw frame and its line cut, the mean frame split into a shoulder and a peak, one frame fitted by the template and by the split with residuals, the per-frame intensity and width with their lines, the verdicts by AICc, and the calibration of the intervals on 60 synthetic burns: figures BW1-BW6.
+
+- Menu: Tools > Burn tests; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/burn_shoulder_walkthrough.py`
+- Explained in: `docs/studies/burn_shoulder/walkthrough.md`, `docs/studies/burn_shoulder/summary.md`
+- Committed products: `docs/studies/burn_shoulder/walkthrough`; not replaced from the window
+- Run:
+
+      python tests/tools/burn_shoulder_walkthrough.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| More calibration burns (300) | BW6 with 300 synthetic burns: the coverage to about ±1 %. | `docs/studies/burn_shoulder/walkthrough.md## Step 6. Calibration: do the intervals hold the truth? (figure BW6)` | `python tests/tools/burn_shoulder_walkthrough.py --out '{out}' --replicates 300` |
 
 <a id="burn-dose-figure"></a>
 
@@ -481,6 +532,48 @@ Variations:
 | Resolution | A Qz resolution of 0.0002 to 0.001 Å⁻¹ FWHM smears the edge and reads as a negative Qoff. | `docs/studies/qoff/summary.md### 3. Resolution` | `python tests/tools/qoff_study.py --out '{out}' --design resolution` |
 | A wrong Qc | 1 M NaCl reduced at water's Qc and the other way round: Qoff absorbs the error one for one; the joint fit lies on Qc − Qoff = constant. | `docs/studies/qoff/summary.md### 4. A wrong Qc, and Qc with Qoff` | `python tests/tools/qoff_study.py --out '{out}' --design qc` |
 | More replicates (200) | Every design with 200 replicates (about 15 min). | `docs/studies/qoff/summary.md### 1. Do they find the offset?` | `python tests/tools/qoff_study.py --out '{out}' --replicates 200` |
+
+<a id="qoff-resolution-study"></a>
+
+### Qoff and the Qz resolution fitted together at the edge (hand-off 09)
+
+Synthetic edges with a known angle offset and resolution, read by the joint fit (R_F with absorption smeared by a Gaussian, Qoff and σ_Q free), the same with water's roughness, and today's sharp proposer: the offset, the resolution, the sampling, a wrong β, counts, an outlier, fringes, DPPC; the NX school edge and its χ² at a fixed σ_Q: figures K1-K4.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/qoff_resolution_study.py`
+- Explained in: `docs/studies/qoff_resolution/summary.md`, `docs/COMPARISONS.md#| C71 |`, `docs/studies/qz_resolution/summary.md`
+- Committed products: `docs/studies/qoff_resolution`; not replaced from the window
+- Run:
+
+      python tests/tools/qoff_resolution_study.py --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| NX only | K4: NX school scan 6 under both fits, and the fit at a fixed σ_Q (about a minute). | `docs/studies/qoff_resolution/summary.md## 4. NX school scan 6 (K4)` | `python tests/tools/qoff_resolution_study.py --out '{out}' --only nx` |
+| A quick look (20 replicates) | Every condition with 20 replicates (about 3 min): the biases hold, the coverages are rough. | `docs/studies/qoff_resolution/summary.md## How to regenerate` | `python tests/tools/qoff_resolution_study.py --out '{out}' --replicates 20` |
+| Known truth at the owner's sampling | One point of the known truth (hand-off 09, item 4): steps of 0.001 from 0.015, the beamline's σ_Q, 50 replicates; truth.csv and a printed summary. | `docs/studies/qoff_resolution/summary.md## For the local data agent` | `python tests/tools/qoff_resolution_study.py --out '{out}' --truth --qoff=-2e-4 --sigma-q 3.8e-4 --counts 1 --step 0.001 --start 0.015` |
+| Known truth at NX's sampling | The same at NX school scan 6's sampling (0.00125 from 0.0175). | `docs/studies/qoff_resolution/summary.md## For the local data agent` | `python tests/tools/qoff_resolution_study.py --out '{out}' --truth --step 0.00125 --start 0.0175` |
+| A wrong β | The fit given twice and half the subphase's absorption: σ_Q moves, Qoff barely. | `docs/studies/qoff_resolution/summary.md## 3. What moves it` | `python tests/tools/qoff_resolution_study.py --out '{out}' --designs beta` |
+
+<a id="qoff-resolution-survey"></a>
+
+### Qoff and the Qz resolution on real edge scans (survey)
+
+Every reflectivity scan of a SPEC file that crosses the edge, reduced alone and fitted for Qoff and σ_Q together (with today's sharp proposal beside it): one CSV row per scan, for the local data agent's private edges (hand-off 09).
+
+- Menu: Tools > Reflectivity patching; kind: data (tables (CSV) and a summary for later figures); script: `tests/tools/qoff_resolution_survey.py`
+- Explained in: `docs/studies/qoff_resolution/summary.md`, `docs/studies/qz_resolution/summary.md`
+- Run:
+
+      python tests/tools/qoff_resolution_survey.py --spec sample_data/NX_school/2026sep/20260923 --out '{out}'
+
+Variations:
+
+| Variation | Shows | Source | Command |
+|---|---|---|---|
+| Water's roughness in R_F | A fixed 3 Å Névot–Croce roughness in the model: what it changes on real edges. | `docs/studies/qoff_resolution/summary.md## For the local data agent` | `python tests/tools/qoff_resolution_survey.py --spec sample_data/NX_school/2026sep/20260923 --out '{out}' --roughness 3` |
+| β × 2 | Twice the subphase's absorption, DATA_NEEDS row 13's check (σ_Q −15 % there). | `docs/studies/qoff_resolution/summary.md## For the local data agent` | `python tests/tools/qoff_resolution_survey.py --spec sample_data/NX_school/2026sep/20260923 --out '{out}' --beta-scale 2` |
 
 <a id="excess-remedy-study"></a>
 
@@ -713,6 +806,34 @@ Variations:
 | Strict cuts | Monc/Monp within 1 %, χ²/dof < 5, no error floor: each foil moves by at most 0.9 µm (the fit is robust to its cuts). | `docs/physics_notes.md#*Fit quality.* The` | `python tests/tools/foil_fit_from_joins.py docs/handoff_out/03-answer/joins.csv --monc-tol 0.01 --chi2-max 5 --floor 0` |
 | Loose cuts | Monc/Monp within 3 %, no χ² cut, 1 % floor. | `docs/physics_notes.md#*Fit quality.* The` | `python tests/tools/foil_fit_from_joins.py docs/handoff_out/03-answer/joins.csv --chi2-max inf --floor 0.01` |
 | Less clipping | Clip at 10 robust SDs instead of 5: outlying joins pull the foils. | `tests/tools/foil_fit_from_joins.py` | `python tests/tools/foil_fit_from_joins.py docs/handoff_out/03-answer/joins.csv --clip 10` |
+
+<a id="qoff-edge-explainer"></a>
+
+### The pieces of the puzzle: the edge, Qoff, the resolution, absorption
+
+One calculated figure (bare water, 10 keV, no data) that shows what the Qoff and resolution studies mean: a whole reflectivity curve, a close-up of the critical edge shifted by the angle offset and blurred by the resolution, what absorption does to the edge, how a wrong offset tilts R/R_F, and a glossary.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/qoff_edge_explainer.py`
+- Explained in: `docs/studies/qoff_resolution_real/summary.md`
+- Committed products: `docs/studies/qoff_resolution_real/Q0_the_pieces.png`; not replaced from the window
+- Run:
+
+      python tests/tools/qoff_edge_explainer.py --out '{out}'
+
+
+<a id="beam-size-vs-resolution-synthetic"></a>
+
+### Beam size and Qz resolution: one beam, two views (synthetic)
+
+Calculated, no data: a focused beam in phase space (height, angle), what a sample-height scan and the critical edge each measure of it, five ways the beam could change between runs with the correlation each would give in 16 runs measured like the owner's, and a known-truth check of the fitted distance between the sample and the focus.
+
+- Menu: Tools > Reflectivity patching; kind: figures (figures (PNG) and the numbers behind them); script: `tests/tools/beam_size_vs_resolution_synthetic.py`
+- Explained in: `docs/studies/beam_size_vs_resolution/summary.md`
+- Committed products: `docs/studies/beam_size_vs_resolution/B0_one_beam_two_views.png`, `docs/studies/beam_size_vs_resolution/B1_synthetic_cases.png`, `docs/studies/beam_size_vs_resolution/synthetic_cases.csv`, `docs/studies/beam_size_vs_resolution/synthetic_distance_recovery.json`; not replaced from the window
+- Run:
+
+      python tests/tools/beam_size_vs_resolution_synthetic.py --out '{out}'
+
 
 <a id="pinhole-figures"></a>
 
@@ -1600,6 +1721,26 @@ The width of the critical edge in 378 real reflectivity scans at 10 keV (DATA_NE
 - Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
 - Explained in: `docs/studies/qz_resolution/summary.md`
 - Committed products: `docs/studies/qz_resolution`; not replaced from the window
+
+<a id="beam-size-vs-resolution"></a>
+
+### Beam size against Qz resolution on real runs (private data)
+
+The owner's question: is the beam's height at the sample (sample-height scans) tied to the critical edge's resolution width? 349 real edges paired with the height scans nearest in time, run medians and within-run deviations, the correlation against five synthetic cases, and a bound on the distance between the sample and the focus. Made by the owner's PC's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSV and JSON beside the figures.
+
+- Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
+- Explained in: `docs/studies/beam_size_vs_resolution/summary.md`
+- Committed products: `docs/studies/beam_size_vs_resolution/B2_history.png`, `docs/studies/beam_size_vs_resolution/runs.csv`, `docs/studies/beam_size_vs_resolution/numbers.json`; not replaced from the window
+
+<a id="qoff-resolution-real"></a>
+
+### Angle offset and Qz resolution on real edges (private data)
+
+Tools man's new edge fit (fresnel.fit_edge_resolution: angle offset and resolution width together) on 400 real edge scans and 96 released ones: simulated edges sampled like the real ones, the fit against the earlier Qz-resolution study, the residual pattern, the offset from series to series and what moves it. Made by the owner's PC's private generator (sample_data/private/xr/); not regenerable here; the numbers are the CSVs beside the figures.
+
+- Menu: Tools > Made elsewhere; kind: external (figures made outside this repository (shown, not regenerated))
+- Explained in: `docs/studies/qoff_resolution_real/summary.md`
+- Committed products: `docs/studies/qoff_resolution_real`; not replaced from the window
 
 <a id="ref-patch-real"></a>
 
