@@ -6,7 +6,7 @@ and synthetic data from `tests/synth.py` for MCA / fluorescence, the reflectivit
 (NX has no MCA data). Regenerate the whole folder with the command above; the table is rewritten, the
 Observations section is by hand and is kept.
 
-78 images, 5.0 MB, last run took 48 s.
+80 images, 5.1 MB, last run took 48 s.
 
 | File | What it shows | Data and state |
 |---|---|---|
@@ -19,8 +19,10 @@ Observations section is by hand and is kept.
 | `12_specplot_tab_crop.png` | SpecPlot tab page: controls and plot | Scan 4 selected |
 | `13_specplot_two_scans.png` | SpecPlot with two scans selected (legend, N-scan controls) | Scans 4 and 5 selected |
 | `13b_specplot_beam_off_scan.png` | SpecPlot of scan 1 (a motor scan with the beam off) | Scan 1 selected |
-| `13c_plot_options_dialog.png` | Plot options of the SpecPlot tab (F112) | Font 14 pt, about 5 major ticks, minor ticks on, ticks in and on all sides, grid at the major ticks |
-| `13d_specplot_with_plot_options.png` | SpecPlot with those plot options (F112); the button at the right of the tab bar shows a * | Scan 4 selected; the options of 13c |
+| `13c_plot_options_dialog.png` | Plot options of the SpecPlot tab (F112-F114): Text and ticks | Font 14 pt, about 5 major ticks, minor ticks, ticks in and on all sides, grid at the major ticks; legend shown upper left without a frame, lines 2 pt; the y label renamed, the first curve red with square markers |
+| `13d_specplot_with_plot_options.png` | SpecPlot with those plot options (F112-F114); the button at the right of the tab bar shows a * | Scan 4 selected; the options of 13c, 13e, 13f |
+| `13e_plot_options_legend_lines.png` | Plot options: Legend and lines (F114) | Font 14 pt, about 5 major ticks, minor ticks, ticks in and on all sides, grid at the major ticks; legend shown upper left without a frame, lines 2 pt; the y label renamed, the first curve red with square markers |
+| `13f_plot_options_this_plot.png` | Plot options: This plot (F114): labels, ranges, curves | Font 14 pt, about 5 major ticks, minor ticks, ticks in and on all sides, grid at the major ticks; legend shown upper left without a frame, lines 2 pt; the y label renamed, the first curve red with square markers |
 | `14_timeline_tab.png` | Timeline tab (F83): events, sx, sample-height scans and scans on one time axis | NX school file opened; Timeline tab shown (fitted to the whole file) |
 | `14b_timeline_dose.png` | Timeline with Dose on (F107): the sx line coloured by each spot's dose as a fraction of the burn test's dose to a 5 % change | NX school file; Dose ticked (beam 1 mm wide, its height from the sample-height scans) |
 | `20_pilatus_empty.png` | The Pilatus tab (page and its controls) with nothing loaded | No SPEC file; crop of the tab widget |

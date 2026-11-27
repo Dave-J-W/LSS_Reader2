@@ -36,8 +36,8 @@ def test_defaults_change_nothing_and_the_button_follows_the_tab(loaded, qapp, re
     assert not any(l.get_visible() for l in canvas.ax.xaxis.get_gridlines())
     d = w.showPlotOptions()
     assert d.isVisible() and not d.isModal() and d.key == 'specPlotTab'
-    assert d.values() == {'font': 0, 'major': 'as drawn', 'minor': 'as drawn', 'direction': 'as drawn',
-                          'mirror': 'as drawn', 'grid': 'as drawn', 'index': True}   # index: F113
+    import mplwidget
+    assert d.values() == mplwidget.PLOT_OPTION_DEFAULTS                     # F113 index, F114 the rest
     assert 'auto (' in d.fields['font'].specialValueText()
     w.ui.PlotWidget.setCurrentWidget(w.ui.refTab)            # the window follows the tab on show
     assert d.key == 'refTab' and 'Reflectivity' in d.windowTitle()
@@ -106,10 +106,11 @@ def test_one_entry_matplotlibs_editor_from_inside(loaded, qapp, recorder):
         assert not tb._actions['edit_parameters'].isVisible()
     canvas = _spec(w, qapp)
     d = w.showPlotOptions()
-    plots = d.plots()
-    assert [n for n, _ in plots] and plots[0][1] is canvas.ax and plots[0][0].startswith('Plot 1: ')
+    plots = d.plots()                                         # (plot id, name, axes), F114
+    assert plots and plots[0][2] is canvas.ax and plots[0][1].startswith('Plot 1: ')
+    assert plots[0][0] == 'specPlotMplWidget:0'
     d._fill_axes_menu()
-    assert [a.text() for a in d.axesMenu.actions()] == [n for n, _ in plots]
+    assert [a.text() for a in d.axesMenu.actions()] == [n for _p, n, _a in plots]
     fe = d.edit_axes(canvas.ax)
     assert fe is not None and fe.isVisible() and not fe.isModal()
     fe.close()

@@ -212,6 +212,24 @@ Each line: feature — where — default — script — notes entry (date).
   starts at "as drawn" (the plots as the reader draws them), and "As
   drawn" puts them all back. The Pilatus tab's ROI close-up and the
   residual strips are left as drawn. Terms to define: major, minor ticks.
+- Plot options, three pages (F114, 2026-11-27): everything set there is
+  kept per tab, between sessions and when the tab redraws.
+  - Text and ticks: font size, tick numbers (plain or scientific), major
+    and minor ticks, tick direction, ticks on all sides, grid, index
+    numbers.
+  - Legend and lines: legend shown or hidden, its place and frame; every
+    curve's line width and marker size; titles hidden.
+  - This plot: pick a plot of the tab; rename its title or axis labels
+    (the new text is used whenever the reader draws the same text: plot
+    another column and it keeps its own name); fix the x or y range
+    ("Use the current view" takes the zoom you are looking at; zoom and
+    pan still work, and the fixed range returns when the plot is redrawn);
+    style each curve (colour, line, width, marker, size), kept for the
+    curve's name (a fit, a scan) or for its place (the first curve...).
+  - "Copy to all tabs" gives the first two pages to every tab; "As drawn"
+    and "Plot as drawn", "Curve as drawn" put things back.
+  - "One-off editor..." is matplotlib's own: anything it offers, for the
+    plot as drawn now, gone at the next redraw.
 - One place for plot settings (owner, 2026-11-26): the tabs' plot toolbars
   no longer show matplotlib's "Customize" icon; its editor (one plot's
   title, axis limits, labels, scales, line styles) is "Axes and curves..."
