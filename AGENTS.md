@@ -32,7 +32,8 @@ commit with its test, CI green, the legacy export fixtures byte-identical.
 ## Sessions and coordination
 
 - **main man** orchestrates, reviews and merges. **GUI manager** works on the window and workflows.
-  **tools man** is general purpose (Tools menu, packaging). **questor** asks the owner questions and records
+  **tools man** is being retired (owner, 2026-11-27: "don't give him new work"): it finishes nothing new, its
+  parked issues moved to other lanes, and main man runs the build workflow (packaging) from now on. **questor** asks the owner questions and records
   the answers. **Manual writing** writes the user manual (`docs/manual/`). The **data sessions on the owner's PC** fetch
   the private data (`docs/DATA_NEEDS.md`) and open `claude/local-data-*` pull requests. Local yokel, which
   relayed for them, was archived on 2026-11-27, so their tasks carry `lane:local-data`. **Reflection guy** also runs on the
