@@ -81,9 +81,17 @@ SYNTHETIC_CASES = {
     'no_rrf': {'rrf': False},
 }
 
+# The fixture a case's file must equal when it has none of its own. Owner, 2026-11-26: "Always export
+# both raw and normalized reflectivity": Export writes _rrf.txt whether or not R/RF is ticked, so the
+# unticked case, the plain settings otherwise, writes plain's R/R_F, byte for byte (before: no file).
+# No fixture file changed (rule 3).
+SAME_AS = {('no_rrf', 'rrf'): 'plain'}
+
 
 def _compare(case, kind, path):
     golden = os.path.join(GOLDEN, '%s_%s%s.txt' % (case, kind, LEGACY_SUFFIX))
+    if (case, kind) in SAME_AS and not UPDATE:
+        golden = os.path.join(GOLDEN, '%s_%s%s.txt' % (SAME_AS[case, kind], kind, LEGACY_SUFFIX))
     if not os.path.exists(path):
         produced = None
     else:

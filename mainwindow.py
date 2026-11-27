@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QFileDialog, QProgressDialog, QMessageBox
 from PyQt5.Qt import *
 from spec_routines import specread, is_spec_file
 from mca_routines import mcaread
-from mplwidget import MplWidget, errorbars, mesh
+from mplwidget import MplWidget, errorbars, mesh, index_labels
 import roipanel
 from roipanel import RoiPanel
 from matplotlib.widgets import MultiCursor
@@ -187,6 +187,8 @@ class MainWindow (QMainWindow):
 
     def __init__ (self, parent = None):
         QMainWindow.__init__(self, parent)
+        import mplwidget
+        self.plotFontPt=mplwidget.match_plot_fonts()   # owner, 2026-11-26: plot text at least the tabs' size
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.pilatus=TwoDDetector('Pilatus')
@@ -286,6 +288,7 @@ class MainWindow (QMainWindow):
         self.initCutAxis()
         self.initTimelineTab()
         self.initCompareTab()
+        self.initPlotOptions()          # F112: after the last tab is added
         self.initSpecPointLabels()
         self.specFileName=None
         #self.openSpecFile(fname='C:/Users/bu/Desktop/sample_data/sample')
@@ -447,8 +450,13 @@ class MainWindow (QMainWindow):
         self.ui.refSeaWinLineEdit.returnPressed.connect(self.refAnalyzeFromField)
      #    self.connect(self.ui.refExportPushButton,SIGNAL('clicked()'), self.saveRefData)
         self.ui.refExportPushButton.clicked.connect(self.saveRefData)
+        self.ui.refRRFCheckBox.setToolTip(
+            'Plot R divided by the Fresnel reflectivity R_F(Qz + Qoff) of the Qc in the field. A display choice: '
+            'Export always writes both _ref.txt and _rrf.txt (owner, 2026-11-26); Save stores R/RF in the workbook '
+            'while this is ticked')
         self.ui.refExportPushButton.setToolTip(
-            'Write the reflectivity as <name>_ref.txt (Qz, R, dR) and <name>_rrf.txt (R/R_F), the files XModFit '
+            'Write the reflectivity as <name>_ref.txt (Qz, R, dR) and <name>_rrf.txt (R/R_F with the Qc and Qoff in '
+            'the fields, whether or not R/RF is ticked), the files XModFit '
             'reads; with "+ covariance", the sidecar XModFit fits with. The name is proposed from the SPEC file, the '
             'sample (the macro that ran the series, when the file records it) and the scans; the folder is the one '
             'of the last Export (F105)')
@@ -1859,8 +1867,7 @@ class MainWindow (QMainWindow):
         self.ui.specPlotMplWidget.canvas.ax.errorbar(x,y,yerr,label=self.label,fmt='o-')
         if not self.spPointLabelsCheckBox.isChecked():
             return
-        for i in range(len(x)):
-            self.ui.specPlotMplWidget.canvas.ax.text(x[i],y[i],str(i),color='r',fontsize=16)
+        index_labels(self.ui.specPlotMplWidget.canvas.ax,x,y,range(len(x)),color='r')   # F113
         
     def specPeakFit(self,x,y,yerr):
         par=[x[np.argmax(y)],np.abs(x[-1]-x[0])/2.0,np.max(y),0.0,0.0,np.abs(x[0]-x[1]),0.0,1]
@@ -1991,7 +1998,9 @@ class MainWindow (QMainWindow):
         from PyQt5.QtWidgets import QCheckBox
         box=QCheckBox('Point #')
         box.setObjectName('spPointLabelsCheckBox')
-        box.setToolTip('Label each point of the SPEC plot with its index in the scan (0, 1, 2, ...)')
+        box.setToolTip('Label each point of the SPEC plot with its index in the scan (0, 1, 2, ...). Where the numbers '
+                       'would overlap, the later ones are hidden; zoom in and they come back once they fit (F113). '
+                       'Plot options can also hide them')
         box.setChecked(True)
         layout=self.ui.horizontalLayout_8
         layout.insertWidget(layout.indexOf(self.ui.spLegendCheckBox)+1,box)
@@ -5824,12 +5833,16 @@ class MainWindow (QMainWindow):
         summary to the right (owner, 2026-11-21; lss_core.burn.plot)."""
         canvas=self.uipdburn.burnTrendPlotWidget.canvas
         burnmod.plot(res,canvas.fig,'%s S# %d' % (os.path.basename(self.specFileName),res.scan),
-                     residuals=self.fitResidualsShown())     # F74
-        try:
-            canvas.fig.subplots_adjust(left=0.1,right=0.97,top=0.9,bottom=0.09)
+                     residuals=self.fitResidualsShown(),     # F74
+                     fontsize=mpl.rcParams['font.size'])     # owner, 2026-11-26: the tabs' size at least
+        try:        # F111: the margins from the text at the canvas's size, recomputed at every draw (resizing too)
+            canvas.fig.set_layout_engine('constrained')
         except Exception:
-            pass
-        canvas.draw()
+            canvas.fig.subplots_adjust(left=0.1,right=0.97,top=0.9,bottom=0.09)
+        import warnings
+        with warnings.catch_warnings():   # a canvas not laid out yet is too small for the layout: it is redone on show
+            warnings.filterwarnings('ignore',message='constrained_layout not applied')
+            canvas.draw()
 
     def exportBurn(self):
         """The burn test on show as two text files (F95 B9)."""
@@ -6299,6 +6312,15 @@ class MainWindow (QMainWindow):
                          'overlaps. Off: the factors are fitted and shown in the table (marked "not applied") but the '
                          'data stay as collected, normalised by the monitor and absorbers only, so any disagreement '
                          'stays visible. Pinhole geometry only.')
+        unm=QCheckBox('Join levels without overlap (unscaled)',g)
+        unm.setObjectName('gidUnmatchedLevelsCheckBox')
+        unm.setChecked(gp.unmatched_levels=='unscaled')
+        unm.setToolTip('Stopgap (off by default). A Qz level whose rows share no beta with the level below has no '
+                       'overlap to fit its join factor on, so the patch stops. On: such a level is added as '
+                       'collected, normalised by the monitor and absorbers only, with no factor and no check of its '
+                       'scale. Any offset between the levels (monitor, absorber, sample height, response) shows as '
+                       'a step at the seam, and the errors are counting only. The seam is marked in the table '
+                       '("UNSCALED") and in the saved files. Pinhole geometry only.')
         foot=QComboBox(g)
         foot.setObjectName('gidFootprintComboBox')
         foot.addItems(['exact','IDL'])
@@ -6345,6 +6367,7 @@ class MainWindow (QMainWindow):
             brow.addWidget(w_)
         form.addRow('Beam (physical)',brow)
         form.addRow(joins)
+        form.addRow(unm)
         form.addRow('Frames per bin, at least',minf)
         form.addRow('2theta range across levels',trans)
         form.addRow(arm)
@@ -6403,10 +6426,11 @@ class MainWindow (QMainWindow):
                                             response=resp.currentText(),arm_correction=arm.isChecked(),
                                             min_frames=minf.value(),footprint='exact' if foot.currentIndex()==0 else 'idl',
                                             beam_fwhm_um=bfw.value(),beam_h_fwhm_mm=bhw.value(),apply_joins=joins.isChecked(),
+                                            unmatched_levels='unscaled' if unm.isChecked() else 'refuse',
                                             beam_centre_mm=None if bcf.isChecked() else bce.value(),
                                             transverse='intersection' if trans.currentIndex()==0 else 'union')
             hard.setEnabled(area.isChecked())
-            for w in (pdist,resp,arm,fit,minf,trans,foot,joins):
+            for w in (pdist,resp,arm,fit,minf,trans,foot,joins,unm):
                 w.setEnabled(pin.isChecked())
             physical=pin.isChecked() and resp.currentText().startswith('physical')
             for w in (bfw,bcf,bhw):
@@ -6437,6 +6461,7 @@ class MainWindow (QMainWindow):
             bcf.setChecked(dflt.beam_centre_mm is None)
             bce.setValue(0.0)
             joins.setChecked(dflt.apply_joins)
+            unm.setChecked(dflt.unmatched_levels=='unscaled')
             apply()
 
         def fitdist():
@@ -6466,6 +6491,7 @@ class MainWindow (QMainWindow):
             w_.valueChanged.connect(apply)
         bcf.toggled.connect(apply)
         joins.toggled.connect(apply)
+        unm.toggled.connect(apply)
         fit.clicked.connect(fitdist)
         apply()
         ready[0]=True
@@ -6482,6 +6508,7 @@ class MainWindow (QMainWindow):
         d.gidFootprintComboBox=foot
         d.gidBeamFwhmSpinBox,d.gidBeamCentreSpinBox,d.gidBeamCentreFitCheckBox=bfw,bce,bcf
         d.gidBeamHFwhmSpinBox,d.gidApplyJoinsCheckBox=bhw,joins
+        d.gidUnmatchedLevelsCheckBox=unm
         d.gidLiveCheckBox,d.gidLiveTimer=live,timer
         return d
 
@@ -6541,8 +6568,11 @@ class MainWindow (QMainWindow):
         t=d.gidJoinTable
         t.setRowCount(len(self.gidJoinLog))
         for r,j in enumerate(self.gidJoinLog):
-            vals=[j['label'],j['kind'],'%.3f' % j['x_from'],'%.3f' % j['x_to'],'%d' % j['points'],
-                  '%.4g +/- %.2g%s' % (j['factor'],j['error'],'' if j.get('applied',True) else ' (not applied)'),
+            if j.get('unscaled'):
+                fac='1 (UNSCALED: no overlap; edge ratio %.3g)' % j.get('edge_ratio',float('nan'))
+            else:
+                fac='%.4g +/- %.2g%s' % (j['factor'],j['error'],'' if j.get('applied',True) else ' (not applied)')
+            vals=[j['label'],j['kind'],'%.3f' % j['x_from'],'%.3f' % j['x_to'],'%d' % j['points'],fac,
                   '%.2f' % j['chi2']]
             for c,v in enumerate(vals):
                 t.setItem(r,c,QTableWidgetItem(v))
@@ -6632,6 +6662,9 @@ class MainWindow (QMainWindow):
             self.gidPatchRefused(before)      # the callers say why (gidPatch, gidWorksheetPatch)
             raise
         self.pilPatchData=patch
+        note=gidmod.seam_note(self.gidJoinInfo) if gp.pinhole else ''
+        if note:
+            self.notify('GID Patch: '+note+'. The scale across these seams is not checked.',title='GID Patch')
         try:
             self.gidFinishMap()
         except (IndexError,gidmod.GIDError) as e:   # gid.products refuses an empty Q grid with a GIDError (2026-11-24)
@@ -6930,7 +6963,8 @@ class MainWindow (QMainWindow):
         prod=self.gidProducts(axes)
         tags=('_qxy_gid.txt','_qz_gid.txt','_q2d_gid.txt','_dth_gid.txt','_beta_gid.txt','_agnle2d_gid.txt')
         existed=self.existingFiles([self.saveFileName+t for t in tags])
-        self.exportNotice(gidmod.save(self.saveFileName,prod),existed)
+        note=gidmod.seam_note(getattr(self,'gidJoinInfo',None)) if self.gidEffectiveParams().pinhole else ''
+        self.exportNotice(gidmod.save(self.saveFileName,prod,note=note),existed)
         self.scriptLine(self.gidScript(self.saveFileName,axes))
 
     def gidScriptSettings(self):
@@ -8053,12 +8087,10 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.ax.set_ylabel('Reflectivity')
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.scanqzframe[self.pilrefsort[self.pilreforder]][:,0],self.scanqzframe[self.pilrefsort[self.pilreforder]][:,1],self.scanqzframe[self.pilrefsort[self.pilreforder]][:,2],fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder]))
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,1]*fac,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,2]*fac,fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder+1]))
-                for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder]])):
-                    if self.scanqzframe[self.pilrefsort[self.pilreforder]][i,0]>=xmin:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder]][i,0]+0.02*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder]][i,1]+0.02*(ymax-ymin),str(i-len(self.scanqzframe[self.pilrefsort[self.pilreforder]])),color='b',fontsize=16) 
-                for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder+1]])): 
-                    if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
+                k=np.flatnonzero(self.scanqzframe[self.pilrefsort[self.pilreforder]][:,0]>=xmin)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.scanqzframe[self.pilrefsort[self.pilreforder]][k,0],self.scanqzframe[self.pilrefsort[self.pilreforder]][k,1],[int(j)-len(self.scanqzframe[self.pilrefsort[self.pilreforder]]) for j in k],color='b',where='upper right')
+                k=np.flatnonzero(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0]<=xmax)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,1]*fac,[int(j) for j in k],color='r',where='lower left')
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
                 self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
@@ -8091,12 +8123,10 @@ class MainWindow (QMainWindow):
                 self.uirefpatch.plotWidget.canvas.ax.set_ylabel('Reflectivity')
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.pilrefdata[:,0],self.pilrefdata[:,1],self.pilrefdata[:,2],fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder]))
                 self.uirefpatch.plotWidget.canvas.ax.errorbar(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,1]*fac,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,2]*fac,fmt='o-',label='#'+str(self.pilrefsort[self.pilreforder+1]))
-                for i in range(len(self.pilrefdata)):
-                    if self.pilrefdata[i,0]>=xmin:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.pilrefdata[i,0]+0.02*(xmax-xmin),self.pilrefdata[i,1]+0.02*(ymax-ymin),str(i-len(self.pilrefdata)),color='b',fontsize=16) 
-                for i in range(len(self.scanqzframe[self.pilrefsort[self.pilreforder+1]])): 
-                    if self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]<=xmax:
-                        self.uirefpatch.plotWidget.canvas.ax.text(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,0]-0.04*(xmax-xmin),self.scanqzframe[self.pilrefsort[self.pilreforder+1]][i,1]*fac-0.06*(ymax-ymin),str(i),color='r',fontsize=16)                
+                k=np.flatnonzero(self.pilrefdata[:,0]>=xmin)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.pilrefdata[k,0],self.pilrefdata[k,1],[int(j)-len(self.pilrefdata) for j in k],color='b',where='upper right')
+                k=np.flatnonzero(self.scanqzframe[self.pilrefsort[self.pilreforder+1]][:,0]<=xmax)   # F113: index numbers placed in points, crowded ones hidden at each draw
+                index_labels(self.uirefpatch.plotWidget.canvas.ax,self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,0],self.scanqzframe[self.pilrefsort[self.pilreforder+1]][k,1]*fac,[int(j) for j in k],color='r',where='lower left')
                 self.refDrawMasked(self.uirefpatch.plotWidget.canvas.ax,fac)
                 self.refDrawJoinFit(self.uirefpatch.plotWidget.canvas.ax)   # F74: the fit and its residuals
                 self.uirefpatch.plotWidget.canvas.ax.legend(frameon=False,scatterpoints=0,numpoints=1)
@@ -8261,6 +8291,8 @@ class MainWindow (QMainWindow):
                     for i in range(len(data[:,0])):
                         self.ui.refNormRefListWidget.addItem('%.4f'%data[i,0]+'\t'+'%.4e'%data[i,1]+'\t'+'%.4e'%data[i,2]+'\t'+'%.4f'%perErr[i])        
             self.normRefData=data[np.argsort(data[:,0])]
+            # R/R_F of this curve, made whether or not R/RF is ticked: Export always writes both _ref.txt and
+            # _rrf.txt (owner, 2026-11-26). The arithmetic of the ticked case, unchanged: Qz + Qoff, then / R_F
             if self.ui.refRRFCheckBox.checkState()!=0:
                 self.ui.refRefDataPlotwidget.canvas.ax.set_ylabel('R/RF')
                 data[:,0]=data[:,0]+self.refQoff
@@ -8268,9 +8300,15 @@ class MainWindow (QMainWindow):
                 data[:,2]=data[:,2]/self.fresnel(data[:,0],self.refQc)
                 self.RrfData=data.copy()   # the Qz^2 option below must only change what is plotted
             else:
-                # no R/R_F of this curve: an earlier one must not be exported or saved beside it (release
-                # push, 2026-11-26: after unticking R/RF and changing the curve, Export wrote the old R/R_F)
-                self.RrfData=None
+                rrf=data.copy()            # the curve on show stays R; its R/R_F is kept for Export
+                try:
+                    with np.errstate(divide='ignore',invalid='ignore'):
+                        rrf[:,0]=rrf[:,0]+self.refQoff
+                        rrf[:,1]=rrf[:,1]/self.fresnel(rrf[:,0],self.refQc)
+                        rrf[:,2]=rrf[:,2]/self.fresnel(rrf[:,0],self.refQc)
+                    self.RrfData=rrf
+                except Exception:          # never an earlier curve's R/R_F (release push, 2026-11-26)
+                    self.RrfData=None
             if self.ui.refQzSqrCheckBox.checkState()!=0:
                 self.ui.refRefDataPlotwidget.canvas.ax.set_xlabel('Qz^2')
                 data[:,0]=data[:,0]**2
@@ -8336,7 +8374,7 @@ class MainWindow (QMainWindow):
                 np.savetxt(rrffile,np.asarray(self.RrfData,dtype=float)[:,:3],fmt='%.4e\t%.4e\t%.4e')
                 written.append(rrffile)
             except Exception:
-                missing=('No _rrf.txt: tick R/RF (with Qc and Qoff set) to write it'
+                missing=('No _rrf.txt: R/R_F could not be made with this Qc and Qoff'
                          +(' (the %s beside it is an earlier one)' % os.path.basename(rrffile) if rrffile in existed else ''))
             self.exportNotice(written,existed,missing)
             if self.refCovarianceCheckBox.isChecked():
@@ -8788,7 +8826,7 @@ class MainWindow (QMainWindow):
                 self.notify('No covariance written: the patch on show is not the one the last Ref Patch made.',title=title)
                 return
             nf=float(self.ui.refNormLineEdit.text()) if self.ui.refNormFacCheckBox.checkState()>0 else None
-            rrf=self.ui.refRRFCheckBox.checkState()!=0
+            rrf=True      # _rrf.txt is always written (owner, 2026-11-26), so is its sidecar
             ref,rrfcd=ce.finish(chain.covdata('legacy'),self.refQc,self.refQoff,nf,rrf)
             written=[]
             if np.array_equal(ref.array(),np.asarray(self.normRefData,dtype=float)[:,:3]):
@@ -8819,8 +8857,6 @@ class MainWindow (QMainWindow):
             kw.append('qoff=%r' % float(self.ui.refQoffLineEdit.text()))
         if self.ui.refNormFacCheckBox.checkState()!=0:
             kw.append('norm_factor=%r' % float(self.ui.refNormLineEdit.text()))
-        if self.ui.refRRFCheckBox.checkState()==0:
-            kw.append('rrf=False')
         if getattr(self,'refMaskUsed',None):
             kw.append('mask=%r' % [list(sp) for sp in self.refMaskUsed])
         if self.refDrops:
@@ -9581,6 +9617,164 @@ class MainWindow (QMainWindow):
         lw.blockSignals(False)
         lw.scrollToItem(lw.item(rows[0]))
         lw.itemSelectionChanged.emit()
+
+    # ---- F112 (owner, 2026-11-26): the plot options of each tab ----
+
+    def initPlotOptions(self):
+        """'Plot options...' at the right of the tab bar: the options of the
+        plots of the tab on show (plotoptions.PlotOptionsDialog), kept per tab
+        between sessions (preference plot_options) and applied by the
+        canvases at every draw (mplwidget.apply_plot_options)."""
+        from PyQt5.QtWidgets import QToolButton
+        b=QToolButton(self)
+        b.setObjectName('plotOptionsToolButton')
+        b.setText('Plot options...')
+        b.clicked.connect(self.showPlotOptions)
+        self.ui.PlotWidget.setCornerWidget(b,Qt.TopRightCorner)
+        b.show()
+        self.plotOptionsButton=b
+        self.plotOptionsDialog=None
+        self.registerPlotCanvases()
+        self.ui.PlotWidget.currentChanged.connect(self.plotOptionsTabChanged)
+        self.plotOptionsTabChanged()
+
+    def plotTabKey(self,i=None):
+        pw=self.ui.PlotWidget
+        i=pw.currentIndex() if i is None else i
+        page=pw.widget(i)
+        return page.objectName() if page is not None and page.objectName() else pw.tabText(i)
+
+    def plotTabCanvases(self,i):
+        """The canvases the options of tab ``i`` apply to (not the ROI close-up, a compact panel)."""
+        from mplwidget import MplCanvas
+        page=self.ui.PlotWidget.widget(i)
+        if page is None:
+            return []
+        return [c for c in page.findChildren(MplCanvas) if c.objectName()!='pilRoiCanvas']
+
+    def registerPlotCanvases(self):
+        """The tabs' canvases take their tab's options; matplotlib's own
+        "Customize" icon leaves their toolbars (owner, 2026-11-26: one entry,
+        Plot options; its editor is "Axes and curves..." inside it). Other
+        windows' toolbars (Ref Patch, the burn test) keep it."""
+        for i in range(self.ui.PlotWidget.count()):
+            key=self.plotTabKey(i)
+            for c in self.plotTabCanvases(i):
+                c.plot_options=(lambda k=key: self.plotOptions(k))
+                tb=getattr(c,'toolbar',None)
+                act=getattr(tb,'_actions',{}).get('edit_parameters') if tb is not None else None
+                if act is not None:
+                    act.setVisible(False)
+
+    def plotTabAxes(self,key):
+        """The plots of tab ``key`` as (plot id, name, axes): every drawn axes
+        of its canvases but colour bars and the residual strips (the plot id
+        keys a plot's entry in the options, F114)."""
+        import mplwidget
+        out=[]
+        for i in range(self.ui.PlotWidget.count()):
+            if self.plotTabKey(i)!=key:
+                continue
+            for c in self.plotTabCanvases(i):
+                for k,ax in enumerate(mplwidget.main_axes(c.figure)):
+                    what=mplwidget.drawn_text(ax.yaxis.label) or mplwidget.drawn_text(ax.title) or 'untitled'
+                    what=' '.join(str(what).split())[:50]
+                    out.append((mplwidget.plot_id(c.plot_name(),k),'Plot %d: %s' % (len(out)+1,what),ax))
+        return out
+
+    def plotOptions(self,key):
+        return (self.prefs.get('plot_options') or {}).get(key)
+
+    def setPlotOptions(self,key,opts):
+        """Keep tab ``key``'s options (all 'as drawn': none kept) and redraw its plots."""
+        import copy
+        import mplwidget
+        allopts=copy.deepcopy(self.prefs.get('plot_options') or {})
+        if mplwidget.plot_options_set(opts):
+            allopts[key]=copy.deepcopy(dict(opts))   # never the window's own objects: an edit in place would not be saved
+        else:
+            allopts.pop(key,None)
+        self.setPreference('plot_options',allopts)
+        self.plotOptionsTabChanged()
+        for i in range(self.ui.PlotWidget.count()):
+            if self.plotTabKey(i)==key:
+                for c in self.plotTabCanvases(i):        # what ax.clear() would keep of the earlier choice
+                    mplwidget.reset_plot_options(c.figure)
+                self.redrawPlotTab(i)
+
+    def copyPlotOptionsToAllTabs(self,opts):
+        """F114: the tab-wide options of ``opts`` to every tab with plots;
+        each keeps its own plots' entries (labels, ranges, curves)."""
+        for i in range(self.ui.PlotWidget.count()):
+            if not self.plotTabCanvases(i):
+                continue
+            key=self.plotTabKey(i)
+            mine=dict(self.plotOptions(key) or {})
+            new=dict(opts)
+            new['plots']=mine.get('plots') or {}
+            self.setPlotOptions(key,new)
+
+    def redrawPlotTab(self,i):
+        """Redraw tab ``i``'s plots by the tab's own drawing, when it shows
+        something (so that 'as drawn' undoes a choice), else the canvases as
+        they are."""
+        key=self.plotTabKey(i)
+        redraws={
+            'specPlotTab':(lambda: bool(getattr(self,'selectedScanNums',None)),self.updateSpecPlotData),
+            'pilatusTab':(lambda: bool(getattr(self,'selectedPilFramesNums',None)),self.updatePilPlotData),
+            'refTab':(lambda: len(getattr(self,'refData',[]) or [])>0,self.updateRefPlotData),
+            'cutAreaTab':(lambda: len(getattr(self,'cutData',[]) or [])>0,self.updateCutPlotData),
+            'mcaTab':(lambda: bool(getattr(self,'selectedMcaScanNums',None)),self.updateMcaPlotData),
+            'tab_3':(lambda: bool(getattr(self,'selectedplotfiles_rows',None)),self.updatePlotPlot),
+            'compareTab':(lambda: True,lambda: self.refreshCompare(force=True)),
+        }
+        done=False
+        if key in redraws:
+            when,how=redraws[key]
+            try:
+                if when():
+                    how()
+                    done=True
+            except Exception:
+                self.log.exception('plot options: the %s tab was not redrawn',key)
+        if key=='mcaTab' and len(getattr(self,'mcaIntData',[]) or [])>0:
+            try:
+                self.updateMcaIntPlot()
+            except Exception:
+                self.log.exception('plot options: the MCA integrals were not redrawn')
+        for c in self.plotTabCanvases(i):
+            c.draw_idle()
+        return done
+
+    def plotOptionsTabChanged(self,*_a):
+        b=getattr(self,'plotOptionsButton',None)
+        if b is None:
+            return
+        i=self.ui.PlotWidget.currentIndex()
+        has=bool(self.plotTabCanvases(i))
+        b.setEnabled(has)
+        name=self.ui.PlotWidget.tabText(i)
+        set_=self.plotOptions(self.plotTabKey(i))
+        b.setText('Plot options...' + (' *' if set_ else ''))
+        b.setToolTip(('The plots of the %s tab: font size, major and minor ticks, tick direction, ticks on all '
+                      'sides, grid (F112). Each tab keeps its own, between sessions; "as drawn" leaves a plot as '
+                      'the reader draws it. %s' % (name,'* : some are set for this tab.' if set_ else ''))
+                     if has else 'The %s tab has no plots to set.' % name)
+        d=getattr(self,'plotOptionsDialog',None)
+        if d is not None and d.isVisible() and has and d.key!=self.plotTabKey(i):   # another tab: its options
+            d.target(self.plotTabKey(i),name,mpl.rcParams['font.size'])
+
+    def showPlotOptions(self):
+        from plotoptions import PlotOptionsDialog
+        self.registerPlotCanvases()             # canvases made since
+        if self.plotOptionsDialog is None:
+            self.plotOptionsDialog=PlotOptionsDialog(self,self.plotOptions,self.setPlotOptions,self.plotTabAxes,
+                                                     self.copyPlotOptionsToAllTabs)
+        i=self.ui.PlotWidget.currentIndex()
+        self.plotOptionsDialog.target(self.plotTabKey(i),self.ui.PlotWidget.tabText(i),mpl.rcParams['font.size'])
+        self.plotOptionsDialog.show()
+        self.plotOptionsDialog.raise_()
+        return self.plotOptionsDialog
 
     # ---- F74 (owner, 2026-11-22): residuals above the plots that show a fit ----
 
@@ -10458,7 +10652,7 @@ class MainWindow (QMainWindow):
         items=[dict(scans=scans,data=d,columns=cols,label='R',settings=settings,
                     recipe=self.recipe(self.reflectivityScript))]
         rrf=getattr(self,'RrfData',None)
-        if rrf is not None and len(rrf):
+        if rrf is not None and len(rrf) and self.ui.refRRFCheckBox.checkState()!=0:   # saved while R/RF is ticked
             r=np.asarray(rrf,float)
             items.append(dict(scans=scans,data=r,columns=['Qz','R/RF','d(R/RF)','dQz'][:r.shape[1]],label='R/RF'))
         return items

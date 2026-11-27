@@ -16,7 +16,8 @@ are that run's own (the same seeds), so the bias found here equals the committed
 checks this.
 
 **Names.** The reader's line fit comes in three versions here:
-- the ***Poisson fit***, its default;
+- the ***Poisson fit***, its default when this ran (since 2026-11-26 the default also removes the
+  escapes: F110);
 - ***+ escapes removed***: the Si escape peaks subtracted before the fit;
 - ***+ fixed width***: the line's width held at the detector's resolution.
 
@@ -75,7 +76,7 @@ does not know which counts are line and which are scatter.
 ![W3](walkthrough/W3_fit_and_residuals.png)
 
 **The reader's fit.** In the line window: one Gaussian (the line) on a quadratic (the scatter), fitted by
-**Poisson likelihood**: the *Poisson fit*, the reader's default. The likelihood asks how probable these exact counts are if
+**Poisson likelihood**: the *Poisson fit*, the reader's default when this ran. The likelihood asks how probable these exact counts are if
 the model is the truth; the fit moves the Gaussian's height, centre and width and the quadratic's
 three numbers to make it as probable as possible. The line's photons are the Gaussian's area,
 divided by **k**, the fraction of a line's photons this fit finds on a clean, noise-free copy of

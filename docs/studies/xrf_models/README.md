@@ -34,9 +34,9 @@ statistic in plain words, and ends with how sure each verdict is. The shootout's
 | the floor | how far apart two draws of one truth land in the shootout: the test's own noise |
 | ratio | line photons / background counts in the line window (0.1, 0.3, 1, 3) |
 | accurate | \|bias\| ≤ max(2 %, 2 × its standard error), over 500 spectra |
-| Poisson fit | the reader's line fit ("Fit lines") by Poisson likelihood, its default (F90's P1) |
-| + fixed width | the line's width held at the detector's resolution (an option; F90's P2) |
-| + escapes removed | the Si escape peaks of everything above subtracted before the fit (an option; F90's P3) |
+| Poisson fit | the reader's line fit ("Fit lines") by Poisson likelihood (F90's P1); the default when this ran |
+| + fixed width | the line's width held at the detector's resolution (an option, off by default; F90's P2) |
+| + escapes removed | the Si escape peaks of everything above subtracted before the fit (F90's P3): an option when this ran, on by default since 2026-11-26 (F110) |
 | generator defaults, Gaussian detector, full model | the three scatter models (1a) |
 | 9.2 keV blank a | a public blank: `tests/reference/mca_scatter/E9.2-a.csv` (beam energy, then the letter) |
 

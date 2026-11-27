@@ -42,11 +42,28 @@ On your own machine (same platform as the build you want):
   were identical to the reference. Downloads: `LSS_Reader-Windows` 129 MB and `LSS_Reader-macOS` 292 MB
   (zipped), kept until 2027-02-24. The sample-data download is added from the next run on. Not yet done:
   the clean-PC test below (a person on a Windows PC without Python).
+- **2026-11-26, the build to ship** (main at ce38cf4, run 45879045324, at main man's request: after F110,
+  the open-time lock, the crash and export fixes, the export rule and F112): **Windows built and passed its
+  self-test** (window with 9 tabs, `_ref.txt` and `_rrf.txt` identical); downloads `LSS_Reader-Windows`
+  129 MB and `LSS_Reader-sample-data` (304 files). macOS: GitHub had no macOS runner free for 15 min
+  ("not acquired by Runner"); re-run, it **built and passed its self-test too** (`LSS_Reader-macOS`
+  292 MB). The clean-PC test should use the next run's download (it adds #132 and #135).
+- **2026-11-27, the build for the tag** (main at cc599e4, run 45918527279, started by main man at the owner's
+  request while tools man was busy): after #132 (index numbers) and #135 (Plot options takes the Customize
+  editor). Windows and macOS built and passed the self-test: window with 9 tabs, `_ref.txt` and `_rrf.txt`
+  identical. Downloads kept to 2027-02-25. The owner tags `v2.0.0` on cc599e4.
+- **Near-clean test, the owner's PC** (project manager, 2026-11-26, run 45751301360's Windows build): Python
+  off PATH, every `PYTHON*`, `CONDA*` and `QT_*` variable unset. The self-test passed in 9 s, and a plain
+  start showed the window in 4 s and closed cleanly. Not a truly clean PC: Python and the Visual C++
+  runtimes are installed there.
 
 ## Clean-PC test (release blocker 4, `docs/RELEASE_PLAN.md`)
 
-Done by a person on a Windows PC that has never had Python or the reader on it. A Windows Sandbox (a
-throwaway clean Windows: Settings → Optional features → Windows Sandbox) is as good.
+Done by a person on a Windows PC that has never had Python or the reader on it: a beamline PC or a
+spare laptop. **Do not use Windows Sandbox on the owner's PC** (project manager, 2026-11-26/27: enabling and
+running it there was followed by an unexpected shutdown, then a hard freeze that left half-written files as
+zeros and a startup disk the PC could not find until the owner repaired it; no test result came out;
+`docs/RELEASE_PLAN.md`, blocker 4).
 
 1. **Download** both zip files from the build run's page (Actions → build → the run → Artifacts):
    `LSS_Reader-Windows` (the program) and `LSS_Reader-sample-data` (the NX school data and the reference

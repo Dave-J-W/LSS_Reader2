@@ -53,16 +53,17 @@ COLOR = {'p1': '#2a78d6', 'pymca': '#eb6834', 'pymca_best': '#eb6834', 'larch': 
 # Names a reader can follow without a key (owner, 2026-11-25: "rename things with names like 'P1' and
 # 'p1 + p2' and anything else written in cryptic fashion"). The ids on the left stay what the run files
 # use; F90's option numbers were P1 (Poisson likelihood), P2 (width fixed at the detector's resolution)
-# and P3 (Si escape peaks removed before the fit).
+# and P3 (Si escape peaks removed before the fit). The default when these studies ran was the Poisson
+# fit alone; since 2026-11-26 (F110) it is the Poisson fit + escapes removed, its width from the sum.
 LABEL = {'window': 'reader: window sum', 'fit_data': 'reader: fit with the old data weights',
-         'p1': 'reader: Poisson fit (the default)',
+         'p1': 'reader: Poisson fit (the default when this ran)',
          'p1p2p3': 'reader: Poisson fit + fixed width + escapes removed', 'p1p2': 'reader: Poisson fit + fixed width',
-         'p1p3': 'reader: Poisson fit + escapes removed', 'xeray': 'XeRay (port)', 'pymca': 'PyMca',
+         'p1p3': 'reader: Poisson fit + escapes removed (the default since 2026-11-26)', 'xeray': 'XeRay (port)', 'pymca': 'PyMca',
          'pymca_tails': 'PyMca with detector tails', 'pyxrf': 'PyXRF (scikit-beam)', 'larch': 'Larch (whole series)',
          'larch_each': 'Larch (each spectrum alone)', 'pymca_snip60': 'PyMca, SNIP background 60',
          'pymca_snip100': 'PyMca, SNIP background 100', 'pymca_poly': 'PyMca, polynomial background',
          'pymca_best': 'PyMca, best of 5 settings (picked with the truth)'}
-SHORT = {'window': 'window sum', 'fit_data': 'fit, old weights', 'p1': 'Poisson fit (default)',
+SHORT = {'window': 'window sum', 'fit_data': 'fit, old weights', 'p1': 'Poisson fit',
          'p1p2p3': 'Poisson fit + fixed width + escapes removed', 'p1p2': 'Poisson fit + fixed width',
          'p1p3': 'Poisson fit + escapes removed', 'xeray': 'XeRay',
          'pymca': 'PyMca', 'pymca_tails': 'PyMca with tails', 'pyxrf': 'PyXRF', 'larch': 'Larch',
@@ -1033,6 +1034,8 @@ def main(argv=None):
     ap.add_argument('--run', default=os.path.join('docs', 'studies', 'xrf_shootout', 'run'))
     ap.add_argument('--out', default=os.path.join('docs', 'studies', 'xrf_shootout'))
     ap.add_argument('--only', default=None, help='comma-separated figure numbers, e.g. 1,3 (b: blanks_tables.md)')
+    ap.add_argument('--check', default=os.path.join('docs', 'studies', 'xrf_shootout', 'physics_check.csv'),
+                    help="xrf_tables.py --check's table, for X7 (an input)")
     ap.add_argument('--blanks', default=','.join(os.path.join('docs', 'studies', 'xrf_shootout', f)
                                                  for f in ('run_blanks', 'run_blanks_options')),
                     help="xrf_blanks.py's run folder, for X10, X11 and blanks_tables.md (skipped when absent)")
@@ -1044,7 +1047,7 @@ def main(argv=None):
     figs = {'1': lambda: fig_scoreboard(a.run, a.out), '2': lambda: fig_counts(a.run, a.out),
             '3': lambda: fig_xfntr(a.run, a.out), '4': lambda: fig_honesty(a.run, a.out),
             '5': lambda: fig_wins(a.run, a.out), '6': lambda: fig_anatomy(a.out),
-            '7': lambda: fig_compton(a.out, os.path.join(a.out, 'physics_check.csv')),
+            '7': lambda: fig_compton(a.out, a.check),
             '8': lambda: fig_speed(a.run, a.out), 't': lambda: write_tables(a.run, a.out),
             '9': lambda: fig_blank_example(a.out), '10': lambda: fig_blank_bias(a.blanks, a.out),
             '11': lambda: fig_blank_scoreboard(a.blanks, a.out), 'b': lambda: write_blank_tables(a.blanks, a.out),

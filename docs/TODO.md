@@ -1,8 +1,8 @@
 # To do
 
-**Release push (owner, 2026-11-25):** until Reader 2.0 is tagged, the work
-list is `RELEASE_PLAN.md` (release blockers only). The lists below are the
-backlog for after 2.0; the B2 decisions are parked there too.
+**Reader 2.0 is released** (tag `v2.0.0`, 2026-11-27). The release push is over: `RELEASE_PLAN.md`'s
+"After 2.0" list and the lists below are the backlog; the B2 decisions are parked there. Rules 12 and 13
+stay paused (owner, 2026-11-27).
 
 Current phase before the push: **implementation**, following `SCOPE.md`. The owner gave the
 go-ahead on 2026-11-17 ("begin the implementation plan").
@@ -37,7 +37,7 @@ working list, one table per area, each row with its source. Rows marked
 
 | Item | Source |
 |---|---|
-| Final defaults from many data sets (distance, response, joins): **survey done 2026-11-24** (`docs/studies/gid_method_survey/`): proposed `beam` response and per-set distance calibration when reliable, joins kept; the switch needs rule 12 (tests, demonstrator). Also found: 18 sets the pinhole patch cannot join (a middle level not overlapping in β); `KeyError: 'monc'` on a one-point Det_Th scan | hand-off 06; input 19 |
+| Final defaults from many data sets (distance, response, joins): **survey done 2026-11-24** (`docs/studies/gid_method_survey/`): proposed `beam` response and per-set distance calibration when reliable, joins kept; the switch needs rule 12 (tests, demonstrator). Also found: 18 sets the pinhole patch cannot join (a middle level not overlapping in β; 16 really have a gap, and the opt-in stopgap `unmatched_levels='unscaled'` patches 15 of them, 2026-11-26, `docs/studies/gid_unscaled_seams/`; the 16th fails on a zero-size array in the join, open); `KeyError: 'monc'` on a one-point Det_Th scan | hand-off 06; input 19 |
 | ~~Scan join against everything joined so far~~ **done 2026-11-22** (P41) | P41 |
 | Stray light, streak mask, background frames: sizes measured on 94 private level pairs (2026-11-24, `docs/studies/gid_stray_light/`); background frames still to be taken at a beamtime | P40; input 17 |
 | Exact angles for cut axes, display, distance fit | P38 remainder |

@@ -18,12 +18,12 @@ Made by `python tests/tools/ngui_screens.py` (do not edit by hand). The window i
 | [`08_retired_controls.png`](08_retired_controls.png) | Help > Retired controls: what the layout drops, with the reasons | 1100 × 700 |
 | [`09_file_export.png`](09_file_export.png) | File > Export…: the only route to exporting (D61) | 460 × 560 |
 | [`10_legacy_reflectivity.png`](10_legacy_reflectivity.png) | Reflectivity > Check frames…: the point-by-point path behind one button (question 13) | 560 × 520 |
-| [`11_preferences.png`](11_preferences.png) | File > Preferences…: what stays in the dialog | 480 × 597 |
+| [`11_preferences.png`](11_preferences.png) | File > Preferences…: what stays in the dialog | 480 × 1802 |
 | [`20_left_selection_panel.png`](20_left_selection_panel.png) | Close-up: the selection panel (series, scans, frames with the display mode, background frames folded) | 250 × 823 |
 | [`21_left_scans.png`](21_left_scans.png) | Close-up: the Scans tab's left column, every group open | 336 × 803 |
 | [`22_left_frames.png`](22_left_frames.png) | Close-up: the Frames tab's left column, every group open | 322 × 988 |
 | [`23_left_burn.png`](23_left_burn.png) | Close-up: the Burn tab's left column, every group open | 336 × 803 |
 | [`24_left_reflectivity.png`](24_left_reflectivity.png) | Close-up: the Reflectivity tab's left column, every group open | 322 × 966 |
-| [`25_left_gid.png`](25_left_gid.png) | Close-up: the GID tab's left column, every group open | 430 × 1077 |
+| [`25_left_gid.png`](25_left_gid.png) | Close-up: the GID tab's left column, every group open | 430 × 1105 |
 | [`26_left_fluorescence.png`](26_left_fluorescence.png) | Close-up: the Fluorescence tab's left column, every group open | 322 × 810 |
 | [`27_left_files.png`](27_left_files.png) | Close-up: the Files tab's left column, every group open | 336 × 803 |

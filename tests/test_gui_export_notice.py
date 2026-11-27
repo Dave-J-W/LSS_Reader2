@@ -37,12 +37,12 @@ def test_the_reflectivity_export_says_what_it_wrote_and_replaced(loaded, qapp, r
     w.ui.refExportPushButton.click()                                   # the same name again
     said = [m for m in recorder.messages if m.startswith('Exported')]
     assert 'replaced the earlier film_ref.txt, film_rrf.txt' in said[0]
-    w.ui.refRRFCheckBox.setChecked(False)                             # no R/R_F of the curve on show
+    w.ui.refRRFCheckBox.setChecked(False)                             # both files still (owner, 2026-11-26)
     qapp.processEvents()
     recorder.messages.clear()
     w.ui.refExportPushButton.click()
     said = [m for m in recorder.messages if m.startswith('Exported')]
-    assert 'film_ref.txt' in said[0] and 'No _rrf.txt' in said[0] and 'tick R/RF' in said[0] and 'is an earlier one' in said[0]
+    assert 'film_ref.txt, film_rrf.txt' in said[0] and 'No _rrf.txt' not in said[0]
     assert recorder.exceptions == []
 
 

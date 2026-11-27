@@ -411,7 +411,11 @@ a Gaussian beam (`beam_fwhm_um`, `beam_centre_mm` fitted unless given;
 `gid.joins`, each with `applied`). `GIDParams(response='beam')` fits the pinhole response along the beam axis
 instead of per column (for a narrow beam); `gid.info['levels'][k]` then has
 `beam` (profile, centre and FWHM on the sample, mm) and, always,
-`two_theta_resolution_deg`. `gid.joins` is the worksheet's join table, `gid.levels` its level list,
+`two_theta_resolution_deg`. `GIDParams(unmatched_levels='unscaled')` (a
+stopgap, 2026-11-26) joins a level that shares no β with the levels below as
+collected instead of refusing; `gid.unscaled_seams` lists each such seam (β gap,
+the intensity ratio across it) and `gid.save` then writes a `#` line saying so
+(tradeoffs: `docs/studies/gid_unscaled_seams/summary.md`). `gid.joins` is the worksheet's join table, `gid.levels` its level list,
 `gid.info` the pinhole details. "Save GID" writes the equivalent call to
 the Script pane; running it writes the same files byte for byte (both
 geometries, both axes, relaxed grid, typed columns, some frames:

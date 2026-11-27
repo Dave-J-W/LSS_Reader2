@@ -7,7 +7,11 @@ scatter measured on the owner's blanks (`docs/studies/mca_scatter`),
 which define the "measured" conditions. **Section 10 uses the real
 blanks themselves**, with synthetic lines of known photons added.
 **Section 11 uses real lines in real scatter** (the private burn series;
-summary values only). No default of the reader was changed.
+summary values only). No default of the reader was changed by this study.
+
+**Since 2026-11-26 the reader's default fit is this study's *Poisson fit + escapes removed*** (its width from the series' sum; F110, the owner). Below, "the default" means the default when the study ran: the *Poisson fit* alone.
+
+**Larch was given the beam in eV, not keV** (found 2026-11-26): it then models lines the beam cannot excite, so its numbers here are wrong wherever an edge sits above the beam (Lu L +7900 %, As beside Pb −680 %); `docs/RELEASE_PLAN.md`, After 2.0, has the fix and what tuning does.
 
 - **New to this study? `walkthrough.md`** follows one test from the raw spectrum to the verdict:
   the fit over its data with residuals, 500 spectra turned into a bias, pulls and the "accurate"
@@ -33,7 +37,7 @@ right shape, and honest error bars.
 |---|---|---|
 | reader | window | Sum All over the line window (line ± 2 FWHM) |
 | reader | fit, old weights | "Fit lines", Gaussian on a quadratic in the line window, data weights (the default before 2026-11-24) |
-| reader | **Poisson fit (default)** | the same fit by Poisson likelihood (the default since 2026-11-24) |
+| reader | **Poisson fit** | the same fit by Poisson likelihood (the default from 2026-11-24 to 26) |
 | reader | Poisson fit + fixed width + escapes removed | Poisson fit, width fixed at the detector's (Fano 0.115), Si escapes stripped (the reader's options) |
 | others | XeRay | MATLAB tool of the Lee group (U. Chicago) for XFNTR; ported line for line: Gaussian on a line, unweighted |
 | others | PyMca 5.9.7 | whole-spectrum fit: all lines, Rayleigh and Compton peaks, escapes, SNIP background; five settings |
@@ -74,7 +78,7 @@ right shape, and honest error bars.
 |---|---|---|
 | reader: window | 2 | 43 |
 | reader: fit, old weights | 9 | 23 |
-| **reader: Poisson fit (default)** | **11** | 23 |
+| **reader: Poisson fit** | **11** | 23 |
 | **reader: Poisson fit + fixed width + escapes removed** | **13** | 24 |
 | XeRay | 11 | 43 |
 | PyMca, default (SNIP 30) | 7 | 43 |
@@ -136,7 +140,7 @@ should be 1. Medians over the conditions where fits do not fail:
 | Method | Median pull SD | Range | Reads as |
 |---|---|---|---|
 | Poisson fit + fixed width + escapes removed | 1.03 | 0.98–1.22 | honest |
-| Poisson fit (default) | 1.07 | 0.99–1.33 (4.8 for Ga beside Zn, where the fit takes the wrong line) | honest |
+| Poisson fit | 1.07 | 0.99–1.33 (4.8 for Ga beside Zn, where the fit takes the wrong line) | honest |
 | fit, old weights | 1.13 | 1.01–1.3 (4.9 for Ga beside Zn) | slightly small |
 | PyMca | 1.58 | 1.0–2.05 | 1.3–2× too small under scatter |
 | XeRay | 1.92 | 1.0–11.7 | √(counts in the line window) leaves out the background's uncertainty |
@@ -225,7 +229,7 @@ reader failing 66 % of fits.
 | hard, 12 keV | **+0.0 %** | −0.8 % | +1.3 % (SNIP 100; default −8.8 %) | −11 % | −0.7 % |
 | measured detector, 12 keV | **−0.2 %** | −5.5 % | +10 % (default −16 %) | **−1.2 %** | −2.7 % |
 
-**Moving the beam to 12 keV makes the reader's default accurate. PyMca
+**Moving the beam to 12 keV makes the Poisson fit accurate. PyMca
 is accurate there only with the right background setting, which nobody
 can choose without the truth.**
 
@@ -288,7 +292,7 @@ X11):
 | Poisson fit + escapes removed (free width) | **49** | 2.2 % | 1.08 |
 | Poisson fit + fixed width + escapes removed | 47 | 2.3 % | 1.01 |
 | fit, old weights | 33 | 5.0 % | 1.11 |
-| Poisson fit (default) | 31 | 4.9 % | 1.06 |
+| Poisson fit | 31 | 4.9 % | 1.06 |
 | Poisson fit + fixed width | 25 | 4.0 % | 0.98 |
 | PyMca, best single setting (tails) | 20 | 6.4 % | 1.79 |
 | PyMca (default) | 17 | 7.0 % | 1.56 |
@@ -370,7 +374,7 @@ checks that need none. Only summary values per series are published
 
 | Method | 27–58 counts (9 series) | 220–250 (2) | 1700–4500 (8) | Pull SD (twins) |
 |---|---|---|---|---|
-| Poisson fit (default) | −7 to −25 % | −0.2 to −0.7 % | −0.1 to +0.4 % | 0.99 (4.8 on one) |
+| Poisson fit | −7 to −25 % | −0.2 to −0.7 % | −0.1 to +0.4 % | 0.99 (4.8 on one) |
 | Poisson fit + escapes removed | −6 to −25 % | −0.2 to −0.8 % | 0.0 to +0.4 % | 0.99 |
 | **Poisson fit + fixed width + escapes removed** | **−2 to −7.5 %** | −2.0 to −3.7 % | −2.1 to +0.4 % | **1.02** (0.95–1.11) |
 | PyMca | −12.5 to +13 % | −22 to −23 % | −2.4 to −6.3 % | 1.03 (0.53–1.63) |
@@ -444,8 +448,7 @@ on the beamline is what would settle which absolute number is right.
 
 ## What would close the gaps
 
-These are suggestions, not done. By rule 12 a default changes only with
-its own study.
+These were suggestions when written (2026-11-25); one is done since.
 
 - **Known neighbours in the line window**: place the tabulated lines of the
   other elements present at fixed energies, with the same width. Study
@@ -454,8 +457,8 @@ its own study.
 - **Use Kβ and a lighter background when the line window is clean**: a linear
   background option, or a joint Kα+Kβ fit at the tabulated ratio. That
   would win back the precision.
-- **Escape removal on by default**, once rule 12's steps are
-  done: on the real blanks it is what separates the reader's methods
+- **Escape removal on by default**: **done 2026-11-26** (F110, the owner, with the width from the sum).
+  On the real blanks it is what separates the reader's methods
   (*Poisson fit* 31 conditions, *Poisson fit + escapes removed* 49). It needs the detector's escape factor,
   which `docs/studies/mca_scatter` measured per readout.
 - **The fixed width taken from the line itself**: on the real series the line is

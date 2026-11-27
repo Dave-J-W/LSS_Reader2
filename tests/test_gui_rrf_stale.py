@@ -32,11 +32,9 @@ def test_no_stale_rrf_after_unticking(loaded, qapp, recorder, tmp_path):
     recorder.save_name = str(tmp_path / 'film')
     w.ui.refExportPushButton.click()
     ref = np.loadtxt(str(tmp_path / 'film_ref.txt'))
-    import os
-    if os.path.exists(str(tmp_path / 'film_rrf.txt')):
-        rrf = np.loadtxt(str(tmp_path / 'film_rrf.txt'))
-        rf = w.fresnel(ref[:, 0] + w.refQoff, w.refQc)
-        assert rrf[:, 1] == pytest.approx(ref[:, 1] / rf, rel=1e-3)    # the R/R_F of this curve
+    rrf = np.loadtxt(str(tmp_path / 'film_rrf.txt'))                  # always written (owner, 2026-11-26)
+    rf = w.fresnel(ref[:, 0] + w.refQoff, w.refQc)
+    assert rrf[:, 1] == pytest.approx(ref[:, 1] / rf, rel=1e-3)        # the R/R_F of this curve
     items = w.refWorkbookItems()
     for it in items:
         if it['label'] == 'R/RF':

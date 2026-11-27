@@ -18,11 +18,21 @@ while true; do
       if [ -z "$old" ]; then
         echo "NEW ISSUE #$n ($st, $c comments): $t"
       elif [ "$old" != "$c" ]; then
-        last=$(gh api "repos/$REPO/issues/$n/comments?per_page=100" --jq '.[-1] | "\(.created_at): \(.body[0:120] | gsub("\n";" "))"' 2>/dev/null || echo "?")
+        page=$(( (c + 99) / 100 )); [ "$page" -ge 1 ] || page=1      # the last page: past 100 comments, page 1 is stale
+        last=$(gh api "repos/$REPO/issues/$n/comments?per_page=100&page=$page" --jq '.[-1] | "\(.created_at): \(.body[0:120] | gsub("\n";" "))"' 2>/dev/null || echo "?")
         echo "ISSUE #$n comments $old -> $c ($st): $t | latest: $last"
       fi
     done < "$S/now.tsv"
     cut -f1,2 "$S/now.tsv" > "$S/counts.new" && [ -s "$S/counts.new" ] && mv "$S/counts.new" "$S/counts"
+  fi
+  # pull requests opened and merged between two polls never show as open: list the newest of every state too
+  if gh api "repos/$REPO/pulls?state=all&sort=created&direction=desc&per_page=20" > "$S/pr_all.json" 2>/dev/null; then
+    jq -r '.[] | "\(.number)\t\(.head.ref)\t\(.state)\t\(.merged_at // "")\t\(.title)"' "$S/pr_all.json" | while IFS=$'\t' read -r n ref st m t; do
+      if ! grep -qx "$n" "$S/prs"; then
+        echo "$n" >> "$S/prs"
+        echo "NEW PR #$n ($ref, $st${m:+, merged $m}): $t"
+      fi
+    done
   fi
   if gh api "repos/$REPO/pulls?state=open&per_page=100" > "$S/pr.json" 2>/dev/null; then
     jq -r '.[] | "\(.number)\t\(.head.ref)\t\(.head.sha[0:7])\t\(.title)"' "$S/pr.json" | while IFS=$'\t' read -r n ref sha t; do

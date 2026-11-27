@@ -1,9 +1,12 @@
-# Hand-off: the XRF studies (C65–C69), 2026-11-25 (written 15:25 CST, updated 16:30)
+# Hand-off: the XRF studies (C65–C69), written 2026-11-25, updated 2026-11-27
 
 For this session after a pause or a context compaction, or for whoever takes the XRF work over. Read
 `AGENTS.md` first. This page says where the work stands, what is next, and the traps that have already
-cost time. Written at the owner's request ("pause and write a handoff"); the session paused 15:22–16:20 CST
-on a timer and resumed on time.
+cost time. First written at the owner's request ("pause and write a handoff").
+
+**Where it stands (2026-11-27):** Reader 2.0 is released; rules 12 and 13 stay paused. The XRF work is on
+the backlog: `docs/RELEASE_PLAN.md`, "After 2.0", item "Refine the XRF shootout (C65–C69)", which holds the
+pathology tool, the misfit finding and the Larch findings below. Nothing XRF is in progress.
 
 ## Who and where
 
@@ -15,7 +18,7 @@ on a timer and resumed on time.
 - **The private bundle** is decrypted under `sample_data/private/` (git-ignored). Never commit anything
   under `sample_data/private/` or `sample_data/bu/`; never write the decryption key anywhere.
 
-## What exists (all on `origin/main` up to 324ff84, pushed 2026-11-25)
+## What exists (all on `origin/main`)
 
 | Id | Study | Where |
 |---|---|---|
@@ -46,28 +49,55 @@ Committed together with this hand-off, after main's 13 commits of the pause were
   systematic of the fixed width over real scatter.
 - The models README gained a glossary and a pointer to the walkthrough; the shootout's `summary.md` and
   `README.md` link theirs; catalogue item `xrf_walkthrough` (TOOLS.md rendered);
-  `tests/test_xrf_walkthrough.py` (4 tests, passing, mutation-checked: a changed number in either
+  `tests/test_xrf_walkthrough.py` (passing, mutation-checked: a changed number in either
   walkthrough fails them).
 
-## Next, in order
+## Since then (2026-11-25 to 27)
 
-1. **Before any new commit:** `git fetch origin` and `git rev-list --count HEAD..origin/main`; if main
-   moved, merge it and check the ledgers for numbering clashes (`COMPARISONS.md`: our rows are C65–C69).
-   The quick suite fails 7 known tests on this PC, on clean main too:
-   `test_ngui::test_window_builds_with_every_placed_control`, `test_gui_menus::test_documentation_opens_the_scripting_guide`,
-   `test_paths` ×2, `test_test_infrastructure::test_auto_workers_fit_the_cpus_and_the_memory`,
-   `test_toolbox_gui` ×2.
-2. **Ask the owner before pushing** (they said "Push" once, for the earlier commits only).
-3. Still owed to the owner: **a polished PDF report** of the XRF work ("can wait until more work is done").
-4. Proposed, not built: `tests/synthetic/mca_scatter_bank.py` (part 3's recommended scatter generator,
+- **Plain names, not codes** (the owner: "rename things with names like 'P1' and 'p1 + p2' and anything
+  else written in cryptic fashion"). The figures, tables and docs say *Poisson fit*, *+ escapes removed*,
+  *+ fixed width* (F90's P1, P3, P2), single-element and 7-element detector (not readout A/B), "9.2 keV blank
+  a" (not E9.2-a), and conditions in words. One label table in `tests/tools/xrf_shootout_figures.py` (`SHORT`,
+  `LABEL`, `READOUT`, `blank_name`, `cond_name`, `SERIES`) feeds all three figure tools. Two tests in
+  `tests/test_xrf_walkthrough.py` fail if a code comes back. The run files keep their ids.
+- **F110 changed the reader's default** (2026-11-26, the owner): Fit lines is now this study's *Poisson fit +
+  escapes removed*, with the width from the series' sum. The studies describe the default when they ran (the
+  *Poisson fit* alone); each document says so in one line, and the labels no longer call it "the default".
+- **Larch was given the beam in eV, not keV** (found 2026-11-26). `xrf_shootout._larch_model` passes
+  `1000 × energy`; Larch's model takes keV, so it models lines the beam cannot excite. The committed Larch
+  scores are wrong wherever an edge sits above the beam (Lu L +7900 %, As beside Pb −680 %). The summary, the
+  C65 row and the release plan say so. The fix also needs data-based starting amplitudes, and even then
+  Larch's scatter model cannot follow water's Compton: the release plan's entry has the numbers. Not fixed
+  in the committed run (no rerun before the owner resumes the XRF work).
+- **Parked on the owner's PC, not in the repository:** `C:\Users\Dave\Documents\Claude LSS_Reader2\parked\xrf_pathologies\`
+  (beside the clone). The figures of the shootout's bad fits (XeRay winning and failing, six other methods),
+  the misfit test on all 39 100 spectra, and `larch_tune.py` (the Larch variants). Its `README.txt` says how
+  to run each. The owner wants it as "a proper tool later".
+
+## Next, when the owner resumes the XRF work
+
+1. **Before any commit:** `git fetch origin`, merge `origin/main`, and check the ledgers for numbering clashes
+   (`COMPARISONS.md`: our rows are C65–C69). Then `python -m lss_toolbox --stale`.
+2. **Push only when the owner says so.**
+3. The release plan's "Refine the XRF shootout" item: tune each library (Larch first: the units fix, start
+   amplitudes, a scatter model that fits), rerun the shootout, then turn the parked pathology scripts into
+   one tool in `tests/tools/` with a catalogue item and a page.
+4. Still owed to the owner: **a polished PDF report** of the XRF work ("can wait until more work is done").
+5. Proposed, not built: `tests/synthetic/mca_scatter_bank.py` (part 3's recommended scatter generator,
    about 1.5 days); a second draw for the generator and Gaussian twins (the floor is measured for the full
    model only).
 
 ## Traps that have already cost time
 
-- **Quick suite:** run with `-n 4`, `PYTHONUNBUFFERED=1`, `OPENBLAS_NUM_THREADS=1`, in the background, with a
-  Monitor waiting for the first `[ NN%]` line. More workers deadlock loading PyQt5 ("bringing up nodes"
-  forever). About 6 minutes.
+- **Quick suite:** run with `-n 4`, `PYTHONUNBUFFERED=1`, `OPENBLAS_NUM_THREADS=1`, in the background. More
+  workers deadlock loading PyQt5 ("bringing up nodes" forever). About 6 minutes, 1449 passed (2026-11-27).
+  Three tests fail on this PC on clean `origin/main` too: `test_ngui::test_window_builds_with_every_placed_control`,
+  `test_toolbox_gui::test_a_figure_tool_reproduces_its_committed_figures[burn_figures]`,
+  `test_plot_fonts::test_the_window_sizes_plot_text_from_the_tabs` (a font size: 12.96 expected).
+- **The Tools audit** (`python -m lss_toolbox --audit --only <items> --record`) runs an item into a fresh
+  folder and compares by file name. A tool must therefore read its inputs from the study folder, not from its
+  output folder, and `committed_with` holds settings, never output paths. The two walkthroughs are two items
+  (`xrf_walkthrough`, `xrf_walkthrough_models`), because both write a `numbers.json`.
 - **Intermittent Windows file errors** under load: "WinError 6 handle is invalid", "Errno 9 Bad file
   descriptor" on a plain `open`, and now xdist workers collecting different tests. Rerunning has always
   worked; the cause is unknown. Capture stderr of long runs to a file (not `/dev/null`) so a failure can be
