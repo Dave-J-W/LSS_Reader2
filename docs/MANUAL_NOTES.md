@@ -518,6 +518,14 @@ Each line: feature — where — default — script — notes entry (date).
   The status bar says what was saved; the Messages pane stays quiet.
 - The Save buttons still save a version with a note ('user').
 - Preferences > Saving > "Save every reduction automatically" turns it off.
+- **Reopening a file restores its settings** (2026-11-27, #145). Opening a SPEC file applies what its workbook recorded at the last save, and one message lists what changed, old -> new. That covers:
+  - the Reflectivity fields: background offset, ROI size, Qc, Qoff, norm factor;
+  - the typed absorber factor;
+  - Monc gain and per-photon mode;
+  - the error and monitor model;
+  - the GID parameters and the fit options.
+
+  Preferences > Saving > "Restore a file's settings when it is opened" turns it off. The manual should say: several of these change output numbers. The global preferences are not rewritten. An absorber factor that comes from the energy, or the calibrated foils, is not restored.
 - SpecPlot curves are raw data, not a reduction: saved only by Save.
 - GID maps are stored as grids in the Maps sheet (x across, a value and an
   error row per y): select the value block in Excel and add a colour scale

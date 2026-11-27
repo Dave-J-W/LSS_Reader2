@@ -743,6 +743,7 @@ class MainWindow (QMainWindow):
         self.readSpecFile()
         self.ui.specFileLabel.setText('SpecFile: '+paths.base(self.specFileName))
         self.scriptLine('exp = Experiment(%r)' % os.path.abspath(self.specFileName))
+        self.restoreWorkbookSettings()        # #145: the settings this file was last reduced with
         # except:
         #     self.specData=specData_old
         #     self.specPar=specPar_old
@@ -2276,6 +2277,18 @@ class MainWindow (QMainWindow):
                          'version with a note. Off: only the Save buttons save.')
         autos.toggled.connect(lambda on:self.setPreference('auto_save',bool(on)))
         l4.addWidget(autos)
+        restore=QCheckBox('Restore a file\'s settings when it is opened',g4)
+        restore.setObjectName('prefRestoreSettingsCheckBox')
+        restore.setChecked(bool(self.prefs.get('restore_workbook_settings',True)))
+        restore.setToolTip('On (default; owner, 2026-11-27, #145): opening a SPEC file applies the settings its '
+                           'workbook recorded at the last save: the Reflectivity fields (background offset, ROI size, '
+                           'Qc, Qoff, norm factor), the absorber factor, Monc gain and per-photon mode, the error and '
+                           'monitor model, the GID parameters and the fit options. One message lists the ones that '
+                           'changed, old -> new. Several of them change output numbers. Off: a file opens with the '
+                           'current settings.')
+        restore.toggled.connect(lambda on:self.setPreference('restore_workbook_settings',bool(on)))
+        l4.addWidget(restore)
+        d.prefRestoreSettingsCheckBox=restore
         lay.addWidget(g4)
         d.prefSaveNoteCheckBox=asknote
         d.prefAutoSaveCheckBox=autos
@@ -2498,7 +2511,8 @@ class MainWindow (QMainWindow):
         self.updateBadges()
         what=('per incident photon, N = (M - D t) q(E) S/(500 nA/V) (xray_fluxor route D)' if photons else
               'Monc current, M x S/(5 uA/V), S from "#M Monc Gain"' if gain else 'Monc counts M (gain not used)')
-        self.notify('Monitor normalisation: '+what
+        if not getattr(self,'restoringSettings',False):   # #145: the restore lists every change in one message
+            self.notify('Monitor normalisation: '+what
                     +'. Spectra, SPEC plots and background-subtracted images on show are recomputed; cuts, GID and '
                     'frames at one Qz use it the next time they are computed. Ref Patch does not use it (it measures '
                     'the scale between scans).',title='Monitor',level='info')
@@ -3349,7 +3363,8 @@ class MainWindow (QMainWindow):
         self.updateBadges()
         self.pilatus.errors=new
         self.showErrorModel()
-        self.notify('Error model: '+new.describe()+'. Spectra and background-subtracted images on show are '
+        if not getattr(self,'restoringSettings',False):   # #145: the restore lists every change in one message
+            self.notify('Error model: '+new.describe()+'. Spectra and background-subtracted images on show are '
                     'recomputed; other results apply it the next time they are computed.',
                     title='Errors',level='info')
         # what is on show was normalised under the old model: redo it
@@ -10129,6 +10144,7 @@ class MainWindow (QMainWindow):
             wb.set_settings('peak_fit',peaks.options_to_dict(self.peakFitOptions))
             wb.set_settings('mca_fit',peaks.options_to_dict(self.mcaFitOptions))
             wb.set_settings('reduction',self.reductionSettings())
+            wb.set_settings('reflectivity',self.reflectivityFieldSettings())   # #145
             for it in items:
                 if 'series' not in it:
                     it['series']=workbookmod.series_for(it.get('scans',[]),getattr(self,'seriesAll',[]),
@@ -10592,12 +10608,126 @@ class MainWindow (QMainWindow):
         out['monitor_gain']=bool(getattr(self,'monitorGain',False))
         out['per_photon']=bool(getattr(self,'monitorPhotons',False))
         out['error_model']=str(getattr(self.errorModel,'budget',False) and 'budget' or 'legacy')
+        try:                                  # #145: the monitor model too, so a reopened file gets it back
+            from dataclasses import asdict as _asdict
+            out['monitor_model']=_asdict(self.errorModel.monitor)
+        except Exception:
+            pass
         try:
             from dataclasses import asdict
             out['gid']=asdict(self.gidParams)
         except Exception:
             pass
         return out
+
+    def reflectivityFieldSettings(self):
+        """The Reflectivity tab's fields that shape its reduction (#145): background offset, ROI size, Qc, Qoff,
+        the normalisation factor."""
+        u=self.ui
+        return dict(bg_offset=str(u.refBGOffLineEdit.text()),slit=str(u.refSlitLineEdit.text()),
+                    qc=str(u.refQcLineEdit.text()),qoff=str(u.refQoffLineEdit.text()),
+                    norm_factor_on=bool(u.refNormFacCheckBox.checkState()!=0),norm_factor=str(u.refNormLineEdit.text()))
+
+    def windowSettings(self):
+        """Every setting the workbook keeps for a SPEC file (#145), as {section: {key: value}}."""
+        return {'peak_fit':peaks.options_to_dict(self.peakFitOptions),
+                'mca_fit':peaks.options_to_dict(self.mcaFitOptions),
+                'reduction':self.reductionSettings(),
+                'reflectivity':self.reflectivityFieldSettings()}
+
+    RESTORED_SECTIONS=('peak_fit','mca_fit','reduction','reflectivity')
+    RESTORE_LABELS={'error_model':'error model','monitor_gain':'Monc gain','per_photon':'per photon',
+                    'absorber':'absorber factor','bg_offset':'background offset','slit':'ROI size','qc':'Qc',
+                    'qoff':'Qoff','norm_factor_on':'norm factor on','norm_factor':'norm factor'}
+
+    def restoreWorkbookSettings(self):
+        """#145, the owner (2026-11-27, "Restore, list what changed"): opening a SPEC file applies the settings its
+        workbook recorded at the last save (fit options, the reduction's absorber factor, Monc gain and per-photon
+        mode, error and monitor model, GID parameters, the Reflectivity fields), and one message lists those that
+        differed, old -> new. The preference 'restore_workbook_settings' turns it off. Returns the changes."""
+        if not bool(self.prefs.get('restore_workbook_settings',True)) or not getattr(self,'specFileName',None):
+            return []
+        saved={k:v for k,v in workbookmod.read_settings(self.workbookPath()).items() if k in self.RESTORED_SECTIONS}
+        if not saved:
+            return []
+        changes=workbookmod.settings_changes(self.windowSettings(),saved)
+        if not changes:
+            return []
+        done,skipped=[],[]
+        self.restoringSettings=True
+        try:
+            for sec,key,old,new in changes:
+                try:
+                    ok=self.applySetting(sec,key,new,saved[sec])
+                except Exception as e:
+                    ok=False
+                    reader_log.get_logger().info('restore %s.%s: %s' % (sec,key,e))
+                (done if ok else skipped).append((sec,key,old,new))
+        finally:
+            self.restoringSettings=False
+        def show(v):
+            return ('%g' % v) if isinstance(v,float) else str(v)
+        if done:
+            self.notify('Settings restored from this file\'s workbook (%s): %s.%s' % (
+                os.path.basename(self.workbookPath()),
+                '; '.join('%s %s -> %s' % (self.RESTORE_LABELS.get(k,k.replace('_',' ')),show(o),show(n))
+                          for s,k,o,n in done),
+                (' Not restored: %s.' % ', '.join(k for s,k,o,n in skipped)) if skipped else ''),
+                title='Workbook',level='info')
+        return done
+
+    def applySetting(self,sec,key,value,section):
+        """Apply one saved setting (restoreWorkbookSettings); False when it cannot be applied here."""
+        u=self.ui
+        if sec=='peak_fit':
+            self.peakFitOptions=peaks.options_from_dict(section,self.peakFitOptions)
+            return True
+        if sec=='mca_fit':
+            self.mcaFitOptions=peaks.options_from_dict(section,self.mcaFitOptions)
+            return True
+        if sec=='reflectivity':
+            if key=='norm_factor_on':
+                u.refNormFacCheckBox.setChecked(bool(value))
+            else:
+                box={'bg_offset':u.refBGOffLineEdit,'slit':u.refSlitLineEdit,'qc':u.refQcLineEdit,
+                     'qoff':u.refQoffLineEdit,'norm_factor':u.refNormLineEdit}.get(key)
+                if box is None:
+                    return False
+                box.setText(('%g' % value) if isinstance(value,float) else str(value))
+            return True
+        # reduction
+        if key=='absorber':
+            try:
+                value=float(value)
+            except (TypeError,ValueError):
+                return False                  # the calibrated foils: chosen in Preferences, not restored here
+            if self.absFacEnergyCheckBox.isChecked():
+                return False                  # "from E": the scans' energy sets it
+            u.AbsFacLineEdit.setText('%g' % value)
+            return True
+        if key in ('monitor_gain','per_photon'):
+            gain=bool(section.get('monitor_gain',self.monitorGain))
+            photons=bool(section.get('per_photon',self.monitorPhotons))
+            self.setMonitorMode(gain or photons,photons)
+            return True
+        if key=='error_model' or key.startswith('monitor_model.'):
+            mm=dict(section.get('monitor_model') or {})
+            if mm.get('kind') in ('gaussian','student_t','counting'):
+                self.monitorKindComboBox.setCurrentIndex(('gaussian','student_t','counting').index(mm['kind']))
+            for name,e in self.errorFields.items():
+                if name in mm:
+                    v=float(mm[name])*(100 if name in ('sigma','sigma_scan') else 1)
+                    e.setText(repr(v))
+            self.errorModeComboBox.setCurrentIndex(1 if section.get('error_model')=='budget' else 0)
+            self.setErrorModel()
+            return True
+        if key.startswith('gid.'):
+            from dataclasses import fields as _fields
+            names={f.name for f in _fields(gidmod.GIDParams)}
+            g=section.get('gid') or {}
+            self.gidParams=gidmod.GIDParams(**{k:v for k,v in g.items() if k in names})
+            return True
+        return False
 
     def recipe(self,builder):
         """The lss_core call that remakes a saved result (the Script pane's

@@ -501,6 +501,84 @@ class Workbook:
         return out
 
 
+def read_settings(path):
+    """The Settings sheet of the workbook at ``path`` as {section: {key:
+    value}}, JSON values decoded as ``Workbook.settings`` does, read without
+    loading the other sheets (a workbook with GID maps takes seconds to load
+    whole). {} when there is no workbook, it cannot be read, or it has no
+    Settings sheet. Reopening a SPEC file restores these (issue #145)."""
+    if not path or not os.path.exists(path):
+        return {}
+    from openpyxl import load_workbook
+    try:
+        wb = load_workbook(path, read_only=True, data_only=True)
+    except Exception:
+        return {}
+    try:
+        if 'Settings' not in wb.sheetnames:
+            return {}
+        rows = wb['Settings'].iter_rows(values_only=True)
+        header = [str(h) if h is not None else '' for h in (next(rows, None) or ())]
+        if not {'section', 'key', 'value'} <= set(header):
+            return {}
+        i_sec, i_key, i_val = header.index('section'), header.index('key'), header.index('value')
+        out = {}
+        for r in rows:
+            if r is None or len(r) <= max(i_sec, i_key, i_val) or r[i_sec] is None or r[i_key] is None:
+                continue
+            v = r[i_val]
+            if isinstance(v, str):
+                try:
+                    v = json.loads(v)
+                except ValueError:
+                    pass
+            out.setdefault(str(r[i_sec]), {})[str(r[i_key])] = v
+        return out
+    finally:
+        wb.close()
+
+
+def _same(a, b):
+    """Equal as settings: numbers by value (1 == 1.0, '0.0217' == 0.0217),
+    everything else by its JSON text."""
+    def num(v):
+        if isinstance(v, bool):
+            return None
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+    na, nb = num(a), num(b)
+    if na is not None and nb is not None:
+        return na == nb or abs(na - nb) <= 1e-12 * max(abs(na), abs(nb))
+    return json.dumps(a, sort_keys=True, default=str) == json.dumps(b, sort_keys=True, default=str)
+
+
+def settings_changes(current, saved):
+    """[(section, key, current value, saved value)] for every setting in
+    ``saved`` ({section: {key: value}}) that differs from ``current``, in
+    the order saved holds them. A key whose value is a dict on both sides
+    (the GID parameters) is compared key by key and reported as
+    'key.subkey'. Keys that ``current`` lacks are left out: the reader no
+    longer has that setting (issue #145)."""
+    out = []
+    for sec, vals in saved.items():
+        cur = current.get(sec)
+        if not isinstance(vals, dict) or not isinstance(cur, dict):
+            continue
+        for k, v in vals.items():
+            if k not in cur:
+                continue
+            c = cur[k]
+            if isinstance(v, dict) and isinstance(c, dict):
+                for kk, vv in v.items():
+                    if kk in c and not _same(c[kk], vv):
+                        out.append((sec, '%s.%s' % (k, kk), c[kk], vv))
+            elif not _same(c, v):
+                out.append((sec, k, c, v))
+    return out
+
+
 def content_key(kind, scans, data=None, columns=(), label='', settings=None, fits=(), map_xyz=None, trends=(),
                 **ignored):
     """A short digest of a result's content (kind, scans, label, columns,
