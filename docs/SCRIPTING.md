@@ -270,6 +270,11 @@ Gaussian on a straight line by unweighted least squares, with the error
 √(counts in the window): too small where the background is large (the XRF
 shootout's pull SD 1.92). `fl.merge_rows` merges every (I, σ) pair of a row.
 
+One scan's column against another, as the SpecPlot saves it (2026-11-27, #145; the recipe of a saved
+SpecPlot curve, remade live when the scan gains points):
+
+    c = exp.curve(4, 'sh', 'Apex2', monitor='Monc', fit=True)   # c.x, c.y, c.err, c.columns; c.fit: the scan-shape fit
+
 From a fluorescence result, as the window's "Fit lines" (2026-11-27, #145; Export after Fit lines writes
 this line to the Script pane):
 

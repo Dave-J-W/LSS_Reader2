@@ -242,7 +242,8 @@ the owner, in `docs/gui/`); no GUI code changed for it yet.
 - **Reopening a file restores its settings, and line cuts are remade live** (2026-11-27, #145):
   - opening a SPEC file applies the settings its workbook recorded at the last save, and one message lists
     what changed (the owner's choice);
-  - live updates remake line cuts with their peak fits, and MCA "Fit lines" results (`flu.fit_lines`);
+  - live updates remake line cuts with their peak fits, MCA "Fit lines" results (`flu.fit_lines`) and SpecPlot
+    curves (`exp.curve`);
   - recipes that use the absorber foils are accepted (`absorbers.calibrated`), so foil-attenuated cuts and
     reflectivities are remade rather than left stale.
 

@@ -10751,6 +10751,17 @@ class MainWindow (QMainWindow):
             return ''
         return text if text and not text.lstrip().startswith('#') else ''
 
+    def curveScript(self,scan,xc,yc,nc,fit):
+        """The lss_core call for one saved SpecPlot curve (#145): exp.curve, with the window's monitor options."""
+        kw=[]
+        if nc:
+            kw.append('monitor=%r' % nc)
+            if self.monitorGain and str(nc).lower()=='monc':
+                kw.append('per_photon=True' if self.monitorPhotons else 'monitor_gain=True')
+        if fit:
+            kw.append('fit=True')
+        return 'curve = exp.curve(%d, %r, %r%s)' % (int(scan),xc,yc,''.join(', '+k for k in kw))
+
     def saveSpecToWorkbook(self):
         if len(self.selectedScanNums)==0 or str(self.ui.spXComboBox.currentText())=='':
             self.saveNotice('Please select a scan with data to save first!')
@@ -10773,7 +10784,8 @@ class MainWindow (QMainWindow):
                 cols=[xc,'%s/%s' % (yc,nc),'d(%s/%s)' % (yc,nc)]
             fits=[('%s vs %s' % (yc,xc),self.specFit)] if i==self.selectedScanNums[-1] and getattr(self,'specFit',None) is not None else []
             items.append(dict(scans=[i],data=np.column_stack([x,y,yerr]),columns=cols,label='%s vs %s%s' % (yc,xc,' / '+nc if norm else ''),
-                              fits=fits,settings=dict(x=xc,y=yc,monitor=nc if norm else None)))
+                              fits=fits,settings=dict(x=xc,y=yc,monitor=nc if norm else None),
+                              recipe=self.recipe(lambda name,i=i,f=bool(fits):self.curveScript(i,xc,yc,nc if norm else None,f))))
         self.saveToWorkbook('scan',items,auto=getattr(self,'autoSaving',False))
 
     def saveRefToWorkbook(self):

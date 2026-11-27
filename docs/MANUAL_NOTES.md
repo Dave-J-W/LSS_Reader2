@@ -490,8 +490,8 @@ Each line: feature — where — default — script — notes entry (date).
   'live', note "remade from R…: why"); the old version is marked
   "superseded by R…". The Messages pane says which. Line cuts are remade
   with their peak fits, and results reduced through absorber foils are
-  remade too, and so are MCA "Fit lines" results (2026-11-27, #145).
-  Results without a recipe (SpecPlot curves, GID cuts) are only marked out
+  remade too, and so are MCA "Fit lines" results and SpecPlot curves
+  (2026-11-27, #145). GID cuts have no recipe yet and are only marked out
   of date. After Fit lines, Export also writes its script line
   (`flu.fit_lines(...)`) to the Script pane.
 - A selection that was a whole series grows with the series; another

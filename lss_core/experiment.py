@@ -162,6 +162,21 @@ class CutResult:
 
 
 @dataclass
+class CurveResult:
+    """One scan's column against another, as the window's SpecPlot saves it (#145): ``x``, ``y`` and its
+    error (sqrt(N), or over a monitor sqrt(y/m^2 + y^2/m^3) times the gain factor), the workbook's
+    ``columns`` and ``label``, and the scan-shape ``fit`` (lss_core.peaks.fit_scan) when asked for."""
+    scan: int
+    x: np.ndarray
+    y: np.ndarray
+    err: np.ndarray
+    columns: list
+    label: str
+    fit: object = None
+    fit_label: str = ''
+
+
+@dataclass
 class FluorescenceResult:
     spectra: list         # (N, 3) energy, normalised counts, error, per spectrum
     rows: list            # [frame, qz, energy, intensity, error] per spectrum
@@ -559,6 +574,37 @@ class Experiment:
         res = GIDResult(X, Y, D, E, log, levels, gp, frames[0].true_alpha, frames[0].wavelength, bool(relax), info)
         res.axes = axes
         res.warnings = warnings
+        return res
+
+    def curve(self, scan, x, y, monitor=None, monitor_gain=False, per_photon=False, fit=False):
+        """Column ``y`` of ``scan`` against column ``x``, as the window's SpecPlot plots and saves it (#145):
+        divided by column ``monitor`` (times the Monc gain factor or per incident photon, as the window's
+        options) when one is given; ``fit``: the scan-shape fit of the SpecPlot (a peak, an edge or a box;
+        a sample-height scan against its own motor with the height-scan options). Remade live when the scan
+        gains points."""
+        from . import peaks
+        s = self.scans[int(scan)]
+        if x not in s.columns or y not in s.columns or (monitor and monitor not in s.columns):
+            missing = [c for c in (x, y, monitor) if c and c not in s.columns]
+            raise ValueError('scan %d has no column %s' % (int(scan), ', '.join(missing)))
+        xv, yv = np.asarray(s.columns[x], float), np.asarray(s.columns[y], float)
+        err = np.sqrt(np.abs(yv))
+        cols = [x, y, 'd' + y]
+        if monitor:
+            m = np.asarray(s.columns[monitor], float)
+            g = 1.0
+            if (monitor_gain or per_photon) and str(monitor).lower() == 'monc':
+                g, _ = monitor_factor(s.parameters, monitor_gain=monitor_gain or per_photon, per_photon=per_photon,
+                                      rate_hz=scan_rate(s.columns) if per_photon else None)
+            err = np.sqrt(yv / m ** 2 + yv ** 2 / m ** 3) * g
+            yv = yv / m * g
+            cols = [x, '%s/%s' % (y, monitor), 'd(%s/%s)' % (y, monitor)]
+        res = CurveResult(int(scan), xv, yv, err, cols, '%s vs %s%s' % (y, x, ' / ' + monitor if monitor else ''))
+        if fit:
+            first = next(iter(s.columns), None)
+            kw = peaks.height_scan_options() if peaks.is_height_scan(s.command) and x == first else {}
+            res.fit = peaks.fit_scan(xv, yv, err if np.all(err > 0) else None, **kw)
+            res.fit_label = '%s vs %s' % (y, x)
         return res
 
     def burn(self, scan, points=None, time='clock', qxy_range=None, rows='mean', fit=None,

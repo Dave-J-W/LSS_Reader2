@@ -29,9 +29,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-METHODS = ('reflectivity', 'fluorescence', 'gid', 'burn', 'cut')
+METHODS = ('reflectivity', 'fluorescence', 'gid', 'burn', 'cut', 'curve')
 KINDS = {'reflectivity': 'reflectivity', 'fluorescence': 'fluorescence', 'gid': 'gid map', 'burn': 'burn test',
-         'cut': 'line cut'}
+         'cut': 'line cut', 'curve': 'scan'}
+ONE_SCAN = ('burn', 'curve')     # their first argument is one scan, not a list (a burn test, a SpecPlot curve)
 
 
 class RecipeError(ValueError):
@@ -165,6 +166,9 @@ def remake(recipe, scans, exp, then=None, now=None):
         if pts is not None and used[0] in pts:
             kw['points'] = pts[used[0]]
         res = exp.burn(used[0], **kw)
+    elif call.method == 'curve':                          # a SpecPlot curve: its one scan, all its points (#145)
+        used = [int(call.args[0])]
+        res = exp.curve(used[0], *call.args[1:], **kw)
     else:
         used = sorted(int(s) for s in scans)
         if pts is not None:
@@ -205,6 +209,9 @@ def item_for(call, res, scans, label=''):
     if call.method == 'gid':
         return kind, [dict(scans=list(scans), map_xyz=(res.x, res.y, res.data, res.err),
                            label=label or '2theta, beta (deg)')]
+    if call.method == 'curve':
+        return kind, [dict(scans=[res.scan], data=np.column_stack([res.x, res.y, res.err]), columns=list(res.columns),
+                           label=label or res.label, fits=[(res.fit_label, res.fit)] if res.fit is not None else [])]
     if call.method == 'cut':
         # one item per cut, labelled as the window labels its curves ('S# 1 F# 0', 'summed cuts'); the window
         # saves them as '<curve>, <direction> <range>' and matches a remade item by that prefix (#145)
@@ -230,7 +237,7 @@ def with_scans(recipe, scans, points=None):
     for st in tree.body:
         if (isinstance(st, ast.Assign) and isinstance(st.value, ast.Call)
                 and isinstance(st.value.func, ast.Attribute) and st.value.func.attr in METHODS):
-            if st.value.func.attr != 'burn' and st.value.args:
+            if st.value.func.attr not in ONE_SCAN and st.value.args:
                 st.value.args[0] = ast.parse(repr(sorted(int(s) for s in scans)), mode='eval').body
             st.value.keywords = [k for k in st.value.keywords if k.arg != 'points']
             if points is not None:
