@@ -108,13 +108,13 @@ station.
 - **Qoff 0 is wrong for NX.** The step at the edge (4 %) and the edge fit, −2.8 ± 0.6 × 10⁻⁴ with an honest
   error, agree. The proposal makes R/R_F smooth, which is the owner's criterion. **Confidence: high.**
 - **How much of it is the angle?** Somewhere between a quarter and nine tenths is resolution, about half at
-  the beamline's median ΔQ. The rest is a true angle offset of up to about −0.0016° (−0.0009° at the
-  median), or a Qc slightly above water's (a salt or buffer). The data cannot tell these apart, because a
-  wrong Qc moves Qoff one for one (`summary.md` §4). **Confidence: low on the split.**
-- **What would settle it:**
-  - an edge fit with R_F convolved with the measured resolution, which would read the angle offset itself
-    and fit the edge far better (χ²/dof towards 1);
-  - the subphase's composition, which fixes Qc (asked of the owner, #55).
+  the beamline's median ΔQ. The rest is a true angle (or height) offset of up to about −0.0016° (−0.0009° at
+  the median). **Not a Qc shift:** the owner (2026-11-25, `docs/physics_notes.md`) says NX's subphase is
+  pure water, so Qc is water's 0.0217 Å⁻¹. (A wrong Qc would have moved Qoff one for one, `summary.md` §4,
+  and a salt or buffer could not have been told apart from an angle offset.) **Confidence: low on the
+  split between resolution and angle; high that it is not the subphase.**
+- **What would settle it:** an edge fit with R_F convolved with the measured resolution, which would read
+  the angle offset itself and fit the edge far better (χ²/dof towards 1).
 - **For the proposer's users:** its ± is the counting part only. Where χ²/dof is far above 1 (here 75), the
   real uncertainty is larger, about ×√(χ²/dof).
 
