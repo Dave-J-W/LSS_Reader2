@@ -70,3 +70,4 @@ def test_self_test_passes_from_source(tmp_path):
                        cwd=str(tmp_path), env=env, capture_output=True, text=True, timeout=600)
     assert r.returncode == 0, r.stdout + r.stderr
     assert (tmp_path / 'r.txt').read_text().strip().endswith('self-test passed')
+    assert 'ORSO: written and read back' in (tmp_path / 'r.txt').read_text()     # orsopy bundled (#148)
