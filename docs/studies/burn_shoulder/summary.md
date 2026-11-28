@@ -497,6 +497,66 @@ called "stable". The two models fit equally well (χ²/dof 1.13 and 1.18).
 - **How common is it?** Of the well-measured burns, 2 have a first frame below 0.8 of the next three, and only P4 below 0.6. Leaving frame 0 out of every burn changes the stretched/separated verdict disagreements by one (12 to 11), so question 1's counts stand. The reader keeps frame 0 in every burn (C54 drops it for reflectivity rates). Whether to flag or drop an anomalous first frame is a question for the reader (`sample_data/private/burn_shoulder/first_frame.py` measured this).
 
 
+### 8a″. The first and last frames, fitted four ways
+
+The owner asked for this view (2026-11-27). For each burn, the first frame (left) and the last frame
+(right) are fitted by each estimator in turn, top to bottom:
+- shoulder stretched with the peak;
+- shoulder separated (its two parts drawn: the stretched peak, and the shoulder that is not stretched);
+- separated and held;
+- the one-Gaussian fit.
+
+Under each fit are its residuals, each point's miss in its own error bar. Both frames of a row share one
+intensity scale, so a change between them shows by eye. The right column's titles give the
+last frame's intensity and FWHM as multiples of the same estimator's first frame: the change that estimator
+sees between these two frames.
+
+**Two frames are not the burn.** A burn's change comes from a line through all its frames (8a, step 3).
+Two single frames carry each frame's own noise, and the first frame can be anomalous (P4). So read these
+figures for *how* each estimator treats the same data, not for the burn's change.
+
+| burn | shoulder stretched | shoulder separated | separated and held | one-Gaussian fit |
+|---|---|---|---|---|
+| NX 15 | 1.00 (FWHM 1.17) | 0.79 (FWHM 1.02) | 0.83 (FWHM 1.04) | 0.99 (FWHM 1.22) |
+| P1 | 0.98 (FWHM 0.98) | 0.81 (FWHM 0.97) | 0.95 (FWHM 0.98) | 0.70 (FWHM 0.57) |
+| P2 | 1.11 (FWHM 0.99) | 1.11 (FWHM 0.99) | 1.11 (FWHM 0.99) | 1.23 (FWHM 1.08) |
+| P3 | 0.96 (FWHM 0.97) | 0.82 (FWHM 0.96) | 0.93 (FWHM 1.01) | 1.08 (FWHM 1.31) |
+| P4 | 1.71 (FWHM 0.90) | 1.76 (FWHM 0.92) | 1.96 (FWHM 1.01) | 1.76 (FWHM 0.90) |
+
+![FL_NX15](chain/FL_NX15.png)
+
+**NX 15.** This is the clearest picture of P44.
+- The peak widens: FWHM 1.17 × under stretched.
+- Stretched holds the intensity at 1.00, because the stretched shoulder grows with the peak and makes up
+  for the fade.
+- Separated (0.79) and separated & held (0.83) keep the shoulder unstretched and see the peak fade.
+- The one-Gaussian fit misses the shape entirely (χ²/dof about 40): one Gaussian can't be both the sharp
+  peak and the broad hump.
+
+![FL_P1](chain/FL_P1.png)
+
+**P1.**
+- The first and last frames look alike, and stretched sees 0.98.
+- Separated sees 0.81 between these two frames. With a weak peak, one frame's error is 7.6 %; the line
+  through all 41 frames gives −2 % ± 7 %.
+- The one-Gaussian fit's FWHM halves between the two frames (0.57 ×): on a weak peak it is unstable.
+
+![FL_P2](chain/FL_P2.png)
+
+**P2.** No shoulder is kept (#187), so the three model readings are one and the same (1.11). Only the
+one-Gaussian fit differs.
+
+![FL_P3](chain/FL_P3.png)
+
+**P3.** As P1: stretched sees 0.96, separated 0.82 between these two frames. Over all 41 frames both read a
+slight rise within 2σ. The one-Gaussian fit reads the width 1.31 × wider.
+
+![FL_P4](chain/FL_P4.png)
+
+**P4.** Every estimator sees the last frame 1.7–2.0 × brighter than the first, because the first frame is
+half as bright as the rest (8a′). The figure shows that frame directly: the left column's peak sits at about
+half the height of the right column's.
+
 ### 8b. Which burns were used
 
 ![R3](R3_selection.png)
