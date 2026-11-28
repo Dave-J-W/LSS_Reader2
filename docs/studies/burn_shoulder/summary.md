@@ -428,14 +428,16 @@ through exactly these steps, by the same code (`exp.burn(scan, estimator=…)`).
 So each burn gives, per estimator and quantity, one change ± σ, one verdict, and its fit quality. That is
 one row of `gid_split.csv`. Everything below is counted from that file.
 
-### 8a′. The whole chain, burn by burn: NX 15 and four private burns
+### 8a′. The whole chain, burn by burn: NX School GID Burn 15 and four private GID burns
 
-**Which four.** Among the well-measured private burns that have a shoulder, one burn per run was taken:
+**Which four.** Among the well-measured private GID burns that have a shoulder, one burn per run was taken:
 the one whose intensity change is nearest its run's median (a typical burn, not a showcase). Of those
-runs, the earliest, the latest and the two nearest a third and two thirds of the time span were kept. The
-private runs with GID burns span 0.8 years, so P1–P4 are 0, 0.3, 0.5 and 0.8 years apart. They are labelled
-in time order, with no date, run, file or scan. Their labels in `gid_split.csv` are given, so every
-number below can be found there.
+runs, the earliest, the latest and the ones nearest a third and two thirds of the time span were kept. The
+private runs with GID burns span 0.8 years. **GID Burn Examples 1–4** are 0, 0.5, 0.5 and 0.8 years after
+Example 1: the run nearest a third of the span has no eligible burn, so Examples 2 and 3 come from runs
+close in time. They are numbered in time order, with no date, run, file or scan. Their labels in
+`gid_split.csv` are given, so every number below can be found there. Burns whose first frame is weaker
+than the rest are not used (owner, 2026-11-27; section 8b).
 
 **How to read each figure** (one per burn, top to bottom):
 - **(a)** The mean frame less its chord (grey), divided into the shoulder (green, a broad Gaussian fitted
@@ -457,45 +459,43 @@ private peak position or scale is shown (owner, 2026-11-19).
 
 | burn | when | frames, duration | stretched: intensity (%) | separated: intensity (%) | separated & held: intensity (%) | FWHM (%, stretched) | shoulder (%, separated) | last frame χ²/dof, stretched / separated |
 |---|---|---|---|---|---|---|---|---|
-| NX 15 | public | 21, 215 s | -1.5 ± 1.5, stable | -13.3 ± 2.4, changing | -15.2 ± 1.3, changing | +17.8 | -2.8 ± 2.8, stable | 4.85 / 2.13 |
-| P1 | G38; 0.0 years after P1 | 41, 426 s | -1.3 ± 4.7, stable | -2.0 ± 7.3, stable | -2.3 ± 5.0, stable | -0.5 | +7.5 ± 49.2, stable | 1.34 / 1.36 |
-| P2 | G17; 0.3 years after P1 | 41, 422 s | +0.1 ± 3.4, stable | +0.1 ± 3.4, stable | +0.1 ± 3.4, stable | -3.2 | — (refused, #187) | 1.18 / 1.18 |
-| P3 | G40; 0.5 years after P1 | 41, 422 s | +5.5 ± 3.0, stable | +3.5 ± 5.0, stable | +5.1 ± 3.1, stable | +1.8 | +6.5 ± 9.5, stable | 1.13 / 1.18 |
-| P4 | G205; 0.8 years after P1 | 51, 525 s | -2.9 ± 0.9, changing | -1.9 ± 1.0, stable | -1.0 ± 1.0, stable | -6.5 | +0.3 ± 6.1, stable | 1.33 / 1.38 |
+| NX School GID Burn 15 | public | 21, 215 s | -1.5 ± 1.5, stable | -13.3 ± 2.4, changing | -15.2 ± 1.3, changing | +17.8 | -2.8 ± 2.8, stable | 4.85 / 2.13 |
+| GID Burn Example 1 | G38; 0.0 years after Example 1 | 41, 426 s | -1.3 ± 4.7, stable | -2.0 ± 7.3, stable | -2.3 ± 5.0, stable | -0.5 | +7.5 ± 49.2, stable | 1.34 / 1.36 |
+| GID Burn Example 2 | G31; 0.5 years after Example 1 | 41, 422 s | -4.9 ± 1.8, changing | -6.1 ± 2.0, changing | -6.0 ± 1.6, changing | -0.9 | +1.8 ± 4.5, stable | 0.88 / 0.91 |
+| GID Burn Example 3 | G40; 0.5 years after Example 1 | 41, 422 s | +5.5 ± 3.0, stable | +3.5 ± 5.0, stable | +5.1 ± 3.1, stable | +1.8 | +6.5 ± 9.5, stable | 1.13 / 1.18 |
+| GID Burn Example 4 | G227; 0.8 years after Example 1 | 26, 267 s | +5.0 ± 1.1, changing | +5.0 ± 1.2, changing | +5.0 ± 1.2, changing | +1.4 | +3.9 ± 2.4, stable | 1.17 / 1.20 |
 
-![BC_NX15](chain/BC_NX15.png)
+![BC_NX15](chain/BC_NX-School-GID-Burn-15.png)
 
-**NX 15**, for comparison: the case the study is about.
+**NX School GID Burn 15**, for comparison: the case the study is about.
 - (b) shows the peak broadening: the last cut is lower at the top and wider.
 - (c) fits poorly (χ²/dof 4.85, residuals in waves); (d) fits better (2.13).
 - (f) splits the readings: stretched holds the intensity flat; separated and separated & held fall 13–15 %.
 
-![BC_P1](chain/BC_P1.png)
+![BC_Example_1](chain/BC_GID-Burn-Example-1.png)
 
-**P1** (the earliest run).
+**GID Burn Example 1** (the earliest run).
 - A weak peak (one frame's intensity error 7.6 %) on a low shoulder (0.7 × the peak's area).
 - Both models fit to χ²/dof ≈ 1.3, and no reading changes.
 - B scatters widely (± 49 % on the shoulder's change): with a low shoulder, B is poorly determined. That
   is not a sign of change.
 
-![BC_P2](chain/BC_P2.png)
+![BC_Example_2](chain/BC_GID-Burn-Example-2.png)
 
-**P2** (0.3 years later). A small peak on a big, broad hump. Before #187 the separated fit put a "shoulder" 1.3 × the mean frame's peak across the whole window, held up by a large negative line (15 × the peak's area). Its height was not determined, so the guard now refuses it: panel (h) says "no shoulder found", and the three readings are the same (+0.1 % ± 3.4, stable).
+**GID Burn Example 2** (0.5 years later). A peak with a shoulder about its own size (1.2 × its area); one
+frame's error is 3.3 %. All three readings agree on a fade of 5–6 % and call it "changing"; the width is
+steady (−0.9 %), and so is the shoulder (+1.8 % ± 4.5). Both models fit to counting noise (χ²/dof 0.9).
 
-![BC_P3](chain/BC_P3.png)
+![BC_Example_3](chain/BC_GID-Burn-Example-3.png)
 
-**P3** (0.5 years later). A slight rise under all three readings (+3.5 to +5.5 %), each within 2σ and
-called "stable". The two models fit equally well (χ²/dof 1.13 and 1.18).
+**GID Burn Example 3** (0.5 years later, another run). A slight rise under all three readings (+3.5 to
++5.5 %), each within 2σ and called "stable". The two models fit equally well (χ²/dof 1.13 and 1.18).
 
-![BC_P4](chain/BC_P4.png)
+![BC_Example_4](chain/BC_GID-Burn-Example-4.png)
 
-**P4** (0.8 years later): the verdicts differ, but because of one low first frame, not because of the shoulder (corrected 2026-11-27, after main man's review of #184).
-- It is the best-measured of the four: one frame's intensity error is 1.5 %.
-- Its **first frame is half as bright** as the next three (0.50), peak and shoulder alike. B in that frame is 0.45, so the whole frame is low; it is not a change of the sample. Panels (b), (f) and (h) show it, marked "first frame".
-- That one point pulls each weighted line's start down, so the lines run nearly flat while the other 50 frames fall about 12 %. With it, stretched reads −2.9 % ± 0.9 "changing" and separated −1.9 % ± 1.0 "stable". **Without it** (frames 1–50), stretched reads −12.9 % ± 0.8 and separated −11.9 % ± 0.9, **both "changing"**: they agree.
-- So P4 is not an instance of P44. Its FWHM narrows 6.5 %, but the two readings differ by only 1 pp once the first frame is left out.
-- **How common is it?** Of the well-measured burns, 2 have a first frame below 0.8 of the next three, and only P4 below 0.6. Leaving frame 0 out of every burn changes the stretched/separated verdict disagreements by one (12 to 11), so question 1's counts stand. The reader keeps frame 0 in every burn (C54 drops it for reflectivity rates). Whether to flag or drop an anomalous first frame is a question for the reader (`sample_data/private/burn_shoulder/first_frame.py` measured this).
-
+**GID Burn Example 4** (0.8 years later). A strong, sharp peak (one frame's error 0.2 %) with almost no
+shoulder (0.12 × its area). The three readings coincide: +5.0 % ± 1.2, "changing", with a steady width.
+With so little shoulder there is nothing for the estimators to disagree about.
 
 ### 8a″. The first and last frames, fitted four ways
 
@@ -507,25 +507,25 @@ The owner asked for this view (2026-11-27). For each burn, the first frame (left
 - the one-Gaussian fit.
 
 Under each fit are its residuals, each point's miss in its own error bar. Both frames of a row share one
-intensity scale, so a change between them shows by eye. The right column's titles give the
-last frame's intensity and FWHM as multiples of the same estimator's first frame: the change that estimator
-sees between these two frames.
+intensity scale, so a change between them shows by eye. The right column's titles give the last frame's
+intensity and FWHM as multiples of the same estimator's first frame: the change that estimator sees
+between these two frames.
 
 **Two frames are not the burn.** A burn's change comes from a line through all its frames (8a, step 3).
-Two single frames carry each frame's own noise, and the first frame can be anomalous (P4). So read these
-figures for *how* each estimator treats the same data, not for the burn's change.
+Two single frames carry each frame's own noise. So read these figures for *how* each estimator treats the
+same data, not for the burn's change.
 
 | burn | shoulder stretched | shoulder separated | separated and held | one-Gaussian fit |
 |---|---|---|---|---|
-| NX 15 | 1.00 (FWHM 1.17) | 0.79 (FWHM 1.02) | 0.83 (FWHM 1.04) | 0.99 (FWHM 1.22) |
-| P1 | 0.98 (FWHM 0.98) | 0.81 (FWHM 0.97) | 0.95 (FWHM 0.98) | 0.70 (FWHM 0.57) |
-| P2 | 1.11 (FWHM 0.99) | 1.11 (FWHM 0.99) | 1.11 (FWHM 0.99) | 1.23 (FWHM 1.08) |
-| P3 | 0.96 (FWHM 0.97) | 0.82 (FWHM 0.96) | 0.93 (FWHM 1.01) | 1.08 (FWHM 1.31) |
-| P4 | 1.71 (FWHM 0.90) | 1.76 (FWHM 0.92) | 1.96 (FWHM 1.01) | 1.76 (FWHM 0.90) |
+| NX School GID Burn 15 | 1.00 (FWHM 1.17) | 0.79 (FWHM 1.02) | 0.83 (FWHM 1.04) | 0.99 (FWHM 1.22) |
+| GID Burn Example 1 | 0.98 (FWHM 0.98) | 0.81 (FWHM 0.97) | 0.95 (FWHM 0.98) | 0.70 (FWHM 0.57) |
+| GID Burn Example 2 | 0.94 (FWHM 1.02) | 0.85 (FWHM 0.93) | 0.89 (FWHM 0.95) | 0.92 (FWHM 1.02) |
+| GID Burn Example 3 | 0.96 (FWHM 0.97) | 0.82 (FWHM 0.96) | 0.93 (FWHM 1.01) | 1.08 (FWHM 1.31) |
+| GID Burn Example 4 | 1.06 (FWHM 1.03) | 1.06 (FWHM 1.03) | 1.06 (FWHM 1.03) | 1.06 (FWHM 1.03) |
 
-![FL_NX15](chain/FL_NX15.png)
+![FL_NX15](chain/FL_NX-School-GID-Burn-15.png)
 
-**NX 15.** This is the clearest picture of P44.
+**NX School GID Burn 15.** This is the clearest picture of P44.
 - The peak widens: FWHM 1.17 × under stretched.
 - Stretched holds the intensity at 1.00, because the stretched shoulder grows with the peak and makes up
   for the fade.
@@ -533,29 +533,28 @@ figures for *how* each estimator treats the same data, not for the burn's change
 - The one-Gaussian fit misses the shape entirely (χ²/dof about 40): one Gaussian can't be both the sharp
   peak and the broad hump.
 
-![FL_P1](chain/FL_P1.png)
+![FL_Example_1](chain/FL_GID-Burn-Example-1.png)
 
-**P1.**
+**GID Burn Example 1.**
 - The first and last frames look alike, and stretched sees 0.98.
 - Separated sees 0.81 between these two frames. With a weak peak, one frame's error is 7.6 %; the line
   through all 41 frames gives −2 % ± 7 %.
 - The one-Gaussian fit's FWHM halves between the two frames (0.57 ×): on a weak peak it is unstable.
 
-![FL_P2](chain/FL_P2.png)
+![FL_Example_2](chain/FL_GID-Burn-Example-2.png)
 
-**P2.** No shoulder is kept (#187), so the three model readings are one and the same (1.11). Only the
-one-Gaussian fit differs.
+**GID Burn Example 2.** Every estimator sees the last frame weaker (0.85–0.94), in line with the 5–6 % fade
+over the whole burn. Separated sees the most (0.85) between these two frames.
 
-![FL_P3](chain/FL_P3.png)
+![FL_Example_3](chain/FL_GID-Burn-Example-3.png)
 
-**P3.** As P1: stretched sees 0.96, separated 0.82 between these two frames. Over all 41 frames both read a
-slight rise within 2σ. The one-Gaussian fit reads the width 1.31 × wider.
+**GID Burn Example 3.** As Example 1: stretched sees 0.96, separated 0.82 between these two frames. Over all
+41 frames both read a slight rise within 2σ. The one-Gaussian fit reads the width 1.31 × wider.
 
-![FL_P4](chain/FL_P4.png)
+![FL_Example_4](chain/FL_GID-Burn-Example-4.png)
 
-**P4.** Every estimator sees the last frame 1.7–2.0 × brighter than the first, because the first frame is
-half as bright as the rest (8a′). The figure shows that frame directly: the left column's peak sits at about
-half the height of the right column's.
+**GID Burn Example 4.** All four estimators see the same 1.06: a sharp peak with almost no shoulder is
+read alike by every method, even one Gaussian.
 
 ### 8b. Which burns were used
 
@@ -563,16 +562,18 @@ half the height of the right column's.
 
 **R3, how to read it.**
 - Panel a is the funnel.
-- Panels b–d are the three cut quantities for the 155 private burns read, on log axes. Each has its
+- Panels b–e are the four cut quantities for the 155 private burns read (b–d on log axes). Each has its
   threshold in red and the number it removes.
 - Most burns sit far inside each threshold. The removed ones are a separate tail, not the edge of the
   bulk:
   - (b) one frame's error above 10 %: weak peaks;
   - (c) intensity changes beyond ±50 %: the peak appears or vanishes during the "burn", so a relative change
     means nothing;
-  - (d) stretched χ²/dof above 5: the frames aren't described by a stretched mean frame at all.
+  - (d) stretched χ²/dof above 5: the frames aren't described by a stretched mean frame at all;
+  - (e) a first frame weaker than 0.8 of the next three (owner, 2026-11-27: such burns are left out of
+    the analysis). 6 of the 155 burns read; 2 of them would otherwise be well measured.
 - 8 more burns have no finite change under some estimator.
-- A burn can fail several cuts. 36 fail at least one.
+- A burn can fail several cuts. 38 fail at least one.
 
 **The data.**
 - The tool's finder (`find_gid_burns`: an `ascan ih` that does not move, Det_Th above 2°) found 236 GID
@@ -583,15 +584,16 @@ half the height of the right column's.
   images, and 2 have no peak 5σ above the background. Each is in the private key with its error.
 - 155 private burns in 11 files were read under all three estimators. Their per-burn summary is
   `docs/studies/xr_burns/gid_split.csv` (labels G01…; no file, scan, Qxy, frame or image).
-- **Well measured: 119 of the 155.** These have:
+- **Well measured: 117 of the 155.** These have:
   - a finite intensity change under all three estimators;
   - an error on one frame's intensity of at most 10 %;
   - a stretched intensity change within ±50 % over the burn. A larger one means the peak comes or goes:
     these runs hold a few burns of +200 % to −800 %;
-  - stretched frames fitted to χ²/dof ≤ 5.
+  - stretched frames fitted to χ²/dof ≤ 5;
+  - a first frame not weaker than 0.8 × the median of the next three (owner, 2026-11-27).
 
-  The cut is `well_measured` in the tool. The numbers below are for these 119 unless marked.
-- **One file holds 76 of the 119.** Each question was also run without it (43 burns in 10 files). Where its
+  The cut is `well_measured` in the tool. The numbers below are for these 117 unless marked.
+- **One file holds 76 of the 117.** Each question was also run without it (41 burns in 10 files). Where its
   answer differs, it is given.
 - The well-measured burns have a median of 21 frames over 321 s.
   - One frame's intensity error has a median of 1.6 % (interquartile range 0.6–3.8 %).
@@ -602,24 +604,24 @@ half the height of the right column's.
 
 **1. How often does P44 change a real verdict?** Figure R1 shows the separated reading's intensity change against the
 the stretched reading's, one point per burn.
-- **Shoulders (#187).** The separated reading keeps a shoulder on 54 of the 119 burns. On 41 more, the fitted
+- **Shoulders (#187).** The separated reading keeps a shoulder on 53 of the 117 burns. On 40 more, the fitted
   shoulder's height is not determined (± more than 50 %), so the guard refuses it. 24 have no shoulder at all.
-  On those 65 the two readings are identical by construction.
-- **The intensity verdicts differ on 12 of the 119 burns (10 %).** On 3, stretched says stable and
-  separated says changing; on 9, the other way round.
+  On those 64 the two readings are identical by construction.
+- **The intensity verdicts differ on 11 of the 117 burns (9 %).** On 3, stretched says stable and
+  separated says changing; on 8, the other way round.
 - **The changes differ by more than 2 × the larger σ on 20 burns,** with the separated reading's σ widened by 25 % as the
-  hand-off suggests. Counting either kind of disagreement, **26 of 119 (22 %)** disagree. Without the large
-  file the share is about the same: 9 of 43 (21 %).
+  hand-off suggests. Counting either kind of disagreement, **25 of 117 (21 %)** disagree. Without the large
+  file the share is about the same: 8 of 41 (20 %).
 - The FWHM verdicts differ on 8, and the FWHM changes beyond 2σ on 9.
 - **On real burns the disagreement doesn't come from P44's own mechanism.** P44's mechanism is a change of
   width that stretched carries into the intensity. But real widths are steady:
   - the median FWHM change over a burn is 1.4 %;
-  - only 5 of the 119 burns broaden or narrow by 10 % or more;
+  - only 5 of the 117 burns broaden or narrow by 10 % or more;
   - on none of those 5 do the verdicts differ.
 
-  The disagreements come from the shoulder instead. Among the 26 burns where the estimators disagree, the
-  separated reading finds the shoulder changing on 19 (73 %). Among the 93 where they agree, it does on 13 (14 %).
-- On the 54 burns with a shoulder, separated − stretched has a median of −0.8 pp, with a scatter (MAD) of
+  The disagreements come from the shoulder instead. Among the 25 burns where the estimators disagree, the
+  separated reading finds the shoulder changing on 19 (76 %). Among the 92 where they agree, it does on 13 (14 %).
+- On the 53 burns with a shoulder, separated − stretched has a median of −0.8 pp, with a scatter (MAD) of
   1.7 pp. Separated shows no large overall bias: it differs burn by burn.
 - NX 15 (a fade read as stable while the peak broadens by 18 %) is the clearest case of P44 among these
   burns. No private burn shows it as strongly.
@@ -636,30 +638,30 @@ the stretched reading's, one point per burn.
     (section 3).
   - z ≈ 1 is what two reads of the same truth give by chance; z > 2 happens by chance in only a few % of
     burns.
-  - Here 20 of 119 burns pass 2, far more than chance: on about one burn in six the two estimators
+  - Here 20 of 117 burns pass 2, far more than chance: on about one burn in six the two estimators
     disagree for a reason.
-  - The 65 burns at z = 0 have no shoulder kept (none found, or refused by #187's guard), so separated is
+  - The 64 burns at z = 0 have no shoulder kept (none found, or refused by #187's guard), so separated is
     stretched.
-- **Panel b: the verdicts, cross-tabulated.** The diagonal (40 + 67) is where the verdicts agree; the 12
+- **Panel b: the verdicts, cross-tabulated.** The diagonal (39 + 67) is where the verdicts agree; the 11
   off it are where they differ.
 - **Panel c: the test of P44's mechanism.**
   - If the disagreement came from width changes, the points would fall along a line from upper left to lower
     right, and NX 15 lies on it.
   - They don't. The private burns cluster at a width change of 0 ± 5 %, and the spread in y is there anyway.
-  - Orange marks a burn whose shoulder separated reads as changing. Orange points make up 19 of the 26
-    burns that disagree, but only 13 of the 93 that agree (the counts in question 1). That difference, not
+  - Orange marks a burn whose shoulder separated reads as changing. Orange points make up 19 of the 25
+    burns that disagree, but only 13 of the 92 that agree (the counts in question 1). That difference, not
     any one point, is the evidence that the shoulder drives the disagreement.
 
 **2. Do real shoulders change under the beam?** Yes, in a sizeable minority of burns.
-- Separated keeps a shoulder on 54 of the 119 burns. #187's guard refused 41 more whose height the points
+- Separated keeps a shoulder on 53 of the 117 burns. #187's guard refused 40 more whose height the points
   did not determine; their B meant nothing, so they are left out here (before the guard, 94 shoulders).
-- On 32 of the 54, separated calls the shoulder's own change "changing". The median change is +3.8 %, and
-  the median size of the change, sign ignored, is 5.7 %.
+- On 32 of the 53, separated calls the shoulder's own change "changing". The median change is +3.9 %, and
+  the median size of the change, sign ignored, is 5.9 %.
 - B per frame has a median mean of 0.99 and a median range (max − min) of 0.20 over a burn.
 - Separated and separated & held disagree on the intensity by more than their combined σ on 24 burns.
-- **All three signs together, the hand-off's test of a believable shoulder change, hold on 15 of 54 burns
+- **All three signs together, the hand-off's test of a believable shoulder change, hold on 15 of 53 burns
   (28 %):** the shoulder called changing, B moving the same way, and the two readings disagreeing. Without
-  the large file it is 8 of 25.
+  the large file it is 8 of 24.
 - The synthetic study warns that a broadening peak leaks into B when the shoulder is not a Gaussian
   (section 2). That cannot explain these: their widths are steady.
 - **So `separated_held` (B = 1) is not safe on real burns:** about one shoulder in four changes.
@@ -675,21 +677,21 @@ the stretched reading's, one point per burn.
 - **Orange:** separated and separated & held read the intensity differently by more than their combined σ. That is
   what a changing shoulder does: forcing B = 1 puts its change into the peak.
 - A real shoulder change shows all three: filled, orange, and above the red line. Any one alone can be an
-  accident. 15 of the 54 burns with a shoulder show all three.
+  accident. 15 of the 53 burns with a shoulder show all three.
 - NX 14 and 15 sit near the bottom, as section 5 found: steady shoulders.
 
 **3. Is a Gaussian a good enough shoulder?** At these counts the frames can't tell.
-- On the 54 burns with a shoulder, the frames' χ²/dof has a median of 1.11 under stretched and 1.09
+- On the 53 burns with a shoulder, the frames' χ²/dof has a median of 1.11 under stretched and 1.08
   under separated. Both describe the frames to counting noise.
-- The separated reading's χ²/dof is the lower one on 39 burns, but the median ratio is 0.99. It is more than 10 %
+- The separated reading's χ²/dof is the lower one on 38 burns, but the median ratio is 0.99. It is more than 10 %
   lower on 2 burns and more than 10 % higher on 5.
 - Only 4 burns have a stretched χ²/dof above 2, and on none of them is separated lower. NX 15, at higher
   counts, shows the separated reading's gain: 2.17 against 4.24.
 - **Separated is never much worse, so a Gaussian shoulder is not the weak point at real counts. It is not
   shown to be right either:** a shoulder of another shape would fit these frames as well.
 - Shape against the synthetic shoulders:
-  - shoulder ÷ peak area: median 2.0 (interquartile range 1.1–4.0);
-  - shoulder ÷ peak FWHM: median 4.7 (3.6–7.1); NX 14 and 15 have 8.5 and 6.9.
+  - shoulder ÷ peak area: median 2.0 (interquartile range 1.2–4.0);
+  - shoulder ÷ peak FWHM: median 4.6 (3.6–7.3); NX 14 and 15 have 8.5 and 6.9.
 
 ![R6](R6_q3_fit_quality.png)
 
@@ -701,7 +703,7 @@ the stretched reading's, one point per burn.
   - NX 15, at higher counts, is far below the line. There stretched misses something and separated
     finds it.
 - **Panel b:** what the fitted shoulders look like, as size against the peak.
-  - They are 1.7–22 times wider than the peak (median 4.7). Their area ranges from a tenth of the peak's to
+  - They are 1.7–22 times wider than the peak (median 4.6). Their area ranges from a tenth of the peak's to
     160 times it. Before #187's guard the widest went to 40 times, all of them undetermined fits.
   - The two kept above 100 × the peak's area are well determined: small peaks on large real humps. NX 14
     and 15 are typical.
@@ -724,8 +726,8 @@ the stretched reading's, one point per burn.
     at most 0.6 pp;
   - above 1 % noise (13 burns under each), the median is +0.6 to +0.9 pp, with a scatter of about 5 pp;
   - the synthetic steady fade expects 0 ± 0.5 at 0.35 % noise and 0 ± 1.9 at 0.85 %.
-- **The shift doesn't grow with the noise:** the rank correlation is 0.12 (stretched) and 0.16 (separated).
-- **Burns that broaden by 5 % or more, the case the synthetic study flags,** are only 12 of the 119, 3 to 5
+- **The shift doesn't grow with the noise:** the rank correlation is 0.10 (stretched) and 0.14 (separated).
+- **Burns that broaden by 5 % or more, the case the synthetic study flags,** are only 12 of the 117, 3 to 5
   per noise bin. Their medians under separated are −0.05 pp at 0.2–0.5 % noise and +0.7 pp at 0.5–1 %. The
   synthetic NX 15-like burns predict +1.5 ± 1.0 and +5.0 ± 2.7 pp, but they broaden by 20 %, and these
   burns mostly broaden by 5–10 %.
@@ -739,12 +741,12 @@ the stretched reading's, one point per burn.
   span of ×1.5 or more. There are **14 such series** of 2–6 burns, spanning ×2.0–×96 in flux
   (`docs/studies/xr_burns/gid_split_series.csv`).
 - They were read with `lss_core.reciprocity.dose_or_time` on the intensity, as the reader does.
-- **With strip scatter ρ = 0 (the reader's default), separated changes the verdict of 3 of the 14 series;
-  with ρ = 0.5, of 2** (before #187's guard: 5 and 3).
+- **With strip scatter ρ = 0 (the reader's default), separated changes the verdict of 4 of the 14 series;
+  with ρ = 0.5, of 3.** Burns with a weak first frame are left out of the series too (40 burns in all).
   - Stretched at ρ = 0: no change 4, opposite signs 3, neither 3, dose 2, time 1, cannot tell 1.
-  - Separated at ρ = 0: no change 5, opposite signs 4, dose 3, time 1, cannot tell 1.
-- All three changes start from "neither": one becomes "dose" (β 0.45 → 0.68), one "no change", one
-  "opposite signs".
+  - Separated at ρ = 0: no change 5, opposite signs 3, dose 3, time 1, neither 1, cannot tell 1.
+- The changes are all among undecided classes: "neither" becomes "dose" (β 0.45 → 0.68), "no change" or
+  "opposite signs", and one "opposite signs" becomes "neither".
 - Where both call it "dose", β moves from 1.18 to 1.04 (GS08) or stays at 0.78 (GS13).
 - On NX, the drift-per-dose ratio moves from 0.79 to 0.82 (section 5).
 - **So separated changes F76's answer in a minority of series.** Few series are decided either way, and these
@@ -772,7 +774,8 @@ the stretched reading's, one point per burn.
     - **?** (cannot tell): both fit;
     - **0** (no change): no rate differs from zero;
     - **±** (opposite signs): the rates change sign between burns, which neither model allows.
-  - Separated changes the letter on 3 series:
+  - Separated changes the letter on 4 series:
+    - GS04: ± → N;
     - GS05: N → ±;
     - GS09: N → 0;
     - GS11: N → D.
@@ -782,12 +785,12 @@ the stretched reading's, one point per burn.
 **6. Is there a burn with an independent before-and-after measurement?** **No: in these data no burned
 spot is measured before and after** (issue #173, 2026-11-27).
 - **The candidates.** Each burn was matched with the GID series of the same file that covers its Det_Th
-  and ended at most 2 h before it, and with the one that started at most 2 h after it ended. 31 burns have
-  both, 19 of them well measured. (The earlier count of 47 used a looser match: any series in the 2 h
+  and ended at most 2 h before it, and with the one that started at most 2 h after it ended. 29 burns have
+  both, 18 of them well measured (burns with a weak first frame left out). (The earlier count of 47 used a looser match: any series in the 2 h
   windows, not the nearest one, and timed from the burn's start.)
 - **The spot.** The comparison needs the GID scans to look at the spot that was burned. But the sample's
-  horizontal position (`Sample_X`) differs between the burn and both scans in all 31 cases. Each burn was
-  done on a fresh spot, 1–10 mm (median 4 mm) from the nearest scanned spot. The before and after scans
+  horizontal position (`Sample_X`) differs between the burn and both scans in all 29 cases. Each burn was
+  done on a fresh spot, 1–8 mm (median 4 mm) from the nearest scanned spot. The before and after scans
   are usually on different spots from each other too (median 14 mm apart; only 4 pairs share a spot).
 - **So the scans measure other spots,** and their change says nothing about what the burn did to its own
   spot. That is the usual practice (a fresh strip for every exposure), and it is why these data can't
@@ -799,16 +802,16 @@ spot is measured before and after** (issue #173, 2026-11-27).
 
 **The judgment on real data.**
 - **P44's verdict change is real but less common on private burns than on NX 15.** The intensity verdicts
-  differ on 1 burn in 10, and the two estimators disagree in some way on 1 in 5.
+  differ on about 1 burn in 10, and the two estimators disagree in some way on 1 in 5.
 - **The driver on these burns is the shoulder, not the width.** Real widths are steady. Of the shoulders
-  the points determine (54 of 119 burns), about one in four changes. So separated with B free is the estimator to report beside the
+  the points determine (53 of 117 burns), about one in four changes. So separated with B free is the estimator to report beside the
   stretched, and `separated_held` is only a check.
 - **At real counts the frames can't choose a shoulder shape,** and **the reference's noise doesn't bias
   steady burns.** Neither is a reason to hold separated back.
-- **Separated changes F76's verdict in 2–3 of 14 series,** all among undecided ones.
+- **Separated changes F76's verdict in 3–4 of 14 series,** all among undecided ones.
 - **How sure:**
-  - **moderate** on the counts. 119 burns, but 76 from one file; the share of disagreements is the same
-    without it. Question 2 rests on 54 shoulders after #187's guard; the 50 % height-error limit is an
+  - **moderate** on the counts. 117 burns, but 76 from one file; the share of disagreements is the same
+    without it. Question 2 rests on 53 shoulders after #187's guard; the 50 % height-error limit is an
     assumption.
   - **low** on question 4 for broadening burns: there are only 12.
   - **open** on question 6: no burned spot is measured before and after in these data (DATA_NEEDS row 22).
@@ -830,8 +833,9 @@ The private figures and generators are under `sample_data/private/burn_shoulder/
     python tests/tools/burn_shoulder_study.py --out DIR --only S5                            # NX only, a minute
     python tests/tools/burn_shoulder_study.py --out docs/studies/burn_shoulder --only G      # R1-R7 from the xr_burns gid_split CSVs, seconds
     python tests/tools/burn_shoulder_study.py --out docs/studies/burn_shoulder --only redraw # S1-S6 from the committed CSVs, seconds
-    python tests/tools/burn_shoulder_walkthrough.py --out docs/studies/burn_shoulder/chain --chain sample_data/NX_school/2026sep/20260923 15 NX15   # BC_NX15
-    # BC_P1-P4: only on the owner's PC, sample_data/private/burn_shoulder/run_four.py (pick_four.py chooses them)
+    python tests/tools/burn_shoulder_walkthrough.py --out docs/studies/burn_shoulder/chain --chain sample_data/NX_school/2026sep/20260923 15 "NX School GID Burn 15"   # BC_NX-School-GID-Burn-15
+    # BC_/FL_GID-Burn-Example-1-4: only on the owner's PC, sample_data/private/burn_shoulder/run_four.py and
+    # run_four_fl.py (pick_four.py chooses them)
 
 Options: `--parts A` or `B`, `--cases`, `--shapes`, `--core` (the separated reading's core half-width in FWHM, 1.5:
 the shoulder is fitted beyond it), `--workers`. The Tools menu has the variations (`docs/TOOLS.md`).

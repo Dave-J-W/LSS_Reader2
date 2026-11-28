@@ -547,7 +547,8 @@ def real_check(out, specs, scans=None, prefix='G'):
             t0 = got['stretched']
             base = dict(burn=label, frames=len(t0.x), duration_s=round(t0.duration()),
                         frame_rel_error=float(np.nanmean(t0.values['intensity'][1] / t0.values['intensity'][0])),
-                        mean_frame_noise=mean_frame_noise(t0.profiles, t0.window), failed='')
+                        mean_frame_noise=mean_frame_noise(t0.profiles, t0.window),
+                        first_frame_ratio=first_frame_ratio(t0.values['intensity'][0]), failed='')
             for e, r in got.items():
                 fits = [d for d in r.frame_fits if d.get('ok')]
                 extra = dict(frame_chi2_dof=float(np.mean([d['chi2_dof'] for d in fits])) if fits else math.nan,
@@ -581,13 +582,27 @@ REAL_CSV = 'docs/studies/xr_burns/gid_split.csv'
 REF_NOISE = {1e7: 0.0003, 6e4: 0.0035, 1e4: 0.0085}
 
 
+FIRST_FRAME_MIN = 0.8      # owner, 2026-11-27: burns whose first frame is weaker than the rest are left out
+
+
+def first_frame_ratio(intensity):
+    """A burn's first frame over the median of its next three (stretched intensities): about 1 when the
+    first frame is like the rest; well below 1 when it is anomalously weak."""
+    y = np.asarray(intensity, float)
+    if len(y) < 4:
+        return math.nan
+    ref = np.nanmedian(y[1:4])
+    return float(y[0] / ref) if ref > 0 else math.nan
+
+
 def well_measured(by):
     """The real burns of ``by`` ({burn: {estimator: {quantity: row}}}, from
     real.csv) that are well measured (hand-off 10, summary section 8): the
     intensity change finite under all three estimators, one frame's
     intensity error at most 10 %, stretched's intensity change within
-    ±50 % over the burn (a larger one: the peak comes or goes), and the
-    stretched's frames' χ²/dof at most 5."""
+    ±50 % over the burn (a larger one: the peak comes or goes), the
+    stretched's frames' χ²/dof at most 5, and (owner, 2026-11-27) a first
+    frame not weaker than FIRST_FRAME_MIN of the next three."""
     def f(v):
         return float(v) if v not in (None, '') else math.nan
     out = []
@@ -596,7 +611,8 @@ def well_measured(by):
             continue
         t = d['stretched']['intensity']
         if (all(np.isfinite(f(d[e]['intensity']['change'])) for e in REAL_ESTIMATORS)
-                and f(t['frame_rel_error']) <= 0.10 and abs(f(t['change'])) <= 0.5 and f(t['frame_chi2_dof']) <= 5):
+                and f(t['frame_rel_error']) <= 0.10 and abs(f(t['change'])) <= 0.5 and f(t['frame_chi2_dof']) <= 5
+                and not f(t.get('first_frame_ratio')) < FIRST_FRAME_MIN):
             out.append(b)
     return out
 
@@ -742,7 +758,7 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
     counts = {}
 
     # R3: the selection
-    fig, ax = plt.subplots(2, 2, figsize=(10, 12))
+    fig, ax = plt.subplots(3, 2, figsize=(10, 16))
     ax = ax.ravel()
     stages = [('GID burns found', len(by) + len(failed)), ('public NX 14, 15 (a check)', len(nx)),
               ('not read (no frames, too few, no peak)', len(failed)), ('private, read', len(priv)),
@@ -774,6 +790,19 @@ def explain_figures(out, csv_path=REAL_CSV, series_csv=SERIES_CSV, rates_csv=RAT
                color='tab:red', bbox=dict(fc='w', ec='none', alpha=0.8))
         a.set_ylabel('private burns read')
         a.set_xlabel(lab)
+    a = ax[4]                                   # owner, 2026-11-27: a first frame weaker than the rest is left out
+    v = np.array([I(b, 'stretched', 'first_frame_ratio') for b in priv])
+    g = np.isfinite(v)
+    a.hist(np.clip(v[g], 0.4, 1.6), np.linspace(0.4, 1.6, 49), color='tab:blue', alpha=0.8)
+    a.axvline(FIRST_FRAME_MIN, color='tab:red', lw=1.5)
+    n_out = int(np.sum(g & (v < FIRST_FRAME_MIN)))
+    counts['cut_first_frame'] = n_out
+    a.set_title('e. the first frame ÷ the median of the next three', fontsize=9)
+    a.text(0.98, 0.95, 'kept ≥ %g\nremoved: %d\n(clipped to 0.4–1.6)' % (FIRST_FRAME_MIN, n_out), transform=a.transAxes,
+           ha='right', va='top', fontsize=7.5, color='tab:red', bbox=dict(fc='w', ec='none', alpha=0.8))
+    a.set_ylabel('private burns read')
+    a.set_xlabel('first frame ÷ next three (stretched intensity)')
+    ax[5].axis('off')
     nan_out = sum(1 for b in priv if not all(np.isfinite(I(b, e)) for e in REAL_ESTIMATORS))
     counts['cut_nan'] = nan_out
     fig.suptitle('R3. From the burns found to the well-measured ones (%d private burns read; a burn can fail several '

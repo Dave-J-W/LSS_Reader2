@@ -8,7 +8,7 @@
   - **may be published:** their per-frame curves, line cuts and fits, anonymised;
   - **never published:** a detector frame or image;
   - **unchanged:** every other rule. Qxy is shown relative to the peak's centre, because peak locations
-    stay private (owner, 2026-11-19). The burns are labelled P1–P4 in time order, with no date, run,
+    stay private (owner, 2026-11-19). The burns are labelled GID Burn Examples 1–4 in time order, with no date, run,
     file or scan.
 - **What it overrides:** the 2026-11-25 rule that frame-by-frame curves of private burns are not
   published, for these four burns only. The rule's other half stands for every other private burn: how

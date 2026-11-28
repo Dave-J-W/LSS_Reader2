@@ -439,9 +439,9 @@ def chain(out, label, rt, rs, rh, note=''):
     a.legend(fontsize=6.5, loc='upper left', framealpha=0.85)
     b.legend(fontsize=7)
     fig.subplots_adjust(top=0.955)
-    fig.suptitle('Burn %s: from the line cuts to the verdict (Qxy relative to the peak; intensities as a share of '
+    fig.suptitle('%s: from the line cuts to the verdict (Qxy relative to the peak; intensities as a share of '
                  'the mean frame\'s peak)' % label, fontsize=10, y=0.995)
-    fig.savefig(os.path.join(out, 'BC_%s.png' % label), dpi=110, bbox_inches='tight')
+    fig.savefig(os.path.join(out, 'BC_%s.png' % label.replace(' ', '-')), dpi=110, bbox_inches='tight')
     p.close(fig)
     return nums
 
@@ -550,10 +550,10 @@ def firstlast(out, label, runs, note=''):
         lines.append('No shoulder kept%s: the separated readings are the stretched one.'
                      % ((' (' + refused.split(':')[0] + ')') if refused else ''))
     fig.text(0.06, 0.075, '\n'.join(lines), fontsize=8.5, va='top')
-    fig.suptitle('Burn %s: the first and last frames, fitted four ways (Qxy relative to the peak; '
+    fig.suptitle('%s: the first and last frames, fitted four ways (Qxy relative to the peak; '
                  'intensities as a share of the mean frame\'s peak)' % label, fontsize=10, y=0.995)
     fig.subplots_adjust(top=0.96, bottom=0.1)
-    fig.savefig(os.path.join(out, 'FL_%s.png' % label), dpi=110, bbox_inches='tight')
+    fig.savefig(os.path.join(out, 'FL_%s.png' % label.replace(' ', '-')), dpi=110, bbox_inches='tight')
     p.close(fig)
     return nums
 
