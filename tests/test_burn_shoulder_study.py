@@ -233,7 +233,7 @@ def test_one_burns_whole_chain_on_nx_15(tmp_path):
     assert round(100 * got['separated_held_intensity']['change'], 1) == -15.2
     assert got['stretched_intensity']['verdict'] == 'stable' and got['separated_intensity']['verdict'] == 'changing'
     assert not any('centre' in k or 'position' in k for k in got)
-    assert (tmp_path / 'BC_NX_School_GID_Burn_15.png').exists()
+    assert (tmp_path / 'BC_NX-School-GID-Burn-15.png').exists()
 
 
 def test_first_and_last_frames_fitted_four_ways_on_nx_15(tmp_path):
@@ -246,4 +246,4 @@ def test_first_and_last_frames_fitted_four_ways_on_nx_15(tmp_path):
     assert round(got['stretched']['fwhm_last_over_first'], 2) == 1.17
     assert round(got['separated']['intensity_last_over_first'], 2) == 0.79
     assert round(got['separated_held']['intensity_last_over_first'], 2) == 0.83
-    assert (tmp_path / 'FL_NX_School_GID_Burn_15.png').exists()
+    assert (tmp_path / 'FL_NX-School-GID-Burn-15.png').exists()

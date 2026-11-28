@@ -441,7 +441,7 @@ def chain(out, label, rt, rs, rh, note=''):
     fig.subplots_adjust(top=0.955)
     fig.suptitle('%s: from the line cuts to the verdict (Qxy relative to the peak; intensities as a share of '
                  'the mean frame\'s peak)' % label, fontsize=10, y=0.995)
-    fig.savefig(os.path.join(out, 'BC_%s.png' % label.replace(' ', '_')), dpi=110, bbox_inches='tight')
+    fig.savefig(os.path.join(out, 'BC_%s.png' % label.replace(' ', '-')), dpi=110, bbox_inches='tight')
     p.close(fig)
     return nums
 
@@ -553,7 +553,7 @@ def firstlast(out, label, runs, note=''):
     fig.suptitle('%s: the first and last frames, fitted four ways (Qxy relative to the peak; '
                  'intensities as a share of the mean frame\'s peak)' % label, fontsize=10, y=0.995)
     fig.subplots_adjust(top=0.96, bottom=0.1)
-    fig.savefig(os.path.join(out, 'FL_%s.png' % label.replace(' ', '_')), dpi=110, bbox_inches='tight')
+    fig.savefig(os.path.join(out, 'FL_%s.png' % label.replace(' ', '-')), dpi=110, bbox_inches='tight')
     p.close(fig)
     return nums
 

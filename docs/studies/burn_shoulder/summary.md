@@ -465,14 +465,14 @@ private peak position or scale is shown (owner, 2026-11-19).
 | GID Burn Example 3 | G40; 0.5 years after Example 1 | 41, 422 s | +5.5 ± 3.0, stable | +3.5 ± 5.0, stable | +5.1 ± 3.1, stable | +1.8 | +6.5 ± 9.5, stable | 1.13 / 1.18 |
 | GID Burn Example 4 | G227; 0.8 years after Example 1 | 26, 267 s | +5.0 ± 1.1, changing | +5.0 ± 1.2, changing | +5.0 ± 1.2, changing | +1.4 | +3.9 ± 2.4, stable | 1.17 / 1.20 |
 
-![BC_NX15](chain/BC_NX_School_GID_Burn_15.png)
+![BC_NX15](chain/BC_NX-School-GID-Burn-15.png)
 
 **NX School GID Burn 15**, for comparison: the case the study is about.
 - (b) shows the peak broadening: the last cut is lower at the top and wider.
 - (c) fits poorly (χ²/dof 4.85, residuals in waves); (d) fits better (2.13).
 - (f) splits the readings: stretched holds the intensity flat; separated and separated & held fall 13–15 %.
 
-![BC_Example_1](chain/BC_GID_Burn_Example_1.png)
+![BC_Example_1](chain/BC_GID-Burn-Example-1.png)
 
 **GID Burn Example 1** (the earliest run).
 - A weak peak (one frame's intensity error 7.6 %) on a low shoulder (0.7 × the peak's area).
@@ -480,18 +480,18 @@ private peak position or scale is shown (owner, 2026-11-19).
 - B scatters widely (± 49 % on the shoulder's change): with a low shoulder, B is poorly determined. That
   is not a sign of change.
 
-![BC_Example_2](chain/BC_GID_Burn_Example_2.png)
+![BC_Example_2](chain/BC_GID-Burn-Example-2.png)
 
 **GID Burn Example 2** (0.5 years later). A peak with a shoulder about its own size (1.2 × its area); one
 frame's error is 3.3 %. All three readings agree on a fade of 5–6 % and call it "changing"; the width is
 steady (−0.9 %), and so is the shoulder (+1.8 % ± 4.5). Both models fit to counting noise (χ²/dof 0.9).
 
-![BC_Example_3](chain/BC_GID_Burn_Example_3.png)
+![BC_Example_3](chain/BC_GID-Burn-Example-3.png)
 
 **GID Burn Example 3** (0.5 years later, another run). A slight rise under all three readings (+3.5 to
 +5.5 %), each within 2σ and called "stable". The two models fit equally well (χ²/dof 1.13 and 1.18).
 
-![BC_Example_4](chain/BC_GID_Burn_Example_4.png)
+![BC_Example_4](chain/BC_GID-Burn-Example-4.png)
 
 **GID Burn Example 4** (0.8 years later). A strong, sharp peak (one frame's error 0.2 %) with almost no
 shoulder (0.12 × its area). The three readings coincide: +5.0 % ± 1.2, "changing", with a steady width.
@@ -523,7 +523,7 @@ same data, not for the burn's change.
 | GID Burn Example 3 | 0.96 (FWHM 0.97) | 0.82 (FWHM 0.96) | 0.93 (FWHM 1.01) | 1.08 (FWHM 1.31) |
 | GID Burn Example 4 | 1.06 (FWHM 1.03) | 1.06 (FWHM 1.03) | 1.06 (FWHM 1.03) | 1.06 (FWHM 1.03) |
 
-![FL_NX15](chain/FL_NX_School_GID_Burn_15.png)
+![FL_NX15](chain/FL_NX-School-GID-Burn-15.png)
 
 **NX School GID Burn 15.** This is the clearest picture of P44.
 - The peak widens: FWHM 1.17 × under stretched.
@@ -533,7 +533,7 @@ same data, not for the burn's change.
 - The one-Gaussian fit misses the shape entirely (χ²/dof about 40): one Gaussian can't be both the sharp
   peak and the broad hump.
 
-![FL_Example_1](chain/FL_GID_Burn_Example_1.png)
+![FL_Example_1](chain/FL_GID-Burn-Example-1.png)
 
 **GID Burn Example 1.**
 - The first and last frames look alike, and stretched sees 0.98.
@@ -541,17 +541,17 @@ same data, not for the burn's change.
   through all 41 frames gives −2 % ± 7 %.
 - The one-Gaussian fit's FWHM halves between the two frames (0.57 ×): on a weak peak it is unstable.
 
-![FL_Example_2](chain/FL_GID_Burn_Example_2.png)
+![FL_Example_2](chain/FL_GID-Burn-Example-2.png)
 
 **GID Burn Example 2.** Every estimator sees the last frame weaker (0.85–0.94), in line with the 5–6 % fade
 over the whole burn. Separated sees the most (0.85) between these two frames.
 
-![FL_Example_3](chain/FL_GID_Burn_Example_3.png)
+![FL_Example_3](chain/FL_GID-Burn-Example-3.png)
 
 **GID Burn Example 3.** As Example 1: stretched sees 0.96, separated 0.82 between these two frames. Over all
 41 frames both read a slight rise within 2σ. The one-Gaussian fit reads the width 1.31 × wider.
 
-![FL_Example_4](chain/FL_GID_Burn_Example_4.png)
+![FL_Example_4](chain/FL_GID-Burn-Example-4.png)
 
 **GID Burn Example 4.** All four estimators see the same 1.06: a sharp peak with almost no shoulder is
 read alike by every method, even one Gaussian.
@@ -833,8 +833,8 @@ The private figures and generators are under `sample_data/private/burn_shoulder/
     python tests/tools/burn_shoulder_study.py --out DIR --only S5                            # NX only, a minute
     python tests/tools/burn_shoulder_study.py --out docs/studies/burn_shoulder --only G      # R1-R7 from the xr_burns gid_split CSVs, seconds
     python tests/tools/burn_shoulder_study.py --out docs/studies/burn_shoulder --only redraw # S1-S6 from the committed CSVs, seconds
-    python tests/tools/burn_shoulder_walkthrough.py --out docs/studies/burn_shoulder/chain --chain sample_data/NX_school/2026sep/20260923 15 "NX School GID Burn 15"   # BC_NX_School_GID_Burn_15
-    # BC_/FL_GID_Burn_Example_1-4: only on the owner's PC, sample_data/private/burn_shoulder/run_four.py and
+    python tests/tools/burn_shoulder_walkthrough.py --out docs/studies/burn_shoulder/chain --chain sample_data/NX_school/2026sep/20260923 15 "NX School GID Burn 15"   # BC_NX-School-GID-Burn-15
+    # BC_/FL_GID-Burn-Example-1-4: only on the owner's PC, sample_data/private/burn_shoulder/run_four.py and
     # run_four_fl.py (pick_four.py chooses them)
 
 Options: `--parts A` or `B`, `--cases`, `--shapes`, `--core` (the separated reading's core half-width in FWHM, 1.5:
