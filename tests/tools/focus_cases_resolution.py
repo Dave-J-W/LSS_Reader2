@@ -37,10 +37,11 @@ K = 4 * np.pi / (12.39842 / E)          # 1/A
 QC = F.QC_WATER
 BETA = F.subphase_beta(F.subphase('water'), E)
 D = 0.678               # m, S1 to the sample centre (scan headers: g_l2 - g_l1 = 1238 - 560 mm)
-# pooled medians at 10 keV (docs/studies/focus_and_resolution/summary.md); um
-S1 = dict(core=11.0, tail=26.9, frac=0.17)        # S1 slit scans, slit gap <= 5 um
+# pooled medians at 10 keV, the later beamtimes only (owner, 2026-11-27: the earlier ones removed)
+# (docs/studies/focus_and_resolution/summary.md); um
+S1 = dict(core=10.9, tail=28.3, frac=0.16)        # S1 slit scans, slit gap <= 5 um
 SAMPLE = dict(core=13.4, tail=55.8, frac=0.21)    # height-scan images with S1 at 0.04 mm (the edges' slit)
-SIGQ_REAL = 3.8e-4      # median sigma_Q on the real edges (qz_resolution, qoff_resolution_real)
+SIGQ_REAL = 3.85e-4     # median sigma_Q on the same real edges (qoff_resolution_real fits)
 STEP, Q0, Q1 = 0.001, 0.016, 0.030
 
 
@@ -197,7 +198,7 @@ def figure_cases(out):
     ax.legend(fontsize=7.5, loc='upper left', frameon=False)
     ax.set_title('D. Both parts of the beam are wider at the sample than at S1:\nthe beam widens after S1, as '
                  'a focus at S1 makes it (B would shrink it)', fontsize=9.5)
-    note(fig, 0.06, 'Measured widths are pooled medians at 10 keV: S1 slit scans with a slit of 5 µm or less '
+    note(fig, 0.06, 'Measured widths are pooled medians at 10 keV, the later beamtimes only: S1 slit scans with a slit of 5 µm or less '
          '(core %.1f µm, tail %.1f µm, tail fraction %.2f), and the height scans\' images with S1 at 0.04 mm, the '
          'slit of the edges (core %.1f µm, tail %.1f µm, tail fraction %.2f). Measured σ_Q: '
          'docs/studies/qz_resolution/ (S1 0.02 mm was not determined there).'
