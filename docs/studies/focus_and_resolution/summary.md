@@ -15,6 +15,12 @@ S1 slit scans and height-scan images taken before that date. Every number and fi
 edges, 12 runs (13 with a run of a single edge) and beam profiles that remain. Runs keep their labels E01…
 from the edge studies, so the labels that are missing belong to removed runs.
 
+The owner then explained why: three of those beamtimes fall in months when the beam had a vibration problem
+that made the spot at the sample much larger. Such data may stay in an analysis of beam qualities only if they
+are kept apart or shown to behave like the later ones. Section 5 tests that. The main numbers stay on the later
+beamtimes. Section 6 asks whether the edge should be scanned in finer steps, and section 7 how honest the error
+bars are.
+
 ## The answer
 
 1. **The data fit a focus at S1, not at the sample** (Figure 0).
@@ -45,6 +51,28 @@ from the edge studies, so the labels that are missing belong to removed runs.
      resolution model hardly matters.
    - What would change is the resolution handed on to R/R_F: a core and a tail instead of one width.
    - Nothing was changed here. A default needs the owner's choice (rule 12).
+5. **The vibration months differ in the plateau, not in the edge** (Figure 3).
+   - Below the edge, their points scatter 2.7 × their counting errors (later beamtimes: 1.4 ×). 21 % of them
+     are wild, beyond 4 errors (later: 5 %). All three of their runs have more wild points than any later run.
+   - Their edge width, tail fraction, χ² and residual pattern fall inside the later runs' range. So do their
+     beam widths in the height scans.
+   - So their edges could join a beam-shape analysis, but their error bars cannot be treated like the later
+     ones (item 7).
+6. **Finer steps through the edge would answer which shape is right** (Figure 4, calculated).
+   - With steps of 0.00025–0.0005 Å⁻¹ from 0.019 to 0.025, a wrong model shows itself: one Gaussian's χ²/dof
+     goes from 6 to 100–160 on beam-shaped edges, while the right model stays at 1.
+   - Today's steps cannot tell the beam + extra Gaussian from the beam with a free tail fraction (χ²/dof 1.0
+     against 1.1). At 4 × finer steps they can (1.0 against 6.0).
+   - The beam's extra width is pinned 3.5–6.6 × better. Qoff was already pinned far better than it moves from
+     series to series, so it gains nothing that matters.
+   - The cost: 6 more points per edge scan (2 × finer) or 18 (4 × finer).
+7. **Error bars: the points' errors are nearly honest; the edge fit's χ² is not about them** (section 7).
+   - Within a scan, the points scatter 1.12 × their counting errors (the within-scan study); on the plateau of
+     the later edges, 1.4 ×. The edge's χ²/dof of 30–41 is the model's shape, not noise. Inflating the errors
+     to bring it to 1 would make them about 6 × too large.
+   - For Qoff and σ_Q, quote the spread between series in a run, not the fit's ±.
+   - The scale σ × 1.12 is built as an option, but the default is unchanged. It waits for the real-split check
+     (DATA_NEEDS row 17a) and the owner's word.
 
 **What removing the early beamtimes changed.** Little. With all 378 edges the study found: S1 widths core
 11.0 µm, tail 26.9 µm, fraction 0.17; angles 11.3 and 72 µrad; the beam alone 67 % of 3.8 × 10⁻⁴; extra 0.4 ×
@@ -176,9 +204,124 @@ residual pattern. Its largest feature is an excess 2–5 steps above the edge.
 | run to run | 6 of 12 runs need nothing more than the beam; E11 needs 4.3 × 10⁻⁴ | measured |
 | the residual pattern | χ²/dof 27–41 in every model | not explained by any resolution |
 
+## 5. The vibration months against the later beamtimes (Figure 3, measured)
+
+![vibration months](F3_vibration_months.png)
+
+The owner (2026-11-27): the beam had a vibration problem in those months that "caused the measured spot size at
+the sample to increase a lot"; such data may stay only if they are kept apart or shown to behave the same. All
+edges of every period were refitted with the later beam's resolution held, and compared run by run
+(`periods_by_run.csv`, `periods.json`). The vibration months have 3 runs (89 edges) and the later beamtimes 12
+(285). One run before the vibration months has 4 edges and is shown for reference only.
+
+| per run | vibration months | later beamtimes (range) | Mann–Whitney p |
+|---|---|---|---|
+| plateau scatter, in counting errors | 3.25, 1.47, 2.96 | 0.56–2.37 (median 1.4) | 0.10 |
+| plateau wild share (beyond 4 errors) | 0.24, 0.12, 0.24 | 0.00–0.10 | **0.011** (all 3 above every later run) |
+| edge σ_Q, one Gaussian (10⁻⁴ Å⁻¹) | 3.09, 3.33, 3.66 | 2.73–5.35 | 0.29 |
+| tail fraction the edges choose | 0.19, 0.15, 0.26 | 0.11–0.46 | 0.73 |
+| edge χ²/dof, one Gaussian | 24, 22, 138 | 10–283 | 0.95 |
+| beam width at the sample, height scans (µm) | 16.7, 16.6, 15.5 | 14.6–18.1 | 0.73 |
+
+- **The plateau** is the flat part below the edge, 0.0125–0.0195 Å⁻¹. There each point's second difference
+  y[i−1] − 2y[i] + y[i+1] should be zero within its counting error. No curve shape enters. Pooled, the
+  vibration months scatter 2.7 × their errors with 21 % wild points. The later beamtimes scatter 1.4 × with 5 %
+  wild points.
+- **This is what a vibrating beam would do:** each point's intensity jumps as the beam moves on the surface,
+  and the counting errors do not include it.
+- **The edge itself does not differ.** Its width, tail fraction, χ² and residual pattern (Figure 3 F) are
+  inside the later runs' spread.
+- **The beam width in these height scans does not differ either.** I could not see the larger spot the owner
+  describes in this record. Possible reasons: these are ROI edge widths of quick scans at the narrow slit, and
+  a vibration slower than a scan point moves the beam without widening it.
+- **With 3 runs, only a large difference can show.** The smallest possible p is about 0.01. The wild share
+  reaches it. The other quantities do not differ by more than the later runs differ among themselves.
+
+**What follows:** the vibration months' edges can join a study of the edge's shape. Their error bars are about
+2–3 × too small and carry a fifth of wild points, so any fit weighted by those errors must use a robust loss or
+a larger error.
+
+## 6. Should the edge be scanned in finer steps? (Figure 4, calculated)
+
+![finer edge sampling](F4_finer_edge_sampling.png)
+
+The run: `python tests/tools/edge_sampling_study.py --out docs/studies/focus_and_resolution` (about 1 min,
+`sampling.json`). Synthetic bare-water edges have the beam's core and tail plus an extra Gaussian of
+0.8 × 10⁻⁴, the later beamtimes' median. They are sampled three ways:
+- **now:** steps of 0.001;
+- **2 × finer:** 0.0005 between 0.019 and 0.025 Å⁻¹;
+- **4 × finer:** 0.00025 between 0.019 and 0.025 Å⁻¹.
+
+There are two time budgets: the same counting time per point (the scan gets longer), or the same total time.
+A second truth, the "softer edge", gives the edge three times water's absorption. It stands in for the real
+edges' unexplained rounding.
+
+| beam truth, same time per point | now | 2 × finer | 4 × finer |
+|---|---|---|---|
+| points per edge scan (0.016–0.030) | 15 | 21 | 33 |
+| points within ±0.001 of the edge | 2 | 4 | 8 |
+| scatter of the extra found (robust SD, 10⁻⁴) | 0.17 | 0.05 | 0.025 |
+| the same, same total time | 0.14 | 0.075 | 0.047 |
+| scatter of the tail fraction found | 0.022 | 0.019 | 0.009 |
+| scatter of Qoff (10⁻⁶ Å⁻¹) | 3.5 | 1.6 | 0.7 |
+| χ²/dof: beam + Gaussian / beam, fraction free / one Gaussian | 1.0 / 1.1 / 6 | 0.9 / 2.6 / 98 | 1.0 / 6.0 / 157 |
+| softer edge, χ²/dof: beam + Gaussian / one Gaussian | 20 / 40 | 63 / 292 | 62 / 262 |
+
+- **The gain is in telling shapes apart, not in precision.** Today's sampling already pins the right model's
+  parameters well (an extra of 0.8 ± 0.17). It cannot say which model is right: two models that differ in the
+  edge's shape give χ²/dof 1.0 and 1.1. With 8 points through the edge instead of 2, a wrong shape costs 6 to
+  160 in χ²/dof.
+- **One Gaussian stays wrong at any step.** It reads 2.5–2.7 × 10⁻⁴ for an edge whose beam is unchanged
+  (Figure 4 C). More points make its misfit plainer, not smaller.
+- **The softer edge, sampled today, looks like the real edges.** It gives χ²/dof 20 for the beam model and 40
+  for one Gaussian, against 33 and 41 measured. The beam model then reads an extra of 2.3 × 10⁻⁴, three times
+  the truth. That is one candidate for the residual pattern, and finer steps would tell it from the beam.
+- **Qoff gains nothing that matters.** It moves 7.8 × 10⁻⁵ from series to series (qoff_resolution_real),
+  20–100 × its scatter here.
+
+**Suggestion for future experiments:** scan 0.019–0.025 Å⁻¹ in steps of 0.0005, or 0.00025 when time allows,
+on at least a few edges per beamtime. That adds 6 (or 18) points to a 15-point edge scan. Even at the same
+total time, 2 × finer steps separate the models (one Gaussian 67, the fraction-free model 1.9).
+
+## 7. The extra-error analysis, and how honest the error bars are
+
+The extra-error work is in `docs/studies/excess_scatter/` (C63) and `docs/studies/excess_remedy/` (C64). In
+short:
+- **Within a scan, the points scatter 1.12 × their counting errors** (384 real series), with about 0.3 % wild
+  points.
+- **The remedy is built but not the default.** `errors={'mode': 'budget', 'counting_scale': 1.12}` scales the
+  counting part of each point's error (OUTPUT_DECISIONS, 2026-11-25). On synthetic joins with that truth it
+  brings the pull SD from 1.19 to 1.08.
+- **Two steps remain before the switch:**
+  - the check on the real split tests (DATA_NEEDS row 17a, not yet run);
+  - the owner's word (MQ-3).
+- **The between-scan part is open.** Points of two scans at the same Qz differ by more than their errors, but
+  the cause sits in what changed between the scans, not in each point (row 17 b, c).
+
+**What the edges add:**
+- **The plateau of the later edges scatters 1.4 ×** its counting errors, a little above 1.12. The plateau is
+  the brightest part of a scan.
+- **The vibration months scatter 2.7 ×,** with 21 % wild points.
+- **The edge fit's χ²/dof (30–41) is not a measure of the errors.** On the plateau, where the local scatter
+  is 1.4 ×, the fit's robust χ² is about 5. At the edge it is 26–35. Both are far above what the points'
+  scatter gives, so the excess is the model missing the curve's shape.
+- **So the errors should not be inflated until the edge fits.** That would make them about 6 × too large
+  everywhere else.
+
+**Honest error bars, then:**
+
+| quantity | honest ± | status |
+|---|---|---|
+| a reflectivity point, later beamtimes | counting error × 1.12 (within a scan; 1.4 on the plateau) | option built; default waits for row 17a and the owner |
+| a reflectivity point, vibration months | counting error × 2–3, and a robust loss for the 21 % wild points | measured here; nothing built |
+| Qoff of an edge | the spread between series in the run (median 7.8 × 10⁻⁵ Å⁻¹), not the fit's ± | qoff_resolution_real |
+| σ_Q of an edge | the model's own spread: 2.5–3.85 × 10⁻⁴ depending on the shape assumed; ±30 % at best | this study and qoff_resolution_real |
+| the beam's tail fraction from one edge | the run-to-run spread, 0.11–0.46 | this study |
+
 ## Not shown, and why
 
-- **The early beamtimes**: removed at the owner's request (see "Data used").
+- **The early beamtimes** in the main numbers: removed at the owner's request (see "Data used"); compared in
+  section 5.
 - **Per-run S1 slit scans**: only 5 of the 14 edge files have S1 slit scans, with 1–28 per file. The study
   uses the pooled widths.
 - **The released runs before 2019**: no S1 slit scans or height-scan images in this set.
@@ -200,6 +343,8 @@ residual pattern. Its largest feature is an excess 2–5 steps above the edge.
 |---|---|
 | `F0_two_focus_cases.png`, `F1_how_much_the_beam_explains.png`, `calculated.json` | calculated, public, from `tests/tools/focus_cases_resolution.py` |
 | `F2_real_edges_refit.png`, `refit_by_run.csv`, `numbers.json` | measured, from the private generator |
+| `F3_vibration_months.png`, `periods_by_run.csv`, `periods.json` | measured, from the private generator |
+| `F4_finer_edge_sampling.png`, `sampling.json` | calculated, public, from `tests/tools/edge_sampling_study.py` |
 
 The columns of `refit_by_run.csv` are run medians:
 - `sigma_q_gauss`: one Gaussian;
@@ -210,6 +355,8 @@ The columns of `refit_by_run.csv` are run medians:
 **Regenerate:**
 - The calculated figures are public:
   `python tests/tools/focus_cases_resolution.py --out docs/studies/focus_and_resolution`.
+  `python tests/tools/edge_sampling_study.py --out docs/studies/focus_and_resolution` (Figure 4).
 - Figure 2 and its numbers come from the private generator on the owner's PC. It runs
   `sample_data/private/xr/scripts/beamres_refit.py` (which applies the date cut), `beamres_truth.py` and then
-  `beamres_publish.py`. It is not regenerable here.
+  `beamres_publish.py`. Figure 3 needs `beamres_refit.py` again with `BEAMRES_ALL_DATES=1`, then
+  `beamres_periods.py`. Neither is regenerable here.

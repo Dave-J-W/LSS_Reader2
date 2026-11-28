@@ -1,0 +1,129 @@
+{
+ "periods": {
+  "early": {
+   "name": "before the vibration months",
+   "runs": 1,
+   "edges": 4,
+   "plateau_points": 8,
+   "plateau_scatter": 1.0478333875204637,
+   "plateau_wild_share": 0.125,
+   "sigma_q_gauss": 0.0003721687913226187,
+   "tail_fraction_free": 0.20171408821455225,
+   "extra_beam": 1.7908904055854628e-11,
+   "chi2_gauss": 43.533331650070764,
+   "height_scan_width_um": 16.775100000000002
+  },
+  "vib": {
+   "name": "vibration months",
+   "runs": 3,
+   "edges": 89,
+   "plateau_points": 178,
+   "plateau_scatter": 2.7426617557347033,
+   "plateau_wild_share": 0.21348314606741572,
+   "sigma_q_gauss": 0.000328186769307423,
+   "tail_fraction_free": 0.19892601937554577,
+   "extra_beam": 1.8675979828034294e-09,
+   "chi2_gauss": 47.68807590949527,
+   "height_scan_width_um": 16.5732
+  },
+  "later": {
+   "name": "later beamtimes",
+   "runs": 12,
+   "edges": 285,
+   "plateau_points": 570,
+   "plateau_scatter": 1.3533424440396853,
+   "plateau_wild_share": 0.054385964912280704,
+   "sigma_q_gauss": 0.00038464432406300756,
+   "tail_fraction_free": 0.22187287663927047,
+   "extra_beam": 7.585958947666711e-05,
+   "chi2_gauss": 41.24799166015088,
+   "height_scan_width_um": 16.1484
+  }
+ },
+ "vib_vs_later_runs": {
+  "plateau_scatter": {
+   "vib": [
+    3.2467117409690514,
+    1.4686066777680031,
+    2.957156437186946
+   ],
+   "later_min": 0.5610426200044738,
+   "later_max": 2.3716839882726792,
+   "later_median": 1.3797175886245747,
+   "mann_whitney_p": 0.1010989010989011,
+   "vib_above_every_later": 2
+  },
+  "plateau_wild_share": {
+   "vib": [
+    0.24242424242424243,
+    0.11904761904761904,
+    0.24285714285714285
+   ],
+   "later_min": 0.0,
+   "later_max": 0.1,
+   "later_median": 0.055522914218566394,
+   "mann_whitney_p": 0.011245466350156628,
+   "vib_above_every_later": 3
+  },
+  "sigma_q_gauss": {
+   "vib": [
+    0.00030893815375679406,
+    0.0003330688720499324,
+    0.0003657205390496707
+   ],
+   "later_min": 0.0002733567437967076,
+   "later_max": 0.0005348044169825721,
+   "later_median": 0.00036120971571354857,
+   "mann_whitney_p": 0.29450549450549457,
+   "vib_above_every_later": 0
+  },
+  "tail_fraction_free": {
+   "vib": [
+    0.18849135715678716,
+    0.1478289831908436,
+    0.264705134808436
+   ],
+   "later_min": 0.11022483141170587,
+   "later_max": 0.45795925904395823,
+   "later_median": 0.1969203740655897,
+   "mann_whitney_p": 0.734065934065934,
+   "vib_above_every_later": 0
+  },
+  "extra_beam": {
+   "vib": [
+    8.589350740692432e-10,
+    2.9178899747969397e-10,
+    0.00010938463868218712
+   ],
+   "later_min": 4.0664290678774517e-11,
+   "later_max": 0.000428261247037582,
+   "later_median": 2.3306145023944876e-05,
+   "mann_whitney_p": 1.0,
+   "vib_above_every_later": 0
+  },
+  "chi2_gauss": {
+   "vib": [
+    24.394218402358163,
+    21.902093274792133,
+    137.8065039533532
+   ],
+   "later_min": 9.801946536887723,
+   "later_max": 282.944734721519,
+   "later_median": 36.09542678610772,
+   "mann_whitney_p": 0.9450549450549449,
+   "vib_above_every_later": 0
+  },
+  "height_scan_width_um": {
+   "vib": [
+    16.72925,
+    16.62575,
+    15.518450000000001
+   ],
+   "later_min": 14.5538,
+   "later_max": 18.1221,
+   "later_median": 15.70075,
+   "mann_whitney_p": 0.7272727272727273,
+   "vib_above_every_later": 0
+  }
+ }
+}

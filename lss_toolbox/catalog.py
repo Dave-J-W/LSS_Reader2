@@ -1450,11 +1450,27 @@ TOOLS = (
                       'Gaussian: χ² per model, the tail fraction and width the edges choose, the residual pattern '
                       'under every model, and a known-truth check of both fits. Made by the owner\'s PC\'s private '
                       'generator (sample_data/private/xr/); not regenerable here; the numbers are the CSV and JSON '
-                      'beside the figure.',
+                      'beside the figure. With it, the beam-vibration months against the later beamtimes, run by '
+                      'run: plateau scatter and wild points, edge width, tail fraction, beam width at the sample.',
          committed=('docs/studies/focus_and_resolution/F2_real_edges_refit.png',
                     'docs/studies/focus_and_resolution/refit_by_run.csv',
-                    'docs/studies/focus_and_resolution/numbers.json'),
+                    'docs/studies/focus_and_resolution/numbers.json',
+                    'docs/studies/focus_and_resolution/F3_vibration_months.png',
+                    'docs/studies/focus_and_resolution/periods_by_run.csv',
+                    'docs/studies/focus_and_resolution/periods.json'),
          docs=('docs/studies/focus_and_resolution/summary.md',), data='private', repo_ok=False),
+
+    Tool('edge_sampling_study', 'Should the critical edge be scanned in finer Qz steps?', 'refl', 'figures',
+         'tests/tools/edge_sampling_study.py',
+         'Known truth: synthetic edges with the beam\'s core + tail and an extra Gaussian, sampled in steps of '
+         '0.001, 0.0005 or 0.00025 Å⁻¹ through the edge at the same time per point or the same total time, fitted '
+         'by one Gaussian, the beam + a free Gaussian and the beam with a free tail fraction: precision, bias and '
+         'whether χ² can tell the shapes apart, also for a softer edge.',
+         committed=('docs/studies/focus_and_resolution/F4_finer_edge_sampling.png',
+                    'docs/studies/focus_and_resolution/sampling.json'),
+         docs=('docs/studies/focus_and_resolution/summary.md',),
+         data='public', defaults={'--out': OUT},
+         repo_out='docs/studies/focus_and_resolution', repo_ok=False, seconds=90.0),
 
     Tool('beam_size_vs_resolution', 'Beam size against Qz resolution on real runs (private data)', 'external',
          'external',
