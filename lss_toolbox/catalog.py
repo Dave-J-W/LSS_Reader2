@@ -1446,7 +1446,7 @@ TOOLS = (
 
     Tool('focus_and_resolution', 'Real edges refitted with the beam\'s own resolution (private data)', 'external',
          'external',
-         demonstrates='378 real edges refitted with the beam\'s core + tail resolution (focus at S1) against one '
+         demonstrates='285 real edges (the later beamtimes) refitted with the beam\'s core + tail resolution (focus at S1) against one '
                       'Gaussian: χ² per model, the tail fraction and width the edges choose, the residual pattern '
                       'under every model, and a known-truth check of both fits. Made by the owner\'s PC\'s private '
                       'generator (sample_data/private/xr/); not regenerable here; the numbers are the CSV and JSON '
