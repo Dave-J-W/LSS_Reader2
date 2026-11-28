@@ -112,7 +112,7 @@ def test_the_published_real_burns_give_section_8s_counts(tmp_path):
     (no private data): its counts are the section's."""
     got = S.real_figures(str(tmp_path), os.path.join(ROOT, S.REAL_CSV),
                          os.path.join(ROOT, 'docs', 'studies', 'burn_shoulder', 'reference_noise.csv'))
-    assert got == dict(well_measured=119, read=155, failed=79, wide=5, differ=12)
+    assert got == dict(well_measured=117, read=155, failed=79, wide=5, differ=11)
     assert (tmp_path / 'R1_stretched_vs_separated.png').exists() and (tmp_path / 'R2_reference_shift.png').exists()
 
 
@@ -120,9 +120,9 @@ def test_the_explaining_figures_give_section_8s_counts(tmp_path):
     """R3-R7 (how section 8's numbers are made) from the published
     summaries alone: each states the counts the section quotes."""
     got = S.explain_figures(str(tmp_path))
-    assert got == dict(cut_frame_rel_error=10, cut_change=7, cut_chi2=20, cut_nan=8, q1_z_over_2=20,
-                       q1_verdicts_differ=12, q2_three=15, q2_with_shoulder=54, q3_split_lower=39, q3_with_shoulder=54,
-                       q5_series=14, q5_changed=3)
+    assert got == dict(cut_frame_rel_error=10, cut_change=7, cut_chi2=20, cut_first_frame=6, cut_nan=8, q1_z_over_2=20,
+                       q1_verdicts_differ=11, q2_three=15, q2_with_shoulder=53, q3_split_lower=38, q3_with_shoulder=53,
+                       q5_series=14, q5_changed=4)
     for name in ('R3_selection', 'R4_q1_disagreement', 'R5_q2_shoulder', 'R6_q3_fit_quality', 'R7_q5_dose_or_time'):
         assert (tmp_path / (name + '.png')).exists()
 
@@ -227,13 +227,13 @@ def test_one_burns_whole_chain_on_nx_15(tmp_path):
     """The chain figure (walkthrough tool, --chain) reads NX burn 15 as section 5 does, and its numbers
     carry no peak position (the same function draws the private burns P1-P4)."""
     import burn_shoulder_walkthrough as W
-    got = W.chain_from_file(str(tmp_path), NX, 15, 'NX15')
+    got = W.chain_from_file(str(tmp_path), NX, 15, 'NX School GID Burn 15')
     assert round(100 * got['stretched_intensity']['change'], 1) == -1.5
     assert round(100 * got['separated_intensity']['change'], 1) == -13.3
     assert round(100 * got['separated_held_intensity']['change'], 1) == -15.2
     assert got['stretched_intensity']['verdict'] == 'stable' and got['separated_intensity']['verdict'] == 'changing'
     assert not any('centre' in k or 'position' in k for k in got)
-    assert (tmp_path / 'BC_NX15.png').exists()
+    assert (tmp_path / 'BC_NX_School_GID_Burn_15.png').exists()
 
 
 def test_first_and_last_frames_fitted_four_ways_on_nx_15(tmp_path):
@@ -241,9 +241,9 @@ def test_first_and_last_frames_fitted_four_ways_on_nx_15(tmp_path):
     keeps the last frame's intensity equal to the first's while its FWHM grows; the separated readings
     see the fade (section 8a'')."""
     import burn_shoulder_walkthrough as W
-    got = W.firstlast_from_file(str(tmp_path), NX, 15, 'NX15')
+    got = W.firstlast_from_file(str(tmp_path), NX, 15, 'NX School GID Burn 15')
     assert round(got['stretched']['intensity_last_over_first'], 2) == 1.00
     assert round(got['stretched']['fwhm_last_over_first'], 2) == 1.17
     assert round(got['separated']['intensity_last_over_first'], 2) == 0.79
     assert round(got['separated_held']['intensity_last_over_first'], 2) == 0.83
-    assert (tmp_path / 'FL_NX15.png').exists()
+    assert (tmp_path / 'FL_NX_School_GID_Burn_15.png').exists()

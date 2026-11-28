@@ -2,8 +2,8 @@ series,burns,n_burns,well_measured,flux_span,stretched_rho0_verdict,stretched_rh
 GS01,G06 G07,2,0,4.82,no change,nan,nan,nan,no change,nan,nan,nan,no change,nan,nan,nan,no change,nan,nan,nan
 GS02,G10 G11,2,0,4.71,time,-0.08,-0.47,0.24,time,-0.08,-0.62,0.41,time,-0.08,-0.47,0.24,time,-0.08,-0.62,0.41
 GS03,G12 G13 G14 G16,4,3,4.67,opposite signs,4.0,2.85,4.0,opposite signs,-0.5,-0.51,-0.02,opposite signs,4.0,2.85,4.0,opposite signs,-0.5,-0.51,-0.02
-GS04,G20 G21 G23 G24 G25 G26,6,2,9.55,opposite signs,1.48,1.06,1.82,opposite signs,1.48,0.66,2.45,opposite signs,1.09,0.73,1.4,opposite signs,0.82,-0.62,1.8
-GS05,G205 G206 G208,3,2,47.16,neither,4.0,2.07,4.0,neither,4.0,1.98,4.0,opposite signs,4.0,2.23,4.0,opposite signs,0.81,0.6,1.04
+GS04,G20 G21 G23 G25 G26,5,2,9.55,opposite signs,4.0,3.48,4.0,opposite signs,1.14,0.42,2.03,neither,4.0,3.55,4.0,time,0.81,0.13,0.88
+GS05,G206 G208,2,1,21.14,neither,4.0,2.06,4.0,neither,4.0,1.97,4.0,opposite signs,4.0,2.22,4.0,opposite signs,0.59,0.58,0.84
 GS06,G210 G212,2,0,2.23,cannot tell,1.98,-1.0,2.92,cannot tell,1.95,-1.0,3.23,cannot tell,1.95,-1.0,2.88,cannot tell,1.91,-1.0,3.2
 GS07,G229 G230,2,2,4.5,no change,-1.0,-1.0,4.0,no change,-1.0,-1.0,4.0,no change,0.07,-0.97,4.0,no change,0.08,-1.0,4.0
 GS08,G231 G232 G233,3,3,4.49,dose,1.18,0.99,1.41,dose,1.29,0.79,1.89,dose,1.04,0.86,1.27,dose,0.99,0.55,1.5
