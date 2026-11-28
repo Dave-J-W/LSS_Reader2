@@ -719,12 +719,23 @@ the stretched reading's, one point per burn.
 
     None of them turns a decided dose into a decided time or back.
 
-**6. Is there a burn with an independent before-and-after measurement?**
-- **47 burns (28 of them well measured) have a GID series of the same Det_Th in the same file that ended
-  within 2 h before the burn, and another that started within 2 h after it.** These are the candidates
-  (generator `sample_data/private/burn_shoulder/q5_q6.py`).
-- Not yet done: comparing that peak's area change across the burn with each estimator's change. It needs
-  each GID series patched, and the same peak's area measured in both. It is follow-up issue #173.
+**6. Is there a burn with an independent before-and-after measurement?** **No: in these data no burned
+spot is measured before and after** (issue #173, 2026-11-27).
+- **The candidates.** Each burn was matched with the GID series of the same file that covers its Det_Th
+  and ended at most 2 h before it, and with the one that started at most 2 h after it ended. 31 burns have
+  both, 19 of them well measured. (The earlier count of 47 used a looser match: any series in the 2 h
+  windows, not the nearest one, and timed from the burn's start.)
+- **The spot.** The comparison needs the GID scans to look at the spot that was burned. But the sample's
+  horizontal position (`Sample_X`) differs between the burn and both scans in all 31 cases. Each burn was
+  done on a fresh spot, 1–10 mm (median 4 mm) from the nearest scanned spot. The before and after scans
+  are usually on different spots from each other too (median 14 mm apart; only 4 pairs share a spot).
+- **So the scans measure other spots,** and their change says nothing about what the burn did to its own
+  spot. That is the usual practice (a fresh strip for every exposure), and it is why these data can't
+  settle the size of the separated reading's fade.
+- **What would settle it:** a GID scan of the burned spot itself, just before and just after the burn,
+  with the sample not moved and the absorber noted. One such burn per sample kind would turn "separated
+  reads −13 %" into a measurement. This is now DATA_NEEDS row 22, for a future beamtime.
+- Generators (private): `sample_data/private/burn_shoulder/q6_candidates.py` and `q6_positions.py`.
 
 **The judgment on real data.**
 - **P44's verdict change is real but less common on private burns than on NX 15.** The intensity verdicts
@@ -740,7 +751,7 @@ the stretched reading's, one point per burn.
     without it. Question 2 rests on 54 shoulders after #187's guard; the 50 % height-error limit is an
     assumption.
   - **low** on question 4 for broadening burns: there are only 12.
-  - **open** on question 6: the measurement is the follow-up.
+  - **open** on question 6: no burned spot is measured before and after in these data (DATA_NEEDS row 22).
 - **Recommendation unchanged** (section 7): report separated beside stretched, and leave the default
   to the owner (rule 12 paused; issue #143).
 
