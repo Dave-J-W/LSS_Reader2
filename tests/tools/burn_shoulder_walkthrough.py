@@ -456,6 +456,118 @@ def chain_from_file(out, spec, scan, label, note=''):
     return chain(out, label, rt, rs, rh, note)
 
 
+FL_ESTIMATORS = ('stretched', 'separated', 'separated_held', 'fit')
+FL_COLOURS = {'stretched': CT, 'separated': CS, 'separated_held': CH, 'fit': '#2e8b57'}
+
+
+def _frame_curve(r, k, x):
+    """The curve estimator result ``r`` fitted to frame k, on x (inside the window); for the separated
+    readings also (peak + background, shoulder + background). None when that frame's fit failed."""
+    d = r.frame_fits[k]
+    if not d.get('ok'):
+        return None, None
+    est = burn.canonical(r.reference.get('estimator'))
+    if est == 'fit':
+        return d['result'].model(x), None
+    drawn = burn.frame_model(r.reference, d, x)
+    if est in burn.SEPARATED_ESTIMATORS:
+        total, (pk, sh, bg) = drawn
+        return total, (pk + bg, sh + bg)
+    return drawn, None
+
+
+def firstlast(out, label, runs, note=''):
+    """The first and the last frame of one burn, fitted by every estimator (owner, 2026-11-27: "First
+    and last frames of a burn fitted various ways make a good figure"). Two columns (first, last); per
+    estimator a row with the frame, the fitted curve (and, separated, its two parts) and a row of
+    residuals in each point's own error. The last column's titles give the intensity and FWHM as
+    multiples of the same estimator's first frame: the change each estimator sees between the two
+    frames. Qxy relative to the peak, intensities as a share of the mean frame's peak (as ``chain``).
+    ``runs``: {estimator: BurnResult}. Writes FL_<label>.png; returns the ratios shown."""
+    p = plt()
+    ref = runs['separated'].reference
+    c0, x = ref['peak_centre'], ref['x']
+    dx = x - c0
+    top = float(np.max(runs['stretched'].reference['shape']))
+    sel = (runs['stretched'].profiles[0][:, 0] >= runs['stretched'].window[0]) & \
+          (runs['stretched'].profiles[0][:, 0] <= runs['stretched'].window[1])
+    n = len(runs['stretched'].profiles)
+    fig = p.figure(figsize=(10, 20))
+    hr = []
+    for _ in FL_ESTIMATORS:
+        hr += [2.2, 0.8]
+    gs = fig.add_gridspec(2 * len(FL_ESTIMATORS), 2, height_ratios=hr, hspace=0.45, wspace=0.22)
+    nums = {}
+    for i, est in enumerate(FL_ESTIMATORS):
+        r = runs[est]
+        colour = FL_COLOURS[est]
+        I, F = r.values['intensity'][0], r.values['fwhm'][0]
+        nums[est] = dict(intensity_last_over_first=float(I[-1] / I[0]), fwhm_last_over_first=float(F[-1] / F[0]))
+        first_ax = None
+        for col, k in enumerate((0, n - 1)):
+            prof = r.profiles[k]
+            y, s = prof[sel, 1], prof[sel, 2]
+            ax = fig.add_subplot(gs[2 * i, col], sharey=first_ax)      # one y scale per row: the change shows
+            first_ax = first_ax or ax
+            rr = fig.add_subplot(gs[2 * i + 1, col], sharex=ax)
+            ax.errorbar(dx, y / top, s / top, fmt='.', ms=3, lw=0.5, color='k',
+                        label='%s frame, ± √counts' % ('first' if k == 0 else 'last'))
+            total, parts = _frame_curve(r, k, x)
+            if total is None:
+                ax.text(0.5, 0.5, 'this frame\'s fit failed', transform=ax.transAxes, ha='center')
+            else:
+                ax.plot(dx, total / top, '-', color=colour, lw=1.5, label='the fit')
+                if parts is not None and r.reference.get('shoulder') is not None:
+                    ax.plot(dx, parts[0] / top, ':', color=colour, lw=1, label='peak (stretched) + background')
+                    ax.plot(dx, parts[1] / top, '--', color='C2', lw=1, label='shoulder (not stretched) + background')
+                res = (y - total) / s
+                rr.bar(dx, res, width=0.8 * float(np.median(np.diff(x))), color=colour)
+            for v in (-2, 2):
+                rr.axhline(v, color='0.6', lw=0.5, ls='--')
+            rr.axhline(0, color='k', lw=0.6)
+            chi = r.frame_fits[k].get('chi2_dof', math.nan)
+            if k == 0:
+                title = '%s, first frame: χ²/dof %.2f' % (NAME[est], chi)
+            else:
+                title = 'last frame: χ²/dof %.2f; intensity %.2f ×, FWHM %.2f × the first' % (
+                    chi, nums[est]['intensity_last_over_first'], nums[est]['fwhm_last_over_first'])
+            ax.set_title(title, fontsize=8.5)
+            if i == 0:
+                ax.legend(fontsize=6.5, loc='upper left')
+            elif est == 'separated' and k == 0:
+                ax.legend(fontsize=6.5, loc='upper left')
+            if col == 0:
+                ax.set_ylabel('share of the mean\nframe\'s peak', fontsize=8)
+                rr.set_ylabel('miss / σ', fontsize=7)
+            if i == len(FL_ESTIMATORS) - 1:
+                rr.set_xlabel('Qxy − the peak\'s centre (Å⁻¹)', fontsize=8)
+    refused = runs['separated'].reference.get('shoulder_refused')
+    lines = ['%s: %d frames. %s' % (label, n, note),
+             'Last ÷ first frame, intensity:',
+             '    ' + ';   '.join('%s %.2f' % (NAME[e], nums[e]['intensity_last_over_first']) for e in FL_ESTIMATORS[:2]),
+             '    ' + ';   '.join('%s %.2f' % (NAME[e], nums[e]['intensity_last_over_first']) for e in FL_ESTIMATORS[2:])]
+    if refused or runs['separated'].reference.get('shoulder') is None:
+        lines.append('No shoulder kept%s: the separated readings are the stretched one.'
+                     % ((' (' + refused.split(':')[0] + ')') if refused else ''))
+    fig.text(0.06, 0.075, '\n'.join(lines), fontsize=8.5, va='top')
+    fig.suptitle('Burn %s: the first and last frames, fitted four ways (Qxy relative to the peak; '
+                 'intensities as a share of the mean frame\'s peak)' % label, fontsize=10, y=0.995)
+    fig.subplots_adjust(top=0.96, bottom=0.1)
+    fig.savefig(os.path.join(out, 'FL_%s.png' % label), dpi=110, bbox_inches='tight')
+    p.close(fig)
+    return nums
+
+
+def firstlast_from_file(out, spec, scan, label, note=''):
+    """``firstlast`` for one burn of a SPEC file (public or private): its four readings."""
+    import tempfile
+    os.environ.setdefault('LSS_READER_LOG_DIR', tempfile.mkdtemp())
+    from lss_core.experiment import Experiment
+    e = Experiment(spec)
+    runs = {k: e.burn(int(scan), estimator=k) for k in FL_ESTIMATORS}
+    return firstlast(out, label, runs, note)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--out', default='docs/studies/burn_shoulder/walkthrough', help='output folder')
@@ -463,8 +575,14 @@ def main(argv=None):
     ap.add_argument('--chain', nargs=3, action='append', metavar=('SPEC', 'SCAN', 'LABEL'),
                     help='only BC_<LABEL>.png, the whole chain of one burn (repeatable; for private burns the '
                     'figure shows no position, file or scan)')
+    ap.add_argument('--firstlast', nargs=3, action='append', metavar=('SPEC', 'SCAN', 'LABEL'),
+                    help='only FL_<LABEL>.png: the first and last frames fitted by every estimator (repeatable)')
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
+    if a.firstlast:
+        got = {lab: firstlast_from_file(a.out, spec, scan, lab) for spec, scan, lab in a.firstlast}
+        print(json.dumps(got, indent=1, default=float))
+        return 0
     if a.chain:
         got = {lab: chain_from_file(a.out, spec, scan, lab) for spec, scan, lab in a.chain}
         with open(os.path.join(a.out, 'numbers_chain.json'), 'w', encoding='utf-8') as f:

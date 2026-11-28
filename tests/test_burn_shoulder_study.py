@@ -234,3 +234,16 @@ def test_one_burns_whole_chain_on_nx_15(tmp_path):
     assert got['stretched_intensity']['verdict'] == 'stable' and got['separated_intensity']['verdict'] == 'changing'
     assert not any('centre' in k or 'position' in k for k in got)
     assert (tmp_path / 'BC_NX15.png').exists()
+
+
+def test_first_and_last_frames_fitted_four_ways_on_nx_15(tmp_path):
+    """The first-and-last figure (walkthrough tool, --firstlast): on NX burn 15 the stretched reading
+    keeps the last frame's intensity equal to the first's while its FWHM grows; the separated readings
+    see the fade (section 8a'')."""
+    import burn_shoulder_walkthrough as W
+    got = W.firstlast_from_file(str(tmp_path), NX, 15, 'NX15')
+    assert round(got['stretched']['intensity_last_over_first'], 2) == 1.00
+    assert round(got['stretched']['fwhm_last_over_first'], 2) == 1.17
+    assert round(got['separated']['intensity_last_over_first'], 2) == 0.79
+    assert round(got['separated_held']['intensity_last_over_first'], 2) == 0.83
+    assert (tmp_path / 'FL_NX15.png').exists()
