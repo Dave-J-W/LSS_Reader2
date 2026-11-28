@@ -515,12 +515,12 @@ sees between these two frames.
 Two single frames carry each frame's own noise, and the first frame can be anomalous (P4). So read these
 figures for *how* each estimator treats the same data, not for the burn's change.
 
-| burn | shoulder stretched | shoulder separated | separated and held | one-Gaussian fit |
-|---|---|---|---|---|
-| NX 15 | 1.00 (FWHM 1.17) | 0.79 (FWHM 1.02) | 0.83 (FWHM 1.04) | 0.99 (FWHM 1.22) |
-| P1 | 0.98 (FWHM 0.98) | 0.81 (FWHM 0.97) | 0.95 (FWHM 0.98) | 0.70 (FWHM 0.57) |
-| P2 | 1.11 (FWHM 0.99) | 1.11 (FWHM 0.99) | 1.11 (FWHM 0.99) | 1.23 (FWHM 1.08) |
-| P3 | 0.96 (FWHM 0.97) | 0.82 (FWHM 0.96) | 0.93 (FWHM 1.01) | 1.08 (FWHM 1.31) |
+| burn | shoulder stretched | shoulder separated | separated and held | one-Gaussian fit |
+|---|---|---|---|---|
+| NX 15 | 1.00 (FWHM 1.17) | 0.79 (FWHM 1.02) | 0.83 (FWHM 1.04) | 0.99 (FWHM 1.22) |
+| P1 | 0.98 (FWHM 0.98) | 0.81 (FWHM 0.97) | 0.95 (FWHM 0.98) | 0.70 (FWHM 0.57) |
+| P2 | 1.11 (FWHM 0.99) | 1.11 (FWHM 0.99) | 1.11 (FWHM 0.99) | 1.23 (FWHM 1.08) |
+| P3 | 0.96 (FWHM 0.97) | 0.82 (FWHM 0.96) | 0.93 (FWHM 1.01) | 1.08 (FWHM 1.31) |
 | P4 | 1.71 (FWHM 0.90) | 1.76 (FWHM 0.92) | 1.96 (FWHM 1.01) | 1.76 (FWHM 0.90) |
 
 ![FL_NX15](chain/FL_NX15.png)
