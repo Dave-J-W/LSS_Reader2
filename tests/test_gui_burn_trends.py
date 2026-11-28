@@ -118,8 +118,8 @@ def test_gid_burn_shows_three_quantities_on_two_panels(window, qapp, recorder, t
     d.rangeLineEdit.setText('1.40:1.53')
     d.burnAnalysePushButton.click()
     assert window.burnResult.window == (1.40, 1.53)
-    assert window.burnResult.reference['estimator'] == 'template'         # the default
-    d.burnEstimatorComboBox.setCurrentText('moments')                     # the legacy arithmetic
+    assert window.burnResult.reference['estimator'] == 'stretched'         # the default
+    d.burnEstimatorComboBox.setCurrentIndex(d.burnEstimatorComboBox.findData('moments'))   # the legacy arithmetic
     assert window.burnResult.reference['estimator'] == 'moments'
     d.burnErrorsComboBox.setCurrentText('counting')
     assert window.burnResult.trend_errors == 'given'

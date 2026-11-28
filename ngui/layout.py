@@ -301,7 +301,7 @@ BURN = {
             ROW(C('burnBeamWidthLineEdit', 'Beam width (mm)'), C('burnBeamHeightLineEdit', 'height (mm)')),
             C('burnFastModeCheckBox', 'Fast mode (shutter open)'),
             C('burnScanComboBox', 'Burn on show', note='Several burns at once (F98, built 2026-11-25)'),
-            C('burnEstimatorComboBox', 'Estimator', items=['template', 'moments', 'fit']),
+            C('burnEstimatorComboBox', 'Estimator', items=['stretched', 'moments', 'fit']),
             C('burnErrorsComboBox', 'Errors', items=['auto', 'scatter', 'counting']),
             C('burnThresholdSpinBox', 'Change that matters (%)'),
             C('burnAnalysePushButton', 'Analyse'),

@@ -13,7 +13,7 @@
   {
    "case": "fade",
    "monitor": 10000000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "mean",
    "n": 100,
    "bias": 0.06428610884632495,
@@ -25,7 +25,7 @@
   {
    "case": "fade",
    "monitor": 10000000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "spline",
    "n": 100,
    "bias": 0.06477946204354298,
@@ -37,7 +37,7 @@
   {
    "case": "fade",
    "monitor": 10000000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "truth",
    "n": 100,
    "bias": 0.06421096169151864,
@@ -49,7 +49,7 @@
   {
    "case": "fade",
    "monitor": 10000000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "mean",
    "n": 100,
    "bias": -1.3802304176486758e-05,
@@ -61,7 +61,7 @@
   {
    "case": "fade",
    "monitor": 10000000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "spline",
    "n": 100,
    "bias": 3.509196489455524e-05,
@@ -73,7 +73,7 @@
   {
    "case": "fade",
    "monitor": 10000000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "truth",
    "n": 100,
    "bias": -1.5227342800520905e-05,
@@ -85,7 +85,7 @@
   {
    "case": "fade",
    "monitor": 60000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "mean",
    "n": 100,
    "bias": 0.06751359786805236,
@@ -97,7 +97,7 @@
   {
    "case": "fade",
    "monitor": 60000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "spline",
    "n": 100,
    "bias": 0.0693292822473721,
@@ -109,7 +109,7 @@
   {
    "case": "fade",
    "monitor": 60000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "truth",
    "n": 100,
    "bias": 0.06573057723413532,
@@ -121,7 +121,7 @@
   {
    "case": "fade",
    "monitor": 60000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "mean",
    "n": 100,
    "bias": 0.0012301055400624331,
@@ -133,7 +133,7 @@
   {
    "case": "fade",
    "monitor": 60000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "spline",
    "n": 100,
    "bias": 0.0008522038592871958,
@@ -145,7 +145,7 @@
   {
    "case": "fade",
    "monitor": 60000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "truth",
    "n": 100,
    "bias": 0.000847059484866593,
@@ -157,7 +157,7 @@
   {
    "case": "fade",
    "monitor": 10000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "mean",
    "n": 100,
    "bias": 0.06978017471327638,
@@ -169,7 +169,7 @@
   {
    "case": "fade",
    "monitor": 10000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "spline",
    "n": 100,
    "bias": 0.07215404123266976,
@@ -181,7 +181,7 @@
   {
    "case": "fade",
    "monitor": 10000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "truth",
    "n": 100,
    "bias": 0.06835994240850815,
@@ -193,7 +193,7 @@
   {
    "case": "fade",
    "monitor": 10000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "mean",
    "n": 100,
    "bias": 0.0006248306132278145,
@@ -205,7 +205,7 @@
   {
    "case": "fade",
    "monitor": 10000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "spline",
    "n": 100,
    "bias": 0.000408100287501392,
@@ -217,7 +217,7 @@
   {
    "case": "fade",
    "monitor": 10000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "truth",
    "n": 100,
    "bias": 0.0001806035538231446,
@@ -229,7 +229,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "mean",
    "n": 100,
    "bias": 0.1338616201005915,
@@ -241,7 +241,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "spline",
    "n": 100,
    "bias": 0.1336700751891414,
@@ -253,7 +253,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "truth",
    "n": 100,
    "bias": 0.1340720426053983,
@@ -265,7 +265,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "mean",
    "n": 100,
    "bias": 0.0002140287840439517,
@@ -277,7 +277,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "spline",
    "n": 100,
    "bias": 0.0003575122500233602,
@@ -289,7 +289,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "truth",
    "n": 100,
    "bias": 0.00028799361366404623,
@@ -301,7 +301,7 @@
   {
    "case": "nx15_like",
    "monitor": 60000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "mean",
    "n": 100,
    "bias": 0.1041901172024188,
@@ -313,7 +313,7 @@
   {
    "case": "nx15_like",
    "monitor": 60000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "spline",
    "n": 100,
    "bias": 0.12541837359629138,
@@ -325,7 +325,7 @@
   {
    "case": "nx15_like",
    "monitor": 60000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "truth",
    "n": 100,
    "bias": 0.13525554551175856,
@@ -337,7 +337,7 @@
   {
    "case": "nx15_like",
    "monitor": 60000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "mean",
    "n": 100,
    "bias": -0.017745242518032667,
@@ -349,7 +349,7 @@
   {
    "case": "nx15_like",
    "monitor": 60000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "spline",
    "n": 100,
    "bias": -0.002803536393495508,
@@ -361,7 +361,7 @@
   {
    "case": "nx15_like",
    "monitor": 60000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "truth",
    "n": 100,
    "bias": 0.0002573855631458305,
@@ -373,7 +373,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "mean",
    "n": 100,
    "bias": 0.06524790724704299,
@@ -385,7 +385,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "spline",
    "n": 100,
    "bias": 0.1271428083612507,
@@ -397,7 +397,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000.0,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "truth",
    "n": 100,
    "bias": 0.14482868291110673,
@@ -409,7 +409,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "mean",
    "n": 100,
    "bias": -0.05866898892896591,
@@ -421,7 +421,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "spline",
    "n": 100,
    "bias": -0.008479647903478629,
@@ -433,7 +433,7 @@
   {
    "case": "nx15_like",
    "monitor": 10000.0,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "truth",
    "n": 100,
    "bias": 0.004918298157521683,
@@ -446,7 +446,7 @@
  "nx": [
   {
    "scan": 14,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "mean",
    "change": -0.025039990396946005,
    "sigma": 0.022661443347507877,
@@ -455,7 +455,7 @@
   },
   {
    "scan": 14,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "spline",
    "change": -0.06126500788486351,
    "sigma": 0.02976328594849958,
@@ -464,7 +464,7 @@
   },
   {
    "scan": 14,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "mean",
    "change": -0.0003637908977864577,
    "sigma": 0.033549430259913623,
@@ -473,7 +473,7 @@
   },
   {
    "scan": 14,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "spline",
    "change": -0.054995371766529924,
    "sigma": 0.03757704946483359,
@@ -482,7 +482,7 @@
   },
   {
    "scan": 15,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "mean",
    "change": -0.014736247193775127,
    "sigma": 0.014673298787153274,
@@ -491,7 +491,7 @@
   },
   {
    "scan": 15,
-   "estimator": "template",
+   "estimator": "stretched",
    "reference": "spline",
    "change": -0.02296196303958973,
    "sigma": 0.01307201153547949,
@@ -500,7 +500,7 @@
   },
   {
    "scan": 15,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "mean",
    "change": -0.1332820377329751,
    "sigma": 0.024253927720748126,
@@ -509,7 +509,7 @@
   },
   {
    "scan": 15,
-   "estimator": "split",
+   "estimator": "separated",
    "reference": "spline",
    "change": -0.13596666363508172,
    "sigma": 0.024549160946756826,

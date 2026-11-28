@@ -1,4 +1,4 @@
-# Walkthrough: a GID burn from the raw frames to the verdict, with the shoulder split off (P44)
+# Walkthrough: a GID burn from the raw frames to the verdict, with the shoulder separated off (P44)
 
 Tools man, 2026-11-27, for the owner's standing order (AGENTS.md rule 13): the whole chain, with the fits
 and the statistics explained. Public data: NX school burn 15 (and burn 14 for the verdicts), and synthetic
@@ -13,10 +13,10 @@ The numbers are in `walkthrough/numbers.json`. The full study, with known truth,
 
 A burn test measures the same spot 21 times in a row and asks whether the beam changes it. In a GID frame
 the peak is sharp and sits on a broad hump, the **shoulder**. The reader measures each frame against the
-average of all the frames (the **template**): it stretches and slides the average until it matches the
+average of all the frames (the **stretched**): it stretches and slides the average until it matches the
 frame, and reads the intensity from how much it had to scale it. If the peak gets wider during the burn, the
 stretch also widens the hump, and the reader counts the hump's extra width as extra intensity. So a peak
-that fades *and* broadens can look steady. The **split** estimators separate the hump from the peak first,
+that fades *and* broadens can look steady. The **separated** estimators separate the hump from the peak first,
 and stretch only the peak.
 
 ## Step 1. The raw data (figure BW1)
@@ -37,14 +37,14 @@ and stretch only the peak.
 
 ## Step 2. Splitting the average frame into a shoulder and a peak (figure BW2)
 
-![BW2](walkthrough/BW2_the_split.png)
+![BW2](walkthrough/BW2_shoulder_and_peak.png)
 
 - **(a) The average of the 21 frames,** with its chord: the straight line through the first and last three
   points. That line was the legacy burn test's background.
 - **(b) The shape is the average less the chord.** The points more than 1.5 FWHM from the peak (21 of the
   42, green) hold only the shoulder. A Gaussian plus a straight line is fitted to them alone
   (`burn.split_shoulder`).
-- **(c) The two parts the split fits to every frame:**
+- **(c) The two parts separated fits to every frame:**
   - **S**, the shoulder: the fitted Gaussian;
   - **P**, the peak: the shape less S and the line.
   - **The line** goes to each frame's own straight background.
@@ -53,7 +53,7 @@ and stretch only the peak.
 |---|---|---|
 | shoulder centre, σ | 1.4577, 0.0439 Å⁻¹ | a hump about 7 × as wide as the peak (FWHM 0.103) |
 | peak FWHM, centroid | 0.0150, 1.4722 Å⁻¹ | the peak alone |
-| the whole shape's FWHM (what the template stretches) | 0.0207 Å⁻¹ | the peak plus the hump under it |
+| the whole shape's FWHM (what stretched stretches) | 0.0207 Å⁻¹ | the peak plus the hump under it |
 
 **Two things to know:**
 - **The hump and the line trade off.** S's area is 1.44 × the shape's, because the fitted line is negative.
@@ -68,10 +68,10 @@ and stretch only the peak.
 ![BW3](walkthrough/BW3_one_frame_fitted.png)
 
 **The two models**, on the last frame of burn 15 (the most changed):
-- **template:** A × the whole shape (stretched by w, slid by δ) + a line. 5 parameters.
-- **split:** A × P (stretched, slid) + B × S (not stretched) + a line. 6 parameters.
+- **stretched:** A × the whole shape (stretched by w, slid by δ) + a line. 5 parameters.
+- **separated:** A × P (stretched, slid) + B × S (not stretched) + a line. 6 parameters.
 
-| | template | split |
+| | stretched | separated |
 |---|---|---|
 | **χ²/dof** | **4.85** | **2.13** |
 | worst residual | 5.5 σ | 2.5 σ |
@@ -79,17 +79,17 @@ and stretch only the peak.
 | mean χ²/dof over the 21 frames | 4.24 | 2.17 |
 
 **Reading the residuals** (lower panels: each point's miss in its own error bars):
-- **Template:**
+- **Stretched:**
   - a run of misses of +2 to +3.5σ from 1.42 to 1.45, and −5.5σ at the window's edge;
   - that is a pattern, not noise: the stretched hump is wider than the frame's hump. The hump did not widen
     with the peak.
-- **Split:**
+- **Separated:**
   - no long runs;
   - but χ²/dof is still 2.1, so something remains: the peak's own shape may change, or the hump is not quite
     a Gaussian (the study's section 2 measures what that costs).
 
 **χ², ELI5:** each miss divided by its error bar, squared, added up; χ²/dof divides by the number of points
-less the number of parameters. An honest model with honest errors gives about 1. 4.85 means the template's
+less the number of parameters. An honest model with honest errors gives about 1. 4.85 means the stretched reading's
 misses are about 2.2 error bars typical, so it does not describe this frame.
 
 ## Step 4. One number per frame (figure BW4)
@@ -99,15 +99,15 @@ misses are about 2.2 error bars typical, so it does not describe this frame.
 Each frame's fit gives one intensity (A·w × the peak's area) and one FWHM (w × the peak's FWHM). The panels
 show them relative to the fitted line's value at t = 0.
 
-| burn 15, change over the burn | template | split |
+| burn 15, change over the burn | stretched | separated |
 |---|---|---|
 | **intensity** | **−1.5 % ± 1.5 %** | **−13.3 % ± 2.4 %** |
 | FWHM | +17.8 % ± 1.5 % | +21.4 % ± 4.0 % |
-| the shoulder (split's B × S's area) | — | −2.8 % ± 2.8 % |
+| the shoulder (the separated reading's B × S's area) | — | −2.8 % ± 2.8 % |
 
 - **(a) The intensity:**
-  - the template's points lie flat;
-  - the split's fall along their line.
+  - the stretched reading's points lie flat;
+  - the separated reading's fall along their line.
 - **(b) The FWHM:** both grow, about alike.
 - **(c) The shoulder's amplitude B,** per frame:
   - it lies between 0.96 and 1.15 and has no trend;
@@ -118,9 +118,9 @@ show them relative to the fitted line's value at t = 0.
 - The frames' counting errors are used only as relative weights.
 - Their size comes from how much the points actually scatter about the most flexible curve fitted (the
   reader's GID default, owner 2026-11-21).
-- The factor is 0.93 for the template, 1.64 for the split. The split's per-frame numbers scatter 64 % more
+- The factor is 0.93 for stretched, 1.64 for separated. The separated reading's per-frame numbers scatter 64 % more
   than counting alone predicts: six parameters per frame instead of five, and B trades with A.
-- So the split pays for its accuracy with precision: ±2.4 % against ±1.5 % here.
+- So separated pays for its accuracy with precision: ±2.4 % against ±1.5 % here.
 
 ## Step 5. The verdict: is there a change? (figure BW5)
 
@@ -132,7 +132,7 @@ show them relative to the fitted line's value at t = 0.
 - A sloped line has one parameter more than a flat one. The reader calls a quantity **changing** when the
   line's score is lower by more than 2 (`trends.STABLE_DELTA`). Otherwise the quantity is **stable**.
 
-| intensity, AICc(flat) − AICc(line) | template | split |
+| intensity, AICc(flat) − AICc(line) | stretched | separated |
 |---|---|---|
 | burn 14 | −1.3: stable | −2.5: stable |
 | burn 15 (×4.7 the flux) | −1.5: **stable** | **+24.1: changing** |
@@ -150,21 +150,21 @@ show them relative to the fitted line's value at t = 0.
 
 | | holds the truth | mean read | SD | pull SD | called "changing" |
 |---|---|---|---|---|---|
-| template | **0 of 60** | −2.3 % | 2.1 % | 1.71 | 18 of 60 |
-| split | **44 of 60** | −14.9 % | 2.0 % | 1.28 | 60 of 60 |
+| stretched | **0 of 60** | −2.3 % | 2.1 % | 1.71 | 18 of 60 |
+| separated | **44 of 60** | −14.9 % | 2.0 % | 1.28 | 60 of 60 |
 
 **What it shows:**
-- **The template** reads the −13 % fade as −2.3 %. Its intervals never hold the truth, and it calls the
+- **Stretched** reads the −13 % fade as −2.3 %. Its intervals never hold the truth, and it calls the
   burn "stable" 42 times in 60. That is P44.
-- **The split** calls every burn changing. But it reads −14.9 % on average, 1.9 points too far, and its
+- **Separated** calls every burn changing. But it reads −14.9 % on average, 1.9 points too far, and its
   intervals hold the truth in 44 of 60 (73 %).
   - Part of the miss is the bias: the study (`summary.md` section 6) traces it to the noise of the mean
     frame that every frame is fitted against.
   - The rest is σ about 28 % too small (pull SD 1.28).
-- **At high counts** the split reads this burn to 0.03 pp (`summary.md` section 1). So the miss here is a
+- **At high counts** separated reads this burn to 0.03 pp (`summary.md` section 1). So the miss here is a
   low-count effect.
 - **Whether real frames have it** is open: on NX 15, re-reading against a smoothed mean frame moves the
-  split's −13.3 % to −13.6 %, not to −11.8 % as the synthetic burns predict.
+  the separated reading's −13.3 % to −13.6 %, not to −11.8 % as the synthetic burns predict.
 
 **Pulls and coverage, ELI5:**
 - A pull is (read − truth) / σ: how many of its own error bars an answer missed by.
@@ -174,18 +174,18 @@ show them relative to the fitted line's value at t = 0.
 
 ## Step 7. The judgment
 
-- **NX burn 15's intensity falls, by about 13 %, while the peak broadens by about 20 %.** The template's
+- **NX burn 15's intensity falls, by about 13 %, while the peak broadens by about 20 %.** The stretched reading's
   "stable" is the artefact P44 describes.
   - **Confidence: moderately high that it falls.**
   - The evidence:
     - both splits read it (−13 %, −15 % with the shoulder fixed);
     - the one-Gaussian fit reads −6 % and calls it changing too;
-    - the split describes the frames twice as well (χ²/dof 2.2 against 4.2);
-    - on synthetic burns built like it, the template misses it every time.
+    - separated describes the frames twice as well (χ²/dof 2.2 against 4.2);
+    - on synthetic burns built like it, stretched misses it every time.
   - **Confidence: low on the exact size,** about ±3 %:
-    - the shoulder's true form is unknown, and on non-Gaussian shoulders the split's own bias is a few
+    - the shoulder's true form is unknown, and on non-Gaussian shoulders the separated reading's own bias is a few
       percent (`summary.md` section 2);
-    - at NX 15's counts the split over-reads a synthetic burn like it by about 2 points (step 6). That
+    - at NX 15's counts separated over-reads a synthetic burn like it by about 2 points (step 6). That
       over-read is not seen on NX 15 itself (`summary.md` section 6).
 - **NX burn 14 is stable** under every estimator but the one-Gaussian fit, which misdescribes the frames
   (χ²/dof 9.6). **Confidence: high.**
@@ -197,8 +197,8 @@ show them relative to the fitted line's value at t = 0.
   - the peak's area measured another way before and after the burn (a rod scan);
   - more burns at several fluxes, read by both splits.
   - Hand-off `docs/handoff_out/10-gid-burn-shoulder.md` asks the agent with the private burns for both.
-- **For the reader:** the template stays the default. The split is available from scripts
-  (`exp.burn(15, estimator='split')`). A switch of the default, or the dialog offering the split, is the
+- **For the reader:** stretched stays the default. Separated is available from scripts
+  (`exp.burn(15, estimator='separated')`). A switch of the default, or the dialog offering separated, is the
   owner's decision under rule 12, paused until 2.0 (`docs/RELEASE_PLAN.md`).
 
 ## Where each step lives in the code
@@ -206,8 +206,8 @@ show them relative to the fitted line's value at t = 0.
 | step | code |
 |---|---|
 | 1 frames, rows, line cut | `Experiment.burn` (`burn.signal_rows`, `Experiment.cut`) |
-| 2 the window, the split | `burn.choose_window`, `burn.split_shoulder` |
+| 2 the window, separated | `burn.choose_window`, `burn.split_shoulder` |
 | 3 one frame's fit | `burn._template` (the shoulder column with B free or 1), `burn.frame_model` draws it |
-| 4 one number per frame | `burn.measure_gid(estimator='split')`: intensity A·w × the peak's area, FWHM w × the peak's FWHM |
+| 4 one number per frame | `burn.measure_gid(estimator='separated')`: intensity A·w × the peak's area, FWHM w × the peak's FWHM |
 | 5 the verdict | `burn.analyse` → `trends.compare(errors='scatter')`, `trends.STABLE_DELTA` |
 | 6 calibration | `tests/tools/burn_shoulder_walkthrough.py` (`bw6`), `tests/synthetic/burn_profiles.py` |

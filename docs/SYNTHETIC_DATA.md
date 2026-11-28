@@ -278,7 +278,7 @@ part of it); the template reads a broadening at constant area as a 15 %
 gain; the moments barely see a broadening or half a shift.
 
 **Counts against NX** (measured 2026-11-27, `tests/test_burn_shoulder_study.py`): the default monitor
-1e7 gives one frame's template intensity to 0.19 %, about 20 × better than NX school frames (burn 14:
+1e7 gives one frame's stretched intensity to 0.19 %, about 20 × better than NX school frames (burn 14:
 3.8 %, burn 15: 2.0 %). The NX equivalents are monitor **1e4** (3.9 %) and **6e4** (2.1 %)
 (`burn_shoulder_study.NX_MONITORS`). Use them when a number is to stand for NX; at 1e7 a bias shows
 clean of noise, but an effect that grows as the counts fall (the reference's noise, P44 study section 6)
@@ -456,7 +456,7 @@ res = refl.run_all(rep)                               # every patching method + 
 clean = refl.run_all(refl.denoised(rep))              # the same on the expected counts: bias alone
 summary, rows = refl.survey(refl.Config(plan='staggered'), range(200))   # bias, SD, pulls per method/join
 b = bm.replicate(bm.Config(change='broaden'), 1)     # burn profiles, noisy and clean, truth per frame
-r = bm.run_all(b); bm.frame_curve(b, r['template'], 20)   # each estimator's curve on a frame's line cut
+r = bm.run_all(b); bm.frame_curve(b, r['stretched'], 20)   # each estimator's curve on a frame's line cut
 ```
 
 `refl.Config`: truth `water`/`dppc`/`film` (thickness), plan `nx`,

@@ -86,6 +86,7 @@ class BurnResult:
     dose_total: float = None      # to the end of the last frame
     dose_scale: float = 1.0       # dose and dose_total are in units of this many (dose.engineering_scale)
     dose_notes: list = field(default_factory=list)
+    first_frame: dict = field(default_factory=dict)   # #188: {quantity: first_frame_check's dict} when flagged
 
     @property
     def x(self):
@@ -201,12 +202,25 @@ def is_gid(dth_deg):
     return abs(float(dth_deg)) > GID_BURN_MIN_DTH_DEG
 
 
-ESTIMATORS = ('template', 'moments', 'fit')
-# P44 (2026-11-27): the template with the broad shoulder split off and held
+ESTIMATORS = ('stretched', 'moments', 'fit')
+# P44 (2026-11-27): the broad shoulder separated from the peak and held
 # unstretched; accepted by measure_gid, not yet offered by the burn dialog
 # (rule 12: a default or a dialog choice changes after its study).
-SPLIT_ESTIMATORS = ('split', 'split_fixed')
-SPLIT_CORE = 1.5           # split_shoulder: the shoulder is fitted outside ±1.5 FWHM of the peak
+SEPARATED_ESTIMATORS = ('separated', 'separated_held')
+SHOULDER_MAX_HEIGHT_ERROR = 0.5   # separate_shoulder: a shoulder whose height is known to worse than ±50 % is refused (#187)
+SEPARATE_CORE = 1.5           # separate_shoulder: the shoulder is fitted outside ±1.5 FWHM of the peak
+# The names until 2026-11-27 (owner: "too opaque"), still accepted everywhere a name is read, so saved
+# workbooks, preferences and scripts keep working: 'template', 'split', 'split_fixed'.
+ALIASES = {'template': 'stretched', 'split': 'separated', 'split_fixed': 'separated_held'}
+# What the reader and the studies call each estimator.
+ESTIMATOR_NAMES = {'stretched': 'shoulder stretched with the peak', 'separated': 'shoulder separated',
+                   'separated_held': 'shoulder separated and held', 'moments': 'moments (legacy)',
+                   'fit': 'one-Gaussian fit'}
+
+
+def canonical(estimator):
+    """An estimator's name today: an old name (``ALIASES``) becomes the new one; others are unchanged."""
+    return ALIASES.get(estimator, estimator)
 
 ROWS_FRACTION = 0.1        # signal_rows: the peak's row profile above this fraction of its maximum
 ROWS_PAD = 2               # rows added on each side
@@ -338,8 +352,8 @@ def choose_window(x, mean, err, qxy_range=None, options=None):
     return (float(lo), float(hi)), pk
 
 
-def split_shoulder(x, shape, centre, fwhm, core=SPLIT_CORE):
-    """Split the template's shape into a broad shoulder and the peak (P44,
+def separate_shoulder(x, shape, centre, fwhm, core=SEPARATE_CORE, why=None):
+    """Separate the mean shape (what stretched fits) into a broad shoulder and the peak (P44,
     2026-11-27). A Gaussian plus a line is fitted to ``shape`` (the mean
     profile less its chord) outside |x − centre| < core·fwhm, where the peak
     has fallen to nothing; the shoulder S is that Gaussian, the peak
@@ -348,7 +362,18 @@ def split_shoulder(x, shape, centre, fwhm, core=SPLIT_CORE):
 
     Returns (S, P, params), params (height, centre, σ) of the shoulder; or
     (zeros, shape, None) when fewer than 8 points lie outside the core, the
-    fit fails or finds no shoulder: the split is then the template."""
+    fit fails or finds no shoulder: separated is then stretched.
+
+    Not a shoulder (#187, 2026-11-27), also (zeros, shape, None): a Gaussian
+    whose height is not determined by the points beside the peak (its
+    relative error from the fit's covariance above SHOULDER_MAX_HEIGHT_ERROR).
+    That happens when the Gaussian is much broader than the window, where it
+    is only a curvature and its height trades off against the line: S, its
+    area and B then mean nothing. A broad shoulder that the points do pin
+    down is kept, however tall or wide (synthetic: σ up to 0.10 against a
+    window half-width of 0.048, heights to ±25 %). The fit itself is
+    unchanged, so every kept shoulder gives the same numbers as before.
+    ``why``: a list; the reason a fit was refused is appended to it."""
     from scipy.optimize import curve_fit
     x = np.asarray(x, float)
     shape = np.asarray(shape, float)
@@ -362,7 +387,7 @@ def split_shoulder(x, shape, centre, fwhm, core=SPLIT_CORE):
     h0 = max(float(np.max(shape[out])), 1e-12)
     span = float(x[-1] - x[0])
     try:
-        p, _ = curve_fit(g, x[out], shape[out], p0=[h0, centre, 3 * fwhm, 0.0, 0.0],
+        p, cov = curve_fit(g, x[out], shape[out], p0=[h0, centre, 3 * fwhm, 0.0, 0.0],
                          bounds=([0, x[0], 1.5 * fwhm, -np.inf, -np.inf], [np.inf, x[-1], 10 * span, np.inf, np.inf]),
                          maxfev=20000)
     except (RuntimeError, ValueError):
@@ -370,10 +395,20 @@ def split_shoulder(x, shape, centre, fwhm, core=SPLIT_CORE):
     S = p[0] * np.exp(-0.5 * ((x - p[1]) / p[2]) ** 2)
     if not np.all(np.isfinite(p)) or not np.any(S > 1e-3 * np.max(np.abs(shape))):
         return none
+    rel = math.sqrt(cov[0, 0]) / p[0] if cov is not None and np.isfinite(cov[0, 0]) and p[0] > 0 else math.inf
+    if not rel <= SHOULDER_MAX_HEIGHT_ERROR:
+        if why is not None:
+            why.append('its height is not determined (± %.0f %% of it; σ %.3g against a window half-width of %.3g): '
+                       'it trades off against the line' % (100 * rel if np.isfinite(rel) else math.inf, p[2], 0.5 * span))
+        return none
     return S, shape - g(x, *p), (float(p[0]), float(p[1]), float(p[2]))
 
 
-def _template(x, y, s, xt, mt, c, extra=None, extra_free=True):
+split_shoulder = separate_shoulder          # the names until 2026-11-27, for scripts that use them
+SPLIT_ESTIMATORS = SEPARATED_ESTIMATORS
+
+
+def _stretch_fit(x, y, s, xt, mt, c, extra=None, extra_free=True):
     """Fit y ≈ A·mt(c + (x − c − δ)/w) + b0 + b1(x − c): (A, δ, w, b0, b1)
     with errors, χ²/dof and covariance. ``extra`` (on x; P44's shoulder S):
     a column added unstretched, with a free amplitude B (parameters A, δ, w,
@@ -409,18 +444,18 @@ def _template(x, y, s, xt, mt, c, extra=None, extra_free=True):
 
 
 def frame_model(reference, detail, xx):
-    """The curve the 'template' or a split estimator fitted to one frame,
+    """The curve the 'stretched' or a separated estimator fitted to one frame,
     on ``xx`` inside the window: ``reference`` and one entry of the details
-    measure_gid returned. Split: (peak, shoulder, background) as well, the
+    measure_gid returned. Separated: (peak, shoulder, background) as well, the
     three parts of the curve. None for other estimators or a failed frame."""
     from scipy.interpolate import CubicSpline
-    est = reference.get('estimator')
-    if est not in ('template',) + SPLIT_ESTIMATORS or not detail.get('ok', False):
+    est = canonical(reference.get('estimator'))
+    if est not in ('stretched',) + SEPARATED_ESTIMATORS or not detail.get('ok', False):
         return None
     xx = np.asarray(xx, float)
     xw = reference['x']
-    mt = reference['peak'] if est in SPLIT_ESTIMATORS else reference['shape']
-    c = reference['peak_centre'] if est in SPLIT_ESTIMATORS else reference['centre']
+    mt = reference['peak'] if est in SEPARATED_ESTIMATORS else reference['shape']
+    c = reference['peak_centre'] if est in SEPARATED_ESTIMATORS else reference['centre']
     spline = CubicSpline(xw, mt, bc_type='natural', extrapolate=False)
     p = detail['params']
     A, d, w = p[:3]
@@ -428,18 +463,18 @@ def frame_model(reference, detail, xx):
     v = spline(c + (xx - c - d) / w)
     peak = A * np.where(np.isfinite(v), v, 0.0)
     back = b0 + b1 * (xx - c)
-    if est not in SPLIT_ESTIMATORS:
+    if est not in SEPARATED_ESTIMATORS:
         return peak + back
-    if reference.get('shoulder') is None:          # no shoulder found: the split is the template
+    if reference.get('shoulder') is None:          # no shoulder found: separated is then stretched
         sh = np.zeros_like(xx)
     else:
-        B = p[3] if est == 'split' else 1.0
+        B = p[3] if est == 'separated' else 1.0
         h, m, sg = reference['shoulder']
         sh = B * h * np.exp(-0.5 * ((xx - m) / sg) ** 2)
     return peak + sh + back, (peak, sh, back)
 
 
-def measure_gid(profiles, qxy_range=None, options=None, estimator='template'):
+def measure_gid(profiles, qxy_range=None, options=None, estimator='stretched'):
     """Per-frame intensity, position and FWHM of the strongest peak of the
     profiles ((N, 3) arrays x, I, σ on one x grid).
 
@@ -448,7 +483,8 @@ def measure_gid(profiles, qxy_range=None, options=None, estimator='template'):
     worked well once its range was constrained like this; owner,
     2026-11-21). Estimators:
 
-    - ``template`` (default): the mean profile less its straight baseline
+    - ``stretched`` (default; "shoulder stretched with the peak", called
+      ``template`` until 2026-11-27): the mean profile less its straight baseline
       (the legacy background) is the peak's shape; each frame is fitted as
       A × that shape shifted by δ and stretched by w, on its own straight
       background: every frame measured relative to the mean of the frames.
@@ -464,30 +500,34 @@ def measure_gid(profiles, qxy_range=None, options=None, estimator='template'):
       centre and FWHM. A single Gaussian does not describe a pinhole
       frame's peak (sharp, on a broad shoulder; χ²/dof 10–40 on NX).
 
-    - ``split`` and ``split_fixed`` (P44, 2026-11-27; not yet in the burn
-      dialog): the template with the broad shoulder split off
-      (``split_shoulder``). Each frame is A × the peak's shape, shifted by
+    - ``separated`` and ``separated_held`` ("shoulder separated", "shoulder
+      separated and held"; ``split`` and ``split_fixed`` until 2026-11-27;
+      P44, not yet in the burn dialog): the broad shoulder separated from the
+      peak (``separate_shoulder``). Each frame is A × the peak's shape, shifted by
       δ and stretched by w, plus B × the shoulder, unstretched, on its own
-      straight background; B free per frame (``split``, its intensity
+      straight background; B free per frame (``separated``, its intensity
       B × the shoulder's area as the quantity ``shoulder``) or 1
-      (``split_fixed``: a steady shoulder). Intensity, position and FWHM
+      (``separated_held``: a steady shoulder). Intensity, position and FWHM
       are the peak's alone: A·w × its area, its centroid + δ, w × its FWHM.
-      The template stretches the shoulder with the peak, so it reads a
+      ``stretched`` stretches the shoulder with the peak, so it reads a
       broadening as a gain in area (synthetic: +15 % for a 30 % broadening)
-      and a fading peak as fading less; the split removes that (P44,
+      and a fading peak as fading less; separating it removes that (P44,
       docs/studies/burn_shoulder/). The owner (2026-11-26): it is not known
       whether the shoulder changes under the beam, so both are reported.
 
-    On NX scans 14 and 15 template and moments agree on intensity (stable)
-    and width; the template is about 3 × more precise in position.
+    On NX scans 14 and 15 stretched and moments agree on intensity (stable)
+    and width; stretched is about 3 × more precise in position.
 
     Returns (values, reference, window, per-frame details). ``reference``
-    holds the window's x and the mean frame's shape (template and split:
-    ``frame_model`` redraws each frame's fit from them); split adds the
-    shoulder (height, centre, σ, or None when none was found and the split
-    is the template), and the peak's profile, area, centroid and FWHM."""
-    if estimator not in ESTIMATORS + SPLIT_ESTIMATORS:
-        raise ValueError('estimator %r: one of %s' % (estimator, ', '.join(ESTIMATORS + SPLIT_ESTIMATORS)))
+    holds the window's x and the mean frame's shape (stretched and separated:
+    ``frame_model`` redraws each frame's fit from them); separated adds the
+    shoulder (height, centre, σ, or None when none was found and separated
+    is then stretched), and the peak's profile, area, centroid and FWHM.
+    An old name (``ALIASES``) is accepted; ``reference['estimator']`` holds
+    the new one."""
+    estimator = canonical(estimator)
+    if estimator not in ESTIMATORS + SEPARATED_ESTIMATORS:
+        raise ValueError('estimator %r: one of %s' % (estimator, ', '.join(ESTIMATORS + SEPARATED_ESTIMATORS)))
     o = DEFAULT_FIT if options is None else options
     x = profiles[0][:, 0]
     mean = np.mean([p[:, 1] for p in profiles], axis=0)
@@ -505,15 +545,17 @@ def measure_gid(profiles, qxy_range=None, options=None, estimator='template'):
                      window=window, found=found, estimator=estimator, x=xw, shape=shape)
     names = ('intensity', 'centre', 'fwhm')
     S = None
-    if estimator in SPLIT_ESTIMATORS:
+    if estimator in SEPARATED_ESTIMATORS:
         c0, w0 = (found['centre'], found['fwhm']) if found else (float(xw[np.argmax(shape)]), reference['fwhm'])
-        S, P, sp = split_shoulder(xw, shape, c0, w0, SPLIT_CORE)       # read at call time: a study may vary it
+        why = []
+        S, P, sp = separate_shoulder(xw, shape, c0, w0, SEPARATE_CORE, why)  # read at call time: a study may vary it
         cP = float(np.sum(P * xw) / np.sum(P)) if np.sum(P) > 0 else c_ref
-        reference.update(shoulder=sp, peak=P, peak_centre=cP, peak_area=float(np.sum(P) * step),
+        reference.update(shoulder=sp, shoulder_refused=why[0] if why else None, peak=P, peak_centre=cP,
+                         peak_area=float(np.sum(P) * step),
                          peak_fwhm=_half_width(xw, P), shoulder_area=float(np.sum(S) * step))
         if sp is None:
             S = None
-        elif estimator == 'split':
+        elif estimator == 'separated':
             names += ('shoulder',)
     vals = {k: ([], []) for k in names}
     details = []
@@ -527,9 +569,9 @@ def measure_gid(profiles, qxy_range=None, options=None, estimator='template'):
         y, s = prof[sel, 1], prof[sel, 2]
         s = np.where(s > 0, s, np.nan)
         s = np.where(np.isfinite(s), s, np.nanmax(s) if np.any(np.isfinite(s)) else 1.0)
-        if estimator == 'template':
+        if estimator == 'stretched':
             try:
-                p, pe, chi2, cov = _template(xw, y, s, xw, shape, c_ref)
+                p, pe, chi2, cov = _stretch_fit(xw, y, s, xw, shape, c_ref)
                 # the stretched shape's area is w × the shape's: integrated intensity A·w·area
                 aw = p[0] * p[2]
                 aw_e = math.sqrt(max((p[2] * pe[0]) ** 2 + (p[0] * pe[2]) ** 2 + 2 * p[0] * p[2] * cov[0, 2], 0.0))
@@ -539,14 +581,14 @@ def measure_gid(profiles, qxy_range=None, options=None, estimator='template'):
             except (RuntimeError, ValueError) as e:
                 put(math.nan, math.nan, math.nan, math.nan, math.nan, math.nan)
                 details.append(dict(ok=False, message=str(e)))
-        elif estimator in SPLIT_ESTIMATORS:
+        elif estimator in SEPARATED_ESTIMATORS:
             ref = reference
             try:
-                p, pe, chi2, cov = _template(xw, y, s, xw, ref['peak'], ref['peak_centre'], S,
-                                             extra_free=estimator == 'split')
+                p, pe, chi2, cov = _stretch_fit(xw, y, s, xw, ref['peak'], ref['peak_centre'], S,
+                                             extra_free=estimator == 'separated')
                 aw = p[0] * p[2]
                 aw_e = math.sqrt(max((p[2] * pe[0]) ** 2 + (p[0] * pe[2]) ** 2 + 2 * p[0] * p[2] * cov[0, 2], 0.0))
-                free = S is not None and estimator == 'split'
+                free = S is not None and estimator == 'separated'
                 b, be = (p[3] * ref['shoulder_area'], pe[3] * ref['shoulder_area']) if free else (math.nan, math.nan)
                 put(aw * ref['peak_area'], aw_e * ref['peak_area'], ref['peak_centre'] + p[1], pe[1],
                     p[2] * ref['peak_fwhm'], pe[2] * ref['peak_fwhm'], b, be)
@@ -600,6 +642,76 @@ def analyse(t, values, models=trends.MODELS, threshold=0.05, confidence=0.95, ov
                                 t0=0.0, errors=errors)
     return out
 
+
+# #188 (2026-11-27): a first frame far from the next ones flattens the weighted line (a private GID burn: its
+# first frame 0.50 of the next three, about 30 sigma low; the intensity's linear change -2.9 % with it, -12.9 %
+# without). It is flagged, not left out: leaving it out changes verdicts, which is the owner's decision.
+FIRST_FRAME_NEXT = 3          # the first frame is compared with the median of the next this many
+FIRST_FRAME_SIGMA = 5.0       # flagged when more than this many of its sigma away ...
+FIRST_FRAME_FRACTION = 0.2    # ... and more than this fraction of that median
+FIRST_FRAME_QUANTITIES = ('intensity', 'fwhm')
+
+
+def linear_change(fit, span):
+    """(change, sigma) over ``span`` of the linear model c + s t, relative
+    to its value at 0: s span / c (nan when the model is not fitted)."""
+    if fit is None or not fit.ok or fit.params is None or fit.cov is None:
+        return math.nan, math.nan
+    c, sl = float(fit.params[0]), float(fit.params[1])
+    if c == 0 or not np.isfinite(c):
+        return math.nan, math.nan
+    jac = np.array([-sl * span / c ** 2, span / c])
+    return sl * span / c, float(math.sqrt(max(float(jac @ np.asarray(fit.cov)[:2, :2] @ jac), 0.0)))
+
+
+def first_frame_check(x, y, s, span, comparison=None, next_frames=FIRST_FRAME_NEXT, k=FIRST_FRAME_SIGMA,
+                      fraction=FIRST_FRAME_FRACTION, **compare_kw):
+    """Is the first frame far from the next ones (#188)? Its value against
+    the median of the next ``next_frames`` usable frames: flagged when it is
+    more than ``k`` of its sigma and more than ``fraction`` of that median
+    away. None when it is not (or too few frames). Otherwise a dict:
+    ``ratio`` (first / median), ``z`` (in its sigma), ``with`` and
+    ``without``, the linear model's change over ``span`` with every frame
+    (``comparison``, the burn's own trends.compare, else refitted) and
+    without the first; ``compare_kw`` go to trends.compare (models,
+    overdispersion, errors, as the burn used)."""
+    x, y, s = (np.asarray(a, float) for a in (x, y, s))
+    ok = np.isfinite(x) & np.isfinite(y) & np.isfinite(s) & (s > 0)
+    if not ok.size or not ok[0] or ok.sum() < next_frames + 3:
+        return None
+    m = float(np.median(y[1:][ok[1:]][:next_frames]))
+    if m == 0 or not np.isfinite(m):
+        return None
+    ratio, z = float(y[0] / m), float((y[0] - m) / s[0])
+    if abs(ratio - 1) <= fraction or abs(z) <= k:
+        return None
+    kw = dict(compare_kw, t0=0.0)
+    if comparison is None:
+        comparison = trends.compare(x[ok], y[ok], s[ok], **kw)
+    without = trends.compare(x[ok][1:], y[ok][1:], s[ok][1:], **kw)
+    return {'ratio': ratio, 'z': z, 'next_frames': int(next_frames),
+            'with': linear_change(comparison.fits.get('linear'), span),
+            'without': linear_change(without.fits.get('linear'), span)}
+
+
+def first_frame_notes(res, **compare_kw):
+    """Check ``res``'s first frame for each of FIRST_FRAME_QUANTITIES
+    (``first_frame_check``), record what is flagged in ``res.first_frame``
+    and return one note per flagged quantity (the frame is kept)."""
+    out = []
+    for q in FIRST_FRAME_QUANTITIES:
+        if q not in res.values:
+            continue
+        y, s = res.values[q]
+        f = first_frame_check(res.x, y, s, res.span(), res.trends.get(q), **compare_kw)
+        if f is None:
+            continue
+        res.first_frame[q] = f
+        (w, we), (wo, woe) = f['with'], f['without']
+        out.append('first frame: %s %.2f × the next %d frames\' (%+.0f σ); linear change over the burn '
+                   '%+.1f %% ± %.1f with it, %+.1f %% ± %.1f without (kept; #188)'
+                   % (LABELS.get(q, q), f['ratio'], f['next_frames'], f['z'], 100 * w, 100 * we, 100 * wo, 100 * woe))
+    return out
 
 STYLES = {'constant': ':', 'linear': '--', 'exponential': '-.', 'double exponential': '-'}
 COLOURS = {'intensity': 'C0', 'centre': 'C2', 'fwhm': 'C3'}
@@ -717,6 +829,8 @@ def plot(res, fig, title='', residuals=False, fontsize=None):
         col = COLOURS[q]
         y, s = res.values[q]
         ax.errorbar(res.x, y, s, fmt='o', color=col, ms=3, lw=0.8)
+        if q in (res.first_frame or {}):          # #188: a first frame far from the next ones, kept
+            ax.plot(res.x[:1], y[:1], 'o', mfc='none', mec='k', ms=9, mew=1.2)
         ax.set_ylabel(UNITS[res.kind].get(q, q), color=col, fontsize=fs['axis'])
         ax.tick_params(axis='y', colors=col, labelsize=fs['tick'])
         ax.tick_params(axis='x', labelsize=fs['tick'])

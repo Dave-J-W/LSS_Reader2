@@ -576,11 +576,19 @@ Each line: feature — where — default — script — notes entry (date).
   of the FWHM; grey dashed lines at ± the threshold. The summary (verdict,
   const − lin, best model, each model's Δ, the 5 % time, the limit, the
   settings) is beside the panels, not in the title. "Auto peak": the strongest peak of the mean frame; off: the
-  typed Qxy range. Estimator: template (default), moments (legacy), fit.
+  typed Qxy range. Estimator: "shoulder stretched with the peak" (default; script name 'stretched', called
+  'template' until 2026-11-27, renamed by the owner as too opaque), "moments (legacy)", "one-Gaussian fit". The box shows
+  the readable names; a preference or workbook saved with an old name still loads.
   Errors: auto (scatter for GID, counting for reflectivity). Time: clock
   (default, wall time; the owner: the shutter closes between exposures) or
   exposure. Change: the threshold (5 %). "Position in limit": off by default
   (whether a position change matters is the user's judgment).
+- **A first frame far from the next ones** (2026-11-27, #188): when the first frame's intensity or FWHM is
+  more than 5 σ and more than 20 % from the median of the next three frames, the result's notes say so,
+  with the linear change over the burn with that frame and without it, and the plot rings it in black.
+  The frame is kept: one such frame can flatten the line (a private GID burn: −2.9 % with it, −12.9 %
+  without). Leaving it out changes the verdict, so that is the user's judgment (or a later default,
+  the owner's). When to look: a ringed first point; check the frame before trusting a "stable".
 - Burn scans are recognised as `ascan ih` without movement (the beamline's
   standard), labelled 'burn' in the workbook's Scans sheet.
 - Save stores the values and the trend table (Trends sheet).

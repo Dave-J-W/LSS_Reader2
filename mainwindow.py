@@ -5247,10 +5247,11 @@ class MainWindow (QMainWindow):
     # ---- burn tests: trends over time (owner, 2026-11-21; F22a 3-4, P30) ----
 
     def burnOptions(self):
-        o=dict(models=list(trendmod.MODELS),estimator='template',time='clock',threshold=5.0,auto_peak=True,position_limit=False,
+        o=dict(models=list(trendmod.MODELS),estimator='stretched',time='clock',threshold=5.0,auto_peak=True,position_limit=False,
                errors='auto',rows_auto=True,axis='time',dose_unit='photons',beam_width='',fast=False,
                verdict_quantity='intensity',strip_relative=0.0)
         o.update({k:v for k,v in (self.prefs.get('burn') or {}).items() if k in o})
+        o['estimator']=burnmod.canonical(o['estimator'])     # a name saved before 2026-11-27 ('template')
         return o
 
     def setupBurnTrends(self):
@@ -5285,12 +5286,15 @@ class MainWindow (QMainWindow):
             setattr(u,b.objectName(),b)
         est=QComboBox(page)
         est.setObjectName('burnEstimatorComboBox')
-        est.addItems(burnmod.ESTIMATORS)
-        est.setCurrentText(o['estimator'])
+        for k in burnmod.ESTIMATORS:
+            est.addItem(burnmod.ESTIMATOR_NAMES.get(k,k),k)
+        est.setCurrentIndex(max(0,est.findData(o['estimator'])))
         est.setToolTip('GID: how each frame\'s peak is measured, in the peak window (constrained as the legacy test '
-                       'needed). template (default): the mean of the frames, less the legacy straight background, is the '
+                       'needed). Shoulder stretched with the peak (default; "template" until 2026-11-27, script name '
+                       '\'stretched\'): the mean of the frames, less the legacy straight background, is the '
                        'peak\'s shape; each frame is fitted as that shape scaled, shifted and stretched, i.e. measured '
-                       'relative to the others. moments (legacy arithmetic): straight line through the window\'s first '
+                       'relative to the others. A broad shoulder under the peak is stretched with it, so a broadening '
+                       'peak can hide a fade (P44). moments (legacy arithmetic): straight line through the window\'s first '
                        'and last three points removed, then sum, centroid, r.m.s. width; a steady shoulder under the '
                        'peak dilutes its shift (synthetic: 0.004 read as 0.0023). fit: one peak of the line-cut Fit '
                        'options\' shape (a Gaussian does not describe a pinhole frame\'s peak).')
@@ -5410,7 +5414,8 @@ class MainWindow (QMainWindow):
     def burnOptionsChanged(self,*args):
         u=self.uipdburn
         o=dict(models=[m for m,b in u.burnModelBoxes.items() if b.isChecked()],
-               estimator=str(u.burnEstimatorComboBox.currentText()),time=str(u.burnTimeComboBox.currentText()),
+               estimator=str(u.burnEstimatorComboBox.currentData() or u.burnEstimatorComboBox.currentText()),
+               time=str(u.burnTimeComboBox.currentText()),
                errors=str(u.burnErrorsComboBox.currentText()),
                threshold=float(u.burnThresholdSpinBox.value()),auto_peak=bool(u.burnAutoPeakCheckBox.isChecked()),
                position_limit=bool(u.burnPositionLimitCheckBox.isChecked()),
@@ -5548,7 +5553,7 @@ class MainWindow (QMainWindow):
         self.burnShowDose(scan,kw)
         args=dict(kw)
         args.pop('models') if tuple(args.get('models',()))==trendmod.MODELS else None
-        for k,v in (('time','clock'),('threshold',0.05),('estimator','template'),('slit',(21,11)),
+        for k,v in (('time','clock'),('threshold',0.05),('estimator','stretched'),('slit',(21,11)),
                     ('bg_offset',0.5),('direction','H')):
             if args.get(k)==v:
                 args.pop(k)

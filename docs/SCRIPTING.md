@@ -120,6 +120,26 @@ that is above 1. `roughness=3.0` puts a fixed Névot–Croce roughness in R_F (d
 'bootstrap failures'. Nothing applies the value. The study is `docs/studies/qoff_resolution/summary.md`.
 `fresnel_absorbing` and `fresnel_smeared` are its R_F, sharp and smeared.
 
+## Qz shifts from where the reflection lands (2026-11-27, F42)
+
+```python
+from lss_core import detector_qoff as dq
+ref = dq.sh_reference(exp, 5)                     # the reflection's row on sh scan 5's plateau: 53.010 ± 0.024 on NX
+s = dq.relative_shifts(exp, [6, 7, 8, 9], 5)      # per frame: scan, point, qz, row, row_error, dbeta_rad, dqz, dqz_error
+s.summary()                                       # NX: median −4e-05, range −2.3e-04 to +1.4e-04 Å⁻¹ over 96 frames
+dq.relative_shifts(exp, [6], 5, reading='incident')   # δα = Δβ instead of Δβ/2
+```
+
+The detector arm follows the reflection, so at the set angle the reflection lands on one row. Each frame's row
+(a Gaussian plus a constant fitted to the row profile, to about 0.02 px) is compared with the plateau row of a
+sample-height scan. Δβ = Δrow × 0.172 mm / S2D_Dist, and δQz = (4π/λ) cos α · δα, with δα = Δβ/2 for a surface
+tilt (the default; the owner: "usually surface tilt or curvature") or Δβ for an error in the incident angle.
+Qz + δQz is where the point was measured.
+
+The reference is taken at the alignment angle, so an offset already there is invisible to this route (the
+absolute route, the direct beam against the reflection, waits on what forms the spot: issue #174). The direction
+(a larger row is a larger exit angle) comes from the sh scan's direct beam when it shows. Nothing is applied.
+
 ## Fluorescence (XFNTR)
 
 ```python
@@ -332,9 +352,10 @@ burn.dose, burn.dose_unit, burn.dose_scale     # the axis: NX 14 in '1e+12 photo
 
 Reflectivity geometry (Det_Th 0): the Ref Patch ROI per Monc (`slit`,
 `bg_offset`, `direction`); GID: the strongest peak's integrated intensity,
-position and FWHM per Monc (`estimator` 'template' (default), 'moments'
+position and FWHM per Monc (`estimator` 'stretched' (default; the names 'template', 'split' and
+'split_fixed' of before 2026-11-27 still work), 'moments'
 (legacy arithmetic) or 'fit' with `fit=FitOptions(...)`; or, P44, not yet in
-the burn dialog, 'split' and 'split_fixed': the template with the broad
+the burn dialog, 'separated' and 'separated_held': the stretched reading with the broad
 shoulder split off and held unstretched, its amplitude free per frame
 (then the quantity 'shoulder' as well) or held at 1, and
 `lss_core.burn.frame_model(burn.reference, burn.frame_fits[k], x)` the
@@ -345,6 +366,11 @@ choose the peak; `rows` the pixel rows summed: 'mean', the default since
 (`lss_core.trends.MODELS`) by AICc; `trend_errors` 'scatter' (GID default)
 or 'given'. `lss_core.trends.compare(t, y, sigma)` does the comparison for
 any series.
+
+A first frame more than 5 σ and 20 % from the median of the next three (intensity, FWHM) is
+flagged, not left out (#188): `burn.first_frame` holds `{quantity: {'ratio', 'z', 'with', 'without'}}`,
+the last two the linear change over the burn (change, σ) with every frame and without the first, and
+`burn.notes` says it. `lss_core.burn.first_frame_check(x, y, sigma, span)` checks any series.
 
 ## Reflectivity patching and uncertainty (2026-11-22)
 
